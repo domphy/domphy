@@ -6,9 +6,9 @@ This is the official monorepo for the Domphy ecosystem.
 
 ## Documentation
 
-**The full documentation can be found at [domphy.dev](https://domphy.dev).**
+**The full documentation can be found at [domphy.com](https://domphy.com).**
 
-The documentation site is built with VitePress and is located in the `apps/docs` directory.
+The website is built with VitePress and is located in the `apps/web` directory, with documentation served from `apps/web/docs`.
 
 ## Core Packages
 
@@ -20,7 +20,7 @@ The core functionality is split across three main packages:
 
 ## Getting Started
 
-To get started, please visit the documentation at [domphy.dev](https://domphy.dev). Each package can be installed individually via npm:
+To get started, please visit the documentation at [domphy.com](https://domphy.com). Each package can be installed individually via npm:
 
 ```bash
 npm install @domphy/core @domphy/theme @domphy/ui

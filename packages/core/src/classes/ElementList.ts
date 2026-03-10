@@ -1,6 +1,7 @@
 import { TextNode } from "./TextNode.js";
 import { ElementNode } from "./ElementNode.js";
 import type { DomphyElement } from "../types.js";
+import { ensureDomStyle } from "../helpers.js";
 
 type ElementInput = DomphyElement | null | undefined | number | string
 type NodeItem = ElementNode | TextNode;
@@ -117,7 +118,7 @@ export class ElementList {
           domElement.insertBefore(domNode, ref);
           let root = domElement.getRootNode()
           const styleParent = root instanceof ShadowRoot ? root : document.head
-          let domStyle = styleParent.querySelector("#domphy-style") as HTMLStyleElement;
+          let domStyle = ensureDomStyle(styleParent)
           item.styles.render(domStyle as HTMLStyleElement)
           item._hooks.Mount && item._hooks.Mount(item)
           item.children.items.forEach(child => {

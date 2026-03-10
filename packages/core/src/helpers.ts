@@ -237,6 +237,23 @@ export function selectorSplitter(selectors: string) {
     return splitted;
 };
 
+export function ensureDomStyle(styleParent: HTMLHeadElement | ShadowRoot): HTMLStyleElement {
+    let domStyle = styleParent.querySelector("#domphy-style") as HTMLStyleElement | null;
+
+    if (!domStyle) {
+        domStyle = document.createElement("style");
+        domStyle.id = "domphy-style";
+        styleParent.appendChild(domStyle);
+    }
+
+    if (domStyle.dataset.domphyBase !== "true") {
+        domStyle.sheet?.insertRule("[hidden] { display: none !important; }", 0);
+        domStyle.dataset.domphyBase = "true";
+    }
+
+    return domStyle;
+}
+
 export const mergePartial = (partial: PartialElement | DomphyElement): typeof partial => {
 
     if (Array.isArray(partial.$)) {

@@ -2,7 +2,7 @@ import type { DomphyElement, EventName, HookMap, TagName, PartialElement } from 
 import { AttributeList } from "./AttributeList.js";
 import { ElementList } from "./ElementList.js";
 import { StyleList } from "./StyleList.js";
-import { validate, mergePartial, getTagName, deepClone } from "../helpers.js";
+import { validate, mergePartial, getTagName, deepClone, ensureDomStyle } from "../helpers.js";
 import { merge, hashString } from "../utils.js";
 
 export class ElementNode {
@@ -273,12 +273,7 @@ export class ElementNode {
     domStyle ||= this.getRoot().styles.domStyle
     let root = domElement.getRootNode()
     const styleParent = root instanceof ShadowRoot ? root : document.head
-    domStyle ||= styleParent.querySelector("#domphy-style") as HTMLStyleElement;
-    if (!domStyle) {
-      domStyle = document.createElement("style");
-      domStyle.id = "domphy-style";
-      styleParent.appendChild(domStyle);
-    }
+    domStyle ||= ensureDomStyle(styleParent)
     this.styles.render(domStyle as HTMLStyleElement)
     this.children.items.forEach(child => {
       if (child instanceof ElementNode && child._portal) {

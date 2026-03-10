@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd apps/docs && npm run build && cd ../.. && mkdir -p dist/docs && cp -r apps/landing/* dist/ && cp -r apps/docs/.vitepress/dist/* dist/docs/",
-  "outputDirectory": "dist"
+  "buildCommand": "cd apps/web && npm run build",
+  "outputDirectory": "apps/web/.vitepress/dist"
 }

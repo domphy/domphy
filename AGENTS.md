@@ -6,7 +6,7 @@ Monorepo (pnpm workspaces):
 - `packages/core` — `@domphy/core`
 - `packages/theme` — `@domphy/theme`
 - `packages/ui` — `@domphy/ui` (patches in `src/patches/`)
-- `apps/docs` — VitePress docs + demos
+- `apps/web` — VitePress website + docs + demos
 
 ---
 
@@ -106,8 +106,8 @@ style: {
 ## Docs & Demo Convention
 
 Every patch needs:
-- **Doc:** `apps/docs/ui/patches/patch-name.md`
-- **Demo:** `apps/docs/demos/patches/PatchName.ts` (PascalCase, `export default App`)
+- **Doc:** `apps/web/docs/ui/patches/patch-name.md`
+- **Demo:** `apps/web/docs/demos/patches/PatchName.ts` (PascalCase, `export default App`)
 
 Follow the structure of `button.md` and `Button.ts` as the reference standard.
 
@@ -130,12 +130,12 @@ Follow the structure of `button.md` and `Button.ts` as the reference standard.
 
 | Purpose | Path |
 |---|---|
-| Core API docs (most important) | `apps/docs/core/` |
-| `ElementNode` API | `apps/docs/core/api/element-node.md` |
-| `ElementList` API | `apps/docs/core/api/element-list.md` |
-| `State` API | `apps/docs/core/api/state.md` |
+| Core API docs (most important) | `apps/web/docs/core/` |
+| `ElementNode` API | `apps/web/docs/core/api/element-node.md` |
+| `ElementList` API | `apps/web/docs/core/api/element-list.md` |
+| `State` API | `apps/web/docs/core/api/state.md` |
 | Core types (`PartialElement`, `HookMap`, `StyleObject`...) | `packages/core/src/types.ts` |
 | Register new patch | `packages/ui/src/patches.ts` |
 | Reference patch | `packages/ui/src/patches/button.ts` |
-| Reference doc | `apps/docs/ui/patches/button.md` |
-| Reference demo | `apps/docs/demos/patches/Button.ts` |
+| Reference doc | `apps/web/docs/ui/patches/button.md` |
+| Reference demo | `apps/web/docs/demos/patches/Button.ts` |
