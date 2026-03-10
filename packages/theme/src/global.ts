@@ -1,7 +1,2 @@
-import * as core from "@domphy/core";
-import * as theme from "./index.js";
-
-(globalThis as any).Domphy = {
-  core,
-  theme
-};
+export * as core from "@domphy/core"
+export * as theme from "./index.js"

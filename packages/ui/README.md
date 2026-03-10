@@ -66,4 +66,4 @@ function myButton() {
 
 ---
 
-**[Full documentation →](https://domphy.dev/ui/)**
+**[Full documentation →](https://www.domphy.com/docs/ui/)**

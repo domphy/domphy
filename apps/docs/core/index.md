@@ -16,6 +16,55 @@ These three imports are all you need for most cases. `ElementNode` renders. `toS
 
 ---
 
+## Core Workflow
+
+```mermaid
+flowchart TB
+    A["DomphyElement / raw object"] --> B["new ElementNode(App)"]
+    B --> C["deepClone + validate + mergePartial"]
+    C --> D["_onSchedule(node, raw)"]
+    D --> E["merge patches, attributes, styles, events, hooks"]
+    E --> F{"children value"}
+    F -->|static| G["children.update([...children])"]
+    F -->|reactive fn| H["create listener and subscribe via state.get(listener)"]
+    H --> G
+    G --> I["_onInit(node)"]
+
+    I --> J{"entry mode"}
+    J -->|CSR render| K["render(target)"]
+    J -->|SSR| L["generateHTML() + generateCSS()"]
+    L --> M["send HTML/CSS to client"]
+    M --> N["mount(existing DOM)"]
+
+    K --> O["_createDOMNode() + attributes + DOM events"]
+    O --> P["render scoped styles to #domphy-style"]
+    P --> Q["render children"]
+    Q --> R["_onMount(node)"]
+
+    N --> S["bind existing DOM + attach events + walk children"]
+    S --> T["_onMount(node)"]
+
+    R --> U["interactive tree"]
+    T --> U
+
+    U --> V{"change source"}
+    V -->|state.set()| W["reactive listener reruns"]
+    V -->|children.insert()| X["_onInsert -> create child DOM -> child _onMount"]
+    V -->|children.remove() / node.remove()| Y["_onBeforeRemove(node, done)"]
+
+    W --> Z["_onBeforeUpdate(node, rawChildren)"]
+    Z --> AA["children.update(): keyed reuse, move, insert, remove"]
+    AA --> AB["_onUpdate(node)"]
+    AB --> U
+    X --> U
+
+    Y --> AC["done()"]
+    AC --> AD["remove DOM + _onRemove(node) + dispose hooks, styles, events"]
+    AD --> AE["subscriptions released"]
+```
+
+This is the full runtime loop of `@domphy/core`: parse once, render or mount, react to state, diff children, and dispose cleanly on removal.
+
 ## Element Syntax
 
 A Domphy element is a plain JavaScript object. The HTML tag is the key; its value is the content.

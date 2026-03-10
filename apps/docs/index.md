@@ -20,10 +20,6 @@ From the author:
 
 > I introduce Patch-based UI Architecture, a paradigm for composing web interfaces distinct from component-based, directive-based, and mixin-based approaches. A Patch is formally defined as a function returning a PartialElement — a composable, stateless descriptor that augments a host element's behavior without wrapping, replacing, or owning it. Unlike existing composition models, a Patch carries no rendering lifecycle, holds no state, and creates no DOM boundary.
 
-Research papers:
-* [Compositional Atomic Reactive Mapping Model](../../packages/core/paper/figures/main.pdf)
-* [Relative Unitization Design Systems](../../packages/ui/paper/figures/main.pdf)
-
 ## Installation
 
 ::: code-group

@@ -8,6 +8,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default defineConfig({
+  base: "/docs/",
+  sitemap: {
+    hostname: "https://www.domphy.com",
+  },
   transformPageData(pageData) {
     const noAside = ['/patches/']
     const isMatch = noAside.some(path => pageData.relativePath.includes(path))
@@ -49,7 +53,7 @@ export default defineConfig({
 
   title: "Domphy Docs",
   description: "Official documentation for Domphy UI Engine.",
-  head: [["link", { rel: "icon", href: "/favicon.svg" }]],
+  head: [["link", { rel: "icon", href: "/docs/favicon.svg" }]],
 
   themeConfig: {
     search: { provider: "local" },

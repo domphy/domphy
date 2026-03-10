@@ -71,4 +71,4 @@ const btn = { button: "Click", $: [rounded()] }
 
 ---
 
-**[Full documentation →](https://domphy.dev/core/)**
+**[Full documentation →](https://www.domphy.com/docs/core/)**

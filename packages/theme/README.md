@@ -83,4 +83,4 @@ themeApply()
 
 ---
 
-**[Full documentation →](https://domphy.dev/theme/)**
+**[Full documentation →](https://www.domphy.com/docs/theme/)**
