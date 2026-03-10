@@ -1,0 +1,19 @@
+flowchart TB
+
+ ElementNode("ElementNode")
+ TextNode("TextNode<br><small>(internal)")
+ StyleList("StyleList")
+ StyleRule("StyleRule<br><small>(internal)")
+ StyleProperty("StyleProperty<br><small>(internal)")
+ ElementList("ElementList")
+ ElementAttribute("ElementAttribute<br><small>(internal)")
+ AttributeList("AttributeList")
+ ElementNode --children-->ElementList
+ ElementList --items-->ElementNode
+ ElementList --items-->TextNode
+ ElementNode --attributes-->AttributeList
+ ElementNode --styles-->StyleList
+ AttributeList --items-->ElementAttribute
+ StyleList --items-->StyleRule
+ StyleRule --styleBlock-->StyleProperty
+ StyleRule --styleList-->StyleList

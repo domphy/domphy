@@ -1,0 +1,35 @@
+\section{Discussion: Architectural Stability}
+
+The transition from an ephemeral component lifecycle to a persistent shell model
+represents a structural shift in UI architecture. Traditional component-based
+frameworks repeatedly instantiate and reconcile intermediate structures,
+leading to dynamic allocation patterns and reconciliation overhead. 
+Domphy instead establishes a stable structural topology during the
+reification phase and maintains it throughout the application lifecycle.
+
+By representing UI elements as flat compositional objects with intrinsic
+reactive bindings, Domphy separates structural definition from runtime
+mutation. The structural graph is fixed after initialization, while
+state changes propagate exclusively through pre-registered atomic bindings.
+This separation enhances architectural determinism and reduces runtime
+structural variability.
+
+From a cognitive perspective, the flat composition model reduces indirection.
+Developers interact with a single object literal rather than navigating
+multi-layered provider hierarchies or nested component wrappers.
+The absence of recursive re-render cycles simplifies mental modeling of
+state-to-view synchronization.
+
+From a systems perspective, architectural stability yields predictable
+performance characteristics. Since updates are constrained to bounded
+atomic slots, latency does not scale with global tree size. This property
+is particularly relevant for high-frequency interaction environments,
+including data visualization dashboards, animation-heavy interfaces,
+and direct-manipulation design tools, where frame-rate stability is
+more critical than generalized state-tree abstraction.
+
+However, this model introduces a space–time trade-off. Persistent bindings
+increase memory residency due to retained reactive listeners.
+While modern hardware environments typically tolerate this overhead,
+large-scale applications must consider memory–CPU balance when adopting
+the CARM model.

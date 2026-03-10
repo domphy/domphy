@@ -1,0 +1,9 @@
+
+flowchart TB
+    InternalNode --> ReactiveFunction -- Get State and Add Listener--> State
+    InternalNode --> DomEvent
+    ElementAsObject --> InternalNode
+    InternalNode --> BeforeRemoveHook -- Release Listener --> Listener
+    Listener -- Update --> DomElement["DomElement"]
+    DomEvent["DomEvent"] --> State["State"]
+    State -- Call Listener--> Listener

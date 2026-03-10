@@ -1,0 +1,5 @@
+
+flowchart TB
+    Parent["Parent"] --> Current["Current Element<br><small>context size=parent ± n"]
+    Current -- sizeUnit = fontSize/4--> Spacing["Spacing<br><small>size=m*sizeUnit<br>Radius<br>Padding<br>Margin<br>Gap<br>...</small>"]
+    Current -- Index Shift-->Typography["Typography<br><small>small/h6=context-1<br>body/h5=context<br>h4=context+1<br>h3=context+2<br>h2=context+3<br>h1=context+4"]

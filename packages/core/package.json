@@ -1,0 +1,44 @@
+{
+  "name": "@domphy/core",
+  "version": "0.1.0",
+  "description": "Domphy Core UI Framework",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "pack": "tsup && npm pack",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "domphy",
+    "core"
+  ],
+  "author": "Huu Khanh Nguyen",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/domphy/domphy.git",
+    "directory": "packages/core"
+  },
+  "devDependencies": {
+    "csstype": "^3.2.3",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.18"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "unpkg": "dist/core.global.js",
+  "jsdelivr": "dist/core.global.js"
+}

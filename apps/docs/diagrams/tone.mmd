@@ -1,0 +1,9 @@
+
+flowchart TB
+    Parent -- currentTone=parentTone ± n --> Current["Current Element"]
+    Current -- currentTone --> Background
+    Current -- currentTone ± K(Safe WCAG)--> Text
+    Current -- currentTone ± K/2 --> Stroke["Border/Outline"]
+    Background -- shift --> State["Interaction States"]
+    Text -- shift --> State
+    Stroke -- shift --> State

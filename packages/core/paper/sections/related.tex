@@ -1,0 +1,19 @@
+\section{Related Work}
+
+\subsection{Tree-based Reconciliation}
+
+Many modern UI frameworks adopt a tree-based reconciliation strategy, most notably through the Virtual DOM (VDOM) abstraction. In such systems, UI updates typically involve constructing a new virtual representation and computing a structural diff against the previous tree before applying mutations to the underlying document. While effective in reducing direct DOM operations, this approach introduces update costs that scale with the size of the affected subtree. 
+
+Domphy departs from this paradigm by eliminating tree reconstruction and diff-based reconciliation. Instead, it performs a single-pass structural reification during initialization, after which updates are propagated directly to pre-bound reactive properties without traversing the render tree.
+
+\subsection{Fine-grained Reactivity}
+
+Recent frameworks such as SolidJS and Svelte employ fine-grained reactivity to avoid global tree diffing. These systems establish dependency graphs that trigger updates only for affected computations. However, they retain a component-oriented structural abstraction, where UI elements are organized within a recursive component hierarchy.
+
+The CARM model differs in its separation of structural composition from reactive evaluation. While adopting fine-grained dependency tracking, it enforces flat compositional semantics at the object level. UI elements are treated as compositional property maps rather than recursively evaluated functional units. Consequently, reactive updates operate at the property level and are independent of structural nesting depth.
+
+\subsection{Persistent Object and Incremental Models}
+
+Prior work in incremental computation and persistent object systems has explored techniques to minimize recomputation and allocation overhead. Self-adjusting computation and reactive dataflow systems similarly aim to propagate minimal changes across dependency graphs.
+
+Domphy aligns with these principles but applies them specifically to declarative UI construction. Its persistent runtime entities maintain stable bindings between state signals and document attributes, avoiding repeated structural evaluation. This design emphasizes deterministic update paths while trading increased memory usage for reduced runtime recomputation.

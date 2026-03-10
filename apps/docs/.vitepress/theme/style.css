@@ -1,0 +1,47 @@
+:root {
+  --vp-layout-max-width: 100%;
+  --vp-sidebar-width: 240px;
+  --vp-nav-height: 40px;
+}
+
+.VPDoc.has-aside .content-container,
+.VPDoc .content-container {
+  max-width: none !important;
+  padding: 0px !important;
+}
+
+.VPPage .container {
+  max-width: none !important;
+}
+
+.VPNav {
+  background-color: var(--vp-nav-bg-color);
+}
+
+.fullscreen .VPSidebar {
+  transform: translateX(-100%);
+}
+
+.fullscreen .VPNav {
+  display: none !important;
+}
+
+/* bỏ khoảng trống header; selector có thể thay đổi theo version */
+.fullscreen .VPContent {
+  padding-top: 0 !important;
+}
+
+.fullscreen .VPContent {
+  padding-left: 0;
+}
+
+.cm-editor {
+  flex:1;
+  min-height:0;
+  font-size: 13px;
+  overflow: auto;
+}
+
+.cm-scroller {
+  overflow: auto;
+}

@@ -1,0 +1,19 @@
+flowchart LR
+ subgraph HTMLPage["HTML Page as string"]
+        HTML["HTML Tag"]
+        CSS["Style Tag"]
+        JS["client.js"]
+  end
+ subgraph Server["server.js"]
+        SNode["ElementNode"]
+        HTMLPage
+  end
+ subgraph Client["client.js"]
+        CNode["ElementNode"]
+        STYLE["Existing Style"]
+        DOM["Existing DOM"]
+  end
+    SNode -- Generate --> HTML & CSS
+    CNode -- Attach Reactivities + Events --> DOM
+    CNode -- Attach Reactivities --> STYLE
+    A["Element as Object"] --> SNode & CNode

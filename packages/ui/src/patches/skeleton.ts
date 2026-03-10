@@ -1,0 +1,27 @@
+import { type PartialElement, type StyleObject, hashString } from "@domphy/core";
+import { themeColor, themeSpacing, type ThemeColor } from "@domphy/theme";
+
+function skeleton(props: {
+  color?: ThemeColor;
+} = {}): PartialElement {
+  const { color = "neutral" } = props;
+
+  const keyframes = {
+    "0%,100%": { opacity: 1 },
+    "50%": { opacity: .4 }
+  }
+  const animationName = hashString(JSON.stringify(keyframes))
+  return {
+    ariaHidden: "true",
+    style: {
+      height: themeSpacing(6),
+      display: "block",
+      borderRadius: themeSpacing(1),
+      backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+      animation: `${animationName} 1.5s ease-in-out infinite`,
+      [`@keyframes ${animationName}`]: keyframes,
+    } as StyleObject,
+  };
+}
+
+export { skeleton };

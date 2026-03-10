@@ -1,0 +1,25 @@
+\section{Conclusion}
+
+This paper introduced Domphy and the Compositional Atomic Reactive
+Mapping (CARM) model, a flat compositional architecture for declarative
+user interfaces. By replacing hierarchical component recursion with a
+single-pass structural reification process, the model establishes a
+persistent shell in which reactive bindings are constructed once and
+maintained throughout the application lifecycle.
+
+The proposed atomic mapping mechanism enables bounded, slot-level
+updates that are independent of global tree size. Under bounded
+dependency assumptions, the update path achieves constant-time
+complexity per affected attribute. Empirical observations indicate
+reduced structural depth and simplified source definitions compared to
+conventional component-based frameworks.
+
+While the model introduces additional memory overhead due to persistent
+reactive bindings, it offers deterministic runtime behavior and predictable
+latency characteristics. These properties make the architecture suitable
+for interaction-intensive environments requiring stable frame timing and
+fine-grained updates.
+
+Future work includes formal verification of dependency constraints,
+large-scale benchmarking under heterogeneous workloads, and exploration
+of static analysis techniques to optimize memory residency.

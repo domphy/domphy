@@ -1,0 +1,13 @@
+
+flowchart TB
+    RawElementObject -->Tag:Content
+    RawElementObject -->Patches
+    PartialElement -- merge by patch win-->Internal["Internal Properties"]
+    PartialElement -- merge by sequencing-->Events["Events, Hooks"]
+    RawElementObject -->Natives["HTMLAttributes, Styles"]
+    Patches -- merge by order --> PartialElement
+    PartialElement -- merge by native win--> Natives
+    Tag:Content --> Element
+    Natives --> Element
+    Events --> Element
+    Internal --> Element

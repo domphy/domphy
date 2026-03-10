@@ -1,0 +1,174 @@
+Implementation direction: Context-Aware Design Invariants \section{Deterministic Scalable Design System}
+
+Beyond structural and reactive semantics, a coherent UI system
+requires deterministic rules for color contrast and spatial layout.
+We formalize a Scalable Design System composed of two orthogonal
+subsystems:
+
+\begin{itemize}
+    \item A discrete contrast-preserving color index model.
+    \item A line-height–quantized spatial metric.
+\end{itemize}
+
+Both subsystems are finite, index-based, and independent of
+component hierarchy.
+
+\subsection{Indexed Contrast Color Model}
+
+Let $T = \{0,1,\dots,11\}$ be a totally ordered finite tone index set.
+Each element $t \in T$ represents a perceptual position between
+background and contrast extremes.
+
+For a given semantic color $c$, define a tone mapping:
+
+\[
+\Phi_c : T \rightarrow \mathcal{C}
+\]
+
+where $\mathcal{C}$ is the color space (e.g., sRGB).
+The mapping is constructed such that:
+
+\begin{equation}
+|i - j| \geq 6 \quad \Rightarrow \quad
+\text{Contrast}(\Phi_c(i), \Phi_c(j)) \geq 4.5:1
+\end{equation}
+
+This establishes a discrete contrast guarantee:
+any pair of tones separated by at least six indices
+satisfies WCAG AA accessibility for normal text.
+
+\paragraph{Semantic Assignment.}
+
+UI roles are expressed as deterministic index assignments:
+
+\begin{itemize}
+    \item Background surfaces: $t \in \{0,1,2,3,4,5\}$
+    \item Primary text: $t = 8$
+    \item Emphasis text: $t = 10$
+    \item Secondary text: $t = 6$
+    \item Borders: $t \in \{2,4,6\}$
+    \item Elevation shadows: $t \in \{3,5,7\}$
+\end{itemize}
+
+Because indices are discrete and ordered,
+semantic roles reduce to integer assignments rather than
+independent color definitions.
+
+\subsection{State Transitions as Index Jumps}
+
+Interactive states are modeled as bounded index transitions.
+Let $t$ be the base tone of an element. A state transformation is:
+
+\[
+\Psi(t, \Delta) = \text{clamp}(t + \Delta, 0, 11)
+\]
+
+where $\Delta$ is a fixed integer offset.
+
+Examples:
+
+\begin{itemize}
+    \item Hover background: $\Delta = +4$
+    \item Selected background: $\Delta = +2$
+    \item Disabled background: $\Delta = -3$
+    \item Focus ring: $\Delta = \pm 3$
+\end{itemize}
+
+Since all transformations operate in index space,
+state styling becomes deterministic and contrast-preserving.
+No additional color definitions are required.
+
+\paragraph{Invariant.}
+
+Let $d = |t_1 - t_2|$ denote tone distance.
+Under any bounded state transition $\Delta$ with
+$|\Delta| \leq 4$, relative contrast ordering is preserved:
+
+\[
+d' = |(t_1 + \Delta_1) - (t_2 + \Delta_2)|
+\]
+
+remains bounded and predictable.
+Thus accessibility properties are stable under interaction.
+
+\subsection{Line-Height Quantized Spacing System}
+
+Let $L$ denote the typographic line height of the root context.
+Define the base spatial quantum:
+
+\[
+u = \frac{L}{6}
+\]
+
+All layout dimensions are expressed as integer multiples of $u$:
+
+\[
+\mathcal{D} = \{ n u \mid n \in \mathbb{N} \}
+\]
+
+This forms a one-dimensional metric lattice over the vertical axis.
+
+\paragraph{Rationale.}
+
+Empirically, common text sizes produce:
+
+\[
+L \approx 1.5 \cdot \text{fontSize}
+\]
+
+Thus:
+
+\[
+u \approx 0.25\,\text{em}
+\]
+
+which corresponds to approximately $3$–$4$ pixels
+for standard body text sizes.
+
+This quantum allows fine-grained control of:
+
+\begin{itemize}
+    \item Vertical padding
+    \item Border radius
+    \item Component gaps
+    \item Elevation offsets
+\end{itemize}
+
+while maintaining consistent vertical rhythm.
+
+\subsection{Geometric Constraints}
+
+To preserve compositional coherence, we enforce:
+
+\begin{align}
+\text{padding}_x &\geq \text{padding}_y \\
+\text{borderRadius} &= \text{padding}_y \\
+\text{gap} &\in [\text{padding}_y, \text{padding}_x]
+\end{align}
+
+Since all values belong to $\mathcal{D}$,
+layout relationships remain algebraically consistent.
+
+\subsection{Deterministic Design Layer}
+
+The indexed color model and the quantized spacing system
+share three structural properties:
+
+\begin{enumerate}
+    \item Finite ordered index domains.
+    \item Deterministic arithmetic transformations.
+    \item Independence from component hierarchy.
+\end{enumerate}
+
+Therefore, visual semantics are reduced to integer operations
+over bounded sets.
+
+This establishes a deterministic design layer
+that complements the CARM execution model:
+while CARM guarantees constant-time reactive updates,
+the scalable design system guarantees bounded,
+predictable visual transformations.
+
+Together, they form a structurally flat,
+computationally efficient, and perceptually coherent
+architecture for declarative user interfaces, where tone and size are inherited from parent context and remain mutually consistent.

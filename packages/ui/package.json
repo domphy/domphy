@@ -1,0 +1,46 @@
+{
+  "name": "@domphy/ui",
+  "version": "0.1.0",
+  "description": "Domphy UI",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "pack": "tsup && npm pack",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "domphy",
+    "theme",
+    "ui",
+    "patch"
+  ],
+  "author": "Khanh Nguyen",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/domphy/domphy.git",
+    "directory": "packages/ui"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@domphy/theme": "workspace:*",
+    "@domphy/core": "workspace:*",
+    "@floating-ui/dom": "^1.7.5"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "unpkg": "dist/core-theme-ui.global.js",
+  "jsdelivr": "dist/core-theme-ui.global.js"
+}

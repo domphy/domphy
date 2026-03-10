@@ -1,0 +1,74 @@
+\section{The CARM Model}
+
+\subsection{Flat Object Composition}
+
+Let $K$ be a finite set of keys and $V$ a set of values. 
+A blueprint is defined as a finite partial mapping:
+
+\[
+B : K \rightharpoonup V
+\]
+
+Domphy models a UI entity $E$ as the result of a deterministic merge over compositional layers:
+
+\[
+E = P \oplus B \oplus I \oplus R
+\]
+
+where:
+
+\begin{itemize}
+    \item $P$ (Presets) denotes system-level default mappings,
+    \item $B$ (Behaviors) denotes modular structural augmentations,
+    \item $I$ (Instance) denotes local attribute definitions,
+    \item $R$ (Reactive mappings) denotes property-level state bindings.
+\end{itemize}
+
+The operator $\oplus : (K \rightharpoonup V) \times (K \rightharpoonup V) \to (K \rightharpoonup V)$ 
+is defined as a right-biased associative merge:
+
+\[
+(A \oplus B)(k) =
+\begin{cases}
+B(k) & \text{if } k \in \text{dom}(B) \\
+A(k) & \text{otherwise}
+\end{cases}
+\]
+
+This merge preserves a flat key–value structure; composition does not introduce additional structural nesting beyond the underlying DOM hierarchy. Structural composition is therefore resolved at definition time rather than at evaluation time.
+\subsection{Atomic Reactive Mapping}
+
+Let $S$ denote the set of reactive signals.
+For each reactive attribute $a \in A$, Domphy establishes a persistent mapping:
+
+\[
+f_a : S_a \to V_a
+\]
+
+where $S_a \subseteq S$ represents the subset of signals upon which $a$ depends.
+
+The collection of mappings
+\[
+\mathcal{F} = \{ f_a \mid a \in A \}
+\]
+forms a dependency graph $G = (S \cup A, E)$, 
+constructed during a one-time reification phase.
+\subsubsection{Computational Efficiency}
+
+Let $\Delta S \subseteq S$ denote the set of updated signals.
+Let $A_{\text{affected}}$ be the set of attributes dependent on $\Delta S$.
+
+If the dependency graph $G$ is static after reification and 
+the maximum out-degree of any signal node is bounded by a constant $c$,
+then the update cost satisfies:
+
+\[
+T(\Delta S) = O(|A_{\text{affected}}|)
+\]
+
+Under the bounded-dependency assumption ($|A_{\text{affected}}| \le c$ per signal),
+the update cost per signal is $O(1)$.
+
+Unlike tree-based reconciliation strategies that may require traversal of
+structural subtrees, CARM propagates updates directly along pre-established
+signal-to-attribute edges.

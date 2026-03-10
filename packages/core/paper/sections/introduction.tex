@@ -1,0 +1,18 @@
+\section{Introduction}
+
+Declarative user interface (UI) development has largely converged on the component-based paradigm, in which user interfaces are constructed through recursive functional composition. This model promotes modularity and reuse, but also introduces hierarchical structural nesting and repeated evaluation cycles during state updates. In large-scale applications, the resulting render trees can become deeply layered, complicating reasoning about update propagation and increasing runtime overhead associated with reconciliation or dependency tracking.
+
+Recent advances in fine-grained reactivity have reduced the need for global tree diffing. However, most contemporary systems still retain a recursive component abstraction as the primary structural unit of composition. As a result, structural organization and reactive evaluation remain tightly coupled.
+
+This paper proposes \textbf{Domphy}, a declarative UI framework based on the \textbf{Compositional Atomic Reactive Mapping (CARM)} model. Instead of defining UI as nested functional components, CARM models each UI element as a flat compositional object formed through deterministic merge semantics. Reactive behavior is applied at the property level, where individual attributes are directly bound to state signals.
+
+The central idea is to decouple structural composition from reactive evaluation. Structural composition is resolved once through a single-pass reification process, yielding persistent runtime entities. Reactive updates are then propagated through atomic property mappings without re-executing structural definitions.
+
+The contributions of this work are:
+
+\begin{itemize}
+\item A formal compositional model (CARM) defining UI elements as flat merged objects with property-level reactivity.
+\item An execution architecture based on single-pass structural reification and persistent runtime entities.
+\item A complexity analysis showing constant-time update cost per affected reactive property under bounded dependency assumptions.
+\item An empirical evaluation comparing structural depth, code complexity, and runtime behavior against representative component-based frameworks.
+\end{itemize}

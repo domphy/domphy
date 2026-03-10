@@ -1,0 +1,25 @@
+---
+config:
+  flowchart:
+    nodeSpacing: 30
+    rankSpacing: 30
+---
+flowchart TB
+  _onSchedule("_onSchedule(node,rawElement)")
+  _onInit("_onInit(node)")
+  _onInsert("_onInsert(node)")
+  _onMount("_onMount(node)")
+  subgraph Update["Update Cycle"]
+    _onBeforeUpdate("_onBeforeUpdate(node,rawChildren)")
+    _onUpdate("_onUpdate(node)")
+  end
+  _onBeforeRemove("_onBeforeRemove(node,done)")
+  _onRemove("_onRemove(node)")
+  _onSchedule --> _onInit
+  _onInit --> _onInsert
+  _onInsert --> _onMount
+  _onMount --> Update
+  _onBeforeUpdate --> _onUpdate
+  _onUpdate --> _onBeforeUpdate
+  Update --> _onBeforeRemove
+  _onBeforeRemove --> _onRemove
