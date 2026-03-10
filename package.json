@@ -1,0 +1,19 @@
+{
+  "name": "domphy",
+  "description": "A composable UI framework.",
+  "main": "index.js",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "check": "biome check .",
+    "fix": "biome check --write ."
+  },
+  "repository": "git+https://github.com/domphy/domphy.git",
+  "keywords": [],
+  "author": "Huu Khanh Nguyen",
+  "license": "MIT",
+  "packageManager": "pnpm@10.24.0",
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.6"
+  }
+}

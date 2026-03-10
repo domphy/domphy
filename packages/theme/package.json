@@ -1,0 +1,43 @@
+{
+  "name": "@domphy/theme",
+  "version": "0.1.0",
+  "description": "Domphy Design System",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "pack": "tsup && npm pack",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "domphy"
+  ],
+  "author": "Huu Khanh Nguyen",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/domphy/domphy.git",
+    "directory": "packages/theme"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@domphy/core": "workspace:*"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "unpkg": "dist/core-theme.global.js",
+  "jsdelivr": "dist/core-theme.global.js"
+}
