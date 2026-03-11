@@ -1,6 +1,6 @@
 import { DomphyElement, State } from '@domphy/core'
 import { themeSpacing, themeColor } from "@domphy/theme"
-import { icon } from "@domphy/ui"
+import { icon, tooltip } from "@domphy/ui"
 
 const dark = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-bulb-off"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12h1m8 -9v1m8 8h1m-15.4 -6.4l.7 .7m12.1 -.7l-.7 .7" /><path d="M11.089 7.083a5 5 0 0 1 5.826 5.84m-1.378 2.611a5.012 5.012 0 0 1 -.537 .466a3.5 3.5 0 0 0 -1 3a2 2 0 1 1 -4 0a3.5 3.5 0 0 0 -1 -3a5 5 0 0 1 -.528 -7.544" /><path d="M9.7 17h4.6" /><path d="M3 3l18 18" /></svg>`
 const light = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-bulb"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12h1m8 -9v1m8 8h1m-15.4 -6.4l.7 .7m12.1 -.7l-.7 .7" /><path d="M9 16a5 5 0 1 1 6 0a3.5 3.5 0 0 0 -1 3a2 2 0 0 1 -4 0a3.5 3.5 0 0 0 -1 -3" /><path d="M9.7 17l4.6 0" /></svg>`
@@ -35,18 +35,39 @@ export const Toolbar = (props: { isDark: State<boolean>, isFull: State<boolean>,
     const toggleGrid: DomphyElement<"span"> = {
         span: (listener) => hasGrid.get(listener) ? gridOff : gridOn,
         onClick: () => hasGrid.set(!hasGrid.get()),
-        $: [icon()],
+        $: [
+            icon(),
+            tooltip({
+                content: {
+                    span: (listener) => hasGrid.get(listener) ? "Hide sizing grid" : "Show sizing grid",
+                },
+            }),
+        ],
     }
 
     const toggleTheme: DomphyElement<"span"> = {
         span: (listener) => isDark.get(listener) ? light : dark,
         onClick: () => isDark.set(!isDark.get()),
-        $: [icon()],
+        $: [
+            icon(),
+            tooltip({
+                content: {
+                    span: (listener) => isDark.get(listener) ? "Switch to light theme" : "Switch to dark theme",
+                },
+            }),
+        ],
     }
     const toggleScreen: DomphyElement<"span"> = {
         span: (listener) => isFull.get(listener) ? exit : fullscreen,
         onClick: () => isFull.set(!isFull.get()),
-        $: [icon()],
+        $: [
+            icon(),
+            tooltip({
+                content: {
+                    span: (listener) => isFull.get(listener) ? "Exit fullscreen preview" : "Enter fullscreen preview",
+                },
+            }),
+        ],
     }
 
     return {

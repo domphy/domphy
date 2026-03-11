@@ -1,19 +1,21 @@
 # @domphy/ui
 
-~60 ready-to-use patches for Domphy — buttons, inputs, dialogs, tooltips, tabs, and more. Includes `@domphy/core` and `@domphy/theme`.
+Ready-made patches for Domphy.
+
+`@domphy/ui` includes `@domphy/core` and `@domphy/theme`, and provides patches for buttons, inputs, dialogs, menus, tabs, tooltips, and more.
+
+## Install
 
 ```bash
 npm install @domphy/ui
 ```
 
-## What is a Patch?
-
-A Patch is a function that returns a partial element descriptor. It augments a native HTML element without wrapping or owning it. The element's own properties always win.
+## Quick Example
 
 ```ts
 import { ElementNode } from "@domphy/core"
 import { themeApply } from "@domphy/theme"
-import { button, tooltip, tabs } from "@domphy/ui"
+import { button, tooltip } from "@domphy/ui"
 
 themeApply()
 
@@ -21,39 +23,39 @@ const App = {
   div: [
     {
       button: "Save",
-      $: [button(), tooltip({ content: "Save changes" })]
-    }
+      $: [
+        button({ color: "primary" }),
+        tooltip({ content: "Save changes" }),
+      ],
+    },
   ],
-  dataTheme: "light"
+  dataTheme: "light",
 }
 
 new ElementNode(App).render(document.body)
 ```
 
-## Customization via ownership
+## What A Patch Is
 
-Every patch ships as readable source. To fully customize, copy the patch into your project and modify it directly — no configuration API to work around.
+A patch returns a `PartialElement` and merges into a native element.
+
+It does not create a wrapper component or own a separate DOM boundary.
 
 ```ts
-import { toState, merge } from "@domphy/core"
-import { themeColor, themeSpacing, themeSize } from "@domphy/theme"
-
-// your own patch — full control
-function myButton() {
-  return (base) => merge(base, {
-    style: {
-      fontSize:        (l) => themeSize(l, "inherit"),
-      padding:         `${themeSpacing(1)} ${themeSpacing(3)}`,
-      borderRadius:    themeSpacing(2),
-      backgroundColor: (l) => themeColor(l, "inherit", "primary"),
-      color:           (l) => themeColor(l, "shift-6", "primary"),
-      "&:hover": {
-        backgroundColor: (l) => themeColor(l, "increase-1", "primary"),
-      },
-    }
-  })
+{
+  button: "Save",
+  $: [button()],
 }
 ```
+
+## Customization
+
+Most customization should happen in one of these ways:
+
+1. pass patch props
+2. use `dataTone` or `dataSize` context
+3. override inline on the element
+4. copy the patch into your app and create your own variant
 
 ## CDN
 
@@ -64,6 +66,9 @@ function myButton() {
 </script>
 ```
 
----
+## Docs
 
-**[Full documentation →](https://www.domphy.com/docs/ui/)**
+- [UI guide](https://www.domphy.com/docs/ui/)
+- [Customization](https://www.domphy.com/docs/ui/customization)
+- [Creation](https://www.domphy.com/docs/ui/creation)
+- [Patch catalog](https://www.domphy.com/docs/ui/patches/button)

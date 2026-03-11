@@ -266,11 +266,11 @@ export class ElementNode {
     this._hooks.Mount && this._hooks.Mount(this)
   }
 
-  render(domElement: HTMLElement | SVGElement | DocumentFragment, domStyle: HTMLStyleElement | null = null): HTMLElement | SVGElement {
+  render(domElement: HTMLElement | SVGElement | DocumentFragment): HTMLElement | SVGElement {
     const newNode = this._createDOMNode();
     domElement.appendChild(newNode)
     this._hooks.Mount && this._hooks.Mount(this)
-    domStyle ||= this.getRoot().styles.domStyle
+    let domStyle = this.getRoot().styles.domStyle
     let root = domElement.getRootNode()
     const styleParent = root instanceof ShadowRoot ? root : document.head
     domStyle ||= ensureDomStyle(styleParent)

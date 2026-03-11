@@ -1,27 +1,52 @@
 # Domphy
 
-Domphy is a composable UI framework for building web applications with fine-grained reactivity, a context-aware design system, and built-in server-side rendering (SSR) support. It uses plain JavaScript objects, no JSX, no virtual DOM, and no compiler.
+Domphy is a patch-based UI system for the web.
 
-This is the official monorepo for the Domphy ecosystem.
+It is split into 3 packages:
+
+- `@domphy/core` - rendering, reactivity, SSR, and CSS-in-JS runtime
+- `@domphy/theme` - context-aware color, size, and spacing
+- `@domphy/ui` - ready-made patches built on top of core and theme
+
+Package sizes on the docs site are described as:
+
+- `@domphy/core` - `30kb` minified
+- `@domphy/theme` - `8kb` minified
+- `@domphy/ui` - `80kb` minified
+
+In rough ecosystem terms:
+
+- `@domphy/core` is the runtime layer, comparable to `react-dom` + SSR rendering + CSS-in-JS in one package
+- `@domphy/theme` and `@domphy/ui` together are the design-system layer, comparable to what many teams expect from MUI
 
 ## Documentation
 
-**The full documentation can be found at [domphy.com](https://domphy.com).**
+Full documentation: [domphy.com](https://www.domphy.com)
 
-The website is built with VitePress and is located in the `apps/web` directory, with documentation served from `apps/web/docs`.
+- [Core docs](https://www.domphy.com/docs/core/)
+- [Theme docs](https://www.domphy.com/docs/theme/)
+- [UI docs](https://www.domphy.com/docs/ui/)
+- [Integrations](https://www.domphy.com/docs/integrations/)
 
-## Core Packages
+## Install
 
-The core functionality is split across three main packages:
-
-*   **`@domphy/core`**: The rendering engine. It provides fine-grained reactivity, CSS-in-JS, and SSR capabilities using plain JavaScript objects.
-*   **`@domphy/theme`**: A context-aware design system for managing color, size, and spacing with guaranteed WCAG contrast.
-*   **`@domphy/ui`**: A collection of ~60 ready-to-use patches for common UI elements like buttons, inputs, dialogs, and more.
-
-## Getting Started
-
-To get started, please visit the documentation at [domphy.com](https://domphy.com). Each package can be installed individually via npm:
+Most apps can start with:
 
 ```bash
-npm install @domphy/core @domphy/theme @domphy/ui
+npm install @domphy/ui
 ```
+
+Or install packages separately:
+
+```bash
+npm install @domphy/core
+npm install @domphy/theme
+npm install @domphy/ui
+```
+
+## Monorepo
+
+- `packages/core` - `@domphy/core`
+- `packages/theme` - `@domphy/theme`
+- `packages/ui` - `@domphy/ui`
+- `apps/web` - docs website and demos

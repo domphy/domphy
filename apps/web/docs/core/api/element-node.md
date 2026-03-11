@@ -44,15 +44,19 @@ node.render(document.body)
 node.render(document.getElementById("app")!)
 ```
 
-### `mount(domElement)`
+### `mount(domElement, domStyle?)`
 
 Hydrates onto an existing DOM element. Used for SSR.
 
 ```ts
 const html = node.generateHTML()
+const css = node.generateCSS()
 // ... send to client ...
-node.mount(document.getElementById("app")!)
+const domStyle = document.getElementById("domphy-style") as HTMLStyleElement
+node.mount(document.getElementById("app")!, domStyle)
 ```
+
+When doing SSR, render CSS into `<style id="domphy-style">...</style>` on the server, then pass that same style element to `mount()` on the client.
 
 ### `remove()`
 

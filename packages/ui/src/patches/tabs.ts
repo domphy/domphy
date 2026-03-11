@@ -12,7 +12,6 @@ function tabs(props: {
         _context: {
           tabs: {
             activeKey: toState(props.activeKey || 0),
-            path: node.key
           }
         },
       }

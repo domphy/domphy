@@ -14,8 +14,8 @@ function tabPanel(): PartialElement {
       children = children.filter(n => n.type == "ElementNode" && n.attributes.get("role") == "tabpanel")
       let key = node.key || children.findIndex(n => n == node)
       let part: PartialElement = {
-        id: "tabpanel" + context.path + key,
-        "ariaLabelledby": "tab" + context.path + key,
+        id: "tabpanel" + node.parent!.nodeId + key,
+        "ariaLabelledby": "tab" + node.parent!.nodeId + key,
         "hidden": (listener) => context.activeKey.get(listener) != key,
       }
       node.merge(part)

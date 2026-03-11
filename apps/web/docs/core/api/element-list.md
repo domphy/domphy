@@ -33,12 +33,12 @@ const created = node.children.insert({ div: "Hello" }, 2, false)
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `input` | `DomphyElement \| string \| number \| null` | required | Element or text to insert |
+| `input` | `DomphyElement \| string \| number \| null` | required | Element or scalar child content to insert |
 | `index` | `number` | end | Position to insert at |
 | `updateDom` | `boolean` | `true` | Whether to update the DOM |
 | `silent` | `boolean` | `false` | Whether to suppress the `Update` hook |
 
-Returns the created `ElementNode` or `TextNode`. Cast to `ElementNode` when you need to call methods like `.remove()`:
+Returns the created `ElementNode` or `TextNode`. Cast to `ElementNode` when you need methods like `.remove()`:
 
 ```ts
 const toastNode = node.parent!.children.insert(Toast) as ElementNode

@@ -23,8 +23,8 @@ function tab(props: {
       let key = node.key || children.findIndex(n => n == node)
 
       let part: PartialElement = {
-        id: "tab" + context.path + key,
-        "ariaControls": "tabpanel" + context.path + key,
+        id: "tab" + node.parent!.nodeId + key,
+        "ariaControls": "tabpanel" + node.parent!.nodeId + key,
         "ariaSelected": (listener) => context.activeKey.get(listener) == key,
         onClick: () => context.activeKey.set(key),
         onKeyDown: (e: Event) => {

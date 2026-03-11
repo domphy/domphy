@@ -4,22 +4,6 @@ import { type Placement } from "@floating-ui/dom";
 import { creatFloating } from "../utils/floating.js";
 import { popoverArrow } from "./popoverArrow.js";
 
-function defaultTooltip(content: string, placement: State<Placement>): DomphyElement<"span"> {
-    return {
-        span: content,
-        dataSize: "decrease-1",
-        dataTone: "shift-6",
-        style: {
-            paddingBlock: themeSpacing(1),
-            paddingInline: themeSpacing(3),
-            borderRadius: themeSpacing(2),
-            color: (listener) => themeColor(listener, "shift-6"),
-            backgroundColor: (listener) => themeColor(listener),
-            fontSize: (listener) => themeSize(listener, "inherit"),
-        },
-        $: [popoverArrow({ placement, bordered: false })]
-    }
-}
 
 function tooltip(props: {
     open?: ValueOrState<boolean>;
@@ -35,19 +19,30 @@ function tooltip(props: {
     let tooltipId: string | null = null
     const placeState = toState(placement);
 
-    let contentElement = typeof content == "string" ? defaultTooltip(content, placeState) : content
+    let contentElement = typeof content == "string" ? {span:content} : content
     let { show, hide, anchorPartial } = creatFloating({ open, placement, content: contentElement })
 
     const tooltipPartial: PartialElement = {
         role: "tooltip",
+        dataSize: "decrease-1",
+        dataTone: "shift-11",
         _onInsert: (node) => {
             let id = node.attributes.get("id")
             tooltipId = id || node.nodeId
             !id && node.attributes.set("id", tooltipId)
         },
+        style: {
+            paddingBlock: themeSpacing(1),
+            paddingInline: themeSpacing(3),
+            borderRadius: themeSpacing(2),
+            color: (listener) => themeColor(listener, "shift-6"),
+            backgroundColor: (listener) => themeColor(listener),
+            fontSize: (listener) => themeSize(listener, "inherit"),
+        },
+        $: [popoverArrow({ placement, bordered: false })]
     };
-
-    merge(contentElement, tooltipPartial);
+    contentElement.$ ||=[]
+    contentElement.$.push(tooltipPartial)
 
     const triggerPartial: PartialElement = {
         onMouseEnter: () => show(),

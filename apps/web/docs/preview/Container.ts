@@ -14,12 +14,11 @@ export function Container(element: DomphyElement): DomphyElement<'div'> {
       const dom = node.domElement as HTMLElement
       const shadow = dom.attachShadow({ mode: 'open' })
       const themeTag = document.createElement('style')
-      const styleTag = document.createElement('style')
       const container = document.createElement('div')
       container.style.flex = '1'
-      shadow.append(themeTag, styleTag, container)
+      shadow.append(themeTag, container)
       themeApply(themeTag)
-      new ElementNode(Render(element, isDark, hasGrid)).render(container, styleTag)
+      new ElementNode(Render(element, isDark, hasGrid)).render(container)
     },
     style: {
       flex: '1',

@@ -23,7 +23,8 @@ function menuItem(props: {
       let key = node.key || children.findIndex(n => n == node);
       node.attributes.set("ariaCurrent", (listener) => context.activeKey.get(listener) == key || undefined)
       node.addEvent("click", () => context.activeKey.set(key))
-      node.addEvent("keydown", (e: Event) => {
+    },
+    onKeyDown:(e:KeyboardEvent,node)=>{
         const k = (e as KeyboardEvent).key;
         if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
         e.preventDefault();
@@ -37,9 +38,7 @@ function menuItem(props: {
         else if (k === "Home") next = 0;
         else if (k === "End") next = items.length - 1;
         (items[next].domElement as HTMLElement)?.focus();
-      })
-
-    },
+      },
     style: {
       cursor: "pointer",
       display: "flex",

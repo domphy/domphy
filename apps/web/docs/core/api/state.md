@@ -13,14 +13,7 @@ count.get()        // 1
 count.reset()      // back to 0
 ```
 
-## `toState(value)`
-
-Creates a `State` from a value. If the value is already a `State`, returns it as-is.
-
-```ts
-const a = toState(0)          // State<number>
-const b = toState(a)          // same State<number> — no wrapping
-```
+Create a `State` with `toState()` from `@domphy/core`. The `toState()` function is documented in the Utilities page.
 
 ## Methods
 
