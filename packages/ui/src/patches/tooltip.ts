@@ -1,5 +1,5 @@
 import { PartialElement, DomphyElement, toState, State, ValueOrState, merge } from "@domphy/core";
-import { themeSpacing, themeColor, themeSize } from "@domphy/theme";
+import { themeSpacing, themeColor, themeDensity, themeSize } from "@domphy/theme";
 import { type Placement } from "@floating-ui/dom";
 import { creatFloating } from "../utils/floating.js";
 import { popoverArrow } from "./popoverArrow.js";
@@ -32,9 +32,9 @@ function tooltip(props: {
             !id && node.attributes.set("id", tooltipId)
         },
         style: {
-            paddingBlock: themeSpacing(1),
-            paddingInline: themeSpacing(3),
-            borderRadius: themeSpacing(2),
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             color: (listener) => themeColor(listener, "shift-6"),
             backgroundColor: (listener) => themeColor(listener),
             fontSize: (listener) => themeSize(listener, "inherit"),

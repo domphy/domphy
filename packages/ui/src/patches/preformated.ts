@@ -1,5 +1,5 @@
 import { PartialElement } from "@domphy/core";
-import { themeColor, themeSpacing, ThemeColor, themeSize } from "@domphy/theme";
+import { themeColor, themeDensity, themeSpacing, ThemeColor, themeSize } from "@domphy/theme";
 
 function preformated(props: { color?: ThemeColor } = {}): PartialElement {
     const { color = "neutral" } = props;
@@ -15,9 +15,9 @@ function preformated(props: { color?: ThemeColor } = {}): PartialElement {
             color: (listener) => themeColor(listener, "shift-6", color),
             backgroundColor: (listener) => themeColor(listener, "shift-1", color),
             border: "none",
-            paddingBlock: themeSpacing(2),
-            paddingInline: themeSpacing(3),
-            borderRadius: themeSpacing(2),
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
         },
     };
 }

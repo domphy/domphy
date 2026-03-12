@@ -14,12 +14,6 @@ Use the input-checkbox patch to customize this component.
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| inputCheckbox | inherit | inherit | 1 | 0 | 6 | 0 | 0 | 1 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the input-checkbox patch to customize this component.
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/inputCheckbox.ts [inputCheckbox]
 :::
+
 
 

@@ -1,5 +1,5 @@
 import { PartialElement } from "@domphy/core";
-import { themeColor, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
 
 function textarea(
     props: { color?: ThemeColor; accentColor?: ThemeColor } = {}
@@ -16,10 +16,10 @@ function textarea(
             fontFamily: "inherit",
             lineHeight: "inherit",
             resize: "vertical",
-            paddingInline: themeSpacing(4),
-            paddingBlock: themeSpacing(2),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
             border:"none",
-            borderRadius: themeSpacing(2),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
             fontSize: (listener) => themeSize(listener, "inherit"),
             color: (listener) => themeColor(listener, "shift-6", color),
             outlineOffset: "-1px",

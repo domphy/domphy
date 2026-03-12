@@ -1,6 +1,6 @@
 import type { DomphyElement, PartialElement, ElementNode } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { themeColor, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
 
 type ToastPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
 
@@ -45,9 +45,9 @@ function toast(props: {
     style: {
       minWidth: themeSpacing(32),
       pointerEvents: "auto",
-      paddingBlock: themeSpacing(2),
-      paddingInline: themeSpacing(4),
-      borderRadius: themeSpacing(2),
+      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
+      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-1", color),
       backgroundColor: (listener) => themeColor(listener, "shift-9", color),

@@ -1,7 +1,5 @@
 import { type DomphyElement, type State, ElementNode } from '@domphy/core'
 import { themeApply } from '@domphy/theme'
-
-import { ErrorOverlay } from './ErrorOverlay'
 import { moduleMap } from './Modules'
 import { Render } from './Render.js'
 import { transformCode } from './transformCode.js'

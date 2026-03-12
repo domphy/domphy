@@ -76,7 +76,7 @@ export const Toolbar = (props: { isDark: State<boolean>, isFull: State<boolean>,
             display: "flex",
             justifyContent: "flex-end",
             gap: themeSpacing(3),
-            padding: themeSpacing(1),
+            padding: themeSpacing(1.5),
         }
     }
 }

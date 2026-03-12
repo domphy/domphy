@@ -14,12 +14,6 @@ Use the superscript patch to customize this component.
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| superscript | inherit | decrease-1 | 1 | 0 | 6 | 0 | 2 | 1 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the superscript patch to customize this component.
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/superscript.ts [superscript]
 :::
+
 
 

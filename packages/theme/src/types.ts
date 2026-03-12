@@ -3,6 +3,7 @@ export type ThemeInput = {
   colors: Record<string, string[]>,
   baseTones: Record<string, number>,
   fontSizes: string[],
+  densities: number[],
   custom: Record<string, string | number>,
 }
 

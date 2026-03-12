@@ -1,5 +1,5 @@
 import { type PartialElement } from "@domphy/core";
-import { themeColor, themeSpacing, themeSize, type ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSpacing, themeSize, type ThemeColor } from "@domphy/theme";
 
 function formGroup(props: { color?: ThemeColor; layout?: "horizontal" | "vertical" } = {}): PartialElement {
     const { color = "neutral", layout = "horizontal" } = props;
@@ -14,10 +14,10 @@ function formGroup(props: { color?: ThemeColor; layout?: "horizontal" | "vertica
         },
         style: {
             margin: 0,
-            paddingInline: themeSpacing(3),
-            paddingBlock: themeSpacing(3),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 3),
             border: "none",
-            borderRadius: themeSpacing(2),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
             fontSize: (listener) => themeSize(listener, "inherit"),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             display: "grid",
@@ -30,8 +30,8 @@ function formGroup(props: { color?: ThemeColor; layout?: "horizontal" | "vertica
                 margin: 0,
                 fontSize: (listener) => themeSize(listener, "inherit"),
                 fontWeight: 600,
-                paddingBlock: themeSpacing(1),
-                borderRadius: themeSpacing(2),
+                paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
+                borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
                 color: (listener) => themeColor(listener, "shift-6", color),
                 backgroundColor: (listener) => themeColor(listener, "inherit", color),
             },
@@ -39,7 +39,7 @@ function formGroup(props: { color?: ThemeColor; layout?: "horizontal" | "vertica
                 gridColumn: "1",
                 alignSelf: "start",
                 margin: 0,
-                paddingBlock: isVertical ? 0 : themeSpacing(1),
+                paddingBlock: (listener) => isVertical ? "0px" : themeSpacing(themeDensity(listener) * 1),
             },
             "& > label:has(+ :not(legend, label, p) + p)": {
                 gridRow: isVertical ? "auto" : "span 2",

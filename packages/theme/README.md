@@ -1,12 +1,13 @@
 # @domphy/theme
 
-Context-aware color, size, and spacing for Domphy.
+Context-aware color, size, density, and spacing for Domphy.
 
 It provides:
 
 - `themeColor()` for colors
 - `themeSize()` for font size
-- `themeSpacing()` for spacing and radius
+- `themeDensity()` for the current density factor
+- `themeSpacing()` for final spacing values
 
 ## Install
 
@@ -35,15 +36,15 @@ Then set `dataTheme` on a root element:
 ## Quick Example
 
 ```ts
-import { themeColor, themeSize, themeSpacing } from "@domphy/theme"
+import { themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme"
 
 const button = {
   button: "Save",
   style: {
     fontSize: (listener) => themeSize(listener, "inherit"),
-    paddingBlock: themeSpacing(1),
-    paddingInline: themeSpacing(3),
-    borderRadius: themeSpacing(2),
+    paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
+    paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+    borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
     backgroundColor: (listener) => themeColor(listener, "inherit", "primary"),
     color: (listener) => themeColor(listener, "shift-6", "primary"),
   },

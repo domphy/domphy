@@ -16,13 +16,6 @@ Use `breadcrumbEllipsis` on a `button` element inside a `li` to represent collap
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| breadcrumb | shift-5/shift-7 | inherit | 1 | 0 | 6 | — | — | — |
-| breadcrumbEllipsis | shift-5/shift-7 | inherit | 1 | 0 | 6 | 0 | 1 | 1 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -31,5 +24,6 @@ Use `breadcrumbEllipsis` on a `button` element inside a `li` to represent collap
 <<< ../../../../../packages/ui/src/patches/breadcrumb.ts [breadcrumb]
 <<< ../../../../../packages/ui/src/patches/breadcrumbEllipsis.ts [breadcrumbEllipsis]
 :::
+
 
 

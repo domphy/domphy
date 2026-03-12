@@ -1,12 +1,12 @@
 import { PartialElement, ElementNode, merge } from "@domphy/core";
-import { themeSpacing, themeColor } from "@domphy/theme";
+import { themeSpacing, themeDensity, themeColor } from "@domphy/theme";
 
 function tabPanel(): PartialElement {
   let partial: PartialElement = {
     role: "tabpanel",
     style: {
-      paddingBlock: themeSpacing(2),
-      paddingInline: themeSpacing(2),
+      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
+      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
     },
     _onInsert: (node) => {
       let context = node.getContext("tabs")

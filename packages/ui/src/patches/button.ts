@@ -1,5 +1,5 @@
 import { type PartialElement } from "@domphy/core";
-import { themeSpacing, themeColor, themeSize, type ThemeColor, } from "@domphy/theme";
+import { themeColor, themeDensity, themeSize, themeSpacing, type ThemeColor, } from "@domphy/theme";
 
 function button(props: { color?: ThemeColor } = {}): PartialElement {
     const { color = "primary" } = props;
@@ -13,9 +13,10 @@ function button(props: { color?: ThemeColor } = {}): PartialElement {
         style: {
             appearance: "none",
             fontSize: (listener) => themeSize(listener, "inherit"),
-            paddingBlock: themeSpacing(1),
-            paddingInline: themeSpacing(3),
-            borderRadius: themeSpacing(2),
+            // Single-line bounded control: block/radius = 1D, inline = 3D.
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             width: "fit-content",
             display: "flex",
             justifyContent: "center",

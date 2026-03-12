@@ -14,12 +14,6 @@ Use the spinner patch on a `span` to show a circular loading indicator.
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| spinner | shift-3/shift-6 | — | — | — | 6 | — | — | 50% |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the spinner patch on a `span` to show a circular loading indicator.
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/spinner.ts [spinner]
 :::
+
 
 

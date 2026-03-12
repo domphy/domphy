@@ -1,7 +1,7 @@
 import { defineComponent, unref, useSSRContext } from "vue";
 import { ssrRenderAttrs, ssrRenderStyle, ssrRenderComponent } from "vue/server-renderer";
-import { _ as _sfc_main$1 } from "./index.C-nzggKj.js";
-import "./Render.C3bu4sjL.js";
+import { _ as _sfc_main$1 } from "./index.6nOoz2qW.js";
+import "./Render.ZCL35t0f.js";
 import "codemirror";
 import "@codemirror/lang-javascript";
 import "@codemirror/theme-one-dark";
@@ -11,7 +11,7 @@ import "page";
 import "sortablejs";
 import "zod";
 import "sucrase";
-const sortablejs = 'import { toState, type DomphyElement } from "@domphy/core";\r\nimport { themeSpacing, themeColor } from "@domphy/theme";\r\nimport Sortable from "sortablejs";\r\n\r\nconst items = toState([\r\n  { id: 1, name: "Item A" },\r\n  { id: 2, name: "Item B" },\r\n  { id: 3, name: "Item C" },\r\n  { id: 4, name: "Item D" },\r\n]);\r\n\r\nconst App: DomphyElement<"ul"> = {\r\n  ul: (listener) =>\r\n    items.get(listener).map((item) => ({\r\n      li: item.name,\r\n      _key: item.id,\r\n      style: {\r\n        padding: themeSpacing(2),\r\n        marginBottom: themeSpacing(1),\r\n        borderRadius: themeSpacing(1),\r\n        cursor: "grab",\r\n        listStyle: "none",\r\n        border: (l) => `1px solid ${themeColor(l, "shift-3")}`,\r\n        backgroundColor: (l) => themeColor(l, "shift-1"),\r\n      },\r\n    })),\r\n  _onMount: (node) => {\r\n    Sortable.create(node.domElement as HTMLElement, {\r\n      animation: 150,\r\n      onEnd(evt) {\r\n        // SortableJS already moved the DOM — pass false to sync logical tree only\r\n        node.children.move(evt.oldIndex!, evt.newIndex!, false);\r\n        const newOrder = node.children.items.map((c: any) => c.input);\r\n        items.set(newOrder);\r\n      },\r\n    });\r\n  },\r\n  style: {\r\n    padding: 0,\r\n    margin: 0,\r\n    maxWidth: themeSpacing(64),\r\n  },\r\n};\r\n\r\nexport default App;\r\n';
+const sortablejs = 'import { toState, type DomphyElement } from "@domphy/core";\r\nimport { themeSpacing, themeColor } from "@domphy/theme";\r\nimport Sortable from "sortablejs";\r\n\r\nconst items = toState([\r\n  { id: 1, name: "Item A" },\r\n  { id: 2, name: "Item B" },\r\n  { id: 3, name: "Item C" },\r\n  { id: 4, name: "Item D" },\r\n]);\r\n\r\nconst App: DomphyElement<"ul"> = {\r\n  ul: (listener) =>\r\n    items.get(listener).map((item) => ({\r\n      li: item.name,\r\n      _key: item.id,\r\n      style: {\r\n        padding: themeSpacing(2),\r\n        marginBottom: themeSpacing(1),\r\n        borderRadius: themeSpacing(1),\r\n        cursor: "grab",\r\n        listStyle: "none",\r\n        border: (l) => `1px solid ${themeColor(l, "shift-3")}`,\r\n        backgroundColor: (l) => themeColor(l, "shift-1"),\r\n      },\r\n    })),\r\n  _onMount: (node) => {\r\n    Sortable.create(node.domElement as HTMLElement, {\r\n      animation: 150,\r\n      onEnd(evt) {\r\n        // SortableJS already moved the DOM — pass false to sync logical tree only\r\n        node.children.move(evt.oldIndex!, evt.newIndex!, false);\r\n        const newOrder = node.children.items.map((c: any) => c.input);\n        items.set(newOrder);\r\n      },\r\n    });\r\n  },\r\n  style: {\r\n    padding: 0,\r\n    margin: 0,\r\n    maxWidth: themeSpacing(64),\r\n  },\r\n};\r\n\r\nexport default App;\r\n';
 const __pageData = JSON.parse('{"title":"SortableJS","description":"","frontmatter":{},"headers":[],"relativePath":"docs/integrations/sortablejs.md","filePath":"docs/integrations/sortablejs.md"}');
 const __default__ = { name: "docs/integrations/sortablejs.md" };
 const _sfc_main = /* @__PURE__ */ defineComponent({

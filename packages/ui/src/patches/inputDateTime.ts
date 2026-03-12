@@ -1,5 +1,5 @@
 import { PartialElement } from "@domphy/core";
-import { themeColor, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
 
 type InputDateTimeMode = "date" | "time" | "week" | "month" | "datetime-local";
 
@@ -25,9 +25,9 @@ function inputDateTime(
             border: "none",
             outlineOffset: "-1px",
             outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
-            borderRadius: themeSpacing(2),
-            paddingInline: themeSpacing(3),
-            height: themeSpacing(8),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+            height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
             "&::-webkit-calendar-picker-indicator": {
                 cursor: "pointer",
                 opacity: 0.85,

@@ -14,12 +14,6 @@ Use the inputOTP patch to customize this component.
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| inputOTP | n/a | n/a | 0 | 0 | 0 | 0 | 0 | 0 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the inputOTP patch to customize this component.
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/inputOTP.ts [inputOTP]
 :::
+
 
 

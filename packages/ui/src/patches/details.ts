@@ -1,5 +1,5 @@
 import { PartialElement } from "@domphy/core";
-import { themeColor, themeSize, themeSpacing, ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSize, themeSpacing, ThemeColor } from "@domphy/theme";
 
 function details(
     props: { color?: ThemeColor; accentColor?: ThemeColor; duration?: number } = {}
@@ -30,7 +30,7 @@ function details(
                 cursor: "pointer",
                 userSelect: "none",
                 fontWeight: 500,
-                paddingInline: themeSpacing(4),
+                paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
               height: themeSpacing(10),
             },
             "& > summary::-webkit-details-marker": {
@@ -57,7 +57,7 @@ function details(
                 backgroundColor: (listener) => themeColor(listener, "shift-2", color),
             },
             "& > summary:focus-visible": {
-                borderRadius: themeSpacing(2),
+                borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
                 outlineOffset: `-${themeSpacing(0.5)}`,
                 outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", accentColor)}`,
             },
@@ -65,7 +65,7 @@ function details(
                 maxHeight: "0px",
                 opacity: 0,
                 overflow: "hidden",
-                paddingInline: themeSpacing(3),
+                paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
                 paddingTop: 0,
                 paddingBottom: 0,
                 transition: `max-height ${duration}ms ease, opacity ${duration}ms ease, padding ${duration}ms ease`,
@@ -73,8 +73,8 @@ function details(
             "&[open] > :not(summary)": {
                 maxHeight: themeSpacing(250),
                 opacity: 1,
-                paddingTop: themeSpacing(1),
-                paddingBottom: themeSpacing(3),
+                paddingTop: (listener) => themeSpacing(themeDensity(listener) * 1),
+                paddingBottom: (listener) => themeSpacing(themeDensity(listener) * 3),
             },
         },
     };

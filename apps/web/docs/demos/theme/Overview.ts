@@ -1,5 +1,5 @@
 import { type DomphyElement } from "@domphy/core"
-import { themeColor, themeSize, themeSpacing } from "@domphy/theme"
+import { themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme"
 
 const App: DomphyElement<"div"> = {
   div: [
@@ -14,9 +14,9 @@ const App: DomphyElement<"div"> = {
       button: "Save",
       style: {
         fontSize: (listener) => themeSize(listener, "inherit"),
-        paddingBlock: themeSpacing(1),
-        paddingInline: themeSpacing(3),
-        borderRadius: themeSpacing(2),
+        paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
+        paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+        borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
         border: "none",
         backgroundColor: (listener) => themeColor(listener, "inherit", "primary"),
         color: (listener) => themeColor(listener, "shift-6", "primary"),

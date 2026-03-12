@@ -24,14 +24,27 @@ fontSize: (listener) => themeSize(listener, "inherit")
 fontSize: (listener) => themeSize(listener, "increase-1")
 ```
 
+### `themeDensity(object)`
+
+Resolve the current density factor from the nearest `dataDensity` context.
+
+```ts
+const d = themeDensity(listener)
+
+paddingBlock: themeSpacing(d * 1)
+paddingInline: themeSpacing(d * 3)
+```
+
+`themeDensity()` returns a `number`, not a CSS value.
+
 ### `themeSpacing(n)`
 
 Return a spacing value in `em`.
 
 ```ts
-paddingBlock: themeSpacing(1)
-paddingInline: themeSpacing(3)
-borderRadius: themeSpacing(2)
+gap: themeSpacing(3)
+minWidth: themeSpacing(32)
+height: themeSpacing(6)
 ```
 
 ## Setup Helpers
@@ -111,6 +124,7 @@ type ThemeInput = {
   colors: Record<string, string[]>
   baseTones: Record<string, number>
   fontSizes: string[]
+  densities: number[]
   custom: Record<string, string | number>
 }
 ```

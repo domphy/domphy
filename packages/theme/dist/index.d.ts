@@ -4,6 +4,10 @@ declare const ElementSizes: string[];
 type ElementSize = typeof ElementSizes[number];
 declare function themeSize(object: ElementNode | Listener, size?: ElementSize): string;
 
+declare const ElementDensities: string[];
+type ElementDensity = typeof ElementDensities[number];
+declare function themeDensity(object: ElementNode | Listener | null): number;
+
 declare const ElementTones: string[];
 type ElementTone = typeof ElementTones[number];
 declare function contextColor(object: ElementNode | Listener, tone?: ElementTone, color?: string): string;
@@ -14,6 +18,7 @@ type ThemeInput = {
     colors: Record<string, string[]>;
     baseTones: Record<string, number>;
     fontSizes: string[];
+    densities: number[];
     custom: Record<string, string | number>;
 };
 type ThemeVars = {
@@ -34,4 +39,4 @@ declare function themeSpacing(n: number): string;
 declare function themeName(object: ElementNode | Listener): string;
 type ThemeColor = keyof ThemeInput["colors"];
 
-export { type ElementSize, type ElementTone, type ThemeColor, contextColor, createDark, getTheme, setTheme, themeApply, themeCSS, themeColor, themeName, themeSize, themeSpacing, themeTokens, themeVars };
+export { type ElementDensity, type ElementSize, type ElementTone, type ThemeColor, contextColor, createDark, getTheme, setTheme, themeApply, themeCSS, themeColor, themeDensity, themeName, themeSize, themeSpacing, themeTokens, themeVars };

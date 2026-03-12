@@ -14,12 +14,6 @@ Use the horizontal-rule patch to customize this component.
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| horizontalRule | inherit | inherit | 1 | 0 | 1 | 0 | 0 | 0 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the horizontal-rule patch to customize this component.
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/horizontalRule.ts [horizontalRule]
 :::
+
 
 

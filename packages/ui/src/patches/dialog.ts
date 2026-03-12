@@ -1,5 +1,5 @@
 import { type PartialElement, type ValueOrState, toState } from "@domphy/core";
-import { themeColor, themeSize, themeSpacing, ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSize, themeSpacing, ThemeColor } from "@domphy/theme";
 
 function dialog(props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {}): PartialElement {
     const { color = "neutral", open = false } = props;
@@ -54,7 +54,7 @@ function dialog(props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {}
             color: (listener) => themeColor(listener, "shift-7", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             border: "none",
-            padding: themeSpacing(3),
+            padding: (listener) => themeSpacing(themeDensity(listener) * 3),
             boxShadow: (listener) => `0 ${themeSpacing(8)} ${themeSpacing(16)} ${themeColor(listener, "shift-3", "neutral")}`,
             "&::backdrop": {
                 backgroundColor: (listener) => themeColor(listener, "shift-1", "neutral"),

@@ -1,5 +1,5 @@
 import { type PartialElement, type DomphyElement, type StyleObject, type ValueOrState, toState, merge } from "@domphy/core";
-import { themeSpacing, themeColor, themeSize, type ThemeColor } from "@domphy/theme";
+import { themeSpacing, themeColor, themeDensity, themeSize, type ThemeColor } from "@domphy/theme";
 import { type Placement } from "@floating-ui/dom";
 import { tag } from "./tag.js"
 import { creatFloating } from "../utils/floating.js"
@@ -69,12 +69,12 @@ function selectBox(props: {
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            minHeight: themeSpacing(8),
+            minHeight: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
             minWidth: themeSpacing(32),
             outlineOffset: "-1px",
             outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
-            paddingInline: themeSpacing(2),
-            borderRadius: themeSpacing(2),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             fontSize: (listener) => themeSize(listener, "inherit"),
             color: (listener) => themeColor(listener, "shift-6", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),

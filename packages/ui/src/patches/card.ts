@@ -1,5 +1,5 @@
 import { type PartialElement } from "@domphy/core";
-import { themeColor, themeSpacing, type ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSpacing, type ThemeColor } from "@domphy/theme";
 
 function card(props: { color?: ThemeColor } = {}): PartialElement {
     const { color = "neutral" } = props;
@@ -8,7 +8,7 @@ function card(props: { color?: ThemeColor } = {}): PartialElement {
             display: "grid",
             gridTemplateColumns: "1fr auto",
             gridTemplateAreas: '"image image" "title aside" "desc aside" "content content" "footer footer"',
-            borderRadius: themeSpacing(2),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             color: (listener) => themeColor(listener, "shift-7", color),
             outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
@@ -22,34 +22,34 @@ function card(props: { color?: ThemeColor } = {}): PartialElement {
             },
             "& > :is(h1,h2,h3,h4,h5,h6)": {
                 gridArea: "title",
-                paddingBlock: themeSpacing(2),
-                paddingInline: themeSpacing(4),
+                paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
+                paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
                 fontWeight: "600",
                 margin: 0
             },
             "& > p": {
                 gridArea: "desc",
-                paddingInline: themeSpacing(4),
+                paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
                 color: (listener) => themeColor(listener, "shift-6", color),
                 margin: 0
             },
             "& > aside": {
                 gridArea: "aside",
                 alignSelf: "center",
-                padding: themeSpacing(2),
+                padding: (listener) => themeSpacing(themeDensity(listener) * 2),
                 height: "auto",
             },
             "& > div": {
                 gridArea: "content",
-                padding: themeSpacing(4),
+                padding: (listener) => themeSpacing(themeDensity(listener) * 4),
                 color: (listener) => themeColor(listener, "shift-7", color),
             },
             "& > footer": {
                 gridArea: "footer",
                 display: "flex",
                 gap: themeSpacing(2),
-                paddingBlock: themeSpacing(2),
-                paddingInline: themeSpacing(4),
+                paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
+                paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
                 borderTop: (listener) => `1px solid ${themeColor(listener, "shift-2", color)}`,
             },
         },

@@ -14,14 +14,6 @@ Use the command patch to customize this component.
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| command | n/a | n/a | c>=1 | 2 | — | — | — | — |
-| commandSearch | inherit | inherit | 1 | 2 | 10 | 2 | 3 | — |
-| commandItem | inherit | inherit | 1 | 0 | 8 | 0 | 3 | — |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -29,5 +21,6 @@ Use the command patch to customize this component.
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/command.ts [command]
 :::
+
 
 

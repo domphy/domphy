@@ -14,12 +14,6 @@ Use the formGroup patch to lay out label + input pairs inside a `<fieldset>`. Un
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| formGroup | shift-1 | inherit | n>=2 | 3 | 6n+6 | 3 | 3 | 2 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the formGroup patch to lay out label + input pairs inside a `<fieldset>`. Un
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/formGroup.ts [formGroup]
 :::
+
 
 

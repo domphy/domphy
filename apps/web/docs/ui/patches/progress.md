@@ -14,12 +14,6 @@ Use the progress patch to customize this component.
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| progress | shift-2 | inherit | 1 | 0 | 2 | 0 | 0 | 1 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the progress patch to customize this component.
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/progress.ts [progress]
 :::
+
 
 

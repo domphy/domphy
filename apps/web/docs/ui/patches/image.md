@@ -14,12 +14,6 @@ Use the image patch to customize this component.
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| image | shift-1 | inherit | n>=1 | 2 | 6n+4 | 2 | 4 | 2 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the image patch to customize this component.
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/image.ts [image]
 :::
+
 
 

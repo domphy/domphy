@@ -1,5 +1,5 @@
 import { PartialElement } from "@domphy/core";
-import { themeColor, themeSpacing, themeSize, type ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSpacing, themeSize, type ThemeColor } from "@domphy/theme";
 
 function inputColor(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}): PartialElement {
     const { color = "neutral", accentColor = "primary" } = props;
@@ -17,20 +17,20 @@ function inputColor(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}
             border: "none",
             cursor: "pointer",
             fontSize: (listener) => themeSize(listener, "inherit"),
-            paddingBlock: themeSpacing(1),
-            paddingInline: themeSpacing(1),
-            blockSize: themeSpacing(8),
-            inlineSize: themeSpacing(8),
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
+            blockSize: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
+            inlineSize: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
             backgroundColor: "transparent",
             "&::-webkit-color-swatch-wrapper": {
                 margin: 0,
                 padding: 0,
             },
             "&::-webkit-color-swatch": {
-                borderRadius: themeSpacing(1),
+                borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             },
             "&::-moz-color-swatch": {
-                borderRadius: themeSpacing(1),
+                borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             },
             "&:hover:not([disabled]), &:focus-visible": {
             },

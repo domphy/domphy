@@ -1,5 +1,5 @@
 import { PartialElement } from "@domphy/core";
-import { themeSpacing, ThemeColor, themeColor, themeSize } from "@domphy/theme";
+import { themeSpacing, ThemeColor, themeColor, themeDensity, themeSize } from "@domphy/theme";
 
 function blockquote(props: { color?: ThemeColor } = {}): PartialElement {
     const { color = "inherit" } = props;
@@ -16,8 +16,8 @@ function blockquote(props: { color?: ThemeColor } = {}): PartialElement {
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             boxShadow: (listener) => `inset ${themeSpacing(1)} 0 0 0 ${themeColor(listener, "shift-3", color)}`,
             border: "none",
-            paddingBlock: themeSpacing(2),
-            paddingInline: themeSpacing(4),
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
             margin: 0,
         },
     };

@@ -18,6 +18,11 @@ function validateTheme(partial: Partial<ThemeInput>): void {
   if (partial.fontSizes && !Array.isArray(partial.fontSizes)) {
     throw new Error(`fontSize must be array of string`);
   }
+  if (partial.densities) {
+    if (!Array.isArray(partial.densities) || partial.densities.some(v => typeof v !== "number")) {
+      throw new Error(`densities must be array of number`);
+    }
+  }
   if ("custom" in partial) {
     const custom = partial.custom!;
     if (typeof custom !== "object" || custom === null) {
@@ -61,6 +66,8 @@ function buildThemeCSS(name: string, input: ThemeInput): string {
       [...Array(8).keys()].forEach(i =>
         styles[`--fontSize-${i}`] = input.fontSizes[i]
       );
+    } else if (key === "densities") {
+      continue;
     } else {
       if (typeof value === "object" && value !== null) {
         for (const k in value) {
@@ -115,6 +122,8 @@ export function themeTokens(name: string): Record<string, any> {
       }
     } else if (key === "fontSizes") {
       tokens.fontSizes = input.fontSizes;
+    } else if (key === "densities") {
+      tokens.densities = input.densities;
     } else {
       tokens[key] = {} as any;
       if (typeof value === "object" && value !== null) {
@@ -144,6 +153,8 @@ export function themeVars(): ThemeVars {
       }
     } else if (key === "fontSizes") {
       theme.fontSizes = [...Array(8).keys()].map(i => `var(--fontSize-${i})`);
+    } else if (key === "densities") {
+      continue;
     } else {
       theme[section] = {} as ThemeVars[typeof section];
       if (typeof value === "object" && value !== null) {
@@ -190,7 +201,7 @@ export function themeName(object: ElementNode | Listener) {
 
   let themeName = "light"
 
-  if (node.attributes && node.attributes.has("dataTheme")) {
+  if (node && node.attributes && node.attributes.has("dataTheme")) {
     themeName = node.attributes.get("dataTheme")
     typeof object == "function" && node.attributes.onChange("dataTheme", object)
   }

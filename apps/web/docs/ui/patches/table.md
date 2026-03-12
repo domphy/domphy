@@ -25,12 +25,6 @@ Zebra row
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| table | inherit | inherit | n>=1 | 1 | 6n+2 | 1 | 3 | 2 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -38,5 +32,6 @@ Zebra row
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/table.ts [table]
 :::
+
 
 

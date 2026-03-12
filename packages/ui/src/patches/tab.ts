@@ -1,5 +1,5 @@
 import { PartialElement, ElementNode } from "@domphy/core";
-import { themeSpacing, ThemeColor, themeColor, themeSize } from "@domphy/theme";
+import { themeSpacing, ThemeColor, themeColor, themeDensity, themeSize } from "@domphy/theme";
 
 function tab(props: {
   accentColor?: ThemeColor;
@@ -50,8 +50,8 @@ function tab(props: {
     style: {
       cursor: "pointer",
       fontSize: (listener) => themeSize(listener, "inherit"),
-      height: themeSpacing(8),
-      paddingInline: themeSpacing(4),
+      height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
+      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
       border: "none",
       outline: "none",
       color: (listener) => themeColor(listener, "shift-6"),

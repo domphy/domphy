@@ -14,12 +14,6 @@ Use the alert patch on a `div` to show an inline notification. The `color` prop 
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| alert | shift-1/shift-7 | inherit | 1 | 2 | 10 | 2 | 4 | — |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the alert patch on a `div` to show an inline notification. The `color` prop 
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/alert.ts [alert]
 :::
+
 
 

@@ -14,13 +14,6 @@ Use `selectList` on a `div` container and `selectItem` on each child `div`. The 
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| selectList | inherit | inherit | — | — | — | 2 | 2 | — |
-| selectItem | inherit | inherit | 1 | 1 | 8 | 0 | 3 | 2 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -29,5 +22,6 @@ Use `selectList` on a `div` container and `selectItem` on each child `div`. The 
 <<< ../../../../../packages/ui/src/patches/selectList.ts [selectList]
 <<< ../../../../../packages/ui/src/patches/selectItem.ts [selectItem]
 :::
+
 
 

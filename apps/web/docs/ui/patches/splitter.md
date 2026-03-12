@@ -14,14 +14,6 @@ Use the splitter patch to customize this component.
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| splitter | n/a | n/a | n>=1 | 2 | — | — | — | — |
-| splitterPanel | n/a | n/a | n>=1 | 2 | — | — | — | — |
-| splitterHandle | shift-2 | — | — | — | — | — | — | — |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -29,5 +21,6 @@ Use the splitter patch to customize this component.
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/splitter.ts [splitter]
 :::
+
 
 

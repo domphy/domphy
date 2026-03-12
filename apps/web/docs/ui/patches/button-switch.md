@@ -14,12 +14,6 @@ Use the button-switch patch to customize this component.
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| buttonSwitch | increase-2 | inherit | 1 | 1 | 8 | 1 | 3 | 2 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the button-switch patch to customize this component.
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/buttonSwitch.ts [buttonSwitch]
 :::
+
 
 

@@ -16,12 +16,6 @@ Unlike `combobox`, `selectBox` has no input field — it is suited for fixed opt
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| selectBox | inherit | inherit | — | 1 | min 8 | 1 | 2 | 2 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -29,5 +23,6 @@ Unlike `combobox`, `selectBox` has no input field — it is suited for fixed opt
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/selectBox.ts [selectBox]
 :::
+
 
 

@@ -1,5 +1,5 @@
 import { type PartialElement, type DomphyElement } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSpacing, themeSize } from "@domphy/theme";
+import { type ThemeColor, themeColor, themeDensity, themeSpacing, themeSize } from "@domphy/theme";
 
 function table(props: { color?: ThemeColor } = {}): PartialElement {
     const {
@@ -23,15 +23,15 @@ function table(props: { color?: ThemeColor } = {}): PartialElement {
             "& th, & thead td": {
                 textAlign: "left",
                 fontWeight: 500,
-                paddingInline: themeSpacing(3),
-                paddingBlock: themeSpacing(1),
+                paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+                paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
                 color: (listener) => themeColor(listener, "shift-7", color),
                 backgroundColor: (listener) => themeColor(listener, "inherit"),
             },
             "& td": {
                 textAlign: "left",
-                paddingInline: themeSpacing(3),
-                paddingBlock: themeSpacing(1),
+                paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+                paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
                 color: (listener) => themeColor(listener, "shift-6", color),
                 boxShadow: (listener) => `inset 0 1px 0 ${themeColor(listener, "shift-3", color)}`,
                 fontSize: (listener) => themeSize(listener, "inherit"),
@@ -39,8 +39,8 @@ function table(props: { color?: ThemeColor } = {}): PartialElement {
             "& tfoot th, & tfoot td": {
                 textAlign: "left",
                 fontWeight: 500,
-                paddingInline: themeSpacing(3),
-                paddingBlock: themeSpacing(1),
+                paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+                paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
                 color: (l) => themeColor(l, "shift-7", color),
                 backgroundColor: (l) => themeColor(l, "inherit"),
                 boxShadow: (l) => `inset 0 -1px 0 ${themeColor(l, "shift-3", color)}`

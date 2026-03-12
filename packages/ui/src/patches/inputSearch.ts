@@ -1,5 +1,5 @@
 import { PartialElement } from "@domphy/core";
-import { themeColor, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
 
 function inputSearch(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}): PartialElement {
     const { color = "neutral", accentColor = "primary" } = props;
@@ -21,10 +21,10 @@ function inputSearch(props: { color?: ThemeColor; accentColor?: ThemeColor } = {
             border: "none",
             outlineOffset: "-1px",
             outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
-            borderRadius: themeSpacing(2),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             minWidth: themeSpacing(32),
-            paddingInline: themeSpacing(3),
-            paddingBlock: themeSpacing(1),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
             "&::placeholder": {
                 color: (listener) => themeColor(listener, "shift-4", color),
             },

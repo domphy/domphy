@@ -1,6 +1,6 @@
 import { defineComponent, ref, onMounted, mergeProps, useSSRContext } from "vue";
 import { ssrRenderAttrs } from "vue/server-renderer";
-import { T as Toolbar, t as toState, a as themeApply, E as ElementNode, R as Render } from "./Render.C3bu4sjL.js";
+import { T as Toolbar, t as toState, a as themeApply, E as ElementNode, R as Render } from "./Render.ZCL35t0f.js";
 function Container(element) {
   const isDark = toState(false);
   const hasGrid = toState(false);
@@ -11,12 +11,11 @@ function Container(element) {
       const dom = node.domElement;
       const shadow = dom.attachShadow({ mode: "open" });
       const themeTag = document.createElement("style");
-      const styleTag = document.createElement("style");
       const container = document.createElement("div");
       container.style.flex = "1";
-      shadow.append(themeTag, styleTag, container);
+      shadow.append(themeTag, container);
       themeApply(themeTag);
-      new ElementNode(Render(element, isDark, hasGrid)).render(container, styleTag);
+      new ElementNode(Render(element, isDark, hasGrid)).render(container);
     },
     style: {
       flex: "1",

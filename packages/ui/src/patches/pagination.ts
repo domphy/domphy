@@ -1,5 +1,5 @@
 import { type PartialElement, type DomphyElement, type ValueOrState, toState } from "@domphy/core";
-import { themeColor, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
 
 function getPages(current: number, total: number): (number | "...")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -26,10 +26,10 @@ function pagination(props: {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    minWidth: themeSpacing(8),
-    height: themeSpacing(8),
-    paddingInline: themeSpacing(2),
-    borderRadius: themeSpacing(2),
+    minWidth: (listener: any) => themeSpacing(6 + themeDensity(listener) * 2),
+    height: (listener: any) => themeSpacing(6 + themeDensity(listener) * 2),
+    paddingInline: (listener: any) => themeSpacing(themeDensity(listener) * 2),
+    borderRadius: (listener: any) => themeSpacing(themeDensity(listener) * 1),
     border: "none",
     cursor: "pointer",
     fontSize: (listener: any) => themeSize(listener, "inherit"),
@@ -78,7 +78,7 @@ function pagination(props: {
           // Page buttons
           for (const p of getPages(page, total)) {
             if (p === "...") {
-              items.push({ span: "…", style: { display: "inline-flex", alignItems: "center", paddingInline: themeSpacing(2), color: (listener: any) => themeColor(listener, "shift-4", color) } });
+              items.push({ span: "…", style: { display: "inline-flex", alignItems: "center", paddingInline: (listener: any) => themeSpacing(themeDensity(listener) * 2), color: (listener: any) => themeColor(listener, "shift-4", color) } });
             } else {
               const isActive = p === page;
               items.push({

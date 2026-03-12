@@ -1,5 +1,5 @@
 import { type PartialElement, type ValueOrState, toState } from "@domphy/core";
-import { themeColor, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
 
 type Placement = "left" | "right" | "top" | "bottom";
 
@@ -68,7 +68,7 @@ function drawer(props: {
             color: (listener) => themeColor(listener, "shift-7", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             border: "none",
-            padding: themeSpacing(3),
+            padding: (listener) => themeSpacing(themeDensity(listener) * 3),
             margin: marginMap[placement],
             width:  isVertical(placement) ? drawerSize : "100dvw",
             height: isVertical(placement) ? "100dvh"   : drawerSize,

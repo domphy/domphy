@@ -14,12 +14,6 @@ Use `combobox` on a `div` element. It displays selected values as tags and an in
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| combobox | inherit | inherit | 1 | 1 | 8 | 1 | 1 | 2 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use `combobox` on a `div` element. It displays selected values as tags and an in
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/combobox.ts [combobox]
 :::
+
 
 

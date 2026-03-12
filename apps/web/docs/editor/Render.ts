@@ -8,7 +8,7 @@ export const Render = (element: DomphyElement, checked: State<boolean>, hasGrid:
         style: {
             color: (listener) => themeColor(listener, "shift-6"),
             backgroundColor: (listener) => themeColor(listener),
-            padding: themeSpacing(8),
+            padding: themeSpacing(9),
             overflow:"auto",
             height: "100%",
             "&::before": {
@@ -17,7 +17,7 @@ export const Render = (element: DomphyElement, checked: State<boolean>, hasGrid:
                 pointerEvents: "none",
                 inset: 0,
                 backgroundImage: (listener) => hasGrid.get(listener) ? `linear-gradient(to bottom,rgba(255, 124, 124, 0.3) 0.5px, transparent 0.5px)` : "none",
-                backgroundSize: `1px ${themeSpacing(8)}`,
+                backgroundSize: `1px ${themeSpacing(9)}`,
             },
             "&::after": {
                 content: '""',

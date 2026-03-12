@@ -1,5 +1,5 @@
 import { type PartialElement } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSize, themeSpacing } from "@domphy/theme";
+import { type ThemeColor, themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme";
 
 function select(
     props: { color?: ThemeColor; accentColor?: ThemeColor } = {}
@@ -21,12 +21,12 @@ function select(
             border: "none",
             outlineOffset: "-1px",
             outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
-            borderRadius: themeSpacing(2),
-            paddingBlock: themeSpacing(1),
-            paddingLeft: themeSpacing(3),
-            paddingRight: themeSpacing(1),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
+            paddingLeft: (listener) => themeSpacing(themeDensity(listener) * 3),
+            paddingRight: (listener) => themeSpacing(themeDensity(listener) * 1),
             "&:not([multiple])": {
-                height: themeSpacing(8),
+                height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
             },
             "&:hover:not([disabled]):not([aria-busy=true])": {
                 outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-4", accentColor)}`,

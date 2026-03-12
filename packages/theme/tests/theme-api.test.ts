@@ -9,6 +9,7 @@ import {
   themeTokens,
   themeVars,
 } from "../src/theme.ts";
+import { themeDensity } from "../src/density.ts";
 import { contextColor, themeColor } from "../src/tone.ts";
 import { themeSize } from "../src/size.ts";
 
@@ -64,6 +65,7 @@ describe("theme core APIs", () => {
     expect(vars.primary[0]).toBe("var(--primary-0)");
     expect(vars.fontSizes[2]).toBe("var(--fontSize-2)");
     expect(tokens.primary[6]).toBe(light.colors.primary[6]);
+    expect(tokens.densities[2]).toBe(light.densities[2]);
   });
 
   it("computes spacing in em units", () => {
@@ -90,6 +92,14 @@ describe("theme size/tone helpers", () => {
 
     expect(themeSize(child as any, "decrease-1")).toBe("var(--fontSize-3)");
     expect(() => themeSize(child as any, "invalid-size" as any)).toThrow(/size name/);
+  });
+
+  it("resolves density factor from inherited dataDensity", () => {
+    const root = createNode({ dataDensity: "increase-2" });
+    const child = createNode({}, root);
+
+    expect(themeDensity(child as any)).toBe(2.5);
+    expect(themeSpacing(themeDensity(child as any) * 3)).toBe("1.875em");
   });
 
   it("resolves tone/color via inherit, base, and context color", () => {

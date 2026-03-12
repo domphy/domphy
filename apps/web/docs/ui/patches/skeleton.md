@@ -14,12 +14,6 @@ Use the skeleton patch on any block element to show a loading placeholder. The a
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| skeleton | shift-2 | — | — | — | 6 | — | — | 1 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the skeleton patch on any block element to show a loading placeholder. The a
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/skeleton.ts [skeleton]
 :::
+
 
 

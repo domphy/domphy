@@ -5,7 +5,7 @@ These color conventions converge with IBM Carbon, Adobe Spectrum, and USWDS —
 not by copying them, but because the contrast span K already existed implicitly in their palette structures.
 It was never formally identified until derived from first principles. See [paper](https://github.com/chromametry/chromametry/blob/main/paper/paper.pdf) for full benchmark analysis.
 
-Use `themeColor(listener, shift, color?)` from `@domphy/ui` — one function replaces all tons of color tokens and configurations.
+Use `themeColor(listener, shift, color?)` from `@domphy/theme` — one function replaces all tons of color tokens and configurations.
 
 ## Contrast Span K
 
@@ -53,9 +53,9 @@ const button = {
     style: {
         // size
         fontSize:      (l) => themeSize(l, "inherit"),
-        paddingBlock:  themeSpacing(1),
-        paddingInline: themeSpacing(3),
-        borderRadius:  themeSpacing(2),
+        paddingBlock:  (l) => themeSpacing(themeDensity(l) * 1),
+        paddingInline: (l) => themeSpacing(themeDensity(l) * 3),
+        borderRadius:  (l) => themeSpacing(themeDensity(l) * 1),
         // color
         backgroundColor: (l) => themeColor(l, "inherit", "primary"),
         color:           (l) => themeColor(l, "shift-6", "primary"),  // WCAG guaranteed

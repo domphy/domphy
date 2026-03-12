@@ -14,14 +14,6 @@ Use the tabs patch to customize this component.
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| tabs | inherit | inherit | n>=1 | 2 | 6n+4 | 2 | 4 | 3 |
-| tab | inherit | inherit | 1 | 1 | 8 | 1 | 4 | 0 |
-| tabPanel | inherit | inherit | n>=1 | 2 | 6n+4 | 2 | 2 | 0 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -31,5 +23,6 @@ Use the tabs patch to customize this component.
 <<< ../../../../../packages/ui/src/patches/tab.ts [tab]
 <<< ../../../../../packages/ui/src/patches/tabPanel.ts [tabPanel]
 :::
+
 
 

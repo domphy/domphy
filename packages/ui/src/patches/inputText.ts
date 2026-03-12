@@ -1,5 +1,5 @@
 import { PartialElement } from "@domphy/core";
-import { themeColor, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
 
 function inputText(props: { color?: ThemeColor, accentColor?: ThemeColor } = {}): PartialElement {
     let {
@@ -19,9 +19,9 @@ function inputText(props: { color?: ThemeColor, accentColor?: ThemeColor } = {})
             fontFamily: "inherit",
             lineHeight: "inherit",
             minWidth: themeSpacing(32),
-            paddingInline: themeSpacing(3),
-            paddingBlock: themeSpacing(1),
-            borderRadius: themeSpacing(2),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             fontSize: (listener) => themeSize(listener, "inherit"),
             border: "none",
             outlineOffset: "-1px",

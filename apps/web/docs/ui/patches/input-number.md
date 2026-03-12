@@ -14,12 +14,6 @@ Use `inputNumber` on a native `input` element. It styles the browser's built-in 
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| inputNumber | inherit | inherit | 1 | 1 | 8 | 1 | 3 | 2 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use `inputNumber` on a native `input` element. It styles the browser's built-in 
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/inputNumber.ts [inputNumber]
 :::
+
 
 

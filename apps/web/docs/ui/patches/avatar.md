@@ -14,12 +14,6 @@ Use the avatar patch on a `span` element. Put text (initials) or an `img` direct
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| avatar | shift-3/shift-8 | inherit | — | — | 8 | — | — | 50% |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the avatar patch on a `span` element. Put text (initials) or an `img` direct
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/avatar.ts [avatar]
 :::
+
 
 

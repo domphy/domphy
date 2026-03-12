@@ -1,5 +1,5 @@
 import { type PartialElement, merge, toState } from "@domphy/core";
-import { themeColor, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
 
 function command(): PartialElement {
     return {
@@ -38,8 +38,8 @@ function commandSearch(props: { color?: ThemeColor; accentColor?: ThemeColor } =
         style: {
             fontFamily: "inherit",
             fontSize: (listener) => themeSize(listener, "inherit"),
-            paddingInline: themeSpacing(3),
-            paddingBlock: themeSpacing(2),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
             border: "none",
             borderBottom: (listener) => `1px solid ${themeColor(listener, "shift-2", color)}`,
             outline: "none",
@@ -74,8 +74,8 @@ function commandItem(props: { color?: ThemeColor; accentColor?: ThemeColor } = {
             alignItems: "center",
             width: "100%",
             fontSize: (listener) => themeSize(listener, "inherit"),
-            height: themeSpacing(8),
-            paddingInline: themeSpacing(3),
+            height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
             border: "none",
             outline: "none",
             color: (listener) => themeColor(listener, "shift-6", color),

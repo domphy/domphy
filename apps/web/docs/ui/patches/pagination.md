@@ -14,12 +14,6 @@ Use the `pagination` patch on a `div`. Pass `total` (number of pages) and an opt
 !!!include(snippets/customization.md)!!!
 :::
 
-## Appearance
-
-| Name | tone | size | NLines | Wrapping Level | Height | Padding Block | Padding Inline | Radius |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| pagination | inherit | inherit | 1 | 0 | 8 | 0 | 2 | 2 |
-
 ::: details Formulas
 !!!include(snippets/formulas.md)!!!
 :::
@@ -27,5 +21,6 @@ Use the `pagination` patch on a `div`. Pass `total` (number of pages) and an opt
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/pagination.ts [pagination]
 :::
+
 
 

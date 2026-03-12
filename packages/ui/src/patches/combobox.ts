@@ -1,5 +1,5 @@
 import { type PartialElement, type DomphyElement, type StyleObject, type ValueOrState, toState, merge } from "@domphy/core";
-import { themeSpacing, themeColor, themeSize, type ThemeColor, } from "@domphy/theme";
+import { themeSpacing, themeColor, themeDensity, themeSize, type ThemeColor, } from "@domphy/theme";
 import { type Placement } from "@floating-ui/dom";
 import { tag } from "./tag.js"
 import { creatFloating } from "../utils/floating.js"
@@ -99,9 +99,9 @@ function combobox(props: {
             minWidth: themeSpacing(32),
             outlineOffset: "-1px",
             outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
-            paddingBlock: themeSpacing(1),
-            paddingInline: themeSpacing(1),
-            borderRadius: themeSpacing(2),
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             fontSize: (listener) => themeSize(listener, "inherit"),
             color: (listener) => themeColor(listener, "shift-6", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
