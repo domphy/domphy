@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(grep -l \"WrappingLevel\" e:/github/domphy/domphy/apps/docs/ui/patches/*.md)"
-    ]
-  }
-}
