@@ -773,9 +773,6 @@ Examples:
 
 - `dataDensity: "increase-1"`
 - `themeDensity(listener)`
-- `paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1)`
-- `paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3)`
-- `borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1)`
 
 Density is a local spacing context, not a semantic size name.
 
@@ -1160,13 +1157,7 @@ This is the UI-layer convention for overlays because it gives strong contrast an
 
 ### Customization Order
 
-When styling UI, prefer this order:
-
-1. existing patch
-2. theme helper
-3. raw fixed CSS
-
-If a patch already expresses the visual need, use the patch. If not, use `themeSpacing()`, `themeSize()`, and `themeColor()`. Only fall back to fixed raw CSS when the system cannot express the value.
+The detailed customization flow lives in the next section. Use that sequence instead of inventing a parallel one.
 
 ## Customization
 
@@ -1174,7 +1165,7 @@ The preferred customization flow in Domphy is:
 
 1. use the existing patch as-is
 2. change patch props if the patch already exposes the needed option
-3. use `dataTone` or `dataSize` on a parent subtree when the change should affect a whole region
+3. use `dataTone`, `dataSize`, or `dataDensity` on a parent subtree when the change should affect a whole region
 4. override directly on the element with inline attributes or `style`
 5. create a local patch variant only when the variation is reused enough to deserve its own API
 
