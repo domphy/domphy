@@ -15,15 +15,15 @@ function label(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}): Pa
             alignItems: "center",
             gap: themeSpacing(2),
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
             cursor: "pointer",
             "&:focus-within": {
-                color: (listener) => themeColor(listener, "shift-7", accentColor),
+                color: (listener) => themeColor(listener, "shift-10", accentColor),
             },
             "&[aria-disabled=true]": {
                 opacity: 0.7,
                 cursor: "not-allowed",
-                color: (listener) => themeColor(listener, "shift-5", "neutral"),
+                color: (listener) => themeColor(listener, "shift-8", "neutral"),
             },
         },
     };

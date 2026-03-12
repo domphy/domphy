@@ -42,7 +42,7 @@ function combobox(props: {
         height: themeSpacing(6),
         marginInlineStart: themeSpacing(2),
         fontSize: (listener: any) => themeSize(listener, "inherit"),
-        color: (listener: any) => themeColor(listener, "shift-6", color),
+        color: (listener: any) => themeColor(listener, "shift-9", color),
         backgroundColor: (listener: any) => themeColor(listener, "inherit", color),
     }
 
@@ -98,12 +98,12 @@ function combobox(props: {
         style: {
             minWidth: themeSpacing(32),
             outlineOffset: "-1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
             paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
         }
     };

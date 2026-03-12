@@ -1,9 +1,18 @@
-
 flowchart TB
-    Parent -- currentTone=parentTone ± n --> Current["Current Element"]
-    Current -- currentTone --> Background
-    Current -- currentTone ± K(Safe WCAG)--> Text
-    Current -- currentTone ± K/2 --> Stroke["Border/Outline"]
-    Background -- shift --> State["Interaction States"]
-    Text -- shift --> State
-    Stroke -- shift --> State
+ subgraph L1["Context Surface<br>(18 steps)"]
+        K0["Anchor 0..3 or 14..17"]
+  end
+ subgraph L2["Semantic Zone"]
+    direction LR
+        S0["Default: +0"]
+        S3["Indicator: +3"]
+        S6["Accent: +6"]
+  end
+ subgraph L3["Interactive Delta"]
+        D1["Hover: ±1"]
+        D2["Active: ±2"]
+  end
+    L1 --> L2
+    S0 --> L3
+    S3 --> L3
+    S6 --> L3

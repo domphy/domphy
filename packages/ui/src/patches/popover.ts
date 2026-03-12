@@ -23,7 +23,7 @@ function popover(props: {
 
     const popoverPartial: PartialElement = {
         role: "dialog",
-        dataTone: "shift-6",        
+        dataTone: "shift-17",
         onMouseEnter: () => openOn === "hover" && show(),
         onMouseLeave: () => openOn === "hover" && hide(),
         _onInsert: (node) => {

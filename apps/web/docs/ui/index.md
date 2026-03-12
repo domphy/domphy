@@ -42,9 +42,10 @@ Most patches are:
 
 ## Read Next
 
-1. [Dimension](./dimension) for sizing rules and patch size families
-2. [Customization](./customization) for how to override and adapt existing patches
-3. [Creation](./creation) for writing new patches correctly
-4. [Patches](./patches/button) when you want the catalog
+1. [Color And Tone](./color) for practical `role / tone / color` choices in the UI layer
+2. [Dimension](./dimension) for sizing rules and patch size families
+3. [Customization](./customization) for how to override and adapt existing patches
+4. [Creation](./creation) for writing new patches correctly
+5. [Patches](./patches/button) when you want the catalog
 
 If you already know the system and just want a component, jump straight to the `Patches` group in the sidebar.

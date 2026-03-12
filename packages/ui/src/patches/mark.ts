@@ -1,10 +1,9 @@
 import { PartialElement } from "@domphy/core";
-import { themeSpacing, ThemeColor, ElementTone, themeSize, themeColor } from "@domphy/theme";
+import { themeSpacing, ThemeColor, themeSize, themeColor } from "@domphy/theme";
 
-function mark(props: { accentColor?: ThemeColor; tone?: ElementTone } = {}): PartialElement {
+function mark(props: { accentColor?: ThemeColor } = {}): PartialElement {
     const {
         accentColor = "highlight",
-        tone = "shift-1",
     } = props;
 
     return {
@@ -13,12 +12,12 @@ function mark(props: { accentColor?: ThemeColor; tone?: ElementTone } = {}): Par
                 console.warn(`"mark" primitive patch must use mark tag`);
             }
         },
-        dataTone: tone,
+        dataTone: "shift-2",
         style: {
             display: "inline-flex",
             alignItems: "center",
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-6", accentColor),
+            color: (listener) => themeColor(listener, "shift-9", accentColor),
             backgroundColor: (listener) => themeColor(listener, "inherit", accentColor),
             height: themeSpacing(6),
             borderRadius: themeSpacing(1),

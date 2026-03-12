@@ -41,17 +41,18 @@ function toggle(props: {
             paddingInline: themeSpacing(2),
             border: "none",
             borderRadius: themeSpacing(1),
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             transition:"background-color 300ms ease",
             "&:hover:not([disabled])": {
-                backgroundColor: (listener) => themeColor(listener, "shift-1", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-2", color),
             },
             "&[aria-pressed=true]": {
-                backgroundColor: (listener) => themeColor(listener, "shift-1", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-6", accentColor),
+                color: (listener) => themeColor(listener, "shift-11", accentColor),
             },
             "&:focus-visible": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
                 outlineOffset: `-${themeSpacing(0.5)}`,
             },
             "&[disabled]": {

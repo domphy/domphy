@@ -5,6 +5,7 @@ function preformated(props: { color?: ThemeColor } = {}): PartialElement {
     const { color = "neutral" } = props;
 
     return {
+        dataTone: "shift-2",
         _onInsert: (node) => {
             if (node.tagName != "pre") {
                 console.warn(`"preformated" primitive patch must use pre tag`);
@@ -12,8 +13,8 @@ function preformated(props: { color?: ThemeColor } = {}): PartialElement {
         },
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-6", color),
-            backgroundColor: (listener) => themeColor(listener, "shift-1", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color),
             border: "none",
             paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),

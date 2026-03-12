@@ -14,7 +14,7 @@ function table(props: { color?: ThemeColor } = {}): PartialElement {
         },
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
             width: "100%",
             borderCollapse: "collapse",
             "& caption": {
@@ -25,15 +25,15 @@ function table(props: { color?: ThemeColor } = {}): PartialElement {
                 fontWeight: 500,
                 paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
                 paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
-                color: (listener) => themeColor(listener, "shift-7", color),
+                color: (listener) => themeColor(listener, "shift-10", color),
                 backgroundColor: (listener) => themeColor(listener, "inherit"),
             },
             "& td": {
                 textAlign: "left",
                 paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
                 paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
-                color: (listener) => themeColor(listener, "shift-6", color),
-                boxShadow: (listener) => `inset 0 1px 0 ${themeColor(listener, "shift-3", color)}`,
+                color: (listener) => themeColor(listener, "shift-9", color),
+                boxShadow: (listener) => `inset 0 1px 0 ${themeColor(listener, "shift-4", color)}`,
                 fontSize: (listener) => themeSize(listener, "inherit"),
             },
             "& tfoot th, & tfoot td": {
@@ -41,16 +41,16 @@ function table(props: { color?: ThemeColor } = {}): PartialElement {
                 fontWeight: 500,
                 paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
                 paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
-                color: (l) => themeColor(l, "shift-7", color),
+                color: (l) => themeColor(l, "shift-10", color),
                 backgroundColor: (l) => themeColor(l, "inherit"),
-                boxShadow: (l) => `inset 0 -1px 0 ${themeColor(l, "shift-3", color)}`
+                boxShadow: (l) => `inset 0 -1px 0 ${themeColor(l, "shift-4", color)}`
             },
             "& tr": {
                 backgroundColor: (listener) => themeColor(listener, "inherit"),
             },
 
             "& tbody tr:hover": {
-                backgroundColor: (listener) => themeColor(listener, "shift-2") + "!important",
+                backgroundColor: (listener) => themeColor(listener, "shift-3") + "!important",
             }
         },
     };

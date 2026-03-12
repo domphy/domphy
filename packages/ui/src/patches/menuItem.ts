@@ -49,17 +49,18 @@ function menuItem(props: {
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       border: "none",
       outline: "none",
-      color: (listener) => themeColor(listener, "shift-6"),
+      color: (listener) => themeColor(listener, "shift-9"),
       backgroundColor: (listener) => themeColor(listener, "inherit"),
       "&:hover:not([disabled]):not([aria-current=true])": {
-        backgroundColor: (listener) => themeColor(listener, "shift-1"),
+        backgroundColor: (listener) => themeColor(listener, "shift-2"),
       },
+      // Menu uses the current/indicator band instead of the selected fill band.
       "&[aria-current=true]": {
-        backgroundColor: (listener) => themeColor(listener, "shift-1", accentColor),
-        color: (listener) => themeColor(listener, "shift-7"),
+        backgroundColor: (listener) => themeColor(listener, "shift-3", accentColor),
+        color: (listener) => themeColor(listener, "shift-10"),
       },
       "&:focus-visible": {
-        outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", accentColor)}`,
+        outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
         outlineOffset: `-${themeSpacing(0.5)}`,
       },
     },

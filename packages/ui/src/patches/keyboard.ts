@@ -12,12 +12,12 @@ function keyboard(props: { color?: ThemeColor } = {}): PartialElement {
         },
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             paddingBlock: themeSpacing(0.5),
             paddingInline: themeSpacing(1.5),
             borderRadius: themeSpacing(1),
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
         },
     };
 }

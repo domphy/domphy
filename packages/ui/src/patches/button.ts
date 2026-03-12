@@ -27,12 +27,12 @@ function button(props: { color?: ThemeColor } = {}): PartialElement {
             border: "none",
             outlineOffset: "-1px",
             outlineWidth: "1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
-            color: (listener) => themeColor(listener, "shift-6", color),
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
+            color: (listener) => themeColor(listener, "shift-9", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             "&:hover:not([disabled]):not([aria-busy=true])": {
-                color: (listener) => themeColor(listener, "shift-7", color),
-                backgroundColor: (listener) => themeColor(listener, "shift-1", color),
+                color: (listener) => themeColor(listener, "shift-10", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-2", color),
             },
             "&:focus-visible": {
                 boxShadow: (listener) => `inset 0 0 0 ${themeSpacing(0.5)} ${themeColor(listener, "shift-6", color)}`,
@@ -40,9 +40,9 @@ function button(props: { color?: ThemeColor } = {}): PartialElement {
             "&[disabled]": {
                 opacity: 0.7,
                 cursor: "not-allowed",
-                backgroundColor: (listener) => themeColor(listener, "shift-1", "neutral"),
-                outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
-                color: (listener) => themeColor(listener, "shift-5", "neutral"),
+                backgroundColor: (listener) => themeColor(listener, "shift-2", "neutral"),
+                outline: (listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+                color: (listener) => themeColor(listener, "shift-8", "neutral"),
             },
             "&[aria-busy=true]": {
                 opacity: 0.7,

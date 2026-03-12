@@ -41,15 +41,15 @@ function commandSearch(props: { color?: ThemeColor; accentColor?: ThemeColor } =
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
             paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
             border: "none",
-            borderBottom: (listener) => `1px solid ${themeColor(listener, "shift-2", color)}`,
+            borderBottom: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
             outline: "none",
-            color: (listener) => themeColor(listener, "shift-7", color),
+            color: (listener) => themeColor(listener, "shift-10", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             "&::placeholder": {
-                color: (listener) => themeColor(listener, "shift-4"),
+                color: (listener) => themeColor(listener, "shift-7"),
             },
             "&:focus-visible": {
-                borderBottomColor: (listener) => themeColor(listener, "shift-5", accentColor),
+                borderBottomColor: (listener) => themeColor(listener, "shift-6", accentColor),
             },
         },
     };
@@ -78,13 +78,13 @@ function commandItem(props: { color?: ThemeColor; accentColor?: ThemeColor } = {
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
             border: "none",
             outline: "none",
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             "&:hover:not([disabled])": {
-                backgroundColor: (listener) => themeColor(listener, "shift-1", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-2", color),
             },
             "&:focus-visible": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
                 outlineOffset: `-${themeSpacing(0.5)}`,
             },
         },

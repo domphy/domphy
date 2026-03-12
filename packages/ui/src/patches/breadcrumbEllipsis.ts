@@ -22,14 +22,14 @@ function breadcrumbEllipsis(props: {
             border: "none",
             background: "none",
             cursor: "pointer",
-            color: (listener) => themeColor(listener, "shift-5", color),
+            color: (listener) => themeColor(listener, "shift-8", color),
             borderRadius: themeSpacing(1),
             "&:hover": {
-                color: (listener) => themeColor(listener, "shift-7", color),
-                backgroundColor: (listener) => themeColor(listener, "shift-1", color),
+                color: (listener) => themeColor(listener, "shift-10", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-2", color),
             },
             "&:focus-visible": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", color)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", color)}`,
                 outlineOffset: themeSpacing(0.5),
             },
         },

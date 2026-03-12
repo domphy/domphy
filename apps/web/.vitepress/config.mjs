@@ -104,6 +104,7 @@ export default defineConfig({
       ],
       "/docs/ui/": [
         { text: "Overview", link: "/docs/ui" },
+        { text: "Color And Tone", link: "/docs/ui/color" },
         { text: "Dimension", link: "/docs/ui/dimension" },
         { text: "Customization", link: "/docs/ui/customization" },
         { text: "Creation", link: "/docs/ui/creation" },

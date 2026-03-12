@@ -16,7 +16,7 @@ function horizontalRule(props: { color?: ThemeColor } = {}): PartialElement {
             marginInline: 0,
             marginTop: themeSpacing(3),
             marginBottom: themeSpacing(3),
-            backgroundColor: (listener) => themeColor(listener, "shift-3", color),
+            backgroundColor: (listener) => themeColor(listener, "shift-4", color),
         },
     };
 }

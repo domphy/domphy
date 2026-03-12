@@ -37,7 +37,7 @@ const button = {
     paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
     borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
     backgroundColor: (listener) => themeColor(listener, "inherit", "primary"),
-    color: (listener) => themeColor(listener, "shift-6", "primary"),
+    color: (listener) => themeColor(listener, "shift-9", "primary"),
   },
 }
 ```

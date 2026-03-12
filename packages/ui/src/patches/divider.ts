@@ -25,14 +25,14 @@ function divider(props: {
             "&::before": {
                 content: `""`,
                 flex:1,
-                borderColor: (listener) => themeColor(listener, "shift-3", color),
+                borderColor: (listener) => themeColor(listener, "shift-4", color),
                 borderWidth: "1px",
                 borderBottomStyle: "solid",
             },
             "&::after": {
                 content: `""`,
                 flex:1,
-                borderColor: (listener) => themeColor(listener, "shift-3", color),
+                borderColor: (listener) => themeColor(listener, "shift-4", color),
                 borderWidth: "1px",
                 borderBottomStyle: "solid",
             },

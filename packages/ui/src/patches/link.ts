@@ -14,13 +14,13 @@ function link(props: { color?: ThemeColor, accentColor?: ThemeColor } = {}): Par
         },
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
             textDecoration: "none",
             "&:visited": {
-                color: (listener) => themeColor(listener, "shift-6", accentColor),
+                color: (listener) => themeColor(listener, "shift-9", accentColor),
             },
             "&:hover:not([disabled])": {
-                color: (listener) => themeColor(listener, "shift-7", color),
+                color: (listener) => themeColor(listener, "shift-10", color),
                 textDecoration: "underline",
             },
             "&:focus-visible": {
@@ -31,7 +31,7 @@ function link(props: { color?: ThemeColor, accentColor?: ThemeColor } = {}): Par
             "&[disabled]": {
                 opacity: 0.7,
                 cursor: "not-allowed",
-                color: (listener) => themeColor(listener, "shift-5", "neutral"),
+                color: (listener) => themeColor(listener, "shift-8", "neutral"),
             }
         },
     };

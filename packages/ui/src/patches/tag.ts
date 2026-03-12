@@ -10,7 +10,7 @@ function tag(props: {
   const { color = "neutral", removable=false } = props;
 
   return {
-    dataTone: "shift-1",
+    dataTone: "shift-2",
     _onInit: (node) => {
 
       const removeBtn: DomphyElement<"span"> = {
@@ -25,7 +25,7 @@ function tag(props: {
           height: themeSpacing(4),
           flexShrink: 0,
           "&:hover": {
-            backgroundColor: (listener) => themeColor(listener, "shift-3", color),
+            backgroundColor: (listener) => themeColor(listener, "shift-4", color),
           }
         }
       }
@@ -46,10 +46,10 @@ function tag(props: {
       gap: themeSpacing(2),
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
-      color: (listener) => themeColor(listener, "shift-6", color),
+      color: (listener) => themeColor(listener, "shift-9", color),
       border: "none",
       outlineOffset: "-1px",
-      outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
+      outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
     },
   };
 }

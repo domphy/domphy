@@ -42,6 +42,8 @@ function toast(props: {
     },
     role: "status",
     ariaAtomic: "true",
+    // Toast is rendered as an overlay surface, so it uses the inverted branch.
+    dataTone: "shift-17",
     style: {
       minWidth: themeSpacing(32),
       pointerEvents: "auto",
@@ -49,9 +51,9 @@ function toast(props: {
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "shift-1", color),
-      backgroundColor: (listener) => themeColor(listener, "shift-9", color),
-      boxShadow: (listener) => `0 ${themeSpacing(2)} ${themeSpacing(8)} ${themeColor(listener, "shift-3", "neutral")}`,
+      color: (listener) => themeColor(listener, "shift-9", color),
+      backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      boxShadow: (listener) => `0 ${themeSpacing(2)} ${themeSpacing(9)} ${themeColor(listener, "shift-4", "neutral")}`,
       opacity: (listener) => Number(state.get(listener)),
       transform: (listener) => state.get(listener) ? "translateY(0)" : isTop ? "translateY(-100%)" : "translateY(100%)",
       transition: "opacity 300ms ease, transform 300ms ease",

@@ -5,6 +5,7 @@ function image(props: { color?: ThemeColor } = {}): PartialElement {
     const { color = "neutral" } = props;
 
     return {
+        dataTone: "shift-2",
         _onInsert: (node) => {
             if (node.tagName != "img") {
                 console.warn(`"image" primitive patch must use img tag`);
@@ -17,7 +18,7 @@ function image(props: { color?: ThemeColor } = {}): PartialElement {
             height: "auto",
             objectFit: "cover",
             borderRadius: themeSpacing(2),
-            backgroundColor: (listener) => themeColor(listener, "shift-1", color),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color),
         },
     };
 }

@@ -72,11 +72,11 @@ function selectBox(props: {
             minHeight: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
             minWidth: themeSpacing(32),
             outlineOffset: "-1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
         }
     };

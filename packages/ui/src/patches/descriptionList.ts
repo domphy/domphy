@@ -19,12 +19,12 @@ function descriptionList(props: { color?: ThemeColor } = {}): PartialElement {
                 margin: 0,
                 fontWeight: 600,
                 fontSize: (listener) => themeSize(listener, "inherit"),
-                color: (listener) => themeColor(listener, "shift-7", color),
+                color: (listener) => themeColor(listener, "shift-10", color),
             },
             "& dd": {
                 margin: 0,
                 fontSize: (listener) => themeSize(listener, "inherit"),
-                color: (listener) => themeColor(listener, "shift-6", color),
+                color: (listener) => themeColor(listener, "shift-9", color),
             },
         },
     };

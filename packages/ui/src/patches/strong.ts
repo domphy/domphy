@@ -13,7 +13,7 @@ function strong(props: { color?: ThemeColor } = {}): PartialElement {
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
             fontWeight: 700,
-            color: (listener) => themeColor(listener, "shift-8", color),
+            color: (listener) => themeColor(listener, "shift-11", color),
         },
     };
 }

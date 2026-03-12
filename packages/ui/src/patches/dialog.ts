@@ -51,13 +51,13 @@ function dialog(props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {}
             opacity: "0",
             transition: "opacity 200ms ease",
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-7", color),
+            color: (listener) => themeColor(listener, "shift-10", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             border: "none",
             padding: (listener) => themeSpacing(themeDensity(listener) * 3),
-            boxShadow: (listener) => `0 ${themeSpacing(8)} ${themeSpacing(16)} ${themeColor(listener, "shift-3", "neutral")}`,
+            boxShadow: (listener) => `0 ${themeSpacing(9)} ${themeSpacing(16)} ${themeColor(listener, "shift-4", "neutral")}`,
             "&::backdrop": {
-                backgroundColor: (listener) => themeColor(listener, "shift-1", "neutral"),
+                backgroundColor: (listener) => themeColor(listener, "shift-2", "neutral"),
                 opacity: 0.75,
             }
         },

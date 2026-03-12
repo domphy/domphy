@@ -7,6 +7,7 @@ function avatar(props: {
     const { color = "primary" } = props;
 
     return {
+        dataTone: "shift-2",
         style: {
             position: "relative",
             display: "inline-flex",
@@ -15,13 +16,13 @@ function avatar(props: {
             overflow: "hidden",
             borderRadius: "50%",
             flexShrink: 0,
-            width: themeSpacing(8),
-            height: themeSpacing(8),
+            width: themeSpacing(9),
+            height: themeSpacing(9),
             fontSize: (listener) => themeSize(listener, "inherit"),
             fontWeight: "600",
             userSelect: "none",
-            backgroundColor: (listener) => themeColor(listener, "shift-3", color),
-            color: (listener) => themeColor(listener, "shift-8", color),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color),
+            color: (listener) => themeColor(listener, "shift-11", color),
             "& img": {
                 position: "absolute",
                 inset: 0,

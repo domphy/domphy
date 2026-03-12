@@ -18,7 +18,7 @@ Base density `d = 1.5`:
 | paddingInline | 3 | 4.5 | 6 | 4.5 |
 | radius | 0 | 1.5 | 3 | 4.5 |
 
-**Tone** - `K = N / 2` where `N` is the palette length. For `N = 12`, `K = 6`.
+**Tone** - `K = N / 2` where `N` is the palette length. For `N = 18`, `K = 9`.
 
 | Role | Shift | n=0 |
 | --- | --- | --- |

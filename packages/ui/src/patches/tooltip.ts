@@ -25,7 +25,7 @@ function tooltip(props: {
     const tooltipPartial: PartialElement = {
         role: "tooltip",
         dataSize: "decrease-1",
-        dataTone: "shift-11",
+        dataTone: "shift-17",
         _onInsert: (node) => {
             let id = node.attributes.get("id")
             tooltipId = id || node.nodeId
@@ -35,7 +35,7 @@ function tooltip(props: {
             paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
-            color: (listener) => themeColor(listener, "shift-6"),
+            color: (listener) => themeColor(listener, "shift-9"),
             backgroundColor: (listener) => themeColor(listener),
             fontSize: (listener) => themeSize(listener, "inherit"),
         },

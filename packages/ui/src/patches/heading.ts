@@ -20,7 +20,7 @@ function heading(props: { color?: ThemeColor } = {}): PartialElement {
             }
         },
         style: {
-            color: (listener) => themeColor(listener, "shift-8", color),
+            color: (listener) => themeColor(listener, "shift-11", color),
             marginTop: 0,
             marginBottom: themeSpacing(2),
             fontSize: (listener) => {

@@ -24,7 +24,7 @@ function badge(props: {
                 justifyContent:"center",
                 fontSize: (l) => themeSize(l, "decrease-1"),
                 borderRadius: themeSpacing(999),
-                backgroundColor: (l) => themeColor(l, "shift-6", color),
+                backgroundColor: (l) => themeColor(l, "shift-9", color),
                 color: (l) => themeColor(l, "shift-0", color),
             }
         }

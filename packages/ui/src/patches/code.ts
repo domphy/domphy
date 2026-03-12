@@ -15,7 +15,7 @@ function code(props: { color?: ThemeColor } = {}): PartialElement {
             display: "inline-flex",
             alignItems: "center",
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             height: themeSpacing(6),
             paddingInline: themeSpacing(1.5),

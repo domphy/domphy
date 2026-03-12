@@ -25,34 +25,34 @@ function inputText(props: { color?: ThemeColor, accentColor?: ThemeColor } = {})
             fontSize: (listener) => themeSize(listener, "inherit"),
             border: "none",
             outlineOffset: "-1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
-            color: (listener) => themeColor(listener, "shift-6", color),
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
+            color: (listener) => themeColor(listener, "shift-9", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             "&::placeholder": {
-                color: (listener) => themeColor(listener, "shift-4"),
+                color: (listener) => themeColor(listener, "shift-7"),
             },
             "&:not(:placeholder-shown)": {
-                color: (listener) => themeColor(listener, "shift-7"),
+                color: (listener) => themeColor(listener, "shift-10"),
             },
             "&:hover:not([disabled]):not([aria-busy=true]), &:focus-visible": {
 
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
             },
             "&[disabled]": {
                 opacity: 0.7,
                 cursor: "not-allowed",
-                backgroundColor: (listener) => themeColor(listener, "shift-1", "neutral"),
-                outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
-                color: (listener) => themeColor(listener, "shift-5", "neutral"),
+                backgroundColor: (listener) => themeColor(listener, "shift-2", "neutral"),
+                outline: (listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+                color: (listener) => themeColor(listener, "shift-8", "neutral"),
             },
             "&:invalid:not(:placeholder-shown)": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", "error")}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "error")}`,
             },
             "&[data-status=error]": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", "error")}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "error")}`,
             },
             "&[data-status=warning]": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", "warning")}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "warning")}`,
             },
         },
     };

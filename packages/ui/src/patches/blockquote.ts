@@ -10,11 +10,11 @@ function blockquote(props: { color?: ThemeColor } = {}): PartialElement {
                 console.warn(`"blockquote" primitive patch must use blockquote tag`);
             }
         },
-        dataTone: "shift-1",
+        dataTone: "shift-2",
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
-            boxShadow: (listener) => `inset ${themeSpacing(1)} 0 0 0 ${themeColor(listener, "shift-3", color)}`,
+            boxShadow: (listener) => `inset ${themeSpacing(1)} 0 0 0 ${themeColor(listener, "shift-4", color)}`,
             border: "none",
             paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),

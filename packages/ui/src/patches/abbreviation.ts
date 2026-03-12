@@ -11,15 +11,15 @@ function abbreviation(props: { color?: ThemeColor; accentColor?: ThemeColor } = 
             }
         },
         style: {
-            color: (listener) => themeColor(listener, "shift-7", color),
+            color: (listener) => themeColor(listener, "shift-10", color),
             textDecorationLine: "underline",
             textDecorationStyle: "dotted",
-            textDecorationColor: (listener) => themeColor(listener, "shift-4", color),
+            textDecorationColor: (listener) => themeColor(listener, "shift-7", color),
             textUnderlineOffset: themeSpacing(0.72),
             cursor: "help",
             "&:hover": {
-                color: (listener) => themeColor(listener, "shift-8", accentColor),
-                textDecorationColor: (listener) => themeColor(listener, "shift-6", accentColor),
+                color: (listener) => themeColor(listener, "shift-11", accentColor),
+                textDecorationColor: (listener) => themeColor(listener, "shift-9", accentColor),
             },
         },
     };

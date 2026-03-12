@@ -34,9 +34,9 @@ function pagination(props: {
     cursor: "pointer",
     fontSize: (listener: any) => themeSize(listener, "inherit"),
     backgroundColor: "transparent",
-    color: (listener: any) => themeColor(listener, "shift-6", color),
+    color: (listener: any) => themeColor(listener, "shift-9", color),
     "&:hover:not([disabled])": {
-      backgroundColor: (listener: any) => themeColor(listener, "shift-1", color),
+      backgroundColor: (listener: any) => themeColor(listener, "shift-2", color),
     },
     "&[disabled]": {
       opacity: 0.4,
@@ -46,12 +46,12 @@ function pagination(props: {
 
   const activeStyle = {
     ...btnBase,
-    backgroundColor: (listener: any) => themeColor(listener, "shift-2", accentColor),
-    color: (listener: any) => themeColor(listener, "shift-8", accentColor),
+    backgroundColor: (listener: any) => themeColor(listener, "shift-6", accentColor),
+    color: (listener: any) => themeColor(listener, "shift-11", accentColor),
     fontWeight: "600",
     cursor: "default",
     "&:hover:not([disabled])": {
-      backgroundColor: (listener: any) => themeColor(listener, "shift-2", accentColor),
+      backgroundColor: (listener: any) => themeColor(listener, "shift-6", accentColor),
     },
   };
 
@@ -78,7 +78,7 @@ function pagination(props: {
           // Page buttons
           for (const p of getPages(page, total)) {
             if (p === "...") {
-              items.push({ span: "…", style: { display: "inline-flex", alignItems: "center", paddingInline: (listener: any) => themeSpacing(themeDensity(listener) * 2), color: (listener: any) => themeColor(listener, "shift-4", color) } });
+              items.push({ span: "…", style: { display: "inline-flex", alignItems: "center", paddingInline: (listener: any) => themeSpacing(themeDensity(listener) * 2), color: (listener: any) => themeColor(listener, "shift-7", color) } });
             } else {
               const isActive = p === page;
               items.push({

@@ -17,7 +17,7 @@ function figure(props: { color?: ThemeColor } = {}): PartialElement {
             marginInline: 0,
             marginTop: themeSpacing(3),
             marginBottom: themeSpacing(3),
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
             "& img, & svg, & video, & canvas": {
                 display: "block",
                 maxWidth: "100%",
@@ -25,7 +25,7 @@ function figure(props: { color?: ThemeColor } = {}): PartialElement {
             },
             "& figcaption": {
                 fontSize: (listener) => themeSize(listener, "decrease-1"),
-                color: (listener) => themeColor(listener, "shift-5", color),
+                color: (listener) => themeColor(listener, "shift-8", color),
                 lineHeight: 1.45,
             },
         },

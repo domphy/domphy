@@ -14,7 +14,7 @@ function subscript(props: { color?: ThemeColor } = {}): PartialElement {
             fontSize: (listener) => themeSize(listener, "decrease-1"),
             verticalAlign: "sub",
             lineHeight: 0,
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
         },
     };
 }

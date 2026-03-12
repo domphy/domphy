@@ -5,7 +5,7 @@ function inputSwitch(props: { accentColor?: ThemeColor } = {}): PartialElement {
     const { accentColor = "primary" } = props;
 
     return {
-        dataTone: "increase-2",
+        dataTone: "shift-2",
         type: "checkbox",
         _onSchedule: (node) => {
             if (node.tagName != "input") {
@@ -18,7 +18,7 @@ function inputSwitch(props: { accentColor?: ThemeColor } = {}): PartialElement {
             appearance: "none",
             position: "relative",
             display: "inline-flex",
-            width: themeSpacing(8),
+            width: themeSpacing(9),
             height: themeSpacing(6),
             cursor: "pointer",
             margin: `0`,

@@ -14,13 +14,13 @@ function details(
         },
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
            
             overflow: "hidden",
             "& > summary": {
-               backgroundColor: (listener) => themeColor(listener, "shift-1", color),
-              color: (listener) => themeColor(listener, "shift-7", color),
+               backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+              color: (listener) => themeColor(listener, "shift-10", color),
                 fontSize: (listener) => themeSize(listener, "inherit"),
                 listStyle: "none",
                 display: "flex",
@@ -45,8 +45,8 @@ function details(
                 height: themeSpacing(2),
                 flexShrink: 0,
                 marginTop: `-${themeSpacing(0.5)}`,
-                borderInlineEnd: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", color)}`,
-                borderBottom: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", color)}`,
+                borderInlineEnd: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-9", color)}`,
+                borderBottom: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-9", color)}`,
                 transform: "rotate(45deg)",
                 transition: `transform ${duration}ms ease`,
             },
@@ -54,12 +54,12 @@ function details(
                 transform: "rotate(-135deg)",
             },
             "& > summary:hover": {
-                backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-3", color),
             },
             "& > summary:focus-visible": {
                 borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
                 outlineOffset: `-${themeSpacing(0.5)}`,
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
             },
             "& > :not(summary)": {
                 maxHeight: "0px",

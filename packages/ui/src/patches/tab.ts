@@ -54,14 +54,14 @@ function tab(props: {
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
       border: "none",
       outline: "none",
-      color: (listener) => themeColor(listener, "shift-6"),
+      color: (listener) => themeColor(listener, "shift-9"),
       backgroundColor: (listener) => themeColor(listener, "inherit"),
-      boxShadow: (listener) => `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(listener, "shift-2", color)}`,
+      boxShadow: (listener) => `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(listener, "shift-1", color)}`,
       "&:hover:not([disabled])": {
-        boxShadow: (listener) => `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(listener, "shift-3", color)}`,
+        boxShadow: (listener) => `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(listener, "shift-2", color)}`,
       },
       "&[aria-selected=true]:not([disabled])": {
-        boxShadow: (listener) => `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(listener, "shift-4", accentColor)}`,
+        boxShadow: (listener) => `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(listener, "shift-6", accentColor)}`,
       },
       "&:focus-visible": {
         boxShadow: (listener) => `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(listener, "shift-6", accentColor)}`,

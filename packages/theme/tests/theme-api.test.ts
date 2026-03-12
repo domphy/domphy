@@ -37,10 +37,11 @@ describe("theme core APIs", () => {
   it("createDark reverses palettes and base tones", () => {
     const light = getTheme("light");
     const dark = createDark(structuredClone(light));
+    const lastPrimaryIndex = light.colors.primary.length - 1;
 
     expect(dark.direction).toBe("lighten");
-    expect(dark.colors.primary[0]).toBe(light.colors.primary[11]);
-    expect(dark.baseTones.primary).toBe(11 - light.baseTones.primary);
+    expect(dark.colors.primary[0]).toBe(light.colors.primary[lastPrimaryIndex]);
+    expect(dark.baseTones.primary).toBe(lastPrimaryIndex - light.baseTones.primary);
   });
 
   it("setTheme/getTheme merge custom themes and reject invalid keys", () => {

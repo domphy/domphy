@@ -638,37 +638,32 @@ Built-in themes:
 
 ### Canonical Light Theme
 
-This is the built-in base theme source from `@domphy/theme`.
+The authored source lives in `packages/theme/src/light.ts`.
 
-```ts
-const light: ThemeInput = {
-  direction: "darken",
-  colors: {
-    highlight: ["#ffffff", "#fcf4d6", "#fddc69", "#f1c21b", "#d2a106", "#b28600", "#8e6a00", "#684e00", "#483700", "#302400", "#1c1500", "#000000"],
-    warning: ["#ffffff", "#fff2e8", "#ffd9be", "#ffb784", "#ff832b", "#eb6200", "#ba4e00", "#8a3800", "#5e2900", "#3e1a00", "#231000", "#000000"],
-    error: ["#ffffff", "#fff1f1", "#ffd7d9", "#ffb3b8", "#ff8389", "#fa4d56", "#da1e28", "#a2191f", "#750e13", "#520408", "#2d0709", "#000000"],
-    danger: ["#ffffff", "#fff1f1", "#ffd7d9", "#ffb3b8", "#ff8389", "#fa4d56", "#da1e28", "#a2191f", "#750e13", "#520408", "#2d0709", "#000000"],
-    secondary: ["#ffffff", "#fff0f7", "#ffd6e8", "#ffafd2", "#ff7eb6", "#ee5396", "#d02670", "#9f1853", "#740937", "#510224", "#2a0a18", "#000000"],
-    primary: ["#ffffff", "#edf5ff", "#d0e2ff", "#a6c8ff", "#78a9ff", "#4589ff", "#0f62fe", "#0043ce", "#002d9c", "#001d6c", "#001141", "#000000"],
-    info: ["#ffffff", "#e5f6ff", "#bae6ff", "#82cfff", "#33b1ff", "#1192e8", "#0072c3", "#00539a", "#003a6d", "#012749", "#061727", "#000000"],
-    success: ["#ffffff", "#defbe6", "#a7f0ba", "#6fdc8c", "#42be65", "#24a148", "#198038", "#0e6027", "#044317", "#022d0d", "#071908", "#000000"],
-    neutral: ["#ffffff", "#f4f4f4", "#e0e0e0", "#c6c6c6", "#a8a8a8", "#8d8d8d", "#6f6f6f", "#525252", "#393939", "#262626", "#161616", "#000000"],
-  },
-  baseTones: {
-    highlight: 3,
-    warning: 4,
-    error: 5,
-    secondary: 5,
-    primary: 6,
-    info: 5,
-    success: 5,
-    neutral: 5,
-  },
-  fontSizes: ["0.75rem", "0.875rem", "1rem", "1.25rem", "1.5625rem", "1.9375rem", "2.4375rem", "3.0625rem"],
-  densities: [0.75, 1, 1.5, 2, 2.5],
-  custom: {},
-};
-```
+Key facts AI should assume:
+
+- color ramps are 18-step Adobe Spectrum-derived arrays
+- family mapping is:
+  - `highlight` -> yellow
+  - `warning` -> orange
+  - `error` / `danger` -> red
+  - `secondary` -> pink
+  - `primary` -> blue
+  - `info` -> cyan
+  - `success` -> green
+  - `neutral` -> silver
+- base tones are:
+  - `highlight: 5`
+  - `warning: 6`
+  - `error: 8`
+  - `danger: 8`
+  - `secondary: 8`
+  - `primary: 9`
+  - `info: 8`
+  - `success: 8`
+  - `neutral: 8`
+- density factors are `[0.75, 1, 1.5, 2, 2.5]`
+- font sizes remain `["0.75rem", "0.875rem", "1rem", "1.25rem", "1.5625rem", "1.9375rem", "2.4375rem", "3.0625rem"]`
 
 `dark` is not a separate authored theme. It is an invert of `light`.
 
@@ -680,7 +675,7 @@ function createDark(source: ThemeInput): ThemeInput {
   dark.direction = "lighten";
   for (let name in dark.colors) {
     dark.colors[name].reverse();
-    dark.baseTones[name] = 12 - 1 - dark.baseTones[name];
+    dark.baseTones[name] = dark.colors[name].length - 1 - dark.baseTones[name];
   }
   return dark;
 }
@@ -690,8 +685,8 @@ So the AI should treat:
 
 - `light` as the canonical authored theme
 - `dark` as the same theme inverted
-- color ramps as 12-step arrays
-- dark mode as reverse tone direction, not a separate semantic palette system
+- color ramps as 18-step arrays
+- dark mode as the same ramp inverted, not a separate semantic palette system
 
 ### Theme Context
 
@@ -701,6 +696,103 @@ So the AI should treat:
 - `dataDensity`: shift spacing density locally
 
 These can be scoped to a subtree. Theme is local, not global-only.
+
+### Tone Hierarchy
+
+Domphy tone is resolved by three logical layers:
+
+```txt
+T = C_surface + S_zone + I_delta
+```
+
+- `T`: final tone
+- `C_surface`: context surface anchor
+- `S_zone`: semantic zone offset
+- `I_delta`: interactive offset
+
+Layers:
+
+- Layer 1 `Context Surface`: the local surface anchor for a subtree
+- Layer 2 `Semantic Zone`: the stable meaning band of an element
+- Layer 3 `Interactive Delta`: the temporary interaction offset layered on top of semantics
+
+AI should treat this formula as the core invariant of tone generation.
+
+### Tone Mapping
+
+For the current authored light theme:
+
+```txt
+N = 18
+K = N / 2 = 9
+```
+
+AI should assume:
+
+- usable surface span below text contrast is `0..8`
+- text contrast threshold is reached at `K = 9`
+- semantic bands divide `K` into three zones:
+  - default = `0`
+  - indicator = `K / 3 = 3`
+  - accent = `2K / 3 = 6`
+- interaction deltas stay small:
+  - hover = `1`
+  - active = `2`
+
+This creates three non-overlapping semantic bands:
+
+- `0, 1, 2`
+- `3, 4, 5`
+- `6, 7, 8`
+
+So AI should treat `K = 9` as the key invariant: it cleanly separates three semantic zones while preserving unique hover and active tones without overlap.
+
+### Tone Anchoring Rules
+
+To keep tone progression predictable, `C_surface` should usually be near one edge of the ramp:
+
+- normal anchors: `0`, `1`, `2`, `3`
+- inverted anchors: `17`, `16`, `15`, `14`
+
+AI should prefer edge anchors so tone moves in one direction inside a single context.
+
+AI should avoid arbitrary middle anchors unless there is a specific reason, because a middle anchor can clamp before the progression finishes and then appear to bend back toward the opposite side.
+
+No matter whether the local context is interpreted as increasing or decreasing, the final resolved surface band should still land in one of these two edge ranges.
+
+### Tone Roles
+
+When Domphy says `tone` without another qualifier, it usually means the resolved surface or background tone of the element itself.
+
+From that base tone, the common visual roles are:
+
+- background / surface = the tone itself
+- text = tone plus or minus `K`
+- stroke = tone plus or minus `K / 3`
+
+Here, `stroke` means the structural edge role, such as `outline`, `border`, or a separator line.
+
+With the current ramp:
+
+- `K = 9`
+- `K / 3 = 3`
+
+So AI should assume:
+
+- normal side: `background = tone`, `stroke = tone + 3`, `text = tone + 9`
+- inverted side: `background = tone`, `stroke = tone - 3`, `text = tone - 9`
+
+### Tone Generation Rules
+
+When generating Domphy code, AI should:
+
+- prefer `dataTone` for subtree shifts
+- use `themeColor(listener, "inherit", family)` for the local surface background
+- use `themeColor(listener, "shift-9", family)` for text on that surface when full contrast is intended
+- use `themeColor(listener, "shift-3", family)` for `outline` or stroke when the normal structural edge role is intended
+- avoid inventing semantic tone names like `surface`, `foreground`, or `text`
+- avoid arbitrary tone jumps when `0 / 3 / 6` and `+1 / +2` already express the intended state
+- for practical UI-level color selection, follow the `UI Color Reference` below instead of inventing extra semantic rows
 
 ### Valid Tone Values
 
@@ -714,13 +806,13 @@ Valid tone values are only:
 - `"increase-N"`
 - `"decrease-N"`
 
-Where `N` is a number from `0` to `11`.
+Where `N` is a number from `0` to `17`.
 
 Examples:
 
 - `themeColor(listener, "inherit", "primary")`
 - `themeColor(listener, "base", "primary")`
-- `themeColor(listener, "shift-6", "neutral")`
+- `themeColor(listener, "shift-9", "neutral")`
 - `themeColor(listener, "increase-1", "primary")`
 - `themeColor(listener, "decrease-2", "neutral")`
 
@@ -735,7 +827,8 @@ If AI wants a background/text pairing, it must express that with valid shifts, f
 ```ts
 style: {
   backgroundColor: (listener) => themeColor(listener, "inherit", "primary"),
-  color: (listener) => themeColor(listener, "shift-6", "primary"),
+  color: (listener) => themeColor(listener, "shift-9", "primary"),
+  outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "primary")}`,
 }
 ```
 
@@ -780,17 +873,77 @@ Density is a local spacing context, not a semantic size name.
 
 Default color family names used across Domphy are:
 
-- `"neutral"`
-- `"primary"`
-- `"secondary"`
-- `"info"`
-- `"success"`
-- `"warning"`
-- `"error"`
-- `"highlight"`
-- `"danger"`
+- `"neutral"` for default surfaces, text, boundaries, and low-semantic controls
+- `"primary"` for accent UI, selected state, and focus emphasis
+- `"secondary"` for alternate emphasis when the primary branch should not be used
+- `"info"` for informational state, hint, and non-critical notice UI
+- `"success"` for success state, confirmed action, and completed status UI
+- `"warning"` for caution UI that is not destructive
+- `"error"` for invalid input, error state, and failure feedback UI
+- `"highlight"` for marked content, highlighted region, and featured emphasis
+- `"danger"` for destructive action and high-risk UI such as delete or remove
 
 If AI needs a neutral surface, use `color: "neutral"` with a valid tone key. Do not invent names like `surface`, `panel`, or `card`.
+
+### UI Color Reference
+
+Use this as the practical UI mapping for tone and color selection.
+
+`dataTone`:
+
+- default surface context = `inherit`; if it is `inherit`, do not set `dataTone`
+- near-default surface context = `shift-1` or `shift-2`
+- base context = `base`, `shift-7`, `shift-8`, `shift-9`
+- inverted context = `shift-17`, `shift-16`, `shift-15`
+- overlays use the inverted branch
+- `base` means the configured base tone of the chosen family, not a fixed number
+
+`Background Color`:
+
+- `Default` = `inherit`, normally with `neutral`
+- `Indicator` = `shift-3` for current menu item, current option, progress track, switch track, and similar indicator backgrounds
+- `Selected` = `shift-6`, normally with `primary`
+
+`Boundary Edge`:
+
+- `Separator` = `shift-3` for divider, separator, table line, and passive boundary
+- `Control Edge` = `shift-4` for input outline, card border, select border, and bounded control edge
+- `Strong Edge` = `shift-6` for focus ring, current item edge, selected tab edge, and selected option edge
+
+`Text Color` semantic levels:
+
+- `Default` = `shift-9` for body text, label text, and normal control text
+- `Emphasis 1` = `shift-10` for filled field text, stronger labels, and alert text
+- `Emphasis 2` = `shift-11` for highest semantic emphasis on a normal surface
+- `Secondary` = `shift-8` for helper text, secondary text, dimmed text, and lower-priority supporting text
+- `Secondary 2` = `shift-7` for placeholder text and the weakest supporting text
+
+`Text Color` static states:
+
+- `Indicator` = `shift-10`
+- `Selected` = `shift-11`
+- use text static state when the text itself must carry the state more clearly
+
+`Interaction State`:
+
+- interaction is a delta on top of the current static state, not a separate base state
+- `Hover` = `+1` or `-1`
+- `Active` = `+2` or `-2`
+- choose only one role to carry interaction state
+- priority order is: background, then boundary edge, then text
+- use text interaction only when background and boundary edge interaction are both absent
+
+`Focus Visible`:
+
+- if the object already has a dedicated focus edge, reuse `Strong Edge`
+- otherwise use `outline` with `Strong Edge` and `outlineOffset: themeSpacing(1)`
+- if `Strong Edge` is already used for selected or current state, add a separate focus outline instead of assuming it is enough
+
+`Disabled`:
+
+- treat disabled as de-emphasis, not as a core tone state
+- use opacity first
+- optional tone fallback: background `shift-2 neutral`, text `shift-8 neutral`
 
 ### Common Helpers
 
@@ -804,7 +957,8 @@ style: {
   paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
   borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
   backgroundColor: (listener) => themeColor(listener, "inherit", "primary"),
-  color: (listener) => themeColor(listener, "shift-6", "primary"),
+  color: (listener) => themeColor(listener, "shift-9", "primary"),
+  outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "primary")}`,
 }
 ```
 

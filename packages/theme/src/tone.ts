@@ -1,7 +1,8 @@
 import { themeVars, getTheme, themeName } from "./theme.js"
+import light from "./light.js";
 import type { Listener, ElementNode } from "@domphy/core";
 
-const TONE_STEPS = 12
+const TONE_STEPS = light.colors.neutral.length
 
 const ElementTones = ["inherit", "base"];
 
@@ -22,7 +23,8 @@ function adjustTone(tone: number, level: number): number {
 
 function shiftTone(tone: number, level: number): number {
     if (tone < 0 || tone > TONE_STEPS - 1) return tone
-    let newIndex = tone <= 5 ? tone + level : tone - level
+    let midpoint = Math.floor((TONE_STEPS - 1) / 2)
+    let newIndex = tone <= midpoint ? tone + level : tone - level
     newIndex = newIndex < 0 || newIndex > TONE_STEPS - 1 ? - newIndex : newIndex
     newIndex = Math.max(0, Math.min(TONE_STEPS - 1, newIndex));
     return newIndex

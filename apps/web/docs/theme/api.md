@@ -10,7 +10,7 @@ Resolve a color variable from the current theme and tone context.
 
 ```ts
 backgroundColor: (listener) => themeColor(listener, "inherit", "primary")
-color: (listener) => themeColor(listener, "shift-6", "primary")
+color: (listener) => themeColor(listener, "shift-9", "primary")
 ```
 
 Use this for text color, background color, outline color, and interaction states.

@@ -13,7 +13,7 @@ function emphasis(props: { color?: ThemeColor } = {}): PartialElement {
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
             fontStyle: "italic",
-            color: (listener) => themeColor(listener, "shift-7", color),
+            color: (listener) => themeColor(listener, "shift-10", color),
         },
     };
 }

@@ -10,8 +10,8 @@ function card(props: { color?: ThemeColor } = {}): PartialElement {
             gridTemplateAreas: '"image image" "title aside" "desc aside" "content content" "footer footer"',
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
-            color: (listener) => themeColor(listener, "shift-7", color),
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
+            color: (listener) => themeColor(listener, "shift-10", color),
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
             outlineOffset: "-1px",
             overflow: "hidden",
             "& > img": {
@@ -30,7 +30,7 @@ function card(props: { color?: ThemeColor } = {}): PartialElement {
             "& > p": {
                 gridArea: "desc",
                 paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
-                color: (listener) => themeColor(listener, "shift-6", color),
+                color: (listener) => themeColor(listener, "shift-9", color),
                 margin: 0
             },
             "& > aside": {
@@ -42,7 +42,7 @@ function card(props: { color?: ThemeColor } = {}): PartialElement {
             "& > div": {
                 gridArea: "content",
                 padding: (listener) => themeSpacing(themeDensity(listener) * 4),
-                color: (listener) => themeColor(listener, "shift-7", color),
+                color: (listener) => themeColor(listener, "shift-10", color),
             },
             "& > footer": {
                 gridArea: "footer",
@@ -50,7 +50,7 @@ function card(props: { color?: ThemeColor } = {}): PartialElement {
                 gap: themeSpacing(2),
                 paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
                 paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
-                borderTop: (listener) => `1px solid ${themeColor(listener, "shift-2", color)}`,
+                borderTop: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
             },
         },
     };

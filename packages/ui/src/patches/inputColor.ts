@@ -37,8 +37,8 @@ function inputColor(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}
             "&[disabled]": {
                 opacity: 0.7,
                 cursor: "not-allowed",
-                backgroundColor: (listener) => themeColor(listener, "shift-1", "neutral"),
-                outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+                backgroundColor: (listener) => themeColor(listener, "shift-2", "neutral"),
+                outline: (listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
             },
         },
     };

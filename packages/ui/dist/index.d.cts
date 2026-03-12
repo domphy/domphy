@@ -1,5 +1,5 @@
 import { PartialElement, ValueOrState, DomphyElement, Notifier, Handler } from '@domphy/core';
-import { ThemeColor, ElementTone } from '@domphy/theme';
+import { ThemeColor } from '@domphy/theme';
 import { Placement as Placement$1 } from '@floating-ui/dom';
 
 declare function abbreviation(props?: {
@@ -199,7 +199,6 @@ declare function link(props?: {
 
 declare function mark(props?: {
     accentColor?: ThemeColor;
-    tone?: ElementTone;
 }): PartialElement;
 
 declare function paragraph(props?: {

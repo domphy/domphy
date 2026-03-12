@@ -21,28 +21,28 @@ function textarea(
             border:"none",
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-6", color),
+            color: (listener) => themeColor(listener, "shift-9", color),
             outlineOffset: "-1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
             "&::placeholder": {
-                color: (listener) => themeColor(listener, "shift-4"),
+                color: (listener) => themeColor(listener, "shift-7"),
             },
             "&:hover:not([disabled]):not([aria-busy=true])": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-4", accentColor)}`,
-            },
-            "&:focus-visible": {
                 outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", accentColor)}`,
             },
+            "&:focus-visible": {
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+            },
             "&:invalid": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-4", "error")}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", "error")}`,
             },
             "&[disabled]": {
                 opacity: 0.7,
                 cursor: "not-allowed",
-                color: (listener) => themeColor(listener, "shift-5", "neutral"),
-                outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
-                backgroundColor: (listener) => themeColor(listener, "shift-1", "neutral"),
+                color: (listener) => themeColor(listener, "shift-8", "neutral"),
+                outline: (listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+                backgroundColor: (listener) => themeColor(listener, "shift-2", "neutral"),
             }
         },
     };

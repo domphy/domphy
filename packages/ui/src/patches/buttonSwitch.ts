@@ -22,7 +22,7 @@ function buttonSwitch(props: {
         },
         role: "switch",
         ariaChecked: (listener) => check.get(listener),
-        dataTone: "increase-2",
+        dataTone: "shift-2",
         onClick: () => check.set(!check.get()),
         style: {
             position: "relative",
@@ -31,7 +31,7 @@ function buttonSwitch(props: {
             fontSize: (listener) => themeSize(listener),
             border: "none",
             outlineWidth: "1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-2", color)}`,
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
             minWidth: themeSpacing(12),
             minHeight: themeSpacing(6),
             borderRadius: themeSpacing(999),
@@ -51,7 +51,7 @@ function buttonSwitch(props: {
                 width: themeSpacing(5),
                 height: themeSpacing(5),
                 borderRadius: themeSpacing(999),
-                color: (listener) => themeColor(listener, "shift-6"),
+                color: (listener) => themeColor(listener, "shift-9"),
                 backgroundColor: (listener) => themeColor(listener, "decrease-2", color),
             },
             "&[aria-checked=true]": {

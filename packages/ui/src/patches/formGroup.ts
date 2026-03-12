@@ -32,7 +32,7 @@ function formGroup(props: { color?: ThemeColor; layout?: "horizontal" | "vertica
                 fontWeight: 600,
                 paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
                 borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
-                color: (listener) => themeColor(listener, "shift-6", color),
+                color: (listener) => themeColor(listener, "shift-9", color),
                 backgroundColor: (listener) => themeColor(listener, "inherit", color),
             },
             "& > label": {
@@ -56,7 +56,7 @@ function formGroup(props: { color?: ThemeColor; layout?: "horizontal" | "vertica
                 margin: 0,
                 marginBlockStart: `calc(${themeSpacing(2)} * -1)`,
                 fontSize: (listener) => themeSize(listener, "decrease-1"),
-                color: (listener) => themeColor(listener, "shift-6", color),
+                color: (listener) => themeColor(listener, "shift-9", color),
             },
         },
     };

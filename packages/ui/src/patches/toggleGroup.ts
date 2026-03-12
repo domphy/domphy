@@ -9,7 +9,7 @@ function toggleGroup(props: {
     const { multiple = false, color = "neutral" } = props;
     return {
         role: "group",
-        dataTone: "shift-1",
+        dataTone: "shift-2",
         _context: {
             toggleGroup: {
                 value: toState(props.value ?? (multiple ? [] : "")),
@@ -24,7 +24,7 @@ function toggleGroup(props: {
             borderRadius: themeSpacing(2),
             fontSize: (listener) => themeSize(listener, "inherit"),
             backgroundColor: (listener) => themeColor(listener, "inherit", color),
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-1", color)}`,
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
             outlineOffset: "-1px",
         }
     };

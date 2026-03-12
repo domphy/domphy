@@ -7,6 +7,11 @@ const themes: Record<string, ThemeInput> = {
   dark: createDark(light),
 };
 
+function colorSteps(input: ThemeInput): number {
+  const firstColor = Object.keys(input.colors)[0];
+  return firstColor ? input.colors[firstColor].length : 0;
+}
+
 // --- Validation ---
 
 function validateTheme(partial: Partial<ThemeInput>): void {
@@ -52,13 +57,14 @@ function deepMerge(target: any, source: any): void {
 
 function buildThemeCSS(name: string, input: ThemeInput): string {
   const styles: Record<string, string | number> = {};
+  const toneSteps = colorSteps(input);
 
   for (const key in input) {
     const value = input[key as keyof ThemeInput];
 
     if (key === "colors") {
       for (const colorName in input.colors) {
-        [...Array(12).keys()].forEach(i =>
+        [...Array(toneSteps).keys()].forEach(i =>
           styles[`--${colorName}-${i}`] = input.colors[colorName][i]
         );
       }
@@ -102,13 +108,14 @@ export function createDark(source: ThemeInput): ThemeInput {
   dark.direction = "lighten"
   for (let name in dark.colors) {
     dark.colors[name].reverse()
-    dark.baseTones[name] = 12 - 1 - dark.baseTones[name]
+    dark.baseTones[name] = dark.colors[name].length - 1 - dark.baseTones[name]
   }
   return dark
 }
 
 export function themeTokens(name: string): Record<string, any> {
   let input = getTheme(name)
+  const toneSteps = colorSteps(input);
   let tokens: Record<string, any> = {};
 
   for (const key in input) {
@@ -117,7 +124,7 @@ export function themeTokens(name: string): Record<string, any> {
     if (key === "colors") {
       for (const name in input.colors) {
         let colorTones = {} as Partial<Record<number, string>>;
-        [...Array(12).keys()].forEach(i => colorTones[i] = input.colors[name][i]);
+        [...Array(toneSteps).keys()].forEach(i => colorTones[i] = input.colors[name][i]);
         tokens[name] = colorTones as Record<number, string>;
       }
     } else if (key === "fontSizes") {
@@ -139,6 +146,7 @@ export function themeTokens(name: string): Record<string, any> {
 
 export function themeVars(): ThemeVars {
   let input = getTheme("light")
+  const toneSteps = colorSteps(input);
   let theme = {} as ThemeVars;
 
   for (const key in input) {
@@ -148,7 +156,7 @@ export function themeVars(): ThemeVars {
     if (key === "colors") {
       for (const name in input.colors) {
         let colorTones = {} as Partial<Record<number, string>>;
-        [...Array(12).keys()].forEach(i => colorTones[i] = `var(--${name}-${i})`);
+        [...Array(toneSteps).keys()].forEach(i => colorTones[i] = `var(--${name}-${i})`);
         theme[name] = colorTones as Record<number, string>;
       }
     } else if (key === "fontSizes") {

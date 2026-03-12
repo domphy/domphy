@@ -46,7 +46,7 @@ const button = {
     paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
     borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
     backgroundColor: (listener) => themeColor(listener, "inherit", "primary"),
-    color: (listener) => themeColor(listener, "shift-6", "primary"),
+    color: (listener) => themeColor(listener, "shift-9", "primary"),
   },
 }
 ```
@@ -58,15 +58,17 @@ import { setTheme, getTheme, createDark } from "@domphy/theme"
 
 setTheme("brand", {
   colors: {
-    primary: ["#fff", "#eef2ff", "#c7d2fe", "#a5b4fc", "#818cf8", "#6366f1", "#4f46e5", "#4338ca", "#3730a3", "#312e81", "#1e1b4b", "#000"],
+    primary: ["#ffffff", "#f7f5ff", "#efe8ff", "#e5d9ff", "#d6c2ff", "#c4a6ff", "#af87ff", "#9a6dff", "#8658ff", "#7345f7", "#6033df", "#512bc0", "#43249e", "#351c7d", "#28155d", "#1c0e3f", "#0e0720", "#000000"],
   },
   baseTones: {
-    primary: 5,
+    primary: 9,
   },
 })
 
 setTheme("brand-dark", createDark(getTheme("brand")))
 ```
+
+Custom color ramps should follow the current 18-step model.
 
 ## Docs
 

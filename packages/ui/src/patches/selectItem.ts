@@ -44,17 +44,17 @@ function selectItem(props: {
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       border: "none",
       outline: "none",
-      color: (listener) => themeColor(listener, "shift-6", color),
+      color: (listener) => themeColor(listener, "shift-9", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       "&:hover:not([disabled]):not([aria-selected=true])": {
-        backgroundColor: (listener) => themeColor(listener, "shift-1", color),
+        backgroundColor: (listener) => themeColor(listener, "shift-2", color),
       },
       "&[aria-selected=true]": {
-        backgroundColor: (listener) => themeColor(listener, "shift-2", accentColor),
-        color: (listener) => themeColor(listener, "shift-8"),
+        backgroundColor: (listener) => themeColor(listener, "shift-6", accentColor),
+        color: (listener) => themeColor(listener, "shift-11"),
       },
       "&:focus-visible": {
-        outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", accentColor)}`,
+        outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
         outlineOffset: `-${themeSpacing(0.5)}`,
       },
     },

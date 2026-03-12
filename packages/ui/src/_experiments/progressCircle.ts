@@ -6,7 +6,7 @@ import { themeSpacing, themeColor, themeSize ,ThemeColor} from "@domphy/ui"
  * @experiment
  * @status failed
  * @reason Remark 1 — width constraint conflicts with typography
- * @evidence "100" does not fit 8U×8U even without %
+ * @evidence "100" does not fit 8U×8U even without %, so the minimum container is 9U×9U
  * @paper Section X: Empirical Completeness — counter-example
  * @ref Ant Design provides this at arbitrary sizes — no theory basis
  */
@@ -91,8 +91,8 @@ const patch = (props: {
           alignItems:"center",
           justifyContent:"center",
             position: "relative",
-            width: themeSpacing(8),
-            height: themeSpacing(8),
+            width: themeSpacing(9),
+            height: themeSpacing(9),
           "& > :first-child":{
             fontSize:(listener)=>themeSize(listener,"decrease-1")
           }

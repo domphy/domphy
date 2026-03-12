@@ -1,205 +1,265 @@
-
 # Tone
 
-These color conventions converge with IBM Carbon, Adobe Spectrum, and USWDS —
-not by copying them, but because the contrast span K already existed implicitly in their palette structures.
-It was never formally identified until derived from first principles. See [paper](https://github.com/chromametry/chromametry/blob/main/paper/paper.pdf) for full benchmark analysis.
+Use `themeColor(listener, tone, color?)` from `@domphy/theme` to resolve colors from theme context.
 
-Use `themeColor(listener, shift, color?)` from `@domphy/theme` — one function replaces all tons of color tokens and configurations.
+<img alt="Tone Model" src="/figures/tone.png" width="500" style="display:block;margin:auto" />
 
-## Contrast Span K
+## Tone Span
 
-Each color family has N steps ordered by lightness. The contrast span K is the minimum step distance that guarantees WCAG 4.5:1 for all valid pairs:
+`Tone Span` is the contrast-span model derived in the Chromametry paper for sequential monochromatic ramps.
 
+- For a color family with `N` ordered lightness steps, `K` is the minimum index distance that guarantees WCAG `4.5:1` contrast for all valid pairs in that family.
+- This turns contrast selection into a fixed index rule instead of repeated runtime checking.
+- In the current Domphy light ramp, `N = 18`, so the working span is `K = 9`.
+
+Formal definition:
+
+```txt
+K = min { k : CR(c_i, c_{i+k}) >= 4.5 for all valid i }
 ```
-K = N / 2
+
+For the formal definition, benchmark method, and cross-system results, see:
+
+- Repo: https://github.com/chromametry/chromametry
+- Paper: https://github.com/chromametry/chromametry/blob/main/paper/paper.pdf
+
+## Tone System Hierarchy
+
+Domphy's tone system is built on three independent logical layers. This is the abstract model, before any concrete step count or ramp mapping is applied.
+
+### 1. Layer 1: Context Surface
+
+This is **The Floor**. It is not the state of the object itself, but the environment that contains it.
+
+- **Role:** Defines the local tone field for a subtree.
+- **Meaning:** Establishes the anchor from which child elements are measured.
+- **Behavior:** Gives the system a stable surface reference so descendant tones can be interpreted relative to the same anchor.
+
+### 2. Layer 2: Semantic Zone
+
+This is **The Seat**. It describes the object's stable semantic position before any interaction happens.
+
+- **Role:** Encodes meaning, not interaction.
+- **Meaning:** Distinguishes resting, positional, and emphasized states.
+- **Behavior:** Creates persistent semantic separation between elements that share the same context surface.
+
+### 3. Layer 3: Interactive Delta
+
+This is **The Action**. It is a temporary modifier applied on top of the semantic zone during interaction.
+
+- **Role:** Expresses live response such as hover or press.
+- **Meaning:** It is transient and should never redefine the semantic identity of the element.
+- **Behavior:** Adds a small offset so interaction remains visible without collapsing into another semantic zone.
+
+### General Formula
+
+At the abstract level, the final tone is always resolved from the same three-layer composition:
+
+```txt
+T = C_surface + S_zone + I_delta
 ```
 
-For a 12-step palette, `K = 6`. Any two colors separated by 6 steps are guaranteed accessible — no runtime contrast check needed. Benchmarking across 11 industry design systems confirms this ratio is consistent, though previously unrecognized.
+Where:
 
-**N should be an even number.** With an even N, there always exists at least one pair at any position that satisfies WCAG 4.5:1 — regardless of which step is the base. 12 is the recommended default: divisible by 2, 3, and 4, making shift values easy to reason about while coding (`K=6`, `K/2=3`, `K/3=2`, `K/4=~1.5→2`).
+- `T` means the final tone
+- `C_surface` means the context surface anchor
+- `S_zone` means the semantic zone offset
+- `I_delta` means the interactive offset
 
-| #   | span | 0      | 1      | 2      | 3      | 4      | 5      | 6      | 7      | 8      | 9      | 10      | 11      |
-| --- | ---- | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------- | ------- |
-| 1   | 0–6  | **[0** | 1      | 2      | 3      | 4      | 5      | **6]** | 7      | 8      | 9      | 10      | 11      |
-| 2   | 1–7  | 0      | **[1** | 2      | 3      | 4      | 5      | 6      | **7]** | 8      | 9      | 10      | 11      |
-| 3   | 2–8  | 0      | 1      | **[2** | 3      | 4      | 5      | 6      | 7      | **8]** | 9      | 10      | 11      |
-| 4   | 3–9  | 0      | 1      | 2      | **[3** | 4      | 5      | 6      | 7      | 8      | **9]** | 10      | 11      |
-| 5   | 4–10 | 0      | 1      | 2      | 3      | **[4** | 5      | 6      | 7      | 8      | 9      | **10]** | 11      |
-| 6   | 5–11 | 0      | 1      | 2      | 3      | 4      | **[5** | 6      | 7      | 8      | 9      | 10      | **11]** |
+This formula is the core rule of the hierarchy: context defines the anchor, semantics define the stable zone, and interaction adds a temporary local delta.
+
+---
+
+## Tone Mapping
+
+This section applies the abstract hierarchy to the current Domphy tone ramp.
+
+For the current Domphy light ramp:
+
+```txt
+N = 18
+K = 9
+```
+
+`K = 9` is the contrast span reserved by the system between background and text. In practice, this means the first 9 steps can be used for surfaces and state layers, while the contrast target for text begins at step 9 relative to the same anchor.
+
+### 1. Surface Anchors
+
+To keep tone progression predictable, the context surface should usually start near one edge of the 18-step ramp.
+
+- **Normal surface anchors:** `0`, `1`, `2`, `3`
+- **Inverted surface anchors:** `17`, `16`, `15`, `14`
+
+- The purpose of choosing edge anchors is to keep tone progression moving in one direction inside a single context.
+- If a surface starts in the middle of the ramp, child tones can hit a clamp before the progression finishes, then appear to bend back toward the opposite side. That produces unstable and visually ugly mapping.
+- No matter whether the local context is interpreted as increasing or decreasing, the final resolved surface band should still land in one of these two edge ranges.
+- `0, 1, 2, 3` keep the surface on the low edge so child tones can expand upward in a single clear sequence.
+- `17, 16, 15, 14` keep the surface on the high edge so child tones can still be mapped consistently in the inverted case.
+
+AI should prefer these surface anchors and avoid arbitrary middle anchors unless there is a specific reason.
+
+### 2. Semantic Mapping
+
+To keep the system structured, Domphy maps the semantic layer into three equal regions inside the available `K = 9` surface span:
+
+- **Default zone:** `0`
+- **Indicator zone:** `K / 3 = 3`
+- **Accent zone:** `2K / 3 = 6`
+
+This is why `K = 9` is a strong fit. It divides cleanly into three semantic anchors:
+
+- `0` for rest
+- `3` for indicator
+- `6` for accent
+
+These anchors are far enough apart to be perceptually distinct while still remaining below the text threshold at `9`.
+
+### 3. Interaction Mapping
+
+Interactive deltas stay intentionally small:
+
+- **Hover:** `+1` or `-1`
+- **Active:** `+2` or `-2`
+
+That gives each semantic anchor its own local interaction range without collisions:
+
+- `0` -> `1` -> `2`
+- `3` -> `4` -> `5`
+- `6` -> `7` -> `8`
+
+Because the three semantic anchors are spaced by `3`, and the largest interaction delta is `2`, every resulting tone remains unique.
+
+The proof below applies the general formula from the hierarchy section on top of those surface anchors.
+
+**Proof matrix (example with `Context Surface = 0` and `K = 9`):**
+
+| Actual state | Logical formula | Result (Final Tone) |
+| :--- | :--- | :--- |
+| **Resting component** | `0 + 0 + 0` | **Step 0** |
+| **Hovered component** | `0 + 0 + 1` | **Step 1** |
+| **Pressed component** | `0 + 0 + 2` | **Step 2** |
+| **Static indicator (Menu)** | `0 + K/3 + 0` | **Step 3** |
+| **Indicator + Hover** | `0 + 3 + 1` | **Step 4** |
+| **Indicator + Press** | `0 + 3 + 2` | **Step 5** |
+| **Strong state (Toggle)** | `0 + 2K/3 + 0` | **Step 6** |
+| **Strong state + Hover** | `0 + 6 + 1` | **Step 7** |
+| **Strong state + Press** | `0 + 6 + 2` | **Step 8** |
+
+**Proof matrix (example with inverted `Context Surface = 17` and `K = 9`):**
+
+| Actual state | Logical formula | Result (Final Tone) |
+| :--- | :--- | :--- |
+| **Resting component** | `17 + 0 + 0` | **Step 17** |
+| **Hovered component** | `17 - 0 - 1` | **Step 16** |
+| **Pressed component** | `17 - 0 - 2` | **Step 15** |
+| **Static indicator (Menu)** | `17 - K/3 - 0` | **Step 14** |
+| **Indicator + Hover** | `17 - 3 - 1` | **Step 13** |
+| **Indicator + Press** | `17 - 3 - 2` | **Step 12** |
+| **Strong state (Toggle)** | `17 - 2K/3 - 0` | **Step 11** |
+| **Strong state + Hover** | `17 - 6 - 1` | **Step 10** |
+| **Strong state + Press** | `17 - 6 - 2` | **Step 9** |
+
+**Invariant rule:** The total variation (`Semantic Zone + Interactive Delta`) must stay below `K`. With `K = 9`, the sequence `0, 1, 2, 3, 4, 5, 6, 7, 8` forms three clean semantic bands, and `Step 9` remains the start of the text-contrast region. That is why `9` works well: it divides into three stable zones and still leaves hover and active states unique without overlap.
+
+## Tone Roles
+
+When Domphy says `tone` without another qualifier, it usually means the resolved surface or background tone of the element itself.
+
+From that base tone, the common visual roles are derived as follows:
+
+- **Background / Surface:** the tone itself
+- **Text:** the tone plus or minus `K`
+- **Stroke:** the tone plus or minus `K / 3`
+
+Here, `stroke` means the structural edge role, such as `outline`, `border`, or a separator line.
+
+With the current Domphy light ramp:
+
+```txt
+K = 9
+K / 3 = 3
+```
+
+So the concrete role mapping is:
+
+- normal side: `background = tone`, `stroke = tone + 3`, `text = tone + 9`
+- inverted side: `background = tone`, `stroke = tone - 3`, `text = tone - 9`
+
+This is the practical reason tone selection stays anchored near the edges: the derived roles remain ordered, predictable, and do not collapse back into the wrong side of the ramp.
 
 ## Shift System
 
-`themeColor(listener, shift, color?)` shift keys:
+Valid tone keys:
 
-- `"shift-N"` — absolute step N (N = 0–11), resolves toward wider index range
-- `"increase-N"` / `"decrease-N"` — relative from current context base
-- `"inherit"` — current base color
-- `"base"` — exact base index of the color family
+- `"shift-N"` where `N` is `0` to `17`
+- `"increase-N"`
+- `"decrease-N"`
+- `"inherit"`
+- `"base"`
 
-`dataTone` accepts the same keys: `"shift-N"` | `"increase-N"` | `"decrease-N"` | `"inherit"` | `"base"`. Every combination is valid.
+`dataTone` accepts the same keys.
 
-```typescript
-backgroundColor: (l) => themeColor(l, "shift-0")   // base surface
-color:           (l) => themeColor(l, "shift-6")    // text — WCAG 4.5:1 vs shift-0
-outline:         (l) => `1px solid ${themeColor(l, "shift-3")}` // border ≈ K/2
+Use them like this:
+
+- `inherit` = keep the current local surface
+- `shift-N` = go to a fixed semantic slot on the current branch
+- `increase-N` = move further along the current branch
+- `decrease-N` = move back along the current branch
+- `base` = jump to the registered base tone of that color family
+
+Basic example:
+
+```ts
+backgroundColor: (l) => themeColor(l, "shift-0", "primary")
+color: (l) => themeColor(l, "shift-9", "primary")
+outline: (l) => `1px solid ${themeColor(l, "shift-3", "primary")}`
 ```
 
-Full element example — button w=1 with all color roles:
+## Full Example
 
-```typescript
+```ts
 const button = {
-    button: "Buy",
-    style: {
-        // size
-        fontSize:      (l) => themeSize(l, "inherit"),
-        paddingBlock:  (l) => themeSpacing(themeDensity(l) * 1),
-        paddingInline: (l) => themeSpacing(themeDensity(l) * 3),
-        borderRadius:  (l) => themeSpacing(themeDensity(l) * 1),
-        // color
-        backgroundColor: (l) => themeColor(l, "inherit", "primary"),
-        color:           (l) => themeColor(l, "shift-6", "primary"),  // WCAG guaranteed
-        outline:         (l) => `1px solid ${themeColor(l, "shift-3", "primary")}`,
-        // hover state
-        "&:hover": {
-            backgroundColor: (l) => themeColor(l, "increase-1", "primary"),
-        },
-        "&:focus-visible": {
-            boxShadow: (l) => `0 0 0 2px ${themeColor(l, "shift-4", "primary")}`,
-        },
-    }
+  button: "Buy",
+  style: {
+    fontSize: (l) => themeSize(l, "inherit"),
+    paddingBlock: (l) => themeSpacing(themeDensity(l) * 1),
+    paddingInline: (l) => themeSpacing(themeDensity(l) * 3),
+    borderRadius: (l) => themeSpacing(themeDensity(l) * 1),
+    backgroundColor: (l) => themeColor(l, "inherit", "primary"),
+    color: (l) => themeColor(l, "shift-9", "primary"),
+    outline: (l) => `1px solid ${themeColor(l, "shift-3", "primary")}`,
+    "&:hover": {
+      backgroundColor: (l) => themeColor(l, "increase-1", "primary"),
+    },
+    "&:focus-visible": {
+      boxShadow: (l) => `0 0 0 2px ${themeColor(l, "shift-6", "primary")}`,
+    },
+  },
 }
 ```
 
-## Color Assignment
-
-Each element derives its colors from a single base index `n` (inherited from parent via `dataTone`):
-
-```mermaid
-flowchart TB
-    Parent -- currentTone=parentTone ± n --> Current["Current Element"]
-    Current -- currentTone --> Background
-    Current -- currentTone ± K(Safe WCAG)--> Text
-    Current -- currentTone ± K/2 --> Stroke["Border/Outline"]
-    Background -- shift --> State["Interaction States"]
-    Text -- shift --> State
-    Stroke -- shift --> State
-```
-
-| Category                  | Shift                  | n=0 | n=1 | n=2 | n=3 | n=4 |
-| ------------------------- | ---------------------- | --- | --- | --- | --- | --- |
-| Background                | parent ± n             | 0   | 1   | 2   | 3   | 4   |
-| Text                      | background + K         | 6   | 7   | 8   | 9   | 10  |
-| Border / Outline          | background + K/2       | 3   | 4   | 5   | 6   | 7   |
-| Hover                     | background + 2K/3      | 4   | 5   | 6   | 7   | 8   |
-| Selected / Active / Focus | one of the above ± K/3 | 2   | 3   | 4   | 5   | 6   |
-
-## State Tone
-
-Interaction states (hover, focus, selected, active, pressed) are highly diverse — what changes and how much depends on the element type, design intent, and aesthetic. There is no single formula.
-
-The general principle: **any state change should shift by K/3 to 2K/3** (2 to 4 steps for K=6). This range is:
-
-- Large enough to be perceived as a meaningful change
-- Small enough to remain within the same tone family without jumping to an unrelated lightness zone
-
-```typescript
-"&:hover": {
-    backgroundColor: (l) => themeColor(l, "increase-1", "primary"), // +1 step — subtle
-},
-"&:active": {
-    backgroundColor: (l) => themeColor(l, "increase-2", "primary"), // +2 steps — stronger
-},
-"&:focus-visible": {
-    boxShadow: (l) => `0 0 0 2px ${themeColor(l, "shift-4", "primary")}`, // outline only
-},
-"&[aria-selected=true]": {
-    color: (l) => themeColor(l, "shift-7", "primary"), // shift text instead of background
-},
-```
-
-Whether the shift applies to `backgroundColor`, `color`, `outline`, or `boxShadow` is a design decision — the shift magnitude principle applies to whichever property changes.
-
-`ThemeColor` = `"neutral"` | `"primary"` | `"secondary"` | `"info"` | `"success"` | `"warning"` | `"error"` | `"highlight"`
-
-When no color is passed, `themeColor` inherits from the nearest `dataTone` context ancestor.
-
 ## Context Tone
 
-`dataTone` propagates down the DOM tree — all descendants read the correct tone automatically, no prop drilling needed. This enables multi-theme on the same page with zero configuration, and works identically in SSR and CSR.
+`dataTone` propagates down the tree. Descendants resolve their own tone automatically.
 
-```typescript
-// parent sets tone — shift within color family
+```ts
 { div: [...], dataTone: "shift-1" }
-
-// child reads automatically — no extra config
-{ span: "Error", style: { color: (l) => themeColor(l, "shift-6", "error") } }
+{ span: "Error", style: { color: (l) => themeColor(l, "shift-9", "error") } }
 ```
 
 ## Recommendation
 
-**Only inline elements (leaf nodes with no children) should shift `backgroundColor` directly.** For all other elements, always set `backgroundColor` to `inherit` and use `dataTone` to control tone. This ensures all descendant elements remain context-aware and can resolve their own colors correctly.
+Prefer `dataTone` over changing container colors manually.
 
-```typescript
-// ❌ setting backgroundColor directly on a container — breaks child context
-{ div: [Button, Text], style: { backgroundColor: (l) => themeColor(l, "shift-1", "danger") } }
-
-// ✅ use dataTone — children resolve their own colors automatically
-{ div: [Button, Text], dataTone: "shift-1", style: { backgroundColor: (l) => themeColor(l, "inherit", "danger") } }
-
-// ✅ inline leaf — no children, safe to shift directly
-{ span: "Label", style: { backgroundColor: (l) => themeColor(l, "shift-1", "danger") } }
-```
-
-**Prefer `dataTone` over `dataTheme` in most cases.** Although `dataTheme` can be used at any container level, it should only be used when genuinely comparing or contrasting two different themes side by side (e.g., a live theme preview, a light/dark comparison panel). For all other cases — darkening a card, tinting a section — `dataTone` with a shift is simpler, lighter, and sufficient.
-
-## Local Theme Override
-
-`dataTheme` can be set at any level — not just the root. This allows a container to run a completely different theme from its surroundings, with all descendants inside adapting automatically.
-
-```typescript
-// light section inside a dark page
-{ div: [Header, Body, Footer], dataTheme: "light" }
-
-// dark card inside a light page
-{ div: [Title, Content], dataTheme: "dark" }
-```
-
-Apply the theme by calling `themeApply()` on mount. If no `styleTag` is provided, it automatically creates one in `<head>`. Pass a `styleTag` only when theme isolation is needed (e.g., Shadow DOM):
-
-```typescript
-// standard usage — injects into <head> automatically
-{ div: [...], dataTheme: "dark", _onMount: (node) => themeApply() }
-
-// shadow DOM — isolated style tag
-{ div: [...], dataTheme: "dark", _onMount: (node) => themeApply(myStyleTag) }
-```
-
-This works at any nesting depth — page, section, card, or any container level.
-
-## Discussion
-
-**Why is there no `dataColor` context?**
-
-`dataTone` controls shift — a positional offset along the lightness axis. Color family (`"danger"`, `"primary"`, etc.) is passed explicitly as the third argument to `themeColor` because a single element typically uses multiple color families simultaneously:
-
-```typescript
-// one element, multiple colors — no single "context color" makes sense
-style: {
-    backgroundColor: (l) => themeColor(l, "inherit", "neutral"),
-    color:           (l) => themeColor(l, "shift-6", "neutral"),
-    outline:         (l) => `1px solid ${themeColor(l, "shift-3", "primary")}`, // different family
-    boxShadow:       (l) => `0 0 0 2px ${themeColor(l, "shift-4", "danger")}`,  // another family
+```ts
+// better
+{
+  div: [Button, Text],
+  dataTone: "shift-1",
+  style: {
+    backgroundColor: (l) => themeColor(l, "inherit", "danger"),
+  },
 }
 ```
 
-A `dataColor: "danger"` context would only cover one of these — the rest still need explicit color arguments. There is no meaningful default. Color family is therefore always explicit, while shift is contextual.
-
-Color also has no natural concept of "shift" the way lightness does — shifting a hue family means changing identity, not intensity. `dataTone` shifts position within a family; there is no equivalent operation across families.
-
----
-
-UI color has the same two unsolved problems as sizing: deciding what values to use, and keeping them consistent across variants, states, and themes. Token-based systems require manual contrast verification and per-theme overrides.
-
-Tone solves both. Every color of every element is fully determined by one shift value derived from K, and one root `dataTone` context. Change `dataTone` and the entire subtree — background, text, border, all interaction states — adapts automatically. WCAG 4.5:1 is guaranteed by palette structure, not by runtime checks. Multi-theme on the same page requires no configuration — just different `dataTheme` at different roots.
-
+Use `dataTheme` only when you truly want a different theme, not just a darker or lighter local surface.

@@ -19,7 +19,7 @@ const App: DomphyElement<"div"> = {
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
         border: "none",
         backgroundColor: (listener) => themeColor(listener, "inherit", "primary"),
-        color: (listener) => themeColor(listener, "shift-6", "primary"),
+        color: (listener) => themeColor(listener, "shift-9", "primary"),
       },
     },
   ],

@@ -13,11 +13,12 @@ function skeleton(props: {
   const animationName = hashString(JSON.stringify(keyframes))
   return {
     ariaHidden: "true",
+    dataTone: "shift-2",
     style: {
       height: themeSpacing(6),
       display: "block",
       borderRadius: themeSpacing(1),
-      backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+      backgroundColor: (listener) => themeColor(listener, "inherit", color),
       animation: `${animationName} 1.5s ease-in-out infinite`,
       [`@keyframes ${animationName}`]: keyframes,
     } as StyleObject,

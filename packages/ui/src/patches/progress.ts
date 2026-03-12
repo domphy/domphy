@@ -17,18 +17,18 @@ function progress(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}):
             border: 0,
             borderRadius: themeSpacing(999),
             overflow: "hidden",
-            backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+            backgroundColor: (listener) => themeColor(listener, "shift-3", color),
             "&::-webkit-progress-bar": {
-                backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-3", color),
                 borderRadius: themeSpacing(999),
             },
             "&::-webkit-progress-value": {
-                backgroundColor: (listener) => themeColor(listener, "shift-6", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor),
                 borderRadius: themeSpacing(999),
                 transition: "width 220ms ease",
             },
             "&::-moz-progress-bar": {
-                backgroundColor: (listener) => themeColor(listener, "shift-6", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor),
                 borderRadius: themeSpacing(999),
             },
         },

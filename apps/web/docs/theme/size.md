@@ -1,6 +1,8 @@
 # Size
 
-Domphy sizing is based on one unit:
+Domphy keeps `size`, `density`, and `spacing` separate, but they work together in one sizing model.
+
+The base unit is:
 
 `U = fontSize / 4`
 
@@ -12,10 +14,40 @@ Use:
 - `themeDensity(listener)` to resolve the current density factor from `dataDensity`
 - `themeSpacing(n)` to convert the final numeric result into CSS units
 
-## Core Variables
+## Overview
 
-- `n` = intrinsic text lines
-- `w` = wrapping level
+Think of the sizing pipeline like this:
+
+1. `themeSize()` sets the local text scale
+2. that font size defines `U`
+3. `themeDensity()` changes how compact or loose the geometry feels
+4. formulas produce numeric spacing values in units of `U`
+5. `themeSpacing()` converts the final number into a CSS length
+
+## Size
+
+`size` controls typography scale through `dataSize` and `themeSize()`.
+
+Use it when the local subtree should inherit a larger or smaller text scale.
+
+```ts
+fontSize: (listener) => themeSize(listener, "inherit")
+```
+
+This is the part that defines the local `fontSize`, and therefore defines the local unit:
+
+`U = fontSize / 4`
+
+If the subtree font size changes, every formula built on `U` changes with it.
+
+## Density
+
+`density` controls compactness through `dataDensity` and `themeDensity()`.
+
+Use it when the component should feel tighter or looser without changing the type scale.
+
+Core variable:
+
 - `d` = current density factor
 
 Density factors come from the current theme:
@@ -25,6 +57,37 @@ Density factors come from the current theme:
 Default density:
 
 `d = 1.5`
+
+Typical read:
+
+```ts
+const d = themeDensity(listener)
+```
+
+`themeDensity()` returns a number, not a CSS value. It is a multiplier used inside sizing formulas.
+
+## Spacing
+
+`spacing` is the final CSS length produced from the numeric result.
+
+Use `themeSpacing(n)` after the geometry has already been decided.
+
+```ts
+gap: themeSpacing(3)
+paddingInline: themeSpacing(themeDensity(listener) * 3)
+```
+
+So the role split is:
+
+- `themeSize()` sets the scale
+- `themeDensity()` sets the multiplier
+- `themeSpacing()` emits the CSS value
+
+## Geometry Variables
+
+- `n` = intrinsic text lines
+- `w` = wrapping level
+- `d` = current density factor
 
 ## Wrapping Level
 
@@ -44,7 +107,9 @@ Examples:
 | 2 | multi-line bounded | textarea, blockquote, card |
 | 3 | structural section | dialog, drawer, fieldset |
 
-## Formulas
+## Geometry Formulas
+
+Internal component geometry is formula-driven:
 
 ```txt
 paddingBlock  = d * w * U
@@ -78,7 +143,7 @@ paddingInline = 18px
 radius = 6px
 ```
 
-## Example
+## Putting Them Together
 
 ```ts
 import { themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme"
@@ -92,13 +157,14 @@ const button = {
     paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
     borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
     backgroundColor: (listener) => themeColor(listener, "inherit", "primary"),
-    color: (listener) => themeColor(listener, "shift-6", "primary"),
+    color: (listener) => themeColor(listener, "shift-9", "primary"),
   },
 }
 ```
 
 This reads as:
 
+- `themeSize(listener, "inherit")` -> local font size
 - `themeDensity(listener)` -> current `d`
 - `* 1` / `* 3` -> geometry factor for that edge
 - `themeSpacing(...)` -> final CSS unit
@@ -123,7 +189,7 @@ At `fontSize: 16px`:
 | paddingInline | 12px* | 18px | 24px | 18px |
 | radius | 0 | 6px | 12px | 18px |
 
-\* For `w = 0`, inline padding only applies to bounded inline surfaces such as `tag`, `badge`, or `code`. Pure text/icon inline content has no outer padding.
+\* For `w = 0`, inline padding only applies to bounded inline surfaces such as `tag`, `badge`, or `code`. Pure text or icon inline content has no outer padding.
 
 ## Sub-Baseline Scale
 
@@ -133,19 +199,7 @@ Elements intentionally below the `6U` text baseline use the fixed proportional s
 
 These stay fixed unless the patch explicitly defines another rule.
 
-## Recommendation
-
-Use `outline` or `box-shadow` instead of `border` when the sizing formula matters.
-
-At `w = 1`, `d = 1.5`:
-
-- formula height = `9U = 36px`
-- a `1px` border on both sides adds `2px`
-- total rendered height becomes `38px`
-
-That is a `5.56%` deviation from the sizing model.
-
-## Spacing Between Elements
+## Layout Spacing
 
 Internal geometry is formula-driven. Layout spacing between separate regions is not.
 
@@ -160,5 +214,17 @@ Example at base density:
 gap: themeSpacing(4.5) // >= w=1 paddingInline
 gap: themeSpacing(3)   // >= w=2 paddingBlock
 ```
+
+## Recommendation
+
+Use `outline` or `box-shadow` instead of `border` when the sizing formula matters.
+
+At `w = 1`, `d = 1.5`:
+
+- formula height = `9U = 36px`
+- a `1px` border on both sides adds `2px`
+- total rendered height becomes `38px`
+
+That is a `5.56%` deviation from the sizing model.
 
 For the underlying tone model, see [Tone](./tone).
