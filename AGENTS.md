@@ -336,6 +336,18 @@ const App = {
 }
 ```
 
+### Object Freshness
+
+Every DomphyElement object is deep cloned at the `ElementNode` entry point before any parsing or hook execution. The original raw object is never stored or reused internally.
+
+This means:
+
+- the same object instance passed to two different places produces two independent nodes with no shared state
+- mutating an object after passing it to `ElementNode` has no effect
+- there is no mechanism to carry identity across renders through the object reference itself
+
+Because every render produces fresh objects with no stable reference, there is no way to auto-assign or auto-detect a diffing key at the framework level. `_key` must always be declared explicitly in the element definition. Any approach that relies on object identity or reference equality for automatic keying will not work in Domphy.
+
 ### Client Render
 
 Client rendering starts with `ElementNode`.
@@ -468,6 +480,15 @@ It is:
 - not business identity
 
 If `_key` matches, Domphy reuses the existing node instance and DOM node instead of creating a new one.
+
+Because every DomphyElement object is deep cloned at entry and fresh objects are produced on every render, there is no stable object reference that Domphy can use to derive a key automatically. `_key` must always be declared explicitly. There is no automatic keying mechanism and none can be built at the framework level without the user providing the identity value.
+
+Several approaches to automatic keying have been considered and rejected:
+
+- Auto-increment key assigned in `_onSchedule` before deep clone: only works if the same object instance is passed on every render. In reactive children, objects are recreated on every render, so a new key is assigned each time and the diff cannot match old nodes to new ones. This creates false confidence — it appears to work in simple cases but silently fails when objects are created inside reactive functions. There is no way to guarantee instance stability across renders because it depends entirely on how each user writes their code — some users always return fresh objects from factory functions, others declare objects directly. Domphy cannot assume or enforce either style, so no mechanism can rely on instance reuse being present.
+- Reading key from a container such as `ListState`: the container owns stable keys, but the element object itself is still fresh. The key must be explicitly placed into `_key` by the caller. `ListState.insert()` returns an entry with a stable key precisely so the caller can do this explicitly.
+
+The conclusion is final: automatic keying is not possible in Domphy without explicit user declaration. Do not propose auto-key mechanisms.
 
 Use `_key` for dynamic child lists that reorder, insert in the middle, or remove in the middle.
 
@@ -603,6 +624,289 @@ Use these patterns deliberately:
 - DOM outside the managed tree such as `<head>` -> direct DOM API in `_onMount`
 
 Do not use reactive children for every single toggle when a simpler pattern is clearer.
+
+### State Structure Rules
+
+**Keep each state simple and focused on one purpose.**
+
+Do not nest `State` inside `State` (for example `State<State<T>[]>`). Nested state is prone to infinite update loops that are difficult to debug even with deep framework knowledge.
+
+**Connect states with `onChange`, not nesting.**
+
+When one state depends on another, wire them explicitly with `onChange`. This creates a visible, traceable dependency graph where each edge has a clear direction.
+
+```ts
+// ✅ Explicit reactive graph via onChange
+const selected = toState(-1)
+const formState = new FormState()
+
+selected.onChange(() => {
+  formState.reset()
+})
+```
+
+Use `onChange` for:
+
+- side effects triggered by state change (reset, fetch, log, analytics)
+- explicit reactive chains where one state drives another
+
+Do not use `onChange` to maintain derived state. If a value is always computable from existing states, compute it inline instead of storing it as a separate state.
+
+```ts
+// ❌ Derived state via onChange — sync burden, loop risk
+const currentRamp = toState(null)
+selected.onChange(i => currentRamp.set(ramps.get()[i]))
+ramps.onChange(r => currentRamp.set(r[selected.get()]))
+
+// ✅ Compute inline — always fresh, no sync needed
+const currentRamp = () => ramps.get()[selected.get()]
+```
+
+**How to decide what needs its own state:**
+
+A value needs its own state if it changes independently of every other state. If it always follows from other states, it is derived and should be computed, not stored.
+
+Quick check: if only this value changed and nothing else did, would that make sense in the app? If not, it is derived.
+
+```
+ramps[]     → changes when user adds, removes, or edits   → state
+selected    → changes when user clicks                    → state
+──────────────────────────────────────────────────────────
+currentRamp → always = ramps[selected]                    → derive inline
+score       → always = f(ramps)                           → derive inline
+```
+
+Every app has its own dependency graph. `onChange` makes that graph explicit and readable. Keep the graph acyclic: if A triggers B and B triggers A, there is a design error in the state model.
+
+### The Four State Patterns
+
+There are exactly four state patterns in Domphy. Every app uses one or a combination of these. Start from Pattern 1 and only move to the next when there is a concrete reason.
+
+---
+
+**Pattern 1 — Coarse state (default)**
+
+One state holds the entire data structure. Any change replaces the whole thing and notifies all subscribers. Simple, predictable, correct in most cases.
+
+```ts
+const ramps = toState<Ramp[]>([])
+
+// one item changed → replace whole array
+const arr = [...ramps.get()]
+arr[i] = new Ramp(newColors, name)
+ramps.set(arr)
+// all subscribers re-render — that is fine
+```
+
+Use this first. Always. Only move to Pattern 2 when the data is a dynamic list where items are inserted, removed, or reordered independently.
+
+---
+
+**Pattern 2 — Reactive list (ListState)**
+
+Use when the state is an ordered list of independent items that can be inserted, removed, moved, or swapped without replacing the whole array. Each item is a `State<T>` with a stable `key` for child reconciliation.
+
+```ts
+const items = toListState<Task>([])
+
+// insert
+const entry = items.insert({ text: "New task", done: false })
+
+// render with stable keys
+const list = {
+  ul: (listener) => items.entries(listener).map(({ key, state }) => ({
+    li: (l) => state.get(l).text,
+    _key: key,
+  })),
+}
+
+// remove
+items.remove(entry.state)
+
+// reorder
+items.move(0, 2)
+items.swap(0, 1)
+```
+
+Use this when: the list changes structurally (insert/remove/reorder) and you want only the affected child created or destroyed, not the whole list re-rendered. The `entry.key` is stable across reorders — always use it as `_key`.
+
+Do not use this for a list that is always replaced wholesale (e.g. filtered search results) — Pattern 1 is simpler there.
+
+---
+
+**Pattern 3 — Fine-grained state (multiple toState + onChange)**
+
+Split into multiple focused states connected by `onChange`. Each state notifies only its own subscribers. Heavier computation can be isolated so only the affected part re-runs.
+
+```ts
+const baseColor = toState("#ff0000")
+const steps = toState(18)
+const ramp = toState(new Ramp(generateRamp(baseColor.get(), steps.get()), "Red"))
+
+baseColor.onChange(c => ramp.set(new Ramp(generateRamp(c, steps.get()), ramp.get().name)))
+steps.onChange(n => ramp.set(new Ramp(generateRamp(baseColor.get(), n), ramp.get().name)))
+```
+
+Use when: computation is heavy enough that re-running it on every coarse re-render causes a perceptible problem, and the state can be cleanly separated.
+
+Do not use nested `State<State<T>>`. That is not Pattern 3 — it is a combination that causes the infinite loop problems described above.
+
+The readable limit for this pattern is around 4 states and 3 `onChange` connections. Beyond that, move to Pattern 4.
+
+---
+
+**Pattern 4 — Custom class with Notifier composition**
+
+When the `onChange` graph grows past the readable limit, collapse the cluster into a single class. The class manages its own internal state and notifies once when anything changes. The rest of the app sees one object instead of a graph.
+
+The readable limit is around **4 states and 3 connections**. That threshold comes from working memory research — Cowan (2001) revised Miller's Law down to 4 ± 1 chunks. Each `onChange` connection requires holding 2 states and 1 edge simultaneously. At 4 states with 3 connections the total reaches 7 items, which is at the limit. At 5 states with 4 or more connections it exceeds it.
+
+Use a minimal base class so subclasses never call `notify()` directly:
+
+```ts
+import { Notifier } from "@domphy/core"
+
+class ReactiveModel {
+  private _notifier = new Notifier()
+  private _data: Record<string, unknown> = {}
+
+  protected set(name: string, value: unknown): void {
+    this._data[name] = value
+    this._notifier.notify("change")
+  }
+
+  protected get(name: string): unknown {
+    return this._data[name]
+  }
+
+  onChange(listener: () => void): () => void {
+    return this._notifier.addListener("change", listener)
+  }
+}
+```
+
+Extend for any domain model:
+
+```ts
+class RampModel extends ReactiveModel {
+  constructor(baseColor: string, steps: number, name: string) {
+    super()
+    this.set("baseColor", baseColor)
+    this.set("steps", steps)
+    this.set("name", name)
+    this._regen()
+  }
+
+  get baseColor() { return this.get("baseColor") as string }
+  set baseColor(v: string) { this.set("baseColor", v); this._regen() }
+
+  get steps() { return this.get("steps") as number }
+  set steps(v: number) { this.set("steps", v); this._regen() }
+
+  get name() { return this.get("name") as string }
+  set name(v: string) { this.set("name", v) }
+
+  get ramp() { return this.get("ramp") as Ramp }
+
+  private _regen() {
+    this.set("ramp", new Ramp(generateRamp(this.baseColor, this.steps), this.name))
+  }
+}
+
+const model = toState(new RampModel("#ff0000", 18, "Red"))
+```
+
+Use when: 5 or more related states need to stay in sync, and threading them through `onChange` makes the graph hard to follow. The cluster should have clear domain identity — a form, an editor, a ramp, a session. States that change independently of each other stay as separate `toState()`.
+
+The class does not replace `toState`. It replaces a tangled cluster of states that would otherwise require many `onChange` connections to stay in sync.
+
+---
+
+**Decision guide:**
+
+```
+Start here              → Pattern 1: one coarse toState, replace on change
+List with insert/remove → Pattern 2: toListState, stable keys, fine-grained child ops
+User feels lag          → Pattern 3: split into focused states + onChange
+Graph too big           → Pattern 4: custom class with Notifier
+```
+
+### State Sharing Patterns
+
+There are three ways to share state between a parent and its descendants. Choose based on scope.
+
+**Pattern 1 — Props (parent owns, children receive)**
+
+Create state in the parent. Pass it into child component functions as props. The parent stays in control.
+
+```ts
+const selected = toState(-1)
+
+function TabBar(props: { selected: State<number> }) {
+  return {
+    div: [
+      { button: "A", onClick: () => props.selected.set(0) },
+      { button: "B", onClick: () => props.selected.set(1) },
+    ],
+  }
+}
+
+const App = {
+  div: [TabBar({ selected })],
+}
+```
+
+Use when: the parent needs to control or react to the state. Natural for most component trees.
+
+**Pattern 2 — `_context` (implicit tree-scoped sharing)**
+
+Put the state into `_context` on a parent element. Any descendant reads it with `node.getContext(key)` inside a hook. This is how the `tabs` patch coordinates `tab` and `tabPanel` without explicit props.
+
+```ts
+const active = toState("a")
+
+const App = {
+  div: [
+    { button: "A", onClick: () => active.set("a") },
+    { button: "B", onClick: () => active.set("b") },
+    {
+      div: "panel",
+      style: {
+        display: (listener) => active.get(listener) === "a" ? "block" : "none",
+      },
+      _onMount: (node) => {
+        const sharedActive = node.getContext("active") as State<string>
+      },
+    },
+  ],
+  _context: { active },
+}
+```
+
+Use when: a subtree needs implicit coordination without threading props through every level. Best for patch-level patterns like tabs, menus, or toggle groups.
+
+**Pattern 3 — Module-level state (file-scoped global)**
+
+Declare state in a separate file and import it wherever needed. No props, no context, just a direct import.
+
+```ts
+// state/ramps.ts
+export const ramps = toState<Ramp[]>([])
+export const selected = toState(-1)
+
+// anywhere in the app
+import { ramps, selected } from "../state/ramps"
+```
+
+Use when: state is truly global to the app and used across many unrelated parts of the tree. Avoid splitting into too many small state files — this pattern only pays off when the state is genuinely shared at app scale.
+
+**Which to use:**
+
+```
+State used by parent + 1-2 direct children   → props
+State used across a whole subtree or patch    → _context
+State used across the whole app              → module-level
+```
 
 ## Theme Grammar
 
@@ -1086,13 +1390,61 @@ Main classes:
   - `reset()`
   - `onChange(listener)`
 
+- `ListState<T>`
+  - reactive ordered list of `State<T>` entries
+  - each entry is `{ key: number, state: State<T> }` — `key` is stable across reorders
+  - `entries(listener?)` — returns `ListEntry<T>[]`, subscribes listener to structural changes
+  - `states(listener?)` — returns `State<T>[]`
+  - `keys(listener?)` — returns `number[]`
+  - `insert(item, silent?)` — appends item, returns the new `ListEntry<T>`
+  - `remove(state, silent?)` — removes entry by its `State<T>` reference
+  - `move(from, to, silent?)` — moves entry by index
+  - `swap(aIndex, bIndex, silent?)` — swaps two entries by index
+  - `clear(silent?)` — removes all entries
+  - `reset(silent?)` — restores original insertion order (sorts by key)
+  - `onChange(fn)` — subscribes to structural changes, returns release function
+  - use `entry.key` as `_key` for child reconciliation
+
 - `Notifier`
-  - low-level listener container, mostly internal-facing
+  - low-level listener container used for custom observable classes
+  - `addListener(event, fn)` — subscribe, returns a release function
+  - `removeListener(event, fn)` — unsubscribe manually
+  - `notify(event, ...args)` — fire all listeners for that event
+  - `_dispose()` — clear all listeners, call on cleanup
   - listener can define `onSubscribe(release)` to attach cleanup automatically
+  - use `"change"` as the conventional event name for single-event notifiers
+
+To make any class observable, compose a `Notifier` inside it:
+
+```ts
+import { Notifier } from "@domphy/core"
+
+class MyModel {
+  private _notifier = new Notifier()
+  private _value = 0
+
+  get value() { return this._value }
+  set value(v: number) {
+    this._value = v
+    this._notifier.notify("change")
+  }
+
+  onChange(fn: () => void): () => void {
+    return this._notifier.addListener("change", fn)
+  }
+
+  dispose() {
+    this._notifier._dispose()
+  }
+}
+```
+
+The pattern is: one `Notifier` per class, one `onChange` method exposed publicly, `notify("change")` called inside every setter. The rest of the app only sees `onChange` — never the notifier directly.
 
 Main utility functions:
 
 - `toState(valueOrState)`
+- `toListState(arrayOrListState)`
 - `merge(source, target)`
 - `hashString(string)`
 
@@ -1608,6 +1960,17 @@ When AI is unsure:
 
 ### FormState And FieldState Notes
 
+`FormState` and `FieldState` are for real HTML forms only: input, validation, touched/dirty tracking, and submission. Do not use them for general app state.
+
+For app state, use only `toState()` and `onChange` graph. There is no other pattern to consider.
+
+```
+Real form (login, settings, checkout) → FormState + FieldState
+App state (selected item, list, mode) → toState() + onChange
+```
+
+If you are unsure which to use, the answer is `toState()`.
+
 - `FormState.snapshot()` reconstructs nested objects and arrays from dot paths
 - `FieldState.status()` returns `"error" | "warning" | "success" | undefined`
 - `FieldState.message(type)` reads one message channel
@@ -1964,6 +2327,7 @@ Treat this as one-way data flow:
 - Do not think in terms of two-way binding; Domphy should be written as one-way data flow with explicit event writes.
 - Do not create reactive update loops where a reactive read and an event write blur together without a clear state boundary.
 - Do not move ordinary form synchronization into hooks; keep it in flat event handlers such as `onInput`, `onChange`, and `onClick`.
+- Do not nest state inside state arrays such as `State<State<T>[]>`; a listener that subscribes to both the outer array and one inner item will re-render when either changes, and if that re-render touches the same states again the loop never terminates. Keep lists as plain arrays inside a single state: `State<T[]>`.
 
 ### UI / Patches
 

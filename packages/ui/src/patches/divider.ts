@@ -21,6 +21,8 @@ function divider(props: {
             alignItems: "baseline",
             gap: themeSpacing(2),
             fontSize: (listener) => themeSize(listener, "inherit"),
+            backgroundColor: (listener) => themeColor(listener),
+            color: (listener) => themeColor(listener, "shift-9", color),
             minHeight: "1lh",
             "&::before": {
                 content: `""`,

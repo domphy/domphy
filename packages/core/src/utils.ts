@@ -1,5 +1,7 @@
 import { DomphyElement, HookMap, EventName, Handler } from "./types.js";
 import { State } from "./classes/State.js"
+import { ListState } from "./classes/ListState.js"
+
 import { deepClone, addEvent, addHook } from "./helpers.js"
 
 export function merge(source: Record<string, any> = {}, target: Record<string, any> = {}): Record<string, any> {
@@ -71,10 +73,6 @@ export function merge(source: Record<string, any> = {}, target: Record<string, a
     return source;
 }
 
-export function toState<T>(val: T | State<T>): State<T> {
-    return val instanceof State ? val : new State<T>(val);
-}
-
 export function hashString(str: string = ""): string {
     let hash = 0x811c9dc5; // FNV-1a 32-bit offset basis
     for (let i = 0; i < str.length; i++) {
@@ -82,4 +80,12 @@ export function hashString(str: string = ""): string {
         hash = (hash * 0x01000193) >>> 0; // FNV prime, keep 32-bit unsigned
     }
     return String.fromCharCode(97 + (hash % 26)) + hash.toString(16);
+}
+
+export function toState<T>(val: T | State<T>): State<T> {
+    return val instanceof State ? val : new State<T>(val);
+}
+
+export function toListState<T>(val: T[] | ListState<T>): ListState<T> {
+    return val instanceof ListState ? val : new ListState<T>(val);
 }

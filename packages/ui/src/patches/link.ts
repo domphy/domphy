@@ -14,6 +14,7 @@ function link(props: { color?: ThemeColor, accentColor?: ThemeColor } = {}): Par
         },
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
+            backgroundColor: (listener) => themeColor(listener),
             color: (listener) => themeColor(listener, "shift-9", color),
             textDecoration: "none",
             "&:visited": {

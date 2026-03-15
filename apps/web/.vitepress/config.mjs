@@ -85,6 +85,7 @@ export default defineConfig({
             { text: "AttributeList", link: "/docs/core/api/attribute-list" },
             { text: "TextNode", link: "/docs/core/api/text-node" },
             { text: "State", link: "/docs/core/api/state" },
+            { text: "ListState", link: "/docs/core/api/list-state" },
             { text: "Notifier", link: "/docs/core/api/notifier" },
             { text: "Utilities", link: "/docs/core/api/utilities" },
           ],

@@ -144,7 +144,9 @@ declare function image(props?: {
     color?: ThemeColor;
 }): PartialElement;
 
-declare function icon(): PartialElement;
+declare function icon(props?: {
+    color?: ThemeColor;
+}): PartialElement;
 
 declare function inputColor(props?: {
     color?: ThemeColor;

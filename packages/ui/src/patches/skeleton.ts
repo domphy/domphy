@@ -1,5 +1,5 @@
 import { type PartialElement, type StyleObject, hashString } from "@domphy/core";
-import { themeColor, themeSpacing, type ThemeColor } from "@domphy/theme";
+import { themeColor, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
 
 function skeleton(props: {
   color?: ThemeColor;
@@ -15,6 +15,8 @@ function skeleton(props: {
     ariaHidden: "true",
     dataTone: "shift-2",
     style: {
+      fontSize: (listener) => themeSize(listener),
+      color: (listener) => themeColor(listener, "shift-9", color),
       height: themeSpacing(6),
       display: "block",
       borderRadius: themeSpacing(1),

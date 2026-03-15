@@ -1,5 +1,5 @@
 import { PartialElement } from "@domphy/core";
-import { themeColor, ThemeColor, themeSpacing } from "@domphy/theme";
+import { themeColor, ThemeColor, themeSize, themeSpacing } from "@domphy/theme";
 
 function abbreviation(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}): PartialElement {
     const { color = "neutral", accentColor = "primary" } = props;
@@ -11,6 +11,8 @@ function abbreviation(props: { color?: ThemeColor; accentColor?: ThemeColor } = 
             }
         },
         style: {
+            fontSize: (listener) => themeSize(listener),
+            backgroundColor: (listener) => themeColor(listener),
             color: (listener) => themeColor(listener, "shift-10", color),
             textDecorationLine: "underline",
             textDecorationStyle: "dotted",

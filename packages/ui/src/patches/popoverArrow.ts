@@ -1,5 +1,5 @@
 import { toState, ValueOrState, PartialElement } from "@domphy/core";
-import { themeSpacing, themeColor, type ThemeColor } from "@domphy/theme";
+import { themeSpacing, themeColor, themeSize, type ThemeColor } from "@domphy/theme";
 import { Placement } from "@floating-ui/dom";
 
 function popoverArrow(props: {
@@ -39,6 +39,9 @@ function popoverArrow(props: {
 
     return {
         style: {
+            fontSize: (listener) => themeSize(listener),
+            backgroundColor: (listener) => themeColor(listener),
+            color: (listener) => themeColor(listener, "shift-9", color),
             position: "relative",
             "&::after": {
                 content: `""`,

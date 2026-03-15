@@ -143,6 +143,24 @@ paddingInline = 18px
 radius = 6px
 ```
 
+## Industry Validation
+
+The height formula produces the canonical button sizes used across major design systems — not by coincidence, but because those systems converged on the same proportions through practice.
+
+At `fontSize: 16px` (`U = 4px`), `n = 1`, `w = 1`:
+
+| Density `d` | Formula `(6 + 2d) * U` | Height | Matches |
+| --- | --- | --- | --- |
+| 0.75 | `(6 + 1.5) * 4` | **30px** | MUI small |
+| 1 | `(6 + 2) * 4` | **32px** | Ant Design medium · Chakra small · GitHub medium |
+| 1.5 | `(6 + 3) * 4` | **36px** | MUI medium |
+| 2 | `(6 + 4) * 4` | **40px** | Ant Design large · Chakra medium · GitHub large |
+| 2.5 | `(6 + 5) * 4` | **44px** | MUI large range |
+
+These are not hardcoded sizes. They emerge from one formula across five density levels.
+
+The formula does not prescribe what height a button must be. It reveals the underlying structure that the industry already arrived at through intuition and iteration.
+
 ## Putting Them Together
 
 ```ts

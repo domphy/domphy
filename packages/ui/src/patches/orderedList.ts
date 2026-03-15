@@ -12,6 +12,7 @@ function orderedList(props: { color?: ThemeColor } = {}): PartialElement {
         },
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
+            backgroundColor: (listener) => themeColor(listener),
             color: (listener) => themeColor(listener, "shift-9", color),
             marginTop: 0,
             marginBottom: 0,

@@ -1,6 +1,6 @@
 import type { PartialElement, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { themeColor, themeSpacing, type ThemeColor } from "@domphy/theme";
+import { themeColor, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
 
 const keyframes = { to: { transform: "rotate(360deg)" } };
 const animationName = hashString(JSON.stringify(keyframes));
@@ -19,6 +19,9 @@ function spinner(props: {
       }
     },
     style: {
+      fontSize: (listener) => themeSize(listener),
+      backgroundColor: (listener) => themeColor(listener),
+      color: (listener) => themeColor(listener, "shift-9", color),
       display: "inline-block",
       margin: 0,
       flexShrink: 0,
