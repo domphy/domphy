@@ -6,7 +6,7 @@ import type { ElementNode } from "./classes/ElementNode.js";
 import type { VoidTagName } from "./constants/VoidTags.js"
 
 export type Handler = ((...args: any[]) => any) & { onSubscribe?: (release: () => void) => void };
-export type Listener = Handler & { elementNode: ElementNode }
+export type Listener = Handler & { elementNode: ElementNode, debug?: string }
 export type { Properties }
 
 export type ReactiveProperty<T> = T | ((listener: Listener) => T);

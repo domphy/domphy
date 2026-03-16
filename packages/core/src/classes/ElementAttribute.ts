@@ -56,6 +56,7 @@ export class ElementAttribute {
       };
 
       listener.elementNode = this.parent!;
+      listener.debug = `class:${this.parent?.tagName}_${this.parent?.nodeId} attribute:${this.name}`;
 
       listener.onSubscribe = (release: () => void) => {
         if (this.parent) {

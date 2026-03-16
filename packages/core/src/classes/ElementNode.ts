@@ -33,12 +33,11 @@ export class ElementNode {
     this._context = domphyElement._context || {}
     this._metadata = domphyElement._metadata || {}
 
-    let tempPath = `${this.parent?.getPath()}.${index}`
+    let tempPath = `${this.parent?.nodeId}.${index}`
     const str = JSON.stringify(domphyElement.style || {}, (k, v) => typeof v === "function" ? tempPath : v,);
     this.nodeId = hashString(tempPath + str)
 
     this.attributes!.addClass(`${this.tagName}_${this.nodeId}`);
-
     if (domphyElement._onSchedule) domphyElement._onSchedule(this, domphyElement)
 
     this.merge(domphyElement)
@@ -52,6 +51,7 @@ export class ElementNode {
           this.children!.update(Array.isArray(input) ? input : [input])
         }
         listener!.elementNode = this;
+        listener!.debug = `class:${this.tagName}_${this.nodeId} children`;
         listener!.onSubscribe = (release: () => void) => this.addHook("BeforeRemove", () => {
           release()
           listener = null
@@ -123,9 +123,6 @@ export class ElementNode {
     this._metadata = {};
     this.parent = null;
   }
-  get pathId(): string {
-    return hashString(this.getPath())
-  }
   merge(part: PartialElement) {
     merge(this._context, part._context)
     merge(this._metadata, part._metadata)
@@ -153,18 +150,6 @@ export class ElementNode {
     }
 
   }
-  getPath(): string {
-    let path: number[] = []
-    let node: ElementNode = this
-    while (node && node.parent) {
-      const parent = node.parent
-      const index = parent.children!.items.indexOf(node)
-      path.push(index)
-      node = parent
-    }
-    return path.reverse().join(".")
-  }
-
   addEvent(name: EventName, callback: (event: Event, node: ElementNode) => void): void {
 
     this._events = this._events || {}

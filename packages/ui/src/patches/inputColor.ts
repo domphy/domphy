@@ -29,9 +29,6 @@ function inputColor(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}
             "&::-webkit-color-swatch": {
                 borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             },
-            "&::-moz-color-swatch": {
-                borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
-            },
             "&:hover:not([disabled]), &:focus-visible": {
             },
             "&[disabled]": {

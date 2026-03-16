@@ -1,6 +1,6 @@
 {
   "name": "@domphy/ui",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Domphy UI",
   "type": "module",
   "exports": {
@@ -33,9 +33,9 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@domphy/theme": "workspace:*",
     "@domphy/core": "workspace:*",
-    "@floating-ui/dom": "^1.7.5"
+    "@domphy/theme": "workspace:*",
+    "@floating-ui/dom": "^1.7.6"
   },
   "files": [
     "dist",

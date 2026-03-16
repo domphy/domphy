@@ -52,6 +52,7 @@ export class ListState<T = unknown> {
     if (!entry) return
     const index = this._entries.indexOf(entry)
     this._entries.splice(index, 1)
+    state._dispose()
     if (!silent) this._notifier.notify("change")
   }
 
@@ -72,6 +73,7 @@ export class ListState<T = unknown> {
 
   clear(silent = false): void {
     if (this._entries.length === 0) return
+    this._entries.forEach(e => e.state._dispose())
     this._entries = []
     if (!silent) this._notifier.notify("change")
   }

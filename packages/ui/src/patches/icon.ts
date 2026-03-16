@@ -16,7 +16,7 @@ function icon(props: { color?: ThemeColor } = {}): PartialElement {
             width: themeSpacing(6),
             height: themeSpacing(6),
             fontSize: (listener) => themeSize(listener),
-            backgroundColor: (listener) => themeColor(listener),
+            backgroundColor: "transparent",
             color: (listener) => themeColor(listener, "shift-9", color)
         },
     };

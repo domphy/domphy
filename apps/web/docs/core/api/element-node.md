@@ -79,7 +79,7 @@ node.merge({ style: { color: "red" }, class: "active" })
 Registers a DOM event listener. Multiple callbacks are chained.
 
 ```ts
-node.addEvent("click", (e, node) => console.log(node.getPath()))
+node.addEvent("click", (e, node) => console.log(node.tagName))
 ```
 
 ### `addHook(name, callback)`
@@ -101,14 +101,6 @@ node.addHook("BeforeRemove", (node, done) => {
 | `Update` | After children diff |
 | `BeforeRemove` | Before DOM removal — call `done()` to proceed |
 | `Remove` | After DOM removal |
-
-### `getPath()`
-
-Returns index path from root e.g. `"0.2.1"`.
-
-```ts
-node.getPath() // "0.2.1"
-```
 
 ### `getRoot()`
 

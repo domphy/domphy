@@ -16,7 +16,7 @@ function toggle(props: {
             const children = node.parent?.children.items as ElementNode[]
 
             let items = children.filter(n => n.type === "ElementNode" && n.attributes.get("role") === "button");
-            const key = String(items.findIndex(n => n === node));
+            const key = node.key !== undefined ? String(node.key) : String(items.findIndex(n => n === node));
 
             node.attributes.set("ariaPressed", (listener) => {
                 const val = ctx.value.get(listener);
@@ -48,8 +48,8 @@ function toggle(props: {
                 backgroundColor: (listener) => themeColor(listener, "shift-2", color),
             },
             "&[aria-pressed=true]": {
-                backgroundColor: (listener) => themeColor(listener, "shift-6", accentColor),
-                color: (listener) => themeColor(listener, "shift-11", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-3", accentColor),
+                color: (listener) => themeColor(listener, "shift-12", accentColor),
             },
             "&:focus-visible": {
                 outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,

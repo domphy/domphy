@@ -18,7 +18,7 @@ function inputText(props: { color?: ThemeColor, accentColor?: ThemeColor } = {})
         style: {
             fontFamily: "inherit",
             lineHeight: "inherit",
-            minWidth: themeSpacing(32),
+            minWidth: themeSpacing(10),
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
             paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),

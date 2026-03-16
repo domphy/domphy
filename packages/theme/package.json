@@ -1,6 +1,6 @@
 {
   "name": "@domphy/theme",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Domphy Design System",
   "type": "module",
   "exports": {

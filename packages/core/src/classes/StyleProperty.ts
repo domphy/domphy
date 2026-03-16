@@ -53,6 +53,7 @@ export class StyleProperty {
       };
 
       Listener.elementNode = this.parentRule!.root;
+      Listener.debug = `class:${this.parentRule?.root?.tagName}_${this.parentRule?.root?.nodeId} style:${this.name}`;
       this.value = value(Listener);
     } else {
       this.value = value;

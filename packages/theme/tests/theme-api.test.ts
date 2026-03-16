@@ -10,7 +10,7 @@ import {
   themeVars,
 } from "../src/theme.ts";
 import { themeDensity } from "../src/density.ts";
-import { contextColor, themeColor } from "../src/tone.ts";
+import { themeColor } from "../src/tone.ts";
 import { themeSize } from "../src/size.ts";
 
 function createAttributes(values: Record<string, string> = {}) {
@@ -103,14 +103,13 @@ describe("theme size/tone helpers", () => {
     expect(themeSpacing(themeDensity(child as any) * 3)).toBe("1.875em");
   });
 
-  it("resolves tone/color via inherit, base, and context color", () => {
+  it("resolves tone/color via inherit and base", () => {
     const themeRoot = createNode({ dataTheme: "dark" });
     const toneRoot = createNode({ dataTone: "increase-1" }, themeRoot);
-    const node = createNode({}, toneRoot, { themeColor: "success" });
+    const node = createNode({}, toneRoot);
 
     expect(themeColor(node as any, "inherit", "neutral")).toBe("var(--neutral-1)");
     expect(themeColor(node as any, "base", "primary")).toBe("var(--primary-5)");
-    expect(contextColor(node as any, "inherit")).toBe("var(--success-1)");
 
     expect(themeColor(null, "shift-2", "primary")).toBe("var(--primary-2)");
     expect(() => themeColor(null, "bad-tone" as any, "primary")).toThrow(/tone name/);

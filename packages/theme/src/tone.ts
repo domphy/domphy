@@ -80,21 +80,6 @@ function themeTone(object: ElementNode | Listener, tone: ElementTone = "inherit"
     return offsetTone(contextTone(object), tone)
 }
 
-export function contextColor(object: ElementNode | Listener, tone: ElementTone = "inherit", color: string = "inherit"): string {
-    let elementNode = (typeof object == "function" ? object.elementNode : object) as ElementNode
-
-    let themeColor = color == "inherit" ? elementNode.getContext("themeColor") || "neutral" : color;
-
-    let resultTone: number
-    if (tone == "base") {
-        resultTone = getTheme(themeName(object)).baseTones[themeColor]
-    } else {
-        resultTone = offsetTone(contextTone(object), tone)
-    }
-    let resultColor = themeVars()[themeColor][resultTone]
-
-    return resultColor
-}
 export function themeColor(object: ElementNode | Listener | null, tone: ElementTone = "inherit", color: string = "inherit"): string {
 
     let themeColor = color == "inherit" ? "neutral" : color;

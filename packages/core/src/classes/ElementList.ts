@@ -9,14 +9,15 @@ type NodeItem = ElementNode | TextNode;
 export class ElementList {
   items: NodeItem[] = [];
   owner: ElementNode;
+  _nextKey: number = 0;
 
   constructor(parent: ElementNode) {
     this.owner = parent;
   }
 
-  _createNode(element: ElementInput | DomphyElement, index = 0): NodeItem {
+  _createNode(element: ElementInput | DomphyElement): NodeItem {
     return (typeof element === "object" && element !== null)
-      ? new ElementNode(element, this.owner, index)
+      ? new ElementNode(element, this.owner, this._nextKey++)
       : new TextNode(element == null ? "" : String(element), this.owner);
   }
 
@@ -98,7 +99,7 @@ export class ElementList {
     const finalIndex = (typeof index !== "number" || isNaN(index) || index < 0 || index > length)
       ? length
       : index;
-    const item = this._createNode(input, finalIndex);
+    const item = this._createNode(input);
     this.items.splice(finalIndex, 0, item);
 
     if (item instanceof ElementNode) {

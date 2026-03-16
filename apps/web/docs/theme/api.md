@@ -108,12 +108,6 @@ Return the raw token object of a registered theme.
 
 Return the active theme name for the current node or listener.
 
-### `contextColor(object, tone?, color?)`
-
-Like `themeColor()`, but inherits the color family from context instead of defaulting to `neutral`.
-
-This is mainly useful for internal patch composition.
-
 ## Theme Shape
 
 `setTheme()` accepts a partial `ThemeInput`.

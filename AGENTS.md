@@ -25,7 +25,7 @@ Domphy is intentionally strict:
 - native elements first
 - plain object syntax
 - patches instead of wrapper components
-- local context instead of provider-heavy architecture
+- local context instead of provider-heavy architecture — context is just asking your parent tree if it has something; it does not need a global registry
 
 ## Install And CDN
 
@@ -269,6 +269,18 @@ type DomphyElement<T extends TagName = never> = [T] extends [never]
   } & PartialElement<T>;
 ```
 
+### Underscore Prefix Convention
+
+Properties prefixed with `_` are **Domphy-internal** — they belong to the framework, not the DOM. This distinguishes them from native HTML attributes (`onClick`, `ariaLabel`, `dataId`...) which all coexist in the same object literal.
+
+- `_onMount`, `_onRemove`, `_onUpdate`... → lifecycle hooks
+- `_key` → identity hint for list reconciliation
+- `_portal` → escape overflow/stacking context
+- `_context` → pass values down the tree
+- `_metadata` → arbitrary non-rendered data
+
+Never use `_` prefix for your own app-level variables inside a Domphy element object.
+
 These are the source shapes AI should follow when generating raw Domphy objects.
 
 ```ts
@@ -300,6 +312,8 @@ Write Domphy element objects in this canonical order:
 7. `_context`
 8. `_metadata`
 9. hooks
+
+Why this order: tag first because it is the only required key — it tells you immediately what element this is. Attributes and events next because they are the HTML contract, what the element does and how it behaves. Style after because it is visual decoration, less important than semantics. Internal Domphy keys (`_key`, `_portal`, `_context`, `_metadata`) after style because they are framework-level concerns, not DOM concerns. Hooks last because they are lifecycle side-effects — the least declarative part, furthest from the element identity.
 
 Write hooks in lifecycle order:
 
@@ -340,6 +354,8 @@ const App = {
 
 Every DomphyElement object is deep cloned at the `ElementNode` entry point before any parsing or hook execution. The original raw object is never stored or reused internally.
 
+Why deep clone instead of allowing reuse: if the framework held a reference to the original object, both the author and any patch or plugin author would be tempted to store data on the object across renders — treating a single instance as a carrier of identity or state. This has been tested and is never safe. In practice, blocks (Domphy's equivalent of components) are functions, and their output is called multiple times — the same definition produces multiple independent nodes. Any design that assumes "one object = one node" breaks immediately under list rendering. Deep cloning enforces the correct mental model: element objects are descriptions, not instances. There is no shared state between occurrences.
+
 This means:
 
 - the same object instance passed to two different places produces two independent nodes with no shared state
@@ -376,6 +392,8 @@ new ElementNode(App).mount(document.getElementById("app")!)
 ```
 
 `mount()` binds to existing DOM. `render()` creates DOM.
+
+Why two separate methods instead of one auto-detecting method: they serve fundamentally different purposes. `mount()` is for SSR hydration — the DOM already exists from server-generated HTML, and Domphy attaches to it. `render()` creates DOM from scratch on the client. Keeping them separate is also a performance decision: benchmarking showed that generating HTML server-side and then mounting is faster than generating DOM elements directly from scratch on the client. If auto-detection merged both paths, the slower path would be used in cases where the faster one would have been sufficient.
 
 For SSR with style reuse, the normal pattern is:
 
@@ -458,6 +476,16 @@ Hooks use `_on` to distinguish them from native events.
 
 Use hooks for lifecycle, not for ordinary event wiring.
 
+### Why `$` For Patches
+
+`$` was chosen deliberately:
+
+- **No conflict** with any HTML attribute or DOM property — safe to use unquoted in any object literal
+- **Array by design** — multiple patches stack in order, and patch merge order matters. Using an object would require inventing meaningless key names (`patch1`, `buttonPatch`...) which adds friction with zero benefit
+- **Visually distinct** — stands out immediately in an object literal, signals "this is framework behavior, not DOM"
+
+Do not suggest renaming `$` to anything else. It is intentional and load-bearing.
+
 ### Reserved Keys
 
 - `style`
@@ -492,13 +520,13 @@ The conclusion is final: automatic keying is not possible in Domphy without expl
 
 Use `_key` for dynamic child lists that reorder, insert in the middle, or remove in the middle.
 
-### Component vs Patch
+### Block vs Patch
 
-Both components and patches should receive a single object `props` parameter.
+Both blocks and patches should receive a single object `props` parameter.
 
-A Domphy component is an app-level function that returns `DomphyElement`.
+A Domphy block is an app-level function that returns `DomphyElement`.
 
-Use components to reuse larger sections such as:
+Use blocks to reuse larger sections such as:
 
 - panels
 - page sections
@@ -506,7 +534,7 @@ Use components to reuse larger sections such as:
 - app-specific form blocks
 - toolbar groups
 
-Canonical component shape:
+Canonical block shape:
 
 ```ts
 function SettingsPanel(props: { title?: string } = {}): DomphyElement {
@@ -542,7 +570,7 @@ function card(props: { padded?: boolean } = {}): PartialElement {
 
 Symmetry:
 
-- component: function returning `DomphyElement`
+- block: function returning `DomphyElement`
 - patch: function returning `PartialElement`
 
 Both should use:
@@ -551,7 +579,7 @@ Both should use:
 - object destructuring inside the function
 - defaults through `= {}`
 
-Use components at app level. Use patches at system level.
+Use blocks at app level. Use patches at system level.
 
 ### `TextNode` Behavior
 
@@ -568,6 +596,12 @@ Use inline HTML strings sparingly. Prefer normal element objects when possible.
 ## Reactivity Grammar
 
 Domphy uses listener-based reactivity.
+
+### Why Listener-Based Instead Of Proxy Or Signal
+
+The core idea: UI is a drawing. Each reactive property hands the framework a switch. When state changes, it calls that switch. The UI updates. That is all.
+
+Listener-based keeps state and UI fully decoupled. Any state architecture — a plain object, a class, an external store, a network stream — can drive the UI as long as it calls a listener function. The UI does not care where data comes from or how it is structured internally. Proxy-based reactivity (Vue-style) couples the framework to the state's internal shape and requires the state to be a Proxy. Signal-based tight-couples the reactive atom to the framework's scheduler. Listeners need neither. This makes Domphy composable with any state design outside its own primitives.
 
 Create state with `toState()`.
 
@@ -837,7 +871,7 @@ There are three ways to share state between a parent and its descendants. Choose
 
 **Pattern 1 — Props (parent owns, children receive)**
 
-Create state in the parent. Pass it into child component functions as props. The parent stays in control.
+Create state in the parent. Pass it into child block functions as props. The parent stays in control.
 
 ```ts
 const selected = toState(-1)
@@ -856,11 +890,13 @@ const App = {
 }
 ```
 
-Use when: the parent needs to control or react to the state. Natural for most component trees.
+Use when: the parent needs to control or react to the state. Natural for most block trees.
 
 **Pattern 2 — `_context` (implicit tree-scoped sharing)**
 
 Put the state into `_context` on a parent element. Any descendant reads it with `node.getContext(key)` inside a hook. This is how the `tabs` patch coordinates `tab` and `tabPanel` without explicit props.
+
+Why `_context` instead of a global provider: context is structurally just "ask your parent tree if it has this key." That is it. A global provider registry adds indirection — state appears to come from nowhere, and reading code becomes impossible without knowing which provider somewhere up the tree injected it. With `_context`, the source is always traceable by walking the element tree. The object is visible. Do not suggest replacing `_context` with a provider pattern.
 
 ```ts
 const active = toState("a")
@@ -1050,6 +1086,8 @@ This creates three non-overlapping semantic bands:
 - `6, 7, 8`
 
 So AI should treat `K = 9` as the key invariant: it cleanly separates three semantic zones while preserving unique hover and active tones without overlap.
+
+Why K = 9 specifically: the ramp has 18 steps (indices 0–17). K = 9 = 18 / 2. The choice of 18 steps itself is intentional — it is even, which guarantees that K = steps / 2 always lands on a whole number with no rounding. An even step count also guarantees that a WCAG 4.5:1 contrast pair always exists at exactly the midpoint with no clamping. Among common industry step counts (12, 14, 16, 18), 18 gives the most granular surface options while remaining within what most design systems actually use. More steps means smoother gradients between surface tones. K = 9 follows directly from steps = 18 and is not an independent choice.
 
 ### Tone Anchoring Rules
 
@@ -1275,6 +1313,69 @@ Guidelines:
 - use `themeColor()` for background, text, outline, state colors
 - responsive global scaling should usually happen by changing root `font-size`, not by rewriting every component
 
+### Spacing Reference at Standard Conditions (font-size = 16px)
+
+1 spacing unit = font-size / 4 = 16 / 4 = **4px**
+
+| `themeSpacing(n)` | px   | typical use                        |
+|-------------------|------|------------------------------------|
+| 1                 | 4px  | outline offset, tiny gap           |
+| 2                 | 8px  | inner gap, small padding           |
+| 3                 | 12px | swatch strip height, icon size     |
+| 4                 | 16px | section gap, standard padding      |
+| 6                 | 24px | swatch square (w × h)              |
+| 8                 | 32px | large section gap                  |
+| 10                | 40px | grid cell, fixed column width      |
+| 12                | 48px | button min height, card padding    |
+| 30                | 120px| chart min height (× used as base)  |
+
+**Example layout calculation** — Editor row at default size:
+```
+gridCols = 1fr + 6 × themeSpacing(10) = 1fr + 240px fixed
+swatchStrip height = themeSpacing(3) = 12px  (thin color preview bar)
+cell gap = themeSpacing(2) = 8px
+row gap = themeSpacing(2) = 8px
+section gap = themeSpacing(4) = 16px
+```
+
+Scaling: if root `font-size` changes to 20px, 1 unit = 5px and all spacing scales proportionally — no component changes needed.
+
+### Size Reference (font-size = 16px, default context index = 2)
+
+`themeSize(listener, size)` returns a CSS `rem` value. Default context is index 2 = `1rem`.
+
+| `dataSize` / `themeSize()` arg | index | rem       | px   | typical use              |
+|--------------------------------|-------|-----------|------|--------------------------|
+| `decrease-2`                   | 0     | 0.75rem   | 12px | caption, label           |
+| `decrease-1`                   | 1     | 0.875rem  | 14px | secondary text           |
+| `inherit` (default)            | 2     | 1rem      | 16px | body text                |
+| `increase-1`                   | 3     | 1.25rem   | 20px | subheading               |
+| `increase-2`                   | 4     | 1.5625rem | 25px | heading                  |
+| `increase-3`                   | 5     | 1.9375rem | 31px | large heading            |
+| `increase-4`                   | 6     | 2.4375rem | 39px | display                  |
+| `increase-5`                   | 7     | 3.0625rem | 49px | hero                     |
+
+### Density Reference (default context index = 2, factor = 1.5)
+
+`themeDensity(listener)` returns a multiplier. Use with `themeSpacing()` for padding and radius.
+
+| `dataDensity`       | index | factor | `themeSpacing(factor × 1)` | `themeSpacing(factor × 3)` | `themeSpacing(factor × 1)` |
+|---------------------|-------|--------|----------------------------|----------------------------|----------------------------|
+| `decrease-2`        | 0     | 0.75   | 3px                        | 9px                        | 3px                        |
+| `decrease-1`        | 1     | 1      | 4px                        | 12px                       | 4px                        |
+| `inherit` (default) | 2     | 1.5    | 6px                        | 18px                       | 6px                        |
+| `increase-1`        | 3     | 2      | 8px                        | 24px                       | 8px                        |
+| `increase-2`        | 4     | 2.5    | 10px                       | 30px                       | 10px                       |
+
+Column headers: paddingBlock — paddingInline — borderRadius (using the Common Helpers formula).
+
+**Standard component box at default density (factor 1.5, font-size 16px):**
+```
+paddingBlock:   themeSpacing(1.5 × 1) = 6px
+paddingInline:  themeSpacing(1.5 × 3) = 18px
+borderRadius:   themeSpacing(1.5 × 1) = 6px
+```
+
 ### Theme Recommendations
 
 - Prefer `dataTone` over `dataTheme` for most local visual shifts.
@@ -1351,14 +1452,12 @@ Main classes:
     - `addEvent(name, handler)`
     - `addHook(name, handler)`
     - `getRoot()`
-    - `getPath()`
     - `getContext(name)`
     - `setContext(name, value)`
     - `getMetadata(name)`
     - `setMetadata(name, value)`
   - derived identity:
     - `nodeId` = runtime/style-scope identity
-    - `pathId` = path-position identity
 
 - `ElementList`
   - `items`
@@ -1524,8 +1623,8 @@ When generating a production-ready Domphy app, prefer this structure:
   - call `themeApply()`
   - create root `ElementNode`
   - call `render(...)` or `mount(...)`
-- `app/` or `components/`
-  - feature-level Domphy components returning `DomphyElement`
+- `app/` or `blocks/`
+  - feature-level Domphy blocks returning `DomphyElement`
 - `patches/`
   - only if the app needs reusable local patches beyond `@domphy/ui`
 - `state/`
@@ -1548,7 +1647,7 @@ new ElementNode(App).render(document.getElementById("app")!)
 
 Production guidance:
 
-- use `DomphyElement` objects or component functions for meaningful subtrees
+- use `DomphyElement` objects or block functions for meaningful subtrees
 - keep each subtree shallow and named
 - prefer feature modules over giant single files
 - use `_context` for local tree context, not for global app state dumping
@@ -1617,6 +1716,16 @@ const submitButton = {
   ],
 }
 ```
+
+### Why Patches Instead Of Wrapper Components
+
+Wrapper components solve the wrong problem. When you write a styled button as a component, you now have two things to remember: the native `button` element and the component wrapper on top of it. Multiply that by every element type and every variant — buttons, inputs, selects, tooltips — and you end up with a large component API surface where the number of props to memorize scales with the number of components. The cognitive load becomes unsustainable without a docs reference open at all times.
+
+The deeper issue: native elements are the most natural way to write UI. Everyone already knows `button`, `input`, `div`. Wrapping them adds a layer that obscures what is actually rendered. If you also want to style native elements without repeating inline CSS everywhere, you need a different mechanism — one that augments without wrapping.
+
+Patches solve this. A patch is a plain object union applied via `$`. It merges defaults into the element without replacing it. You still write `button: "Submit"` — a native button — and apply `$: [button()]` to get default styling and behavior. No new component to learn. No props to memorize. The element stays first-class. Multiple patches compose in sequence with no naming overhead.
+
+This design came from observing that the most pleasant coding experience is writing native elements directly, and that component abstractions become painful exactly because they require naming, documentation, and prop maintenance. Patches keep native elements central while eliminating the repetition.
 
 ### Patch Philosophy
 
@@ -2233,7 +2342,7 @@ Before finalizing generated Domphy app code, make sure the result follows these 
 - spacing, sizing, and colors come from theme helpers before raw CSS
 - form-heavy code uses `FormState` / `FieldState` or a clear equivalent pattern
 - portal usage is deliberate for overlays that need to escape ancestor layout constraints
-- `done()` is called in every `_onBeforeRemove`
+- `done()` is called in every `_onBeforeRemove` — not calling it permanently blocks the node from being removed, which is intentional when used for exit animations but a bug when forgotten
 - there is no shared object reused across multiple inserts
 
 ## Canonical App Patterns
@@ -2319,8 +2428,32 @@ Treat this as one-way data flow:
 ### Core
 
 - Do not write deeply nested inline objects when the subtree is more than a small local fragment; extract child elements into named variables or functions and compose them in arrays.
+- Do not destructure `{ key, state }` from `ListState.entries()` map callbacks. Always keep the full `entry` object and access `entry.state.get(l)` and `entry.key` explicitly. Destructuring `state` causes reactive functions to close over a stale reference and all rows end up reading the last entry's state:
+  ```ts
+  // ❌ Wrong — state closure captures last iteration's value
+  rampList.entries(listener).map(({ key, state }) => {
+      backgroundColor: (l) => state.get(l).baseColor  // all rows show last ramp
+  })
+
+  // ✅ Correct — entry reference is stable per iteration
+  rampList.entries(listener).map((entry) => {
+      backgroundColor: (l) => entry.state.get(l).baseColor
+  })
+  ```
 - Do not quote object keys unless syntax really requires it; use normal identifiers like `div`, `ariaLabel`, `dataId`, `onClick`, and `_onMount`.
-- Do not treat one giant inline object as a template language; break repeated or meaningful subtrees into variables, functions, or components.
+- Do not treat one giant inline object as a template language; break repeated or meaningful subtrees into variables, functions, or blocks.
+- Do not collapse `style` objects onto a single line. Each CSS property must be on its own line:
+  ```ts
+  // ❌ Wrong
+  style: { backgroundColor: color, flex: "1", height: themeSpacing(3) }
+
+  // ✅ Correct
+  style: {
+      backgroundColor: color,
+      flex: "1",
+      height: themeSpacing(3),
+  }
+  ```
 
 ### Reactivity
 
@@ -2358,6 +2491,34 @@ When unsure:
 2. choose the flatter event/style structure
 3. choose the theme helper over raw CSS
 4. choose the existing patch over custom implementation
+
+## Domphy Architecture Principles
+
+### SSR and Hydration
+Domphy has SSR with hydration built into `@domphy/core`. `generateHTML()` produces server-side markup and `node.mount()` hydrates it on the client in one call. Do not suggest SSR is missing or unimplemented.
+
+### DevTools
+Domphy does not need a dedicated devtools extension. The framework is intentionally transparent — plain objects, flat event handlers, no hidden magic. Warnings are emitted where needed (e.g. wrong tag for a patch). If something is wrong it is visible in the code, not hidden behind a component abstraction.
+
+### Async Data Pattern
+Domphy has no built-in suspense or async primitive, and does not need one. The correct pattern is:
+
+- Perform all async work **outside** Domphy (fetch, await, transform)
+- When data is ready, call `state.set(data)`
+- Domphy reacts to the state change and updates the UI
+
+Async is fundamentally a state problem. In Domphy, state is independent and lives outside the UI. The full cycle is: `async → set state → state notifies listeners → render`. Domphy does not need to know whether data exists yet. The async concern belongs to the caller, not the framework. Do not suggest adding async/suspense support as a missing feature.
+
+### Imperative Plugin Integration (e.g. SortableJS, Chart.js)
+Domphy accommodates imperative plugins cleanly via `_onMount` and `_onRemove` lifecycle hooks:
+
+- Attach the plugin in `_onMount(node)` using `node.domElement`
+- When the plugin mutates the DOM directly (e.g. SortableJS drag reorder), sync internal state **without re-touching the DOM**:
+  - `listState.move(from, to, silent=true)` — reorders `ListState` entries without notifying listeners
+  - `node.children.move(from, to, updateDom=false)` — reorders `ElementList` without touching DOM
+- This works because Domphy's tree state and DOM are kept in sync independently — DOM is not derived from virtual DOM on every render
+
+React fights imperative plugins because its virtual DOM must always be the source of truth. Domphy does not have this constraint.
 
 ## Project Truth
 

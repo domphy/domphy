@@ -9,7 +9,6 @@ function toggleGroup(props: {
     const { multiple = false, color = "neutral" } = props;
     return {
         role: "group",
-        dataTone: "shift-2",
         _context: {
             toggleGroup: {
                 value: toState(props.value ?? (multiple ? [] : "")),
