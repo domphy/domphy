@@ -160,8 +160,11 @@ export class ElementList {
         item._hooks?.Remove?.(item)
         item._dispose();
       }
-      if (item._hooks && item._hooks.BeforeRemove && item.domElement) {
-        item._hooks.BeforeRemove(item, done)
+      if (item._hooks.BeforeRemove && item.domElement) {
+        let doneCalled = false;
+        const onceDone = () => { if (!doneCalled) { doneCalled = true; done(); } };
+        item._hooks.BeforeRemove(item, onceDone);
+        if (!doneCalled) onceDone();
       } else {
         done()
       }
@@ -187,6 +190,7 @@ export class ElementList {
   }
 
   _dispose(): void {
+    this.items.forEach(child => child._dispose())
     this.items = [];
   }
 

@@ -44,7 +44,7 @@ export function Container(initialCode: string, storageKey?: string): DomphyEleme
   }
 
   update(savedCode)
-  code.onChange((val) => {
+  code.addListener((val) => {
     if (storageKey) localStorage.setItem(storageKey, val)
     update(val)
   })

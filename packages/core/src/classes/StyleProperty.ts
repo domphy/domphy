@@ -39,22 +39,22 @@ export class StyleProperty {
   set(value: StyleValue): void {
 
     if (typeof value === "function") {
-      let Listener: any = () => {
-        if (!Listener) return;
-        this.value = value(Listener);
+      let listener: any = () => {
+        if (!this.parentRule || this.parentRule.parentNode?._disposed) return;
+        this.value = value(listener);
         this._domUpdate();
       }
 
-      Listener.onSubscribe = (release: () => void) => {
+      listener.onSubscribe = (release: () => void) => {
         this.parentRule.parentNode?.addHook("BeforeRemove", () => {
           release();
-          Listener = null;
+          listener = null;
         });
       };
 
-      Listener.elementNode = this.parentRule!.root;
-      Listener.debug = `class:${this.parentRule?.root?.tagName}_${this.parentRule?.root?.nodeId} style:${this.name}`;
-      this.value = value(Listener);
+      listener.elementNode = this.parentRule!.root;
+      listener.debug = `class:${this.parentRule?.root?.tagName}_${this.parentRule?.root?.nodeId} style:${this.name}`;
+      this.value = value(listener);
     } else {
       this.value = value;
     }

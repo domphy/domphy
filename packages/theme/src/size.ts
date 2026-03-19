@@ -43,7 +43,7 @@ function contextSize(object: ElementNode | Listener | null): number {
 
     if (node && node.attributes && node.attributes.has("dataSize")) {
         size = offsetSize(size, node.attributes.get("dataSize"))
-        typeof object == "function" && node.attributes.onChange("dataSize", object)
+        typeof object == "function" && node.attributes.addListener("dataSize", object)
     }
     return size
 }

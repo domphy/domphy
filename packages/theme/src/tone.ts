@@ -70,7 +70,7 @@ function contextTone(object: ElementNode | Listener | null): number {
 
     if (node && node.attributes && node.attributes.has("dataTone")) {
         tone = offsetTone(tone, node.attributes.get("dataTone"))
-        typeof object == "function" && node.attributes.onChange("dataTone", object)
+        typeof object == "function" && node.attributes.addListener("dataTone", object)
     }
     return tone
 }

@@ -45,7 +45,7 @@ function dialog(props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {}
                 }
             }
             update(state.get())
-            state.onChange(update)
+            state.addListener(update)
         },
         style: {
             opacity: "0",

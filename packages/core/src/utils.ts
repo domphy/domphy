@@ -1,6 +1,5 @@
 import { DomphyElement, HookMap, EventName, Handler } from "./types.js";
 import { State } from "./classes/State.js"
-import { ListState } from "./classes/ListState.js"
 
 import { deepClone, addEvent, addHook } from "./helpers.js"
 
@@ -86,6 +85,3 @@ export function toState<T>(val: T | State<T>): State<T> {
     return val instanceof State ? val : new State<T>(val);
 }
 
-export function toListState<T>(val: T[] | ListState<T>): ListState<T> {
-    return val instanceof ListState ? val : new ListState<T>(val);
-}

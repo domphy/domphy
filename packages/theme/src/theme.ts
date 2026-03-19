@@ -211,7 +211,7 @@ export function themeName(object: ElementNode | Listener) {
 
   if (node && node.attributes && node.attributes.has("dataTheme")) {
     themeName = node.attributes.get("dataTheme")
-    typeof object == "function" && node.attributes.onChange("dataTheme", object)
+    typeof object == "function" && node.attributes.addListener("dataTheme", object)
   }
   return themeName
 }

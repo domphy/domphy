@@ -3,7 +3,7 @@
 Top-level helper functions exported by `@domphy/core`.
 
 ```ts
-import { toState, toListState, merge, hashString } from "@domphy/core"
+import { toState, merge, hashString } from "@domphy/core"
 ```
 
 Use `Utilities` here rather than `Functions`: these are reusable helper APIs, not the main object model like `ElementNode`, `ElementList`, or `State`.
@@ -28,31 +28,6 @@ Common use case: normalize patch props so callers can pass either a plain value 
 ```ts
 const openState = toState(props.open ?? false)
 ```
-
----
-
-## `toListState(value)`
-
-Creates a `ListState` from a plain array. If the input is already a `ListState`, returns it as-is.
-
-```ts
-const items = toListState(["a", "b", "c"])   // ListState<string>
-const same  = toListState(items)              // same ListState, no wrapping
-```
-
-| Parameter | Type | Description |
-|---|---|---|
-| `value` | `T[] \| ListState<T>` | Raw array or existing `ListState` |
-
-Returns `ListState<T>`.
-
-Common use case: normalize patch props so callers can pass either a plain array or a reactive list state.
-
-```ts
-const list = toListState(props.items ?? [])
-```
-
-→ [ListState API](./list-state)
 
 ---
 

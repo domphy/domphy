@@ -3,6 +3,8 @@
   "version": "0.1.7",
   "description": "Domphy UI",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

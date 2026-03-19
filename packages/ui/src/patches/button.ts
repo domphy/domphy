@@ -21,6 +21,7 @@ function button(props: { color?: ThemeColor } = {}): PartialElement {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
+            gap: (listener) => themeSpacing(themeDensity(listener) * 1),
             userSelect: "none",
             fontFamily: "inherit",
             lineHeight: "inherit",

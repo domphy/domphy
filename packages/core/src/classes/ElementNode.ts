@@ -4,8 +4,10 @@ import { ElementList } from "./ElementList.js";
 import { StyleList } from "./StyleList.js";
 import { validate, mergePartial, getTagName, deepClone, ensureDomStyle } from "../helpers.js";
 import { merge, hashString } from "../utils.js";
+import { SvgTags } from "../constants.js"
 
 export class ElementNode {
+  _disposed = false
   type = "ElementNode"
   parent: ElementNode | null = null;
   _portal?: (root: ElementNode) => HTMLElement;
@@ -46,10 +48,13 @@ export class ElementNode {
 
     if (children != null && children != undefined) {
       if (typeof children === "function") {
+
         let listener: any = () => {
+          if (this._disposed) return
           let input = children(listener)
           this.children!.update(Array.isArray(input) ? input : [input])
         }
+
         listener!.elementNode = this;
         listener!.debug = `class:${this.tagName}_${this.nodeId} children`;
         listener!.onSubscribe = (release: () => void) => this.addHook("BeforeRemove", () => {
@@ -66,17 +71,7 @@ export class ElementNode {
 
   _createDOMNode() {
     const svgNamespace = "http://www.w3.org/2000/svg"
-    const svgTags = ["svg", "circle", "path", "rect", "ellipse",
-      "line", "polyline", "polygon", "g", "defs",
-      "use", "symbol", "linearGradient", "radialGradient",
-      "stop", "clipPath", "mask", "filter", "text",
-      "tspan", "textPath", "image", "pattern", "marker",
-      "animate", "animateTransform", "animateMotion",
-      "feGaussianBlur", "feComposite", "feColorMatrix",
-      "feMerge", "feMergeNode", "feOffset", "feFlood",
-      "feBlend", "foreignObject"]
-
-    let node = svgTags.includes(this.tagName)
+    let node = SvgTags.includes(this.tagName)
       ? document.createElementNS(svgNamespace, this.tagName)
       : document.createElement(this.tagName)
 
@@ -102,8 +97,9 @@ export class ElementNode {
   }
 
   _dispose(): void {
-
+    this._disposed = true
     if (this.children) {
+      
       this.children._dispose();
     }
 

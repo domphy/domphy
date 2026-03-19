@@ -50,7 +50,7 @@ export class ElementAttribute {
       this.value = escapeHTML(value);
     } else if (typeof value == "function") {
       let listener: any = () => {
-        if (!listener) return;
+        if (!this.parent || this.parent._disposed) return;
         this.value = this.isBoolean ? Boolean((value as Function)()) : (value as Function)();
         this.render();
       };

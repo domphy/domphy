@@ -34,7 +34,7 @@ export function Preview(code: State<string>, isDark: State<boolean>, hasGrid: St
         }
       }
       update(code.get())
-      code.onChange(update)
+      code.addListener(update)
     },
     style: {
       flex: 1,

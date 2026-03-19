@@ -12,9 +12,10 @@ function icon(props: { color?: ThemeColor } = {}): PartialElement {
         style: {
             display: "inline-flex",
             alignItems: "center",
-            verticalAlign: "middle",
-            width: themeSpacing(6),
-            height: themeSpacing(6),
+            verticalAlign: `calc(-1 * ${themeSpacing(0.5)})`,
+            width: "1em",
+            height: "1em",
+            flexShrink: "0",
             fontSize: (listener) => themeSize(listener),
             backgroundColor: "transparent",
             color: (listener) => themeColor(listener, "shift-9", color)

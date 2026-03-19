@@ -32,7 +32,7 @@ function popoverArrow(props: {
         "right-end": "left-start",
     }
     const flipPlace = toState(flipMap[place.get()])
-    place.onChange(val => flipPlace.set(flipMap[val as Placement]))
+    place.addListener(val => flipPlace.set(flipMap[val as Placement]))
 
     const start = (pos: string) => pos.includes("start") ? sideOffset : pos.includes("end") ? "auto" : "50%"
     const end = (pos: string) => pos.includes("end") ? sideOffset : pos.includes("start") ? "auto" : "50%"

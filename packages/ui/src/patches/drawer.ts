@@ -59,7 +59,7 @@ function drawer(props: {
                 }
             };
             update(state.get());
-            state.onChange(update);
+            state.addListener(update);
         },
         style: {
             transform: translateOut[placement],

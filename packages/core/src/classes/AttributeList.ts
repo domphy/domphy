@@ -38,7 +38,7 @@ export class AttributeList {
     }
   }
 
-  onChange(name: string, callback: (value: string | number) => void): void {
+  addListener(name: string, callback: (value: string | number) => void): void {
     if (this.has(name) && this.parent?.domElement) {
       const handler = callback as any
       handler.onSubscribe = (release: () => void) => this.parent?.addHook("BeforeRemove", release);

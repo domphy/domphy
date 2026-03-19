@@ -43,7 +43,7 @@ function contextDensity(object: ElementNode | Listener | null): number {
 
     if (node && node.attributes && node.attributes.has("dataDensity")) {
         density = offsetDensity(density, node.attributes.get("dataDensity"));
-        typeof object == "function" && node.attributes.onChange("dataDensity", object);
+        typeof object == "function" && node.attributes.addListener("dataDensity", object);
     }
     return density;
 }

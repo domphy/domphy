@@ -40,7 +40,7 @@ function splitterPanel(): PartialElement {
             el.style.flexShrink = "0";
             el.style.overflow = "auto";
 
-            const release = ctx.size.onChange((size: number) => {
+            const release = ctx.size.addListener((size: number) => {
                 el.style[prop] = `${size}%`;
             });
             node.addHook("Remove", release);

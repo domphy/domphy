@@ -14,7 +14,7 @@ const gridOff = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fil
 
 export const Toolbar = (props: { isDark: State<boolean>, isFull: State<boolean>, hasGrid: State<boolean> }): DomphyElement<"div"> => {
     let { isDark, isFull, hasGrid } = props
-    isFull.onChange((val) => {
+    isFull.addListener((val) => {
         document.body.classList.toggle('fullscreen')
         document.querySelector('.VPNav')?.classList.toggle('fullscreen')
         document.querySelector('.VPContent')?.classList.toggle('has-sidebar')

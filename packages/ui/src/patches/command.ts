@@ -63,7 +63,7 @@ function commandItem(props: { color?: ThemeColor; accentColor?: ThemeColor } = {
             const ctx = node.getContext("command");
             const el = node.domElement as HTMLElement;
             const text = el.textContent?.toLowerCase() ?? "";
-            const release = ctx.query.onChange((q: string) => {
+            const release = ctx.query.addListener((q: string) => {
                 el.hidden = q.length > 0 && !text.includes(q.toLowerCase());
             });
             node.addHook("Remove", release);
