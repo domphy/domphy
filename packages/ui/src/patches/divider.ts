@@ -1,12 +1,11 @@
 import type { PartialElement } from "@domphy/core";
+import { toState, ValueOrState } from "@domphy/core";
 import { themeColor, type ThemeColor, themeSize, themeSpacing } from "@domphy/theme";
 
 function divider(props: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 } = {}): PartialElement {
-    const {
-        color = "neutral",
-    } = props;
+    const color = toState(props.color ?? "neutral", "color");
 
     return {
         role: "separator",
@@ -22,19 +21,19 @@ function divider(props: {
             gap: themeSpacing(2),
             fontSize: (listener) => themeSize(listener, "inherit"),
             backgroundColor: (listener) => themeColor(listener),
-            color: (listener) => themeColor(listener, "shift-9", color),
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
             minHeight: "1lh",
             "&::before": {
                 content: `""`,
                 flex:1,
-                borderColor: (listener) => themeColor(listener, "shift-4", color),
+                borderColor: (listener) => themeColor(listener, "shift-4", color.get(listener)),
                 borderWidth: "1px",
                 borderBottomStyle: "solid",
             },
             "&::after": {
                 content: `""`,
                 flex:1,
-                borderColor: (listener) => themeColor(listener, "shift-4", color),
+                borderColor: (listener) => themeColor(listener, "shift-4", color.get(listener)),
                 borderWidth: "1px",
                 borderBottomStyle: "solid",
             },

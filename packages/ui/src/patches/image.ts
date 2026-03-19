@@ -1,8 +1,8 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeSpacing, ThemeColor } from "@domphy/theme";
 
-function image(props: { color?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral" } = props;
+function image(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
 
     return {
         dataTone: "shift-2",
@@ -18,7 +18,7 @@ function image(props: { color?: ThemeColor } = {}): PartialElement {
             height: "auto",
             objectFit: "cover",
             borderRadius: themeSpacing(2),
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
         },
     };
 }

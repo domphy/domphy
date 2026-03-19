@@ -1,11 +1,9 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
 
-function inputText(props: { color?: ThemeColor, accentColor?: ThemeColor } = {}): PartialElement {
-    let {
-        color = "neutral",
-        accentColor = "primary",
-    } = props;
+function inputText(props: { color?: ValueOrState<ThemeColor>, accentColor?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         type: "text",
@@ -25,9 +23,9 @@ function inputText(props: { color?: ThemeColor, accentColor?: ThemeColor } = {})
             fontSize: (listener) => themeSize(listener, "inherit"),
             border: "none",
             outlineOffset: "-1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
-            color: (listener) => themeColor(listener, "shift-9", color),
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
             "&::placeholder": {
                 color: (listener) => themeColor(listener, "shift-7"),
             },
@@ -36,7 +34,7 @@ function inputText(props: { color?: ThemeColor, accentColor?: ThemeColor } = {})
             },
             "&:hover:not([disabled]):not([aria-busy=true]), &:focus-visible": {
 
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
             },
             "&[disabled]": {
                 opacity: 0.7,

@@ -1,8 +1,8 @@
-import { type PartialElement } from "@domphy/core";
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import { themeColor, themeDensity, themeSize, themeSpacing, type ThemeColor, } from "@domphy/theme";
 
-function button(props: { color?: ThemeColor } = {}): PartialElement {
-    const { color = "primary" } = props;
+function button(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "primary", "color");
 
     return {
         _onInsert: (node) => {
@@ -28,15 +28,15 @@ function button(props: { color?: ThemeColor } = {}): PartialElement {
             border: "none",
             outlineOffset: "-1px",
             outlineWidth: "1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
-            color: (listener) => themeColor(listener, "shift-9", color),
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
             "&:hover:not([disabled]):not([aria-busy=true])": {
-                color: (listener) => themeColor(listener, "shift-10", color),
-                backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+                color: (listener) => themeColor(listener, "shift-10", color.get(listener)),
+                backgroundColor: (listener) => themeColor(listener, "shift-2", color.get(listener)),
             },
             "&:focus-visible": {
-                boxShadow: (listener) => `inset 0 0 0 ${themeSpacing(0.5)} ${themeColor(listener, "shift-6", color)}`,
+                boxShadow: (listener) => `inset 0 0 0 ${themeSpacing(0.5)} ${themeColor(listener, "shift-6", color.get(listener))}`,
             },
             "&[disabled]": {
                 opacity: 0.7,

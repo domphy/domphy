@@ -1,8 +1,8 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeSpacing, ThemeColor, themeSize } from "@domphy/theme";
 
-function paragraph(props: { color?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral" } = props;
+function paragraph(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
 
     return {
         _onInsert: (node) => {
@@ -12,7 +12,7 @@ function paragraph(props: { color?: ThemeColor } = {}): PartialElement {
         },
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-9", color),
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
             lineHeight:1.5,
             marginTop: 0,
             marginBottom: 0,

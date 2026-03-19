@@ -1,8 +1,9 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeSpacing, ThemeColor } from "@domphy/theme";
 
-function inputRange(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral", accentColor = "primary" } = props;
+function inputRange(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         type: "range",
@@ -22,12 +23,12 @@ function inputRange(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}
             "&::-webkit-slider-runnable-track": {
                 height: themeSpacing(1.5),
                 borderRadius: themeSpacing(999),
-                backgroundColor: (listener) => themeColor(listener, "shift-3", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-3", color.get(listener)),
             },
             "&::-moz-range-track": {
                 height: themeSpacing(1.5),
                 borderRadius: themeSpacing(999),
-                backgroundColor: (listener) => themeColor(listener, "shift-3", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-3", color.get(listener)),
             },
             "&::-webkit-slider-thumb": {
                 appearance: "none",
@@ -36,23 +37,23 @@ function inputRange(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}
                 borderRadius: themeSpacing(999),
                 border: "none",
                 marginTop: `calc((${themeSpacing(1.5)} - ${themeSpacing(4)}) / 2)`,
-                backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor.get(listener)),
             },
             "&::-moz-range-thumb": {
                 width: themeSpacing(4),
                 height: themeSpacing(4),
                 borderRadius: themeSpacing(999),
                 border: "none",
-                backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor.get(listener)),
             },
             "&:hover:not([disabled])::-webkit-slider-thumb": {
-                backgroundColor: (listener) => themeColor(listener, "shift-10", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-10", accentColor.get(listener)),
             },
             "&:hover:not([disabled])::-moz-range-thumb": {
-                backgroundColor: (listener) => themeColor(listener, "shift-10", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-10", accentColor.get(listener)),
             },
             "&:focus-visible": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
                 outlineOffset: themeSpacing(1),
                 borderRadius: themeSpacing(2),
             },

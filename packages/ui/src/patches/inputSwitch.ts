@@ -1,8 +1,8 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { ThemeColor, themeColor, themeSize, themeSpacing } from "@domphy/theme";
 
-function inputSwitch(props: { accentColor?: ThemeColor } = {}): PartialElement {
-    const { accentColor = "primary" } = props;
+function inputSwitch(props: { accentColor?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         dataTone: "shift-2",
@@ -25,7 +25,7 @@ function inputSwitch(props: { accentColor?: ThemeColor } = {}): PartialElement {
             paddingBlock: themeSpacing(1),
             "&:checked": {
                 "&::before": {
-                    backgroundColor: (listener) => themeColor(listener, "increase-3", accentColor),
+                    backgroundColor: (listener) => themeColor(listener, "increase-3", accentColor.get(listener)),
                 },
                 "&::after": {
                     left: `calc(100% - ${themeSpacing(3.5)})`,

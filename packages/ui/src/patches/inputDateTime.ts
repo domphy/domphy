@@ -1,12 +1,14 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
 
 type InputDateTimeMode = "date" | "time" | "week" | "month" | "datetime-local";
 
 function inputDateTime(
-    props: { mode?: InputDateTimeMode; color?: ThemeColor; accentColor?: ThemeColor } = {}
+    props: { mode?: InputDateTimeMode; color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {}
 ): PartialElement {
-    const { mode = "datetime-local", color = "neutral", accentColor = "primary" } = props;
+    const { mode = "datetime-local" } = props;
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         type: mode,
@@ -20,11 +22,11 @@ function inputDateTime(
             fontFamily: "inherit",
             fontSize: (listener) => themeSize(listener, "inherit"),
             lineHeight: "inherit",
-            color: (listener) => themeColor(listener, "shift-9", color),
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
             border: "none",
             outlineOffset: "-1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
             height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
@@ -33,7 +35,7 @@ function inputDateTime(
                 opacity: 0.85,
             },
             "&:hover:not([disabled]):not([aria-busy=true]), &:focus-visible": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
             },
             "&[disabled]": {
                 opacity: 0.7,

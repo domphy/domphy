@@ -1,8 +1,9 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
 
-function inputFile(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral", accentColor = "primary" } = props;
+function inputFile(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         type: "file",
@@ -16,11 +17,11 @@ function inputFile(props: { color?: ThemeColor; accentColor?: ThemeColor } = {})
             fontFamily: "inherit",
             fontSize: (listener) => themeSize(listener, "inherit"),
             lineHeight: "inherit",
-            color: (listener) => themeColor(listener, "shift-9", color),
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
             border: "none",
             outlineOffset: "-1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
@@ -33,8 +34,8 @@ function inputFile(props: { color?: ThemeColor; accentColor?: ThemeColor } = {})
                 height: themeSpacing(6),
                 paddingInline: themeSpacing(2),
                 cursor: "pointer",
-                color: (listener) => themeColor(listener, "shift-10", accentColor),
-                backgroundColor: (listener) => themeColor(listener, "shift-3", accentColor),
+                color: (listener) => themeColor(listener, "shift-10", accentColor.get(listener)),
+                backgroundColor: (listener) => themeColor(listener, "shift-3", accentColor.get(listener)),
             },
             "&::-webkit-file-upload-button": {
                 marginTop: themeSpacing(1),
@@ -45,11 +46,11 @@ function inputFile(props: { color?: ThemeColor; accentColor?: ThemeColor } = {})
                 height: themeSpacing(6),
                 paddingInline: themeSpacing(2),
                 cursor: "pointer",
-                color: (listener) => themeColor(listener, "shift-10", color),
-                backgroundColor: (listener) => themeColor(listener, "shift-3", color),
+                color: (listener) => themeColor(listener, "shift-10", color.get(listener)),
+                backgroundColor: (listener) => themeColor(listener, "shift-3", color.get(listener)),
             },
             "&:hover:not([disabled]):not([aria-busy=true]), &:focus-visible": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
             },
             "&[disabled]": {
                 opacity: 0.7,

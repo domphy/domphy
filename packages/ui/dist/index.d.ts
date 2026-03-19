@@ -1,14 +1,14 @@
-import { PartialElement, ValueOrState, DomphyElement, Notifier, Handler } from '@domphy/core';
+import { ValueOrState, PartialElement, DomphyElement, Notifier, Handler } from '@domphy/core';
 import { ThemeColor } from '@domphy/theme';
 import { Placement as Placement$1 } from '@floating-ui/dom';
 
 declare function abbreviation(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function card(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function splitter(props?: {
@@ -31,8 +31,8 @@ declare function commandItem(props?: {
 }): PartialElement;
 
 declare function toggle(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function toggleGroup(props?: {
@@ -44,25 +44,25 @@ declare function toggleGroup(props?: {
 declare function inputOTP(): PartialElement;
 
 declare function alert(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function avatar(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function badge(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
     label?: ValueOrState<string | number>;
 }): PartialElement;
 
 declare function breadcrumb(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
     separator?: string;
 }): PartialElement;
 
 declare function breadcrumbEllipsis(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function combobox(props: {
@@ -88,30 +88,30 @@ declare function popoverArrow(props?: {
 }): PartialElement;
 
 declare function blockquote(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function button(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function inputCheckbox(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function code(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function details(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
     duration?: number;
 }): PartialElement;
 
 declare function descriptionList(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function dialog(props?: {
@@ -120,105 +120,105 @@ declare function dialog(props?: {
 }): PartialElement;
 
 declare function emphasis(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function figure(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function formGroup(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
     layout?: "horizontal" | "vertical";
 }): PartialElement;
 
 declare function heading(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function horizontalRule(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function image(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function icon(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function inputColor(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 type InputDateTimeMode = "date" | "time" | "week" | "month" | "datetime-local";
 declare function inputDateTime(props?: {
     mode?: InputDateTimeMode;
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function inputFile(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function inputSearch(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function inputText(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function inputRange(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function inputNumber(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function keyboard(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function label(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function link(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function mark(props?: {
-    accentColor?: ThemeColor;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function paragraph(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function preformated(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function progress(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function inputRadio(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function select(props?: {
@@ -227,11 +227,11 @@ declare function select(props?: {
 }): PartialElement;
 
 declare function skeleton(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function spinner(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function selectList(props?: {
@@ -262,46 +262,46 @@ declare function selectBox(props: {
 }): PartialElement;
 
 declare function inputSwitch(props?: {
-    accentColor?: ThemeColor;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function buttonSwitch(props?: {
     checked?: ValueOrState<boolean>;
-    accentColor?: ThemeColor;
-    color?: ThemeColor;
+    accentColor?: ValueOrState<ThemeColor>;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function small(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function strong(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function subscript(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function superscript(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function table(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function textarea(props?: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function unorderedList(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function orderedList(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 declare function pagination(props: {
@@ -312,7 +312,7 @@ declare function pagination(props: {
 }): PartialElement;
 
 declare function divider(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 }): PartialElement;
 
 type Placement = "left" | "right" | "top" | "bottom";
@@ -360,7 +360,7 @@ declare function tab(props?: {
 declare function tabPanel(): PartialElement;
 
 declare function tag(props?: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
     removable?: boolean;
 }): PartialElement;
 

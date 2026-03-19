@@ -3,16 +3,14 @@ import { type ThemeColor, themeColor, themeSize, themeSpacing } from "@domphy/th
 
 function buttonSwitch(props: {
     checked?: ValueOrState<boolean>;
-    accentColor?: ThemeColor;
-    color?: ThemeColor;
+    accentColor?: ValueOrState<ThemeColor>;
+    color?: ValueOrState<ThemeColor>;
 } = {}): PartialElement {
-    const {
-        checked = false,
-        accentColor = "primary",
-        color = "neutral",
-    } = props;
+    const { checked = false } = props;
 
     const check = toState(checked);
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         _onSchedule: (node) => {
@@ -31,14 +29,14 @@ function buttonSwitch(props: {
             fontSize: (listener) => themeSize(listener),
             border: "none",
             outlineWidth: "1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color)}`,
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-3", color.get(listener))}`,
             minWidth: themeSpacing(12),
             minHeight: themeSpacing(6),
             borderRadius: themeSpacing(999),
             paddingLeft: themeSpacing(7),
             paddingRight: themeSpacing(2),
             transition: "padding-left 0.3s, padding-right 0.3s",
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
             "& > :first-child": {
                 content: '""',
                 position: "absolute",
@@ -52,10 +50,10 @@ function buttonSwitch(props: {
                 height: themeSpacing(5),
                 borderRadius: themeSpacing(999),
                 color: (listener) => themeColor(listener, "shift-9"),
-                backgroundColor: (listener) => themeColor(listener, "decrease-2", color),
+                backgroundColor: (listener) => themeColor(listener, "decrease-2", color.get(listener)),
             },
             "&[aria-checked=true]": {
-                backgroundColor: (listener) => themeColor(listener, "increase-3", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "increase-3", accentColor.get(listener)),
                 outline: "none",
                 color: (listener) => themeColor(listener, "decrease-2"),
                 paddingLeft: themeSpacing(2),

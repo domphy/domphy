@@ -1,8 +1,9 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeSpacing, ThemeColor } from "@domphy/theme";
 
-function progress(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral", accentColor = "primary" } = props;
+function progress(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         _onInsert: (node) => {
@@ -17,18 +18,18 @@ function progress(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}):
             border: 0,
             borderRadius: themeSpacing(999),
             overflow: "hidden",
-            backgroundColor: (listener) => themeColor(listener, "shift-3", color),
+            backgroundColor: (listener) => themeColor(listener, "shift-3", color.get(listener)),
             "&::-webkit-progress-bar": {
-                backgroundColor: (listener) => themeColor(listener, "shift-3", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-3", color.get(listener)),
                 borderRadius: themeSpacing(999),
             },
             "&::-webkit-progress-value": {
-                backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor.get(listener)),
                 borderRadius: themeSpacing(999),
                 transition: "width 220ms ease",
             },
             "&::-moz-progress-bar": {
-                backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor.get(listener)),
                 borderRadius: themeSpacing(999),
             },
         },

@@ -1,10 +1,11 @@
 import type { PartialElement } from "@domphy/core";
+import { toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
 
 function breadcrumbEllipsis(props: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 } = {}): PartialElement {
-    const { color = "neutral" } = props;
+    const color = toState(props.color ?? "neutral", "color");
 
     return {
         _onInsert: (node) => {
@@ -22,14 +23,14 @@ function breadcrumbEllipsis(props: {
             border: "none",
             background: "none",
             cursor: "pointer",
-            color: (listener) => themeColor(listener, "shift-8", color),
+            color: (listener) => themeColor(listener, "shift-8", color.get(listener)),
             borderRadius: themeSpacing(1),
             "&:hover": {
-                color: (listener) => themeColor(listener, "shift-10", color),
-                backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+                color: (listener) => themeColor(listener, "shift-10", color.get(listener)),
+                backgroundColor: (listener) => themeColor(listener, "shift-2", color.get(listener)),
             },
             "&:focus-visible": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", color)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", color.get(listener))}`,
                 outlineOffset: themeSpacing(0.5),
             },
         },

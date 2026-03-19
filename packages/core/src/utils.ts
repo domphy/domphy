@@ -81,7 +81,7 @@ export function hashString(str: string = ""): string {
     return String.fromCharCode(97 + (hash % 26)) + hash.toString(16);
 }
 
-export function toState<T>(val: T | State<T>): State<T> {
-    return val instanceof State ? val : new State<T>(val);
+export function toState<T>(val: T | State<T>, name?: string): State<T> {
+    return val instanceof State ? val : new State<T>(val, name);
 }
 

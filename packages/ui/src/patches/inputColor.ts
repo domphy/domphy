@@ -1,8 +1,9 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing, themeSize, type ThemeColor } from "@domphy/theme";
 
-function inputColor(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral", accentColor = "primary" } = props;
+function inputColor(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         type: "color",

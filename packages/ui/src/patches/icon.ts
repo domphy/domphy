@@ -1,8 +1,9 @@
 import type { PartialElement } from "@domphy/core";
+import { toState, ValueOrState } from "@domphy/core";
 import { themeSpacing, themeColor, themeSize, type ThemeColor } from "@domphy/theme";
 
-function icon(props: { color?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral" } = props;
+function icon(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
     return {
         _onInsert: (node) => {
             if (node.tagName != "span") {
@@ -18,7 +19,7 @@ function icon(props: { color?: ThemeColor } = {}): PartialElement {
             flexShrink: "0",
             fontSize: (listener) => themeSize(listener),
             backgroundColor: "transparent",
-            color: (listener) => themeColor(listener, "shift-9", color)
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener))
         },
     };
 }

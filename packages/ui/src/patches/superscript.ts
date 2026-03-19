@@ -1,8 +1,8 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeSize, ThemeColor } from "@domphy/theme";
 
-function superscript(props: { color?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral" } = props;
+function superscript(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
 
     return {
         _onInsert: (node) => {
@@ -14,7 +14,7 @@ function superscript(props: { color?: ThemeColor } = {}): PartialElement {
             fontSize: (listener) => themeSize(listener, "decrease-1"),
             verticalAlign: "super",
             lineHeight: 0,
-            color: (listener) => themeColor(listener, "shift-9", color),
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
         },
     };
 }

@@ -1,8 +1,9 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeSpacing, ThemeColor, themeSize } from "@domphy/theme";
 
-function inputCheckbox(props: { color?: ThemeColor, accentColor?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral", accentColor = "primary" } = props;
+function inputCheckbox(props: { color?: ValueOrState<ThemeColor>, accentColor?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         type: "checkbox",
@@ -31,20 +32,20 @@ function inputCheckbox(props: { color?: ThemeColor, accentColor?: ThemeColor } =
                 cursor: "pointer",
                 border: "none",
                 outlineOffset: "-1px",
-                outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
-                color: (listener) => themeColor(listener, "shift-9", color),
+                outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+                color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
                 width: themeSpacing(4),
                 height: themeSpacing(4),
             },
             "&:hover::before": {
-                backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-2", color.get(listener)),
             },
             "&:checked::before": {
-                outline: (listener) => `1px solid ${themeColor(listener, "shift-6", accentColor)}`,
-                backgroundColor: (listener) => themeColor(listener, "shift-8", accentColor),
+                outline: (listener) => `1px solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+                backgroundColor: (listener) => themeColor(listener, "shift-8", accentColor.get(listener)),
             },
             "&:checked:hover:not([disabled])::before": {
-                backgroundColor: (listener) => themeColor(listener, "shift-7", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-7", accentColor.get(listener)),
             },
             "&:checked::after": {
                 content: `""`,
@@ -54,27 +55,27 @@ function inputCheckbox(props: { color?: ThemeColor, accentColor?: ThemeColor } =
                 insetInlineStart: "37%",
                 width: "20%",
                 height: "30%",
-                border: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "inherit", accentColor)}`,
+                border: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "inherit", accentColor.get(listener))}`,
                 borderTop: 0,
                 borderInlineStart: 0,
                 transform: "rotate(45deg)",
             },
             "&:indeterminate::before": {
-                outline: (listener) => `1px solid ${themeColor(listener, "shift-6", accentColor)}`,
-                backgroundColor: (listener) => themeColor(listener, "shift-3", accentColor),
+                outline: (listener) => `1px solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+                backgroundColor: (listener) => themeColor(listener, "shift-3", accentColor.get(listener)),
             },
             "&:indeterminate::after": {
                 content: `""`,
                 position: "absolute",
                 inset: "30%",
-                backgroundColor: (listener) => themeColor(listener, "shift-8", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-8", accentColor.get(listener)),
             },
             "&:indeterminate:hover:not([disabled])::after": {
-                backgroundColor: (listener) => themeColor(listener, "shift-7", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-7", accentColor.get(listener)),
             },
             "&:focus-visible": {
                 borderRadius: themeSpacing(1.5),
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
             },
             "&[disabled]": {
                 cursor: "not-allowed",

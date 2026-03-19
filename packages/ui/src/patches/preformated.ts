@@ -1,8 +1,8 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing, ThemeColor, themeSize } from "@domphy/theme";
 
-function preformated(props: { color?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral" } = props;
+function preformated(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
 
     return {
         dataTone: "shift-2",
@@ -13,8 +13,8 @@ function preformated(props: { color?: ThemeColor } = {}): PartialElement {
         },
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-9", color),
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
             border: "none",
             paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),

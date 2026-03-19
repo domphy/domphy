@@ -1,8 +1,9 @@
-import { type PartialElement } from "@domphy/core";
+import { type PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing, themeSize, type ThemeColor } from "@domphy/theme";
 
-function formGroup(props: { color?: ThemeColor; layout?: "horizontal" | "vertical" } = {}): PartialElement {
-    const { color = "neutral", layout = "horizontal" } = props;
+function formGroup(props: { color?: ValueOrState<ThemeColor>; layout?: "horizontal" | "vertical" } = {}): PartialElement {
+    const { layout = "horizontal" } = props;
+    const color = toState(props.color ?? "neutral", "color");
 
     const isVertical = layout === "vertical";
 
@@ -19,7 +20,7 @@ function formGroup(props: { color?: ThemeColor; layout?: "horizontal" | "vertica
             border: "none",
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
             fontSize: (listener) => themeSize(listener, "inherit"),
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
             display: "grid",
             gridTemplateColumns: isVertical ? `minmax(0, 1fr)` : `max-content minmax(0, 1fr)`,
             columnGap: themeSpacing(4),
@@ -32,8 +33,8 @@ function formGroup(props: { color?: ThemeColor; layout?: "horizontal" | "vertica
                 fontWeight: 600,
                 paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
                 borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
-                color: (listener) => themeColor(listener, "shift-9", color),
-                backgroundColor: (listener) => themeColor(listener, "inherit", color),
+                color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+                backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
             },
             "& > label": {
                 gridColumn: "1",
@@ -56,7 +57,7 @@ function formGroup(props: { color?: ThemeColor; layout?: "horizontal" | "vertica
                 margin: 0,
                 marginBlockStart: `calc(${themeSpacing(2)} * -1)`,
                 fontSize: (listener) => themeSize(listener, "decrease-1"),
-                color: (listener) => themeColor(listener, "shift-9", color),
+                color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
             },
         },
     };

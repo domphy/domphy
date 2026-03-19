@@ -1,8 +1,8 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeSize, themeSpacing, ThemeColor } from "@domphy/theme";
 
-function figure(props: { color?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral" } = props;
+function figure(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
 
     return {
         _onInsert: (node) => {
@@ -17,7 +17,7 @@ function figure(props: { color?: ThemeColor } = {}): PartialElement {
             marginInline: 0,
             marginTop: themeSpacing(3),
             marginBottom: themeSpacing(3),
-            color: (listener) => themeColor(listener, "shift-9", color),
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
             "& img, & svg, & video, & canvas": {
                 display: "block",
                 maxWidth: "100%",
@@ -25,7 +25,7 @@ function figure(props: { color?: ThemeColor } = {}): PartialElement {
             },
             "& figcaption": {
                 fontSize: (listener) => themeSize(listener, "decrease-1"),
-                color: (listener) => themeColor(listener, "shift-8", color),
+                color: (listener) => themeColor(listener, "shift-8", color.get(listener)),
                 lineHeight: 1.45,
             },
         },

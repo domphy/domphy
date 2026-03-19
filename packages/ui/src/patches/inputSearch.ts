@@ -1,8 +1,9 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
 
-function inputSearch(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral", accentColor = "primary" } = props;
+function inputSearch(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         type: "search",
@@ -16,17 +17,17 @@ function inputSearch(props: { color?: ThemeColor; accentColor?: ThemeColor } = {
             fontFamily: "inherit",
             fontSize: (listener) => themeSize(listener, "inherit"),
             lineHeight: "inherit",
-            color: (listener) => themeColor(listener, "shift-9", color),
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
             border: "none",
             outlineOffset: "-1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             minWidth: themeSpacing(32),
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
             paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
             "&::placeholder": {
-                color: (listener) => themeColor(listener, "shift-7", color),
+                color: (listener) => themeColor(listener, "shift-7", color.get(listener)),
             },
             "&::-webkit-search-decoration": {
                 display: "none",
@@ -35,7 +36,7 @@ function inputSearch(props: { color?: ThemeColor; accentColor?: ThemeColor } = {
                 cursor: "pointer",
             },
             "&:hover:not([disabled]):not([aria-busy=true]), &:focus-visible": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
             },
             "&[disabled]": {
                 opacity: 0.7,

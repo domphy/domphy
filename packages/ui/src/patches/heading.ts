@@ -1,4 +1,4 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeSize, themeSpacing, ThemeColor } from "@domphy/theme";
 
 const Headinghift: Record<string, string> = {
@@ -10,8 +10,8 @@ const Headinghift: Record<string, string> = {
     h1: "increase-4",
 }
 
-function heading(props: { color?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral" } = props;
+function heading(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
 
     return {
         _onInsert: (node) => {
@@ -20,7 +20,7 @@ function heading(props: { color?: ThemeColor } = {}): PartialElement {
             }
         },
         style: {
-            color: (listener) => themeColor(listener, "shift-11", color),
+            color: (listener) => themeColor(listener, "shift-11", color.get(listener)),
             marginTop: 0,
             marginBottom: themeSpacing(2),
             fontSize: (listener) => {

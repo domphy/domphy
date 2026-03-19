@@ -1,10 +1,10 @@
-import { type PartialElement } from "@domphy/core";
+import { type PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
 
 function avatar(props: {
-    color?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
 } = {}): PartialElement {
-    const { color = "primary" } = props;
+    const color = toState(props.color ?? "primary", "color");
 
     return {
         dataTone: "shift-2",
@@ -21,8 +21,8 @@ function avatar(props: {
             fontSize: (listener) => themeSize(listener, "inherit"),
             fontWeight: "600",
             userSelect: "none",
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
-            color: (listener) => themeColor(listener, "shift-11", color),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
+            color: (listener) => themeColor(listener, "shift-11", color.get(listener)),
             "& img": {
                 position: "absolute",
                 inset: 0,

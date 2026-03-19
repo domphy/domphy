@@ -1,8 +1,9 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeSize, themeSpacing, ThemeColor } from "@domphy/theme";
 
-function label(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral", accentColor = "primary" } = props;
+function label(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         _onInsert: (node) => {
@@ -15,10 +16,10 @@ function label(props: { color?: ThemeColor; accentColor?: ThemeColor } = {}): Pa
             alignItems: "center",
             gap: themeSpacing(2),
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-9", color),
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
             cursor: "pointer",
             "&:focus-within": {
-                color: (listener) => themeColor(listener, "shift-10", accentColor),
+                color: (listener) => themeColor(listener, "shift-10", accentColor.get(listener)),
             },
             "&[aria-disabled=true]": {
                 opacity: 0.7,

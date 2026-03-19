@@ -1,10 +1,11 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
 
 function textarea(
-    props: { color?: ThemeColor; accentColor?: ThemeColor } = {}
+    props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {}
 ): PartialElement {
-    const { color = "neutral", accentColor = "primary" } = props;
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         _onInsert: (node) => {
@@ -21,18 +22,18 @@ function textarea(
             border:"none",
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-9", color),
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
             outlineOffset: "-1px",
-            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
+            outline: (listener) => `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
             "&::placeholder": {
                 color: (listener) => themeColor(listener, "shift-7"),
             },
             "&:hover:not([disabled]):not([aria-busy=true])": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
             },
             "&:focus-visible": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
             },
             "&:invalid": {
                 outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", "error")}`,

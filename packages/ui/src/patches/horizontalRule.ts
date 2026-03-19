@@ -1,8 +1,8 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeSpacing, ThemeColor } from "@domphy/theme";
 
-function horizontalRule(props: { color?: ThemeColor } = {}): PartialElement {
-    const { color = "neutral" } = props;
+function horizontalRule(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement {
+    const color = toState(props.color ?? "neutral", "color");
 
     return {
         _onInsert: (node) => {
@@ -16,7 +16,7 @@ function horizontalRule(props: { color?: ThemeColor } = {}): PartialElement {
             marginInline: 0,
             marginTop: themeSpacing(3),
             marginBottom: themeSpacing(3),
-            backgroundColor: (listener) => themeColor(listener, "shift-4", color),
+            backgroundColor: (listener) => themeColor(listener, "shift-4", color.get(listener)),
         },
     };
 }

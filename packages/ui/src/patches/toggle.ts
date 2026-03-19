@@ -1,11 +1,12 @@
-import { type PartialElement, type ElementNode } from "@domphy/core";
+import { type PartialElement, type ElementNode, toState, type ValueOrState } from "@domphy/core";
 import { themeColor, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
 
 function toggle(props: {
-    color?: ThemeColor;
-    accentColor?: ThemeColor;
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
 } = {}): PartialElement {
-    const { color = "neutral", accentColor = "primary" } = props;
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
     return {
         role: "button",
         _onInsert: (node) => {
@@ -41,18 +42,18 @@ function toggle(props: {
             paddingInline: themeSpacing(2),
             border: "none",
             borderRadius: themeSpacing(1),
-            color: (listener) => themeColor(listener, "shift-9", color),
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
             transition:"background-color 300ms ease",
             "&:hover:not([disabled])": {
-                backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-2", color.get(listener)),
             },
             "&[aria-pressed=true]": {
-                backgroundColor: (listener) => themeColor(listener, "shift-3", accentColor),
-                color: (listener) => themeColor(listener, "shift-12", accentColor),
+                backgroundColor: (listener) => themeColor(listener, "shift-3", accentColor.get(listener)),
+                color: (listener) => themeColor(listener, "shift-12", accentColor.get(listener)),
             },
             "&:focus-visible": {
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
                 outlineOffset: `-${themeSpacing(0.5)}`,
             },
             "&[disabled]": {

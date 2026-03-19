@@ -1,10 +1,12 @@
-import { PartialElement } from "@domphy/core";
+import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeDensity, themeSize, themeSpacing, ThemeColor } from "@domphy/theme";
 
 function details(
-    props: { color?: ThemeColor; accentColor?: ThemeColor; duration?: number } = {}
+    props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; duration?: number } = {}
 ): PartialElement {
-    const { color = "neutral", accentColor = "primary", duration = 240 } = props;
+    const { duration = 240 } = props;
+    const color = toState(props.color ?? "neutral", "color");
+    const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
     return {
         _onInsert: (node) => {
@@ -14,13 +16,13 @@ function details(
         },
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-9", color),
-            backgroundColor: (listener) => themeColor(listener, "inherit", color),
-           
+            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+            backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
+
             overflow: "hidden",
             "& > summary": {
-               backgroundColor: (listener) => themeColor(listener, "shift-2", color),
-              color: (listener) => themeColor(listener, "shift-10", color),
+               backgroundColor: (listener) => themeColor(listener, "shift-2", color.get(listener)),
+              color: (listener) => themeColor(listener, "shift-10", color.get(listener)),
                 fontSize: (listener) => themeSize(listener, "inherit"),
                 listStyle: "none",
                 display: "flex",
@@ -45,8 +47,8 @@ function details(
                 height: themeSpacing(2),
                 flexShrink: 0,
                 marginTop: `-${themeSpacing(0.5)}`,
-                borderInlineEnd: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-9", color)}`,
-                borderBottom: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-9", color)}`,
+                borderInlineEnd: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-9", color.get(listener))}`,
+                borderBottom: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-9", color.get(listener))}`,
                 transform: "rotate(45deg)",
                 transition: `transform ${duration}ms ease`,
             },
@@ -54,12 +56,12 @@ function details(
                 transform: "rotate(-135deg)",
             },
             "& > summary:hover": {
-                backgroundColor: (listener) => themeColor(listener, "shift-3", color),
+                backgroundColor: (listener) => themeColor(listener, "shift-3", color.get(listener)),
             },
             "& > summary:focus-visible": {
                 borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
                 outlineOffset: `-${themeSpacing(0.5)}`,
-                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+                outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
             },
             "& > :not(summary)": {
                 maxHeight: "0px",
