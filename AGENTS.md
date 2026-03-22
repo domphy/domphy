@@ -1099,7 +1099,7 @@ When generating Domphy code, AI should:
 - prefer `dataTone` for subtree shifts
 - use `themeColor(listener, "inherit", family)` for the local surface background
 - use `themeColor(listener, "shift-9", family)` for text on that surface when full contrast is intended
-- use `themeColor(listener, "shift-3", family)` for `outline` or stroke when the normal structural edge role is intended
+- use `themeColor(listener, "shift-4", family)` for `outline` or stroke when the normal structural edge role is intended
 - avoid inventing semantic tone names like `surface`, `foreground`, or `text`
 - avoid arbitrary tone jumps when `0 / 3 / 6` and `+1 / +2` already express the intended state
 - for practical UI-level color selection, follow the `UI Color Reference` below instead of inventing extra semantic rows
@@ -1143,7 +1143,7 @@ If AI wants a background/text pairing, it must express that with valid shifts, f
 style: {
   backgroundColor: (listener) => themeColor(listener, "inherit", "primary"),
   color: (listener) => themeColor(listener, "shift-9", "primary"),
-  outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "primary")}`,
+  outline: (listener) => `1px solid ${themeColor(listener, "shift-4", "primary")}`,
 }
 ```
 
@@ -1273,7 +1273,7 @@ style: {
   borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
   backgroundColor: (listener) => themeColor(listener, "inherit", "primary"),
   color: (listener) => themeColor(listener, "shift-9", "primary"),
-  outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "primary")}`,
+  outline: (listener) => `1px solid ${themeColor(listener, "shift-4", "primary")}`,
 }
 ```
 
@@ -1294,8 +1294,8 @@ Guidelines:
 |-------------------|------|------------------------------------|
 | 1                 | 4px  | outline offset, tiny gap           |
 | 2                 | 8px  | inner gap, small padding           |
-| 3                 | 12px | swatch strip height, icon size     |
-| 4                 | 16px | section gap, standard padding      |
+| 3                 | 12px | swatch strip height                |
+| 4                 | 16px | icon size, section gap, standard padding |
 | 6                 | 24px | swatch square (w × h)              |
 | 8                 | 32px | large section gap                  |
 | 10                | 40px | grid cell, fixed column width      |
@@ -1587,37 +1587,73 @@ Main exported patches are listed below in the patch catalog.
 
 ## Production App Structure
 
-When generating a production-ready Domphy app, prefer this structure:
-
-- `main.ts` or `client.ts`
-  - call `themeApply()`
-  - create root `ElementNode`
-  - call `render(...)` or `mount(...)`
-- `app/` or `blocks/`
-  - feature-level Domphy blocks returning `DomphyElement`
-- `patches/`
-  - only if the app needs reusable local patches beyond `@domphy/ui`
-- `state/`
-  - `toState()` instances, `FormState`, `FieldState`, or app-specific state helpers
-- `services/`
-  - network, persistence, integrations
-- `styles/` only when truly needed
-  - prefer inline `style` with theme helpers first
-
-Recommended entry:
+Every Domphy app has one `App.ts` at the top level. It is the entry point and its primary job is theme configuration and composing top-level blocks — not business logic.
 
 ```ts
-import { ElementNode } from "@domphy/core"
+// App.ts — entry point
 import { themeApply } from "@domphy/theme"
-import { App } from "./app/App"
+import { HeaderBlock } from "./blocks/HeaderBlock"
+import { MainBlock }   from "./blocks/MainBlock"
 
-themeApply()
-new ElementNode(App).render(document.getElementById("app")!)
+themeApply({ /* theme config */ })
+
+export const App: DomphyElement<"div"> = {
+    div: [HeaderBlock(), MainBlock()],
+    dataTheme: "light",
+    style: { display: "flex", flexDirection: "column" },
+}
 ```
+
+Each feature directory uses `index.ts` as its entry point, exporting the feature's root block. The name `index` signals "this directory is itself a block":
+
+```ts
+// feature/index.ts — feature entry, exports the block
+export { FeatureBlock as default } from "./blocks/FeatureBlock"
+```
+
+Full structure:
+
+```
+src/
+  App.ts              ← top-level entry, theme config + compose
+  blocks/             ← shared cross-feature blocks
+  patches/            ← shared cross-feature patches
+  states.ts           ← shared states (single file if few)
+  utils.ts            ← pure utility functions (single file if few)
+  icons.ts            ← inline SVG strings, flat if few
+  icons/              ← split by category if many
+  feature/
+    index.ts          ← feature entry = feature's root block
+    blocks/           ← feature-specific blocks
+    patches.ts        ← feature patches (single file if few)
+    states.ts         ← feature states
+    utils.ts          ← feature-local pure utilities (if any)
+```
+
+`utils` holds pure functions that are not blocks, patches, or states — color math helpers, formatters, constants, slugify, etc. Same few/many rule applies: single `utils.ts` when few, `utils/` directory when many.
+
+`icons` follows the same few/many rule. In Domphy, icons are inline SVG strings used with `{ span: svgString, $: [icon()] }` — not components or files:
+
+```ts
+// few → icons.ts (flat, named exports)
+export const plusSvg = `<svg ...>`
+export const checkSvg = `<svg ...>`
+
+// many → icons/index.ts or icons/action.ts, icons/nav.ts ...
+
+// usage in any block
+{ span: plusSvg, $: [icon()] }
+```
+
+Asset management (images, fonts, static files) is the responsibility of the build tool or host framework — not Domphy. Do not add `assets/` to a Domphy app structure.
+
+Entry file naming rule:
+- `App.ts` — top of the app tree. Contains theme setup. One per app.
+- `index.ts` — entry of a feature or sub-tree. Signals "this dir is a block". No theme setup.
 
 Production guidance:
 
-- use `DomphyElement` objects or block functions for meaningful subtrees
+- `App.ts` owns `themeApply()` — no other file calls it
 - keep each subtree shallow and named
 - prefer feature modules over giant single files
 - use `_context` for local tree context, not for global app state dumping
@@ -1625,6 +1661,60 @@ Production guidance:
 - use `FormState` and `FieldState` for form-heavy features
 - use existing `@domphy/ui` patches before building custom ones
 - use portals for overlays that must escape clipping or stacking contexts
+
+## Layered Sharing Rule
+
+Every layer of a Domphy project — package, app, or feature — can expose these shared artifacts:
+
+| Artifact | What it contains | Few | Many |
+|---|---|---|---|
+| `blocks` | `(params) => DomphyElement`. Presentational, no external state imports. | `blocks.ts` | `blocks/` |
+| `patches` | Functions returning patch objects for the `$` array. Style and behavior reuse. | `patches.ts` | `patches/` |
+| `states` | Shared state instances or factory functions used across multiple blocks. | `states.ts` | `states/` |
+| `utils` | Pure functions — math helpers, formatters, constants, slugify, etc. | `utils.ts` | `utils/` |
+| `icons` | Inline SVG strings used with `{ span: svg, $: [icon()] }`. | `icons.ts` | `icons/` |
+| `router` | Route definitions wiring URLs to blocks. Pure `.ts`, no framework needed. | `router.ts` | `router/` |
+
+The few/many rule is the same for all artifacts: single file with named exports when few, directory when many.
+
+`router` wires URLs to blocks using any plain JS routing library. Example with [page.js](https://visionmedia.github.io/page.js/):
+
+```ts
+// router.ts — few routes, single file
+import page from "page"
+import { ElementNode } from "@domphy/core"
+import { HomeBlock }      from "./blocks/HomeBlock"
+import { GeneratorBlock } from "./generator/index"
+import { BenchmarkBlock } from "./benchmark/index"
+
+const root = document.getElementById("app")!
+let node: ElementNode | null = null
+
+function mount(el: ReturnType<typeof HomeBlock>) {
+    node?.destroy()
+    node = new ElementNode(el)
+    node.render(root)
+}
+
+page("/",           () => mount(HomeBlock()))
+page("/generator",  () => mount(GeneratorBlock()))
+page("/benchmark",  () => mount(BenchmarkBlock()))
+page()
+```
+
+Router is pure `.ts` — no `.html`, no framework file. If routes grow, split into `router/` with one file per route group.
+
+**Each layer applies this independently:**
+
+```
+@domphy/ui          → blocks/, patches/
+apps/web/           → blocks/, patches/, states, utils, icons
+apps/web/[feature]/ → blocks/, patches/, states, utils, icons
+```
+
+**Placement rule:** an artifact lives at the lowest layer that fully covers all its consumers. When a consumer in a higher layer needs it, move it up — do not import upward from a child layer.
+
+**Domphy is TypeScript/JavaScript only.** A Domphy app structure contains only `.ts` and `.js` files. No `.css`, `.vue`, `.jsx`, `.html`, `.json`, or any other file type belongs inside a Domphy source tree. Styles live in `style` objects, icons are inline SVG strings, theme is applied via `themeApply()`. If a project needs other file types (e.g. a VitePress `.md` page or a framework mount component), those belong to the host framework layer — not to Domphy.
 
 ## Lifecycle And Ownership Rules
 
@@ -1736,7 +1826,7 @@ export { button }
 
 Overlay-like patches should default to inverted tone:
 
-- `dataTone: "shift-11"`
+- `dataTone: "shift-17"`
 
 This is the UI-layer convention for overlays because it gives strong contrast and demonstrates local theming clearly. Users can still override it because native wins.
 
@@ -2034,7 +2124,7 @@ If you are unsure which to use, the answer is `toState()`.
 - `tooltip({ open?, placement?, content? })`
   - host tag: trigger element gets the patch
   - `content` may be `string` or `DomphyElement`
-  - default tooltip surface is styled and inverted with `dataTone: "shift-11"`
+  - default tooltip surface is styled and inverted with `dataTone: "shift-17"`
 
 - `popover({ openOn, open?, placement?, content? })`
   - host tag: trigger element gets the patch
@@ -2337,6 +2427,7 @@ Rules:
 ### UI / Patches
 
 - Do not put ordinary DOM event logic inside hooks when flat event keys already exist; use `onClick`, `onInput`, `onKeyDown`, and similar keys directly on the partial object.
+- Do not conditionally omit event handlers via spread (`...(cond ? { onClick: fn } : {})`); event handler values must always be functions — never `undefined`. If the handler should be a no-op in some cases, provide a function and guard with a condition inside the body: `onClick: () => { if (!cond) return; ... }`.
 - Do not use `_key` as selected state, active id, or general business identity; `_key` is only for child diffing.
 - Do not reuse the same `DomphyElement` or `PartialElement` object across multiple inserts; create a fresh object each time with a factory function or inside the loop.
 - Do not hide simple visual state changes inside hooks; if the change is really an attribute or style update, use reactive attributes or reactive style props directly.
