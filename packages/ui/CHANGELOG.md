@@ -7,5 +7,5 @@
 ## 0.1.13
 - update core
 - table
-## 0.1.14
+## 0.1.16
 - chromametry palette
