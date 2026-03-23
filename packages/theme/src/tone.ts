@@ -1,4 +1,4 @@
-import { themeVars, getTheme, themeName } from "./theme.js"
+import { themeVars, themeTokens, getTheme, themeName } from "./theme.js"
 import light from "./light.js";
 import type { Listener, ElementNode } from "@domphy/core";
 
@@ -97,4 +97,24 @@ export function themeColor(object: ElementNode | Listener | null, tone: ElementT
     let resultColor = themeVars()[themeColor][resultTone]
 
     return resultColor
+}
+
+export function themeColorToken(object: ElementNode | Listener | null, tone: ElementTone = "inherit", color: string = "inherit"): string {
+
+    let colorName = color == "inherit" ? "neutral" : color;
+    let name = object ? themeName(object as ElementNode | Listener) : "light";
+    let tokens = themeTokens(name);
+
+    if (!object) {
+        return tokens[colorName][offsetTone(0, tone)]
+    }
+
+    let resultTone: number
+    if (tone == "base") {
+        resultTone = getTheme(name).baseTones[colorName]
+    } else {
+        resultTone = themeTone(object, tone)
+    }
+
+    return tokens[colorName][resultTone]
 }

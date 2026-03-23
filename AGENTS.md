@@ -715,7 +715,7 @@ Every app has its own dependency graph. `addListener` makes that graph explicit 
 
 ### The Four State Patterns
 
-There are exactly four state patterns in Domphy. Every app uses one or a combination of these. Start from Pattern 1 and only move to the next when there is a concrete reason.
+There are exactly three state patterns in Domphy. Every app uses one or a combination of these. Start from Pattern 1 and only move to the next when there is a concrete reason.
 
 ---
 
@@ -752,13 +752,13 @@ steps.addListener(n => ramp.set(new Ramp(generateRamp(baseColor.get(), n), ramp.
 
 Use when: computation is heavy enough that re-running it on every coarse re-render causes a perceptible problem, and the state can be cleanly separated.
 
-Do not use nested `State<State<T>>`. That is not Pattern 3 — it is a combination that causes the infinite loop problems described above.
+Do not use nested `State<State<T>>`. That causes the infinite loop problems described above — it is not a valid pattern.
 
-The readable limit for this pattern is around 4 states and 3 `addListener` connections. Beyond that, move to Pattern 4.
+The readable limit for this pattern is around 4 states and 3 `addListener` connections. Beyond that, move to Pattern 3.
 
 ---
 
-**Pattern 4 — Custom class with Notifier composition**
+**Pattern 3 — Custom class with Notifier composition**
 
 When the `addListener` graph grows past the readable limit, collapse the cluster into a single class. The class manages its own internal state and notifies once when anything changes. The rest of the app sees one object instead of a graph.
 
@@ -828,9 +828,9 @@ The class does not replace `toState`. It replaces a tangled cluster of states th
 **Decision guide:**
 
 ```
-Start here              → Pattern 1: one coarse toState, replace on change
-User feels lag          → Pattern 2: split into focused states + addListener
-Graph too big           → Pattern 3: custom class with Notifier
+Start here     → Pattern 1: one coarse toState, replace on change
+User feels lag → Pattern 2: split into focused states + addListener
+Graph too big  → Pattern 3: custom class with Notifier
 ```
 
 ### State Sharing Patterns
@@ -1091,6 +1091,8 @@ So AI should assume:
 
 - normal side: `background = tone`, `stroke = tone + 3`, `text = tone + 9`
 - inverted side: `background = tone`, `stroke = tone - 3`, `text = tone - 9`
+
+Note: `K / 3 = 3` (`shift-3`) is the passive boundary (separator, divider). Bounded controls such as inputs and cards use `shift-4` (one step stronger) as their control edge. See the **UI Color Reference** for the full breakdown.
 
 ### Tone Generation Rules
 
@@ -1393,6 +1395,24 @@ Derived families:
 - separators stay `1px`
 
 Sub-baseline elements use the fixed proportional scale `2U / 4U / 6U` and stay constant across density levels unless a patch explicitly defines another rule.
+
+### Patch Height Reference (d = 1.5, U = 4px)
+
+Use this table to find the standard height for any patch. When setting `height` on a container that wraps a patch, match its height to the patch's row.
+
+| Height | px  | Patches / elements                                                                                                  |
+|--------|-----|---------------------------------------------------------------------------------------------------------------------|
+| 1px    | 1px | Separators, Horizontal Rule                                                                                         |
+| 2U     | 8px | Progress, Popover Arrow                                                                                             |
+| 4U     | 16px| Input Checkbox, Input Radio, Input Range, Input Switch                                                              |
+| 6U     | 24px| Code, Keyboard, Mark, Badge, Icon, Label, Link, Tag, Strong, Heading, Spinner, Skeleton, Divider, Button Switch, and all other inline/no-boundary single-line elements |
+| 6nU    | —   | Breadcrumb, Paragraph, Ordered List, Unordered List, Description List (n = line count)                             |
+| 9U     | 36px| **Button, Select, Input Text, Input Number, Input Search, Input Color, Input File, Input Date Time, Avatar, Combobox, Menu Item, Pagination, Tab, Tooltip** — all single-line bounded controls |
+| 9nU    | —   | Table rows (n = line count)                                                                                         |
+| (6n+6)U| —   | Alert, Blockquote, Details, Textarea, Popover, Toast, Tabs, Figure, Image, Preformatted                            |
+| n/a    | —   | Dialog, Drawer, Form Group, Menu, Tab Panel, Form, TransitionGroup                                                  |
+
+**Key rule:** `height: themeSpacing(9)` = 36px is the standard height for any single-line interactive control. Never use `themeSpacing(10)` = 40px for a control row — that is grid/column sizing, not control height.
 ### Theme Registry
 
 Register or override themes with:
@@ -2403,18 +2423,7 @@ Rules:
 - Do not write deeply nested inline objects when the subtree is more than a small local fragment; extract child elements into named variables or functions and compose them in arrays.
 - Do not quote object keys unless syntax really requires it; use normal identifiers like `div`, `ariaLabel`, `dataId`, `onClick`, and `_onMount`.
 - Do not treat one giant inline object as a template language; break repeated or meaningful subtrees into variables, functions, or blocks.
-- Do not collapse `style` objects onto a single line. Each CSS property must be on its own line:
-  ```ts
-  // ❌ Wrong
-  style: { backgroundColor: color, flex: "1", height: themeSpacing(3) }
-
-  // ✅ Correct
-  style: {
-      backgroundColor: color,
-      flex: "1",
-      height: themeSpacing(3),
-  }
-  ```
+- Do not collapse `style` objects or `DomphyElement` objects onto a single line — see **Code Formatting Rules**.
 
 ### Reactivity
 
@@ -2577,6 +2586,41 @@ The Explicit Reactive Store is a **mutable bag**. You add to it, delete from it,
 "Explicit" because dependencies between states are wired by hand with `addListener` — nothing is auto-tracked. "Reactive" because the primitives inside (`toState`, `RecordState`) notify subscribers on change. Simpler than Redux (no actions/reducers/dispatch), more predictable than MobX (no magic proxy).
 
 - Init is top-down. Teardown is bottom-up.
+
+---
+
+## Code Formatting Rules
+
+These rules are strict. Violations make code unreadable and must not repeat.
+
+### No Inline Element or Style Declarations
+
+`DomphyElement` objects and `style: { ... }` blocks must always be written with each property on its own line. Never collapse them onto a single line.
+
+**Wrong:**
+```ts
+const label: DomphyElement<"div"> = { div: "LIGHT SURFACES", dataSize: "decrease-1", style: labelStyle }
+style: { display: "flex", flexDirection: "column" }
+const rowStyle: StyleObject = { display: "contents" }
+```
+
+**Correct:**
+```ts
+const label: DomphyElement<"div"> = {
+    div: "LIGHT SURFACES",
+    dataSize: "decrease-1",
+    style: labelStyle,
+}
+style: {
+    display: "flex",
+    flexDirection: "column",
+}
+const rowStyle: StyleObject = {
+    display: "contents",
+}
+```
+
+This applies everywhere — inside functions, reactive closures, map callbacks — no exceptions.
 
 ---
 

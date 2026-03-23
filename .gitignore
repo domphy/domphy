@@ -23,6 +23,9 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# npm token
+.npmrc
+
 # TypeScript
 *.tsbuildinfo
 

@@ -1,5 +1,5 @@
 import { type PartialElement } from "@domphy/core";
-import { type ThemeColor, themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme";
+import { type ThemeColor, themeColor, themeDensity, themeSize, themeSpacing,themeColorToken } from "@domphy/theme";
 
 function select(
     props: { color?: ThemeColor; accentColor?: ThemeColor } = {}
@@ -13,6 +13,7 @@ function select(
             }
         },
         style: {
+            appearance: "none",
             fontFamily: "inherit",
             fontSize: (listener) => themeSize(listener, "inherit"),
             lineHeight: "inherit",
@@ -24,7 +25,14 @@ function select(
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
             paddingLeft: (listener) => themeSpacing(themeDensity(listener) * 3),
-            paddingRight: (listener) => themeSpacing(themeDensity(listener) * 1),
+            paddingRight: (listener) => themeSpacing(themeDensity(listener) * 5),
+            backgroundImage:(l)=>{
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="${themeColorToken(l, "shift-7")}" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+            return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
+          } ,
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: `right ${themeSpacing(2)} center`,
+            backgroundSize: `${themeSpacing(2.5)} ${themeSpacing(1.5)}`,
             "&:not([multiple])": {
                 height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
             },
