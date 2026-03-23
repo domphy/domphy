@@ -90,8 +90,8 @@ importers:
   packages/theme:
     dependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.1.5
+        version: 0.1.5
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -103,11 +103,11 @@ importers:
   packages/ui:
     dependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.1.5
+        version: 0.1.5
       '@domphy/theme':
-        specifier: workspace:*
-        version: link:../theme
+        specifier: ^0.1.5
+        version: 0.1.6
       '@floating-ui/dom':
         specifier: ^1.7.6
         version: 1.7.6
@@ -349,6 +349,12 @@ packages:
         optional: true
       search-insights:
         optional: true
+
+  '@domphy/core@0.1.5':
+    resolution: {integrity: sha512-3RuZxH2pMDaS/xzGH+FAzo3pDfnBxbU3iiiYkiNAsDh6TiEyNlCI3aFj6oRRmdGCa49P+TI/xGBCf9sl6CvW5A==}
+
+  '@domphy/theme@0.1.6':
+    resolution: {integrity: sha512-4OwInfjXCgxIrZbiLMtFgwGEyto6KZjXfP7aFCjHXwdYJeqveGRjTXbLOxMoq8+Llvmcrhia2ZLj9PagVSD83A==}
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -3783,6 +3789,12 @@ snapshots:
       search-insights: 2.17.3
     transitivePeerDependencies:
       - '@algolia/client-search'
+
+  '@domphy/core@0.1.5': {}
+
+  '@domphy/theme@0.1.6':
+    dependencies:
+      '@domphy/core': 0.1.5
 
   '@esbuild/aix-ppc64@0.21.5':
     optional: true
