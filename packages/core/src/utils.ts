@@ -1,4 +1,4 @@
-import { DomphyElement, HookMap, EventName, Handler } from "./types.js";
+import { DomphyElement, HookMap, EventName, Handler, Listener } from "./types.js";
 import { State } from "./classes/State.js"
 
 import { deepClone, addEvent, addHook } from "./helpers.js"
@@ -83,5 +83,9 @@ export function hashString(str: string = ""): string {
 
 export function toState<T>(val: T | State<T>, name?: string): State<T> {
     return val instanceof State ? val : new State<T>(val, name);
+}
+
+export function r<T>(fn: (listener: Listener) => T): (listener: Listener) => T {
+    return fn;
 }
 

@@ -28,7 +28,7 @@ export type StyleSheet = {
 
 export type CSSProperties = Properties
 export type StyleBlock = {
-  [K in keyof Properties]?: StyleValue;
+  [K in keyof Properties]?: ReactiveProperty<Properties[K]>;
 }
 export type StyleObject = StyleBlock & {
   [selector in

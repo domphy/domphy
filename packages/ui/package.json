@@ -35,8 +35,8 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@domphy/core": "^0.1.5",
-    "@domphy/theme": "^0.1.5",
+    "@domphy/core": "^0.1.6",
+    "@domphy/theme": "^0.1.6",
     "@floating-ui/dom": "^1.7.6"
   },
   "files": [
