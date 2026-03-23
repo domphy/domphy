@@ -2,6 +2,7 @@ import type { StyleRule } from "./StyleRule.js";
 import type { StyleValue } from "../types.js";
 import { camelToKebab } from "../helpers.js";
 import { PrefixCSS } from "../constants.js";
+import { Listener } from "../types.js"
 
 export class StyleProperty {
   name: string;
@@ -39,20 +40,20 @@ export class StyleProperty {
   set(value: StyleValue): void {
 
     if (typeof value === "function") {
-      let listener: any = () => {
+      let listener = (() => {
         if (!this.parentRule || this.parentRule.parentNode?._disposed) return;
         this.value = value(listener);
         this._domUpdate();
-      }
+      }) as unknown as Listener;
 
       listener.onSubscribe = (release: () => void) => {
         this.parentRule.parentNode?.addHook("BeforeRemove", () => {
           release();
-          listener = null;
+          listener = null!;
         });
       };
 
-      listener.elementNode = this.parentRule!.root;
+      listener.elementNode = this.parentRule!.root!;
       listener.debug = `class:${this.parentRule?.root?.tagName}_${this.parentRule?.root?.nodeId} style:${this.name}`;
       this.value = value(listener);
     } else {

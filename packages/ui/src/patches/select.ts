@@ -1,4 +1,4 @@
-import { type PartialElement } from "@domphy/core";
+import { type PartialElement, type Listener } from "@domphy/core";
 import { type ThemeColor, themeColor, themeDensity, themeSize, themeSpacing,themeColorToken } from "@domphy/theme";
 
 function select(
@@ -26,7 +26,7 @@ function select(
             paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
             paddingLeft: (listener) => themeSpacing(themeDensity(listener) * 3),
             paddingRight: (listener) => themeSpacing(themeDensity(listener) * 5),
-            backgroundImage:(l)=>{
+            backgroundImage:(l: Listener)=>{
             const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="${themeColorToken(l, "shift-7")}" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`
             return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`
           } ,
