@@ -31,7 +31,7 @@ function table(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement
                 paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
                 paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
                 color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
-                boxShadow: (listener) => `inset 0 1px 0 ${themeColor(listener, "shift-4", color.get(listener))}`,
+                boxShadow: (listener) => `inset 0 1px 0 ${themeColor(listener, "shift-3", color.get(listener))}`,
                 fontSize: (listener) => themeSize(listener, "inherit"),
             },
             "& tfoot th, & tfoot td": {
@@ -48,7 +48,7 @@ function table(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement
             },
 
             "& tbody tr:hover": {
-                backgroundColor: (listener) => themeColor(listener, "shift-3") + "!important",
+                backgroundColor: (listener) => themeColor(listener, "shift-2") + "!important",
             }
         },
     };
