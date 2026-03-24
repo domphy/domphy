@@ -6,7 +6,7 @@ export const Render = (element: DomphyElement, checked: State<boolean>, hasGrid:
         div: [element],
         dataTheme: (listener) => checked.get(listener) ? "dark" : "light",
         style: {
-            color: (listener) => themeColor(listener, "shift-6"),
+            color: (listener) => themeColor(listener, "shift-9"),
             backgroundColor: (listener) => themeColor(listener),
             padding: themeSpacing(9),
             overflow:"auto",

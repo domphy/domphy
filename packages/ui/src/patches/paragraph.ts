@@ -12,7 +12,7 @@ function paragraph(props: { color?: ValueOrState<ThemeColor> } = {}): PartialEle
         },
         style: {
             fontSize: (listener) => themeSize(listener, "inherit"),
-            color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+            color: (listener) =>themeColor(listener, "shift-9", color.get(listener)),
             lineHeight:1.5,
             marginTop: 0,
             marginBottom: 0,

@@ -42,7 +42,13 @@ function popover(props: {
         onMouseLeave: () => openOn === "hover" && hide(),
         onClick: () => openOn === "click" && (openState.get() ? hide() : show()),
         onFocus: () => show(),
-        onBlur: () => hide(),
+        onBlur: (e, node) => {
+            const related = (e as FocusEvent).relatedTarget as Node | null
+            const root = node.getRoot().domElement as Element
+            const floatingEl = popoverId ? root.querySelector(`#${CSS.escape(popoverId)}`) : null
+            if (related && floatingEl?.contains(related)) return
+            hide()
+        },
         _onMount: (node) => popoverId && node.attributes.set("ariaControls", popoverId)
     };
     merge(anchorPartial, triggerPartial);

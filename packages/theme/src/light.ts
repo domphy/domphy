@@ -143,7 +143,7 @@ let light: ThemeInput = {
       "#170000",
       "#000000"
     ],
-    "denger": [
+    "danger": [
       "#ffffff",
       "#fce7e4",
       "#fbcfca",
@@ -217,6 +217,7 @@ let light: ThemeInput = {
   },
   fontSizes: ["0.75rem", "0.875rem", "1rem", "1.25rem", "1.5625rem", "1.9375rem", "2.4375rem", "3.0625rem"],
   densities: [0.75, 1, 1.5, 2, 2.5],
+  darkBias: 1,
   custom: {},
 }
 

@@ -9,7 +9,18 @@ const mountEl = ref<HTMLElement>()
 
 onMounted(() => {
   themeApply()
-  new ElementNode(Container(props.code, props.storageKey)).render(mountEl.value!)
+
+  const shadowHost = document.createElement('div')
+  shadowHost.style.cssText = 'flex: 1; display: flex; flex-direction: column; overflow: auto;'
+  const shadow = shadowHost.attachShadow({ mode: 'open' })
+  const themeTag = document.createElement('style')
+  themeTag.id = 'domphy-themes'
+  const previewContainer = document.createElement('div')
+  previewContainer.style.flex = '1'
+  shadow.append(themeTag, previewContainer)
+  themeApply(themeTag)
+
+  new ElementNode(Container(props.code, shadowHost, previewContainer, props.storageKey)).render(mountEl.value!)
 })
 </script>
 

@@ -2,12 +2,15 @@ import { escapeHTML, camelToKebab } from "../helpers.js";
 import { BooleanAttributes, CamelAttributes } from "../constants.js";
 import type { ElementNode } from "./ElementNode.js"
 import { type AttributeValue } from "../types.js"
+import { Notifier } from "./Notifier.js"
 
 export class ElementAttribute {
   readonly name: string;
   readonly isBoolean: boolean;
   value: any;
   parent: ElementNode;
+  _notifier = new Notifier();
+
   constructor(name: string, value: any, parent: any) {
     this.parent = parent;
     this.isBoolean = (BooleanAttributes as readonly string[]).includes(name);
@@ -41,18 +44,19 @@ export class ElementAttribute {
   }
 
   set(value: AttributeValue): void {
+    let prev = this.value;
+
     if (value == null) {
       this.value = null;
-      this.render();
-      return;
-    }
-    if (typeof value === "string" && /<\/?[a-z][\s\S]*>/i.test(value)) {
+    } else if (typeof value === "string" && /<\/?[a-z][\s\S]*>/i.test(value)) {
       this.value = escapeHTML(value);
     } else if (typeof value == "function") {
       let listener: any = () => {
         if (!this.parent || this.parent._disposed) return;
+        let p = this.value;
         this.value = this.isBoolean ? Boolean((value as Function)()) : (value as Function)();
         this.render();
+        if (p !== this.value) this._notifier.notify(this.name, this.value);
       };
 
       listener.elementNode = this.parent!;
@@ -73,6 +77,13 @@ export class ElementAttribute {
     }
 
     this.render();
+    if (prev !== this.value) this._notifier.notify(this.name, this.value);
+  }
+
+  addListener(callback: (value: any) => void): void {
+    const handler = callback as any
+    handler.onSubscribe = (release: () => void) => this.parent?.addHook("BeforeRemove", release);
+    this._notifier.addListener(this.name, handler)
   }
 
   remove(): void {
@@ -83,6 +94,7 @@ export class ElementAttribute {
   }
 
   _dispose(): void {
+    this._notifier._dispose();
     this.value = null;
     this.parent = null as any
   }

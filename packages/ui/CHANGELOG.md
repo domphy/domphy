@@ -9,3 +9,7 @@
 - table
 ## 0.1.16
 - chromametry palette
+## 0.1.17
+- selectable menu
+## 0.1.20
+- darkBias theme

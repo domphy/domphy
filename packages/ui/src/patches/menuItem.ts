@@ -21,11 +21,18 @@ function menuItem(props: {
       let children = node.parent?.children.items as ElementNode[];
       children = children.filter(n => n.type == "ElementNode" && n.attributes.get("role") == "menuitem");
       let key = node.key || children.findIndex(n => n == node);
-      node.attributes.set("ariaCurrent", (listener) => context.activeKey.get(listener) == key || undefined)
-      node.addEvent("click", () => context.activeKey.set(key))
+      if (context.selectable) {
+        node.attributes.set("ariaCurrent", (listener) => context.activeKey.get(listener) == key || undefined)
+        node.addEvent("click", () => context.activeKey.set(key))
+      }
     },
     onKeyDown:(e:KeyboardEvent,node)=>{
         const k = (e as KeyboardEvent).key;
+        if (k === "Enter" || k === " ") {
+          e.preventDefault();
+          (node.domElement as HTMLElement)?.click();
+          return;
+        }
         if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
         e.preventDefault();
         const items = (node.parent?.children.items ?? []).filter(

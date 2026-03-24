@@ -975,7 +975,7 @@ Key facts AI should assume:
 
 `dark` is not a separate authored theme. It is an invert of `light`.
 
-Dark derivation rule from `createDark(source)`:
+Dark derivation rule (internal `createDark`):
 
 ```ts
 function createDark(source: ThemeInput): ThemeInput {
@@ -1419,7 +1419,6 @@ Register or override themes with:
 
 - `setTheme(name, input)`
 - `getTheme(name)`
-- `createDark(source)`
 - `themeCSS()`
 
 Use `themeCSS()` for SSR.
@@ -1562,7 +1561,6 @@ Main functions:
 - `themeCSS()`
 - `setTheme(name, input)`
 - `getTheme(name)`
-- `createDark(source)`
 - `themeTokens(name)`
 - `themeVars()`
 - `themeName(object)`

@@ -4,6 +4,7 @@ export type ThemeInput = {
   baseTones: Record<string, number>,
   fontSizes: string[],
   densities: number[],
+  darkBias: number,
   custom: Record<string, string | number>,
 }
 

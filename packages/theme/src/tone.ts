@@ -80,6 +80,13 @@ function themeTone(object: ElementNode | Listener, tone: ElementTone = "inherit"
     return offsetTone(contextTone(object), tone)
 }
 
+function biasContext(context: number, direction: string, bias: number): number {
+    if (bias <= 0) return context
+    if (direction === "lighten" && context === 0) return bias
+    if (direction === "darken" && context === TONE_STEPS - 1) return TONE_STEPS - 1 - bias
+    return context
+}
+
 export function themeColor(object: ElementNode | Listener | null, tone: ElementTone = "inherit", color: string = "inherit"): string {
 
     let themeColor = color == "inherit" ? "neutral" : color;
@@ -92,9 +99,15 @@ export function themeColor(object: ElementNode | Listener | null, tone: ElementT
     if (tone == "base") {
         resultTone = getTheme(themeName(object)).baseTones[themeColor]
     } else {
-        resultTone = themeTone(object, tone)
+        let theme = getTheme(themeName(object))
+        let context = biasContext(contextTone(object), theme.direction, theme.darkBias)
+        resultTone = offsetTone(context, tone)
     }
-    let resultColor = themeVars()[themeColor][resultTone]
+    let colors = themeVars()[themeColor]
+    if (!colors){
+        throw Error(`color "${themeColor}" not found on theme "${themeName(object)}`)
+    }
+    let resultColor = colors[resultTone]
 
     return resultColor
 }
@@ -113,7 +126,9 @@ export function themeColorToken(object: ElementNode | Listener | null, tone: Ele
     if (tone == "base") {
         resultTone = getTheme(name).baseTones[colorName]
     } else {
-        resultTone = themeTone(object, tone)
+        let theme = getTheme(name)
+        let context = biasContext(contextTone(object), theme.direction, theme.darkBias)
+        resultTone = offsetTone(context, tone)
     }
 
     return tokens[colorName][resultTone]

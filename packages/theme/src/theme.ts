@@ -103,7 +103,7 @@ export function setTheme(name: string, input: Partial<ThemeInput>): void {
   deepMerge(themes[name], input);
 }
 
-export function createDark(source: ThemeInput): ThemeInput {
+function createDark(source: ThemeInput): ThemeInput {
   let dark = structuredClone(source)
   dark.direction = "lighten"
   for (let name in dark.colors) {

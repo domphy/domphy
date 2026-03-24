@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  createDark,
   getTheme,
   setTheme,
   themeCSS,
@@ -34,9 +33,9 @@ function createNode(
 }
 
 describe("theme core APIs", () => {
-  it("createDark reverses palettes and base tones", () => {
+  it("dark theme has reversed palettes and base tones", () => {
     const light = getTheme("light");
-    const dark = createDark(structuredClone(light));
+    const dark = getTheme("dark");
     const lastPrimaryIndex = light.colors.primary.length - 1;
 
     expect(dark.direction).toBe("lighten");

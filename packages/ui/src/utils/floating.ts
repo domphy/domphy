@@ -18,6 +18,7 @@ function creatFloating(props: {
     let floating: HTMLElement | null = null
     const openState = toState(open);
     const placeState = toState(placement);
+    const computedPlaceState = toState(placeState.get() as Placement);
 
     const instantShow = () => {
         if (reference && floating) {
@@ -29,7 +30,7 @@ function creatFloating(props: {
                     strategy: "fixed"
                 }).then(({ x, y, placement: computedPlacement }) => {
                     Object.assign((floating as HTMLElement).style, { left: `${x}px`, top: `${y}px` });
-                    computedPlacement !== placeState.get() && placeState.set(computedPlacement)
+                    computedPlacement !== computedPlaceState.get() && computedPlaceState.set(computedPlacement)
                     props.onPlacement?.(reference!, floating!, computedPlacement)
                 });
             });
@@ -94,7 +95,7 @@ function creatFloating(props: {
         }
     };
 
-    return { show, hide, anchorPartial };
+    return { show, hide, anchorPartial, placeState: computedPlaceState };
 }
 
 export { creatFloating };

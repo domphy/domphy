@@ -1,4 +1,4 @@
-import { PartialElement, DomphyElement, toState, State, ValueOrState, merge } from "@domphy/core";
+import { PartialElement, DomphyElement, ValueOrState, merge } from "@domphy/core";
 import { themeSpacing, themeColor, themeDensity, themeSize } from "@domphy/theme";
 import { type Placement } from "@floating-ui/dom";
 import { creatFloating } from "../utils/floating.js";
@@ -17,10 +17,9 @@ function tooltip(props: {
     } = props;
 
     let tooltipId: string | null = null
-    const placeState = toState(placement);
 
     let contentElement = typeof content == "string" ? {span:content} : content
-    let { show, hide, anchorPartial } = creatFloating({ open, placement, content: contentElement })
+    let { show, hide, anchorPartial, placeState } = creatFloating({ open, placement, content: contentElement })
 
     const tooltipPartial: PartialElement = {
         role: "tooltip",
@@ -39,7 +38,7 @@ function tooltip(props: {
             backgroundColor: (listener) => themeColor(listener),
             fontSize: (listener) => themeSize(listener, "inherit"),
         },
-        $: [popoverArrow({ placement, bordered: false })]
+        $: [popoverArrow({ placement: placeState, bordered: false })]
     };
     contentElement.$ ||=[]
     contentElement.$.push(tooltipPartial)

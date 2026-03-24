@@ -19,6 +19,7 @@ type ThemeInput = {
     baseTones: Record<string, number>;
     fontSizes: string[];
     densities: number[];
+    darkBias: number;
     custom: Record<string, string | number>;
 };
 type ThemeVars = {
@@ -30,7 +31,6 @@ type ThemeVars = {
 
 declare function getTheme(name: string): ThemeInput;
 declare function setTheme(name: string, input: Partial<ThemeInput>): void;
-declare function createDark(source: ThemeInput): ThemeInput;
 declare function themeTokens(name: string): Record<string, any>;
 declare function themeVars(): ThemeVars;
 declare function themeCSS(): string;
@@ -39,4 +39,4 @@ declare function themeSpacing(n: number): string;
 declare function themeName(object: ElementNode | Listener): string;
 type ThemeColor = keyof ThemeInput["colors"];
 
-export { type ElementDensity, type ElementSize, type ElementTone, type ThemeColor, createDark, getTheme, setTheme, themeApply, themeCSS, themeColor, themeColorToken, themeDensity, themeName, themeSize, themeSpacing, themeTokens, themeVars };
+export { type ElementDensity, type ElementSize, type ElementTone, type ThemeColor, getTheme, setTheme, themeApply, themeCSS, themeColor, themeColorToken, themeDensity, themeName, themeSize, themeSpacing, themeTokens, themeVars };

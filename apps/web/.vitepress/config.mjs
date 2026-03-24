@@ -94,6 +94,7 @@ export default defineConfig({
       "/docs/theme/": [
         { text: "Overview", link: "/docs/theme/" },
         { text: "Setup", link: "/docs/theme/setup" },
+        { text: "Palette", link: "/docs/theme/palette" },
         { text: "API", link: "/docs/theme/api" },
         {
           text: "Theory",

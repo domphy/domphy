@@ -4,9 +4,10 @@ import { themeColor, themeDensity, themeSize, themeSpacing, type ThemeColor } fr
 
 function menu(props: {
   activeKey?: ValueOrState<number | string>;
+  selectable?: boolean;
   color?: ThemeColor;
 } = {}): PartialElement {
-  const { color = "neutral" } = props;
+  const { color = "neutral", selectable = true } = props;
 
   let partial: PartialElement = {
     role: "menu",
@@ -15,7 +16,8 @@ function menu(props: {
       let partial = {
         _context: {
           menu: {
-            activeKey: toState(props.activeKey || 0),
+            activeKey: toState(props.activeKey ?? null),
+            selectable,
           },
         },
       };

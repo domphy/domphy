@@ -1,12 +1,9 @@
 import type { ElementNode } from "./ElementNode.js";
 import { ElementAttribute } from "./ElementAttribute.js";
 import { BooleanAttributes } from "../constants.js";
-import { Notifier } from "./Notifier.js"
 import { AttributeValue } from "../types.js"
 
 export class AttributeList {
-  _notifier = new Notifier()
-
   items: Record<string, ElementAttribute> | null = {};
   parent: ElementNode | null;
 
@@ -29,20 +26,16 @@ export class AttributeList {
 
   set(name: string, value: AttributeValue): void {
     if (!this.items || !this.parent) return;
-
     if (this.items[name]) {
       this.items[name].set(value);
-      this.parent.domElement && this._notifier.notify(name, this.items[name].value)
     } else {
       this.items[name] = new ElementAttribute(name, value, this.parent);
     }
   }
 
   addListener(name: string, callback: (value: string | number) => void): void {
-    if (this.has(name) && this.parent?.domElement) {
-      const handler = callback as any
-      handler.onSubscribe = (release: () => void) => this.parent?.addHook("BeforeRemove", release);
-      this._notifier.addListener(name, handler)
+    if (this.has(name)) {
+      this.items![name].addListener(callback);
     }
   }
 
@@ -65,13 +58,11 @@ export class AttributeList {
   }
 
   _dispose(): void {
-
     if (this.items) {
       for (const key in this.items) {
         this.items[key]._dispose();
       }
     }
-    this._notifier._dispose()
     this.items = null;
     this.parent = null;
   }

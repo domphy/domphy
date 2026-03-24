@@ -73,16 +73,6 @@ Then use it:
 { div: [App], dataTheme: "brand" }
 ```
 
-## Generate Dark From Light
-
-Use `createDark()` when you want a dark variant of a custom theme.
-
-```ts
-import { createDark, getTheme, setTheme } from "@domphy/theme"
-
-setTheme("brand-dark", createDark(getTheme("brand")))
-```
-
 ## SSR
 
 For SSR, inline `themeCSS()` on the server.

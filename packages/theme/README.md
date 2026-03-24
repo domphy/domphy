@@ -54,7 +54,7 @@ const button = {
 ## Theme Registry
 
 ```ts
-import { setTheme, getTheme, createDark } from "@domphy/theme"
+import { setTheme } from "@domphy/theme"
 
 setTheme("brand", {
   colors: {
@@ -64,8 +64,6 @@ setTheme("brand", {
     primary: 9,
   },
 })
-
-setTheme("brand-dark", createDark(getTheme("brand")))
 ```
 
 Custom color ramps should follow the current 18-step model.

@@ -86,14 +86,6 @@ Return the full theme object.
 const brand = getTheme("brand")
 ```
 
-### `createDark(source)`
-
-Generate a dark theme from an existing theme object.
-
-```ts
-setTheme("brand-dark", createDark(getTheme("brand")))
-```
-
 ## Token Helpers
 
 ### `themeVars()`

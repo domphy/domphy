@@ -10,7 +10,7 @@ import { stringify } from './stringify'
 import { transformCode } from './transformCode'
 
 
-export function Container(initialCode: string, storageKey?: string): DomphyElement<'div'> {
+export function Container(initialCode: string, shadowHost: HTMLElement, previewContainer: HTMLElement, storageKey?: string): DomphyElement<'div'> {
 
   const savedCode = storageKey ? (localStorage.getItem(storageKey) ?? initialCode) : initialCode
   const code = toState(savedCode)
@@ -58,7 +58,7 @@ export function Container(initialCode: string, storageKey?: string): DomphyEleme
           {
             div: [
               Toolbar({ isDark, isFull, hasGrid }),
-              Preview(code, isDark, hasGrid, error),
+              Preview(code, isDark, hasGrid, error, shadowHost, previewContainer),
               ErrorOverlay(error),
             ],
 
