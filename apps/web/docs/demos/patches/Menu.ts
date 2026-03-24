@@ -1,5 +1,4 @@
 import { type DomphyElement } from '@domphy/core'
-import { themeColor } from '@domphy/theme'
 import { menu, menuItem } from "@domphy/ui"
 
 const items = ["Home", "About", "Services", "Portfolio", "Contact"]

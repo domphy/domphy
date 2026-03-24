@@ -18,9 +18,9 @@ All text-level and block-level typography patches in one place. Apply each patch
 
 | Patch | Element | Description |
 | --- | --- | --- |
-| `heading()` | `h1`–`h6` | Scales font size and weight per heading level |
+| `heading()` | `h1`–`h6` | Scales font size per heading level |
 | `paragraph()` | `p` | Line height and spacing for body text |
-| `link()` | `a` | Underline, color, and disabled state |
+| `link()` | `a` | Color, hover underline, and disabled state |
 | `strong()` | `strong` | Bold inline emphasis |
 | `emphasis()` | `em` | Italic inline emphasis |
 | `small()` | `small` | Reduced font size for fine print |
@@ -30,7 +30,7 @@ All text-level and block-level typography patches in one place. Apply each patch
 | `mark()` | `mark` | Highlighted background |
 | `code()` | `code` | Inline monospace code |
 | `keyboard()` | `kbd` | Keyboard shortcut styling |
-| `blockquote()` | `blockquote` | Indented quote block with accent border |
+| `blockquote()` | `blockquote` | Indented quote block with accent left edge |
 | `preformated()` | `pre` | Monospace preformatted block |
 | `orderedList()` | `ol` | Numbered list |
 | `unorderedList()` | `ul` | Bulleted list |

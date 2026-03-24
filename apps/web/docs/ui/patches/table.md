@@ -17,7 +17,7 @@ Use the table patch to customize this component.
 Zebra row
 ```typescript
 "& tbody tr:nth-child(even)": {
-  backgroundColor: (listener) => themeColor(listener, "shift-1", color),
+  backgroundColor: (listener) => themeColor(listener, "shift-1"),
 }
 ```
 ## Patch Sources

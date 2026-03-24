@@ -523,8 +523,6 @@ Use `_key` for dynamic child lists that reorder, insert in the middle, or remove
 
 ### Block vs Patch
 
-Both blocks and patches should receive a single object `props` parameter.
-
 A Domphy block is an app-level function that returns `DomphyElement`.
 
 Use blocks to reuse larger sections such as:
@@ -535,17 +533,34 @@ Use blocks to reuse larger sections such as:
 - app-specific form blocks
 - toolbar groups
 
-Canonical block shape:
+Blocks accept whatever parameters make sense — individual arguments, a props object, a state store, or no parameters at all. There is no enforced signature.
 
 ```ts
+// no params
+function Header(): DomphyElement {
+  return { header: [{ h1: "My App" }] };
+}
+
+// individual params
+function EditorRow(rampState: State<Ramp>, index: number): DomphyElement {
+  return { div: rampState.get().name, _key: index };
+}
+
+// props object
 function SettingsPanel(props: { title?: string } = {}): DomphyElement {
   const { title = "Settings" } = props;
-
   return {
     section: [
       { h2: title },
       { p: "Configure your workspace." },
     ],
+  };
+}
+
+// state store
+function Grid(states: PaletteState): DomphyElement {
+  return {
+    div: (l) => states.get("list", l).map((r, i) => Swatch(r, i)),
   };
 }
 ```
@@ -554,7 +569,7 @@ A patch is a lower-level function that returns `PartialElement`.
 
 Use patches to reuse behavior, styling, and structural rules that are applied through `$`.
 
-Canonical patch shape:
+Patches should receive a single object `props` parameter with `= {}` default:
 
 ```ts
 function card(props: { padded?: boolean } = {}): PartialElement {
@@ -569,16 +584,10 @@ function card(props: { padded?: boolean } = {}): PartialElement {
 }
 ```
 
-Symmetry:
+Summary:
 
-- block: function returning `DomphyElement`
-- patch: function returning `PartialElement`
-
-Both should use:
-
-- one `props` object parameter
-- object destructuring inside the function
-- defaults through `= {}`
+- block: function returning `DomphyElement` — free-form parameters
+- patch: function returning `PartialElement` — single `props` object parameter
 
 Use blocks at app level. Use patches at system level.
 
@@ -589,7 +598,7 @@ Strings and numbers become `TextNode` automatically.
 Important details:
 
 - a single-root HTML string such as `"<b>Hello</b>"` is treated as inline HTML
-- multiple-root HTML strings are invalid
+- multiple-root HTML strings are silently truncated — only the first root is used
 - empty string `""` becomes a zero-width space so the DOM node still exists
 
 Use inline HTML strings sparingly. Prefer normal element objects when possible.
@@ -664,11 +673,9 @@ Do not use reactive children for every single toggle when a simpler pattern is c
 
 **Keep each state simple and focused on one purpose.**
 
-Do not nest states. This includes `State<State<T>[]>` and `RecordState` holding another `RecordState`. Nested states are prone to infinite update loops and n+1 re-render bugs.
+**Connect states with `addListener` when one depends on another.**
 
-**Connect states with `addListener`, not nesting.**
-
-When one state depends on another, wire them explicitly with `addListener`. This creates a visible, traceable dependency graph where each edge has a clear direction.
+This creates a visible, traceable dependency graph where each edge has a clear direction.
 
 ```ts
 // ✅ Explicit reactive graph via addListener
@@ -713,9 +720,9 @@ score       → always = f(ramps)                           → derive inline
 
 Every app has its own dependency graph. `addListener` makes that graph explicit and readable. Keep the graph acyclic: if A triggers B and B triggers A, there is a design error in the state model.
 
-### The Four State Patterns
+### The Three State Patterns
 
-There are exactly three state patterns in Domphy. Every app uses one or a combination of these. Start from Pattern 1 and only move to the next when there is a concrete reason.
+There are three state patterns in Domphy. Every app uses one or a combination of these. Start from Pattern 1 and only move to the next when there is a concrete reason.
 
 ---
 
@@ -751,8 +758,6 @@ steps.addListener(n => ramp.set(new Ramp(generateRamp(baseColor.get(), n), ramp.
 ```
 
 Use when: computation is heavy enough that re-running it on every coarse re-render causes a perceptible problem, and the state can be cleanly separated.
-
-Do not use nested `State<State<T>>`. That causes the infinite loop problems described above — it is not a valid pattern.
 
 The readable limit for this pattern is around 4 states and 3 `addListener` connections. Beyond that, move to Pattern 3.
 
@@ -953,8 +958,8 @@ Key facts AI should assume:
 - color ramps are 18-step Adobe Spectrum-derived arrays
 - family mapping is:
   - `highlight` -> yellow
-  - `warning` -> orange
-  - `error` / `danger` -> red
+  - `warning` / `attention` -> orange (identical ramps)
+  - `error` / `danger` -> red (identical ramps)
   - `secondary` -> pink
   - `primary` -> blue
   - `info` -> cyan
@@ -970,6 +975,7 @@ Key facts AI should assume:
   - `info: 8`
   - `success: 8`
   - `neutral: 8`
+- `darkBias: 1` — controls tone bias in dark mode
 - density factors are `[0.75, 1, 1.5, 2, 2.5]`
 - font sizes remain `["0.75rem", "0.875rem", "1rem", "1.25rem", "1.5625rem", "1.9375rem", "2.4375rem", "3.0625rem"]`
 
@@ -1199,6 +1205,7 @@ Default color family names used across Domphy are:
 - `"error"` for invalid input, error state, and failure feedback UI
 - `"highlight"` for marked content, highlighted region, and featured emphasis
 - `"danger"` for destructive action and high-risk UI such as delete or remove
+- `"attention"` for attention-grabbing UI (same ramp as `warning`)
 
 If AI needs a neutral surface, use `color: "neutral"` with a valid tone key. Do not invent names like `surface`, `panel`, or `card`.
 
@@ -1472,6 +1479,7 @@ Main classes:
   - `addListener(name, callback)`
   - `addClass(className)`
   - `removeClass(className)`
+  - `hasClass(className)`
   - `toggleClass(className)`
   - `replaceClass(oldClass, newClass)`
 
@@ -1499,7 +1507,7 @@ Main classes:
   - low-level listener container used for custom observable classes
   - `addListener(event, fn)` — subscribe, returns a release function
   - `removeListener(event, fn)` — unsubscribe manually
-  - `notify(event, ...args)` — fire all listeners for that event
+  - `notify(event, ...args)` — schedule listeners for that event (batched via `queueMicrotask`, not synchronous)
   - `_dispose()` — clear all listeners, call on cleanup
   - listener can define `onSubscribe(release)` to attach cleanup automatically
   - use `"change"` as the conventional event name for single-event notifiers
@@ -1533,7 +1541,7 @@ The pattern is: one `Notifier` per class, one `addListener` method exposed publi
 
 Main utility functions:
 
-- `toState(valueOrState)` — wraps a value in `State<T>` if not already one
+- `toState(valueOrState, name?)` — wraps a value in `State<T>` if not already one
 - `merge(source, target)`
 - `hashString(string)`
 
@@ -1544,11 +1552,16 @@ Important exported types:
 - `StyleObject`
 - `Listener`
 - `HookMap`
+- `ValueOrState`
+- `TagName`
+- `Handler`
+- `EventName`
 
 Exported constants modules:
 
 - `VoidTags`
 - `HtmlTags`
+- `SvgTags`
 - `BooleanAttributes`
 - `PrefixCSS`
 - `CamelAttributes`
@@ -1568,6 +1581,7 @@ Main functions:
 - `themeDensity(object)` returns the current density factor as a number
 - `themeSize(object, size?)`
 - `themeColor(object, tone?, color?)`
+- `themeColorToken(object, tone?, color?)` — same as `themeColor` but returns resolved hex string instead of CSS `var()` reference
 
 Important theme types:
 
@@ -1600,6 +1614,12 @@ Main exported classes:
   - `setMessages(messages)`
   - `reset()`
   - `validate()`
+
+Exported types:
+
+- `FieldStatus` — `"error" | "warning" | "success" | undefined`
+- `FieldMessages` — `{ error?: string; warning?: string; success?: string }`
+- `FieldValidator` — `(value: unknown) => FieldMessages | null | Promise<FieldMessages | null>`
 
 Main exported patches are listed below in the patch catalog.
 
@@ -2021,11 +2041,12 @@ When AI is unsure:
   - host tag: `button`
   - use for boolean toggle buttons with pressed state
 
-- `toggle({ color?, accentColor?, value? })`
+- `toggle({ color?, accentColor? })`
   - host tag: `button`
   - use for segmented or sibling-based toggle controls
+  - reads value from `toggleGroup` context, not from its own props
 
-- `toggleGroup({ value?, multiple?, color?, accentColor? })`
+- `toggleGroup({ value?, multiple?, color? })`
   - host tag: group/container
   - use when multiple toggle buttons need shared selection state
 
@@ -2121,20 +2142,23 @@ If you are unsure which to use, the answer is `toState()`.
   - host tag: `select`
   - native select styling
 
-- `selectBox({ multiple?, value?, open?, color?, accentColor?, placement? })`
+- `selectBox({ multiple?, value?, open?, color?, placement?, content, options?, onPlacement? })`
   - host tag: `div`
+  - `content` is required — the floating dropdown built with `selectList`
   - custom select surface with floating content
 
-- `selectList({ multiple?, value?, color?, accentColor? })`
+- `selectList({ multiple?, value?, color?, name? })`
   - host tag: `div`
   - option list container for custom selection
 
-- `selectItem({ accentColor?, color? })`
+- `selectItem({ accentColor?, color?, value? })`
   - host tag: `div`
   - one selectable option item in a custom list
 
-- `combobox({ multiple?, value?, open?, color?, accentColor?, placement? })`
+- `combobox({ multiple?, value?, open?, color?, placement?, content, options?, onPlacement?, input? })`
   - host tag: `div`
+  - `content` is required — the floating dropdown built with `selectList`
+  - `input?` allows a custom input element
   - searchable/custom input + option list composition
 
 ### Overlay And Floating Patches
@@ -2144,22 +2168,24 @@ If you are unsure which to use, the answer is `toState()`.
   - `content` may be `string` or `DomphyElement`
   - default tooltip surface is styled and inverted with `dataTone: "shift-17"`
 
-- `popover({ openOn, open?, placement?, content? })`
+- `popover({ openOn, open?, placement?, content, onPlacement? })`
   - host tag: trigger element gets the patch
+  - `content` is required
   - use for click or hover floating panels
 
-- `popoverArrow({ placement?, sideOffset?, bordered? })`
+- `popoverArrow({ placement?, sideOffset?, color?, bordered? })`
   - arrow helper for popovers and tooltips
 
 - `dialog({ color?, open? })`
   - host tag: `dialog`
   - modal overlay with internal open state handling
 
-- `drawer({ color?, open?, placement? })`
+- `drawer({ color?, open?, placement?, size? })`
   - host tag: `dialog`
+  - `size?` controls width (left/right) or height (top/bottom)
   - side drawer overlay
 
-- `toast({ position?, color?, duration? })`
+- `toast({ position?, color? })`
   - host tag: toast container/root
   - use for transient notifications
 
@@ -2176,8 +2202,9 @@ If you are unsure which to use, the answer is `toState()`.
 - `tabPanel()`
   - host tag: content panel paired with `tab()`
 
-- `menu({ activeKey?, color?, accentColor? })`
+- `menu({ activeKey?, selectable?, color? })`
   - host tag: menu container
+  - `selectable?` defaults to `true`
   - use with `menuItem()`
 
 - `menuItem({ accentColor?, color? })`
@@ -2240,7 +2267,7 @@ If you are unsure which to use, the answer is `toState()`.
 - `keyboard({ color? })` -> `kbd`
 - `label({ color?, accentColor? })` -> `label`
 - `link({ color?, accentColor? })` -> `a`
-- `mark({ accentColor?, tone? })` -> `mark`
+- `mark({ accentColor? })` -> `mark` (default accentColor: `"highlight"`)
 - `small({ color? })` -> `small`
 - `strong({ color? })` -> `strong`
 - `subscript({ color? })` -> `sub`
@@ -2251,7 +2278,7 @@ If you are unsure which to use, the answer is `toState()`.
 ### Media, Display, And Indicator Patches
 
 - `avatar({ color? })`
-- `icon()` -> `span`
+- `icon({ color? })` -> `span`
 - `image({ color? })` -> `img`
 - `progress({ color?, accentColor? })` -> `progress`
 - `skeleton({ color? })`
@@ -2261,7 +2288,7 @@ If you are unsure which to use, the answer is `toState()`.
 
 - `divider({ color? })` -> `div`
 - `horizontalRule({ color? })` -> `hr`
-- `splitter({ direction?, defaultSize? })`
+- `splitter({ direction?, defaultSize?, min?, max? })`
 - `splitterPanel()`
 - `splitterHandle()`
 - `transitionGroup({ duration?, delay? })`
@@ -2421,15 +2448,14 @@ Rules:
 - Do not write deeply nested inline objects when the subtree is more than a small local fragment; extract child elements into named variables or functions and compose them in arrays.
 - Do not quote object keys unless syntax really requires it; use normal identifiers like `div`, `ariaLabel`, `dataId`, `onClick`, and `_onMount`.
 - Do not treat one giant inline object as a template language; break repeated or meaningful subtrees into variables, functions, or blocks.
-- Do not collapse `style` objects or `DomphyElement` objects onto a single line — see **Code Formatting Rules**.
+- Do not collapse multi-property `style` objects or `DomphyElement` objects onto a single line — see **Code Formatting Rules**.
 
 ### Reactivity
 
 - Do not think in terms of two-way binding; Domphy should be written as one-way data flow with explicit event writes.
 - Do not create reactive update loops where a reactive read and an event write blur together without a clear state boundary.
 - Do not move ordinary form synchronization into hooks; keep it in flat event handlers such as `onInput`, `addListener`, and `onClick`.
-- Do not nest states — see **Two Absolute State Rules**.
-- **Single Reactive Unit**: `T` in `toState<T>` must be a primitive or array — never a multi-property object. Two consequences if broken: (1) **performance** — changing one property forces the entire object to be set and re-notifies all subscribers even if they only care about an unrelated property; (2) **infinite loop** — when multiple properties can change independently it becomes impossible to control which reactive call fires first or last, and subscriptions may not be disposed before the next cycle begins, causing the loop to never terminate. The accepted tradeoff is state fragmentation — more states, each smaller. If a complex object genuinely needs to be reactive as a unit, do not put it in `toState`; instead turn it into a class with explicit `getName(listener)` / `setName(value)` methods composed with `Notifier` (see Pattern 4). That class itself becomes the single reactive unit — one `notify("change")` per mutation, one `addListener` exposed to the outside. This is the general principle: reactive single unit applies equally to `toState` primitives and to custom class composition.
+- Prefer `RecordState` over `toState<object>` when individual fields change independently — `RecordState` notifies per-key, avoiding unnecessary re-renders of unrelated subscribers.
 
 ### UI / Patches
 
@@ -2550,59 +2576,54 @@ Domphy accommodates imperative plugins cleanly via `_onMount` and `_onRemove` li
 
 React fights imperative plugins because its virtual DOM must always be the source of truth. Domphy does not have this constraint.
 
-## Two Absolute State Rules
+## State Best Practices
 
-### Rule 1 — Never nest states
+### Keep the dependency graph acyclic
 
-`State<State<T>[]>`, `RecordState` holding another `RecordState` — all forbidden. No exceptions. Nesting creates cross-level subscriptions that produce n+1 re-renders and update loops that never terminate.
+If A triggers B and B triggers A, there is a design error. Each `addListener` connection should have a clear direction.
 
-### Rule 2 — Use a top-level Explicit Reactive Store for complex apps
+### Prefer `RecordState` for structured app state
 
-When an app has multiple interconnected states, collect them all into one plain typed object — an **Explicit Reactive Store** — at the top of the app. This object is the single source of truth: the only place states are created, cross-state dependencies are wired, and entries are added or removed at runtime. Pass it as a single prop to every block.
+When an app has multiple interconnected fields, `RecordState` gives per-key reactivity out of the box. Individual fields notify only their own subscribers.
 
 ```ts
-// Top of the app — created once, mutated throughout the app's lifetime
-const states = {
-    collectionName: toState("Collection 1"),
-    steps: toState(18),
-    selected: toState<Selection | null>(null),
-    ramps: toState<RampData[]>([]),
-}
-
-// Cross-state wiring lives here, not inside components
-states.steps.addListener(n => {
-    states.ramps.set(states.ramps.get().map(r => ({ ...r, colors: generateRamp(r.baseColor, n) })))
+const states = new RecordState({
+    name: "Collection 1",
+    steps: 18,
+    selected: null as Selection | null,
+    list: [] as Ramp[],
 })
 
-// Pass the whole store down — components only read and react, they never own state
-Editor({ states })
-Grid({ states })
+// Cross-field wiring
+states.addListener("steps", () => {
+    const list = states.get("list")
+    states.set("list", list.map(r => new Ramp(generateRamp(r.baseColor, states.get("steps")), r.name)))
+})
 ```
 
-The Explicit Reactive Store is a **mutable bag**. You add to it, delete from it, and wire it up — but you never recreate it. Components receive it as a prop and use it; they do not own or manage state themselves.
+### Nesting states is allowed but requires care
 
-"Explicit" because dependencies between states are wired by hand with `addListener` — nothing is auto-tracked. "Reactive" because the primitives inside (`toState`, `RecordState`) notify subscribers on change. Simpler than Redux (no actions/reducers/dispatch), more predictable than MobX (no magic proxy).
+`State<Ramp>[]` inside a `RecordState`, or `RecordState` holding `State<T>` fields — these are valid patterns when items need independent reactivity. The tradeoff is more complex subscription management. Keep these guidelines:
 
-- Init is top-down. Teardown is bottom-up.
+- Each nested state should represent an independently mutable item (e.g., one ramp in a list)
+- Wire cross-level dependencies explicitly with `addListener`
+- Avoid circular subscriptions between nested and parent states
 
 ---
 
 ## Code Formatting Rules
 
-These rules are strict. Violations make code unreadable and must not repeat.
+### Style and Element Declarations
 
-### No Inline Element or Style Declarations
+Objects with **2+ properties** should be written with each property on its own line. Single-property objects may stay on one line.
 
-`DomphyElement` objects and `style: { ... }` blocks must always be written with each property on its own line. Never collapse them onto a single line.
-
-**Wrong:**
+**Single property — OK on one line:**
 ```ts
-const label: DomphyElement<"div"> = { div: "LIGHT SURFACES", dataSize: "decrease-1", style: labelStyle }
-style: { display: "flex", flexDirection: "column" }
-const rowStyle: StyleObject = { display: "contents" }
+style: { flex: "1" }
+style: { display: "contents" }
 ```
 
-**Correct:**
+**Multiple properties — expand:**
 ```ts
 const label: DomphyElement<"div"> = {
     div: "LIGHT SURFACES",
@@ -2613,12 +2634,7 @@ style: {
     display: "flex",
     flexDirection: "column",
 }
-const rowStyle: StyleObject = {
-    display: "contents",
-}
 ```
-
-This applies everywhere — inside functions, reactive closures, map callbacks — no exceptions.
 
 ---
 

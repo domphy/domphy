@@ -49,7 +49,7 @@ function popoverArrow(props: {
                 width: themeSpacing(1.5),
                 height: themeSpacing(1.5),
                 backgroundColor: (listener) => themeColor(listener, "inherit", color),
-                borderWidth:bordered ? "0px" :"1px",
+                borderWidth: bordered ? "1px" : "0px",
                 borderColor: (listener) => themeColor(listener, "inherit", color),
                 borderTopStyle: (listener) => {
                     const pos = flipPlace.get(listener)

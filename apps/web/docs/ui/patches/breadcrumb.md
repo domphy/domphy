@@ -6,9 +6,9 @@ import Breadcrumb from "../../demos/patches/Breadcrumb.ts?raw"
 
 # Breadcrumb
 
-Use `breadcrumb` on a `nav` element. It styles the inner `ol`/`ul` and `li` elements automatically. Mark the current page by setting `ariaCurrent: "page"` directly on the `li`. The separator is configured once via the `separator` prop.
+Use `breadcrumb` on a `nav` element. It styles direct children automatically. Mark the current page by setting `ariaCurrent: "page"` directly on the current item. The separator is configured once via the `separator` prop.
 
-Use `breadcrumbEllipsis` on a `button` element inside a `li` to represent collapsed breadcrumb items.
+Use `breadcrumbEllipsis` on a `button` element to represent collapsed breadcrumb items.
 
 <CodeEditor :code="Breadcrumb" />
 

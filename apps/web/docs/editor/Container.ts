@@ -19,7 +19,7 @@ export function Container(initialCode: string, shadowHost: HTMLElement, previewC
   const copied = toState(false)
   const isDark = toState(false)
   const isFull = toState(false)
-  const hasGrid = toState(true)
+  const hasGrid = toState(false)
 
 
   const update = (val: string) => {

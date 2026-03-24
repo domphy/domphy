@@ -1,6 +1,6 @@
 import type { DomphyElement } from "@domphy/core";
-import { State } from "@domphy/core";
-import { themeSpacing, themeColor, themeSize } from "@domphy/theme";
+import { toState } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import {
   form,
   field,
@@ -9,10 +9,11 @@ import {
   inputCheckbox,
   button,
   label,
+  paragraph,
 } from "@domphy/ui";
 
 const myForm = new FormState();
-const submitting = new State(false);
+const submitting = toState(false);
 
 const App: DomphyElement<"form"> = {
   form: [
@@ -33,11 +34,8 @@ const App: DomphyElement<"form"> = {
         },
         {
           p: (listener) => myForm.getField("email").message("error", listener),
-          style: {
-            color: (listener) => themeColor(listener, "shift-5", "error"),
-            fontSize: (listener) => themeSize(listener, "decrease-1"),
-            margin: 0,
-          },
+          $: [paragraph({ color: "error" })],
+          dataSize: "decrease-1",
         },
       ],
       style: { display: "flex", flexDirection: "column", gap: themeSpacing(1) },
