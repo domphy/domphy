@@ -1,5 +1,8 @@
 import { type DomphyElement } from "@domphy/core"
+import { FormState } from "@domphy/ui"
 import { form, field, inputText, button, label, formGroup } from "@domphy/ui"
+
+const state = new FormState()
 
 const App: DomphyElement<"form"> = {
     form: [
@@ -9,9 +12,8 @@ const App: DomphyElement<"form"> = {
                 {
                     input: null,
                     type: "text",
-                    name: "name",
                     placeholder: "Enter your name",
-                    $: [field({ required: true }), inputText()],
+                    $: [field("name"), inputText()],
                 },
             ],
             $: [formGroup()],
@@ -22,9 +24,8 @@ const App: DomphyElement<"form"> = {
                 {
                     input: null,
                     type: "email",
-                    name: "email",
                     placeholder: "you@example.com",
-                    $: [field({ required: true }), inputText()],
+                    $: [field("email"), inputText()],
                 },
             ],
             $: [formGroup()],
@@ -35,9 +36,11 @@ const App: DomphyElement<"form"> = {
             $: [button({ color: "primary" })],
         },
     ],
-    $: [form({
-        onSubmit: (values) => alert(JSON.stringify(values, null, 2)),
-    })],
+    onSubmit: (e: Event) => {
+        e.preventDefault()
+        if (state.valid) alert(JSON.stringify(state.snapshot(), null, 2))
+    },
+    $: [form(state)],
 }
 
 export default App
