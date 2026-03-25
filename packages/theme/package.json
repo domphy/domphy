@@ -34,7 +34,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@domphy/core": "^0.1.9"
+    "@domphy/core": "workspace:*"
   },
   "files": [
     "dist",
