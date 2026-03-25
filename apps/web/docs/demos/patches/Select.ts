@@ -17,7 +17,7 @@ const basic: DomphyElement<"select"> = {
             option: item.label,
             value: item.value,
         }
-        if (!item.value!) {
+        if (!item.value) {
             opt.selected = true
             opt.disabled = true
         }
@@ -32,7 +32,7 @@ const disabled: DomphyElement<"select"> = {
             option: item.label,
             value: item.value,
         }
-        if (!item.value!) {
+        if (!item.value) {
             opt.selected = true
             opt.disabled = true
         }

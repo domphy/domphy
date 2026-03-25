@@ -52,11 +52,13 @@ const App: DomphyElement<"table"> = {
             caption: "A list of your recent invoices."
         },
         {
-            thead: Object.keys(tableData[0]).map((key) => (
-              { 
-                th: key
-              }
-            ))
+            thead: [{
+                tr: Object.keys(tableData[0]).map((key) => (
+                  {
+                    th: key
+                  }
+                ))
+            }]
         },
         {
             tbody: tableData.map(row => {

@@ -1,5 +1,5 @@
 import { type DomphyElement, type Listener } from "@domphy/core";
-import { button, card, tag } from "@domphy/ui";
+import { button, card, tag, heading, paragraph } from "@domphy/ui";
 import { themeSpacing, themeColor } from "@domphy/theme";
 
 const dashed = {
@@ -12,8 +12,8 @@ const App: DomphyElement<"div"> = {
         // Card 1: structure illustration
         {
             div: [
-                { h4: "h4·title", style: dashed },
-                { p: "p · description", style: dashed },
+                { h4: "h4·title", $: [heading()], style: dashed },
+                { p: "p · description", $: [paragraph()], style: dashed },
                 { aside: "aside · extra" },
                 { div: "div · content", style: dashed },
                 { footer: ["footer · footer"]},
@@ -30,8 +30,8 @@ const App: DomphyElement<"div"> = {
                     alt: "cover",
                     style: { height: themeSpacing(32), objectFit: "cover" },
                 },
-                { h4: "Getting Started" },
-                { p: "A concise introduction to the patch system." },
+                { h4: "Getting Started", $: [heading()] },
+                { p: "A concise introduction to the patch system.", $: [paragraph()] },
                 { aside: "v1.0", $: [tag({ color: "primary" })] },
                 { div: "Build UI components using composable patches and semantic HTML — no framework required." },
                 {

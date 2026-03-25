@@ -2,10 +2,11 @@ import { PartialElement, toState, ValueOrState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing, themeSize, ThemeColor } from "@domphy/theme";
 
 function textarea(
-    props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {}
+    props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; autoResize?: boolean } = {}
 ): PartialElement {
     const color = toState(props.color ?? "neutral", "color");
     const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+    const { autoResize = false } = props;
 
     return {
         _onInsert: (node) => {
@@ -13,14 +14,26 @@ function textarea(
                 console.warn(`"textarea" primitive patch must use textarea tag`);
             }
         },
+        _onMount: (node) => {
+            if (autoResize) {
+                const el = node.domElement as HTMLTextAreaElement;
+                el.style.overflow = "hidden";
+                const resize = () => {
+                    el.style.height = "auto";
+                    el.style.height = el.scrollHeight + "px";
+                };
+                el.addEventListener("input", resize);
+                resize();
+            }
+        },
         style: {
             fontFamily: "inherit",
             lineHeight: "inherit",
             resize: "vertical",
-            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
-            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
+            paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
+            paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1.5),
             border:"none",
-            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
+            borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
             fontSize: (listener) => themeSize(listener, "inherit"),
             color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
             outlineOffset: "-1px",
