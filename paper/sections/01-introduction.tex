@@ -1,0 +1,29 @@
+\section{Introduction}
+
+Sizing is among the most fundamental decisions in interface design, yet it remains one of the least formalized. Current design systems approach element sizing through one of two strategies:
+
+\begin{itemize}
+  \item \textbf{Token tables:}
+  Predefined size tokens (e.g., \texttt{sm}, \texttt{md}, \texttt{lg}) map directly to pixel values. Each element maintains its own mapping, leading to divergent height and spacing values across the system.
+
+  \item \textbf{Proportional scales:}
+  Typographic scales provide font-size ratios, but spatial properties such as padding, height, and radius are still set independently per element.
+\end{itemize}
+
+Both approaches share a structural limitation: there is no single expression from which all spatial properties of an element can be derived. This leads to several practical consequences:
+
+\begin{itemize}
+  \item Alignment between elements of different types requires manual coordination.
+  \item Density changes (compact vs.\ comfortable layouts) require per-element overrides rather than a global parameter.
+  \item Responsive rescaling breaks spatial proportions because height and padding scale by different rules.
+\end{itemize}
+
+This paper proposes a sizing model that reduces element geometry to three variables and one base unit. The model is designed with three goals:
+
+\begin{enumerate}
+  \item Every element's height, padding, and radius should be expressible as a closed-form function of $(n, w, d)$.
+  \item Changing the density factor $d$ should uniformly affect all elements without per-element adjustment.
+  \item The default parameterization should reproduce the button heights that major design systems have independently converged on.
+\end{enumerate}
+
+The remainder of the paper is organized as follows. Section~\ref{sec:definitions} introduces the base unit, core variables, and the sizing pipeline. Section~\ref{sec:derivation} derives the geometry formulas from a minimal constraint set and argues for their minimality. Sections~\ref{sec:geometry}--\ref{sec:layout-spacing} present the formulas and their properties. Section~\ref{sec:dimension} provides a complete coverage proof over 69~production patches. Section~\ref{sec:validation} benchmarks the model against industry design systems. Section~\ref{sec:discussion} discusses the relationship to the Chromametry tone model. Section~\ref{sec:conclusion} summarizes the contribution.

@@ -1,0 +1,26 @@
+\subsection{Sub-Baseline Scale}
+\label{sec:sub-baseline}
+
+Elements intentionally sized below the $6\,U$ text baseline --- such as checkboxes, radio buttons, range sliders, and progress bars --- follow a fixed proportional sub-scale:
+
+\begin{equation}
+\{2\,U,\; 4\,U,\; 6\,U\}.
+\end{equation}
+
+These values remain constant across density levels. The density factor $d$ does not affect sub-baseline elements because they have no wrapping-level padding to scale; their geometry is determined entirely by the base unit $U$.
+
+The sub-scale provides three discrete heights:
+
+\begin{center}
+\begin{tabular}{cll}
+\toprule
+Height & px at $16\,\text{px}$ & Examples \\
+\midrule
+$2\,U$ & $8\,\text{px}$ & progress bar, popover arrow \\
+$4\,U$ & $16\,\text{px}$ & checkbox, radio, range thumb, switch \\
+$6\,U$ & $24\,\text{px}$ & text line (baseline) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The boundary at $6\,U$ marks the transition: elements at or above this height enter the parametric model governed by Equation~\ref{eq:height}; elements below it are governed by the sub-scale.

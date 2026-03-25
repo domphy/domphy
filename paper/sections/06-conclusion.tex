@@ -1,0 +1,24 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper has presented a unified sizing model for user interfaces. The model derives all element geometry from three variables --- intrinsic text lines $n$, wrapping level $w$, and density factor $d$ --- expressed in a base unit $U = \text{fontSize} / 4$.
+
+The key contributions are:
+
+\begin{enumerate}
+  \item A closed-form height formula $h = (n \cdot 6 + 2 \cdot d \cdot w) \cdot U$ that covers all height-defined elements.
+
+  \item A four-level wrapping taxonomy that classifies every UI element by boundary semantics, grounded in Gestalt proximity principles~\cite{wertheimer1923,wagemans2012}.
+
+  \item A five-step density scale whose default value reproduces the canonical button heights adopted by MUI, Ant Design, Chakra UI, GitHub Primer, and Adobe Spectrum~\cite{mui,antdesign,chakra,primer,spectrum}.
+
+  \item Em-based spacing emission that makes the model resolution-independent: the same formulas produce correct geometry at any font size without modification.
+
+  \item Context inheritance through the element tree, enabling local overrides that compose without global coordination.
+
+  \item Orthogonality with the tone (color) axis: size, density, and tone operate as three independent parametric models over a shared propagation substrate, allowing arbitrary composition without special-case handling.
+
+  \item A sub-baseline scale for elements below the text-line height, and a dimension table confirming that 69 production patches map to the model without exceptions.
+\end{enumerate}
+
+By replacing per-element token tables with parametric expressions, the model ensures that density changes, font-size rescaling, and responsive adaptation propagate uniformly across the entire UI library. The underlying principle is that spatial design should be derived, not declared.

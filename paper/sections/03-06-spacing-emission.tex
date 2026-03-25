@@ -1,0 +1,20 @@
+\subsection{Spacing Emission}
+\label{sec:spacing-emission}
+
+The geometry formulas produce numeric values in units of $U$. The final step converts these to CSS lengths via a spacing function:
+
+\begin{equation}
+\texttt{themeSpacing}(n) = \frac{n}{4}\,\text{em}.
+\end{equation}
+
+This definition has a critical consequence: all emitted spacing is \emph{relative to the local font size}, not to a fixed pixel value. Because $U = \text{fontSize} / 4$ and $1\,\text{em} = \text{fontSize}$, the conversion $n \mapsto n/4\,\text{em}$ preserves the proportional relationship established by the geometry formulas.
+
+Consider a button at default density ($d = 1.5$, $w = 1$):
+\begin{align}
+p_{\text{block}} &= d \cdot w \cdot U = 1.5\,U \notag \\
+&\to \texttt{themeSpacing}(1.5) = 0.375\,\text{em}. \notag
+\end{align}
+
+If the subtree inherits a larger font size (e.g., $20\,\text{px}$ instead of $16\,\text{px}$), the em-based value automatically scales: $0.375 \times 20 = 7.5\,\text{px}$ instead of $0.375 \times 16 = 6\,\text{px}$. No formula change is required.
+
+This property makes the model \emph{resolution-independent}: the same parametric expressions produce correct geometry at any font size, any display density, and any responsive breakpoint.

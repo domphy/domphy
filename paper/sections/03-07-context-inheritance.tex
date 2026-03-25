@@ -1,0 +1,16 @@
+\subsection{Context Inheritance}
+\label{sec:context-inheritance}
+
+Both size and density propagate through the element tree via inherited data attributes (\texttt{dataSize} and \texttt{dataDensity}). When a container sets a density attribute, every descendant element that reads \texttt{themeDensity()} receives the updated value without explicit prop passing.
+
+This inheritance model has three properties:
+
+\begin{enumerate}
+  \item \textbf{Local override:} A container can set \texttt{dataDensity = "increase-1"} to compact all children by one density step, while the rest of the page remains unchanged.
+
+  \item \textbf{Relative adjustment:} Offsets such as \texttt{"increase-N"} and \texttt{"decrease-N"} are resolved relative to the inherited context, not to an absolute index. This allows nested overrides to compose: a compact sidebar inside a comfortable page produces a doubly compact section.
+
+  \item \textbf{Reactive propagation:} Each context lookup registers a listener on the ancestor node. When the attribute changes at runtime, all descendants re-evaluate their geometry in a single microtask batch, producing consistent visual updates without layout thrashing.
+\end{enumerate}
+
+The same inheritance mechanism applies to the type scale (\texttt{dataSize}) and to tone context (\texttt{dataTone}). This shared propagation model means that size, density, and color context are resolved through one unified traversal, keeping the runtime cost constant regardless of the number of themed properties.

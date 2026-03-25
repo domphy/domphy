@@ -1,0 +1,28 @@
+\begin{table*}[ht]
+\centering
+\caption{Default single-line control heights across ten design systems. All values in pixels. Heights marked with * are computed from padding + line-height (not explicit tokens). The formula column shows $h = (6 + 2d) \cdot U$ at $U = 4\,\text{px}$ ($\text{fontSize} = 16\,\text{px}$).}
+\label{tab:benchmark-heights}
+\small
+\begin{tabular}{lccccccl}
+\toprule
+System & XS/Compact & Small & Medium & Large & XL & Base font & Source \\
+\midrule
+MUI              & ---  & 31*  & \textbf{37*} & 42*  & ---  & 14\,px & GitHub \\
+Ant Design       & 16   & 24   & \textbf{32}  & 40   & ---  & 14\,px & seed.ts \\
+Chakra UI v3     & 24   & 36   & \textbf{40}  & 44   & 48   & 16\,px & recipe \\
+GitHub Primer    & 24   & 28   & \textbf{32}  & 40   & 48   & 14\,px & primitives \\
+Adobe Spectrum   & 20   & 24   & \textbf{32}  & 40   & 48   & 14\,px & tokens \\
+Fluent UI        & ---  & 24   & \textbf{32}  & 40   & ---  & 14\,px & styles \\
+Carbon (IBM)     & 24   & 32   & \textbf{40}  & 48   & 64   & 14\,px & layout \\
+Atlassian        & ---  & 24   & \textbf{32}  & ---  & ---  & 14\,px & tokens \\
+Shopify Polaris  & ---  & 20   & \textbf{32}  & 36   & ---  & 16\,px & CSS \\
+Salesforce SLDS  & ---  & ---  & \textbf{32}  & ---  & 44   & 13\,px & SCSS \\
+\midrule
+\multicolumn{2}{l}{Formula at $U = 4$:} & $d{=}0$: 24 & $d{=}1$: \textbf{32} & $d{=}2$: 40 & $d{=}3$: 48 & & \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+\footnotesize
+MUI heights are fractional because MUI uses $\text{lineHeight} = 1.75$ at $\text{fontSize} = 14\,\text{px}$, producing non-integer content heights. Values shown are rounded.
+\end{table*}

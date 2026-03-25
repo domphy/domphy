@@ -1,0 +1,56 @@
+\subsection{Padding and Radius}
+\label{sec:padding}
+
+\subsubsection{Block Padding}
+
+Vertical (block-axis) padding follows directly from the height formula:
+\begin{equation}
+p_{\text{block}} = d \cdot w \cdot U.
+\end{equation}
+
+At $w = 0$, block padding is zero. At $w = 1$ with default density, $p_{\text{block}} = 1.5\,U = 6\,\text{px}$.
+
+\subsubsection{Inline Padding}
+
+Horizontal (inline-axis) padding uses a width multiplier derived from the wrapping level:
+\begin{equation}
+p_{\text{inline}} =
+\begin{cases}
+0 & w = 0, \text{ unbounded inline} \\
+2 \cdot d \cdot U & w = 0, \text{ bounded inline} \\
+\lceil 3 / w \rceil \cdot d \cdot w \cdot U & w \ge 1
+\end{cases}
+\end{equation}
+
+The $\lceil 3 / w \rceil$ factor produces the following multipliers:
+
+\begin{center}
+\begin{tabular}{ccc}
+\toprule
+$w$ & $\lceil 3/w \rceil$ & $p_{\text{inline}}$ at $d = 1.5$ \\
+\midrule
+1 & 3 & $4.5\,U$ \\
+2 & 2 & $6\,U$ \\
+3 & 1 & $4.5\,U$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This non-monotonic behavior is intentional: single-line controls ($w = 1$) and structural sections ($w = 3$) share the same inline padding, while multi-line blocks ($w = 2$) receive wider padding to accommodate wider content.
+
+For bounded inline elements at $w = 0$ (e.g., tag, badge, inline code), inline padding is $2dU = 3\,U$ at default density. Unbounded inline content (plain text, icon) receives no padding.
+
+\subsubsection{Border Radius}
+
+Border radius is defined to equal the block padding:
+\begin{equation}
+r = p_{\text{block}} = d \cdot w \cdot U.
+\end{equation}
+
+This identity ensures that the corner curvature is always proportional to the surrounding whitespace, maintaining consistent visual weight across density levels.
+
+\subsubsection{Spacing Reference}
+
+Table~\ref{tab:spacing-reference} shows all spatial properties at default density.
+
+\input{tables/spacing-reference}

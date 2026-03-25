@@ -1,0 +1,105 @@
+\begin{table*}[ht]
+\centering
+\caption{Complete coverage proof: every production patch mapped to its height family. Parameters at default density $d = 1.5$, $\text{fontSize} = 16\,\text{px}$ ($U = 4\,\text{px}$). A checkmark (\checkmark) indicates the patch's implemented height matches the formula prediction exactly.}
+\label{tab:coverage-proof}
+\small
+\begin{tabular}{llccccrl}
+\toprule
+Family & Patch & $n$ & $w$ & $d$ & Formula & Height & Match \\
+\midrule
+\multicolumn{8}{l}{\textit{Separator}} \\
+& Horizontal Rule & --- & --- & --- & fixed & 1\,px & \checkmark \\
+\midrule
+\multicolumn{8}{l}{\textit{Sub-baseline ($2\,U$)}} \\
+& Progress        & --- & --- & --- & $2\,U$ & 8\,px  & \checkmark \\
+& Popover Arrow   & --- & --- & --- & $2\,U$ & 8\,px  & \checkmark \\
+\midrule
+\multicolumn{8}{l}{\textit{Sub-baseline ($4\,U$)}} \\
+& Input Checkbox  & --- & --- & --- & $4\,U$ & 16\,px & \checkmark \\
+& Input Radio     & --- & --- & --- & $4\,U$ & 16\,px & \checkmark \\
+& Input Range     & --- & --- & --- & $4\,U$ & 16\,px & \checkmark \\
+& Input Switch    & --- & --- & --- & $4\,U$ & 16\,px & \checkmark \\
+\midrule
+\multicolumn{8}{l}{\textit{Text-line ($6\,U$, i.e.\ $n{=}1,\; w{=}0$)}} \\
+& Abbreviation    & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Badge           & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Breadcrumb Ell. & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Button Switch   & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Code            & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Divider         & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Emphasis        & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Heading         & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Icon            & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Keyboard        & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Label           & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Link            & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Mark            & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Skeleton        & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Small           & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Spinner         & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Strong          & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Subscript       & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Superscript     & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Tag             & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+& Toggle          & 1 & 0 & --- & $6\,U$ & 24\,px & \checkmark \\
+\midrule
+\multicolumn{8}{l}{\textit{Flex list ($6n\,U$)}} \\
+& Breadcrumb      & $n$ & 0 & --- & $6n\,U$ & $24n$\,px & \checkmark \\
+& Description List & $n$ & 0 & --- & $6n\,U$ & $24n$\,px & \checkmark \\
+& Ordered List    & $n$ & 0 & --- & $6n\,U$ & $24n$\,px & \checkmark \\
+& Paragraph       & $n$ & 0 & --- & $6n\,U$ & $24n$\,px & \checkmark \\
+& Unordered List  & $n$ & 0 & --- & $6n\,U$ & $24n$\,px & \checkmark \\
+\midrule
+\multicolumn{8}{l}{\textit{Single-line control ($9\,U$, i.e.\ $n{=}1,\; w{=}1,\; d{=}1.5$)}} \\
+& Avatar          & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Button          & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Combobox        & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Input Color     & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Input Date Time & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Input File      & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Input Number    & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Input Search    & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Input Text      & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Menu Item       & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Pagination      & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Select          & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Select Box      & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Select Item     & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Select List     & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Tab             & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+& Tooltip         & 1 & 1 & 1.5 & $9\,U$ & 36\,px & \checkmark \\
+\midrule
+\multicolumn{8}{l}{\textit{Table row ($9n\,U$)}} \\
+& Table           & $n$ & 1 & 1.5 & $9n\,U$ & $36n$\,px & \checkmark \\
+\midrule
+\multicolumn{8}{l}{\textit{Multi-line block ($(6n{+}6)\,U$, i.e.\ $w{=}2,\; d{=}1.5$)}} \\
+& Alert           & $n$ & 2 & 1.5 & $(6n{+}6)\,U$ & $(24n{+}24)$\,px & \checkmark \\
+& Blockquote      & $n$ & 2 & 1.5 & $(6n{+}6)\,U$ & $(24n{+}24)$\,px & \checkmark \\
+& Details         & $n$ & 2 & 1.5 & $(6n{+}6)\,U$ & $(24n{+}24)$\,px & \checkmark \\
+& Figure          & $n$ & 2 & 1.5 & $(6n{+}6)\,U$ & $(24n{+}24)$\,px & \checkmark \\
+& Image           & $n$ & 2 & 1.5 & $(6n{+}6)\,U$ & $(24n{+}24)$\,px & \checkmark \\
+& Popover         & $n$ & 2 & 1.5 & $(6n{+}6)\,U$ & $(24n{+}24)$\,px & \checkmark \\
+& Preformatted    & $n$ & 2 & 1.5 & $(6n{+}6)\,U$ & $(24n{+}24)$\,px & \checkmark \\
+& Tabs            & $n$ & 2 & 1.5 & $(6n{+}6)\,U$ & $(24n{+}24)$\,px & \checkmark \\
+& Textarea        & $n$ & 2 & 1.5 & $(6n{+}6)\,U$ & $(24n{+}24)$\,px & \checkmark \\
+& Toast           & $n$ & 2 & 1.5 & $(6n{+}6)\,U$ & $(24n{+}24)$\,px & \checkmark \\
+\midrule
+\multicolumn{8}{l}{\textit{Layout region (content-determined)}} \\
+& Dialog          & --- & 3 & --- & n/a & content & \checkmark \\
+& Drawer          & --- & 3 & --- & n/a & content & \checkmark \\
+& Form Group      & --- & 3 & --- & n/a & content & \checkmark \\
+& Menu            & --- & 3 & --- & n/a & content & \checkmark \\
+& Tab Panel       & --- & 3 & --- & n/a & content & \checkmark \\
+\midrule
+\multicolumn{8}{l}{\textit{Behavior (no visual height)}} \\
+& Field           & --- & --- & --- & n/a & --- & \checkmark \\
+& Form            & --- & --- & --- & n/a & --- & \checkmark \\
+& Transition Grp. & --- & --- & --- & n/a & --- & \checkmark \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+\footnotesize
+Total: 69 patches. Formula-governed: 54. Sub-baseline + separator: 7. Layout/behavior: 8. Exceptions: 0.\\
+Coverage rate: 69/69 = 100\%.
+\end{table*}

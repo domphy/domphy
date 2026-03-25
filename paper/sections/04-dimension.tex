@@ -1,0 +1,29 @@
+\section{Coverage Proof}
+\label{sec:dimension}
+
+To validate that the sizing model provides complete coverage, every production \emph{patch} --- a composable function that applies geometry, behavior, and styling to a DOM element --- in the UI library is mapped to its height family. The classification confirms that each patch maps to exactly one row of the sizing taxonomy, with no exceptions.
+
+\subsection{Height Families}
+
+Patches are grouped by their height expression into ten families:
+
+\begin{enumerate}
+  \item \textbf{Separator} (1\,px): A degenerate fixed-height case.
+  \item \textbf{Sub-baseline $2\,U$}: Elements below the text baseline, governed by the sub-scale (Section~\ref{sec:sub-baseline}).
+  \item \textbf{Sub-baseline $4\,U$}: Controls below the text baseline (Section~\ref{sec:sub-baseline}).
+  \item \textbf{Text-line $6\,U$} ($n = 1$, $w = 0$): Inline elements whose height equals one text line.
+  \item \textbf{Flex list $6n\,U$} ($w = 0$): Inline containers whose height scales with content lines.
+  \item \textbf{Single-line control $9\,U$} ($n = 1$, $w = 1$, $d = 1.5$): Bounded controls with one text line.
+  \item \textbf{Table row $9n\,U$} ($w = 1$, $d = 1.5$): Rows scaling with line count.
+  \item \textbf{Multi-line block $(6n + 6)\,U$} ($w = 2$, $d = 1.5$): Bounded blocks with vertical padding equal to one text line.
+  \item \textbf{Layout region} (n/a): Content-determined height.
+  \item \textbf{Behavior} (n/a): No visual height contribution.
+\end{enumerate}
+
+\subsection{Complete Mapping}
+
+Table~\ref{tab:coverage-proof} lists all 69 production patches with their assigned parameters and predicted heights. Every formula-governed patch (54 of 69) matches the prediction exactly. The remaining patches are classified as sub-baseline (6), separator (1), layout region (5), or behavior (3), all of which are accounted for by the model's explicit boundary categories. Note that sub-baseline and separator patches use fixed heights within the model; layout and behavior patches are explicitly outside the parametric formula's scope.
+
+\input{tables/coverage-proof}
+
+The coverage rate is $69/69 = 100\%$. No patch requires a height value outside the model, and no patch maps to more than one family.

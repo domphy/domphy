@@ -1,0 +1,37 @@
+\section{Definitions}
+\label{sec:definitions}
+
+\subsection{Base Unit}
+
+The sizing model is anchored to a single base unit derived from the local font size:
+\begin{equation}
+U = \frac{\text{fontSize}}{4}.
+\end{equation}
+
+At the default body font size of $16\,\text{px}$, $U = 4\,\text{px}$. This value is not arbitrary: it produces integer pixel values at common density levels and aligns with the $4\,\text{px}$ grid used by most production design systems~\cite{dahl2017}.
+
+When the local subtree inherits a different font size (via the size scale), $U$ changes proportionally, and all formulas built on $U$ rescale automatically.
+
+\subsection{Core Variables}
+
+Three variables parameterize all element geometry:
+
+\begin{itemize}
+  \item $n \in \mathbb{N}^+$: the number of \emph{intrinsic text lines} inside the element. For a single-line button, $n = 1$. For a text block displaying $k$ lines, $n = k$.
+
+  \item $w \in \{0, 1, 2, 3\}$: the \emph{wrapping level}, a structural classification of the element's boundary type (see Section~\ref{sec:wrapping}).
+
+  \item $d \in \mathbb{R}^+$: the \emph{density factor}, controlling the compactness of the surrounding geometry without altering the type scale (see Section~\ref{sec:density}).
+\end{itemize}
+
+\subsection{Sizing Pipeline}
+
+The model operates as a three-stage pipeline:
+
+\begin{enumerate}
+  \item \textbf{Scale resolution:} The local font size is resolved from an inherited size index, defining $U$.
+  \item \textbf{Geometry computation:} Formulas over $(n, w, d)$ produce numeric spacing values in units of $U$.
+  \item \textbf{CSS emission:} Numeric results are converted to CSS length values via a spacing function.
+\end{enumerate}
+
+This separation ensures that changing the type scale (stage~1) or the density (stage~2) does not require modifying the geometry formulas themselves.

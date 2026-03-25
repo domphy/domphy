@@ -1,0 +1,42 @@
+\subsection{Height Formula}
+\label{sec:height}
+
+The height of an element is the sum of its content height and its vertical padding:
+
+\begin{equation}
+\label{eq:height}
+h = (n \cdot 6 + 2 \cdot d \cdot w) \; U.
+\end{equation}
+
+The term $n \cdot 6\,U$ represents the intrinsic content height. Each text line occupies $6\,U$ ($= 1.5 \times \text{fontSize}$), which corresponds to the $1.5$ line-height ratio adopted to satisfy the WCAG~2.1 resilience criterion~\cite{wcag21text} and validated by readability research~\cite{rello2016}.
+
+The term $2 \cdot d \cdot w \cdot U$ represents the total vertical padding (top and bottom combined). It grows linearly with both density $d$ and wrapping level $w$.
+
+\subsubsection{Single-Line Controls}
+
+For the most common case --- a single-line bounded control ($n = 1$, $w = 1$):
+\begin{equation}
+h = (6 + 2d) \; U.
+\end{equation}
+
+At the default density $d = 1.5$:
+\begin{equation}
+h = 9\,U.
+\end{equation}
+
+At $\text{fontSize} = 16\,\text{px}$ ($U = 4\,\text{px}$), this yields $h = 36\,\text{px}$.
+
+\subsubsection{Multi-Line Blocks}
+
+For multi-line bounded blocks ($w = 2$):
+\begin{equation}
+h = (6n + 6) \; U \quad \text{at } d = 1.5.
+\end{equation}
+
+This adds one full text-line height ($6\,U$) of total vertical padding, split equally above and below the content region.
+
+\subsubsection{Height Reference}
+
+Table~\ref{tab:height-reference} shows the resulting heights across all wrapping levels at the default density.
+
+\input{tables/height-reference}

@@ -40,7 +40,13 @@ function popover(props: {
         ariaExpanded: (listener) => openState.get(listener),
         onMouseEnter: () => openOn === "hover" && show(),
         onMouseLeave: () => openOn === "hover" && hide(),
-        onClick: () => openOn === "click" && (openState.get() ? hide() : show()),
+        onClick: () => {
+            console.log("[popover-trigger] onClick", { openOn, openState: openState.get() })
+            if (openOn === "click") {
+                if (openState.get()) { hide() } else { show() }
+                console.log("[popover-trigger] after toggle, openState:", openState.get())
+            }
+        },
         onFocus: () => show(),
         onBlur: (e, node) => {
             const related = (e as FocusEvent).relatedTarget as Node | null

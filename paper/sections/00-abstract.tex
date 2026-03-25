@@ -1,0 +1,11 @@
+\begin{abstract}
+Sizing in modern design systems relies on ad-hoc token tables and per-element overrides, producing inconsistent spatial relationships that degrade both visual coherence and accessibility. This paper presents a unified sizing model that derives all element geometry --- height, padding, and border radius --- from three variables: intrinsic text lines $n$, wrapping level $w$, and density factor $d$, expressed in a single base unit $U = \text{fontSize} / 4$. The model introduces a four-level wrapping taxonomy that classifies every UI element from inline text to structural overlays, and a five-step density scale whose values reproduce the canonical button heights adopted independently by major design systems. A dimension table mapping 69 production patches to the model confirms full coverage without exceptions. By reducing spatial design to closed-form expressions over $(n, w, d)$, the framework eliminates per-element magic numbers while preserving the proportional relationships that practitioners have converged on through iteration.
+\end{abstract}
+
+\noindent\textbf{Keywords:}
+sizing model; design systems; element geometry; density; spacing; UI framework
+
+\vspace{0.5em}
+\noindent
+This is the second of two papers from the Domphy project. The first paper~\cite{chromametry} addresses the chromatic axis (color palette metrics). This paper addresses the spatial axis (sizing and density). Together they form a quantitative foundation for UI design systems.\\
+Reference implementation and production validation: \url{https://github.com/domphy/domphy}

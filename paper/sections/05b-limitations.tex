@@ -1,0 +1,23 @@
+\subsection{Limitations}
+\label{sec:limitations}
+
+The sizing model governs internal element geometry. Several categories of UI concern fall outside its scope:
+
+\begin{itemize}
+  \item \textbf{Layout regions.}
+  Structural containers such as dialogs, drawers, and menus have content-determined height. The model assigns them wrapping level $w = 3$ for padding and radius computation, but does not constrain their overall height. This is intentional: layout regions frame arbitrary nested content whose extent cannot be predicted by a closed-form expression.
+
+  \item \textbf{Behavior patches.}
+  Patches that apply logic without contributing visual geometry (e.g., form validation, field binding, transition orchestration) are outside the spatial model. They occupy no height and require no sizing parameters.
+
+  \item \textbf{Separator.}
+  The horizontal rule uses a fixed $1\,\text{px}$ height. This is a degenerate case that does not participate in the $U$-based model because a separator's role is to mark a boundary, not to contain content.
+
+  \item \textbf{Custom artistic elements.}
+  The model provides a baseline geometry. Elements with deliberately non-standard proportions (e.g., hero banners, decorative illustrations) may override the formula. The model does not prevent overrides; it establishes the default from which overrides are measured.
+
+  \item \textbf{CSS border interaction.}
+  The height formula assumes the CSS box model without borders. A $1\,\text{px}$ border adds $2\,\text{px}$ to rendered height ($5.56\%$ deviation at $w = 1$, $d = 1.5$). The model recommends \texttt{outline} or \texttt{box-shadow} for visual edges, but does not enforce this~\cite{css-box}.
+\end{itemize}
+
+These boundaries are explicit. The coverage proof (Table~\ref{tab:coverage-proof}) accounts for all five categories: layout regions and behavior patches are classified as n/a, the separator is classified as a fixed-height exception, and all remaining patches (54 of 69) are fully governed by the parametric formula with zero deviations.

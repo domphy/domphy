@@ -1,0 +1,24 @@
+\subsection{Layout Spacing}
+\label{sec:layout-spacing}
+
+The geometry formulas govern \emph{internal} element spacing: padding, height, and radius within a single element. Spacing \emph{between} separate elements (gaps, margins) is not formula-driven; it follows a practical guideline:
+
+\begin{itemize}
+  \item Horizontal gap or margin-inline should be at least the related $p_{\text{inline}}$.
+  \item Vertical gap or margin-block should be at least the related $p_{\text{block}}$.
+\end{itemize}
+
+At default density ($d = 1.5$), this produces:
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Direction & Minimum gap & px at 16\,px \\
+\midrule
+Horizontal ($w = 1$) & $4.5\,U$ & 18 \\
+Vertical ($w = 2$) & $3\,U$ & 12 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This distinction is intentional. Internal geometry is constrained by structural proportion (content must fit inside its container), so it benefits from closed-form expressions. Layout spacing is constrained by content flow and visual rhythm, which depend on context that the formula cannot anticipate. The guideline provides a lower bound that maintains visual consistency without over-constraining layout decisions.

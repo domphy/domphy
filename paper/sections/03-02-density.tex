@@ -1,0 +1,23 @@
+\subsection{Density}
+\label{sec:density}
+
+The density factor $d$ controls the spatial generosity of element geometry without altering the typographic scale. It acts as a multiplier in all padding and height formulas.
+
+The model defines a five-step density scale:
+\begin{equation}
+D = [0.75,\; 1,\; 1.5,\; 2,\; 2.5].
+\end{equation}
+
+The reference implementation uses $d = 1.5$ (index~2) as its default. The industry benchmark (Section~\ref{sec:validation}) shows that most systems converge on $d = 1$ ($h = 32\,\text{px}$) as their medium default. Both values are valid parameterizations of the same formula; the choice of default $d$ is a design decision, not a property of the model.
+
+Key properties of the density scale:
+
+\begin{itemize}
+  \item \textbf{Separation from type scale:} Changing $d$ modifies padding and height but leaves font size and line height unchanged. A compact layout ($d = 0.75$) and a comfortable layout ($d = 2.5$) share the same text rendering.
+
+  \item \textbf{Global effect:} Density is inherited through the element tree via a \texttt{dataDensity} attribute. Setting it on a container adjusts all descendant elements uniformly.
+
+  \item \textbf{Continuous multiplier:} Although the scale provides five discrete steps, $d$ enters formulas as a real-valued multiplier, so intermediate values are algebraically valid.
+\end{itemize}
+
+The density factor participates in geometry as follows: it multiplies the wrapping-dependent padding contribution. At $w = 0$ (no boundary), $d$ has no effect on height, because there is no padding to scale. At $w \ge 1$, increasing $d$ adds symmetric block padding and therefore increases element height.

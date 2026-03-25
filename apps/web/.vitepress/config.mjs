@@ -56,11 +56,13 @@ export default defineConfig({
     search: { provider: "local" },
     nav: [
       { text: "Home", link: "/" },
+      { text: "Quickstart", link: "/docs/quickstart" },
       { text: "Docs", link: "/docs/" },
       { text: "Core", link: "/docs/core/" },
       { text: "Theme", link: "/docs/theme/" },
       { text: "UI", link: "/docs/ui/" },
       { text: "Integrations", link: "/docs/integrations/" },
+      { text: "Research", link: "/docs/research/" },
       { text: "Playground", link: "/docs/playground" },
     ],
     sidebar: {
@@ -206,12 +208,17 @@ export default defineConfig({
           ],
         },
       ],
+      "/docs/research/": [
+        { text: "Research", link: "/docs/research/" },
+      ],
       "/docs/": [
         { text: "Overview", link: "/docs/" },
+        { text: "Quickstart", link: "/docs/quickstart" },
         { text: "Core", link: "/docs/core/" },
         { text: "Theme", link: "/docs/theme/" },
         { text: "UI", link: "/docs/ui/" },
         { text: "Integrations", link: "/docs/integrations/" },
+        { text: "Research", link: "/docs/research/" },
         { text: "Playground", link: "/docs/playground" },
       ],
     },

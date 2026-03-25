@@ -1,0 +1,44 @@
+\section{Related Work}
+\label{sec:related-work}
+
+\subsection{Modular Scales and Spatial Systems}
+
+The idea that typographic dimensions should follow a mathematical ratio rather than ad-hoc pixel values was formalized by Bringhurst~\cite{bringhurst2012}, who defined a modular scale as ``a prearranged set of harmonious proportions.'' Brown~\cite{brown2011} extended this concept to web design, demonstrating that a single ratio (e.g., the golden ratio $1{:}1.618$) can generate a full hierarchy of font sizes, line heights, and margins. However, modular scales address only the \emph{typographic} axis; they do not prescribe how element geometry --- height, padding, radius --- should relate to the type scale. The present model bridges this gap by deriving all spatial properties from one base unit anchored to font size.
+
+Modern design systems organize spatial values as \emph{design tokens}: named key-value pairs that encode colors, sizes, and spacing~\cite{w3cdt2025}. Curtis~\cite{curtis2016} catalogued the spatial token taxonomy used in production systems (inset, stack, inline, grid) and showed that spacing is the most frequently referenced property category across UI libraries. Kutschmann~\cite{kutschmann2024} identified a structural limitation of flat token systems: tokens lack relational semantics, so changing one value (e.g., density) requires manually updating every dependent token. The parametric model proposed here addresses this limitation: all spatial tokens are derived from $(n, w, d)$, so a single density change propagates automatically.
+
+The 4\,px / 8\,px grid has become a de facto industry standard. Dahl~\cite{dahl2017} traced its adoption to high divisibility (halves, quarters map to integer pixels at common device pixel ratios) and its endorsement by Apple Human Interface Guidelines and Google Material Design. The base unit $U = \text{fontSize} / 4$ at the default font size of 16\,px yields $U = 4\,\text{px}$, aligning the model with this grid without hardcoding it.
+
+\subsection{Density}
+
+Google Material Design~2 introduced a formal density scale for element sizing~\cite{materialdensity}. The scale defines integer density offsets ($0, -1, -2, -3$), each decrementing element height by a fixed interval of $4\,\text{px}$:
+\[
+h = h_{\text{base}} + 4\,\text{px} \times \delta,
+\]
+where $\delta \le 0$ is the density offset~\cite{kravets2020}. This approach demonstrates that density can be parameterized independently of type scale. However, the Material model applies density as an additive pixel offset rather than a multiplicative factor, which means the relationship between density and padding is implicit. The present model uses a multiplicative density factor $d$ that enters directly into the padding and height formulas, making the relationship explicit and font-size-independent.
+
+Information density as an ergonomic criterion has been studied in the HCI literature. Gabillon et al.~\cite{gabillon2013} formalized density as a factor affecting perceptual and cognitive workload in composed interfaces. Tufte~\cite{tufte2001} introduced the data-ink ratio --- the proportion of visual elements devoted to information versus decoration --- which the density scale operationalizes for interactive UI by controlling the ratio of content height to surrounding whitespace.
+
+\subsection{Visual Consistency and Perceptual Grouping}
+
+The perceptual basis for consistent spacing derives from Gestalt grouping principles. Wertheimer~\cite{wertheimer1923} established that elements spaced closer together are perceived as related (the proximity principle). Wagemans et al.~\cite{wagemans2012} provided a comprehensive modern review of grouping principles including proximity, similarity, common region, and uniform connectedness. The wrapping taxonomy introduced in Section~\ref{sec:wrapping} applies proximity at the element level: higher wrapping levels receive greater padding, creating a visual hierarchy that maps directly to structural containment.
+
+The importance of consistent sizing for usability is well-established. Nielsen~\cite{nielsen1994} identified consistency and standards as one of ten usability heuristics, arguing that consistent layout and sizing reduce cognitive load. Shneiderman et al.~\cite{shneiderman2016} formalized this as Rule~1 of interface design: ``strive for consistency'' in color, layout, fonts, and spacing. A unified sizing formula provides a mathematical guarantee of this consistency across element types.
+
+\subsection{Typography and Line Height}
+
+The model sets each text line at $6\,U = 1.5 \times \text{fontSize}$. WCAG~2.1 Success Criterion~1.4.12~\cite{wcag21text} requires that content remains functional when users set line spacing to at least 1.5 times the font size. Adopting 1.5 as the default satisfies this resilience criterion by construction. The choice is independently supported by empirical evidence. Rello et al.~\cite{rello2016} conducted an eye-tracking study with 104 participants showing that readability degrades at line-spacing extremes (0.8 and 1.8), with the 1.0--1.5 range yielding optimal performance. By baking the 1.5 ratio into the base content-height term, the model ensures WCAG compliance by construction.
+
+\subsection{Industry Button Heights}
+
+The height formula's default parameterization produces values that coincide with canonical button sizes across major design systems. At $\text{fontSize} = 16\,\text{px}$, $n = 1$, $w = 1$:
+
+\begin{itemize}
+  \item MUI~\cite{mui}: small $\approx 31\,\text{px}$, medium $\approx 37\,\text{px}$, large $\approx 42\,\text{px}$. MUI's fractional heights result from using $\text{lineHeight} = 1.75$ at $\text{fontSize} = 14\,\text{px}$.
+  \item Ant Design~\cite{antdesign}: default $32\,\text{px}$, large $40\,\text{px}$, derived proportionally from a single seed token.
+  \item Chakra UI~v2~\cite{chakra}: sizes at $24, 32, 40, 48\,\text{px}$ --- a linear $+8\,\text{px}$ progression. (Chakra~v3 revised these to $24, 36, 40, 44, 48\,\text{px}$; the benchmark in Section~\ref{sec:validation} uses v3 data.)
+  \item GitHub Primer~\cite{primer}: small $28\,\text{px}$, medium $32\,\text{px}$, large $40\,\text{px}$.
+  \item Adobe Spectrum~\cite{spectrum}: medium-scale element height $32\,\text{px}$, large/touch $40\,\text{px}$, built on a $4\,\text{px}$ spacing base.
+\end{itemize}
+
+All systems use multiples of $4\,\text{px}$, and most default to $32\,\text{px}$ for medium controls --- consistent with $d = 1$ in the present model: $h = (6 + 2) \times 4 = 32\,\text{px}$. The convergence across independently developed systems suggests that the proportional relationship captured by the formula reflects a structural invariant rather than a coincidence.

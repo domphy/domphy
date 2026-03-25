@@ -1,0 +1,56 @@
+\section{Industry Benchmark}
+\label{sec:validation}
+
+To evaluate the sizing model against production practice, this section benchmarks single-line control heights across ten major design systems. The goal is not to show that the formula was fitted to these systems, but to demonstrate that independently developed systems converge on the same discrete height values that the formula produces.
+
+\subsection{Method}
+
+For each design system, the default button height and all named size variants (e.g., small, medium, large) were extracted from source code or published design tokens. Table~\ref{tab:benchmark-heights} reports the results. Table~\ref{tab:industry-validation} maps each density value to its formula output and matching design system variants.
+
+The formula predicts single-line control height as:
+\begin{equation}
+h = (6 + 2d) \cdot U, \quad n = 1,\; w = 1.
+\end{equation}
+
+At $\text{fontSize} = 16\,\text{px}$ ($U = 4\,\text{px}$), integer density values produce:
+\[
+d = 0 \to 24,\quad
+d = 1 \to 32,\quad
+d = 2 \to 40,\quad
+d = 3 \to 48\,\text{px}.
+\]
+
+\subsection{Results}
+
+\input{tables/industry-validation}
+
+\input{tables/benchmark-heights}
+
+\input{tables/convergence}
+
+Table~\ref{tab:convergence} summarizes the convergence. The height $32\,\text{px}$ appears as a default or named variant in 8 of 10 systems (80\%). The height $40\,\text{px}$ appears in 6 of 10 (60\%). Three of the four formula-predicted heights ($24, 32, 40$) appear in at least 60\% of systems; the fourth ($48$) appears in 40\%.
+
+\subsection{Analysis}
+
+Three observations emerge from the benchmark:
+
+\begin{enumerate}
+  \item \textbf{The $4\,\text{px}$ grid is universal.}
+  Every surveyed system uses heights that are multiples of $4\,\text{px}$, except MUI, whose fractional heights are a known issue~\cite{mui}. The base unit $U = \text{fontSize} / 4$ aligns with this grid by construction.
+
+  \item \textbf{$32\,\text{px}$ is the industry default.}
+  Eight of ten systems include $32\,\text{px}$ as either the default or medium button height. In the formula, this corresponds to $d = 1$ at $U = 4\,\text{px}$: the lowest integer density above zero. This suggests that $d = 1$ captures the minimum viable padding for a bounded control.
+
+  \item \textbf{Size variants follow the formula's density steps.}
+  The progression $24 \to 32 \to 40 \to 48$ (step size $8\,\text{px} = 2\,U$) matches the formula at $d = 0, 1, 2, 3$. Each density increment adds $2\,U = 8\,\text{px}$ of height (one unit of block padding on each side). Systems that use finer gradations (e.g., Primer's $28\,\text{px}$) correspond to half-integer density values ($d = 0.5$), which the formula supports algebraically. Heights below $24\,\text{px}$ (e.g., Ant Design's $16\,\text{px}$, Polaris's $20\,\text{px}$) fall outside the model's valid density range ($d \ge 0$) for $w = 1$ and are better classified as sub-baseline elements.
+\end{enumerate}
+
+\subsection{Deviation Analysis}
+
+The only systematic deviation is MUI, whose button heights ($\approx 31, 37, 42\,\text{px}$) are fractional. This occurs because MUI uses $\text{fontSize} = 14\,\text{px}$ with $\text{lineHeight} = 1.75$, producing a content height of $14 \times 1.75 = 24.5\,\text{px}$. The fractional base breaks alignment with the $4\,\text{px}$ grid. At $\text{fontSize} = 14\,\text{px}$, $U = 3.5\,\text{px}$, and $h = (6 + 2d) \times 3.5$, which does not produce integer values at integer $d$. This confirms a prediction of the model: the $4\,\text{px}$ grid alignment requires $\text{fontSize}$ to be a multiple of $4$.
+
+All other systems that use $\text{fontSize} = 14\,\text{px}$ avoid this issue by decoupling control height from line-height: they specify explicit height tokens (e.g., Ant Design's \texttt{controlHeight = 32}) rather than deriving height from padding plus content. The formula's approach --- deriving height from $U$ --- produces correct grid-aligned results when $\text{fontSize}$ is a multiple of $4$.
+
+\subsection{Cross-System Consistency}
+
+The benchmark reveals that the sizing model is not an invention but a formalization. The formula $h = (6 + 2d) \cdot U$ does not prescribe heights; it describes the structural relationship that the industry has independently converged on. The contribution is making this relationship explicit, parametric, and derivable from constraints (Section~\ref{sec:derivation}).

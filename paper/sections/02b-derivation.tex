@@ -1,0 +1,119 @@
+\section{Derivation from Constraints}
+\label{sec:derivation}
+
+This section shows that the height formula $h = (n \cdot 6 + 2 \cdot d \cdot w) \cdot U$ is the simplest closed-form expression satisfying a minimal set of design constraints. Rather than being chosen among alternatives, the formula is the logical consequence of these constraints under a linearity assumption.
+
+\subsection{Constraint Set}
+
+\begin{enumerate}
+  \item[\textbf{C1.}] \textbf{Line height = 1.5$\times$ font size.}
+  WCAG~2.1 Success Criterion~1.4.12~\cite{wcag21text} requires that content remains functional when the user sets line spacing to at least 1.5 times the font size. Adopting 1.5 as the default line-height satisfies this resilience criterion by construction: no reflow occurs because the default already meets the threshold. This choice is independently supported by eye-tracking evidence showing that readability is optimal in the 1.0--1.5 range~\cite{rello2016}. With $U = \text{fontSize}/4$, one text line occupies $1.5 \times \text{fontSize} = 6\,U$.
+
+  \item[\textbf{C2.}] \textbf{Content height scales linearly with text lines.}
+  An element containing $n$ text lines has content height $n \times 6\,U$. This follows from C1 by induction: if each line is $6\,U$, then $n$ lines are $6n\,U$.
+
+  \item[\textbf{C3.}] \textbf{Padding is symmetric.}
+  Block padding is applied equally above and below the content. Total vertical padding is $2 \times p_{\text{block}}$.
+
+  \item[\textbf{C4.}] \textbf{Block padding is bilinear in density and wrapping level.}
+  Block padding must satisfy three requirements: (a) it increases linearly with density $d$, so that a compact layout has proportionally less padding; (b) it increases linearly with wrapping level $w$, so that structurally deeper containers have proportionally more padding; (c) it is expressed in units of $U$ to preserve resolution independence. The unique bilinear form satisfying (a), (b), and (c) with unit coefficient is $p_{\text{block}} = d \cdot w \cdot U$.
+
+  \item[\textbf{C5.}] \textbf{Inline elements ($w = 0$) have zero block padding.}
+  Elements without a boundary (plain text, icons, inline labels) have no vertical padding. Setting $w = 0$ in C4 yields $p_{\text{block}} = 0$, which satisfies this constraint automatically.
+\end{enumerate}
+
+\subsection{Height Derivation}
+
+Height is the sum of content height and total vertical padding:
+\begin{align}
+h &= \underbrace{n \cdot 6\,U}_{\text{content (C1, C2)}}
+   + \underbrace{2 \cdot p_{\text{block}}}_{\text{padding (C3)}} \notag \\
+  &= n \cdot 6\,U + 2 \cdot d \cdot w \cdot U \quad \text{(C4)} \notag \\
+  &= (n \cdot 6 + 2 \cdot d \cdot w) \cdot U. \label{eq:height-derived}
+\end{align}
+
+At $w = 0$, this reduces to $h = 6n\,U$ (C5). The formula is fully determined by the five constraints; no free parameters remain.
+
+\subsection{Padding Derivation}
+
+Block padding follows directly from C4:
+\begin{equation}
+p_{\text{block}} = d \cdot w \cdot U.
+\end{equation}
+
+Inline padding requires an additional constraint:
+
+\begin{enumerate}
+  \item[\textbf{C6.}] \textbf{Inline padding maintains a target aspect ratio.}
+  For bounded controls, the horizontal padding should be wider than the vertical padding to accommodate text content. The ratio $p_{\text{inline}} / p_{\text{block}}$ should be approximately 3:1 for single-line controls ($w = 1$), decreasing for wider containers. The expression $\lceil 3/w \rceil$ produces this ratio:
+\end{enumerate}
+
+\begin{center}
+\begin{tabular}{ccl}
+\toprule
+$w$ & $\lceil 3/w \rceil$ & Ratio $p_{\text{inline}} : p_{\text{block}}$ \\
+\midrule
+1 & 3 & $3:1$ \\
+2 & 2 & $2:1$ \\
+3 & 1 & $1:1$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This yields:
+\begin{equation}
+p_{\text{inline}} = \lceil 3/w \rceil \cdot d \cdot w \cdot U, \quad w \ge 1.
+\end{equation}
+
+The ceiling function ensures integer ratios at each wrapping level. At $w = 3$, inline and block padding are equal, reflecting the fact that structural sections frame content symmetrically.
+
+For bounded inline elements at $w = 0$ (e.g., tag, badge, inline code), block padding is zero (C5), but a small horizontal padding is needed to separate content from the boundary edge. This is governed by an additional constraint:
+
+\begin{enumerate}
+  \item[\textbf{C7.}] \textbf{Bounded inline padding is proportional to density.}
+  At $w = 0$, bounded inline elements receive $p_{\text{inline}} = 2d\,U$, providing horizontal spacing without vertical padding. Unbounded inline content (plain text, icons) has zero padding. This is a piecewise extension outside the $w \ge 1$ formula.
+\end{enumerate}
+
+\subsection{Radius Derivation}
+
+\begin{enumerate}
+  \item[\textbf{C8.}] \textbf{Border radius equals block padding.}
+  Corner curvature should match the surrounding whitespace so that the boundary arc fits within the padding region. This produces:
+\end{enumerate}
+\begin{equation}
+r = p_{\text{block}} = d \cdot w \cdot U.
+\end{equation}
+
+At $w = 0$, radius is zero (inline elements have no rounded corners). At higher wrapping levels, radius grows proportionally with padding, maintaining consistent visual weight.
+
+\subsection{Density Scale Derivation}
+
+The density values $D = [0.75, 1, 1.5, 2, 2.5]$ are not arbitrary. They are the values of $d$ that produce integer or half-integer multiples of $U$ in the single-line control case ($n = 1$, $w = 1$):
+
+\begin{center}
+\begin{tabular}{cccc}
+\toprule
+$d$ & $p_{\text{block}} = d \cdot U$ & $h = (6 + 2d) \cdot U$ & Height (px) \\
+\midrule
+0.75 & $0.75\,U$ & $7.5\,U$ & 30 \\
+1    & $1\,U$    & $8\,U$   & 32 \\
+1.5  & $1.5\,U$  & $9\,U$   & 36 \\
+2    & $2\,U$    & $10\,U$  & 40 \\
+2.5  & $2.5\,U$  & $11\,U$  & 44 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+At $U = 4\,\text{px}$, every density level produces an integer pixel height that is a multiple of 2. The reference implementation uses $d = 1.5$ as its default, yielding $h = 9\,U = 36\,\text{px}$. The industry benchmark (Section~\ref{sec:validation}) shows that most design systems converge on $32\,\text{px}$ ($d = 1$) as their default medium height. The model accommodates both: the density scale is a parameter, not a prescription, and the choice of default $d$ is a design decision independent of the formula itself.
+
+\subsection{Minimality}
+
+Given the bilinearity requirement in C4, the formula has no free parameters: every coefficient is determined by a named constraint. Alternative formulations must either:
+\begin{itemize}
+  \item use a different line-height ratio (violating C1),
+  \item use asymmetric padding (violating C3),
+  \item use a non-linear relationship between padding and $(d, w)$ (violating C4), or
+  \item introduce additional parameters not determined by the constraints.
+\end{itemize}
+
+The last case would add degrees of freedom requiring ad-hoc choices. The present formulation is minimal in the sense that it uses the fewest assumptions (eight constraints) to fully determine all spatial properties, with no tunable parameters remaining.

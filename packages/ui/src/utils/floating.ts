@@ -71,16 +71,22 @@ function creatFloating(props: {
         onKeyDown: (e) => (e as KeyboardEvent).key === "Escape" && hide(),
         _onSchedule: (node) => {
             let floatingNode: ElementNode | null = null
-            node.getRoot().addHook("Init", (root) => {
+            const root = node.getRoot()
+            //important must 2 cases
+            if (root.domElement) {
                 floatingNode = root.children!.insert(props.content) as ElementNode
-            })
+            } else {
+                root.addHook("Init", (root) => {
+                    floatingNode = root.children!.insert(props.content) as ElementNode
+                })
+            }
             node.addHook("BeforeRemove", () => {
-                hide();
                 if (timer) clearTimeout(timer);
                 floatingNode && floatingNode.remove();
             });
         },
         _onMount: (node) => {
+            console.log(node);
             reference = node.domElement as HTMLElement
             const handleOutside = (event: MouseEvent) => {
                 if (!openState.get() || !reference || !floating) return;

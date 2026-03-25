@@ -1,0 +1,18 @@
+\subsection{Orthogonal Axes}
+\label{sec:orthogonality}
+
+The sizing model is one of three independent axes in the design system:
+
+\begin{enumerate}
+  \item \textbf{Size} (type scale): Controls the local font size and therefore the base unit $U$. Changing the size index rescales all geometry proportionally.
+
+  \item \textbf{Density} (spatial compactness): Controls the padding multiplier $d$. Changing density adjusts whitespace without affecting font size or color.
+
+  \item \textbf{Tone} (color context): Controls surface lightness and semantic color. Changing tone has no effect on spatial geometry.
+\end{enumerate}
+
+These axes are algebraically independent: no formula for one axis references a variable from another. Size enters geometry only through $U$; density enters only through $d$; tone enters only through the color resolution pipeline.
+
+This orthogonality has a practical consequence: any combination of size, density, and tone is valid. A compact ($d = 0.75$), large-text (\texttt{dataSize = "increase-2"}), dark-surface (\texttt{dataTone = "shift-17"}) configuration produces correct geometry and correct contrast without special-case handling.
+
+All three axes share the same context inheritance mechanism (Section~\ref{sec:context-inheritance}), but operate on different variables. This structural parallel --- independent parametric models over a shared propagation substrate --- keeps each axis simple while allowing arbitrary composition.

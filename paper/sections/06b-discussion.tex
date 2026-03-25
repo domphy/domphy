@@ -1,0 +1,44 @@
+\section{Discussion}
+\label{sec:discussion}
+
+The sizing model presented in this paper addresses only one half of the visual structure of a user interface: \emph{where things are and how large they are}. The other half --- \emph{what color they are and what that color means} --- is addressed by the Chromametry framework~\cite{chromametry}, which defines quantitative metrics for sequential monochromatic color palettes and derives the contrast span $K$ as a fixed index rule for WCAG-compliant color selection.
+
+Together, these two models form a complete structural description of UI:
+
+\begin{itemize}
+  \item \textbf{Sizing model} (this paper): Governs height, padding, radius, and spacing through $(n, w, d)$ and the base unit $U$. Every spatial property is a closed-form expression.
+
+  \item \textbf{Tone model} (Chromametry): Governs surface color, text color, stroke color, and interaction feedback through an 18-step lightness ramp with contrast span $K = 9$. Every color role is a fixed index offset from the surface anchor.
+\end{itemize}
+
+The two models are algebraically independent --- no sizing formula references a tone variable, and no tone formula references a spatial variable --- yet they share the same propagation mechanism: context inheritance through the element tree via data attributes (\texttt{dataSize}, \texttt{dataDensity}, \texttt{dataTone}). This means a single container attribute change can uniformly adjust either the spatial geometry or the color context of all descendant elements.
+
+This structural parallel is not accidental. A UI element has exactly two perceptual dimensions that a design system must govern:
+
+\begin{enumerate}
+  \item \textbf{Spatial structure:} How much space the element occupies, how much whitespace surrounds its content, and how its boundary is shaped. These are the concerns of the sizing model.
+
+  \item \textbf{Chromatic structure:} What lightness the surface has, what contrast the text achieves, and how interaction states are distinguished. These are the concerns of the tone model.
+\end{enumerate}
+
+Existing design systems address both dimensions, but through unrelated mechanisms: spatial tokens for sizing, color tokens for palette. The two token sets are maintained independently, with no shared algebra connecting them. The result is that changing density requires updating spatial tokens while leaving color tokens unchanged (correct), but there is no structural guarantee that the two systems remain compatible --- only convention.
+
+The combination of the sizing model and the Chromametry tone model replaces this convention with a structural guarantee. Because both models are parametric (expressions over a small variable set) rather than enumerative (flat token tables), they can be composed, overridden, and propagated through the same inheritance mechanism. An element's full visual specification reduces to five variables:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Variable & Axis & Source \\
+\midrule
+$n$ & Sizing & Intrinsic (patch type) \\
+$w$ & Sizing & Intrinsic (patch type) \\
+$d$ & Sizing & Inherited (\texttt{dataDensity}) \\
+$U$ & Sizing & Inherited (\texttt{dataSize} $\to$ fontSize) \\
+$T$ & Tone & Inherited (\texttt{dataTone}) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Of these, $n$ and $w$ are fixed per patch type. The remaining three ($d$, $U$, $T$) are inherited from context. This means the entire visual appearance of any element in the library is determined by three inherited context values and two compile-time constants --- with no per-element overrides, no magic numbers, and no token tables.
+
+The sizing model addresses the spatial half of UI structure; the Chromametry tone model addresses the chromatic half. Neither is sufficient alone. Together, they suggest that a quantitative, parametric approach can cover the two primary perceptual dimensions of interface design.

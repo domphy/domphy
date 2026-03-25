@@ -1,0 +1,30 @@
+\subsection{Wrapping Level}
+\label{sec:wrapping}
+
+The wrapping level $w$ classifies every UI element into one of four structural categories based on its boundary semantics:
+
+\begin{center}
+\begin{tabular}{cl}
+\toprule
+$w$ & Boundary class \\
+\midrule
+0 & Inline / no boundary \\
+1 & Single-line bounded control \\
+2 & Multi-line bounded block \\
+3 & Structural section / large overlay \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Representative examples for each level:
+
+\begin{itemize}
+  \item $w = 0$: plain text, icon, inline label. No outer boundary.
+  \item $w = 1$: button, text input, select, tooltip. A single-line container with visible or implicit edges.
+  \item $w = 2$: textarea, blockquote, card. A multi-line region with a defined boundary.
+  \item $w = 3$: dialog, drawer, fieldset. A structural overlay or section that frames nested content.
+\end{itemize}
+
+The wrapping level is an intrinsic property of the element's role, not a runtime parameter. It is assigned once per patch type and does not change with density or font size.
+
+This classification is exhaustive: every element in the UI library maps to exactly one wrapping level. Section~\ref{sec:dimension} confirms this by tabulating all production patches.
