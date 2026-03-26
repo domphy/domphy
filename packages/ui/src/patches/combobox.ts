@@ -12,7 +12,6 @@ function combobox(props: {
     content: DomphyElement;
     color?: ThemeColor;
     open?: ValueOrState<boolean>;
-    onPlacement?: (anchor: HTMLElement, popover: HTMLElement, placement: Placement) => void;
     input?: DomphyElement;
 }): PartialElement {
     const {
@@ -25,7 +24,7 @@ function combobox(props: {
 
     const state = toState(props.value)
     let openState = toState(open)
-    let { show, hide, anchorPartial } = creatFloating({ open: openState, placement, content: props.content, onPlacement: props.onPlacement })
+    let { show, hide, anchorPartial } = creatFloating({ open: openState, placement: toState(placement), content: props.content })
 
     const popoverPartial: PartialElement = {
         onClick: () => !multiple && hide(),

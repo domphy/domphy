@@ -82,7 +82,7 @@ export function hashString(str: string = ""): string {
 }
 
 export function toState<T>(val: T | State<T>, name?: string): State<T> {
-    return val instanceof State ? val : new State<T>(val, name);
+    return (val instanceof State || (val as any)?._isState) ? val as State<T> : new State<T>(val, name);
 }
 
 export function r<T>(fn: (listener: Listener) => T): (listener: Listener) => T {

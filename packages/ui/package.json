@@ -1,6 +1,6 @@
 {
   "name": "@domphy/ui",
-  "version": "0.1.27",
+  "version": "0.1.33",
   "description": "Domphy UI",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,9 +13,9 @@
     }
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup --watch",
     "pack": "tsup && npm pack",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "tsup"
   },
   "keywords": [
     "domphy",

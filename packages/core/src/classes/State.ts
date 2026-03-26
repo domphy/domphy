@@ -5,6 +5,7 @@ export type ValueListener<T> = ((_value: T) => void) & Handler
 export type ValueOrState<T> = T | State<T>
 
 export class State<T> {
+  readonly _isState = true;
   private _value: T;
   readonly initialValue: T;
   private _notifier: Notifier | null = new Notifier();

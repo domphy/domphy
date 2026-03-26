@@ -105,7 +105,7 @@ export function themeColor(object: ElementNode | Listener | null, tone: ElementT
     }
     let colors = themeVars()[themeColor]
     if (!colors){
-        throw Error(`color "${themeColor}" not found on theme "${themeName(object)}`)
+        throw Error(`color "${JSON.stringify(themeColor)}" not found on theme "${themeName(object)}`)
     }
     let resultColor = colors[resultTone]
 

@@ -1,15 +1,14 @@
-import { ElementNode, PartialElement, DomphyElement, toState, ValueOrState, merge } from "@domphy/core";
+import { ElementNode, State, PartialElement, DomphyElement, toState, ValueOrState, merge } from "@domphy/core";
 import { computePosition, autoUpdate, offset, flip, shift, type Placement } from "@floating-ui/dom";
 
 function creatFloating(props: {
     open?: ValueOrState<boolean>;
-    placement?: ValueOrState<Placement>;
+    placement: State<Placement>;
     content: DomphyElement;
-    onPlacement?: (anchor: HTMLElement, popover: HTMLElement, placement: Placement) => void;
 }) {
     const {
         open = false,
-        placement = "bottom",
+        placement,
     } = props;
 
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -17,21 +16,18 @@ function creatFloating(props: {
     let reference: HTMLElement | null = null
     let floating: HTMLElement | null = null
     const openState = toState(open);
-    const placeState = toState(placement);
-    const computedPlaceState = toState(placeState.get() as Placement);
 
     const instantShow = () => {
         if (reference && floating) {
             cleanup && cleanup();
             cleanup = autoUpdate(reference, floating, () => {
                 computePosition(reference as HTMLElement, floating as HTMLElement, {
-                    placement: placeState.get() as Placement,
+                    placement: placement.get() as Placement,
                     middleware: [offset(12), flip(), shift()],
                     strategy: "fixed"
-                }).then(({ x, y, placement: computedPlacement }) => {
+                }).then(({ x, y, placement: resolved }) => {
                     Object.assign((floating as HTMLElement).style, { left: `${x}px`, top: `${y}px` });
-                    computedPlacement !== computedPlaceState.get() && computedPlaceState.set(computedPlacement)
-                    props.onPlacement?.(reference!, floating!, computedPlacement)
+                    placement.set(resolved)
                 });
             });
             openState.set(true)
@@ -69,25 +65,12 @@ function creatFloating(props: {
 
     const anchorPartial: PartialElement = {
         onKeyDown: (e) => (e as KeyboardEvent).key === "Escape" && hide(),
-        _onSchedule: (node) => {
-            let floatingNode: ElementNode | null = null
-            const root = node.getRoot()
-            //important must 2 cases
-            if (root.domElement) {
-                floatingNode = root.children!.insert(props.content) as ElementNode
-            } else {
-                root.addHook("Init", (root) => {
-                    floatingNode = root.children!.insert(props.content) as ElementNode
-                })
-            }
-            node.addHook("BeforeRemove", () => {
-                if (timer) clearTimeout(timer);
-                floatingNode && floatingNode.remove();
-            });
-        },
         _onMount: (node) => {
-            console.log(node);
+            const root = node.getRoot()
             reference = node.domElement as HTMLElement
+
+            const floatingNode = root.children!.insert(props.content) as ElementNode
+           
             const handleOutside = (event: MouseEvent) => {
                 if (!openState.get() || !reference || !floating) return;
 
@@ -97,11 +80,16 @@ function creatFloating(props: {
                 }
             }
             node.getRoot().domElement!.addEventListener("click", handleOutside)
-            node.addHook("BeforeRemove", () => node.getRoot().domElement!.removeEventListener("click", handleOutside));
+            
+            node.addHook("BeforeRemove", () => {
+                if (timer) clearTimeout(timer);
+                floatingNode && floatingNode.remove();
+                node.getRoot().domElement!.removeEventListener("click", handleOutside)
+            });
         }
     };
 
-    return { show, hide, anchorPartial, placeState: computedPlaceState };
+    return { show, hide, anchorPartial };
 }
 
 export { creatFloating };

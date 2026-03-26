@@ -1,4 +1,4 @@
-import { PartialElement, DomphyElement, toState, ValueOrState, merge } from "@domphy/core";
+import { PartialElement, State, DomphyElement, toState, ValueOrState, merge } from "@domphy/core";
 import { type Placement } from "@floating-ui/dom";
 import { creatFloating } from "../utils/floating.js";
 
@@ -7,7 +7,6 @@ function popover(props: {
     open?: ValueOrState<boolean>;
     placement?: ValueOrState<Placement>;
     content: DomphyElement;
-    onPlacement?: (anchor: HTMLElement, popover: HTMLElement, placement: Placement) => void;
 }): PartialElement {
     const {
         open = false,
@@ -18,8 +17,9 @@ function popover(props: {
 
     let popoverId: string | null = null
     const openState = toState(open);
+    const placeState = toState(placement);
 
-    let { show, hide, anchorPartial } = creatFloating({ open: openState, placement, content: props.content, onPlacement: props.onPlacement })
+    let { show, hide, anchorPartial } = creatFloating({ open: openState, placement: placeState, content: props.content })
 
     const popoverPartial: PartialElement = {
         role: "dialog",
@@ -41,10 +41,8 @@ function popover(props: {
         onMouseEnter: () => openOn === "hover" && show(),
         onMouseLeave: () => openOn === "hover" && hide(),
         onClick: () => {
-            console.log("[popover-trigger] onClick", { openOn, openState: openState.get() })
             if (openOn === "click") {
                 if (openState.get()) { hide() } else { show() }
-                console.log("[popover-trigger] after toggle, openState:", openState.get())
             }
         },
         onFocus: () => show(),

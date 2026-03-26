@@ -1843,6 +1843,8 @@ Use these rules when generating new patch files:
 - no local helper functions inside patch files
 - no importing other patches inside patch files
 - pass state through props or context, do not hide state in patch internals
+- **patch props must NOT accept reactive functions** — accept `ValueOrState<T>` or `DomphyElement`, never `(listener) => T`. Reactive functions are hard to type-check and impossible to control from outside. If the caller needs reactivity, they pass a `State<T>` and `.set()` it from outside.
+- **tooltip content is text-only** — `content: ValueOrState<string>`, not `DomphyElement`. Tooltips are brief hints, not containers. Use `popover` for rich content.
 
 Canonical shape:
 
