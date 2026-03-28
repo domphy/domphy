@@ -39,17 +39,7 @@ function inputRange(props: { color?: ValueOrState<ThemeColor>; accentColor?: Val
                 marginTop: `calc((${themeSpacing(1.5)} - ${themeSpacing(4)}) / 2)`,
                 backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor.get(listener)),
             },
-            "&::-moz-range-thumb": {
-                width: themeSpacing(4),
-                height: themeSpacing(4),
-                borderRadius: themeSpacing(999),
-                border: "none",
-                backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor.get(listener)),
-            },
             "&:hover:not([disabled])::-webkit-slider-thumb": {
-                backgroundColor: (listener) => themeColor(listener, "shift-10", accentColor.get(listener)),
-            },
-            "&:hover:not([disabled])::-moz-range-thumb": {
                 backgroundColor: (listener) => themeColor(listener, "shift-10", accentColor.get(listener)),
             },
             "&:focus-visible": {
