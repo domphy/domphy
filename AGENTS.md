@@ -1668,6 +1668,8 @@ src/
     utils.ts          ← feature-local pure utilities (if any)
 ```
 
+This structure is the recommended baseline. Apps may add domain-specific files alongside it (e.g. `boot.ts`, `platform.ts`, `license.ts`, `exports.ts`) when the logic does not belong to blocks, patches, states, or utils.
+
 `utils` holds pure functions that are not blocks, patches, or states — color math helpers, formatters, constants, slugify, etc. Same few/many rule applies: single `utils.ts` when few, `utils/` directory when many.
 
 `icons` follows the same few/many rule. In Domphy, icons are inline SVG strings used with `{ span: svgString, $: [icon()] }` — not components or files:
@@ -1691,7 +1693,7 @@ Entry file naming rule:
 
 Production guidance:
 
-- `App.ts` owns `themeApply()` — no other file calls it
+- `themeApply()` is called once at the root element — in a standalone app that is `App.ts`, in a Shadow DOM or host framework mount that is the mount point
 - keep each subtree shallow and named
 - prefer feature modules over giant single files
 - use `_context` for local tree context, not for global app state dumping
@@ -2144,7 +2146,7 @@ If you are unsure which to use, the answer is `toState()`.
   - host tag: `select`
   - native select styling
 
-- `selectBox({ multiple?, value?, open?, color?, placement?, content, options?, onPlacement? })`
+- `selectBox({ multiple?, value?, open?, color?, placement?, content, options? })`
   - host tag: `div`
   - `content` is required — the floating dropdown built with `selectList`
   - custom select surface with floating content
@@ -2157,7 +2159,7 @@ If you are unsure which to use, the answer is `toState()`.
   - host tag: `div`
   - one selectable option item in a custom list
 
-- `combobox({ multiple?, value?, open?, color?, placement?, content, options?, onPlacement?, input? })`
+- `combobox({ multiple?, value?, open?, color?, placement?, content, options?, input? })`
   - host tag: `div`
   - `content` is required — the floating dropdown built with `selectList`
   - `input?` allows a custom input element
@@ -2170,7 +2172,7 @@ If you are unsure which to use, the answer is `toState()`.
   - `content` may be `string` or `DomphyElement`
   - default tooltip surface is styled and inverted with `dataTone: "shift-17"`
 
-- `popover({ openOn, open?, placement?, content, onPlacement? })`
+- `popover({ openOn, open?, placement?, content })`
   - host tag: trigger element gets the patch
   - `content` is required
   - use for click or hover floating panels

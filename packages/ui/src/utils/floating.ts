@@ -15,9 +15,19 @@ function creatFloating(props: {
     let cleanup: (() => void) | null = null;
     let reference: HTMLElement | null = null
     let floating: HTMLElement | null = null
+    let floatingNode: ElementNode | null = null
+    let rootNode: ElementNode | null = null
+    let mounted = false
     const openState = toState(open);
 
+    const ensureMounted = () => {
+        if (mounted || !rootNode) return
+        mounted = true
+        floatingNode = rootNode.children!.insert(props.content) as ElementNode
+    }
+
     const instantShow = () => {
+        ensureMounted()
         if (reference && floating) {
             cleanup && cleanup();
             cleanup = autoUpdate(reference, floating, () => {
@@ -42,19 +52,17 @@ function creatFloating(props: {
             position: "fixed",
             pointerEvents: "auto",
             visibility: (listener) => openState.get(listener) ? "visible" : "hidden",
-
         },
         _onMount: (node) => floating = node.domElement as HTMLElement,
-
-        _portal: (rootNode) => {
-            let overlay = rootNode.domElement!.querySelector(`#domphy-floating`);
+        _portal: (rNode) => {
+            let overlay = rNode.domElement!.querySelector(`#domphy-floating`);
             if (!overlay) {
                 const overlayEle: DomphyElement<"div"> = {
                     div: [],
                     id: `domphy-floating`,
                     style: { position: "fixed", inset: 0, zIndex: 20, pointerEvents: "none" },
                 };
-                const overlayNode = rootNode.children!.insert(overlayEle) as ElementNode;
+                const overlayNode = rNode.children!.insert(overlayEle) as ElementNode;
                 overlay = overlayNode.domElement!;
             }
             return overlay;
@@ -66,21 +74,18 @@ function creatFloating(props: {
     const anchorPartial: PartialElement = {
         onKeyDown: (e) => (e as KeyboardEvent).key === "Escape" && hide(),
         _onMount: (node) => {
-            const root = node.getRoot()
+            rootNode = node.getRoot()
             reference = node.domElement as HTMLElement
 
-            const floatingNode = root.children!.insert(props.content) as ElementNode
-           
             const handleOutside = (event: MouseEvent) => {
                 if (!openState.get() || !reference || !floating) return;
-
                 const target = event.target as Node;
                 if (!reference.contains(target) && !floating.contains(target)) {
                     hide()
                 }
             }
             node.getRoot().domElement!.addEventListener("click", handleOutside)
-            
+
             node.addHook("BeforeRemove", () => {
                 if (timer) clearTimeout(timer);
                 floatingNode && floatingNode.remove();

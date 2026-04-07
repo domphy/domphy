@@ -28,10 +28,6 @@ function progress(props: { color?: ValueOrState<ThemeColor>; accentColor?: Value
                 borderRadius: themeSpacing(999),
                 transition: "width 220ms ease",
             },
-            "&::-moz-progress-bar": {
-                backgroundColor: (listener) => themeColor(listener, "shift-9", accentColor.get(listener)),
-                borderRadius: themeSpacing(999),
-            },
         },
     };
 }

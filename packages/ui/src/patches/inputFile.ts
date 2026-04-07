@@ -36,8 +36,8 @@ function inputFile(props: { color?: ValueOrState<ThemeColor>; accentColor?: Valu
                 height: themeSpacing(6),
                 paddingInline: themeSpacing(2),
                 cursor: "pointer",
-                color: (listener) => themeColor(listener, "shift-10", accentColor.get(listener)),
-                backgroundColor: (listener) => themeColor(listener, "shift-2", accentColor.get(listener)),
+                color: (listener) => themeColor(listener, "shift-11", accentColor.get(listener)),
+                backgroundColor: (listener) => themeColor(listener, "shift-1", accentColor.get(listener)),
             },
             "&::-webkit-file-upload-button": {
                 marginTop: (listener) => themeSpacing(themeDensity(listener)),
@@ -48,8 +48,8 @@ function inputFile(props: { color?: ValueOrState<ThemeColor>; accentColor?: Valu
                 height: themeSpacing(6),
                 paddingInline: themeSpacing(2),
                 cursor: "pointer",
-                color: (listener) => themeColor(listener, "shift-10", color.get(listener)),
-                backgroundColor: (listener) => themeColor(listener, "shift-2", color.get(listener)),
+                color: (listener) => themeColor(listener, "shift-11", color.get(listener)),
+                backgroundColor: (listener) => themeColor(listener, "shift-1", color.get(listener)),
             },
             "&:hover:not([disabled]):not([aria-busy=true]), &:focus-visible": {
                 outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,

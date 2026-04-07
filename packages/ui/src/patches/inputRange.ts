@@ -25,11 +25,6 @@ function inputRange(props: { color?: ValueOrState<ThemeColor>; accentColor?: Val
                 borderRadius: themeSpacing(999),
                 backgroundColor: (listener) => themeColor(listener, "shift-3", color.get(listener)),
             },
-            "&::-moz-range-track": {
-                height: themeSpacing(1.5),
-                borderRadius: themeSpacing(999),
-                backgroundColor: (listener) => themeColor(listener, "shift-3", color.get(listener)),
-            },
             "&::-webkit-slider-thumb": {
                 appearance: "none",
                 width: themeSpacing(4),
