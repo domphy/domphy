@@ -50,6 +50,7 @@ function menuItem(props: {
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
+      gap: (listener) => themeSpacing(2),
       width: "100%",
       fontSize: (listener) => themeSize(listener, "inherit"),
       height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),

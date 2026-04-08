@@ -1,6 +1,6 @@
 {
   "name": "@domphy/ui",
-  "version": "0.1.41",
+  "version": "0.1.43",
   "description": "Domphy UI",
   "type": "module",
   "main": "./dist/index.js",
