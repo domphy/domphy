@@ -51,7 +51,24 @@ export default defineConfig({
   },
   title: "Domphy",
   description: "Patch-based UI for native elements.",
-  head: [["link", { rel: "icon", href: "/favicon.svg" }]],
+  head: [
+    ["link", { rel: "icon", href: "/favicon.svg" }],
+    [
+      "script",
+      {
+        async: "",
+        src: "https://www.googletagmanager.com/gtag/js?id=G-NKPX3DHXWE",
+      },
+    ],
+    [
+      "script",
+      {},
+      `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-NKPX3DHXWE');`,
+    ],
+  ],
   themeConfig: {
     search: { provider: "local" },
     nav: [
