@@ -41,3 +41,9 @@ npm install @domphy/ui
 - [Core Guide](/docs/core/)
 - [UI Patches](/docs/ui/)
 - [Integrations](/docs/integrations/)
+
+## Built with Domphy
+
+- [TracePen](https://meshma.com/tracepen) — raster-to-vector converter.
+- [Decimify](https://meshma.com/decimify) — 3D mesh polygon reducer.
+- [Chromametry Studio](https://chromametry.com) — accessible color palette generator.
