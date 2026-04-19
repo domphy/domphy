@@ -5,6 +5,21 @@ type ChainEntry = [notifier: Notifier, event: string]
 // Shared across all instances to track the flush chain for circular detection.
 let _chain: ChainEntry[] = []
 
+// Microtask scheduler. Older embedded Chromium runtimes (SketchUp 2020 /
+// 2021.0 ship CEF 64) predate `queueMicrotask` (added in Chrome 71). A
+// resolved Promise's `.then` runs as a microtask in the same checkpoint, so
+// it is the standard fallback. The `.catch` mimics `queueMicrotask`'s
+// behaviour of surfacing thrown errors to the global error handler rather
+// than silently becoming an unhandled-rejection.
+const _microtask: (cb: () => void) => void =
+  typeof queueMicrotask === "function"
+    ? queueMicrotask
+    : (cb) => {
+        Promise.resolve().then(cb).catch((e) => {
+          setTimeout(() => { throw e }, 0)
+        })
+      }
+
 export class Notifier {
   private _listeners: Record<string, Set<Handler>> | null = {}
   private _pending: Map<string, { args: unknown[], chain: ChainEntry[] }> = new Map()
@@ -64,7 +79,7 @@ export class Notifier {
 
     if (!this._scheduled) {
       this._scheduled = true
-      queueMicrotask(() => this._flushAll())
+      _microtask(() => this._flushAll())
     }
   }
 

@@ -44,3 +44,11 @@ npm install @domphy/ui
 <DomphyPreview :element="Counting"/>
 
 <<< @/docs/demos/core/counting.ts
+
+## Built with Domphy
+
+- [TracePen](https://meshma.com/tracepen) — browser-based raster-to-vector converter (PNG/JPG → SVG/DXF) using deterministic algorithms, not AI.
+- [Decimify](https://meshma.com/decimify) — mesh optimizer that reduces polygons while preserving solids, hierarchy, and textures.
+- [Chromametry Studio](https://chromametry.com) — accessible color generator and audit tool; exports WCAG-compliant palettes to CSS, Tailwind, and Figma.
+
+Shipping something with Domphy? [Open a PR](https://github.com/domphy/domphy/edit/main/apps/web/docs/index.md) to add it here.

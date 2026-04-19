@@ -2,8 +2,13 @@ import { ElementNode, Listener } from "@domphy/core";
 import { ThemeInput, ThemeVars } from "./types.js";
 import light from "./light.js";
 
+// JSON clone (not structuredClone) so the build runs in older embedded
+// browsers like SketchUp 2022's CEF, which predates Chromium 98.
+// ThemeInput is plain JSON (no Map/Set/Date/typed arrays).
+const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
+
 const themes: Record<string, ThemeInput> = {
-  light: JSON.parse(JSON.stringify(light)),
+  light: clone(light),
   dark: createDark(light),
 };
 
@@ -99,12 +104,12 @@ export function getTheme(name: string): ThemeInput {
 
 export function setTheme(name: string, input: Partial<ThemeInput>): void {
   validateTheme(input);
-  if (!themes[name]) themes[name] = structuredClone(light);
+  if (!themes[name]) themes[name] = clone(light);
   deepMerge(themes[name], input);
 }
 
 function createDark(source: ThemeInput): ThemeInput {
-  let dark = structuredClone(source)
+  let dark = clone(source)
   dark.direction = "lighten"
   for (let name in dark.colors) {
     dark.colors[name].reverse()

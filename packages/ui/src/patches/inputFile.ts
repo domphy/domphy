@@ -27,18 +27,6 @@ function inputFile(props: { color?: ValueOrState<ThemeColor>; accentColor?: Valu
             borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
             height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
             paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
-            "&::file-selector-button": {
-                marginTop: (listener) => themeSpacing(themeDensity(listener)),
-                fontFamily: "inherit",
-                fontSize: "inherit",
-                border: "none",
-                borderRadius: themeSpacing(1),
-                height: themeSpacing(6),
-                paddingInline: themeSpacing(2),
-                cursor: "pointer",
-                color: (listener) => themeColor(listener, "shift-11", color.get(listener)),
-                backgroundColor: (listener) => themeColor(listener, "shift-1", color.get(listener)),
-            },
             "&::-webkit-file-upload-button": {
                 marginTop: (listener) => themeSpacing(themeDensity(listener)),
                 fontFamily: "inherit",
@@ -60,11 +48,6 @@ function inputFile(props: { color?: ValueOrState<ThemeColor>; accentColor?: Valu
                 color: (listener) => themeColor(listener, "shift-8", "neutral"),
                 outline: (listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
                 backgroundColor: (listener) => themeColor(listener, "shift-1", "neutral"),
-            },
-            "&[disabled]::file-selector-button": {
-                cursor: "not-allowed",
-                color: (listener) => themeColor(listener, "shift-8", "neutral"),
-                backgroundColor: (listener) => themeColor(listener, "shift-3", "neutral"),
             },
             "&[disabled]::-webkit-file-upload-button": {
                 cursor: "not-allowed",

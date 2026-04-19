@@ -6,9 +6,10 @@
   "type": "module",
   "scripts": {
     "diagram": "node scripts/mermaid",
+    "llms": "node scripts/llms-full.mjs",
     "dev": "vitepress dev",
     "preview": "vitepress preview",
-    "build": "vitepress build",
+    "build": "node scripts/llms-full.mjs && vitepress build",
     "postinstall": "puppeteer browsers install chrome-headless-shell"
   },
   "keywords": [],

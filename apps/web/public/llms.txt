@@ -1,0 +1,64 @@
+# Domphy
+
+> Patch-based UI for native elements. `@domphy/core` is the runtime (reactivity, rendering, CSS-in-JS, SSR). `@domphy/theme` provides design tokens. `@domphy/ui` ships 70+ patches that customize native HTML tags — no components, no JSX, no virtual DOM.
+
+A **patch** is a function returning a `PartialElement`: a stateless descriptor applied to a host element via the `$` property. Patches carry no rendering lifecycle, own no state, and create no DOM boundary. Compose by listing multiple patches; the runtime merges them on the native element.
+
+## Rules for code generation
+
+- Build UIs as plain objects keyed by HTML tag (e.g. `{ button: { $: [button()], _: "Click" } }`).
+- Apply patches via `$`. Never wrap a native tag in a component abstraction.
+- **Never inline typography styles** (fontSize, color, margin, lineHeight). Use the typography patches: `small()`, `paragraph()`, `heading()`, `link()`, `strong()`, `emphasis()`, `code()`, `keyboard()`.
+- For forms, compose `form()` + `field()`. Do NOT wire `FormState`/`FieldState` manually — they are implementation details.
+- `field` patch `value`/`checked` must be static defaults, never reactive — reactive bindings cause infinite loops.
+- Read the per-patch doc before using a patch you haven't used before. Each patch has its own prop contract.
+
+## Getting started
+
+- [5-minute quickstart](https://www.domphy.com/quickstart.html): install, hello world, patches, reactive state, forms
+- [Full docs index](https://www.domphy.com/): landing page with package breakdown
+
+## Core runtime (`@domphy/core`)
+
+- [Syntax](https://www.domphy.com/core/syntax.html): object shape, `$`, `_`, event handlers, attribute keys
+- [Reactivity](https://www.domphy.com/core/reactivity.html): `toState`, `state.get(listener)`, derived state
+- [Lifecycle](https://www.domphy.com/core/lifecycle.html): `_onSchedule`, `_onInsert`, `_onRemove`
+- [Portal](https://www.domphy.com/core/portal.html): render into arbitrary containers
+- [SSR](https://www.domphy.com/core/ssr.html): server rendering model
+
+## Theme (`@domphy/theme`)
+
+- [Setup](https://www.domphy.com/theme/setup.html): install and mount the theme
+- [Palette](https://www.domphy.com/theme/palette.html): `ThemeColor`, shift scales
+- [Size](https://www.domphy.com/theme/size.html): `themeSize`, `themeSpacing`, density
+- [Tone](https://www.domphy.com/theme/tone.html): light/dark handling
+- [API](https://www.domphy.com/theme/api.html): full theme API reference
+
+## Patches (`@domphy/ui`)
+
+### Typography
+- [small](https://www.domphy.com/ui/patches/small.html), [paragraph](https://www.domphy.com/ui/patches/paragraph.html), [heading](https://www.domphy.com/ui/patches/heading.html), [blockquote](https://www.domphy.com/ui/patches/blockquote.html), [strong](https://www.domphy.com/ui/patches/strong.html), [emphasis](https://www.domphy.com/ui/patches/emphasis.html), [mark](https://www.domphy.com/ui/patches/mark.html), [code](https://www.domphy.com/ui/patches/code.html), [keyboard](https://www.domphy.com/ui/patches/keyboard.html), [preformated](https://www.domphy.com/ui/patches/preformated.html), [link](https://www.domphy.com/ui/patches/link.html), [abbreviation](https://www.domphy.com/ui/patches/abbreviation.html), [subscript](https://www.domphy.com/ui/patches/subscript.html), [superscript](https://www.domphy.com/ui/patches/superscript.html), [label](https://www.domphy.com/ui/patches/label.html), [typography](https://www.domphy.com/ui/patches/typography.html)
+
+### Controls
+- [button](https://www.domphy.com/ui/patches/button.html), [button-switch](https://www.domphy.com/ui/patches/button-switch.html), [toggle](https://www.domphy.com/ui/patches/toggle.html), [input-text](https://www.domphy.com/ui/patches/input-text.html), [input-number](https://www.domphy.com/ui/patches/input-number.html), [input-search](https://www.domphy.com/ui/patches/input-search.html), [input-checkbox](https://www.domphy.com/ui/patches/input-checkbox.html), [input-radio](https://www.domphy.com/ui/patches/input-radio.html), [input-switch](https://www.domphy.com/ui/patches/input-switch.html), [input-range](https://www.domphy.com/ui/patches/input-range.html), [input-color](https://www.domphy.com/ui/patches/input-color.html), [input-date-time](https://www.domphy.com/ui/patches/input-date-time.html), [input-file](https://www.domphy.com/ui/patches/input-file.html), [input-otp](https://www.domphy.com/ui/patches/input-otp.html), [textarea](https://www.domphy.com/ui/patches/textarea.html), [select](https://www.domphy.com/ui/patches/select.html), [select-box](https://www.domphy.com/ui/patches/select-box.html), [select-list](https://www.domphy.com/ui/patches/select-list.html), [combobox](https://www.domphy.com/ui/patches/combobox.html)
+
+### Forms
+- [form](https://www.domphy.com/ui/patches/form.html), [form-group](https://www.domphy.com/ui/patches/form-group.html)
+
+### Feedback
+- [alert](https://www.domphy.com/ui/patches/alert.html), [toast](https://www.domphy.com/ui/patches/toast.html), [badge](https://www.domphy.com/ui/patches/badge.html), [tag](https://www.domphy.com/ui/patches/tag.html), [progress](https://www.domphy.com/ui/patches/progress.html), [spinner](https://www.domphy.com/ui/patches/spinner.html), [skeleton](https://www.domphy.com/ui/patches/skeleton.html), [tooltip](https://www.domphy.com/ui/patches/tooltip.html)
+
+### Overlays
+- [dialog](https://www.domphy.com/ui/patches/dialog.html), [drawer](https://www.domphy.com/ui/patches/drawer.html), [popover](https://www.domphy.com/ui/patches/popover.html), [popover-arrow](https://www.domphy.com/ui/patches/popover-arrow.html), [menu](https://www.domphy.com/ui/patches/menu.html), [command](https://www.domphy.com/ui/patches/command.html)
+
+### Layout
+- [card](https://www.domphy.com/ui/patches/card.html), [divider](https://www.domphy.com/ui/patches/divider.html), [horizontal-rule](https://www.domphy.com/ui/patches/horizontal-rule.html), [splitter](https://www.domphy.com/ui/patches/splitter.html), [figure](https://www.domphy.com/ui/patches/figure.html), [tabs](https://www.domphy.com/ui/patches/tabs.html), [details](https://www.domphy.com/ui/patches/details.html), [breadcrumb](https://www.domphy.com/ui/patches/breadcrumb.html), [pagination](https://www.domphy.com/ui/patches/pagination.html), [transition-group](https://www.domphy.com/ui/patches/transition-group.html)
+
+### Data
+- [table](https://www.domphy.com/ui/patches/table.html), [ordered-list](https://www.domphy.com/ui/patches/ordered-list.html), [unordered-list](https://www.domphy.com/ui/patches/unordered-list.html), [description-list](https://www.domphy.com/ui/patches/description-list.html), [avatar](https://www.domphy.com/ui/patches/avatar.html), [image](https://www.domphy.com/ui/patches/image.html), [icon](https://www.domphy.com/ui/patches/icon.html)
+
+## Optional
+
+- [Full text dump for one-shot context](https://www.domphy.com/llms-full.txt): quickstart + core docs + every patch source file concatenated. Use when you need the whole framework in a single fetch.
+- [Playground](https://www.domphy.com/playground.html): interactive sandbox
+- [GitHub](https://github.com/domphy/domphy): source, issues, releases
