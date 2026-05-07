@@ -23,7 +23,7 @@ function popover(props: {
 
     const popoverPartial: PartialElement = {
         role: "dialog",
-        dataTone: "shift-17",
+        dataTone: "shift-11",
         onMouseEnter: () => openOn === "hover" && show(),
         onMouseLeave: () => openOn === "hover" && hide(),
         _onInsert: (node) => {
@@ -33,8 +33,9 @@ function popover(props: {
         },
     };
 
-    merge(props.content, popoverPartial);
-
+    props.content.$ ||= []
+    props.content.$.push(popoverPartial)
+    
     const triggerPartial: PartialElement = {
         ariaHaspopup: "dialog",
         ariaExpanded: (listener) => openState.get(listener),
