@@ -74,6 +74,7 @@ gtag('config', 'G-NKPX3DHXWE');`,
     nav: [
       { text: "Home", link: "/" },
       { text: "Quickstart", link: "/docs/quickstart" },
+      { text: "AI", link: "/docs/ai" },
       { text: "Docs", link: "/docs/" },
       { text: "Core", link: "/docs/core/" },
       { text: "Theme", link: "/docs/theme/" },

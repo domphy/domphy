@@ -28,6 +28,15 @@ Full documentation: [domphy.com](https://www.domphy.com)
 - [UI docs](https://www.domphy.com/docs/ui/)
 - [Integrations](https://www.domphy.com/docs/integrations/)
 
+## Building with AI
+
+Domphy ships an LLM-ready context bundle so any AI (Claude, ChatGPT, Cursor, Codex, Gemini, Copilot) can generate correct Domphy code without guessing.
+
+- [`llms.txt`](https://www.domphy.com/llms.txt) — curated index, links to every doc page and patch
+- [`llms-full.txt`](https://www.domphy.com/llms-full.txt) — one-shot full dump: critical rules + quickstart + every core/theme doc + every patch source file (~200KB)
+
+See the [AI guide](https://www.domphy.com/docs/ai) for tool-specific setup (Claude Code, Cursor, Codex, Aider, Copilot, ChatGPT, Gemini).
+
 ## Install
 
 Most apps can start with:
