@@ -88,6 +88,10 @@ function creatFloating(props: {
 
             node.addHook("BeforeRemove", () => {
                 if (timer) clearTimeout(timer);
+                // Tear down the @floating-ui autoUpdate loop (scroll/resize/rAF
+                // listeners). Without this, removing the anchor while the overlay
+                // is open leaks observers that keep positioning a detached node.
+                if (cleanup) { cleanup(); cleanup = null; }
                 floatingNode && floatingNode.remove();
                 node.getRoot().domElement!.removeEventListener("click", handleOutside)
             });

@@ -91,4 +91,33 @@ describe("Notifier circular dependency detection", () => {
     expect(countA).toHaveBeenCalledTimes(1)
     expect(countB).toHaveBeenCalledTimes(1)
   })
+
+  it("allows a listener to converge its own state (self-clamp) without a false circular", async () => {
+    const count = new State(0, "count")
+    const seen: number[] = []
+
+    count.addListener((() => { if (count.get() > 10) count.set(10) }) as any) // clamp
+    count.addListener((() => { seen.push(count.get()) }) as any) // observer
+
+    count.set(15)
+    await flushMicrotasks()
+    await flushMicrotasks()
+    await flushMicrotasks()
+
+    expect(count.get()).toBe(10) // clamp applied and propagated
+    expect(seen).toContain(10)
+    expect(errorSpy).not.toHaveBeenCalled() // not dropped as a fake cycle
+  })
+
+  it("bounds a genuinely diverging self-update instead of looping forever", async () => {
+    const n = new State(0, "n")
+    n.addListener((() => { n.set(n.get() + 1) }) as any) // never converges
+
+    n.set(1)
+    let guard = 0
+    while (!errorSpy.mock.calls.length && guard++ < 200) await flushMicrotasks()
+
+    expect(errorSpy).toHaveBeenCalled() // runaway detected and stopped
+    expect(n.get()).toBeLessThan(200) // bounded
+  })
 })

@@ -30,6 +30,10 @@ function commandSearch(props: { color?: ThemeColor; accentColor?: ThemeColor } =
         },
         _onMount: (node) => {
             const ctx = node.getContext("command");
+            if (!ctx) {
+                console.warn(`"commandSearch" patch must be used inside a "command"`);
+                return;
+            }
             const input = node.domElement as HTMLInputElement;
             const onInput = () => ctx.query.set(input.value);
             input.addEventListener("input", onInput);
@@ -61,6 +65,10 @@ function commandItem(props: { color?: ThemeColor; accentColor?: ThemeColor } = {
         role: "option",
         _onMount: (node) => {
             const ctx = node.getContext("command");
+            if (!ctx) {
+                console.warn(`"commandItem" patch must be used inside a "command"`);
+                return;
+            }
             const el = node.domElement as HTMLElement;
             const text = el.textContent?.toLowerCase() ?? "";
             const release = ctx.query.addListener((q: string) => {

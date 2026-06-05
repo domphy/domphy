@@ -1,7 +1,7 @@
 import { TextNode } from "./TextNode.js";
 import { ElementNode } from "./ElementNode.js";
 import type { DomphyElement } from "../types.js";
-import { ensureDomStyle } from "../helpers.js";
+import { ensureDomStyle, getTagName } from "../helpers.js";
 
 type ElementInput = DomphyElement | null | undefined | number | string
 type NodeItem = ElementNode | TextNode;
@@ -62,33 +62,57 @@ export class ElementList {
     }
 
     if (!silent && this.owner.domElement) this.owner._hooks?.BeforeUpdate?.(this.owner, inputs);
+
+    const oldSet = new Set<NodeItem>(oldItems);
+    const claimed = new Set<NodeItem>();
+
     // build target order using existing ops (mutating this.items)
     for (let i = 0; i < inputs.length; i++) {
       const input = inputs[i];
-      const key =
-        (typeof input === "object" && input !== null) ? (input as any)._key : undefined;
+      const isObj = typeof input === "object" && input !== null;
+      const key = isObj ? (input as any)._key : undefined;
+      const tag = isObj ? getTagName(input as DomphyElement) : undefined;
 
+      // Keyed reuse: same key + same tag → reuse the node and patch it in place
+      // (preserves DOM identity/state while reflecting new data).
       if (key !== undefined) {
         const reused = keyed.get(key);
-        if (reused) {
+        if (reused instanceof ElementNode && reused.tagName === tag) {
           keyed.delete(key);
-
           const cur = this.items.indexOf(reused);
           if (cur !== i && cur >= 0) {
-            const isPortal = reused instanceof ElementNode && !!reused._portal;
+            const isPortal = !!reused._portal;
             this.move(cur, i, isPortal ? false : updateDom, true);
           }
           reused.parent = this.owner as any;
+          reused.patch(input as DomphyElement);
+          claimed.add(reused);
+          continue;
+        }
+        // key present but no tag-compatible match → fall through to insert; any
+        // stale keyed node keeps its slot in `keyed` and is removed below.
+      } else if (isObj) {
+        // Unkeyed positional reuse: reuse the old unkeyed element already sitting
+        // at this slot if its tag matches — this is what preserves focus, scroll,
+        // selection, IME and uncontrolled input values across plain list updates.
+        const at = this.items[i];
+        if (at instanceof ElementNode && at.key == null && at.tagName === tag
+            && oldSet.has(at) && !claimed.has(at)) {
+          at.parent = this.owner as any;
+          at.patch(input as DomphyElement);
+          claimed.add(at);
           continue;
         }
       }
 
-      this.insert(input, i, updateDom, true);
+      claimed.add(this.insert(input, i, updateDom, true));
     }
 
-    while (this.items.length > inputs.length) {
-      this.remove(this.items[this.items.length - 1], updateDom, true);
-    }
+    // Remove leftover nodes beyond the new length. Iterate a SNAPSHOT (not a
+    // `while length > inputs.length` loop): a removal may defer (async exit
+    // animation), leaving the node in `items`, so a length-based loop would spin.
+    const extras = this.items.slice(inputs.length);
+    for (const node of extras) this.remove(node, updateDom, true);
     keyed.forEach((node) => this.remove(node, updateDom, true));
     if (!silent) this.owner._hooks?.Update?.(this.owner);
   }
@@ -153,18 +177,28 @@ export class ElementList {
     if (index < 0) return;
 
     if (item instanceof ElementNode) {
+      // Guard against re-entrant removal of a node whose (deferred) removal is
+      // already in flight — otherwise update()'s extras + keyed passes could
+      // fire its BeforeRemove/animation twice. Synchronous removals are already
+      // guarded by the indexOf check above (the node is spliced before re-entry).
+      if (item._beforeRemoveFired) return;
       const done = () => {
         const el = item.domElement
-        this.items.splice(index, 1);
+        // Re-resolve position at completion time — a deferred (animated) removal
+        // may run after other inserts/removes have shifted indices.
+        const i = this.items.indexOf(item);
+        if (i >= 0) this.items.splice(i, 1);
         updateDom && el && el.remove()
-        item._hooks?.Remove?.(item)
-        item._dispose();
+        item._dispose(); // _dispose fires Remove + releases subscriptions for the whole subtree
       }
       if (item._hooks.BeforeRemove && item.domElement) {
         let doneCalled = false;
         const onceDone = () => { if (!doneCalled) { doneCalled = true; done(); } };
+        item._beforeRemoveFired = true; // prevent _dispose from re-firing BeforeRemove
         item._hooks.BeforeRemove(item, onceDone);
-        if (!doneCalled) onceDone();
+        // Auto-complete only for sync cleanup hooks. A hook that declares `done`
+        // (arity >= 2, e.g. an exit animation) owns completion and defers removal.
+        if ((item._hooks.BeforeRemove as Function).length < 2 && !doneCalled) onceDone();
       } else {
         done()
       }

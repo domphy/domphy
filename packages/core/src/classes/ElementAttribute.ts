@@ -10,6 +10,10 @@ export class ElementAttribute {
   value: any;
   parent: ElementNode;
   _notifier = new Notifier();
+  // Release handles for the reactive listener's state subscriptions, so a
+  // re-set (e.g. patch() replacing a reactive value) can drop the old listener
+  // instead of leaking it on the long-lived State until node removal.
+  private _releases: (() => void)[] = [];
 
   constructor(name: string, value: any, parent: any) {
     this.parent = parent;
@@ -46,15 +50,21 @@ export class ElementAttribute {
   set(value: AttributeValue): void {
     let prev = this.value;
 
+    // Drop any previous reactive subscription before (re)binding.
+    if (this._releases.length) {
+      for (const release of this._releases) release();
+      this._releases = [];
+    }
+
     if (value == null) {
       this.value = null;
-    } else if (typeof value === "string" && /<\/?[a-z][\s\S]*>/i.test(value)) {
-      this.value = escapeHTML(value);
     } else if (typeof value == "function") {
       let listener: any = () => {
         if (!this.parent || this.parent._disposed) return;
         let p = this.value;
-        this.value = this.isBoolean ? Boolean((value as Function)()) : (value as Function)();
+        // Re-pass `listener` so states read only on a later run (conditional
+        // dependencies) get subscribed too — matching children/style paths.
+        this.value = this.isBoolean ? Boolean((value as Function)(listener)) : (value as Function)(listener);
         this.render();
         if (p !== this.value) this._notifier.notify(this.name, this.value);
       };
@@ -63,6 +73,7 @@ export class ElementAttribute {
       listener.debug = `class:${this.parent?.tagName}_${this.parent?.nodeId} attribute:${this.name}`;
 
       listener.onSubscribe = (release: () => void) => {
+        this._releases.push(release);
         if (this.parent) {
           this.parent.addHook("BeforeRemove", () => {
             release();

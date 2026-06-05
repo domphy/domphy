@@ -20,10 +20,19 @@ const _microtask: (cb: () => void) => void =
         })
       }
 
+// Cap on self-re-notifications within one settle burst. A converging update
+// (clamp/normalize) reaches a fixpoint in a pass or two; anything beyond this is
+// a genuinely diverging self-feedback loop and is stopped like a cycle.
+const SELF_NOTIFY_CAP = 100
+
 export class Notifier {
   private _listeners: Record<string, Set<Handler>> | null = {}
   private _pending: Map<string, { args: unknown[], chain: ChainEntry[] }> = new Map()
   private _scheduled = false
+  // Args currently being delivered per event (used to detect a self-update fixpoint).
+  private _flushing: Map<string, unknown[]> = new Map()
+  // Self-re-notification depth in the current settle burst (runaway guard).
+  private _selfDepth = 0
 
   _dispose(): void {
     if (this._listeners) {
@@ -73,9 +82,27 @@ export class Notifier {
     if (!this._listeners) return
     if (!this._listeners[event]) return
 
-    if (this._isCircular(event)) return
+    // A listener that re-sets its OWN state mid-flush shows up as [this,event] at
+    // the TOP of the chain. That is a converging self-update (clamp/normalize),
+    // not a cross-state cycle — let it re-propagate with a fresh chain. A deeper
+    // match (intervening notifiers) is a real cycle and is still rejected.
+    const top = _chain.length ? _chain[_chain.length - 1] : null
+    const selfReentry = !!top && top[0] === this && top[1] === event
 
-    this._pending.set(event, { args, chain: [..._chain] })
+    if (selfReentry) {
+      const inflight = this._flushing.get(event)
+      // Same value as the one being delivered → fixpoint reached, stop quietly.
+      if (inflight && inflight[0] === args[0]) return
+      if (this._selfDepth >= SELF_NOTIFY_CAP) {
+        console.error(`[Domphy] Runaway self-update on "${event}" — stopped after ${SELF_NOTIFY_CAP} iterations`)
+        return
+      }
+      this._selfDepth++
+      this._pending.set(event, { args, chain: [] })
+    } else {
+      if (this._isCircular(event)) return
+      this._pending.set(event, { args, chain: [..._chain] })
+    }
 
     if (!this._scheduled) {
       this._scheduled = true
@@ -102,6 +129,8 @@ export class Notifier {
       this._flush(event, args)
     }
     _chain = []
+    // Burst settled (no self-update re-queued anything) → reset the runaway guard.
+    if (this._pending.size === 0) this._selfDepth = 0
   }
 
   private _flush(event: string, args: unknown[]): void {
@@ -110,6 +139,7 @@ export class Notifier {
     if (!listeners) return
 
     _chain.push([this, event])
+    this._flushing.set(event, args)
 
     for (const listener of [...listeners]) {
       if (!listeners.has(listener)) continue
@@ -120,6 +150,7 @@ export class Notifier {
       }
     }
 
+    this._flushing.delete(event)
     _chain.pop()
   }
 }

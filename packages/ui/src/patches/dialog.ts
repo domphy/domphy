@@ -45,7 +45,14 @@ function dialog(props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {}
                 }
             }
             update(state.get())
-            state.addListener(update)
+            const release = state.addListener(update)
+            // Release the listener on the user-provided `open` State and always
+            // restore page scroll on removal — otherwise removing an open dialog
+            // leaks the listener and leaves document.body locked at overflow:hidden.
+            node.addHook("Remove", () => {
+                release()
+                document.body.style.overflow = ""
+            })
         },
         style: {
             opacity: "0",

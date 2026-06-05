@@ -237,6 +237,33 @@ export function selectorSplitter(selectors: string) {
     return splitted;
 };
 
+export function normalizeSelectorKey(selectorText: string): string {
+    const text = selectorText.trim();
+    // At-rule headers (@media, @keyframes, @supports...) are matched
+    // whitespace-insensitive because CSSOM reformats them unpredictably.
+    if (text.startsWith("@")) return text.replace(/\s+/g, "");
+    return text
+        .replace(/\s*([>+~,])\s*/g, "$1") // tighten combinators and selector lists
+        .replace(/\s+/g, " ") // collapse descendant-combinator whitespace
+        .replace(/\(\s*odd\s*\)/g, "(2n+1)") // CSSOM serializes :nth-child(odd) as (2n+1)
+        .replace(/\(\s*even\s*\)/g, "(2n)")
+        .trim();
+}
+
+export function collectCSSRules(rules: CSSRuleList, map: Map<string, CSSRule>): Map<string, CSSRule> {
+    for (let i = 0; i < rules.length; i++) {
+        const rule = rules[i] as any;
+        let key: string | null = null;
+        if (typeof rule.selectorText === "string") {
+            key = normalizeSelectorKey(rule.selectorText);
+        } else if (typeof rule.cssText === "string" && rule.cssText.startsWith("@")) {
+            key = normalizeSelectorKey(rule.cssText.split("{")[0]);
+        }
+        if (key && !map.has(key)) map.set(key, rule as CSSRule);
+    }
+    return map;
+}
+
 export function ensureDomStyle(styleParent: HTMLHeadElement | ShadowRoot): HTMLStyleElement {
     let domStyle = styleParent.querySelector("#domphy-style") as HTMLStyleElement | null;
 

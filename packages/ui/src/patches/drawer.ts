@@ -59,7 +59,14 @@ function drawer(props: {
                 }
             };
             update(state.get());
-            state.addListener(update);
+            const release = state.addListener(update);
+            // Release the `open` State listener and restore page scroll on removal
+            // (an open drawer removed mid-transition would otherwise leak the
+            // listener and leave document.body locked at overflow:hidden).
+            node.addHook("Remove", () => {
+                release();
+                document.body.style.overflow = "";
+            });
         },
         style: {
             transform: translateOut[placement],

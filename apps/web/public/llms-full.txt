@@ -2417,6 +2417,10 @@ function commandSearch(props: { color?: ThemeColor; accentColor?: ThemeColor } =
         },
         _onMount: (node) => {
             const ctx = node.getContext("command");
+            if (!ctx) {
+                console.warn(`"commandSearch" patch must be used inside a "command"`);
+                return;
+            }
             const input = node.domElement as HTMLInputElement;
             const onInput = () => ctx.query.set(input.value);
             input.addEventListener("input", onInput);
@@ -2448,6 +2452,10 @@ function commandItem(props: { color?: ThemeColor; accentColor?: ThemeColor } = {
         role: "option",
         _onMount: (node) => {
             const ctx = node.getContext("command");
+            if (!ctx) {
+                console.warn(`"commandItem" patch must be used inside a "command"`);
+                return;
+            }
             const el = node.domElement as HTMLElement;
             const text = el.textContent?.toLowerCase() ?? "";
             const release = ctx.query.addListener((q: string) => {
@@ -2659,7 +2667,14 @@ function dialog(props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {}
                 }
             }
             update(state.get())
-            state.addListener(update)
+            const release = state.addListener(update)
+            // Release the listener on the user-provided `open` State and always
+            // restore page scroll on removal — otherwise removing an open dialog
+            // leaks the listener and leaves document.body locked at overflow:hidden.
+            node.addHook("Remove", () => {
+                release()
+                document.body.style.overflow = ""
+            })
         },
         style: {
             opacity: "0",
@@ -2794,7 +2809,14 @@ function drawer(props: {
                 }
             };
             update(state.get());
-            state.addListener(update);
+            const release = state.addListener(update);
+            // Release the `open` State listener and restore page scroll on removal
+            // (an open drawer removed mid-transition would otherwise leak the
+            // listener and leave document.body locked at overflow:hidden).
+            node.addHook("Remove", () => {
+                release();
+                document.body.style.overflow = "";
+            });
         },
         style: {
             transform: translateOut[placement],
@@ -2858,6 +2880,10 @@ function field(path: string, validator?: FieldValidator): PartialElement {
   return {
     _onInsert: (node) => {
       const state = node.getContext("form") as FormState;
+      if (!state) {
+        console.warn(`"field" patch must be used inside a "form"`);
+        return;
+      }
       const f = state.setField(path, undefined, validator);
       const tag = node.tagName;
       const type = node.attributes.get("type") as string | undefined;
@@ -4094,9 +4120,14 @@ function menuItem(props: {
       }
 
       let context = node.getContext("menu");
-      let children = node.parent?.children.items as ElementNode[];
+      if (!context) {
+        console.warn(`"menuItem" patch must be used inside a "menu"`);
+        return;
+      }
+      let children = (node.parent?.children.items ?? []) as ElementNode[];
       children = children.filter(n => n.type == "ElementNode" && n.attributes.get("role") == "menuitem");
-      let key = node.key || children.findIndex(n => n == node);
+      // Strict key check: an explicit _key of 0 or "" must not fall back to index.
+      let key = node.key !== null && node.key !== undefined ? node.key : children.findIndex(n => n == node);
       if (context.selectable) {
         node.attributes.set("ariaCurrent", (listener) => context.activeKey.get(listener) == key || undefined)
         node.addEvent("click", () => context.activeKey.set(key))
@@ -5014,6 +5045,10 @@ function splitterPanel(): PartialElement {
     return {
         _onMount: (node) => {
             const ctx = node.getContext("splitter");
+            if (!ctx) {
+                console.warn(`"splitterPanel" patch must be used inside a "splitter"`);
+                return;
+            }
             const el = node.domElement as HTMLElement;
             const prop = ctx.direction === "horizontal" ? "width" : "height";
 
@@ -5033,6 +5068,10 @@ function splitterHandle(): PartialElement {
     return {
         _onMount: (node) => {
             const ctx = node.getContext("splitter");
+            if (!ctx) {
+                console.warn(`"splitterHandle" patch must be used inside a "splitter"`);
+                return;
+            }
             const handle = node.domElement as HTMLElement;
             const isHorizontal = ctx.direction === "horizontal";
 
@@ -5187,9 +5226,13 @@ function tab(props: {
       }
 
       let context = node.getContext("tabs")
-      let children = node.parent?.children.items as ElementNode[]
+      if (!context) {
+        console.warn(`"tab" patch must be used inside a "tabs"`);
+        return;
+      }
+      let children = (node.parent?.children.items ?? []) as ElementNode[]
       children = children.filter(n => n.type == "ElementNode" && n.attributes.get("role") == "tab")
-      let key = node.key || children.findIndex(n => n == node)
+      let key = node.key !== null && node.key !== undefined ? node.key : children.findIndex(n => n == node)
 
       let part: PartialElement = {
         id: "tab" + node.parent!.nodeId + key,
@@ -5260,9 +5303,13 @@ function tabPanel(): PartialElement {
     },
     _onInsert: (node) => {
       let context = node.getContext("tabs")
-      let children = node.parent?.children.items as ElementNode[]
+      if (!context) {
+        console.warn(`"tabPanel" patch must be used inside a "tabs"`);
+        return;
+      }
+      let children = (node.parent?.children.items ?? []) as ElementNode[]
       children = children.filter(n => n.type == "ElementNode" && n.attributes.get("role") == "tabpanel")
-      let key = node.key || children.findIndex(n => n == node)
+      let key = node.key !== null && node.key !== undefined ? node.key : children.findIndex(n => n == node)
       let part: PartialElement = {
         id: "tabpanel" + node.parent!.nodeId + key,
         "ariaLabelledby": "tab" + node.parent!.nodeId + key,
@@ -5603,10 +5650,16 @@ function toggle(props: {
                 console.warn(`"toggle" patch must use button tag`);
             }
             const ctx = node.getContext("toggleGroup");
-            const children = node.parent?.children.items as ElementNode[]
+            if (!ctx) {
+                console.warn(`"toggle" patch must be used inside a "toggleGroup"`);
+                return;
+            }
+            const children = (node.parent?.children.items ?? []) as ElementNode[]
 
             let items = children.filter(n => n.type === "ElementNode" && n.attributes.get("role") === "button");
-            const key = node.key !== undefined ? String(node.key) : String(items.findIndex(n => n === node));
+            // node.key is null (not undefined) when absent — check both so an
+            // explicit _key of 0 or "" keeps its real key instead of "null"/index.
+            const key = node.key !== null && node.key !== undefined ? String(node.key) : String(items.findIndex(n => n === node));
 
             node.attributes.set("ariaPressed", (listener) => {
                 const val = ctx.value.get(listener);

@@ -7,6 +7,11 @@ import light from "./light.js";
 // ThemeInput is plain JSON (no Map/Set/Date/typed arrays).
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 
+// Custom-token keys may contain CSS-illegal characters (e.g. "radius/sm/lg").
+// Map every illegal char to "_" so the declared property name and the var()
+// reference always agree and stay valid CSS.
+const escapeKey = (k: string): string => k.replace(/[^a-zA-Z0-9_-]/g, "_");
+
 const themes: Record<string, ThemeInput> = {
   light: clone(light),
   dark: createDark(light),
@@ -77,15 +82,14 @@ function buildThemeCSS(name: string, input: ThemeInput): string {
       [...Array(8).keys()].forEach(i =>
         styles[`--fontSize-${i}`] = input.fontSizes[i]
       );
-    } else if (key === "densities") {
-      continue;
-    } else {
-      if (typeof value === "object" && value !== null) {
-        for (const k in value) {
-          styles[`--${key}-${k.replace("/", "_")}`] = (value as Record<string, string>)[k];
+    } else if (key === "custom") {
+      if (value && typeof value === "object") {
+        for (const k in value as Record<string, string>) {
+          styles[`--custom-${escapeKey(k)}`] = (value as Record<string, string>)[k];
         }
       }
     }
+    // densities / baseTones / direction / darkBias are not CSS custom properties
   }
 
   let text = "";
@@ -136,14 +140,15 @@ export function themeTokens(name: string): Record<string, any> {
       tokens.fontSizes = input.fontSizes;
     } else if (key === "densities") {
       tokens.densities = input.densities;
-    } else {
-      tokens[key] = {} as any;
-      if (typeof value === "object" && value !== null) {
-        for (const k in value) {
-          tokens[key][k] = (value as Record<string, string>)[k];
+    } else if (key === "custom") {
+      tokens.custom = {};
+      if (value && typeof value === "object") {
+        for (const k in value as Record<string, string>) {
+          tokens.custom[k] = (value as Record<string, string>)[k];
         }
       }
     }
+    // baseTones / direction / darkBias are metadata — reachable via getTheme(), not tokens
   }
 
   return tokens;
@@ -155,7 +160,6 @@ export function themeVars(): ThemeVars {
   let theme = {} as ThemeVars;
 
   for (const key in input) {
-    const section = key as keyof ThemeVars;
     const value = input[key as keyof ThemeInput];
 
     if (key === "colors") {
@@ -166,16 +170,15 @@ export function themeVars(): ThemeVars {
       }
     } else if (key === "fontSizes") {
       theme.fontSizes = [...Array(8).keys()].map(i => `var(--fontSize-${i})`);
-    } else if (key === "densities") {
-      continue;
-    } else {
-      theme[section] = {} as ThemeVars[typeof section];
-      if (typeof value === "object" && value !== null) {
-        for (const k in value) {
-          (theme[section] as Record<string, string>)[k] = `var(--${section as string}-${k.replace("/", "_")})`;
+    } else if (key === "custom") {
+      theme.custom = {} as Record<string, string>;
+      if (value && typeof value === "object") {
+        for (const k in value as Record<string, string>) {
+          theme.custom[k] = `var(--custom-${escapeKey(k)})`;
         }
       }
     }
+    // densities / baseTones / direction / darkBias are not exposed as CSS vars
   }
 
   return theme;

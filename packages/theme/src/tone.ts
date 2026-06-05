@@ -25,7 +25,9 @@ function shiftTone(tone: number, level: number): number {
     if (tone < 0 || tone > TONE_STEPS - 1) return tone
     let midpoint = Math.floor((TONE_STEPS - 1) / 2)
     let newIndex = tone <= midpoint ? tone + level : tone - level
-    newIndex = newIndex < 0 || newIndex > TONE_STEPS - 1 ? - newIndex : newIndex
+    // Clamp overshoot to the near boundary. (Negating an out-of-range index, as
+    // a prior version did, flips it to the opposite extreme — e.g. shift past
+    // the dark end would land on the lightest tone.)
     newIndex = Math.max(0, Math.min(TONE_STEPS - 1, newIndex));
     return newIndex
 }
@@ -92,20 +94,23 @@ export function themeColor(object: ElementNode | Listener | null, tone: ElementT
     let themeColor = color == "inherit" ? "neutral" : color;
 
     if (!object) {
+        // No node context implies the light theme (themeVars reads getTheme("light")).
+        if (tone == "base") return themeVars()[themeColor][getTheme("light").baseTones[themeColor]]
         return themeVars()[themeColor][offsetTone(0, tone)]
     }
 
+    const name = themeName(object)
     let resultTone: number
     if (tone == "base") {
-        resultTone = getTheme(themeName(object)).baseTones[themeColor]
+        resultTone = getTheme(name).baseTones[themeColor]
     } else {
-        let theme = getTheme(themeName(object))
+        let theme = getTheme(name)
         let context = biasContext(contextTone(object), theme.direction, theme.darkBias)
         resultTone = offsetTone(context, tone)
     }
     let colors = themeVars()[themeColor]
     if (!colors){
-        throw Error(`color "${JSON.stringify(themeColor)}" not found on theme "${themeName(object)}`)
+        throw Error(`color "${themeColor}" not found on theme "${name}"`)
     }
     let resultColor = colors[resultTone]
 
@@ -119,6 +124,7 @@ export function themeColorToken(object: ElementNode | Listener | null, tone: Ele
     let tokens = themeTokens(name);
 
     if (!object) {
+        if (tone == "base") return tokens[colorName][getTheme("light").baseTones[colorName]]
         return tokens[colorName][offsetTone(0, tone)]
     }
 

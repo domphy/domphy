@@ -2,12 +2,13 @@ import type { DomphyElement, EventName, HookMap, TagName, PartialElement } from 
 import { AttributeList } from "./AttributeList.js";
 import { ElementList } from "./ElementList.js";
 import { StyleList } from "./StyleList.js";
-import { validate, mergePartial, getTagName, deepClone, ensureDomStyle } from "../helpers.js";
+import { validate, mergePartial, getTagName, deepClone, ensureDomStyle, collectCSSRules } from "../helpers.js";
 import { merge, hashString } from "../utils.js";
-import { SvgTags } from "../constants.js"
+import { SvgTags, VoidTags } from "../constants.js"
 
 export class ElementNode {
   _disposed = false
+  _beforeRemoveFired = false
   type = "ElementNode"
   parent: ElementNode | null = null;
   _portal?: (root: ElementNode) => HTMLElement;
@@ -18,6 +19,7 @@ export class ElementNode {
   domElement?: HTMLElement | null = null;
   _hooks: HookMap = {};
   _events?: { [K in EventName]?: (event: Event, node: ElementNode) => void } | null = null;
+  _boundEvents = new Set<EventName>();
   _context?: Record<string, any> = {};
   _metadata?: Record<string, any> = {};
   key?: string | number | null = null;
@@ -78,16 +80,7 @@ export class ElementNode {
     this.domElement = node as HTMLElement
 
     if (this._events) {
-      for (const key in this._events) {
-        const eventName = key as EventName;
-        const handler = this._events[eventName] as (event: Event, node: ElementNode) => void;
-        let fn: any = (event: Event) => handler(event, this)
-        node.addEventListener(eventName, fn)
-        this.addHook("BeforeRemove", (n) => {
-          n.domElement!.removeEventListener(eventName, fn)
-          fn = null
-        })
-      }
+      for (const key in this._events) this._bindEvent(key as EventName)
     }
 
     if (this.attributes) {
@@ -96,10 +89,35 @@ export class ElementNode {
     return node
   }
 
+  // Bind a DOM listener that dispatches LIVE from this._events, so patch() can
+  // swap the handler (e.g. a list item's onClick closure after its data changes)
+  // without detaching/reattaching the DOM listener.
+  _bindEvent(eventName: EventName): void {
+    if (!this.domElement || this._boundEvents.has(eventName)) return
+    this._boundEvents.add(eventName)
+    let fn: any = (event: Event) => this._events?.[eventName]?.(event, this)
+    this.domElement.addEventListener(eventName, fn)
+    this.addHook("BeforeRemove", (n) => {
+      n.domElement?.removeEventListener(eventName, fn)
+      fn = null
+    })
+  }
+
   _dispose(): void {
+    if (this._disposed) return
     this._disposed = true
+
+    // Fire BeforeRemove so reactive-listener releases (registered as BeforeRemove
+    // hooks via onSubscribe) actually run for this node. Descendants are torn
+    // down through this recursive _dispose — not through ElementList.remove — so
+    // without this their subscriptions to long-lived State/RecordState leak.
+    // Skip if the async-removal path in ElementList already fired it.
+    if (!this._beforeRemoveFired) {
+      this._beforeRemoveFired = true
+      this._hooks.BeforeRemove?.(this, () => { })
+    }
+
     if (this.children) {
-      
       this.children._dispose();
     }
 
@@ -111,6 +129,9 @@ export class ElementNode {
     if (this.attributes) {
       this.attributes._dispose();
     }
+
+    // _onRemove fires for every node in the subtree, not just the directly-removed one.
+    this._hooks.Remove?.(this)
 
     this.domElement = null;
     this._hooks = {};
@@ -146,6 +167,65 @@ export class ElementNode {
     }
 
   }
+
+  // Update this live node IN PLACE from a fresh element description, preserving
+  // its DOM element (and thus focus/scroll/selection/uncontrolled value) and its
+  // children's identity. Used by list reconciliation to reuse a node by key
+  // (keyed) or position (unkeyed) while reflecting new data, instead of
+  // destroying and recreating the DOM. Styles and lifecycle hooks are NOT
+  // re-applied (reused items share structure; hooks already ran). Reactive
+  // content (a function child) keeps its own listener and is left untouched.
+  patch(rawElement: DomphyElement): void {
+    let element: any = deepClone(rawElement)
+    element.style = element.style || {}
+    element = mergePartial(element)
+
+    // Children / content — recurse so grandchildren are reused/patched too.
+    const content = element[this.tagName]
+    if (typeof content !== "function") {
+      const next = content == null ? [] : Array.isArray(content) ? content : [content]
+      this.children.update(next, !!this.domElement, true)
+    }
+
+    if (element._context) merge(this._context, element._context)
+    if (element._metadata) merge(this._metadata, element._metadata)
+
+    // Rebuild attributes and events. Events are replaced (live dispatch in
+    // _bindEvent reads this._events, so swapping the map is enough); attributes
+    // present before but absent now are removed; the auto scope class is kept.
+    const autoClass = `${this.tagName}_${this.nodeId}`
+    const reserved = ["$", "_onSchedule", "_key", "_context", "_metadata", "style", this.tagName]
+    const hookKeys = ["_onInit", "_onInsert", "_onMount", "_onBeforeUpdate", "_onUpdate", "_onBeforeRemove", "_onRemove"]
+    const keep = new Set<string>(["class"])
+    let userClass: string | null = null
+
+    this._events = {}
+    for (const key of Object.keys(element)) {
+      if (reserved.includes(key) || hookKeys.includes(key) || key === "_portal") continue
+      const value = element[key]
+      if (key.startsWith("on") && typeof value === "function") {
+        this.addEvent(key.substring(2).toLowerCase() as EventName, value)
+      } else if (key === "class" && typeof value === "string") {
+        userClass = value
+      } else {
+        this.attributes!.set(key, value)
+        keep.add(key)
+      }
+    }
+
+    this.attributes!.set("class", userClass ? `${autoClass} ${userClass}` : autoClass)
+
+    if (this.attributes!.items) {
+      for (const name of Object.keys(this.attributes!.items)) {
+        if (!keep.has(name)) this.attributes!.remove(name)
+      }
+    }
+
+    if (this._events) {
+      for (const key in this._events) this._bindEvent(key as EventName)
+    }
+  }
+
   addEvent(name: EventName, callback: (event: Event, node: ElementNode) => void): void {
 
     this._events = this._events || {}
@@ -165,10 +245,20 @@ export class ElementNode {
     const current = this._hooks[name];
 
     if (typeof current === "function") {
-      this._hooks[name] = ((...args: any[]) => {
+      const composed = ((...args: any[]) => {
         (current as Function)(...args);
         (callback as Function)(...args);
       }) as HookMap[K];
+      // Preserve the maximum declared arity across composed hooks. Removal logic
+      // inspects BeforeRemove.length (>= 2 means the hook owns `done()`, e.g. an
+      // exit animation); a naive (...args) wrapper would report 0 and break that.
+      try {
+        Object.defineProperty(composed, "length", {
+          value: Math.max((current as Function).length, (callback as Function).length),
+          configurable: true,
+        });
+      } catch { /* length non-configurable on some engines — best effort */ }
+      this._hooks[name] = composed;
     } else {
       this._hooks[name] = callback;
     }
@@ -213,8 +303,13 @@ export class ElementNode {
 
   generateHTML(): string {
     if (!this.children || !this.attributes) return "";
-    let content = this.children.generateHTML();
     const attributes = this.attributes.generateHTML();
+    // Void elements must not emit a closing tag — `<br></br>` is parsed by the
+    // HTML tokenizer as two <br>, which corrupts hydration child alignment.
+    if ((VoidTags as readonly string[]).includes(this.tagName)) {
+      return `<${this.tagName}${attributes}>`;
+    }
+    const content = this.children.generateHTML();
     return `<${this.tagName}${attributes}>${content}</${this.tagName}>`;
   }
 
@@ -223,28 +318,43 @@ export class ElementNode {
     this.domElement = domElement;
 
     if (this._events) {
-      for (const key in this._events) {
-        const eventName = key as EventName;
-        const handler = this._events[eventName] as (event: Event, node: ElementNode) => void;
-        let fn: any = (event: Event) => handler(event, this)
-        domElement.addEventListener(eventName, fn)
-        this.addHook("BeforeRemove", (n) => {
-          n.domElement!.removeEventListener(eventName, fn)
-          fn = null
-        })
-      }
+      for (const key in this._events) this._bindEvent(key as EventName)
     }
 
     if (this.children) {
       this.children.items.forEach((child, i) => {
         const childNode = domElement.childNodes[i];
-        if (childNode instanceof Node && child instanceof ElementNode) {
-          child.mount(childNode as HTMLElement, domStyle);
+        if (!childNode) return;
+        if (child instanceof ElementNode) {
+          child.mount(childNode as HTMLElement);
+        } else {
+          // Bind the server-rendered text/inline-HTML node so that reactive
+          // child updates after hydration can locate and replace it.
+          child.domText = childNode;
         }
       });
     }
 
+    // Attach reactive style declarations to the server-rendered stylesheet so
+    // post-hydration updates mutate the existing CSSOM rules instead of being
+    // silently dropped (StyleProperty._domUpdate needs a bound domRule). Done
+    // once from the call that received the style element, walking the whole
+    // subtree because per-node selectors are globally unique.
+    if (domStyle) {
+      const sheet = domStyle.sheet;
+      if (sheet) this._hydrateStyles(collectCSSRules(sheet.cssRules, new Map()));
+    }
+
     this._hooks.Mount && this._hooks.Mount(this)
+  }
+
+  _hydrateStyles(domRuleMap: Map<string, CSSRule>): void {
+    this.styles?.hydrate(domRuleMap);
+    if (this.children) {
+      for (const child of this.children.items) {
+        if (child instanceof ElementNode) child._hydrateStyles(domRuleMap);
+      }
+    }
   }
 
   render(domElement: HTMLElement | SVGElement | DocumentFragment): HTMLElement | SVGElement {
@@ -270,10 +380,22 @@ export class ElementNode {
   remove() {
     if (this.parent) {
       this.parent.children.remove(this)
-
     } else {
-      this.domElement?.remove()
-      this._dispose();
+      // Root removal must also run BeforeRemove/Remove (and release reactive
+      // subscriptions across the whole tree via _dispose), honoring async done().
+      const done = () => {
+        this.domElement?.remove()
+        this._dispose()
+      }
+      if (this._hooks.BeforeRemove && this.domElement) {
+        let called = false
+        const once = () => { if (!called) { called = true; done() } }
+        this._beforeRemoveFired = true
+        this._hooks.BeforeRemove(this, once)
+        if ((this._hooks.BeforeRemove as Function).length < 2 && !called) once()
+      } else {
+        done()
+      }
     }
   }
 }

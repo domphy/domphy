@@ -18,9 +18,13 @@ function tab(props: {
       }
 
       let context = node.getContext("tabs")
-      let children = node.parent?.children.items as ElementNode[]
+      if (!context) {
+        console.warn(`"tab" patch must be used inside a "tabs"`);
+        return;
+      }
+      let children = (node.parent?.children.items ?? []) as ElementNode[]
       children = children.filter(n => n.type == "ElementNode" && n.attributes.get("role") == "tab")
-      let key = node.key || children.findIndex(n => n == node)
+      let key = node.key !== null && node.key !== undefined ? node.key : children.findIndex(n => n == node)
 
       let part: PartialElement = {
         id: "tab" + node.parent!.nodeId + key,

@@ -14,10 +14,16 @@ function toggle(props: {
                 console.warn(`"toggle" patch must use button tag`);
             }
             const ctx = node.getContext("toggleGroup");
-            const children = node.parent?.children.items as ElementNode[]
+            if (!ctx) {
+                console.warn(`"toggle" patch must be used inside a "toggleGroup"`);
+                return;
+            }
+            const children = (node.parent?.children.items ?? []) as ElementNode[]
 
             let items = children.filter(n => n.type === "ElementNode" && n.attributes.get("role") === "button");
-            const key = node.key !== undefined ? String(node.key) : String(items.findIndex(n => n === node));
+            // node.key is null (not undefined) when absent — check both so an
+            // explicit _key of 0 or "" keeps its real key instead of "null"/index.
+            const key = node.key !== null && node.key !== undefined ? String(node.key) : String(items.findIndex(n => n === node));
 
             node.attributes.set("ariaPressed", (listener) => {
                 const val = ctx.value.get(listener);

@@ -1,5 +1,5 @@
 import { ElementNode } from "./ElementNode.js";
-import { isHTML } from "../helpers.js";
+import { isHTML, escapeHTML } from "../helpers.js";
 
 export class TextNode {
   type = "TextNode"
@@ -30,7 +30,12 @@ export class TextNode {
   }
 
   generateHTML(): string {
-    return this.text === "\u200B" ? "&#8203;" : this.text;
+    if (this.text === "\u200B") return "&#8203;";
+    // Mirror _createDOMNode: a single-root HTML string is intentional inline
+    // HTML, anything else is plain text and must be escaped so the server
+    // output is XSS-safe and parses back to the same text node the client
+    // builds (otherwise hydration child alignment drifts).
+    return isHTML(this.text) ? this.text : escapeHTML(this.text);
   }
 
   render(domText: ChildNode | DocumentFragment | HTMLElement): void {

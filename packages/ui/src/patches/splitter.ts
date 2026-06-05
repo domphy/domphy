@@ -33,6 +33,10 @@ function splitterPanel(): PartialElement {
     return {
         _onMount: (node) => {
             const ctx = node.getContext("splitter");
+            if (!ctx) {
+                console.warn(`"splitterPanel" patch must be used inside a "splitter"`);
+                return;
+            }
             const el = node.domElement as HTMLElement;
             const prop = ctx.direction === "horizontal" ? "width" : "height";
 
@@ -52,6 +56,10 @@ function splitterHandle(): PartialElement {
     return {
         _onMount: (node) => {
             const ctx = node.getContext("splitter");
+            if (!ctx) {
+                console.warn(`"splitterHandle" patch must be used inside a "splitter"`);
+                return;
+            }
             const handle = node.domElement as HTMLElement;
             const isHorizontal = ctx.direction === "horizontal";
 

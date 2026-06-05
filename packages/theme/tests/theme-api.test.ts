@@ -16,7 +16,7 @@ function createAttributes(values: Record<string, string> = {}) {
   return {
     get: (key: string) => values[key],
     has: (key: string) => Object.prototype.hasOwnProperty.call(values, key),
-    onChange: vi.fn(),
+    addListener: vi.fn(),
   };
 }
 
@@ -83,7 +83,7 @@ describe("theme size/tone helpers", () => {
     const resolved = themeName(listener as any);
 
     expect(resolved).toBe("dark");
-    expect(root.attributes.onChange).toHaveBeenCalledWith("dataTheme", listener);
+    expect(root.attributes.addListener).toHaveBeenCalledWith("dataTheme", listener);
   });
 
   it("resolves size from inherited dataSize and local offset", () => {
@@ -108,9 +108,50 @@ describe("theme size/tone helpers", () => {
     const node = createNode({}, toneRoot);
 
     expect(themeColor(node as any, "inherit", "neutral")).toBe("var(--neutral-1)");
-    expect(themeColor(node as any, "base", "primary")).toBe("var(--primary-5)");
+    // dark primary base = lastIndex(17) - light base(9) = 8 (see dark-derivation test above)
+    expect(themeColor(node as any, "base", "primary")).toBe("var(--primary-8)");
 
     expect(themeColor(null, "shift-2", "primary")).toBe("var(--primary-2)");
     expect(() => themeColor(null, "bad-tone" as any, "primary")).toThrow(/tone name/);
+  });
+
+  it("resolves 'base' tone without a node context (light theme base tone)", () => {
+    expect(themeColor(null, "base", "primary")).toBe("var(--primary-9)");
+    expect(themeColor(null, "base", "neutral")).toBe("var(--neutral-8)");
+  });
+
+  it("clamps shift overshoot to the far boundary instead of flipping to the opposite extreme", () => {
+    // context 8 (midpoint) + shift-12 overshoots to 20 -> clamp to 17, NOT flip to 0
+    const ctx = createNode({ dataTone: "increase-8" });
+    const node = createNode({}, ctx);
+    expect(themeColor(node as any, "shift-12", "primary")).toBe("var(--primary-17)");
+    expect(themeColor(node as any, "shift-12", "primary")).not.toBe("var(--primary-0)");
+  });
+});
+
+describe("theme CSS generation hygiene", () => {
+  it("does not emit baseTones/direction/darkBias as CSS custom properties", () => {
+    const css = themeCSS();
+    expect(css).not.toContain("baseTones");
+    expect(css).not.toContain("--direction");
+    expect(css).not.toContain("--darkBias");
+  });
+
+  it("escapes every illegal char in custom token keys (not just the first slash)", () => {
+    const name = `vitest-esc-${Math.random().toString(36).slice(2)}`;
+    setTheme(name, { custom: { "radius/sm/lg": "3px", "gap x": "1px" } });
+    const css = themeCSS();
+    expect(css).toContain("--custom-radius_sm_lg: 3px;");
+    expect(css).toContain("--custom-gap_x: 1px;");
+    expect(css).not.toMatch(/--custom-radius_sm\/lg/);
+  });
+
+  it("themeVars exposes only colors/fontSizes/custom (no phantom metadata sections)", () => {
+    const vars = themeVars() as Record<string, unknown>;
+    expect(vars.baseTones).toBeUndefined();
+    expect(vars.direction).toBeUndefined();
+    expect(vars.darkBias).toBeUndefined();
+    expect(vars.primary).toBeDefined();
+    expect(vars.fontSizes).toBeDefined();
   });
 });

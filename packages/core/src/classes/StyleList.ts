@@ -1,5 +1,5 @@
 import { ElementNode } from "./ElementNode.js";
-import { selectorSplitter } from "../helpers.js";
+import { selectorSplitter, normalizeSelectorKey } from "../helpers.js";
 import { StyleRule } from "./StyleRule.js";
 
 export class StyleList {
@@ -90,6 +90,14 @@ export class StyleList {
       this.items.push(rule);
     }
     return rule;
+  }
+
+  hydrate(domRuleMap: Map<string, CSSRule>): void {
+    if (!this.items) return;
+    for (const rule of this.items) {
+      const domRule = domRuleMap.get(normalizeSelectorKey(rule.selectorText));
+      if (domRule) rule.mount(domRule as CSSRule);
+    }
   }
 
   mount(domRuleList: CSSRuleList): void {

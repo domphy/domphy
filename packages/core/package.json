@@ -1,15 +1,15 @@
 {
   "name": "@domphy/core",
-  "version": "0.1.12",
+  "version": "0.2.0",
   "description": "Domphy Core UI Framework",
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+      "require": { "types": "./dist/index.d.cts", "default": "./dist/index.cjs" }
     }
   },
   "scripts": {
@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "csstype": "^3.2.3",
+    "jsdom": "^29.1.1",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "vitest": "^4.0.18"

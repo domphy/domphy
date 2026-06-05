@@ -10,9 +10,13 @@ function tabPanel(): PartialElement {
     },
     _onInsert: (node) => {
       let context = node.getContext("tabs")
-      let children = node.parent?.children.items as ElementNode[]
+      if (!context) {
+        console.warn(`"tabPanel" patch must be used inside a "tabs"`);
+        return;
+      }
+      let children = (node.parent?.children.items ?? []) as ElementNode[]
       children = children.filter(n => n.type == "ElementNode" && n.attributes.get("role") == "tabpanel")
-      let key = node.key || children.findIndex(n => n == node)
+      let key = node.key !== null && node.key !== undefined ? node.key : children.findIndex(n => n == node)
       let part: PartialElement = {
         id: "tabpanel" + node.parent!.nodeId + key,
         "ariaLabelledby": "tab" + node.parent!.nodeId + key,

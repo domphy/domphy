@@ -6,6 +6,10 @@ function field(path: string, validator?: FieldValidator): PartialElement {
   return {
     _onInsert: (node) => {
       const state = node.getContext("form") as FormState;
+      if (!state) {
+        console.warn(`"field" patch must be used inside a "form"`);
+        return;
+      }
       const f = state.setField(path, undefined, validator);
       const tag = node.tagName;
       const type = node.attributes.get("type") as string | undefined;

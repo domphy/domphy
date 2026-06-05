@@ -5,6 +5,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
+    "test": "pnpm -r test",
     "check": "biome check .",
     "fix": "biome check --write .",
     "publish:core": "cd packages/core && pnpm publish --access public --no-git-checks",

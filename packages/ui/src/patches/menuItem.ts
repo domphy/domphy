@@ -18,9 +18,14 @@ function menuItem(props: {
       }
 
       let context = node.getContext("menu");
-      let children = node.parent?.children.items as ElementNode[];
+      if (!context) {
+        console.warn(`"menuItem" patch must be used inside a "menu"`);
+        return;
+      }
+      let children = (node.parent?.children.items ?? []) as ElementNode[];
       children = children.filter(n => n.type == "ElementNode" && n.attributes.get("role") == "menuitem");
-      let key = node.key || children.findIndex(n => n == node);
+      // Strict key check: an explicit _key of 0 or "" must not fall back to index.
+      let key = node.key !== null && node.key !== undefined ? node.key : children.findIndex(n => n == node);
       if (context.selectable) {
         node.attributes.set("ariaCurrent", (listener) => context.activeKey.get(listener) == key || undefined)
         node.addEvent("click", () => context.activeKey.set(key))
