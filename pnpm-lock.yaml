@@ -145,6 +145,24 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.9.2)(jiti@1.21.7)(jsdom@29.1.1)(lightningcss@1.32.0)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
 
+  packages/doctor:
+    devDependencies:
+      '@domphy/core':
+        specifier: workspace:*
+        version: link:../core
+      '@types/node':
+        specifier: ^25.9.2
+        version: 25.9.2
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(@microsoft/api-extractor@7.47.7(@types/node@25.9.2))(@swc/core@1.15.3(@swc/helpers@0.5.19))(jiti@1.21.7)(postcss@8.5.15)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@25.9.2)(jiti@1.21.7)(jsdom@29.1.1)(lightningcss@1.32.0)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+
   packages/form:
     dependencies:
       '@tanstack/devtools-event-client':
