@@ -1,6 +1,6 @@
 import type { DomphyElement } from "@domphy/core";
-import { createVirtualizer } from "@domphy/virtual/domphy";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { createVirtualizer } from "@domphy/virtual/domphy";
 
 const rows = Array.from({ length: 10000 }, (_, i) => `Row #${i + 1}`);
 
@@ -46,8 +46,7 @@ const App: DomphyElement<"div"> = {
     outline: (l) => `1px solid ${themeColor(l, "shift-4")}`,
     borderRadius: themeSpacing(2),
   },
-  _onMount: (node) =>
-    list.setScrollElement(node.domElement as HTMLDivElement),
+  _onMount: (node) => list.setScrollElement(node.domElement as HTMLDivElement),
   _onRemove: () => list.destroy(),
 };
 
