@@ -1,6 +1,6 @@
 {
   "name": "@domphy/query",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Domphy Query - async state management, a 1-1 port of @tanstack/query-core",
   "type": "module",
   "sideEffects": false,
