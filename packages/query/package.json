@@ -16,6 +16,16 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
+    },
+    "./domphy": {
+      "import": {
+        "types": "./dist/domphy.d.ts",
+        "default": "./dist/domphy.js"
+      },
+      "require": {
+        "types": "./dist/domphy.d.cts",
+        "default": "./dist/domphy.cjs"
+      }
     }
   },
   "scripts": {
@@ -40,7 +50,11 @@
     "url": "https://github.com/domphy/domphy.git",
     "directory": "packages/query"
   },
+  "peerDependencies": {
+    "@domphy/core": "workspace:^"
+  },
   "devDependencies": {
+    "@domphy/core": "workspace:*",
     "@types/node": "^25.9.2",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
