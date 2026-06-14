@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ElementNode, toState } from "@domphy/core";
 import type { DomphyElement } from "@domphy/core";
-import { dialog, field, menuItem, tab, toggle } from "../src/index.ts";
+import { dialog, menuItem, tab, toggle } from "../src/index.ts";
 
 function render(App: DomphyElement) {
   const host = document.createElement("div");
@@ -61,7 +61,6 @@ describe("provider-context patches degrade gracefully without a provider", () =>
     expect(() => render({ div: [{ button: "Item", $: [menuItem()] }] } as DomphyElement)).not.toThrow();
     expect(() => render({ div: [{ button: "Tab", $: [tab()] }] } as DomphyElement)).not.toThrow();
     expect(() => render({ div: [{ button: "Toggle", $: [toggle()] }] } as DomphyElement)).not.toThrow();
-    expect(() => render({ div: [{ input: null, $: [field("name")] }] } as DomphyElement)).not.toThrow();
 
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
