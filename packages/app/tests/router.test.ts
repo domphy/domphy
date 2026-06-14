@@ -62,6 +62,16 @@ function buildRoutes(): Route[] {
           },
           page: (context) => ({ h1: `Cached ${context.data}` }),
         },
+        {
+          path: "swr",
+          revalidate: 0.01,
+          loader: () => {
+            loaderCalls.push("swr");
+            const count = loaderCalls.filter((call) => call === "swr").length;
+            return `v${count}`;
+          },
+          page: (context) => ({ h1: `SWR ${context.data}` }),
+        },
         { path: "old", redirect: "/about" },
         {
           path: "private",
@@ -159,6 +169,24 @@ describe("AppRouter", () => {
     await flush();
     expect(container.textContent).toContain("Cached cached-data");
     expect(loaderCalls).toEqual(["cached"]);
+  });
+
+  it("serves stale data then revalidates in the background (SWR)", async () => {
+    await startApp();
+    await app.router.navigate("/swr");
+    await flush();
+    expect(container.textContent).toContain("SWR v1");
+    expect(loaderCalls.filter((call) => call === "swr").length).toBe(1);
+
+    await flush(20); // entry passes the 10ms revalidate window
+
+    await app.router.navigate("/about");
+    await app.router.navigate("/swr"); // serves stale v1, refetches in background
+    await flush();
+    await flush(20); // let the background revalidation re-render
+
+    expect(loaderCalls.filter((call) => call === "swr").length).toBe(2);
+    expect(container.textContent).toContain("SWR v2");
   });
 
   it("re-runs loaders on refresh()", async () => {

@@ -85,6 +85,8 @@ export class AppRouter {
   private navigationToken = 0;
   private releaseHistory: (() => void) | null = null;
   private currentMatch: RouteMatch | null = null;
+  /** Cache keys backing the current render, used to drive stale-while-revalidate re-renders. */
+  private currentRenderKeys = new Set<string>();
   /** Metadata resolved for the current route, exposed for server rendering. */
   metadata: ResolvedMetadata = {};
   /** The last redirect followed during a transition, exposed for server rendering. */
@@ -114,7 +116,20 @@ export class AppRouter {
       error: null,
     });
     this.tree = toState<DomphyElement>({ div: "" });
+    // Stale-while-revalidate: when a displayed loader entry refreshes in the
+    // background, re-render the current route so the fresh data appears.
+    this.cache.onRevalidated((key) => this.onRevalidated(key));
     defaultRouter = this;
+  }
+
+  private onRevalidated(key: string): void {
+    // Only on the client and only when the refreshed key backs the current view.
+    if (!this.history || !this.currentRenderKeys.has(key)) return;
+    void this.transition(this.currentUrl(), {
+      replace: true,
+      scroll: false,
+      fromHistory: true,
+    });
   }
 
   /** Renders the current URL and starts listening to history navigation. */
@@ -397,12 +412,16 @@ export class AppRouter {
       }
     });
     this.lastData = dataRecord;
+    this.currentRenderKeys = new Set(Object.keys(dataRecord));
 
     this.currentMatch = match;
     await this.applyMetadata(match, context);
     if (token !== this.navigationToken) return;
 
     this.commit(url, match, built.element, built.status, options);
+    // Kick off stale-while-revalidate refetches now that the route is committed,
+    // so onRevalidated re-renders against the current view.
+    this.cache.flushRevalidations();
   }
 
   private async renderNotFound(
