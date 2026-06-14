@@ -11,8 +11,9 @@
 
 - Build UIs as plain objects keyed by HTML tag. Apply patches via `$`. Never wrap in components.
 - Never inline typography styles. Use typography patches: `small()`, `paragraph()`, `heading()`, `link()`, `strong()`, `emphasis()`, `code()`, `keyboard()`.
-- For forms, compose `form()` + `field()`. Do NOT wire `FormState`/`FieldState` manually.
-- `field` patch `value`/`checked` must be static defaults, never reactive — reactive bindings loop forever.
+- Forms use `@domphy/form` (`createForm` from `@domphy/form/domphy`): bind inputs with `value: (l) => field.value(l)` + `onInput: (e) => field.handleChange(e.target.value)`. The old ui `form()`/`field()` patches and `FormState`/`FieldState` were removed; only `formGroup()` (layout) remains in `@domphy/ui`.
+- Reactive content uses `(listener) => state.get(listener)`. Controlled inputs (value bound to a state you also `.set()` in `onInput`) are safe.
+- Data/logic = 1-1 TanStack core ports + a Domphy adapter at the `/domphy` subpath (`@domphy/core` peer dep): query, table, router, virtual, form. Drag & drop: `@domphy/dnd`. Animation: the `motion()` patch. App framework (Next-style): `@domphy/app`.
 - Build tool: tsup. Docs: VitePress.
 
 
@@ -4383,6 +4384,232 @@ const SearchInput: DomphyElement<"input"> = {
 - the same `getFilteredRowModel()` applies it — `table.getFilteredRowModel()` returns rows after both column and global filters, `table.getPreFilteredRowModel()` returns rows before either
 
 Column filters and the global filter compose — a row must pass both to appear in `table.getRowModel()`.
+
+
+
+---
+
+
+## Virtual docs (`@domphy/virtual`)
+
+### index.md
+
+# Virtual
+
+`@domphy/virtual` renders only the rows/columns currently in view — essential for long lists, grids, and tables — with dynamic measurement, overscan, sticky ranges, and smooth scroll-to.
+
+It is a **1-1 port of [`@tanstack/virtual-core`](https://github.com/TanStack/virtual/tree/main/packages/virtual-core) v3.17.0** (MIT, © Tanner Linsley and the TanStack team). The `src/` is byte-identical to upstream, so the entire [TanStack Virtual reference](https://tanstack.com/virtual/latest) applies as-is and future versions can be diffed and merged directly. The only addition is the Domphy adapter in `src/domphy/`.
+
+The core is framework-agnostic with zero dependencies.
+
+## Install
+
+npm install @domphy/virtual @domphy/core
+```
+```html [CDN]
+<script src="https://unpkg.com/@domphy/virtual/dist/virtual.global.js"></script>
+```
+
+`@domphy/core` is a peer dependency of the adapter only.
+
+## Live Example
+
+10,000 rows; only the visible ones are mounted.
+
+## Adapter
+
+`createVirtualizer(options)` (from `@domphy/virtual/domphy`) owns the scroll element and binds the virtualizer to Domphy reactivity.
+
+```ts
+import { createVirtualizer } from "@domphy/virtual/domphy"
+
+const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+  count: rows.length,
+  estimateSize: () => 32,
+  overscan: 10,
+})
+```
+
+| Member | Description |
+| --- | --- |
+| `getVirtualItems(l)` | Reactive list of visible `VirtualItem`s — read with the listener inside the items function. |
+| `getTotalSize(l)` | Reactive total scroll size, for the spacer height/width. |
+| `setScrollElement(el)` | Wire the scroll container DOM node; call from its `_onMount`. |
+| `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount` for variable sizes. |
+| `scrollToIndex(i, opts?)` / `scrollToOffset(px, opts?)` | Imperative scrolling. |
+| `setOptions(opts)` | Update `count`/options, then re-measure. |
+| `virtualizer` | The underlying `Virtualizer` — the full virtual-core API. |
+| `version(l)` | Raw reactive change counter. |
+| `destroy()` | Detach observers; call from `_onRemove`. |
+
+## Wiring
+
+1. Make the outer element a fixed-height scroll container and wire it: `_onMount: (node) => list.setScrollElement(node.domElement)`.
+2. Inside, render a relative spacer whose height is `list.getTotalSize(l)`.
+3. Map `list.getVirtualItems(l)` into absolutely-positioned children using each item's `start`/`size`, keyed by `item.key`.
+4. For variable-height rows, call `list.measureElement(node.domElement)` from each row's `_onMount` and drop the fixed `height`.
+
+Pass your own `observeElementRect` / `observeElementOffset` / `scrollToFn` to virtualize against the window instead of an element.
+
+
+
+---
+
+
+## Form docs (`@domphy/form`)
+
+### index.md
+
+# Form
+
+`@domphy/form` provides headless form state for Domphy apps: typed values, per-field and form-level validators (sync + async), touched/blurred/dirty tracking, arrays, and Standard Schema support.
+
+It is a **1-1 port of [`@tanstack/form-core`](https://github.com/TanStack/form/tree/main/packages/form-core) v1.33.0** (MIT, © Tanner Linsley and the TanStack team). The `src/` is byte-identical to upstream, so the entire [TanStack Form reference](https://tanstack.com/form/latest) applies as-is. The only addition is the Domphy adapter in `src/domphy/`.
+
+It replaces the ad-hoc `FormState` / `FieldState` that used to live in `@domphy/ui`, so form logic lives in exactly one place.
+
+## Install
+
+npm install @domphy/form @domphy/core
+```
+```html [CDN]
+<script src="https://unpkg.com/@domphy/form/dist/form.global.js"></script>
+```
+
+`@domphy/core` is a peer dependency of the adapter only.
+
+## Live Example
+
+## Adapter
+
+`createForm(options)` (from `@domphy/form/domphy`) owns the form; `form.field(name, options?)` binds one input.
+
+```ts
+import { createForm } from "@domphy/form/domphy"
+
+const form = createForm<{ email: string }>({
+  defaultValues: { email: "" },
+  onSubmit: ({ value }) => save(value),
+})
+
+const email = form.field<string>("email", {
+  validators: { onChange: ({ value }) => (value.includes("@") ? undefined : "Invalid email") },
+})
+```
+
+Bind a field to a native input — read `value`/`errors` reactively, forward DOM events to the handle:
+
+```ts
+import { inputText, label, formGroup } from "@domphy/ui"
+
+const Field = {
+  div: [
+    { label: "Email", $: [label()] },
+    {
+      input: null,
+      $: [inputText()],
+      value: (l) => email.value(l),
+      onInput: (e) => email.handleChange((e.target as HTMLInputElement).value),
+      onBlur: () => email.handleBlur(),
+    },
+    {
+      div: (l) => String(email.errors(l)[0] ?? ""),
+      hidden: (l) => email.errors(l).length === 0,
+    },
+  ],
+  $: [formGroup()],
+}
+```
+
+## Form handle
+
+| Member | Description |
+| --- | --- |
+| `values(l)` / `state(l)` | Reactive form values / full form state. |
+| `canSubmit(l)` / `isSubmitting(l)` / `isValid(l)` / `isSubmitted(l)` | Reactive flags. |
+| `field<TData>(name, options?)` | Create and mount a reactive field handle. |
+| `handleSubmit()` | Run validation and submission. |
+| `reset(values?)` | Reset to defaults (or given values). |
+| `form` | The underlying `FormApi`. |
+| `destroy()` | Unmount the form and all fields; call from `_onRemove`. |
+
+## Field handle
+
+| Member | Description |
+| --- | --- |
+| `value(l)` | Reactive value — bind to the input's `value`/`checked`. |
+| `errors(l)` / `meta(l)` | Reactive validation errors / full field meta. |
+| `handleChange(value)` | Update the value (from `onInput`/`onChange`). |
+| `handleBlur()` | Mark blurred and run blur validators. |
+| `setValue(updater)` | Set the value programmatically. |
+| `api` | The underlying `FieldApi`. |
+
+Field and form `options` (validators, async debouncing, listeners, arrays, Standard Schema) are the upstream form-core options — see the [TanStack Form docs](https://tanstack.com/form/latest).
+
+
+
+---
+
+
+## DnD docs (`@domphy/dnd`)
+
+### index.md
+
+# Drag & Drop
+
+`@domphy/dnd` adds sortable lists and drag & drop to Domphy: reorder, transfer between lists, multi-drag, keyboard accessibility, and drop animations.
+
+Unlike the TanStack ports (`query`/`table`/`router`/`virtual`/`form`), drag-and-drop has no portable framework-agnostic core to copy byte-for-byte. So this package **depends on** [`@formkit/drag-and-drop`](https://drag-and-drop.formkit.com) (MIT, zero-dependency, framework-agnostic) and adds a thin Domphy adapter — the same way FormKit's own React/Vue/Solid adapters wrap the engine. The full FormKit API is re-exported.
+
+## Install
+
+npm install @domphy/dnd @domphy/core
+```
+```html [CDN]
+<script src="https://unpkg.com/@domphy/dnd/dist/dnd.global.js"></script>
+```
+
+`@domphy/core` is a peer dependency.
+
+## Live Example
+
+## Usage
+
+Apply `dragDrop(state, config?)` to the list container with `$`, and render the children reactively from the **same** state with a stable `_key`:
+
+```ts
+import { toState } from "@domphy/core"
+import { dragDrop } from "@domphy/dnd"
+
+const items = toState([
+  { id: 1, label: "Write docs" },
+  { id: 2, label: "Ship it" },
+])
+
+const App = {
+  ul: (l) => items.get(l).map((item) => ({ li: item.label, _key: item.id })),
+  $: [dragDrop(items)],
+}
+```
+
+Dragging reorders the DOM, FormKit calls `setValues` → the `items` state updates → Domphy re-renders the keyed children in the new order. The `_key` is required so the reorder maps to the right nodes.
+
+## Config & plugins
+
+`dragDrop(state, config)` forwards `config` to FormKit's `ParentConfig`, and the whole FormKit API (plugins, sensors, group transfer) is re-exported:
+
+```ts
+import { dragDrop, animations } from "@domphy/dnd"
+
+// drop animations + transfer items between any lists sharing a group
+{ ul: (l) => ..., $: [dragDrop(items, { plugins: [animations()], group: "todos" })] }
+```
+
+Give two lists the same `group` to transfer items between them. Accessibility, touch and synthetic-drag handling come from FormKit — see the [FormKit DnD docs](https://drag-and-drop.formkit.com) for the full config.
+
+## Cleanup
+
+The adapter tears down FormKit's listeners automatically on removal (`_onRemove`).
 
 
 

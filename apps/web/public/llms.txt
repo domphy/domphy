@@ -9,9 +9,10 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 - Build UIs as plain objects keyed by HTML tag (e.g. `{ button: { $: [button()], _: "Click" } }`).
 - Apply patches via `$`. Never wrap a native tag in a component abstraction.
 - **Never inline typography styles** (fontSize, color, margin, lineHeight). Use the typography patches: `small()`, `paragraph()`, `heading()`, `link()`, `strong()`, `emphasis()`, `code()`, `keyboard()`.
-- For forms, compose `form()` + `field()`. Do NOT wire `FormState`/`FieldState` manually — they are implementation details.
-- `field` patch `value`/`checked` must be static defaults, never reactive — reactive bindings cause infinite loops.
-- Read the per-patch doc before using a patch you haven't used before. Each patch has its own prop contract.
+- **Forms use `@domphy/form`** — `createForm` from `@domphy/form/domphy`; bind inputs with `value: (l) => field.value(l)` + `onInput: (e) => field.handleChange(e.target.value)`. The old ui `form()`/`field()` patches and `FormState`/`FieldState` were REMOVED; only the layout patch `formGroup()` remains in `@domphy/ui`.
+- Reactive content/attributes use `(listener) => state.get(listener)`. A controlled input (value bound to a state you also `.set()` in `onInput`) is safe — setting `.value` programmatically does not refire `input`.
+- **Data/logic packages are 1-1 TanStack core ports + a Domphy adapter at the `/domphy` subpath** (`@domphy/core` is a peer dep): `createQuery`/`createMutation`/`createInfiniteQuery` (`@domphy/query/domphy`), `createDomphyTable` (`@domphy/table/domphy`), `createVirtualizer` (`@domphy/virtual/domphy`), `createForm` (`@domphy/form/domphy`), `createRouter`/`createRoute` (`@domphy/router`). Drag & drop: `dragDrop()` (`@domphy/dnd`). Animation: the `motion()` patch (`@domphy/ui`). Next-style app framework: `@domphy/app`.
+- Read the per-patch / per-package doc before using one you haven't used before. Each has its own prop contract.
 
 ## Getting started
 
@@ -43,7 +44,10 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 - [button](https://www.domphy.com/ui/patches/button.html), [button-switch](https://www.domphy.com/ui/patches/button-switch.html), [toggle](https://www.domphy.com/ui/patches/toggle.html), [input-text](https://www.domphy.com/ui/patches/input-text.html), [input-number](https://www.domphy.com/ui/patches/input-number.html), [input-search](https://www.domphy.com/ui/patches/input-search.html), [input-checkbox](https://www.domphy.com/ui/patches/input-checkbox.html), [input-radio](https://www.domphy.com/ui/patches/input-radio.html), [input-switch](https://www.domphy.com/ui/patches/input-switch.html), [input-range](https://www.domphy.com/ui/patches/input-range.html), [input-color](https://www.domphy.com/ui/patches/input-color.html), [input-date-time](https://www.domphy.com/ui/patches/input-date-time.html), [input-file](https://www.domphy.com/ui/patches/input-file.html), [input-otp](https://www.domphy.com/ui/patches/input-otp.html), [textarea](https://www.domphy.com/ui/patches/textarea.html), [select](https://www.domphy.com/ui/patches/select.html), [select-box](https://www.domphy.com/ui/patches/select-box.html), [select-list](https://www.domphy.com/ui/patches/select-list.html), [combobox](https://www.domphy.com/ui/patches/combobox.html)
 
 ### Forms
-- [form](https://www.domphy.com/ui/patches/form.html), [form-group](https://www.domphy.com/ui/patches/form-group.html)
+- [form-group](https://www.domphy.com/ui/patches/form-group.html) (layout only). Form state/validation lives in `@domphy/form` (see below), not in `@domphy/ui`.
+
+### Animation
+- [motion](https://www.domphy.com/ui/patches/motion.html) (declarative `animate`/`initial`/`exit` via the Web Animations API), [transition-group](https://www.domphy.com/ui/patches/transition-group.html) (reorder/FLIP)
 
 ### Feedback
 - [alert](https://www.domphy.com/ui/patches/alert.html), [toast](https://www.domphy.com/ui/patches/toast.html), [badge](https://www.domphy.com/ui/patches/badge.html), [tag](https://www.domphy.com/ui/patches/tag.html), [progress](https://www.domphy.com/ui/patches/progress.html), [spinner](https://www.domphy.com/ui/patches/spinner.html), [skeleton](https://www.domphy.com/ui/patches/skeleton.html), [tooltip](https://www.domphy.com/ui/patches/tooltip.html)
@@ -91,6 +95,30 @@ Headless table logic — a 1-1 port of `@tanstack/table-core` v8 (identical API)
 - [Pagination & Selection](https://www.domphy.com/docs/table/pagination-selection.html): page controls, row selection, checkbox column
 - [Advanced Features](https://www.domphy.com/docs/table/advanced.html): grouping, expanding, pinning, sizing, visibility, faceting
 - [API Reference](https://www.domphy.com/docs/table/api.html): full export list
+
+## Virtual (`@domphy/virtual`)
+
+List/grid virtualization — a 1-1 port of `@tanstack/virtual-core` (identical API). Adapter `createVirtualizer` (`@domphy/virtual/domphy`) owns the scroll element (`setScrollElement` from the container's `_onMount`); read `getVirtualItems(l)` / `getTotalSize(l)` reactively.
+
+- [Overview](https://www.domphy.com/docs/virtual/): install, adapter API, wiring the scroll container + items
+
+## Form (`@domphy/form`)
+
+Headless form state/validation — a 1-1 port of `@tanstack/form-core` (identical API). Adapter `createForm` (`@domphy/form/domphy`); `form.field(name, opts)` returns a reactive field handle (`value(l)`, `errors(l)`, `handleChange`, `handleBlur`). Supersedes the removed ui `FormState`/`FieldState`.
+
+- [Overview](https://www.domphy.com/docs/form/): install, `createForm`, field binding, validators, submission
+
+## DnD (`@domphy/dnd`)
+
+Drag & drop / sortable lists — depends on the framework-agnostic `@formkit/drag-and-drop` engine plus the Domphy adapter `dragDrop(state, config?)`. Apply to the list container via `$`; render keyed children from the same state.
+
+- [Overview](https://www.domphy.com/docs/dnd/): install, `dragDrop`, reorder, transfer between lists, plugins
+
+## App (`@domphy/app`)
+
+Next.js App Router-style framework — runtime (no compiler, no file-system routing): nested routes/layouts, loaders with stale-while-revalidate, metadata, middleware, parallel + intercepting routes, SSR + streaming (`renderToString`/`renderToStream`), API routes. Routes are a plain object tree via `defineRoutes`; `createApp(routes)`.
+
+- [Overview](https://www.domphy.com/docs/app/): routing, layouts, navigation, data fetching, metadata, middleware, SSR, API routes, image/script
 
 ## Optional
 
