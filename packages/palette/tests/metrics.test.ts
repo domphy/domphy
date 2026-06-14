@@ -1,0 +1,68 @@
+import { describe, expect, it } from "vitest";
+import { generateRamp, Palette, Ramp, Swatch } from "../src/index";
+
+const inRange = (value: number, min = 0, max = 1) => {
+  expect(Number.isFinite(value)).toBe(true);
+  expect(value).toBeGreaterThanOrEqual(min);
+  expect(value).toBeLessThanOrEqual(max);
+};
+
+describe("Swatch", () => {
+  it("exposes finite color coordinates", () => {
+    const swatch = new Swatch("#3b82f6");
+    expect(swatch.lab.every(Number.isFinite)).toBe(true);
+    expect(swatch.lch.every(Number.isFinite)).toBe(true);
+    expect(Number.isFinite(swatch.lightness)).toBe(true);
+    expect(Number.isFinite(swatch.chroma)).toBe(true);
+    expect(Number.isFinite(swatch.hue)).toBe(true);
+    inRange(swatch.luminance);
+  });
+});
+
+describe("Ramp metrics", () => {
+  const ramp = new Ramp(generateRamp("#3b82f6", 18), "blue");
+
+  it("metric getters return finite numbers in [0, 1]", () => {
+    const { metrics } = ramp;
+    inRange(metrics.contrastEfficiency);
+    inRange(metrics.lightnessLinearity);
+    inRange(metrics.chromaSmoothness);
+    inRange(metrics.hueStability);
+    inRange(metrics.spacingUniformity);
+  });
+
+  it("score is a sane 0–100 value", () => {
+    inRange(ramp.score, 0, 100);
+    // A well-generated ramp should score well above zero.
+    expect(ramp.score).toBeGreaterThan(50);
+  });
+
+  it("computes contrast spans", () => {
+    expect(ramp.steps).toBe(18);
+    expect(Number.isFinite(ramp.wcag[45].span)).toBe(true);
+    expect(Number.isFinite(ramp.apca[60].span)).toBe(true);
+  });
+});
+
+describe("Palette aggregation", () => {
+  const palette = new Palette({
+    blue: generateRamp("#3b82f6", 18),
+    green: generateRamp("#22c55e", 18),
+  });
+
+  it("aggregates ramps and exposes colors", () => {
+    expect(palette.ramps).toHaveLength(2);
+    expect(palette.steps).toBe(18);
+    expect(Object.keys(palette.colors)).toEqual(["blue", "green"]);
+    expect(palette.colors.blue).toHaveLength(18);
+  });
+
+  it("aggregate metrics and score are finite and in range", () => {
+    inRange(palette.contrastEfficiency);
+    inRange(palette.lightnessLinearity);
+    inRange(palette.chromaSmoothness);
+    inRange(palette.hueStability);
+    inRange(palette.spacingUniformity);
+    inRange(palette.score, 0, 100);
+  });
+});
