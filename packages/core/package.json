@@ -1,6 +1,6 @@
 {
   "name": "@domphy/core",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Domphy Core UI Framework",
   "type": "module",
   "sideEffects": false,

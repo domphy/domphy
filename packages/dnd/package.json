@@ -1,6 +1,6 @@
 {
   "name": "@domphy/dnd",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Domphy Drag & Drop - reactive adapter for the framework-agnostic @formkit/drag-and-drop engine",
   "type": "module",
   "sideEffects": false,
