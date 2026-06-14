@@ -1,7 +1,7 @@
-import { defineConfig } from "vitepress";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import include from "markdown-it-include";
+import { defineConfig } from "vitepress";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -13,7 +13,9 @@ export default defineConfig({
   },
   transformPageData(pageData) {
     const noAside = ["/patches/"];
-    const isMatch = noAside.some((path) => pageData.relativePath.includes(path));
+    const isMatch = noAside.some((path) =>
+      pageData.relativePath.includes(path),
+    );
 
     if (isMatch) {
       pageData.frontmatter.aside = false;
@@ -45,6 +47,29 @@ export default defineConfig({
         {
           find: "@domphy/ui",
           replacement: resolve(__dirname, "../../../packages/ui/src"),
+        },
+        {
+          find: "@domphy/query",
+          replacement: resolve(__dirname, "../../../packages/query/src"),
+        },
+        {
+          find: "@domphy/router/isServer",
+          replacement: resolve(
+            __dirname,
+            "../../../packages/router/src/isServer/client.ts",
+          ),
+        },
+        {
+          find: "@domphy/router",
+          replacement: resolve(__dirname, "../../../packages/router/src"),
+        },
+        {
+          find: "@domphy/table",
+          replacement: resolve(__dirname, "../../../packages/table/src"),
+        },
+        {
+          find: "@domphy/app",
+          replacement: resolve(__dirname, "../../../packages/app/src"),
         },
       ],
     },
@@ -79,6 +104,10 @@ gtag('config', 'G-NKPX3DHXWE');`,
       { text: "Core", link: "/docs/core/" },
       { text: "Theme", link: "/docs/theme/" },
       { text: "UI", link: "/docs/ui/" },
+      { text: "Query", link: "/docs/query/" },
+      { text: "Router", link: "/docs/router/" },
+      { text: "Table", link: "/docs/table/" },
+      { text: "App", link: "/docs/app/" },
       { text: "Integrations", link: "/docs/integrations/" },
       { text: "Research", link: "/docs/research/" },
       { text: "Playground", link: "/docs/playground" },
@@ -94,7 +123,10 @@ gtag('config', 'G-NKPX3DHXWE');`,
         {
           text: "Patterns",
           items: [
-            { text: "Insert Content", link: "/docs/core/patterns/insert-content" },
+            {
+              text: "Insert Content",
+              link: "/docs/core/patterns/insert-content",
+            },
           ],
         },
         {
@@ -145,7 +177,10 @@ gtag('config', 'G-NKPX3DHXWE');`,
             { text: "Code", link: "/docs/ui/patches/code" },
             { text: "Combobox", link: "/docs/ui/patches/combobox" },
             { text: "Command", link: "/docs/ui/patches/command" },
-            { text: "Description List", link: "/docs/ui/patches/description-list" },
+            {
+              text: "Description List",
+              link: "/docs/ui/patches/description-list",
+            },
             { text: "Details", link: "/docs/ui/patches/details" },
             { text: "Dialog", link: "/docs/ui/patches/dialog" },
             { text: "Divider", link: "/docs/ui/patches/divider" },
@@ -155,12 +190,18 @@ gtag('config', 'G-NKPX3DHXWE');`,
             { text: "Form", link: "/docs/ui/patches/form" },
             { text: "Form Group", link: "/docs/ui/patches/form-group" },
             { text: "Heading", link: "/docs/ui/patches/heading" },
-            { text: "Horizontal Rule", link: "/docs/ui/patches/horizontal-rule" },
+            {
+              text: "Horizontal Rule",
+              link: "/docs/ui/patches/horizontal-rule",
+            },
             { text: "Icon", link: "/docs/ui/patches/icon" },
             { text: "Image", link: "/docs/ui/patches/image" },
             { text: "Input Checkbox", link: "/docs/ui/patches/input-checkbox" },
             { text: "Input Color", link: "/docs/ui/patches/input-color" },
-            { text: "Input Date Time", link: "/docs/ui/patches/input-date-time" },
+            {
+              text: "Input Date Time",
+              link: "/docs/ui/patches/input-date-time",
+            },
             { text: "Input File", link: "/docs/ui/patches/input-file" },
             { text: "Input Number", link: "/docs/ui/patches/input-number" },
             { text: "Input OTP", link: "/docs/ui/patches/input-otp" },
@@ -198,7 +239,10 @@ gtag('config', 'G-NKPX3DHXWE');`,
             { text: "Toast", link: "/docs/ui/patches/toast" },
             { text: "Toggle", link: "/docs/ui/patches/toggle" },
             { text: "Tooltip", link: "/docs/ui/patches/tooltip" },
-            { text: "TransitionGroup", link: "/docs/ui/patches/transition-group" },
+            {
+              text: "TransitionGroup",
+              link: "/docs/ui/patches/transition-group",
+            },
             { text: "Unordered List", link: "/docs/ui/patches/unordered-list" },
           ],
         },
@@ -213,28 +257,75 @@ gtag('config', 'G-NKPX3DHXWE');`,
           ],
         },
       ],
+      "/docs/query/": [
+        { text: "Overview", link: "/docs/query/" },
+        { text: "Queries", link: "/docs/query/queries" },
+        { text: "Mutations", link: "/docs/query/mutations" },
+        { text: "Caching", link: "/docs/query/caching" },
+        { text: "Infinite Queries", link: "/docs/query/infinite-queries" },
+        { text: "SSR & Hydration", link: "/docs/query/ssr" },
+        { text: "API Reference", link: "/docs/query/api" },
+      ],
+      "/docs/router/": [
+        { text: "Overview", link: "/docs/router/" },
+        { text: "Routes", link: "/docs/router/routes" },
+        { text: "Navigation", link: "/docs/router/navigation" },
+        { text: "Search Params", link: "/docs/router/search-params" },
+        { text: "Data Loading", link: "/docs/router/data-loading" },
+        { text: "SSR", link: "/docs/router/ssr" },
+        { text: "API Reference", link: "/docs/router/api" },
+      ],
+      "/docs/table/": [
+        { text: "Overview", link: "/docs/table/" },
+        { text: "Columns & Row Models", link: "/docs/table/columns" },
+        { text: "Sorting & Filtering", link: "/docs/table/sorting-filtering" },
+        {
+          text: "Pagination & Selection",
+          link: "/docs/table/pagination-selection",
+        },
+        { text: "Advanced Features", link: "/docs/table/advanced" },
+        { text: "API Reference", link: "/docs/table/api" },
+      ],
+      "/docs/app/": [
+        { text: "Overview", link: "/docs/app/" },
+        { text: "Routing", link: "/docs/app/routing" },
+        { text: "Layouts & Boundaries", link: "/docs/app/layouts" },
+        { text: "Navigation", link: "/docs/app/navigation" },
+        { text: "Data Fetching", link: "/docs/app/data-fetching" },
+        { text: "Metadata", link: "/docs/app/metadata" },
+        { text: "Middleware", link: "/docs/app/middleware" },
+        { text: "SSR & Hydration", link: "/docs/app/ssr" },
+        { text: "API Routes", link: "/docs/app/api-routes" },
+        { text: "Image & Script", link: "/docs/app/assets" },
+        { text: "API Reference", link: "/docs/app/api" },
+      ],
       "/docs/integrations/": [
         { text: "Guide", link: "/docs/integrations/" },
         {
           text: "Example",
           items: [
             { text: "i18next", link: "/docs/integrations/i18next" },
-            { text: "TanStack Query", link: "/docs/integrations/tanstack-query" },
+            {
+              text: "TanStack Query",
+              link: "/docs/integrations/tanstack-query",
+            },
             { text: "SortableJS", link: "/docs/integrations/sortablejs" },
             { text: "Zod", link: "/docs/integrations/zod" },
             { text: "page.js", link: "/docs/integrations/pagejs" },
           ],
         },
       ],
-      "/docs/research/": [
-        { text: "Research", link: "/docs/research/" },
-      ],
+      "/docs/research/": [{ text: "Research", link: "/docs/research/" }],
       "/docs/": [
         { text: "Overview", link: "/docs/" },
         { text: "Quickstart", link: "/docs/quickstart" },
         { text: "Core", link: "/docs/core/" },
         { text: "Theme", link: "/docs/theme/" },
         { text: "UI", link: "/docs/ui/" },
+        { text: "Query", link: "/docs/query/" },
+        { text: "Router", link: "/docs/router/" },
+        { text: "Table", link: "/docs/table/" },
+        { text: "App", link: "/docs/app/" },
         { text: "Integrations", link: "/docs/integrations/" },
         { text: "Research", link: "/docs/research/" },
         { text: "Playground", link: "/docs/playground" },

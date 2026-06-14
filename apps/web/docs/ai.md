@@ -105,6 +105,8 @@ The full dump contains, in order:
 2. **Quickstart** — install, hello world, reactive state, forms.
 3. **Core docs** — syntax, reactivity, lifecycle, SSR, portal, patterns, API reference.
 4. **Theme docs** — palette, size, tone, API.
-5. **Every patch source file** — the authoritative contract for each of the 70+ patches in `@domphy/ui`. AI reads the actual TypeScript source, not a paraphrase.
+5. **Query docs** — `@domphy/query` queries, mutations, caching, infinite queries, SSR hydration.
+6. **Table docs** — `@domphy/table` columns, row models, sorting, filtering, pagination, selection.
+7. **Every patch source file** — the authoritative contract for each of the 70+ patches in `@domphy/ui`. AI reads the actual TypeScript source, not a paraphrase.
 
 This is everything an AI needs. Nothing is hidden behind documentation it cannot reach.

@@ -31,10 +31,21 @@ Domphy is split into 3 packages:
 - `@domphy/theme` - `8kb` minified
 - `@domphy/ui` - `80kb` minified
 
+Plus optional layers:
+
+- `@domphy/query` - `49kb` minified - async state management, a 1-1 port of TanStack Query core
+- `@domphy/router` - `69kb` minified - type-safe routing, a 1-1 port of TanStack Router core
+- `@domphy/table` - `59kb` minified - headless table logic, a 1-1 port of TanStack Table core
+- `@domphy/app` - `23kb` minified - app framework, a port of the Next.js App Router feature set
+
 In practical terms:
 
 - `@domphy/core` is the runtime layer, roughly comparable to `react-dom` + SSR rendering + CSS-in-JS in one package
 - `@domphy/theme` and `@domphy/ui` together are the design-system layer, roughly comparable to what people usually expect from MUI
+- `@domphy/query` is the data layer, comparable to what React teams get from TanStack Query
+- `@domphy/router` is the routing layer, comparable to what React teams get from TanStack Router
+- `@domphy/table` is the datagrid layer, comparable to what React teams get from TanStack Table
+- `@domphy/app` is the app layer: routing, layouts, navigation, metadata, middleware, SSR and API routes, comparable to what React teams get from Next.js
 
 Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins.
 
@@ -1743,6 +1754,3270 @@ Prefer `dataTone` over changing container colors manually.
 ```
 
 Use `dataTheme` only when you truly want a different theme, not just a darker or lighter local surface.
+
+
+
+---
+
+
+## Query docs (`@domphy/query`)
+
+### api.md
+
+# API Reference
+
+`@domphy/query` is a 1-1 port of `@tanstack/query-core` v5.90.20 — every export below has identical behavior to upstream, so the [TanStack Query reference](https://tanstack.com/query/latest/docs/reference/QueryClient) documents each item in full detail.
+
+## Client And Caches
+
+- `QueryClient` — the entry point. `fetchQuery`, `prefetchQuery`, `getQueryData`, `setQueryData`, `ensureQueryData`, `invalidateQueries`, `refetchQueries`, `cancelQueries`, `removeQueries`, `resetQueries`, `setQueryDefaults`, `setMutationDefaults`, `getQueryCache`, `getMutationCache`, `mount`, `unmount`, `clear`
+- `QueryCache` — holds all `Query` instances. `find`, `findAll`, `subscribe`, `clear`
+- `MutationCache` — holds all `Mutation` instances. `find`, `findAll`, `subscribe`, `clear`
+- `Query` — one cache entry (advanced; usually accessed via `QueryCache`)
+- `Mutation` — one mutation instance (advanced)
+
+## Observers
+
+- `QueryObserver` — subscribe to one query. `subscribe`, `setOptions`, `getCurrentResult`, `refetch`
+- `QueriesObserver` — subscribe to a dynamic array of queries
+- `InfiniteQueryObserver` — paginated queries. Adds `fetchNextPage`, `fetchPreviousPage`
+- `MutationObserver` — run mutations. `mutate`, `reset`, `subscribe`, `getCurrentResult`
+
+## Managers
+
+- `focusManager` — window focus tracking; `setFocused`, `setEventListener`, `subscribe`
+- `onlineManager` — online/offline tracking; `setOnline`, `setEventListener`, `subscribe`
+- `notifyManager` — update batching; `batch`, `schedule`, `setScheduler`, plus `defaultScheduler`
+- `timeoutManager` — pluggable timer provider (`TimeoutProvider`, `TimeoutCallback`, `ManagedTimerId`)
+
+## Hydration
+
+- `dehydrate(client, options?)` — serialize the cache to `DehydratedState`
+- `hydrate(client, state, options?)` — restore a serialized cache
+- `defaultShouldDehydrateQuery`, `defaultShouldDehydrateMutation` — the default include rules
+
+## Utilities
+
+- `hashKey(queryKey)` — structural hash, stable across object key order
+- `matchQuery(filters, query)` / `matchMutation(filters, mutation)` — filter predicates
+- `partialMatchKey(a, b)` — prefix key matching
+- `replaceEqualDeep(a, b)` — structural sharing helper (keeps referential identity for unchanged parts)
+- `keepPreviousData` — pass as `placeholderData` to keep data across key changes
+- `skipToken` — pass as `queryFn` to disable a query type-safely
+- `isCancelledError(error)` / `CancelledError` — cancellation detection
+- `shouldThrowError`, `isServer`, `noop`
+- `experimental_streamedQuery` — build a query from an `AsyncIterable` (streamed chunks)
+
+## Types
+
+All public types are re-exported, including:
+
+- options: `QueryObserverOptions`, `InfiniteQueryObserverOptions`, `MutationObserverOptions`, `QueryOptions`, `FetchQueryOptions`, `DefaultOptions`
+- results: `QueryObserverResult`, `InfiniteQueryObserverResult`, `MutationObserverResult`
+- keys & functions: `QueryKey`, `QueryFunction`, `QueryFunctionContext`, `MutationFunction`
+- state: `QueryState`, `MutationState`, `QueryStatus`, `FetchStatus`, `MutationStatus`
+- data shapes: `InfiniteData`, `GetNextPageParamFunction`, `DehydratedState`
+- filters: `QueryFilters`, `MutationFilters`, `SkipToken`, `Updater`
+- cache events: `QueryCacheNotifyEvent`, `MutationCacheNotifyEvent`, `QueriesObserverOptions`
+
+## CDN Global
+
+The IIFE bundle exposes everything under `Domphy.query`:
+
+```html
+<script src="https://unpkg.com/@domphy/query/dist/query.global.js"></script>
+<script>
+    const { QueryClient, QueryObserver } = Domphy.query
+</script>
+```
+
+### caching.md
+
+# Caching
+
+Every query result lives in the `QueryCache` under its hashed `queryKey`. Understanding two timers explains almost all cache behavior:
+
+- **`staleTime`** (default `0`) — how long data is *fresh*. Fresh data is served from cache with no network request. Stale data is still served instantly, but a background refetch fires.
+- **`gcTime`** (default 5 minutes) — how long *inactive* data (no subscribers) stays in memory before being garbage-collected.
+
+```
+fetch ──► fresh ──staleTime──► stale ──last subscriber leaves──► inactive ──gcTime──► gone
+```
+
+The default `staleTime: 0` means "always refetch in the background when a query is used again" — data on screen is never blocked, just silently updated. Raise `staleTime` for data that rarely changes.
+
+## Reading And Writing The Cache
+
+```ts
+queryClient.getQueryData(["todos"])             // read, undefined if absent
+queryClient.setQueryData(["todos"], todos)      // write
+queryClient.setQueryData<Todo[]>(["todos"], (old) => [...(old ?? []), newTodo])
+```
+
+`setQueryData` notifies every observer on that key — bridged states update immediately.
+
+## Invalidation
+
+`invalidateQueries` marks matching queries stale and refetches the active ones:
+
+```ts
+// everything under ["todos"] — ["todos"], ["todos", 5], ["todos", {page: 2}] ...
+queryClient.invalidateQueries({ queryKey: ["todos"] })
+
+// exactly ["todos"]
+queryClient.invalidateQueries({ queryKey: ["todos"], exact: true })
+
+// everything
+queryClient.invalidateQueries()
+```
+
+This is the standard pattern after a mutation: the server changed, so ask again.
+
+## Prefetching
+
+Warm the cache before the user needs it — on hover, on route intent, at boot:
+
+```ts
+queryClient.prefetchQuery({
+    queryKey: ["todo", id],
+    queryFn: () => fetchTodo(id),
+    staleTime: 10_000,
+})
+```
+
+`prefetchQuery` never throws; errors are cached like any query error. Use `fetchQuery` instead when you need the data (it returns the data and throws on failure):
+
+```ts
+const todos = await queryClient.fetchQuery({ queryKey: ["todos"], queryFn: fetchTodos })
+```
+
+If fresh data already exists in cache, both return it without a request.
+
+## Other Cache Operations
+
+```ts
+await queryClient.cancelQueries({ queryKey: ["todos"] })  // abort in-flight fetches
+queryClient.removeQueries({ queryKey: ["todos"] })        // drop entries entirely
+await queryClient.resetQueries({ queryKey: ["todos"] })   // back to initial state, refetch active
+await queryClient.refetchQueries({ queryKey: ["todos"] }) // force refetch, ignores staleTime
+queryClient.clear()                                       // empty both caches
+```
+
+In-flight `queryFn`s receive an `AbortSignal` — pass it to `fetch` so `cancelQueries` aborts the request itself:
+
+```ts
+queryFn: ({ signal }) => fetch("/api/todos", { signal }).then((res) => res.json())
+```
+
+## Query Filters
+
+Most `QueryClient` methods accept a filter object:
+
+| Filter | Meaning |
+|---|---|
+| `queryKey` | Prefix match by default |
+| `exact` | Match the key exactly |
+| `type` | `"active"`, `"inactive"`, or `"all"` |
+| `stale` | Only stale (or only fresh) queries |
+| `fetchStatus` | `"fetching"`, `"paused"`, `"idle"` |
+| `predicate` | `(query) => boolean` for anything else |
+
+```ts
+queryClient.invalidateQueries({
+    predicate: (query) => query.queryKey[0] === "todos" && (query.queryKey[1] as number) > 10,
+})
+```
+
+## Default Options
+
+Set app-wide defaults once on the client:
+
+```ts
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 60_000,
+            retry: 1,
+            refetchOnWindowFocus: false,
+        },
+    },
+})
+```
+
+Per-key defaults are also supported with `queryClient.setQueryDefaults(["todos"], { staleTime: 10_000 })`.
+
+## Focus And Online Refetching
+
+`queryClient.mount()` subscribes the cache to two singletons:
+
+- `focusManager` — refetches stale active queries when the window regains focus
+- `onlineManager` — pauses fetches offline and resumes/refetches on reconnect
+
+Both are exported and overridable (useful in tests or non-browser environments):
+
+```ts
+import { focusManager, onlineManager } from "@domphy/query"
+
+focusManager.setFocused(true)   // force
+onlineManager.setOnline(false)  // simulate offline
+```
+
+### index.md
+
+# Query
+
+`@domphy/query` provides async state management for Domphy apps: fetching, caching, deduplication, background refetching, mutations, infinite queries, and SSR hydration.
+
+It is a **1-1 port of [`@tanstack/query-core`](https://github.com/TanStack/query/tree/main/packages/query-core) v5.90.20** (MIT, © Tanner Linsley and the TanStack team). The source is kept byte-identical to upstream, so the entire [TanStack Query core reference](https://tanstack.com/query/latest/docs/reference/QueryClient) applies as-is, and future upstream versions can be diffed and merged directly.
+
+Like the rest of Domphy, it is framework-agnostic and has zero dependencies — the bridge to the UI is plain `toState`.
+
+## Install
+
+npm install @domphy/query
+```
+```html [CDN]
+<script src="https://unpkg.com/@domphy/query/dist/query.global.js"></script>
+```
+
+The CDN bundle exposes `Domphy.query` with all exports.
+
+## Live Example
+
+## Core Concepts
+
+- **`QueryClient`** — owns the `QueryCache` and `MutationCache`. Create one per app, call `queryClient.mount()` once so window focus and reconnect refetching work.
+- **`QueryObserver`** — subscribes to one query: runs the `queryFn`, caches the result under `queryKey`, and emits a result object on every state change.
+- **`MutationObserver`** — runs create/update/delete operations with retry and lifecycle callbacks.
+- **Query keys** — arrays like `["users", userId]`. Hashed structurally, so object key order does not matter. Keys are also the handle for invalidation and prefetching.
+
+## The Bridge Pattern
+
+Domphy has no async primitive by design — async is a state problem, and state lives outside the UI. `@domphy/query` manages the async state; `toState` pushes results into the UI:
+
+```ts
+import { QueryClient, QueryObserver } from "@domphy/query"
+import { toState } from "@domphy/core"
+
+const queryClient = new QueryClient()
+queryClient.mount()
+
+const data = toState<User[] | undefined>(undefined)
+const loading = toState(true)
+
+const observer = new QueryObserver<User[]>(queryClient, {
+    queryKey: ["users"],
+    queryFn: () => fetch("/api/users").then((res) => res.json()),
+})
+
+observer.subscribe((result) => {
+    data.set(result.data)
+    loading.set(result.isPending)
+})
+```
+
+The UI reads the states reactively — nothing query-specific leaks into elements:
+
+```ts
+const App: DomphyElement<"ul"> = {
+    ul: (l) => (data.get(l) ?? []).map((user) => ({
+        li: user.name,
+        _key: user.id,
+    })),
+    hidden: (l) => loading.get(l),
+}
+```
+
+## What To Read Next
+
+1. [Queries](./queries) for `QueryObserver`, options, and a reusable `createQuery` helper
+2. [Mutations](./mutations) for writes, callbacks, and optimistic updates
+3. [Caching](./caching) for invalidation, prefetching, and the `staleTime` / `gcTime` model
+4. [Infinite Queries](./infinite-queries) for pagination
+5. [SSR & Hydration](./ssr) for server rendering with Domphy SSR
+6. [API Reference](./api) for the full export list
+
+### infinite-queries.md
+
+# Infinite Queries
+
+`InfiniteQueryObserver` handles "load more" and infinite scroll. Instead of one value, the cached data is `{ pages: [...], pageParams: [...] }`, and each fetch appends (or prepends) a page.
+
+## Basic Usage
+
+```ts
+import { QueryClient, InfiniteQueryObserver } from "@domphy/query"
+import { toState } from "@domphy/core"
+
+const queryClient = new QueryClient()
+queryClient.mount()
+
+const items = toState<Item[]>([])
+const hasMore = toState(false)
+const loadingMore = toState(false)
+
+const observer = new InfiniteQueryObserver<{ items: Item[]; nextCursor: number | null }>(queryClient, {
+    queryKey: ["feed"],
+    queryFn: ({ pageParam }) =>
+        fetch(`/api/feed?cursor=${pageParam}`).then((res) => res.json()),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextCursor, // null/undefined = no more pages
+})
+
+observer.subscribe((result) => {
+    items.set(result.data?.pages.flatMap((page) => page.items) ?? [])
+    hasMore.set(result.hasNextPage)
+    loadingMore.set(result.isFetchingNextPage)
+})
+```
+
+Flattening `pages` into one `toState` list keeps the UI a plain keyed list:
+
+```ts
+const App: DomphyElement<"div"> = {
+    div: [
+        {
+            ul: (l) => items.get(l).map((item) => ({
+                li: item.title,
+                _key: item.id,
+            })),
+        },
+        {
+            button: (l) => (loadingMore.get(l) ? "Loading..." : "Load more"),
+            $: [button()],
+            hidden: (l) => !hasMore.get(l),
+            onClick: () => observer.fetchNextPage(),
+        },
+    ],
+}
+```
+
+## Page Parameters
+
+- `initialPageParam` — the param for the first page (required)
+- `getNextPageParam(lastPage, allPages, lastPageParam, allPageParams)` — returns the next param, or `null`/`undefined` when there are no more pages
+- `getPreviousPageParam` — same, for bidirectional lists (`fetchPreviousPage()`)
+
+## Result Additions
+
+On top of the normal query result:
+
+- `data.pages`, `data.pageParams`
+- `hasNextPage`, `hasPreviousPage`
+- `fetchNextPage()`, `fetchPreviousPage()`
+- `isFetchingNextPage`, `isFetchingPreviousPage`
+
+## Refetching Behavior
+
+When an infinite query refetches (invalidation, window focus), every fetched page is refetched **sequentially** from the first, so cursors stay consistent. Use `maxPages` to cap how many pages stay in cache:
+
+```ts
+new InfiniteQueryObserver(queryClient, {
+    queryKey: ["feed"],
+    queryFn: fetchPage,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    maxPages: 5, // keeps memory and refetch cost bounded
+})
+```
+
+### mutations.md
+
+# Mutations
+
+Mutations are for writes — create, update, delete. Unlike queries they run on demand via `mutate()`, are never cached by key, and never refetch on their own.
+
+## Live Example
+
+## Basic Mutation
+
+```ts
+import { MutationObserver } from "@domphy/query"
+import { toState } from "@domphy/core"
+
+const saving = toState(false)
+
+const mutation = new MutationObserver(queryClient, {
+    mutationFn: (todo: { title: string }) =>
+        fetch("/api/todos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(todo),
+        }).then((res) => res.json()),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["todos"] }),
+})
+
+mutation.subscribe((result) => saving.set(result.isPending))
+```
+
+Trigger it from an event handler:
+
+```ts
+{
+    button: (l) => (saving.get(l) ? "Saving..." : "Save"),
+    $: [button({ color: "primary" })],
+    ariaDisabled: (l) => saving.get(l),
+    onClick: () => mutation.mutate({ title: "New todo" }).catch(() => undefined),
+}
+```
+
+`mutate()` returns a promise that rejects on failure — handle it (or read `result.error` from the subscription instead).
+
+## Lifecycle Callbacks
+
+```ts
+new MutationObserver(queryClient, {
+    mutationFn: updateTodo,
+    onMutate: (variables) => {
+        // runs before mutationFn; the return value becomes `context`
+        return { startedAt: performance.now() }
+    },
+    onSuccess: (data, variables, context) => {},
+    onError: (error, variables, context) => {},
+    onSettled: (data, error, variables, context) => {
+        // success or error — the usual place to invalidate
+        queryClient.invalidateQueries({ queryKey: ["todos"] })
+    },
+})
+```
+
+## Optimistic Updates
+
+Update the cache immediately in `onMutate`, roll back from `context` on error:
+
+```ts
+new MutationObserver(queryClient, {
+    mutationFn: updateTodo,
+    onMutate: async (newTodo) => {
+        // stop in-flight refetches from overwriting the optimistic value
+        await queryClient.cancelQueries({ queryKey: ["todos"] })
+
+        const previous = queryClient.getQueryData<Todo[]>(["todos"])
+        queryClient.setQueryData<Todo[]>(["todos"], (old) =>
+            (old ?? []).map((todo) => (todo.id === newTodo.id ? newTodo : todo)),
+        )
+        return { previous }
+    },
+    onError: (error, newTodo, context) => {
+        queryClient.setQueryData(["todos"], context?.previous)
+    },
+    onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: ["todos"] })
+    },
+})
+```
+
+Because the cache update notifies every `QueryObserver` on `["todos"]`, the optimistic value flows through the normal bridge into `toState` — the UI updates instantly with no extra wiring.
+
+## Mutation Result
+
+The subscription result mirrors queries:
+
+- `status`: `"idle" | "pending" | "error" | "success"`
+- `isIdle`, `isPending`, `isError`, `isSuccess`
+- `data`, `error`, `variables`, `failureCount`
+- `mutate(variables)`, `reset()`
+
+## Retry
+
+Mutations do not retry by default (writes are not safely repeatable in general). Opt in per mutation:
+
+```ts
+new MutationObserver(queryClient, {
+    mutationFn: sendTelemetry,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30_000),
+})
+```
+
+### queries.md
+
+# Queries
+
+A query is a declarative dependency on async data, identified by a `queryKey`. `QueryObserver` runs the `queryFn`, caches the result, deduplicates concurrent requests for the same key, and notifies subscribers on every state change.
+
+## Basic Query
+
+```ts
+import { QueryClient, QueryObserver } from "@domphy/query"
+
+const queryClient = new QueryClient()
+queryClient.mount()
+
+const observer = new QueryObserver(queryClient, {
+    queryKey: ["todos"],
+    queryFn: () => fetch("/api/todos").then((res) => res.json()),
+})
+
+const unsubscribe = observer.subscribe((result) => {
+    console.log(result.status, result.data)
+})
+```
+
+`subscribe` returns an unsubscribe function. When the last subscriber leaves, the query becomes inactive and is garbage-collected after `gcTime`.
+
+## A Reusable `createQuery` Helper
+
+Most Domphy apps wrap the bridge once and reuse it:
+
+```ts
+import { QueryObserver } from "@domphy/query"
+import { toState } from "@domphy/core"
+
+function createQuery<T>(options: { queryKey: unknown[]; queryFn: () => Promise<T> }) {
+    const data = toState<T | undefined>(undefined)
+    const loading = toState(true)
+    const fetching = toState(false)
+    const error = toState<Error | null>(null)
+
+    const observer = new QueryObserver<T>(queryClient, options)
+
+    observer.subscribe((result) => {
+        data.set(result.data)
+        loading.set(result.isPending)
+        fetching.set(result.isFetching)
+        error.set(result.error as Error | null)
+    })
+
+    return { data, loading, fetching, error, observer }
+}
+
+const todos = createQuery({
+    queryKey: ["todos"],
+    queryFn: () => fetch("/api/todos").then((res) => res.json()),
+})
+```
+
+Each `toState` is independent — the UI re-renders only the parts that read the changed state.
+
+## Query Keys
+
+Keys are arrays, hashed structurally:
+
+```ts
+["todos"]                       // all todos
+["todos", 5]                    // one todo
+["todos", { status: "done" }]   // filtered list — object key order does not matter
+```
+
+Anything serializable works. The key should contain every variable the `queryFn` depends on — changing the key creates a new cache entry and triggers a fetch.
+
+## Dynamic Keys
+
+Change the key with `setOptions` — the observer switches to the new cache entry:
+
+```ts
+const page = toState(1)
+
+page.addListener(() => {
+    observer.setOptions({
+        queryKey: ["todos", { page: page.get() }],
+        queryFn: () => fetch(`/api/todos?page=${page.get()}`).then((res) => res.json()),
+        placeholderData: keepPreviousData,
+    })
+})
+```
+
+With `placeholderData: keepPreviousData`, the previous page's data stays visible while the next page loads (`result.isPlaceholderData` is `true` during that window).
+
+## Important Options
+
+| Option | Default | Meaning |
+|---|---|---|
+| `staleTime` | `0` | How long data is considered fresh. Fresh data is served from cache without refetching. |
+| `gcTime` | `5 * 60 * 1000` | How long inactive data stays in cache before garbage collection. |
+| `enabled` | `true` | Set `false` to prevent fetching (dependent queries). |
+| `retry` | `3` | Retry count on failure (`false` to disable, or a function). |
+| `refetchOnWindowFocus` | `true` | Refetch stale queries when the window regains focus. |
+| `refetchOnReconnect` | `true` | Refetch stale queries when the network reconnects. |
+| `refetchInterval` | `false` | Poll on an interval (ms). |
+| `select` | — | Transform/derive data without touching the cache. |
+| `placeholderData` | — | Data shown while pending; `keepPreviousData` keeps the last result across key changes. |
+| `initialData` | — | Seed the cache entry itself. |
+
+## Disabling With `skipToken`
+
+For type-safe conditional fetching, pass `skipToken` as the `queryFn`:
+
+```ts
+import { skipToken } from "@domphy/query"
+
+const userId = toState<number | null>(null)
+
+observer.setOptions({
+    queryKey: ["user", userId.get()],
+    queryFn: userId.get() === null
+        ? skipToken
+        : () => fetch(`/api/users/${userId.get()}`).then((res) => res.json()),
+})
+```
+
+## The Result Object
+
+Every notification carries a full snapshot:
+
+- `data`, `error`
+- `status`: `"pending" | "error" | "success"`
+- `fetchStatus`: `"fetching" | "paused" | "idle"`
+- `isPending`, `isSuccess`, `isError` — derived from `status`
+- `isFetching` — any fetch in flight, including background refetch
+- `isLoading` — first fetch only (`isPending && isFetching`)
+- `isStale`, `isPlaceholderData`, `isRefetching`
+- `dataUpdatedAt`, `errorUpdatedAt`, `failureCount`
+- `refetch()` — imperative refetch
+
+Typical mapping: drive a `spinner()` from `isPending`, a subtle inline indicator from `isFetching`, and an `alert({ color: "error" })` from `error`.
+
+## Multiple Queries At Once
+
+`QueriesObserver` subscribes to a dynamic list of queries in one subscription:
+
+```ts
+import { QueriesObserver } from "@domphy/query"
+
+const observer = new QueriesObserver(queryClient, [
+    { queryKey: ["user", 1], queryFn: fetchUser(1) },
+    { queryKey: ["user", 2], queryFn: fetchUser(2) },
+])
+
+observer.subscribe((results) => {
+    // results is an array of result objects, same order as options
+})
+```
+
+### ssr.md
+
+# SSR & Hydration
+
+Queries fit Domphy's SSR model directly: fetch on the server, serialize the cache, render HTML with the data already in state, then hydrate the cache on the client so the first `QueryObserver` subscription finds fresh data instead of refetching.
+
+## Server
+
+Prefetch into a request-scoped `QueryClient`, then dehydrate:
+
+```ts
+import { QueryClient, dehydrate } from "@domphy/query"
+import { ElementNode } from "@domphy/core"
+
+async function renderPage() {
+    const queryClient = new QueryClient()
+
+    await queryClient.prefetchQuery({
+        queryKey: ["users"],
+        queryFn: fetchUsers,
+    })
+
+    const dehydratedState = dehydrate(queryClient)
+
+    // Seed the bridge states from the cache so generateHTML sees the data
+    users.set(queryClient.getQueryData(["users"]) ?? [])
+    loading.set(false)
+
+    const node = new ElementNode(App)
+    const html = node.generateHTML()
+    const css = node.generateCSS()
+
+    queryClient.clear() // request-scoped — do not share between requests
+
+    return `<!doctype html>
+<html>
+<head><style id="domphy-style">${css}</style></head>
+<body>
+    <div id="app">${html}</div>
+    <script>window.__QUERY_STATE__ = ${JSON.stringify(dehydratedState)}</script>
+    <script type="module" src="/client.js"></script>
+</body>
+</html>`
+}
+```
+
+Create one `QueryClient` **per request**. A module-level client on the server would leak data between users.
+
+## Client
+
+Hydrate before mounting:
+
+```ts
+import { QueryClient, hydrate, QueryObserver } from "@domphy/query"
+import { ElementNode } from "@domphy/core"
+
+const queryClient = new QueryClient()
+hydrate(queryClient, window.__QUERY_STATE__)
+queryClient.mount()
+
+const observer = new QueryObserver(queryClient, {
+    queryKey: ["users"],
+    queryFn: fetchUsers,
+    staleTime: 60_000, // treat server data as fresh — no immediate refetch
+})
+
+observer.subscribe((result) => {
+    users.set(result.data ?? [])
+    loading.set(result.isPending)
+})
+
+const domStyle = document.getElementById("domphy-style") as HTMLStyleElement
+new ElementNode(App).mount(document.getElementById("app")!, domStyle)
+```
+
+Because the cache already holds the server data, the observer's first result is `success` with data — no flash, no duplicate request. Set `staleTime` high enough that the just-fetched server data is not immediately refetched.
+
+## What Gets Dehydrated
+
+By default `dehydrate` includes successful and pending queries, and skips mutations. Both are configurable:
+
+```ts
+dehydrate(queryClient, {
+    shouldDehydrateQuery: (query) => query.state.status === "success",
+    shouldDehydrateMutation: () => false,
+})
+```
+
+The dehydrated state is plain JSON-serializable data (`DehydratedState`) — embed it in HTML, send it over the wire, or store it.
+
+
+
+---
+
+
+## Router docs (`@domphy/router`)
+
+### api.md
+
+# API Reference
+
+`@domphy/router` is a 1-1 port of `@tanstack/router-core` v1.171.13 — every export below has identical behavior to upstream, so the [TanStack Router reference](https://tanstack.com/router/latest) documents each item in full detail. The only additions are the `create*` adapter functions and the re-exported `@tanstack/history`.
+
+## Creating Routers And Routes
+
+| Export | Purpose |
+|---|---|
+| `createRouter(options)` | Create the router. Key options: `routeTree`, `history`, `context`, `defaultStaleTime`, `defaultPreloadStaleTime`, `defaultGcTime`, `parseSearch` / `stringifySearch`, `scrollRestoration` |
+| `createRoute(options)` | Create a route: `getParentRoute`, `path` (or `id` for pathless layouts), `validateSearch`, `beforeLoad`, `loader`, `loaderDeps`, `staleTime`, `gcTime`, `shouldReload` |
+| `createRootRoute(options?)` | Create the root of the tree |
+| `createRootRouteWithContext<T>()` | Root route factory with a required typed router context |
+| `RouterCore`, `BaseRoute`, `BaseRootRoute` | The underlying classes (advanced — the `create*` functions wrap them) |
+
+## Router Instance
+
+The main members of the router returned by `createRouter`:
+
+- `state` — `RouterState`: `matches`, `location`, `resolvedLocation`, `status` (`"pending" | "idle"`), `isLoading`, `statusCode`, `redirect`
+- `navigate(options)` — navigate; resolves when loaders settle
+- `buildLocation(options)` — resolve navigate options to a `ParsedLocation` without navigating
+- `load()` — match and load the current location (call once at startup, and on the server)
+- `subscribe(event, fn)` — lifecycle events: `onBeforeNavigate`, `onBeforeLoad`, `onLoad`, `onResolved`, `onBeforeRouteMount`, `onRendered`
+- `invalidate(options?)` — mark cached loader data stale and re-run active loaders
+- `preloadRoute(options)` — run matching + loaders for a destination ahead of navigation
+- `matchRoute(location, options?)` — test a location against the tree (`{ fuzzy, includeSearch }`)
+- `getMatch(matchId)` / `clearCache(options?)` — cache access (advanced)
+- `history` — the underlying `RouterHistory` (`back`, `forward`, `go`, `block`)
+- `update(options)` — update router options after creation
+
+## History
+
+Re-exported from `@tanstack/history`:
+
+- `createBrowserHistory()`, `createHashHistory()`, `createMemoryHistory({ initialEntries })`, `createHistory()`
+- `parseHref(href, state)`
+- types: `RouterHistory`, `HistoryLocation`, `ParsedHistoryState`, `NavigationBlocker`, `BlockerFn`
+
+## Control Flow
+
+- `redirect(options)` / `isRedirect` / `isResolvedRedirect` / `parseRedirect` — throwable redirect Responses for `beforeLoad` and loaders
+- `notFound(options?)` / `isNotFound` — throwable not-found errors
+- `defer(promise)` / `TSR_DEFERRED_PROMISE` — deferred loader data with synchronous status
+
+## Search Params
+
+- `retainSearchParams(keys | true)` / `stripSearchParams(input)` — search middlewares
+- `defaultParseSearch` / `defaultStringifySearch` — the JSON-aware default codec
+- `parseSearchWith(parser)` / `stringifySearchWith(stringifier)` — build custom codecs
+- `SearchParamError`, `PathParamError` — validation error classes
+
+## Scroll Restoration
+
+- `setupScrollRestoration(router)` — wire scroll save/restore (client)
+- `getScrollRestorationScriptForRouter(router)` — inline pre-hydration script, from `@domphy/router/scroll-restoration-script`
+- `defaultGetScrollRestorationKey`, `storageKey`
+
+## Path Utilities
+
+- `interpolatePath`, `resolvePath`, `joinPaths`, `cleanPath`, `trimPath` / `trimPathLeft` / `trimPathRight`, `removeTrailingSlash`, `exactPathTest`
+- `encode` / `decode` — query-string primitives (`qss`)
+- `rootRouteId` — the id of the root route (`"__root__"`)
+
+## Utilities
+
+- `functionalUpdate`, `replaceEqualDeep`, `deepEqual`, `isPlainObject`, `isPlainArray`, `hasKeys`
+- `createControlledPromise`, `isModuleNotFoundError`, `escapeHtml`, `isDangerousProtocol`
+- `defaultSerializeError`, `getLocationChangeInfo`, `lazyFn`, `isMatch`
+
+## SSR Entry Points
+
+| Entry | Main exports |
+|---|---|
+| `@domphy/router/ssr/server` | `createRequestHandler`, `attachRouterServerSsrUtils`, `transformStreamWithRouter`, `transformReadableStreamWithRouter`, `transformPipeableStreamWithRouter`, `createSsrStreamResponse`, `defineHandlerCallback`, `getOrigin`, `getNormalizedURL` |
+| `@domphy/router/ssr/client` | `hydrate`, `json`, `mergeHeaders` |
+| `@domphy/router/isServer` | `isServer` boolean, resolved per build condition |
+
+See [SSR](./ssr) for how these fit Domphy.
+
+## Types
+
+All public types are re-exported, including:
+
+- routes: `AnyRoute`, `Route`, `RouteOptions`, `RootRoute`, `RouteIds`, `RouteById`, `RoutePaths`
+- router: `AnyRouter`, `RouterOptions`, `RouterState`, `RouterEvents`, `Register`, `RegisteredRouter`
+- matches: `AnyRouteMatch`, `RouteMatch`, `MakeRouteMatch`
+- navigation: `NavigateOptions`, `ToOptions`, `LinkOptions`, `ParsedLocation`, `ViewTransitionOptions`
+- loading: `LoaderFnContext`, `RouteLoaderFn`, `DeferredPromise`
+- search: `SearchMiddleware`, `SearchValidator`, `SearchParser`, `SearchSerializer`
+- control flow: `Redirect`, `RedirectOptions`, `NotFoundError`
+- ssr: `DehydratedRouter`, `DehydratedMatch`, `Manifest`, `RequestHandler`
+
+### data-loading.md
+
+# Data Loading
+
+Every route can declare a `loader`. The router runs loaders for all matched routes in parallel during navigation, caches the results with a stale-while-revalidate model, and exposes them on each match as `loaderData`.
+
+## Loaders
+
+```ts
+const postRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/posts/$postId",
+    loader: ({ params }) => fetchPost(params.postId),
+})
+```
+
+The loader context provides everything a fetch needs:
+
+| Field | Meaning |
+|---|---|
+| `params` | Typed path params |
+| `deps` | The result of `loaderDeps` (see below) |
+| `context` | Router + route context |
+| `location` | The destination `ParsedLocation` |
+| `abortController` | Aborted when the navigation is superseded — pass `.signal` to `fetch` |
+| `preload` | `true` when running as a preload |
+| `cause` | `"enter"`, `"stay"`, or `"preload"` |
+| `route` | The route instance |
+
+In the UI, read the result from the match — and drive pending UI from `match.status`:
+
+```ts
+const match = matches.get(l).find((m) => m.routeId === postRoute.id)
+if (!match || match.status === "pending") return [{ p: "Loading..." }]
+if (match.status === "error") return [{ p: `Failed: ${match.error}` }]
+return [{ h1: match.loaderData.title }]
+```
+
+## `loaderDeps`
+
+Loaders are cached per path — search params are deliberately not part of the key unless you opt them in. `loaderDeps` picks which search params (or anything else) the loader depends on; changing deps re-runs the loader and creates a separate cache entry:
+
+```ts
+const postsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/posts",
+    validateSearch: (search: Record<string, unknown>) => ({
+        page: Number(search.page ?? 1),
+    }),
+    loaderDeps: ({ search }) => ({ page: search.page }),
+    loader: ({ deps, abortController }) =>
+        fetch(`/api/posts?page=${deps.page}`, { signal: abortController.signal })
+            .then((response) => response.json()),
+})
+```
+
+## Caching: `staleTime` And Preloading
+
+Loader results follow the same two-timer model as [`@domphy/query`](../query/caching):
+
+- **`staleTime`** (default `0`) — how long loader data is fresh. Navigating back to a route with fresh data uses the cache and skips the loader entirely; stale data is shown immediately while the loader re-runs.
+- **`gcTime`** (default 30 minutes) — how long unmatched route data stays cached.
+
+Set them per route or router-wide:
+
+```ts
+const router = createRouter({
+    routeTree,
+    history,
+    defaultStaleTime: 10_000,
+    defaultPreloadStaleTime: 30_000,
+})
+
+const postRoute = createRoute({
+    // ...
+    staleTime: 60_000,
+    shouldReload: false, // never reload after first successful load (until invalidated)
+})
+```
+
+Preload a route before the user commits — the classic hover pattern:
+
+```ts
+const link = (to: string, label: string): DomphyElement<"a"> => ({
+    a: label,
+    href: router.buildLocation({ to }).href,
+    onClick: (e) => {
+        e.preventDefault()
+        router.navigate({ to })
+    },
+    onMouseEnter: () => router.preloadRoute({ to }),
+})
+```
+
+Preloaded data lands in the same cache, so the subsequent navigation is instant. After a mutation, mark everything stale and re-run active loaders:
+
+```ts
+await router.invalidate()
+```
+
+## `redirect()`
+
+Throw a redirect from `beforeLoad` or `loader` to send the user elsewhere — the canonical auth guard:
+
+```ts
+import { redirect } from "@domphy/router"
+
+const dashboardRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/dashboard",
+    beforeLoad: ({ context, location }) => {
+        if (!context.user) {
+            throw redirect({
+                to: "/login",
+                search: { redirect: location.href },
+            })
+        }
+    },
+})
+```
+
+`redirect` accepts all navigate options plus `href` (absolute URLs trigger a full document navigation) and `statusCode` (default `307`, used by SSR). `beforeLoad` runs root → leaf *before* loaders, making it the right place for guards.
+
+## `notFound()`
+
+Throw from a loader when the data does not exist:
+
+```ts
+import { notFound } from "@domphy/router"
+
+loader: async ({ params }) => {
+    const post = await fetchPost(params.postId)
+    if (!post) throw notFound()
+    return post
+},
+```
+
+The match ends with `status: "notFound"` — render your 404 UI from that:
+
+```ts
+if (match.status === "notFound") return [{ h1: "Post not found" }]
+```
+
+## Deferred Data
+
+Return critical data immediately and let slow data stream in afterwards. Wrap the slow promise with `defer()` and return it *unawaited* — the navigation resolves as soon as the fast data is ready:
+
+```ts
+import { defer } from "@domphy/router"
+
+const postRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/posts/$postId",
+    loader: async ({ params }) => ({
+        post: await fetchPost(params.postId),              // awaited — blocks navigation
+        comments: defer(fetchComments(params.postId)),     // not awaited — streams in
+    }),
+})
+```
+
+There is no `<Await>` component in Domphy — async is a state problem, so bridge the deferred promise into a state:
+
+```ts
+const comments = toState<Array<Comment> | null>(null)
+
+router.subscribe("onResolved", () => {
+    const match = router.state.matches.find((m) => m.routeId === postRoute.id)
+    comments.set(null)
+    match?.loaderData?.comments.then((data: Array<Comment>) => comments.set(data))
+})
+```
+
+```ts
+const CommentList: DomphyElement<"section"> = {
+    section: (l) => {
+        const list = comments.get(l)
+        if (!list) return [{ p: "Loading comments..." }]
+        return list.map((comment) => ({ p: comment.text, _key: comment.id }))
+    },
+}
+```
+
+### index.md
+
+# Router
+
+`@domphy/router` provides type-safe routing for Domphy apps: nested route trees, path params, validated search params, loaders with caching, redirects, navigation blocking, scroll restoration, and SSR.
+
+It is a **1-1 port of [`@tanstack/router-core`](https://github.com/TanStack/router/tree/main/packages/router-core) v1.171.13** (MIT, © Tanner Linsley and the TanStack team). The source is kept byte-identical to upstream, so the entire [TanStack Router reference](https://tanstack.com/router/latest) applies as-is, and future upstream versions can be diffed and merged directly. A thin adapter adds `createRouter`, `createRoute`, `createRootRoute`, and `createRootRouteWithContext`, and the `@tanstack/history` layer is re-exported so no separate install is needed.
+
+Like the rest of Domphy, it is framework-agnostic — the bridge to the UI is plain `toState`.
+
+## Install
+
+```bash
+npm install @domphy/router
+```
+
+## Live Examples
+
+Basic navigation:
+
+Route loaders:
+
+## Core Concepts
+
+- **Route tree** — built from `createRootRoute()` and `createRoute()`, composed with `addChildren`. Every route knows its parent via `getParentRoute`, which is what makes params, search, and loader data fully typed.
+- **Router** — `createRouter({ routeTree, history })` owns matching, navigation, loading, and caching. `router.state` is the single source of truth.
+- **Matches** — `router.state.matches` is the array of matched routes for the current location, ordered root → leaf. Each match carries `params`, `search`, `loaderData`, and `status`.
+- **History** — `createBrowserHistory()`, `createHashHistory()`, or `createMemoryHistory()` decide how locations map to the URL (or to memory, for tests and SSR).
+
+## The Bridge Pattern
+
+Domphy has no router primitive by design — routing is a state problem, and state lives outside the UI. The router manages location and match state; `toState` pushes it into the UI:
+
+```ts
+import { type DomphyElement, toState } from "@domphy/core"
+import {
+    createRouter, createRoute, createRootRoute, createMemoryHistory,
+    type AnyRouteMatch,
+} from "@domphy/router"
+
+const rootRoute = createRootRoute()
+const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: "/" })
+const postRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/posts/$postId",
+    loader: ({ params }) => fetchPost(params.postId),
+})
+const routeTree = rootRoute.addChildren([indexRoute, postRoute])
+const router = createRouter({ routeTree, history: createMemoryHistory({ initialEntries: ["/"] }) })
+
+// Bridge: router state -> Domphy states
+const matches = toState<Array<AnyRouteMatch>>([])
+const pathname = toState("/")
+function syncRouterState() {
+    matches.set(router.state.matches)
+    pathname.set(router.state.location.pathname)
+}
+router.subscribe("onResolved", syncRouterState)
+await router.load()
+syncRouterState()
+```
+
+The UI reads the states reactively — nothing router-specific leaks into elements:
+
+```ts
+const App: DomphyElement<"main"> = {
+    main: (l) => {
+        const match = matches.get(l).find((m) => m.routeId === postRoute.id)
+        if (!match) return [{ p: "Welcome" }]
+        return [{ h1: match.loaderData.title }, { p: match.loaderData.body }]
+    },
+}
+```
+
+## Links
+
+Render real `<a>` elements with real hrefs, but intercept the click so navigation stays client-side:
+
+```ts
+const link = (to: string, label: string): DomphyElement<"a"> => ({
+    a: label,
+    href: router.buildLocation({ to }).href,
+    onClick: (e) => {
+        e.preventDefault()
+        router.navigate({ to })
+    },
+})
+```
+
+See [Navigation](./navigation) for active links, history types, and blocking.
+
+## What To Read Next
+
+1. [Route Trees](./routes) for `createRoute`, path params, wildcards, and nested layouts
+2. [Navigation](./navigation) for `navigate`, `buildLocation`, link patterns, and blocking
+3. [Search Params](./search-params) for `validateSearch` and search middleware
+4. [Data Loading](./data-loading) for loaders, caching, `redirect()`, and `notFound()`
+5. [SSR](./ssr) for the server and client SSR entries
+6. [API Reference](./api) for the full export list
+
+### navigation.md
+
+# Navigation
+
+All navigation goes through the router — it matches the destination, runs loaders, and commits the new location to history. The UI never touches `window.location`.
+
+## `router.navigate`
+
+```ts
+await router.navigate({ to: "/posts" })
+await router.navigate({ to: "/posts/$postId", params: { postId: "42" } })
+await router.navigate({ to: "/posts", search: { page: 2 } })
+await router.navigate({ to: "/login", replace: true })   // no history entry
+await router.navigate({ to: ".", search: (prev) => ({ ...prev, page: 2 }) }) // stay, update search
+```
+
+Common options:
+
+| Option | Meaning |
+|---|---|
+| `to` | Destination path. Param segments stay literal (`"/posts/$postId"`); values go in `params`. |
+| `params` | Path param values, or an updater `(prev) => next`. |
+| `search` | Search params object, updater function, or `true` to keep current. |
+| `hash` | Hash string or updater. |
+| `state` | Custom history state (survives back/forward). |
+| `from` | Resolve `to` relative to this path — enables `to: ".."` and `to: "./details"`. |
+| `replace` | Replace instead of push. |
+| `reloadDocument` | Full document navigation instead of client-side. |
+| `ignoreBlocker` | Skip navigation blockers. |
+
+`navigate` returns a promise that resolves when the navigation (including loaders) settles.
+
+## Building Hrefs
+
+`router.buildLocation` resolves any navigate options into a `ParsedLocation` without navigating — the way to get real `href`s for `<a>` elements:
+
+```ts
+const location = router.buildLocation({ to: "/posts/$postId", params: { postId: "42" } })
+location.href     // "/posts/42"
+location.pathname // "/posts/42"
+```
+
+## The Domphy Link Pattern
+
+A real anchor with a real href, click intercepted for client-side navigation:
+
+```ts
+import type { DomphyElement } from "@domphy/core"
+
+const link = (to: string, label: string): DomphyElement<"a"> => ({
+    a: label,
+    href: router.buildLocation({ to }).href,
+    onClick: (e) => {
+        e.preventDefault()
+        router.navigate({ to })
+    },
+})
+```
+
+This keeps middle-click, copy-link, and crawlers working, because the `href` is genuine.
+
+## Active Links
+
+Bridge the current pathname into a state, then mark the active link with a data attribute and style it via a nested selector:
+
+```ts
+import { toState } from "@domphy/core"
+
+const pathname = toState(router.state.location.pathname)
+router.subscribe("onResolved", () => pathname.set(router.state.location.pathname))
+
+const navLink = (to: string, label: string): DomphyElement<"a"> => ({
+    a: label,
+    href: router.buildLocation({ to }).href,
+    dataActive: (l) => (pathname.get(l) === to ? "true" : "false"),
+    onClick: (e) => {
+        e.preventDefault()
+        router.navigate({ to })
+    },
+    style: {
+        '&[data-active="true"]': { textDecoration: "underline" },
+    },
+})
+```
+
+For prefix matching (e.g. `/posts` active on `/posts/42`), use `pathname.get(l).startsWith(to)`, or ask the router: `router.matchRoute({ to }, { fuzzy: true })`.
+
+## History Types
+
+The history decides how locations map to the address bar. All three are re-exported from `@tanstack/history`:
+
+```ts
+import { createBrowserHistory, createHashHistory, createMemoryHistory } from "@domphy/router"
+
+createBrowserHistory()                                  // normal URLs — needs server rewrites to index.html
+createHashHistory()                                     // /#/posts/42 — static hosts, no server config
+createMemoryHistory({ initialEntries: ["/posts/42"] })  // no URL at all — SSR, tests, embedded demos
+```
+
+The history object is also the imperative back/forward API:
+
+```ts
+router.history.back()
+router.history.forward()
+router.history.go(-2)
+```
+
+## Blocking Navigation
+
+Block navigation away from unsaved work with `history.block`. The blocker function decides per navigation; `enableBeforeUnload` extends the guard to tab close:
+
+```ts
+const unblock = router.history.block({
+    blockerFn: async ({ nextLocation }) => {
+        if (!formIsDirty.get()) return true
+        return window.confirm(`Discard changes and go to ${nextLocation.pathname}?`)
+    },
+    enableBeforeUnload: () => formIsDirty.get(),
+})
+
+// later, when the form is saved
+unblock()
+```
+
+A navigation called with `ignoreBlocker: true` bypasses blockers.
+
+## Router Events
+
+`router.subscribe` covers the full navigation lifecycle — each returns an unsubscribe function:
+
+| Event | When |
+|---|---|
+| `onBeforeNavigate` | Navigation accepted, before anything loads |
+| `onBeforeLoad` | Location committed, loaders about to run |
+| `onLoad` | Loaders running for the new matches |
+| `onResolved` | Navigation fully settled — **the one to bridge UI state from** |
+
+Each event carries `fromLocation`, `toLocation`, and `pathChanged` / `hrefChanged` flags. Two more events exist for framework adapters (`onBeforeRouteMount`, `onRendered`) — plain Domphy apps rarely need them.
+
+### routes.md
+
+# Route Trees
+
+A route tree is built from plain function calls — no file conventions, no JSX. Every route declares its parent with `getParentRoute`, and the tree is assembled once with `addChildren`. This is what gives params, search params, context, and loader data their types.
+
+## Building A Tree
+
+```ts
+import { createRootRoute, createRoute } from "@domphy/router"
+
+const rootRoute = createRootRoute()
+
+const indexRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/",
+})
+
+const postsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/posts",
+})
+
+const postRoute = createRoute({
+    getParentRoute: () => postsRoute,
+    path: "$postId",
+})
+
+const routeTree = rootRoute.addChildren([
+    indexRoute,
+    postsRoute.addChildren([postRoute]),
+])
+```
+
+Child paths compose: `postRoute` matches `/posts/$postId`. Leading and trailing slashes are normalized, so `path: "$postId"` and `path: "/$postId"` are equivalent.
+
+Every route gets a stable `id` (its full path, e.g. `"/posts/$postId"`) and a `fullPath`. The `id` is how you find a route's match in `router.state.matches`:
+
+```ts
+const match = router.state.matches.find((m) => m.routeId === postRoute.id)
+```
+
+## Path Params
+
+Segments starting with `$` are params. They are available, typed, on the match and in every loader:
+
+```ts
+const postRoute = createRoute({
+    getParentRoute: () => postsRoute,
+    path: "$postId",
+    loader: ({ params }) => fetchPost(params.postId), // params.postId: string
+})
+
+router.navigate({ to: "/posts/$postId", params: { postId: "42" } })
+```
+
+Params from parent routes are inherited — a route at `/users/$userId/posts/$postId` sees both `userId` and `postId`.
+
+Optional params use braces with a dash, and prefix/suffix segments are supported:
+
+```ts
+path: "/posts/{-$category}"          // matches /posts and /posts/news
+path: "/files/prefix{$name}.txt"     // matches /files/prefixreport.txt
+```
+
+## Wildcards
+
+A trailing `$` matches everything after it. The remainder is exposed as `params._splat`:
+
+```ts
+const fileRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/files/$",
+    loader: ({ params }) => readFile(params._splat), // "docs/readme.md" for /files/docs/readme.md
+})
+
+router.navigate({ to: "/files/$", params: { _splat: "docs/readme.md" } })
+```
+
+## Layout Routes
+
+A route with an `id` instead of a `path` is *pathless*: it adds no URL segment but still participates in matching — useful for shared layouts, shared `beforeLoad` guards, or shared context:
+
+```ts
+const authLayout = createRoute({
+    getParentRoute: () => rootRoute,
+    id: "auth",
+    beforeLoad: () => {
+        if (!isLoggedIn()) throw redirect({ to: "/login" })
+    },
+})
+
+const dashboardRoute = createRoute({
+    getParentRoute: () => authLayout,
+    path: "/dashboard",
+})
+
+const routeTree = rootRoute.addChildren([
+    authLayout.addChildren([dashboardRoute]),
+])
+```
+
+`/dashboard` now matches three routes: root → `auth` → dashboard.
+
+## Rendering Nested Matches
+
+`router.state.matches` is ordered root → leaf, which maps directly to nested layouts. The Domphy pattern is a render map keyed by route id — each entry renders its own chrome and recurses into the rest of the matches:
+
+```ts
+import { type DomphyElement, toState } from "@domphy/core"
+import type { AnyRouteMatch } from "@domphy/router"
+
+const matches = toState<Array<AnyRouteMatch>>([])
+router.subscribe("onResolved", () => matches.set(router.state.matches))
+
+const renderers: Record<string, (match: AnyRouteMatch, rest: Array<AnyRouteMatch>) => DomphyElement> = {
+    [postsRoute.id]: (match, rest) => ({
+        section: [{ h2: "Posts" }, ...rest.map((m) => renderMatch(m, rest.slice(1)))],
+    }),
+    [postRoute.id]: (match) => ({
+        article: match.status === "pending" ? "Loading..." : match.loaderData.title,
+    }),
+}
+
+function renderMatch(match: AnyRouteMatch, rest: Array<AnyRouteMatch>): DomphyElement {
+    const render = renderers[match.routeId]
+    return render ? render(match, rest) : { div: rest.map((m) => renderMatch(m, rest.slice(1))) }
+}
+
+const App: DomphyElement<"main"> = {
+    main: (l) => {
+        const [, ...rest] = matches.get(l) // skip the root match
+        return rest.length ? [renderMatch(rest[0], rest.slice(1))] : []
+    },
+}
+```
+
+For flat apps without shared layouts, finding the leaf match by `routeId` (as in the [Overview](./)) is all you need.
+
+## Route Context
+
+The root route can require a typed context, provided once at router creation and merged down the tree by `beforeLoad`:
+
+```ts
+import { createRootRouteWithContext, createRouter } from "@domphy/router"
+
+type RouterContext = { user: User | null }
+
+const rootRoute = createRootRouteWithContext<RouterContext>()()
+
+const router = createRouter({
+    routeTree,
+    history,
+    context: { user: null },
+})
+```
+
+Every loader and `beforeLoad` then receives `context` — the standard place to pass API clients or session data without globals.
+
+### search-params.md
+
+# Search Params
+
+The router treats the query string as structured, validated, typed state — not a bag of strings. Search params are parsed (with JSON support for nested values), validated per route, and flow into matches and loaders fully typed.
+
+## `validateSearch`
+
+Declare a route's search schema with `validateSearch`. The raw parsed search comes in, your typed schema comes out:
+
+```ts
+type PostsSearch = {
+    page: number
+    filter: string
+}
+
+const postsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/posts",
+    validateSearch: (search: Record<string, unknown>): PostsSearch => ({
+        page: Number(search.page ?? 1),
+        filter: (search.filter as string) ?? "",
+    }),
+})
+```
+
+Any [Standard Schema](https://github.com/standard-schema/standard-schema) validator (Zod, Valibot, ArkType...) can be passed directly instead of a function:
+
+```ts
+validateSearch: z.object({
+    page: z.number().catch(1),
+    filter: z.string().catch(""),
+})
+```
+
+If validation throws, the match errors with a `SearchParamError` — surface it from `match.status === "error"` / `match.error`.
+
+## Reading Search
+
+The validated result lives on the match (parent schemas are merged in):
+
+```ts
+const match = matches.get(l).find((m) => m.routeId === postsRoute.id)
+match?.search.page   // number — typed by validateSearch
+```
+
+And in loaders — but go through `loaderDeps`, not `search` directly (see [Data Loading](./data-loading)):
+
+```ts
+loaderDeps: ({ search }) => ({ page: search.page }),
+loader: ({ deps }) => fetchPosts(deps.page),
+```
+
+## Navigating With Search
+
+`search` accepts an object, `true` to keep the current params, or an updater function — the functional form is the idiomatic one for "change one param, keep the rest":
+
+```ts
+router.navigate({ to: "/posts", search: { page: 2, filter: "" } })
+
+// update relative to the current search
+router.navigate({
+    to: ".",
+    search: (prev) => ({ ...prev, page: prev.page + 1 }),
+})
+
+// different route, keep whatever search is currently in the URL
+router.navigate({ to: "/posts", search: true })
+```
+
+The same `search` option works in `buildLocation` for hrefs and in `redirect()`.
+
+## Search Middleware
+
+Middlewares run on every *link build and navigation* for a route, transforming the outgoing search before it hits the URL. They are declared on the route's `search.middlewares`:
+
+```ts
+import { retainSearchParams, stripSearchParams } from "@domphy/router"
+```
+
+### `retainSearchParams`
+
+Keeps search params alive across navigations that would otherwise drop them — for app-wide params like feature flags or an active workspace:
+
+```ts
+const rootRoute = createRootRoute({
+    validateSearch: (search: Record<string, unknown>) => ({
+        workspace: (search.workspace as string) ?? undefined,
+    }),
+    search: {
+        middlewares: [retainSearchParams(["workspace"])],
+    },
+})
+```
+
+`retainSearchParams(true)` retains everything currently in the URL.
+
+### `stripSearchParams`
+
+Removes noise from URLs — params equal to their defaults disappear:
+
+```ts
+const defaults = { page: 1, filter: "" }
+
+const postsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/posts",
+    validateSearch: (search: Record<string, unknown>) => ({
+        page: Number(search.page ?? defaults.page),
+        filter: (search.filter as string) ?? defaults.filter,
+    }),
+    search: {
+        middlewares: [stripSearchParams(defaults)],
+    },
+})
+```
+
+`/posts?page=1&filter=` becomes `/posts`. Variants: pass an array of keys to always strip them, or `true` to strip all (only when no search params are required).
+
+## Custom Serialization
+
+By default search is serialized with `defaultStringifySearch` (JSON-aware: `?ids=[1,2]` round-trips as an array). Swap the codec router-wide:
+
+```ts
+import { createRouter, parseSearchWith, stringifySearchWith } from "@domphy/router"
+
+const router = createRouter({
+    routeTree,
+    history,
+    parseSearch: parseSearchWith(JSON.parse),
+    stringifySearch: stringifySearchWith(JSON.stringify),
+})
+```
+
+### ssr.md
+
+# SSR
+
+The router is isomorphic: route matching, loaders, and redirects run identically on the server. The SSR layer is ported 1-1 from upstream and works at the router level — but the upstream streaming pipeline is designed around framework render integrations, so **wiring it to Domphy is manual**. This page shows the honest, minimal path.
+
+## Entry Points
+
+```ts
+import { createRequestHandler, attachRouterServerSsrUtils } from "@domphy/router/ssr/server"
+import { hydrate, json, mergeHeaders } from "@domphy/router/ssr/client"
+```
+
+- `@domphy/router/ssr/server` — `createRequestHandler`, `attachRouterServerSsrUtils` (dehydration + streaming utilities), `transformStreamWithRouter` and friends
+- `@domphy/router/ssr/client` — `hydrate` for restoring dehydrated router state, plus `json` / `mergeHeaders` helpers
+
+## The Minimal Pattern
+
+The simplest reliable approach skips the streaming pipeline: run the router per request, render with Domphy SSR, and serialize what you need yourself.
+
+Server — one router per request, memory history at the request URL:
+
+```ts
+import { createRouter, createMemoryHistory } from "@domphy/router"
+import { ElementNode } from "@domphy/core"
+
+async function renderPage(requestUrl: string) {
+    const router = createRouter({
+        routeTree,
+        history: createMemoryHistory({ initialEntries: [requestUrl] }),
+    })
+
+    await router.load() // matches + loaders, server-side
+
+    if (router.state.redirect) {
+        return { redirect: router.state.redirect.options.href, status: 307 }
+    }
+
+    syncRouterState() // seed the bridge states so generateHTML sees the data
+
+    const node = new ElementNode(App)
+    const html = node.generateHTML()
+    const css = node.generateCSS()
+
+    const loaderData = router.state.matches.map((match) => ({
+        id: match.id,
+        loaderData: match.loaderData,
+    }))
+
+    return {
+        status: router.state.statusCode, // 200, or 404 when a match was notFound
+        body: `<!doctype html>
+<html>
+<head><style id="domphy-style">${css}</style></head>
+<body>
+    <div id="app">${html}</div>
+    <script>window.__ROUTER_STATE__ = ${JSON.stringify(loaderData)}</script>
+    <script type="module" src="/client.js"></script>
+</body>
+</html>`,
+    }
+}
+```
+
+Client — same route tree, browser history, mount instead of render:
+
+```ts
+import { createRouter, createBrowserHistory } from "@domphy/router"
+import { ElementNode } from "@domphy/core"
+
+const router = createRouter({ routeTree, history: createBrowserHistory() })
+
+// Optional: seed match data from the server so loaders with staleTime skip refetching
+hydrateLoaderData(window.__ROUTER_STATE__)
+
+await router.load()
+syncRouterState()
+
+const domStyle = document.getElementById("domphy-style") as HTMLStyleElement
+new ElementNode(App).mount(document.getElementById("app")!, domStyle)
+```
+
+Create the router **per request** on the server — a module-level router would leak state between users.
+
+## Dehydrate / Hydrate Concept
+
+The ported upstream layer can do this serialization for you: on the server, `attachRouterServerSsrUtils(router, ...)` collects matches, loader data, and deferred promises into a dehydrated payload (serialized with `seroval`, so it handles promises and streaming); on the client, `hydrate(router)` from `@domphy/router/ssr/client` restores it before the first `router.load()`, so loaders do not re-run for data the server already fetched. `createRequestHandler` wraps the whole request lifecycle (including redirect responses).
+
+These utilities work, but they assume a streaming HTML render to interleave with — Domphy's `generateHTML` is synchronous, so until a dedicated integration exists, the manual pattern above is the recommended route. The full upstream behavior is documented in the [TanStack Router SSR guide](https://tanstack.com/router/latest/docs/framework/react/guide/ssr).
+
+## Scroll Restoration
+
+On the client, enable scroll restoration once after creating the router:
+
+```ts
+import { setupScrollRestoration } from "@domphy/router"
+
+const router = createRouter({ routeTree, history: createBrowserHistory(), scrollRestoration: true })
+setupScrollRestoration(router)
+```
+
+For SSR pages, `@domphy/router/scroll-restoration-script` exports `getScrollRestorationScriptForRouter(router)` — an inline script to embed in the server HTML `<head>` so the scroll position is restored *before* hydration, avoiding a visible jump. (The export resolves to a no-op stub in browser builds.)
+
+
+
+---
+
+
+## Table docs (`@domphy/table`)
+
+### advanced.md
+
+# Advanced Features
+
+Each feature below follows the same pattern as [sorting and filtering](./sorting-filtering): pass the row model factory if one exists, drive state through instance methods, and let the `tableVersion` bridge re-render the UI.
+
+## Grouping & Aggregation
+
+Pass `getGroupedRowModel()` (plus `getExpandedRowModel()` if group rows should expand) and set which columns to group by:
+
+```ts
+import { getGroupedRowModel, getExpandedRowModel } from "@domphy/table"
+
+// in createTable options:
+getGroupedRowModel: getGroupedRowModel(),
+getExpandedRowModel: getExpandedRowModel(),
+```
+
+```ts
+table.setGrouping(["status"])
+table.resetGrouping()
+// or per column: column.toggleGrouping(), column.getIsGrouped()
+```
+
+Grouped rows aggregate their leaf rows. Pick the function per column with `aggregationFn`:
+
+| `aggregationFn` | Result |
+|---|---|
+| `sum`, `min`, `max`, `mean`, `median` | Numeric aggregates. |
+| `extent` | `[min, max]` tuple. |
+| `unique` | Array of distinct values. |
+| `uniqueCount` | Number of distinct values. |
+| `count` | Leaf row count (default for group rows). |
+
+```ts
+helper.accessor("visits", { aggregationFn: "sum" })
+```
+
+When rendering, group rows report their kind per cell: `cell.getIsGrouped()` (the grouped value plus `row.subRows.length`), `cell.getIsAggregated()` (render the aggregate), `cell.getIsPlaceholder()` (render nothing). All built-ins are exported as the `aggregationFns` object; a custom one is `(columnId, leafRows, childRows) => value`.
+
+## Expanding & Sub-Rows
+
+For hierarchical data, tell the core row model where children live and pass `getExpandedRowModel()`:
+
+```ts
+const table = createTable({
+    data,
+    columns,
+    getSubRows: (row) => row.children,
+    getCoreRowModel: getCoreRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    // ...
+})
+```
+
+`table.getRowModel().rows` then flattens expanded children in place. Per row:
+
+- `row.getCanExpand()` — has sub-rows (or `getRowCanExpand` says so)
+- `row.getIsExpanded()` / `row.toggleExpanded(value?)`
+- `row.getToggleExpandedHandler()` — ready-made click handler
+- `row.depth` — indent level
+
+```ts
+td: cell.column.id === "name"
+    ? {
+        div: [
+            row.getCanExpand()
+                ? { button: row.getIsExpanded() ? "▼" : "▶", onclick: row.getToggleExpandedHandler(), $: [button()] }
+                : null,
+            String(cell.getValue()),
+        ],
+        style: { paddingLeft: `${row.depth * 1.5}rem` },
+    }
+    : String(cell.getValue() ?? ""),
+```
+
+`table.toggleAllRowsExpanded()` and `table.setExpanded(true)` work on the whole tree (`expanded: true` means "everything expanded").
+
+## Column Visibility
+
+No row model needed — visibility filters which leaf columns appear:
+
+```ts
+table.getColumn("age")!.toggleVisibility()       // or .toggleVisibility(false)
+table.getColumn("age")!.getIsVisible()
+table.toggleAllColumnsVisible(true)
+```
+
+Render from the visibility-aware getters and columns hide everywhere automatically: `table.getVisibleLeafColumns()`, `row.getVisibleCells()`, and header groups already respect it. A column with `enableHiding: false` is exempt. A visibility menu is one loop over `table.getAllLeafColumns()` with an `inputCheckbox()` per column bound to `column.getIsVisible()` / `column.toggleVisibility()`.
+
+## Column Ordering
+
+```ts
+table.setColumnOrder(["select", "fullName", "age", "visits"])
+table.resetColumnOrder()
+```
+
+The state is an array of column ids; unlisted columns append in definition order. Pinning (below) takes precedence over ordering for the pinned sections.
+
+## Column Pinning
+
+Pin columns to either edge:
+
+```ts
+table.setColumnPinning({ left: ["select"], right: ["actions"] })
+// or per column: column.pin("left"), column.pin(false), column.getIsPinned()
+```
+
+Read the three sections separately when you need split rendering (e.g. sticky columns):
+
+- `table.getLeftLeafColumns()` / `table.getCenterLeafColumns()` / `table.getRightLeafColumns()`
+- `table.getLeftHeaderGroups()` / center / right variants
+- `row.getLeftVisibleCells()` / `row.getCenterVisibleCells()` / `row.getRightVisibleCells()`
+
+For CSS-sticky pinning in one `<table>`, keep rendering `row.getVisibleCells()` (pinned cells are ordered left → center → right) and use `column.getIsPinned()` with `column.getStart("left")` / `column.getAfter("right")` to compute the sticky offsets.
+
+## Column Sizing
+
+Sizes are plain numbers in state — `column.getSize()` returns the current size (default 150, bounded by `minSize` / `maxSize` from the column def):
+
+```ts
+helper.accessor("firstName", { size: 240, minSize: 80 })
+```
+
+```ts
+th: { ..., style: { width: `${header.getSize()}px` } },
+```
+
+Set sizes directly with `table.setColumnSizing({ firstName: 300 })`, or build a resize handle: `header.getResizeHandler()` returns a `mousedown`/`touchstart` handler that tracks the drag and writes `columnSizing` state for you. During a drag, `column.getIsResizing()` is `true`; the `columnResizeMode` option picks whether sizes apply live (`"onChange"`) or on release (`"onEnd"`).
+
+```ts
+{ div: null, onmousedown: header.getResizeHandler(), style: { cursor: "col-resize", ... } }
+```
+
+## Faceting
+
+Faceting computes value statistics per column for building filter UIs — pass the row models and read, never set:
+
+```ts
+import { getFacetedRowModel, getFacetedUniqueValues, getFacetedMinMaxValues } from "@domphy/table"
+
+// in createTable options:
+getFacetedRowModel: getFacetedRowModel(),
+getFacetedUniqueValues: getFacetedUniqueValues(),
+getFacetedMinMaxValues: getFacetedMinMaxValues(),
+```
+
+```ts
+const statusColumn = table.getColumn("status")!
+
+// Map<value, count> — feed a select() or checkbox list of available filter options
+const options = [...statusColumn.getFacetedUniqueValues().keys()]
+
+// [min, max] — feed an inputRange() for a number range filter
+const range = table.getColumn("age")!.getFacetedMinMaxValues()
+```
+
+Facets are computed from rows filtered by *every other* column, so the option list always reflects what selecting it would actually match.
+
+### api.md
+
+# API Reference
+
+`@domphy/table` is a 1-1 port of `@tanstack/table-core` v8.21.3 — every export below has identical behavior to upstream, so the [TanStack Table v8 reference](https://tanstack.com/table/v8/docs) documents each item in full detail.
+
+## Core
+
+- `createTable(options)` — builds the table instance. Key options: `data`, `columns`, `state`, `onStateChange`, `initialState`, the `get*RowModel` factories, `getRowId`, `getSubRows`, `renderFallbackValue`, plus per-feature `enable*` / `manual*` flags
+- `createColumnHelper<TData>()` — typed column def builder: `accessor` (by key or function), `display`, `group`
+
+## Row Models
+
+All opt-in factories passed into `createTable` options; only the first is required:
+
+- `getCoreRowModel()` — base rows from `data`
+- `getSortedRowModel()` — sorting
+- `getFilteredRowModel()` — column filters + global filter
+- `getPaginationRowModel()` — page slicing
+- `getGroupedRowModel()` — grouping and aggregation
+- `getExpandedRowModel()` — expanding and sub-rows
+- `getFacetedRowModel()` — per-column faceting base
+- `getFacetedUniqueValues()` — `Map<value, count>` per column
+- `getFacetedMinMaxValues()` — `[min, max]` per column
+
+## Built-In Functions
+
+- `sortingFns` — `alphanumeric`, `alphanumericCaseSensitive`, `text`, `textCaseSensitive`, `datetime`, `basic`
+- `filterFns` — `includesString`, `includesStringSensitive`, `equalsString`, `equals`, `weakEquals`, `arrIncludes`, `arrIncludesAll`, `arrIncludesSome`, `inNumberRange`
+- `aggregationFns` — `sum`, `min`, `max`, `extent`, `mean`, `median`, `unique`, `uniqueCount`, `count`
+
+## Instance APIs Per Feature
+
+Each feature contributes methods to the table, column, row, and header objects. Summarized; see the feature pages for usage:
+
+- **Sorting** — `table.setSorting`/`resetSorting`; `column.toggleSorting`, `getIsSorted`, `getCanSort`, `clearSorting`, `getToggleSortingHandler`
+- **Column filtering** — `table.setColumnFilters`; `column.setFilterValue`, `getFilterValue`, `getIsFiltered`, `getCanFilter`
+- **Global filtering** — `table.setGlobalFilter`, `resetGlobalFilter`, `getGlobalFilterFn` (rows come out of `getFilteredRowModel`)
+- **Pagination** — `table.setPageIndex`, `setPageSize`, `nextPage`, `previousPage`, `firstPage`, `lastPage`, `getPageCount`, `getCanNextPage`, `getCanPreviousPage`
+- **Row selection** — `table.toggleAllRowsSelected`, `toggleAllPageRowsSelected`, `getIsAllRowsSelected`, `getSelectedRowModel`, `resetRowSelection`; `row.toggleSelected`, `getIsSelected`, `getCanSelect`
+- **Grouping** — `table.setGrouping`, `resetGrouping`; `column.toggleGrouping`, `getIsGrouped`; `cell.getIsGrouped`, `getIsAggregated`, `getIsPlaceholder`
+- **Expanding** — `table.setExpanded`, `toggleAllRowsExpanded`; `row.toggleExpanded`, `getIsExpanded`, `getCanExpand`, `getToggleExpandedHandler`
+- **Visibility** — `table.setColumnVisibility`, `toggleAllColumnsVisible`, `getVisibleLeafColumns`; `column.toggleVisibility`, `getIsVisible`, `getCanHide`
+- **Ordering** — `table.setColumnOrder`, `resetColumnOrder`
+- **Column pinning** — `table.setColumnPinning`, `getLeftLeafColumns`/center/right (plus header-group and visible-cell variants); `column.pin`, `getIsPinned`, `getStart`, `getAfter`
+- **Row pinning** — `table.setRowPinning`, `getTopRows`, `getBottomRows`; `row.pin`, `getIsPinned`
+- **Sizing** — `table.setColumnSizing`, `resetColumnSizing`; `column.getSize`, `getIsResizing`; `header.getSize`, `getResizeHandler`
+- **Faceting** — `column.getFacetedRowModel`, `getFacetedUniqueValues`, `getFacetedMinMaxValues`; global variants on `table`
+
+## Utilities
+
+- `functionalUpdate(updater, input)` — resolve an `Updater<T>` (value or function) against the current value
+- `makeStateUpdater(key, instance)` — build a per-key `onChange` handler that writes through `onStateChange`
+- `memo(getDeps, fn, options)` — the dependency-memoization primitive all row models use
+- `flattenBy(array, getChildren)`, `isFunction`, `isNumberArray`, `noop`
+- `reSplitAlphaNumeric` — the regex behind `alphanumeric` sorting
+
+## Types
+
+All public types are re-exported, including:
+
+- instance shapes: `Table`, `Column`, `Row`, `Cell`, `Header`, `HeaderGroup`, `RowModel`, `RowData`
+- options & state: `TableOptions`, `TableState`, `InitialTableState`, `Updater`
+- column defs: `ColumnDef`, `AccessorKeyColumnDef`, `AccessorFnColumnDef`, `DisplayColumnDef`, `GroupColumnDef`, `IdentifiedColumnDef`, `ColumnHelper`, `CellContext`, `HeaderContext`
+- feature state: `SortingState`, `ColumnFiltersState`, `GlobalFilterState` (via `TableState`), `PaginationState`, `RowSelectionState`, `GroupingState`, `ExpandedState`, `VisibilityState`, `ColumnOrderState`, `ColumnPinningState`, `RowPinningState`, `ColumnSizingState`, `ColumnSizingInfoState`
+- functions: `SortingFn`, `FilterFn`, `AggregationFn`, `AccessorFn`, plus `BuiltInSortingFn`, `BuiltInFilterFn`, `BuiltInAggregationFn`
+
+## CDN Global
+
+The IIFE bundle exposes everything under `Domphy.table`:
+
+```html
+<script src="https://unpkg.com/@domphy/table/dist/table.global.js"></script>
+<script>
+    const { createTable, createColumnHelper, getCoreRowModel } = Domphy.table
+</script>
+```
+
+### columns.md
+
+# Columns & Row Models
+
+Column defs tell the table how to extract values from your data and what to show in headers, cells, and footers. Row models compute the rows the table displays — each one is opt-in and tree-shakeable.
+
+## Column Defs With `createColumnHelper`
+
+`createColumnHelper<TData>()` returns a typed builder with three methods:
+
+```ts
+import { createColumnHelper } from "@domphy/table"
+
+type Person = {
+    firstName: string
+    lastName: string
+    age: number
+    visits: number
+}
+
+const helper = createColumnHelper<Person>()
+
+const columns = [
+    // accessor by key — value type is inferred from the data shape
+    helper.accessor("firstName", {
+        header: "First Name",
+    }),
+
+    // accessor by function — derive a value; an explicit id is required
+    helper.accessor((row) => `${row.firstName} ${row.lastName}`, {
+        id: "fullName",
+        header: "Full Name",
+    }),
+
+    // display column — no data value (actions, checkboxes, row numbers)
+    helper.display({
+        id: "actions",
+        header: "Actions",
+    }),
+
+    // group column — a header spanning child columns
+    helper.group({
+        header: "Stats",
+        columns: [
+            helper.accessor("age", { header: "Age" }),
+            helper.accessor("visits", { header: "Visits" }),
+        ],
+    }),
+]
+```
+
+The helper is purely a typing convenience — plain objects with `accessorKey` / `accessorFn` work identically.
+
+## Header, Cell, And Footer Defs
+
+Each column def can carry `header`, `cell`, and `footer`. Each accepts a string or a function receiving a context object:
+
+```ts
+helper.accessor("age", {
+    header: "Age",
+    cell: (info) => `${info.getValue()} years`,
+    footer: (info) => info.column.id,
+})
+```
+
+The cell context exposes `getValue()`, `row`, `column`, and `table`. Because Domphy is headless-native, there is no `flexRender` step — a cell def can simply return a string, or you can skip cell defs entirely and read `cell.getValue()` yourself when building elements.
+
+## Row Models Are Opt-In
+
+`getCoreRowModel()` is the only required row model — it maps raw `data` to rows. Everything else is a separate factory you pass only when you use the feature:
+
+| Row model | Enables |
+|---|---|
+| `getCoreRowModel()` | **Required.** Base rows from `data`. |
+| `getSortedRowModel()` | Sorting. |
+| `getFilteredRowModel()` | Column filters and global filtering. |
+| `getPaginationRowModel()` | Page slicing. |
+| `getGroupedRowModel()` | Grouping and aggregation. |
+| `getExpandedRowModel()` | Expanding and sub-rows. |
+| `getFacetedRowModel()` | Per-column faceting base. |
+| `getFacetedUniqueValues()` | Unique value counts for filter UIs. |
+| `getFacetedMinMaxValues()` | Min/max range for range filter UIs. |
+
+```ts
+import {
+    createTable,
+    getCoreRowModel,
+    getSortedRowModel,
+    getFilteredRowModel,
+} from "@domphy/table"
+
+const table = createTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    // ...bridge options from the overview
+})
+```
+
+If a row model is missing, the feature's state is still tracked but rows pass through unprocessed — sorting state changes, but rows do not reorder.
+
+## Accessing Data
+
+The instance computes everything; you read it in a render function. The traversal is always the same:
+
+- `table.getHeaderGroups()` → header rows; each group has `headers`, each header has `column.columnDef.header`, `colSpan`, `isPlaceholder`
+- `table.getRowModel().rows` → final rows after all enabled row models
+- `row.getVisibleCells()` → cells in visible-column order; `cell.getValue()` returns the accessor value
+
+```ts
+const App: DomphyElement<"table"> = {
+    table: (l) => {
+        tableVersion.get(l)
+        return [
+            {
+                thead: table.getHeaderGroups().map((headerGroup) => ({
+                    tr: headerGroup.headers.map((header) => ({
+                        th: header.isPlaceholder ? "" : String(header.column.columnDef.header),
+                        colSpan: header.colSpan,
+                        _key: header.id,
+                    })),
+                    _key: headerGroup.id,
+                })),
+            },
+            {
+                tbody: table.getRowModel().rows.map((row) => ({
+                    tr: row.getVisibleCells().map((cell) => ({
+                        td: String(cell.getValue() ?? ""),
+                        _key: cell.id,
+                    })),
+                    _key: row.id,
+                })),
+            },
+        ]
+    },
+    $: [tableUI()],
+}
+```
+
+In Domphy these map to plain element objects — no render-prop indirection. If a column has a `cell` function returning a string, call it with `cell.getContext()`; otherwise `cell.getValue()` is all you need. Use `header.id`, `row.id`, and `cell.id` as `_key` so reconciliation stays stable across sorts and filters.
+
+### index.md
+
+# Table
+
+`@domphy/table` provides headless table logic for Domphy apps: sorting, filtering, pagination, row selection, grouping, expanding, pinning, column sizing, and faceting.
+
+It is a **1-1 port of [`@tanstack/table-core`](https://github.com/TanStack/table/tree/main/packages/table-core) v8.21.3** (MIT, © Tanner Linsley and the TanStack team). The source is kept byte-identical to upstream, so the entire [TanStack Table v8 reference](https://tanstack.com/table/v8/docs) applies as-is, and future upstream versions can be diffed and merged directly.
+
+Like the rest of Domphy, it is framework-agnostic and has zero dependencies — the bridge to the UI is plain `toState`.
+
+## Install
+
+npm install @domphy/table
+```
+```html [CDN]
+<script src="https://unpkg.com/@domphy/table/dist/table.global.js"></script>
+```
+
+The CDN bundle exposes `Domphy.table` with all exports.
+
+## Live Example
+
+## Core Concepts
+
+- **`createTable`** — builds the table instance from your `data`, `columns`, row models, and state. The instance is the single API surface: header groups, row models, and every feature method hang off it.
+- **Column defs** — plain objects describing how to extract values (`accessorKey` / `accessorFn`), what to render in headers/cells/footers, and per-column feature options. `createColumnHelper` gives you a typed builder.
+- **Row models are opt-in** — only `getCoreRowModel()` is required. Sorting, filtering, pagination, grouping, expanding, and faceting each ship as a separate `get*RowModel()` factory you pass in explicitly, so unused features tree-shake away.
+- **Headless** — `@domphy/table` computes *what* to display; Domphy owns *how*. You map header groups and rows straight into plain element objects.
+
+## The Bridge Pattern
+
+`@domphy/table` is state-driven: every interaction (sort click, filter input, page change) funnels through `onStateChange`. The bridge is one `toState` counter that bumps whenever table state changes — the UI reads it and re-renders from the instance:
+
+```ts
+import { createTable, getCoreRowModel, getSortedRowModel } from "@domphy/table"
+import { toState } from "@domphy/core"
+
+const tableVersion = toState(0)
+
+const table = createTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    state: {},
+    onStateChange: (updater) => {
+        const next = typeof updater === "function" ? updater(table.getState()) : updater
+        table.setOptions((prev) => ({ ...prev, state: next }))
+        tableVersion.set(tableVersion.get() + 1)
+    },
+    renderFallbackValue: null,
+})
+table.setOptions((prev) => ({ ...prev, state: table.initialState }))
+```
+
+The UI touches `tableVersion` reactively, then reads everything else directly from the instance:
+
+```ts
+import { table as tableUI } from "@domphy/ui"
+
+const App: DomphyElement<"table"> = {
+    table: (l) => {
+        tableVersion.get(l)
+        return [
+            { thead: table.getHeaderGroups().map((headerGroup) => ({ tr: ..., _key: headerGroup.id })) },
+            { tbody: table.getRowModel().rows.map((row) => ({ tr: ..., _key: row.id })) },
+        ]
+    },
+    $: [tableUI()],
+}
+```
+
+Note the import alias: the `table()` patch from `@domphy/ui` is imported as `tableUI` because `table` is taken by the instance. The docs use this aliasing throughout.
+
+## What To Read Next
+
+1. [Columns & Row Models](./columns) for column defs, `createColumnHelper`, and reading data out of the instance
+2. [Sorting & Filtering](./sorting-filtering) for sort toggling, column filters, and global filtering
+3. [Pagination & Selection](./pagination-selection) for page controls and row selection with checkboxes
+4. [Advanced Features](./advanced) for grouping, expanding, visibility, ordering, pinning, sizing, and faceting
+5. [API Reference](./api) for the full export list
+
+### pagination-selection.md
+
+# Pagination & Selection
+
+## Pagination
+
+Pass `getPaginationRowModel()` — `table.getRowModel()` then returns only the current page:
+
+```ts
+import { createTable, getCoreRowModel, getPaginationRowModel } from "@domphy/table"
+
+const table = createTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    // ...bridge options from the overview
+})
+```
+
+The default page size is 10. Seed a different one through `initialState`:
+
+```ts
+initialState: { pagination: { pageIndex: 0, pageSize: 25 } },
+```
+
+### Page Controls
+
+| Method | Does |
+|---|---|
+| `table.setPageIndex(index)` | Jump to a page (0-based). |
+| `table.setPageSize(size)` | Change page size; the index is clamped to keep the first row visible. |
+| `table.nextPage()` / `table.previousPage()` | Step one page. |
+| `table.firstPage()` / `table.lastPage()` | Jump to either end. |
+| `table.getPageCount()` | Total pages after filtering. |
+| `table.getCanNextPage()` / `table.getCanPreviousPage()` | Boundary checks for disabling buttons. |
+
+```ts
+const Pager: DomphyElement<"div"> = {
+    div: (l) => {
+        tableVersion.get(l)
+        const { pageIndex } = table.getState().pagination
+        return [
+            {
+                button: "Previous",
+                onclick: () => table.previousPage(),
+                disabled: !table.getCanPreviousPage(),
+                $: [button()],
+            },
+            { span: `Page ${pageIndex + 1} of ${table.getPageCount()}` },
+            {
+                button: "Next",
+                onclick: () => table.nextPage(),
+                disabled: !table.getCanNextPage(),
+                $: [button()],
+            },
+        ]
+    },
+}
+```
+
+Pagination runs after sorting and filtering, so changing a filter automatically recomputes `getPageCount()`. For server-side data, set `manualPagination: true` with `pageCount` (or `rowCount`) and fetch per page yourself.
+
+## Row Selection
+
+Selection needs no extra row model — enable it and drive it per row:
+
+```ts
+const table = createTable({
+    // ...
+    enableRowSelection: true, // or a predicate: (row) => row.original.age >= 18
+})
+```
+
+Selection state is a map of row ids in `state.rowSelection`. The API:
+
+- `row.toggleSelected(value?)` / `row.getIsSelected()` / `row.getCanSelect()`
+- `table.toggleAllRowsSelected(value?)` / `table.getIsAllRowsSelected()` / `table.getIsSomeRowsSelected()`
+- `table.toggleAllPageRowsSelected(value?)` — current page only
+- `table.getSelectedRowModel()` — the selected rows as a row model (`.rows`, `row.original` for your data)
+- `table.resetRowSelection()`
+
+```ts
+const selected = table.getSelectedRowModel().rows.map((row) => row.original)
+```
+
+## Checkbox Column Recipe
+
+A `display` column with Domphy's `inputCheckbox()` patch — header checkbox selects all, row checkboxes select one:
+
+```ts
+import { inputCheckbox } from "@domphy/ui"
+
+const selectColumn = helper.display({ id: "select" })
+```
+
+Render it specially when building cells (the column has no value, so branch on `column.id`):
+
+```ts
+// header cell
+th: header.column.id === "select"
+    ? {
+        input: null,
+        type: "checkbox",
+        checked: table.getIsAllRowsSelected(),
+        indeterminate: table.getIsSomeRowsSelected(),
+        onchange: () => table.toggleAllRowsSelected(),
+        $: [inputCheckbox()],
+    }
+    : String(header.column.columnDef.header),
+
+// body cell
+td: cell.column.id === "select"
+    ? {
+        input: null,
+        type: "checkbox",
+        checked: row.getIsSelected(),
+        disabled: !row.getCanSelect(),
+        onchange: () => row.toggleSelected(),
+        $: [inputCheckbox()],
+    }
+    : String(cell.getValue() ?? ""),
+```
+
+Because the whole `table:` render function re-runs on every `tableVersion` bump, `checked` stays in sync with `state.rowSelection` without any extra wiring. Selection survives sorting and filtering (it is keyed by `row.id`); whether it survives pagination of filtered-out rows depends on `enableSubRowSelection` and your row id strategy — pass `getRowId: (row) => row.id` to key selection by your own ids instead of row index.
+
+### sorting-filtering.md
+
+# Sorting & Filtering
+
+Both features follow the same shape: pass the row model factory, then drive state through column or table methods. Every state change flows through `onStateChange`, bumps `tableVersion`, and the UI re-reads the instance.
+
+## Sorting
+
+Pass `getSortedRowModel()` and toggle from a header click:
+
+```ts
+import { createTable, getCoreRowModel, getSortedRowModel } from "@domphy/table"
+
+const table = createTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    // ...bridge options from the overview
+})
+```
+
+```ts
+thead: table.getHeaderGroups().map((headerGroup) => ({
+    tr: headerGroup.headers.map((header) => ({
+        th: [
+            String(header.column.columnDef.header),
+            { asc: " ▲", desc: " ▼", false: "" }[String(header.column.getIsSorted())],
+        ],
+        onclick: () => header.column.toggleSorting(),
+        _key: header.id,
+    })),
+    _key: headerGroup.id,
+})),
+```
+
+The per-column API:
+
+- `column.toggleSorting(desc?, multi?)` — cycle `asc` → `desc` → unsorted (or force a direction)
+- `column.getIsSorted()` — `"asc" | "desc" | false`
+- `column.getCanSort()`, `column.clearSorting()`, `column.getToggleSortingHandler()`
+
+Or set the whole state imperatively:
+
+```ts
+table.setSorting([{ id: "age", desc: true }])
+table.resetSorting()
+```
+
+## Multi-Sort
+
+Sorting state is an array, so multi-sort works out of the box — hold a modifier and pass `multi: true` (the default `getToggleSortingHandler()` reads `event.shiftKey` for you):
+
+```ts
+onclick: (e: MouseEvent) => header.column.toggleSorting(undefined, e.shiftKey),
+```
+
+Control it with the `enableMultiSort`, `maxMultiSortColCount`, and `isMultiSortEvent` table options.
+
+## Built-In Sorting Functions
+
+Pick per column with `sortingFn`, or rely on auto-detection:
+
+| `sortingFn` | Behavior |
+|---|---|
+| `alphanumeric` | Mixed strings/numbers, case-insensitive (default for mixed values). |
+| `alphanumericCaseSensitive` | Same, case-sensitive. |
+| `text` | Plain string compare, case-insensitive. |
+| `textCaseSensitive` | Plain string compare, case-sensitive. |
+| `datetime` | `Date` values. |
+| `basic` | Fast `a > b` compare (default for numbers). |
+
+```ts
+helper.accessor("createdAt", { sortingFn: "datetime" })
+```
+
+A custom `sortingFn` is `(rowA, rowB, columnId) => number`. All built-ins are also exported as the `sortingFns` object.
+
+## Column Filters
+
+Pass `getFilteredRowModel()` and set values per column:
+
+```ts
+import { getFilteredRowModel } from "@domphy/table"
+
+// in createTable options:
+getFilteredRowModel: getFilteredRowModel(),
+```
+
+```ts
+const nameColumn = table.getColumn("firstName")!
+
+const FilterInput: DomphyElement<"input"> = {
+    input: null,
+    placeholder: "Filter names...",
+    oninput: (e, node) => nameColumn.setFilterValue(node.element.value),
+    $: [inputText()],
+}
+```
+
+The per-column API: `column.setFilterValue(value)`, `column.getFilterValue()`, `column.getIsFiltered()`, `column.getCanFilter()`. Setting a filter value to `undefined` (or an empty string for string filters) removes it automatically.
+
+## Built-In Filter Functions
+
+Pick per column with `filterFn`:
+
+| `filterFn` | Matches when |
+|---|---|
+| `includesString` | Value contains the filter string, case-insensitive (default for strings). |
+| `includesStringSensitive` | Same, case-sensitive. |
+| `equalsString` | Value equals the filter string, case-insensitive. |
+| `equals` | Strict `===`. |
+| `weakEquals` | Loose `==`. |
+| `arrIncludes` | Array value includes the filter value. |
+| `arrIncludesAll` | Array value includes all filter values. |
+| `arrIncludesSome` | Array value includes at least one filter value. |
+| `inNumberRange` | Value is within `[min, max]`. |
+
+```ts
+helper.accessor("age", { filterFn: "inNumberRange" })
+
+table.getColumn("age")!.setFilterValue([18, 65])
+```
+
+All built-ins are exported as the `filterFns` object.
+
+## Custom Filter Functions
+
+A filter function is `(row, columnId, filterValue) => boolean`:
+
+```ts
+helper.accessor("status", {
+    filterFn: (row, columnId, filterValue: string[]) =>
+        filterValue.length === 0 || filterValue.includes(row.getValue(columnId)),
+})
+```
+
+Optional statics refine behavior: `myFilterFn.autoRemove = (value) => ...` removes the filter when the value is "empty", and `myFilterFn.resolveFilterValue` pre-transforms the value once before filtering.
+
+## Global Filtering
+
+One filter value applied across all filterable columns — same `getFilteredRowModel()` powers it:
+
+```ts
+const SearchInput: DomphyElement<"input"> = {
+    input: null,
+    placeholder: "Search all columns...",
+    oninput: (e, node) => table.setGlobalFilter(node.element.value),
+    $: [inputText()],
+}
+```
+
+- `table.setGlobalFilter(value)` / `table.resetGlobalFilter()` — state lives in `state.globalFilter`
+- `globalFilterFn` table option picks the function (auto-detected otherwise; inspect with `table.getGlobalFilterFn()`)
+- the same `getFilteredRowModel()` applies it — `table.getFilteredRowModel()` returns rows after both column and global filters, `table.getPreFilteredRowModel()` returns rows before either
+
+Column filters and the global filter compose — a row must pass both to appear in `table.getRowModel()`.
+
+
+
+---
+
+
+## App docs (`@domphy/app`)
+
+### api-routes.md
+
+# API Routes
+
+`createApiHandler()` ports `route.ts` handlers: the same path syntax as page routes, one handler per HTTP method, on web-standard `Request`/`Response`. It runs anywhere those classes exist — Node 18+, Bun, Deno, edge runtimes.
+
+## Defining Handlers
+
+```ts
+import { createApiHandler, json, notFound } from "@domphy/app"
+
+const handler = createApiHandler([
+  {
+    path: "/api/users",
+    GET: () => json(listUsers()),
+    POST: async (request) => {
+      const body = await request.json()
+      return json(createUser(body), { status: 201 })
+    },
+  },
+  {
+    path: "/api/users/[id]",
+    GET: (_request, { params }) => {
+      const user = findUser(params.id as string)
+      if (!user) notFound()
+      return json(user)
+    },
+    DELETE: (_request, { params }) => {
+      removeUser(params.id as string)
+      return new Response(null, { status: 204 })
+    },
+  },
+])
+
+// handler: (request: Request) => Promise<Response>
+```
+
+## Built-In Behavior
+
+- **404** for unmatched paths, **405** with an `Allow` header for unsupported methods
+- **HEAD** falls back to `GET` with the body stripped
+- **OPTIONS** answers automatically with the allowed methods
+- `redirect()` thrown inside a handler becomes a `307`/`308` response, `notFound()` a `404`, other errors a `500`
+- `json(data, init?)` is the `NextResponse.json()` equivalent
+
+## Serving from Node
+
+```ts
+import http from "node:http"
+
+http.createServer(async (request, response) => {
+  const webRequest = new Request(`http://localhost${request.url}`, {
+    method: request.method,
+    headers: request.headers as HeadersInit,
+    body: ["GET", "HEAD"].includes(request.method!) ? undefined : request,
+    duplex: "half",
+  } as RequestInit)
+
+  const webResponse = await handler(webRequest)
+  response.writeHead(webResponse.status, Object.fromEntries(webResponse.headers))
+  response.end(Buffer.from(await webResponse.arrayBuffer()))
+}).listen(3000)
+```
+
+Combine with [`renderToString`](./ssr) in one server: route `/api/*` to the API handler, everything else to page rendering.
+
+### api.md
+
+# API Reference
+
+## App
+
+### `createApp(routes, options?)` / `DomphyApp`
+
+| Member | Meaning |
+| --- | --- |
+| `app.router` | the `AppRouter` instance |
+| `app.element()` | root `DomphyElement`; the route tree renders through one reactive child |
+| `app.render(target)` | client render: starts the router, renders into `target` |
+| `app.hydrate(target, style?)` | SSR hydration: seeds loader data from `bootstrapScript`, mounts onto existing DOM |
+| `app.renderToString(url, { headers? })` | server render, returns `SSRResult` |
+| `app.destroy()` | removes the tree and releases history listeners |
+
+`AppOptions`: `history` (`HistoryAdapter | null`, default browser), `middleware`, `notFound`, `error`.
+
+`SSRResult`: `html`, `css`, `head`, `status`, `redirect?`, `data`, `bootstrapScript`.
+
+## Router
+
+### `AppRouter`
+
+| Member | Meaning |
+| --- | --- |
+| `state` | `RecordState` with `pathname`, `search`, `hash`, `params`, `status`, `error` — all reactive |
+| `tree` | `State<DomphyElement>` of the current route tree |
+| `searchParams(listener?)` | current `URLSearchParams`, reactive |
+| `navigate(href, { replace?, scroll? })` | client navigation |
+| `push(href)` / `replace(href)` | navigation shorthands |
+| `back()` / `forward()` | history traversal |
+| `refresh()` | clear the loader cache, re-render the current URL |
+| `prefetch(href)` | run target loaders ahead of navigation |
+| `addEventListener(event, callback)` | `routeChangeStart` / `routeChangeComplete` / `routeChangeError`; returns a release function |
+| `getMatch()` | the current `RouteMatch` (route chain + params) |
+| `start()` / `destroy()` | lifecycle (called by `DomphyApp` for you) |
+
+`getRouter()` returns the most recently created router (used by `navLink` by default).
+
+## Routes
+
+### `defineRoutes(routes)` / `Route`
+
+`path`, `page`, `layout`, `loading`, `error`, `notFound`, `metadata`, `loader`, `revalidate`, `middleware`, `redirect`, `permanent`, `children`. See [Routing](./routing).
+
+### Blocks and contexts
+
+- `PageBlock(context)` / `LayoutBlock(children, context)` — receive `RouteContext`: `pathname`, `url`, `params`, `searchParams`, `hash`, `data`, `segmentData`, `headers?`
+- `LoadingBlock(context)`, `ErrorBlock(error, retry)`, `NotFoundBlock()`
+- `Loader(loaderContext)` — `LoaderContext`: `pathname`, `url`, `params`, `searchParams`, `headers?`
+- `Middleware(middlewareContext)` — `MiddlewareContext`: `url`, `pathname`, `searchParams`, `headers?`
+
+## Navigation Control Flow
+
+- `redirect(to)` / `permanentRedirect(to)` — throw, restart navigation at `to`
+- `notFound()` — throw, render the nearest not-found boundary
+- `rewrite(to)` — returned from middleware, render `to` under the original URL
+- `RedirectSignal` / `NotFoundSignal` — the thrown classes, for custom catch logic
+
+## Patches & Blocks
+
+- `navLink({ href, prefetch?, replace?, scroll?, exact?, router? })` — `a` patch, see [Navigation](./navigation)
+- `optimizedImage({ src, width?, height?, fill?, sizes?, quality?, priority?, placeholder?, blurDataURL?, loader?, deviceSizes? })` — `img` patch, see [Image & Script](./assets)
+- `script({ src, strategy?, id?, async?, onLoad?, onError? })` — script block, see [Image & Script](./assets)
+
+## Metadata
+
+- `Metadata` type — see [Metadata](./metadata) for fields
+- `resolveMetadata(values, context)` — merge a segment chain
+- `metadataToHeadTags(resolved)` — flat head tag descriptions
+- `renderHeadTags(tags)` — HTML string (SSR)
+- `applyHeadTags(tags)` — write `document.head`
+
+## API Routes
+
+- `createApiHandler(routes)` — `(request: Request) => Promise<Response>`
+- `json(data, init?)` — JSON response shorthand
+- `ApiRoute`: `path` + `GET`/`POST`/`PUT`/`PATCH`/`DELETE`/`HEAD`/`OPTIONS` handlers `(request, { params })`
+
+## Lower Level
+
+- `compileRoutes(routes)` / `matchRoute(compiled, pathname)` / `matchPath(segments, pathname)` / `parseSegment(part)` — the matcher
+- `buildHref(pattern, params)` — fill params into a pattern
+- `createBrowserHistory()` / `createMemoryHistory(initial?)` / `HistoryAdapter` — history backends
+- `DataCache` — the loader cache (`seed`, `snapshot`, `invalidate`, `load`, `prefetch`)
+- `buildTree(...)` — composes layouts + boundaries (used by the router)
+
+### assets.md
+
+# Image & Script
+
+## optimizedImage
+
+`optimizedImage()` is the `next/image` equivalent — a patch for native `img` elements covering loading behavior, layout and placeholders. URL optimization itself is delegated to any image CDN through the `loader` prop (there is no optimization server, by design).
+
+```ts
+import { optimizedImage } from "@domphy/app"
+
+{
+  img: null,
+  $: [optimizedImage({
+    src: "/photos/coast.jpg",
+    width: 1200,
+    height: 800,
+    alt: "Coastline",
+  })],
+}
+```
+
+What it sets: `loading="lazy"`, `decoding="async"`, `fetchpriority`, `width`/`height` (prevents layout shift), and optionally `srcset`, fill styles and a blur placeholder.
+
+### Priority (LCP image)
+
+```ts
+optimizedImage({ src: hero, priority: true, ... })  // eager + fetchpriority="high"
+```
+
+### srcset via a loader
+
+```ts
+optimizedImage({
+  src: "/photos/coast.jpg",
+  loader: ({ src, width, quality }) =>
+    `https://cdn.example.com${src}?w=${width}&q=${quality}`,
+  sizes: "(max-width: 768px) 100vw, 50vw",
+  quality: 80,
+})
+```
+
+The loader runs once per device size (`640 ... 3840` by default, override with `deviceSizes`).
+
+### Fill and blur placeholder
+
+```ts
+{
+  div: [{ img: null, $: [optimizedImage({
+    src: cover,
+    fill: true,                       // absolute inset-0, object-fit: cover
+    placeholder: "blur",
+    blurDataURL: tinyBase64,          // shown until the real image loads
+  })] }],
+  style: { position: "relative", height: "16rem" },
+}
+```
+
+## script
+
+`script()` is the `next/script` equivalent — a block that loads an external script once, with a strategy:
+
+```ts
+import { script } from "@domphy/app"
+
+const App = {
+  div: [
+    Page(),
+    script({ src: "https://example.com/widget.js", strategy: "afterInteractive" }),
+    script({
+      src: "https://example.com/analytics.js",
+      strategy: "lazyOnload",          // window load + idle time
+      onLoad: () => initAnalytics(),
+    }),
+  ],
+}
+```
+
+- `afterInteractive` (default) — loads as soon as the element mounts
+- `lazyOnload` — waits for the window `load` event plus `requestIdleCallback`
+- duplicate `src`/`id` values load only once, wherever they appear in the tree
+
+### data-fetching.md
+
+# Data Fetching
+
+## Loaders
+
+Each segment may declare a `loader` — the equivalent of server-side data fetching in a Next.js segment. Loaders of all matched segments run in parallel on every navigation; results land in `context.data` of that segment's `page` and `layout`:
+
+```ts
+{
+  path: "blog/[slug]",
+  loader: async ({ params, searchParams }) => {
+    const response = await fetch(`/api/posts/${params.slug}`)
+    if (!response.ok) notFound()
+    return response.json()
+  },
+  page: (context: RouteContext<Post>) => ({ h1: context.data.title }),
+}
+```
+
+The `LoaderContext` carries `pathname`, `url`, `params`, `searchParams` and (on the server) `headers`.
+
+A page can also read ancestor data through `context.segmentData`, keyed by segment id (e.g. `"/"`, `"/blog/[slug]"`).
+
+## Caching with revalidate
+
+`revalidate` is the ISR-style cache lifetime in seconds:
+
+```ts
+{
+  path: "products",
+  loader: fetchProducts,
+  revalidate: 60,        // cached for 60s, then re-fetched
+  page: ProductsPage,
+}
+```
+
+- `undefined` (default) — re-run on every navigation, like `cache: "no-store"`
+- `revalidate: 60` — serve the cached result for 60 seconds
+- `revalidate: Infinity` — cache forever, like `force-cache`
+
+`router.refresh()` clears the cache and re-runs everything for the current URL.
+
+## Prefetching
+
+`router.prefetch(href)` (and `navLink`'s hover/visible prefetch) runs the target's loaders ahead of navigation. Results stay usable for 30 seconds — the same window as the Next.js client router cache — so the navigation itself renders instantly without re-fetching, even for uncached loaders.
+
+## Control Flow from Loaders
+
+Loaders can interrupt rendering with the `next/navigation` functions:
+
+```ts
+import { notFound, redirect, permanentRedirect } from "@domphy/app"
+
+loader: async ({ params }) => {
+  const session = await getSession()
+  if (!session) redirect("/login")
+
+  const post = await fetchPost(params.slug as string)
+  if (!post) notFound()
+  return post
+}
+```
+
+`redirect()` restarts navigation at the target (history entry replaced); `notFound()` renders the nearest `notFound` boundary; errors render the nearest `error` boundary.
+
+## Pairing with @domphy/query
+
+Loaders cover route-level data. For cache-rich client data (background refetching, mutations, infinite queries), use [`@domphy/query`](/docs/query/) inside pages — the two compose freely: the loader provides the initial data, an observer keeps it fresh.
+
+### index.md
+
+# App
+
+`@domphy/app` ports the **Next.js App Router feature set** to Domphy: nested routing and layouts, client navigation with prefetching, loading/error/not-found boundaries, data loading with revalidation, the Metadata API, middleware, server rendering with hydration, and API route handlers.
+
+It is a runtime library. Routes are declared as a plain object tree — the equivalent of the `app/` directory — and pages and layouts are ordinary Domphy blocks. No bundler plugin, no file-system convention, no compiler.
+
+## Install
+
+npm install @domphy/app
+```
+```html [CDN]
+<script src="https://unpkg.com/@domphy/app/dist/app.global.js"></script>
+```
+
+The CDN bundle exposes `Domphy.app` with all exports.
+
+## Live Example
+
+## The Mental Model
+
+One `Route` object equals one folder in a Next.js `app/` directory:
+
+| `app/` directory | `Route` field |
+| --- | --- |
+| folder name (`blog`, `[slug]`, `(group)`) | `path` |
+| `page.tsx` | `page` |
+| `layout.tsx` | `layout` |
+| `loading.tsx` | `loading` |
+| `error.tsx` | `error` |
+| `not-found.tsx` | `notFound` |
+| server data fetching | `loader` (+ `revalidate`) |
+| `metadata` / `generateMetadata` | `metadata` |
+| nested folders | `children` |
+
+```ts
+import { createApp, defineRoutes } from "@domphy/app"
+
+const routes = defineRoutes([
+  {
+    path: "/",
+    layout: (children) => ({ div: [Header(), children] }),
+    page: () => ({ h1: "Home" }),
+    children: [
+      { path: "about", page: () => ({ h1: "About" }) },
+      {
+        path: "blog/[slug]",
+        loader: async ({ params }) => fetchPost(params.slug as string),
+        page: (context) => ({ h1: (context.data as Post).title }),
+      },
+    ],
+  },
+])
+
+const app = createApp(routes)
+await app.render(document.getElementById("app")!)
+```
+
+## What Is Ported
+
+- **Routing** — static, dynamic `[slug]`, catch-all `[...parts]`, optional catch-all `[[...parts]]`, route groups `(group)`, route-level redirects. [Routing](./routing)
+- **Layouts and boundaries** — nested layouts that persist across navigation, `loading`, `error` and `notFound` boundaries per segment. [Layouts](./layouts)
+- **Navigation** — `navLink()` patch (the `next/link` equivalent with prefetching and active state), `router.push/replace/back/forward/refresh/prefetch`, navigation events. [Navigation](./navigation)
+- **Data loading** — per-segment `loader` with `revalidate` caching, `redirect()` and `notFound()` from loaders. [Data Fetching](./data-fetching)
+- **Metadata** — title templates, Open Graph, Twitter, icons, robots, canonical. [Metadata](./metadata)
+- **Middleware** — global and per-route, with `redirect()` and `rewrite()`. [Middleware](./middleware)
+- **SSR** — `renderToString()` plus `hydrate()` with embedded loader data. [SSR](./ssr)
+- **API routes** — `createApiHandler()` on web-standard Request/Response. [API Routes](./api-routes)
+- **Image and Script** — `optimizedImage()` and `script()` helpers. [Image & Script](./assets)
+
+## What Is Not Ported
+
+Build-time concerns stay with your bundler or host server: the compiler and dev server, React Server Components, static export, font optimization, and the image optimization server (`optimizedImage` delegates URL generation to any image CDN through its `loader` prop).
+
+### layouts.md
+
+# Layouts & Boundaries
+
+## Nested Layouts
+
+A `layout` wraps everything below its segment, exactly like `layout.tsx` wraps `page.tsx` and child segments. Layouts receive the wrapped subtree and the route context:
+
+```ts
+const routes = defineRoutes([
+  {
+    path: "/",
+    layout: (children) => ({ div: [Header(), children, Footer()] }),
+    page: HomePage,
+    children: [
+      {
+        path: "docs",
+        layout: (children) => ({ div: [Sidebar(), children] }),
+        page: DocsIndexPage,
+        children: [{ path: "[...parts]", page: DocsPage }],
+      },
+    ],
+  },
+])
+```
+
+Navigating from `/docs/a` to `/docs/b` re-renders only the page; both layouts keep their DOM. The router keys every layout with its segment id, so Domphy's child diffing reuses the existing nodes.
+
+## Loading UI
+
+`loading` is the `loading.tsx` equivalent. While the segment's loader (or any descendant's) is pending, the nearest loading block renders in place of the subtree; ancestor layouts stay on screen:
+
+```ts
+{
+  path: "blog/[slug]",
+  loader: ({ params }) => fetchPost(params.slug as string),
+  loading: () => ({ p: "Loading post..." }),
+  page: PostPage,
+}
+```
+
+Without a loading block anywhere in the matched chain, the previous page stays visible until data resolves — the same default as Next.js.
+
+## Error Boundaries
+
+`error` is the `error.tsx` equivalent. When a segment's loader throws, the nearest error block at or above that segment renders, wrapped in the ancestor layouts. It receives the error and a `retry` function (which calls `router.refresh()`):
+
+```ts
+{
+  path: "/",
+  error: (error, retry) => ({
+    div: [
+      { h2: "Something went wrong" },
+      { p: error.message },
+      { button: "Try again", onClick: () => retry() },
+    ],
+  }),
+  ...
+}
+```
+
+An app-level fallback can be passed to `createApp(routes, { error })` — the `global-error.tsx` equivalent.
+
+## Not Found
+
+`notFound` is the `not-found.tsx` equivalent. It renders when:
+
+- no route matches the URL (the app-level `createApp(routes, { notFound })` block, falling back to a built-in 404), or
+- a loader, metadata function or middleware calls `notFound()` — then the nearest segment-level block renders inside the ancestor layouts.
+
+```ts
+import { notFound } from "@domphy/app"
+
+{
+  path: "blog/[slug]",
+  loader: async ({ params }) => {
+    const post = await fetchPost(params.slug as string)
+    if (!post) notFound()
+    return post
+  },
+  notFound: () => ({ h2: "Post not found" }),
+  page: PostPage,
+}
+```
+
+`router.state.get("status")` reports `"notfound"`, and `renderToString` returns HTTP status `404`.
+
+### metadata.md
+
+# Metadata
+
+The Metadata API is ported: each segment declares a `metadata` object (static) or function (the `generateMetadata` equivalent). Matched segments merge from root to leaf; the result drives `document.title` and `<meta>`/`<link>` tags on every navigation, and `result.head` during SSR.
+
+## Static Metadata
+
+```ts
+{
+  path: "/",
+  metadata: {
+    title: { default: "My Site", template: "%s | My Site" },
+    description: "A Domphy application.",
+    openGraph: { siteName: "My Site", type: "website" },
+    icons: "/favicon.svg",
+  },
+  ...
+  children: [
+    { path: "about", metadata: { title: "About" }, page: AboutPage },
+    // document.title becomes "About | My Site"
+  ],
+}
+```
+
+## Dynamic Metadata
+
+```ts
+{
+  path: "blog/[slug]",
+  metadata: async (context) => {
+    const post = await fetchPost(context.params.slug as string)
+    return {
+      title: post.title,
+      description: post.summary,
+      openGraph: { images: [post.cover] },
+    }
+  },
+  ...
+}
+```
+
+## Title Resolution
+
+Identical to Next.js:
+
+- a string title gets the nearest ancestor `template` applied (`"%s | My Site"`)
+- `title.default` is used when no descendant sets a title
+- `title.absolute` escapes the template entirely
+
+## Merge Rules
+
+Top-level keys from deeper segments override shallower ones. Object keys (`openGraph`, `twitter`, `robots`, `icons`, `alternates`) are replaced wholesale, not deep-merged — the same rule as Next.js.
+
+## Supported Fields
+
+`title`, `description`, `applicationName`, `generator`, `keywords`, `authors`, `referrer`, `themeColor`, `colorScheme`, `viewport`, `robots`, `icons`, `openGraph`, `twitter`, `alternates` (canonical + languages), `metadataBase` (resolves relative URLs in openGraph/twitter/canonical), `other` (arbitrary name/content pairs).
+
+`og:title`, `og:description`, `twitter:title` and `twitter:description` fall back to the page title and description when not set explicitly.
+
+## Lower-Level API
+
+```ts
+import { resolveMetadata, metadataToHeadTags, renderHeadTags, applyHeadTags } from "@domphy/app"
+
+const resolved = await resolveMetadata([rootMetadata, pageMetadata], loaderContext)
+const tags = metadataToHeadTags(resolved)
+renderHeadTags(tags)   // -> HTML string for SSR
+applyHeadTags(tags)    // -> writes document.head, replacing previous tags
+```
+
+### middleware.md
+
+# Middleware
+
+Middleware runs before every navigation and server render — the `middleware.ts` equivalent. It can redirect, rewrite, raise a 404, or simply observe.
+
+## Global Middleware
+
+```ts
+import { createApp, redirect, rewrite } from "@domphy/app"
+
+const app = createApp(routes, {
+  middleware: [
+    (context) => {
+      // Auth gate: redirect interrupts the navigation
+      if (context.pathname.startsWith("/admin") && !isLoggedIn()) {
+        redirect("/login")
+      }
+    },
+    (context) => {
+      // Rewrite: render another route, keep the URL
+      if (context.pathname === "/home") return rewrite("/")
+    },
+  ],
+})
+```
+
+The `MiddlewareContext` carries `url`, `pathname`, `searchParams` and (on the server) `headers`. Middleware may be async.
+
+## Results
+
+| Action | Effect |
+| --- | --- |
+| return nothing | continue to the next middleware |
+| `return rewrite(path)` | match and render `path`, address bar keeps the original URL |
+| `redirect(path)` / `permanentRedirect(path)` (throws) | restart navigation at `path`; SSR reports 307/308 + `result.redirect` |
+| `notFound()` (throws) | render the not-found boundary; SSR reports 404 |
+
+## Per-Route Middleware
+
+Routes can attach middleware that runs only when their subtree matches — runs for the whole chain, root first:
+
+```ts
+{
+  path: "(admin)",
+  middleware: [requireAdminSession],
+  children: [
+    { path: "dashboard", page: DashboardPage },
+    { path: "settings", page: SettingsPage },
+  ],
+}
+```
+
+Global middleware runs before matching (so it can rewrite the path); per-route middleware runs after matching, before loaders.
+
+### navigation.md
+
+# Navigation
+
+## navLink
+
+`navLink()` is the `next/link` equivalent — a patch for native `a` elements:
+
+```ts
+import { navLink } from "@domphy/app"
+import { link } from "@domphy/ui"
+
+{
+  a: "Blog",
+  $: [link(), navLink({ href: "/blog" })],
+}
+```
+
+It intercepts plain left-clicks for client navigation (modified clicks, `target="_blank"`, downloads and external origins fall through to the browser), prefetches, and exposes active state:
+
+- `aria-current="page"` and `data-active` are set reactively while the link matches the current pathname (descendant paths count unless `exact: true`)
+- style the active state with a selector: `style: { "&[data-active]": { ... } }`
+
+Props:
+
+| Prop | Default | Meaning |
+| --- | --- | --- |
+| `href` | required | target path |
+| `prefetch` | `"hover"` | `"hover"`, `"visible"` (IntersectionObserver) or `false` |
+| `replace` | `false` | replace the history entry |
+| `scroll` | `true` | scroll to top (or `#hash`) after navigating |
+| `exact` | `false` | active only on exact pathname match |
+| `router` | app router | explicit router instance |
+
+## The Router
+
+`app.router` is the `useRouter()` equivalent:
+
+```ts
+const router = app.router
+
+router.push("/blog/hello")        // navigate, push history
+router.replace("/login")          // navigate, replace history
+router.back()                     // history back
+router.forward()                  // history forward
+router.refresh()                  // clear loader cache, re-render current URL
+router.prefetch("/blog/hello")    // run loaders ahead of navigation
+```
+
+`push`/`replace` resolve relative hrefs against the current URL and hand off external origins to the browser.
+
+## Navigation Events
+
+The `next/router` events equivalent:
+
+```ts
+const release = router.addEventListener("routeChangeStart", (href) => {
+  console.log("navigating to", href)
+})
+
+router.addEventListener("routeChangeComplete", (href) => { ... })
+router.addEventListener("routeChangeError", (error, href) => { ... })
+
+release() // unsubscribe
+```
+
+## Scroll Behavior
+
+The router manages scrolling like Next.js: scroll to top after navigation, scroll to the `#hash` element when present, and restore the saved position on back/forward. Pass `scroll: false` to `navigate`/`push`/`navLink` to opt out.
+
+## History Modes
+
+By default the router binds to the browser history. For tests, embedded demos or custom hosts, pass a memory history:
+
+```ts
+import { createApp, createMemoryHistory } from "@domphy/app"
+
+const app = createApp(routes, { history: createMemoryHistory("/start") })
+```
+
+`history: null` disables history entirely (used internally for SSR).
+
+### routing.md
+
+# Routing
+
+Routes form a tree of `Route` objects. Each node is one URL segment — the equivalent of one folder in a Next.js `app/` directory. A node is routable when it declares `page` (or `redirect`).
+
+## Segment Syntax
+
+`path` uses the exact Next.js folder conventions:
+
+| Pattern | Kind | Example match | `params` |
+| --- | --- | --- | --- |
+| `about` | static | `/about` | — |
+| `docs/install` | static, multi-part | `/docs/install` | — |
+| `[slug]` | dynamic | `/blog/hello` | `{ slug: "hello" }` |
+| `[...parts]` | catch-all | `/docs/a/b` | `{ parts: ["a", "b"] }` |
+| `[[...parts]]` | optional catch-all | `/gallery`, `/gallery/a` | `{ parts: [] }`, `{ parts: ["a"] }` |
+| `(marketing)` | route group | no URL contribution | — |
+
+Static segments win over dynamic, dynamic over catch-all — the same priority order as Next.js, so `/blog/featured` beats `/blog/[slug]`.
+
+```ts
+const routes = defineRoutes([
+  {
+    path: "/",
+    page: HomePage,
+    children: [
+      { path: "blog", page: BlogIndexPage, children: [
+        { path: "featured", page: FeaturedPage },
+        { path: "[slug]", page: PostPage },
+      ]},
+      { path: "docs/[...parts]", page: DocsPage },
+      { path: "(marketing)", children: [
+        { path: "pricing", page: PricingPage },   // URL is /pricing
+      ]},
+    ],
+  },
+])
+```
+
+## Pages
+
+A page is a block that receives the route context:
+
+```ts
+import type { RouteContext } from "@domphy/app"
+
+function PostPage(context: RouteContext<Post>) {
+  return {
+    article: [
+      { h1: context.data.title },
+      { p: `slug: ${String(context.params.slug)}` },
+      { p: `query: ${context.searchParams.get("ref") ?? "none"}` },
+    ],
+  }
+}
+```
+
+`RouteContext` carries `pathname`, `params`, `searchParams`, `hash`, `data` (the segment's loader result) and `segmentData` (every matched segment's loader result, keyed by segment id).
+
+## Route Groups
+
+Groups organize the tree — shared layouts, shared middleware — without affecting the URL, exactly like `(group)` folders:
+
+```ts
+{
+  path: "(shop)",
+  layout: ShopLayout,
+  children: [
+    { path: "products", page: ProductsPage },  // URL: /products
+    { path: "cart", page: CartPage },          // URL: /cart
+  ],
+}
+```
+
+## Redirect Routes
+
+The equivalent of `redirects` in `next.config.js`:
+
+```ts
+{ path: "old-blog", redirect: "/blog", permanent: true }
+```
+
+On the client the router follows the redirect; on the server `renderToString` reports status `308` (or `307` when `permanent` is not set) plus the target in `result.redirect`.
+
+## Reading the Current Route
+
+`router.state` is a `RecordState` — every key is reactive:
+
+```ts
+const app = createApp(routes)
+
+const Breadcrumb = {
+  p: (listener) => `You are at ${app.router.state.get("pathname", listener)}`,
+}
+```
+
+Available keys: `pathname`, `search`, `hash`, `params`, `status` (`"idle" | "loading" | "error" | "notfound"`), `error`. `router.searchParams(listener)` returns the current `URLSearchParams`.
+
+### ssr.md
+
+# Server Rendering
+
+`@domphy/app` server-renders through Domphy core's `generateHTML()`/`generateCSS()` and hydrates with `mount()` — with routing, loaders, middleware and metadata handled for you.
+
+## renderToString
+
+```ts
+const app = createApp(routes)
+const result = await app.renderToString(request.url, { headers: request.headers })
+```
+
+`SSRResult`:
+
+| Field | Meaning |
+| --- | --- |
+| `html` | markup of the app root |
+| `css` | scoped CSS of the rendered tree |
+| `head` | serialized `<title>` / `<meta>` / `<link>` tags |
+| `status` | `200`, `404`, or `307`/`308` for redirects |
+| `redirect` | redirect target, when a loader/middleware redirected |
+| `data` | loader results, keyed for hydration |
+| `bootstrapScript` | inline `<script>` exposing `data` to the client |
+
+## A Node Server
+
+```ts
+import http from "node:http"
+import { createApp } from "@domphy/app"
+import { themeCSS } from "@domphy/theme"
+import { routes } from "./routes.js"
+
+http.createServer(async (request, response) => {
+  const app = createApp(routes)
+  const result = await app.renderToString(`http://localhost${request.url}`)
+
+  if (result.redirect) {
+    response.writeHead(result.status, { location: result.redirect })
+    response.end()
+    return
+  }
+
+  response.writeHead(result.status, { "content-type": "text/html; charset=utf-8" })
+  response.end(`<!doctype html>
+<html>
+<head>
+${result.head}
+<style>${themeCSS()}</style>
+<style id="domphy-style">${result.css}</style>
+</head>
+<body>
+<div id="app">${result.html}</div>
+${result.bootstrapScript}
+<script type="module" src="/client.js"></script>
+</body>
+</html>`)
+}).listen(3000)
+```
+
+## Hydration
+
+`client.js` builds the same app and mounts onto the server markup. `hydrate()` reads the data embedded by `bootstrapScript`, so loaders are **not** re-run and the client tree matches the HTML byte for byte:
+
+```ts
+import { createApp } from "@domphy/app"
+import { themeApply } from "@domphy/theme"
+import { routes } from "./routes.js"
+
+themeApply()
+
+const app = createApp(routes)
+const mountTarget = document.getElementById("app")!.firstElementChild as HTMLElement
+const style = document.getElementById("domphy-style") as HTMLStyleElement
+await app.hydrate(mountTarget, style)
+```
+
+After hydration the router takes over: clicks on `navLink` anchors navigate client-side, loaders run on demand, metadata updates `document.head`.
+
+## Static Generation
+
+`renderToString` is a pure function of URL + loaders, so SSG is a loop:
+
+```ts
+for (const url of ["/", "/about", "/blog/hello"]) {
+  const result = await app.renderToString(url)
+  await writePage(url, result)
+}
+```
 
 
 

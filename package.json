@@ -10,7 +10,10 @@
     "fix": "biome check --write .",
     "publish:core": "cd packages/core && pnpm publish --access public --no-git-checks",
     "publish:theme": "cd packages/theme && pnpm publish --access public --no-git-checks",
-    "publish:ui": "cd packages/ui && pnpm publish --access public --no-git-checks"
+    "publish:ui": "cd packages/ui && pnpm publish --access public --no-git-checks",
+    "publish:query": "cd packages/query && pnpm publish --access public --no-git-checks",
+    "publish:table": "cd packages/table && pnpm publish --access public --no-git-checks",
+    "publish:router": "cd packages/router && pnpm publish --access public --no-git-checks"
   },
   "repository": "git+https://github.com/domphy/domphy.git",
   "keywords": [],

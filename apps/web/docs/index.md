@@ -13,10 +13,21 @@ Domphy is split into 3 packages:
 - `@domphy/theme` - `8kb` minified
 - `@domphy/ui` - `80kb` minified
 
+Plus optional layers:
+
+- `@domphy/query` - `49kb` minified - async state management, a 1-1 port of TanStack Query core
+- `@domphy/router` - `69kb` minified - type-safe routing, a 1-1 port of TanStack Router core
+- `@domphy/table` - `59kb` minified - headless table logic, a 1-1 port of TanStack Table core
+- `@domphy/app` - `23kb` minified - app framework, a port of the Next.js App Router feature set
+
 In practical terms:
 
 - `@domphy/core` is the runtime layer, roughly comparable to `react-dom` + SSR rendering + CSS-in-JS in one package
 - `@domphy/theme` and `@domphy/ui` together are the design-system layer, roughly comparable to what people usually expect from MUI
+- `@domphy/query` is the data layer, comparable to what React teams get from TanStack Query
+- `@domphy/router` is the routing layer, comparable to what React teams get from TanStack Router
+- `@domphy/table` is the datagrid layer, comparable to what React teams get from TanStack Table
+- `@domphy/app` is the app layer: routing, layouts, navigation, metadata, middleware, SSR and API routes, comparable to what React teams get from Next.js
 
 Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins.
 

@@ -8,11 +8,20 @@ It is split into 3 packages:
 - `@domphy/theme` - context-aware color, size, and spacing
 - `@domphy/ui` - ready-made patches built on top of core and theme
 
+Plus optional layers:
+
+- `@domphy/query` - async state management, a 1-1 port of `@tanstack/query-core`
+- `@domphy/router` - type-safe routing, a 1-1 port of `@tanstack/router-core`
+- `@domphy/table` - headless table logic, a 1-1 port of `@tanstack/table-core`
+
 Package sizes on the docs site are described as:
 
 - `@domphy/core` - `30kb` minified
 - `@domphy/theme` - `8kb` minified
 - `@domphy/ui` - `80kb` minified
+- `@domphy/query` - `49kb` minified
+- `@domphy/router` - `69kb` minified
+- `@domphy/table` - `59kb` minified
 
 In rough ecosystem terms:
 
@@ -26,6 +35,9 @@ Full documentation: [domphy.com](https://www.domphy.com)
 - [Core docs](https://www.domphy.com/docs/core/)
 - [Theme docs](https://www.domphy.com/docs/theme/)
 - [UI docs](https://www.domphy.com/docs/ui/)
+- [Query docs](https://www.domphy.com/docs/query/)
+- [Router docs](https://www.domphy.com/docs/router/)
+- [Table docs](https://www.domphy.com/docs/table/)
 - [Integrations](https://www.domphy.com/docs/integrations/)
 
 ## Building with AI
@@ -53,9 +65,30 @@ npm install @domphy/theme
 npm install @domphy/ui
 ```
 
+For async data fetching and caching:
+
+```bash
+npm install @domphy/query
+```
+
+For routing:
+
+```bash
+npm install @domphy/router
+```
+
+For data tables:
+
+```bash
+npm install @domphy/table
+```
+
 ## Monorepo
 
 - `packages/core` - `@domphy/core`
 - `packages/theme` - `@domphy/theme`
 - `packages/ui` - `@domphy/ui`
+- `packages/query` - `@domphy/query`
+- `packages/router` - `@domphy/router`
+- `packages/table` - `@domphy/table`
 - `apps/web` - docs website and demos

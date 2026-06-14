@@ -11,6 +11,10 @@ Install the framework-agnostic core — Domphy does not wrap it.
 npm install @tanstack/query-core
 ```
 
+::: tip
+Domphy also ships [`@domphy/query`](/docs/query/) — a 1-1 port of `@tanstack/query-core` with the exact same API and full Domphy-flavored docs. Everything on this page works identically with either package; only the import name changes.
+:::
+
 ## Live Example
 
 <CodeEditor :code="tanstackQuery" />

@@ -57,6 +57,41 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 ### Data
 - [table](https://www.domphy.com/ui/patches/table.html), [ordered-list](https://www.domphy.com/ui/patches/ordered-list.html), [unordered-list](https://www.domphy.com/ui/patches/unordered-list.html), [description-list](https://www.domphy.com/ui/patches/description-list.html), [avatar](https://www.domphy.com/ui/patches/avatar.html), [image](https://www.domphy.com/ui/patches/image.html), [icon](https://www.domphy.com/ui/patches/icon.html)
 
+## Query (`@domphy/query`)
+
+Async state management — a 1-1 port of `@tanstack/query-core` (identical API). Bridge results into the UI with `toState`.
+
+- [Overview](https://www.domphy.com/docs/query/): install, core concepts, the `toState` bridge pattern
+- [Queries](https://www.domphy.com/docs/query/queries.html): `QueryObserver`, query keys, options, result object
+- [Mutations](https://www.domphy.com/docs/query/mutations.html): `MutationObserver`, callbacks, optimistic updates
+- [Caching](https://www.domphy.com/docs/query/caching.html): `staleTime`/`gcTime`, invalidation, prefetching, filters
+- [Infinite Queries](https://www.domphy.com/docs/query/infinite-queries.html): `InfiniteQueryObserver`, pagination
+- [SSR & Hydration](https://www.domphy.com/docs/query/ssr.html): `dehydrate`/`hydrate` with Domphy SSR
+- [API Reference](https://www.domphy.com/docs/query/api.html): full export list
+
+## Router (`@domphy/router`)
+
+Type-safe routing — a 1-1 port of `@tanstack/router-core` (identical API) plus `createRouter`/`createRoute`/`createRootRoute` adapter. Bridge router state into the UI with `toState` via `router.subscribe`.
+
+- [Overview](https://www.domphy.com/docs/router/): install, the router-to-state bridge pattern, link pattern
+- [Routes](https://www.domphy.com/docs/router/routes.html): `createRootRoute`/`createRoute`, path params, wildcards, layout routes
+- [Navigation](https://www.domphy.com/docs/router/navigation.html): `router.navigate`, `buildLocation`, histories, active links, blocking
+- [Search Params](https://www.domphy.com/docs/router/search-params.html): `validateSearch`, typed search, middleware
+- [Data Loading](https://www.domphy.com/docs/router/data-loading.html): loaders, caching, preloading, `redirect()`, `notFound()`, deferred data
+- [SSR](https://www.domphy.com/docs/router/ssr.html): server/client entries, dehydrate/hydrate
+- [API Reference](https://www.domphy.com/docs/router/api.html): full export list
+
+## Table (`@domphy/table`)
+
+Headless table logic — a 1-1 port of `@tanstack/table-core` v8 (identical API). Domphy renders; the table instance owns sorting/filtering/pagination state.
+
+- [Overview](https://www.domphy.com/docs/table/): install, headless model, the version-state bridge pattern
+- [Columns & Row Models](https://www.domphy.com/docs/table/columns.html): `createColumnHelper`, opt-in row models, reading header groups and rows
+- [Sorting & Filtering](https://www.domphy.com/docs/table/sorting-filtering.html): toggleSorting, filterFns, global filter
+- [Pagination & Selection](https://www.domphy.com/docs/table/pagination-selection.html): page controls, row selection, checkbox column
+- [Advanced Features](https://www.domphy.com/docs/table/advanced.html): grouping, expanding, pinning, sizing, visibility, faceting
+- [API Reference](https://www.domphy.com/docs/table/api.html): full export list
+
 ## Optional
 
 - [Full text dump for one-shot context](https://www.domphy.com/llms-full.txt): quickstart + core docs + every patch source file concatenated. Use when you need the whole framework in a single fetch.
