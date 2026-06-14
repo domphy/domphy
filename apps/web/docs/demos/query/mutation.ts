@@ -1,19 +1,21 @@
 import { type DomphyElement, toState } from "@domphy/core";
-import { MutationObserver, QueryClient } from "@domphy/query";
+import { QueryClient } from "@domphy/query";
+import { createMutation } from "@domphy/query/domphy";
 import { themeSpacing } from "@domphy/theme";
 import { alert, button, inputText } from "@domphy/ui";
 
 const queryClient = new QueryClient();
 queryClient.mount();
 
-// --- Bridge: mutation result -> Domphy states ---
 const title = toState("");
-const saving = toState(false);
-const saved = toState<string | null>(null);
-const error = toState<string | null>(null);
 
-const mutation = new MutationObserver(queryClient, {
-  mutationFn: async (input: { title: string }) => {
+// createMutation exposes the mutation result as reactive accessors.
+const save = createMutation<
+  { id: number; title: string },
+  Error,
+  { title: string }
+>(queryClient, {
+  mutationFn: async (input) => {
     const res = await fetch("https://jsonplaceholder.typicode.com/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -22,48 +24,40 @@ const mutation = new MutationObserver(queryClient, {
     if (!res.ok) throw new Error("Failed to save.");
     return res.json() as Promise<{ id: number; title: string }>;
   },
-  onSuccess: (data) => {
-    saved.set(`Saved post #${data.id}: "${data.title}"`);
+  onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ["posts"] });
   },
 });
 
-mutation.subscribe((result) => {
-  saving.set(result.isPending);
-  error.set(result.error ? result.error.message : null);
-});
-
-// --- UI ---
 const App: DomphyElement<"div"> = {
   div: [
     {
       input: null,
       $: [inputText()],
       placeholder: "Post title",
-      value: "",
       onInput: (e) => title.set((e.target as HTMLInputElement).value),
     },
     {
-      button: (l) => (saving.get(l) ? "Saving..." : "Save"),
+      button: (l) => (save.isPending(l) ? "Saving..." : "Save"),
       $: [button({ color: "primary" })],
-      ariaDisabled: (l) => saving.get(l),
+      ariaDisabled: (l) => save.isPending(l),
       onClick: () => {
-        if (saving.get()) return;
-        saved.set(null);
-        mutation
-          .mutate({ title: title.get() || "Untitled" })
-          .catch(() => undefined);
+        if (save.isPending()) return;
+        save.mutate({ title: title.get() || "Untitled" });
       },
     },
     {
-      div: (l) => saved.get(l) ?? "",
+      div: (l) => {
+        const data = save.data(l);
+        return data ? `Saved post #${data.id}: "${data.title}"` : "";
+      },
       $: [alert({ color: "success" })],
-      hidden: (l) => !saved.get(l),
+      hidden: (l) => !save.isSuccess(l),
     },
     {
-      div: (l) => error.get(l) ?? "",
+      div: (l) => save.error(l)?.message ?? "",
       $: [alert({ color: "error" })],
-      hidden: (l) => !error.get(l),
+      hidden: (l) => !save.error(l),
     },
   ],
   style: {

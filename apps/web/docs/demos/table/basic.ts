@@ -1,12 +1,11 @@
-import { type DomphyElement, toState } from "@domphy/core";
+import type { DomphyElement } from "@domphy/core";
 import {
   createColumnHelper,
-  createTable,
   getCoreRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  type SortingState,
 } from "@domphy/table";
+import { createDomphyTable } from "@domphy/table/domphy";
 import { themeSpacing } from "@domphy/theme";
 import { button, table as tableUI } from "@domphy/ui";
 
@@ -40,43 +39,22 @@ const columns = [
   columnHelper.accessor("city", { header: "City" }),
 ];
 
-// --- Vanilla wiring: bump a version state on every table state change ---
-const tableVersion = toState(0);
-
-const table = createTable({
+// createDomphyTable wires table-core's controlled-state loop and exposes a
+// reactive `version` — read version(l) to re-render on any table state change.
+const { table, version } = createDomphyTable<Person>({
   data: people,
   columns,
   getCoreRowModel: getCoreRowModel(),
   getSortedRowModel: getSortedRowModel(),
   getPaginationRowModel: getPaginationRowModel(),
-  state: {},
-  onStateChange: (updater) => {
-    const next =
-      typeof updater === "function" ? updater(table.getState()) : updater;
-    table.setOptions((prev) => ({ ...prev, state: next }));
-    tableVersion.set(tableVersion.get() + 1);
-  },
-  renderFallbackValue: null,
+  initialState: { pagination: { pageIndex: 0, pageSize: 5 } },
 });
 
-const initialSorting: SortingState = [];
-
-table.setOptions((prev) => ({
-  ...prev,
-  state: {
-    ...table.initialState,
-    sorting: initialSorting,
-    pagination: { pageIndex: 0, pageSize: 5 },
-  },
-}));
-
-// --- UI ---
 const App: DomphyElement<"div"> = {
   div: [
     {
-      // Reading tableVersion first makes the whole table re-render on any change.
       table: (l) => {
-        tableVersion.get(l);
+        version(l);
         return [
           {
             thead: table.getHeaderGroups().map((headerGroup) => ({
@@ -119,14 +97,14 @@ const App: DomphyElement<"div"> = {
           button: "Prev",
           $: [button()],
           ariaDisabled: (l) => {
-            tableVersion.get(l);
+            version(l);
             return !table.getCanPreviousPage();
           },
           onClick: () => table.previousPage(),
         },
         {
           span: (l) => {
-            tableVersion.get(l);
+            version(l);
             return `Page ${table.getState().pagination.pageIndex + 1} of ${table.getPageCount()}`;
           },
         },
@@ -134,7 +112,7 @@ const App: DomphyElement<"div"> = {
           button: "Next",
           $: [button()],
           ariaDisabled: (l) => {
-            tableVersion.get(l);
+            version(l);
             return !table.getCanNextPage();
           },
           onClick: () => table.nextPage(),

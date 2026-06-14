@@ -1,5 +1,6 @@
-import { type DomphyElement, toState } from "@domphy/core";
-import { QueryClient, QueryObserver } from "@domphy/query";
+import type { DomphyElement } from "@domphy/core";
+import { QueryClient } from "@domphy/query";
+import { createQuery } from "@domphy/query/domphy";
 import { themeSpacing } from "@domphy/theme";
 import { alert, button, spinner } from "@domphy/ui";
 
@@ -8,56 +9,41 @@ const queryClient = new QueryClient({
 });
 queryClient.mount();
 
-// --- Bridge: observer result -> Domphy states ---
-const users = toState<{ id: number; name: string }[]>([]);
-const loading = toState(true);
-const fetching = toState(false);
-const error = toState<string | null>(null);
-
-const observer = new QueryObserver<{ id: number; name: string }[]>(
-  queryClient,
-  {
-    queryKey: ["users"],
-    queryFn: async () => {
-      const res = await fetch("https://jsonplaceholder.typicode.com/users");
-      if (!res.ok) throw new Error("Failed to fetch users.");
-      const json = await res.json();
-      return json.slice(0, 5);
-    },
+// createQuery bridges the observer to Domphy reactivity — read result fields
+// directly with a listener, no manual subscribe -> toState wiring.
+const users = createQuery<{ id: number; name: string }[]>(queryClient, {
+  queryKey: ["users"],
+  queryFn: async () => {
+    const res = await fetch("https://jsonplaceholder.typicode.com/users");
+    if (!res.ok) throw new Error("Failed to fetch users.");
+    const json = await res.json();
+    return json.slice(0, 5);
   },
-);
-
-observer.subscribe((result) => {
-  users.set(result.data ?? []);
-  loading.set(result.isPending);
-  fetching.set(result.isFetching);
-  error.set(result.error ? result.error.message : null);
 });
 
-// --- UI ---
 const App: DomphyElement<"div"> = {
   div: [
     {
       span: null,
       $: [spinner()],
-      hidden: (l) => !loading.get(l),
+      hidden: (l) => !users.isPending(l),
     },
     {
-      div: (l) => error.get(l) ?? "",
+      div: (l) => users.error(l)?.message ?? "",
       $: [alert({ color: "error" })],
-      hidden: (l) => !error.get(l),
+      hidden: (l) => !users.error(l),
     },
     {
       ul: (l) =>
-        users.get(l).map((user) => ({
+        (users.data(l) ?? []).map((user) => ({
           li: user.name,
           _key: user.id,
         })),
-      hidden: (l) => loading.get(l),
+      hidden: (l) => users.isPending(l),
     },
     {
       button: (l) =>
-        fetching.get(l) ? "Refetching..." : "Invalidate & Refetch",
+        users.isFetching(l) ? "Refetching..." : "Invalidate & Refetch",
       $: [button()],
       onClick: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
       style: { marginTop: themeSpacing(3) },
