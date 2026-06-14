@@ -51,6 +51,23 @@ export function splitPath(path: string): string[] {
   return path.split("/").filter((part) => part.length > 0);
 }
 
+/** Number of URL parts a route path contributes (route groups don't count). */
+export function urlPartCount(path: string): number {
+  return splitPath(path)
+    .map(parseSegment)
+    .filter((segment) => segment.kind !== "group").length;
+}
+
+/** Matches `pathname` after dropping the first `prefixParts` URL parts (slot/intercept matching). */
+export function matchRouteSuffix(
+  compiled: CompiledRoute[],
+  pathname: string,
+  prefixParts: number,
+): RouteMatch | null {
+  const suffix = `/${splitPath(pathname).slice(prefixParts).join("/")}`;
+  return matchRoute(compiled, suffix);
+}
+
 /** Flattens a route tree into a list of routable endpoints. */
 export function compileRoutes(routes: Route[]): CompiledRoute[] {
   const compiled: CompiledRoute[] = [];

@@ -11,7 +11,9 @@ import {
   type CompiledRoute,
   compileRoutes,
   matchRoute,
+  matchRouteSuffix,
   type RouteMatch,
+  urlPartCount,
 } from "./matcher.js";
 import {
   applyHeadTags,
@@ -87,6 +89,11 @@ export class AppRouter {
   private currentMatch: RouteMatch | null = null;
   /** Cache keys backing the current render, used to drive stale-while-revalidate re-renders. */
   private currentRenderKeys = new Set<string>();
+  /** Per-route compiled parallel-route slots: hard (no interception) and soft (with). */
+  private slotCompiled = new Map<
+    Route,
+    Record<string, { soft: CompiledRoute[]; hard: CompiledRoute[] }>
+  >();
   /** Metadata resolved for the current route, exposed for server rendering. */
   metadata: ResolvedMetadata = {};
   /** The last redirect followed during a transition, exposed for server rendering. */
@@ -96,6 +103,7 @@ export class AppRouter {
 
   constructor(routes: Route[], options: RouterOptions = {}) {
     this.routes = compileRoutes(routes);
+    this.compileSlots(routes);
     this.middleware = options.middleware ?? [];
     this.notFoundBlock = options.notFound ?? defaultNotFoundBlock;
     this.errorBlock = options.error ?? ((error) => defaultErrorBlock(error));
@@ -120,6 +128,104 @@ export class AppRouter {
     // background, re-render the current route so the fresh data appears.
     this.cache.onRevalidated((key) => this.onRevalidated(key));
     defaultRouter = this;
+  }
+
+  /** Precompiles parallel-route slots for every segment (recursively). */
+  private compileSlots(routes: Route[]): void {
+    for (const route of routes) {
+      if (route.slots) {
+        const entry: Record<
+          string,
+          { soft: CompiledRoute[]; hard: CompiledRoute[] }
+        > = {};
+        for (const name of Object.keys(route.slots)) {
+          const slotRoutes = route.slots[name];
+          entry[name] = {
+            soft: compileRoutes(slotRoutes),
+            hard: compileRoutes(slotRoutes.filter((route) => !route.intercept)),
+          };
+          this.compileSlots(slotRoutes);
+        }
+        this.slotCompiled.set(route, entry);
+      }
+      if (route.children) this.compileSlots(route.children);
+    }
+  }
+
+  /** Runs a match's loaders and returns one result per chain segment (no loading UI). */
+  private async loadMatch(
+    match: RouteMatch,
+    url: URL,
+  ): Promise<SegmentResult[]> {
+    const { chain, chainIds } = match.route;
+    const context = this.loaderContext(url, match);
+    const results: SegmentResult[] = chain.map(() => ({ status: "pending" }));
+    await Promise.all(
+      chain.map((route, index) => {
+        if (!route.loader) {
+          results[index] = { status: "success", data: undefined };
+          return Promise.resolve();
+        }
+        const key = this.cacheKey(chainIds[index], url);
+        return this.cache
+          .load(key, route.loader, context, route.revalidate)
+          .then(
+            (data) => {
+              results[index] = { status: "success", data };
+            },
+            (error) => {
+              if (error instanceof NotFoundSignal) {
+                results[index] = { status: "notfound" };
+              } else {
+                results[index] = {
+                  status: "error",
+                  error:
+                    error instanceof Error ? error : new Error(String(error)),
+                };
+              }
+            },
+          );
+      }),
+    );
+    return results;
+  }
+
+  /** Renders the parallel-route slots declared on chain segment `chainIndex`. */
+  private async renderSlots(
+    chainIndex: number,
+    match: RouteMatch,
+    url: URL,
+    soft: boolean,
+  ): Promise<Record<string, DomphyElement>> {
+    const route = match.route.chain[chainIndex];
+    const compiledSlots = this.slotCompiled.get(route);
+    if (!compiledSlots) return {};
+
+    let prefixParts = 0;
+    for (let i = 0; i <= chainIndex; i++) {
+      prefixParts += urlPartCount(match.route.chain[i].path);
+    }
+
+    const slots: Record<string, DomphyElement> = {};
+    for (const name of Object.keys(compiledSlots)) {
+      const compiled = soft
+        ? compiledSlots[name].soft
+        : compiledSlots[name].hard;
+      const slotMatch = matchRouteSuffix(compiled, url.pathname, prefixParts);
+      if (!slotMatch) continue;
+      slotMatch.pathname = url.pathname;
+      slotMatch.params = { ...match.params, ...slotMatch.params };
+      const results = await this.loadMatch(slotMatch, url);
+      slots[name] = buildTree({
+        match: slotMatch,
+        baseContext: this.baseContext(url, slotMatch),
+        results,
+        retry: () => void this.refresh(),
+        defaultError: this.errorBlock,
+        defaultNotFound: this.notFoundBlock,
+      }).element;
+    }
+    return slots;
   }
 
   private onRevalidated(key: string): void {
@@ -396,6 +502,19 @@ export class AppRouter {
     if (token !== this.navigationToken) return;
     if (redirectSignal) throw redirectSignal;
 
+    // Parallel routes: render each segment's slots ((.)intercept routes match
+    // only on soft navigation, i.e. not the initial hard load).
+    const soft = !options.initial;
+    const slots: Record<number, Record<string, DomphyElement>> = {};
+    await Promise.all(
+      chain.map(async (route, index) => {
+        if (this.slotCompiled.has(route)) {
+          slots[index] = await this.renderSlots(index, match, url, soft);
+        }
+      }),
+    );
+    if (token !== this.navigationToken) return;
+
     const built = buildTree({
       match,
       baseContext: this.baseContext(url, match),
@@ -403,6 +522,7 @@ export class AppRouter {
       retry: () => void this.refresh(),
       defaultError: this.errorBlock,
       defaultNotFound: this.notFoundBlock,
+      slots,
     });
 
     const dataRecord: Record<string, unknown> = {};

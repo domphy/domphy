@@ -28,6 +28,8 @@ export type PageBlock<TData = unknown> = (
 export type LayoutBlock<TData = unknown> = (
   children: DomphyElement,
   context: RouteContext<TData>,
+  /** Rendered parallel-route slots declared on this segment, keyed by slot name. */
+  slots: Record<string, DomphyElement>,
 ) => DomphyElement;
 
 export type LoadingBlock = (context: RouteContext) => DomphyElement;
@@ -109,6 +111,20 @@ export interface Route {
   /** Use a 308 redirect on the server when `redirect` is set. */
   permanent?: boolean;
   children?: Route[];
+  /**
+   * Parallel routes (Next.js `@slot` folders). Each slot is an independent route
+   * tree matched against the path *below* this segment; the rendered element of
+   * each is passed to `layout`'s third argument. A slot route with `intercept`
+   * set captures a matching URL during client navigation (intercepting routes).
+   */
+  slots?: Record<string, Route[]>;
+  /**
+   * Intercepting route marker (Next.js `(.)`, `(..)`, `(...)`). When set, this
+   * slot route only matches during client-side (soft) navigation, letting it
+   * render an interception (e.g. a modal) over the previous page; a hard load of
+   * the same URL renders the real route instead.
+   */
+  intercept?: boolean;
 }
 
 export type RouterStatus = "idle" | "loading" | "error" | "notfound";

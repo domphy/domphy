@@ -22,6 +22,8 @@ export interface BuildTreeInput {
   retry: () => void;
   defaultError: ErrorBlock;
   defaultNotFound: NotFoundBlock;
+  /** Rendered parallel-route slots per chain index, passed to that segment's layout. */
+  slots?: Record<number, Record<string, DomphyElement>>;
 }
 
 export interface BuiltTree {
@@ -123,7 +125,7 @@ export function buildTree(input: BuildTreeInput): BuiltTree {
   for (let i = wrapLimit; i >= 0; i--) {
     const layout = chain[i].layout;
     if (!layout) continue;
-    element = layout(element, contexts[i]);
+    element = layout(element, contexts[i], input.slots?.[i] ?? {});
     if (element._key === undefined) element._key = `${chainIds[i]}:layout`;
   }
 
