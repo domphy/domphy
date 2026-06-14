@@ -129,6 +129,8 @@ Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagno
 
 ## Optional
 
+- [`manifest.json`](https://www.domphy.com/manifest.json): machine-readable index of every package + patch (name, host tag, signature, doc). Query this instead of parsing docs.
+- [`@domphy/mcp`](https://www.npmjs.com/package/@domphy/mcp): MCP server exposing patches/packages/rules + the doctor as tools for MCP-capable agents.
 - [Full text dump for one-shot context](https://www.domphy.com/llms-full.txt): quickstart + core docs + every patch source file concatenated. Use when you need the whole framework in a single fetch.
 - [Playground](https://www.domphy.com/playground.html): interactive sandbox
 - [GitHub](https://github.com/domphy/domphy): source, issues, releases

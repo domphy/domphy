@@ -1,6 +1,6 @@
 # AGENTS.md — Domphy
 
-Instructions for AI agents writing/editing Domphy code. (Human contributors: same rules apply.) This is the canonical short spec; the fuller machine context is `apps/web/public/llms.txt` (index) and `apps/web/public/llms-full.txt` (one-shot dump), and the Claude Code skill `domphy`.
+Instructions for AI agents writing/editing Domphy code. (Human contributors: same rules apply.) This is the canonical short spec. More machine context: `apps/web/public/llms.txt` (index), `apps/web/public/llms-full.txt` (one-shot dump), `apps/web/public/manifest.json` (structured patch/package index), the `@domphy/mcp` server (tools for MCP agents), and the Claude Code skill `domphy`.
 
 ## What Domphy is
 

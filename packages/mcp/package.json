@@ -1,0 +1,63 @@
+{
+  "name": "@domphy/mcp",
+  "version": "0.10.0",
+  "description": "Domphy MCP server - exposes patches, packages, rules, and the doctor to MCP-capable AI agents",
+  "type": "module",
+  "bin": {
+    "domphy-mcp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./tools": {
+      "import": {
+        "types": "./dist/tools.d.ts",
+        "default": "./dist/tools.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "domphy",
+    "mcp",
+    "ai",
+    "model-context-protocol"
+  ],
+  "author": "Huu Khanh Nguyen",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/domphy/domphy.git",
+    "directory": "packages/mcp"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@domphy/doctor": "workspace:^"
+  },
+  "peerDependencies": {
+    "@domphy/core": "workspace:^"
+  },
+  "devDependencies": {
+    "@domphy/core": "workspace:*",
+    "@types/node": "^25.9.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.18"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

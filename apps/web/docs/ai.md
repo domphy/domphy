@@ -94,6 +94,20 @@ console.log(format(diagnose(App))) // paste the report back to the model
 
 It flags the exact mistakes LLMs make — inline typography, void-tag content, missing `_key` on dynamic lists, typo tags. This is the feedback loop that closes the "little training data" gap: the model writes, the doctor checks, the model fixes. Wire it into your tool's task loop or CI.
 
+## MCP server (`@domphy/mcp`)
+
+For MCP-capable agents (Claude Desktop, Cursor, …), the [`@domphy/mcp`](https://www.npmjs.com/package/@domphy/mcp) server exposes Domphy as tools — no pasting required:
+
+```json
+{ "mcpServers": { "domphy": { "command": "npx", "args": ["-y", "@domphy/mcp"] } } }
+```
+
+Tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, and `domphy_diagnose` (runs the doctor). The agent looks up the real API before writing and validates after.
+
+## Machine-readable manifest
+
+[`manifest.json`](https://www.domphy.com/manifest.json) is a deterministic index of every package and every patch (name, host tag, signature, doc) — auto-generated each release. Tools and agents can query it directly instead of parsing docs.
+
 ## Keeping context fresh
 
 Re-fetch `llms-full.txt` after each Domphy release to pick up new patches and rule changes:
