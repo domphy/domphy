@@ -78,9 +78,21 @@ curl -fsSL https://www.domphy.com/llms-full.txt -o AGENTS.md
 
 Once the rules file is in place, you can prompt naturally:
 
-> Build a login form with email and password using Domphy. Use `form` + `field` patches. Validate email format on submit.
+> Build a login form with email and password using Domphy. Use `@domphy/form` (`createForm`). Validate email format on change.
 
 The AI will follow Domphy conventions (plain objects, `$:` for patches, no JSX) without you having to repeat them.
+
+## Self-correcting with `@domphy/doctor`
+
+The highest-leverage AI feature: install [`@domphy/doctor`](./doctor/) and have the agent run it on its own output, then fix what it reports.
+
+```ts
+import { diagnose, format } from "@domphy/doctor"
+
+console.log(format(diagnose(App))) // paste the report back to the model
+```
+
+It flags the exact mistakes LLMs make — inline typography, void-tag content, missing `_key` on dynamic lists, typo tags. This is the feedback loop that closes the "little training data" gap: the model writes, the doctor checks, the model fixes. Wire it into your tool's task loop or CI.
 
 ## Keeping context fresh
 
@@ -91,22 +103,23 @@ Re-fetch `llms-full.txt` after each Domphy release to pick up new patches and ru
 curl -fsSL https://www.domphy.com/llms-full.txt -o AGENTS.md
 ```
 
-Or pin to a specific version via the GitHub raw URL:
+Or pin to a tagged version via the GitHub raw URL:
 
 ```
-https://raw.githubusercontent.com/domphy/domphy/v0.1.48/apps/web/public/llms-full.txt
+https://raw.githubusercontent.com/domphy/domphy/<tag>/apps/web/public/llms-full.txt
 ```
 
 ## What's in the bundle
 
 The full dump contains, in order:
 
-1. **Critical rules** — the small set of conventions that prevent the most common AI mistakes (typography patches, form wiring, reactivity loops).
-2. **Quickstart** — install, hello world, reactive state, forms.
+1. **Critical rules** — the small set of conventions that prevent the most common AI mistakes (typography patches, forms via `@domphy/form`, reactivity, data-package adapters).
+2. **Quickstart** — install, hello world, reactive state.
 3. **Core docs** — syntax, reactivity, lifecycle, SSR, portal, patterns, API reference.
 4. **Theme docs** — palette, size, tone, API.
-5. **Query docs** — `@domphy/query` queries, mutations, caching, infinite queries, SSR hydration.
-6. **Table docs** — `@domphy/table` columns, row models, sorting, filtering, pagination, selection.
-7. **Every patch source file** — the authoritative contract for each of the 70+ patches in `@domphy/ui`. AI reads the actual TypeScript source, not a paraphrase.
+5. **Package docs** — query, router, table, virtual, form, dnd, and app (`@domphy/*`).
+6. **Every patch source file** — the authoritative contract for each patch in `@domphy/ui`. AI reads the actual TypeScript source, not a paraphrase.
+
+Pair it with [`@domphy/doctor`](./doctor/) so the AI can verify and fix its own output.
 
 This is everything an AI needs. Nothing is hidden behind documentation it cannot reach.

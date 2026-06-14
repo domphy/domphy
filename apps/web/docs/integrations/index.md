@@ -45,10 +45,50 @@ The author previously built plugin-style integrations (including query/router wr
 2. Convert only the minimum needed signals into Domphy-reactive reads at render points.
 3. Keep patch/component code focused on presentation and interaction.
 
+## Domphy package, or vanilla?
+
+Domphy ships first-party packages only for the cores that benefit from a tight Domphy-reactivity adapter. **Everything else you use vanilla, directly** — there is intentionally no `@domphy/chart`, `@domphy/i18n`, `@domphy/editor`, etc. Domphy is *better* at this than React: lifecycle hooks (`_onMount`/`_onRemove`) integrate imperative DOM libraries cleanly, with no virtual DOM fighting them.
+
+| Need | Use |
+| --- | --- |
+| async data / tables / routing / virtualization / forms | `@domphy/query` · `@domphy/table` · `@domphy/router` · `@domphy/virtual` · `@domphy/form` (1-1 TanStack ports + adapter) |
+| drag & drop | `@domphy/dnd` |
+| animation | the `motion()` patch (`@domphy/ui`) |
+| charts | **vanilla** Chart.js / ECharts / D3 |
+| rich text | **vanilla** TipTap / ProseMirror / Lexical (framework-agnostic cores) |
+| carousel | **vanilla** embla-carousel (its core is framework-agnostic) |
+| i18n | **vanilla** i18next (core) — [recipe](/docs/integrations/i18next) |
+| dates | **vanilla** dayjs / date-fns / flatpickr |
+| schema validation | **vanilla** zod (works with `@domphy/form` via Standard Schema) — [recipe](/docs/integrations/zod) |
+| maps / 3D | **vanilla** leaflet/maplibre · three.js |
+| icons | any SVG string + the `icon()` patch (e.g. lucide icons) |
+
+If a library has a framework-agnostic core (most do — the "React" version is usually a thin wrapper), use that core. No wrapper needed.
+
+## DOM library pattern
+
+The canonical way to mount any imperative DOM library:
+
+```ts
+{
+  div: null, // the library's mount target
+  _onMount: (node) => {
+    const instance = new SomeLib(node.domElement, options)
+    node.setMetadata("lib", instance)
+  },
+  _onRemove: (node) => {
+    (node.getMetadata("lib") as SomeLib | undefined)?.destroy()
+  },
+}
+```
+
+When the library mutates the DOM itself (e.g. a drag-sort plugin reorders nodes), sync Domphy's logical tree **without re-touching the DOM** using `node.children.move(from, to, /* updateDom */ false)`. React can't do this — its virtual DOM must own the tree; Domphy keeps tree and DOM in sync independently.
+
 ## Examples
 
 - [i18next](/docs/integrations/i18next) — internationalization
 - [TanStack Query](/docs/integrations/tanstack-query) — async data fetching and caching
+- [Chart.js](/docs/integrations/chartjs) — charts via `_onMount`
 - [SortableJS](/docs/integrations/sortablejs) — drag-and-drop list reordering
 - [Zod](/docs/integrations/zod) — form validation
 - [page.js](/docs/integrations/pagejs) — client-side routing

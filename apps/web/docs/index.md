@@ -7,29 +7,29 @@ import Counting from "./demos/core/counting.js"
 
 **A Patch-based UI. Native elements, no components.**
 
-Domphy is split into 3 packages:
+Framework-agnostic, no JSX, no virtual DOM, no build step required — and the most **AI-friendly** UI framework (learnable from one spec file, self-correcting via [`@domphy/doctor`](/docs/doctor/)).
 
-- `@domphy/core` - `30kb` minified
-- `@domphy/theme` - `8kb` minified
-- `@domphy/ui` - `80kb` minified
+**Runtime + design system** — tiny, tree-shakeable:
 
-Plus optional layers:
+- `@domphy/core` — runtime: rendering, reactivity, lifecycle, SSR, CSS-in-JS (≈ `react-dom` + SSR + CSS-in-JS in one)
+- `@domphy/theme` — context-aware color/size/spacing tokens
+- `@domphy/ui` — ~75 patches for native HTML (≈ MUI)
 
-- `@domphy/query` - `49kb` minified - async state management, a 1-1 port of TanStack Query core
-- `@domphy/router` - `69kb` minified - type-safe routing, a 1-1 port of TanStack Router core
-- `@domphy/table` - `59kb` minified - headless table logic, a 1-1 port of TanStack Table core
-- `@domphy/app` - `23kb` minified - app framework, a port of the Next.js App Router feature set
+**Data & logic** — 1-1 ports of the TanStack cores (identical API) + a Domphy adapter at the `/domphy` subpath:
 
-In practical terms:
+- `@domphy/query` — async state (TanStack Query core)
+- `@domphy/table` — headless tables (TanStack Table core)
+- `@domphy/router` — type-safe routing (TanStack Router core)
+- `@domphy/virtual` — virtualization (TanStack Virtual core)
+- `@domphy/form` — forms (TanStack Form core)
 
-- `@domphy/core` is the runtime layer, roughly comparable to `react-dom` + SSR rendering + CSS-in-JS in one package
-- `@domphy/theme` and `@domphy/ui` together are the design-system layer, roughly comparable to what people usually expect from MUI
-- `@domphy/query` is the data layer, comparable to what React teams get from TanStack Query
-- `@domphy/router` is the routing layer, comparable to what React teams get from TanStack Router
-- `@domphy/table` is the datagrid layer, comparable to what React teams get from TanStack Table
-- `@domphy/app` is the app layer: routing, layouts, navigation, metadata, middleware, SSR and API routes, comparable to what React teams get from Next.js
+**App layer & tools:**
 
-Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins.
+- `@domphy/dnd` — drag & drop / sortable lists
+- `@domphy/app` — Next.js App Router-style framework (routes, layouts, loaders+SWR, metadata, middleware, parallel/intercepting routes, SSR + streaming, API routes)
+- `@domphy/doctor` — static analyzer that flags non-idiomatic code (powers AI self-correction)
+
+Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. For anything outside these packages (charts, rich text, i18n…), use the vanilla library directly — see [Integrations](/docs/integrations/).
 
 ## Why Domphy
 

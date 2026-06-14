@@ -12,6 +12,7 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 - **Forms use `@domphy/form`** — `createForm` from `@domphy/form/domphy`; bind inputs with `value: (l) => field.value(l)` + `onInput: (e) => field.handleChange(e.target.value)`. The old ui `form()`/`field()` patches and `FormState`/`FieldState` were REMOVED; only the layout patch `formGroup()` remains in `@domphy/ui`.
 - Reactive content/attributes use `(listener) => state.get(listener)`. A controlled input (value bound to a state you also `.set()` in `onInput`) is safe — setting `.value` programmatically does not refire `input`.
 - **Data/logic packages are 1-1 TanStack core ports + a Domphy adapter at the `/domphy` subpath** (`@domphy/core` is a peer dep): `createQuery`/`createMutation`/`createInfiniteQuery` (`@domphy/query/domphy`), `createDomphyTable` (`@domphy/table/domphy`), `createVirtualizer` (`@domphy/virtual/domphy`), `createForm` (`@domphy/form/domphy`), `createRouter`/`createRoute` (`@domphy/router`). Drag & drop: `dragDrop()` (`@domphy/dnd`). Animation: the `motion()` patch (`@domphy/ui`). Next-style app framework: `@domphy/app`.
+- **Self-check generated code with `@domphy/doctor`**: `diagnose(app)` + `format(...)` reports inline-typography / void-content / missing-`_key` / unknown-tag issues — fix what it lists before finishing.
 - Read the per-patch / per-package doc before using one you haven't used before. Each has its own prop contract.
 
 ## Getting started
@@ -119,6 +120,12 @@ Drag & drop / sortable lists — depends on the framework-agnostic `@formkit/dra
 Next.js App Router-style framework — runtime (no compiler, no file-system routing): nested routes/layouts, loaders with stale-while-revalidate, metadata, middleware, parallel + intercepting routes, SSR + streaming (`renderToString`/`renderToStream`), API routes. Routes are a plain object tree via `defineRoutes`; `createApp(routes)`.
 
 - [Overview](https://www.domphy.com/docs/app/): routing, layouts, navigation, data fetching, metadata, middleware, SSR, API routes, image/script
+
+## Doctor (`@domphy/doctor`)
+
+Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagnostic[]` (rules: inline-typography, void-content, missing-key, unknown-tag); `format()` renders a report. Run it on generated code and fix what it reports — the AI self-correction loop.
+
+- [Overview](https://www.domphy.com/docs/doctor/): `diagnose`/`format`, rules, AI loop usage
 
 ## Optional
 

@@ -16,7 +16,8 @@
     "publish:router": "cd packages/router && pnpm publish --access public --no-git-checks",
     "publish:virtual": "cd packages/virtual && pnpm publish --access public --no-git-checks",
     "publish:form": "cd packages/form && pnpm publish --access public --no-git-checks",
-    "publish:dnd": "cd packages/dnd && pnpm publish --access public --no-git-checks"
+    "publish:dnd": "cd packages/dnd && pnpm publish --access public --no-git-checks",
+    "publish:doctor": "cd packages/doctor && pnpm publish --access public --no-git-checks"
   },
   "repository": "git+https://github.com/domphy/domphy.git",
   "keywords": [],

@@ -29,6 +29,7 @@ const App = {
 - **`_key`** on dynamic/reordered child lists (identity for reconcile). It is not DOM id / business identity.
 - **Lifecycle hooks** (`_onMount`, `_onBeforeRemove(node, done)` — must call `done()`, `_onRemove`) for imperative/3rd-party integration; events stay flat (`onClick`, `onInput`).
 - **Comments in code: English only.** Names: descriptive, no abbreviations (`index` not `i` except loops; `listener` `l`, event `e`, node `node`).
+- **Self-check:** run `@domphy/doctor` `diagnose(app)` on what you produce and fix every reported issue before finishing.
 
 ## Package map (current)
 
@@ -44,6 +45,7 @@ const App = {
 | `@domphy/form` | forms — form-core port; adapter `createForm` at `@domphy/form/domphy` |
 | `@domphy/dnd` | drag & drop — `dragDrop(state, config?)` (wraps `@formkit/drag-and-drop`) |
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/SSR+streaming/API routes |
+| `@domphy/doctor` | static analyzer — `diagnose(element)` flags non-idiomatic trees. **Run it on your output and fix the report.** |
 
 Data/logic packages are **1-1 TanStack core ports** (byte-identical upstream API) + a thin Domphy adapter at the `/domphy` subpath; `@domphy/core` is their peer dependency.
 

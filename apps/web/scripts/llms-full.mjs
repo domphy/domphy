@@ -84,6 +84,10 @@ await includeDir(
 );
 await includeDir(resolve(ROOT, "docs/form"), "Form docs (`@domphy/form`)");
 await includeDir(resolve(ROOT, "docs/dnd"), "DnD docs (`@domphy/dnd`)");
+await includeDir(
+  resolve(ROOT, "docs/doctor"),
+  "Doctor docs (`@domphy/doctor`)",
+);
 await includeDir(resolve(ROOT, "docs/app"), "App docs (`@domphy/app`)");
 
 hr();

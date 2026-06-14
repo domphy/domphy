@@ -26,29 +26,29 @@
 
 **A Patch-based UI. Native elements, no components.**
 
-Domphy is split into 3 packages:
+Framework-agnostic, no JSX, no virtual DOM, no build step required — and the most **AI-friendly** UI framework (learnable from one spec file, self-correcting via [`@domphy/doctor`](/docs/doctor/)).
 
-- `@domphy/core` - `30kb` minified
-- `@domphy/theme` - `8kb` minified
-- `@domphy/ui` - `80kb` minified
+**Runtime + design system** — tiny, tree-shakeable:
 
-Plus optional layers:
+- `@domphy/core` — runtime: rendering, reactivity, lifecycle, SSR, CSS-in-JS (≈ `react-dom` + SSR + CSS-in-JS in one)
+- `@domphy/theme` — context-aware color/size/spacing tokens
+- `@domphy/ui` — ~75 patches for native HTML (≈ MUI)
 
-- `@domphy/query` - `49kb` minified - async state management, a 1-1 port of TanStack Query core
-- `@domphy/router` - `69kb` minified - type-safe routing, a 1-1 port of TanStack Router core
-- `@domphy/table` - `59kb` minified - headless table logic, a 1-1 port of TanStack Table core
-- `@domphy/app` - `23kb` minified - app framework, a port of the Next.js App Router feature set
+**Data & logic** — 1-1 ports of the TanStack cores (identical API) + a Domphy adapter at the `/domphy` subpath:
 
-In practical terms:
+- `@domphy/query` — async state (TanStack Query core)
+- `@domphy/table` — headless tables (TanStack Table core)
+- `@domphy/router` — type-safe routing (TanStack Router core)
+- `@domphy/virtual` — virtualization (TanStack Virtual core)
+- `@domphy/form` — forms (TanStack Form core)
 
-- `@domphy/core` is the runtime layer, roughly comparable to `react-dom` + SSR rendering + CSS-in-JS in one package
-- `@domphy/theme` and `@domphy/ui` together are the design-system layer, roughly comparable to what people usually expect from MUI
-- `@domphy/query` is the data layer, comparable to what React teams get from TanStack Query
-- `@domphy/router` is the routing layer, comparable to what React teams get from TanStack Router
-- `@domphy/table` is the datagrid layer, comparable to what React teams get from TanStack Table
-- `@domphy/app` is the app layer: routing, layouts, navigation, metadata, middleware, SSR and API routes, comparable to what React teams get from Next.js
+**App layer & tools:**
 
-Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins.
+- `@domphy/dnd` — drag & drop / sortable lists
+- `@domphy/app` — Next.js App Router-style framework (routes, layouts, loaders+SWR, metadata, middleware, parallel/intercepting routes, SSR + streaming, API routes)
+- `@domphy/doctor` — static analyzer that flags non-idiomatic code (powers AI self-correction)
+
+Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. For anything outside these packages (charts, rich text, i18n…), use the vanilla library directly — see [Integrations](/docs/integrations/).
 
 ## Why Domphy
 
@@ -4610,6 +4610,91 @@ Give two lists the same `group` to transfer items between them. Accessibility, t
 ## Cleanup
 
 The adapter tears down FormKit's listeners automatically on removal (`_onRemove`).
+
+
+
+---
+
+
+## Doctor docs (`@domphy/doctor`)
+
+### index.md
+
+# Doctor
+
+`@domphy/doctor` is a static analyzer for Domphy element trees. It walks the plain-object tree — including the output of reactive `(listener) => …` functions — and flags non-idiomatic patterns. Its main job is to give **AI agents** (and humans) a feedback loop: generate code → `diagnose()` → fix what it reports.
+
+Because Domphy UIs are plain objects, the doctor needs no parser and no build step.
+
+## Install
+
+```bash
+npm install -D @domphy/doctor @domphy/core
+```
+
+`@domphy/core` is a peer dependency (the doctor reads its tag tables).
+
+## Usage
+
+```ts
+import { diagnose, format } from "@domphy/doctor"
+
+const App = {
+  div: [
+    { p: "Hello", style: { fontSize: "20px" } }, // inline typography
+    { input: "oops" }, // void tag with content
+    { dvi: "typo" }, // unknown tag
+  ],
+}
+
+console.log(format(diagnose(App)))
+```
+
+```
+⚠ [inline-typography] div > p
+  Inline `fontSize` — avoid inline typography styles.
+  → Use a typography patch (paragraph()/heading()/…) via $.
+✗ [void-content] div > input
+  Void tag "input" must have null content (got string).
+⚠ [unknown-tag] div
+  "dvi" is not a known HTML/SVG tag — likely a typo.
+```
+
+`diagnose(element, options?)` returns `Diagnostic[]`:
+
+```ts
+interface Diagnostic {
+  rule: "inline-typography" | "void-content" | "missing-key" | "unknown-tag"
+  severity: "error" | "warning" | "info"
+  path: string // "div > ul > li"
+  message: string
+  hint?: string
+}
+```
+
+## Rules
+
+| Rule | Severity | Catches |
+| --- | --- | --- |
+| `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` literals in `style` — use a typography patch |
+| `void-content` | error | a void tag (`input`, `img`, `br`, …) with non-null content |
+| `missing-key` | warning | a **dynamic** list (returned by a reactive function) of element children missing `_key` |
+| `unknown-tag` | warning | an element whose first key isn't a valid HTML/SVG tag (typo) |
+
+By default the doctor invokes reactive content functions with a no-op listener to inspect their output (this is how `missing-key` is found). Pass `{ runReactive: false }` if your reactive functions have side effects.
+
+## In an AI loop
+
+This is the point of the package. After the model generates a Domphy tree, run the doctor and return the report:
+
+```ts
+const report = format(diagnose(generatedApp))
+if (report !== "✓ No issues found.") {
+  // hand `report` back to the model and ask it to fix the listed issues
+}
+```
+
+Most LLMs have little Domphy training data, so they learn it in-context from [`llms.txt`](/llms.txt) / [`AGENTS.md`](https://github.com/domphy/domphy/blob/main/AGENTS.md). The doctor enforces those same rules mechanically — turning "the model might get it wrong" into "the model gets told exactly what's wrong and fixes it." Wire it into your agent's task loop or CI.
 
 
 
