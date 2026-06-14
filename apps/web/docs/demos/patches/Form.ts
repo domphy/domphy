@@ -1,70 +1,75 @@
 import type { DomphyElement } from "@domphy/core";
-import { toState } from "@domphy/core";
+import { createForm } from "@domphy/form/domphy";
 import { themeSpacing } from "@domphy/theme";
-import {
-  form,
-  field,
-  FormState,
-  inputText,
-  inputCheckbox,
-  button,
-  label,
-  paragraph,
-} from "@domphy/ui";
+import { button, inputCheckbox, inputText, label, paragraph } from "@domphy/ui";
 
-const myForm = new FormState();
-const submitting = toState(false);
+const myForm = createForm<{ email: string; agree: boolean }>({
+  defaultValues: { email: "", agree: false },
+  onSubmit: async ({ value }) => {
+    await new Promise((r) => setTimeout(r, 1000));
+    console.log(value);
+  },
+});
+
+const email = myForm.field<string>("email", {
+  validators: {
+    onChange: ({ value }: { value: string }) => {
+      if (!value) return "Email is required";
+      if (!/^[^@]+@[^@]+\.[^@]+$/.test(value)) return "Invalid email";
+      return undefined;
+    },
+  },
+});
+const agree = myForm.field<boolean>("agree");
 
 const App: DomphyElement<"form"> = {
   form: [
-    // Email field
     {
       div: [
         { label: "Email", $: [label()] },
         {
           input: null,
-          $: [
-            field("email", (v) => {
-              if (!v) return { error: "Email is required" };
-              if (!/^[^@]+@[^@]+\.[^@]+$/.test(v as string)) return { error: "Invalid email" };
-              return null;
-            }),
-            inputText(),
-          ],
+          $: [inputText()],
+          value: (l) => email.value(l),
+          onInput: (e) =>
+            email.handleChange((e.target as HTMLInputElement).value),
+          onBlur: () => email.handleBlur(),
         },
         {
-          p: (listener) => myForm.getField("email").message("error", listener),
+          p: (l) => String(email.errors(l)[0] ?? ""),
           $: [paragraph({ color: "error" })],
           dataSize: "decrease-1",
+          hidden: (l) => email.errors(l).length === 0,
         },
       ],
       style: { display: "flex", flexDirection: "column", gap: themeSpacing(1) },
     },
-    // Agree checkbox
     {
       div: [
-        { input: null, type: "checkbox", $: [field("agree"), inputCheckbox()] },
+        {
+          input: null,
+          type: "checkbox",
+          $: [inputCheckbox()],
+          checked: (l) => agree.value(l),
+          onChange: (e) =>
+            agree.handleChange((e.target as HTMLInputElement).checked),
+        },
         { label: "I agree to terms", $: [label()] },
       ],
       style: { display: "flex", gap: themeSpacing(2), alignItems: "center" },
     },
-    // Submit
     {
-      button: (listener) => submitting.get(listener) ? "Submitting..." : "Submit",
+      button: (l) => (myForm.isSubmitting(l) ? "Submitting..." : "Submit"),
       type: "submit",
       $: [button()],
-      disabled: (listener) => submitting.get(listener) || undefined,
+      ariaDisabled: (l) => !myForm.canSubmit(l),
     },
   ],
-  $: [form(myForm)],
-  onSubmit: async (e) => {
+  onSubmit: (e) => {
     (e as Event).preventDefault();
-    if (!myForm.valid || submitting.get()) return;
-    submitting.set(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    console.log(myForm.snapshot());
-    submitting.set(false);
+    myForm.handleSubmit();
   },
+  _onRemove: () => myForm.destroy(),
   style: {
     display: "flex",
     flexDirection: "column",

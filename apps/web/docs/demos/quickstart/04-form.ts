@@ -1,8 +1,14 @@
 import { type DomphyElement } from "@domphy/core"
-import { FormState } from "@domphy/ui"
-import { form, field, inputText, button, label, formGroup } from "@domphy/ui"
+import { createForm } from "@domphy/form/domphy"
+import { button, formGroup, inputText, label } from "@domphy/ui"
 
-const state = new FormState()
+const myForm = createForm<{ name: string; email: string }>({
+    defaultValues: { name: "", email: "" },
+    onSubmit: ({ value }) => alert(JSON.stringify(value, null, 2)),
+})
+
+const name = myForm.field<string>("name")
+const email = myForm.field<string>("email")
 
 const App: DomphyElement<"form"> = {
     form: [
@@ -13,7 +19,10 @@ const App: DomphyElement<"form"> = {
                     input: null,
                     type: "text",
                     placeholder: "Enter your name",
-                    $: [field("name"), inputText()],
+                    $: [inputText()],
+                    value: (l) => name.value(l),
+                    onInput: (e) =>
+                        name.handleChange((e.target as HTMLInputElement).value),
                 },
             ],
             $: [formGroup()],
@@ -25,7 +34,10 @@ const App: DomphyElement<"form"> = {
                     input: null,
                     type: "email",
                     placeholder: "you@example.com",
-                    $: [field("email"), inputText()],
+                    $: [inputText()],
+                    value: (l) => email.value(l),
+                    onInput: (e) =>
+                        email.handleChange((e.target as HTMLInputElement).value),
                 },
             ],
             $: [formGroup()],
@@ -38,9 +50,9 @@ const App: DomphyElement<"form"> = {
     ],
     onSubmit: (e: Event) => {
         e.preventDefault()
-        if (state.valid) alert(JSON.stringify(state.snapshot(), null, 2))
+        myForm.handleSubmit()
     },
-    $: [form(state)],
+    _onRemove: () => myForm.destroy(),
 }
 
 export default App

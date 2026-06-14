@@ -5,108 +5,50 @@ import Form from "../../demos/patches/Form.ts?raw"
 
 # Form
 
-Use `form` and `field` patches together with `FormState` to manage form state and accessibility.
+Form state, validation, and submission live in **[`@domphy/form`](/docs/form/)** — a 1-1 port of `@tanstack/form-core` with a Domphy adapter. `@domphy/ui` provides the presentation: native `input`/`select`/`textarea` with the input patches, `label`, and `formGroup` for layout.
+
+> The old UI-level `form()` / `field()` patches and `FormState` / `FieldState` classes were removed in favor of `@domphy/form`, so form logic lives in exactly one place.
 
 <CodeEditor :code="Form" />
 
-## Patches
+## Pattern
 
-### `form(state)`
-
-Injects a `FormState` instance into context. Apply to the `<form>` element.
+`createForm` owns the state; each `field` handle binds one input. Read `value`/`errors` reactively and forward DOM events to the handle:
 
 ```ts
-const myForm = new FormState();
+import { createForm } from "@domphy/form/domphy"
+import { inputText, label, button, formGroup } from "@domphy/ui"
 
-{ form: null, $: [form(myForm)] }
+const form = createForm<{ email: string }>({
+  defaultValues: { email: "" },
+  onSubmit: ({ value }) => save(value),
+})
+
+const email = form.field<string>("email", {
+  validators: { onChange: ({ value }) => (value.includes("@") ? undefined : "Invalid email") },
+})
+
+const Field = {
+  div: [
+    { label: "Email", $: [label()] },
+    {
+      input: null,
+      $: [inputText()],
+      value: (l) => email.value(l),
+      onInput: (e) => email.handleChange((e.target as HTMLInputElement).value),
+      onBlur: () => email.handleBlur(),
+    },
+  ],
+  $: [formGroup()],
+}
 ```
 
-### `field(path, validator?)`
+See the [`@domphy/form` docs](/docs/form/) for validators, async validation, arrays, Standard Schema, and the full field/form API.
 
-Wires an input to a field in `FormState` via context. Handles value, blur (touched), and `aria-invalid`. Apply to `input`, `select`, or `textarea`.
+## formGroup
+
+`formGroup({ color?, layout? })` is the one form patch that stays in `@domphy/ui` — it is pure layout (label + control + help text) with no state. `layout` is `"vertical"` (default) or `"horizontal"`. Host tag: `fieldset` or `div`.
 
 ```ts
-{ input: null, $: [field("email", (v) => v ? null : { error: "Required" }), inputText()] }
-{ input: null, type: "checkbox", $: [field("agree"), inputCheckbox()] }
-{ select: null, $: [field("role"), select()] }
+{ div: [{ label: "Name", $: [label()] }, { input: null, $: [inputText()] }], $: [formGroup()] }
 ```
-
-## FormState
-
-```ts
-const myForm = new FormState();
-
-// Register a field (idempotent)
-const f = myForm.setField("email", "", validator);
-
-// Get field state
-const f = myForm.getField("email");
-
-// Form-level
-myForm.valid      // boolean — no fields have error
-myForm.snapshot() // { email: "...", ... } reconstructed as nested object
-myForm.reset()    // reset all fields to initValue
-myForm.fields     // Map<string, FieldState> — escape hatch
-```
-
-## FieldState
-
-```ts
-f.value(listener?)     // get value + subscribe
-f.setValue(val)        // set value, runs validator
-f.dirty(listener?)     // value !== initValue
-f.touched(listener?)   // blurred at least once
-f.setTouched()         // mark as touched
-f.message("error", l)  // get error message + subscribe
-f.message("warning", l)
-f.message("success", l)
-f.status(listener?)    // "error" | "warning" | "success" | undefined
-f.setMessages({ error?, warning?, success? })
-f.reset()
-```
-
-## Nested paths
-
-Use dot notation for nested data. `snapshot()` reconstructs the object automatically.
-
-```ts
-myForm.setField("address.city", "");
-myForm.setField("address.zip", "");
-myForm.setField("items.0.qty", 1);
-
-myForm.snapshot();
-// { address: { city: "", zip: "" }, items: [{ qty: 1 }] }
-```
-
-## Validator
-
-A validator is a plain function — no library required.
-
-```ts
-const emailValidator = (value: unknown): FieldMessages | null => {
-  if (!value) return { error: "Required" };
-  if (!/^[^@]+@[^@]+\.[^@]+$/.test(value as string)) return { error: "Invalid email" };
-  return { success: "Looks good!" };
-};
-```
-
-Escape hatch with Zod:
-
-```ts
-import { z } from "zod";
-const schema = z.string().email("Invalid email");
-
-const zodValidator = (value: unknown): FieldMessages | null => {
-  const result = schema.safeParse(value);
-  return result.success ? null : { error: result.error.errors[0].message };
-};
-```
-
-::: code-group
-<<< ../../../../../packages/ui/src/classes/FieldState.ts [FieldState]
-<<< ../../../../../packages/ui/src/classes/FormState.ts [FormState]
-<<< ../../../../../packages/ui/src/patches/form.ts [form]
-<<< ../../../../../packages/ui/src/patches/field.ts [field]
-:::
-
-
