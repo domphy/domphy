@@ -1,6 +1,6 @@
 {
   "name": "@domphy/table",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Domphy Table - headless table logic, a 1-1 port of @tanstack/table-core",
   "type": "module",
   "sideEffects": false,
