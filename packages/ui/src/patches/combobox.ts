@@ -1,6 +1,6 @@
 import { type PartialElement, type DomphyElement, type StyleObject, type ValueOrState, toState, merge } from "@domphy/core";
 import { themeSpacing, themeColor, themeDensity, themeSize, type ThemeColor, } from "@domphy/theme";
-import { type Placement } from "@floating-ui/dom";
+import { type Placement } from "@domphy/floating";
 import { tag } from "./tag.js"
 import { creatFloating } from "../utils/floating.js"
 

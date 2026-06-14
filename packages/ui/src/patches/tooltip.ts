@@ -1,6 +1,6 @@
 import { PartialElement, type DomphyElement, ValueOrState, merge, toState } from "@domphy/core";
 import { themeSpacing, themeColor, themeDensity, themeSize } from "@domphy/theme";
-import { type Placement } from "@floating-ui/dom";
+import { type Placement } from "@domphy/floating";
 import { creatFloating } from "../utils/floating.js";
 import { popoverArrow } from "./popoverArrow.js";
 

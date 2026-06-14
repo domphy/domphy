@@ -1,5 +1,5 @@
 import { PartialElement, State, DomphyElement, toState, ValueOrState, merge } from "@domphy/core";
-import { type Placement } from "@floating-ui/dom";
+import { type Placement } from "@domphy/floating";
 import { creatFloating } from "../utils/floating.js";
 
 function popover(props: {

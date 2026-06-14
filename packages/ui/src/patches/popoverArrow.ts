@@ -1,6 +1,6 @@
 import { toState, ValueOrState, PartialElement } from "@domphy/core";
 import { themeSpacing, themeColor, themeSize, type ThemeColor } from "@domphy/theme";
-import { type Placement } from "@floating-ui/dom";
+import { type Placement } from "@domphy/floating";
 
 function popoverArrow(props: {
     placement?: ValueOrState<Placement>;

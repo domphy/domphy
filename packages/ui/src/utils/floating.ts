@@ -1,5 +1,5 @@
 import { ElementNode, State, PartialElement, DomphyElement, toState, ValueOrState, merge } from "@domphy/core";
-import { computePosition, autoUpdate, offset, flip, shift, type Placement } from "@floating-ui/dom";
+import { computePosition, autoUpdate, offset, flip, shift, type Placement } from "@domphy/floating";
 
 function creatFloating(props: {
     open?: ValueOrState<boolean>;
@@ -88,7 +88,7 @@ function creatFloating(props: {
 
             node.addHook("BeforeRemove", () => {
                 if (timer) clearTimeout(timer);
-                // Tear down the @floating-ui autoUpdate loop (scroll/resize/rAF
+                // Tear down the @domphy/floating autoUpdate loop (scroll/resize/rAF
                 // listeners). Without this, removing the anchor while the overlay
                 // is open leaks observers that keep positioning a detached node.
                 if (cleanup) { cleanup(); cleanup = null; }

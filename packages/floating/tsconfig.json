@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "declaration": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "baseUrl": ".",
+    "paths": {
+      "@floating-ui/core": ["./src/core/index.ts"],
+      "@floating-ui/utils": ["./src/utils/index.ts"],
+      "@floating-ui/utils/dom": ["./src/utils/dom.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}

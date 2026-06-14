@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/node_modules/**", "!**/dist/**", "!packages/query/src/**", "!packages/table/src/**", "!packages/router/src/**", "!packages/router/tests/**", "!packages/virtual/src/**", "!packages/form/src/**"]
+    "includes": ["**", "!**/node_modules/**", "!**/dist/**", "!packages/query/src/**", "!packages/table/src/**", "!packages/router/src/**", "!packages/router/tests/**", "!packages/virtual/src/**", "!packages/form/src/**", "!packages/floating/src/**"]
   },
   "formatter": {
     "enabled": true,
