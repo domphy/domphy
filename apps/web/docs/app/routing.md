@@ -71,6 +71,60 @@ Groups organize the tree — shared layouts, shared middleware — without affec
 }
 ```
 
+## Parallel Routes
+
+A segment can render several independent route trees at once through `slots` — the equivalent of Next.js `@slot` folders. Each slot is matched against the path **below** the segment and rendered independently; the matched elements are passed to the layout's third argument:
+
+```ts
+{
+  path: "dashboard",
+  layout: (children, context, slots) => ({
+    div: [
+      { aside: [slots.nav ?? { span: "" }] },
+      { section: [slots.analytics ?? { span: "" }] },
+      children,
+    ],
+  }),
+  slots: {
+    nav: [
+      { path: "", page: () => ({ nav: "Overview" }) },
+      { path: "team", page: () => ({ nav: "Team nav" }) },
+    ],
+    analytics: [{ path: "", page: () => AnalyticsPanel() }],
+  },
+  children: [
+    { path: "", page: DashboardHome },
+    { path: "team", page: TeamPage },
+  ],
+}
+```
+
+At `/dashboard` the `nav` and `analytics` slots both match their `""` route; at `/dashboard/team` `nav` follows to its `team` route while `analytics` (no match for that sub-path) is simply omitted. Slots may declare their own `layout`, `loading`, `loader`, and even nested `slots` — they go through the same render and `DataCache` as the main tree.
+
+## Intercepting Routes
+
+A slot route marked `intercept: true` matches **only during client-side (soft) navigation** — a hard load or refresh of the same URL renders the real route instead. This is how Next.js intercepting routes (`(.)`, `(..)`, `(...)`) power "modal over the current page" patterns:
+
+```ts
+{
+  path: "feed",
+  layout: (children, _context, slots) => ({
+    div: [children, slots.modal ?? { span: "" }],
+  }),
+  slots: {
+    // soft-nav to /feed/photo/[id] -> renders the modal over the feed
+    modal: [{ path: "photo/[id]", intercept: true, page: PhotoModal }],
+  },
+  children: [
+    { path: "", page: Feed },
+    // hard load of /feed/photo/[id] -> renders the full page
+    { path: "photo/[id]", page: PhotoPage },
+  ],
+}
+```
+
+Style the intercepting slot as an overlay (a `dialog`, a portalled panel) and it appears above the previous content on in-app navigation, while a shared link to the same URL opens the standalone page.
+
 ## Redirect Routes
 
 The equivalent of `redirects` in `next.config.js`:

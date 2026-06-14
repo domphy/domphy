@@ -39,6 +39,21 @@ A page can also read ancestor data through `context.segmentData`, keyed by segme
 
 `router.refresh()` clears the cache and re-runs everything for the current URL.
 
+### Stale-while-revalidate
+
+When a cached entry ages past its `revalidate` window, the next navigation **serves the stale value immediately** and refetches in the background — the same model as Next.js ISR. There is no loading flash: the page renders instantly with the old data, then re-renders in place once the fresh value lands.
+
+```ts
+{
+  path: "dashboard",
+  loader: fetchStats,
+  revalidate: 30,   // after 30s: show stale, refetch, swap in fresh
+  page: StatsPage,
+}
+```
+
+The background refetch starts after the current render commits, so a stale entry never blocks navigation. If the user has already moved to another route by the time it resolves, the re-render is skipped. A failed background refetch keeps the stale entry and stays silent.
+
 ## Prefetching
 
 `router.prefetch(href)` (and `navLink`'s hover/visible prefetch) runs the target's loaders ahead of navigation. Results stay usable for 30 seconds — the same window as the Next.js client router cache — so the navigation itself renders instantly without re-fetching, even for uncached loaders.

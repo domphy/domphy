@@ -37,6 +37,10 @@ The CDN bundle exposes `Domphy.table` with all exports.
 
 ## The Bridge Pattern
 
+::: tip
+Most apps should use the [Domphy adapter](./adapter) (`createDomphyTable`) — it packages the wiring below behind a reactive `version`, and the live example above already uses it. Read on to understand what the adapter does under the hood.
+:::
+
 `@domphy/table` is state-driven: every interaction (sort click, filter input, page change) funnels through `onStateChange`. The bridge is one `toState` counter that bumps whenever table state changes — the UI reads it and re-renders from the instance:
 
 ```ts
@@ -82,6 +86,7 @@ Note the import alias: the `table()` patch from `@domphy/ui` is imported as `tab
 
 ## What To Read Next
 
+1. [Domphy Adapter](./adapter) for `createDomphyTable` — the recommended way to consume tables
 1. [Columns & Row Models](./columns) for column defs, `createColumnHelper`, and reading data out of the instance
 2. [Sorting & Filtering](./sorting-filtering) for sort toggling, column filters, and global filtering
 3. [Pagination & Selection](./pagination-selection) for page controls and row selection with checkboxes

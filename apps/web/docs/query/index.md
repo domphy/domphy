@@ -37,6 +37,10 @@ The CDN bundle exposes `Domphy.query` with all exports.
 
 ## The Bridge Pattern
 
+::: tip
+Most apps should use the [Domphy adapter](./adapter) (`createQuery` / `createMutation` / `createInfiniteQuery`) — it packages the pattern below into reactive accessors, and the live example above already uses it. Read on to understand what the adapter does under the hood.
+:::
+
 Domphy has no async primitive by design — async is a state problem, and state lives outside the UI. `@domphy/query` manages the async state; `toState` pushes results into the UI:
 
 ```ts
@@ -74,6 +78,7 @@ const App: DomphyElement<"ul"> = {
 
 ## What To Read Next
 
+1. [Domphy Adapter](./adapter) for `createQuery` / `createMutation` / `createInfiniteQuery` — the recommended way to consume queries
 1. [Queries](./queries) for `QueryObserver`, options, and a reusable `createQuery` helper
 2. [Mutations](./mutations) for writes, callbacks, and optimistic updates
 3. [Caching](./caching) for invalidation, prefetching, and the `staleTime` / `gcTime` model

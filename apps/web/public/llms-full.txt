@@ -1762,6 +1762,147 @@ Use `dataTheme` only when you truly want a different theme, not just a darker or
 
 ## Query docs (`@domphy/query`)
 
+### adapter.md
+
+# Domphy Adapter
+
+The [bridge pattern](./) — `observer.subscribe(...)` pushing into `toState` — works everywhere, but it is the same boilerplate in every component. `@domphy/query/domphy` packages it once: a thin adapter that binds the TanStack observers to Domphy reactivity and hands you reactive accessors.
+
+```bash
+npm install @domphy/query @domphy/core
+```
+
+`@domphy/core` is a **peer dependency** of the adapter — it is the only part of `@domphy/query` that touches Domphy, so the main `@domphy/query` entry stays a dependency-free, byte-identical port. Import the adapter from the `/domphy` subpath:
+
+```ts
+import { createQuery, createInfiniteQuery, createMutation } from "@domphy/query/domphy"
+```
+
+## createQuery
+
+`createQuery(client, options)` constructs a `QueryObserver`, subscribes it, and returns a handle whose accessors are reactive — pass the listener `l` and the element re-renders when that field changes.
+
+```ts
+import { QueryClient } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
+
+const queryClient = new QueryClient()
+queryClient.mount()
+
+const users = createQuery<User[]>(queryClient, {
+    queryKey: ["users"],
+    queryFn: () => fetch("/api/users").then((res) => res.json()),
+})
+
+const App: DomphyElement<"ul"> = {
+    ul: (l) => (users.data(l) ?? []).map((user) => ({
+        li: user.name,
+        _key: user.id,
+    })),
+    hidden: (l) => users.isPending(l),
+}
+```
+
+### Accessors
+
+Every accessor takes an optional listener and returns the live value:
+
+| Accessor | Returns |
+| --- | --- |
+| `data(l)` | `TData \| undefined` |
+| `error(l)` | `TError \| null` |
+| `status(l)` | `"pending" \| "error" \| "success"` |
+| `fetchStatus(l)` | `"fetching" \| "paused" \| "idle"` |
+| `isPending(l)` / `isLoading(l)` | `boolean` |
+| `isFetching(l)` / `isRefetching(l)` | `boolean` |
+| `isSuccess(l)` / `isError(l)` | `boolean` |
+| `isStale(l)` | `boolean` |
+
+Plus the imperative members: `refetch(options?)`, `setOptions(options)`, the raw `observer`, the underlying `state` (a `RecordState`), and `destroy()`.
+
+### Per-field reactivity
+
+Each result field is an independent key in a `RecordState`, and updates are diffed by reference before they notify. A component that reads only `data` does **not** re-render when `isFetching` toggles, and refetching a query that returns the same value re-renders nothing:
+
+```ts
+{ ul: (l) => users.data(l) }              // re-renders only when data changes
+{ span: (l) => users.isFetching(l) ? "↻" : "" } // re-renders only on fetch toggles
+```
+
+### Cleanup
+
+The observer subscribes for the life of the handle. When the owning subtree unmounts, release it from a lifecycle hook:
+
+```ts
+{
+    ul: (l) => (users.data(l) ?? []).map(...),
+    _onRemove: () => users.destroy(),
+}
+```
+
+Top-level queries that live as long as the page need no cleanup.
+
+## createMutation
+
+`createMutation(client, options)` returns a handle with the same reactive accessors plus `mutate` / `mutateAsync`.
+
+```ts
+import { createMutation } from "@domphy/query/domphy"
+
+const save = createMutation<Post, Error, { title: string }>(queryClient, {
+    mutationFn: (input) =>
+        fetch("/api/posts", { method: "POST", body: JSON.stringify(input) }).then((r) => r.json()),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["posts"] }),
+})
+
+const SaveButton: DomphyElement<"button"> = {
+    button: (l) => (save.isPending(l) ? "Saving…" : "Save"),
+    ariaDisabled: (l) => save.isPending(l),
+    onClick: () => save.mutate({ title: "Hello" }),
+}
+```
+
+- `mutate(variables, options?)` is fire-and-forget — rejections are swallowed, read them via `save.error(l)`.
+- `mutateAsync(variables, options?)` returns the promise so you can `await`/`catch`.
+- Accessors: `data`, `error`, `variables`, `status`, `isPending`, `isSuccess`, `isError`, `isIdle`. Plus `reset()` and `destroy()`.
+
+## createInfiniteQuery
+
+`createInfiniteQuery(client, options)` wraps `InfiniteQueryObserver` and adds the page accessors:
+
+```ts
+import { createInfiniteQuery } from "@domphy/query/domphy"
+
+const feed = createInfiniteQuery<Page>(queryClient, {
+    queryKey: ["feed"],
+    queryFn: ({ pageParam }) => fetch(`/api/feed?cursor=${pageParam}`).then((r) => r.json()),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+})
+
+const Feed: DomphyElement<"div"> = {
+    div: [
+        {
+            ul: (l) =>
+                (feed.data(l)?.pages ?? []).flatMap((page) =>
+                    page.items.map((item) => ({ li: item.title, _key: item.id })),
+                ),
+        },
+        {
+            button: "Load more",
+            ariaDisabled: (l) => !feed.hasNextPage(l) || feed.isFetchingNextPage(l),
+            onClick: () => feed.fetchNextPage(),
+        },
+    ],
+}
+```
+
+Adds `hasNextPage(l)`, `hasPreviousPage(l)`, `isFetchingNextPage(l)`, `isFetchingPreviousPage(l)`, `fetchNextPage(options?)`, and `fetchPreviousPage(options?)` on top of the `createQuery` accessors.
+
+## When to use the bridge directly
+
+The adapter covers the common cases. Reach for the raw [bridge pattern](./) when you need full control over which result fields drive which states, or when wiring a query into an existing custom state model. The adapter is built on exactly that bridge — there is no hidden machinery.
+
 ### api.md
 
 # API Reference
@@ -2030,6 +2171,7 @@ const App: DomphyElement<"ul"> = {
 
 ## What To Read Next
 
+1. [Domphy Adapter](./adapter) for `createQuery` / `createMutation` / `createInfiniteQuery` — the recommended way to consume queries
 1. [Queries](./queries) for `QueryObserver`, options, and a reusable `createQuery` helper
 2. [Mutations](./mutations) for writes, callbacks, and optimistic updates
 3. [Caching](./caching) for invalidation, prefetching, and the `staleTime` / `gcTime` model
@@ -3400,6 +3542,101 @@ For SSR pages, `@domphy/router/scroll-restoration-script` exports `getScrollRest
 
 ## Table docs (`@domphy/table`)
 
+### adapter.md
+
+# Domphy Adapter
+
+The [bridge pattern](./) — a `tableVersion` counter bumped from `onStateChange` — is the same wiring in every table. `@domphy/table/domphy` packages it once: `createDomphyTable` owns the controlled-state loop and exposes a reactive `version` you read to re-render.
+
+```bash
+npm install @domphy/table @domphy/core
+```
+
+`@domphy/core` is a **peer dependency** of the adapter, so the main `@domphy/table` entry stays a dependency-free, byte-identical port. Import from the `/domphy` subpath:
+
+```ts
+import { createDomphyTable } from "@domphy/table/domphy"
+```
+
+## createDomphyTable
+
+`createDomphyTable(options)` takes the same options as `createTable`, but fills in `state`, `onStateChange`, and `renderFallbackValue` for you and wires them to Domphy reactivity. It returns the full table instance plus a reactive `version`.
+
+```ts
+import { createColumnHelper, getCoreRowModel, getSortedRowModel, getPaginationRowModel } from "@domphy/table"
+import { createDomphyTable } from "@domphy/table/domphy"
+import { table as tableUI } from "@domphy/ui"
+
+const { table, version } = createDomphyTable<Person>({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageIndex: 0, pageSize: 5 } },
+})
+
+const App: DomphyElement<"table"> = {
+    table: (l) => {
+        version(l) // re-render on any sort / filter / pagination / selection change
+        return [
+            {
+                thead: table.getHeaderGroups().map((group) => ({
+                    tr: group.headers.map((header) => ({
+                        th: String(header.column.columnDef.header),
+                        onClick: header.column.getToggleSortingHandler(),
+                        _key: header.id,
+                    })),
+                    _key: group.id,
+                })),
+            },
+            {
+                tbody: table.getRowModel().rows.map((row) => ({
+                    tr: row.getVisibleCells().map((cell) => ({
+                        td: String(cell.getValue() ?? ""),
+                        _key: cell.id,
+                    })),
+                    _key: row.id,
+                })),
+            },
+        ]
+    },
+    $: [tableUI()],
+}
+```
+
+## Return value
+
+| Member | Description |
+| --- | --- |
+| `table` | The full table-core `Table` instance — every header group, row model, and feature method. |
+| `version(l)` | Reactive change counter. Read it (with the listener) anywhere you render from the instance; it bumps on every state change. |
+| `state(l)` | The current `TableState`, reactive when a listener is passed. |
+| `setState(updater)` | Forwards to `table.setState`. |
+| `destroy()` | Releases the version state's listeners. |
+
+## Why a version counter
+
+A table's rendered output — `getRowModel().rows`, header sort markers, the page indicator — depends on essentially all of the table state. One coarse `version` signal that bumps on any change is the right granularity: read `version(l)` once at the top of the region that renders from the instance, and the whole region reconciles. Domphy patches the DOM in place, so re-deriving rows is cheap and keyed rows keep their nodes.
+
+For controls that depend on a single slice (e.g. a page-size selector), you can read `state(l).pagination` instead to avoid re-rendering on unrelated changes.
+
+## Cleanup
+
+`version` is a Domphy state; release it when the table's subtree unmounts:
+
+```ts
+{
+    table: (l) => { version(l); return [...] },
+    $: [tableUI()],
+    _onRemove: () => destroy(),
+}
+```
+
+## When to use the bridge directly
+
+Use the raw [bridge pattern](./) when you need fully-controlled state living in your own model, or per-slice signals instead of one counter. The adapter is built on that exact pattern.
+
 ### advanced.md
 
 # Advanced Features
@@ -3856,6 +4093,7 @@ Note the import alias: the `table()` patch from `@domphy/ui` is imported as `tab
 
 ## What To Read Next
 
+1. [Domphy Adapter](./adapter) for `createDomphyTable` — the recommended way to consume tables
 1. [Columns & Row Models](./columns) for column defs, `createColumnHelper`, and reading data out of the instance
 2. [Sorting & Filtering](./sorting-filtering) for sort toggling, column filters, and global filtering
 3. [Pagination & Selection](./pagination-selection) for page controls and row selection with checkboxes
@@ -4433,6 +4671,21 @@ A page can also read ancestor data through `context.segmentData`, keyed by segme
 
 `router.refresh()` clears the cache and re-runs everything for the current URL.
 
+### Stale-while-revalidate
+
+When a cached entry ages past its `revalidate` window, the next navigation **serves the stale value immediately** and refetches in the background — the same model as Next.js ISR. There is no loading flash: the page renders instantly with the old data, then re-renders in place once the fresh value lands.
+
+```ts
+{
+  path: "dashboard",
+  loader: fetchStats,
+  revalidate: 30,   // after 30s: show stale, refetch, swap in fresh
+  page: StatsPage,
+}
+```
+
+The background refetch starts after the current render commits, so a stale entry never blocks navigation. If the user has already moved to another route by the time it resolves, the re-render is skipped. A failed background refetch keeps the stale entry and stays silent.
+
 ## Prefetching
 
 `router.prefetch(href)` (and `navLink`'s hover/visible prefetch) runs the target's loaders ahead of navigation. Results stay usable for 30 seconds — the same window as the Next.js client router cache — so the navigation itself renders instantly without re-fetching, even for uncached loaders.
@@ -4905,6 +5158,60 @@ Groups organize the tree — shared layouts, shared middleware — without affec
 }
 ```
 
+## Parallel Routes
+
+A segment can render several independent route trees at once through `slots` — the equivalent of Next.js `@slot` folders. Each slot is matched against the path **below** the segment and rendered independently; the matched elements are passed to the layout's third argument:
+
+```ts
+{
+  path: "dashboard",
+  layout: (children, context, slots) => ({
+    div: [
+      { aside: [slots.nav ?? { span: "" }] },
+      { section: [slots.analytics ?? { span: "" }] },
+      children,
+    ],
+  }),
+  slots: {
+    nav: [
+      { path: "", page: () => ({ nav: "Overview" }) },
+      { path: "team", page: () => ({ nav: "Team nav" }) },
+    ],
+    analytics: [{ path: "", page: () => AnalyticsPanel() }],
+  },
+  children: [
+    { path: "", page: DashboardHome },
+    { path: "team", page: TeamPage },
+  ],
+}
+```
+
+At `/dashboard` the `nav` and `analytics` slots both match their `""` route; at `/dashboard/team` `nav` follows to its `team` route while `analytics` (no match for that sub-path) is simply omitted. Slots may declare their own `layout`, `loading`, `loader`, and even nested `slots` — they go through the same render and `DataCache` as the main tree.
+
+## Intercepting Routes
+
+A slot route marked `intercept: true` matches **only during client-side (soft) navigation** — a hard load or refresh of the same URL renders the real route instead. This is how Next.js intercepting routes (`(.)`, `(..)`, `(...)`) power "modal over the current page" patterns:
+
+```ts
+{
+  path: "feed",
+  layout: (children, _context, slots) => ({
+    div: [children, slots.modal ?? { span: "" }],
+  }),
+  slots: {
+    // soft-nav to /feed/photo/[id] -> renders the modal over the feed
+    modal: [{ path: "photo/[id]", intercept: true, page: PhotoModal }],
+  },
+  children: [
+    { path: "", page: Feed },
+    // hard load of /feed/photo/[id] -> renders the full page
+    { path: "photo/[id]", page: PhotoPage },
+  ],
+}
+```
+
+Style the intercepting slot as an overlay (a `dialog`, a portalled panel) and it appears above the previous content on in-app navigation, while a shared link to the same URL opens the standalone page.
+
 ## Redirect Routes
 
 The equivalent of `redirects` in `next.config.js`:
@@ -5007,6 +5314,38 @@ await app.hydrate(mountTarget, style)
 ```
 
 After hydration the router takes over: clicks on `navLink` anchors navigate client-side, loaders run on demand, metadata updates `document.head`.
+
+## Streaming
+
+`renderToStream` trades the single `renderToString` string for a web `ReadableStream` that flushes in two phases: the **shell** (layouts wrapping each segment's `loading` fallback) goes out immediately for a fast first byte, then the resolved **content**, head and hydration data stream in once the loaders settle.
+
+```ts
+const { stream, status, redirect } = await app.renderToStream(request.url, {
+  head: `<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">`,
+  bootstrap: `<script type="module" src="/client.js"></script>`,
+  headers: request.headers,
+})
+
+response.writeHead(status, { "content-type": "text/html" })
+// Pipe the web stream to the Node response (or return it directly on edge runtimes).
+for await (const chunk of stream as unknown as AsyncIterable<Uint8Array>) {
+  response.write(chunk)
+}
+response.end()
+```
+
+`renderToStream` emits a full HTML document:
+
+- **First flush** — `<!DOCTYPE html>` + `<head>` (your `head` option + shell CSS) + `<body><div id="domphy-app">` wrapping the shell. The browser paints the loading UI right away.
+- **Second flush** — the content and head arrive as `<template>` elements followed by an inline script that swaps them into place, then the hydration data and your `bootstrap` markup.
+
+`RenderToStreamOptions` adds `head` (markup for `<head>`, sent first) and `bootstrap` (markup before `</body>`, usually the client bundle `<script>`) to the `headers` option. Because the shell is committed before loaders run, `status` is `200` for any matched route; loader-level `notFound()`/`error` render their boundaries inline.
+
+On the client, hydrate the swapped root exactly as with `renderToString`:
+
+```ts
+await app.hydrate(document.getElementById("domphy-app")!.firstElementChild as HTMLElement)
+```
 
 ## Static Generation
 

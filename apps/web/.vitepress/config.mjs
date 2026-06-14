@@ -259,6 +259,7 @@ gtag('config', 'G-NKPX3DHXWE');`,
       ],
       "/docs/query/": [
         { text: "Overview", link: "/docs/query/" },
+        { text: "Domphy Adapter", link: "/docs/query/adapter" },
         { text: "Queries", link: "/docs/query/queries" },
         { text: "Mutations", link: "/docs/query/mutations" },
         { text: "Caching", link: "/docs/query/caching" },
@@ -277,6 +278,7 @@ gtag('config', 'G-NKPX3DHXWE');`,
       ],
       "/docs/table/": [
         { text: "Overview", link: "/docs/table/" },
+        { text: "Domphy Adapter", link: "/docs/table/adapter" },
         { text: "Columns & Row Models", link: "/docs/table/columns" },
         { text: "Sorting & Filtering", link: "/docs/table/sorting-filtering" },
         {
