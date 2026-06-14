@@ -3,25 +3,25 @@ layout: home
 
 hero:
   name: Domphy
-  text: Patch-based UI for native elements
-  tagline: Native elements, no components. DOM rendering, SSR, and CSS-in-JS in one model.
+  text: The AI-friendly UI framework
+  tagline: Learnable by AI from one spec, self-correcting via @domphy/doctor. Patch-based, framework-agnostic — no JSX, no virtual DOM, no build step.
   actions:
     - theme: brand
+      text: Building with AI
+      link: /docs/ai
+    - theme: alt
       text: Read the Docs
       link: /docs/
-    - theme: alt
-      text: Open Playground
-      link: /docs/playground
 
 features:
+  - title: AI-friendly
+    details: One spec file (llms.txt / AGENTS.md), a deterministic manifest, an MCP server, and @domphy/doctor that lets agents self-correct — designed to be written by AI, not just by hand.
   - title: No components
-    details: Patches augment native elements without wrappers, ownership, or extra lifecycle layers.
+    details: Patches augment native elements without wrappers, ownership, or extra lifecycle layers — plain objects, no JSX, no virtual DOM.
   - title: One model
     details: DOM rendering, SSR, and CSS-in-JS share the same primitives and composition rules.
-  - title: Five core functions
-    details: toState, merge, themeColor, themeSize, and themeSpacing cover most of the system.
-  - title: Works with libraries
-    details: Integrate with i18next, TanStack Query, SortableJS, Zod, and page.js without adapters.
+  - title: Full stack, zero React
+    details: query, table, router, virtual, form (TanStack cores), dnd, app (SSR/streaming) — the data layer many teams rely on, framework-agnostic.
 ---
 
 ## Installation

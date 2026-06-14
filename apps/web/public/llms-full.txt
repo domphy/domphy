@@ -24,7 +24,7 @@
 
 # Domphy
 
-**A Patch-based UI. Native elements, no components.**
+**The AI-friendly UI framework. Patch-based, native elements, no components.**
 
 Framework-agnostic, no JSX, no virtual DOM, no build step required — and the most **AI-friendly** UI framework (learnable from one spec file, self-correcting via [`@domphy/doctor`](/docs/doctor/)).
 
@@ -6194,7 +6194,7 @@ export { code };
 ```ts
 import { type PartialElement, type DomphyElement, type StyleObject, type ValueOrState, toState, merge } from "@domphy/core";
 import { themeSpacing, themeColor, themeDensity, themeSize, type ThemeColor, } from "@domphy/theme";
-import { type Placement } from "@floating-ui/dom";
+import { type Placement } from "@domphy/floating";
 import { tag } from "./tag.js"
 import { creatFloating } from "../utils/floating.js"
 
@@ -8338,7 +8338,7 @@ export { paragraph };
 
 ```ts
 import { PartialElement, State, DomphyElement, toState, ValueOrState, merge } from "@domphy/core";
-import { type Placement } from "@floating-ui/dom";
+import { type Placement } from "@domphy/floating";
 import { creatFloating } from "../utils/floating.js";
 
 function popover(props: {
@@ -8408,7 +8408,7 @@ export { popover };
 ```ts
 import { toState, ValueOrState, PartialElement } from "@domphy/core";
 import { themeSpacing, themeColor, themeSize, type ThemeColor } from "@domphy/theme";
-import { type Placement } from "@floating-ui/dom";
+import { type Placement } from "@domphy/floating";
 
 function popoverArrow(props: {
     placement?: ValueOrState<Placement>;
@@ -8650,7 +8650,7 @@ export { select };
 ```ts
 import { type PartialElement, type DomphyElement, type StyleObject, type ValueOrState, toState, merge } from "@domphy/core";
 import { themeSpacing, themeColor, themeDensity, themeSize, type ThemeColor } from "@domphy/theme";
-import { type Placement } from "@floating-ui/dom";
+import { type Placement } from "@domphy/floating";
 import { tag } from "./tag.js"
 import { creatFloating } from "../utils/floating.js"
 
@@ -9713,7 +9713,7 @@ export { toggleGroup };
 ```ts
 import { PartialElement, type DomphyElement, ValueOrState, merge, toState } from "@domphy/core";
 import { themeSpacing, themeColor, themeDensity, themeSize } from "@domphy/theme";
-import { type Placement } from "@floating-ui/dom";
+import { type Placement } from "@domphy/floating";
 import { creatFloating } from "../utils/floating.js";
 import { popoverArrow } from "./popoverArrow.js";
 

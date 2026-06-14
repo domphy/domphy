@@ -1,6 +1,6 @@
 # Domphy
 
-Domphy is a patch-based, **framework-agnostic** UI system for the web — plain objects, no JSX, no virtual DOM, no build step required. It is also designed to be the **most AI-friendly** UI framework: the whole API is learnable from one spec file and self-correcting via a built-in validator (see [Building with AI](#building-with-ai)).
+Domphy is **the AI-friendly UI framework** — the whole API is learnable from one spec file (`llms.txt` / `AGENTS.md`) and self-correcting via a built-in validator (`@domphy/doctor`), so AI agents write correct Domphy despite little training data (see [Building with AI](#building-with-ai)). Under the hood it's patch-based and **framework-agnostic**: plain objects, no JSX, no virtual DOM, no build step required.
 
 ## Packages
 
@@ -23,6 +23,8 @@ App layer & tools:
 - `@domphy/dnd` — drag & drop / sortable lists (`dragDrop`, wraps `@formkit/drag-and-drop`)
 - `@domphy/app` — Next.js App Router-style framework: nested routes/layouts, loaders with stale-while-revalidate, metadata, middleware, parallel + intercepting routes, SSR + streaming, API routes
 - `@domphy/doctor` — static analyzer that flags non-idiomatic element trees (powers AI self-correction)
+- `@domphy/mcp` — MCP server exposing patches/packages/rules + the doctor to AI agents
+- `@domphy/floating` — anchor positioning (vendored [floating-ui](https://github.com/floating-ui/floating-ui), zero-dependency); powers the `@domphy/ui` overlays so it has no third-party runtime dependency
 
 `@domphy/core` is a peer dependency of the data/logic packages, so a consumer installs **one** copy.
 

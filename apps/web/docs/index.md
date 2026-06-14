@@ -5,7 +5,7 @@ import Counting from "./demos/core/counting.js"
 
 # Domphy
 
-**A Patch-based UI. Native elements, no components.**
+**The AI-friendly UI framework. Patch-based, native elements, no components.**
 
 Framework-agnostic, no JSX, no virtual DOM, no build step required — and the most **AI-friendly** UI framework (learnable from one spec file, self-correcting via [`@domphy/doctor`](/docs/doctor/)).
 

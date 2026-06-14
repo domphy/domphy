@@ -91,7 +91,7 @@ export default defineConfig({
     },
   },
   title: "Domphy",
-  description: "Patch-based UI for native elements.",
+  description: "The AI-friendly UI framework — patch-based, framework-agnostic, no virtual DOM.",
   head: [
     ["link", { rel: "icon", href: "/favicon.svg" }],
     [
