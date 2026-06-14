@@ -18,6 +18,7 @@ import {
 import {
   applyHeadTags,
   metadataToHeadTags,
+  renderHeadTags,
   type ResolvedMetadata,
   resolveMetadata,
 } from "./metadata.js";
@@ -350,6 +351,116 @@ export class AppRouter {
   /** The match rendered by the latest completed transition, null when no route matched. */
   getMatch(): RouteMatch | null {
     return this.currentMatch;
+  }
+
+  /**
+   * Two-phase server render for streaming SSR: returns the shell (layouts +
+   * loading fallbacks) synchronously, plus a promise for the resolved content,
+   * head and loader data once the loaders settle. The caller streams the shell
+   * first for a fast TTFB, then the content chunk when `rest` resolves.
+   */
+  async renderStream(url: URL): Promise<{
+    shell: DomphyElement;
+    status: number;
+    redirect: string | null;
+    rest: Promise<{
+      content: DomphyElement;
+      data: Record<string, unknown>;
+      head: string;
+    }>;
+  }> {
+    let renderPathname = url.pathname;
+    const middlewareContext = {
+      url,
+      pathname: url.pathname,
+      searchParams: url.searchParams,
+      headers: this.headers,
+    };
+    for (const middleware of this.middleware) {
+      const result = await middleware(middlewareContext);
+      if (isRewrite(result)) renderPathname = result.__domphyRewrite;
+    }
+
+    const match = matchRoute(this.routes, renderPathname);
+    if (!match) {
+      const built = buildNotFoundTree(this.notFoundBlock);
+      return {
+        shell: built.element,
+        status: 404,
+        redirect: null,
+        rest: Promise.resolve({ content: built.element, data: {}, head: "" }),
+      };
+    }
+
+    const leaf = match.route.chain[match.route.chain.length - 1];
+    if (leaf.redirect) {
+      return {
+        shell: { div: "" },
+        status: leaf.permanent ? 308 : 307,
+        redirect: leaf.redirect,
+        rest: Promise.resolve({ content: { div: "" }, data: {}, head: "" }),
+      };
+    }
+
+    const baseContext = this.baseContext(url, match);
+    // Only loader-bearing segments are pending in the shell; the rest render now.
+    const pending = match.route.chain.map((route) =>
+      route.loader
+        ? ({ status: "pending" } as SegmentResult)
+        : ({ status: "success", data: undefined } as SegmentResult),
+    );
+    const shell = buildTree({
+      match,
+      baseContext,
+      results: pending,
+      retry: () => {},
+      defaultError: this.errorBlock,
+      defaultNotFound: this.notFoundBlock,
+    }).element;
+
+    const rest = (async () => {
+      const results = await this.loadMatch(match, url);
+      const slots: Record<number, Record<string, DomphyElement>> = {};
+      await Promise.all(
+        match.route.chain.map(async (route, index) => {
+          if (this.slotCompiled.has(route)) {
+            slots[index] = await this.renderSlots(index, match, url, false);
+          }
+        }),
+      );
+      const content = buildTree({
+        match,
+        baseContext,
+        results,
+        retry: () => {},
+        defaultError: this.errorBlock,
+        defaultNotFound: this.notFoundBlock,
+        slots,
+      }).element;
+
+      const data: Record<string, unknown> = {};
+      match.route.chain.forEach((route, index) => {
+        if (route.loader && results[index].status === "success") {
+          data[this.cacheKey(match.route.chainIds[index], url)] =
+            results[index].data;
+        }
+      });
+
+      let head = "";
+      try {
+        const metadata = await resolveMetadata(
+          match.route.chain.map((route) => route.metadata),
+          this.loaderContext(url, match),
+        );
+        head = renderHeadTags(metadataToHeadTags(metadata));
+      } catch {
+        head = "";
+      }
+
+      return { content, data, head };
+    })();
+
+    return { shell, status: 200, redirect: null, rest };
   }
 
   private cacheKey(segmentId: string, url: URL): string {

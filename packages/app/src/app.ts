@@ -12,6 +12,27 @@ export interface RenderToStringOptions {
   headers?: Headers;
 }
 
+export interface RenderToStreamOptions extends RenderToStringOptions {
+  /** Extra HTML for `<head>` (charset, viewport, fonts, a CSS link…), sent in the first flush. */
+  head?: string;
+  /** Markup appended before `</body>`, typically the client bundle `<script>` that calls `hydrate()`. */
+  bootstrap?: string;
+}
+
+export interface StreamResult {
+  /** A web `ReadableStream` of UTF-8 bytes: the shell flushes first, content follows. */
+  stream: ReadableStream<Uint8Array>;
+  status: number;
+  redirect?: string;
+}
+
+/** Swaps the streamed content/head templates into place as soon as they arrive. */
+const STREAM_SWAP_SCRIPT =
+  "(function(){var h=document.getElementById('domphy-head');" +
+  "if(h){document.head.appendChild(h.content.cloneNode(true));h.remove();}" +
+  "var c=document.getElementById('domphy-content'),a=document.getElementById('domphy-app');" +
+  "if(c&&a){a.replaceChildren(c.content.cloneNode(true));c.remove();}})();";
+
 export interface SSRResult {
   /** Body markup of the app root, ready to place inside the mount element. */
   html: string;
@@ -129,6 +150,62 @@ export class DomphyApp {
     };
     serverRouter.destroy();
     return result;
+  }
+
+  /**
+   * Streaming server render. Flushes the shell (layouts + loading fallbacks)
+   * immediately for a fast TTFB, then streams the resolved content, head and
+   * hydration data once loaders settle. The content arrives in `<template>`s
+   * that an inline script swaps into place; the client then calls `hydrate`.
+   */
+  async renderToStream(
+    url: string | URL,
+    options: RenderToStreamOptions = {},
+  ): Promise<StreamResult> {
+    const requestUrl =
+      typeof url === "string" ? new URL(url, "http://localhost") : url;
+    const serverRouter = new AppRouter(this.routes, {
+      ...this.options,
+      history: null,
+      headers: options.headers,
+    });
+
+    const { shell, status, redirect, rest } =
+      await serverRouter.renderStream(requestUrl);
+
+    const encoder = new TextEncoder();
+    const shellNode = new ElementNode({
+      div: [shell],
+      style: { display: "contents" },
+    });
+    const open =
+      `<!DOCTYPE html><html><head>${options.head ?? ""}` +
+      `<style id="domphy-style">${shellNode.generateCSS()}</style>` +
+      `</head><body><div id="domphy-app">${shellNode.generateHTML()}</div>`;
+    const bootstrap = options.bootstrap ?? "";
+
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        controller.enqueue(encoder.encode(open));
+        const { content, data, head } = await rest;
+        const contentNode = new ElementNode({
+          div: [content],
+          style: { display: "contents" },
+        });
+        const chunk =
+          `<style>${contentNode.generateCSS()}</style>` +
+          `<template id="domphy-head">${head}</template>` +
+          `<template id="domphy-content">${contentNode.generateHTML()}</template>` +
+          `<script>${STREAM_SWAP_SCRIPT}</script>` +
+          `<script>window.${HYDRATION_GLOBAL} = ${serializeData(data)};</script>` +
+          `${bootstrap}</body></html>`;
+        controller.enqueue(encoder.encode(chunk));
+        controller.close();
+        serverRouter.destroy();
+      },
+    });
+
+    return { stream, status, redirect: redirect ?? undefined };
   }
 }
 
