@@ -18,6 +18,7 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import * as esbuild from "esbuild";
 import type { DomphyElement } from "@domphy/core";
 import { createApp, defineRoutes } from "@domphy/app";
 import { renderMermaidInTree } from "@domphy/mermaid";
@@ -110,6 +111,76 @@ interface BuiltPage {
   islands: IslandRef[];
 }
 
+/** Per-page island specs embedded into the page for the client runtime. */
+interface PageIslandSpec {
+  kind: "search" | "preview" | "editor";
+  id: string;
+  source?: string;
+  code?: string;
+}
+
+/** Builds the specs for one page: the header search box plus its content islands. */
+function pageIslandSpecs(page: BuiltPage): PageIslandSpec[] {
+  const specs: PageIslandSpec[] = [{ kind: "search", id: "search" }];
+  for (const island of page.islands) {
+    if (island.kind === "editor") {
+      // The editor takes the demo's raw source text (it transforms it itself).
+      const code = existsSync(island.source)
+        ? readFileSync(island.source, "utf8")
+        : "// demo source not found";
+      specs.push({ kind: "editor", id: island.id, code });
+    } else {
+      specs.push({ kind: "preview", id: island.id, source: island.source });
+    }
+  }
+  return specs;
+}
+
+/**
+ * Bundles the client island runtime with esbuild. Generates an entry that maps
+ * every preview demo path to a dynamic import (so esbuild code-splits each demo)
+ * and calls `bootstrap`. Outputs `assets/islands-entry.js` plus on-demand chunks.
+ */
+async function buildIslands(built: BuiltPage[], cacheDir: string): Promise<void> {
+  const previewSources = new Set<string>();
+  for (const page of built) {
+    for (const island of page.islands) {
+      if (island.kind === "preview") previewSources.add(island.source);
+    }
+  }
+
+  const runtimePath = join(here, "islands-runtime.ts");
+  const registryEntries = [...previewSources]
+    .map((source) => `  ${JSON.stringify(source)}: () => import(${JSON.stringify(source)}),`)
+    .join("\n");
+  const entrySource = `import { bootstrap } from ${JSON.stringify(runtimePath)};
+const previewRegistry = {
+${registryEntries}
+};
+bootstrap(previewRegistry);
+`;
+  mkdirSync(cacheDir, { recursive: true });
+  const entryFile = join(cacheDir, "islands-entry.ts");
+  writeFileSync(entryFile, entrySource, "utf8");
+
+  await esbuild.build({
+    entryPoints: { "islands-entry": entryFile },
+    bundle: true,
+    splitting: true,
+    format: "esm",
+    outdir: join(outDir, "assets"),
+    entryNames: "[name]",
+    chunkNames: "chunks/[name]-[hash]",
+    assetNames: "media/[name]-[hash]",
+    minify: true,
+    sourcemap: false,
+    target: "es2020",
+    define: { "process.env.NODE_ENV": '"production"' },
+    logLevel: "error",
+    loader: { ".ttf": "file", ".woff": "file", ".woff2": "file" },
+  });
+}
+
 async function run(): Promise<void> {
   const startedPages = discoverPages(appRoot);
   console.log(`Discovered ${startedPages.length} pages.`);
@@ -173,12 +244,15 @@ async function run(): Promise<void> {
   mkdirSync(outDir, { recursive: true });
   const themeCss = readFileSync(join(here, "theme.css"), "utf8");
 
+  // Bundle the client island runtime (editors, previews, search) with esbuild.
+  await buildIslands(built, join(appRoot, ".dp-cache"));
+
   let totalBytes = 0;
   const failures: { route: string; error: string }[] = [];
   for (const page of built) {
     try {
       const result = await app.renderToString(page.route);
-      const doc = htmlDocument(result, themeCss, page.islands);
+      const doc = htmlDocument(result, themeCss, pageIslandSpecs(page));
       const outPath = join(outDir, page.outFile);
       mkdirSync(dirname(outPath), { recursive: true });
       writeFileSync(outPath, doc, "utf8");
@@ -224,8 +298,10 @@ const RUNTIME_SCRIPT = `
 function htmlDocument(
   result: { html: string; css: string; head: string; status: number },
   themeCss: string,
-  _islands: IslandRef[],
+  islandSpecs: PageIslandSpec[],
 ): string {
+  // Embed the page island specs; escape `<` so editor source can't break out.
+  const specsJson = JSON.stringify(islandSpecs).replace(/</g, "\\u003c");
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -239,6 +315,8 @@ ${config.head.join("\n")}
 </head>
 <body>
 <div id="domphy-app">${result.html}</div>
+<script>window.__DP_PAGE_ISLANDS__=${specsJson};</script>
+<script type="module" src="/assets/islands-entry.js"></script>
 </body>
 </html>`;
 }

@@ -26,12 +26,27 @@ importers:
       '@domphy/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@domphy/dnd':
+        specifier: workspace:*
+        version: link:../../packages/dnd
+      '@domphy/doctor':
+        specifier: workspace:*
+        version: link:../../packages/doctor
+      '@domphy/floating':
+        specifier: workspace:*
+        version: link:../../packages/floating
+      '@domphy/form':
+        specifier: workspace:*
+        version: link:../../packages/form
       '@domphy/markdown':
         specifier: workspace:*
         version: link:../../packages/markdown
       '@domphy/mermaid':
         specifier: workspace:*
         version: link:../../packages/mermaid
+      '@domphy/palette':
+        specifier: workspace:*
+        version: link:../../packages/palette
       '@domphy/query':
         specifier: workspace:*
         version: link:../../packages/query
@@ -47,6 +62,9 @@ importers:
       '@domphy/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@domphy/virtual':
+        specifier: workspace:*
+        version: link:../../packages/virtual
       '@mermaid-js/mermaid-cli':
         specifier: ^11.12.0
         version: 11.12.0(puppeteer@24.37.5(typescript@5.9.3))(tsx@4.21.0)(yaml@2.8.2)

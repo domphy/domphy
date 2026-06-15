@@ -151,12 +151,56 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
   };
 }
 
-/** Full page element for the home route (hero handled by the page body itself). */
+interface HeroAction { theme?: string; text: string; link: string }
+interface HeroConfig { name?: string; text?: string; tagline?: string; actions?: HeroAction[] }
+interface FeatureConfig { title: string; details: string }
+
+/** Renders the VitePress-style `hero` frontmatter block. */
+function heroSection(hero: HeroConfig): DomphyElement {
+  const children: DomphyElement[] = [];
+  if (hero.name) children.push({ div: hero.name, class: "dp-hero-name" });
+  if (hero.text) children.push({ h1: hero.text, class: "dp-hero-text" });
+  if (hero.tagline) children.push({ p: hero.tagline, class: "dp-hero-tagline" });
+  if (hero.actions && hero.actions.length > 0) {
+    children.push({
+      div: hero.actions.map((action) => ({
+        a: action.text,
+        href: action.link,
+        class: `dp-hero-action ${action.theme ?? "brand"}`,
+      })),
+      class: "dp-hero-actions",
+    });
+  }
+  return { section: children, class: "dp-hero" };
+}
+
+/** Renders the VitePress-style `features` frontmatter grid. */
+function featuresSection(features: FeatureConfig[]): DomphyElement {
+  return {
+    div: features.map((feature) => ({
+      div: [
+        { div: feature.title, class: "dp-feature-title" },
+        { p: feature.details, class: "dp-feature-details" },
+      ],
+      class: "dp-feature",
+    })),
+    class: "dp-features",
+  };
+}
+
+/** Full page element for the home route: hero + features (frontmatter) + body. */
 export function homeShell(ctx: LayoutContext): DomphyElement {
+  const main: DomphyElement[] = [];
+  const hero = ctx.frontmatter.hero as HeroConfig | undefined;
+  const features = ctx.frontmatter.features as FeatureConfig[] | undefined;
+  if (hero) main.push(heroSection(hero));
+  if (features && features.length > 0) main.push(featuresSection(features));
+  main.push({ div: ctx.body, class: "dp-content dp-home" });
+
   return {
     div: [
       header(ctx.config),
-      { main: [{ div: ctx.body, class: "dp-content dp-home" }], class: "dp-main dp-main-home" },
+      { main, class: "dp-main dp-main-home" },
       { footer: ctx.config.footerMessage, class: "dp-footer" },
     ],
   };

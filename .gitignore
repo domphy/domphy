@@ -34,6 +34,7 @@ packages/*/dist/
 
 # DomphyPress build output + caches
 apps/web/.dp-dist/
+apps/web/.dp-cache/
 apps/web/.vitepress/dist/
 apps/web/.vitepress/cache/
 node_modules/.cache/domphy-mermaid/

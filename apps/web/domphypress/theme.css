@@ -213,6 +213,25 @@ details.custom-block summary { cursor: pointer; font-weight: 600; }
 .dp-prevnext small { display: block; color: var(--dp-text-soft); font-weight: 400; font-size: 12px; }
 .dp-footer { padding: 24px 48px; border-top: 1px solid var(--dp-border); color: var(--dp-text-soft); font-size: 13px; }
 
+/* --- Home: hero + features --------------------------------------------- */
+.dp-main-home { max-width: 1100px; margin: 0 auto; padding: 48px 24px 80px; }
+.dp-hero { text-align: center; padding: 40px 0 24px; }
+.dp-hero-name { font-size: 56px; font-weight: 800; line-height: 1.1; letter-spacing: -0.03em;
+  background: linear-gradient(120deg, var(--dp-brand), #9499ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.dp-hero-text { font-size: 30px; font-weight: 700; margin: 12px 0 0; border: none; padding: 0; }
+.dp-hero-tagline { font-size: 18px; color: var(--dp-text-soft); max-width: 640px; margin: 20px auto 0; }
+.dp-hero-actions { display: flex; gap: 12px; justify-content: center; margin-top: 28px; flex-wrap: wrap; }
+.dp-hero-action { padding: 10px 22px; border-radius: 22px; font-weight: 600; font-size: 15px; }
+.dp-hero-action.brand { background: var(--dp-brand); color: #fff; }
+.dp-hero-action.brand:hover { background: var(--dp-brand-soft); text-decoration: none; }
+.dp-hero-action.alt { background: var(--dp-bg-soft); color: var(--dp-text); border: 1px solid var(--dp-border); }
+.dp-hero-action.alt:hover { border-color: var(--dp-brand); text-decoration: none; }
+.dp-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 40px 0; }
+.dp-feature { padding: 20px; background: var(--dp-bg-soft); border: 1px solid var(--dp-border); border-radius: 12px; }
+.dp-feature-title { font-weight: 700; font-size: 17px; margin-bottom: 8px; }
+.dp-feature-details { font-size: 14px; color: var(--dp-text-soft); margin: 0; line-height: 1.5; }
+.dp-home { max-width: var(--dp-content-max); margin: 0 auto; }
+
 /* --- Responsive --------------------------------------------------------- */
 @media (max-width: 1200px) { .dp-shell { grid-template-columns: var(--dp-sidebar-w) minmax(0, 1fr); } .dp-aside { display: none; } }
 @media (max-width: 860px) {
