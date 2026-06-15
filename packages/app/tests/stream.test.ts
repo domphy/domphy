@@ -78,6 +78,7 @@ describe("renderToStream", () => {
     );
     expect(swap).toBeTruthy();
     // biome-ignore lint/security/noGlobalEval: executing the framework's own emitted swap script under test
+    // biome-ignore lint/complexity/noCommaOperator: the (0, eval) comma idiom forces indirect (global-scope) eval
     (0, eval)(swap!.textContent ?? "");
 
     const root = document.getElementById("domphy-app");
