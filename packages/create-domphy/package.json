@@ -1,0 +1,37 @@
+{
+  "name": "create-domphy",
+  "version": "0.14.0",
+  "description": "Scaffold a runnable Domphy starter project (npm create domphy@latest)",
+  "type": "module",
+  "bin": {
+    "create-domphy": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "domphy",
+    "create",
+    "scaffold",
+    "starter",
+    "cli"
+  ],
+  "author": "Huu Khanh Nguyen",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/domphy/domphy.git",
+    "directory": "packages/create-domphy"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}
