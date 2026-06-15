@@ -206,6 +206,37 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.9.2)(jiti@1.21.7)(jsdom@29.1.1)(lightningcss@1.32.0)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
 
+  packages/markdown:
+    dependencies:
+      markdown-it:
+        specifier: ^14.1.0
+        version: 14.1.1
+      markdown-it-anchor:
+        specifier: ^9.2.0
+        version: 9.2.0(@types/markdown-it@14.1.2)(markdown-it@14.1.1)
+      yaml:
+        specifier: ^2.8.1
+        version: 2.8.2
+    devDependencies:
+      '@domphy/core':
+        specifier: workspace:*
+        version: link:../core
+      '@types/markdown-it':
+        specifier: ^14.1.2
+        version: 14.1.2
+      '@types/node':
+        specifier: ^25.9.2
+        version: 25.9.2
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(@microsoft/api-extractor@7.47.7(@types/node@25.9.2))(@swc/core@1.15.3(@swc/helpers@0.5.19))(jiti@1.21.7)(postcss@8.5.15)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@25.9.2)(jiti@1.21.7)(jsdom@29.1.1)(lightningcss@1.32.0)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+
   packages/mcp:
     dependencies:
       '@domphy/doctor':
@@ -3289,6 +3320,12 @@ packages:
 
   mark.js@8.11.1:
     resolution: {integrity: sha512-1I+1qpDt4idfgLQG+BNWmrqku+7/2bi5nLf4YwF8y8zXvmfiTBY3PV3ZibfrjBueCByROpuBjLLFCajqkgYoLQ==}
+
+  markdown-it-anchor@9.2.0:
+    resolution: {integrity: sha512-sa2ErMQ6kKOA4l31gLGYliFQrMKkqSO0ZJgGhDHKijPf0pNFM9vghjAh3gn26pS4JDRs7Iwa9S36gxm3vgZTzg==}
+    peerDependencies:
+      '@types/markdown-it': '*'
+      markdown-it: '*'
 
   markdown-it-include@2.0.0:
     resolution: {integrity: sha512-wfgIX92ZEYahYWiCk6Jx36XmHvAimeHN420csOWgfyZjpf171Y0xREqZWcm/Rwjzyd0RLYryY+cbNmrkYW2MDw==}
@@ -7358,6 +7395,11 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.5
 
   mark.js@8.11.1: {}
+
+  markdown-it-anchor@9.2.0(@types/markdown-it@14.1.2)(markdown-it@14.1.1):
+    dependencies:
+      '@types/markdown-it': 14.1.2
+      markdown-it: 14.1.1
 
   markdown-it-include@2.0.0(markdown-it@14.1.1):
     dependencies:
