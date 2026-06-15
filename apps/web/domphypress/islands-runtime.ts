@@ -65,9 +65,42 @@ export type PreviewRegistry = Record<
   () => Promise<{ default: DomphyElement }>
 >;
 
+/**
+ * Renders any ```mermaid fenced code blocks on the page client-side. Done in the
+ * browser (not at build time) so it works on any host without a headless browser
+ * and renders identically in dev and production. The `mermaid` library is
+ * dynamically imported only when a diagram is actually present on the page.
+ */
+async function renderMermaidBlocks(): Promise<void> {
+  const blocks = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      'pre > code.language-mermaid, code[data-language="mermaid"]',
+    ),
+  );
+  if (blocks.length === 0) return;
+  const mermaid = (await import("mermaid")).default;
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "default" });
+  let index = 0;
+  for (const code of blocks) {
+    const source = code.textContent ?? "";
+    const target = code.closest("pre") ?? code;
+    try {
+      const { svg } = await mermaid.render(`dp-mermaid-${index++}`, source);
+      const wrapper = document.createElement("div");
+      wrapper.className = "mermaid";
+      wrapper.innerHTML = svg;
+      target.replaceWith(wrapper);
+    } catch (error) {
+      console.error("mermaid render failed", error);
+    }
+  }
+}
+
 /** Reads the page's island specs and hydrates each placeholder. */
 export function bootstrap(previewRegistry: PreviewRegistry): void {
   const run = () => {
+    void renderMermaidBlocks();
     const specs: IslandSpec[] =
       (window as unknown as { __DP_PAGE_ISLANDS__?: IslandSpec[] })
         .__DP_PAGE_ISLANDS__ ?? [];
