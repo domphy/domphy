@@ -53,6 +53,9 @@ importers:
       '@tanstack/query-core':
         specifier: ^5.90.20
         version: 5.90.20
+      '@types/markdown-it':
+        specifier: ^14.1.2
+        version: 14.1.2
       '@types/markdown-it-container':
         specifier: ^2.0.10
         version: 2.0.11
@@ -68,6 +71,9 @@ importers:
       i18next:
         specifier: ^25.8.13
         version: 25.8.13(typescript@5.9.3)
+      markdown-it:
+        specifier: ^14.1.0
+        version: 14.1.1
       markdown-it-container:
         specifier: ^4.0.0
         version: 4.0.0
