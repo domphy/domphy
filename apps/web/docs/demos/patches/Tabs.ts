@@ -8,7 +8,7 @@ const App: DomphyElement<"div"> = {
     {
       div: numbers.map((n) => {
         return {
-          button: "Tab " + n,
+          button: `Tab ${n}`,
           $: [tab()],
         };
       }),
@@ -19,7 +19,7 @@ const App: DomphyElement<"div"> = {
     {
       div: numbers.map((n) => {
         return {
-          div: "Panel " + n,
+          div: `Panel ${n}`,
           $: [tabPanel()],
         };
       }),

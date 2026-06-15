@@ -1,5 +1,4 @@
 import { type DomphyElement, toState } from "@domphy/core";
-import { themeSpacing } from "@domphy/theme";
 import { button, dialog } from "@domphy/ui";
 
 const open = toState(false);

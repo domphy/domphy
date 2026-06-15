@@ -1,4 +1,4 @@
-import { type DomphyElement, toMount } from "@domphy/core";
+import type { DomphyElement } from "@domphy/core";
 import { themeApply } from "@domphy/theme";
 
 themeApply();

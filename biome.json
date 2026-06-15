@@ -45,5 +45,22 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "apps/web/docs/demos/**",
+        "apps/web/docs/editor/**",
+        "apps/web/docs/preview/**",
+        "**/*.test.ts",
+        "packages/ui/src/utils/floating.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": { "noExplicitAny": "off" },
+          "style": { "noNonNullAssertion": "off" }
+        }
+      }
+    }
+  ]
 }

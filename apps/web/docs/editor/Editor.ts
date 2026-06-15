@@ -1,7 +1,6 @@
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 import type { DomphyElement, State } from "@domphy/core";
-import { themeSize } from "@domphy/theme";
 import { basicSetup, EditorView } from "codemirror";
 
 export function Editor(code: State<string>): DomphyElement<"div"> {

@@ -12,7 +12,7 @@ const App: DomphyElement<"div"> = {
     {
       ul: (listener) =>
         list.get(listener).map((id) => ({
-          li: "Item " + id,
+          li: `Item ${id}`,
           _key: id,
         })),
       $: [transitionGroup()],

@@ -14,7 +14,7 @@ async function fetchUsers() {
     const res = await fetch("https://jsonplaceholder.typicode.com/users");
     const json = await res.json();
     data.set(json.slice(0, 5));
-  } catch (e) {
+  } catch (_e) {
     error.set("Failed to fetch users.");
   } finally {
     loading.set(false);

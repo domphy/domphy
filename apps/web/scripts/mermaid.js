@@ -1,6 +1,6 @@
-import { execSync } from "child_process";
-import { existsSync, mkdirSync, readdirSync } from "fs";
-import { basename, extname, join } from "path";
+import { execSync } from "node:child_process";
+import { existsSync, mkdirSync, readdirSync } from "node:fs";
+import { basename, extname, join } from "node:path";
 
 const inputDir = "./diagrams";
 const outputDir = "./public/figures";

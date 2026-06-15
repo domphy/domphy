@@ -1,13 +1,7 @@
 import { type DomphyElement, type State, toState } from "@domphy/core";
-import { Console } from "./Console";
-import { Editor } from "./Editor";
 import { ErrorOverlay } from "./ErrorOverlay";
-import { moduleMap } from "./Modules";
 import { Preview } from "./Preview";
-import { stringify } from "./stringify";
-import { TipBar } from "./TipBar";
 import { Toolbar } from "./Toolbar";
-import { transformCode } from "./transformCode";
 
 // Draft consider include toolbar inside shadow dom
 export function Container(
