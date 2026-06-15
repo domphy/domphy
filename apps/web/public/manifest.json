@@ -91,6 +91,18 @@
       ]
     },
     {
+      "name": "@domphy/mermaid",
+      "version": "0.12.0",
+      "description": "Domphy Mermaid - build-time (SSG) and client-side Mermaid diagram rendering, with markdown tree integration for @domphy/markdown",
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core",
+        "mermaid"
+      ]
+    },
+    {
       "name": "@domphy/palette",
       "version": "0.12.0",
       "description": "Domphy Palette - color-palette engine that generates optimal color ramps and validates palette quality, a port of chromametry",
