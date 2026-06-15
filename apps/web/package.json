@@ -22,6 +22,7 @@
     "@domphy/core": "workspace:*",
     "@domphy/app": "workspace:*",
     "@domphy/markdown": "workspace:*",
+    "@domphy/mermaid": "workspace:*",
     "@domphy/query": "workspace:*",
     "@domphy/router": "workspace:*",
     "@domphy/table": "workspace:*",
