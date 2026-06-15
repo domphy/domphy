@@ -39,6 +39,11 @@ const SELF_NOTIFY_CAP = 100;
 let _batchDepth = 0;
 let _batchedNotifiers: Set<Notifier> = new Set();
 
+// Every Notifier with a flush scheduled but not yet run. flushSync() drains this
+// to apply pending state-change notifications synchronously (see
+// flushPendingNotifiers); normal operation still flushes via the microtask.
+const _scheduledNotifiers: Set<Notifier> = new Set();
+
 // Run `fn`, deferring all flushes triggered inside it into one flush afterwards.
 // Nested batches collapse into the outermost one. Reentrant-safe: the stack is
 // restored and the batched set is flushed even if `fn` throws.
@@ -163,6 +168,7 @@ export class Notifier {
   _scheduleFlush(): void {
     if (this._scheduled) return;
     this._scheduled = true;
+    _scheduledNotifiers.add(this);
     _microtask(() => this._flushAll());
   }
 
@@ -177,8 +183,9 @@ export class Notifier {
     return true;
   }
 
-  private _flushAll(): void {
+  _flushAll(): void {
     this._scheduled = false;
+    _scheduledNotifiers.delete(this);
     const pending = this._pending;
     this._pending = new Map();
 
@@ -210,5 +217,27 @@ export class Notifier {
 
     this._flushing.delete(event);
     _chain.pop();
+  }
+}
+
+// True when any Notifier has a flush scheduled but not yet run. flushSync() uses
+// this to decide whether more synchronous draining is needed.
+export function hasPendingNotifiers(): boolean {
+  return _scheduledNotifiers.size > 0;
+}
+
+// Synchronously run every scheduled Notifier flush, including notifiers
+// scheduled while draining (a listener that writes another state re-schedules
+// its own Notifier). Driven by flushSync() alongside the reaction queue.
+export function flushPendingNotifiers(): void {
+  let guard = 0;
+  while (_scheduledNotifiers.size > 0) {
+    if (guard++ > 10000) {
+      console.error("[Domphy] flushSync: notifier queue did not settle");
+      break;
+    }
+    const notifiers = [..._scheduledNotifiers];
+    _scheduledNotifiers.clear();
+    for (const notifier of notifiers) notifier._flushAll();
   }
 }

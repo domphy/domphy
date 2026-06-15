@@ -4,7 +4,12 @@ import {
   runUntracked,
   runWithCollector,
 } from "./Collector.js";
-import { Notifier, runBatched } from "./Notifier.js";
+import {
+  flushPendingNotifiers,
+  hasPendingNotifiers,
+  Notifier,
+  runBatched,
+} from "./Notifier.js";
 import type { ValueListener } from "./State.js";
 
 // Derived-reactivity layer built ON TOP of State/RecordState + Notifier. Nothing
@@ -59,6 +64,26 @@ function drainReactions(): void {
     const jobs = [...REACTION_QUEUE];
     REACTION_QUEUE.clear();
     for (const job of jobs) job();
+  }
+}
+
+// Synchronously flush all pending reactivity: state-change notifications (DOM
+// attribute/style bindings and computed/effect dependency signals) AND the
+// deduplicated effect/computed reaction queue. Alternates between the two
+// because a notifier flush can queue reactions and a reaction can write state
+// (which queues more notifier flushes); it loops until both settle. Useful in
+// tests and imperative code that must observe the DOM right after `.set()`
+// instead of waiting for the next microtask. Inside `batch()` it does not touch
+// the batched writes — those still flush when the batch ends.
+export function flushSync(): void {
+  let guard = 0;
+  while (hasPendingNotifiers() || REACTION_QUEUE.size > 0) {
+    if (guard++ > 10000) {
+      console.error("[Domphy] flushSync did not settle");
+      break;
+    }
+    flushPendingNotifiers();
+    drainReactions();
   }
 }
 

@@ -1,3 +1,4 @@
+import { __DEV__ } from "../dev.js";
 import { ensureDomStyle, getTagName } from "../helpers.js";
 import type { DomphyElement } from "../types.js";
 import { ElementNode } from "./ElementNode.js";
@@ -112,6 +113,17 @@ export class ElementList {
           claimed.add(at);
           continue;
         }
+      } else {
+        // Text positional reuse: a string/number at this slot whose old node is a
+        // TextNode is patched in place (mutate nodeValue) instead of recreating
+        // the DOM text node — this keeps reactive text like `(l) => "n:" +
+        // s.get(l)` cheap and stable across updates.
+        const at = this.items[i];
+        if (at instanceof TextNode && oldSet.has(at) && !claimed.has(at)) {
+          at.setText(input == null ? "" : (input as string | number));
+          claimed.add(at);
+          continue;
+        }
       }
 
       claimed.add(this.insert(input, i, updateDom, true));
@@ -216,6 +228,14 @@ export class ElementList {
         // (arity >= 2, e.g. an exit animation) owns completion and defers removal.
         if ((item._hooks.BeforeRemove as Function).length < 2 && !doneCalled)
           onceDone();
+        else if (__DEV__ && !doneCalled) {
+          setTimeout(() => {
+            if (!doneCalled)
+              console.warn(
+                "[Domphy] _onBeforeRemove declared a `done` parameter (e.g. an exit animation) but did not call it within 5s — the element will stay in the DOM. Call done() when cleanup finishes.",
+              );
+          }, 5000);
+        }
       } else {
         done();
       }

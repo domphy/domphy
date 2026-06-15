@@ -1,4 +1,5 @@
 import { SvgTags, VoidTags } from "../constants.js";
+import { __DEV__ } from "../dev.js";
 import {
   collectCSSRules,
   deepClone,
@@ -390,6 +391,16 @@ export class ElementNode {
 
   mount(domElement: HTMLElement, domStyle?: HTMLStyleElement): void {
     if (!domElement) throw new Error("Missing dom node on bind");
+    if (
+      __DEV__ &&
+      !domStyle &&
+      this.parent === null &&
+      domElement.childNodes.length > 0
+    ) {
+      console.warn(
+        "[Domphy] mount() was called without a style element on already-rendered DOM. Reactive style updates after hydration will be dropped — pass the server-rendered <style> element as the second argument to mount().",
+      );
+    }
     this.domElement = domElement;
 
     if (this._events) {
@@ -477,6 +488,14 @@ export class ElementNode {
         this._hooks.BeforeRemove(this, once);
         if ((this._hooks.BeforeRemove as Function).length < 2 && !called)
           once();
+        else if (__DEV__ && !called) {
+          setTimeout(() => {
+            if (!called)
+              console.warn(
+                "[Domphy] _onBeforeRemove declared a `done` parameter but did not call it within 5s — the element will stay in the DOM. Call done() when cleanup finishes.",
+              );
+          }, 5000);
+        }
       } else {
         done();
       }

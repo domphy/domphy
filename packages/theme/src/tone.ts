@@ -4,7 +4,9 @@ import { getTheme, themeName, themeTokens, themeVars } from "./theme.js";
 
 const TONE_STEPS = light.colors.neutral.length;
 
-const ElementTones = ["inherit", "base"];
+// Exported as a value (not just a type) so tooling — @domphy/doctor, the MCP
+// server, generated `tones.json` — can validate tone names without parsing TS.
+export const ElementTones = ["inherit", "base"];
 
 [...Array(TONE_STEPS).keys()].forEach((i) => {
   ElementTones.push(`decrease-${i}`);

@@ -17,6 +17,15 @@ const themes: Record<string, ThemeInput> = {
   dark: createDark(light),
 };
 
+// Memo caches. themeVars() depends only on the theme STRUCTURE (color names,
+// tone steps, custom keys) — it emits `var(--…)` references, never resolved
+// values — so its result is stable until setTheme() changes that structure.
+// themeTokens() returns resolved values per theme, cached per name. Both are
+// invalidated in setTheme(). Callers must treat the returned objects as
+// read-only (they are shared).
+let _themeVarsCache: ThemeVars | null = null;
+const _themeTokensCache = new Map<string, Record<string, any>>();
+
 function colorSteps(input: ThemeInput): number {
   const firstColor = Object.keys(input.colors)[0];
   return firstColor ? input.colors[firstColor].length : 0;
@@ -115,6 +124,9 @@ export function setTheme(name: string, input: Partial<ThemeInput>): void {
   validateTheme(input);
   if (!themes[name]) themes[name] = clone(light);
   deepMerge(themes[name], input);
+  // Structure/values may have changed → drop memoized derivations.
+  _themeVarsCache = null;
+  _themeTokensCache.clear();
 }
 
 function createDark(source: ThemeInput): ThemeInput {
@@ -128,6 +140,8 @@ function createDark(source: ThemeInput): ThemeInput {
 }
 
 export function themeTokens(name: string): Record<string, any> {
+  const cached = _themeTokensCache.get(name);
+  if (cached) return cached;
   const input = getTheme(name);
   const toneSteps = colorSteps(input);
   const tokens: Record<string, any> = {};
@@ -158,10 +172,12 @@ export function themeTokens(name: string): Record<string, any> {
     // baseTones / direction / darkBias are metadata — reachable via getTheme(), not tokens
   }
 
+  _themeTokensCache.set(name, tokens);
   return tokens;
 }
 
 export function themeVars(): ThemeVars {
+  if (_themeVarsCache) return _themeVarsCache;
   const input = getTheme("light");
   const toneSteps = colorSteps(input);
   const theme = {} as ThemeVars;
@@ -190,6 +206,7 @@ export function themeVars(): ThemeVars {
     // densities / baseTones / direction / darkBias are not exposed as CSS vars
   }
 
+  _themeVarsCache = theme;
   return theme;
 }
 

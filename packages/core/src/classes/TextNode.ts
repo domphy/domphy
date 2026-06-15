@@ -24,6 +24,27 @@ export class TextNode {
     return newNode;
   }
 
+  // Update the text content in place. When the node is a plain DOM text node and
+  // stays plain text, mutate `nodeValue` directly (cheap, preserves the node) —
+  // this is what lets reactive text like `(l) => "Count: " + n.get(l)` patch the
+  // existing text node instead of recreating it every change. Crossing the
+  // plain/inline-HTML boundary (or a non-text node) rebuilds the node.
+  setText(textContent: string | number): void {
+    const next =
+      textContent === "" ? String.fromCharCode(0x200b) : String(textContent);
+    if (next === this.text && this.domText) return;
+    const wasHTML = isHTML(this.text);
+    this.text = next;
+    if (!this.domText) return;
+    if (!wasHTML && !isHTML(next) && this.domText.nodeType === 3) {
+      this.domText.nodeValue = next;
+      return;
+    }
+    const old = this.domText;
+    const fresh = this._createDOMNode();
+    old.parentNode?.replaceChild(fresh, old);
+  }
+
   _dispose(): void {
     this.domText = undefined;
     this.text = "";
