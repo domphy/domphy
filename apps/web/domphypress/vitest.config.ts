@@ -7,14 +7,15 @@ const webRoot = resolve(here, "..");
 const repoRoot = resolve(here, "../../..");
 
 // A plain config object (no `vitest/config` import) so the config file itself
-// has no third-party imports to resolve — only Node built-ins.
+// has no third-party imports to resolve — only Node built-ins — and loads
+// regardless of which package's hoisted vitest binary runs it.
 //
-// In this worktree the workspace packages publish from `dist` (not built), and
-// `markdown-it` is a hoisted transitive dependency not listed directly by
-// `apps/web`, so Vite's resolver cannot find some of these from the source tree.
-// We therefore resolve every third-party module the pipeline imports to an
-// absolute path up front and alias them explicitly. `markdown-it` is resolved
-// against the `@domphy/markdown` package, which declares it as a dependency.
+// The engine tests run against the workspace package SOURCES (not built `dist/`)
+// so they need no prior build, and aliasing bare specifiers keeps singletons
+// consistent (e.g. @domphy/ui's internal @domphy/core resolves to the same
+// source module the tests use). `markdown-it` is a hoisted transitive dep not
+// listed by apps/web directly, so it is resolved up front against the
+// @domphy/markdown package which declares it.
 const requireFromMarkdownPkg = createRequire(
   resolve(repoRoot, "packages/markdown/src/index.ts"),
 );
@@ -27,10 +28,17 @@ const markdownItEsm = resolve(dirname(markdownItMain), "../index.mjs");
 export default {
   root: webRoot,
   test: {
-    include: ["domphypress/pipeline.test.ts"],
+    include: [
+      "domphypress/pipeline.test.ts",
+      "domphypress/search.test.ts",
+    ],
+    // Default to node; search.test.ts opts into jsdom via a per-file docblock.
     environment: "node",
   },
   resolve: {
+    // Array form preserves order — more specific finds first, and regex finds
+    // for the markdown-it family so `markdown-it` does not shadow
+    // `markdown-it-container` / `markdown-it-include`.
     alias: [
       {
         find: "@domphy/markdown",
@@ -39,6 +47,32 @@ export default {
       {
         find: "@domphy/core",
         replacement: resolve(repoRoot, "packages/core/src/index.ts"),
+      },
+      {
+        find: "@domphy/theme",
+        replacement: resolve(repoRoot, "packages/theme/src/index.ts"),
+      },
+      {
+        find: "@domphy/ui",
+        replacement: resolve(repoRoot, "packages/ui/src/index.ts"),
+      },
+      // @domphy/ui imports @domphy/floating internally, which in turn vendors
+      // @floating-ui under its own src — mirror both so ui source loads.
+      {
+        find: "@domphy/floating",
+        replacement: resolve(repoRoot, "packages/floating/src/index.ts"),
+      },
+      {
+        find: "@floating-ui/utils/dom",
+        replacement: resolve(repoRoot, "packages/floating/src/utils/dom.ts"),
+      },
+      {
+        find: "@floating-ui/utils",
+        replacement: resolve(repoRoot, "packages/floating/src/utils/index.ts"),
+      },
+      {
+        find: "@floating-ui/core",
+        replacement: resolve(repoRoot, "packages/floating/src/core/index.ts"),
       },
       { find: /^markdown-it$/, replacement: markdownItEsm },
       {
