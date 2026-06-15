@@ -34,3 +34,6 @@ packages/*/dist/
 
 # npm pack artifacts
 *.tgz
+
+# Claude Code local state / agent worktrees
+.claude/
