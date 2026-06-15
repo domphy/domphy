@@ -100,6 +100,7 @@ export const config: SiteConfig = {
           { text: "Code", link: "/docs/ui/patches/code" },
           { text: "Combobox", link: "/docs/ui/patches/combobox" },
           { text: "Command", link: "/docs/ui/patches/command" },
+          { text: "Date Picker", link: "/docs/ui/patches/date-picker" },
           { text: "Description List", link: "/docs/ui/patches/description-list" },
           { text: "Details", link: "/docs/ui/patches/details" },
           { text: "Dialog", link: "/docs/ui/patches/dialog" },
