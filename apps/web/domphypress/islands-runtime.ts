@@ -81,9 +81,18 @@ async function renderMermaidBlocks(): Promise<void> {
   const mermaid = (await import("mermaid")).default;
   const dark = document.documentElement.getAttribute("data-theme") === "dark";
   mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "default" });
+  // The fenced source is delivered HTML-escaped (e.g. `-->` as `--&gt;`); decode
+  // entities back to the raw diagram text mermaid's parser expects.
+  const decode = (text: string): string =>
+    text
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&");
   let index = 0;
   for (const code of blocks) {
-    const source = code.textContent ?? "";
+    const source = decode(code.textContent ?? "");
     const target = code.closest("pre") ?? code;
     try {
       const { svg } = await mermaid.render(`dp-mermaid-${index++}`, source);
