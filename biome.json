@@ -29,7 +29,14 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "style": {
+        "noNonNullAssertion": "off"
+      },
+      "complexity": {
+        "useOptionalChain": "off",
+        "noImportantStyles": "off"
+      }
     }
   },
   "javascript": {

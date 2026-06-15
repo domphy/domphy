@@ -20,7 +20,7 @@ function textarea(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "textarea") {
+      if (node.tagName !== "textarea") {
         console.warn(`"textarea" primitive patch must use textarea tag`);
       }
     },

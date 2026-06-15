@@ -15,7 +15,7 @@ function select(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "select") {
+      if (node.tagName !== "select") {
         console.warn(`"select" primitive patch must use select tag`);
       }
     },

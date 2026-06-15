@@ -12,7 +12,7 @@ function progress(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "progress") {
+      if (node.tagName !== "progress") {
         console.warn(`"progress" primitive patch must use progress tag`);
       }
     },

@@ -15,7 +15,7 @@ function menuItem(
   const partial: PartialElement = {
     role: "menuitem",
     _onInsert: (node) => {
-      if (node.tagName != "button") {
+      if (node.tagName !== "button") {
         console.warn(`"menuItem" patch must use button tag`);
       }
 

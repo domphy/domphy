@@ -19,7 +19,7 @@ function table(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "table") {
+      if (node.tagName !== "table") {
         console.warn(`"table" primitive patch must use table tag`);
       }
     },

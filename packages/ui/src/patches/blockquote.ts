@@ -14,7 +14,7 @@ function blockquote(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "blockquote") {
+      if (node.tagName !== "blockquote") {
         console.warn(`"blockquote" primitive patch must use blockquote tag`);
       }
     },

@@ -14,7 +14,7 @@ function tab(
   const partial: PartialElement = {
     role: "tab",
     _onInsert: (node) => {
-      if (node.tagName != "button") {
+      if (node.tagName !== "button") {
         console.warn(`"tab" patch must use button tag`);
       }
 

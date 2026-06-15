@@ -8,7 +8,7 @@ function emphasis(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "em") {
+      if (node.tagName !== "em") {
         console.warn(`"emphasis" primitive patch must use em tag`);
       }
     },

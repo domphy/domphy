@@ -17,7 +17,7 @@ function label(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "label") {
+      if (node.tagName !== "label") {
         console.warn(`"label" primitive patch must use label tag`);
       }
     },

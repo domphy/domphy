@@ -23,7 +23,7 @@ function inputDateTime(
   return {
     type: mode,
     _onSchedule: (node, element) => {
-      if (node.tagName != "input") {
+      if (node.tagName !== "input") {
         console.warn(`"inputDateTime" primitive patch must use input tag`);
       }
       (element as any).type = mode;

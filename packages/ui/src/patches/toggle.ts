@@ -41,7 +41,7 @@ function toggle(
       const key =
         node.key !== null && node.key !== undefined
           ? String(node.key)
-          : String(items.findIndex((n) => n === node));
+          : String(items.indexOf(node));
 
       node.attributes.set("ariaPressed", (listener) => {
         const val = ctx.value.get(listener);

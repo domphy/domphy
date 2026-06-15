@@ -9,7 +9,7 @@ function small(
   return {
     dataSize: "decrease-1",
     _onInsert: (node) => {
-      if (node.tagName != "small") {
+      if (node.tagName !== "small") {
         console.warn(`"small" primitive patch must use small tag`);
       }
     },

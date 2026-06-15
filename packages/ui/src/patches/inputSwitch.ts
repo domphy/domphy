@@ -15,7 +15,7 @@ function inputSwitch(
     dataTone: "shift-2",
     type: "checkbox",
     _onSchedule: (node) => {
-      if (node.tagName != "input") {
+      if (node.tagName !== "input") {
         console.warn(`"inputSwitch" primitive patch must use input tag`);
         return;
       }

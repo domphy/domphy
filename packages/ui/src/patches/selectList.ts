@@ -48,7 +48,7 @@ function selectList(
       },
     },
     _onInit: (node) => {
-      if (node.tagName != "div") {
+      if (node.tagName !== "div") {
         console.warn(`"selectList" patch must use a div tag`);
       }
       node.children.insert(inputs);

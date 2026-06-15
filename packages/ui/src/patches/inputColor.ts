@@ -19,7 +19,7 @@ function inputColor(
   return {
     type: "color",
     _onSchedule: (node, element) => {
-      if (node.tagName != "input") {
+      if (node.tagName !== "input") {
         console.warn(`"inputColor" primitive patch must use input tag`);
       }
       (element as any).type = "color";

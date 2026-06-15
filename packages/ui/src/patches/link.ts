@@ -16,7 +16,7 @@ function link(
   const accentColor = toState(props.accentColor ?? "secondary", "accentColor");
   return {
     _onInsert: (node) => {
-      if (node.tagName != "a") {
+      if (node.tagName !== "a") {
         console.warn(`"link" primitive patch must use a tag`);
       }
     },

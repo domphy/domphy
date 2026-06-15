@@ -20,7 +20,7 @@ function details(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "details") {
+      if (node.tagName !== "details") {
         console.warn(`"details" primitive patch must use details tag`);
       }
     },

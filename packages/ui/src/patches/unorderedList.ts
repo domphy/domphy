@@ -13,7 +13,7 @@ function unorderedList(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "ul") {
+      if (node.tagName !== "ul") {
         console.warn(`"unorderedList" primitive patch must use ul tag`);
       }
     },

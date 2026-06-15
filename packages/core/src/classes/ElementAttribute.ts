@@ -61,7 +61,7 @@ export class ElementAttribute {
 
     if (value == null) {
       this.value = null;
-    } else if (typeof value == "function") {
+    } else if (typeof value === "function") {
       let listener: any = () => {
         if (!this.parent || this.parent._disposed) return;
         const p = this.value;

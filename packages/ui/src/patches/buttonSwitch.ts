@@ -21,7 +21,7 @@ function buttonSwitch(
 
   return {
     _onSchedule: (node) => {
-      if (node.tagName != "button") {
+      if (node.tagName !== "button") {
         console.warn(`"buttonSwitch" primitive patch must use button tag`);
       }
     },

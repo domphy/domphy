@@ -119,7 +119,7 @@ function combobox(props: {
 
   const partial: PartialElement = {
     _onInsert: (node) => {
-      if (node.tagName != "div") {
+      if (node.tagName !== "div") {
         console.warn(`"combobox" primitive patch must use div tag`);
       }
     },

@@ -13,7 +13,7 @@ function figure(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "figure") {
+      if (node.tagName !== "figure") {
         console.warn(`"figure" primitive patch must use figure tag`);
       }
     },

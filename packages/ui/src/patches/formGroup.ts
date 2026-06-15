@@ -20,7 +20,7 @@ function formGroup(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "fieldset") {
+      if (node.tagName !== "fieldset") {
         console.warn(`"formGroup" patch must use fieldset tag`);
       }
     },

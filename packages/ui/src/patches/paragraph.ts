@@ -13,7 +13,7 @@ function paragraph(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "p") {
+      if (node.tagName !== "p") {
         console.warn(`"paragraph" primitive patch must use p tag`);
       }
     },

@@ -8,7 +8,7 @@ function superscript(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "sup") {
+      if (node.tagName !== "sup") {
         console.warn(`"superscript" primitive patch must use sup tag`);
       }
     },

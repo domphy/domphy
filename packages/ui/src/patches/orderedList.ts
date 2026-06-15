@@ -13,7 +13,7 @@ function orderedList(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "ol") {
+      if (node.tagName !== "ol") {
         console.warn(`"orderedList" primitive patch must use ol tag`);
       }
     },

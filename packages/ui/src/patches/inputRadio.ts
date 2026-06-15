@@ -18,7 +18,7 @@ function inputRadio(
   return {
     type: "radio",
     _onInsert: (node) => {
-      if (node.tagName != "input") {
+      if (node.tagName !== "input") {
         console.warn(
           `"inputRadio" primitive patch must use input tag and radio type`,
         );

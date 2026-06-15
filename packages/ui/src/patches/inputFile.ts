@@ -19,7 +19,7 @@ function inputFile(
   return {
     type: "file",
     _onSchedule: (node, element) => {
-      if (node.tagName != "input") {
+      if (node.tagName !== "input") {
         console.warn(`"inputFile" primitive patch must use input tag`);
       }
       (element as any).type = "file";

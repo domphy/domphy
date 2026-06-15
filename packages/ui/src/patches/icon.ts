@@ -13,7 +13,7 @@ function icon(
   const color = toState(props.color ?? "neutral", "color");
   return {
     _onInsert: (node) => {
-      if (node.tagName != "span") {
+      if (node.tagName !== "span") {
         console.warn(`"icon" primitive patch should use span tag`);
       }
     },

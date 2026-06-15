@@ -19,7 +19,7 @@ function inputText(
   return {
     type: "text",
     _onSchedule: (node, element) => {
-      if (node.tagName != "input") {
+      if (node.tagName !== "input") {
         console.warn(
           `"inputText" primitive patch must use input tag and text type`,
         );

@@ -8,7 +8,7 @@ function horizontalRule(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "hr") {
+      if (node.tagName !== "hr") {
         console.warn(`"horizontalRule" primitive patch must use hr tag`);
       }
     },

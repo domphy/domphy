@@ -14,7 +14,7 @@ function dialog(
   const state = toState(open);
   return {
     _onInsert: (node) => {
-      if (node.tagName != "dialog") {
+      if (node.tagName !== "dialog") {
         console.warn(`"dialog" primitive patch must use dialog tag`);
       }
     },

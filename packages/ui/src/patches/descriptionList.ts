@@ -13,7 +13,7 @@ function descriptionList(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "dl") {
+      if (node.tagName !== "dl") {
         console.warn(`"descriptionList" primitive patch must use dl tag`);
       }
     },

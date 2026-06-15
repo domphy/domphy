@@ -13,7 +13,7 @@ function keyboard(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "kbd") {
+      if (node.tagName !== "kbd") {
         console.warn(`"keyboard" primitive patch must use kbd tag`);
       }
     },

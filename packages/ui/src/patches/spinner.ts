@@ -19,7 +19,7 @@ function spinner(
     role: "status",
     ariaLabel: "loading",
     _onInsert: (node) => {
-      if (node.tagName != "span") {
+      if (node.tagName !== "span") {
         console.warn(`"spinner" patch must use span tag`);
       }
     },

@@ -8,7 +8,7 @@ function strong(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "strong") {
+      if (node.tagName !== "strong") {
         console.warn(`"strong" primitive patch must use strong tag`);
       }
     },

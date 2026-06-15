@@ -14,7 +14,7 @@ function code(
   return {
     dataTone: "shift-2",
     _onInsert: (node) => {
-      if (node.tagName != "code") {
+      if (node.tagName !== "code") {
         console.warn(`"code" primitive patch must use code tag`);
       }
     },

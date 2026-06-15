@@ -17,7 +17,7 @@ function abbreviation(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "abbr") {
+      if (node.tagName !== "abbr") {
         console.warn(`"abbreviation" primitive patch must use abbr tag`);
       }
     },

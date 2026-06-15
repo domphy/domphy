@@ -15,7 +15,7 @@ function preformated(
   return {
     dataTone: "shift-2",
     _onInsert: (node) => {
-      if (node.tagName != "pre") {
+      if (node.tagName !== "pre") {
         console.warn(`"preformated" primitive patch must use pre tag`);
       }
     },

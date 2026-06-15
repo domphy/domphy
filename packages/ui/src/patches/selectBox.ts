@@ -81,7 +81,7 @@ function selectBox(props: {
 
   const partial: PartialElement = {
     _onInsert: (node) => {
-      if (node.tagName != "div") {
+      if (node.tagName !== "div") {
         console.warn(`"selectBox" patch must use div tag`);
       }
     },

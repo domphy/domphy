@@ -14,7 +14,7 @@ function button(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "button") {
+      if (node.tagName !== "button") {
         console.warn(`"button" primitive patch must use button tag`);
       }
     },

@@ -13,7 +13,7 @@ function mark(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "mark") {
+      if (node.tagName !== "mark") {
         console.warn(`"mark" primitive patch must use mark tag`);
       }
     },

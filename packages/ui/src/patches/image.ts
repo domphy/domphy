@@ -9,7 +9,7 @@ function image(
   return {
     dataTone: "shift-2",
     _onInsert: (node) => {
-      if (node.tagName != "img") {
+      if (node.tagName !== "img") {
         console.warn(`"image" primitive patch must use img tag`);
       }
     },

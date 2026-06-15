@@ -13,7 +13,7 @@ function inputRange(
   return {
     type: "range",
     _onInsert: (node) => {
-      if (node.tagName != "input") {
+      if (node.tagName !== "input") {
         console.warn(`"inputRange" primitive patch must use input tag`);
       }
     },

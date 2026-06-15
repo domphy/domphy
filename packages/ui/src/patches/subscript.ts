@@ -8,7 +8,7 @@ function subscript(
 
   return {
     _onInsert: (node) => {
-      if (node.tagName != "sub") {
+      if (node.tagName !== "sub") {
         console.warn(`"subscript" primitive patch must use sub tag`);
       }
     },

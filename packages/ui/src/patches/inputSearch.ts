@@ -19,7 +19,7 @@ function inputSearch(
   return {
     type: "search",
     _onSchedule: (node, element) => {
-      if (node.tagName != "input") {
+      if (node.tagName !== "input") {
         console.warn(`"inputSearch" primitive patch must use input tag`);
       }
       (element as any).type = "search";

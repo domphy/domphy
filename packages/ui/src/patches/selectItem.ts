@@ -19,7 +19,7 @@ function selectItem(
   const partial: PartialElement = {
     role: "option",
     _onInit: (node) => {
-      if (node.tagName != "div") {
+      if (node.tagName !== "div") {
         console.warn(`"selectItem" patch must use div tag`);
       }
       const select = node.getContext("select");

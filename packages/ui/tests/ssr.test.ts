@@ -57,7 +57,9 @@ function ruleFor(
 
 afterEach(() => {
   document.body.innerHTML = "";
-  document.head.querySelectorAll("style").forEach((s) => s.remove());
+  document.head.querySelectorAll("style").forEach((s) => {
+    s.remove();
+  });
 });
 
 const PATCH_CASES: Array<{ name: string; tag: string; el: DomphyElement }> = [
