@@ -135,6 +135,47 @@ The equivalent of `redirects` in `next.config.js`:
 
 On the client the router follows the redirect; on the server `renderToString` reports status `308` (or `307` when `permanent` is not set) plus the target in `result.redirect`.
 
+## Lazy / Code-Split Routes
+
+A route may declare `lazy: () => import("./page.js")` — any function returning a `Promise<RouteModule>`. The heavy parts of the route then live in a separately bundled module fetched on demand the first time the route is matched, rendered, navigated to, or prefetched. This is the equivalent of a dynamically imported route module in Next.js.
+
+```ts
+{
+  path: "dashboard",
+  metadata: { title: "Dashboard" }, // cheap, stays eager
+  lazy: () => import("./dashboard.js"),
+}
+```
+
+The lazy module may supply any module-level field: `page`, `layout`, `loading`, `error`, `notFound`, `metadata`, `loader`, and `middleware`.
+
+```ts
+// dashboard.js
+export const page = DashboardPage
+export const layout = DashboardLayout
+export const loading = DashboardSkeleton
+export const error = DashboardError
+export const loader = async (context) => fetchDashboard(context)
+```
+
+How it behaves:
+
+- **Resolved once, then cached.** The import is memoized per `Route` object — it runs at most once for the whole application, no matter how many renders, prefetches, or server routers touch the route.
+- **Works with prefetch.** `navLink` prefetching (hover or visible) resolves the lazy module ahead of navigation, so the chunk is already loaded by the time you click.
+- **Works with SSR and streaming.** The server awaits the import before rendering; while it resolves on the client, the route's `loading` block (eager or lazy) shows.
+- **Errors route to the nearest boundary.** A rejected import is **not** cached — a later navigation retries — and the rejection is routed to the nearest `error` block, exactly like a thrown loader.
+- **Eager fields win.** If a route declares a field both eagerly and in the lazy module, the eager one wins on conflict. The recommended split is therefore: keep cheap, statically inspectable config (`path`, `metadata`, `revalidate`, `redirect`) eager, and put the heavy `page` (and optionally `layout` / `loading`) in the lazy module. A route can also override a single block from a shared module this way.
+
+```ts
+{
+  // Eager `loading` wins over the module's, so the shell renders instantly
+  // while ./profile.js (with the heavy page) loads.
+  path: "profile",
+  loading: ProfileSkeleton,
+  lazy: () => import("./profile.js"),
+}
+```
+
 ## Reading the Current Route
 
 `router.state` is a `RecordState` — every key is reactive:

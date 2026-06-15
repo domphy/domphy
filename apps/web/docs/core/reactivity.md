@@ -173,6 +173,98 @@ This is also fine-grained:
 
 Use the low-level API when updates are event-driven and local, and when you want explicit control over exactly which child changes.
 
+## Derived Reactivity
+
+The `(listener) => state.get(listener)` form is the foundation: an explicit listener subscribes a reactive part to a state. On top of it, Domphy ships derived primitives — `computed`, `effect`, `effectScope`, `batch`, and `untrack` — for computations that depend on **other** reactive values. They build on the same `Notifier` machinery, so they participate in the same flush and cycle detection as a plain `state.get`.
+
+These primitives **auto-track**: a reactive read with no explicit listener inside a `computed` or `effect` subscribes automatically. The explicit `(l) => state.get(l)` path used in elements is unchanged — both work, and they compose.
+
+```ts
+import { toState } from "@domphy/core"
+
+const a = toState(1)
+const b = toState(2)
+```
+
+### computed
+
+`computed(fn)` is a lazy, cached derived value. `fn` runs on first read and the result is cached; it re-evaluates only after a tracked dependency changes — never on every read. A `computed` is read like a state: `c.get()` for the current value, `c.get(listener)` to subscribe, and `(l) => c.get(l)` to bind it in an element.
+
+```ts
+import { computed } from "@domphy/core"
+
+const sum = computed(() => a.get() + b.get()) // auto-tracks a and b
+
+sum.get() // 3 — computes and caches
+
+const view = {
+  p: (listener) => `Sum: ${sum.get(listener)}`, // re-runs only when sum changes
+}
+```
+
+When a dependency changes, the computed recomputes and notifies its own downstream listeners only if the new value differs by `===` from the cached one. An identical value short-circuits, so unchanged derivations cause no downstream churn.
+
+### effect
+
+`effect(fn)` runs `fn` immediately, auto-tracking every reactive read inside it, and re-runs it whenever any tracked dependency changes. It returns a `dispose()` that releases all subscriptions.
+
+```ts
+import { effect } from "@domphy/core"
+
+const stop = effect(() => {
+  console.log("a + b =", a.get() + b.get())
+})
+// logs immediately, then re-runs whenever a or b changes
+
+stop() // unsubscribe
+```
+
+Each run re-collects dependencies, so reads no longer reached — for example behind a branch that is now false — are dropped automatically.
+
+### effectScope
+
+`effectScope()` groups reactive resources so they can be disposed together. Anything created inside `scope.run(fn)` — effects, computeds, listeners, and nested scopes — is owned by the scope, and `scope.stop()` tears the whole group down in one call.
+
+```ts
+import { effectScope } from "@domphy/core"
+
+const scope = effectScope()
+
+scope.run(() => {
+  effect(() => console.log(a.get()))
+  effect(() => console.log(b.get()))
+})
+
+scope.stop() // disposes both effects (and any nested scope) at once
+```
+
+### batch
+
+`batch(fn)` coalesces every state write inside `fn` into a single downstream flush, so dependents react once instead of once per write.
+
+```ts
+import { batch } from "@domphy/core"
+
+batch(() => {
+  a.set(10)
+  b.set(20)
+})
+// effects / computeds depending on a and b re-run a single time
+```
+
+### untrack
+
+`untrack(fn)` runs `fn` and returns its result without registering its reads into the currently active collector. Use it to read a state inside an `effect` or `computed` without making it a dependency.
+
+```ts
+import { untrack } from "@domphy/core"
+
+effect(() => {
+  // Re-runs when `a` changes, but NOT when `b` changes.
+  console.log(a.get(), untrack(() => b.get()))
+})
+```
+
 ## External State Systems
 
 Domphy does not enforce a state architecture. Any system that can call a function works:
