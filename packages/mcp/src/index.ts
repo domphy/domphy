@@ -7,6 +7,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import {
   diagnoseTree,
+  fixTree,
   getAppBlock,
   getPatch,
   getRules,
@@ -87,6 +88,21 @@ const tools = [
     },
   },
   {
+    name: "domphy_fix",
+    description:
+      "Apply @domphy/doctor's lossless autofix to a JSON Domphy element tree. Returns { tree, applied, report }; only provably-safe fixes (e.g. void-content) are applied, remaining issues are in report.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        element: {
+          type: "string",
+          description: "JSON of the Domphy element tree",
+        },
+      },
+      required: ["element"],
+    },
+  },
+  {
     name: "domphy_list_app_blocks",
     description:
       "List the current app's OWN reusable Domphy blocks (name, kind, signature, file) from its app-manifest.json. Run `app-manifest.mjs` first if absent.",
@@ -134,6 +150,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case "domphy_validate":
         text = validateTree(String(args.element));
+        break;
+      case "domphy_fix":
+        text = fixTree(String(args.element));
         break;
       case "domphy_list_app_blocks":
         text = await listAppBlocks();

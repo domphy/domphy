@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diagnose, format, validate } from "../src/index";
+import { diagnose, fix, format, validate } from "../src/index";
 
 const rules = (tree: unknown, opts?: Parameters<typeof diagnose>[1]) =>
   diagnose(tree, opts).map((d) => d.rule);
@@ -169,6 +169,41 @@ describe("diagnose", () => {
 
     const dirty = diagnose({ p: "x", style: { fontWeight: "700" } });
     expect(format(dirty)).toContain("inline-typography");
+  });
+});
+
+describe("fix (lossless autofix)", () => {
+  it("clears content on void tags and reports the rest", () => {
+    const result = fix({
+      div: [
+        { input: "oops" }, // void-content -> fixed losslessly
+        { p: "x", style: { fontSize: "20px" } }, // inline-typography -> remains
+      ],
+    });
+    expect(result.applied.map((a) => a.rule)).toContain("void-content");
+    expect(result.report.issues.map((i) => i.rule)).not.toContain(
+      "void-content",
+    );
+    // a semantic issue is left for the model/human
+    expect(result.report.issues.map((i) => i.rule)).toContain(
+      "inline-typography",
+    );
+    // the void content was cleared to null
+    expect((result.tree as { div: { input: unknown }[] }).div[0].input).toBe(
+      null,
+    );
+  });
+
+  it("does not mutate the input tree", () => {
+    const input = { input: "oops" };
+    fix(input);
+    expect(input.input).toBe("oops");
+  });
+
+  it("leaves a clean tree untouched", () => {
+    const result = fix({ div: "hi" });
+    expect(result.applied).toEqual([]);
+    expect(result.report.ok).toBe(true);
   });
 });
 

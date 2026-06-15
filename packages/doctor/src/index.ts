@@ -12,3 +12,5 @@ export type {
   ValidationSummary,
 } from "./diagnose.js";
 export { diagnose, format, validate } from "./diagnose.js";
+export type { AppliedFix, FixResult } from "./fix.js";
+export { fix } from "./fix.js";

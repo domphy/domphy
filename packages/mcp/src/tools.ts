@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { dirname, isAbsolute, resolve } from "node:path";
-import { diagnose, format, validate } from "@domphy/doctor";
+import { diagnose, fix, format, validate } from "@domphy/doctor";
 
 /**
  * Pure tool implementations for the Domphy MCP server. Kept transport-free so
@@ -115,6 +115,21 @@ export function validateTree(elementJson: string): string {
     return `Invalid JSON: ${(error as Error).message}`;
   }
   return JSON.stringify(validate(tree), null, 2);
+}
+
+/**
+ * Applies @domphy/doctor's lossless autofix to a JSON element tree and returns
+ * the fixed tree, the fixes applied, and a validation report of what remains
+ * (issues needing intent are not auto-fixed).
+ */
+export function fixTree(elementJson: string): string {
+  let tree: unknown;
+  try {
+    tree = JSON.parse(elementJson);
+  } catch (error) {
+    return `Invalid JSON: ${(error as Error).message}`;
+  }
+  return JSON.stringify(fix(tree), null, 2);
 }
 
 // --- app-block registry (an app's OWN reusable Domphy blocks) ---
