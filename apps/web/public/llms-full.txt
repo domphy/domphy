@@ -13,8 +13,9 @@
 - Never inline typography styles. Use typography patches: `small()`, `paragraph()`, `heading()`, `link()`, `strong()`, `emphasis()`, `code()`, `keyboard()`.
 - Forms use `@domphy/form` (`createForm` from `@domphy/form/domphy`): bind inputs with `value: (l) => field.value(l)` + `onInput: (e) => field.handleChange(e.target.value)`. The old ui `form()`/`field()` patches and `FormState`/`FieldState` were removed; only `formGroup()` (layout) remains in `@domphy/ui`.
 - Reactive content uses `(listener) => state.get(listener)`. Controlled inputs (value bound to a state you also `.set()` in `onInput`) are safe.
-- Data/logic = 1-1 TanStack core ports + a Domphy adapter at the `/domphy` subpath (`@domphy/core` peer dep): query, table, router, virtual, form. Drag & drop: `@domphy/dnd`. Animation: the `motion()` patch. App framework (Next-style): `@domphy/app`.
-- Build tool: tsup. Docs: VitePress.
+- Data/logic = 1-1 TanStack core ports + a Domphy adapter at the `/domphy` subpath (`@domphy/core` peer dep): query, table, router, virtual, form. Drag & drop: `@domphy/dnd`. Animation: the `motion()` patch. App framework (Next-style): `@domphy/app` (incl. lazy code-split routes). Markdown→Domphy: `@domphy/markdown`. Mermaid: `@domphy/mermaid`.
+- Derived reactivity: `computed`/`effect`/`effectScope`/`batch`/`untrack` in `@domphy/core`. Self-check with `@domphy/doctor` `diagnose`/`validate`.
+- Build tool: tsup. Docs: DomphyPress (built on `@domphy/app` + `@domphy/markdown`).
 
 
 ---
@@ -45,8 +46,12 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 **App layer & tools:**
 
 - `@domphy/dnd` — drag & drop / sortable lists
-- `@domphy/app` — Next.js App Router-style framework (routes, layouts, loaders+SWR, metadata, middleware, parallel/intercepting routes, SSR + streaming, API routes)
-- `@domphy/doctor` — static analyzer that flags non-idiomatic code (powers AI self-correction)
+- `@domphy/palette` — color-palette engine (generate accessible ramps + measure quality); design-time companion to theme
+- `@domphy/app` — Next.js App Router-style framework (routes, layouts, loaders+SWR, metadata, middleware, parallel/intercepting routes, lazy code-split routes, SSR + streaming, API routes)
+- `@domphy/markdown` — Markdown → Domphy element trees for SSR/SSG (this docs site runs on it)
+- `@domphy/mermaid` — render Mermaid diagrams (build-time SVG + client patch)
+- `@domphy/doctor` — static analyzer that flags non-idiomatic code (`diagnose`/`validate`; powers AI self-correction)
+- `@domphy/mcp` — MCP server exposing patches/packages/rules + doctor + app-block registry to agents
 
 Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. For anything outside these packages (charts, rich text, i18n…), use the vanilla library directly — see [Integrations](/docs/integrations/).
 
@@ -360,6 +365,8 @@ const counter = {
 
 Subscriptions are released automatically when the node is removed.
 
+
+
 // source: /docs/demos/core/counting.ts
 
 ## Attributes
@@ -505,6 +512,98 @@ This is also fine-grained:
 - `swap()` swaps existing children
 
 Use the low-level API when updates are event-driven and local, and when you want explicit control over exactly which child changes.
+
+## Derived Reactivity
+
+The `(listener) => state.get(listener)` form is the foundation: an explicit listener subscribes a reactive part to a state. On top of it, Domphy ships derived primitives — `computed`, `effect`, `effectScope`, `batch`, and `untrack` — for computations that depend on **other** reactive values. They build on the same `Notifier` machinery, so they participate in the same flush and cycle detection as a plain `state.get`.
+
+These primitives **auto-track**: a reactive read with no explicit listener inside a `computed` or `effect` subscribes automatically. The explicit `(l) => state.get(l)` path used in elements is unchanged — both work, and they compose.
+
+```ts
+import { toState } from "@domphy/core"
+
+const a = toState(1)
+const b = toState(2)
+```
+
+### computed
+
+`computed(fn)` is a lazy, cached derived value. `fn` runs on first read and the result is cached; it re-evaluates only after a tracked dependency changes — never on every read. A `computed` is read like a state: `c.get()` for the current value, `c.get(listener)` to subscribe, and `(l) => c.get(l)` to bind it in an element.
+
+```ts
+import { computed } from "@domphy/core"
+
+const sum = computed(() => a.get() + b.get()) // auto-tracks a and b
+
+sum.get() // 3 — computes and caches
+
+const view = {
+  p: (listener) => `Sum: ${sum.get(listener)}`, // re-runs only when sum changes
+}
+```
+
+When a dependency changes, the computed recomputes and notifies its own downstream listeners only if the new value differs by `===` from the cached one. An identical value short-circuits, so unchanged derivations cause no downstream churn.
+
+### effect
+
+`effect(fn)` runs `fn` immediately, auto-tracking every reactive read inside it, and re-runs it whenever any tracked dependency changes. It returns a `dispose()` that releases all subscriptions.
+
+```ts
+import { effect } from "@domphy/core"
+
+const stop = effect(() => {
+  console.log("a + b =", a.get() + b.get())
+})
+// logs immediately, then re-runs whenever a or b changes
+
+stop() // unsubscribe
+```
+
+Each run re-collects dependencies, so reads no longer reached — for example behind a branch that is now false — are dropped automatically.
+
+### effectScope
+
+`effectScope()` groups reactive resources so they can be disposed together. Anything created inside `scope.run(fn)` — effects, computeds, listeners, and nested scopes — is owned by the scope, and `scope.stop()` tears the whole group down in one call.
+
+```ts
+import { effectScope } from "@domphy/core"
+
+const scope = effectScope()
+
+scope.run(() => {
+  effect(() => console.log(a.get()))
+  effect(() => console.log(b.get()))
+})
+
+scope.stop() // disposes both effects (and any nested scope) at once
+```
+
+### batch
+
+`batch(fn)` coalesces every state write inside `fn` into a single downstream flush, so dependents react once instead of once per write.
+
+```ts
+import { batch } from "@domphy/core"
+
+batch(() => {
+  a.set(10)
+  b.set(20)
+})
+// effects / computeds depending on a and b re-run a single time
+```
+
+### untrack
+
+`untrack(fn)` runs `fn` and returns its result without registering its reads into the currently active collector. Use it to read a state inside an `effect` or `computed` without making it a dependency.
+
+```ts
+import { untrack } from "@domphy/core"
+
+effect(() => {
+  // Re-runs when `a` changes, but NOT when `b` changes.
+  console.log(a.get(), untrack(() => b.get()))
+})
+```
 
 ## External State Systems
 
@@ -4616,85 +4715,163 @@ The adapter tears down FormKit's listeners automatically on removal (`_onRemove`
 ---
 
 
-## Doctor docs (`@domphy/doctor`)
+## Palette docs (`@domphy/palette`)
+
+### generating.md
+
+# Paper II — Generating Accessible Palettes
+
+[Paper I](./measuring) defines what makes a sequential ramp good. This paper describes how `@domphy/palette`'s generator produces ramps that score well **by construction**, and how it was tuned against those very metrics.
+
+```ts
+import { generateRamp } from "@domphy/palette"
+const blue = generateRamp(["#3b82f6"], 18) // white → color → black, 18 perceptual steps
+```
+
+## The model
+
+From one or more seed colors, the generator builds a ramp from light to dark by interpolating in a **perceptual** space rather than sRGB:
+
+1. **Anchor in CIELAB / OKLab.** The seed is converted to perceptual coordinates so interpolation moves the way the eye sees, not the way bytes increase.
+2. **Lightness on an H–K-corrected axis.** Steps are placed on an *equivalent achromatic lightness* axis (`toLightnessEAL` / `fromLightnessEAL`) that accounts for the Helmholtz–Kohlrausch effect — highly chromatic colors appear lighter than their L\* suggests, so the ramp compensates to keep **lightness linearity** high.
+3. **A tuned lightness warp.** A two-parameter warp `(p, q)` reshapes the lightness distribution so the ramp spends its range where it matters — guaranteeing a WCAG **4.5:1** contrast pair exists (high **contrast efficiency**) instead of wasting steps at the extremes.
+4. **Monotone chroma.** Chroma across the ramp is fitted with **monotone cubic splines** (`createMonotone`), so the saturation arc is smooth with no kinks (high **chroma smoothness**) and hue is held steady (high **hue stability**).
+5. **Even spacing.** The step placement targets uniform **ΔE2000** between neighbors (high **spacing uniformity**).
+
+The output is a list of hex stops directly usable as design-system tokens.
+
+## Tuned by the metrics
+
+The warp defaults (`p = 0.605`, `q = 0.685`) were not guessed — they were found by `optimize()`, which searches the parameter space and scores each candidate ramp with the [Paper I metrics](./measuring), keeping the parameters that maximize the geometric-mean score:
+
+```ts
+import { optimize } from "@domphy/palette"
+const result = optimize() // grid + refine search → best (p, q) and score
+```
+
+This closes the loop: **the same metrics that grade a palette also tune the generator that makes one.** Generation and validation are one science, not two heuristics.
+
+## With Domphy
+
+Generate a ramp, validate it, feed it to the theme:
+
+```ts
+import { generateRamp, Ramp } from "@domphy/palette"
+
+const brand = generateRamp(["#7c3aed"], 18)
+console.log(new Ramp(brand, "brand").score) // verify before shipping
+// → register `brand` as a theme color ramp in @domphy/theme
+```
+
+`@domphy/theme` ships Adobe-Spectrum-derived ramps by default (top of the [benchmark](./measuring)); `@domphy/palette` lets you generate brand ramps to the same standard and prove it.
 
 ### index.md
 
-# Doctor
+# Palette
 
-`@domphy/doctor` is a static analyzer for Domphy element trees. It walks the plain-object tree — including the output of reactive `(listener) => …` functions — and flags non-idiomatic patterns. Its main job is to give **AI agents** (and humans) a feedback loop: generate code → `diagnose()` → fix what it reports.
+`@domphy/palette` is Domphy's color-palette engine: it **generates** accessible sequential color ramps and **measures** their quality. It is the design-time companion to `@domphy/theme` — theme ships the runtime tokens, palette generates and validates the ramps behind them.
 
-Because Domphy UIs are plain objects, the doctor needs no parser and no build step.
+Framework-agnostic, zero dependencies, pure color science in CIELAB. (Ported from the *Chromametry* research project, same author.)
 
 ## Install
 
 ```bash
-npm install -D @domphy/doctor @domphy/core
+npm install @domphy/palette
 ```
 
-`@domphy/core` is a peer dependency (the doctor reads its tag tables).
+## Generate
 
-## Usage
+`generateRamp(seedHexes, steps)` produces a perceptually-even, WCAG-aware ramp:
 
 ```ts
-import { diagnose, format } from "@domphy/doctor"
+import { generateRamp } from "@domphy/palette"
 
-const App = {
-  div: [
-    { p: "Hello", style: { fontSize: "20px" } }, // inline typography
-    { input: "oops" }, // void tag with content
-    { dvi: "typo" }, // unknown tag
-  ],
-}
-
-console.log(format(diagnose(App)))
+const blue = generateRamp(["#3b82f6"], 18) // 18 hex stops, white → color → black
 ```
 
-```
-⚠ [inline-typography] div > p
-  Inline `fontSize` — avoid inline typography styles.
-  → Use a typography patch (paragraph()/heading()/…) via $.
-✗ [void-content] div > input
-  Void tag "input" must have null content (got string).
-⚠ [unknown-tag] div
-  "dvi" is not a known HTML/SVG tag — likely a typo.
-```
+`optimize()` searches the generator's warp parameters against the quality metrics — it's how the built-in defaults were tuned.
 
-`diagnose(element, options?)` returns `Diagnostic[]`:
+## Measure
+
+`Ramp` / `Palette` score a palette against five metrics (all in CIELAB):
 
 ```ts
-interface Diagnostic {
-  rule: "inline-typography" | "void-content" | "missing-key" | "unknown-tag"
-  severity: "error" | "warning" | "info"
-  path: string // "div > ul > li"
-  message: string
-  hint?: string
-}
+import { Ramp } from "@domphy/palette"
+
+const ramp = new Ramp(blue, "blue")
+ramp.metrics       // { contrastEfficiency, lightnessLinearity, chromaSmoothness, hueStability, spacingUniformity }
+ramp.score         // 0–100 (geometric mean of the normalized metrics)
+ramp.wcag[45].span // how many steps clear WCAG 4.5:1
 ```
-
-## Rules
-
-| Rule | Severity | Catches |
-| --- | --- | --- |
-| `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` literals in `style` — use a typography patch |
-| `void-content` | error | a void tag (`input`, `img`, `br`, …) with non-null content |
-| `missing-key` | warning | a **dynamic** list (returned by a reactive function) of element children missing `_key` |
-| `unknown-tag` | warning | an element whose first key isn't a valid HTML/SVG tag (typo) |
-
-By default the doctor invokes reactive content functions with a no-op listener to inspect their output (this is how `missing-key` is found). Pass `{ runReactive: false }` if your reactive functions have side effects.
-
-## In an AI loop
-
-This is the point of the package. After the model generates a Domphy tree, run the doctor and return the report:
 
 ```ts
-const report = format(diagnose(generatedApp))
-if (report !== "✓ No issues found.") {
-  // hand `report` back to the model and ask it to fix the listed issues
-}
+import { Palette } from "@domphy/palette"
+const palette = new Palette({ blue, red, green })
+palette.score // aggregate score across all ramps
 ```
 
-Most LLMs have little Domphy training data, so they learn it in-context from [`llms.txt`](/llms.txt) / [`AGENTS.md`](https://github.com/domphy/domphy/blob/main/AGENTS.md). The doctor enforces those same rules mechanically — turning "the model might get it wrong" into "the model gets told exactly what's wrong and fixes it." Wire it into your agent's task loop or CI.
+## Why this matters
+
+Most design systems hand-pick color steps; few can *prove* their palettes are perceptually even and accessible. `@domphy/palette` makes palette quality a measurable, optimizable property — and `@domphy/theme` is built on top of it.
+
+## The two papers
+
+1. [**Measuring palette quality**](./measuring) — the five metrics, how they're computed, and a benchmark of popular design systems.
+2. [**Generating accessible palettes**](./generating) — how the ramp generator produces even, WCAG-aware ramps, and how it's tuned.
+
+### measuring.md
+
+# Paper I — Measuring Palette Quality
+
+A sequential color ramp (e.g. `blue-50` … `blue-900`) is good when it is **perceptually even**, **accessible**, and **artifact-free**. `@domphy/palette` makes that measurable with five metrics, all computed in the **CIELAB** color space (lightness, chroma, hue, and ΔE2000 all derived there).
+
+## The five metrics
+
+Each metric normalizes to `[0, 1]`; `Ramp.score` is the geometric mean, scaled to `0–100`.
+
+1. **Contrast Efficiency** — how efficiently the ramp uses its lightness range to reach a WCAG **4.5:1** contrast pair. A ramp that wastes lightness span (or never reaches 4.5:1) scores low.
+2. **Lightness Linearity** — how linear the lightness progression is across the steps, with a **Helmholtz–Kohlrausch** correction (so highly-chromatic steps that *look* lighter are accounted for). Even visual steps → high score.
+3. **Chroma Smoothness** — detects kinks and artifacts in the saturation curve using **monotone cubic splines**. A smooth chroma arc scores high; a jagged one (a step that suddenly desaturates) scores low.
+4. **Hue Stability** — quantifies hue drift across the lightness ramp. A ramp that stays "the same color" from light to dark scores high; one that shifts hue (blue → purple at the dark end) scores low.
+5. **Spacing Uniformity** — consistency of perceptual spacing between adjacent steps, measured with **ΔE2000**. Evenly-spaced steps score high.
+
+```ts
+import { Ramp } from "@domphy/palette"
+
+const ramp = new Ramp(blueHexes, "blue")
+ramp.metrics   // { contrastEfficiency, lightnessLinearity, chromaSmoothness, hueStability, spacingUniformity }
+ramp.score     // 0–100
+```
+
+## Benchmark of design systems
+
+Popular design systems, scored on these metrics (algorithmic sequential ramps only — systems that ship discrete semantic tokens rather than ramps, like Bootstrap or Material 3, are excluded). **Overall Score** is the geometric mean of the five normalized metrics.
+
+| Design System | Steps | Span (K) | Contrast Eff. | Lightness Lin. | Chroma Smooth. | Hue Stab. | Spacing Unif. | **Score** |
+| :--- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| Adobe Spectrum | 18 | 9 | 0.943 | 0.933 | 0.879 | 0.914 | 0.772 | **88.6** |
+| IBM Carbon | 12 | 6 | 0.911 | 0.930 | 0.869 | 0.929 | 0.792 | **88.5** |
+| U.S. Web Design System | 12 | 6 | 0.911 | 0.936 | 0.810 | 0.938 | 0.800 | **87.7** |
+| Salesforce Lightning 2 | 14 | 7 | 0.925 | 0.919 | 0.846 | 0.937 | 0.711 | **86.3** |
+| GitHub Primer Brand | 12 | 6 | 0.911 | 0.924 | 0.841 | 0.941 | 0.684 | **85.5** |
+| Atlassian | 14 | 8 | 0.771 | 0.896 | 0.909 | 0.947 | 0.713 | **84.2** |
+| Tailwind CSS | 13 | 8 | 0.756 | 0.871 | 0.857 | 0.915 | 0.678 | **81.0** |
+| Ant Design | 12 | 9 | 0.665 | 0.859 | 0.873 | 0.928 | 0.655 | **78.8** |
+| Material UI | 12 | 11 | 0.507 | 0.797 | 0.786 | 0.924 | 0.550 | **69.4** |
+| Radix UI | 13 | 10 | 0.474 | 0.798 | 0.768 | 0.947 | 0.521 | **67.8** |
+| Shopify Polaris | 17 | 15 | 0.282 | 0.728 | 0.689 | 0.922 | 0.467 | **57.2** |
+
+## Where Domphy sits
+
+`@domphy/theme` builds on **Adobe Spectrum-derived 18-step ramps** — the top-scoring family in the benchmark — and `@domphy/palette` lets you *verify* that, or any palette you generate, before shipping:
+
+```ts
+import { Palette } from "@domphy/palette"
+const score = new Palette({ blue, red, green }).score
+if (score < 80) console.warn("palette quality below target")
+```
+
+Run it in CI to keep a design system's palettes measurably accessible over time. See [Paper II — Generating accessible palettes](./generating) for how the generator produces high-scoring ramps by construction.
 
 
 
@@ -5534,6 +5711,47 @@ The equivalent of `redirects` in `next.config.js`:
 
 On the client the router follows the redirect; on the server `renderToString` reports status `308` (or `307` when `permanent` is not set) plus the target in `result.redirect`.
 
+## Lazy / Code-Split Routes
+
+A route may declare `lazy: () => import("./page.js")` — any function returning a `Promise<RouteModule>`. The heavy parts of the route then live in a separately bundled module fetched on demand the first time the route is matched, rendered, navigated to, or prefetched. This is the equivalent of a dynamically imported route module in Next.js.
+
+```ts
+{
+  path: "dashboard",
+  metadata: { title: "Dashboard" }, // cheap, stays eager
+  lazy: () => import("./dashboard.js"),
+}
+```
+
+The lazy module may supply any module-level field: `page`, `layout`, `loading`, `error`, `notFound`, `metadata`, `loader`, and `middleware`.
+
+```ts
+// dashboard.js
+export const page = DashboardPage
+export const layout = DashboardLayout
+export const loading = DashboardSkeleton
+export const error = DashboardError
+export const loader = async (context) => fetchDashboard(context)
+```
+
+How it behaves:
+
+- **Resolved once, then cached.** The import is memoized per `Route` object — it runs at most once for the whole application, no matter how many renders, prefetches, or server routers touch the route.
+- **Works with prefetch.** `navLink` prefetching (hover or visible) resolves the lazy module ahead of navigation, so the chunk is already loaded by the time you click.
+- **Works with SSR and streaming.** The server awaits the import before rendering; while it resolves on the client, the route's `loading` block (eager or lazy) shows.
+- **Errors route to the nearest boundary.** A rejected import is **not** cached — a later navigation retries — and the rejection is routed to the nearest `error` block, exactly like a thrown loader.
+- **Eager fields win.** If a route declares a field both eagerly and in the lazy module, the eager one wins on conflict. The recommended split is therefore: keep cheap, statically inspectable config (`path`, `metadata`, `revalidate`, `redirect`) eager, and put the heavy `page` (and optionally `layout` / `loading`) in the lazy module. A route can also override a single block from a shared module this way.
+
+```ts
+{
+  // Eager `loading` wins over the module's, so the shell renders instantly
+  // while ./profile.js (with the heavy page) loads.
+  path: "profile",
+  loading: ProfileSkeleton,
+  lazy: () => import("./profile.js"),
+}
+```
+
 ## Reading the Current Route
 
 `router.state` is a `RecordState` — every key is reactive:
@@ -5669,6 +5887,411 @@ for (const url of ["/", "/about", "/blog/hello"]) {
   await writePage(url, result)
 }
 ```
+
+
+
+---
+
+
+## Markdown docs (`@domphy/markdown`)
+
+### index.md
+
+# Markdown
+
+`@domphy/markdown` parses Markdown into **Domphy element trees** — plain objects like `{ h1: ... }`, `{ ul: [...] }`, `{ pre: [{ code: ... }] }` — so the result can be server-rendered by `@domphy/core` / `@domphy/app` with no client runtime.
+
+It walks [markdown-it](https://github.com/markdown-it/markdown-it)'s token stream and emits **semantic tags only** — no inline typography styles. Styling stays the consumer's job, applied through patches and theme, exactly like hand-written Domphy.
+
+
+
+
+## What you get
+
+- Headings with a slug `id` for anchors, plus a collected table of contents
+- Paragraphs, bold / italic / strikethrough, inline code
+- Fenced code blocks (language preserved as `class="language-..."` and `data-language`, with a pluggable highlighter)
+- Links, images, blockquotes, ordered / unordered / nested lists (`_key` on list items)
+- GFM tables, horizontal rules, raw inline / block HTML pass-through
+- YAML frontmatter splitting
+- `markdown-it-anchor` wired for heading anchors
+
+## Install
+
+
+npm install @domphy/markdown @domphy/core
+```
+```bash [pnpm]
+pnpm add @domphy/markdown @domphy/core
+```
+
+
+`@domphy/core` is a peer dependency.
+
+## parseMarkdown
+
+`parseMarkdown(md, options?)` returns `{ frontmatter, body, toc }`:
+
+```ts
+import { ElementNode } from "@domphy/core"
+import { parseMarkdown } from "@domphy/markdown"
+
+const source = `---
+title: Hello
+---
+# Hello World
+
+A paragraph with **bold** and a [link](https://domphy.dev).
+
+- one
+- two
+`
+
+const { frontmatter, body, toc } = parseMarkdown(source)
+
+frontmatter // { title: "Hello" }
+toc         // [{ level: 1, text: "Hello World", slug: "hello-world" }]
+
+// Render the body to HTML with @domphy/core
+const html = new ElementNode({ div: body }).generateHTML()
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `frontmatter` | `Record<string, unknown>` | Parsed YAML frontmatter, or `{}` when none is present. |
+| `body` | `DomphyElement[]` | The document as an array of Domphy elements. |
+| `toc` | `TocEntry[]` | Flat list of headings: `{ level, text, slug }`. |
+
+## markdownToDomphy
+
+A convenience wrapper when you only need the body element array:
+
+```ts
+import { markdownToDomphy } from "@domphy/markdown"
+
+const body = markdownToDomphy("# Title\n\nText.")
+```
+
+It is exactly `parseMarkdown(md, options).body`.
+
+## Options
+
+```ts
+parseMarkdown(md, {
+  // Highlight fenced code. Return inner HTML for the <code>, or a DomphyElement.
+  // A falsy return falls back to plain escaped text.
+  highlight: (code, language) => `<span class="tok">${code}</span>`,
+
+  // Custom heading slug function (used for anchors and the toc).
+  anchorSlugify: (text) => text.toLowerCase().replace(/\s+/g, "-"),
+
+  // Forwarded to the markdown-it constructor.
+  mdOptions: { breaks: true },
+})
+```
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `highlight` | `(code, language) => string \| DomphyElement \| null` | Highlighter for fenced code blocks. A returned string is used as the `<code>` inner HTML; a `DomphyElement` becomes its single child. |
+| `anchorSlugify` | `(text) => string` | Slug function for heading `id`s and toc entries. |
+| `mdOptions` | `markdown-it` options | Merged into the markdown-it constructor (e.g. `{ breaks: true }`). |
+
+## Custom pipelines
+
+For a documentation generator that needs **extra** markdown-it plugins — containers (``), file includes, custom inline rules — run your own markdown-it instance and feed its token stream to the package's canonical walker. You get the same `body` / `toc` without reimplementing the token-to-Domphy conversion.
+
+```ts
+import MarkdownIt from "markdown-it"
+import container from "markdown-it-container"
+import { splitFrontmatter, tokensToDomphy } from "@domphy/markdown"
+
+const md = new MarkdownIt({ html: true, linkify: true })
+md.use(container, "tip")
+
+const source = "\nUse the walker directly.\n:::"
+const { frontmatter, content } = splitFrontmatter(source)
+const tokens = md.parse(content, {})
+
+const { body, toc } = tokensToDomphy(tokens, {
+  // Same highlight / anchorSlugify options as parseMarkdown.
+  highlight: (code) => code,
+})
+```
+
+The lower-level building blocks are all exported:
+
+| Export | Description |
+| --- | --- |
+| `tokensToDomphy(tokens, options?)` | Convert a pre-parsed markdown-it token stream into `{ body, toc }`. Use with your own markdown-it instance. |
+| `walkTokens(tokens, context)` | The raw walker `tokensToDomphy` is built on, for the most control. |
+| `splitFrontmatter(md)` | Split a document into `{ frontmatter, content }` before parsing. |
+| `createUniqueSlugger(slugify)` | A stateful slugger that de-duplicates repeated heading slugs. |
+| `defaultSlugify(text)` | The built-in slug function. |
+
+This is exactly how DomphyPress (this site) works: its markdown-it instance adds containers and includes, then hands the tokens to `tokensToDomphy`.
+
+
+
+---
+
+
+## Mermaid docs (`@domphy/mermaid`)
+
+### index.md
+
+# Mermaid
+
+`@domphy/mermaid` renders [Mermaid](https://mermaid.js.org/) diagrams for Domphy. It has two complementary paths:
+
+- **Build-time / SSG** — render each diagram to inline SVG with a headless browser, with an on-disk cache and a tree integration for [`@domphy/markdown`](/docs/markdown/). The browser ships **no Mermaid runtime** — diagrams are just SVG in your HTML.
+- **Client-side** — the `mermaidClient()` patch renders a diagram in the browser at mount time, using the `mermaid` library (an optional peer dependency).
+
+This page is built by DomphyPress, so the diagram below was rendered to SVG at build time by the markdown integration:
+
+```mermaid
+graph TD
+  MD["Markdown source"] --> P["@domphy/markdown<br/>parseMarkdown"]
+  P --> T["Domphy tree<br/>(pre &gt; code.language-mermaid)"]
+  T --> M["@domphy/mermaid<br/>renderMermaidInTree"]
+  M --> SVG["Inline SVG in HTML"]
+```
+
+## Install
+
+
+pnpm add @domphy/mermaid
+```
+```bash [NPM]
+npm install @domphy/mermaid
+```
+
+
+`@domphy/core` is a peer dependency. `@mermaid-js/mermaid-cli` is a **direct** dependency that powers the build-time path; it manages its own headless browser (Puppeteer / Chrome) internally, so you do not install or configure Puppeteer yourself. `mermaid` is an **optional** peer dependency, needed only for the client-side patch.
+
+## Build-time rendering
+
+`renderMermaidToSvg(code, options?)` renders a single diagram to an SVG string:
+
+```ts
+import { renderMermaidToSvg } from "@domphy/mermaid"
+
+const svg = await renderMermaidToSvg("graph TD; A-->B;", {
+  theme: "dark",
+  background: "transparent",
+})
+// svg === "<svg ...>...</svg>"
+```
+
+Mermaid syntax errors are thrown as an `Error` that includes the diagram source — they are never silently swallowed.
+
+### Options
+
+| Option | Type | Default |
+| --- | --- | --- |
+| `theme` | `"default" \| "dark" \| "neutral" \| "forest"` | `"default"` |
+| `background` | `string` (`"transparent"` for none) | `"transparent"` |
+| `mermaidConfig` | `Record<string, unknown>` | — |
+| `css` | `string` (injected into the render page) | — |
+| `puppeteer` | `Record<string, unknown>` (launch options) | — |
+
+## Render cache
+
+`renderMermaidCached(code, options?)` renders once and reads the SVG back from disk on later calls with the same source and options:
+
+```ts
+import { renderMermaidCached } from "@domphy/mermaid"
+
+const svg = await renderMermaidCached("graph TD; A-->B;", {
+  cacheDir: "node_modules/.cache/domphy-mermaid", // default
+})
+```
+
+The cache key is a stable SHA-256 hash of the normalized source plus the output-affecting options (no time or randomness), so repeated builds are fast. Pass `cache: false` to bypass it.
+
+## Markdown integration
+
+`@domphy/markdown` emits a fenced ` ```mermaid ` block as a regular code node:
+
+```js
+{ pre: [{ code: "<escaped source>", dataLanguage: "mermaid", class: "language-mermaid" }] }
+```
+
+`renderMermaidInTree(elements, options?)` finds those blocks anywhere in the tree, renders each to SVG (through the cache), and replaces the node with an SVG-wrapping element:
+
+```js
+{ div: "<svg ...>...</svg>", class: "mermaid", ariaLabel: "diagram" }
+```
+
+```ts
+import { parseMarkdown } from "@domphy/markdown"
+import { renderMermaidInTree } from "@domphy/mermaid"
+
+const { body } = parseMarkdown(markdownSource)
+const rendered = await renderMermaidInTree(body, { theme: "neutral" })
+```
+
+All other nodes — siblings, nesting, attributes — are left untouched. Identical diagram sources are rendered only once, and distinct diagrams render concurrently. Inject a custom `renderer` to test the tree walk without a browser:
+
+```ts
+await renderMermaidInTree(body, {
+  renderer: async (code) => `<svg data-src="${code}"></svg>`,
+})
+```
+
+`TreeOptions` extends the cache options, plus `renderer` and a `class` for the wrapping element (default `"mermaid"`).
+
+## Client-side patch
+
+To render in the browser at mount time instead of at build time, attach `mermaidClient()` with `$`:
+
+```ts
+import { mermaidClient } from "@domphy/mermaid"
+
+const App = {
+  pre: [{ code: "graph TD; A-->B;" }],
+  $: [mermaidClient({ theme: "dark" })],
+}
+```
+
+On mount the patch reads the source from the element (preferring an inner `<code>`), renders it with the `mermaid` library, and swaps in the SVG. Install `mermaid` to use this path:
+
+```bash
+pnpm add mermaid
+```
+
+
+
+---
+
+
+## Doctor docs (`@domphy/doctor`)
+
+### index.md
+
+# Doctor
+
+`@domphy/doctor` is a static analyzer for Domphy element trees. It walks the plain-object tree — including the output of reactive `(listener) => …` functions — and flags non-idiomatic patterns. Its main job is to give **AI agents** (and humans) a feedback loop: generate code → `diagnose()` → fix what it reports.
+
+Because Domphy UIs are plain objects, the doctor needs no parser and no build step.
+
+## Install
+
+```bash
+npm install -D @domphy/doctor @domphy/core
+```
+
+`@domphy/core` is a peer dependency (the doctor reads its tag tables).
+
+## Usage
+
+```ts
+import { diagnose, format } from "@domphy/doctor"
+
+const App = {
+  div: [
+    { p: "Hello", style: { fontSize: "20px" } }, // inline typography
+    { input: "oops" }, // void tag with content
+    { dvi: "typo" }, // unknown tag
+  ],
+}
+
+console.log(format(diagnose(App)))
+```
+
+```
+⚠ [inline-typography] div > p
+  Inline `fontSize` — avoid inline typography styles.
+  → Use a typography patch (paragraph()/heading()/…) via $.
+✗ [void-content] div > input
+  Void tag "input" must have null content (got string).
+⚠ [unknown-tag] div
+  "dvi" is not a known HTML/SVG tag — likely a typo.
+```
+
+`diagnose(element, options?)` returns `Diagnostic[]`:
+
+```ts
+interface Diagnostic {
+  rule: string // "inline-typography" | "void-content" | "missing-key" | …
+  severity: "error" | "warning" | "info"
+  path: string // "div > ul > li"
+  message: string
+  hint?: string
+}
+```
+
+## Rules
+
+| Rule | Severity | Catches |
+| --- | --- | --- |
+| `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` literals in `style` — use a typography patch |
+| `void-content` | error | a void tag (`input`, `img`, `br`, …) with non-null content |
+| `missing-key` | warning | a **dynamic** list (returned by a reactive function) of element children missing `_key` |
+| `unknown-tag` | warning | an element whose first key isn't a valid HTML/SVG tag (typo) |
+| `duplicate-key` | error | two siblings sharing the same `_key` value — the reconciler can't tell them apart |
+| `unstable-key` | warning | a dynamic list whose `_key`s are the array index (`0, 1, 2, …`) — index keys shift on reorder/insert |
+
+By default the doctor invokes reactive content functions with a no-op listener to inspect their output (this is how the dynamic-list rules are found). Pass `{ runReactive: false }` if your reactive functions have side effects.
+
+`duplicate-key` is decidable on any sibling array — static or dynamic — so it is checked everywhere. `missing-key` and `unstable-key` are specific to **dynamic** lists, since only those go through keyed reconciliation.
+
+## validate
+
+`validate(element, options?)` is the aggregate entry point. It runs every rule and returns a structured report instead of a raw array:
+
+```ts
+import { validate } from "@domphy/doctor"
+
+const report = validate(App)
+
+report.ok      // false — there is at least one error-severity issue
+report.issues  // Diagnostic[] — same as diagnose(App)
+report.summary // { error: 1, warning: 2, info: 0, total: 3 }
+```
+
+```ts
+interface ValidationReport {
+  ok: boolean // true when there are no error-severity diagnostics
+  issues: Diagnostic[]
+  summary: { error: number; warning: number; info: number; total: number }
+}
+```
+
+`ok` is false when any `error` diagnostic is present; warnings and info do not flip it. Use this as the single programmatic gate — for example fail CI when `!report.ok` — while `diagnose` / `format` remain available for raw access.
+
+## In an AI loop
+
+This is the point of the package. After the model generates a Domphy tree, run the doctor and return the report:
+
+```ts
+const report = format(diagnose(generatedApp))
+if (report !== "✓ No issues found.") {
+  // hand `report` back to the model and ask it to fix the listed issues
+}
+```
+
+Most LLMs have little Domphy training data, so they learn it in-context from [`llms.txt`](/llms.txt) / [`AGENTS.md`](https://github.com/domphy/domphy/blob/main/AGENTS.md). The doctor enforces those same rules mechanically — turning "the model might get it wrong" into "the model gets told exactly what's wrong and fixes it." Wire it into your agent's task loop or CI.
+
+## Large codebases
+
+In a real app the model also needs to find and reuse the app's **own** building blocks, not just the framework surface. The repo ships an app-block registry generator, `apps/web/scripts/app-manifest.mjs`, which parses your app source with the TypeScript compiler API and emits one entry per exported Domphy block (function/const that returns an element tree):
+
+```bash
+node apps/web/scripts/app-manifest.mjs [srcDir] [outFile]
+# defaults: srcDir = apps/web/docs/demos, outFile = apps/web/public/app-manifest.json
+```
+
+Each entry carries `{ name, kind, file, signature, jsdoc, exportKind }` — a machine-readable index an agent can browse the way `manifest.json` exposes the framework packages and `@domphy/ui` patches.
+
+[`@domphy/mcp`](/docs/ai) wraps both halves as MCP tools so an agent gets validation **and** discovery over the wire:
+
+| Tool | Does |
+| --- | --- |
+| `domphy_validate` | Runs the aggregate `validate()` on a JSON element tree, returning `{ ok, issues, summary }`. |
+| `domphy_list_app_blocks` | Lists the app's own blocks (name, kind, signature, file) from `app-manifest.json`. |
+| `domphy_get_app_block` | Returns one block's full source plus signature and jsdoc, by name. |
+
+The loop becomes: list the app's blocks → reuse them → generate → `domphy_validate` → fix what it reports. The doctor is the validation half; the manifest is the discovery half.
 
 
 

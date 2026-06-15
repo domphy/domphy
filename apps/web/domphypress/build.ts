@@ -19,9 +19,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import * as esbuild from "esbuild";
+import puppeteer from "puppeteer";
 import type { DomphyElement } from "@domphy/core";
 import { createApp, defineRoutes } from "@domphy/app";
-import { renderMermaidInTree } from "@domphy/mermaid";
+import { renderMermaidInTree, renderMermaidToSvg } from "@domphy/mermaid";
 
 import { config } from "./config.js";
 import { createHighlighter } from "./highlight.js";
@@ -187,7 +188,38 @@ async function run(): Promise<void> {
   console.log(`Discovered ${startedPages.length} pages.`);
 
   const highlight = await createHighlighter();
-  const renderMermaid = (body: DomphyElement[]) => renderMermaidInTree(body);
+
+  // Resolve the locally-installed headless browser for build-time Mermaid render.
+  // Falls back to undefined (mermaid-cli's own resolution) if unavailable.
+  let chromePath: string | undefined;
+  for (const channel of ["chrome-headless-shell", "chrome"] as const) {
+    try {
+      const candidate = puppeteer.executablePath(channel);
+      if (candidate && existsSync(candidate)) {
+        chromePath = candidate;
+        break;
+      }
+    } catch {
+      // try the next channel
+    }
+  }
+  // Render mermaid, but NEVER fail the build/deploy on it: a render error (e.g.
+  // no headless browser available) degrades the diagram to its code block.
+  const renderMermaid = async (body: DomphyElement[]): Promise<DomphyElement[]> => {
+    try {
+      return await renderMermaidInTree(body, {
+        renderer: (code) =>
+          renderMermaidToSvg(
+            code,
+            chromePath ? { puppeteer: { executablePath: chromePath } } : {},
+          ),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
+      console.warn(`  mermaid render skipped: ${message}`);
+      return body;
+    }
+  };
 
   // 1) Render every page's markdown to a Domphy doc.
   const built: BuiltPage[] = [];
