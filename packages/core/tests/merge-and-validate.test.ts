@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { merge } from "../src/utils.ts";
 import { validate } from "../src/helpers.ts";
+import { merge } from "../src/utils.ts";
 
 describe("merge", () => {
   it("deep-merges plain objects and keeps target immutable", () => {
@@ -73,8 +73,11 @@ describe("validate", () => {
   });
 
   it("rejects invalid tags and invalid hook types", () => {
-    expect(() => validate({ noSuchTag: "x" } as any)).toThrow(/not valid HTML tag/i);
-    expect(() => validate({ div: "x", _onMount: "bad" } as any)).toThrow(/must be a function/i);
+    expect(() => validate({ noSuchTag: "x" } as any)).toThrow(
+      /not valid HTML tag/i,
+    );
+    expect(() => validate({ div: "x", _onMount: "bad" } as any)).toThrow(
+      /must be a function/i,
+    );
   });
 });
-

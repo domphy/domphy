@@ -102,7 +102,9 @@ describe("lifecycle: async removal (_onBeforeRemove done)", () => {
     await flush();
 
     dones["b"](); // complete "b" removal after positions shifted
-    const texts = Array.from(host.querySelectorAll("li")).map((li) => li.textContent);
+    const texts = Array.from(host.querySelectorAll("li")).map(
+      (li) => li.textContent,
+    );
     expect(texts).not.toContain("b");
     expect(texts).toEqual(expect.arrayContaining(["a", "c", "d"]));
   });
@@ -147,7 +149,9 @@ describe("lifecycle: subtree teardown fires hooks + releases subscriptions", () 
     const show = toState(true, "leakShow");
     const App = {
       div: (l: any) =>
-        show.get(l) ? [{ section: [{ span: (l2: any) => color.get(l2) }] }] : [],
+        show.get(l)
+          ? [{ section: [{ span: (l2: any) => color.get(l2) }] }]
+          : [],
     } as DomphyElement;
 
     mountApp(App);

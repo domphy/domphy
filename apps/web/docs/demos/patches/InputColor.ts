@@ -1,38 +1,38 @@
-import type { DomphyElement } from '@domphy/core'
-import { inputColor, label } from "@domphy/ui"
-import { themeSpacing } from "@domphy/theme"
+import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
+import { inputColor, label } from "@domphy/ui";
 
 const App: DomphyElement<"div"> = {
-    div: [
+  div: [
+    {
+      label: [
+        "Primary color",
         {
-            label: [
-                "Primary color",
-                {
-                    input: null,
-                    value: "#4f7cff",
-                    $: [inputColor()],
-                },
-            ],
-            $: [label()],
+          input: null,
+          value: "#4f7cff",
+          $: [inputColor()],
         },
-        {
-            label: [
-                "Accent color",
-                {
-                    input: null,
-                    value: "#2bc5a1",
-                    $: [inputColor({ accentColor: "secondary" })],
-                },
-            ],
-            $: [label()],
-        },
-    ],
-    style: {
-        display: "flex",
-        flexWrap: "wrap",
-        rowGap: themeSpacing(4),
-        columnGap: themeSpacing(6),
+      ],
+      $: [label()],
     },
-}
+    {
+      label: [
+        "Accent color",
+        {
+          input: null,
+          value: "#2bc5a1",
+          $: [inputColor({ accentColor: "secondary" })],
+        },
+      ],
+      $: [label()],
+    },
+  ],
+  style: {
+    display: "flex",
+    flexWrap: "wrap",
+    rowGap: themeSpacing(4),
+    columnGap: themeSpacing(6),
+  },
+};
 
-export default App
+export default App;

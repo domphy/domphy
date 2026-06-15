@@ -1,13 +1,13 @@
-import { toState, type DomphyElement } from "@domphy/core";
+import { type DomphyElement, toState } from "@domphy/core";
 
 // Create a State instance
 const count = toState(0);
 
 const text: DomphyElement<"p"> = {
   // Reactive values can be reactive functions.
-  // Reading state with `count.get(listener)` also add listener to state. 
+  // Reading state with `count.get(listener)` also add listener to state.
   // State change => call listener => re render property
-  p: (listener) => `Count: ${count.get(listener)}`
+  p: (listener) => `Count: ${count.get(listener)}`,
 };
 
 const button: DomphyElement<"button"> = {
@@ -21,13 +21,13 @@ const button: DomphyElement<"button"> = {
     borderRadius: "6px",
     color: "#ffffff",
     "&:hover": {
-      backgroundColor: "#4589ff"
-    }
-  }
+      backgroundColor: "#4589ff",
+    },
+  },
 };
 
 const App: DomphyElement<"div"> = {
-  div: [text, button]
+  div: [text, button],
 };
 
 export default App;

@@ -1,23 +1,26 @@
-import { PartialElement, merge } from "@domphy/core";
-import { toState, ValueOrState } from "@domphy/core";
+import {
+  merge,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 
-function tabs(props: {
-  activeKey?: ValueOrState<number | string>;
-} = {}): PartialElement {
-
-  let partial: PartialElement = {
+function tabs(
+  props: { activeKey?: ValueOrState<number | string> } = {},
+): PartialElement {
+  const partial: PartialElement = {
     role: "tablist",
     _onSchedule: (node, element) => {
-      let partial = {
+      const partial = {
         _context: {
           tabs: {
             activeKey: toState(props.activeKey || 0),
-          }
+          },
         },
-      }
-      merge(element, partial)
+      };
+      merge(element, partial);
     },
-  }
+  };
   return partial;
 }
 

@@ -75,4 +75,4 @@ const GlobalAttributes = [
   "role",
 ] as const;
 
-export type GlobalAttribute = (typeof GlobalAttributes)[number]
+export type GlobalAttribute = (typeof GlobalAttributes)[number];

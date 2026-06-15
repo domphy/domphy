@@ -7,13 +7,12 @@
 //
 // Run: node build.mjs   (from experiments/domphypress)
 
-import { mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-
-import MarkdownIt from "markdown-it";
 import { createApp, defineRoutes, navLink } from "@domphy/app";
 import { heading, link, paragraph } from "@domphy/ui";
+import MarkdownIt from "markdown-it";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const docsDir = join(here, "..", "..", "apps", "web", "docs");
@@ -75,8 +74,15 @@ function docsLayout(children) {
     div: [
       {
         header: [
-          { h1: "DomphyPress", $: [heading()], style: { fontSize: "20px", margin: "0" } },
-          { span: "  ·  @domphy/app SSG proof of concept", style: { opacity: "0.6" } },
+          {
+            h1: "DomphyPress",
+            $: [heading()],
+            style: { fontSize: "20px", margin: "0" },
+          },
+          {
+            span: "  ·  @domphy/app SSG proof of concept",
+            style: { opacity: "0.6" },
+          },
         ],
         style: {
           padding: "16px 24px",
@@ -123,7 +129,11 @@ function docsLayout(children) {
           $: [paragraph({ color: "neutral" })],
           style: { margin: "0", fontSize: "13px" },
         },
-        style: { padding: "16px 24px", borderTop: "1px solid #e2e2e2", opacity: "0.6" },
+        style: {
+          padding: "16px 24px",
+          borderTop: "1px solid #e2e2e2",
+          opacity: "0.6",
+        },
       },
     ],
   };
@@ -139,7 +149,9 @@ const routes = defineRoutes([
         "# DomphyPress\n\nA documentation site rendered to static HTML by **@domphy/app**.\n\nPick a page from the sidebar.",
       ),
     }),
-    metadata: { title: { default: "DomphyPress", template: "%s · DomphyPress" } },
+    metadata: {
+      title: { default: "DomphyPress", template: "%s · DomphyPress" },
+    },
     children: pages.map((page) => {
       const source = readFileSync(join(docsDir, page.file), "utf8");
       const contentHtml = markdownToHtml(source);
@@ -187,7 +199,10 @@ async function run() {
 
   const urls = [
     { url: "/", out: "index.html" },
-    ...pages.map((page) => ({ url: `/${page.slug}`, out: `${page.slug}.html` })),
+    ...pages.map((page) => ({
+      url: `/${page.slug}`,
+      out: `${page.slug}.html`,
+    })),
   ];
 
   const summary = [];
@@ -208,7 +223,14 @@ async function run() {
   // Also exercise a 404 to confirm status handling.
   const missing = await app.renderToString("/does-not-exist");
   writeFileSync(join(outDir, "404.html"), htmlDocument(missing), "utf8");
-  summary.push({ url: "/does-not-exist", out: "404.html", status: missing.status, htmlBytes: missing.html.length, cssBytes: missing.css.length, headBytes: missing.head.length });
+  summary.push({
+    url: "/does-not-exist",
+    out: "404.html",
+    status: missing.status,
+    htmlBytes: missing.html.length,
+    cssBytes: missing.css.length,
+    headBytes: missing.head.length,
+  });
 
   console.table(summary);
   console.log(`\nWrote ${summary.length} files to ${outDir}`);

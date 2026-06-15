@@ -1,49 +1,49 @@
-import type { DomphyElement } from '@domphy/core'
-import { inputFile, label } from "@domphy/ui"
-import { themeSpacing } from "@domphy/theme"
+import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
+import { inputFile, label } from "@domphy/ui";
 
 const App: DomphyElement<"div"> = {
-    div: [
+  div: [
+    {
+      label: [
+        "Upload avatar",
         {
-            label: [
-                "Upload avatar",
-                {
-                    input: null,
-                    accept: "image/*",
-                    $: [inputFile()],
-                },
-            ],
-            $: [label()],
+          input: null,
+          accept: "image/*",
+          $: [inputFile()],
         },
-        {
-            label: [
-                "Upload documents",
-                {
-                    input: null,
-                    multiple: true,
-                    $: [inputFile({ accentColor: "secondary" })],
-                },
-            ],
-            $: [label()],
-        },
-        {
-            label: [
-                "Disabled input file",
-                {
-                    input: null,
-                    disabled: true,
-                    $: [inputFile()],
-                },
-            ],
-            ariaDisabled: true,
-            $: [label()],
-        },
-    ],
-    style: {
-        display: "flex",
-        flexDirection: "column",
-        gap: themeSpacing(4),
+      ],
+      $: [label()],
     },
-}
+    {
+      label: [
+        "Upload documents",
+        {
+          input: null,
+          multiple: true,
+          $: [inputFile({ accentColor: "secondary" })],
+        },
+      ],
+      $: [label()],
+    },
+    {
+      label: [
+        "Disabled input file",
+        {
+          input: null,
+          disabled: true,
+          $: [inputFile()],
+        },
+      ],
+      ariaDisabled: true,
+      $: [label()],
+    },
+  ],
+  style: {
+    display: "flex",
+    flexDirection: "column",
+    gap: themeSpacing(4),
+  },
+};
 
-export default App
+export default App;

@@ -1,4 +1,4 @@
-import { DomphyElement } from "@domphy/core";
+import type { DomphyElement } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { popoverArrow } from "@domphy/ui";
 
@@ -19,4 +19,3 @@ const App: DomphyElement<"div"> = {
 };
 
 export default App;
-

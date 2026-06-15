@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { themeDensity } from "../src/density.ts";
+import { themeSize } from "../src/size.ts";
 import {
   getTheme,
   setTheme,
@@ -8,14 +10,12 @@ import {
   themeTokens,
   themeVars,
 } from "../src/theme.ts";
-import { themeDensity } from "../src/density.ts";
 import { themeColor } from "../src/tone.ts";
-import { themeSize } from "../src/size.ts";
 
 function createAttributes(values: Record<string, string> = {}) {
   return {
     get: (key: string) => values[key],
-    has: (key: string) => Object.prototype.hasOwnProperty.call(values, key),
+    has: (key: string) => Object.hasOwn(values, key),
     addListener: vi.fn(),
   };
 }
@@ -40,7 +40,9 @@ describe("theme core APIs", () => {
 
     expect(dark.direction).toBe("lighten");
     expect(dark.colors.primary[0]).toBe(light.colors.primary[lastPrimaryIndex]);
-    expect(dark.baseTones.primary).toBe(lastPrimaryIndex - light.baseTones.primary);
+    expect(dark.baseTones.primary).toBe(
+      lastPrimaryIndex - light.baseTones.primary,
+    );
   });
 
   it("setTheme/getTheme merge custom themes and reject invalid keys", () => {
@@ -54,7 +56,9 @@ describe("theme core APIs", () => {
     expect(css).toContain(`[data-theme="${customThemeName}"]`);
     expect(css).toContain("--custom-radius_sm: 2px;");
 
-    expect(() => setTheme(customThemeName, { badKey: "x" } as any)).toThrow(/Invalid key/);
+    expect(() => setTheme(customThemeName, { badKey: "x" } as any)).toThrow(
+      /Invalid key/,
+    );
   });
 
   it("returns stable token and var structures", () => {
@@ -83,7 +87,10 @@ describe("theme size/tone helpers", () => {
     const resolved = themeName(listener as any);
 
     expect(resolved).toBe("dark");
-    expect(root.attributes.addListener).toHaveBeenCalledWith("dataTheme", listener);
+    expect(root.attributes.addListener).toHaveBeenCalledWith(
+      "dataTheme",
+      listener,
+    );
   });
 
   it("resolves size from inherited dataSize and local offset", () => {
@@ -91,7 +98,9 @@ describe("theme size/tone helpers", () => {
     const child = createNode({}, root);
 
     expect(themeSize(child as any, "decrease-1")).toBe("var(--fontSize-3)");
-    expect(() => themeSize(child as any, "invalid-size" as any)).toThrow(/size name/);
+    expect(() => themeSize(child as any, "invalid-size" as any)).toThrow(
+      /size name/,
+    );
   });
 
   it("resolves density factor from inherited dataDensity", () => {
@@ -107,12 +116,16 @@ describe("theme size/tone helpers", () => {
     const toneRoot = createNode({ dataTone: "increase-1" }, themeRoot);
     const node = createNode({}, toneRoot);
 
-    expect(themeColor(node as any, "inherit", "neutral")).toBe("var(--neutral-1)");
+    expect(themeColor(node as any, "inherit", "neutral")).toBe(
+      "var(--neutral-1)",
+    );
     // dark primary base = lastIndex(17) - light base(9) = 8 (see dark-derivation test above)
     expect(themeColor(node as any, "base", "primary")).toBe("var(--primary-8)");
 
     expect(themeColor(null, "shift-2", "primary")).toBe("var(--primary-2)");
-    expect(() => themeColor(null, "bad-tone" as any, "primary")).toThrow(/tone name/);
+    expect(() => themeColor(null, "bad-tone" as any, "primary")).toThrow(
+      /tone name/,
+    );
   });
 
   it("resolves 'base' tone without a node context (light theme base tone)", () => {
@@ -124,8 +137,12 @@ describe("theme size/tone helpers", () => {
     // context 8 (midpoint) + shift-12 overshoots to 20 -> clamp to 17, NOT flip to 0
     const ctx = createNode({ dataTone: "increase-8" });
     const node = createNode({}, ctx);
-    expect(themeColor(node as any, "shift-12", "primary")).toBe("var(--primary-17)");
-    expect(themeColor(node as any, "shift-12", "primary")).not.toBe("var(--primary-0)");
+    expect(themeColor(node as any, "shift-12", "primary")).toBe(
+      "var(--primary-17)",
+    );
+    expect(themeColor(node as any, "shift-12", "primary")).not.toBe(
+      "var(--primary-0)",
+    );
   });
 });
 

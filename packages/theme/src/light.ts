@@ -1,9 +1,9 @@
-import { ThemeInput } from "./types.js";
+import type { ThemeInput } from "./types.js";
 
-let light: ThemeInput = {
+const light: ThemeInput = {
   direction: "darken",
   colors: {
-    "primary": [
+    primary: [
       "#ffffff",
       "#e3ecff",
       "#c6daff",
@@ -21,9 +21,9 @@ let light: ThemeInput = {
       "#041a57",
       "#020f38",
       "#010419",
-      "#000000"
+      "#000000",
     ],
-    "secondary": [
+    secondary: [
       "#ffffff",
       "#fce6ea",
       "#faced6",
@@ -41,9 +41,9 @@ let light: ThemeInput = {
       "#46031d",
       "#2d0210",
       "#130104",
-      "#000000"
+      "#000000",
     ],
-    "info": [
+    info: [
       "#ffffff",
       "#dcf0f9",
       "#b7e1f6",
@@ -61,9 +61,9 @@ let light: ThemeInput = {
       "#002638",
       "#001623",
       "#00070d",
-      "#000000"
+      "#000000",
     ],
-    "success": [
+    success: [
       "#ffffff",
       "#e3f3dc",
       "#c6e8b8",
@@ -81,9 +81,9 @@ let light: ThemeInput = {
       "#0b2b00",
       "#051a00",
       "#010900",
-      "#000000"
+      "#000000",
     ],
-    "warning": [
+    warning: [
       "#ffffff",
       "#ffeada",
       "#ffd3b3",
@@ -101,9 +101,9 @@ let light: ThemeInput = {
       "#3b1a03",
       "#250e02",
       "#0e0401",
-      "#000000"
+      "#000000",
     ],
-    "attention": [
+    attention: [
       "#ffffff",
       "#ffeada",
       "#ffd3b3",
@@ -121,9 +121,9 @@ let light: ThemeInput = {
       "#3b1a03",
       "#250e02",
       "#0e0401",
-      "#000000"
+      "#000000",
     ],
-    "error": [
+    error: [
       "#ffffff",
       "#fce7e4",
       "#fbcfca",
@@ -141,9 +141,9 @@ let light: ThemeInput = {
       "#510000",
       "#340000",
       "#170000",
-      "#000000"
+      "#000000",
     ],
-    "danger": [
+    danger: [
       "#ffffff",
       "#fce7e4",
       "#fbcfca",
@@ -161,9 +161,9 @@ let light: ThemeInput = {
       "#510000",
       "#340000",
       "#170000",
-      "#000000"
+      "#000000",
     ],
-    "highlight": [
+    highlight: [
       "#ffffff",
       "#f9f5cd",
       "#f4eb95",
@@ -181,9 +181,9 @@ let light: ThemeInput = {
       "#2c2700",
       "#1b1700",
       "#090700",
-      "#000000"
+      "#000000",
     ],
-    "neutral": [
+    neutral: [
       "#ffffff",
       "#ededed",
       "#dbdbdb",
@@ -201,8 +201,8 @@ let light: ThemeInput = {
       "#282828",
       "#181818",
       "#080808",
-      "#000000"
-    ]
+      "#000000",
+    ],
   },
   baseTones: {
     highlight: 5,
@@ -215,10 +215,19 @@ let light: ThemeInput = {
     success: 8,
     neutral: 8,
   },
-  fontSizes: ["0.75rem", "0.875rem", "1rem", "1.25rem", "1.5625rem", "1.9375rem", "2.4375rem", "3.0625rem"],
+  fontSizes: [
+    "0.75rem",
+    "0.875rem",
+    "1rem",
+    "1.25rem",
+    "1.5625rem",
+    "1.9375rem",
+    "2.4375rem",
+    "3.0625rem",
+  ],
   densities: [0.75, 1, 1.5, 2, 2.5],
   darkBias: 1,
   custom: {},
-}
+};
 
-export default light
+export default light;

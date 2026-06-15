@@ -12,6 +12,9 @@ import type {
 } from "./types.js";
 import { walkTokens } from "./walker.js";
 
+export type { FrontmatterSplit } from "./frontmatter.js";
+export { splitFrontmatter } from "./frontmatter.js";
+export { createUniqueSlugger, defaultSlugify } from "./slug.js";
 export type {
   AnchorSlugify,
   Highlight,
@@ -19,15 +22,11 @@ export type {
   ParseResult,
   TocEntry,
 } from "./types.js";
-
 // Lower-level building blocks so an integrator (for example a documentation
 // site generator) can run its OWN markdown-it instance — configured with extra
 // plugins such as containers, includes, or custom inline rules — and still reuse
 // the single canonical token-to-Domphy walker instead of reimplementing it.
 export { walkTokens } from "./walker.js";
-export { createUniqueSlugger, defaultSlugify } from "./slug.js";
-export { splitFrontmatter } from "./frontmatter.js";
-export type { FrontmatterSplit } from "./frontmatter.js";
 
 /**
  * A parsed markdown-it token. Derived from the parser's own `parse` return type

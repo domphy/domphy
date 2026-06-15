@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createApp,
   createMemoryHistory,
-  defineRoutes,
   type DomphyApp,
+  defineRoutes,
   type Route,
 } from "../src/index";
 
@@ -20,7 +20,10 @@ function parallelRoutes(): Route[] {
       layout: (children, _context, slots) => ({
         div: [
           { section: [slots.team ?? { span: "" }], dataSlot: "team" },
-          { section: [slots.metrics ?? { span: "no-metrics" }], dataSlot: "metrics" },
+          {
+            section: [slots.metrics ?? { span: "no-metrics" }],
+            dataSlot: "metrics",
+          },
           children,
         ],
       }),
@@ -47,7 +50,13 @@ function interceptRoutes(): Route[] {
         div: [children, slots.modal ?? { span: "" }],
       }),
       slots: {
-        modal: [{ path: "item", intercept: true, page: () => ({ span: "modal-item" }) }],
+        modal: [
+          {
+            path: "item",
+            intercept: true,
+            page: () => ({ span: "modal-item" }),
+          },
+        ],
       },
       children: [
         { path: "", page: () => ({ h1: "Gallery" }) },

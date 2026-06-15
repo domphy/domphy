@@ -1,38 +1,44 @@
-import { PartialElement, toState, type State } from "@domphy/core";
-import { themeSpacing, ThemeColor, themeColor, themeDensity, themeSize } from "@domphy/theme";
+import { type PartialElement, type State, toState } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 
-function selectItem(props: {
-  accentColor?: ThemeColor;
-  color?: ThemeColor;
-  value?: number | string;
-} = {}): PartialElement {
-  const {
-    accentColor = "primary",
-    color = "neutral",
-    value = null
-  } = props;
+function selectItem(
+  props: {
+    accentColor?: ThemeColor;
+    color?: ThemeColor;
+    value?: number | string;
+  } = {},
+): PartialElement {
+  const { accentColor = "primary", color = "neutral", value = null } = props;
 
-  let partial: PartialElement = {
+  const partial: PartialElement = {
     role: "option",
     _onInit: (node) => {
       if (node.tagName != "div") {
         console.warn(`"selectItem" patch must use div tag`);
       }
-      let select = node.getContext("select");
+      const select = node.getContext("select");
       if (select) {
-        let state = select.value
+        const state = select.value;
         node.attributes.set("ariaSelected", (listener) => {
-          let val = state.get(listener)
-          return select.multiple ? val.includes(value) : val == value
-        })
+          const val = state.get(listener);
+          return select.multiple ? val.includes(value) : val == value;
+        });
         node.addEvent("click", () => {
-          let val = state.get()
+          const val = state.get();
           if (select.multiple) {
-            val.includes(value) ? state.set(val.filter((v: number | string) => v !== value)) : state.set(val.concat([value]))
+            val.includes(value)
+              ? state.set(val.filter((v: number | string) => v !== value))
+              : state.set(val.concat([value]));
           } else {
-            val != value && state.set(value)
+            val != value && state.set(value);
           }
-        })
+        });
       }
     },
     style: {
@@ -50,11 +56,13 @@ function selectItem(props: {
         backgroundColor: (listener) => themeColor(listener, "shift-2", color),
       },
       "&[aria-selected=true]": {
-        backgroundColor: (listener) => themeColor(listener, "shift-6", accentColor),
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-6", accentColor),
         color: (listener) => themeColor(listener, "shift-11"),
       },
       "&:focus-visible": {
-        outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+        outline: (listener) =>
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
         outlineOffset: `-${themeSpacing(0.5)}`,
       },
     },

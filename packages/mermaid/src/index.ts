@@ -7,19 +7,19 @@
 //  - Client-side: the `mermaidClient` patch renders in the browser via the
 //    optional `mermaid` peer dependency.
 
-export { renderMermaidToSvg, normalizeMermaidSource } from "./renderer.js";
-export { renderMermaidCached, cacheKey, DEFAULT_CACHE_DIR } from "./cache.js";
-export { renderMermaidInTree } from "./tree.js";
-export { mermaidClient } from "./client.js";
+export { cacheKey, DEFAULT_CACHE_DIR, renderMermaidCached } from "./cache.js";
 export type {
+  MermaidBrowserModule,
   MermaidClientOptions,
   MermaidLoader,
-  MermaidBrowserModule,
 } from "./client.js";
+export { mermaidClient } from "./client.js";
+export { normalizeMermaidSource, renderMermaidToSvg } from "./renderer.js";
+export { renderMermaidInTree } from "./tree.js";
 export type {
-  MermaidTheme,
-  MermaidOptions,
   CacheOptions,
-  TreeOptions,
+  MermaidOptions,
   MermaidRenderer,
+  MermaidTheme,
+  TreeOptions,
 } from "./types.js";

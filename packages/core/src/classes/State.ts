@@ -1,9 +1,9 @@
-import { Notifier } from "./Notifier.js";
+import type { Handler } from "../types.js";
 import { activeCollector } from "./Collector.js";
-import { Handler } from "../types.js"
+import { Notifier } from "./Notifier.js";
 
-export type ValueListener<T> = ((_value: T) => void) & Handler
-export type ValueOrState<T> = T | State<T>
+export type ValueListener<T> = ((_value: T) => void) & Handler;
+export type ValueOrState<T> = T | State<T>;
 
 export class State<T> {
   readonly _isState = true;
@@ -11,7 +11,10 @@ export class State<T> {
   readonly initialValue: T;
   private _notifier: Notifier | null = new Notifier();
 
-  constructor(initialValue: T, readonly name: string = typeof initialValue) {
+  constructor(
+    initialValue: T,
+    readonly name: string = typeof initialValue,
+  ) {
     this.initialValue = initialValue;
     this._value = initialValue;
   }
@@ -41,7 +44,7 @@ export class State<T> {
   }
 
   addListener(listener: ValueListener<T>): () => void {
-    if (!this._notifier) return () => { };
+    if (!this._notifier) return () => {};
     return this._notifier.addListener(this.name, listener);
   }
 

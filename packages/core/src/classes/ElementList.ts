@@ -1,9 +1,9 @@
-import { TextNode } from "./TextNode.js";
-import { ElementNode } from "./ElementNode.js";
-import type { DomphyElement } from "../types.js";
 import { ensureDomStyle, getTagName } from "../helpers.js";
+import type { DomphyElement } from "../types.js";
+import { ElementNode } from "./ElementNode.js";
+import { TextNode } from "./TextNode.js";
 
-type ElementInput = DomphyElement | null | undefined | number | string
+type ElementInput = DomphyElement | null | undefined | number | string;
 type NodeItem = ElementNode | TextNode;
 
 export class ElementList {
@@ -16,7 +16,7 @@ export class ElementList {
   }
 
   _createNode(element: ElementInput | DomphyElement): NodeItem {
-    return (typeof element === "object" && element !== null)
+    return typeof element === "object" && element !== null
       ? new ElementNode(element, this.owner, this._nextKey++)
       : new TextNode(element == null ? "" : String(element), this.owner);
   }
@@ -50,18 +50,22 @@ export class ElementList {
   }
 
   update(inputs: ElementInput[], updateDom = true, silent = false): void {
-
     const oldItems = this.items.slice(); // snapshot for cleanup
 
     // keyed lookup from old list
     const keyed = new Map<string | number, NodeItem>();
     for (const item of oldItems) {
-      if (item instanceof ElementNode && item.key !== null && item.key !== undefined) {
+      if (
+        item instanceof ElementNode &&
+        item.key !== null &&
+        item.key !== undefined
+      ) {
         keyed.set(item.key, item);
       }
     }
 
-    if (!silent && this.owner.domElement) this.owner._hooks?.BeforeUpdate?.(this.owner, inputs);
+    if (!silent && this.owner.domElement)
+      this.owner._hooks?.BeforeUpdate?.(this.owner, inputs);
 
     const oldSet = new Set<NodeItem>(oldItems);
     const claimed = new Set<NodeItem>();
@@ -96,8 +100,13 @@ export class ElementList {
         // at this slot if its tag matches — this is what preserves focus, scroll,
         // selection, IME and uncontrolled input values across plain list updates.
         const at = this.items[i];
-        if (at instanceof ElementNode && at.key == null && at.tagName === tag
-            && oldSet.has(at) && !claimed.has(at)) {
+        if (
+          at instanceof ElementNode &&
+          at.key == null &&
+          at.tagName === tag &&
+          oldSet.has(at) &&
+          !claimed.has(at)
+        ) {
           at.parent = this.owner as any;
           at.patch(input as DomphyElement);
           claimed.add(at);
@@ -117,62 +126,64 @@ export class ElementList {
     if (!silent) this.owner._hooks?.Update?.(this.owner);
   }
 
-  insert(input: ElementInput, index?: number, updateDom = true, silent = false): NodeItem {
-
-    let length = this.items.length;
-    const finalIndex = (typeof index !== "number" || isNaN(index) || index < 0 || index > length)
-      ? length
-      : index;
+  insert(
+    input: ElementInput,
+    index?: number,
+    updateDom = true,
+    silent = false,
+  ): NodeItem {
+    const length = this.items.length;
+    const finalIndex =
+      typeof index !== "number" || isNaN(index) || index < 0 || index > length
+        ? length
+        : index;
     const item = this._createNode(input);
     this.items.splice(finalIndex, 0, item);
 
     if (item instanceof ElementNode) {
       //Parent always insert/mount before children
-      item._hooks.Insert && item._hooks.Insert(item)
+      item._hooks.Insert && item._hooks.Insert(item);
 
-      let domElement = this.owner.domElement;
+      const domElement = this.owner.domElement;
       if (updateDom && domElement) {
-
-
         if (item._portal) {
-          let domElement = item._portal!(this.owner.getRoot())
-          domElement && item.render(domElement)
+          const domElement = item._portal!(this.owner.getRoot());
+          domElement && item.render(domElement);
         } else {
-          let domNode = item._createDOMNode();
+          const domNode = item._createDOMNode();
           const ref = domElement.childNodes[finalIndex] ?? null;
           domElement.insertBefore(domNode, ref);
-          let root = domElement.getRootNode()
-          const styleParent = root instanceof ShadowRoot ? root : document.head
-          let domStyle = ensureDomStyle(styleParent)
-          item.styles.render(domStyle as HTMLStyleElement)
-          item._hooks.Mount && item._hooks.Mount(item)
-          item.children.items.forEach(child => {
+          const root = domElement.getRootNode();
+          const styleParent = root instanceof ShadowRoot ? root : document.head;
+          const domStyle = ensureDomStyle(styleParent);
+          item.styles.render(domStyle as HTMLStyleElement);
+          item._hooks.Mount && item._hooks.Mount(item);
+          item.children.items.forEach((child) => {
             if (child instanceof ElementNode && child._portal) {
-              let dom = child._portal!(child.getRoot())
-              dom && child.render(dom)
+              const dom = child._portal!(child.getRoot());
+              dom && child.render(dom);
             } else {
-              child.render(domNode)
+              child.render(domNode);
             }
-          })
+          });
         }
       }
-
-
-
     } else {
-      let domElement = this.owner.domElement;
+      const domElement = this.owner.domElement;
       if (updateDom && domElement) {
-        let domNode = item._createDOMNode();
+        const domNode = item._createDOMNode();
         const ref = domElement.childNodes[finalIndex] ?? null;
         domElement.insertBefore(domNode, ref);
       }
     }
-    !silent && this.owner.domElement && this.owner._hooks.Update && this.owner._hooks.Update(this.owner)
+    !silent &&
+      this.owner.domElement &&
+      this.owner._hooks.Update &&
+      this.owner._hooks.Update(this.owner);
     return item;
   }
 
   remove(item: NodeItem, updateDom = true, silent = false): void {
-
     const index = this.items.indexOf(item);
     if (index < 0) return;
 
@@ -183,34 +194,42 @@ export class ElementList {
       // guarded by the indexOf check above (the node is spliced before re-entry).
       if (item._beforeRemoveFired) return;
       const done = () => {
-        const el = item.domElement
+        const el = item.domElement;
         // Re-resolve position at completion time — a deferred (animated) removal
         // may run after other inserts/removes have shifted indices.
         const i = this.items.indexOf(item);
         if (i >= 0) this.items.splice(i, 1);
-        updateDom && el && el.remove()
+        updateDom && el && el.remove();
         item._dispose(); // _dispose fires Remove + releases subscriptions for the whole subtree
-      }
+      };
       if (item._hooks.BeforeRemove && item.domElement) {
         let doneCalled = false;
-        const onceDone = () => { if (!doneCalled) { doneCalled = true; done(); } };
+        const onceDone = () => {
+          if (!doneCalled) {
+            doneCalled = true;
+            done();
+          }
+        };
         item._beforeRemoveFired = true; // prevent _dispose from re-firing BeforeRemove
         item._hooks.BeforeRemove(item, onceDone);
         // Auto-complete only for sync cleanup hooks. A hook that declares `done`
         // (arity >= 2, e.g. an exit animation) owns completion and defers removal.
-        if ((item._hooks.BeforeRemove as Function).length < 2 && !doneCalled) onceDone();
+        if ((item._hooks.BeforeRemove as Function).length < 2 && !doneCalled)
+          onceDone();
       } else {
-        done()
+        done();
       }
-
     } else {
-      const el = item.domText
+      const el = item.domText;
       this.items.splice(index, 1);
-      updateDom && el && el.remove()
+      updateDom && el && el.remove();
       item._dispose();
     }
 
-    !silent && this.owner.domElement && this.owner._hooks.Update && this.owner._hooks.Update(this.owner)
+    !silent &&
+      this.owner.domElement &&
+      this.owner._hooks.Update &&
+      this.owner._hooks.Update(this.owner);
   }
 
   clear(updateDom = true, silent = false): void {
@@ -220,18 +239,26 @@ export class ElementList {
     for (const item of snapshot) {
       this.remove(item, updateDom, true);
     }
-    !silent && this.owner.domElement && this.owner._hooks.Update && this.owner._hooks.Update(this.owner)
+    !silent &&
+      this.owner.domElement &&
+      this.owner._hooks.Update &&
+      this.owner._hooks.Update(this.owner);
   }
 
   _dispose(): void {
-    this.items.forEach(child => child._dispose())
+    this.items.forEach((child) => child._dispose());
     this.items = [];
   }
 
   swap(aIndex: number, bIndex: number, updateDom = true, silent = false) {
-    if (aIndex < 0 || bIndex < 0 ||
-      aIndex >= this.items.length || bIndex >= this.items.length ||
-      aIndex === bIndex) return;
+    if (
+      aIndex < 0 ||
+      bIndex < 0 ||
+      aIndex >= this.items.length ||
+      bIndex >= this.items.length ||
+      aIndex === bIndex
+    )
+      return;
 
     const itemA = this.items[aIndex];
     const itemB = this.items[bIndex];
@@ -241,12 +268,26 @@ export class ElementList {
 
     if (updateDom) this._swapDomElement(itemA, itemB);
 
-    !silent && this.owner.domElement && this.owner._hooks.Update && this.owner._hooks.Update(this.owner)
+    !silent &&
+      this.owner.domElement &&
+      this.owner._hooks.Update &&
+      this.owner._hooks.Update(this.owner);
   }
 
-  move(fromIndex: number, toIndex: number, updateDom = true, silent = false): void {
-    if (fromIndex < 0 || fromIndex >= this.items.length ||
-      toIndex < 0 || toIndex >= this.items.length || fromIndex === toIndex) return;
+  move(
+    fromIndex: number,
+    toIndex: number,
+    updateDom = true,
+    silent = false,
+  ): void {
+    if (
+      fromIndex < 0 ||
+      fromIndex >= this.items.length ||
+      toIndex < 0 ||
+      toIndex >= this.items.length ||
+      fromIndex === toIndex
+    )
+      return;
 
     const item = this.items[fromIndex];
 
@@ -255,7 +296,10 @@ export class ElementList {
 
     if (updateDom) this._moveDomElement(item, toIndex);
 
-    !silent && this.owner.domElement && this.owner._hooks.Update && this.owner._hooks.Update(this.owner)
+    !silent &&
+      this.owner.domElement &&
+      this.owner._hooks.Update &&
+      this.owner._hooks.Update(this.owner);
   }
 
   generateHTML(): string {

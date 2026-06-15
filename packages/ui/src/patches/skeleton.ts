@@ -1,16 +1,27 @@
-import { type PartialElement, type StyleObject, hashString, toState, type ValueOrState } from "@domphy/core";
-import { themeColor, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
+import {
+  hashString,
+  type PartialElement,
+  type StyleObject,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 
-function skeleton(props: {
-  color?: ValueOrState<ThemeColor>;
-} = {}): PartialElement {
+function skeleton(
+  props: { color?: ValueOrState<ThemeColor> } = {},
+): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
 
   const keyframes = {
     "0%,100%": { opacity: 1 },
-    "50%": { opacity: .4 }
-  }
-  const animationName = hashString(JSON.stringify(keyframes))
+    "50%": { opacity: 0.4 },
+  };
+  const animationName = hashString(JSON.stringify(keyframes));
   return {
     ariaHidden: "true",
     dataTone: "shift-2",
@@ -20,7 +31,8 @@ function skeleton(props: {
       height: themeSpacing(6),
       display: "block",
       borderRadius: themeSpacing(1),
-      backgroundColor: (listener) => themeColor(listener, "inherit", color.get(listener)),
+      backgroundColor: (listener) =>
+        themeColor(listener, "inherit", color.get(listener)),
       animation: `${animationName} 1.5s ease-in-out infinite`,
       [`@keyframes ${animationName}`]: keyframes,
     } as StyleObject,

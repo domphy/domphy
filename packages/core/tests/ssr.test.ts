@@ -30,7 +30,10 @@ function hydrate(App: DomphyElement, opts: { stylePrefix?: string } = {}) {
   return { server, client, rootEl, styleEl, html, css };
 }
 
-function ruleFor(styleEl: HTMLStyleElement, classToken: string): CSSStyleRule | null {
+function ruleFor(
+  styleEl: HTMLStyleElement,
+  classToken: string,
+): CSSStyleRule | null {
   for (const r of Array.from(styleEl.sheet?.cssRules ?? [])) {
     const sr = r as CSSStyleRule;
     if (sr.selectorText && sr.selectorText.includes(classToken)) return sr;
@@ -63,28 +66,54 @@ describe("SSR: generateHTML", () => {
   });
 
   it("emits void elements with no closing tag", () => {
-    expect(new ElementNode({ input: null, type: "text" } as DomphyElement).generateHTML())
-      .toMatch(/^<input [^>]*>$/);
+    expect(
+      new ElementNode({
+        input: null,
+        type: "text",
+      } as DomphyElement).generateHTML(),
+    ).toMatch(/^<input [^>]*>$/);
     // <br></br> would be parsed as two <br> by the HTML tokenizer — must be a single tag.
-    expect(new ElementNode({ br: null } as DomphyElement).generateHTML()).not.toContain("</br>");
-    expect(new ElementNode({ img: null, src: "a.png" } as DomphyElement).generateHTML()).not.toContain("</img>");
-    expect(new ElementNode({ hr: null } as DomphyElement).generateHTML()).not.toContain("</hr>");
+    expect(
+      new ElementNode({ br: null } as DomphyElement).generateHTML(),
+    ).not.toContain("</br>");
+    expect(
+      new ElementNode({
+        img: null,
+        src: "a.png",
+      } as DomphyElement).generateHTML(),
+    ).not.toContain("</img>");
+    expect(
+      new ElementNode({ hr: null } as DomphyElement).generateHTML(),
+    ).not.toContain("</hr>");
   });
 
   it("void element output parses back to exactly one node", () => {
     const host = document.createElement("div");
-    host.innerHTML = new ElementNode({ br: null } as DomphyElement).generateHTML();
+    host.innerHTML = new ElementNode({
+      br: null,
+    } as DomphyElement).generateHTML();
     expect(host.querySelectorAll("br").length).toBe(1);
   });
 
   it("serializes boolean attributes presence/absence", () => {
-    expect(new ElementNode({ button: "x", disabled: true } as DomphyElement).generateHTML()).toContain("disabled");
-    const off = new ElementNode({ button: "x", disabled: false } as DomphyElement).generateHTML();
+    expect(
+      new ElementNode({
+        button: "x",
+        disabled: true,
+      } as DomphyElement).generateHTML(),
+    ).toContain("disabled");
+    const off = new ElementNode({
+      button: "x",
+      disabled: false,
+    } as DomphyElement).generateHTML();
     expect(off).not.toContain("disabled");
   });
 
   it("escapes attribute values", () => {
-    const html = new ElementNode({ div: "x", title: 'a"b<c>&d' } as DomphyElement).generateHTML();
+    const html = new ElementNode({
+      div: "x",
+      title: 'a"b<c>&d',
+    } as DomphyElement).generateHTML();
     expect(html).toContain("&quot;");
     expect(html).toContain("&lt;");
     expect(html).toContain("&amp;");
@@ -92,16 +121,22 @@ describe("SSR: generateHTML", () => {
   });
 
   it("escapes plain text content but preserves intentional inline HTML", () => {
-    const plain = new ElementNode({ div: "1 < 2 & 3 > 0" } as DomphyElement).generateHTML();
+    const plain = new ElementNode({
+      div: "1 < 2 & 3 > 0",
+    } as DomphyElement).generateHTML();
     expect(plain).toContain("1 &lt; 2 &amp; 3 &gt; 0");
     expect(plain).not.toContain("<2");
 
-    const inline = new ElementNode({ div: "<strong>hi</strong>" } as DomphyElement).generateHTML();
+    const inline = new ElementNode({
+      div: "<strong>hi</strong>",
+    } as DomphyElement).generateHTML();
     expect(inline).toContain("<strong>hi</strong>");
   });
 
   it("renders empty string as a zero-width space entity", () => {
-    expect(new ElementNode({ div: "" } as DomphyElement).generateHTML()).toContain("&#8203;");
+    expect(
+      new ElementNode({ div: "" } as DomphyElement).generateHTML(),
+    ).toContain("&#8203;");
   });
 
   it("resolves reactive content/attributes to their initial value", () => {
@@ -117,7 +152,10 @@ describe("SSR: generateHTML", () => {
 
 describe("SSR: generateCSS", () => {
   it("emits a class-scoped rule for inline style", () => {
-    const node = new ElementNode({ div: "x", style: { color: "red", fontSize: "12px" } } as DomphyElement);
+    const node = new ElementNode({
+      div: "x",
+      style: { color: "red", fontSize: "12px" },
+    } as DomphyElement);
     const css = node.generateCSS();
     expect(css).toMatch(/\.div_[a-z0-9]+\s*\{/i);
     expect(css).toContain("color: red");
@@ -144,7 +182,10 @@ describe("SSR: generateCSS", () => {
 
   it("resolves reactive style props to their initial value", () => {
     const c = toState("red");
-    const css = new ElementNode({ div: "x", style: { color: (l: any) => c.get(l) } } as DomphyElement).generateCSS();
+    const css = new ElementNode({
+      div: "x",
+      style: { color: (l: any) => c.get(l) },
+    } as DomphyElement).generateCSS();
     expect(css).toContain("color: red");
   });
 
@@ -159,12 +200,17 @@ describe("SSR: generateCSS", () => {
 
 describe("SSR: hydration via mount()", () => {
   it("throws when the dom element is missing", () => {
-    expect(() => new ElementNode({ div: "x" } as DomphyElement).mount(null as any)).toThrow();
+    expect(() =>
+      new ElementNode({ div: "x" } as DomphyElement).mount(null as any),
+    ).toThrow();
   });
 
   it("binds events to existing DOM and passes the node as 2nd arg", () => {
     let received: any = null;
-    const { rootEl } = hydrate({ button: "go", onClick: (_e: any, node: any) => (received = node) } as DomphyElement);
+    const { rootEl } = hydrate({
+      button: "go",
+      onClick: (_e: any, node: any) => (received = node),
+    } as DomphyElement);
     rootEl.dispatchEvent(new window.MouseEvent("click"));
     expect(received).not.toBeNull();
     expect(received.domElement).toBe(rootEl);
@@ -180,7 +226,10 @@ describe("SSR: hydration via mount()", () => {
 
   it("updates a reactive attribute after a state change", async () => {
     const flag = toState("a");
-    const { rootEl } = hydrate({ div: "x", dataState: (l: any) => flag.get(l) } as DomphyElement);
+    const { rootEl } = hydrate({
+      div: "x",
+      dataState: (l: any) => flag.get(l),
+    } as DomphyElement);
     expect(rootEl.getAttribute("data-state")).toBe("a");
     flag.set("b");
     await flush();
@@ -189,7 +238,10 @@ describe("SSR: hydration via mount()", () => {
 
   it("updates a reactive style on the existing stylesheet rule (no re-render)", async () => {
     const color = toState("red");
-    const { rootEl, styleEl } = hydrate({ div: "x", style: { color: (l: any) => color.get(l) } } as DomphyElement);
+    const { rootEl, styleEl } = hydrate({
+      div: "x",
+      style: { color: (l: any) => color.get(l) },
+    } as DomphyElement);
     const token = classToken(rootEl);
     expect(ruleFor(styleEl, token)?.style.color).toBe("red");
     color.set("green");
@@ -227,7 +279,9 @@ describe("SSR: hydration via mount()", () => {
 
   it("replaces reactive text without duplicating the server node", async () => {
     const count = toState(0);
-    const { rootEl } = hydrate({ span: (l: any) => `n=${count.get(l)}` } as DomphyElement);
+    const { rootEl } = hydrate({
+      span: (l: any) => `n=${count.get(l)}`,
+    } as DomphyElement);
     expect(rootEl.textContent).toBe("n=0");
     count.set(7);
     await flush();
@@ -241,7 +295,8 @@ describe("SSR: hydration via mount()", () => {
       { id: 2, n: "b" },
     ]);
     const { rootEl } = hydrate({
-      ul: (l: any) => items.get(l).map((it: any) => ({ li: it.n, _key: it.id })),
+      ul: (l: any) =>
+        items.get(l).map((it: any) => ({ li: it.n, _key: it.id })),
     } as DomphyElement);
 
     const lis = Array.from(rootEl.querySelectorAll("li"));
@@ -266,7 +321,8 @@ describe("SSR: hydration via mount()", () => {
       { id: 2, n: "b" },
     ]);
     const { rootEl } = hydrate({
-      ul: (l: any) => items.get(l).map((it: any) => ({ li: it.n, _key: it.id })),
+      ul: (l: any) =>
+        items.get(l).map((it: any) => ({ li: it.n, _key: it.id })),
     } as DomphyElement);
     expect(rootEl.querySelectorAll("li").length).toBe(2);
 
@@ -299,7 +355,10 @@ describe("SSR: hydration via mount()", () => {
 
   it("releases listeners on removal so reactive updates stop", async () => {
     const color = toState("red");
-    const { client, styleEl, rootEl } = hydrate({ div: "x", style: { color: (l: any) => color.get(l) } } as DomphyElement);
+    const { client, styleEl, rootEl } = hydrate({
+      div: "x",
+      style: { color: (l: any) => color.get(l) },
+    } as DomphyElement);
     const token = classToken(rootEl);
     client.remove();
     color.set("purple");
@@ -313,7 +372,11 @@ describe("SSR: hydration via mount()", () => {
 describe("SSR: server/client HTML parity", () => {
   it("produces identical structure on server generateHTML and client re-render", () => {
     const App: DomphyElement = {
-      section: [{ h2: "Heading" }, { p: "Para" }, { input: null, type: "text" }],
+      section: [
+        { h2: "Heading" },
+        { p: "Para" },
+        { input: null, type: "text" },
+      ],
       id: "main",
     } as DomphyElement;
 

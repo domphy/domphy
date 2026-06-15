@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ElementNode, toState } from "@domphy/core";
+
 import type { DomphyElement } from "@domphy/core";
+import { ElementNode, toState } from "@domphy/core";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dialog, menuItem, tab, toggle } from "../src/index.ts";
 
 function render(App: DomphyElement) {
@@ -58,9 +59,15 @@ describe("provider-context patches degrade gracefully without a provider", () =>
 
     // Wrap in a parent so the patch's _onInsert fires (render() does not fire
     // Insert on the root node — only children get inserted).
-    expect(() => render({ div: [{ button: "Item", $: [menuItem()] }] } as DomphyElement)).not.toThrow();
-    expect(() => render({ div: [{ button: "Tab", $: [tab()] }] } as DomphyElement)).not.toThrow();
-    expect(() => render({ div: [{ button: "Toggle", $: [toggle()] }] } as DomphyElement)).not.toThrow();
+    expect(() =>
+      render({ div: [{ button: "Item", $: [menuItem()] }] } as DomphyElement),
+    ).not.toThrow();
+    expect(() =>
+      render({ div: [{ button: "Tab", $: [tab()] }] } as DomphyElement),
+    ).not.toThrow();
+    expect(() =>
+      render({ div: [{ button: "Toggle", $: [toggle()] }] } as DomphyElement),
+    ).not.toThrow();
 
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();

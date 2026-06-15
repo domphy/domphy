@@ -1,9 +1,9 @@
-import { DomphyElement } from '@domphy/core'
-import { paragraph } from "@domphy/ui"
+import type { DomphyElement } from "@domphy/core";
+import { paragraph } from "@domphy/ui";
 
 const App: DomphyElement<"p"> = {
-    p: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-    $: [paragraph()],
-}
+  p: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+  $: [paragraph()],
+};
 
-export default App
+export default App;

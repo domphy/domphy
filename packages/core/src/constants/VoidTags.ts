@@ -15,4 +15,3 @@ export const VoidTags = [
 ] as const;
 
 export type VoidTagName = (typeof VoidTags)[number];
-

@@ -1,7 +1,7 @@
-import type { ElementNode } from "./ElementNode.js";
-import { ElementAttribute } from "./ElementAttribute.js";
 import { BooleanAttributes } from "../constants.js";
-import { AttributeValue } from "../types.js"
+import type { AttributeValue } from "../types.js";
+import { ElementAttribute } from "./ElementAttribute.js";
+import type { ElementNode } from "./ElementNode.js";
 
 export class AttributeList {
   items: Record<string, ElementAttribute> | null = {};
@@ -41,7 +41,7 @@ export class AttributeList {
 
   has(name: string): boolean {
     if (!this.items) return false;
-    return Object.prototype.hasOwnProperty.call(this.items, name);
+    return Object.hasOwn(this.items, name);
   }
 
   remove(name: string): void {
@@ -52,7 +52,11 @@ export class AttributeList {
       delete this.items[name];
     }
 
-    if (this.parent && this.parent.domElement && this.parent.domElement instanceof Element) {
+    if (
+      this.parent &&
+      this.parent.domElement &&
+      this.parent.domElement instanceof Element
+    ) {
       this.parent.domElement.removeAttribute(name);
     }
   }
@@ -87,16 +91,16 @@ export class AttributeList {
 
     const add = (classes: string, newClass: string) => {
       const list = (classes || "").split(" ").filter((e: string) => e);
-      !list.includes(newClass) && list.push(className)
-      return list.join(" ")
-    }
+      !list.includes(newClass) && list.push(className);
+      return list.join(" ");
+    };
 
-    let current = this.get("class");
+    const current = this.get("class");
 
     if (typeof current === "function") {
       this.set("class", () => add(current(), className));
     } else {
-      this.set("class", add(current, className))
+      this.set("class", add(current, className));
     }
   }
 

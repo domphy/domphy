@@ -72,8 +72,16 @@ describe("renderMermaidCached", () => {
   it("bypasses the cache when cache is disabled", async () => {
     const renderer = vi.fn(async () => "<svg/>");
 
-    await renderMermaidCached("graph TD; A-->B;", { cacheDir, cache: false }, renderer);
-    await renderMermaidCached("graph TD; A-->B;", { cacheDir, cache: false }, renderer);
+    await renderMermaidCached(
+      "graph TD; A-->B;",
+      { cacheDir, cache: false },
+      renderer,
+    );
+    await renderMermaidCached(
+      "graph TD; A-->B;",
+      { cacheDir, cache: false },
+      renderer,
+    );
 
     expect(renderer).toHaveBeenCalledTimes(2);
   });

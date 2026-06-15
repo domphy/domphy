@@ -32,7 +32,8 @@ describe("#3 keyed reconciliation reflects new data on the reused node", () => {
   it("updates text content for a reused key", async () => {
     const items = toState([{ id: 1, t: "a" }], "k1");
     const { host } = mountApp({
-      ul: (l: any) => items.get(l).map((it: any) => ({ li: it.t, _key: it.id })),
+      ul: (l: any) =>
+        items.get(l).map((it: any) => ({ li: it.t, _key: it.id })),
     } as DomphyElement);
 
     const li = host.querySelector("li")!;
@@ -48,7 +49,10 @@ describe("#3 keyed reconciliation reflects new data on the reused node", () => {
   it("updates an attribute for a reused key", async () => {
     const items = toState([{ id: 1, title: "T1" }], "k2");
     const { host } = mountApp({
-      ul: (l: any) => items.get(l).map((it: any) => ({ li: "x", _key: it.id, title: it.title })),
+      ul: (l: any) =>
+        items
+          .get(l)
+          .map((it: any) => ({ li: "x", _key: it.id, title: it.title })),
     } as DomphyElement);
 
     const li = host.querySelector("li")!;
@@ -64,7 +68,8 @@ describe("#3 keyed reconciliation reflects new data on the reused node", () => {
   it("updates nested children for a reused key while preserving the outer element", async () => {
     const items = toState([{ id: "r", v: "v1" }], "k3");
     const { host } = mountApp({
-      div: (l: any) => items.get(l).map((it: any) => ({ div: [{ span: it.v }], _key: it.id })),
+      div: (l: any) =>
+        items.get(l).map((it: any) => ({ div: [{ span: it.v }], _key: it.id })),
     } as DomphyElement);
 
     const outer = host.querySelector("div > div")!;
@@ -78,14 +83,24 @@ describe("#3 keyed reconciliation reflects new data on the reused node", () => {
   });
 
   it("reorders by key, preserving identity AND updating data", async () => {
-    const items = toState([{ id: 1, t: "a" }, { id: 2, t: "b" }], "k4");
+    const items = toState(
+      [
+        { id: 1, t: "a" },
+        { id: 2, t: "b" },
+      ],
+      "k4",
+    );
     const { host } = mountApp({
-      ul: (l: any) => items.get(l).map((it: any) => ({ li: it.t, _key: it.id })),
+      ul: (l: any) =>
+        items.get(l).map((it: any) => ({ li: it.t, _key: it.id })),
     } as DomphyElement);
 
     const firstLi = host.querySelectorAll("li")[0]; // key 1
 
-    items.set([{ id: 2, t: "B" }, { id: 1, t: "A" }]);
+    items.set([
+      { id: 2, t: "B" },
+      { id: 1, t: "A" },
+    ]);
     await flush();
 
     const after = Array.from(host.querySelectorAll("li"));
@@ -118,7 +133,9 @@ describe("#3 keyed reconciliation reflects new data on the reused node", () => {
 
   it("replaces (does not reuse) when the same key changes tag", async () => {
     const items = toState<any[]>([{ div: "x", _key: 1 }], "k6");
-    const { host } = mountApp({ section: (l: any) => items.get(l) } as DomphyElement);
+    const { host } = mountApp({
+      section: (l: any) => items.get(l),
+    } as DomphyElement);
     expect(host.querySelector("div")!.textContent).toBe("x");
 
     items.set([{ span: "y", _key: 1 }]);
@@ -155,7 +172,8 @@ describe("#11 unkeyed lists reuse DOM by position (preserve focus/value/scroll)"
   it("preserves focus and uncontrolled value of an input across an unkeyed update", async () => {
     const items = toState([{ v: "x" }, { v: "y" }], "u1");
     const { host } = mountApp({
-      div: (l: any) => items.get(l).map((it: any) => ({ input: null, placeholder: it.v })),
+      div: (l: any) =>
+        items.get(l).map((it: any) => ({ input: null, placeholder: it.v })),
     } as DomphyElement);
 
     const inputs = host.querySelectorAll("input");
@@ -179,11 +197,15 @@ describe("#11 unkeyed lists reuse DOM by position (preserve focus/value/scroll)"
     const { host } = mountApp({
       ul: (l: any) => items.get(l).map((t: string) => ({ li: t })),
     } as DomphyElement);
-    expect(Array.from(host.querySelectorAll("li")).map((li) => li.textContent)).toEqual(["a", "b", "c"]);
+    expect(
+      Array.from(host.querySelectorAll("li")).map((li) => li.textContent),
+    ).toEqual(["a", "b", "c"]);
 
     items.set(["a", "b", "d"]);
     await flush();
-    expect(Array.from(host.querySelectorAll("li")).map((li) => li.textContent)).toEqual(["a", "b", "d"]);
+    expect(
+      Array.from(host.querySelectorAll("li")).map((li) => li.textContent),
+    ).toEqual(["a", "b", "d"]);
   });
 
   it("preserves a nested input's focus when a keyed row is reordered", async () => {

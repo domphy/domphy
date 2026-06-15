@@ -1,4 +1,4 @@
-import { type DomphyElement } from "@domphy/core"
+import type { DomphyElement } from "@domphy/core";
 
 const families = [
   "neutral",
@@ -11,7 +11,7 @@ const families = [
   "error",
   "danger",
   "highlight",
-]
+];
 
 const row = (family: string): DomphyElement<"div"> => ({
   div: [
@@ -47,7 +47,7 @@ const row = (family: string): DomphyElement<"div"> => ({
     gap: "8px",
     marginBottom: "4px",
   },
-})
+});
 
 const App: DomphyElement<"div"> = {
   div: families.map(row),
@@ -56,6 +56,6 @@ const App: DomphyElement<"div"> = {
     padding: "16px",
     fontFamily: "system-ui, sans-serif",
   },
-}
+};
 
-export default App
+export default App;

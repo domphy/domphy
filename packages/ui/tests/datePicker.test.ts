@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { DomphyElement } from "@domphy/core";
-import { ElementNode, type State, toState } from "@domphy/core";
+import { ElementNode, toState } from "@domphy/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type DatePickerValue, datePicker } from "../src/index.ts";
 

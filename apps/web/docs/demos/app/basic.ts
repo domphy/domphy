@@ -1,4 +1,3 @@
-import type { DomphyElement } from "@domphy/core";
 import {
   createApp,
   createMemoryHistory,
@@ -6,6 +5,7 @@ import {
   navLink,
   type RouteContext,
 } from "@domphy/app";
+import type { DomphyElement } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
 import { heading, link, paragraph, small, spinner } from "@domphy/ui";
 

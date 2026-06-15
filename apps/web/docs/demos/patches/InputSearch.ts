@@ -1,50 +1,50 @@
-import type { DomphyElement } from '@domphy/core'
-import { inputSearch, label } from "@domphy/ui"
-import { themeSpacing } from "@domphy/theme"
+import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
+import { inputSearch, label } from "@domphy/ui";
 
 const App: DomphyElement<"div"> = {
-    div: [
+  div: [
+    {
+      label: [
+        "Search docs",
         {
-            label: [
-                "Search docs",
-                {
-                    input: null,
-                    placeholder: "Search primitives...",
-                    $: [inputSearch()],
-                },
-            ],
-            $: [label()],
+          input: null,
+          placeholder: "Search primitives...",
+          $: [inputSearch()],
         },
-        {
-            label: [
-                "Search users",
-                {
-                    input: null,
-                    value: "Khanh",
-                    $: [inputSearch({ accentColor: "secondary" })],
-                },
-            ],
-            $: [label()],
-        },
-        {
-            label: [
-                "Disabled",
-                {
-                    input: null,
-                    value: "readonly",
-                    disabled: true,
-                    $: [inputSearch()],
-                },
-            ],
-            ariaDisabled: true,
-            $: [label()],
-        },
-    ],
-    style: {
-        display: "flex",
-        flexDirection: "column",
-        gap: themeSpacing(4),
+      ],
+      $: [label()],
     },
-}
+    {
+      label: [
+        "Search users",
+        {
+          input: null,
+          value: "Khanh",
+          $: [inputSearch({ accentColor: "secondary" })],
+        },
+      ],
+      $: [label()],
+    },
+    {
+      label: [
+        "Disabled",
+        {
+          input: null,
+          value: "readonly",
+          disabled: true,
+          $: [inputSearch()],
+        },
+      ],
+      ariaDisabled: true,
+      $: [label()],
+    },
+  ],
+  style: {
+    display: "flex",
+    flexDirection: "column",
+    gap: themeSpacing(4),
+  },
+};
 
-export default App
+export default App;

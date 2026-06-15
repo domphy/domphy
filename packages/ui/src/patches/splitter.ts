@@ -1,110 +1,119 @@
-import { type PartialElement, merge, toState } from "@domphy/core";
+import { merge, type PartialElement, toState } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 
-function splitter(props: {
+function splitter(
+  props: {
     direction?: "horizontal" | "vertical";
     defaultSize?: number;
     min?: number;
     max?: number;
-} = {}): PartialElement {
-    const { direction = "horizontal", defaultSize = 50, min = 10, max = 90 } = props;
-    return {
-        _onSchedule: (node, element) => {
-            merge(element, {
-                _context: {
-                    splitter: {
-                        direction,
-                        size: toState(defaultSize),
-                        min,
-                        max,
-                    },
-                },
-            });
+  } = {},
+): PartialElement {
+  const {
+    direction = "horizontal",
+    defaultSize = 50,
+    min = 10,
+    max = 90,
+  } = props;
+  return {
+    _onSchedule: (node, element) => {
+      merge(element, {
+        _context: {
+          splitter: {
+            direction,
+            size: toState(defaultSize),
+            min,
+            max,
+          },
         },
-        style: {
-            display: "flex",
-            flexDirection: direction === "horizontal" ? "row" : "column",
-            overflow: "hidden",
-        },
-    };
+      });
+    },
+    style: {
+      display: "flex",
+      flexDirection: direction === "horizontal" ? "row" : "column",
+      overflow: "hidden",
+    },
+  };
 }
 
 function splitterPanel(): PartialElement {
-    return {
-        _onMount: (node) => {
-            const ctx = node.getContext("splitter");
-            if (!ctx) {
-                console.warn(`"splitterPanel" patch must be used inside a "splitter"`);
-                return;
-            }
-            const el = node.domElement as HTMLElement;
-            const prop = ctx.direction === "horizontal" ? "width" : "height";
+  return {
+    _onMount: (node) => {
+      const ctx = node.getContext("splitter");
+      if (!ctx) {
+        console.warn(`"splitterPanel" patch must be used inside a "splitter"`);
+        return;
+      }
+      const el = node.domElement as HTMLElement;
+      const prop = ctx.direction === "horizontal" ? "width" : "height";
 
-            el.style[prop] = `${ctx.size.get()}%`;
-            el.style.flexShrink = "0";
-            el.style.overflow = "auto";
+      el.style[prop] = `${ctx.size.get()}%`;
+      el.style.flexShrink = "0";
+      el.style.overflow = "auto";
 
-            const release = ctx.size.addListener((size: number) => {
-                el.style[prop] = `${size}%`;
-            });
-            node.addHook("Remove", release);
-        },
-    };
+      const release = ctx.size.addListener((size: number) => {
+        el.style[prop] = `${size}%`;
+      });
+      node.addHook("Remove", release);
+    },
+  };
 }
 
 function splitterHandle(): PartialElement {
-    return {
-        _onMount: (node) => {
-            const ctx = node.getContext("splitter");
-            if (!ctx) {
-                console.warn(`"splitterHandle" patch must be used inside a "splitter"`);
-                return;
-            }
-            const handle = node.domElement as HTMLElement;
-            const isHorizontal = ctx.direction === "horizontal";
+  return {
+    _onMount: (node) => {
+      const ctx = node.getContext("splitter");
+      if (!ctx) {
+        console.warn(`"splitterHandle" patch must be used inside a "splitter"`);
+        return;
+      }
+      const handle = node.domElement as HTMLElement;
+      const isHorizontal = ctx.direction === "horizontal";
 
-            handle.style.cursor = isHorizontal ? "col-resize" : "row-resize";
+      handle.style.cursor = isHorizontal ? "col-resize" : "row-resize";
 
-            const onMousedown = (e: MouseEvent) => {
-                e.preventDefault();
-                const container = handle.parentElement!;
+      const onMousedown = (e: MouseEvent) => {
+        e.preventDefault();
+        const container = handle.parentElement!;
 
-                const onMousemove = (e: MouseEvent) => {
-                    const rect = container.getBoundingClientRect();
-                    const raw = isHorizontal
-                        ? ((e.clientX - rect.left) / rect.width) * 100
-                        : ((e.clientY - rect.top) / rect.height) * 100;
-                    ctx.size.set(Math.min(Math.max(raw, ctx.min), ctx.max));
-                };
+        const onMousemove = (e: MouseEvent) => {
+          const rect = container.getBoundingClientRect();
+          const raw = isHorizontal
+            ? ((e.clientX - rect.left) / rect.width) * 100
+            : ((e.clientY - rect.top) / rect.height) * 100;
+          ctx.size.set(Math.min(Math.max(raw, ctx.min), ctx.max));
+        };
 
-                const onMouseup = () => {
-                    document.removeEventListener("mousemove", onMousemove);
-                    document.removeEventListener("mouseup", onMouseup);
-                };
+        const onMouseup = () => {
+          document.removeEventListener("mousemove", onMousemove);
+          document.removeEventListener("mouseup", onMouseup);
+        };
 
-                document.addEventListener("mousemove", onMousemove);
-                document.addEventListener("mouseup", onMouseup);
-            };
+        document.addEventListener("mousemove", onMousemove);
+        document.addEventListener("mouseup", onMouseup);
+      };
 
-            handle.addEventListener("mousedown", onMousedown);
-            node.addHook("Remove", () => handle.removeEventListener("mousedown", onMousedown));
-        },
-        style: {
-            flexShrink: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: (listener) => themeColor(listener, "shift-2"),
-            "&:hover": {
-                backgroundColor: (listener) => themeColor(listener, "shift-3"),
-            },
-            "&::after": {
-                content: '""',
-                borderRadius: themeSpacing(999),
-                backgroundColor: (listener) => themeColor(listener, "shift-4"),
-            },
-        },
-    };
+      handle.addEventListener("mousedown", onMousedown);
+      node.addHook("Remove", () =>
+        handle.removeEventListener("mousedown", onMousedown),
+      );
+    },
+    style: {
+      flexShrink: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: (listener) => themeColor(listener, "shift-2"),
+      "&:hover": {
+        backgroundColor: (listener) => themeColor(listener, "shift-3"),
+      },
+      "&::after": {
+        content: '""',
+        borderRadius: themeSpacing(999),
+        backgroundColor: (listener) => themeColor(listener, "shift-4"),
+      },
+    },
+  };
 }
 
 export { splitter, splitterPanel, splitterHandle };

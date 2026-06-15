@@ -1,6 +1,6 @@
-import { ElementNode } from "./ElementNode.js";
-import { StyleProperty } from "./StyleProperty.js";
+import type { ElementNode } from "./ElementNode.js";
 import { StyleList } from "./StyleList.js";
+import { StyleProperty } from "./StyleProperty.js";
 
 export class StyleRule {
   selectorText: string;
@@ -16,7 +16,6 @@ export class StyleRule {
   }
 
   _dispose(): void {
-
     if (this.styleBlock) {
       for (const prop of Object.values(this.styleBlock)) {
         prop._dispose();
@@ -48,7 +47,7 @@ export class StyleRule {
     }
     return root as ElementNode;
   }
-  
+
   insertStyle(name: string, val: any): void {
     if (!this.styleBlock) return;
     if (this.styleBlock[name]) {
@@ -67,7 +66,9 @@ export class StyleRule {
 
   cssText(): string {
     if (!this.styleBlock || !this.styleList) return "";
-    const styleStr = Object.values(this.styleBlock).map(decl => decl.cssText()).join(";");
+    const styleStr = Object.values(this.styleBlock)
+      .map((decl) => decl.cssText())
+      .join(";");
     const nested = this.styleList.cssText();
     return `${this.selectorText} { ${styleStr} ${nested} } `;
   }
@@ -81,7 +82,6 @@ export class StyleRule {
   }
 
   remove(): void {
-
     if (this.domRule && this.domRule.parentStyleSheet) {
       const sheet = this.domRule.parentStyleSheet;
       const rules = sheet.cssRules;
@@ -97,7 +97,9 @@ export class StyleRule {
 
   render(domSheet: CSSStyleSheet | CSSGroupingRule) {
     if (!this.styleBlock || !this.styleList) return;
-    const styleStr = Object.values(this.styleBlock).map(decl => decl.cssText()).join(";");
+    const styleStr = Object.values(this.styleBlock)
+      .map((decl) => decl.cssText())
+      .join(";");
     try {
       if (!this.selectorText.startsWith("@")) {
         const css = `${this.selectorText} { ${styleStr} }`;
@@ -106,14 +108,22 @@ export class StyleRule {
         if (domRule && "selectorText" in domRule) {
           this.mount(domRule);
         }
-      } else if (/^@(media|supports|container|layer)\b/.test(this.selectorText)) {
-        const index = domSheet.insertRule(`${this.selectorText} {}`, domSheet.cssRules.length);
+      } else if (
+        /^@(media|supports|container|layer)\b/.test(this.selectorText)
+      ) {
+        const index = domSheet.insertRule(
+          `${this.selectorText} {}`,
+          domSheet.cssRules.length,
+        );
         const domRule = domSheet.cssRules[index];
         if ("cssRules" in domRule) {
           this.mount(domRule as CSSGroupingRule);
           this.styleList.render(domRule as CSSGroupingRule);
         }
-      } else if (this.selectorText.startsWith("@keyframes") || this.selectorText.startsWith("@font-face")) {
+      } else if (
+        this.selectorText.startsWith("@keyframes") ||
+        this.selectorText.startsWith("@font-face")
+      ) {
         const css = this.cssText();
         const index = domSheet.insertRule(css, domSheet.cssRules.length);
         const domRule = domSheet.cssRules[index];

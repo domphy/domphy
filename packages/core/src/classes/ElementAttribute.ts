@@ -1,8 +1,8 @@
-import { escapeHTML, camelToKebab } from "../helpers.js";
 import { BooleanAttributes, CamelAttributes } from "../constants.js";
-import type { ElementNode } from "./ElementNode.js"
-import { type AttributeValue } from "../types.js"
-import { Notifier } from "./Notifier.js"
+import { camelToKebab, escapeHTML } from "../helpers.js";
+import type { AttributeValue } from "../types.js";
+import type { ElementNode } from "./ElementNode.js";
+import { Notifier } from "./Notifier.js";
 
 export class ElementAttribute {
   readonly name: string;
@@ -19,9 +19,9 @@ export class ElementAttribute {
     this.parent = parent;
     this.isBoolean = (BooleanAttributes as readonly string[]).includes(name);
     if (CamelAttributes.includes(name)) {
-      this.name = name
+      this.name = name;
     } else {
-      this.name = camelToKebab(name)
+      this.name = camelToKebab(name);
     }
     this.value = undefined;
     this.set(value);
@@ -34,9 +34,12 @@ export class ElementAttribute {
     const mutateAttrs = ["value"];
     if (this.isBoolean) {
       if (this.value === false || this.value == null) {
-        domElement.removeAttribute(this.name)
+        domElement.removeAttribute(this.name);
       } else {
-        domElement.setAttribute(this.name, this.value === true ? "" : this.value)
+        domElement.setAttribute(
+          this.name,
+          this.value === true ? "" : this.value,
+        );
       }
     } else if (this.value == null) {
       domElement.removeAttribute(this.name);
@@ -48,7 +51,7 @@ export class ElementAttribute {
   }
 
   set(value: AttributeValue): void {
-    let prev = this.value;
+    const prev = this.value;
 
     // Drop any previous reactive subscription before (re)binding.
     if (this._releases.length) {
@@ -61,10 +64,12 @@ export class ElementAttribute {
     } else if (typeof value == "function") {
       let listener: any = () => {
         if (!this.parent || this.parent._disposed) return;
-        let p = this.value;
+        const p = this.value;
         // Re-pass `listener` so states read only on a later run (conditional
         // dependencies) get subscribed too — matching children/style paths.
-        this.value = this.isBoolean ? Boolean((value as Function)(listener)) : (value as Function)(listener);
+        this.value = this.isBoolean
+          ? Boolean((value as Function)(listener))
+          : (value as Function)(listener);
         this.render();
         if (p !== this.value) this._notifier.notify(this.name, this.value);
       };
@@ -92,9 +97,10 @@ export class ElementAttribute {
   }
 
   addListener(callback: (value: any) => void): void {
-    const handler = callback as any
-    handler.onSubscribe = (release: () => void) => this.parent?.addHook("BeforeRemove", release);
-    this._notifier.addListener(this.name, handler)
+    const handler = callback as any;
+    handler.onSubscribe = (release: () => void) =>
+      this.parent?.addHook("BeforeRemove", release);
+    this._notifier.addListener(this.name, handler);
   }
 
   remove(): void {
@@ -107,7 +113,7 @@ export class ElementAttribute {
   _dispose(): void {
     this._notifier._dispose();
     this.value = null;
-    this.parent = null as any
+    this.parent = null as any;
   }
 
   generateHTML(): string {

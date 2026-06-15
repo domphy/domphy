@@ -1,4 +1,4 @@
-import { toState, type DomphyElement } from "@domphy/core";
+import { type DomphyElement, toState } from "@domphy/core";
 import { button } from "@domphy/ui";
 import i18next from "i18next";
 

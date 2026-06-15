@@ -9,9 +9,9 @@
 // reading the global avoids that and keeps this bundle tiny.
 import type { PartialElement } from "@domphy/core";
 import {
-  makeMermaidClient,
   type MermaidBrowserModule,
   type MermaidClientOptions,
+  makeMermaidClient,
 } from "./client.js";
 
 /** Reads a globally loaded `mermaid` (e.g. from a CDN <script>). */
@@ -35,4 +35,4 @@ export function mermaidClient(
 }
 
 export type { MermaidClientOptions } from "./client.js";
-export type { MermaidTheme, MermaidOptions } from "./types.js";
+export type { MermaidOptions, MermaidTheme } from "./types.js";

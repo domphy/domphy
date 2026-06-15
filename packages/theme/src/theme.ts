@@ -1,6 +1,6 @@
-import { ElementNode, Listener } from "@domphy/core";
-import { ThemeInput, ThemeVars } from "./types.js";
+import type { ElementNode, Listener } from "@domphy/core";
 import light from "./light.js";
+import type { ThemeInput, ThemeVars } from "./types.js";
 
 // JSON clone (not structuredClone) so the build runs in older embedded
 // browsers like SketchUp 2022's CEF, which predates Chromium 98.
@@ -25,7 +25,7 @@ function colorSteps(input: ThemeInput): number {
 // --- Validation ---
 
 function validateTheme(partial: Partial<ThemeInput>): void {
-  for (let key in partial) {
+  for (const key in partial) {
     if (!Object.keys(light).includes(key as keyof ThemeInput)) {
       throw new Error(`Invalid key: ${key}`);
     }
@@ -34,7 +34,10 @@ function validateTheme(partial: Partial<ThemeInput>): void {
     throw new Error(`fontSize must be array of string`);
   }
   if (partial.densities) {
-    if (!Array.isArray(partial.densities) || partial.densities.some(v => typeof v !== "number")) {
+    if (
+      !Array.isArray(partial.densities) ||
+      partial.densities.some((v) => typeof v !== "number")
+    ) {
       throw new Error(`densities must be array of number`);
     }
   }
@@ -74,18 +77,20 @@ function buildThemeCSS(name: string, input: ThemeInput): string {
 
     if (key === "colors") {
       for (const colorName in input.colors) {
-        [...Array(toneSteps).keys()].forEach(i =>
-          styles[`--${colorName}-${i}`] = input.colors[colorName][i]
+        [...Array(toneSteps).keys()].forEach(
+          (i) => (styles[`--${colorName}-${i}`] = input.colors[colorName][i]),
         );
       }
     } else if (key === "fontSizes") {
-      [...Array(8).keys()].forEach(i =>
-        styles[`--fontSize-${i}`] = input.fontSizes[i]
+      [...Array(8).keys()].forEach(
+        (i) => (styles[`--fontSize-${i}`] = input.fontSizes[i]),
       );
     } else if (key === "custom") {
       if (value && typeof value === "object") {
         for (const k in value as Record<string, string>) {
-          styles[`--custom-${escapeKey(k)}`] = (value as Record<string, string>)[k];
+          styles[`--custom-${escapeKey(k)}`] = (
+            value as Record<string, string>
+          )[k];
         }
       }
     }
@@ -113,27 +118,29 @@ export function setTheme(name: string, input: Partial<ThemeInput>): void {
 }
 
 function createDark(source: ThemeInput): ThemeInput {
-  let dark = clone(source)
-  dark.direction = "lighten"
-  for (let name in dark.colors) {
-    dark.colors[name].reverse()
-    dark.baseTones[name] = dark.colors[name].length - 1 - dark.baseTones[name]
+  const dark = clone(source);
+  dark.direction = "lighten";
+  for (const name in dark.colors) {
+    dark.colors[name].reverse();
+    dark.baseTones[name] = dark.colors[name].length - 1 - dark.baseTones[name];
   }
-  return dark
+  return dark;
 }
 
 export function themeTokens(name: string): Record<string, any> {
-  let input = getTheme(name)
+  const input = getTheme(name);
   const toneSteps = colorSteps(input);
-  let tokens: Record<string, any> = {};
+  const tokens: Record<string, any> = {};
 
   for (const key in input) {
     const value = input[key as keyof ThemeInput];
 
     if (key === "colors") {
       for (const name in input.colors) {
-        let colorTones = {} as Partial<Record<number, string>>;
-        [...Array(toneSteps).keys()].forEach(i => colorTones[i] = input.colors[name][i]);
+        const colorTones = {} as Partial<Record<number, string>>;
+        [...Array(toneSteps).keys()].forEach(
+          (i) => (colorTones[i] = input.colors[name][i]),
+        );
         tokens[name] = colorTones as Record<number, string>;
       }
     } else if (key === "fontSizes") {
@@ -155,21 +162,23 @@ export function themeTokens(name: string): Record<string, any> {
 }
 
 export function themeVars(): ThemeVars {
-  let input = getTheme("light")
+  const input = getTheme("light");
   const toneSteps = colorSteps(input);
-  let theme = {} as ThemeVars;
+  const theme = {} as ThemeVars;
 
   for (const key in input) {
     const value = input[key as keyof ThemeInput];
 
     if (key === "colors") {
       for (const name in input.colors) {
-        let colorTones = {} as Partial<Record<number, string>>;
-        [...Array(toneSteps).keys()].forEach(i => colorTones[i] = `var(--${name}-${i})`);
+        const colorTones = {} as Partial<Record<number, string>>;
+        [...Array(toneSteps).keys()].forEach(
+          (i) => (colorTones[i] = `var(--${name}-${i})`),
+        );
         theme[name] = colorTones as Record<number, string>;
       }
     } else if (key === "fontSizes") {
-      theme.fontSizes = [...Array(8).keys()].map(i => `var(--fontSize-${i})`);
+      theme.fontSizes = [...Array(8).keys()].map((i) => `var(--fontSize-${i})`);
     } else if (key === "custom") {
       theme.custom = {} as Record<string, string>;
       if (value && typeof value === "object") {
@@ -187,41 +196,44 @@ export function themeVars(): ThemeVars {
 export function themeCSS(): string {
   return Object.entries(themes)
     .map(([name, input]) => buildThemeCSS(name, input))
-    .join("\n")
+    .join("\n");
 }
 
 export function themeApply(el?: HTMLStyleElement): void {
-  if (typeof document === "undefined") return
+  if (typeof document === "undefined") return;
   if (el) {
-    el.textContent = themeCSS()
-    return
+    el.textContent = themeCSS();
+    return;
   } else {
-    el = document.getElementById("domphy-themes") as HTMLStyleElement
-      ?? Object.assign(document.createElement("style"), { id: "domphy-themes" })
-    el.textContent = themeCSS()
-    document.head.appendChild(el)
+    el =
+      (document.getElementById("domphy-themes") as HTMLStyleElement) ??
+      Object.assign(document.createElement("style"), { id: "domphy-themes" });
+    el.textContent = themeCSS();
+    document.head.appendChild(el);
   }
-
 }
 
 export function themeSpacing(n: number) {
-  return n / 4 + "em"
+  return n / 4 + "em";
 }
 
 export function themeName(object: ElementNode | Listener) {
-  let elementNode = (typeof object == "function" ? object.elementNode : object) as ElementNode
+  const elementNode = (
+    typeof object == "function" ? object.elementNode : object
+  ) as ElementNode;
   let node: ElementNode = elementNode;
   while (node && (!node.attributes || !node.attributes.get("dataTheme"))) {
-    node = node.parent as ElementNode
+    node = node.parent as ElementNode;
   }
 
-  let themeName = "light"
+  let themeName = "light";
 
   if (node && node.attributes && node.attributes.has("dataTheme")) {
-    themeName = node.attributes.get("dataTheme")
-    typeof object == "function" && node.attributes.addListener("dataTheme", object)
+    themeName = node.attributes.get("dataTheme");
+    typeof object == "function" &&
+      node.attributes.addListener("dataTheme", object);
   }
-  return themeName
+  return themeName;
 }
 
-export type ThemeColor = keyof ThemeInput["colors"]
+export type ThemeColor = keyof ThemeInput["colors"];

@@ -1,5 +1,5 @@
-import { type DomphyElement } from "@domphy/core"
-import { button, tooltip } from "@domphy/ui"
+import type { DomphyElement } from "@domphy/core";
+import { button, tooltip } from "@domphy/ui";
 
 const App: DomphyElement<"div"> = {
   div: [
@@ -12,6 +12,6 @@ const App: DomphyElement<"div"> = {
     },
   ],
   dataTheme: "light",
-}
+};
 
-export default App
+export default App;

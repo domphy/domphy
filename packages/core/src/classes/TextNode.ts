@@ -1,8 +1,8 @@
-import { ElementNode } from "./ElementNode.js";
-import { isHTML, escapeHTML } from "../helpers.js";
+import { escapeHTML, isHTML } from "../helpers.js";
+import type { ElementNode } from "./ElementNode.js";
 
 export class TextNode {
-  type = "TextNode"
+  type = "TextNode";
   parent: ElementNode;
   text: string;
   domText?: ChildNode;

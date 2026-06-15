@@ -1,6 +1,6 @@
-import { toState, type DomphyElement } from "@domphy/core";
-import { spinner, alert, button } from "@domphy/ui";
+import { type DomphyElement, toState } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
+import { alert, button, spinner } from "@domphy/ui";
 
 // --- Bridge pattern: toState mirrors external async state ---
 const data = toState<{ id: number; name: string }[]>([]);

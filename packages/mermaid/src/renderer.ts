@@ -52,7 +52,10 @@ async function loadMermaidCli(): Promise<MermaidCliModule> {
  * trailing whitespace on each line, which Mermaid is otherwise sensitive to.
  */
 export function normalizeMermaidSource(code: string): string {
-  return code.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "").trim();
+  return code
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+$/gm, "")
+    .trim();
 }
 
 /**

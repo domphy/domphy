@@ -1,16 +1,16 @@
-import { type DomphyElement } from '@domphy/core'
-import { paragraph, subscript } from "@domphy/ui"
+import type { DomphyElement } from "@domphy/core";
+import { paragraph, subscript } from "@domphy/ui";
 
 const App: DomphyElement<"p"> = {
-    p: [
-        "H",
-        {
-            sub: "2",
-            $: [subscript()],
-        },
-        "O is essential for life.",
-    ],
-    $: [paragraph()],
-}
+  p: [
+    "H",
+    {
+      sub: "2",
+      $: [subscript()],
+    },
+    "O is essential for life.",
+  ],
+  $: [paragraph()],
+};
 
-export default App
+export default App;

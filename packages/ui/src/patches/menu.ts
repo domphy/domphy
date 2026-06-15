@@ -1,19 +1,31 @@
-import { PartialElement, merge } from "@domphy/core";
-import { toState, ValueOrState } from "@domphy/core";
-import { themeColor, themeDensity, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
+import {
+  merge,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 
-function menu(props: {
-  activeKey?: ValueOrState<number | string>;
-  selectable?: boolean;
-  color?: ThemeColor;
-} = {}): PartialElement {
+function menu(
+  props: {
+    activeKey?: ValueOrState<number | string>;
+    selectable?: boolean;
+    color?: ThemeColor;
+  } = {},
+): PartialElement {
   const { color = "neutral", selectable = true } = props;
 
-  let partial: PartialElement = {
+  const partial: PartialElement = {
     role: "menu",
-    dataTone:"shift-17",
+    dataTone: "shift-17",
     _onSchedule: (node, element) => {
-      let partial = {
+      const partial = {
         _context: {
           menu: {
             activeKey: toState(props.activeKey ?? null),

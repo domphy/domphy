@@ -1,5 +1,5 @@
-import { toState, type DomphyElement } from "@domphy/core";
-import { themeSpacing, themeColor } from "@domphy/theme";
+import { type DomphyElement, toState } from "@domphy/core";
+import { themeColor, themeSpacing } from "@domphy/theme";
 import Sortable from "sortablejs";
 
 const items = toState([

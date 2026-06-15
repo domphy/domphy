@@ -1,28 +1,28 @@
-import { type DomphyElement, toState } from "@domphy/core"
-import { themeSpacing } from "@domphy/theme"
-import { button, dialog } from "@domphy/ui"
+import { type DomphyElement, toState } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
+import { button, dialog } from "@domphy/ui";
 
-const open = toState(false)
+const open = toState(false);
 const App: DomphyElement<"div"> = {
-    div: [
+  div: [
+    {
+      button: "Open Dialog",
+      $: [button()],
+      onClick: () => open.set(true),
+    },
+    {
+      dialog: [
+        { h3: "Session Expired" },
+        { p: "Your session has ended. Please sign in again to continue." },
         {
-            button: "Open Dialog",
-            $: [button()],
-            onClick: () => open.set(true),
+          button: "Close",
+          onClick: () => open.set(false),
+          $: [button({ color: "primary" })],
         },
-        {
-            dialog: [
-                { h3: "Session Expired" },
-                { p: "Your session has ended. Please sign in again to continue." },
-                {
-                    button: "Close",
-                    onClick: () => open.set(false),
-                    $: [button({ color: "primary" })],
-                }
-            ],
-            $: [dialog({ open })],
-        },
-    ],
-}
+      ],
+      $: [dialog({ open })],
+    },
+  ],
+};
 
-export default App
+export default App;

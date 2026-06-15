@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { ElementNode, toState } from "@domphy/core";
+
 import type { DomphyElement } from "@domphy/core";
+import { ElementNode, toState } from "@domphy/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { motion } from "../src/index.ts";
 
@@ -14,9 +15,9 @@ interface FakeAnim {
 const calls: FakeAnim[] = [];
 
 function installWaapi() {
-  (HTMLElement.prototype as unknown as { animate: unknown }).animate = function (
+  (HTMLElement.prototype as unknown as { animate: unknown }).animate = (
     keyframes: Keyframe[],
-  ) {
+  ) => {
     let resolve!: () => void;
     const finished = new Promise<void>((r) => {
       resolve = r;
@@ -44,7 +45,12 @@ describe("motion patch", () => {
     installWaapi();
     mount({
       div: "hi",
-      $: [motion({ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } })],
+      $: [
+        motion({
+          initial: { opacity: 0, y: 20 },
+          animate: { opacity: 1, y: 0 },
+        }),
+      ],
     } as DomphyElement);
 
     expect(calls.length).toBe(1);
@@ -88,7 +94,10 @@ describe("motion patch", () => {
     (HTMLElement.prototype as unknown as { animate?: unknown }).animate =
       undefined;
     expect(() =>
-      mount({ div: "x", $: [motion({ animate: { opacity: 1 } })] } as DomphyElement),
+      mount({
+        div: "x",
+        $: [motion({ animate: { opacity: 1 } })],
+      } as DomphyElement),
     ).not.toThrow();
   });
 });

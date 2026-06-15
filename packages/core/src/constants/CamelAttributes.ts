@@ -20,5 +20,5 @@ export const CamelAttributes: string[] = [
   "kernelUnitLength",
   "clipPathUnits",
   "maskContentUnits",
-  "maskUnits"
-] as const
+  "maskUnits",
+] as const;

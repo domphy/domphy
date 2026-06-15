@@ -1,8 +1,7 @@
-import type { StyleRule } from "./StyleRule.js";
-import type { StyleValue } from "../types.js";
-import { camelToKebab } from "../helpers.js";
 import { PrefixCSS } from "../constants.js";
-import { Listener } from "../types.js"
+import { camelToKebab } from "../helpers.js";
+import type { Listener, StyleValue } from "../types.js";
+import type { StyleRule } from "./StyleRule.js";
 
 export class StyleProperty {
   name: string;
@@ -22,7 +21,7 @@ export class StyleProperty {
     const domRule = this.parentRule.domRule;
 
     if (domRule && (domRule as CSSStyleRule).style) {
-      let style: CSSStyleDeclaration = (domRule as CSSStyleRule).style;
+      const style: CSSStyleDeclaration = (domRule as CSSStyleRule).style;
       style.setProperty(this.cssName, String(this.value));
 
       if (PrefixCSS[this.name]) {
@@ -38,7 +37,6 @@ export class StyleProperty {
   }
 
   set(value: StyleValue): void {
-
     if (typeof value === "function") {
       let listener = (() => {
         if (!this.parentRule || this.parentRule.parentNode?._disposed) return;

@@ -1,13 +1,13 @@
-import { type DomphyElement, toMount } from "@domphy/core"
-import { themeApply } from "@domphy/theme"
+import { type DomphyElement, toMount } from "@domphy/core";
+import { themeApply } from "@domphy/theme";
 
-themeApply()
+themeApply();
 
 const App: DomphyElement<"div"> = {
-    div: [
-        { h1: "Hello, Domphy" },
-        { p: "A plain object becomes a real DOM element." },
-    ],
-}
+  div: [
+    { h1: "Hello, Domphy" },
+    { p: "A plain object becomes a real DOM element." },
+  ],
+};
 
-export default App
+export default App;

@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
 import type { DomphyElement } from "@domphy/core";
+import { describe, expect, it, vi } from "vitest";
 import { renderMermaidInTree } from "../src/tree.js";
 
 /**
@@ -25,14 +25,18 @@ function mermaidBlock(source: string): DomphyElement {
 
 describe("renderMermaidInTree", () => {
   it("replaces a mermaid block with the SVG wrapper and leaves siblings intact", async () => {
-    const renderer = vi.fn(async (code: string) => `<svg data-src="${code}"></svg>`);
+    const renderer = vi.fn(
+      async (code: string) => `<svg data-src="${code}"></svg>`,
+    );
 
     const input: DomphyElement[] = [
       { h1: "Title" } as DomphyElement,
       { p: "Intro paragraph" } as DomphyElement,
       mermaidBlock("graph TD; A-->B;"),
       {
-        pre: [{ code: "const x = 1;", dataLanguage: "ts", class: "language-ts" }],
+        pre: [
+          { code: "const x = 1;", dataLanguage: "ts", class: "language-ts" },
+        ],
       } as DomphyElement,
     ];
 
@@ -52,7 +56,10 @@ describe("renderMermaidInTree", () => {
     expect(replaced.ariaLabel).toBe("diagram");
 
     // The renderer received the unescaped source.
-    expect(renderer).toHaveBeenCalledWith("graph TD; A-->B;", expect.anything());
+    expect(renderer).toHaveBeenCalledWith(
+      "graph TD; A-->B;",
+      expect.anything(),
+    );
   });
 
   it("preserves nesting and replaces mermaid blocks deep in the tree", async () => {
@@ -100,11 +107,14 @@ describe("renderMermaidInTree", () => {
 
   it("supports custom className and ariaLabel", async () => {
     const renderer = vi.fn(async () => "<svg/>");
-    const output = await renderMermaidInTree([mermaidBlock("graph TD; A-->B;")], {
-      renderer,
-      className: "diagram-box",
-      ariaLabel: "flow chart",
-    });
+    const output = await renderMermaidInTree(
+      [mermaidBlock("graph TD; A-->B;")],
+      {
+        renderer,
+        className: "diagram-box",
+        ariaLabel: "flow chart",
+      },
+    );
     const replaced = output[0] as Record<string, unknown>;
     expect(replaced.class).toBe("diagram-box");
     expect(replaced.ariaLabel).toBe("flow chart");

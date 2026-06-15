@@ -1,5 +1,5 @@
-import { ElementNode } from "./ElementNode.js";
-import { selectorSplitter, normalizeSelectorKey } from "../helpers.js";
+import { normalizeSelectorKey, selectorSplitter } from "../helpers.js";
+import type { ElementNode } from "./ElementNode.js";
 import { StyleRule } from "./StyleRule.js";
 
 export class StyleList {
@@ -31,8 +31,8 @@ export class StyleList {
 
     for (const selector in obj) {
       const value = obj[selector];
-      let splitKeys = selectorSplitter(selector);
-      for (let key of splitKeys) {
+      const splitKeys = selectorSplitter(selector);
+      for (const key of splitKeys) {
         const currentSelector = getSelector(key, parentSelector);
         if (/^@(container|layer|supports|media)\b/.test(key)) {
           if (typeof value === "object" && value != null) {
@@ -53,7 +53,7 @@ export class StyleList {
           this.items.push(rule);
           for (const [k, v] of Object.entries(value)) {
             if (typeof v === "object" && v != null) {
-              let newSelector = getSelector(k, currentSelector);
+              const newSelector = getSelector(k, currentSelector);
               if (k.startsWith("&")) {
                 this.addCSS(v, newSelector);
               } else {
@@ -104,13 +104,17 @@ export class StyleList {
     if (!this.items) return;
     if (!domRuleList) throw Error("Require domRuleList argument");
     let wrongCount = 0;
-    const fixOddEven = (css: string) => css.replace("(odd)", "(2n+1)").replace("(even)", "(2n)");
+    const fixOddEven = (css: string) =>
+      css.replace("(odd)", "(2n+1)").replace("(even)", "(2n)");
 
     this.items.forEach((rule, i) => {
       const index = i - wrongCount;
       const domRule = domRuleList[index];
       if (!domRule) return;
-      if (rule.selectorText.startsWith("@") && domRule instanceof CSSKeyframesRule) {
+      if (
+        rule.selectorText.startsWith("@") &&
+        domRule instanceof CSSKeyframesRule
+      ) {
         rule.mount(domRule);
       } else if ("keyText" in domRule) {
         rule.mount(domRule);
@@ -128,7 +132,7 @@ export class StyleList {
 
   render(dom: HTMLStyleElement | CSSGroupingRule) {
     if (dom instanceof HTMLStyleElement) {
-      this.domStyle = dom
+      this.domStyle = dom;
       this.items.forEach((rule) => rule.render(dom.sheet!));
     } else if (dom instanceof CSSGroupingRule) {
       this.items.forEach((rule) => rule.render(dom));
@@ -136,7 +140,6 @@ export class StyleList {
   }
 
   _dispose(): void {
-
     if (this.items) {
       for (let i = 0; i < this.items.length; i++) {
         this.items[i]._dispose();

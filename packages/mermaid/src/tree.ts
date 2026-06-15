@@ -68,7 +68,11 @@ function extractSource(element: ElementRecord): string | null {
 function tagKeyOf(element: ElementRecord): string | null {
   for (const key of Object.keys(element)) {
     // Skip Domphy meta/attribute keys; the tag is the first content-bearing key.
-    if (key.startsWith("_") || key.startsWith("data") || key.startsWith("aria")) {
+    if (
+      key.startsWith("_") ||
+      key.startsWith("data") ||
+      key.startsWith("aria")
+    ) {
       continue;
     }
     return key;
@@ -125,10 +129,7 @@ function walkChildren(
  * single-root HTML string as inline HTML, so the SVG markup becomes the `div`'s
  * content directly.
  */
-function svgWrapper(
-  svg: string,
-  options: TreeOptions,
-): DomphyElement {
+function svgWrapper(svg: string, options: TreeOptions): DomphyElement {
   return {
     div: svg,
     class: options.className ?? "mermaid",
@@ -245,5 +246,9 @@ export async function renderMermaidInTree(
   });
 
   // Pass 2: rebuild the tree with mermaid blocks replaced.
-  return replaceInChildren(elements as Child[], svgBySource, options) as DomphyElement[];
+  return replaceInChildren(
+    elements as Child[],
+    svgBySource,
+    options,
+  ) as DomphyElement[];
 }

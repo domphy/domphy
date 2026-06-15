@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { renderMermaidToSvg, normalizeMermaidSource } from "./renderer.js";
+import { normalizeMermaidSource, renderMermaidToSvg } from "./renderer.js";
 import type { CacheOptions, MermaidOptions, MermaidRenderer } from "./types.js";
 
 /** Default cache directory, relative to the current working directory. */

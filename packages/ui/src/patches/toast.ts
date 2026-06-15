@@ -1,13 +1,24 @@
-import type { DomphyElement, PartialElement, ElementNode } from "@domphy/core";
+import type { DomphyElement, ElementNode, PartialElement } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { themeColor, themeDensity, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 
-type ToastPosition = "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right";
+type ToastPosition =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
 
-function toast(props: {
-  position?: ToastPosition;
-  color?: ThemeColor;
-} = {}): PartialElement {
+function toast(
+  props: { position?: ToastPosition; color?: ThemeColor } = {},
+): PartialElement {
   const { position = "top-center", color = "neutral" } = props;
   const state = toState(false);
 
@@ -29,13 +40,17 @@ function toast(props: {
       padding: themeSpacing(6),
       pointerEvents: "none",
     },
-  }
+  };
 
   return {
     _portal: (rootNode) => {
-      let overlay = rootNode.domElement!.querySelector(`#domphy-toast-${position}`);
+      let overlay = rootNode.domElement!.querySelector(
+        `#domphy-toast-${position}`,
+      );
       if (!overlay) {
-        const overlayNode = rootNode.children!.insert(overlayEle) as ElementNode;
+        const overlayNode = rootNode.children!.insert(
+          overlayEle,
+        ) as ElementNode;
         overlay = overlayNode.domElement!;
       }
       return overlay;
@@ -53,22 +68,28 @@ function toast(props: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-9", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
-      boxShadow: (listener) => `0 ${themeSpacing(2)} ${themeSpacing(9)} ${themeColor(listener, "shift-4", "neutral")}`,
+      boxShadow: (listener) =>
+        `0 ${themeSpacing(2)} ${themeSpacing(9)} ${themeColor(listener, "shift-4", "neutral")}`,
       opacity: (listener) => Number(state.get(listener)),
-      transform: (listener) => state.get(listener) ? "translateY(0)" : isTop ? "translateY(-100%)" : "translateY(100%)",
+      transform: (listener) =>
+        state.get(listener)
+          ? "translateY(0)"
+          : isTop
+            ? "translateY(-100%)"
+            : "translateY(100%)",
       transition: "opacity 300ms ease, transform 300ms ease",
     },
     _onMount: () => requestAnimationFrame(() => state.set(true)),
     _onBeforeRemove: (node, done) => {
       const onEnd = (e: Event) => {
         if ((e as TransitionEvent).propertyName === "transform") {
-          node.domElement!.removeEventListener("transitionend", onEnd)
-          done()
+          node.domElement!.removeEventListener("transitionend", onEnd);
+          done();
         }
-      }
-      node.domElement!.addEventListener("transitionend", onEnd)
-      state.set(false)
-    }
+      };
+      node.domElement!.addEventListener("transitionend", onEnd);
+      state.set(false);
+    },
   };
 }
 

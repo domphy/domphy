@@ -1,6 +1,6 @@
-import { type DomphyElement } from '@domphy/core'
-import { image } from "@domphy/ui"
-import { themeSpacing } from "@domphy/theme"
+import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
+import { image } from "@domphy/ui";
 
 const chart = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
@@ -16,28 +16,28 @@ const chart = `data:image/svg+xml;utf8,${encodeURIComponent(`
 `)}`;
 
 const App: DomphyElement<"div"> = {
-    div: [
-        {
-            img: null,
-            src: chart,
-            alt: "Sales trend chart",
-            $: [image()],
-        },
-        {
-            img: null,
-            src: chart,
-            alt: "Sales trend chart secondary",
-            $: [image({ color: "primary" })],
-            style: {
-                maxWidth: themeSpacing(56),
-            },
-        },
-    ],
-    style: {
-        display: "flex",
-        flexDirection: "column",
-        gap: themeSpacing(4),
+  div: [
+    {
+      img: null,
+      src: chart,
+      alt: "Sales trend chart",
+      $: [image()],
     },
-}
+    {
+      img: null,
+      src: chart,
+      alt: "Sales trend chart secondary",
+      $: [image({ color: "primary" })],
+      style: {
+        maxWidth: themeSpacing(56),
+      },
+    },
+  ],
+  style: {
+    display: "flex",
+    flexDirection: "column",
+    gap: themeSpacing(4),
+  },
+};
 
-export default App
+export default App;

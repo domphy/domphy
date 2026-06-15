@@ -1,3 +1,3 @@
-export * from "./patches.js"
-export * from "./classes.js"
-export * from "./types.js"
+export * from "./classes.js";
+export * from "./patches.js";
+export * from "./types.js";

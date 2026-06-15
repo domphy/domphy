@@ -1,56 +1,69 @@
-import { PartialElement, ElementNode } from "@domphy/core";
-import { themeSpacing, ThemeColor, themeColor, themeDensity, themeSize } from "@domphy/theme";
+import type { ElementNode, PartialElement } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 
-function menuItem(props: {
-  accentColor?: ThemeColor;
-  color?: ThemeColor;
-} = {}): PartialElement {
-  const {
-    accentColor = "primary",
-    color = "neutral",
-  } = props;
+function menuItem(
+  props: { accentColor?: ThemeColor; color?: ThemeColor } = {},
+): PartialElement {
+  const { accentColor = "primary", color = "neutral" } = props;
 
-  let partial: PartialElement = {
+  const partial: PartialElement = {
     role: "menuitem",
     _onInsert: (node) => {
       if (node.tagName != "button") {
         console.warn(`"menuItem" patch must use button tag`);
       }
 
-      let context = node.getContext("menu");
+      const context = node.getContext("menu");
       if (!context) {
         console.warn(`"menuItem" patch must be used inside a "menu"`);
         return;
       }
       let children = (node.parent?.children.items ?? []) as ElementNode[];
-      children = children.filter(n => n.type == "ElementNode" && n.attributes.get("role") == "menuitem");
+      children = children.filter(
+        (n) =>
+          n.type == "ElementNode" && n.attributes.get("role") == "menuitem",
+      );
       // Strict key check: an explicit _key of 0 or "" must not fall back to index.
-      let key = node.key !== null && node.key !== undefined ? node.key : children.findIndex(n => n == node);
+      const key =
+        node.key !== null && node.key !== undefined
+          ? node.key
+          : children.findIndex((n) => n == node);
       if (context.selectable) {
-        node.attributes.set("ariaCurrent", (listener) => context.activeKey.get(listener) == key || undefined)
-        node.addEvent("click", () => context.activeKey.set(key))
+        node.attributes.set(
+          "ariaCurrent",
+          (listener) => context.activeKey.get(listener) == key || undefined,
+        );
+        node.addEvent("click", () => context.activeKey.set(key));
       }
     },
-    onKeyDown:(e:KeyboardEvent,node)=>{
-        const k = (e as KeyboardEvent).key;
-        if (k === "Enter" || k === " ") {
-          e.preventDefault();
-          (node.domElement as HTMLElement)?.click();
-          return;
-        }
-        if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
+    onKeyDown: (e: KeyboardEvent, node) => {
+      const k = (e as KeyboardEvent).key;
+      if (k === "Enter" || k === " ") {
         e.preventDefault();
-        const items = (node.parent?.children.items ?? []).filter(
-          n => n.type === "ElementNode" && (n as ElementNode).attributes.get("role") === "menuitem"
-        ) as ElementNode[];
-        const idx = items.findIndex(n => n === node);
-        let next = idx;
-        if (k === "ArrowDown") next = (idx + 1) % items.length;
-        else if (k === "ArrowUp") next = (idx - 1 + items.length) % items.length;
-        else if (k === "Home") next = 0;
-        else if (k === "End") next = items.length - 1;
-        (items[next].domElement as HTMLElement)?.focus();
-      },
+        (node.domElement as HTMLElement)?.click();
+        return;
+      }
+      if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
+      e.preventDefault();
+      const items = (node.parent?.children.items ?? []).filter(
+        (n) =>
+          n.type === "ElementNode" &&
+          (n as ElementNode).attributes.get("role") === "menuitem",
+      ) as ElementNode[];
+      const idx = items.findIndex((n) => n === node);
+      let next = idx;
+      if (k === "ArrowDown") next = (idx + 1) % items.length;
+      else if (k === "ArrowUp") next = (idx - 1 + items.length) % items.length;
+      else if (k === "Home") next = 0;
+      else if (k === "End") next = items.length - 1;
+      (items[next].domElement as HTMLElement)?.focus();
+    },
     style: {
       cursor: "pointer",
       display: "flex",
@@ -69,11 +82,13 @@ function menuItem(props: {
       },
       // Menu uses the current/indicator band instead of the selected fill band.
       "&[aria-current=true]": {
-        backgroundColor: (listener) => themeColor(listener, "shift-3", accentColor),
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-3", accentColor),
         color: (listener) => themeColor(listener, "shift-10"),
       },
       "&:focus-visible": {
-        outline: (listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+        outline: (listener) =>
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
         outlineOffset: `-${themeSpacing(0.5)}`,
       },
     },

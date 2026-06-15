@@ -1,15 +1,28 @@
-import type { DomphyElement, EventName, HookMap, TagName, PartialElement } from "../types.js";
+import { SvgTags, VoidTags } from "../constants.js";
+import {
+  collectCSSRules,
+  deepClone,
+  ensureDomStyle,
+  getTagName,
+  mergePartial,
+  validate,
+} from "../helpers.js";
+import type {
+  DomphyElement,
+  EventName,
+  HookMap,
+  PartialElement,
+  TagName,
+} from "../types.js";
+import { hashString, merge } from "../utils.js";
 import { AttributeList } from "./AttributeList.js";
 import { ElementList } from "./ElementList.js";
 import { StyleList } from "./StyleList.js";
-import { validate, mergePartial, getTagName, deepClone, ensureDomStyle, collectCSSRules } from "../helpers.js";
-import { merge, hashString } from "../utils.js";
-import { SvgTags, VoidTags } from "../constants.js"
 
 export class ElementNode {
-  _disposed = false
-  _beforeRemoveFired = false
-  type = "ElementNode"
+  _disposed = false;
+  _beforeRemoveFired = false;
+  type = "ElementNode";
   parent: ElementNode | null = null;
   _portal?: (root: ElementNode) => HTMLElement;
   tagName: TagName;
@@ -18,94 +31,103 @@ export class ElementNode {
   attributes = new AttributeList(this);
   domElement?: HTMLElement | null = null;
   _hooks: HookMap = {};
-  _events?: { [K in EventName]?: (event: Event, node: ElementNode) => void } | null = null;
+  _events?:
+    | { [K in EventName]?: (event: Event, node: ElementNode) => void }
+    | null = null;
   _boundEvents = new Set<EventName>();
   _context?: Record<string, any> = {};
   _metadata?: Record<string, any> = {};
   key?: string | number | null = null;
-  nodeId: string
+  nodeId: string;
 
-  constructor(domphyElement: DomphyElement, _parent: ElementNode | null = null, index = 0) {
-    domphyElement = deepClone(domphyElement)
-    validate(domphyElement)
-    domphyElement.style = domphyElement.style || {}
+  constructor(
+    domphyElement: DomphyElement,
+    _parent: ElementNode | null = null,
+    index = 0,
+  ) {
+    domphyElement = deepClone(domphyElement);
+    validate(domphyElement);
+    domphyElement.style = domphyElement.style || {};
     this.parent = _parent;
     this.tagName = getTagName(domphyElement) as TagName;
-    domphyElement = mergePartial(domphyElement) as DomphyElement
+    domphyElement = mergePartial(domphyElement) as DomphyElement;
 
     this.key = (domphyElement as any)._key ?? null;
-    this._context = domphyElement._context || {}
-    this._metadata = domphyElement._metadata || {}
+    this._context = domphyElement._context || {};
+    this._metadata = domphyElement._metadata || {};
 
-    let tempPath = `${this.parent?.nodeId}.${index}`
-    const str = JSON.stringify(domphyElement.style || {}, (k, v) => typeof v === "function" ? tempPath : v,);
-    this.nodeId = hashString(tempPath + str)
+    const tempPath = `${this.parent?.nodeId}.${index}`;
+    const str = JSON.stringify(domphyElement.style || {}, (k, v) =>
+      typeof v === "function" ? tempPath : v,
+    );
+    this.nodeId = hashString(tempPath + str);
 
     this.attributes!.addClass(`${this.tagName}_${this.nodeId}`);
-    if (domphyElement._onSchedule) domphyElement._onSchedule(this, domphyElement)
+    if (domphyElement._onSchedule)
+      domphyElement._onSchedule(this, domphyElement);
 
-    this.merge(domphyElement)
+    this.merge(domphyElement);
 
     const children = (domphyElement as any)[this.tagName];
 
     if (children != null && children != undefined) {
       if (typeof children === "function") {
-
         let listener: any = () => {
-          if (this._disposed) return
-          let input = children(listener)
-          this.children!.update(Array.isArray(input) ? input : [input])
-        }
+          if (this._disposed) return;
+          const input = children(listener);
+          this.children!.update(Array.isArray(input) ? input : [input]);
+        };
 
         listener!.elementNode = this;
         listener!.debug = `class:${this.tagName}_${this.nodeId} children`;
-        listener!.onSubscribe = (release: () => void) => this.addHook("BeforeRemove", () => {
-          release()
-          listener = null
-        });
+        listener!.onSubscribe = (release: () => void) =>
+          this.addHook("BeforeRemove", () => {
+            release();
+            listener = null;
+          });
         listener && listener();
       } else {
-        this.children!.update(Array.isArray(children) ? children : [children])
+        this.children!.update(Array.isArray(children) ? children : [children]);
       }
     }
-    this._hooks.Init && this._hooks.Init(this)
+    this._hooks.Init && this._hooks.Init(this);
   }
 
   _createDOMNode() {
-    const svgNamespace = "http://www.w3.org/2000/svg"
-    let node = SvgTags.includes(this.tagName)
+    const svgNamespace = "http://www.w3.org/2000/svg";
+    const node = SvgTags.includes(this.tagName)
       ? document.createElementNS(svgNamespace, this.tagName)
-      : document.createElement(this.tagName)
+      : document.createElement(this.tagName);
 
-    this.domElement = node as HTMLElement
+    this.domElement = node as HTMLElement;
 
     if (this._events) {
-      for (const key in this._events) this._bindEvent(key as EventName)
+      for (const key in this._events) this._bindEvent(key as EventName);
     }
 
     if (this.attributes) {
-      Object.values(this.attributes.items!).forEach(attr => attr.render())
+      Object.values(this.attributes.items!).forEach((attr) => attr.render());
     }
-    return node
+    return node;
   }
 
   // Bind a DOM listener that dispatches LIVE from this._events, so patch() can
   // swap the handler (e.g. a list item's onClick closure after its data changes)
   // without detaching/reattaching the DOM listener.
   _bindEvent(eventName: EventName): void {
-    if (!this.domElement || this._boundEvents.has(eventName)) return
-    this._boundEvents.add(eventName)
-    let fn: any = (event: Event) => this._events?.[eventName]?.(event, this)
-    this.domElement.addEventListener(eventName, fn)
+    if (!this.domElement || this._boundEvents.has(eventName)) return;
+    this._boundEvents.add(eventName);
+    let fn: any = (event: Event) => this._events?.[eventName]?.(event, this);
+    this.domElement.addEventListener(eventName, fn);
     this.addHook("BeforeRemove", (n) => {
-      n.domElement?.removeEventListener(eventName, fn)
-      fn = null
-    })
+      n.domElement?.removeEventListener(eventName, fn);
+      fn = null;
+    });
   }
 
   _dispose(): void {
-    if (this._disposed) return
-    this._disposed = true
+    if (this._disposed) return;
+    this._disposed = true;
 
     // Fire BeforeRemove so reactive-listener releases (registered as BeforeRemove
     // hooks via onSubscribe) actually run for this node. Descendants are torn
@@ -113,8 +135,8 @@ export class ElementNode {
     // without this their subscriptions to long-lived State/RecordState leak.
     // Skip if the async-removal path in ElementList already fired it.
     if (!this._beforeRemoveFired) {
-      this._beforeRemoveFired = true
-      this._hooks.BeforeRemove?.(this, () => { })
+      this._beforeRemoveFired = true;
+      this._hooks.BeforeRemove?.(this, () => {});
     }
 
     if (this.children) {
@@ -131,7 +153,7 @@ export class ElementNode {
     }
 
     // _onRemove fires for every node in the subtree, not just the directly-removed one.
-    this._hooks.Remove?.(this)
+    this._hooks.Remove?.(this);
 
     this.domElement = null;
     this._hooks = {};
@@ -141,21 +163,43 @@ export class ElementNode {
     this.parent = null;
   }
   merge(part: PartialElement) {
-    merge(this._context, part._context)
-    merge(this._metadata, part._metadata)
+    merge(this._context, part._context);
+    merge(this._metadata, part._metadata);
 
-    const keys = Object.keys(part)
+    const keys = Object.keys(part);
     for (let i = 0; i < keys.length; i++) {
       const originalKey = keys[i];
       const value = (part as any)[originalKey];
-      if (["$", "_onSchedule", "_key", "_context", "_metadata", "style", this.tagName].includes(originalKey)) {
-        continue
-      } else if (["_onInit", "_onInsert", "_onMount", "_onBeforeUpdate", "_onUpdate", "_onBeforeRemove", "_onRemove"].includes(originalKey)) {
+      if (
+        [
+          "$",
+          "_onSchedule",
+          "_key",
+          "_context",
+          "_metadata",
+          "style",
+          this.tagName,
+        ].includes(originalKey)
+      ) {
+      } else if (
+        [
+          "_onInit",
+          "_onInsert",
+          "_onMount",
+          "_onBeforeUpdate",
+          "_onUpdate",
+          "_onBeforeRemove",
+          "_onRemove",
+        ].includes(originalKey)
+      ) {
         this.addHook(originalKey.substring(3) as keyof HookMap, value);
       } else if (originalKey.startsWith("on")) {
-        this.addEvent(originalKey.substring(2).toLowerCase() as EventName, value);
+        this.addEvent(
+          originalKey.substring(2).toLowerCase() as EventName,
+          value,
+        );
       } else if (originalKey == "_portal") {
-        this._portal = value
+        this._portal = value;
       } else if (originalKey == "class" && typeof value === "string") {
         this.attributes!.addClass(value);
       } else {
@@ -163,9 +207,11 @@ export class ElementNode {
       }
     }
     if (part.style) {
-      this.styles.addCSS(part.style || {}, `.${`${this.tagName}_${this.nodeId}`}`);
+      this.styles.addCSS(
+        part.style || {},
+        `.${`${this.tagName}_${this.nodeId}`}`,
+      );
     }
-
   }
 
   // Update this live node IN PLACE from a fresh element description, preserving
@@ -176,68 +222,91 @@ export class ElementNode {
   // re-applied (reused items share structure; hooks already ran). Reactive
   // content (a function child) keeps its own listener and is left untouched.
   patch(rawElement: DomphyElement): void {
-    let element: any = deepClone(rawElement)
-    element.style = element.style || {}
-    element = mergePartial(element)
+    let element: any = deepClone(rawElement);
+    element.style = element.style || {};
+    element = mergePartial(element);
 
     // Children / content — recurse so grandchildren are reused/patched too.
-    const content = element[this.tagName]
+    const content = element[this.tagName];
     if (typeof content !== "function") {
-      const next = content == null ? [] : Array.isArray(content) ? content : [content]
-      this.children.update(next, !!this.domElement, true)
+      const next =
+        content == null ? [] : Array.isArray(content) ? content : [content];
+      this.children.update(next, !!this.domElement, true);
     }
 
-    if (element._context) merge(this._context, element._context)
-    if (element._metadata) merge(this._metadata, element._metadata)
+    if (element._context) merge(this._context, element._context);
+    if (element._metadata) merge(this._metadata, element._metadata);
 
     // Rebuild attributes and events. Events are replaced (live dispatch in
     // _bindEvent reads this._events, so swapping the map is enough); attributes
     // present before but absent now are removed; the auto scope class is kept.
-    const autoClass = `${this.tagName}_${this.nodeId}`
-    const reserved = ["$", "_onSchedule", "_key", "_context", "_metadata", "style", this.tagName]
-    const hookKeys = ["_onInit", "_onInsert", "_onMount", "_onBeforeUpdate", "_onUpdate", "_onBeforeRemove", "_onRemove"]
-    const keep = new Set<string>(["class"])
-    let userClass: string | null = null
+    const autoClass = `${this.tagName}_${this.nodeId}`;
+    const reserved = [
+      "$",
+      "_onSchedule",
+      "_key",
+      "_context",
+      "_metadata",
+      "style",
+      this.tagName,
+    ];
+    const hookKeys = [
+      "_onInit",
+      "_onInsert",
+      "_onMount",
+      "_onBeforeUpdate",
+      "_onUpdate",
+      "_onBeforeRemove",
+      "_onRemove",
+    ];
+    const keep = new Set<string>(["class"]);
+    let userClass: string | null = null;
 
-    this._events = {}
+    this._events = {};
     for (const key of Object.keys(element)) {
-      if (reserved.includes(key) || hookKeys.includes(key) || key === "_portal") continue
-      const value = element[key]
+      if (reserved.includes(key) || hookKeys.includes(key) || key === "_portal")
+        continue;
+      const value = element[key];
       if (key.startsWith("on") && typeof value === "function") {
-        this.addEvent(key.substring(2).toLowerCase() as EventName, value)
+        this.addEvent(key.substring(2).toLowerCase() as EventName, value);
       } else if (key === "class" && typeof value === "string") {
-        userClass = value
+        userClass = value;
       } else {
-        this.attributes!.set(key, value)
-        keep.add(key)
+        this.attributes!.set(key, value);
+        keep.add(key);
       }
     }
 
-    this.attributes!.set("class", userClass ? `${autoClass} ${userClass}` : autoClass)
+    this.attributes!.set(
+      "class",
+      userClass ? `${autoClass} ${userClass}` : autoClass,
+    );
 
     if (this.attributes!.items) {
       for (const name of Object.keys(this.attributes!.items)) {
-        if (!keep.has(name)) this.attributes!.remove(name)
+        if (!keep.has(name)) this.attributes!.remove(name);
       }
     }
 
     if (this._events) {
-      for (const key in this._events) this._bindEvent(key as EventName)
+      for (const key in this._events) this._bindEvent(key as EventName);
     }
   }
 
-  addEvent(name: EventName, callback: (event: Event, node: ElementNode) => void): void {
+  addEvent(
+    name: EventName,
+    callback: (event: Event, node: ElementNode) => void,
+  ): void {
+    this._events = this._events || {};
 
-    this._events = this._events || {}
-
-    let current = this._events[name]
+    const current = this._events[name];
     if (typeof current == "function") {
       this._events[name] = (event: Event, node: ElementNode) => {
-        current!(event, node)
-        callback(event, node)
-      }
+        current!(event, node);
+        callback(event, node);
+      };
     } else {
-      this._events[name] = callback
+      this._events[name] = callback;
     }
   }
 
@@ -254,10 +323,15 @@ export class ElementNode {
       // exit animation); a naive (...args) wrapper would report 0 and break that.
       try {
         Object.defineProperty(composed, "length", {
-          value: Math.max((current as Function).length, (callback as Function).length),
+          value: Math.max(
+            (current as Function).length,
+            (callback as Function).length,
+          ),
           configurable: true,
         });
-      } catch { /* length non-configurable on some engines — best effort */ }
+      } catch {
+        /* length non-configurable on some engines — best effort */
+      }
       this._hooks[name] = composed;
     } else {
       this._hooks[name] = callback;
@@ -268,19 +342,19 @@ export class ElementNode {
     while (root && root instanceof ElementNode && root.parent) {
       root = root.parent;
     }
-    return root
+    return root;
   }
 
   getContext(name: string): any {
     let node: ElementNode | null = this;
-    while (node && (!node._context || !Object.prototype.hasOwnProperty.call(node._context, name))) {
+    while (node && (!node._context || !Object.hasOwn(node._context, name))) {
       node = node.parent;
     }
     return node && node._context ? node._context[name] : undefined;
   }
 
   setContext(name: string, value: any) {
-    this._context = this._context || {}
+    this._context = this._context || {};
     this._context[name] = value;
   }
 
@@ -289,16 +363,17 @@ export class ElementNode {
   }
 
   setMetadata(key: string, value: any) {
-    this._metadata = this._metadata || {}
+    this._metadata = this._metadata || {};
     this._metadata[key] = value;
-
   }
 
   generateCSS(): string {
     if (!this.styles || !this.children) return "";
-    let css = this.styles.cssText()
-    css += this.children.items.map(child => child instanceof ElementNode ? child.generateCSS() : "").join("")
-    return css
+    let css = this.styles.cssText();
+    css += this.children.items
+      .map((child) => (child instanceof ElementNode ? child.generateCSS() : ""))
+      .join("");
+    return css;
   }
 
   generateHTML(): string {
@@ -318,7 +393,7 @@ export class ElementNode {
     this.domElement = domElement;
 
     if (this._events) {
-      for (const key in this._events) this._bindEvent(key as EventName)
+      for (const key in this._events) this._bindEvent(key as EventName);
     }
 
     if (this.children) {
@@ -342,10 +417,11 @@ export class ElementNode {
     // subtree because per-node selectors are globally unique.
     if (domStyle) {
       const sheet = domStyle.sheet;
-      if (sheet) this._hydrateStyles(collectCSSRules(sheet.cssRules, new Map()));
+      if (sheet)
+        this._hydrateStyles(collectCSSRules(sheet.cssRules, new Map()));
     }
 
-    this._hooks.Mount && this._hooks.Mount(this)
+    this._hooks.Mount && this._hooks.Mount(this);
   }
 
   _hydrateStyles(domRuleMap: Map<string, CSSRule>): void {
@@ -357,44 +433,52 @@ export class ElementNode {
     }
   }
 
-  render(domElement: HTMLElement | SVGElement | DocumentFragment): HTMLElement | SVGElement {
+  render(
+    domElement: HTMLElement | SVGElement | DocumentFragment,
+  ): HTMLElement | SVGElement {
     const newNode = this._createDOMNode();
-    domElement.appendChild(newNode)
-    this._hooks.Mount && this._hooks.Mount(this)
-    let domStyle = this.getRoot().styles.domStyle
-    let root = domElement.getRootNode()
-    const styleParent = root instanceof ShadowRoot ? root : document.head
-    domStyle ||= ensureDomStyle(styleParent)
-    this.styles.render(domStyle as HTMLStyleElement)
-    this.children.items.forEach(child => {
+    domElement.appendChild(newNode);
+    this._hooks.Mount && this._hooks.Mount(this);
+    let domStyle = this.getRoot().styles.domStyle;
+    const root = domElement.getRootNode();
+    const styleParent = root instanceof ShadowRoot ? root : document.head;
+    domStyle ||= ensureDomStyle(styleParent);
+    this.styles.render(domStyle as HTMLStyleElement);
+    this.children.items.forEach((child) => {
       if (child instanceof ElementNode && child._portal) {
-        let dom = child._portal!(this.getRoot())
-        dom && child.render(dom)
+        const dom = child._portal!(this.getRoot());
+        dom && child.render(dom);
       } else {
-        child.render(newNode)
+        child.render(newNode);
       }
-    })
+    });
     return newNode;
   }
 
   remove() {
     if (this.parent) {
-      this.parent.children.remove(this)
+      this.parent.children.remove(this);
     } else {
       // Root removal must also run BeforeRemove/Remove (and release reactive
       // subscriptions across the whole tree via _dispose), honoring async done().
       const done = () => {
-        this.domElement?.remove()
-        this._dispose()
-      }
+        this.domElement?.remove();
+        this._dispose();
+      };
       if (this._hooks.BeforeRemove && this.domElement) {
-        let called = false
-        const once = () => { if (!called) { called = true; done() } }
-        this._beforeRemoveFired = true
-        this._hooks.BeforeRemove(this, once)
-        if ((this._hooks.BeforeRemove as Function).length < 2 && !called) once()
+        let called = false;
+        const once = () => {
+          if (!called) {
+            called = true;
+            done();
+          }
+        };
+        this._beforeRemoveFired = true;
+        this._hooks.BeforeRemove(this, once);
+        if ((this._hooks.BeforeRemove as Function).length < 2 && !called)
+          once();
       } else {
-        done()
+        done();
       }
     }
   }

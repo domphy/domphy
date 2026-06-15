@@ -1,5 +1,16 @@
-import { type PartialElement, type DomphyElement, type ValueOrState, toState } from "@domphy/core";
-import { themeColor, themeDensity, themeSize, themeSpacing, type ThemeColor } from "@domphy/theme";
+import {
+  type DomphyElement,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 
 function getPages(current: number, total: number): (number | "...")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -36,7 +47,8 @@ function pagination(props: {
     backgroundColor: "transparent",
     color: (listener: any) => themeColor(listener, "shift-9", color),
     "&:hover:not([disabled])": {
-      backgroundColor: (listener: any) => themeColor(listener, "shift-2", color),
+      backgroundColor: (listener: any) =>
+        themeColor(listener, "shift-2", color),
     },
     "&[disabled]": {
       opacity: 0.4,
@@ -46,18 +58,21 @@ function pagination(props: {
 
   const activeStyle = {
     ...btnBase,
-    backgroundColor: (listener: any) => themeColor(listener, "shift-6", accentColor),
+    backgroundColor: (listener: any) =>
+      themeColor(listener, "shift-6", accentColor),
     color: (listener: any) => themeColor(listener, "shift-11", accentColor),
     fontWeight: "600",
     cursor: "default",
     "&:hover:not([disabled])": {
-      backgroundColor: (listener: any) => themeColor(listener, "shift-6", accentColor),
+      backgroundColor: (listener: any) =>
+        themeColor(listener, "shift-6", accentColor),
     },
   };
 
   return {
     _onInsert: (node) => {
-      if (node.tagName !== "div") console.warn('"pagination" patch must use div tag');
+      if (node.tagName !== "div")
+        console.warn('"pagination" patch must use div tag');
     },
     _onInit: (node) => {
       const content: DomphyElement<"div"> = {
@@ -78,7 +93,17 @@ function pagination(props: {
           // Page buttons
           for (const p of getPages(page, total)) {
             if (p === "...") {
-              items.push({ span: "…", style: { display: "inline-flex", alignItems: "center", paddingInline: (listener: any) => themeSpacing(themeDensity(listener) * 2), color: (listener: any) => themeColor(listener, "shift-7", color) } });
+              items.push({
+                span: "…",
+                style: {
+                  display: "inline-flex",
+                  alignItems: "center",
+                  paddingInline: (listener: any) =>
+                    themeSpacing(themeDensity(listener) * 2),
+                  color: (listener: any) =>
+                    themeColor(listener, "shift-7", color),
+                },
+              });
             } else {
               const isActive = p === page;
               items.push({

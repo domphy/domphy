@@ -2894,7 +2894,7 @@ const HtmlAttributeMap = {
     "x",
     "y",
     "zoomAndPan",
-    "xmlns"
+    "xmlns",
   ],
   switch: [
     "alignmentBaseline",

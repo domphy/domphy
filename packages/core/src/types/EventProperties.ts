@@ -95,10 +95,15 @@ export const EventProperties = [
   "onFullscreenError",
   "onFocusIn",
   "onFocusOut",
-] as const
+] as const;
 
-export const eventNameMap = EventProperties.reduce((acc, ev) => {
-  const key = ev.slice(2).toLowerCase() as keyof HTMLElementEventMap
-  acc[key] = ev;
-  return acc;
-}, {} as Partial<Record<keyof HTMLElementEventMap, (typeof EventProperties)[number]>>);
+export const eventNameMap = EventProperties.reduce(
+  (acc, ev) => {
+    const key = ev.slice(2).toLowerCase() as keyof HTMLElementEventMap;
+    acc[key] = ev;
+    return acc;
+  },
+  {} as Partial<
+    Record<keyof HTMLElementEventMap, (typeof EventProperties)[number]>
+  >,
+);

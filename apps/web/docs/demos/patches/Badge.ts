@@ -1,4 +1,4 @@
-import { DomphyElement } from "@domphy/core";
+import type { DomphyElement } from "@domphy/core";
 import { badge, button } from "@domphy/ui";
 
 const App: DomphyElement<"button"> = {
@@ -7,4 +7,3 @@ const App: DomphyElement<"button"> = {
 };
 
 export default App;
-

@@ -214,6 +214,9 @@ function serializeData(data: Record<string, unknown>): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
-export function createApp(routes: Route[], options: AppOptions = {}): DomphyApp {
+export function createApp(
+  routes: Route[],
+  options: AppOptions = {},
+): DomphyApp {
   return new DomphyApp(routes, options);
 }

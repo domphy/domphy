@@ -1,9 +1,9 @@
-import { DomphyElement } from '@domphy/core'
-import { icon } from "@domphy/ui"
+import type { DomphyElement } from "@domphy/core";
+import { icon } from "@domphy/ui";
 
 const App: DomphyElement<"span"> = {
-    span: "💡",
-    $: [icon()],
-}
+  span: "💡",
+  $: [icon()],
+};
 
-export default App
+export default App;

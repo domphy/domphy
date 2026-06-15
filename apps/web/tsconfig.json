@@ -15,12 +15,8 @@
       "@domphy/theme": ["../../packages/theme/src"],
       "@domphy/theme/*": ["../../packages/theme/src/*"],
       "@domphy/ui": ["../../packages/ui/src"],
-      "@domphy/ui/*": ["../../packages/ui/src/*"],
+      "@domphy/ui/*": ["../../packages/ui/src/*"]
     }
   },
-  "include": [
-    "docs/demos",
-    "docs/editor",
-    "docs/preview"
-  ]
+  "include": ["docs/demos", "docs/editor", "docs/preview"]
 }

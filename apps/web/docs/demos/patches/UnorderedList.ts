@@ -1,13 +1,9 @@
-import { DomphyElement } from '@domphy/core'
-import { unorderedList } from "@domphy/ui"
+import type { DomphyElement } from "@domphy/core";
+import { unorderedList } from "@domphy/ui";
 
 const App: DomphyElement<"ul"> = {
-    ul: [
-        { li: "Item one" },
-        { li: "Item two" },
-        { li: "Item three" },
-    ],
-    $: [unorderedList()],
-}
+  ul: [{ li: "Item one" }, { li: "Item two" }, { li: "Item three" }],
+  $: [unorderedList()],
+};
 
-export default App
+export default App;

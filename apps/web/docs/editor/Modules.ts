@@ -1,5 +1,5 @@
-import * as domphyCore from "@domphy/core";
 import * as domphyApp from "@domphy/app";
+import * as domphyCore from "@domphy/core";
 import * as domphyQuery from "@domphy/query";
 import * as domphyRouter from "@domphy/router";
 import * as domphyTable from "@domphy/table";

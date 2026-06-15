@@ -1,6 +1,6 @@
-import { toState, type DomphyElement } from "@domphy/core"
+import { type DomphyElement, toState } from "@domphy/core";
 
-const count = toState(0)
+const count = toState(0);
 
 const App: DomphyElement<"div"> = {
   div: [
@@ -22,6 +22,6 @@ const App: DomphyElement<"div"> = {
       },
     },
   ],
-}
+};
 
-export default App
+export default App;

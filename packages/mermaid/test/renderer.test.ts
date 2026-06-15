@@ -15,7 +15,9 @@ function findChromeShell(): string | undefined {
   const base = join(homedir(), ".cache", "puppeteer", "chrome-headless-shell");
   if (!existsSync(base)) return undefined;
   const exeName =
-    process.platform === "win32" ? "chrome-headless-shell.exe" : "chrome-headless-shell";
+    process.platform === "win32"
+      ? "chrome-headless-shell.exe"
+      : "chrome-headless-shell";
   let versions: string[];
   try {
     versions = readdirSync(base);
@@ -79,7 +81,9 @@ describe("normalizeMermaidSource", () => {
 
 describe("renderMermaidToSvg (headless)", () => {
   it("rejects empty source", async () => {
-    await expect(renderMermaidToSvg("   \n  ")).rejects.toThrow(/empty diagram/);
+    await expect(renderMermaidToSvg("   \n  ")).rejects.toThrow(
+      /empty diagram/,
+    );
   });
 
   // Real headless render. chrome-headless-shell is installed in this repo, but
@@ -89,7 +93,10 @@ describe("renderMermaidToSvg (headless)", () => {
   it("renders a flowchart to an inline SVG containing the node labels", async () => {
     let svg: string;
     try {
-      svg = await renderMermaidToSvg("graph TD; Alpha-->Beta;", headlessOptions());
+      svg = await renderMermaidToSvg(
+        "graph TD; Alpha-->Beta;",
+        headlessOptions(),
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (isBrowserUnavailable(message)) {
@@ -129,7 +136,9 @@ describe("renderMermaidToSvg (headless)", () => {
       expect(message).toContain("--- source ---");
     }
     if (!threw) {
-      throw new Error("expected renderMermaidToSvg to reject on invalid source");
+      throw new Error(
+        "expected renderMermaidToSvg to reject on invalid source",
+      );
     }
   }, 60000);
 });

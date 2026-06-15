@@ -17,7 +17,7 @@ describe("State / toState", () => {
 
     expect(state.get(listener as any)).toBe(0);
     state.set(2);
-    await new Promise<void>(r => queueMicrotask(r));
+    await new Promise<void>((r) => queueMicrotask(r));
 
     expect(listener).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenCalledWith(2);
@@ -29,10 +29,10 @@ describe("State / toState", () => {
     const release = state.addListener(listener as any);
 
     state.set(4);
-    await new Promise<void>(r => queueMicrotask(r));
+    await new Promise<void>((r) => queueMicrotask(r));
     release();
     state.set(5);
-    await new Promise<void>(r => queueMicrotask(r));
+    await new Promise<void>((r) => queueMicrotask(r));
 
     expect(listener).toHaveBeenCalledTimes(1);
     expect(state.get()).toBe(5);
@@ -52,4 +52,3 @@ describe("State / toState", () => {
     expect(listener).not.toHaveBeenCalled();
   });
 });
-
