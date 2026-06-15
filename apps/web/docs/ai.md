@@ -102,7 +102,7 @@ For MCP-capable agents (Claude Desktop, Cursor, …), the [`@domphy/mcp`](https:
 { "mcpServers": { "domphy": { "command": "npx", "args": ["-y", "@domphy/mcp"] } } }
 ```
 
-Tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, and `domphy_diagnose` (runs the doctor). The agent looks up the real API before writing and validates after.
+Tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_diagnose` + `domphy_validate` (run the doctor), and — for large codebases — `domphy_list_app_blocks` / `domphy_get_app_block`, which surface the blocks an app already has (from a generated `app-manifest.json`) so the agent reuses them instead of re-creating them. The agent looks up the real API before writing and validates after.
 
 ## Machine-readable manifest
 
@@ -131,7 +131,7 @@ The full dump contains, in order:
 2. **Quickstart** — install, hello world, reactive state.
 3. **Core docs** — syntax, reactivity, lifecycle, SSR, portal, patterns, API reference.
 4. **Theme docs** — palette, size, tone, API.
-5. **Package docs** — query, router, table, virtual, form, dnd, and app (`@domphy/*`).
+5. **Package docs** — query, router, table, virtual, form, dnd, palette, app, markdown, mermaid, and doctor (`@domphy/*`).
 6. **Every patch source file** — the authoritative contract for each patch in `@domphy/ui`. AI reads the actual TypeScript source, not a paraphrase.
 
 Pair it with [`@domphy/doctor`](./doctor/) so the AI can verify and fix its own output.

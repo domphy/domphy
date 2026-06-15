@@ -31,6 +31,8 @@ export const config: SiteConfig = {
     { text: "DnD", link: "/docs/dnd/" },
     { text: "Palette", link: "/docs/palette/" },
     { text: "App", link: "/docs/app/" },
+    { text: "Markdown", link: "/docs/markdown/" },
+    { text: "Mermaid", link: "/docs/mermaid/" },
     { text: "Doctor", link: "/docs/doctor/" },
     { text: "Integrations", link: "/docs/integrations/" },
     { text: "Research", link: "/docs/research/" },
@@ -217,6 +219,8 @@ export const config: SiteConfig = {
       { text: "Image & Script", link: "/docs/app/assets" },
       { text: "API Reference", link: "/docs/app/api" },
     ],
+    "/docs/markdown/": [{ text: "Overview", link: "/docs/markdown/" }],
+    "/docs/mermaid/": [{ text: "Overview", link: "/docs/mermaid/" }],
     "/docs/integrations/": [
       { text: "Guide", link: "/docs/integrations/" },
       {

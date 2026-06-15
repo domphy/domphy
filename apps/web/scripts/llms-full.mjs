@@ -21,8 +21,9 @@ push(`- Build UIs as plain objects keyed by HTML tag. Apply patches via \`$\`. N
 - Never inline typography styles. Use typography patches: \`small()\`, \`paragraph()\`, \`heading()\`, \`link()\`, \`strong()\`, \`emphasis()\`, \`code()\`, \`keyboard()\`.
 - Forms use \`@domphy/form\` (\`createForm\` from \`@domphy/form/domphy\`): bind inputs with \`value: (l) => field.value(l)\` + \`onInput: (e) => field.handleChange(e.target.value)\`. The old ui \`form()\`/\`field()\` patches and \`FormState\`/\`FieldState\` were removed; only \`formGroup()\` (layout) remains in \`@domphy/ui\`.
 - Reactive content uses \`(listener) => state.get(listener)\`. Controlled inputs (value bound to a state you also \`.set()\` in \`onInput\`) are safe.
-- Data/logic = 1-1 TanStack core ports + a Domphy adapter at the \`/domphy\` subpath (\`@domphy/core\` peer dep): query, table, router, virtual, form. Drag & drop: \`@domphy/dnd\`. Animation: the \`motion()\` patch. App framework (Next-style): \`@domphy/app\`.
-- Build tool: tsup. Docs: VitePress.`);
+- Data/logic = 1-1 TanStack core ports + a Domphy adapter at the \`/domphy\` subpath (\`@domphy/core\` peer dep): query, table, router, virtual, form. Drag & drop: \`@domphy/dnd\`. Animation: the \`motion()\` patch. App framework (Next-style): \`@domphy/app\` (incl. lazy code-split routes). Markdown→Domphy: \`@domphy/markdown\`. Mermaid: \`@domphy/mermaid\`.
+- Derived reactivity: \`computed\`/\`effect\`/\`effectScope\`/\`batch\`/\`untrack\` in \`@domphy/core\`. Self-check with \`@domphy/doctor\` \`diagnose\`/\`validate\`.
+- Build tool: tsup. Docs: DomphyPress (built on \`@domphy/app\` + \`@domphy/markdown\`).`);
 
 const stripVitepress = (md) =>
   md
@@ -85,10 +86,22 @@ await includeDir(
 await includeDir(resolve(ROOT, "docs/form"), "Form docs (`@domphy/form`)");
 await includeDir(resolve(ROOT, "docs/dnd"), "DnD docs (`@domphy/dnd`)");
 await includeDir(
+  resolve(ROOT, "docs/palette"),
+  "Palette docs (`@domphy/palette`)",
+);
+await includeDir(resolve(ROOT, "docs/app"), "App docs (`@domphy/app`)");
+await includeDir(
+  resolve(ROOT, "docs/markdown"),
+  "Markdown docs (`@domphy/markdown`)",
+);
+await includeDir(
+  resolve(ROOT, "docs/mermaid"),
+  "Mermaid docs (`@domphy/mermaid`)",
+);
+await includeDir(
   resolve(ROOT, "docs/doctor"),
   "Doctor docs (`@domphy/doctor`)",
 );
-await includeDir(resolve(ROOT, "docs/app"), "App docs (`@domphy/app`)");
 
 hr();
 push("## UI patch source (`@domphy/ui`)\n");

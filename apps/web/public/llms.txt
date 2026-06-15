@@ -1,136 +1,146 @@
 # Domphy
 
-> The AI-friendly UI framework. Patch-based UI for native elements. `@domphy/core` is the runtime (reactivity, rendering, CSS-in-JS, SSR). `@domphy/theme` provides design tokens. `@domphy/ui` ships ~75 patches that customize native HTML tags — no components, no JSX, no virtual DOM. Designed to be learnable by AI in-context (this file) and self-correcting via `@domphy/doctor`.
+> The AI-friendly UI framework. `@domphy/core` is the runtime (reactivity, rendering, CSS-in-JS, SSR). `@domphy/theme` provides design tokens. `@domphy/ui` ships ~75 patches that customize native HTML tags — no components, no JSX, no virtual DOM. Built to be **learnable by AI in-context** (this file) and **self-correcting** via `@domphy/doctor`, so agents write correct Domphy despite little training data.
 
 A **patch** is a function returning a `PartialElement`: a stateless descriptor applied to a host element via the `$` property. Patches carry no rendering lifecycle, own no state, and create no DOM boundary. Compose by listing multiple patches; the runtime merges them on the native element.
 
+## Why this is the AI-friendly framework
+
+- **One spec, in context.** The whole API is learnable from this file (`llms.txt`) or `AGENTS.md` — no large training corpus needed.
+- **Self-correcting.** `@domphy/doctor` (`diagnose`/`validate`) flags non-idiomatic output; feed the report back and the model fixes itself.
+- **Machine-readable.** `manifest.json` is a deterministic index of every package + patch; the `@domphy/mcp` server exposes patches, packages, rules, the doctor, AND your app's own blocks as tools.
+- **Scales to large codebases.** An app-block registry (`app-manifest.json`) + the MCP `domphy_list_app_blocks`/`domphy_get_app_block` tools let an agent discover the blocks an app already has instead of re-creating them.
+
 ## Rules for code generation
 
-- Build UIs as plain objects keyed by HTML tag (e.g. `{ button: { $: [button()], _: "Click" } }`).
+- Build UIs as plain objects keyed by HTML tag (e.g. `{ button: "Click", $: [button()] }`).
 - Apply patches via `$`. Never wrap a native tag in a component abstraction.
 - **Never inline typography styles** (fontSize, color, margin, lineHeight). Use the typography patches: `small()`, `paragraph()`, `heading()`, `link()`, `strong()`, `emphasis()`, `code()`, `keyboard()`.
 - **Forms use `@domphy/form`** — `createForm` from `@domphy/form/domphy`; bind inputs with `value: (l) => field.value(l)` + `onInput: (e) => field.handleChange(e.target.value)`. The old ui `form()`/`field()` patches and `FormState`/`FieldState` were REMOVED; only the layout patch `formGroup()` remains in `@domphy/ui`.
-- Reactive content/attributes use `(listener) => state.get(listener)`. A controlled input (value bound to a state you also `.set()` in `onInput`) is safe — setting `.value` programmatically does not refire `input`.
+- Reactive content/attributes use `(listener) => state.get(listener)`. A controlled input (value bound to a state you also `.set()` in `onInput`) is safe. For derived values prefer `computed(fn)` (lazy + cached); side-effects use `effect(fn)`; group disposal with `effectScope()`; coalesce writes with `batch(fn)`.
 - **Data/logic packages are 1-1 TanStack core ports + a Domphy adapter at the `/domphy` subpath** (`@domphy/core` is a peer dep): `createQuery`/`createMutation`/`createInfiniteQuery` (`@domphy/query/domphy`), `createDomphyTable` (`@domphy/table/domphy`), `createVirtualizer` (`@domphy/virtual/domphy`), `createForm` (`@domphy/form/domphy`), `createRouter`/`createRoute` (`@domphy/router`). Drag & drop: `dragDrop()` (`@domphy/dnd`). Animation: the `motion()` patch (`@domphy/ui`). Next-style app framework: `@domphy/app`.
-- **Self-check generated code with `@domphy/doctor`**: `diagnose(app)` + `format(...)` reports inline-typography / void-content / missing-`_key` / unknown-tag issues — fix what it lists before finishing.
+- **Self-check generated code with `@domphy/doctor`**: `diagnose(app)` / `validate(app)` + `format(...)` reports inline-typography / void-content / missing-`_key` / duplicate-`_key` / unstable-`_key` / unknown-tag issues — fix what it lists before finishing.
 - Read the per-patch / per-package doc before using one you haven't used before. Each has its own prop contract.
 
 ## Getting started
 
-- [5-minute quickstart](https://www.domphy.com/quickstart.html): install, hello world, patches, reactive state, forms
-- [Full docs index](https://www.domphy.com/): landing page with package breakdown
+- [5-minute quickstart](https://www.domphy.com/docs/quickstart): install, hello world, patches, reactive state, forms
+- [Full docs index](https://www.domphy.com/docs/): every package
+- [Building with AI](https://www.domphy.com/docs/ai): per-tool setup (Claude Code, Cursor, Copilot, …)
 
 ## Core runtime (`@domphy/core`)
 
-- [Syntax](https://www.domphy.com/core/syntax.html): object shape, `$`, `_`, event handlers, attribute keys
-- [Reactivity](https://www.domphy.com/core/reactivity.html): `toState`, `state.get(listener)`, derived state
-- [Lifecycle](https://www.domphy.com/core/lifecycle.html): `_onSchedule`, `_onInsert`, `_onRemove`
-- [Portal](https://www.domphy.com/core/portal.html): render into arbitrary containers
-- [SSR](https://www.domphy.com/core/ssr.html): server rendering model
+- [Syntax](https://www.domphy.com/docs/core/syntax): object shape, `$`, content, event handlers, attribute keys
+- [Reactivity](https://www.domphy.com/docs/core/reactivity): `toState`, `state.get(listener)`, `RecordState`, `computed`, `effect`, `effectScope`, `batch`, `untrack`
+- [Lifecycle](https://www.domphy.com/docs/core/lifecycle): `_onSchedule`, `_onInsert`, `_onMount`, `_onBeforeRemove`, `_onRemove`
+- [Portal](https://www.domphy.com/docs/core/portal): render into arbitrary containers
+- [SSR](https://www.domphy.com/docs/core/ssr): server rendering + hydration model
 
 ## Theme (`@domphy/theme`)
 
-- [Setup](https://www.domphy.com/theme/setup.html): install and mount the theme
-- [Palette](https://www.domphy.com/theme/palette.html): `ThemeColor`, shift scales
-- [Size](https://www.domphy.com/theme/size.html): `themeSize`, `themeSpacing`, density
-- [Tone](https://www.domphy.com/theme/tone.html): light/dark handling
-- [API](https://www.domphy.com/theme/api.html): full theme API reference
+- [Setup](https://www.domphy.com/docs/theme/setup): install and mount the theme
+- [Palette](https://www.domphy.com/docs/theme/palette): `themeColor`, shift scales
+- [Size](https://www.domphy.com/docs/theme/size): `themeSize`, `themeSpacing`, density
+- [Tone](https://www.domphy.com/docs/theme/tone): light/dark handling
+- [API](https://www.domphy.com/docs/theme/api): full theme API reference
 
 ## Patches (`@domphy/ui`)
 
 ### Typography
-- [small](https://www.domphy.com/ui/patches/small.html), [paragraph](https://www.domphy.com/ui/patches/paragraph.html), [heading](https://www.domphy.com/ui/patches/heading.html), [blockquote](https://www.domphy.com/ui/patches/blockquote.html), [strong](https://www.domphy.com/ui/patches/strong.html), [emphasis](https://www.domphy.com/ui/patches/emphasis.html), [mark](https://www.domphy.com/ui/patches/mark.html), [code](https://www.domphy.com/ui/patches/code.html), [keyboard](https://www.domphy.com/ui/patches/keyboard.html), [preformated](https://www.domphy.com/ui/patches/preformated.html), [link](https://www.domphy.com/ui/patches/link.html), [abbreviation](https://www.domphy.com/ui/patches/abbreviation.html), [subscript](https://www.domphy.com/ui/patches/subscript.html), [superscript](https://www.domphy.com/ui/patches/superscript.html), [label](https://www.domphy.com/ui/patches/label.html), [typography](https://www.domphy.com/ui/patches/typography.html)
+- [small](https://www.domphy.com/docs/ui/patches/small), [paragraph](https://www.domphy.com/docs/ui/patches/paragraph), [heading](https://www.domphy.com/docs/ui/patches/heading), [blockquote](https://www.domphy.com/docs/ui/patches/blockquote), [strong](https://www.domphy.com/docs/ui/patches/strong), [emphasis](https://www.domphy.com/docs/ui/patches/emphasis), [mark](https://www.domphy.com/docs/ui/patches/mark), [code](https://www.domphy.com/docs/ui/patches/code), [keyboard](https://www.domphy.com/docs/ui/patches/keyboard), [preformated](https://www.domphy.com/docs/ui/patches/preformated), [link](https://www.domphy.com/docs/ui/patches/link), [abbreviation](https://www.domphy.com/docs/ui/patches/abbreviation), [subscript](https://www.domphy.com/docs/ui/patches/subscript), [superscript](https://www.domphy.com/docs/ui/patches/superscript), [label](https://www.domphy.com/docs/ui/patches/label)
 
 ### Controls
-- [button](https://www.domphy.com/ui/patches/button.html), [button-switch](https://www.domphy.com/ui/patches/button-switch.html), [toggle](https://www.domphy.com/ui/patches/toggle.html), [input-text](https://www.domphy.com/ui/patches/input-text.html), [input-number](https://www.domphy.com/ui/patches/input-number.html), [input-search](https://www.domphy.com/ui/patches/input-search.html), [input-checkbox](https://www.domphy.com/ui/patches/input-checkbox.html), [input-radio](https://www.domphy.com/ui/patches/input-radio.html), [input-switch](https://www.domphy.com/ui/patches/input-switch.html), [input-range](https://www.domphy.com/ui/patches/input-range.html), [input-color](https://www.domphy.com/ui/patches/input-color.html), [input-date-time](https://www.domphy.com/ui/patches/input-date-time.html), [input-file](https://www.domphy.com/ui/patches/input-file.html), [input-otp](https://www.domphy.com/ui/patches/input-otp.html), [textarea](https://www.domphy.com/ui/patches/textarea.html), [select](https://www.domphy.com/ui/patches/select.html), [select-box](https://www.domphy.com/ui/patches/select-box.html), [select-list](https://www.domphy.com/ui/patches/select-list.html), [combobox](https://www.domphy.com/ui/patches/combobox.html)
+- [button](https://www.domphy.com/docs/ui/patches/button), [button-switch](https://www.domphy.com/docs/ui/patches/button-switch), [toggle](https://www.domphy.com/docs/ui/patches/toggle), [input-text](https://www.domphy.com/docs/ui/patches/input-text), [input-number](https://www.domphy.com/docs/ui/patches/input-number), [input-search](https://www.domphy.com/docs/ui/patches/input-search), [input-checkbox](https://www.domphy.com/docs/ui/patches/input-checkbox), [input-radio](https://www.domphy.com/docs/ui/patches/input-radio), [input-switch](https://www.domphy.com/docs/ui/patches/input-switch), [input-range](https://www.domphy.com/docs/ui/patches/input-range), [input-color](https://www.domphy.com/docs/ui/patches/input-color), [input-date-time](https://www.domphy.com/docs/ui/patches/input-date-time), [input-file](https://www.domphy.com/docs/ui/patches/input-file), [input-otp](https://www.domphy.com/docs/ui/patches/input-otp), [textarea](https://www.domphy.com/docs/ui/patches/textarea), [select](https://www.domphy.com/docs/ui/patches/select), [select-box](https://www.domphy.com/docs/ui/patches/select-box), [select-list](https://www.domphy.com/docs/ui/patches/select-list), [combobox](https://www.domphy.com/docs/ui/patches/combobox)
 
 ### Forms
-- [form-group](https://www.domphy.com/ui/patches/form-group.html) (layout only). Form state/validation lives in `@domphy/form` (see below), not in `@domphy/ui`.
+- [form-group](https://www.domphy.com/docs/ui/patches/form-group) (layout only). Form state/validation lives in `@domphy/form` (see below), not in `@domphy/ui`.
 
 ### Animation
-- [motion](https://www.domphy.com/ui/patches/motion.html) (declarative `animate`/`initial`/`exit` via the Web Animations API), [transition-group](https://www.domphy.com/ui/patches/transition-group.html) (reorder/FLIP)
+- [motion](https://www.domphy.com/docs/ui/patches/motion) (declarative `animate`/`initial`/`exit` via the Web Animations API), [transition-group](https://www.domphy.com/docs/ui/patches/transition-group) (reorder/FLIP)
 
 ### Feedback
-- [alert](https://www.domphy.com/ui/patches/alert.html), [toast](https://www.domphy.com/ui/patches/toast.html), [badge](https://www.domphy.com/ui/patches/badge.html), [tag](https://www.domphy.com/ui/patches/tag.html), [progress](https://www.domphy.com/ui/patches/progress.html), [spinner](https://www.domphy.com/ui/patches/spinner.html), [skeleton](https://www.domphy.com/ui/patches/skeleton.html), [tooltip](https://www.domphy.com/ui/patches/tooltip.html)
+- [alert](https://www.domphy.com/docs/ui/patches/alert), [toast](https://www.domphy.com/docs/ui/patches/toast), [badge](https://www.domphy.com/docs/ui/patches/badge), [tag](https://www.domphy.com/docs/ui/patches/tag), [progress](https://www.domphy.com/docs/ui/patches/progress), [spinner](https://www.domphy.com/docs/ui/patches/spinner), [skeleton](https://www.domphy.com/docs/ui/patches/skeleton), [tooltip](https://www.domphy.com/docs/ui/patches/tooltip)
 
 ### Overlays
-- [dialog](https://www.domphy.com/ui/patches/dialog.html), [drawer](https://www.domphy.com/ui/patches/drawer.html), [popover](https://www.domphy.com/ui/patches/popover.html), [popover-arrow](https://www.domphy.com/ui/patches/popover-arrow.html), [menu](https://www.domphy.com/ui/patches/menu.html), [command](https://www.domphy.com/ui/patches/command.html)
+- [dialog](https://www.domphy.com/docs/ui/patches/dialog), [drawer](https://www.domphy.com/docs/ui/patches/drawer), [popover](https://www.domphy.com/docs/ui/patches/popover), [popover-arrow](https://www.domphy.com/docs/ui/patches/popover-arrow), [menu](https://www.domphy.com/docs/ui/patches/menu), [command](https://www.domphy.com/docs/ui/patches/command)
 
 ### Layout
-- [card](https://www.domphy.com/ui/patches/card.html), [divider](https://www.domphy.com/ui/patches/divider.html), [horizontal-rule](https://www.domphy.com/ui/patches/horizontal-rule.html), [splitter](https://www.domphy.com/ui/patches/splitter.html), [figure](https://www.domphy.com/ui/patches/figure.html), [tabs](https://www.domphy.com/ui/patches/tabs.html), [details](https://www.domphy.com/ui/patches/details.html), [breadcrumb](https://www.domphy.com/ui/patches/breadcrumb.html), [pagination](https://www.domphy.com/ui/patches/pagination.html), [transition-group](https://www.domphy.com/ui/patches/transition-group.html)
+- [card](https://www.domphy.com/docs/ui/patches/card), [divider](https://www.domphy.com/docs/ui/patches/divider), [horizontal-rule](https://www.domphy.com/docs/ui/patches/horizontal-rule), [splitter](https://www.domphy.com/docs/ui/patches/splitter), [figure](https://www.domphy.com/docs/ui/patches/figure), [tabs](https://www.domphy.com/docs/ui/patches/tabs), [details](https://www.domphy.com/docs/ui/patches/details), [breadcrumb](https://www.domphy.com/docs/ui/patches/breadcrumb), [pagination](https://www.domphy.com/docs/ui/patches/pagination)
 
 ### Data
-- [table](https://www.domphy.com/ui/patches/table.html), [ordered-list](https://www.domphy.com/ui/patches/ordered-list.html), [unordered-list](https://www.domphy.com/ui/patches/unordered-list.html), [description-list](https://www.domphy.com/ui/patches/description-list.html), [avatar](https://www.domphy.com/ui/patches/avatar.html), [image](https://www.domphy.com/ui/patches/image.html), [icon](https://www.domphy.com/ui/patches/icon.html)
+- [table](https://www.domphy.com/docs/ui/patches/table), [ordered-list](https://www.domphy.com/docs/ui/patches/ordered-list), [unordered-list](https://www.domphy.com/docs/ui/patches/unordered-list), [description-list](https://www.domphy.com/docs/ui/patches/description-list), [avatar](https://www.domphy.com/docs/ui/patches/avatar), [image](https://www.domphy.com/docs/ui/patches/image), [icon](https://www.domphy.com/docs/ui/patches/icon)
 
 ## Query (`@domphy/query`)
 
-Async state management — a 1-1 port of `@tanstack/query-core` (identical API). Bridge results into the UI with `toState`.
+Async state management — a 1-1 port of `@tanstack/query-core` (identical API). Adapter `createQuery`/`createMutation`/`createInfiniteQuery` (`@domphy/query/domphy`).
 
-- [Overview](https://www.domphy.com/docs/query/): install, core concepts, the `toState` bridge pattern
-- [Queries](https://www.domphy.com/docs/query/queries.html): `QueryObserver`, query keys, options, result object
-- [Mutations](https://www.domphy.com/docs/query/mutations.html): `MutationObserver`, callbacks, optimistic updates
-- [Caching](https://www.domphy.com/docs/query/caching.html): `staleTime`/`gcTime`, invalidation, prefetching, filters
-- [Infinite Queries](https://www.domphy.com/docs/query/infinite-queries.html): `InfiniteQueryObserver`, pagination
-- [SSR & Hydration](https://www.domphy.com/docs/query/ssr.html): `dehydrate`/`hydrate` with Domphy SSR
-- [API Reference](https://www.domphy.com/docs/query/api.html): full export list
+- [Overview](https://www.domphy.com/docs/query/) · [Queries](https://www.domphy.com/docs/query/queries) · [Mutations](https://www.domphy.com/docs/query/mutations) · [Caching](https://www.domphy.com/docs/query/caching) · [Infinite Queries](https://www.domphy.com/docs/query/infinite-queries) · [SSR](https://www.domphy.com/docs/query/ssr) · [API](https://www.domphy.com/docs/query/api)
 
 ## Router (`@domphy/router`)
 
-Type-safe routing — a 1-1 port of `@tanstack/router-core` (identical API) plus `createRouter`/`createRoute`/`createRootRoute` adapter. Bridge router state into the UI with `toState` via `router.subscribe`.
+Type-safe routing — a 1-1 port of `@tanstack/router-core` (identical API) plus `createRouter`/`createRoute`/`createRootRoute`.
 
-- [Overview](https://www.domphy.com/docs/router/): install, the router-to-state bridge pattern, link pattern
-- [Routes](https://www.domphy.com/docs/router/routes.html): `createRootRoute`/`createRoute`, path params, wildcards, layout routes
-- [Navigation](https://www.domphy.com/docs/router/navigation.html): `router.navigate`, `buildLocation`, histories, active links, blocking
-- [Search Params](https://www.domphy.com/docs/router/search-params.html): `validateSearch`, typed search, middleware
-- [Data Loading](https://www.domphy.com/docs/router/data-loading.html): loaders, caching, preloading, `redirect()`, `notFound()`, deferred data
-- [SSR](https://www.domphy.com/docs/router/ssr.html): server/client entries, dehydrate/hydrate
-- [API Reference](https://www.domphy.com/docs/router/api.html): full export list
+- [Overview](https://www.domphy.com/docs/router/) · [Routes](https://www.domphy.com/docs/router/routes) · [Navigation](https://www.domphy.com/docs/router/navigation) · [Search Params](https://www.domphy.com/docs/router/search-params) · [Data Loading](https://www.domphy.com/docs/router/data-loading) · [SSR](https://www.domphy.com/docs/router/ssr) · [API](https://www.domphy.com/docs/router/api)
 
 ## Table (`@domphy/table`)
 
-Headless table logic — a 1-1 port of `@tanstack/table-core` v8 (identical API). Domphy renders; the table instance owns sorting/filtering/pagination state.
+Headless table logic — a 1-1 port of `@tanstack/table-core` v8 (identical API). Adapter `createDomphyTable` (`@domphy/table/domphy`).
 
-- [Overview](https://www.domphy.com/docs/table/): install, headless model, the version-state bridge pattern
-- [Columns & Row Models](https://www.domphy.com/docs/table/columns.html): `createColumnHelper`, opt-in row models, reading header groups and rows
-- [Sorting & Filtering](https://www.domphy.com/docs/table/sorting-filtering.html): toggleSorting, filterFns, global filter
-- [Pagination & Selection](https://www.domphy.com/docs/table/pagination-selection.html): page controls, row selection, checkbox column
-- [Advanced Features](https://www.domphy.com/docs/table/advanced.html): grouping, expanding, pinning, sizing, visibility, faceting
-- [API Reference](https://www.domphy.com/docs/table/api.html): full export list
+- [Overview](https://www.domphy.com/docs/table/) · [Columns & Row Models](https://www.domphy.com/docs/table/columns) · [Sorting & Filtering](https://www.domphy.com/docs/table/sorting-filtering) · [Pagination & Selection](https://www.domphy.com/docs/table/pagination-selection) · [Advanced](https://www.domphy.com/docs/table/advanced) · [API](https://www.domphy.com/docs/table/api)
 
 ## Virtual (`@domphy/virtual`)
 
-List/grid virtualization — a 1-1 port of `@tanstack/virtual-core` (identical API). Adapter `createVirtualizer` (`@domphy/virtual/domphy`) owns the scroll element (`setScrollElement` from the container's `_onMount`); read `getVirtualItems(l)` / `getTotalSize(l)` reactively.
+List/grid virtualization — a 1-1 port of `@tanstack/virtual-core` (identical API). Adapter `createVirtualizer` (`@domphy/virtual/domphy`).
 
-- [Overview](https://www.domphy.com/docs/virtual/): install, adapter API, wiring the scroll container + items
+- [Overview](https://www.domphy.com/docs/virtual/)
 
 ## Form (`@domphy/form`)
 
-Headless form state/validation — a 1-1 port of `@tanstack/form-core` (identical API). Adapter `createForm` (`@domphy/form/domphy`); `form.field(name, opts)` returns a reactive field handle (`value(l)`, `errors(l)`, `handleChange`, `handleBlur`). Supersedes the removed ui `FormState`/`FieldState`.
+Headless form state/validation — a 1-1 port of `@tanstack/form-core` (identical API). Adapter `createForm` (`@domphy/form/domphy`); `form.field(name, opts)` returns a reactive field handle.
 
-- [Overview](https://www.domphy.com/docs/form/): install, `createForm`, field binding, validators, submission
+- [Overview](https://www.domphy.com/docs/form/)
 
 ## DnD (`@domphy/dnd`)
 
-Drag & drop / sortable lists — depends on the framework-agnostic `@formkit/drag-and-drop` engine plus the Domphy adapter `dragDrop(state, config?)`. Apply to the list container via `$`; render keyed children from the same state.
+Drag & drop / sortable lists — wraps the framework-agnostic `@formkit/drag-and-drop` engine via `dragDrop(state, config?)`.
 
-- [Overview](https://www.domphy.com/docs/dnd/): install, `dragDrop`, reorder, transfer between lists, plugins
+- [Overview](https://www.domphy.com/docs/dnd/)
 
 ## App (`@domphy/app`)
 
-Next.js App Router-style framework — runtime (no compiler, no file-system routing): nested routes/layouts, loaders with stale-while-revalidate, metadata, middleware, parallel + intercepting routes, SSR + streaming (`renderToString`/`renderToStream`), API routes. Routes are a plain object tree via `defineRoutes`; `createApp(routes)`.
+Next.js App Router-style framework — runtime (no compiler, no file-system routing): nested routes/layouts, loaders with stale-while-revalidate, metadata, middleware, parallel + intercepting routes, **lazy / code-split routes** (`lazy: () => import(...)`), SSR + streaming (`renderToString`/`renderToStream`), API routes. Routes are a plain object tree via `defineRoutes`; `createApp(routes)`. (This docs site is built on it — see Markdown below.)
 
-- [Overview](https://www.domphy.com/docs/app/): routing, layouts, navigation, data fetching, metadata, middleware, SSR, API routes, image/script
+- [Overview](https://www.domphy.com/docs/app/) · [Routing](https://www.domphy.com/docs/app/routing) · [Layouts & Boundaries](https://www.domphy.com/docs/app/layouts) · [Data Fetching](https://www.domphy.com/docs/app/data-fetching) · [Metadata](https://www.domphy.com/docs/app/metadata) · [SSR](https://www.domphy.com/docs/app/ssr) · [API Reference](https://www.domphy.com/docs/app/api)
+
+## Markdown (`@domphy/markdown`)
+
+Parse Markdown into Domphy element trees for SSR/SSG — `parseMarkdown(md, options)` → `{ frontmatter, body, toc }` (markdown-it under the hood; pluggable `highlight`, anchors, TOC). Lower-level `tokensToDomphy`/`walkTokens`/`splitFrontmatter` let you run your own markdown-it (extra plugins) and reuse the canonical token→Domphy walker. This documentation site is built on it.
+
+- [Overview](https://www.domphy.com/docs/markdown/)
+
+## Mermaid (`@domphy/mermaid`)
+
+Render Mermaid diagrams for Domphy — build-time `renderMermaidToSvg` / `renderMermaidInTree` (replaces ```mermaid code blocks with inline SVG via mermaid-cli) and a client `mermaidClient()` patch.
+
+- [Overview](https://www.domphy.com/docs/mermaid/)
+
+## Palette (`@domphy/palette`)
+
+Color-palette engine (design-time companion to `@domphy/theme`): generate accessible ramps (`generateRamp`) + measure palette quality (5 CIELAB metrics).
+
+- [Overview](https://www.domphy.com/docs/palette/) · [Measuring quality](https://www.domphy.com/docs/palette/measuring) · [Generating palettes](https://www.domphy.com/docs/palette/generating)
 
 ## Doctor (`@domphy/doctor`)
 
-Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagnostic[]` (rules: inline-typography, void-content, missing-key, unknown-tag); `format()` renders a report. Run it on generated code and fix what it reports — the AI self-correction loop.
+Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagnostic[]`; `validate(element)` returns `{ ok, issues, summary }`. Rules: inline-typography, void-content, missing-key, duplicate-key, unstable-key, unknown-tag. Run it on generated code and fix what it reports — the AI self-correction loop. Pairs with the app-block registry (`app-manifest.json`) for large codebases.
 
-- [Overview](https://www.domphy.com/docs/doctor/): `diagnose`/`format`, rules, AI loop usage
+- [Overview](https://www.domphy.com/docs/doctor/)
 
-## Optional
+## AI tooling
 
 - [`manifest.json`](https://www.domphy.com/manifest.json): machine-readable index of every package + patch (name, host tag, signature, doc). Query this instead of parsing docs.
-- [`@domphy/mcp`](https://www.npmjs.com/package/@domphy/mcp): MCP server exposing patches/packages/rules + the doctor as tools for MCP-capable agents.
-- [Full text dump for one-shot context](https://www.domphy.com/llms-full.txt): quickstart + core docs + every patch source file concatenated. Use when you need the whole framework in a single fetch.
-- [Playground](https://www.domphy.com/playground.html): interactive sandbox
+- [`@domphy/mcp`](https://www.npmjs.com/package/@domphy/mcp): MCP server. Tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_diagnose`, `domphy_validate`, `domphy_list_app_blocks`, `domphy_get_app_block`.
+- [Full text dump for one-shot context](https://www.domphy.com/llms-full.txt): rules + quickstart + every core/theme/package doc + every patch source. Use when you need the whole framework in a single fetch.
+- [Building with AI](https://www.domphy.com/docs/ai): per-tool setup.
+- [Playground](https://www.domphy.com/docs/playground): interactive sandbox
 - [GitHub](https://github.com/domphy/domphy): source, issues, releases

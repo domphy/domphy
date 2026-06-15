@@ -26,8 +26,12 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 **App layer & tools:**
 
 - `@domphy/dnd` — drag & drop / sortable lists
-- `@domphy/app` — Next.js App Router-style framework (routes, layouts, loaders+SWR, metadata, middleware, parallel/intercepting routes, SSR + streaming, API routes)
-- `@domphy/doctor` — static analyzer that flags non-idiomatic code (powers AI self-correction)
+- `@domphy/palette` — color-palette engine (generate accessible ramps + measure quality); design-time companion to theme
+- `@domphy/app` — Next.js App Router-style framework (routes, layouts, loaders+SWR, metadata, middleware, parallel/intercepting routes, lazy code-split routes, SSR + streaming, API routes)
+- `@domphy/markdown` — Markdown → Domphy element trees for SSR/SSG (this docs site runs on it)
+- `@domphy/mermaid` — render Mermaid diagrams (build-time SVG + client patch)
+- `@domphy/doctor` — static analyzer that flags non-idiomatic code (`diagnose`/`validate`; powers AI self-correction)
+- `@domphy/mcp` — MCP server exposing patches/packages/rules + doctor + app-block registry to agents
 
 Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. For anything outside these packages (charts, rich text, i18n…), use the vanilla library directly — see [Integrations](/docs/integrations/).
 
