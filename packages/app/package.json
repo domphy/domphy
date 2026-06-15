@@ -1,6 +1,6 @@
 {
   "name": "@domphy/app",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Domphy App - a port of the Next.js App Router feature set for Domphy: routing, nested layouts, navigation, data loading, metadata, middleware, SSR and API routes",
   "type": "module",
   "sideEffects": false,
