@@ -1,8 +1,10 @@
 import type { DomphyElement } from "@domphy/core";
 import type { Highlight, TocEntry } from "./types.js";
 
-/** markdown-it token type, taken from the markdown-it namespace. */
-type Token = import("markdown-it").Token;
+// markdown-it token type, derived from the parser's own `parse` return type.
+// The `import("markdown-it").Token` namespace-member form does not survive the
+// d.ts rollup once this type appears in a publicly exported signature.
+type Token = ReturnType<import("markdown-it").default["parse"]>[number];
 /** markdown-it instance type. */
 type MarkdownIt = import("markdown-it").default;
 
