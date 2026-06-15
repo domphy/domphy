@@ -47,6 +47,7 @@ const App = {
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/SSR+streaming/API routes |
 | `@domphy/doctor` | static analyzer — `diagnose(element)` flags non-idiomatic trees. **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — internal to `@domphy/ui` overlays |
+| `@domphy/palette` | color-palette engine: `generateRamp` + `Ramp`/`Palette` quality metrics (design-time companion to theme) |
 | `@domphy/mcp` | MCP server exposing patches/packages/rules + doctor to agents |
 
 Data/logic packages are **1-1 TanStack core ports** (byte-identical upstream API) + a thin Domphy adapter at the `/domphy` subpath; `@domphy/core` is their peer dependency.
