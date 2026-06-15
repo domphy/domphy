@@ -6,6 +6,14 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles an inline code snippet with a subtle surface background, rounded corners,
+ * and shifted tone. Apply to a `<code>` element.
+ *
+ * @hostTag code
+ * @param props.color - Surface/text color tone. Optional `ValueOrState<ThemeColor>`, default "neutral".
+ * @example { code: "npm install", $: [code({ color: "neutral" })] }
+ */
 function code(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

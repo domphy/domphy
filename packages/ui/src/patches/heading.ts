@@ -15,6 +15,14 @@ const Headinghift: Record<string, string> = {
   h1: "increase-4",
 };
 
+/**
+ * Styles a heading, scaling its font size by level (h1 largest … h6 smallest)
+ * relative to the theme base size. Apply to a heading element `<h1>`–`<h6>`.
+ *
+ * @hostTag h1
+ * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for the heading text. Defaults to "neutral".
+ * @example { h2: "Section title", $: [heading()] }
+ */
 function heading(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

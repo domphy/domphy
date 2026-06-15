@@ -24,6 +24,19 @@ function getPages(current: number, total: number): (number | "...")[] {
   return pages;
 }
 
+/**
+ * Themed pagination control. Renders previous/next buttons plus truncated page
+ * numbers (with ellipses), tracks the current page in a `State`, and updates it
+ * on click. Apply to a `<div>` element.
+ *
+ * @hostTag div
+ * @param props - Configuration.
+ * @param props.total - Required. Total number of pages.
+ * @param props.value - Current page, accepts a value or `State`. Defaults to `1`.
+ * @param props.color - Base color tone for the page buttons. Defaults to `"neutral"`.
+ * @param props.accentColor - Accent color tone for the active page. Defaults to `"primary"`.
+ * @example { div: "", $: [pagination({ total: 10, value: 1 })] }
+ */
 function pagination(props: {
   value?: ValueOrState<number>;
   total: number;

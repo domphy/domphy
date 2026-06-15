@@ -10,6 +10,7 @@ import {
   getAppBlock,
   getPatch,
   getRules,
+  getTones,
   listAppBlocks,
   listPackages,
   listPatches,
@@ -17,7 +18,7 @@ import {
 } from "./tools.js";
 
 const server = new Server(
-  { name: "domphy", version: "0.10.0" },
+  { name: "domphy", version: "0.14.0" },
   { capabilities: { tools: {} } },
 );
 
@@ -30,7 +31,7 @@ const tools = [
   {
     name: "domphy_get_patch",
     description:
-      "Get one patch's full contract (host tag, signature, doc, source).",
+      "Get one patch's full contract: host tag, signature, props (name/type/optional/doc), example, doc, and source.",
     inputSchema: {
       type: "object",
       properties: {
@@ -47,6 +48,12 @@ const tools = [
   {
     name: "domphy_rules",
     description: "Get the Domphy code-generation rules (llms.txt) to follow.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "domphy_tones",
+    description:
+      'Get the valid tone names and theme color names for themeColor()/dataTone (e.g. themeColor(l, "shift-9", "primary")). Use this to avoid invented tones like "surface"/"text".',
     inputSchema: { type: "object", properties: {} },
   },
   {
@@ -118,6 +125,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case "domphy_rules":
         text = await getRules();
+        break;
+      case "domphy_tones":
+        text = await getTones();
         break;
       case "domphy_diagnose":
         text = diagnoseTree(String(args.element));

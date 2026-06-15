@@ -9,6 +9,15 @@ function getItemId(node: ElementNode, index: number): string {
   return `index-${index}`;
 }
 
+/**
+ * Animates child reordering using the FLIP technique: records each child's
+ * position before an update and smoothly transitions it from its old to new
+ * position afterward. No host tag check; applied to the list container.
+ *
+ * @param props.duration - Transition duration in milliseconds. Optional. Defaults to `300`.
+ * @param props.delay - Transition delay in milliseconds. Optional. Defaults to `0`.
+ * @example { ul: null, $: [transitionGroup({ duration: 300 })] }
+ */
 function transitionGroup(
   props: { duration?: number; delay?: number } = {},
 ): PartialElement {

@@ -7,6 +7,14 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles an inline icon container: square box that centers its content and
+ * applies the themed icon color. Apply to a `<span>` element.
+ *
+ * @hostTag span
+ * @param props.color - Optional theme color tone for the icon (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
+ * @example { span: null, $: [icon()] }
+ */
 function icon(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

@@ -6,6 +6,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a custom radio button with a themed circular box, checked dot, hover,
+ * focus and disabled states. Apply to an `<input>` element of type `radio`
+ * (the patch sets `type: "radio"`).
+ *
+ * @hostTag input
+ * @param props.color - Optional theme color tone for the box/border (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
+ * @param props.accentColor - Optional theme color tone for the checked dot and focus ring (`ValueOrState<ThemeColor>`). Defaults to `"primary"`.
+ * @example { input: null, type: "radio", $: [inputRadio()] }
+ */
 function inputRadio(
   props: {
     color?: ValueOrState<ThemeColor>;

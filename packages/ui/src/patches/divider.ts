@@ -7,6 +7,14 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * A horizontal separator (`role="separator"`) with a line on each side of its
+ * content, suitable for labelled dividers ("or"). Apply to a `<div>` element.
+ *
+ * @hostTag div
+ * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for the label text and rules. Defaults to "neutral".
+ * @example { div: "or", $: [divider()] }
+ */
 function divider(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

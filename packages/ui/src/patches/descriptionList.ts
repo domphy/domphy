@@ -6,6 +6,15 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a description list as a two-column grid (terms in the first column,
+ * descriptions in the second), theming the nested `<dt>`/`<dd>` elements.
+ * Apply to a `<dl>` element.
+ *
+ * @hostTag dl
+ * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for the term/description text. Defaults to "neutral".
+ * @example { dl: [{ dt: "Name" }, { dd: "Domphy" }], $: [descriptionList()] }
+ */
 function descriptionList(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

@@ -17,6 +17,25 @@ import {
 import { creatFloating } from "../utils/floating.js";
 import { tag } from "./tag.js";
 
+/**
+ * A clickable select trigger box that renders the currently selected option(s) as removable
+ * tags and toggles a floating popover (the dropdown content) anchored to itself. Selected
+ * labels are derived from `options` matching the bound `value`; removing a tag updates the value.
+ *
+ * @hostTag div
+ * @param props.multiple - Whether multiple selection is allowed (renders removable tags and
+ *   keeps the popover open on click). Defaults to `false`.
+ * @param props.value - Bound selection value(s). Accepts a value or reactive state of an array of
+ *   `number | string | null | undefined`, or a single `number | string | null | undefined`.
+ * @param props.options - List of `{ label, value }` options used to resolve selected labels.
+ *   Defaults to `[]`.
+ * @param props.placement - Floating placement of the dropdown popover. Accepts a value or
+ *   reactive state. Defaults to `"bottom"`.
+ * @param props.content - Required. The popover/dropdown content element shown when open.
+ * @param props.color - Theme color tone for the box text/background. Defaults to `"neutral"`.
+ * @param props.open - Whether the popover is open. Accepts a value or reactive state. Defaults to `false`.
+ * @example { div: null, $: [selectBox({ content: { div: [...] }, options: [{ label: "A", value: "a" }] })] }
+ */
 function selectBox(props: {
   multiple?: boolean;
   value?: ValueOrState<

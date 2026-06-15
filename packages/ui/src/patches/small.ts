@@ -1,6 +1,15 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSize } from "@domphy/theme";
 
+/**
+ * Styles small/secondary text: one step smaller font size (`data-size="decrease-1"`) with a
+ * themed foreground color.
+ *
+ * @hostTag small
+ * @param props.color - Theme color tone for the text. Accepts a value or reactive state.
+ *   Defaults to `"neutral"`.
+ * @example { small: "fine print", $: [small()] }
+ */
 function small(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

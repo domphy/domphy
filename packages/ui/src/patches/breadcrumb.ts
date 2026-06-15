@@ -7,6 +7,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * A horizontal breadcrumb navigation that lays out its children with a
+ * separator between items and highlights the `[aria-current=page]` item.
+ * Apply to a `<nav>` element.
+ *
+ * @hostTag nav
+ * @param props.color - Color tone for links/separators. Optional `ValueOrState<ThemeColor>`, default "neutral".
+ * @param props.separator - String inserted between items via `::after`. Optional `string`, default "/".
+ * @example { nav: null, $: [breadcrumb({ separator: "›" })] }
+ */
 function breadcrumb(
   props: { color?: ValueOrState<ThemeColor>; separator?: string } = {},
 ): PartialElement {

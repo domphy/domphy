@@ -29,7 +29,14 @@ interface Manifest {
     name: string;
     hostTag: string | null;
     signature: string;
+    props: Array<{
+      name: string;
+      type: string;
+      optional: boolean;
+      doc: string;
+    }>;
     doc: string;
+    example: string;
     source: string;
   }>;
 }
@@ -75,6 +82,13 @@ export async function listPackages(): Promise<string> {
 export async function getRules(): Promise<string> {
   const res = await fetch(`${ORIGIN}/llms.txt`);
   if (!res.ok) throw new Error(`Failed to fetch rules: ${res.status}`);
+  return res.text();
+}
+
+/** Valid tone names + theme color names (tones.json) for themeColor()/dataTone. */
+export async function getTones(): Promise<string> {
+  const res = await fetch(`${ORIGIN}/tones.json`);
+  if (!res.ok) throw new Error(`Failed to fetch tones: ${res.status}`);
   return res.text();
 }
 

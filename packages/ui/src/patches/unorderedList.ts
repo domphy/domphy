@@ -6,6 +6,14 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a bulleted list (disc markers, reset margins, themed text) on the host
+ * `<ul>` element.
+ *
+ * @hostTag ul
+ * @param props.color - Theme color for the list text. Optional, accepts a value or state. Defaults to `"neutral"`.
+ * @example { ul: null, $: [unorderedList()] }
+ */
 function unorderedList(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

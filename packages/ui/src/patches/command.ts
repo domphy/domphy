@@ -7,6 +7,13 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Command-palette container patch. Sets up a vertical flex column and provides a
+ * shared `command` context (a query State) consumed by `commandSearch` and
+ * `commandItem` descendants to filter the list. Typically applied to a `<div>`.
+ *
+ * @example { div: [...], $: [command()] }
+ */
 function command(): PartialElement {
   return {
     _onSchedule: (node, element) => {
@@ -26,6 +33,16 @@ function command(): PartialElement {
   };
 }
 
+/**
+ * Search input for a command palette. Wires the input's value into the parent
+ * `command` context's query State so descendant `commandItem`s filter live.
+ * Apply to an `<input>` element used inside a `command()`.
+ *
+ * @hostTag input
+ * @param props.color - Base theme color tone. Defaults to "neutral".
+ * @param props.accentColor - Accent color used for the focus border. Defaults to "primary".
+ * @example { input: "", $: [commandSearch({ accentColor: "primary" })] }
+ */
 function commandSearch(
   props: { color?: ThemeColor; accentColor?: ThemeColor } = {},
 ): PartialElement {
@@ -69,6 +86,16 @@ function commandSearch(
   };
 }
 
+/**
+ * Selectable item (`role="option"`) in a command palette. Subscribes to the
+ * parent `command` context's query State and hides itself when its text content
+ * does not match the current query. Typically applied to a `<button>` (or any
+ * clickable element) used inside a `command()`.
+ *
+ * @param props.color - Base theme color tone. Defaults to "neutral".
+ * @param props.accentColor - Accent color used for the focus outline. Defaults to "primary".
+ * @example { button: "Open file", $: [commandItem({ color: "neutral" })] }
+ */
 function commandItem(
   props: { color?: ThemeColor; accentColor?: ThemeColor } = {},
 ): PartialElement {

@@ -1,6 +1,15 @@
 import type { PartialElement } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
 
+/**
+ * Lays out a one-time-password container as a horizontal row of inputs and
+ * wires keyboard navigation: auto-advance on input, backspace/arrow movement,
+ * and paste distribution across the child inputs. Apply to a container element
+ * (e.g. `<div>`) whose direct children are the OTP `<input>` boxes. Takes no
+ * props.
+ *
+ * @example { div: null, $: [inputOTP()], children: [{ input: null }, { input: null }] }
+ */
 function inputOTP(): PartialElement {
   return {
     style: {

@@ -7,6 +7,17 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a single tab trigger inside a `tabs` tablist on the host `<button>` element.
+ * Wires up the tab's id/aria-controls/aria-selected, click selection, and
+ * arrow/Home/End keyboard navigation via the surrounding `tabs` context.
+ * Must be used inside a `tabs` patch.
+ *
+ * @hostTag button
+ * @param props.accentColor - Theme color for the active/focus underline. Optional. Defaults to `"primary"`.
+ * @param props.color - Theme color for the resting/hover underline and text. Optional. Defaults to `"neutral"`.
+ * @example { button: "Tab 1", $: [tab()] }
+ */
 function tab(
   props: { accentColor?: ThemeColor; color?: ThemeColor } = {},
 ): PartialElement {

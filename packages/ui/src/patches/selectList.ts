@@ -13,6 +13,21 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Container for a list of `selectItem`s that owns the selection state. It exposes a `select`
+ * context (`{ value, multiple }`) consumed by child items, and injects hidden `<input>`(s)
+ * carrying the selected value(s) under `name` for form submission.
+ *
+ * @hostTag div
+ * @param props.multiple - Whether multiple selection is allowed; also sets the default empty
+ *   value (`[]` vs `null`). Defaults to `false`.
+ * @param props.value - Bound selection value(s). Accepts a value or reactive state of an array of
+ *   `number | string | null`, or a single `number | string | null`. Defaults to `[]` when
+ *   `multiple`, otherwise `null`.
+ * @param props.color - Theme color tone for the background. Defaults to `"neutral"`.
+ * @param props.name - Name attribute for the hidden inputs (form field name).
+ * @example { div: [{ div: "A", $: [selectItem({ value: "a" })] }], $: [selectList({ name: "pick" })] }
+ */
 function selectList(
   props: {
     multiple?: boolean;

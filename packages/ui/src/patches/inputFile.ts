@@ -7,6 +7,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a native file input with a themed upload button, border, hover, focus
+ * and disabled states. Apply to an `<input>` element of type `file` (the patch
+ * sets `type: "file"`).
+ *
+ * @hostTag input
+ * @param props.color - Optional theme color tone for text/border and the upload button (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
+ * @param props.accentColor - Optional theme color tone for the hover/focus ring (`ValueOrState<ThemeColor>`). Defaults to `"primary"`.
+ * @example { input: null, type: "file", $: [inputFile()] }
+ */
 function inputFile(
   props: {
     color?: ValueOrState<ThemeColor>;

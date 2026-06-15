@@ -15,6 +15,17 @@ import {
 import { creatFloating } from "../utils/floating.js";
 import { popoverArrow } from "./popoverArrow.js";
 
+/**
+ * Attaches a floating tooltip to the host element, shown on hover/focus and
+ * hidden on leave/blur/Escape. Returns the anchor (trigger) partial; the tooltip
+ * surface is positioned via the floating utility and linked with
+ * `aria-describedby`. No host tag check; applied to the trigger element.
+ *
+ * @param props.open - Controlled open state. Optional, accepts a value or state. Defaults to `false`.
+ * @param props.placement - Floating placement relative to the trigger. Optional, accepts a value or state (`Placement`). Defaults to `"top"`.
+ * @param props.content - Tooltip text content. Optional, accepts a value or state (string only). Defaults to `"Tooltip Content"`.
+ * @example { button: "Hover me", $: [tooltip({ content: "Help text" })] }
+ */
 function tooltip(
   props: {
     open?: ValueOrState<boolean>;

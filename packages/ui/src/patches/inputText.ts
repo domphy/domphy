@@ -7,6 +7,17 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Themed single-line text input primitive. Sets `type="text"` and styles the
+ * field with themed border, focus ring, placeholder, disabled and validation
+ * (`data-status`) states. Apply to an `<input>` element.
+ *
+ * @hostTag input
+ * @param props - Optional configuration.
+ * @param props.color - Base color tone for text/border/background. Defaults to `"neutral"`.
+ * @param props.accentColor - Accent color tone for the hover/focus outline. Defaults to `"primary"`.
+ * @example { input: "", type: "text", placeholder: "Name", $: [inputText()] }
+ */
 function inputText(
   props: {
     color?: ValueOrState<ThemeColor>;

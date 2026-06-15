@@ -7,6 +7,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a multi-line text input (border, focus/hover/invalid/disabled states)
+ * on the host `<textarea>` element, with optional auto-resize to content.
+ *
+ * @hostTag textarea
+ * @param props.color - Theme color for the border and text. Optional, accepts a value or state. Defaults to `"neutral"`.
+ * @param props.accentColor - Theme color for hover/focus outline. Optional, accepts a value or state. Defaults to `"primary"`.
+ * @param props.autoResize - When true, grows the textarea height to fit its content on input. Optional. Defaults to `false`.
+ * @example { textarea: null, $: [textarea({ autoResize: true })] }
+ */
 function textarea(
   props: {
     color?: ValueOrState<ThemeColor>;

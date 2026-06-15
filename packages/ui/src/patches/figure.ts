@@ -6,6 +6,14 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Lays out a figure as a column with block-level media (img/svg/video/canvas)
+ * and a themed `<figcaption>`. Apply to a `<figure>` element.
+ *
+ * @hostTag figure
+ * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for the figure/caption text. Defaults to "neutral".
+ * @example { figure: [{ img: "", src }, { figcaption: "A caption" }], $: [figure()] }
+ */
 function figure(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

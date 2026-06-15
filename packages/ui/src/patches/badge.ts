@@ -11,6 +11,15 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Renders a small count/label bubble pinned to the top-right corner of its host
+ * (via a `::after` pseudo-element). Typically applied to an inline container such
+ * as a `<span>` wrapping an icon or element.
+ *
+ * @param props.color - Badge color tone. Optional `ValueOrState<ThemeColor>`, default "danger".
+ * @param props.label - Text/number shown in the badge. Optional `ValueOrState<string | number>`, default 999.
+ * @example { span: "🔔", $: [badge({ label: 3, color: "danger" })] }
+ */
 function badge(
   props: {
     color?: ValueOrState<ThemeColor>;

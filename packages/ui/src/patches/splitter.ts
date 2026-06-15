@@ -1,6 +1,18 @@
 import { merge, type PartialElement, toState } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 
+/**
+ * Root of a resizable split layout. Lays out children as a flex row (horizontal) or column
+ * (vertical) and provides a `splitter` context (`{ direction, size, min, max }`) consumed by
+ * `splitterPanel` and `splitterHandle`. `size` is a reactive state holding the first panel's
+ * percentage. No host-tag check; typically applied to a `div`.
+ *
+ * @param props.direction - Split orientation, `"horizontal"` | `"vertical"`. Defaults to `"horizontal"`.
+ * @param props.defaultSize - Initial size (percentage) of the resizable panel. Defaults to `50`.
+ * @param props.min - Minimum panel size (percentage). Defaults to `10`.
+ * @param props.max - Maximum panel size (percentage). Defaults to `90`.
+ * @example { div: [...], $: [splitter({ direction: "vertical" })] }
+ */
 function splitter(
   props: {
     direction?: "horizontal" | "vertical";
@@ -36,6 +48,13 @@ function splitter(
   };
 }
 
+/**
+ * The resizable panel inside a `splitter`. Reads the `splitter` context and binds its
+ * width (horizontal) or height (vertical) to the context `size` state, updating reactively as
+ * the handle is dragged. Warns if used outside a `splitter`. Takes no props.
+ *
+ * @example { div: [...], $: [splitterPanel()] }
+ */
 function splitterPanel(): PartialElement {
   return {
     _onMount: (node) => {
@@ -59,6 +78,13 @@ function splitterPanel(): PartialElement {
   };
 }
 
+/**
+ * The draggable divider inside a `splitter`. Reads the `splitter` context, shows the
+ * appropriate resize cursor, and on mouse drag updates the context `size` state (clamped to
+ * `min`/`max`). Warns if used outside a `splitter`. Takes no props.
+ *
+ * @example { div: null, $: [splitterHandle()] }
+ */
 function splitterHandle(): PartialElement {
   return {
     _onMount: (node) => {

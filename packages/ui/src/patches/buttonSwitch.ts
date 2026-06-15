@@ -6,6 +6,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * A pill-shaped toggle switch with `role="switch"`; clicking flips the bound
+ * `checked` state and slides the thumb. Apply to a `<button>` element.
+ *
+ * @hostTag button
+ * @param props.checked - Toggle state. Optional `ValueOrState<boolean>`, default false.
+ * @param props.accentColor - Color tone when checked (on). Optional `ValueOrState<ThemeColor>`, default "primary".
+ * @param props.color - Color tone when unchecked (off track). Optional `ValueOrState<ThemeColor>`, default "neutral".
+ * @example { button: { span: null }, $: [buttonSwitch({ checked: true })] }
+ */
 function buttonSwitch(
   props: {
     checked?: ValueOrState<boolean>;

@@ -6,6 +6,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a custom checkbox with themed box, check mark, indeterminate state,
+ * hover, focus and disabled styling. Apply to an `<input>` element of
+ * type `checkbox` (the patch sets `type: "checkbox"`).
+ *
+ * @hostTag input
+ * @param props.color - Optional theme color tone for the box/border (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
+ * @param props.accentColor - Optional theme color tone for the checked/indeterminate fill and focus ring (`ValueOrState<ThemeColor>`). Defaults to `"primary"`.
+ * @example { input: null, type: "checkbox", $: [inputCheckbox()] }
+ */
 function inputCheckbox(
   props: {
     color?: ValueOrState<ThemeColor>;

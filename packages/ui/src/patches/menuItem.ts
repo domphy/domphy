@@ -7,6 +7,18 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Themed menu entry for use inside a `menu`. Sets `role="menuitem"`, wires
+ * click/keyboard selection (Enter/Space activate; Arrow/Home/End move focus),
+ * and reflects the active item via `aria-current`. Apply to a `<button>`
+ * element placed within a `menu`.
+ *
+ * @hostTag button
+ * @param props - Optional configuration.
+ * @param props.accentColor - Accent color tone for the active/focus indicator. Defaults to `"primary"`.
+ * @param props.color - Base color tone for the item. Defaults to `"neutral"`.
+ * @example { button: "Profile", $: [menuItem()] }
+ */
 function menuItem(
   props: { accentColor?: ThemeColor; color?: ThemeColor } = {},
 ): PartialElement {

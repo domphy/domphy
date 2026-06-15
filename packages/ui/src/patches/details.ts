@@ -7,6 +7,17 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a native disclosure widget: a themed `<summary>` header with an
+ * animated rotating chevron and an expand/collapse transition on the body
+ * content. Apply to a `<details>` element.
+ *
+ * @hostTag details
+ * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for the body/summary. Defaults to "neutral".
+ * @param props.accentColor - Accent color (`ValueOrState<ThemeColor>`) for the summary's focus outline. Defaults to "primary".
+ * @param props.duration - Open/close transition duration in milliseconds. Defaults to 240.
+ * @example { details: [{ summary: "More" }, { div: "Body" }], $: [details()] }
+ */
 function details(
   props: {
     color?: ValueOrState<ThemeColor>;

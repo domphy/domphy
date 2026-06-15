@@ -3,83 +3,135 @@
   "version": "0.14.0",
   "generated": "auto",
   "rules": "https://www.domphy.com/llms.txt",
+  "tones": "https://www.domphy.com/tones.json",
   "packages": [
     {
       "name": "@domphy/app",
       "version": "0.14.0",
       "description": "Domphy App - a port of the Next.js App Router feature set for Domphy: routing, nested layouts, navigation, data loading, metadata, middleware, SSR and API routes",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/core",
       "version": "0.14.0",
       "description": "Domphy Core UI Framework",
-      "subpaths": ["."],
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": []
+    },
+    {
+      "name": "create-domphy",
+      "version": "0.14.0",
+      "description": "Scaffold a runnable Domphy starter project (npm create domphy@latest)",
+      "subpaths": [
+        "."
+      ],
       "peerDependencies": []
     },
     {
       "name": "@domphy/dnd",
       "version": "0.14.0",
       "description": "Domphy Drag & Drop - reactive adapter for the framework-agnostic @formkit/drag-and-drop engine",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/doctor",
       "version": "0.14.0",
       "description": "Domphy Doctor - static analyzer that flags non-idiomatic Domphy element trees (AI self-correction)",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/floating",
       "version": "0.14.0",
       "description": "Domphy Floating - anchor positioning (tooltips, popovers, dropdowns), a 1-1 vendor of floating-ui (dom + core + utils), zero dependencies",
-      "subpaths": ["."],
+      "subpaths": [
+        "."
+      ],
       "peerDependencies": []
     },
     {
       "name": "@domphy/form",
       "version": "0.14.0",
       "description": "Domphy Form - headless form state, validation and submission, a 1-1 port of @tanstack/form-core",
-      "subpaths": [".", "./domphy"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./domphy"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/markdown",
       "version": "0.14.0",
       "description": "Domphy Markdown - parse Markdown into Domphy element trees (markdown-it) for SSR with @domphy/core",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/mcp",
       "version": "0.14.0",
       "description": "Domphy MCP server - exposes patches, packages, rules, and the doctor to MCP-capable AI agents",
-      "subpaths": [".", "./tools"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./tools"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/mermaid",
       "version": "0.14.0",
       "description": "Domphy Mermaid - build-time (SSG) and client-side Mermaid diagram rendering, with markdown tree integration for @domphy/markdown",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core", "mermaid"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core",
+        "mermaid"
+      ]
     },
     {
       "name": "@domphy/palette",
       "version": "0.14.0",
       "description": "Domphy Palette - color-palette engine that generates optimal color ramps and validates palette quality, a port of chromametry",
-      "subpaths": ["."],
+      "subpaths": [
+        "."
+      ],
       "peerDependencies": []
     },
     {
       "name": "@domphy/query",
       "version": "0.14.0",
       "description": "Domphy Query - async state management, a 1-1 port of @tanstack/query-core",
-      "subpaths": [".", "./domphy"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./domphy"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/router",
@@ -99,548 +151,1778 @@
       "name": "@domphy/table",
       "version": "0.14.0",
       "description": "Domphy Table - headless table logic, a 1-1 port of @tanstack/table-core",
-      "subpaths": [".", "./domphy"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./domphy"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/theme",
       "version": "0.14.0",
       "description": "Domphy Design System",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/ui",
       "version": "0.14.0",
       "description": "Domphy UI",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core", "@domphy/theme"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core",
+        "@domphy/theme"
+      ]
     },
     {
       "name": "@domphy/virtual",
       "version": "0.14.0",
       "description": "Domphy Virtual - headless list/grid virtualization, a 1-1 port of @tanstack/virtual-core",
-      "subpaths": [".", "./domphy"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./domphy"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     }
   ],
   "patches": [
     {
       "name": "abbreviation",
       "hostTag": "abbr",
-      "signature": "abbreviation(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "abbreviation(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Base text/decoration color tone. Optional `ValueOrState<ThemeColor>`, default \"neutral\"."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Hover color tone. Optional `ValueOrState<ThemeColor>`, default \"primary\"."
+        }
+      ],
+      "doc": "Styles an abbreviation/acronym with a dotted underline and a \"help\" cursor, shifting to the accent color on hover. Apply to an `<abbr>` element.",
+      "example": "{ abbr: \"HTML\", title: \"HyperText Markup Language\", $: [abbreviation({ accentColor: \"primary\" })] }",
       "source": "packages/ui/src/patches/abbreviation.ts"
     },
     {
       "name": "alert",
       "hostTag": null,
-      "signature": "alert(props: { color?: ValueOrState<ThemeColor>; } = {})",
-      "doc": "",
+      "signature": "alert(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Surface/accent color tone. Optional `ValueOrState<ThemeColor>`, default \"primary\"."
+        }
+      ],
+      "doc": "A semantic alert surface block with a colored inset bar, padding, and `role=\"alert\"`. Typically applied to a `<div>` (any block container).",
+      "example": "{ div: \"Saved successfully\", $: [alert({ color: \"success\" })] }",
       "source": "packages/ui/src/patches/alert.ts"
     },
     {
       "name": "avatar",
       "hostTag": null,
-      "signature": "avatar(props: { color?: ValueOrState<ThemeColor>; } = {})",
-      "doc": "",
+      "signature": "avatar(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Background/foreground color tone. Optional `ValueOrState<ThemeColor>`, default \"primary\"."
+        }
+      ],
+      "doc": "A circular avatar container that centers initials/text and cover-fits any child `<img>`. Typically applied to an inline-flex container such as a `<span>`.",
+      "example": "{ span: \"JD\", $: [avatar({ color: \"primary\" })] }",
       "source": "packages/ui/src/patches/avatar.ts"
     },
     {
       "name": "badge",
       "hostTag": null,
-      "signature": "badge(props: { color?: ValueOrState<ThemeColor> label?: ValueOrState<string | number> } = {})",
-      "doc": "",
+      "signature": "badge(props: { color?: ValueOrState<ThemeColor>; label?: ValueOrState<string | number>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Badge color tone. Optional `ValueOrState<ThemeColor>`, default \"danger\"."
+        },
+        {
+          "name": "label",
+          "type": "ValueOrState<string | number>",
+          "optional": true,
+          "doc": "Text/number shown in the badge. Optional `ValueOrState<string | number>`, default 999."
+        }
+      ],
+      "doc": "Renders a small count/label bubble pinned to the top-right corner of its host (via a `::after` pseudo-element). Typically applied to an inline container such as a `<span>` wrapping an icon or element.",
+      "example": "{ span: \"🔔\", $: [badge({ label: 3, color: \"danger\" })] }",
       "source": "packages/ui/src/patches/badge.ts"
     },
     {
       "name": "blockquote",
       "hostTag": "blockquote",
       "signature": "blockquote(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Surface/bar color tone. Optional `ValueOrState<ThemeColor>`, default \"inherit\"."
+        }
+      ],
+      "doc": "Styles a quotation block with a colored inset side bar, padded surface, and shifted tone. Apply to a `<blockquote>` element.",
+      "example": "{ blockquote: \"Design is how it works.\", $: [blockquote({ color: \"primary\" })] }",
       "source": "packages/ui/src/patches/blockquote.ts"
     },
     {
       "name": "breadcrumb",
       "hostTag": "nav",
-      "signature": "breadcrumb(props: { color?: ValueOrState<ThemeColor>; separator?: string; } = {})",
-      "doc": "",
+      "signature": "breadcrumb(props: { color?: ValueOrState<ThemeColor>; separator?: string } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Color tone for links/separators. Optional `ValueOrState<ThemeColor>`, default \"neutral\"."
+        },
+        {
+          "name": "separator",
+          "type": "string",
+          "optional": true,
+          "doc": "String inserted between items via `::after`. Optional `string`, default \"/\"."
+        }
+      ],
+      "doc": "A horizontal breadcrumb navigation that lays out its children with a separator between items and highlights the `[aria-current=page]` item. Apply to a `<nav>` element.",
+      "example": "{ nav: null, $: [breadcrumb({ separator: \"›\" })] }",
       "source": "packages/ui/src/patches/breadcrumb.ts"
     },
     {
       "name": "breadcrumbEllipsis",
       "hostTag": "button",
-      "signature": "breadcrumbEllipsis(props: { color?: ValueOrState<ThemeColor>; } = {})",
-      "doc": "",
+      "signature": "breadcrumbEllipsis(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Color tone for the trigger. Optional `ValueOrState<ThemeColor>`, default \"neutral\"."
+        }
+      ],
+      "doc": "An ellipsis trigger button for collapsed breadcrumb items, with hover and focus-visible states. Apply to a `<button>` element.",
+      "example": "{ button: \"…\", $: [breadcrumbEllipsis({ color: \"neutral\" })] }",
       "source": "packages/ui/src/patches/breadcrumbEllipsis.ts"
     },
     {
       "name": "button",
       "hostTag": "button",
       "signature": "button(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Button color tone. Optional `ValueOrState<ThemeColor>`, default \"primary\"."
+        }
+      ],
+      "doc": "A themed button control with density-aware padding/radius and hover, focus-visible, `[disabled]`, and `[aria-busy=true]` states. Apply to a `<button>` element.",
+      "example": "{ button: \"Save\", $: [button({ color: \"primary\" })] }",
       "source": "packages/ui/src/patches/button.ts"
     },
     {
       "name": "buttonSwitch",
       "hostTag": "button",
       "signature": "buttonSwitch(props: { checked?: ValueOrState<boolean>; accentColor?: ValueOrState<ThemeColor>; color?: ValueOrState<ThemeColor>; } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "checked",
+          "type": "ValueOrState<boolean>",
+          "optional": true,
+          "doc": "Toggle state. Optional `ValueOrState<boolean>`, default false."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Color tone when checked (on). Optional `ValueOrState<ThemeColor>`, default \"primary\"."
+        },
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Color tone when unchecked (off track). Optional `ValueOrState<ThemeColor>`, default \"neutral\"."
+        }
+      ],
+      "doc": "A pill-shaped toggle switch with `role=\"switch\"`; clicking flips the bound `checked` state and slides the thumb. Apply to a `<button>` element.",
+      "example": "{ button: { span: null }, $: [buttonSwitch({ checked: true })] }",
       "source": "packages/ui/src/patches/buttonSwitch.ts"
     },
     {
       "name": "card",
       "hostTag": null,
       "signature": "card(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Surface/border color tone. Optional `ValueOrState<ThemeColor>`, default \"neutral\"."
+        }
+      ],
+      "doc": "A grid-based card surface that auto-places known child elements into named regions: `<img>` (image), headings (title), `<p>` (description), `<aside>` (aside), `<div>` (content), and `<footer>` (footer). Typically applied to a `<div>` (any block container).",
+      "example": "{ div: { h3: \"Title\", p: \"Body\" }, $: [card({ color: \"neutral\" })] }",
       "source": "packages/ui/src/patches/card.ts"
     },
     {
       "name": "code",
       "hostTag": "code",
       "signature": "code(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Surface/text color tone. Optional `ValueOrState<ThemeColor>`, default \"neutral\"."
+        }
+      ],
+      "doc": "Styles an inline code snippet with a subtle surface background, rounded corners, and shifted tone. Apply to a `<code>` element.",
+      "example": "{ code: \"npm install\", $: [code({ color: \"neutral\" })] }",
       "source": "packages/ui/src/patches/code.ts"
     },
     {
       "name": "combobox",
       "hostTag": "div",
-      "signature": "combobox(props: { multiple?: boolean; value?: ValueOrState<Array<number | string | null | undefined> | number | string | null | undefined>; options?: Array<{ label: string, value: string }>; placement?: ValueOrState<Placement>; content: DomphyElement; color?: ThemeColor; open?: ValueOrState<boolean>; input?: DomphyElement; })",
-      "doc": "",
+      "signature": "combobox(props: { multiple?: boolean; value?: ValueOrState< | Array<number | string | null | undefined> | number | string | null | undefined >; options?: Array<{ label: string; value: string }>; placement?: ValueOrState<Placement>; content: DomphyElement; color?: ThemeColor; open?: ValueOrState<boolean>; input?: DomphyElement; })",
+      "props": [
+        {
+          "name": "multiple",
+          "type": "boolean",
+          "optional": true,
+          "doc": "Allow selecting multiple values (popover stays open on click). Optional `boolean`, default false."
+        },
+        {
+          "name": "value",
+          "type": "ValueOrState< | Array<number | string | null | undefined> | number | string | null | undefined >",
+          "optional": true,
+          "doc": "Selected value(s). Optional `ValueOrState<Array<number | string | null | undefined> | number | string | null | undefined>`, no default."
+        },
+        {
+          "name": "options",
+          "type": "Array<{ label: string; value: string }>",
+          "optional": true,
+          "doc": "Available `{ label, value }` options used to render selected tags. Optional `Array<{ label: string; value: string }>`, default `[]`."
+        },
+        {
+          "name": "placement",
+          "type": "ValueOrState<Placement>",
+          "optional": true,
+          "doc": "Floating popover placement. Optional `ValueOrState<Placement>`, default \"bottom\"."
+        },
+        {
+          "name": "content",
+          "type": "DomphyElement",
+          "optional": false,
+          "doc": "The floating popover content element. Required `DomphyElement`."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Color tone for the control. Optional `ThemeColor`, default \"neutral\"."
+        },
+        {
+          "name": "open",
+          "type": "ValueOrState<boolean>",
+          "optional": true,
+          "doc": "Whether the popover is open. Optional `ValueOrState<boolean>`, default false."
+        },
+        {
+          "name": "input",
+          "type": "DomphyElement",
+          "optional": true,
+          "doc": "Custom input element; when omitted a default `<input>` is created. Optional `DomphyElement`."
+        }
+      ],
+      "doc": "A combobox/multi-select control: renders selected options as removable tags plus an input, and shows a floating popover (`content`) anchored to the host. Apply to a `<div>` element.",
+      "example": "{ div: null, $: [combobox({ options: [{ label: \"A\", value: \"a\" }], content: { div: null } })] }",
       "source": "packages/ui/src/patches/combobox.ts"
     },
     {
       "name": "command",
       "hostTag": "input",
       "signature": "command()",
-      "doc": "",
+      "props": [],
+      "doc": "Command-palette container patch. Sets up a vertical flex column and provides a shared `command` context (a query State) consumed by `commandSearch` and `commandItem` descendants to filter the list. Typically applied to a `<div>`.",
+      "example": "{ div: [...], $: [command()] }",
+      "source": "packages/ui/src/patches/command.ts"
+    },
+    {
+      "name": "commandItem",
+      "hostTag": "input",
+      "signature": "commandItem(props: { color?: ThemeColor; accentColor?: ThemeColor } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Base theme color tone. Defaults to \"neutral\"."
+        },
+        {
+          "name": "accentColor",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Accent color used for the focus outline. Defaults to \"primary\"."
+        }
+      ],
+      "doc": "Selectable item (`role=\"option\"`) in a command palette. Subscribes to the parent `command` context's query State and hides itself when its text content does not match the current query. Typically applied to a `<button>` (or any clickable element) used inside a `command()`.",
+      "example": "{ button: \"Open file\", $: [commandItem({ color: \"neutral\" })] }",
+      "source": "packages/ui/src/patches/command.ts"
+    },
+    {
+      "name": "commandSearch",
+      "hostTag": "input",
+      "signature": "commandSearch(props: { color?: ThemeColor; accentColor?: ThemeColor } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Base theme color tone. Defaults to \"neutral\"."
+        },
+        {
+          "name": "accentColor",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Accent color used for the focus border. Defaults to \"primary\"."
+        }
+      ],
+      "doc": "Search input for a command palette. Wires the input's value into the parent `command` context's query State so descendant `commandItem`s filter live. Apply to an `<input>` element used inside a `command()`.",
+      "example": "{ input: \"\", $: [commandSearch({ accentColor: \"primary\" })] }",
       "source": "packages/ui/src/patches/command.ts"
     },
     {
       "name": "datePicker",
-      "hostTag": null,
+      "hostTag": "input",
       "signature": "datePicker(props: DatePickerProps = {})",
-      "doc": "A single date selection, or a `[start, end]` tuple in range mode. */ export type DatePickerValue = Date | null | [Date | null, Date | null]; export interface DatePickerProps { /** Controlled value: a `Date` in single mode, a `[start, end]` tuple in range mode. */ value?: ValueOrState<DatePickerValue>; /** Selection mode. */ mode?: \"single\" | \"range\"; /** Also pick hour + minute. The chosen time applies to the selected date(s). */ time?: boolean; /** Earliest selectable day (inclusive). */ min?: Date; /** Latest selectable day (inclusive). */ max?: Date; /** Disable arbitrary days. */ disabledDate?: (date: Date) => boolean; /** BCP-47 locale for month/weekday names, first-day-of-week, and formatting. */ locale?: string; /** Override the first day of the week (0 = Sunday … 6 = Saturday). */ weekStartsOn?: number; /** Override the input display string. */ format?: (value: DatePickerValue) => string; /** Called whenever the selection changes. */ onChange?: (value: DatePickerValue) => void; /** Accent color for the selected/active days. */ accentColor?: ValueOrState<ThemeColor>; /** Popover placement relative to the input. */ placement?: ValueOrState<Placement>; } // --- date helpers (no third-party library) ----------------------------------- const atMidnight = (date: Date): Date => new Date(date.getFullYear(), date.getMonth(), date.getDate()); const addDays = (date: Date, count: number): Date => new Date(date.getFullYear(), date.getMonth(), date.getDate() + count); const addMonths = (date: Date, count: number): Date => new Date(date.getFullYear(), date.getMonth() + count, date.getDate()); const sameDay = (a: Date | null, b: Date | null): boolean => !!a && !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); const isoOf = (date: Date): string => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, \"0\")}-${String( date.getDate(), ).padStart(2, \"0\")}`; const startOfWeek = (date: Date, weekStart: number): Date => addDays(date, -((date.getDay() - weekStart + 7) % 7)); /** Resolves the locale's first day of week, falling back to Sunday. */ function localeWeekStart(locale: string): number { try { const localeObject = new Intl.Locale(locale) as Intl.Locale & { weekInfo?: { firstDay: number }; getWeekInfo?: () => { firstDay: number }; }; const info = localeObject.getWeekInfo?.() ?? localeObject.weekInfo; if (info?.firstDay) return info.firstDay % 7; // Intl uses 1=Mon … 7=Sun } catch { // unsupported locale or engine — fall through to Sunday } return 0; } /** A native, themeable date picker patch for an `<input>`. Opens a calendar popover (rendered with Domphy elements, positioned via `@domphy/floating`) supporting single/range selection, optional time, min/max + disabled days, localized names, and keyboard navigation. The input is read-only and shows the formatted selection; compose with `inputText()` for the input's look.",
+      "props": [
+        {
+          "name": "value",
+          "type": "ValueOrState<DatePickerValue>",
+          "optional": true,
+          "doc": "Controlled value (`ValueOrState<DatePickerValue>`): a `Date`/`null` in single mode, a `[start, end]` tuple in range mode."
+        },
+        {
+          "name": "mode",
+          "type": "\"single\" | \"range\"",
+          "optional": true,
+          "doc": "Selection mode, \"single\" | \"range\". Defaults to \"single\"."
+        },
+        {
+          "name": "time",
+          "type": "boolean",
+          "optional": true,
+          "doc": "When true, also pick hour + minute (applied to the selected date(s)). Defaults to false."
+        },
+        {
+          "name": "min",
+          "type": "Date",
+          "optional": true,
+          "doc": "Earliest selectable day (inclusive), a `Date`."
+        },
+        {
+          "name": "max",
+          "type": "Date",
+          "optional": true,
+          "doc": "Latest selectable day (inclusive), a `Date`."
+        },
+        {
+          "name": "disabledDate",
+          "type": "(date: Date) => boolean",
+          "optional": true,
+          "doc": "Predicate `(date: Date) => boolean` to disable arbitrary days."
+        },
+        {
+          "name": "locale",
+          "type": "string",
+          "optional": true,
+          "doc": "BCP-47 locale for names/first-day-of-week/formatting. Defaults to `navigator.language` (or \"en-US\" in non-browser)."
+        },
+        {
+          "name": "weekStartsOn",
+          "type": "number",
+          "optional": true,
+          "doc": "Override first day of week (0 = Sunday … 6 = Saturday). Defaults to the locale's first day."
+        },
+        {
+          "name": "format",
+          "type": "(value: DatePickerValue) => string",
+          "optional": true,
+          "doc": "Override the input display string, `(value: DatePickerValue) => string`."
+        },
+        {
+          "name": "onChange",
+          "type": "(value: DatePickerValue) => void",
+          "optional": true,
+          "doc": "Called with the new value whenever the selection changes, `(value: DatePickerValue) => void`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Accent color (`ValueOrState<ThemeColor>`) for selected/active days. Defaults to \"primary\"."
+        },
+        {
+          "name": "placement",
+          "type": "ValueOrState<Placement>",
+          "optional": true,
+          "doc": "Popover placement (`ValueOrState<Placement>`) relative to the input. Defaults to \"bottom-start\"."
+        }
+      ],
+      "doc": "A native, themeable date picker patch for an `<input>`. Opens a calendar popover (rendered with Domphy elements, positioned via `@domphy/floating`) supporting single/range selection, optional time, min/max + disabled days, localized names, and keyboard navigation. The input is read-only and shows the formatted selection; compose with `inputText()` for the input's look.",
+      "example": "{ input: \"\", $: [inputText(), datePicker({ mode: \"range\" })] }",
       "source": "packages/ui/src/patches/datePicker.ts"
     },
     {
       "name": "descriptionList",
       "hostTag": "dl",
       "signature": "descriptionList(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone (`ValueOrState<ThemeColor>`) for the term/description text. Defaults to \"neutral\"."
+        }
+      ],
+      "doc": "Styles a description list as a two-column grid (terms in the first column, descriptions in the second), theming the nested `<dt>`/`<dd>` elements. Apply to a `<dl>` element.",
+      "example": "{ dl: [{ dt: \"Name\" }, { dd: \"Domphy\" }], $: [descriptionList()] }",
       "source": "packages/ui/src/patches/descriptionList.ts"
     },
     {
       "name": "details",
       "hostTag": "details",
-      "signature": "details(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; duration?: number } = {})",
-      "doc": "",
+      "signature": "details(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; duration?: number; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone (`ValueOrState<ThemeColor>`) for the body/summary. Defaults to \"neutral\"."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Accent color (`ValueOrState<ThemeColor>`) for the summary's focus outline. Defaults to \"primary\"."
+        },
+        {
+          "name": "duration",
+          "type": "number",
+          "optional": true,
+          "doc": "Open/close transition duration in milliseconds. Defaults to 240."
+        }
+      ],
+      "doc": "Styles a native disclosure widget: a themed `<summary>` header with an animated rotating chevron and an expand/collapse transition on the body content. Apply to a `<details>` element.",
+      "example": "{ details: [{ summary: \"More\" }, { div: \"Body\" }], $: [details()] }",
       "source": "packages/ui/src/patches/details.ts"
     },
     {
       "name": "dialog",
       "hostTag": "dialog",
       "signature": "dialog(props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color tone for the dialog surface. Defaults to \"neutral\"."
+        },
+        {
+          "name": "open",
+          "type": "ValueOrState<boolean>",
+          "optional": true,
+          "doc": "Open state (`ValueOrState<boolean>`); set it to true/false to show/hide. Defaults to false."
+        }
+      ],
+      "doc": "Modal dialog patch driven by an `open` State. Calls `showModal()`/`close()`, fades via opacity, locks page scroll while open, focuses the first focusable child, and closes on outside (backdrop) click. Apply to a `<dialog>` element.",
+      "example": "{ dialog: [...], $: [dialog({ open })] }",
       "source": "packages/ui/src/patches/dialog.ts"
     },
     {
       "name": "divider",
       "hostTag": "div",
-      "signature": "divider(props: { color?: ValueOrState<ThemeColor>; } = {})",
-      "doc": "",
+      "signature": "divider(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone (`ValueOrState<ThemeColor>`) for the label text and rules. Defaults to \"neutral\"."
+        }
+      ],
+      "doc": "A horizontal separator (`role=\"separator\"`) with a line on each side of its content, suitable for labelled dividers (\"or\"). Apply to a `<div>` element.",
+      "example": "{ div: \"or\", $: [divider()] }",
       "source": "packages/ui/src/patches/divider.ts"
     },
     {
       "name": "drawer",
       "hostTag": "dialog",
       "signature": "drawer(props: { color?: ThemeColor; open?: ValueOrState<boolean>; placement?: Placement; size?: string; } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color tone for the drawer surface. Defaults to \"neutral\"."
+        },
+        {
+          "name": "open",
+          "type": "ValueOrState<boolean>",
+          "optional": true,
+          "doc": "Open state (`ValueOrState<boolean>`); set true/false to show/hide. Defaults to false."
+        },
+        {
+          "name": "placement",
+          "type": "Placement",
+          "optional": true,
+          "doc": "Edge to anchor to, \"left\" | \"right\" | \"top\" | \"bottom\". Defaults to \"right\"."
+        },
+        {
+          "name": "size",
+          "type": "string",
+          "optional": true,
+          "doc": "CSS length for the drawer's width (left/right) or height (top/bottom). Defaults to themeSpacing(80) for left/right, themeSpacing(64) for top/bottom."
+        }
+      ],
+      "doc": "Edge-anchored modal drawer driven by an `open` State. Slides in/out from a chosen edge via a transform transition, calls `showModal()`/`close()`, locks page scroll while open, and closes on backdrop click. Apply to a `<dialog>` element.",
+      "example": "{ dialog: [...], $: [drawer({ open, placement: \"left\" })] }",
       "source": "packages/ui/src/patches/drawer.ts"
     },
     {
       "name": "emphasis",
       "hostTag": "em",
       "signature": "emphasis(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone (`ValueOrState<ThemeColor>`) for the text. Defaults to \"neutral\"."
+        }
+      ],
+      "doc": "Italic emphasized inline text. Apply to an `<em>` element.",
+      "example": "{ em: \"important\", $: [emphasis()] }",
       "source": "packages/ui/src/patches/emphasis.ts"
     },
     {
       "name": "figure",
       "hostTag": "figure",
       "signature": "figure(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone (`ValueOrState<ThemeColor>`) for the figure/caption text. Defaults to \"neutral\"."
+        }
+      ],
+      "doc": "Lays out a figure as a column with block-level media (img/svg/video/canvas) and a themed `<figcaption>`. Apply to a `<figure>` element.",
+      "example": "{ figure: [{ img: \"\", src }, { figcaption: \"A caption\" }], $: [figure()] }",
       "source": "packages/ui/src/patches/figure.ts"
     },
     {
       "name": "formGroup",
       "hostTag": "fieldset",
-      "signature": "formGroup(props: { color?: ValueOrState<ThemeColor>; layout?: \"horizontal\" | \"vertical\" } = {})",
-      "doc": "",
+      "signature": "formGroup(props: { color?: ValueOrState<ThemeColor>; layout?: \"horizontal\" | \"vertical\"; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone (`ValueOrState<ThemeColor>`) for legend/text/surface. Defaults to \"neutral\"."
+        },
+        {
+          "name": "layout",
+          "type": "\"horizontal\" | \"vertical\"",
+          "optional": true,
+          "doc": "Field arrangement, \"horizontal\" (label beside control) | \"vertical\" (label above). Defaults to \"horizontal\"."
+        }
+      ],
+      "doc": "Layout patch for a group of form fields. Arranges a `<legend>`, `<label>`s, controls, and helper `<p>`s in a grid — labels beside controls (horizontal) or stacked above them (vertical). Apply to a `<fieldset>` element.",
+      "example": "{ fieldset: [{ legend: \"Profile\" }, { label: \"Name\" }, { input: \"\" }], $: [formGroup({ layout: \"vertical\" })] }",
       "source": "packages/ui/src/patches/formGroup.ts"
     },
     {
       "name": "heading",
-      "hostTag": null,
+      "hostTag": "h1",
       "signature": "heading(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone (`ValueOrState<ThemeColor>`) for the heading text. Defaults to \"neutral\"."
+        }
+      ],
+      "doc": "Styles a heading, scaling its font size by level (h1 largest … h6 smallest) relative to the theme base size. Apply to a heading element `<h1>`–`<h6>`.",
+      "example": "{ h2: \"Section title\", $: [heading()] }",
       "source": "packages/ui/src/patches/heading.ts"
     },
     {
       "name": "horizontalRule",
       "hostTag": "hr",
       "signature": "horizontalRule(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone (`ValueOrState<ThemeColor>`) for the rule. Defaults to \"neutral\"."
+        }
+      ],
+      "doc": "A thematic break rendered as a thin 1px themed line with vertical margin. Apply to an `<hr>` element.",
+      "example": "{ hr: \"\", $: [horizontalRule()] }",
       "source": "packages/ui/src/patches/horizontalRule.ts"
     },
     {
       "name": "icon",
       "hostTag": "span",
       "signature": "icon(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the icon (`ValueOrState<ThemeColor>`). Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Styles an inline icon container: square box that centers its content and applies the themed icon color. Apply to a `<span>` element.",
+      "example": "{ span: null, $: [icon()] }",
       "source": "packages/ui/src/patches/icon.ts"
     },
     {
       "name": "image",
       "hostTag": "img",
       "signature": "image(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the placeholder background (`ValueOrState<ThemeColor>`). Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Styles a responsive image: full-width, cover-fit, rounded corners with a themed placeholder background. Apply to an `<img>` element.",
+      "example": "{ img: null, src: \"photo.jpg\", alt: \"Photo\", $: [image()] }",
       "source": "packages/ui/src/patches/image.ts"
     },
     {
       "name": "inputCheckbox",
       "hostTag": "input",
-      "signature": "inputCheckbox(props: { color?: ValueOrState<ThemeColor>, accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "inputCheckbox(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the box/border (`ValueOrState<ThemeColor>`). Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the checked/indeterminate fill and focus ring (`ValueOrState<ThemeColor>`). Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles a custom checkbox with themed box, check mark, indeterminate state, hover, focus and disabled styling. Apply to an `<input>` element of type `checkbox` (the patch sets `type: \"checkbox\"`).",
+      "example": "{ input: null, type: \"checkbox\", $: [inputCheckbox()] }",
       "source": "packages/ui/src/patches/inputCheckbox.ts"
     },
     {
       "name": "inputColor",
       "hostTag": "input",
-      "signature": "inputColor(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "inputColor(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone used for the disabled state (`ValueOrState<ThemeColor>`). Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone (`ValueOrState<ThemeColor>`). Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles a native color picker swatch with themed padding, rounded swatch and disabled styling. Apply to an `<input>` element of type `color` (the patch sets `type: \"color\"`).",
+      "example": "{ input: null, type: \"color\", $: [inputColor()] }",
       "source": "packages/ui/src/patches/inputColor.ts"
     },
     {
       "name": "inputDateTime",
       "hostTag": "input",
-      "signature": "inputDateTime(props: { mode?: InputDateTimeMode; color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "inputDateTime(props: { mode?: InputDateTimeMode; color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "mode",
+          "type": "InputDateTimeMode",
+          "optional": true,
+          "doc": "Input mode selecting the host `type`: `\"date\" | \"time\" | \"week\" | \"month\" | \"datetime-local\"`. Defaults to `\"datetime-local\"`."
+        },
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for text/border (`ValueOrState<ThemeColor>`). Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the hover/focus ring (`ValueOrState<ThemeColor>`). Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles a native date/time input with themed border, padding, hover, focus, invalid and disabled states. The `mode` selects the input `type`. Apply to an `<input>` element (the patch sets `type` to the chosen `mode`).",
+      "example": "{ input: null, type: \"datetime-local\", $: [inputDateTime()] }",
       "source": "packages/ui/src/patches/inputDateTime.ts"
     },
     {
       "name": "inputFile",
       "hostTag": "input",
-      "signature": "inputFile(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "inputFile(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for text/border and the upload button (`ValueOrState<ThemeColor>`). Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the hover/focus ring (`ValueOrState<ThemeColor>`). Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles a native file input with a themed upload button, border, hover, focus and disabled states. Apply to an `<input>` element of type `file` (the patch sets `type: \"file\"`).",
+      "example": "{ input: null, type: \"file\", $: [inputFile()] }",
       "source": "packages/ui/src/patches/inputFile.ts"
     },
     {
       "name": "inputNumber",
       "hostTag": "input",
-      "signature": "inputNumber(props: { color?: ValueOrState<ThemeColor>, accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "inputNumber(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for text/border (`ValueOrState<ThemeColor>`). Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the hover/focus ring (`ValueOrState<ThemeColor>`). Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles a native number input with themed border, padding, visible spin buttons, hover, focus and disabled states. Apply to an `<input>` element of type `number` (the patch sets `type: \"number\"`).",
+      "example": "{ input: null, type: \"number\", $: [inputNumber()] }",
       "source": "packages/ui/src/patches/inputNumber.ts"
     },
     {
       "name": "inputOTP",
       "hostTag": null,
       "signature": "inputOTP()",
-      "doc": "",
+      "props": [],
+      "doc": "Lays out a one-time-password container as a horizontal row of inputs and wires keyboard navigation: auto-advance on input, backspace/arrow movement, and paste distribution across the child inputs. Apply to a container element (e.g. `<div>`) whose direct children are the OTP `<input>` boxes. Takes no props.",
+      "example": "{ div: null, $: [inputOTP()], children: [{ input: null }, { input: null }] }",
       "source": "packages/ui/src/patches/inputOTP.ts"
     },
     {
       "name": "inputRadio",
       "hostTag": "input",
-      "signature": "inputRadio(props: { color?: ValueOrState<ThemeColor>, accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "inputRadio(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the box/border (`ValueOrState<ThemeColor>`). Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the checked dot and focus ring (`ValueOrState<ThemeColor>`). Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles a custom radio button with a themed circular box, checked dot, hover, focus and disabled states. Apply to an `<input>` element of type `radio` (the patch sets `type: \"radio\"`).",
+      "example": "{ input: null, type: \"radio\", $: [inputRadio()] }",
       "source": "packages/ui/src/patches/inputRadio.ts"
     },
     {
       "name": "inputRange",
       "hostTag": "input",
-      "signature": "inputRange(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "inputRange(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the slider track (`ValueOrState<ThemeColor>`). Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the thumb and focus ring (`ValueOrState<ThemeColor>`). Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles a range slider with a themed track and thumb, hover, focus and disabled states. Apply to an `<input>` element of type `range` (the patch sets `type: \"range\"`).",
+      "example": "{ input: null, type: \"range\", $: [inputRange()] }",
       "source": "packages/ui/src/patches/inputRange.ts"
     },
     {
       "name": "inputSearch",
       "hostTag": "input",
-      "signature": "inputSearch(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "inputSearch(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for text/border/placeholder (`ValueOrState<ThemeColor>`). Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the hover/focus ring (`ValueOrState<ThemeColor>`). Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles a search input with themed border, padding, placeholder color, native search decorations, hover, focus and disabled states. Apply to an `<input>` element of type `search` (the patch sets `type: \"search\"`).",
+      "example": "{ input: null, type: \"search\", $: [inputSearch()] }",
       "source": "packages/ui/src/patches/inputSearch.ts"
     },
     {
       "name": "inputSwitch",
       "hostTag": "input",
       "signature": "inputSwitch(props: { accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Optional theme color tone for the checked track (`ValueOrState<ThemeColor>`). Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles a checkbox as a toggle switch: themed track and sliding knob that animates and recolors on checked, plus a disabled state. Apply to an `<input>` element of type `checkbox` (the patch sets `type: \"checkbox\"`).",
+      "example": "{ input: null, type: \"checkbox\", $: [inputSwitch()] }",
       "source": "packages/ui/src/patches/inputSwitch.ts"
     },
     {
       "name": "inputText",
       "hostTag": "input",
-      "signature": "inputText(props: { color?: ValueOrState<ThemeColor>, accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "inputText(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Base color tone for text/border/background. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Accent color tone for the hover/focus outline. Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Themed single-line text input primitive. Sets `type=\"text\"` and styles the field with themed border, focus ring, placeholder, disabled and validation (`data-status`) states. Apply to an `<input>` element.",
+      "example": "{ input: \"\", type: \"text\", placeholder: \"Name\", $: [inputText()] }",
       "source": "packages/ui/src/patches/inputText.ts"
     },
     {
       "name": "keyboard",
       "hostTag": "kbd",
       "signature": "keyboard(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Color tone for text/background/border. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Renders keyboard-key styling (themed background, border and padding) for a keystroke hint. Apply to a `<kbd>` element.",
+      "example": "{ kbd: \"Ctrl\", $: [keyboard()] }",
       "source": "packages/ui/src/patches/keyboard.ts"
     },
     {
       "name": "label",
       "hostTag": "label",
-      "signature": "label(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "label(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Base color tone for the label text. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Accent color tone applied on focus-within. Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Themed form-label primitive: inline-flex layout with gap, themed text color, focus-within highlighting and a disabled (`aria-disabled`) state. Apply to a `<label>` element.",
+      "example": "{ label: \"Email\", htmlFor: \"email\", $: [label()] }",
       "source": "packages/ui/src/patches/label.ts"
     },
     {
       "name": "link",
       "hostTag": "a",
-      "signature": "link(props: { color?: ValueOrState<ThemeColor>, accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "link(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Base color tone for the link text. Defaults to `\"primary\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Accent color tone for visited/focus states. Defaults to `\"secondary\"`."
+        }
+      ],
+      "doc": "Themed hyperlink primitive: styles text color, hover underline, visited, focus ring and a disabled state. Apply to an `<a>` element.",
+      "example": "{ a: \"Home\", href: \"/\", $: [link()] }",
       "source": "packages/ui/src/patches/link.ts"
     },
     {
       "name": "mark",
       "hostTag": "mark",
       "signature": "mark(props: { accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Accent color tone for the highlight fill and text. Defaults to `\"highlight\"`."
+        }
+      ],
+      "doc": "Themed highlight primitive: gives marked/highlighted inline text a tinted background, rounded corners and padding. Apply to a `<mark>` element.",
+      "example": "{ mark: \"important\", $: [mark()] }",
       "source": "packages/ui/src/patches/mark.ts"
     },
     {
       "name": "menu",
       "hostTag": null,
       "signature": "menu(props: { activeKey?: ValueOrState<number | string>; selectable?: boolean; color?: ThemeColor; } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "activeKey",
+          "type": "ValueOrState<number | string>",
+          "optional": true,
+          "doc": "Currently selected item key, accepts a value or `State`. Defaults to `null`."
+        },
+        {
+          "name": "selectable",
+          "type": "boolean",
+          "optional": true,
+          "doc": "Whether items track and update the active selection. Defaults to `true`."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Background color tone for the menu. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Themed menu container that provides selection context (`activeKey`, `selectable`) to child `menuItem` patches and lays them out vertically. Sets `role=\"menu\"`. Typically applied to a container element such as a `<div>` or `<ul>`.",
+      "example": "{ div: \"\", $: [menu({ activeKey: 0 })] }",
       "source": "packages/ui/src/patches/menu.ts"
     },
     {
       "name": "menuItem",
       "hostTag": "button",
-      "signature": "menuItem(props: { accentColor?: ThemeColor; color?: ThemeColor; } = {})",
-      "doc": "",
+      "signature": "menuItem(props: { accentColor?: ThemeColor; color?: ThemeColor } = {})",
+      "props": [
+        {
+          "name": "accentColor",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Accent color tone for the active/focus indicator. Defaults to `\"primary\"`."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Base color tone for the item. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Themed menu entry for use inside a `menu`. Sets `role=\"menuitem\"`, wires click/keyboard selection (Enter/Space activate; Arrow/Home/End move focus), and reflects the active item via `aria-current`. Apply to a `<button>` element placed within a `menu`.",
+      "example": "{ button: \"Profile\", $: [menuItem()] }",
       "source": "packages/ui/src/patches/menuItem.ts"
     },
     {
       "name": "motion",
       "hostTag": null,
       "signature": "motion(props: MotionProps = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "initial",
+          "type": "MotionKeyframe",
+          "optional": true,
+          "doc": "Starting keyframe applied before the enter animation."
+        },
+        {
+          "name": "animate",
+          "type": "MotionKeyframe | State<MotionKeyframe>",
+          "optional": true,
+          "doc": "Target keyframe, or a `State` to re-animate on change."
+        },
+        {
+          "name": "exit",
+          "type": "MotionKeyframe",
+          "optional": true,
+          "doc": "Keyframe animated to before the element is removed."
+        },
+        {
+          "name": "transition",
+          "type": "{ /** ms, default 300. */ duration?: number; /** ms, default 0. */ delay?: number; /** CSS easing, default \"ease\". */ easing?: string; iterations?: number; }",
+          "optional": true,
+          "doc": "Timing options."
+        }
+      ],
+      "doc": "Animation primitive driven by the Web Animations API. Runs an enter animation on mount (`initial` -> `animate`), re-animates whenever `animate` is a `State` that changes, and plays the `exit` keyframe before removal. Has no host-tag restriction; apply to any element you want to animate.",
+      "example": "{ div: \"Hello\", $: [motion({ initial: { opacity: 0 }, animate: { opacity: 1 } })] }",
       "source": "packages/ui/src/patches/motion.ts"
     },
     {
       "name": "orderedList",
       "hostTag": "ol",
       "signature": "orderedList(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Color tone for the list text. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Themed ordered-list primitive: decimal markers positioned outside, reset margins and themed text color. Apply to an `<ol>` element.",
+      "example": "{ ol: \"\", $: [orderedList()], children: [{ li: \"First\" }] }",
       "source": "packages/ui/src/patches/orderedList.ts"
     },
     {
       "name": "pagination",
       "hostTag": "div",
       "signature": "pagination(props: { value?: ValueOrState<number>; total: number; color?: ThemeColor; accentColor?: ThemeColor; })",
-      "doc": "",
+      "props": [
+        {
+          "name": "value",
+          "type": "ValueOrState<number>",
+          "optional": true,
+          "doc": "Current page, accepts a value or `State`. Defaults to `1`."
+        },
+        {
+          "name": "total",
+          "type": "number",
+          "optional": false,
+          "doc": "Required. Total number of pages."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Base color tone for the page buttons. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Accent color tone for the active page. Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Themed pagination control. Renders previous/next buttons plus truncated page numbers (with ellipses), tracks the current page in a `State`, and updates it on click. Apply to a `<div>` element.",
+      "example": "{ div: \"\", $: [pagination({ total: 10, value: 1 })] }",
       "source": "packages/ui/src/patches/pagination.ts"
     },
     {
       "name": "paragraph",
       "hostTag": "p",
       "signature": "paragraph(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Color tone for the paragraph text. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Themed paragraph primitive: comfortable line-height, reset margins and themed text color. Apply to a `<p>` element.",
+      "example": "{ p: \"Hello world\", $: [paragraph()] }",
       "source": "packages/ui/src/patches/paragraph.ts"
     },
     {
       "name": "popover",
       "hostTag": null,
       "signature": "popover(props: { openOn: \"click\" | \"hover\"; open?: ValueOrState<boolean>; placement?: ValueOrState<Placement>; content: DomphyElement; })",
-      "doc": "",
+      "props": [
+        {
+          "name": "openOn",
+          "type": "\"click\" | \"hover\"",
+          "optional": false,
+          "doc": "Interaction that opens the popover: `\"click\"` or `\"hover\"`. Defaults to `\"click\"`."
+        },
+        {
+          "name": "open",
+          "type": "ValueOrState<boolean>",
+          "optional": true,
+          "doc": "Open state, accepts a value or `State`. Defaults to `false`."
+        },
+        {
+          "name": "placement",
+          "type": "ValueOrState<Placement>",
+          "optional": true,
+          "doc": "Floating placement (e.g. `\"bottom\"`, `\"top-start\"`), value or `State`. Defaults to `\"bottom\"`."
+        },
+        {
+          "name": "content",
+          "type": "DomphyElement",
+          "optional": false,
+          "doc": "The floating content element to display."
+        }
+      ],
+      "doc": "Floating popover primitive. Attaches to its host as the anchor/trigger and shows a floating `content` element (with `role=\"dialog\"`) on click or hover, positioned via `@domphy/floating`. Returns the anchor partial, which merges trigger wiring (haspopup/expanded, focus/blur dismissal). Apply to the trigger element you want the popover anchored to.",
+      "example": "{ button: \"Open\", $: [popover({ openOn: \"click\", content: { div: \"Hi\" } })] }",
       "source": "packages/ui/src/patches/popover.ts"
     },
     {
       "name": "popoverArrow",
       "hostTag": null,
       "signature": "popoverArrow(props: { placement?: ValueOrState<Placement>; sideOffset?: string; color?: ThemeColor; bordered?: boolean; } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "placement",
+          "type": "ValueOrState<Placement>",
+          "optional": true,
+          "doc": "Floating placement the popover sits at; the arrow is drawn on the opposite (flipped) side. Accepts a value or reactive state. Defaults to `\"bottom-end\"`. One of: `top` | `bottom` | `left` | `right` | `top-start` | `top-end` | `bottom-start` | `bottom-end` | `left-start` | `left-end` | `right-start` | `right-end`."
+        },
+        {
+          "name": "sideOffset",
+          "type": "string",
+          "optional": true,
+          "doc": "CSS length used to offset the arrow toward the start/end edge. Defaults to `themeSpacing(6)`."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color tone for the arrow fill and border. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "bordered",
+          "type": "boolean",
+          "optional": true,
+          "doc": "Whether the arrow draws a 1px border (set to `0px` when false). Defaults to `true`."
+        }
+      ],
+      "doc": "Renders a small rotated arrow (via a `::after` pseudo-element) that points from a popover/tooltip toward its anchor, positioned and oriented based on the floating placement. The arrow direction is computed by flipping the given placement. No host-tag check is performed; apply it to the popover container element.",
+      "example": "{ div: [...], $: [popoverArrow({ placement: \"top\" })] }",
       "source": "packages/ui/src/patches/popoverArrow.ts"
     },
     {
       "name": "preformated",
       "hostTag": "pre",
       "signature": "preformated(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone for text and background. Accepts a value or reactive state. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Styles a preformatted text block: inherited font size, themed foreground/background, no border, density-scaled padding and rounded corners.",
+      "example": "{ pre: \"const x = 1\", $: [preformated()] }",
       "source": "packages/ui/src/patches/preformated.ts"
     },
     {
       "name": "progress",
       "hostTag": "progress",
-      "signature": "progress(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "signature": "progress(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone for the track/background. Accepts a value or reactive state. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone for the filled value. Accepts a value or reactive state. Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles a native progress bar: full-width, pill-shaped track with a themed fill, including the WebKit progress-bar/value pseudo-elements and a width transition.",
+      "example": "{ progress: null, value: 40, max: 100, $: [progress()] }",
       "source": "packages/ui/src/patches/progress.ts"
     },
     {
       "name": "select",
       "hostTag": "select",
       "signature": "select(props: { color?: ThemeColor; accentColor?: ThemeColor } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color tone for text, background and outline. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color tone for hover/focus outlines. Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles a native `<select>` control: removes the default appearance, applies themed colors, outline, density-scaled padding/radius, a custom chevron background icon, and hover/focus/disabled/optgroup/option states.",
+      "example": "{ select: [{ option: \"A\" }], $: [select()] }",
       "source": "packages/ui/src/patches/select.ts"
     },
     {
       "name": "selectBox",
       "hostTag": "div",
-      "signature": "selectBox(props: { multiple?: boolean; value?: ValueOrState<Array<number | string | null | undefined> | number | string | null | undefined>; options?: Array<{ label: string, value: string }>; placement?: ValueOrState<Placement>; content: DomphyElement; color?: ThemeColor; open?: ValueOrState<boolean>; })",
-      "doc": "",
+      "signature": "selectBox(props: { multiple?: boolean; value?: ValueOrState< | Array<number | string | null | undefined> | number | string | null | undefined >; options?: Array<{ label: string; value: string }>; placement?: ValueOrState<Placement>; content: DomphyElement; color?: ThemeColor; open?: ValueOrState<boolean>; })",
+      "props": [
+        {
+          "name": "multiple",
+          "type": "boolean",
+          "optional": true,
+          "doc": "Whether multiple selection is allowed (renders removable tags and keeps the popover open on click). Defaults to `false`."
+        },
+        {
+          "name": "value",
+          "type": "ValueOrState< | Array<number | string | null | undefined> | number | string | null | undefined >",
+          "optional": true,
+          "doc": "Bound selection value(s). Accepts a value or reactive state of an array of `number | string | null | undefined`, or a single `number | string | null | undefined`."
+        },
+        {
+          "name": "options",
+          "type": "Array<{ label: string; value: string }>",
+          "optional": true,
+          "doc": "List of `{ label, value }` options used to resolve selected labels. Defaults to `[]`."
+        },
+        {
+          "name": "placement",
+          "type": "ValueOrState<Placement>",
+          "optional": true,
+          "doc": "Floating placement of the dropdown popover. Accepts a value or reactive state. Defaults to `\"bottom\"`."
+        },
+        {
+          "name": "content",
+          "type": "DomphyElement",
+          "optional": false,
+          "doc": "Required. The popover/dropdown content element shown when open."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color tone for the box text/background. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "open",
+          "type": "ValueOrState<boolean>",
+          "optional": true,
+          "doc": "Whether the popover is open. Accepts a value or reactive state. Defaults to `false`."
+        }
+      ],
+      "doc": "A clickable select trigger box that renders the currently selected option(s) as removable tags and toggles a floating popover (the dropdown content) anchored to itself. Selected labels are derived from `options` matching the bound `value`; removing a tag updates the value.",
+      "example": "{ div: null, $: [selectBox({ content: { div: [...] }, options: [{ label: \"A\", value: \"a\" }] })] }",
       "source": "packages/ui/src/patches/selectBox.ts"
     },
     {
       "name": "selectItem",
       "hostTag": "div",
       "signature": "selectItem(props: { accentColor?: ThemeColor; color?: ThemeColor; value?: number | string; } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "accentColor",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color tone for the selected/focus state. Defaults to `\"primary\"`."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color tone for text/background. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "value",
+          "type": "number | string",
+          "optional": true,
+          "doc": "The option value compared against and written to the select state. Defaults to `null`."
+        }
+      ],
+      "doc": "A single selectable option row (`role=\"option\"`) for use inside a `selectList`. Reads the `select` context to reflect/toggle selection: it sets `aria-selected` from the bound value and toggles the value (single or multiple) on click. Styles hover/selected/focus states.",
+      "example": "{ div: \"Option A\", $: [selectItem({ value: \"a\" })] }",
       "source": "packages/ui/src/patches/selectItem.ts"
     },
     {
       "name": "selectList",
       "hostTag": "div",
-      "signature": "selectList(props: { multiple?: boolean; value?: ValueOrState<Array<number | string | null> | number | string | null>; color?: ThemeColor; name?: string; } = {})",
-      "doc": "",
+      "signature": "selectList(props: { multiple?: boolean; value?: ValueOrState< Array<number | string | null> | number | string | null >; color?: ThemeColor; name?: string; } = {})",
+      "props": [
+        {
+          "name": "multiple",
+          "type": "boolean",
+          "optional": true,
+          "doc": "Whether multiple selection is allowed; also sets the default empty value (`[]` vs `null`). Defaults to `false`."
+        },
+        {
+          "name": "value",
+          "type": "ValueOrState< Array<number | string | null> | number | string | null >",
+          "optional": true,
+          "doc": "Bound selection value(s). Accepts a value or reactive state of an array of `number | string | null`, or a single `number | string | null`. Defaults to `[]` when `multiple`, otherwise `null`."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color tone for the background. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "optional": true,
+          "doc": "Name attribute for the hidden inputs (form field name)."
+        }
+      ],
+      "doc": "Container for a list of `selectItem`s that owns the selection state. It exposes a `select` context (`{ value, multiple }`) consumed by child items, and injects hidden `<input>`(s) carrying the selected value(s) under `name` for form submission.",
+      "example": "{ div: [{ div: \"A\", $: [selectItem({ value: \"a\" })] }], $: [selectList({ name: \"pick\" })] }",
       "source": "packages/ui/src/patches/selectList.ts"
     },
     {
       "name": "skeleton",
       "hostTag": null,
-      "signature": "skeleton(props: { color?: ValueOrState<ThemeColor>; } = {})",
-      "doc": "",
+      "signature": "skeleton(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone for the placeholder. Accepts a value or reactive state. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "A loading placeholder block with a pulsing opacity animation. Marked `aria-hidden`, themed background/foreground, fixed height, slight rounding. No host-tag check; typically applied to a block-level element such as a `div` or `span`.",
+      "example": "{ div: null, $: [skeleton()] }",
       "source": "packages/ui/src/patches/skeleton.ts"
     },
     {
       "name": "small",
       "hostTag": "small",
-      "signature": "small(props: { color?: ValueOrState<ThemeColor>} = {})",
-      "doc": "",
+      "signature": "small(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone for the text. Accepts a value or reactive state. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Styles small/secondary text: one step smaller font size (`data-size=\"decrease-1\"`) with a themed foreground color.",
+      "example": "{ small: \"fine print\", $: [small()] }",
       "source": "packages/ui/src/patches/small.ts"
     },
     {
       "name": "spinner",
       "hostTag": "span",
-      "signature": "spinner(props: { color?: ValueOrState<ThemeColor>; } = {})",
-      "doc": "",
+      "signature": "spinner(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone for the ring/highlight. Accepts a value or reactive state. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "A circular loading spinner: a themed ring with a contrasting top border that rotates continuously. Marked `role=\"status\"` with `aria-label=\"loading\"`.",
+      "example": "{ span: null, $: [spinner()] }",
       "source": "packages/ui/src/patches/spinner.ts"
     },
     {
       "name": "splitter",
       "hostTag": null,
       "signature": "splitter(props: { direction?: \"horizontal\" | \"vertical\"; defaultSize?: number; min?: number; max?: number; } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "direction",
+          "type": "\"horizontal\" | \"vertical\"",
+          "optional": true,
+          "doc": "Split orientation, `\"horizontal\"` | `\"vertical\"`. Defaults to `\"horizontal\"`."
+        },
+        {
+          "name": "defaultSize",
+          "type": "number",
+          "optional": true,
+          "doc": "Initial size (percentage) of the resizable panel. Defaults to `50`."
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "optional": true,
+          "doc": "Minimum panel size (percentage). Defaults to `10`."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "optional": true,
+          "doc": "Maximum panel size (percentage). Defaults to `90`."
+        }
+      ],
+      "doc": "Root of a resizable split layout. Lays out children as a flex row (horizontal) or column (vertical) and provides a `splitter` context (`{ direction, size, min, max }`) consumed by `splitterPanel` and `splitterHandle`. `size` is a reactive state holding the first panel's percentage. No host-tag check; typically applied to a `div`.",
+      "example": "{ div: [...], $: [splitter({ direction: \"vertical\" })] }",
+      "source": "packages/ui/src/patches/splitter.ts"
+    },
+    {
+      "name": "splitterHandle",
+      "hostTag": null,
+      "signature": "splitterHandle()",
+      "props": [],
+      "doc": "The draggable divider inside a `splitter`. Reads the `splitter` context, shows the appropriate resize cursor, and on mouse drag updates the context `size` state (clamped to `min`/`max`). Warns if used outside a `splitter`. Takes no props.",
+      "example": "{ div: null, $: [splitterHandle()] }",
+      "source": "packages/ui/src/patches/splitter.ts"
+    },
+    {
+      "name": "splitterPanel",
+      "hostTag": null,
+      "signature": "splitterPanel()",
+      "props": [],
+      "doc": "The resizable panel inside a `splitter`. Reads the `splitter` context and binds its width (horizontal) or height (vertical) to the context `size` state, updating reactively as the handle is dragged. Warns if used outside a `splitter`. Takes no props.",
+      "example": "{ div: [...], $: [splitterPanel()] }",
       "source": "packages/ui/src/patches/splitter.ts"
     },
     {
       "name": "strong",
       "hostTag": "strong",
       "signature": "strong(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone for the text. Accepts a value or reactive state. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Styles strongly emphasized (bold) text: inherited font size, `font-weight: 700`, and a themed foreground color.",
+      "example": "{ strong: \"important\", $: [strong()] }",
       "source": "packages/ui/src/patches/strong.ts"
     },
     {
       "name": "subscript",
       "hostTag": "sub",
       "signature": "subscript(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color for the text. Optional, accepts a value or state. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Renders subscript text (shrunk, baseline-lowered) for the host `<sub>` element.",
+      "example": "{ sub: \"2\", $: [subscript()] }",
       "source": "packages/ui/src/patches/subscript.ts"
     },
     {
       "name": "superscript",
       "hostTag": "sup",
       "signature": "superscript(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color for the text. Optional, accepts a value or state. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Renders superscript text (shrunk, baseline-raised) for the host `<sup>` element.",
+      "example": "{ sup: \"2\", $: [superscript()] }",
       "source": "packages/ui/src/patches/superscript.ts"
     },
     {
       "name": "tab",
       "hostTag": "button",
-      "signature": "tab(props: { accentColor?: ThemeColor; color?: ThemeColor; } = {})",
-      "doc": "",
+      "signature": "tab(props: { accentColor?: ThemeColor; color?: ThemeColor } = {})",
+      "props": [
+        {
+          "name": "accentColor",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color for the active/focus underline. Optional. Defaults to `\"primary\"`."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color for the resting/hover underline and text. Optional. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Styles a single tab trigger inside a `tabs` tablist on the host `<button>` element. Wires up the tab's id/aria-controls/aria-selected, click selection, and arrow/Home/End keyboard navigation via the surrounding `tabs` context. Must be used inside a `tabs` patch.",
+      "example": "{ button: \"Tab 1\", $: [tab()] }",
       "source": "packages/ui/src/patches/tab.ts"
-    },
-    {
-      "name": "tabPanel",
-      "hostTag": null,
-      "signature": "tabPanel()",
-      "doc": "",
-      "source": "packages/ui/src/patches/tabPanel.ts"
     },
     {
       "name": "table",
       "hostTag": "table",
       "signature": "table(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color applied across cells and text. Optional, accepts a value or state. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Styles a data table (header/body/footer cells, caption, row hover, borders) on the host `<table>` element.",
+      "example": "{ table: null, $: [table()] }",
       "source": "packages/ui/src/patches/table.ts"
+    },
+    {
+      "name": "tabPanel",
+      "hostTag": "div",
+      "signature": "tabPanel()",
+      "props": [],
+      "doc": "Styles a tab panel inside a `tabs` tablist. Wires up the panel's id/aria-labelledby and toggles `hidden` based on the surrounding `tabs` context's active key. Must be used inside a `tabs` patch. Takes no props.",
+      "example": "{ div: \"Panel content\", $: [tabPanel()] }",
+      "source": "packages/ui/src/patches/tabPanel.ts"
     },
     {
       "name": "tabs",
       "hostTag": null,
-      "signature": "tabs(props: { activeKey?: ValueOrState<number | string>; } = {})",
-      "doc": "",
+      "signature": "tabs(props: { activeKey?: ValueOrState<number | string> } = {})",
+      "props": [
+        {
+          "name": "activeKey",
+          "type": "ValueOrState<number | string>",
+          "optional": true,
+          "doc": "Initially active tab key. Optional, accepts a value or state of `number | string`. Defaults to `0`."
+        }
+      ],
+      "doc": "Container patch that establishes a `tabs` context (with a shared `activeKey` state) and the `tablist` role for child `tab`/`tabPanel` patches. No host tag check; typically applied to a wrapper element.",
+      "example": "{ div: null, $: [tabs({ activeKey: 0 })] }",
       "source": "packages/ui/src/patches/tabs.ts"
     },
     {
       "name": "tag",
-      "hostTag": null,
-      "signature": "tag(props: { color?: ValueOrState<ThemeColor> removable?: boolean } = {})",
-      "doc": "",
+      "hostTag": "span",
+      "signature": "tag(props: { color?: ValueOrState<ThemeColor>; removable?: boolean } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color for the chip background/border/text. Optional, accepts a value or state. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "removable",
+          "type": "boolean",
+          "optional": true,
+          "doc": "When true, renders a remove (x) button that removes the tag on click. Optional. Defaults to `false`."
+        }
+      ],
+      "doc": "Styles an inline chip/tag (rounded, bordered, optional remove button). No host tag check; typically applied to a `<span>`. When `removable` is true, a close button is inserted that removes the host node on click.",
+      "example": "{ span: \"Label\", $: [tag({ removable: true })] }",
       "source": "packages/ui/src/patches/tag.ts"
     },
     {
       "name": "textarea",
       "hostTag": "textarea",
-      "signature": "textarea(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; autoResize?: boolean } = {})",
-      "doc": "",
+      "signature": "textarea(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; autoResize?: boolean; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color for the border and text. Optional, accepts a value or state. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color for hover/focus outline. Optional, accepts a value or state. Defaults to `\"primary\"`."
+        },
+        {
+          "name": "autoResize",
+          "type": "boolean",
+          "optional": true,
+          "doc": "When true, grows the textarea height to fit its content on input. Optional. Defaults to `false`."
+        }
+      ],
+      "doc": "Styles a multi-line text input (border, focus/hover/invalid/disabled states) on the host `<textarea>` element, with optional auto-resize to content.",
+      "example": "{ textarea: null, $: [textarea({ autoResize: true })] }",
       "source": "packages/ui/src/patches/textarea.ts"
     },
     {
       "name": "toast",
       "hostTag": null,
-      "signature": "toast(props: { position?: ToastPosition; color?: ThemeColor; } = {})",
-      "doc": "",
+      "signature": "toast(props: { position?: ToastPosition; color?: ThemeColor } = {})",
+      "props": [
+        {
+          "name": "position",
+          "type": "ToastPosition",
+          "optional": true,
+          "doc": "Corner of the screen for the toast stack. Optional, one of `\"top-left\" | \"top-center\" | \"top-right\" | \"bottom-left\" | \"bottom-center\" | \"bottom-right\"`. Defaults to `\"top-center\"`."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color for the toast surface. Optional. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Renders a transient notification surface as a fixed-position overlay (portaled into a corner stack), animating in on mount and out before removal. No host tag check; typically applied to a `<div>`.",
+      "example": "{ div: \"Saved!\", $: [toast({ position: \"top-right\" })] }",
       "source": "packages/ui/src/patches/toast.ts"
     },
     {
       "name": "toggle",
       "hostTag": "button",
       "signature": "toggle(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color for the resting/hover background and text. Optional, accepts a value or state. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color for the pressed/focus state. Optional, accepts a value or state. Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles a single toggle button inside a `toggleGroup` on the host `<button>` element. Wires up `aria-pressed` and click-to-toggle against the surrounding `toggleGroup` context (single- or multi-select). Must be used inside a `toggleGroup` patch.",
+      "example": "{ button: \"Bold\", $: [toggle()] }",
       "source": "packages/ui/src/patches/toggle.ts"
     },
     {
       "name": "toggleGroup",
       "hostTag": null,
       "signature": "toggleGroup(props: { value?: ValueOrState<string | string[]>; multiple?: boolean; color?: ThemeColor; } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "value",
+          "type": "ValueOrState<string | string[]>",
+          "optional": true,
+          "doc": "Selected toggle key(s). Optional, accepts a value or state of `string | string[]`. Defaults to `[]` when `multiple`, otherwise `\"\"`."
+        },
+        {
+          "name": "multiple",
+          "type": "boolean",
+          "optional": true,
+          "doc": "When true, allows multiple toggles selected at once. Optional. Defaults to `false`."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color for the group background/border. Optional. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Container patch that establishes a `toggleGroup` context (shared selection `value` + `multiple` flag) and `group` role for child `toggle` patches, with a bordered segmented-control style. No host tag check; typically applied to a wrapper element.",
+      "example": "{ div: null, $: [toggleGroup({ multiple: true })] }",
       "source": "packages/ui/src/patches/toggleGroup.ts"
     },
     {
       "name": "tooltip",
       "hostTag": null,
       "signature": "tooltip(props: { open?: ValueOrState<boolean>; placement?: ValueOrState<Placement>; content?: ValueOrState<string>; } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "open",
+          "type": "ValueOrState<boolean>",
+          "optional": true,
+          "doc": "Controlled open state. Optional, accepts a value or state. Defaults to `false`."
+        },
+        {
+          "name": "placement",
+          "type": "ValueOrState<Placement>",
+          "optional": true,
+          "doc": "Floating placement relative to the trigger. Optional, accepts a value or state (`Placement`). Defaults to `\"top\"`."
+        },
+        {
+          "name": "content",
+          "type": "ValueOrState<string>",
+          "optional": true,
+          "doc": "Tooltip text content. Optional, accepts a value or state (string only). Defaults to `\"Tooltip Content\"`."
+        }
+      ],
+      "doc": "Attaches a floating tooltip to the host element, shown on hover/focus and hidden on leave/blur/Escape. Returns the anchor (trigger) partial; the tooltip surface is positioned via the floating utility and linked with `aria-describedby`. No host tag check; applied to the trigger element.",
+      "example": "{ button: \"Hover me\", $: [tooltip({ content: \"Help text\" })] }",
       "source": "packages/ui/src/patches/tooltip.ts"
     },
     {
       "name": "transitionGroup",
       "hostTag": null,
       "signature": "transitionGroup(props: { duration?: number; delay?: number } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "duration",
+          "type": "number",
+          "optional": true,
+          "doc": "Transition duration in milliseconds. Optional. Defaults to `300`."
+        },
+        {
+          "name": "delay",
+          "type": "number",
+          "optional": true,
+          "doc": "Transition delay in milliseconds. Optional. Defaults to `0`."
+        }
+      ],
+      "doc": "Animates child reordering using the FLIP technique: records each child's position before an update and smoothly transitions it from its old to new position afterward. No host tag check; applied to the list container.",
+      "example": "{ ul: null, $: [transitionGroup({ duration: 300 })] }",
       "source": "packages/ui/src/patches/transitionGroup.ts"
     },
     {
       "name": "unorderedList",
       "hostTag": "ul",
       "signature": "unorderedList(props: { color?: ValueOrState<ThemeColor> } = {})",
-      "doc": "",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color for the list text. Optional, accepts a value or state. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Styles a bulleted list (disc markers, reset margins, themed text) on the host `<ul>` element.",
+      "example": "{ ul: null, $: [unorderedList()] }",
       "source": "packages/ui/src/patches/unorderedList.ts"
     }
   ]

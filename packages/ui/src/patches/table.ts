@@ -12,6 +12,14 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a data table (header/body/footer cells, caption, row hover, borders)
+ * on the host `<table>` element.
+ *
+ * @hostTag table
+ * @param props.color - Theme color applied across cells and text. Optional, accepts a value or state. Defaults to `"neutral"`.
+ * @example { table: null, $: [table()] }
+ */
 function table(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

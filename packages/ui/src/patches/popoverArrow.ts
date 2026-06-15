@@ -7,6 +7,23 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Renders a small rotated arrow (via a `::after` pseudo-element) that points from a
+ * popover/tooltip toward its anchor, positioned and oriented based on the floating placement.
+ * The arrow direction is computed by flipping the given placement. No host-tag check is
+ * performed; apply it to the popover container element.
+ *
+ * @param props.placement - Floating placement the popover sits at; the arrow is drawn on the
+ *   opposite (flipped) side. Accepts a value or reactive state. Defaults to `"bottom-end"`.
+ *   One of: `top` | `bottom` | `left` | `right` | `top-start` | `top-end` | `bottom-start` |
+ *   `bottom-end` | `left-start` | `left-end` | `right-start` | `right-end`.
+ * @param props.sideOffset - CSS length used to offset the arrow toward the start/end edge.
+ *   Defaults to `themeSpacing(6)`.
+ * @param props.color - Theme color tone for the arrow fill and border. Defaults to `"neutral"`.
+ * @param props.bordered - Whether the arrow draws a 1px border (set to `0px` when false).
+ *   Defaults to `true`.
+ * @example { div: [...], $: [popoverArrow({ placement: "top" })] }
+ */
 function popoverArrow(
   props: {
     placement?: ValueOrState<Placement>;

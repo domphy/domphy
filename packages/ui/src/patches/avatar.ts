@@ -6,6 +6,13 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * A circular avatar container that centers initials/text and cover-fits any
+ * child `<img>`. Typically applied to an inline-flex container such as a `<span>`.
+ *
+ * @param props.color - Background/foreground color tone. Optional `ValueOrState<ThemeColor>`, default "primary".
+ * @example { span: "JD", $: [avatar({ color: "primary" })] }
+ */
 function avatar(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

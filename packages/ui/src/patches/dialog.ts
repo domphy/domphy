@@ -7,6 +7,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Modal dialog patch driven by an `open` State. Calls `showModal()`/`close()`,
+ * fades via opacity, locks page scroll while open, focuses the first focusable
+ * child, and closes on outside (backdrop) click. Apply to a `<dialog>` element.
+ *
+ * @hostTag dialog
+ * @param props.color - Theme color tone for the dialog surface. Defaults to "neutral".
+ * @param props.open - Open state (`ValueOrState<boolean>`); set it to true/false to show/hide. Defaults to false.
+ * @example { dialog: [...], $: [dialog({ open })] }
+ */
 function dialog(
   props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {},
 ): PartialElement {

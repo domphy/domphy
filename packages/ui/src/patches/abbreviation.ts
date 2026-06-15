@@ -6,6 +6,15 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles an abbreviation/acronym with a dotted underline and a "help" cursor,
+ * shifting to the accent color on hover. Apply to an `<abbr>` element.
+ *
+ * @hostTag abbr
+ * @param props.color - Base text/decoration color tone. Optional `ValueOrState<ThemeColor>`, default "neutral".
+ * @param props.accentColor - Hover color tone. Optional `ValueOrState<ThemeColor>`, default "primary".
+ * @example { abbr: "HTML", title: "HyperText Markup Language", $: [abbreviation({ accentColor: "primary" })] }
+ */
 function abbreviation(
   props: {
     color?: ValueOrState<ThemeColor>;

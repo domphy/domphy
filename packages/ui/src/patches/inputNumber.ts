@@ -7,6 +7,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a native number input with themed border, padding, visible spin
+ * buttons, hover, focus and disabled states. Apply to an `<input>` element of
+ * type `number` (the patch sets `type: "number"`).
+ *
+ * @hostTag input
+ * @param props.color - Optional theme color tone for text/border (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
+ * @param props.accentColor - Optional theme color tone for the hover/focus ring (`ValueOrState<ThemeColor>`). Defaults to `"primary"`.
+ * @example { input: null, type: "number", $: [inputNumber()] }
+ */
 function inputNumber(
   props: {
     color?: ValueOrState<ThemeColor>;

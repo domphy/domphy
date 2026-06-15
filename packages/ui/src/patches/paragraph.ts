@@ -6,6 +6,15 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Themed paragraph primitive: comfortable line-height, reset margins and themed
+ * text color. Apply to a `<p>` element.
+ *
+ * @hostTag p
+ * @param props - Optional configuration.
+ * @param props.color - Color tone for the paragraph text. Defaults to `"neutral"`.
+ * @example { p: "Hello world", $: [paragraph()] }
+ */
 function paragraph(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

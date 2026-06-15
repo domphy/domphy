@@ -7,6 +7,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a search input with themed border, padding, placeholder color, native
+ * search decorations, hover, focus and disabled states. Apply to an `<input>`
+ * element of type `search` (the patch sets `type: "search"`).
+ *
+ * @hostTag input
+ * @param props.color - Optional theme color tone for text/border/placeholder (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
+ * @param props.accentColor - Optional theme color tone for the hover/focus ring (`ValueOrState<ThemeColor>`). Defaults to `"primary"`.
+ * @example { input: null, type: "search", $: [inputSearch()] }
+ */
 function inputSearch(
   props: {
     color?: ValueOrState<ThemeColor>;

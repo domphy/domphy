@@ -25,6 +25,19 @@ const marginMap: Record<Placement, string> = {
 
 const isVertical = (p: Placement) => p === "left" || p === "right";
 
+/**
+ * Edge-anchored modal drawer driven by an `open` State. Slides in/out from a
+ * chosen edge via a transform transition, calls `showModal()`/`close()`, locks
+ * page scroll while open, and closes on backdrop click. Apply to a `<dialog>`
+ * element.
+ *
+ * @hostTag dialog
+ * @param props.color - Theme color tone for the drawer surface. Defaults to "neutral".
+ * @param props.open - Open state (`ValueOrState<boolean>`); set true/false to show/hide. Defaults to false.
+ * @param props.placement - Edge to anchor to, "left" | "right" | "top" | "bottom". Defaults to "right".
+ * @param props.size - CSS length for the drawer's width (left/right) or height (top/bottom). Defaults to themeSpacing(80) for left/right, themeSpacing(64) for top/bottom.
+ * @example { dialog: [...], $: [drawer({ open, placement: "left" })] }
+ */
 function drawer(
   props: {
     color?: ThemeColor;

@@ -6,6 +6,15 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * A grid-based card surface that auto-places known child elements into named
+ * regions: `<img>` (image), headings (title), `<p>` (description), `<aside>`
+ * (aside), `<div>` (content), and `<footer>` (footer). Typically applied to a
+ * `<div>` (any block container).
+ *
+ * @param props.color - Surface/border color tone. Optional `ValueOrState<ThemeColor>`, default "neutral".
+ * @example { div: { h3: "Title", p: "Body" }, $: [card({ color: "neutral" })] }
+ */
 function card(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

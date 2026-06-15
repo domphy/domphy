@@ -6,6 +6,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Themed hyperlink primitive: styles text color, hover underline, visited,
+ * focus ring and a disabled state. Apply to an `<a>` element.
+ *
+ * @hostTag a
+ * @param props - Optional configuration.
+ * @param props.color - Base color tone for the link text. Defaults to `"primary"`.
+ * @param props.accentColor - Accent color tone for visited/focus states. Defaults to `"secondary"`.
+ * @example { a: "Home", href: "/", $: [link()] }
+ */
 function link(
   props: {
     color?: ValueOrState<ThemeColor>;

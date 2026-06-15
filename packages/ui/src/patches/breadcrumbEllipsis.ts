@@ -7,6 +7,14 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * An ellipsis trigger button for collapsed breadcrumb items, with hover and
+ * focus-visible states. Apply to a `<button>` element.
+ *
+ * @hostTag button
+ * @param props.color - Color tone for the trigger. Optional `ValueOrState<ThemeColor>`, default "neutral".
+ * @example { button: "…", $: [breadcrumbEllipsis({ color: "neutral" })] }
+ */
 function breadcrumbEllipsis(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

@@ -17,6 +17,22 @@ import {
 import { creatFloating } from "../utils/floating.js";
 import { tag } from "./tag.js";
 
+/**
+ * A combobox/multi-select control: renders selected options as removable tags
+ * plus an input, and shows a floating popover (`content`) anchored to the host.
+ * Apply to a `<div>` element.
+ *
+ * @hostTag div
+ * @param props.multiple - Allow selecting multiple values (popover stays open on click). Optional `boolean`, default false.
+ * @param props.value - Selected value(s). Optional `ValueOrState<Array<number | string | null | undefined> | number | string | null | undefined>`, no default.
+ * @param props.options - Available `{ label, value }` options used to render selected tags. Optional `Array<{ label: string; value: string }>`, default `[]`.
+ * @param props.placement - Floating popover placement. Optional `ValueOrState<Placement>`, default "bottom".
+ * @param props.content - The floating popover content element. Required `DomphyElement`.
+ * @param props.color - Color tone for the control. Optional `ThemeColor`, default "neutral".
+ * @param props.open - Whether the popover is open. Optional `ValueOrState<boolean>`, default false.
+ * @param props.input - Custom input element; when omitted a default `<input>` is created. Optional `DomphyElement`.
+ * @example { div: null, $: [combobox({ options: [{ label: "A", value: "a" }], content: { div: null } })] }
+ */
 function combobox(props: {
   multiple?: boolean;
   value?: ValueOrState<

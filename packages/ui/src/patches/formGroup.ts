@@ -7,6 +7,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Layout patch for a group of form fields. Arranges a `<legend>`, `<label>`s,
+ * controls, and helper `<p>`s in a grid — labels beside controls (horizontal)
+ * or stacked above them (vertical). Apply to a `<fieldset>` element.
+ *
+ * @hostTag fieldset
+ * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for legend/text/surface. Defaults to "neutral".
+ * @param props.layout - Field arrangement, "horizontal" (label beside control) | "vertical" (label above). Defaults to "horizontal".
+ * @example { fieldset: [{ legend: "Profile" }, { label: "Name" }, { input: "" }], $: [formGroup({ layout: "vertical" })] }
+ */
 function formGroup(
   props: {
     color?: ValueOrState<ThemeColor>;

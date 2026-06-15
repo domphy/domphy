@@ -1,6 +1,14 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 
+/**
+ * A thematic break rendered as a thin 1px themed line with vertical margin.
+ * Apply to an `<hr>` element.
+ *
+ * @hostTag hr
+ * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for the rule. Defaults to "neutral".
+ * @example { hr: "", $: [horizontalRule()] }
+ */
 function horizontalRule(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

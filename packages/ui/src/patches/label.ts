@@ -6,6 +6,17 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Themed form-label primitive: inline-flex layout with gap, themed text color,
+ * focus-within highlighting and a disabled (`aria-disabled`) state. Apply to a
+ * `<label>` element.
+ *
+ * @hostTag label
+ * @param props - Optional configuration.
+ * @param props.color - Base color tone for the label text. Defaults to `"neutral"`.
+ * @param props.accentColor - Accent color tone applied on focus-within. Defaults to `"primary"`.
+ * @example { label: "Email", htmlFor: "email", $: [label()] }
+ */
 function label(
   props: {
     color?: ValueOrState<ThemeColor>;

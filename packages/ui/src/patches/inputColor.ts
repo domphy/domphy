@@ -7,6 +7,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a native color picker swatch with themed padding, rounded swatch and
+ * disabled styling. Apply to an `<input>` element of type `color` (the patch
+ * sets `type: "color"`).
+ *
+ * @hostTag input
+ * @param props.color - Optional theme color tone used for the disabled state (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
+ * @param props.accentColor - Optional theme color tone (`ValueOrState<ThemeColor>`). Defaults to `"primary"`.
+ * @example { input: null, type: "color", $: [inputColor()] }
+ */
 function inputColor(
   props: {
     color?: ValueOrState<ThemeColor>;

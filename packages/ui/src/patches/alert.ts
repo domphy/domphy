@@ -8,6 +8,13 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * A semantic alert surface block with a colored inset bar, padding, and
+ * `role="alert"`. Typically applied to a `<div>` (any block container).
+ *
+ * @param props.color - Surface/accent color tone. Optional `ValueOrState<ThemeColor>`, default "primary".
+ * @example { div: "Saved successfully", $: [alert({ color: "success" })] }
+ */
 function alert(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

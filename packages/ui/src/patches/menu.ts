@@ -12,6 +12,18 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Themed menu container that provides selection context (`activeKey`,
+ * `selectable`) to child `menuItem` patches and lays them out vertically.
+ * Sets `role="menu"`. Typically applied to a container element such as a
+ * `<div>` or `<ul>`.
+ *
+ * @param props - Optional configuration.
+ * @param props.activeKey - Currently selected item key, accepts a value or `State`. Defaults to `null`.
+ * @param props.selectable - Whether items track and update the active selection. Defaults to `true`.
+ * @param props.color - Background color tone for the menu. Defaults to `"neutral"`.
+ * @example { div: "", $: [menu({ activeKey: 0 })] }
+ */
 function menu(
   props: {
     activeKey?: ValueOrState<number | string>;

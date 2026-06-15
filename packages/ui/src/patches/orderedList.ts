@@ -6,6 +6,15 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Themed ordered-list primitive: decimal markers positioned outside, reset
+ * margins and themed text color. Apply to an `<ol>` element.
+ *
+ * @hostTag ol
+ * @param props - Optional configuration.
+ * @param props.color - Color tone for the list text. Defaults to `"neutral"`.
+ * @example { ol: "", $: [orderedList()], children: [{ li: "First" }] }
+ */
 function orderedList(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

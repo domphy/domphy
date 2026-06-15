@@ -9,6 +9,20 @@ import {
 import type { Placement } from "@domphy/floating";
 import { creatFloating } from "../utils/floating.js";
 
+/**
+ * Floating popover primitive. Attaches to its host as the anchor/trigger and
+ * shows a floating `content` element (with `role="dialog"`) on click or hover,
+ * positioned via `@domphy/floating`. Returns the anchor partial, which merges
+ * trigger wiring (haspopup/expanded, focus/blur dismissal). Apply to the
+ * trigger element you want the popover anchored to.
+ *
+ * @param props - Configuration.
+ * @param props.openOn - Interaction that opens the popover: `"click"` or `"hover"`. Defaults to `"click"`.
+ * @param props.open - Open state, accepts a value or `State`. Defaults to `false`.
+ * @param props.placement - Floating placement (e.g. `"bottom"`, `"top-start"`), value or `State`. Defaults to `"bottom"`.
+ * @param props.content - The floating content element to display.
+ * @example { button: "Open", $: [popover({ openOn: "click", content: { div: "Hi" } })] }
+ */
 function popover(props: {
   openOn: "click" | "hover";
   open?: ValueOrState<boolean>;

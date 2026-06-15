@@ -7,6 +7,14 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a quotation block with a colored inset side bar, padded surface, and
+ * shifted tone. Apply to a `<blockquote>` element.
+ *
+ * @hostTag blockquote
+ * @param props.color - Surface/bar color tone. Optional `ValueOrState<ThemeColor>`, default "inherit".
+ * @example { blockquote: "Design is how it works.", $: [blockquote({ color: "primary" })] }
+ */
 function blockquote(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

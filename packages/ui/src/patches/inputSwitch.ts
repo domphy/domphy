@@ -6,6 +6,15 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a checkbox as a toggle switch: themed track and sliding knob that
+ * animates and recolors on checked, plus a disabled state. Apply to an
+ * `<input>` element of type `checkbox` (the patch sets `type: "checkbox"`).
+ *
+ * @hostTag input
+ * @param props.accentColor - Optional theme color tone for the checked track (`ValueOrState<ThemeColor>`). Defaults to `"primary"`.
+ * @example { input: null, type: "checkbox", $: [inputSwitch()] }
+ */
 function inputSwitch(
   props: { accentColor?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

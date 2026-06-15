@@ -1,6 +1,16 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 
+/**
+ * Styles a range slider with a themed track and thumb, hover, focus and
+ * disabled states. Apply to an `<input>` element of type `range` (the patch
+ * sets `type: "range"`).
+ *
+ * @hostTag input
+ * @param props.color - Optional theme color tone for the slider track (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
+ * @param props.accentColor - Optional theme color tone for the thumb and focus ring (`ValueOrState<ThemeColor>`). Defaults to `"primary"`.
+ * @example { input: null, type: "range", $: [inputRange()] }
+ */
 function inputRange(
   props: {
     color?: ValueOrState<ThemeColor>;

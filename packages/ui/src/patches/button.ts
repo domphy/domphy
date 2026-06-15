@@ -7,6 +7,14 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * A themed button control with density-aware padding/radius and hover, focus-visible,
+ * `[disabled]`, and `[aria-busy=true]` states. Apply to a `<button>` element.
+ *
+ * @hostTag button
+ * @param props.color - Button color tone. Optional `ValueOrState<ThemeColor>`, default "primary".
+ * @example { button: "Save", $: [button({ color: "primary" })] }
+ */
 function button(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

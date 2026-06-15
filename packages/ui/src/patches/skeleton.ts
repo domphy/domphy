@@ -12,6 +12,15 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * A loading placeholder block with a pulsing opacity animation. Marked `aria-hidden`, themed
+ * background/foreground, fixed height, slight rounding. No host-tag check; typically applied
+ * to a block-level element such as a `div` or `span`.
+ *
+ * @param props.color - Theme color tone for the placeholder. Accepts a value or reactive state.
+ *   Defaults to `"neutral"`.
+ * @example { div: null, $: [skeleton()] }
+ */
 function skeleton(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

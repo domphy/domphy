@@ -9,6 +9,17 @@ import {
 
 type InputDateTimeMode = "date" | "time" | "week" | "month" | "datetime-local";
 
+/**
+ * Styles a native date/time input with themed border, padding, hover, focus,
+ * invalid and disabled states. The `mode` selects the input `type`. Apply to
+ * an `<input>` element (the patch sets `type` to the chosen `mode`).
+ *
+ * @hostTag input
+ * @param props.mode - Input mode selecting the host `type`: `"date" | "time" | "week" | "month" | "datetime-local"`. Defaults to `"datetime-local"`.
+ * @param props.color - Optional theme color tone for text/border (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
+ * @param props.accentColor - Optional theme color tone for the hover/focus ring (`ValueOrState<ThemeColor>`). Defaults to `"primary"`.
+ * @example { input: null, type: "datetime-local", $: [inputDateTime()] }
+ */
 function inputDateTime(
   props: {
     mode?: InputDateTimeMode;

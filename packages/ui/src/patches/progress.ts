@@ -1,6 +1,17 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 
+/**
+ * Styles a native progress bar: full-width, pill-shaped track with a themed fill,
+ * including the WebKit progress-bar/value pseudo-elements and a width transition.
+ *
+ * @hostTag progress
+ * @param props.color - Theme color tone for the track/background. Accepts a value or reactive
+ *   state. Defaults to `"neutral"`.
+ * @param props.accentColor - Theme color tone for the filled value. Accepts a value or reactive
+ *   state. Defaults to `"primary"`.
+ * @example { progress: null, value: 40, max: 100, $: [progress()] }
+ */
 function progress(
   props: {
     color?: ValueOrState<ThemeColor>;

@@ -10,6 +10,17 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Container patch that establishes a `toggleGroup` context (shared selection
+ * `value` + `multiple` flag) and `group` role for child `toggle` patches, with
+ * a bordered segmented-control style. No host tag check; typically applied to a
+ * wrapper element.
+ *
+ * @param props.value - Selected toggle key(s). Optional, accepts a value or state of `string | string[]`. Defaults to `[]` when `multiple`, otherwise `""`.
+ * @param props.multiple - When true, allows multiple toggles selected at once. Optional. Defaults to `false`.
+ * @param props.color - Theme color for the group background/border. Optional. Defaults to `"neutral"`.
+ * @example { div: null, $: [toggleGroup({ multiple: true })] }
+ */
 function toggleGroup(
   props: {
     value?: ValueOrState<string | string[]>;

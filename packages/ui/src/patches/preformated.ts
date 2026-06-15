@@ -7,6 +7,15 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a preformatted text block: inherited font size, themed foreground/background,
+ * no border, density-scaled padding and rounded corners.
+ *
+ * @hostTag pre
+ * @param props.color - Theme color tone for text and background. Accepts a value or reactive
+ *   state. Defaults to `"neutral"`.
+ * @example { pre: "const x = 1", $: [preformated()] }
+ */
 function preformated(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

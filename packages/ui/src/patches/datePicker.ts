@@ -87,6 +87,21 @@ function localeWeekStart(locale: string): number {
  * supporting single/range selection, optional time, min/max + disabled days,
  * localized names, and keyboard navigation. The input is read-only and shows the
  * formatted selection; compose with `inputText()` for the input's look.
+ *
+ * @hostTag input
+ * @param props.value - Controlled value (`ValueOrState<DatePickerValue>`): a `Date`/`null` in single mode, a `[start, end]` tuple in range mode.
+ * @param props.mode - Selection mode, "single" | "range". Defaults to "single".
+ * @param props.time - When true, also pick hour + minute (applied to the selected date(s)). Defaults to false.
+ * @param props.min - Earliest selectable day (inclusive), a `Date`.
+ * @param props.max - Latest selectable day (inclusive), a `Date`.
+ * @param props.disabledDate - Predicate `(date: Date) => boolean` to disable arbitrary days.
+ * @param props.locale - BCP-47 locale for names/first-day-of-week/formatting. Defaults to `navigator.language` (or "en-US" in non-browser).
+ * @param props.weekStartsOn - Override first day of week (0 = Sunday … 6 = Saturday). Defaults to the locale's first day.
+ * @param props.format - Override the input display string, `(value: DatePickerValue) => string`.
+ * @param props.onChange - Called with the new value whenever the selection changes, `(value: DatePickerValue) => void`.
+ * @param props.accentColor - Accent color (`ValueOrState<ThemeColor>`) for selected/active days. Defaults to "primary".
+ * @param props.placement - Popover placement (`ValueOrState<Placement>`) relative to the input. Defaults to "bottom-start".
+ * @example { input: "", $: [inputText(), datePicker({ mode: "range" })] }
  */
 function datePicker(props: DatePickerProps = {}): PartialElement {
   const {

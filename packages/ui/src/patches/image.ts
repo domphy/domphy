@@ -1,6 +1,14 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 
+/**
+ * Styles a responsive image: full-width, cover-fit, rounded corners with a
+ * themed placeholder background. Apply to an `<img>` element.
+ *
+ * @hostTag img
+ * @param props.color - Optional theme color tone for the placeholder background (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
+ * @example { img: null, src: "photo.jpg", alt: "Photo", $: [image()] }
+ */
 function image(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

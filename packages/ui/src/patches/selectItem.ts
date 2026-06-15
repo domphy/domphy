@@ -7,6 +7,18 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * A single selectable option row (`role="option"`) for use inside a `selectList`. Reads the
+ * `select` context to reflect/toggle selection: it sets `aria-selected` from the bound value and
+ * toggles the value (single or multiple) on click. Styles hover/selected/focus states.
+ *
+ * @hostTag div
+ * @param props.accentColor - Theme color tone for the selected/focus state. Defaults to `"primary"`.
+ * @param props.color - Theme color tone for text/background. Defaults to `"neutral"`.
+ * @param props.value - The option value compared against and written to the select state.
+ *   Defaults to `null`.
+ * @example { div: "Option A", $: [selectItem({ value: "a" })] }
+ */
 function selectItem(
   props: {
     accentColor?: ThemeColor;

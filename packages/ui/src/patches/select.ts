@@ -8,6 +8,16 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Styles a native `<select>` control: removes the default appearance, applies themed
+ * colors, outline, density-scaled padding/radius, a custom chevron background icon, and
+ * hover/focus/disabled/optgroup/option states.
+ *
+ * @hostTag select
+ * @param props.color - Theme color tone for text, background and outline. Defaults to `"neutral"`.
+ * @param props.accentColor - Theme color tone for hover/focus outlines. Defaults to `"primary"`.
+ * @example { select: [{ option: "A" }], $: [select()] }
+ */
 function select(
   props: { color?: ThemeColor; accentColor?: ThemeColor } = {},
 ): PartialElement {

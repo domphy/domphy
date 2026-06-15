@@ -1,6 +1,13 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSize } from "@domphy/theme";
 
+/**
+ * Renders subscript text (shrunk, baseline-lowered) for the host `<sub>` element.
+ *
+ * @hostTag sub
+ * @param props.color - Theme color for the text. Optional, accepts a value or state. Defaults to `"neutral"`.
+ * @example { sub: "2", $: [subscript()] }
+ */
 function subscript(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

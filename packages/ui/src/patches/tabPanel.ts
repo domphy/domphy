@@ -1,6 +1,14 @@
 import { type ElementNode, merge, type PartialElement } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 
+/**
+ * Styles a tab panel inside a `tabs` tablist. Wires up the panel's
+ * id/aria-labelledby and toggles `hidden` based on the surrounding `tabs`
+ * context's active key. Must be used inside a `tabs` patch. Takes no props.
+ *
+ * @hostTag div
+ * @example { div: "Panel content", $: [tabPanel()] }
+ */
 function tabPanel(): PartialElement {
   const partial: PartialElement = {
     role: "tabpanel",

@@ -16,6 +16,15 @@ type ToastPosition =
   | "bottom-center"
   | "bottom-right";
 
+/**
+ * Renders a transient notification surface as a fixed-position overlay (portaled
+ * into a corner stack), animating in on mount and out before removal. No host
+ * tag check; typically applied to a `<div>`.
+ *
+ * @param props.position - Corner of the screen for the toast stack. Optional, one of `"top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right"`. Defaults to `"top-center"`.
+ * @param props.color - Theme color for the toast surface. Optional. Defaults to `"neutral"`.
+ * @example { div: "Saved!", $: [toast({ position: "top-right" })] }
+ */
 function toast(
   props: { position?: ToastPosition; color?: ThemeColor } = {},
 ): PartialElement {

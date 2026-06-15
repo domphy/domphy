@@ -6,6 +6,15 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Renders keyboard-key styling (themed background, border and padding) for a
+ * keystroke hint. Apply to a `<kbd>` element.
+ *
+ * @hostTag kbd
+ * @param props - Optional configuration.
+ * @param props.color - Color tone for text/background/border. Defaults to `"neutral"`.
+ * @example { kbd: "Ctrl", $: [keyboard()] }
+ */
 function keyboard(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {

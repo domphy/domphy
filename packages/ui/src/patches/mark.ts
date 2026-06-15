@@ -6,6 +6,15 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/**
+ * Themed highlight primitive: gives marked/highlighted inline text a tinted
+ * background, rounded corners and padding. Apply to a `<mark>` element.
+ *
+ * @hostTag mark
+ * @param props - Optional configuration.
+ * @param props.accentColor - Accent color tone for the highlight fill and text. Defaults to `"highlight"`.
+ * @example { mark: "important", $: [mark()] }
+ */
 function mark(
   props: { accentColor?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {
