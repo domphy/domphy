@@ -6,7 +6,7 @@ import Toggle from "../../demos/patches/Toggle.ts?raw"
 
 # Toggle
 
-Use the toggle patch to customize this component.
+Use the toggle patch to customize this element.
 
 <CodeEditor :code="Toggle" />
 

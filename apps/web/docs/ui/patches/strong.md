@@ -6,7 +6,7 @@ import Strong from "../../demos/patches/Strong.ts?raw"
 
 # Strong
 
-Use the strong patch to customize this component.
+Use the strong patch to customize this element.
 
 <CodeEditor :code="Strong" />
 

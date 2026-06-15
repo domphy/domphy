@@ -6,7 +6,7 @@ import Abbreviation from "../../demos/patches/Abbreviation.ts?raw"
 
 # Abbreviation
 
-Use the abbreviation patch to customize this component.
+Use the abbreviation patch to customize this element.
 
 <CodeEditor :code="Abbreviation" />
 

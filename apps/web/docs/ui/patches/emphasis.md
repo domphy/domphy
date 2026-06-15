@@ -6,7 +6,7 @@ import Emphasis from "../../demos/patches/Emphasis.ts?raw"
 
 # Emphasis
 
-Use the emphasis patch to customize this component.
+Use the emphasis patch to customize this element.
 
 <CodeEditor :code="Emphasis" />
 

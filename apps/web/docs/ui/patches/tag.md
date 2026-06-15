@@ -6,7 +6,7 @@ import Tag from "../../demos/patches/Tag.ts?raw"
 
 # Tag
 
-Use the tag patch to customize this component.
+Use the tag patch to customize this element.
 
 <CodeEditor :code="Tag" />
 

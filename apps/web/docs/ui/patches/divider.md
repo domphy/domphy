@@ -6,7 +6,7 @@ import Divider from "../../demos/patches/Divider.ts?raw"
 
 # Divider
 
-Use the divider patch to customize this component.
+Use the divider patch to customize this element.
 
 <CodeEditor :code="Divider" />
 

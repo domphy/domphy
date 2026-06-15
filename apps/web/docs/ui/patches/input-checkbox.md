@@ -6,7 +6,7 @@ import InputCheckbox from "../../demos/patches/InputCheckbox.ts?raw"
 
 # Input Checkbox
 
-Use the input-checkbox patch to customize this component.
+Use the input-checkbox patch to customize this element.
 
 <CodeEditor :code="InputCheckbox" />
 

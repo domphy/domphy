@@ -37,7 +37,7 @@ const App = {
 | --- | --- |
 | `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`) |
 | `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`) |
-| `@domphy/ui` | ~75 patches (`button`, `card`, `dialog`, `select`, `motion`, `formGroup`, …) |
+| `@domphy/ui` | 74 patches (`button`, `card`, `dialog`, `select`, `motion`, `formGroup`, …) |
 | `@domphy/query` | async state — TanStack query-core port; adapter `createQuery`/`createMutation`/`createInfiniteQuery` at `@domphy/query/domphy` |
 | `@domphy/table` | headless tables — table-core port; adapter `createDomphyTable` at `@domphy/table/domphy` |
 | `@domphy/router` | type-safe routing — router-core port; `createRouter`/`createRoute` |

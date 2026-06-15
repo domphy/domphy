@@ -6,7 +6,7 @@ import Heading from "../../demos/patches/Heading.ts?raw"
 
 # Heading
 
-Use the heading patch to customize this component.
+Use the heading patch to customize this element.
 
 <CodeEditor :code="Heading" />
 

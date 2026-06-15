@@ -6,7 +6,7 @@ import InputFile from "../../demos/patches/InputFile.ts?raw"
 
 # Input File
 
-Use the input-file patch to customize this component.
+Use the input-file patch to customize this element.
 
 <CodeEditor :code="InputFile" />
 

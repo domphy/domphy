@@ -6,7 +6,7 @@ import InputSwitch from "../../demos/patches/InputSwitch.ts?raw"
 
 # Input Switch
 
-Use the input-switch patch to customize this component.
+Use the input-switch patch to customize this element.
 
 <CodeEditor :code="InputSwitch" />
 

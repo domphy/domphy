@@ -6,7 +6,7 @@ import PopoverArrow from "../../demos/patches/PopoverArrow.ts?raw"
 
 # Popover Arrow
 
-Use the popoverArrow patch to customize this component.
+Use the popoverArrow patch to customize this element.
 
 <CodeEditor :code="PopoverArrow" />
 

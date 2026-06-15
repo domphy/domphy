@@ -6,7 +6,7 @@ import InputColor from "../../demos/patches/InputColor.ts?raw"
 
 # Input Color
 
-Use the input-color patch to customize this component.
+Use the input-color patch to customize this element.
 
 <CodeEditor :code="InputColor" />
 

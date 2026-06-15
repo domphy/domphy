@@ -6,7 +6,7 @@ import Blockquote from "../../demos/patches/Blockquote.ts?raw"
 
 # Blockquote
 
-Use the blockquote patch to customize this component.
+Use the blockquote patch to customize this element.
 
 <CodeEditor :code="Blockquote" />
 

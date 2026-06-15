@@ -6,7 +6,7 @@ import Link from "../../demos/patches/Link.ts?raw"
 
 # Link
 
-Use the link patch to customize this component.
+Use the link patch to customize this element.
 
 <CodeEditor :code="Link" />
 

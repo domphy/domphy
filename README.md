@@ -8,7 +8,7 @@ Core runtime + design system:
 
 - `@domphy/core` — rendering, reactivity, lifecycle, SSR, and CSS-in-JS runtime
 - `@domphy/theme` — context-aware color, size, and spacing tokens
-- `@domphy/ui` — ~75 ready-made patches (`button`, `card`, `dialog`, `motion`, …) built on core + theme
+- `@domphy/ui` — 74 ready-made patches (`button`, `card`, `dialog`, `motion`, …) built on core + theme
 
 Data & logic — **1-1 ports of the TanStack cores** (byte-identical upstream API) + a thin Domphy adapter at the `/domphy` subpath:
 

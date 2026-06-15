@@ -6,7 +6,7 @@ import OrderedList from "../../demos/patches/OrderedList.ts?raw"
 
 # Ordered List
 
-Use the ordered-list patch to customize this component.
+Use the ordered-list patch to customize this element.
 
 <CodeEditor :code="OrderedList" />
 

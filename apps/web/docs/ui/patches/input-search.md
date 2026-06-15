@@ -6,7 +6,7 @@ import InputSearch from "../../demos/patches/InputSearch.ts?raw"
 
 # Input Search
 
-Use the input-search patch to customize this component.
+Use the input-search patch to customize this element.
 
 <CodeEditor :code="InputSearch" />
 

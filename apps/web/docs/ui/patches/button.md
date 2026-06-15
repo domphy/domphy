@@ -6,7 +6,7 @@ import Button from "../../demos/patches/Button.ts?raw"
 
 # Button
 
-Use the button patch to customize this component.
+Use the button patch to customize this element.
 
 <CodeEditor :code="Button" />
 

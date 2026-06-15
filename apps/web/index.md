@@ -7,11 +7,14 @@ hero:
   tagline: Learnable by AI from one spec, self-correcting via @domphy/doctor. Patch-based, framework-agnostic — no JSX, no virtual DOM, no build step.
   actions:
     - theme: brand
+      text: Get Started
+      link: /docs/quickstart
+    - theme: alt
       text: Building with AI
       link: /docs/ai
     - theme: alt
-      text: Read the Docs
-      link: /docs/
+      text: GitHub
+      link: https://github.com/domphy/domphy
 
 features:
   - title: AI-friendly

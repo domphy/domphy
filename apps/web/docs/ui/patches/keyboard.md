@@ -6,7 +6,7 @@ import Keyboard from "../../demos/patches/Keyboard.ts?raw"
 
 # Keyboard
 
-Use the keyboard patch to customize this component.
+Use the keyboard patch to customize this element.
 
 <CodeEditor :code="Keyboard" />
 

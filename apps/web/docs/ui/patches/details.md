@@ -6,7 +6,7 @@ import Details from "../../demos/patches/Details.ts?raw"
 
 # Details
 
-Use the details patch to customize this component.
+Use the details patch to customize this element.
 
 <CodeEditor :code="Details" />
 

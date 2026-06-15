@@ -53,7 +53,7 @@ No virtual DOM, no diffing. Changing state updates only the properties that read
 
 ## 4. Forms
 
-The `form` and `field` patches handle validation, error display, and two-way binding automatically.
+Form state, validation, and submission live in [`@domphy/form`](/docs/form/) (`createForm`) — a 1-1 port of `@tanstack/form-core`. `@domphy/ui` provides the presentation: native inputs with the input patches, `label`, and `formGroup` for layout. Bind each field with `value: (l) => field.value(l)` and forward events to `field.handleChange(...)`.
 
 <DomphyPreview :element="WithForm"/>
 
@@ -63,6 +63,6 @@ The `form` and `field` patches handle validation, error display, and two-way bin
 
 - [Core concepts](/docs/core/) — Syntax, reactivity, lifecycle
 - [Theme](/docs/theme/) — Tone, size, density
-- [All 69 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
+- [All 74 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
 - [Showcase: Chromametry App](https://chromametry.com) — Full production app built entirely with Domphy
 - [Research](/docs/research/) — The two papers behind the design system

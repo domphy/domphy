@@ -6,7 +6,7 @@ import Figure from "../../demos/patches/Figure.ts?raw"
 
 # Figure
 
-Use the figure patch to customize this component.
+Use the figure patch to customize this element.
 
 <CodeEditor :code="Figure" />
 

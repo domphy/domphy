@@ -6,7 +6,7 @@ import Menu from "../../demos/patches/Menu.ts?raw"
 
 # Menu
 
-Use the menu patch to customize this component.
+Use the menu patch to customize this element.
 
 <CodeEditor :code="Menu" />
 

@@ -6,7 +6,7 @@ import Paragraph from "../../demos/patches/Paragraph.ts?raw"
 
 # Paragraph
 
-Use the paragraph patch to customize this component.
+Use the paragraph patch to customize this element.
 
 <CodeEditor :code="Paragraph" />
 

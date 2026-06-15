@@ -6,7 +6,7 @@ import InputRadio from "../../demos/patches/InputRadio.ts?raw"
 
 # Input Radio
 
-Use the input-radio patch to customize this component.
+Use the input-radio patch to customize this element.
 
 <CodeEditor :code="InputRadio" />
 

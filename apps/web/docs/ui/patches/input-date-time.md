@@ -6,7 +6,7 @@ import InputDateTime from "../../demos/patches/InputDateTime.ts?raw"
 
 # Input Date Time
 
-Use the input-date-time patch to customize this component.
+Use the input-date-time patch to customize this element.
 
 <CodeEditor :code="InputDateTime" />
 

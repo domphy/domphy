@@ -6,7 +6,7 @@ import Select from "../../demos/patches/Select.ts?raw"
 
 # Select
 
-Use the select patch to customize this component.
+Use the select patch to customize this element.
 
 <CodeEditor :code="Select" />
 

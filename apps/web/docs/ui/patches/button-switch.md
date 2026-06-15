@@ -6,7 +6,7 @@ import ButtonSwitch from "../../demos/patches/ButtonSwitch.ts?raw"
 
 # Button Switch
 
-Use the button-switch patch to customize this component.
+Use the button-switch patch to customize this element.
 
 <CodeEditor :code="ButtonSwitch" />
 

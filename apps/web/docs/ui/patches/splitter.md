@@ -6,7 +6,7 @@ import Splitter from "../../demos/patches/Splitter.ts?raw"
 
 # Splitter
 
-Use the splitter patch to customize this component.
+Use the splitter patch to customize this element.
 
 <CodeEditor :code="Splitter" />
 

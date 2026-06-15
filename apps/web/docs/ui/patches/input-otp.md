@@ -6,7 +6,7 @@ import InputOTP from "../../demos/patches/InputOTP.ts?raw"
 
 # Input OTP
 
-Use the inputOTP patch to customize this component.
+Use the inputOTP patch to customize this element.
 
 <CodeEditor :code="InputOTP" />
 

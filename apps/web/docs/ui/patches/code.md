@@ -6,7 +6,7 @@ import Code from "../../demos/patches/Code.ts?raw"
 
 # Code
 
-Use the code patch to customize this component.
+Use the code patch to customize this element.
 
 <CodeEditor :code="Code" />
 

@@ -6,7 +6,7 @@ import Badge from "../../demos/patches/Badge.ts?raw"
 
 # Badge
 
-Use the badge patch to customize this component.
+Use the badge patch to customize this element.
 
 <CodeEditor :code="Badge" />
 

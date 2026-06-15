@@ -6,7 +6,7 @@ import Toast from "../../demos/patches/Toast.ts?raw"
 
 # Toast
 
-Use the toast patch to customize this component.
+Use the toast patch to customize this element.
 
 <CodeEditor :code="Toast" />
 

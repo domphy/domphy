@@ -6,7 +6,7 @@ import Superscript from "../../demos/patches/Superscript.ts?raw"
 
 # Superscript
 
-Use the superscript patch to customize this component.
+Use the superscript patch to customize this element.
 
 <CodeEditor :code="Superscript" />
 

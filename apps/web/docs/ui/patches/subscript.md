@@ -6,7 +6,7 @@ import Subscript from "../../demos/patches/Subscript.ts?raw"
 
 # Subscript
 
-Use the subscript patch to customize this component.
+Use the subscript patch to customize this element.
 
 <CodeEditor :code="Subscript" />
 

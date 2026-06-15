@@ -6,7 +6,7 @@ import Card from "../../demos/patches/Card.ts?raw"
 
 # Card
 
-Use the card patch to customize this component.
+Use the card patch to customize this element.
 
 <CodeEditor :code="Card" />
 

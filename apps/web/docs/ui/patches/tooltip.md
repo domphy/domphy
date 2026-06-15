@@ -6,7 +6,7 @@ import Tooltip from "../../demos/patches/Tooltip.ts?raw"
 
 # Tooltip
 
-Use the tooltip patch to customize this component.
+Use the tooltip patch to customize this element.
 
 <CodeEditor :code="Tooltip" />
 

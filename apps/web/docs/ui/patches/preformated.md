@@ -6,7 +6,7 @@ import Preformated from "../../demos/patches/Preformated.ts?raw"
 
 # Preformated
 
-Use the preformated patch to customize this component.
+Use the preformated patch to customize this element.
 
 <CodeEditor :code="Preformated" />
 

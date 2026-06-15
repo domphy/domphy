@@ -6,7 +6,7 @@ import DescriptionList from "../../demos/patches/DescriptionList.ts?raw"
 
 # Description List
 
-Use the description-list patch to customize this component.
+Use the description-list patch to customize this element.
 
 <CodeEditor :code="DescriptionList" />
 

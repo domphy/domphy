@@ -6,7 +6,7 @@ import HorizontalRule from "../../demos/patches/HorizontalRule.ts?raw"
 
 # Horizontal Rule
 
-Use the horizontal-rule patch to customize this component.
+Use the horizontal-rule patch to customize this element.
 
 <CodeEditor :code="HorizontalRule" />
 

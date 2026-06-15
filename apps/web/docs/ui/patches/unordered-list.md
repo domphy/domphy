@@ -6,7 +6,7 @@ import UnorderedList from "../../demos/patches/UnorderedList.ts?raw"
 
 # Unordered List
 
-Use the unordered-list patch to customize this component.
+Use the unordered-list patch to customize this element.
 
 <CodeEditor :code="UnorderedList" />
 

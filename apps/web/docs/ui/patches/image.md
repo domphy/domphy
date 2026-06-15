@@ -6,7 +6,7 @@ import Image from "../../demos/patches/Image.ts?raw"
 
 # Image
 
-Use the image patch to customize this component.
+Use the image patch to customize this element.
 
 <CodeEditor :code="Image" />
 

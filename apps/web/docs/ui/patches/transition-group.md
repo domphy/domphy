@@ -6,7 +6,7 @@ import TransitionGroup from "../../demos/patches/TransitionGroup.ts?raw"
 
 # Transition Group
 
-Use the transition-group patch to customize this component.
+Use the transition-group patch to customize this element.
 
 <CodeEditor :code="TransitionGroup" />
 

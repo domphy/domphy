@@ -6,7 +6,7 @@ import Dialog from "../../demos/patches/Dialog.ts?raw"
 
 # Dialog
 
-Use the dialog patch to customize this component.
+Use the dialog patch to customize this element.
 
 <CodeEditor :code="Dialog" />
 

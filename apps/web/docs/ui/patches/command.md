@@ -6,7 +6,7 @@ import Command from "../../demos/patches/Command.ts?raw"
 
 # Command
 
-Use the command patch to customize this component.
+Use the command patch to customize this element.
 
 <CodeEditor :code="Command" />
 

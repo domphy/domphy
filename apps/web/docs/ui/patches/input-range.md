@@ -6,7 +6,7 @@ import InputRange from "../../demos/patches/InputRange.ts?raw"
 
 # Input Range
 
-Use the input-range patch to customize this component.
+Use the input-range patch to customize this element.
 
 <CodeEditor :code="InputRange" />
 

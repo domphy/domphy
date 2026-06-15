@@ -6,7 +6,7 @@ import InputText from "../../demos/patches/InputText.ts?raw"
 
 # Input Text
 
-Use the input-text patch to customize this component.
+Use the input-text patch to customize this element.
 
 <CodeEditor :code="InputText" />
 

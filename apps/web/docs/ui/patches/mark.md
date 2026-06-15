@@ -6,7 +6,7 @@ import Mark from "../../demos/patches/Mark.ts?raw"
 
 # Mark
 
-Use the mark patch to customize this component.
+Use the mark patch to customize this element.
 
 <CodeEditor :code="Mark" />
 

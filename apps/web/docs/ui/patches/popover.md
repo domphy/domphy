@@ -6,7 +6,7 @@ import Popover from "../../demos/patches/Popover.ts?raw"
 
 # Popover
 
-Use the popover patch to customize this component.
+Use the popover patch to customize this element.
 
 <CodeEditor :code="Popover" />
 

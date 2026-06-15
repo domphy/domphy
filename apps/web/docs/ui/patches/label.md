@@ -6,7 +6,7 @@ import Label from "../../demos/patches/Label.ts?raw"
 
 # Label
 
-Use the label patch to customize this component.
+Use the label patch to customize this element.
 
 <CodeEditor :code="Label" />
 

@@ -6,7 +6,7 @@ import Progress from "../../demos/patches/Progress.ts?raw"
 
 # Progress
 
-Use the progress patch to customize this component.
+Use the progress patch to customize this element.
 
 <CodeEditor :code="Progress" />
 

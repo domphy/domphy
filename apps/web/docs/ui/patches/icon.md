@@ -6,7 +6,7 @@ import Icon from "../../demos/patches/Icon.ts?raw"
 
 # Icon
 
-Use the icon patch to customize this component.
+Use the icon patch to customize this element.
 
 <CodeEditor :code="Icon" />
 

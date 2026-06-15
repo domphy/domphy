@@ -6,7 +6,7 @@ import Drawer from "../../demos/patches/Drawer.ts?raw"
 
 # Drawer
 
-Use the drawer patch to customize this component.
+Use the drawer patch to customize this element.
 
 <CodeEditor :code="Drawer" />
 

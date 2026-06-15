@@ -7,7 +7,7 @@ import Table from "../../demos/patches/Table.ts?raw"
 # Table
 
 
-Use the table patch to customize this component.
+Use the table patch to customize this element.
 
 <CodeEditor :code="Table" />
 

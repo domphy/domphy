@@ -6,7 +6,7 @@ import Tabs from "../../demos/patches/Tabs.ts?raw"
 
 # Tabs
 
-Use the tabs patch to customize this component.
+Use the tabs patch to customize this element.
 
 <CodeEditor :code="Tabs" />
 

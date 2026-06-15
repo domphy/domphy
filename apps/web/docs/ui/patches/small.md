@@ -6,7 +6,7 @@ import Small from "../../demos/patches/Small.ts?raw"
 
 # Small
 
-Use the small patch to customize this component.
+Use the small patch to customize this element.
 
 <CodeEditor :code="Small" />
 

@@ -6,7 +6,7 @@ import Textarea from "../../demos/patches/Textarea.ts?raw"
 
 # Textarea
 
-Use the textarea patch to customize this component.
+Use the textarea patch to customize this element.
 
 <CodeEditor :code="Textarea" />
 
