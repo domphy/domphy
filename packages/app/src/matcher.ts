@@ -90,7 +90,12 @@ export function compileRoutes(routes: Route[]): CompiledRoute[] {
       const chain = [...parentChain, node];
       const chainIds = [...parentChainIds, id === "" ? "/" : id];
 
-      if (node.page || node.redirect) {
+      // A `lazy` leaf is routable too: its `page` arrives from the dynamic
+      // import, so it has no eager `page` field at compile time. A lazy route
+      // with children is treated as an intermediate (layout) segment — its page,
+      // if any, would be unreachable and is expected to live in an index child.
+      const lazyLeaf = Boolean(node.lazy) && !node.children;
+      if (node.page || node.redirect || lazyLeaf) {
         compiled.push({
           id: id === "" ? "/" : id,
           segments: urlSegments,

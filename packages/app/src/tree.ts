@@ -1,4 +1,11 @@
 import type { DomphyElement } from "@domphy/core";
+import {
+  routeError,
+  routeLayout,
+  routeLoading,
+  routeNotFound,
+  routePage,
+} from "./lazy.js";
 import type { RouteMatch } from "./matcher.js";
 import type {
   ErrorBlock,
@@ -79,43 +86,43 @@ export function buildTree(input: BuildTreeInput): BuiltTree {
 
   if (errorIndex !== -1) {
     const blockIndex = nearestBlockIndex(chain, errorIndex, (route) =>
-      Boolean(route.error),
+      Boolean(routeError(route)),
     );
     const block =
       blockIndex === -1
         ? defaultError
-        : (chain[blockIndex].error as ErrorBlock);
+        : (routeError(chain[blockIndex]) as ErrorBlock);
     inner = block(results[errorIndex].error as Error, retry);
     inner._key = `${chainIds[Math.max(blockIndex, 0)]}:error`;
     wrapLimit = Math.min(blockIndex, errorIndex - 1);
     status = "error";
   } else if (notFoundIndex !== -1) {
     const blockIndex = nearestBlockIndex(chain, notFoundIndex, (route) =>
-      Boolean(route.notFound),
+      Boolean(routeNotFound(route)),
     );
     const block =
       blockIndex === -1
         ? defaultNotFound
-        : (chain[blockIndex].notFound as NotFoundBlock);
+        : (routeNotFound(chain[blockIndex]) as NotFoundBlock);
     inner = block();
     inner._key = `${chainIds[Math.max(blockIndex, 0)]}:notfound`;
     wrapLimit = Math.min(blockIndex, notFoundIndex - 1);
     status = "notfound";
   } else if (pendingIndex !== -1) {
     const blockIndex = nearestBlockIndex(chain, pendingIndex, (route) =>
-      Boolean(route.loading),
+      Boolean(routeLoading(route)),
     );
     if (blockIndex === -1) {
       // No loading block anywhere: caller keeps the previous tree on screen.
       return { element: { div: "" }, status: "loading" };
     }
-    inner = chain[blockIndex].loading!(contexts[blockIndex]);
+    inner = routeLoading(chain[blockIndex])!(contexts[blockIndex]);
     inner._key = `${chainIds[blockIndex]}:loading`;
     wrapLimit = Math.min(blockIndex, pendingIndex - 1);
     status = "loading";
   } else {
     const leaf = chain[chain.length - 1];
-    inner = leaf.page!(contexts[chain.length - 1]);
+    inner = routePage(leaf)!(contexts[chain.length - 1]);
     inner._key = `${match.route.id}:page`;
     wrapLimit = chain.length - 1;
     status = "idle";
@@ -123,7 +130,7 @@ export function buildTree(input: BuildTreeInput): BuiltTree {
 
   let element = inner;
   for (let i = wrapLimit; i >= 0; i--) {
-    const layout = chain[i].layout;
+    const layout = routeLayout(chain[i]);
     if (!layout) continue;
     element = layout(element, contexts[i], input.slots?.[i] ?? {});
     if (element._key === undefined) element._key = `${chainIds[i]}:layout`;

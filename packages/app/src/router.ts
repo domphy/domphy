@@ -8,6 +8,14 @@ import {
 import { DataCache } from "./dataCache.js";
 import { createBrowserHistory, type HistoryAdapter } from "./history.js";
 import {
+  hasPendingLazy,
+  resolveLazyRoute,
+  routeLoader,
+  routeLoading,
+  routeMetadata,
+  routeMiddleware,
+} from "./lazy.js";
+import {
   type CompiledRoute,
   compileRoutes,
   matchRoute,
@@ -18,8 +26,8 @@ import {
 import {
   applyHeadTags,
   metadataToHeadTags,
-  renderHeadTags,
   type ResolvedMetadata,
+  renderHeadTags,
   resolveMetadata,
 } from "./metadata.js";
 import { isRewrite, NotFoundSignal, RedirectSignal } from "./navigation.js";
@@ -153,7 +161,63 @@ export class AppRouter {
     }
   }
 
-  /** Runs a match's loaders and returns one result per chain segment (no loading UI). */
+  /**
+   * Resolves one chain segment into its `SegmentResult`: first the lazy module
+   * (if any), then the loader (which may itself be supplied by that module).
+   *
+   * - A rejected lazy import becomes an `error` result, routing the subtree to
+   *   the nearest `error` boundary instead of crashing.
+   * - `redirect()` / `notFound()` raised by the loader are surfaced via the
+   *   optional `onRedirect` callback (navigation) or recorded as `notfound`.
+   */
+  private async loadSegment(
+    route: Route,
+    cacheKey: string,
+    context: LoaderContext,
+    results: SegmentResult[],
+    index: number,
+    onRedirect?: (signal: RedirectSignal) => void,
+  ): Promise<void> {
+    try {
+      await resolveLazyRoute(route);
+    } catch (error) {
+      results[index] = {
+        status: "error",
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
+      return;
+    }
+    const loader = routeLoader(route);
+    if (!loader) {
+      results[index] = { status: "success", data: undefined };
+      return;
+    }
+    try {
+      const data = await this.cache.load(
+        cacheKey,
+        loader,
+        context,
+        route.revalidate,
+      );
+      results[index] = { status: "success", data };
+    } catch (error) {
+      if (error instanceof RedirectSignal) {
+        onRedirect?.(error);
+      } else if (error instanceof NotFoundSignal) {
+        results[index] = { status: "notfound" };
+      } else {
+        results[index] = {
+          status: "error",
+          error: error instanceof Error ? error : new Error(String(error)),
+        };
+      }
+    }
+  }
+
+  /**
+   * Resolves a match's lazy modules and loaders, one result per chain segment
+   * (no loading UI). Used by slot and streaming rendering.
+   */
   private async loadMatch(
     match: RouteMatch,
     url: URL,
@@ -162,31 +226,15 @@ export class AppRouter {
     const context = this.loaderContext(url, match);
     const results: SegmentResult[] = chain.map(() => ({ status: "pending" }));
     await Promise.all(
-      chain.map((route, index) => {
-        if (!route.loader) {
-          results[index] = { status: "success", data: undefined };
-          return Promise.resolve();
-        }
-        const key = this.cacheKey(chainIds[index], url);
-        return this.cache
-          .load(key, route.loader, context, route.revalidate)
-          .then(
-            (data) => {
-              results[index] = { status: "success", data };
-            },
-            (error) => {
-              if (error instanceof NotFoundSignal) {
-                results[index] = { status: "notfound" };
-              } else {
-                results[index] = {
-                  status: "error",
-                  error:
-                    error instanceof Error ? error : new Error(String(error)),
-                };
-              }
-            },
-          );
-      }),
+      chain.map((route, index) =>
+        this.loadSegment(
+          route,
+          this.cacheKey(chainIds[index], url),
+          context,
+          results,
+          index,
+        ),
+      ),
     );
     return results;
   }
@@ -311,7 +359,12 @@ export class AppRouter {
     await this.transition(this.currentUrl(), { replace: true, scroll: false });
   }
 
-  /** Runs the loaders of a route ahead of navigation, like `router.prefetch()`. */
+  /**
+   * Warms a route ahead of navigation, like `router.prefetch()`: triggers each
+   * matched segment's lazy import (code-split module) and runs its loader, so a
+   * later navigation is instant. Each segment resolves its lazy module before
+   * its loader, since the loader itself may live in that module.
+   */
   async prefetch(href: string): Promise<void> {
     try {
       const url = this.resolve(href);
@@ -319,15 +372,14 @@ export class AppRouter {
       if (!match) return;
       const context = this.loaderContext(url, match);
       await Promise.all(
-        match.route.chain.map((route, index) => {
-          if (!route.loader) return Promise.resolve();
+        match.route.chain.map(async (route, index) => {
+          // Fetch the code-split module first so the bundle is cached and the
+          // loader (which may come from the module) is known.
+          await resolveLazyRoute(route);
+          const loader = routeLoader(route);
+          if (!loader) return;
           const key = this.cacheKey(match.route.chainIds[index], url);
-          return this.cache.prefetch(
-            key,
-            route.loader,
-            context,
-            route.revalidate,
-          );
+          await this.cache.prefetch(key, loader, context, route.revalidate);
         }),
       );
     } catch {
@@ -403,9 +455,10 @@ export class AppRouter {
     }
 
     const baseContext = this.baseContext(url, match);
-    // Only loader-bearing segments are pending in the shell; the rest render now.
+    // Segments with a loader or an unresolved lazy import are pending in the
+    // shell (their loading fallback streams first); the rest render now.
     const pending = match.route.chain.map((route) =>
-      route.loader
+      routeLoader(route) || hasPendingLazy(route)
         ? ({ status: "pending" } as SegmentResult)
         : ({ status: "success", data: undefined } as SegmentResult),
     );
@@ -440,7 +493,7 @@ export class AppRouter {
 
       const data: Record<string, unknown> = {};
       match.route.chain.forEach((route, index) => {
-        if (route.loader && results[index].status === "success") {
+        if (routeLoader(route) && results[index].status === "success") {
           data[this.cacheKey(match.route.chainIds[index], url)] =
             results[index].data;
         }
@@ -449,7 +502,7 @@ export class AppRouter {
       let head = "";
       try {
         const metadata = await resolveMetadata(
-          match.route.chain.map((route) => route.metadata),
+          match.route.chain.map((route) => routeMetadata(route)),
           this.loaderContext(url, match),
         );
         head = renderHeadTags(metadataToHeadTags(metadata));
@@ -506,8 +559,13 @@ export class AppRouter {
         if (leaf.redirect) {
           throw new RedirectSignal(leaf.redirect, leaf.permanent ?? false);
         }
+        // Route-level middleware runs before the segment renders. Eager
+        // middleware always applies; middleware supplied by a lazy module
+        // applies once that module has resolved (declare middleware eagerly to
+        // guarantee it runs on the very first navigation, since the loading UI
+        // must show *during* the import rather than block on it here).
         for (const route of match.route.chain) {
-          for (const middleware of route.middleware ?? []) {
+          for (const middleware of routeMiddleware(route) ?? []) {
             const result = await middleware(middlewareContext);
             if (isRewrite(result)) {
               await this.transition(
@@ -562,39 +620,33 @@ export class AppRouter {
     const results: SegmentResult[] = chain.map(() => ({ status: "pending" }));
     let redirectSignal: RedirectSignal | null = null;
 
-    const promises = chain.map((route, index) => {
-      if (!route.loader) {
-        results[index] = { status: "success", data: undefined };
-        return Promise.resolve();
-      }
-      const key = this.cacheKey(chainIds[index], url);
-      return this.cache.load(key, route.loader, context, route.revalidate).then(
-        (data) => {
-          results[index] = { status: "success", data };
+    // Each segment resolves its lazy module (code-split import) first, then its
+    // loader; both feed the loading/error boundary model below.
+    const promises = chain.map((route, index) =>
+      this.loadSegment(
+        route,
+        this.cacheKey(chainIds[index], url),
+        context,
+        results,
+        index,
+        (signal) => {
+          redirectSignal = redirectSignal ?? signal;
         },
-        (error) => {
-          if (error instanceof RedirectSignal) {
-            redirectSignal = redirectSignal ?? error;
-          } else if (error instanceof NotFoundSignal) {
-            results[index] = { status: "notfound" };
-          } else {
-            results[index] = {
-              status: "error",
-              error: error instanceof Error ? error : new Error(String(error)),
-            };
-          }
-        },
-      );
-    });
+      ),
+    );
 
     let settled = false;
     const allSettled = Promise.all(promises).then(() => {
       settled = true;
     });
 
-    // Give already-resolved (cached) loaders a chance to finish before showing loading UI.
+    // Give already-resolved (cached) loaders and lazy imports a chance to finish
+    // before showing loading UI.
     await new Promise((resolve) => setTimeout(resolve, 0));
-    if (!settled && chain.some((route) => route.loading)) {
+    if (
+      !settled &&
+      chain.some((route) => routeLoading(route) || hasPendingLazy(route))
+    ) {
       const interim = buildTree({
         match,
         baseContext: this.baseContext(url, match),
@@ -638,7 +690,7 @@ export class AppRouter {
 
     const dataRecord: Record<string, unknown> = {};
     chain.forEach((route, index) => {
-      if (route.loader && results[index].status === "success") {
+      if (routeLoader(route) && results[index].status === "success") {
         dataRecord[this.cacheKey(chainIds[index], url)] = results[index].data;
       }
     });
@@ -685,7 +737,7 @@ export class AppRouter {
   ): Promise<void> {
     try {
       this.metadata = await resolveMetadata(
-        match.route.chain.map((route) => route.metadata),
+        match.route.chain.map((route) => routeMetadata(route)),
         context,
       );
     } catch {
