@@ -22,7 +22,7 @@ push(`- Build UIs as plain objects keyed by HTML tag. Apply patches via \`$\`. N
 - Forms use \`@domphy/form\` (\`createForm\` from \`@domphy/form/domphy\`): bind inputs with \`value: (l) => field.value(l)\` + \`onInput: (e) => field.handleChange(e.target.value)\`. The old ui \`form()\`/\`field()\` patches and \`FormState\`/\`FieldState\` were removed; only \`formGroup()\` (layout) remains in \`@domphy/ui\`.
 - Reactive content uses \`(listener) => state.get(listener)\`. Controlled inputs (value bound to a state you also \`.set()\` in \`onInput\`) are safe.
 - Data/logic = 1-1 TanStack core ports + a Domphy adapter at the \`/domphy\` subpath (\`@domphy/core\` peer dep): query, table, router, virtual, form. Drag & drop: \`@domphy/dnd\`. Animation: the \`motion()\` patch. App framework (Next-style): \`@domphy/app\` (incl. lazy code-split routes). Markdown→Domphy: \`@domphy/markdown\`. Mermaid: \`@domphy/mermaid\`.
-- Derived reactivity: \`computed\`/\`effect\`/\`effectScope\`/\`batch\`/\`untrack\` in \`@domphy/core\`. Self-check with \`@domphy/doctor\` \`diagnose\`/\`validate\`.
+- Derived reactivity: \`computed\`/\`effect\`/\`effectScope\`/\`batch\`/\`untrack\` in \`@domphy/core\`; \`flushSync()\` drains reactivity synchronously (tests/imperative). Self-check with \`@domphy/doctor\` \`diagnose\`/\`validate\`/\`fix\` (rules incl. raw-theme-value, unknown-tone).
 - Build tool: tsup. Docs: DomphyPress (built on \`@domphy/app\` + \`@domphy/markdown\`).`);
 
 const stripVitepress = (md) =>

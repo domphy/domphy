@@ -55,6 +55,8 @@ interface Diagnostic {
 | Rule | Severity | Catches |
 | --- | --- | --- |
 | `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` literals in `style` — use a typography patch |
+| `raw-theme-value` | info | a literal hex/rgb/hsl color in a color style prop (`color`, `background`, `border`, `fill`, …) — use `themeColor()` so theming/dark mode apply |
+| `unknown-tone` | warning | a `dataTone` value that isn't valid tone grammar (`inherit` / `base` / a number / `shift-N` / `increase-N` / `decrease-N`) — catches invented words like `surface` / `text` |
 | `void-content` | error | a void tag (`input`, `img`, `br`, …) with non-null content |
 | `missing-key` | warning | a **dynamic** list (returned by a reactive function) of element children missing `_key` |
 | `unknown-tag` | warning | an element whose first key isn't a valid HTML/SVG tag (typo) |
@@ -89,6 +91,21 @@ interface ValidationReport {
 
 `ok` is false when any `error` diagnostic is present; warnings and info do not flip it. Use this as the single programmatic gate — for example fail CI when `!report.ok` — while `diagnose` / `format` remain available for raw access.
 
+## fix
+
+`fix(element, options?)` applies the **lossless** fixes automatically and reports the rest:
+
+```ts
+import { fix } from "@domphy/doctor"
+
+const { tree, applied, report } = fix(App)
+// tree    — a copy with lossless fixes applied (reactive functions preserved)
+// applied — [{ rule, path, message }] describing what changed
+// report  — validate(tree): the issues that still need a human/model decision
+```
+
+Only provably-lossless transforms run (currently `void-content`: a void tag cannot render children, so its content is cleared to `null`). Anything that needs intent — which key, tone, color token, or typography patch — is never guessed; it stays in `report` for the model or you to resolve. This keeps autofix safe to apply blindly in an agent loop.
+
 ## In an AI loop
 
 This is the point of the package. After the model generates a Domphy tree, run the doctor and return the report:
@@ -118,6 +135,7 @@ Each entry carries `{ name, kind, file, signature, jsdoc, exportKind }` — a ma
 | Tool | Does |
 | --- | --- |
 | `domphy_validate` | Runs the aggregate `validate()` on a JSON element tree, returning `{ ok, issues, summary }`. |
+| `domphy_fix` | Applies the lossless autofix to a JSON element tree, returning `{ tree, applied, report }`. |
 | `domphy_list_app_blocks` | Lists the app's own blocks (name, kind, signature, file) from `app-manifest.json`. |
 | `domphy_get_app_block` | Returns one block's full source plus signature and jsdoc, by name. |
 

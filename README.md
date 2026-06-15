@@ -25,7 +25,7 @@ App layer & tools:
 - `@domphy/app` — Next.js App Router-style framework: nested routes/layouts, loaders with stale-while-revalidate, metadata, middleware, parallel + intercepting routes, lazy code-split routes, SSR + streaming, API routes
 - `@domphy/markdown` — parse Markdown into Domphy element trees for SSR/SSG (markdown-it → Domphy; frontmatter, TOC, anchors). This docs site is built on it.
 - `@domphy/mermaid` — render Mermaid diagrams (build-time inline SVG via mermaid-cli + a client patch)
-- `@domphy/doctor` — static analyzer that flags non-idiomatic element trees (`diagnose`/`validate`); powers AI self-correction
+- `@domphy/doctor` — static analyzer that flags non-idiomatic element trees (`diagnose`/`validate`) and applies lossless autofixes (`fix`); powers AI self-correction
 - `@domphy/mcp` — MCP server exposing patches/packages/rules + the doctor + the app-block registry to AI agents
 - `@domphy/floating` — anchor positioning (vendored [floating-ui](https://github.com/floating-ui/floating-ui), zero-dependency); powers the `@domphy/ui` overlays so it has no third-party runtime dependency
 
@@ -46,7 +46,13 @@ See the [AI guide](https://www.domphy.com/docs/ai) for per-tool setup.
 
 ## Install
 
-Most apps start with the UI layer (pulls core + theme):
+Scaffold a new project (Vite + TS starter, includes `AGENTS.md`):
+
+```bash
+npm create domphy@latest my-app
+```
+
+Or add Domphy to an existing project — most apps start with the UI layer (pulls core + theme):
 
 ```bash
 npm install @domphy/ui

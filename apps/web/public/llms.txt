@@ -8,7 +8,7 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 
 - **One spec, in context.** The whole API is learnable from this file (`llms.txt`) or `AGENTS.md` — no large training corpus needed.
 - **Self-correcting.** `@domphy/doctor` (`diagnose`/`validate`) flags non-idiomatic output; feed the report back and the model fixes itself.
-- **Machine-readable.** `manifest.json` is a deterministic index of every package + patch; the `@domphy/mcp` server exposes patches, packages, rules, the doctor, AND your app's own blocks as tools.
+- **Machine-readable.** `manifest.json` indexes every package + patch (host tag, props schema, example); `tones.json` lists valid tones + theme colors; the `@domphy/mcp` server exposes patches, packages, rules, tones, the doctor (incl. `domphy_fix`), AND your app's own blocks as tools.
 - **Scales to large codebases.** An app-block registry (`app-manifest.json`) + the MCP `domphy_list_app_blocks`/`domphy_get_app_block` tools let an agent discover the blocks an app already has instead of re-creating them.
 
 ## Rules for code generation
@@ -17,13 +17,14 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 - Apply patches via `$`. Never wrap a native tag in a component abstraction.
 - **Never inline typography styles** (fontSize, color, margin, lineHeight). Use the typography patches: `small()`, `paragraph()`, `heading()`, `link()`, `strong()`, `emphasis()`, `code()`, `keyboard()`.
 - **Forms use `@domphy/form`** — `createForm` from `@domphy/form/domphy`; bind inputs with `value: (l) => field.value(l)` + `onInput: (e) => field.handleChange(e.target.value)`. The old ui `form()`/`field()` patches and `FormState`/`FieldState` were REMOVED; only the layout patch `formGroup()` remains in `@domphy/ui`.
-- Reactive content/attributes use `(listener) => state.get(listener)`. A controlled input (value bound to a state you also `.set()` in `onInput`) is safe. For derived values prefer `computed(fn)` (lazy + cached); side-effects use `effect(fn)`; group disposal with `effectScope()`; coalesce writes with `batch(fn)`.
+- Reactive content/attributes use `(listener) => state.get(listener)`. A controlled input (value bound to a state you also `.set()` in `onInput`) is safe. For derived values prefer `computed(fn)` (lazy + cached); side-effects use `effect(fn)`; group disposal with `effectScope()`; coalesce writes with `batch(fn)`. In tests/imperative code, `flushSync()` drains pending reactivity synchronously so the DOM reflects a `.set()` immediately.
 - **Data/logic packages are 1-1 TanStack core ports + a Domphy adapter at the `/domphy` subpath** (`@domphy/core` is a peer dep): `createQuery`/`createMutation`/`createInfiniteQuery` (`@domphy/query/domphy`), `createDomphyTable` (`@domphy/table/domphy`), `createVirtualizer` (`@domphy/virtual/domphy`), `createForm` (`@domphy/form/domphy`), `createRouter`/`createRoute` (`@domphy/router`). Drag & drop: `dragDrop()` (`@domphy/dnd`). Animation: the `motion()` patch (`@domphy/ui`). Next-style app framework: `@domphy/app`.
-- **Self-check generated code with `@domphy/doctor`**: `diagnose(app)` / `validate(app)` + `format(...)` reports inline-typography / void-content / missing-`_key` / duplicate-`_key` / unstable-`_key` / unknown-tag issues — fix what it lists before finishing.
+- **Self-check generated code with `@domphy/doctor`**: `diagnose(app)` / `validate(app)` + `format(...)` reports inline-typography / raw-theme-value / unknown-tone / void-content / missing-`_key` / duplicate-`_key` / unstable-`_key` / unknown-tag issues — fix what it lists before finishing (`fix(app)` auto-applies the lossless ones).
 - Read the per-patch / per-package doc before using one you haven't used before. Each has its own prop contract.
 
 ## Getting started
 
+- Scaffold a project: `npm create domphy@latest <dir>` — a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md).
 - [5-minute quickstart](https://www.domphy.com/docs/quickstart): install, hello world, patches, reactive state, forms
 - [Full docs index](https://www.domphy.com/docs/): every package
 - [Building with AI](https://www.domphy.com/docs/ai): per-tool setup (Claude Code, Cursor, Copilot, …)
@@ -31,7 +32,7 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 ## Core runtime (`@domphy/core`)
 
 - [Syntax](https://www.domphy.com/docs/core/syntax): object shape, `$`, content, event handlers, attribute keys
-- [Reactivity](https://www.domphy.com/docs/core/reactivity): `toState`, `state.get(listener)`, `RecordState`, `computed`, `effect`, `effectScope`, `batch`, `untrack`
+- [Reactivity](https://www.domphy.com/docs/core/reactivity): `toState`, `state.get(listener)`, `RecordState`, `computed`, `effect`, `effectScope`, `batch`, `untrack`, `flushSync`
 - [Lifecycle](https://www.domphy.com/docs/core/lifecycle): `_onSchedule`, `_onInsert`, `_onMount`, `_onBeforeRemove`, `_onRemove`
 - [Portal](https://www.domphy.com/docs/core/portal): render into arbitrary containers
 - [SSR](https://www.domphy.com/docs/core/ssr): server rendering + hydration model
@@ -132,14 +133,15 @@ Color-palette engine (design-time companion to `@domphy/theme`): generate access
 
 ## Doctor (`@domphy/doctor`)
 
-Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagnostic[]`; `validate(element)` returns `{ ok, issues, summary }`. Rules: inline-typography, void-content, missing-key, duplicate-key, unstable-key, unknown-tag. Run it on generated code and fix what it reports — the AI self-correction loop. Pairs with the app-block registry (`app-manifest.json`) for large codebases.
+Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagnostic[]`; `validate(element)` returns `{ ok, issues, summary }`; `fix(element)` returns `{ tree, applied, report }`, applying lossless fixes (e.g. void-content) and listing the rest. Rules: inline-typography, raw-theme-value, unknown-tone, void-content, missing-key, duplicate-key, unstable-key, unknown-tag. Run it on generated code and fix what it reports — the AI self-correction loop. Pairs with the app-block registry (`app-manifest.json`) for large codebases.
 
 - [Overview](https://www.domphy.com/docs/doctor/)
 
 ## AI tooling
 
-- [`manifest.json`](https://www.domphy.com/manifest.json): machine-readable index of every package + patch (name, host tag, signature, doc). Query this instead of parsing docs.
-- [`@domphy/mcp`](https://www.npmjs.com/package/@domphy/mcp): MCP server. Tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_diagnose`, `domphy_validate`, `domphy_list_app_blocks`, `domphy_get_app_block`.
+- [`manifest.json`](https://www.domphy.com/manifest.json): machine-readable index of every package + patch (name, host tag, signature, props schema, doc, example). Query this instead of parsing docs.
+- [`tones.json`](https://www.domphy.com/tones.json): valid tone names + theme color names for `themeColor()` / `dataTone`.
+- [`@domphy/mcp`](https://www.npmjs.com/package/@domphy/mcp): MCP server. Tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block`.
 - [Full text dump for one-shot context](https://www.domphy.com/llms-full.txt): rules + quickstart + every core/theme/package doc + every patch source. Use when you need the whole framework in a single fetch.
 - [Building with AI](https://www.domphy.com/docs/ai): per-tool setup.
 - [Playground](https://www.domphy.com/docs/playground): interactive sandbox
