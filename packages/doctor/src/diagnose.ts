@@ -39,6 +39,35 @@ const TYPOGRAPHY_STYLE = new Set([
   "fontWeight",
   "letterSpacing",
 ]);
+// Color-bearing style props that should resolve through a theme token rather
+// than a literal value, so theming and dark mode apply. Shorthands
+// (background/border/outline) are included because they often carry a color.
+const COLOR_STYLE = new Set([
+  "color",
+  "backgroundColor",
+  "background",
+  "borderColor",
+  "border",
+  "outlineColor",
+  "outline",
+  "fill",
+  "stroke",
+]);
+// A literal color value: hex (#rgb … #rrggbbaa) or an rgb()/rgba()/hsl()/hsla()
+// function. Keywords like transparent/currentColor/inherit are intentionally
+// allowed — they carry no theme meaning.
+const LITERAL_COLOR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\s*\(/;
+
+// Valid `dataTone` grammar: "inherit", "base", an integer, or one of the offset
+// families increase-/decrease-/shift- followed by an integer. The exact upper
+// bound is theme-specific (default 10 tones), so only the grammar is checked —
+// enough to catch tone WORDS like "surface"/"text"/"muted" that LLMs invent.
+const TONE_PATTERN = /^(?:increase|decrease|shift)-\d+$/;
+function isValidTone(value: string): boolean {
+  if (value === "inherit" || value === "base") return true;
+  if (/^-?\d+$/.test(value)) return true;
+  return TONE_PATTERN.test(value);
+}
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -190,7 +219,8 @@ function walk(
   if (isPlainObject(element.style)) {
     const style = element.style;
     for (const prop in style) {
-      if (TYPOGRAPHY_STYLE.has(prop) && typeof style[prop] !== "function") {
+      const value = style[prop];
+      if (TYPOGRAPHY_STYLE.has(prop) && typeof value !== "function") {
         out.push({
           rule: "inline-typography",
           severity: "warning",
@@ -199,7 +229,34 @@ function walk(
           hint: "Use a typography patch (paragraph()/heading()/small()/strong()/…) via $ so the theme owns the type scale.",
         });
       }
+      if (
+        COLOR_STYLE.has(prop) &&
+        typeof value === "string" &&
+        LITERAL_COLOR.test(value)
+      ) {
+        out.push({
+          rule: "raw-theme-value",
+          severity: "info",
+          path: here,
+          message: `Inline \`${prop}\` uses a literal color (${value}).`,
+          hint: "Prefer a theme token — (l) => themeColor(l, tone, color) — so theming and dark mode apply.",
+        });
+      }
     }
+  }
+
+  // unknown-tone: a `dataTone` attribute whose value is a string that is not a
+  // valid tone. Tree-visible (an authored attribute), unlike a `tone` patch prop
+  // which is consumed before the tree exists.
+  const dataTone = element.dataTone;
+  if (typeof dataTone === "string" && !isValidTone(dataTone)) {
+    out.push({
+      rule: "unknown-tone",
+      severity: "warning",
+      path: here,
+      message: `\`dataTone\` "${dataTone}" is not a valid tone.`,
+      hint: 'Use "inherit", "base", a number, or "increase-N"/"decrease-N"/"shift-N" (e.g. "shift-9"). Words like "surface"/"text" are not Domphy tones.',
+    });
   }
 
   walk(content, here, out, false, runReactive);

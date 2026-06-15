@@ -110,6 +110,42 @@ describe("diagnose", () => {
     ).not.toContain("unstable-key");
   });
 
+  it("flags unknown dataTone words, allows valid tone grammar", () => {
+    expect(rules({ div: "x", dataTone: "surface" })).toContain("unknown-tone");
+    expect(rules({ div: "x", dataTone: "text" })).toContain("unknown-tone");
+    expect(rules({ div: "x", dataTone: "shift-9" })).not.toContain(
+      "unknown-tone",
+    );
+    expect(rules({ div: "x", dataTone: "increase-2" })).not.toContain(
+      "unknown-tone",
+    );
+    expect(rules({ div: "x", dataTone: "base" })).not.toContain("unknown-tone");
+    expect(rules({ div: "x", dataTone: "3" })).not.toContain("unknown-tone");
+  });
+
+  it("flags literal colors (raw-theme-value), not tokens or keywords", () => {
+    expect(rules({ div: "x", style: { color: "#ff0000" } })).toContain(
+      "raw-theme-value",
+    );
+    expect(
+      rules({ div: "x", style: { backgroundColor: "rgb(0,0,0)" } }),
+    ).toContain("raw-theme-value");
+    expect(rules({ div: "x", style: { border: "1px solid #ccc" } })).toContain(
+      "raw-theme-value",
+    );
+    // reactive (theme token) color is fine
+    expect(rules({ div: "x", style: { color: () => "#fff" } })).not.toContain(
+      "raw-theme-value",
+    );
+    // colorless keywords carry no theme meaning -> fine
+    expect(
+      rules({ div: "x", style: { backgroundColor: "transparent" } }),
+    ).not.toContain("raw-theme-value");
+    expect(rules({ div: "x", style: { color: "currentColor" } })).not.toContain(
+      "raw-theme-value",
+    );
+  });
+
   it("respects runReactive: false", () => {
     expect(
       rules({ ul: () => [{ li: "a" }, { li: "b" }] }, { runReactive: false }),
