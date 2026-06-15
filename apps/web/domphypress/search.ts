@@ -149,8 +149,10 @@ export function buildSearchIndex(docs: SearchDocument[]): string {
   }
 
   const serializedPostings: Record<string, [number, number][]> = {};
-  for (const term of Array.from(postings.keys()).sort()) {
-    const perEntry = postings.get(term)!;
+  const sortedTerms = Array.from(postings.entries()).sort((a, b) =>
+    a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0,
+  );
+  for (const [term, perEntry] of sortedTerms) {
     serializedPostings[term] = Array.from(perEntry.entries())
       .sort((a, b) => a[0] - b[0])
       .map(([entryIndex, weight]) => [entryIndex, weight]);
@@ -319,8 +321,7 @@ function resultRow(
 function runQuery(state: RecordState<WidgetState>, limit: number): void {
   const index = state.get("index");
   const query = state.get("query");
-  const results =
-    index && query.trim() ? queryIndex(index, query, limit) : [];
+  const results = index && query.trim() ? queryIndex(index, query, limit) : [];
   state.set("results", results);
   state.set("active", -1);
   state.set("open", results.length > 0);
@@ -432,7 +433,10 @@ export function searchWidget(options: SearchWidgetOptions = {}): DomphyElement {
         : [],
     id: listboxId,
     role: "listbox",
-    $: [menu({ selectable: false, color: "neutral" }), card({ color: "neutral" })],
+    $: [
+      menu({ selectable: false, color: "neutral" }),
+      card({ color: "neutral" }),
+    ],
     style: {
       display: (l) => (state.get("open", l) ? "block" : "none"),
       position: "absolute",

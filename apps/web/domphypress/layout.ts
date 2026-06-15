@@ -3,10 +3,10 @@
 // Styling lives in theme.css (referenced by class); this file emits structure
 // only (no inline typography styles). `navLink` resolves active state during SSR.
 
-import type { DomphyElement } from "@domphy/core";
 import { navLink } from "@domphy/app";
-import type { SidebarItem, SiteConfig, TocEntry } from "./types.js";
+import type { DomphyElement } from "@domphy/core";
 import { prevNextForRoute, sidebarForRoute } from "./routes.js";
+import type { SidebarItem, SiteConfig, TocEntry } from "./types.js";
 
 export interface LayoutContext {
   route: string;
@@ -19,7 +19,11 @@ export interface LayoutContext {
 }
 
 /** A header/sidebar link with active-state via navLink. */
-function pageLink(text: string, href: string, className?: string): DomphyElement {
+function pageLink(
+  text: string,
+  href: string,
+  className?: string,
+): DomphyElement {
   return {
     a: text,
     href,
@@ -97,7 +101,9 @@ function sidebar(ctx: LayoutContext): DomphyElement {
 
 function tocAside(ctx: LayoutContext): DomphyElement | null {
   if (ctx.frontmatter.aside === false) return null;
-  const entries = ctx.toc.filter((entry) => entry.level >= 2 && entry.level <= 3);
+  const entries = ctx.toc.filter(
+    (entry) => entry.level >= 2 && entry.level <= 3,
+  );
   if (entries.length === 0) return null;
   return {
     aside: [
@@ -121,12 +127,20 @@ function prevNext(ctx: LayoutContext): DomphyElement | null {
   const links: DomphyElement[] = [];
   links.push(
     prev
-      ? { a: [{ small: "Previous" }, { span: prev.text }], href: prev.link, class: "prev" }
+      ? {
+          a: [{ small: "Previous" }, { span: prev.text }],
+          href: prev.link,
+          class: "prev",
+        }
       : { span: "" },
   );
   links.push(
     next
-      ? { a: [{ small: "Next" }, { span: next.text }], href: next.link, class: "next" }
+      ? {
+          a: [{ small: "Next" }, { span: next.text }],
+          href: next.link,
+          class: "next",
+        }
       : { span: "" },
   );
   return { nav: links, class: "dp-prevnext", ariaLabel: "Page navigation" };
@@ -138,7 +152,10 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
   const pn = prevNext(ctx);
   if (pn) main.push(pn);
 
-  const shellChildren: DomphyElement[] = [sidebar(ctx), { main, class: "dp-main" }];
+  const shellChildren: DomphyElement[] = [
+    sidebar(ctx),
+    { main, class: "dp-main" },
+  ];
   const aside = tocAside(ctx);
   if (aside) shellChildren.push(aside);
 
@@ -151,16 +168,29 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
   };
 }
 
-interface HeroAction { theme?: string; text: string; link: string }
-interface HeroConfig { name?: string; text?: string; tagline?: string; actions?: HeroAction[] }
-interface FeatureConfig { title: string; details: string }
+interface HeroAction {
+  theme?: string;
+  text: string;
+  link: string;
+}
+interface HeroConfig {
+  name?: string;
+  text?: string;
+  tagline?: string;
+  actions?: HeroAction[];
+}
+interface FeatureConfig {
+  title: string;
+  details: string;
+}
 
 /** Renders the VitePress-style `hero` frontmatter block. */
 function heroSection(hero: HeroConfig): DomphyElement {
   const children: DomphyElement[] = [];
   if (hero.name) children.push({ div: hero.name, class: "dp-hero-name" });
   if (hero.text) children.push({ h1: hero.text, class: "dp-hero-text" });
-  if (hero.tagline) children.push({ p: hero.tagline, class: "dp-hero-tagline" });
+  if (hero.tagline)
+    children.push({ p: hero.tagline, class: "dp-hero-tagline" });
   if (hero.actions && hero.actions.length > 0) {
     children.push({
       div: hero.actions.map((action) => ({

@@ -1,11 +1,12 @@
 import {
   type DomphyElement,
+  type Listener,
   merge,
   type PartialElement,
   toState,
   type ValueOrState,
 } from "@domphy/core";
-import { type Placement } from "@domphy/floating";
+import type { Placement } from "@domphy/floating";
 import {
   type ThemeColor,
   themeColor,
@@ -13,7 +14,6 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { creatFloating } from "../utils/floating.js";
-
 
 /** A single date selection, or a `[start, end]` tuple in range mode. */
 export type DatePickerValue = Date | null | [Date | null, Date | null];
@@ -111,7 +111,8 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
 
   const primaryDate = ((): Date => {
     const current = selection.get();
-    const base = mode === "range" ? (current as [Date | null, Date | null])?.[0] : current;
+    const base =
+      mode === "range" ? (current as [Date | null, Date | null])?.[0] : current;
     return base instanceof Date ? base : new Date();
   })();
 
@@ -133,15 +134,22 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     month: "long",
     year: "numeric",
   });
-  const weekdayFormatter = new Intl.DateTimeFormat(locale, { weekday: "short" });
-  const fullDateFormatter = new Intl.DateTimeFormat(locale, { dateStyle: "full" });
+  const weekdayFormatter = new Intl.DateTimeFormat(locale, {
+    weekday: "short",
+  });
+  const fullDateFormatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: "full",
+  });
 
   const formatOne = (date: Date | null): string =>
     date ? dateFormatter.format(date) : "";
   const formatDisplay = (value: DatePickerValue): string => {
     if (format) return format(value);
     if (mode === "range") {
-      const [start, end] = (value as [Date | null, Date | null]) ?? [null, null];
+      const [start, end] = (value as [Date | null, Date | null]) ?? [
+        null,
+        null,
+      ];
       return start ? `${formatOne(start)} – ${formatOne(end)}` : "";
     }
     return formatOne(value as Date | null);
@@ -197,11 +205,14 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         null,
         null,
       ];
-      selection.set([start ? withTime(start) : start, end ? withTime(end) : end]);
+      selection.set([
+        start ? withTime(start) : start,
+        end ? withTime(end) : end,
+      ]);
     }
   };
 
-  const inSelectedRange = (date: Date, listener?: any): boolean => {
+  const inSelectedRange = (date: Date, listener?: Listener): boolean => {
     if (mode !== "range") return false;
     const [start, end] = (selection.get(listener) as [
       Date | null,
@@ -215,10 +226,13 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     return day >= atMidnight(low) && day <= atMidnight(high);
   };
 
-  const isSelectedEnd = (date: Date, listener?: any): boolean => {
+  const isSelectedEnd = (date: Date, listener?: Listener): boolean => {
     const current = selection.get(listener);
     if (mode === "range") {
-      const [start, end] = (current as [Date | null, Date | null]) ?? [null, null];
+      const [start, end] = (current as [Date | null, Date | null]) ?? [
+        null,
+        null,
+      ];
       return sameDay(date, start) || sameDay(date, end);
     }
     return sameDay(date, current as Date | null);
@@ -233,7 +247,8 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     const next = addMonths(new Date(viewYear.get(), viewMonth.get(), 1), delta);
     goToDate(next);
   };
-  const shiftYear = (delta: number): void => viewYear.set(viewYear.get() + delta);
+  const shiftYear = (delta: number): void =>
+    viewYear.set(viewYear.get() + delta);
 
   const focusActiveCell = (): void => {
     setTimeout(() => {
@@ -355,7 +370,11 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
       ariaLabel: "Calendar",
       onKeyDown: onGridKey,
       onMouseLeave: () => mode === "range" && hovered.set(null),
-      style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: themeSpacing(0.5),
+      },
     };
 
     const children: DomphyElement[] = [header, weekdayHeader, grid];
@@ -381,7 +400,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     };
   }
 
-  function buildWeeks(listener: any): DomphyElement[] {
+  function buildWeeks(listener: Listener): DomphyElement[] {
     const first = new Date(viewYear.get(listener), viewMonth.get(listener), 1);
     const month = viewMonth.get(listener);
     const start = startOfWeek(first, weekStart);
@@ -392,7 +411,12 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         const date = addDays(start, week * 7 + day);
         cells.push(buildDayCell(date, month, listener));
       }
-      weeks.push({ div: cells, role: "row", style: gridRowStyle(), _key: week });
+      weeks.push({
+        div: cells,
+        role: "row",
+        style: gridRowStyle(),
+        _key: week,
+      });
     }
     return weeks;
   }
@@ -400,7 +424,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   function buildDayCell(
     date: Date,
     month: number,
-    listener: any,
+    listener: Listener,
   ): DomphyElement {
     const disabled = isDisabled(date);
     const selected = isSelectedEnd(date, listener);
@@ -427,31 +451,32 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         cursor: disabled ? "not-allowed" : "pointer",
         aspectRatio: "1",
         borderRadius: themeSpacing(1),
-        fontSize: (l: any) => themeSize(l),
+        fontSize: (l: Listener) => themeSize(l),
         fontFamily: "inherit",
         opacity: disabled ? 0.35 : outside ? 0.5 : 1,
-        backgroundColor: (l: any) =>
+        backgroundColor: (l: Listener) =>
           selected
             ? themeColor(l, "shift-7", accentColor.get(l))
             : within
               ? themeColor(l, "shift-2", accentColor.get(l))
               : "transparent",
-        color: (l: any) =>
+        color: (l: Listener) =>
           selected
             ? themeColor(l, "shift-0", accentColor.get(l))
             : themeColor(l, "shift-9"),
         outline: isToday
-          ? (l: any) => `1px solid ${themeColor(l, "shift-6", accentColor.get(l))}`
+          ? (l: Listener) =>
+              `1px solid ${themeColor(l, "shift-6", accentColor.get(l))}`
           : "none",
         outlineOffset: "-2px",
         "&:hover:not([disabled])": {
-          backgroundColor: (l: any) =>
+          backgroundColor: (l: Listener) =>
             selected
               ? themeColor(l, "shift-7", accentColor.get(l))
               : themeColor(l, "shift-3", accentColor.get(l)),
         },
         "&:focus-visible": {
-          outline: (l: any) =>
+          outline: (l: Listener) =>
             `2px solid ${themeColor(l, "shift-6", accentColor.get(l))}`,
         },
       },
@@ -506,8 +531,8 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         background: "transparent",
         cursor: "pointer",
         fontFamily: "inherit",
-        fontSize: (l: any) => themeSize(l, "decrease-1"),
-        color: (l: any) => themeColor(l, "shift-8", accentColor.get(l)),
+        fontSize: (l: Listener) => themeSize(l, "decrease-1"),
+        color: (l: Listener) => themeColor(l, "shift-8", accentColor.get(l)),
         padding: themeSpacing(1),
       },
     });
@@ -529,7 +554,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         justifyContent: "space-between",
         marginTop: themeSpacing(2),
         paddingTop: themeSpacing(2),
-        borderTop: (l: any) => `1px solid ${themeColor(l, "shift-3")}`,
+        borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3")}`,
       },
     };
   }
@@ -581,7 +606,11 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
 // --- shared style fragments --------------------------------------------------
 
 function gridRowStyle() {
-  return { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: themeSpacing(0.5) };
+  return {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)",
+    gap: themeSpacing(0.5),
+  };
 }
 
 function navButtonStyle() {
@@ -591,13 +620,13 @@ function navButtonStyle() {
     background: "transparent",
     cursor: "pointer",
     fontFamily: "inherit",
-    fontSize: (l: any) => themeSize(l),
-    color: (l: any) => themeColor(l, "shift-8"),
+    fontSize: (l: Listener) => themeSize(l),
+    color: (l: Listener) => themeColor(l, "shift-8"),
     width: themeSpacing(7),
     height: themeSpacing(7),
     borderRadius: themeSpacing(1),
     "&:hover": {
-      backgroundColor: (l: any) => themeColor(l, "shift-3"),
+      backgroundColor: (l: Listener) => themeColor(l, "shift-3"),
     },
   };
 }
@@ -605,12 +634,12 @@ function navButtonStyle() {
 function timeSelectStyle() {
   return {
     fontFamily: "inherit",
-    fontSize: (l: any) => themeSize(l),
+    fontSize: (l: Listener) => themeSize(l),
     padding: themeSpacing(1),
     borderRadius: themeSpacing(1),
-    border: (l: any) => `1px solid ${themeColor(l, "shift-4")}`,
-    backgroundColor: (l: any) => themeColor(l, "base"),
-    color: (l: any) => themeColor(l, "shift-9"),
+    border: (l: Listener) => `1px solid ${themeColor(l, "shift-4")}`,
+    backgroundColor: (l: Listener) => themeColor(l, "base"),
+    color: (l: Listener) => themeColor(l, "shift-9"),
   };
 }
 

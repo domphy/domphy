@@ -49,7 +49,10 @@ export const config: SiteConfig = {
       {
         text: "Patterns",
         items: [
-          { text: "Insert Content", link: "/docs/core/patterns/insert-content" },
+          {
+            text: "Insert Content",
+            link: "/docs/core/patterns/insert-content",
+          },
         ],
       },
       {
@@ -101,7 +104,10 @@ export const config: SiteConfig = {
           { text: "Combobox", link: "/docs/ui/patches/combobox" },
           { text: "Command", link: "/docs/ui/patches/command" },
           { text: "Date Picker", link: "/docs/ui/patches/date-picker" },
-          { text: "Description List", link: "/docs/ui/patches/description-list" },
+          {
+            text: "Description List",
+            link: "/docs/ui/patches/description-list",
+          },
           { text: "Details", link: "/docs/ui/patches/details" },
           { text: "Dialog", link: "/docs/ui/patches/dialog" },
           { text: "Divider", link: "/docs/ui/patches/divider" },
@@ -155,7 +161,10 @@ export const config: SiteConfig = {
           { text: "Toast", link: "/docs/ui/patches/toast" },
           { text: "Toggle", link: "/docs/ui/patches/toggle" },
           { text: "Tooltip", link: "/docs/ui/patches/tooltip" },
-          { text: "TransitionGroup", link: "/docs/ui/patches/transition-group" },
+          {
+            text: "TransitionGroup",
+            link: "/docs/ui/patches/transition-group",
+          },
           { text: "Unordered List", link: "/docs/ui/patches/unordered-list" },
         ],
       },
@@ -194,7 +203,10 @@ export const config: SiteConfig = {
       { text: "Domphy Adapter", link: "/docs/table/adapter" },
       { text: "Columns & Row Models", link: "/docs/table/columns" },
       { text: "Sorting & Filtering", link: "/docs/table/sorting-filtering" },
-      { text: "Pagination & Selection", link: "/docs/table/pagination-selection" },
+      {
+        text: "Pagination & Selection",
+        link: "/docs/table/pagination-selection",
+      },
       { text: "Advanced Features", link: "/docs/table/advanced" },
       { text: "API Reference", link: "/docs/table/api" },
     ],
@@ -205,7 +217,10 @@ export const config: SiteConfig = {
     "/docs/palette/": [
       { text: "Overview", link: "/docs/palette/" },
       { text: "Paper I — Measuring Quality", link: "/docs/palette/measuring" },
-      { text: "Paper II — Generating Palettes", link: "/docs/palette/generating" },
+      {
+        text: "Paper II — Generating Palettes",
+        link: "/docs/palette/generating",
+      },
     ],
     "/docs/app/": [
       { text: "Overview", link: "/docs/app/" },

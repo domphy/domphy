@@ -28,7 +28,10 @@ export interface IslandSpec {
 }
 
 /** Mounts a live preview (Toolbar + shadow-DOM rendered demo) into a host. */
-async function mountPreview(host: HTMLElement, element: DomphyElement): Promise<void> {
+async function mountPreview(
+  host: HTMLElement,
+  element: DomphyElement,
+): Promise<void> {
   const { Container } = await import("../docs/preview/Container.js");
   themeApply();
   new ElementNode(Container(element)).render(host);
@@ -130,7 +133,10 @@ export function bootstrap(previewRegistry: PreviewRegistry): void {
           }
         }
       } catch (error) {
-        console.error(`Island ${spec.id} (${spec.kind}) failed to mount`, error);
+        console.error(
+          `Island ${spec.id} (${spec.kind}) failed to mount`,
+          error,
+        );
       }
     }
   };

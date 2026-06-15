@@ -28,10 +28,7 @@ const markdownItEsm = resolve(dirname(markdownItMain), "../index.mjs");
 export default {
   root: webRoot,
   test: {
-    include: [
-      "domphypress/pipeline.test.ts",
-      "domphypress/search.test.ts",
-    ],
+    include: ["domphypress/pipeline.test.ts", "domphypress/search.test.ts"],
     // Default to node; search.test.ts opts into jsdom via a per-file docblock.
     environment: "node",
   },

@@ -17,14 +17,12 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
-import * as esbuild from "esbuild";
-import type { DomphyElement } from "@domphy/core";
 import { createApp, defineRoutes } from "@domphy/app";
+import * as esbuild from "esbuild";
 
 import { config } from "./config.js";
 import { createHighlighter } from "./highlight.js";
-import { homeShell, pageShell, type LayoutContext } from "./layout.js";
+import { homeShell, type LayoutContext, pageShell } from "./layout.js";
 import { renderDoc } from "./pipeline.js";
 import { discoverPages } from "./routes.js";
 import { buildSearchIndex } from "./search.js";
@@ -55,11 +53,18 @@ function flattenText(node: unknown, out: string[]): void {
     return;
   }
   if (typeof node === "object") {
-    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+    for (const [key, value] of Object.entries(
+      node as Record<string, unknown>,
+    )) {
       // Element content lives under the tag key (first non-reserved key) and in
       // `$`/style/etc. we ignore; tag values are strings/arrays/elements.
       if (key.startsWith("_") || key === "$" || key === "style") continue;
-      if (key === "class" || key.startsWith("data") || key === "href" || key === "id")
+      if (
+        key === "class" ||
+        key.startsWith("data") ||
+        key === "href" ||
+        key === "id"
+      )
         continue;
       flattenText(value, out);
     }
@@ -141,7 +146,10 @@ function pageIslandSpecs(page: BuiltPage): PageIslandSpec[] {
  * every preview demo path to a dynamic import (so esbuild code-splits each demo)
  * and calls `bootstrap`. Outputs `assets/islands-entry.js` plus on-demand chunks.
  */
-async function buildIslands(built: BuiltPage[], cacheDir: string): Promise<void> {
+async function buildIslands(
+  built: BuiltPage[],
+  cacheDir: string,
+): Promise<void> {
   const previewSources = new Set<string>();
   for (const page of built) {
     for (const island of page.islands) {
@@ -151,7 +159,10 @@ async function buildIslands(built: BuiltPage[], cacheDir: string): Promise<void>
 
   const runtimePath = join(here, "islands-runtime.ts");
   const registryEntries = [...previewSources]
-    .map((source) => `  ${JSON.stringify(source)}: () => import(${JSON.stringify(source)}),`)
+    .map(
+      (source) =>
+        `  ${JSON.stringify(source)}: () => import(${JSON.stringify(source)}),`,
+    )
     .join("\n");
   const entrySource = `import { bootstrap } from ${JSON.stringify(runtimePath)};
 const previewRegistry = {
@@ -232,7 +243,12 @@ async function run(): Promise<void> {
       const isHome = page.route === "/";
       return {
         path: page.route,
-        metadata: { title: page.title === config.title ? { default: config.title } : page.title },
+        metadata: {
+          title:
+            page.title === config.title
+              ? { default: config.title }
+              : page.title,
+        },
         page: () => (isHome ? homeShell(ctx) : pageShell(ctx)),
       };
     }),
@@ -261,12 +277,16 @@ async function run(): Promise<void> {
         console.warn(`  ! ${page.route} -> status ${result.status}`);
       }
     } catch (error) {
-      failures.push({ route: page.route, error: String((error as Error).message || error) });
+      failures.push({
+        route: page.route,
+        error: String((error as Error).message || error),
+      });
     }
   }
   if (failures.length > 0) {
     console.warn(`\n${failures.length} page(s) failed to render:`);
-    for (const failure of failures) console.warn(`  ✗ ${failure.route}: ${failure.error}`);
+    for (const failure of failures)
+      console.warn(`  ✗ ${failure.route}: ${failure.error}`);
   }
 
   // 4) Search index + assets.
@@ -324,7 +344,7 @@ ${config.head.join("\n")}
 export { run as buildSite };
 
 // Auto-run when invoked directly (`tsx build.ts`); imported by dev.ts otherwise.
-if (process.argv[1] && process.argv[1].replace(/\\/g, "/").endsWith("domphypress/build.ts")) {
+if (process.argv[1]?.replace(/\\/g, "/").endsWith("domphypress/build.ts")) {
   run().catch((error) => {
     console.error(error);
     process.exit(1);

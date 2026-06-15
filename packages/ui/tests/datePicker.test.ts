@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ElementNode, type State, toState } from "@domphy/core";
+
 import type { DomphyElement } from "@domphy/core";
-import { datePicker, type DatePickerValue } from "../src/index.ts";
+import { ElementNode, type State, toState } from "@domphy/core";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { type DatePickerValue, datePicker } from "../src/index.ts";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -71,7 +72,9 @@ describe("datePicker", () => {
   it("opens a 6-week grid (42 cells) for the viewed month", () => {
     const host = mount({
       input: null,
-      $: [datePicker({ value: toState(new Date(2024, 0, 15)), locale: "en-US" })],
+      $: [
+        datePicker({ value: toState(new Date(2024, 0, 15)), locale: "en-US" }),
+      ],
     } as DomphyElement);
     openCalendar(host);
     expect(dayCells().length).toBe(42);
@@ -128,7 +131,13 @@ describe("datePicker", () => {
   it("time mode adds hour + minute selects", () => {
     const host = mount({
       input: null,
-      $: [datePicker({ time: true, value: toState(new Date(2024, 0, 15, 9, 30)), locale: "en-US" })],
+      $: [
+        datePicker({
+          time: true,
+          value: toState(new Date(2024, 0, 15, 9, 30)),
+          locale: "en-US",
+        }),
+      ],
     } as DomphyElement);
     openCalendar(host);
     const selects = document.querySelectorAll("select");
@@ -141,7 +150,9 @@ describe("datePicker", () => {
   it("localizes the month label", () => {
     const host = mount({
       input: null,
-      $: [datePicker({ value: toState(new Date(2024, 0, 15)), locale: "fr-FR" })],
+      $: [
+        datePicker({ value: toState(new Date(2024, 0, 15)), locale: "fr-FR" }),
+      ],
     } as DomphyElement);
     openCalendar(host);
     const label = document.querySelector('[aria-live="polite"]');

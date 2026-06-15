@@ -60,7 +60,10 @@ export function startServer(root: string, port: number): Server {
       return;
     }
     response.statusCode = 200;
-    response.setHeader("content-type", MIME[extname(file)] ?? "application/octet-stream");
+    response.setHeader(
+      "content-type",
+      MIME[extname(file)] ?? "application/octet-stream",
+    );
     createReadStream(file).pipe(response);
   });
   server.listen(port, () => {
@@ -70,7 +73,7 @@ export function startServer(root: string, port: number): Server {
 }
 
 // CLI entry: `tsx serve.ts [port]` serves the build output.
-if (process.argv[1] && process.argv[1].endsWith("serve.ts")) {
+if (process.argv[1]?.endsWith("serve.ts")) {
   const { dirname, resolve } = await import("node:path");
   const { fileURLToPath } = await import("node:url");
   const here = dirname(fileURLToPath(import.meta.url));

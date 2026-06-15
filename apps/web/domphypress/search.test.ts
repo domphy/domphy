@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  buildSearchIndex,
+  mountSearch,
+  queryIndex,
+  searchWidget,
+} from "./search";
 import type { SearchDocument } from "./types";
-import { buildSearchIndex, mountSearch, queryIndex, searchWidget } from "./search";
 
 // A small, hand-authored corpus. "Reactivity" appears as a page title on one
 // page and only in the body of another, so a title match can be checked to
@@ -56,7 +61,9 @@ describe("buildSearchIndex + queryIndex", () => {
     const index = buildSearchIndex(docs);
     const results = queryIndex(index, "tone hierarchy");
 
-    const heading = results.find((r) => !r.isPage && r.heading === "Tone hierarchy");
+    const heading = results.find(
+      (r) => !r.isPage && r.heading === "Tone hierarchy",
+    );
     expect(heading).toBeDefined();
     expect(heading?.slug).toBe("tone-hierarchy");
     expect(heading?.route).toBe("/docs/theme/colors");
@@ -84,7 +91,9 @@ describe("buildSearchIndex + queryIndex", () => {
 
   it("honors the result limit", () => {
     const index = buildSearchIndex(docs);
-    expect(queryIndex(index, "reactivity element theme", 2).length).toBeLessThanOrEqual(2);
+    expect(
+      queryIndex(index, "reactivity element theme", 2).length,
+    ).toBeLessThanOrEqual(2);
   });
 });
 
@@ -131,7 +140,9 @@ describe("searchWidget", () => {
     await new Promise((r) => setTimeout(r, 200));
     await flush();
 
-    const links = Array.from(host.querySelectorAll('[role="option"]')) as HTMLAnchorElement[];
+    const links = Array.from(
+      host.querySelectorAll('[role="option"]'),
+    ) as HTMLAnchorElement[];
     expect(links.length).toBeGreaterThan(0);
 
     const hrefs = links.map((a) => a.getAttribute("href"));

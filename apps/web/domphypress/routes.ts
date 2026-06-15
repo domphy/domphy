@@ -4,8 +4,7 @@
 
 import { readdirSync, statSync } from "node:fs";
 import { join, posix, relative, sep } from "node:path";
-import type { SidebarItem, SiteConfig } from "./types.js";
-import type { PageEntry } from "./types.js";
+import type { PageEntry, SidebarItem, SiteConfig } from "./types.js";
 
 // Directories under the docs tree that hold include-only partials or demo/island
 // sources, not standalone pages.
@@ -79,7 +78,9 @@ export function discoverPages(appRoot: string): PageEntry[] {
 }
 
 /** Flattens a sidebar group tree into ordered leaf links (for prev/next). */
-export function flattenSidebar(items: SidebarItem[]): { text: string; link: string }[] {
+export function flattenSidebar(
+  items: SidebarItem[],
+): { text: string; link: string }[] {
   const out: { text: string; link: string }[] = [];
   for (const item of items) {
     if (item.link) out.push({ text: item.text, link: item.link });
@@ -111,7 +112,10 @@ function normalizeLink(link: string): string {
 export function prevNextForRoute(
   route: string,
   config: SiteConfig,
-): { prev?: { text: string; link: string }; next?: { text: string; link: string } } {
+): {
+  prev?: { text: string; link: string };
+  next?: { text: string; link: string };
+} {
   const flat = flattenSidebar(sidebarForRoute(route, config)).map((item) => ({
     ...item,
     link: normalizeLink(item.link),
