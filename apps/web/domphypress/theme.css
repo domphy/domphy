@@ -213,6 +213,13 @@ details.custom-block summary { cursor: pointer; font-weight: 600; }
 .dp-prevnext small { display: block; color: var(--dp-text-soft); font-weight: 400; font-size: 12px; }
 .dp-footer { padding: 24px 48px; border-top: 1px solid var(--dp-border); color: var(--dp-text-soft); font-size: 13px; }
 
+/* --- Playground editor (CodeEditor island) ----------------------------- */
+/* Editor | preview side-by-side on desktop; stacked as two rows on mobile. */
+.dp-editor-grid { grid-template-columns: 55% 45%; }
+@media (max-width: 640px) {
+  .dp-editor-grid { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+}
+
 /* --- Mermaid (client-rendered diagrams) -------------------------------- */
 .mermaid { margin: 20px 0; text-align: center; overflow-x: auto; }
 .mermaid svg { max-width: 100%; height: auto; }

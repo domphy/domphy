@@ -69,9 +69,12 @@ export function Container(initialCode: string, shadowHost: HTMLElement, previewC
             },
           },
         ],
+        // Layout (incl. the mobile 2-row stack) is in the docs theme stylesheet
+        // via this class — a global stylesheet's @media is reliable, whereas an
+        // @media inside a Domphy inline style object is not emitted on client render.
+        class: "dp-editor-grid",
         style: {
           display: "grid",
-          gridTemplateColumns: "55% 45%",
           flex: 1,
           minHeight: 0,
         },
