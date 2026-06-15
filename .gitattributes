@@ -1,0 +1,17 @@
+# Normalize line endings to LF in the repository for every text file, and check
+# them out as LF on all platforms (overrides a client's core.autocrlf). Keeps the
+# tree deterministic and the formatter (biome) clean on Windows, macOS, and CI.
+* text=auto eol=lf
+
+# Binary assets — never normalize.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
