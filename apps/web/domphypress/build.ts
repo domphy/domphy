@@ -36,7 +36,8 @@ const appRoot = resolve(here, ".."); // apps/web
 const docsDir = join(appRoot, "docs");
 const repoRoot = resolve(appRoot, "../..");
 const publicDir = join(appRoot, "public");
-const outDir = join(appRoot, ".dp-dist");
+// Output where the existing deploy publishes from (Netlify/Vercel: .vitepress/dist).
+const outDir = join(appRoot, ".vitepress", "dist");
 
 /** Recursively flattens an element tree to plain text for the search index. */
 function flattenText(node: unknown, out: string[]): void {
@@ -321,7 +322,12 @@ ${config.head.join("\n")}
 </html>`;
 }
 
-run().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+export { run as buildSite };
+
+// Auto-run when invoked directly (`tsx build.ts`); imported by dev.ts otherwise.
+if (process.argv[1] && process.argv[1].replace(/\\/g, "/").endsWith("domphypress/build.ts")) {
+  run().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
