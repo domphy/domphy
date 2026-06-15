@@ -68,6 +68,17 @@
       ]
     },
     {
+      "name": "@domphy/markdown",
+      "version": "0.12.0",
+      "description": "Domphy Markdown - parse Markdown into Domphy element trees (markdown-it) for SSR with @domphy/core",
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
+    },
+    {
       "name": "@domphy/mcp",
       "version": "0.12.0",
       "description": "Domphy MCP server - exposes patches, packages, rules, and the doctor to MCP-capable AI agents",
