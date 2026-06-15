@@ -1,6 +1,6 @@
 {
   "name": "@domphy/mcp",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Domphy MCP server - exposes patches, packages, rules, and the doctor to MCP-capable AI agents",
   "type": "module",
   "bin": {
