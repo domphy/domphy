@@ -81,10 +81,11 @@ function walk(
   }
 
   if (Array.isArray(node)) {
+    const elementItems = node.filter(
+      (child) => isPlainObject(child) && findTag(child),
+    ) as Record<string, unknown>[];
+
     if (dynamic) {
-      const elementItems = node.filter(
-        (child) => isPlainObject(child) && findTag(child),
-      ) as Record<string, unknown>[];
       if (
         elementItems.length > 1 &&
         elementItems.some((item) => item._key === undefined)
@@ -98,10 +99,52 @@ function walk(
           hint: "Add `_key: <stable id>` to each item produced by the reactive function.",
         });
       }
+
+      // unstable-key (heuristic): in a dynamic list every `_key` equals its
+      // sibling position (0, 1, 2, …). That is the runtime footprint of
+      // `items.map((item, i) => ({ …, _key: i }))` — an array-index key, which
+      // defeats the point of keying because keys shift when the list reorders.
+      if (
+        elementItems.length > 1 &&
+        elementItems.every((item, index) => item._key === index)
+      ) {
+        out.push({
+          rule: "unstable-key",
+          severity: "warning",
+          path: path || "(list)",
+          message:
+            "Dynamic list `_key` values are the array index (0, 1, 2, …) — index keys are unstable across reorders/inserts.",
+          hint: "Key by a stable identity from the data (e.g. `_key: item.id`), not the loop index.",
+        });
+      }
     }
-    node.forEach((child, index) =>
-      walk(child, `${path}[${index}]`, out, false, runReactive),
-    );
+
+    // duplicate-key: two siblings sharing the same `_key` value break reconcile
+    // (the reconciler cannot tell them apart). Decidable on any sibling array,
+    // static or dynamic.
+    const seenKeys = new Map<string, number>();
+    for (const item of elementItems) {
+      const key = item._key;
+      if (key === undefined || key === null) continue;
+      const literalKey = `${typeof key}:${String(key)}`;
+      seenKeys.set(literalKey, (seenKeys.get(literalKey) ?? 0) + 1);
+    }
+    for (const [literalKey, count] of seenKeys) {
+      if (count > 1) {
+        const value = literalKey.slice(literalKey.indexOf(":") + 1);
+        out.push({
+          rule: "duplicate-key",
+          severity: "error",
+          path: path || "(list)",
+          message: `Duplicate \`_key\` "${value}" among ${count} siblings — keys must be unique within a list.`,
+          hint: "Give each sibling a distinct stable `_key` (e.g. a record id, not a constant).",
+        });
+      }
+    }
+
+    node.forEach((child, index) => {
+      walk(child, `${path}[${index}]`, out, false, runReactive);
+    });
     return;
   }
 
@@ -160,6 +203,44 @@ function walk(
   }
 
   walk(content, here, out, false, runReactive);
+}
+
+/** Issue counts by severity, plus the grand total. */
+export interface ValidationSummary {
+  error: number;
+  warning: number;
+  info: number;
+  total: number;
+}
+
+/** Structured result of {@link validate}: pass/fail flag, issues, and counts. */
+export interface ValidationReport {
+  /** True when there are no `error`-severity diagnostics. */
+  ok: boolean;
+  /** Every diagnostic found, across all rules (alias of `diagnose` output). */
+  issues: Diagnostic[];
+  summary: ValidationSummary;
+}
+
+/**
+ * Runs every diagnose rule and returns a structured report (pass/fail flag,
+ * the issue list, and counts by severity). `ok` is false when any `error`
+ * diagnostic is present; warnings/info do not flip `ok`. Use this as the single
+ * programmatic entry point; `diagnose`/`format` remain available for raw access.
+ */
+export function validate(
+  root: unknown,
+  options: DiagnoseOptions = {},
+): ValidationReport {
+  const issues = diagnose(root, options);
+  const summary: ValidationSummary = {
+    error: 0,
+    warning: 0,
+    info: 0,
+    total: issues.length,
+  };
+  for (const issue of issues) summary[issue.severity] += 1;
+  return { ok: summary.error === 0, issues, summary };
 }
 
 /** Formats diagnostics as a readable report (one line per issue). */

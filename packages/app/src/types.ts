@@ -101,6 +101,15 @@ export interface Route {
   metadata?: MetadataValue;
   loader?: Loader<any>;
   /**
+   * Code-splitting hook: a function returning a promise of the route's heavy
+   * parts, the equivalent of `lazy: () => import("./page.js")`. It is awaited
+   * once (memoized per route) the first time the route is matched, rendered or
+   * prefetched; the resolved module is merged with the eager fields above, with
+   * eager fields winning on conflict. A route may use `lazy`, eager fields, or
+   * both. If the import rejects, the router renders the nearest `error` block.
+   */
+  lazy?: () => Promise<RouteModule>;
+  /**
    * Loader cache lifetime in seconds, the equivalent of Next.js `revalidate`.
    * `undefined` re-runs the loader on every navigation, `Infinity` caches forever.
    */
@@ -125,6 +134,25 @@ export interface Route {
    * the same URL renders the real route instead.
    */
   intercept?: boolean;
+}
+
+/**
+ * The shape a route's `lazy` import resolves to: any subset of the heavy or
+ * configurable parts of a route. The recommended split is for the lazy module
+ * to carry the heavy `page` (and optionally `layout`/`loading`) while the route
+ * keeps cheap configuration eager. Eager fields on the route always win over
+ * the module on conflict, so a route can override a single block of a shared
+ * module.
+ */
+export interface RouteModule {
+  page?: PageBlock<any>;
+  layout?: LayoutBlock<any>;
+  loading?: LoadingBlock;
+  error?: ErrorBlock;
+  notFound?: NotFoundBlock;
+  metadata?: MetadataValue;
+  loader?: Loader<any>;
+  middleware?: Middleware[];
 }
 
 export type RouterStatus = "idle" | "loading" | "error" | "notfound";

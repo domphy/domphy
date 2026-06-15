@@ -25,6 +25,33 @@ const _microtask: (cb: () => void) => void =
 // a genuinely diverging self-feedback loop and is stopped like a cycle.
 const SELF_NOTIFY_CAP = 100
 
+// Batching: while `_batchDepth > 0`, every `notify` records its pending entry as
+// usual but does NOT schedule a flush. Notifiers that received writes during the
+// batch are collected in `_batchedNotifiers`; when the outermost batch ends they
+// are scheduled together, so the whole batch coalesces into a SINGLE microtask
+// flush instead of one per write. This composes with the existing per-event
+// `_pending` coalescing (repeated writes to the same event still collapse to one
+// entry) without ever double-flushing.
+let _batchDepth = 0
+let _batchedNotifiers: Set<Notifier> = new Set()
+
+// Run `fn`, deferring all flushes triggered inside it into one flush afterwards.
+// Nested batches collapse into the outermost one. Reentrant-safe: the stack is
+// restored and the batched set is flushed even if `fn` throws.
+export function runBatched<T>(fn: () => T): T {
+  _batchDepth++
+  try {
+    return fn()
+  } finally {
+    _batchDepth--
+    if (_batchDepth === 0) {
+      const notifiers = _batchedNotifiers
+      _batchedNotifiers = new Set()
+      for (const notifier of notifiers) notifier._scheduleFlush()
+    }
+  }
+}
+
 export class Notifier {
   private _listeners: Record<string, Set<Handler>> | null = {}
   private _pending: Map<string, { args: unknown[], chain: ChainEntry[] }> = new Map()
@@ -78,6 +105,13 @@ export class Notifier {
     }
   }
 
+  // Number of listeners subscribed to an event. Used by `computed` to stay lazy:
+  // an unobserved computed only marks itself dirty on a dependency change and
+  // defers recomputation until the next read.
+  listenerCount(event: string): number {
+    return this._listeners?.[event]?.size ?? 0
+  }
+
   notify(event: string, ...args: unknown[]): void {
     if (!this._listeners) return
     if (!this._listeners[event]) return
@@ -104,10 +138,23 @@ export class Notifier {
       this._pending.set(event, { args, chain: [..._chain] })
     }
 
-    if (!this._scheduled) {
-      this._scheduled = true
-      _microtask(() => this._flushAll())
+    // While batching, defer scheduling: just remember this notifier has pending
+    // work so the outermost batch can flush it once. Outside a batch, schedule
+    // the microtask flush immediately as before.
+    if (_batchDepth > 0) {
+      _batchedNotifiers.add(this)
+    } else {
+      this._scheduleFlush()
     }
+  }
+
+  // Schedule the microtask flush if one is not already pending. Idempotent, so a
+  // batch flushing many notifiers (and concurrent direct notifies) never queues
+  // two flushes for the same instance.
+  _scheduleFlush(): void {
+    if (this._scheduled) return
+    this._scheduled = true
+    _microtask(() => this._flushAll())
   }
 
   private _isCircular(event: string): boolean {

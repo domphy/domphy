@@ -1,4 +1,5 @@
 import { Notifier } from "./Notifier.js";
+import { activeCollector } from "./Collector.js";
 import { Handler } from "../types.js"
 
 export type ValueListener<T> = ((_value: T) => void) & Handler
@@ -16,7 +17,16 @@ export class State<T> {
   }
 
   get(listener?: ValueListener<T>): T {
-    if (listener) this.addListener(listener);
+    if (listener) {
+      this.addListener(listener);
+    } else {
+      // Auto-tracking: with no explicit listener, subscribe the active collector
+      // (a running computed/effect) so it re-runs when this state changes. When
+      // no collector is active the read is a plain, untracked value read — the
+      // original behavior is preserved exactly.
+      const collector = activeCollector();
+      if (collector) this.addListener(collector.handler as ValueListener<T>);
+    }
     return this._value;
   }
 

@@ -1,4 +1,5 @@
 import { Notifier } from "./Notifier.js"
+import { activeCollector } from "./Collector.js"
 
 type Listener = (...args: any[]) => void
 
@@ -13,7 +14,16 @@ export class RecordState<T extends Record<string, any> = Record<string, any>> {
     }
 
     get<K extends keyof T>(key: K, l?: Listener): T[K] {
-        if (l) this._notifier.addListener(key as string, l)
+        if (l) {
+            this._notifier.addListener(key as string, l)
+        } else {
+            // Auto-tracking: with no explicit listener, subscribe the active
+            // collector for THIS key so a running computed/effect re-runs only
+            // when this specific key changes. With no collector active the read
+            // is untracked — the original behavior is preserved exactly.
+            const collector = activeCollector()
+            if (collector) this._notifier.addListener(key as string, collector.handler)
+        }
         return this._record[key]
     }
 

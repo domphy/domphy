@@ -7,10 +7,13 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import {
   diagnoseTree,
+  getAppBlock,
   getPatch,
   getRules,
+  listAppBlocks,
   listPackages,
   listPatches,
+  validateTree,
 } from "./tools.js";
 
 const server = new Server(
@@ -49,7 +52,7 @@ const tools = [
   {
     name: "domphy_diagnose",
     description:
-      "Run @domphy/doctor on a JSON Domphy element tree and return issues to fix (inline-typography, void-content, unknown-tag, …).",
+      "Run @domphy/doctor on a JSON Domphy element tree and return issues to fix (inline-typography, void-content, unknown-tag, missing/duplicate/unstable _key, …).",
     inputSchema: {
       type: "object",
       properties: {
@@ -59,6 +62,39 @@ const tools = [
         },
       },
       required: ["element"],
+    },
+  },
+  {
+    name: "domphy_validate",
+    description:
+      "Run @domphy/doctor's aggregate validate() on a JSON Domphy element tree. Returns a structured report { ok, issues, summary } with severity counts.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        element: {
+          type: "string",
+          description: "JSON of the Domphy element tree",
+        },
+      },
+      required: ["element"],
+    },
+  },
+  {
+    name: "domphy_list_app_blocks",
+    description:
+      "List the current app's OWN reusable Domphy blocks (name, kind, signature, file) from its app-manifest.json. Run `app-manifest.mjs` first if absent.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "domphy_get_app_block",
+    description:
+      "Get one app block's full source plus signature and jsdoc, by name, from the app-manifest.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "app block name, e.g. App" },
+      },
+      required: ["name"],
     },
   },
 ];
@@ -85,6 +121,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case "domphy_diagnose":
         text = diagnoseTree(String(args.element));
+        break;
+      case "domphy_validate":
+        text = validateTree(String(args.element));
+        break;
+      case "domphy_list_app_blocks":
+        text = await listAppBlocks();
+        break;
+      case "domphy_get_app_block":
+        text = await getAppBlock(String(args.name));
         break;
       default:
         text = `Unknown tool: ${name}`;
