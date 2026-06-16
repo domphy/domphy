@@ -52,16 +52,17 @@ async function checkCompiles(code: string, condition: Condition): Promise<boolea
 
 // ─── Static analysis ────────────────────────────────────────────────────────
 
+// True typography violations: inline style properties for TEXT that Domphy
+// requires you to use patches (heading/paragraph/small/link/etc.) for.
+// Layout-only properties (margin, padding, gap, display, flex…) are allowed
+// as inline style because Domphy has no layout patch for them.
 const TYPOGRAPHY_PATTERNS: RegExp[] = [
-  /fontSize\s*:\s*["'`\d]/,           // fontSize: "16px" or fontSize: 16
-  /\bcolor\s*:\s*["'`#](?!ariant)/,   // color: "#333" (skip colorVariant etc.)
-  /lineHeight\s*:\s*["'`\d]/,
-  /fontWeight\s*:\s*["'`\d]/,
-  /\bmargin\s*:\s*["'`\d]/,
-  /\bpadding\s*:\s*["'`\d]/,
-  /fontFamily\s*:\s*["'`]/,
-  /textDecoration\s*:\s*["'`]/,
-  /letterSpacing\s*:\s*["'`\d]/,
+  /fontSize\s*:\s*["'`\d]/,          // fontSize: "16px" — use heading()/paragraph()/small()
+  /\bcolor\s*:\s*["'`#](?!ariant)/,  // color: "#333"    — use themeColor() or patch
+  /lineHeight\s*:\s*["'`\d]/,        // lineHeight: 1.5   — use paragraph()/heading()
+  /fontWeight\s*:\s*["'`\d]/,        // fontWeight: 700   — use strong()/heading()
+  /fontFamily\s*:\s*["'`]/,          // fontFamily: "..."  — use theme
+  /letterSpacing\s*:\s*["'`\d]/,     // letterSpacing: ...— use patch
 ];
 
 const REMOVED_API_PATTERNS: RegExp[] = [
@@ -107,9 +108,11 @@ function checkStructure(code: string, task: Task, condition: Condition): boolean
   const tags = task.requiredTags ?? [];
   const keywords = task.requiredKeywords ?? [];
 
+  // For Domphy: needs at least one required tag AND at least one required keyword
   const tagsOk = tags.length === 0 || tags.some((tag) => code.includes(tag));
+  // Keywords must ALL appear (every required patch/API must be present)
   const keywordsOk =
-    keywords.length === 0 || keywords.some((kw) => code.includes(kw));
+    keywords.length === 0 || keywords.every((kw) => code.includes(kw));
 
   return tagsOk && keywordsOk;
 }
