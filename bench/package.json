@@ -1,0 +1,22 @@
+{
+  "name": "bench",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AI code-gen correctness benchmark for Domphy (4 conditions: no-spec / spec-only / spec+doctor / React baseline)",
+  "type": "module",
+  "scripts": {
+    "bench": "tsx src/index.ts",
+    "bench:dry": "tsx src/index.ts --dry-run"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.37.0",
+    "@domphy/core": "workspace:*",
+    "@domphy/doctor": "workspace:*",
+    "esbuild": "^0.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

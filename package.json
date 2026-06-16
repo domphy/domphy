@@ -19,7 +19,9 @@
     "publish:dnd": "cd packages/dnd && pnpm publish --access public --no-git-checks",
     "publish:palette": "cd packages/palette && pnpm publish --access public --no-git-checks",
     "publish:doctor": "cd packages/doctor && pnpm publish --access public --no-git-checks",
-    "publish:mcp": "cd packages/mcp && pnpm publish --access public --no-git-checks"
+    "publish:mcp": "cd packages/mcp && pnpm publish --access public --no-git-checks",
+    "bench": "pnpm --filter bench bench",
+    "bench:dry": "pnpm --filter bench bench:dry"
   },
   "repository": "git+https://github.com/domphy/domphy.git",
   "keywords": [],
