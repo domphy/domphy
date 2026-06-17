@@ -128,7 +128,6 @@ Form state, validation, and submission live in [`@domphy/form`](/docs/form/) (`c
 - [Core concepts](/docs/core/) — Syntax, reactivity, lifecycle
 - [Theme](/docs/theme/) — Tone, size, density
 - [All 74 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
-- [Showcase: Chromametry App](https://chromametry.com) — Full production app built entirely with Domphy
 - [Research](/docs/research/) — The two papers behind the design system
 
 
