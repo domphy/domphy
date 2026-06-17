@@ -146,6 +146,63 @@ describe("diagnose", () => {
     );
   });
 
+  it("raw-theme-value hint includes LCH chromametry suggestion for parseable colors", () => {
+    const d = diagnose({ div: "x", style: { color: "#0070f3" } });
+    const issue = d.find((i) => i.rule === "raw-theme-value");
+    expect(issue).toBeDefined();
+    // hint should mention themeColor() with LCH description from @domphy/palette
+    expect(issue!.hint).toContain("themeColor(");
+    expect(issue!.hint).toContain("LCH");
+    expect(issue!.hint).toContain("primary"); // #0070f3 is a saturated blue
+    // dark color -> decrease tone suggestion
+    const dark = diagnose({ div: "x", style: { color: "#111" } });
+    expect(dark[0].hint).toContain("decrease-");
+    // light color -> increase tone suggestion
+    const light = diagnose({ div: "x", style: { color: "#eee" } });
+    expect(light[0].hint).toContain("increase-");
+  });
+
+  it("flags fontFamily and textDecoration as inline-typography (bench gap)", () => {
+    expect(rules({ p: "x", style: { fontFamily: "Arial, sans-serif" } })).toContain(
+      "inline-typography",
+    );
+    expect(rules({ a: "link", style: { textDecoration: "none" } })).toContain(
+      "inline-typography",
+    );
+    // fontFamily as function is fine
+    expect(
+      rules({ p: "x", style: { fontFamily: () => "var(--font)" } }),
+    ).not.toContain("inline-typography");
+  });
+
+  it("flags raw-spacing-value for literal rem/em/px spacing, not unitless or auto", () => {
+    expect(rules({ div: "x", style: { padding: "16px" } })).toContain(
+      "raw-spacing-value",
+    );
+    expect(rules({ div: "x", style: { gap: "1rem" } })).toContain(
+      "raw-spacing-value",
+    );
+    expect(rules({ div: "x", style: { marginTop: "0.5em" } })).toContain(
+      "raw-spacing-value",
+    );
+    // unitless 0 is fine (common reset)
+    expect(rules({ div: "x", style: { margin: "0" } })).not.toContain(
+      "raw-spacing-value",
+    );
+    // auto / inherit are fine
+    expect(rules({ div: "x", style: { margin: "auto" } })).not.toContain(
+      "raw-spacing-value",
+    );
+    // reactive spacing is fine
+    expect(
+      rules({ div: "x", style: { padding: () => "1rem" } }),
+    ).not.toContain("raw-spacing-value");
+    // hint suggests themeSpacing(n)
+    const d = diagnose({ div: "x", style: { gap: "1rem" } });
+    const issue = d.find((i) => i.rule === "raw-spacing-value");
+    expect(issue!.hint).toContain("themeSpacing(4)"); // 1rem = 4 units
+  });
+
   it("respects runReactive: false", () => {
     expect(
       rules({ ul: () => [{ li: "a" }, { li: "b" }] }, { runReactive: false }),

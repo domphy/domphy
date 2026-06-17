@@ -29,7 +29,7 @@ const App = {
 - **`_key`** on dynamic/reordered child lists (identity for reconcile). It is not DOM id / business identity.
 - **Lifecycle hooks** (`_onMount`, `_onBeforeRemove(node, done)` — must call `done()`, `_onRemove`) for imperative/3rd-party integration; events stay flat (`onClick`, `onInput`).
 - **Comments in code: English only.** Names: descriptive, no abbreviations (`index` not `i` except loops; `listener` `l`, event `e`, node `node`).
-- **Self-check:** run `@domphy/doctor` `diagnose(app)` (or `validate(app)`) on what you produce and fix every reported issue before finishing (rules: inline-typography, raw-theme-value, unknown-tone, void-content, missing-key, duplicate-key, unstable-key, unknown-tag). `fix(app)` auto-applies the lossless ones.
+- **Self-check:** run `@domphy/doctor` `diagnose(app)` (or `validate(app)`) on what you produce and fix every reported issue before finishing. Rules: `inline-typography` (fontSize/lineHeight/fontWeight/letterSpacing/fontFamily/textDecoration literals — use patches), `raw-theme-value` (literal hex/rgb colors — hint gives nearest `themeColor()` via CIELAB/LCH perceptual match), `raw-spacing-value` (literal rem/em/px layout values — use `themeSpacing(n)`), `unknown-tone`, `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. `fix(app)` auto-applies the lossless ones.
 
 ## Package map (current)
 

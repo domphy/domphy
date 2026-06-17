@@ -54,8 +54,9 @@ interface Diagnostic {
 
 | Rule | Severity | Catches |
 | --- | --- | --- |
-| `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` literals in `style` — use a typography patch |
-| `raw-theme-value` | info | a literal hex/rgb/hsl color in a color style prop (`color`, `background`, `border`, `fill`, …) — use `themeColor()` so theming/dark mode apply |
+| `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` / `fontFamily` / `textDecoration` literals in `style` — use a typography patch |
+| `raw-theme-value` | info | a literal hex/rgb/hsl color in a color style prop (`color`, `background`, `border`, `fill`, …). The hint uses **`@domphy/palette` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
+| `raw-spacing-value` | info | a literal `rem`/`em`/`px` value in a layout spacing prop (`padding`, `margin`, `gap`, …) — suggests `themeSpacing(n)` for consistent theme density |
 | `unknown-tone` | warning | a `dataTone` value that isn't valid tone grammar (`inherit` / `base` / a number / `shift-N` / `increase-N` / `decrease-N`) — catches invented words like `surface` / `text` |
 | `void-content` | error | a void tag (`input`, `img`, `br`, …) with non-null content |
 | `missing-key` | warning | a **dynamic** list (returned by a reactive function) of element children missing `_key` |

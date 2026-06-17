@@ -1,4 +1,10 @@
 import { HtmlTags, SvgTags, VoidTags } from "@domphy/core";
+import {
+  hexToRgb,
+  rgbToLab,
+  labToLch,
+  cssRgbToRgb,
+} from "@domphy/palette";
 
 export type Severity = "error" | "warning" | "info";
 
@@ -32,13 +38,19 @@ const RESERVED = new Set([
   "_context",
   "_metadata",
 ]);
-// Inline these and the theme stops owning type scale / rhythm — use patches.
+
+// Typography style properties that must not be set inline — use patches instead.
+// Expanded from bench data: fontFamily + textDecoration were missing and caused
+// agents to write { style: { fontFamily: "..." } } without correction.
 const TYPOGRAPHY_STYLE = new Set([
   "fontSize",
   "lineHeight",
   "fontWeight",
   "letterSpacing",
+  "fontFamily",
+  "textDecoration",
 ]);
+
 // Color-bearing style props that should resolve through a theme token rather
 // than a literal value, so theming and dark mode apply. Shorthands
 // (background/border/outline) are included because they often carry a color.
@@ -53,10 +65,33 @@ const COLOR_STYLE = new Set([
   "fill",
   "stroke",
 ]);
+
 // A literal color value: hex (#rgb … #rrggbbaa) or an rgb()/rgba()/hsl()/hsla()
 // function. Keywords like transparent/currentColor/inherit are intentionally
 // allowed — they carry no theme meaning.
 const LITERAL_COLOR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\s*\(/;
+
+// Spacing style properties where literal rem/em/px values should use themeSpacing().
+// These are layout, not typography, but themeSpacing() ensures density consistency.
+const SPACING_STYLE = new Set([
+  "margin",
+  "marginTop",
+  "marginRight",
+  "marginBottom",
+  "marginLeft",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "gap",
+  "rowGap",
+  "columnGap",
+]);
+
+// Matches literal spacing values like "16px", "1.5rem", "2em" but not "auto",
+// "inherit", "0" (unitless zero is fine), or computed values.
+const LITERAL_SPACING = /^(\d+(?:\.\d+)?)(rem|em|px)$/;
 
 // Valid `dataTone` grammar: "inherit", "base", an integer, or one of the offset
 // families increase-/decrease-/shift- followed by an integer. The exact upper
@@ -68,6 +103,97 @@ function isValidTone(value: string): boolean {
   if (/^-?\d+$/.test(value)) return true;
   return TONE_PATTERN.test(value);
 }
+
+// ─── Chromametry integration ─────────────────────────────────────────────────
+
+/**
+ * Parses a CSS color literal (hex or rgb/rgba) into LCH [L, C, h].
+ * Returns null if parsing fails or the format is unsupported (named colors, hsl).
+ * Uses @domphy/palette math (CIELAB via D65 reference white).
+ */
+function parseLiteralToLch(
+  value: string,
+): [number, number, number] | null {
+  try {
+    const trimmed = value.trim();
+    let rgb: number[];
+
+    if (trimmed.startsWith("#")) {
+      let hex = trimmed;
+      if (hex.length === 9) hex = hex.slice(0, 7); // strip alpha #rrggbbaa → #rrggbb
+      if (hex.length === 5) hex = hex.slice(0, 4); // strip alpha #rgba → #rgb
+      if (hex.length === 4) {
+        hex = "#" + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+      }
+      if (hex.length !== 7) return null;
+      rgb = hexToRgb(hex);
+    } else if (/^rgba?\s*\(/.test(trimmed)) {
+      rgb = cssRgbToRgb(trimmed);
+    } else {
+      return null; // hsl, named colors, custom-properties — skip
+    }
+
+    const lab = rgbToLab(rgb);
+    const lch = labToLch(lab);
+    return [lch[0], lch[1], lch[2]];
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Converts LCH coordinates into a concrete `themeColor()` call suggestion plus
+ * a perceptual description. The tone and color-family are approximations for the
+ * default Domphy theme (light, 10 neutral tones, base at mid-lightness).
+ */
+function buildColorHint(lch: [number, number, number]): string {
+  const [L, C, h] = lch;
+
+  // Map lightness to a Domphy tone relative to base (~L50).
+  // Each step ≈ 10 lightness units — clamp to ±9 (max offset in a 10-step ramp).
+  const rawOffset = Math.round((L - 50) / 10);
+  const offset = Math.max(-9, Math.min(9, rawOffset));
+  let toneStr: string;
+  if (Math.abs(offset) <= 1) toneStr = '"base"';
+  else if (offset < 0) toneStr = `"decrease-${Math.abs(offset)}"`;
+  else toneStr = `"increase-${offset}"`;
+
+  // Infer the most likely semantic color family from chroma + hue.
+  let colorFamily: string;
+  if (C < 12) colorFamily = "neutral";
+  else if (h < 30 || h >= 330) colorFamily = "error";   // red spectrum
+  else if (h < 75) colorFamily = "warning";             // orange-yellow
+  else if (h < 165) colorFamily = "success";            // green
+  else if (h < 265) colorFamily = "primary";            // blue-indigo
+  else colorFamily = "primary";                         // violet → treat as primary
+
+  return (
+    `(l) => themeColor(l, ${toneStr}, "${colorFamily}") ` +
+    `[perceptual LCH L=${Math.round(L)} C=${Math.round(C)} h=${Math.round(h)}°]`
+  );
+}
+
+/**
+ * Converts a literal spacing value like "16px" / "1.5rem" / "2em" into a
+ * themeSpacing(n) suggestion. themeSpacing(n) = n/4 em, so n=4 → 1em ≈ 16px.
+ */
+function buildSpacingHint(prop: string, value: string): string | null {
+  const match = LITERAL_SPACING.exec(value);
+  if (!match) return null;
+  const amount = parseFloat(match[1]);
+  const unit = match[2];
+  let n: number;
+  if (unit === "rem" || unit === "em") {
+    n = Math.round(amount * 4);
+  } else {
+    // px: assume default 16px/rem → 1em = 16px
+    n = Math.round(amount / 4);
+  }
+  if (n <= 0) return null;
+  return `${prop}: themeSpacing(${n})  — themeSpacing(n)=n/4em, so ${n}/4=${n / 4}em ≈ ${value} at default density`;
+}
+
+// ─── Tree walkers ─────────────────────────────────────────────────────────────
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -149,8 +275,6 @@ function walk(
     }
 
     // duplicate-key: two siblings sharing the same `_key` value break reconcile
-    // (the reconciler cannot tell them apart). Decidable on any sibling array,
-    // static or dynamic.
     const seenKeys = new Map<string, number>();
     for (const item of elementItems) {
       const key = item._key;
@@ -220,6 +344,10 @@ function walk(
     const style = element.style;
     for (const prop in style) {
       const value = style[prop];
+
+      // inline-typography: typography properties must come from patches, not
+      // inline style. fontFamily and textDecoration were missing from the original
+      // set and are added here based on bench data showing persistent violations.
       if (TYPOGRAPHY_STYLE.has(prop) && typeof value !== "function") {
         out.push({
           rule: "inline-typography",
@@ -229,18 +357,42 @@ function walk(
           hint: "Use a typography patch (paragraph()/heading()/small()/strong()/…) via $ so the theme owns the type scale.",
         });
       }
+
+      // raw-theme-value: literal color values bypass theming/dark mode.
+      // Enhanced with @domphy/palette chromametry: converts the literal color to
+      // LCH and suggests the nearest themeColor() call with perceptual coordinates.
       if (
         COLOR_STYLE.has(prop) &&
         typeof value === "string" &&
         LITERAL_COLOR.test(value)
       ) {
+        const lch = parseLiteralToLch(value);
+        const colorHint = lch
+          ? buildColorHint(lch)
+          : "(l) => themeColor(l, tone, colorName)";
+
         out.push({
           rule: "raw-theme-value",
           severity: "info",
           path: here,
           message: `Inline \`${prop}\` uses a literal color (${value}).`,
-          hint: "Prefer a theme token — (l) => themeColor(l, tone, color) — so theming and dark mode apply.",
+          hint: `Prefer a theme token — ${colorHint} — so theming and dark mode apply.`,
         });
+      }
+
+      // raw-spacing-value: literal rem/em/px spacing values should use themeSpacing()
+      // to respect the theme's density system. info-severity (soft recommendation).
+      if (SPACING_STYLE.has(prop) && typeof value === "string") {
+        const spacingHint = buildSpacingHint(prop, value);
+        if (spacingHint) {
+          out.push({
+            rule: "raw-spacing-value",
+            severity: "info",
+            path: here,
+            message: `Inline \`${prop}: "${value}"\` uses a literal spacing value.`,
+            hint: `Prefer themeSpacing() for theme density: ${spacingHint}`,
+          });
+        }
       }
     }
   }

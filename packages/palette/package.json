@@ -1,6 +1,6 @@
 {
   "name": "@domphy/palette",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Domphy Palette - color-palette engine that generates optimal color ramps and validates palette quality, a port of chromametry",
   "type": "module",
   "sideEffects": false,
