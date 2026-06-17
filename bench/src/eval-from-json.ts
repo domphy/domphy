@@ -3,12 +3,12 @@
  * Usage: tsx src/eval-from-json.ts [path/to/generated.json]
  */
 import { readFile } from "node:fs/promises";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Condition } from "./evaluator.js";
 import { evaluate } from "./evaluator.js";
 import { printReport } from "./report.js";
 import { TASKS } from "./tasks.js";
-import type { Condition } from "./evaluator.js";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 
@@ -24,7 +24,9 @@ async function main() {
   const raw = await readFile(jsonPath, "utf8");
   const data = JSON.parse(raw) as GeneratedEntry[];
 
-  console.log(`\nEvaluating ${data.length} generated outputs from ${jsonPath}\n`);
+  console.log(
+    `\nEvaluating ${data.length} generated outputs from ${jsonPath}\n`,
+  );
 
   const results = await Promise.all(
     data.map(async (entry) => {

@@ -1,22 +1,19 @@
 import { readFile } from "node:fs/promises";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
-import type { Task } from "./tasks.js";
 import type { Condition } from "./evaluator.js";
 import {
-  extractCode,
   buildDoctorFeedback,
   detectIssuesForFeedback,
+  extractCode,
 } from "./evaluator.js";
+import type { Task } from "./tasks.js";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(DIR, "../..");
 
-const DOMPHY_SPEC_PATH = resolve(
-  REPO_ROOT,
-  "apps/web/public/llms.txt",
-);
+const DOMPHY_SPEC_PATH = resolve(REPO_ROOT, "apps/web/public/llms.txt");
 
 let cachedSpec: string | null = null;
 async function loadSpec(): Promise<string> {
@@ -235,7 +232,11 @@ export async function runCondition(
   condition: Condition,
   options: RunnerOptions,
 ): Promise<RunResult> {
-  const { dryRun, model = "claude-haiku-4-5-20251001", maxTokens = 2048 } = options;
+  const {
+    dryRun,
+    model = "claude-haiku-4-5-20251001",
+    maxTokens = 2048,
+  } = options;
 
   if (dryRun) {
     // Simulate ~300ms latency
@@ -251,7 +252,13 @@ export async function runCondition(
   const started = Date.now();
 
   if (condition === "A") {
-    const reply = await callLLM(client, systemA(), task.prompt, model, maxTokens);
+    const reply = await callLLM(
+      client,
+      systemA(),
+      task.prompt,
+      model,
+      maxTokens,
+    );
     return { reply, durationMs: Date.now() - started };
   }
 

@@ -27,7 +27,9 @@ export type Condition = "A" | "B" | "C" | "D";
 
 /** Pull the first TypeScript/JavaScript code block from an LLM reply. */
 export function extractCode(reply: string): string {
-  const fenced = reply.match(/```(?:ts|tsx|typescript|js|javascript)?\n([\s\S]*?)```/);
+  const fenced = reply.match(
+    /```(?:ts|tsx|typescript|js|javascript)?\n([\s\S]*?)```/,
+  );
   if (fenced) return fenced[1].trim();
   // Fallback: if no fences, treat whole reply as code.
   return reply.trim();
@@ -35,7 +37,10 @@ export function extractCode(reply: string): string {
 
 // ─── Compile check ──────────────────────────────────────────────────────────
 
-async function checkCompiles(code: string, condition: Condition): Promise<boolean> {
+async function checkCompiles(
+  code: string,
+  condition: Condition,
+): Promise<boolean> {
   const loader = condition === "D" ? "tsx" : "ts";
   try {
     await transform(code, {
@@ -57,12 +62,12 @@ async function checkCompiles(code: string, condition: Condition): Promise<boolea
 // Layout-only properties (margin, padding, gap, display, flex…) are allowed
 // as inline style because Domphy has no layout patch for them.
 const TYPOGRAPHY_PATTERNS: RegExp[] = [
-  /fontSize\s*:\s*["'`\d]/,          // fontSize: "16px" — use heading()/paragraph()/small()
-  /\bcolor\s*:\s*["'`#](?!ariant)/,  // color: "#333"    — use themeColor() or patch
-  /lineHeight\s*:\s*["'`\d]/,        // lineHeight: 1.5   — use paragraph()/heading()
-  /fontWeight\s*:\s*["'`\d]/,        // fontWeight: 700   — use strong()/heading()
-  /fontFamily\s*:\s*["'`]/,          // fontFamily: "..."  — use theme
-  /letterSpacing\s*:\s*["'`\d]/,     // letterSpacing: ...— use patch
+  /fontSize\s*:\s*["'`\d]/, // fontSize: "16px" — use heading()/paragraph()/small()
+  /\bcolor\s*:\s*["'`#](?!Variant|ariant)/, // color: "#333"    — use themeColor() or patch
+  /lineHeight\s*:\s*["'`\d]/, // lineHeight: 1.5   — use paragraph()/heading()
+  /fontWeight\s*:\s*["'`\d]/, // fontWeight: 700   — use strong()/heading()
+  /fontFamily\s*:\s*["'`]/, // fontFamily: "..."  — use theme
+  /letterSpacing\s*:\s*["'`\d]/, // letterSpacing: ...— use patch
 ];
 
 const REMOVED_API_PATTERNS: RegExp[] = [
@@ -74,7 +79,8 @@ const REMOVED_API_PATTERNS: RegExp[] = [
 
 function detectTypographyViolations(code: string): string[] {
   return TYPOGRAPHY_PATTERNS.filter((p) => p.test(code)).map(
-    (p) => `inline-typography(${p.source.replace(/\\.*/g, "").substring(0, 20)})`,
+    (p) =>
+      `inline-typography(${p.source.replace(/\\.*/g, "").substring(0, 20)})`,
   );
 }
 
@@ -84,7 +90,11 @@ function detectRemovedApi(code: string): string[] {
   );
 }
 
-function checkStructure(code: string, task: Task, condition: Condition): boolean {
+function checkStructure(
+  code: string,
+  task: Task,
+  condition: Condition,
+): boolean {
   if (condition === "D") {
     // React baseline: check for JSX tags and React hooks
     const tags = task.requiredTags ?? [];
@@ -143,7 +153,7 @@ export async function evaluate(
 ): Promise<EvalResult> {
   const code = extractCode(reply);
 
-  const [compiles] = await Promise.all([checkCompiles(code, condition)]);
+  const compiles = await checkCompiles(code, condition);
 
   const typoIssues = condition === "D" ? [] : detectTypographyViolations(code);
   const removedApiIssues = condition === "D" ? [] : detectRemovedApi(code);
@@ -202,14 +212,31 @@ export function buildDoctorFeedback(issues: string[], code: string): string {
     );
   }
 
-  // Check for missing patch imports
-  if (code.includes("{ div:") || code.includes("{ span:") || code.includes("{ button:")) {
-    if (!code.includes("@domphy/ui") && !code.includes("button(") && !code.includes("card(")) {
-      lines.push(
-        "- [warn] no-patch-imports: Element tree found but no @domphy/ui patch imports detected.",
-        "  Fix: import patches like button(), card(), heading(), paragraph() from @domphy/ui.",
-      );
-    }
+  // Check for missing patch imports — expanded to avoid false positives when
+  // code imports non-button/card patches (heading, paragraph, small, etc.)
+  const COMMON_PATCHES = [
+    "button(",
+    "card(",
+    "heading(",
+    "paragraph(",
+    "small(",
+    "link(",
+    "strong(",
+    "emphasis(",
+    "code(",
+    "formGroup(",
+  ];
+  const hasDomphyElements =
+    code.includes("{ div:") ||
+    code.includes("{ span:") ||
+    code.includes("{ button:");
+  const hasPatchUsage =
+    code.includes("@domphy/ui") || COMMON_PATCHES.some((p) => code.includes(p));
+  if (hasDomphyElements && !hasPatchUsage) {
+    lines.push(
+      "- [warn] no-patch-imports: Element tree found but no @domphy/ui patch imports detected.",
+      "  Fix: import patches like button(), card(), heading(), paragraph() from @domphy/ui.",
+    );
   }
 
   if (lines.length === 1) {

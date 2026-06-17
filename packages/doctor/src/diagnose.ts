@@ -1,10 +1,5 @@
 import { HtmlTags, SvgTags, VoidTags } from "@domphy/core";
-import {
-  hexToRgb,
-  rgbToLab,
-  labToLch,
-  cssRgbToRgb,
-} from "@domphy/palette";
+import { cssRgbToRgb, hexToRgb, labToLch, rgbToLab } from "@domphy/palette";
 
 export type Severity = "error" | "warning" | "info";
 
@@ -111,9 +106,7 @@ function isValidTone(value: string): boolean {
  * Returns null if parsing fails or the format is unsupported (named colors, hsl).
  * Uses @domphy/palette math (CIELAB via D65 reference white).
  */
-function parseLiteralToLch(
-  value: string,
-): [number, number, number] | null {
+function parseLiteralToLch(value: string): [number, number, number] | null {
   try {
     const trimmed = value.trim();
     let rgb: number[];
@@ -123,7 +116,7 @@ function parseLiteralToLch(
       if (hex.length === 9) hex = hex.slice(0, 7); // strip alpha #rrggbbaa → #rrggbb
       if (hex.length === 5) hex = hex.slice(0, 4); // strip alpha #rgba → #rgb
       if (hex.length === 4) {
-        hex = "#" + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+        hex = `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`;
       }
       if (hex.length !== 7) return null;
       rgb = hexToRgb(hex);
@@ -161,11 +154,15 @@ function buildColorHint(lch: [number, number, number]): string {
   // Infer the most likely semantic color family from chroma + hue.
   let colorFamily: string;
   if (C < 12) colorFamily = "neutral";
-  else if (h < 30 || h >= 330) colorFamily = "error";   // red spectrum
-  else if (h < 75) colorFamily = "warning";             // orange-yellow
-  else if (h < 165) colorFamily = "success";            // green
-  else if (h < 265) colorFamily = "primary";            // blue-indigo
-  else colorFamily = "primary";                         // violet → treat as primary
+  else if (h < 30 || h >= 330)
+    colorFamily = "error"; // red spectrum
+  else if (h < 75)
+    colorFamily = "warning"; // orange-yellow
+  else if (h < 165)
+    colorFamily = "success"; // green
+  else if (h < 265)
+    colorFamily = "primary"; // blue-indigo
+  else colorFamily = "primary"; // violet → treat as primary
 
   return (
     `(l) => themeColor(l, ${toneStr}, "${colorFamily}") ` +

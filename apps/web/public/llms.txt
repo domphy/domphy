@@ -133,7 +133,7 @@ Color-palette engine (design-time companion to `@domphy/theme`): generate access
 
 ## Doctor (`@domphy/doctor`)
 
-Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagnostic[]`; `validate(element)` returns `{ ok, issues, summary }`; `fix(element)` returns `{ tree, applied, report }`, applying lossless fixes (e.g. void-content) and listing the rest. Rules: inline-typography, raw-theme-value, unknown-tone, void-content, missing-key, duplicate-key, unstable-key, unknown-tag. Run it on generated code and fix what it reports — the AI self-correction loop. Pairs with the app-block registry (`app-manifest.json`) for large codebases.
+Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagnostic[]`; `validate(element)` returns `{ ok, issues, summary }`; `fix(element)` returns `{ tree, applied, report }`, applying lossless fixes (e.g. void-content) and listing the rest. Rules: inline-typography, raw-theme-value, raw-spacing-value, unknown-tone, void-content, missing-key, duplicate-key, unstable-key, unknown-tag. Run it on generated code and fix what it reports — the AI self-correction loop. Pairs with the app-block registry (`app-manifest.json`) for large codebases.
 
 - [Overview](https://www.domphy.com/docs/doctor/)
 

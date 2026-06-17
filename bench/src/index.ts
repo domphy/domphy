@@ -9,11 +9,11 @@
  *   pnpm bench -- --model claude-haiku-4-5-20251001
  */
 
-import { TASKS } from "./tasks.js";
 import type { Condition, EvalResult } from "./evaluator.js";
 import { evaluate } from "./evaluator.js";
-import { runCondition } from "./runner.js";
 import { printReport } from "./report.js";
+import { runCondition } from "./runner.js";
+import { TASKS } from "./tasks.js";
 
 const CONDITIONS: Condition[] = ["A", "B", "C", "D"];
 
@@ -41,9 +41,7 @@ function parseArgs(): {
 async function main(): Promise<void> {
   const { dryRun, taskFilter, conditionFilter, model } = parseArgs();
 
-  const tasks = taskFilter
-    ? TASKS.filter((t) => t.id === taskFilter)
-    : TASKS;
+  const tasks = taskFilter ? TASKS.filter((t) => t.id === taskFilter) : TASKS;
 
   const conditions = conditionFilter ? [conditionFilter] : CONDITIONS;
 
@@ -80,11 +78,16 @@ async function main(): Promise<void> {
         { dryRun, model },
       );
 
-      const result = await evaluate(reply, task, condition, durationMs, iterations);
+      const result = await evaluate(
+        reply,
+        task,
+        condition,
+        durationMs,
+        iterations,
+      );
       results.push(result);
 
-      const mark =
-        result.score >= 70 ? "✓" : result.score >= 40 ? "~" : "✗";
+      const mark = result.score >= 70 ? "✓" : result.score >= 40 ? "~" : "✗";
       console.log(`${mark} ${result.score}/100 (${Math.round(durationMs)}ms)`);
     }
   }

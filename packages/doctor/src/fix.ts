@@ -61,7 +61,9 @@ export interface FixResult {
  * Applies every provably-lossless fix to a copy of the tree and returns the
  * result plus a fresh validation report. Currently fixes `void-content` (a void
  * tag like input/img/br cannot have children, so its content is set to null).
- * Issues that need intent are left untouched and surface in `report`.
+ * Issues that need intent are left untouched and surface in `report` — this
+ * includes `raw-spacing-value` and `raw-theme-value` (require semantic choices)
+ * and key rules (require stable identity from data, not the tree shape).
  */
 export function fix(root: unknown, options: DiagnoseOptions = {}): FixResult {
   const tree = cloneTree(root);
@@ -72,14 +74,16 @@ export function fix(root: unknown, options: DiagnoseOptions = {}): FixResult {
 
 function walkFix(node: unknown, path: string, applied: AppliedFix[]): void {
   if (Array.isArray(node)) {
-    node.forEach((child, index) => walkFix(child, `${path}[${index}]`, applied));
+    for (const [index, child] of node.entries()) {
+      walkFix(child, `${path}[${index}]`, applied);
+    }
     return;
   }
   if (!isPlainObject(node)) return;
 
   const tag = findTag(node);
   if (!tag) return;
-  const here = tag ? (path ? `${path} > ${tag}` : tag) : path || "(root)";
+  const here = path ? `${path} > ${tag}` : tag;
 
   // void-content: a void tag renders no children, so any content is invalid and
   // cannot be rendered — clearing it to null is lossless.

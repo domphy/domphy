@@ -1,5 +1,4 @@
-import type { EvalResult } from "./evaluator.js";
-import type { Condition } from "./evaluator.js";
+import type { Condition, EvalResult } from "./evaluator.js";
 import type { Task } from "./tasks.js";
 
 const CONDITIONS: Condition[] = ["A", "B", "C", "D"];
@@ -13,7 +12,9 @@ const CONDITION_LABELS: Record<Condition, string> = {
 
 function pct(n: number, total: number): string {
   if (total === 0) return "  —%";
-  return `${Math.round((n / total) * 100).toString().padStart(3)}%`;
+  return `${Math.round((n / total) * 100)
+    .toString()
+    .padStart(3)}%`;
 }
 
 function avg(numbers: number[]): string {
@@ -64,12 +65,12 @@ function aggregateCondition(
     noTypoRate:
       condition === "D"
         ? 1
-        : filtered.filter((r) => r.noTypographyViolations).length / (total || 1),
+        : filtered.filter((r) => r.noTypographyViolations).length /
+          (total || 1),
     structureRate:
       filtered.filter((r) => r.hasRequiredStructure).length / (total || 1),
     passRate: filtered.filter((r) => r.score >= 70).length / (total || 1),
-    avgScore:
-      filtered.reduce((a, r) => a + r.score, 0) / (total || 1),
+    avgScore: filtered.reduce((a, r) => a + r.score, 0) / (total || 1),
     avgIterations: iters.length
       ? iters.reduce((a, b) => a + b, 0) / iters.length
       : 0,
@@ -98,10 +99,9 @@ export function printReport(
   console.log();
 
   // ─── Summary table ───────────────────────────────────────────────────────
-  const header =
-    `  ${"Condition".padEnd(20)} ${"Compile".padStart(8)} ${"No-typo".padStart(8)} ${"Structure".padStart(10)} ${"Pass≥70".padStart(8)} ${"Avg score".padStart(10)}`;
+  const header = `  ${"Condition".padEnd(20)} ${"Compile".padStart(8)} ${"No-typo".padStart(8)} ${"Structure".padStart(10)} ${"Pass≥70".padStart(8)} ${"Avg score".padStart(10)}`;
   console.log(header);
-  console.log("  " + "─".repeat(68));
+  console.log(`  ${"─".repeat(68)}`);
 
   for (const s of stats) {
     const n = s.results.length;
@@ -122,7 +122,7 @@ export function printReport(
   console.log(
     `  ${"Task".padEnd(22)} ${"Diff".padEnd(10)} ${"A".padStart(5)} ${"B".padStart(5)} ${"C".padStart(5)} ${"D".padStart(5)}`,
   );
-  console.log("  " + "─".repeat(56));
+  console.log(`  ${"─".repeat(56)}`);
 
   for (const task of tasks) {
     const row = CONDITIONS.map((c) => {
@@ -147,7 +147,7 @@ export function printReport(
     console.log(
       `  ${"Rule".padEnd(30)} ${"A".padStart(5)} ${"B".padStart(5)} ${"C".padStart(5)} ${"D".padStart(5)}`,
     );
-    console.log("  " + "─".repeat(48));
+    console.log(`  ${"─".repeat(48)}`);
 
     for (const key of [...allIssueKeys].sort()) {
       const counts = CONDITIONS.map((c) => {
