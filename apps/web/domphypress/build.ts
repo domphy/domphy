@@ -341,11 +341,28 @@ async function run(): Promise<void> {
   }
   writeFileSync(join(outDir, "search-index.json"), indexJson, "utf8");
 
+  // 5) Sitemap.
+  const sitemapXml = buildSitemap(built, config.hostname);
+  writeFileSync(join(outDir, "sitemap.xml"), sitemapXml, "utf8");
+
   const islandCount = built.reduce((sum, page) => sum + page.islands.length, 0);
   console.log(
     `Wrote ${built.length} pages (${(totalBytes / 1024).toFixed(0)} KB), ` +
       `${islandCount} islands, search index ${(indexJson.length / 1024).toFixed(0)} KB -> ${outDir}`,
   );
+}
+
+function buildSitemap(pages: BuiltPage[], hostname: string): string {
+  const urls = pages
+    .map((page) => {
+      const loc =
+        page.route === "/"
+          ? `${hostname}/`
+          : `${hostname}${page.route}/`;
+      return `  <url><loc>${loc}</loc></url>`;
+    })
+    .join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;
 }
 
 /** Inline script: set theme before paint (no FOUC) + wire toggles. */
