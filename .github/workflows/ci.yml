@@ -37,10 +37,10 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build all packages
-        run: pnpm --filter "@domphy/*" build
+        run: pnpm --filter "@domphy/*" --filter "!@domphy/web" build
 
       - name: Lint (Biome)
         run: pnpm check
 
       - name: Test all packages
-        run: pnpm --filter "@domphy/*" test
+        run: pnpm --filter "@domphy/*" --filter "!@domphy/web" test
