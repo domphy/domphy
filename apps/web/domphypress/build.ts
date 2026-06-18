@@ -36,6 +36,21 @@ const publicDir = join(appRoot, "public");
 // Output where the existing deploy publishes from (Netlify/Vercel: .vitepress/dist).
 const outDir = join(appRoot, ".vitepress", "dist");
 
+/** Extracts text from the first paragraph element in a document body. */
+function firstParagraphText(body: unknown[]): string {
+  for (const node of body) {
+    if (!node || typeof node !== "object" || Array.isArray(node)) continue;
+    const record = node as Record<string, unknown>;
+    if ("p" in record) {
+      const parts: string[] = [];
+      flattenText(record["p"], parts);
+      const text = parts.join(" ").replace(/\s+/g, " ").trim();
+      if (text.length > 10) return text.slice(0, 160);
+    }
+  }
+  return "";
+}
+
 /** Recursively flattens an element tree to plain text for the search index. */
 function flattenText(node: unknown, out: string[]): void {
   if (node == null) return;
@@ -241,13 +256,43 @@ async function run(): Promise<void> {
         config,
       };
       const isHome = page.route === "/";
+
+      const description =
+        typeof page.doc.frontmatter.description === "string"
+          ? page.doc.frontmatter.description
+          : firstParagraphText(page.doc.body) || config.description;
+
+      const pageTitle =
+        page.title === config.title
+          ? config.title
+          : `${page.title} | ${config.title}`;
+
+      const canonical =
+        page.route === "/"
+          ? `${config.hostname}/`
+          : `${config.hostname}${page.route}/`;
+
       return {
         path: page.route,
         metadata: {
-          title:
-            page.title === config.title
-              ? { default: config.title }
-              : page.title,
+          title: pageTitle,
+          description,
+          metadataBase: config.hostname,
+          openGraph: {
+            title: pageTitle,
+            description,
+            url: page.route === "/" ? "/" : `${page.route}/`,
+            siteName: config.title,
+            type: "website",
+          },
+          twitter: {
+            card: "summary" as const,
+            title: pageTitle,
+            description,
+          },
+          alternates: {
+            canonical,
+          },
         },
         page: () => (isHome ? homeShell(ctx) : pageShell(ctx)),
       };

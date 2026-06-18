@@ -63,7 +63,6 @@ export const config: SiteConfig = {
           { text: "AttributeList", link: "/docs/core/api/attribute-list" },
           { text: "TextNode", link: "/docs/core/api/text-node" },
           { text: "State", link: "/docs/core/api/state" },
-          { text: "ListState", link: "/docs/core/api/list-state" },
           { text: "Notifier", link: "/docs/core/api/notifier" },
           { text: "Utilities", link: "/docs/core/api/utilities" },
         ],
@@ -83,7 +82,7 @@ export const config: SiteConfig = {
       },
     ],
     "/docs/ui/": [
-      { text: "Overview", link: "/docs/ui" },
+      { text: "Overview", link: "/docs/ui/" },
       { text: "Color And Tone", link: "/docs/ui/color" },
       { text: "Dimension", link: "/docs/ui/dimension" },
       { text: "Customization", link: "/docs/ui/customization" },
