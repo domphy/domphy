@@ -16,9 +16,19 @@
     X-XSS-Protection = "1; mode=block"
 
 [[headers]]
-  for = "/assets/*"
+  for = "/assets/chunks/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/media/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "*.html"
