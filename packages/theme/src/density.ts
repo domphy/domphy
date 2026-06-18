@@ -18,7 +18,7 @@ function offsetDensity(
     throw Error(`density name "${density}" invalid`);
   }
   let resultDensity: number;
-  if (density == "inherit") {
+  if (density === "inherit") {
     resultDensity = origin as number;
   } else if (density?.startsWith("increase-")) {
     const offset = parseInt(density.replace("increase-", ""), 10);
@@ -35,7 +35,7 @@ function offsetDensity(
 function contextDensity(object: ElementNode | Listener | null): number {
   if (!object) return 2;
   const elementNode = (
-    typeof object == "function" ? object.elementNode : object
+    typeof object === "function" ? object.elementNode : object
   ) as ElementNode;
   let node: ElementNode = elementNode;
   while (node && (!node.attributes || !node.attributes.get("dataDensity"))) {
@@ -46,7 +46,7 @@ function contextDensity(object: ElementNode | Listener | null): number {
 
   if (node && node.attributes && node.attributes.has("dataDensity")) {
     density = offsetDensity(density, node.attributes.get("dataDensity"));
-    typeof object == "function" &&
+    typeof object === "function" &&
       node.attributes.addListener("dataDensity", object);
   }
   return density;

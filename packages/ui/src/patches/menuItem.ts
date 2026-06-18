@@ -39,17 +39,17 @@ function menuItem(
       let children = (node.parent?.children.items ?? []) as ElementNode[];
       children = children.filter(
         (n) =>
-          n.type == "ElementNode" && n.attributes.get("role") == "menuitem",
+          n.type === "ElementNode" && n.attributes.get("role") === "menuitem",
       );
       // Strict key check: an explicit _key of 0 or "" must not fall back to index.
       const key =
         node.key !== null && node.key !== undefined
           ? node.key
-          : children.findIndex((n) => n == node);
+          : children.indexOf(node);
       if (context.selectable) {
         node.attributes.set(
           "ariaCurrent",
-          (listener) => context.activeKey.get(listener) == key || undefined,
+          (listener) => context.activeKey.get(listener) === key || undefined,
         );
         node.addEvent("click", () => context.activeKey.set(key));
       }
@@ -68,7 +68,7 @@ function menuItem(
           n.type === "ElementNode" &&
           (n as ElementNode).attributes.get("role") === "menuitem",
       ) as ElementNode[];
-      const idx = items.findIndex((n) => n === node);
+      const idx = items.indexOf(node);
       let next = idx;
       if (k === "ArrowDown") next = (idx + 1) % items.length;
       else if (k === "ArrowUp") next = (idx - 1 + items.length) % items.length;
@@ -80,7 +80,7 @@ function menuItem(
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
-      gap: (listener) => themeSpacing(2),
+      gap: (_listener) => themeSpacing(2),
       width: "100%",
       fontSize: (listener) => themeSize(listener, "inherit"),
       height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),

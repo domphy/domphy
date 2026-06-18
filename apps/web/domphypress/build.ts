@@ -43,7 +43,7 @@ function firstParagraphText(body: unknown[]): string {
     const record = node as Record<string, unknown>;
     if ("p" in record) {
       const parts: string[] = [];
-      flattenText(record["p"], parts);
+      flattenText(record.p, parts);
       const text = parts.join(" ").replace(/\s+/g, " ").trim();
       if (text.length > 10) return text.slice(0, 160);
     }
@@ -356,9 +356,7 @@ function buildSitemap(pages: BuiltPage[], hostname: string): string {
   const urls = pages
     .map((page) => {
       const loc =
-        page.route === "/"
-          ? `${hostname}/`
-          : `${hostname}${page.route}/`;
+        page.route === "/" ? `${hostname}/` : `${hostname}${page.route}/`;
       return `  <url><loc>${loc}</loc></url>`;
     })
     .join("\n");

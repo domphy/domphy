@@ -1,7 +1,6 @@
 import {
   type DomphyElement,
   type PartialElement,
-  State,
   toState,
   type ValueOrState,
 } from "@domphy/core";

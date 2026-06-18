@@ -36,7 +36,7 @@ function menu(
   const partial: PartialElement = {
     role: "menu",
     dataTone: "shift-17",
-    _onSchedule: (node, element) => {
+    _onSchedule: (_node, element) => {
       const partial = {
         _context: {
           menu: {

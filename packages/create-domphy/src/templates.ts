@@ -230,7 +230,10 @@ new ElementNode(App).render(document.getElementById("app")!);
 \`\`\`
 `;
 
-export function templateFiles(projectName: string, domphyVersion: string): TemplateFile[] {
+export function templateFiles(
+  projectName: string,
+  domphyVersion: string,
+): TemplateFile[] {
   const replace = (contents: string): string =>
     contents
       .replaceAll("__PROJECT_NAME__", projectName)

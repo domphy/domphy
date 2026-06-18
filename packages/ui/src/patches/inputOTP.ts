@@ -17,7 +17,7 @@ function inputOTP(): PartialElement {
       alignItems: "center",
       gap: themeSpacing(2),
       "& > *": {
-        minWidth: themeSpacing(9) + "!important",
+        minWidth: `${themeSpacing(9)}!important`,
       },
     },
     _onMount: (node) => {

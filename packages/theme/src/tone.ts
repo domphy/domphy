@@ -35,9 +35,9 @@ function shiftTone(tone: number, level: number): number {
 }
 
 function offsetTone(originTone: number, tone: ElementTone = "inherit"): number {
-  if (typeof tone == "number") return tone;
+  if (typeof tone === "number") return tone;
 
-  if (tone == "inherit") return originTone;
+  if (tone === "inherit") return originTone;
 
   if (!ElementTones.includes(tone!)) {
     throw Error(`tone name "${tone}" invalid`);
@@ -60,7 +60,7 @@ function offsetTone(originTone: number, tone: ElementTone = "inherit"): number {
 function contextTone(object: ElementNode | Listener | null): number {
   if (!object) return 0;
   const elementNode = (
-    typeof object == "function" ? object.elementNode : object
+    typeof object === "function" ? object.elementNode : object
   ) as ElementNode;
   let node: ElementNode = elementNode;
   while (node && (!node.attributes || !node.attributes.get("dataTone"))) {
@@ -71,13 +71,13 @@ function contextTone(object: ElementNode | Listener | null): number {
 
   if (node && node.attributes && node.attributes.has("dataTone")) {
     tone = offsetTone(tone, node.attributes.get("dataTone"));
-    typeof object == "function" &&
+    typeof object === "function" &&
       node.attributes.addListener("dataTone", object);
   }
   return tone;
 }
 
-function themeTone(
+function _themeTone(
   object: ElementNode | Listener,
   tone: ElementTone = "inherit",
 ): number {
@@ -97,18 +97,18 @@ export function themeColor(
   tone: ElementTone = "inherit",
   color: string = "inherit",
 ): string {
-  const themeColor = color == "inherit" ? "neutral" : color;
+  const themeColor = color === "inherit" ? "neutral" : color;
 
   if (!object) {
     // No node context implies the light theme (themeVars reads getTheme("light")).
-    if (tone == "base")
+    if (tone === "base")
       return themeVars()[themeColor][getTheme("light").baseTones[themeColor]];
     return themeVars()[themeColor][offsetTone(0, tone)];
   }
 
   const name = themeName(object);
   let resultTone: number;
-  if (tone == "base") {
+  if (tone === "base") {
     resultTone = getTheme(name).baseTones[themeColor];
   } else {
     const theme = getTheme(name);
@@ -133,18 +133,18 @@ export function themeColorToken(
   tone: ElementTone = "inherit",
   color: string = "inherit",
 ): string {
-  const colorName = color == "inherit" ? "neutral" : color;
+  const colorName = color === "inherit" ? "neutral" : color;
   const name = object ? themeName(object as ElementNode | Listener) : "light";
   const tokens = themeTokens(name);
 
   if (!object) {
-    if (tone == "base")
+    if (tone === "base")
       return tokens[colorName][getTheme("light").baseTones[colorName]];
     return tokens[colorName][offsetTone(0, tone)];
   }
 
   let resultTone: number;
-  if (tone == "base") {
+  if (tone === "base") {
     resultTone = getTheme(name).baseTones[colorName];
   } else {
     const theme = getTheme(name);

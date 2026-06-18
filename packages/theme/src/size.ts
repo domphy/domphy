@@ -15,7 +15,7 @@ function offsetSize(origin: number, size: ElementSize = "inherit"): number {
     throw Error(`size name "${size}" invalid`);
   }
   let resultSize: number;
-  if (size == "inherit") {
+  if (size === "inherit") {
     resultSize = origin as number;
   } else if (size?.startsWith("increase-")) {
     const offset = parseInt(size.replace("increase-", ""), 10);
@@ -32,7 +32,7 @@ function offsetSize(origin: number, size: ElementSize = "inherit"): number {
 function contextSize(object: ElementNode | Listener | null): number {
   if (!object) return 2;
   const elementNode = (
-    typeof object == "function" ? object.elementNode : object
+    typeof object === "function" ? object.elementNode : object
   ) as ElementNode;
   let node: ElementNode = elementNode;
   while (node && (!node.attributes || !node.attributes.get("dataSize"))) {
@@ -43,7 +43,7 @@ function contextSize(object: ElementNode | Listener | null): number {
 
   if (node && node.attributes && node.attributes.has("dataSize")) {
     size = offsetSize(size, node.attributes.get("dataSize"));
-    typeof object == "function" &&
+    typeof object === "function" &&
       node.attributes.addListener("dataSize", object);
   }
   return size;

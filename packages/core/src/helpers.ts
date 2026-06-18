@@ -1,14 +1,11 @@
 import type { ElementNode } from "./classes/ElementNode.js";
-import { State } from "./classes/State.js";
 import { HtmlTags } from "./constants/HtmlTags.js";
 import { eventNameMap } from "./types/EventProperties.js";
-import {
-  type DomphyElement,
-  EventName,
-  Handler,
-  type HookMap,
-  type PartialElement,
-  type TagName,
+import type {
+  DomphyElement,
+  HookMap,
+  PartialElement,
+  TagName,
 } from "./types.js";
 import { merge } from "./utils.js";
 
@@ -41,7 +38,7 @@ export function addEvent<K extends keyof HTMLElementEventMap>(
   }
   const current = (attributes as any)[eventProperty];
 
-  if (typeof current == "function") {
+  if (typeof current === "function") {
     (attributes as any)[eventProperty] = (
       event: HTMLElementEventMap[K],
       node: ElementNode,
@@ -114,35 +111,40 @@ export function validate(
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
     const val = element[key as keyof typeof element];
-    if (i == 0 && !HtmlTags.includes(key) && !key.includes("-") && !asPartial) {
+    if (
+      i === 0 &&
+      !HtmlTags.includes(key) &&
+      !key.includes("-") &&
+      !asPartial
+    ) {
       // web-component
       throw Error(`key ${key} is not valid HTML tag name`);
     } else if (
-      key == "style" &&
+      key === "style" &&
       val &&
       Object.prototype.toString.call(val) !== "[object Object]"
     ) {
       throw Error(`"style" must be a object`);
-    } else if (key == "$") {
+    } else if (key === "$") {
       element.$!.forEach((v) => validate(v as PartialElement, true));
-    } else if (key.startsWith("_on") && typeof val != "function") {
+    } else if (key.startsWith("_on") && typeof val !== "function") {
       throw Error(`hook ${key} value "${val}" must be a function `);
-    } else if (key.startsWith("on") && typeof val != "function") {
+    } else if (key.startsWith("on") && typeof val !== "function") {
       throw Error(`event ${key} value "${val}" must be a function `);
-    } else if (key == "_portal" && typeof val !== "function") {
+    } else if (key === "_portal" && typeof val !== "function") {
       throw Error(`"_portal" must be a function return HTMLElement`);
     } else if (
-      key == "_context" &&
+      key === "_context" &&
       Object.prototype.toString.call(val) !== "[object Object]"
     ) {
       throw Error(`"_context" must be a object`);
     } else if (
-      key == "_metadata" &&
+      key === "_metadata" &&
       Object.prototype.toString.call(val) !== "[object Object]"
     ) {
       throw Error(`"_metadata" must be a object`);
     } else if (
-      key == "_key" &&
+      key === "_key" &&
       typeof val !== "string" &&
       typeof val !== "number"
     ) {
@@ -160,7 +162,7 @@ export function isValid(element: DomphyElement): boolean {
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
     const val = element[key as keyof typeof element];
-    if (i == 0 && !HtmlTags.includes(key)) return false;
+    if (i === 0 && !HtmlTags.includes(key)) return false;
     if (
       key === "style" &&
       (val == null || typeof val !== "object" || Array.isArray(val))
@@ -194,9 +196,9 @@ export function escapeHTML(str: string): string {
 }
 
 export function addClass(element: PartialElement, className: string): void {
-  if (typeof element.class == "function") {
+  if (typeof element.class === "function") {
     const reactive = element.class;
-    element.class = (listener) => String(reactive(listener)) + " " + className;
+    element.class = (listener) => `${String(reactive(listener))} ${className}`;
   } else {
     const current = element.class || "";
     const split = String(current).split(" ");
@@ -206,33 +208,33 @@ export function addClass(element: PartialElement, className: string): void {
 }
 
 export function removeClass(element: PartialElement, className: string): void {
-  if (typeof element.class == "function") {
+  if (typeof element.class === "function") {
     const reactive = element.class;
     element.class = (listener) => {
       const split = String(reactive(listener)).split(" ");
-      return split.filter((e) => e != className).join(" ");
+      return split.filter((e) => e !== className).join(" ");
     };
   } else {
     const split = String(element.class).split(" ");
     element.class ||= "";
-    element.class = split.filter((e) => e != className).join(" ");
+    element.class = split.filter((e) => e !== className).join(" ");
   }
 }
 
 export function toggleClass(element: PartialElement, className: string): void {
-  if (typeof element.class == "function") {
+  if (typeof element.class === "function") {
     const reactive = element.class;
     element.class = (listener) => {
       const split = String(reactive(listener)).split(" ");
       return split.includes(className)
-        ? split.filter((e) => e != className).join(" ")
+        ? split.filter((e) => e !== className).join(" ")
         : split.concat([className]).join(" ");
     };
   } else {
     const split = String(element.class).split(" ");
     element.class ||= "";
     element.class = split.includes(className)
-      ? split.filter((e) => e != className).join(" ")
+      ? split.filter((e) => e !== className).join(" ")
       : split.concat([className]).join(" ");
   }
 }

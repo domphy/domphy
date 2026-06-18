@@ -35,7 +35,16 @@
       },
       "complexity": {
         "useOptionalChain": "off",
-        "noImportantStyles": "off"
+        "noImportantStyles": "off",
+        "noBannedTypes": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "off",
+        "useIterableCallbackReturn": "off"
+      },
+      "correctness": {
+        "noInnerDeclarations": "off",
+        "noUnusedVariables": "warn"
       }
     }
   },

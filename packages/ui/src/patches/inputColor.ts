@@ -23,8 +23,8 @@ function inputColor(
     accentColor?: ValueOrState<ThemeColor>;
   } = {},
 ): PartialElement {
-  const color = toState(props.color ?? "neutral", "color");
-  const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+  const _color = toState(props.color ?? "neutral", "color");
+  const _accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
     type: "color",

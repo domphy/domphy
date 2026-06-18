@@ -146,7 +146,10 @@ export class ElementList {
   ): NodeItem {
     const length = this.items.length;
     const finalIndex =
-      typeof index !== "number" || isNaN(index) || index < 0 || index > length
+      typeof index !== "number" ||
+      Number.isNaN(index) ||
+      index < 0 ||
+      index > length
         ? length
         : index;
     const item = this._createNode(input);

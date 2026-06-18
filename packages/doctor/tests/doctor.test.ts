@@ -163,9 +163,9 @@ describe("diagnose", () => {
   });
 
   it("flags fontFamily and textDecoration as inline-typography (bench gap)", () => {
-    expect(rules({ p: "x", style: { fontFamily: "Arial, sans-serif" } })).toContain(
-      "inline-typography",
-    );
+    expect(
+      rules({ p: "x", style: { fontFamily: "Arial, sans-serif" } }),
+    ).toContain("inline-typography");
     expect(rules({ a: "link", style: { textDecoration: "none" } })).toContain(
       "inline-typography",
     );
@@ -194,9 +194,9 @@ describe("diagnose", () => {
       "raw-spacing-value",
     );
     // reactive spacing is fine
-    expect(
-      rules({ div: "x", style: { padding: () => "1rem" } }),
-    ).not.toContain("raw-spacing-value");
+    expect(rules({ div: "x", style: { padding: () => "1rem" } })).not.toContain(
+      "raw-spacing-value",
+    );
     // hint suggests themeSpacing(n)
     const d = diagnose({ div: "x", style: { gap: "1rem" } });
     const issue = d.find((i) => i.rule === "raw-spacing-value");

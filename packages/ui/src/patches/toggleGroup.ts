@@ -1,8 +1,4 @@
-import {
-  type PartialElement,
-  toState,
-  type ValueOrState,
-} from "@domphy/core";
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,

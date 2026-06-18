@@ -1,5 +1,5 @@
-import { type ElementNode, merge, type PartialElement } from "@domphy/core";
-import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import type { ElementNode, PartialElement } from "@domphy/core";
+import { themeDensity, themeSpacing } from "@domphy/theme";
 
 /**
  * Styles a tab panel inside a `tabs` tablist. Wires up the panel's
@@ -25,16 +25,16 @@ function tabPanel(): PartialElement {
       let children = (node.parent?.children.items ?? []) as ElementNode[];
       children = children.filter(
         (n) =>
-          n.type == "ElementNode" && n.attributes.get("role") == "tabpanel",
+          n.type === "ElementNode" && n.attributes.get("role") === "tabpanel",
       );
       const key =
         node.key !== null && node.key !== undefined
           ? node.key
-          : children.findIndex((n) => n == node);
+          : children.indexOf(node);
       const part: PartialElement = {
-        id: "tabpanel" + node.parent!.nodeId + key,
-        ariaLabelledby: "tab" + node.parent!.nodeId + key,
-        hidden: (listener) => context.activeKey.get(listener) != key,
+        id: `tabpanel${node.parent!.nodeId}${key}`,
+        ariaLabelledby: `tab${node.parent!.nodeId}${key}`,
+        hidden: (listener) => context.activeKey.get(listener) !== key,
       };
       node.merge(part);
     },

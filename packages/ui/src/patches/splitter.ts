@@ -28,7 +28,7 @@ function splitter(
     max = 90,
   } = props;
   return {
-    _onSchedule: (node, element) => {
+    _onSchedule: (_node, element) => {
       merge(element, {
         _context: {
           splitter: {

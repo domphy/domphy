@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { ElementNode } from "../src/classes/ElementNode.ts";
 import type { DomphyElement } from "../src/types.ts";
 import { toState } from "../src/utils.ts";

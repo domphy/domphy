@@ -76,8 +76,8 @@ export type Middleware = (
 ) =>
   | RewriteResult
   | undefined
-  | void
-  | Promise<RewriteResult | undefined | void>;
+  | undefined
+  | Promise<RewriteResult | undefined | undefined>;
 
 /**
  * One route segment, the equivalent of one folder in the Next.js `app` directory.

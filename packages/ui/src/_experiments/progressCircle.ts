@@ -113,7 +113,7 @@ const patch = (
 
 const percent = toState(50);
 const App: DomphyElement<"div"> = {
-  div: (listener) => percent.get(listener) + "%",
+  div: (listener) => `${percent.get(listener)}%`,
   $: [patch({ percent })],
 };
 export default App;

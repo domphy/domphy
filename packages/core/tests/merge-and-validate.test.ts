@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { validate } from "../src/helpers.ts";
 import { merge } from "../src/utils.ts";
 

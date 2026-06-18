@@ -117,7 +117,8 @@ function readJsDoc(node) {
       const key = paramTagKey(tag);
       // JSDoc `@param name - desc` keeps the "- " separator in the comment; drop
       // a single leading dash so the stored description reads cleanly.
-      if (key) paramDocs.set(key, commentText(tag.comment).replace(/^-\s*/, ""));
+      if (key)
+        paramDocs.set(key, commentText(tag.comment).replace(/^-\s*/, ""));
     }
   };
 

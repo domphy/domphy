@@ -40,7 +40,7 @@ function textarea(
         el.style.overflow = "hidden";
         const resize = () => {
           el.style.height = "auto";
-          el.style.height = el.scrollHeight + "px";
+          el.style.height = `${el.scrollHeight}px`;
         };
         el.addEventListener("input", resize);
         resize();

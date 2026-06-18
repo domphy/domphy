@@ -16,7 +16,7 @@ import {
  */
 function command(): PartialElement {
   return {
-    _onSchedule: (node, element) => {
+    _onSchedule: (_node, element) => {
       merge(element, {
         _context: {
           command: {

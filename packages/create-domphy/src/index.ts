@@ -1,8 +1,14 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { createInterface } from "node:readline/promises";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { stdin, stdout } from "node:process";
+import { createInterface } from "node:readline/promises";
+import { fileURLToPath } from "node:url";
 import { templateFiles } from "./templates.js";
 
 const KNOWN_TEMPLATES = ["spa"] as const;
@@ -56,7 +62,9 @@ function readCliVersion(): string {
   try {
     const here = dirname(fileURLToPath(import.meta.url));
     const packagePath = join(here, "..", "package.json");
-    const parsed = JSON.parse(readFileSync(packagePath, "utf8")) as { version?: string };
+    const parsed = JSON.parse(readFileSync(packagePath, "utf8")) as {
+      version?: string;
+    };
     return parsed.version ?? "latest";
   } catch {
     return "latest";
@@ -85,7 +93,9 @@ function printHelp(): void {
 async function promptTargetDir(): Promise<string> {
   const readline = createInterface({ input: stdin, output: stdout });
   try {
-    const answer = (await readline.question("Project directory (. for current): ")).trim();
+    const answer = (
+      await readline.question("Project directory (. for current): ")
+    ).trim();
     return answer.length > 0 ? answer : ".";
   } finally {
     readline.close();
@@ -101,7 +111,10 @@ function isDirectoryUsable(dir: string): boolean {
 }
 
 function toProjectName(targetDir: string): string {
-  const base = targetDir === "." ? "domphy-app" : targetDir.split(/[\\/]/).filter(Boolean).pop();
+  const base =
+    targetDir === "."
+      ? "domphy-app"
+      : targetDir.split(/[\\/]/).filter(Boolean).pop();
   const name = (base ?? "domphy-app")
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, "-")
@@ -165,6 +178,8 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-  stdout.write(`create-domphy failed: ${error instanceof Error ? error.message : String(error)}\n`);
+  stdout.write(
+    `create-domphy failed: ${error instanceof Error ? error.message : String(error)}\n`,
+  );
   process.exitCode = 1;
 });

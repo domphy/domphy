@@ -18,7 +18,7 @@ function tabs(
 ): PartialElement {
   const partial: PartialElement = {
     role: "tablist",
-    _onSchedule: (node, element) => {
+    _onSchedule: (_node, element) => {
       const partial = {
         _context: {
           tabs: {

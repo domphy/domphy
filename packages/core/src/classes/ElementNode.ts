@@ -58,7 +58,7 @@ export class ElementNode {
     this._metadata = domphyElement._metadata || {};
 
     const tempPath = `${this.parent?.nodeId}.${index}`;
-    const str = JSON.stringify(domphyElement.style || {}, (k, v) =>
+    const str = JSON.stringify(domphyElement.style || {}, (_k, v) =>
       typeof v === "function" ? tempPath : v,
     );
     this.nodeId = hashString(tempPath + str);
@@ -71,7 +71,7 @@ export class ElementNode {
 
     const children = (domphyElement as any)[this.tagName];
 
-    if (children != null && children != undefined) {
+    if (children != null && children !== undefined) {
       if (typeof children === "function") {
         let listener: any = () => {
           if (this._disposed) return;
@@ -199,9 +199,9 @@ export class ElementNode {
           originalKey.substring(2).toLowerCase() as EventName,
           value,
         );
-      } else if (originalKey == "_portal") {
+      } else if (originalKey === "_portal") {
         this._portal = value;
-      } else if (originalKey == "class" && typeof value === "string") {
+      } else if (originalKey === "class" && typeof value === "string") {
         this.attributes!.addClass(value);
       } else {
         this.attributes!.set(originalKey, value);
@@ -301,7 +301,7 @@ export class ElementNode {
     this._events = this._events || {};
 
     const current = this._events[name];
-    if (typeof current == "function") {
+    if (typeof current === "function") {
       this._events[name] = (event: Event, node: ElementNode) => {
         current!(event, node);
         callback(event, node);

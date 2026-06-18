@@ -11,12 +11,13 @@ jobs:
     name: Build, Lint, Test
     runs-on: ubuntu-latest
 
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: true
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:

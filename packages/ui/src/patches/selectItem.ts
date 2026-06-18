@@ -1,4 +1,4 @@
-import { type PartialElement, type State, toState } from "@domphy/core";
+import type { PartialElement } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -39,7 +39,7 @@ function selectItem(
         const state = select.value;
         node.attributes.set("ariaSelected", (listener) => {
           const val = state.get(listener);
-          return select.multiple ? val.includes(value) : val == value;
+          return select.multiple ? val.includes(value) : val === value;
         });
         node.addEvent("click", () => {
           const val = state.get();
@@ -48,7 +48,7 @@ function selectItem(
               ? state.set(val.filter((v: number | string) => v !== value))
               : state.set(val.concat([value]));
           } else {
-            val != value && state.set(value);
+            val !== value && state.set(value);
           }
         });
       }

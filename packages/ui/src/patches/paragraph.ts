@@ -1,10 +1,5 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
-import {
-  type ThemeColor,
-  themeColor,
-  themeSize,
-  themeSpacing,
-} from "@domphy/theme";
+import { type ThemeColor, themeColor, themeSize } from "@domphy/theme";
 
 /**
  * Themed paragraph primitive: comfortable line-height, reset margins and themed

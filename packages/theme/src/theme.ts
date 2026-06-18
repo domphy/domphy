@@ -231,12 +231,12 @@ export function themeApply(el?: HTMLStyleElement): void {
 }
 
 export function themeSpacing(n: number) {
-  return n / 4 + "em";
+  return `${n / 4}em`;
 }
 
 export function themeName(object: ElementNode | Listener) {
   const elementNode = (
-    typeof object == "function" ? object.elementNode : object
+    typeof object === "function" ? object.elementNode : object
   ) as ElementNode;
   let node: ElementNode = elementNode;
   while (node && (!node.attributes || !node.attributes.get("dataTheme"))) {
@@ -247,7 +247,7 @@ export function themeName(object: ElementNode | Listener) {
 
   if (node && node.attributes && node.attributes.has("dataTheme")) {
     themeName = node.attributes.get("dataTheme");
-    typeof object == "function" &&
+    typeof object === "function" &&
       node.attributes.addListener("dataTheme", object);
   }
   return themeName;

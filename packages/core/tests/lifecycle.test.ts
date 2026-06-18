@@ -101,7 +101,7 @@ describe("lifecycle: async removal (_onBeforeRemove done)", () => {
     items.set(["a", "c", "d"]); // insert "d" while "b" still leaving
     await flush();
 
-    dones["b"](); // complete "b" removal after positions shifted
+    dones.b(); // complete "b" removal after positions shifted
     const texts = Array.from(host.querySelectorAll("li")).map(
       (li) => li.textContent,
     );

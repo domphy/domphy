@@ -1,9 +1,4 @@
-import {
-  type DomphyElement,
-  type PartialElement,
-  toState,
-  type ValueOrState,
-} from "@domphy/core";
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -74,7 +69,7 @@ function table(
 
       "& tbody tr:hover": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-2") + "!important",
+          `${themeColor(listener, "shift-2")}!important`,
       },
     },
   };
