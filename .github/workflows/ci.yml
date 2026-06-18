@@ -25,13 +25,13 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build all packages
-        run: pnpm build
+        run: pnpm --filter "@domphy/*" build
 
       - name: Lint (Biome)
         run: pnpm check
 
       - name: Test all packages
-        run: pnpm test
+        run: pnpm --filter "@domphy/*" test
