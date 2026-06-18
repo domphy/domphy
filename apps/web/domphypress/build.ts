@@ -5,7 +5,7 @@
 // per page in @domphy/app -> renderToString(route) -> write a standalone .html.
 // Also builds the local search index and copies public/ assets.
 //
-// Run: pnpm --filter @domphy/web exec tsx domphypress/build.ts
+// Run: pnpm --filter domphy-web exec tsx domphypress/build.ts
 
 import {
   cpSync,

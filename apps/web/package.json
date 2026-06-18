@@ -1,5 +1,5 @@
 {
-  "name": "@domphy/web",
+  "name": "domphy-web",
   "version": "1.0.0",
   "description": "Domphy website",
   "main": "index.js",
@@ -10,7 +10,7 @@
     "manifest": "node scripts/manifest.mjs",
     "dev": "tsx domphypress/dev.ts",
     "preview": "tsx domphypress/serve.ts",
-    "build": "pnpm --filter \"@domphy/*\" --filter \"!@domphy/web\" build && node scripts/manifest.mjs && node scripts/llms-full.mjs && tsx domphypress/build.ts",
+    "build": "pnpm --filter \"@domphy/*\" build && node scripts/manifest.mjs && node scripts/llms-full.mjs && tsx domphypress/build.ts",
     "postinstall": "puppeteer browsers install chrome-headless-shell"
   },
   "keywords": [],

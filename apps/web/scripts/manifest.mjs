@@ -4,7 +4,7 @@
 // color names). Agents/MCP query these for a deterministic API surface.
 // Auto-generated, never drifts. Parses patch source with the TypeScript compiler
 // API (no regex), so prop names/types/optionality come straight from the
-// declarations and descriptions from JSDoc. Run via `pnpm --filter @domphy/web
+// declarations and descriptions from JSDoc. Run via `pnpm --filter domphy-web
 // run manifest` (also part of build).
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
