@@ -1,6 +1,23 @@
 # Domphy
 
-Domphy is **the AI-friendly UI framework** — the whole API is learnable from one spec file (`llms.txt` / `AGENTS.md`) and self-correcting via a built-in validator (`@domphy/doctor`), so AI agents write correct Domphy despite little training data (see [Building with AI](#building-with-ai)). Under the hood it's patch-based and **framework-agnostic**: plain objects, no JSX, no virtual DOM, no build step required.
+```ts
+const count = toState(0)
+
+const App = {
+  div: [
+    { p: (l) => `Count: ${count.get(l)}` },
+    { button: "Add", $: [button({ color: "primary" })], onClick: () => count.set(count.get() + 1) },
+  ],
+}
+```
+
+**Plain objects. Patches, not wrapper components. No JSX.**
+
+Domphy is a patch-based UI framework — elements are plain JS objects, behavior is applied via `$` patches on native elements, and the full TanStack data suite (query, table, router, form, virtual) runs without React.
+
+Rough ecosystem mapping: `@domphy/core` ≈ react-dom + SSR + CSS-in-JS in one package. `@domphy/theme` + `@domphy/ui` ≈ MUI. The data packages are the same TanStack cores you know — just without the React peer dep.
+
+**If you use AI to code:** plain objects are what LLMs generate naturally, and `@domphy/doctor` validates the output — the model reads the report and fixes its own mistakes (see [Building with AI](#building-with-ai)).
 
 ## Packages
 
@@ -31,11 +48,11 @@ App layer & tools:
 
 `@domphy/core` is a peer dependency of the data/logic packages, so a consumer installs **one** copy.
 
-In rough ecosystem terms: `@domphy/core` is the runtime layer (≈ `react-dom` + SSR + CSS-in-JS in one), `@domphy/theme` + `@domphy/ui` are the design-system layer (≈ MUI), and the data packages are the TanStack suite — same code, no React.
-
 ## Building with AI
 
-Domphy treats AI as a first-class consumer. Because most LLMs have little Domphy training data, the framework is built to be **learnable in-context and self-correcting**:
+Plain objects are what LLMs generate naturally. JSX is not. That's the core reason Domphy AI output is more reliable than React — and `@domphy/doctor` closes the remaining gap with a self-correction loop:
+
+When an agent generates Domphy code → run `diagnose(app)` → feed the report back → the model fixes its own output. No manual debugging. Domphy is built to make this loop work:
 
 - **[`AGENTS.md`](./AGENTS.md)** — the canonical cross-tool agent spec (Cursor, Claude Code, Copilot, Codex, Aider all read it).
 - **[`llms.txt`](https://www.domphy.com/llms.txt)** — curated index: rules + links to every doc page and patch.
