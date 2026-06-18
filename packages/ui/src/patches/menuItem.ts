@@ -87,10 +87,10 @@ function menuItem(
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       border: "none",
       outline: "none",
-      color: (listener) => themeColor(listener, "shift-9"),
-      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      color: (listener) => themeColor(listener, "shift-9", color),
+      backgroundColor: (listener) => themeColor(listener, "inherit", color),
       "&:hover:not([disabled]):not([aria-current=true])": {
-        backgroundColor: (listener) => themeColor(listener, "shift-2"),
+        backgroundColor: (listener) => themeColor(listener, "shift-2", color),
       },
       // Menu uses the current/indicator band instead of the selected fill band.
       "&[aria-current=true]": {
