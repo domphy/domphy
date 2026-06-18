@@ -15,7 +15,20 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 
 - Build UIs as plain objects keyed by HTML tag (e.g. `{ button: "Click", $: [button()] }`).
 - Apply patches via `$`. Never wrap a native tag in a component abstraction.
-- **Never inline typography styles** (fontSize, color, margin, lineHeight). Use the typography patches: `small()`, `paragraph()`, `heading()`, `link()`, `strong()`, `emphasis()`, `code()`, `keyboard()`.
+- **Never inline typography styles** — `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, `fontFamily`, `textDecoration`, `color` in `style:` are ALL forbidden. Use patches instead:
+
+  | You want | Use patch | Example |
+  |---|---|---|
+  | small / secondary / caption / label / helper text | `small()` | `{ span: "hint", $: [small()] }` |
+  | body / paragraph text | `paragraph()` | `{ p: "body copy", $: [paragraph()] }` |
+  | heading / title | `heading()` | `{ h2: "Title", $: [heading()] }` |
+  | bold / emphasis | `strong()` | `{ strong: "bold", $: [strong()] }` |
+  | inline code | `code()` | `{ code: "fn()", $: [code()] }` |
+  | link | `link()` | `{ a: "click", href: "...", $: [link()] }` |
+  | colored text (error/warn/etc) | patch `color` prop | `{ span: "err", $: [small({ color: "error" })] }` |
+  | any literal hex/rgb color | `themeColor()` | `color: (l) => themeColor(l, "base", "error")` |
+
+  Remove `fontFamily` entirely — the theme owns the font stack.
 - **Forms use `@domphy/form`** — `createForm` from `@domphy/form/domphy`; bind inputs with `value: (l) => field.value(l)` + `onInput: (e) => field.handleChange(e.target.value)`. The old ui `form()`/`field()` patches and `FormState`/`FieldState` were REMOVED; only the layout patch `formGroup()` remains in `@domphy/ui`.
 - Reactive content/attributes use `(listener) => state.get(listener)`. A controlled input (value bound to a state you also `.set()` in `onInput`) is safe. For derived values prefer `computed(fn)` (lazy + cached); side-effects use `effect(fn)`; group disposal with `effectScope()`; coalesce writes with `batch(fn)`. In tests/imperative code, `flushSync()` drains pending reactivity synchronously so the DOM reflects a `.set()` immediately.
 - **Data/logic packages are 1-1 TanStack core ports + a Domphy adapter at the `/domphy` subpath** (`@domphy/core` is a peer dep): `createQuery`/`createMutation`/`createInfiniteQuery` (`@domphy/query/domphy`), `createDomphyTable` (`@domphy/table/domphy`), `createVirtualizer` (`@domphy/virtual/domphy`), `createForm` (`@domphy/form/domphy`), `createRouter`/`createRoute` (`@domphy/router`). Drag & drop: `dragDrop()` (`@domphy/dnd`). Animation: the `motion()` patch (`@domphy/ui`). Next-style app framework: `@domphy/app`.

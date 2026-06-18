@@ -199,8 +199,13 @@ export function buildDoctorFeedback(issues: string[], code: string): string {
   const typo = issues.filter((i) => i.startsWith("inline-typography"));
   if (typo.length > 0) {
     lines.push(
-      `- [error] inline-typography: Found ${typo.length} inline typography style(s).`,
-      "  Fix: use patches like heading(), paragraph(), small(), link(), strong() instead of style properties fontSize/color/lineHeight/fontWeight.",
+      `- [error] inline-typography: Found ${typo.length} inline typography style(s). NEVER set fontSize/fontWeight/lineHeight/letterSpacing/fontFamily/color in style:.`,
+      "  Replacements:",
+      "    style: { fontSize: '...' }    →  { span: '...', $: [small()] }  or  { p: '...', $: [paragraph()] }",
+      "    style: { fontWeight: '...' }  →  { strong: '...', $: [strong()] }",
+      "    style: { color: 'red' }       →  { span: '...', $: [small({ color: 'error' })] }",
+      "    style: { color: '#...' }      →  color: (l) => themeColor(l, 'base', 'colorName')",
+      "    style: { fontFamily: '...' }  →  remove entirely (theme owns the font stack)",
     );
   }
 

@@ -24,7 +24,14 @@ const App = {
 - **Plain objects keyed by tag.** First key = HTML tag; value = content (string | number | array | `(listener) => value` | `null` for void tags).
 - **Patches via `$`**, never wrapper components. Compose multiple: `$: [button(), tooltip({ content: "..." })]`. The native element always wins over patch defaults.
 - **Reactivity:** read with `(listener) => state.get(listener)`; write in events with `state.set(...)`. One-way data flow. Prefer `RecordState` for per-key reactivity. A controlled input (`value: (l) => s.get(l)` + `onInput: (e) => s.set(e.target.value)`) is safe.
-- **Never inline typography styles** (fontSize, color, margin, lineHeight…). Use typography patches: `small()`, `paragraph()`, `heading()`, `link()`, `strong()`, `emphasis()`, `code()`, `keyboard()`.
+- **Never inline typography styles** — `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, `fontFamily`, `textDecoration`, `color` in `style:` are ALL forbidden. Quick reference:
+  - Small / secondary / caption / label text → `{ span: "...", $: [small()] }`
+  - Body text → `{ p: "...", $: [paragraph()] }`
+  - Heading → `{ h2: "...", $: [heading()] }`
+  - Bold → `{ strong: "...", $: [strong()] }`
+  - Error / colored text → `{ span: "...", $: [small({ color: "error" })] }`
+  - Literal color → `color: (l) => themeColor(l, "base", "colorName")`
+  - `fontFamily` → remove entirely (theme owns the font stack)
 - **Theme, not hard-coded values:** `themeColor()`, `themeSpacing()`, `themeSize()`, `themeDensity()`; tones are `inherit`/`base`/`shift-N` (not `surface`/`text`).
 - **`_key`** on dynamic/reordered child lists (identity for reconcile). It is not DOM id / business identity.
 - **Lifecycle hooks** (`_onMount`, `_onBeforeRemove(node, done)` — must call `done()`, `_onRemove`) for imperative/3rd-party integration; events stay flat (`onClick`, `onInput`).
