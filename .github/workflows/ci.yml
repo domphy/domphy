@@ -12,7 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      PUPPETEER_SKIP_DOWNLOAD: true
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
 
     steps:
       - uses: actions/checkout@v4
@@ -23,6 +24,9 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+
+      - name: Environment info
+        run: node --version && pnpm --version
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
