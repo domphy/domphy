@@ -32,7 +32,10 @@ function pageLink(
   } as DomphyElement;
 }
 
-function navDropdown(item: { text: string; items: { text: string; link: string }[] }): DomphyElement {
+function navDropdown(item: {
+  text: string;
+  items: { text: string; link: string }[];
+}): DomphyElement {
   return {
     div: [
       { span: item.text, class: "dp-nav-dropdown-label" },
@@ -51,7 +54,9 @@ function header(config: SiteConfig): DomphyElement {
       { a: config.title, href: "/", class: "dp-logo" },
       {
         nav: config.nav.map((item) =>
-          item.items ? navDropdown(item as any) : pageLink(item.text, item.link!)
+          item.items
+            ? navDropdown(item as any)
+            : pageLink(item.text, item.link!),
         ),
         class: "dp-nav",
         ariaLabel: "Primary",
