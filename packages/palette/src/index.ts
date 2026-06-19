@@ -9,9 +9,3 @@ export type { ContrastValue, WcagContrasts, ApcaContrasts } from "./Ramp";
 export { Palette } from "./Palette";
 export type { PaletteColors } from "./Palette";
 
-// Generator: produce optimal color ramps (pure-JS, no WASM).
-export { generateRamp } from "./generator";
-
-// Optimizer: tune the generator's warp parameters.
-export { optimize } from "./optimize";
-export type { OptimizeOptions, OptimizeResult } from "./optimize";

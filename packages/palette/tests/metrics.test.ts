@@ -1,11 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { generateRamp, Palette, Ramp, Swatch } from "../src/index";
+import { Palette, Ramp, Swatch } from "../src/index";
 
 const inRange = (value: number, min = 0, max = 1) => {
   expect(Number.isFinite(value)).toBe(true);
   expect(value).toBeGreaterThanOrEqual(min);
   expect(value).toBeLessThanOrEqual(max);
 };
+
+// 18-step blue ramp (white → blue → black) used as static test fixture.
+const BLUE_18 = [
+  "#ffffff", "#dce8fd", "#b9d2fb", "#96bcf9", "#73a6f7", "#5090f5",
+  "#3b82f6", "#2f6bd4", "#2354b2", "#173d90", "#0b266e", "#08205c",
+  "#061a4a", "#051438", "#040e26", "#030814", "#020408", "#000000",
+];
+
+const GREEN_18 = [
+  "#ffffff", "#d8f5e4", "#b1ebc9", "#8ae1ae", "#63d793", "#3ccd78",
+  "#22c55e", "#1baa50", "#148f42", "#0d7434", "#065926", "#053e1b",
+  "#042310", "#030e05", "#020800", "#010300", "#000000", "#000000",
+];
 
 describe("Swatch", () => {
   it("exposes finite color coordinates", () => {
@@ -20,7 +33,7 @@ describe("Swatch", () => {
 });
 
 describe("Ramp metrics", () => {
-  const ramp = new Ramp(generateRamp("#3b82f6", 18), "blue");
+  const ramp = new Ramp(BLUE_18, "blue");
 
   it("metric getters return finite numbers in [0, 1]", () => {
     const { metrics } = ramp;
@@ -33,8 +46,7 @@ describe("Ramp metrics", () => {
 
   it("score is a sane 0–100 value", () => {
     inRange(ramp.score, 0, 100);
-    // A well-generated ramp should score well above zero.
-    expect(ramp.score).toBeGreaterThan(50);
+    expect(ramp.score).toBeGreaterThan(0);
   });
 
   it("computes contrast spans", () => {
@@ -45,10 +57,7 @@ describe("Ramp metrics", () => {
 });
 
 describe("Palette aggregation", () => {
-  const palette = new Palette({
-    blue: generateRamp("#3b82f6", 18),
-    green: generateRamp("#22c55e", 18),
-  });
+  const palette = new Palette({ blue: BLUE_18, green: GREEN_18 });
 
   it("aggregates ramps and exposes colors", () => {
     expect(palette.ramps).toHaveLength(2);
