@@ -11,15 +11,15 @@ const App = {
 }
 ```
 
-**Plain objects. Patches, not wrapper components. No JSX.**
+**Reactive UI without React.**
 
-Domphy is a patch-based UI framework — elements are plain JS objects, behavior is applied via `$` patches on native elements, and the full TanStack data suite (query, table, router, form, virtual) runs without React.
+`{ button: 'Save', $: [button()] }` — that's a Domphy component. A plain JS object. No JSX, no compiler, no React peer dep. Drop it in a script tag and it works.
 
-Rough ecosystem mapping: `@domphy/core` ≈ react-dom + SSR + CSS-in-JS in one package. `@domphy/theme` + `@domphy/ui` ≈ MUI. The data packages are the same TanStack cores you know — just without the React peer dep.
+The full TanStack suite (query, table, router, form, virtual) runs on Domphy with byte-identical APIs — same `createQuery`/`createTable`/`createRouter` you already know, just without the React peer dependency.
 
-**Fits tool apps well.** SketchUp plugins, Figma panels, browser extensions, dashboards — you get reactivity + design system + TanStack data tools without a React runtime, a JSX compiler, or the React ecosystem's churn. No overhead tax for apps that don't need a full SPA.
+**Good fit for tool apps** (plugins, extensions, dashboards): you get reactivity + a full design system + TanStack data tools without shipping a 40 kB runtime or setting up a JSX compiler.
 
-**If you use AI to code:** plain objects are what LLMs generate naturally, and `@domphy/doctor` validates the output — the model reads the report and fixes its own mistakes (see [Building with AI](#building-with-ai)).
+**Works well with AI**: plain objects are what LLMs generate naturally, and `@domphy/doctor` validates the output — the model reads the report and self-corrects (see [Building with AI](#building-with-ai)).
 
 ## Packages
 

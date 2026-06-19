@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Domphy
-  text: Plain objects. Patches, not wrappers.
-  tagline: Write UI as plain JS objects. Compose behavior with patches. Use TanStack query/table/router/form — without React.
+  text: Reactive UI without React.
+  tagline: "{ button: 'Save', $: [button()] } — that's your component. No JSX, no compiler, no React peer dep. Full TanStack suite included."
   actions:
     - theme: brand
       text: Get Started
@@ -17,16 +17,16 @@ hero:
       link: https://github.com/domphy/domphy
 
 features:
-  - title: Plain objects, no JSX
-    details: Elements are "{ button: 'Save', $: [patch()] }". No build step, no compiler, no syntax to learn. Reads like data, runs anywhere.
-  - title: Patches, not wrapper components
-    details: Compose behavior directly on native elements — $:[button(), tooltip()]. Your DOM stays clean. No mystery div > div > button > span.
-  - title: TanStack suite, no React
-    details: query, table, router, virtual, form — byte-identical TanStack cores + thin adapters. Same API you already know, no React peer dep.
-  - title: AI code that actually works
-    details: Plain objects are what LLMs naturally generate. @domphy/doctor validates generated trees and reports exactly what's wrong — models self-correct without you debugging JSX.
-  - title: Right-sized for tool apps
-    details: SketchUp plugins, Figma panels, browser extensions, dashboards — you get reactivity + design system + TanStack data tools with no React runtime, no JSX compiler, no framework overhead.
+  - title: No compiler, no syntax tax
+    details: "{ button: 'Save' } is a valid element. Drop it in a script tag and it runs. Add a JSX compiler later if you want — you don't have to."
+  - title: Add behavior, not abstraction
+    details: "Want a tooltip on a button? $: [button(), tooltip()]. One DOM node. No wrapper component, no mystery div > div > button > span."
+  - title: TanStack, minus the React dep
+    details: createQuery, createTable, createRouter, createForm, createVirtualizer — byte-identical TanStack cores, thin Domphy adapter. Same API you know. No React peer dep.
+  - title: Right size for tool apps
+    details: Building a plugin, extension, or dashboard? You need reactivity and a design system — not a 40 kB runtime. Domphy fits in a script tag.
+  - title: AI generates it correctly
+    details: Plain objects are what LLMs produce. @domphy/doctor catches what they get wrong and tells the model exactly what to fix — no manual debugging.
 ---
 
 ## Installation
