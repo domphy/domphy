@@ -32,12 +32,27 @@ function pageLink(
   } as DomphyElement;
 }
 
+function navDropdown(item: { text: string; items: { text: string; link: string }[] }): DomphyElement {
+  return {
+    div: [
+      { span: item.text, class: "dp-nav-dropdown-label" },
+      {
+        div: item.items.map((child) => pageLink(child.text, child.link)),
+        class: "dp-nav-dropdown-menu",
+      },
+    ],
+    class: "dp-nav-dropdown",
+  };
+}
+
 function header(config: SiteConfig): DomphyElement {
   return {
     header: [
       { a: config.title, href: "/", class: "dp-logo" },
       {
-        nav: config.nav.map((item) => pageLink(item.text, item.link)),
+        nav: config.nav.map((item) =>
+          item.items ? navDropdown(item as any) : pageLink(item.text, item.link!)
+        ),
         class: "dp-nav",
         ariaLabel: "Primary",
       },

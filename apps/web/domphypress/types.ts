@@ -12,7 +12,10 @@ export type { TocEntry };
 
 export interface NavItem {
   text: string;
-  link: string;
+  /** Leaf link. Omit when the item is a dropdown group. */
+  link?: string;
+  /** Dropdown children. When present, renders as a hover/click dropdown. */
+  items?: { text: string; link: string }[];
 }
 
 export interface SidebarItem {

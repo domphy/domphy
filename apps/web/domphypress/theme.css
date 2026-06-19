@@ -102,6 +102,53 @@ a:hover {
   color: var(--dp-brand);
   text-decoration: none;
 }
+.dp-nav-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.dp-nav-dropdown-label {
+  color: var(--dp-text-soft);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  padding: 4px 0;
+  user-select: none;
+}
+.dp-nav-dropdown-label::after {
+  content: " ▾";
+  font-size: 10px;
+  opacity: 0.6;
+}
+.dp-nav-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: var(--dp-bg-soft);
+  border: 1px solid var(--dp-border);
+  border-radius: 8px;
+  padding: 6px;
+  min-width: 160px;
+  z-index: 100;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+.dp-nav-dropdown-menu a {
+  display: block;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 13px;
+}
+.dp-nav-dropdown-menu a:hover {
+  background: var(--dp-bg-mute);
+}
+.dp-nav-dropdown:hover .dp-nav-dropdown-menu,
+.dp-nav-dropdown:focus-within .dp-nav-dropdown-menu {
+  display: flex;
+}
 .dp-header-actions {
   display: flex;
   align-items: center;
