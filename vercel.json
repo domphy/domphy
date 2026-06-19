@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pnpm --filter domphy-web build",
+  "outputDirectory": "apps/web/.vitepress/dist",
+  "installCommand": "pnpm install --ignore-scripts"
+}
