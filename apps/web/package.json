@@ -8,7 +8,6 @@
     "diagram": "node scripts/mermaid",
     "llms": "node scripts/llms-full.mjs",
     "manifest": "node scripts/manifest.mjs",
-    "dev": "tsx domphypress/dev.ts",
     "preview": "tsx domphypress/serve.ts",
     "build": "pnpm --filter \"@domphy/*\" build && node scripts/manifest.mjs && node scripts/llms-full.mjs && tsx domphypress/build.ts",
     "postinstall": "puppeteer browsers install chrome-headless-shell"

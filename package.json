@@ -4,7 +4,6 @@
   "main": "index.js",
   "scripts": {
     "build": "pnpm -r build",
-    "dev": "pnpm -r --parallel dev",
     "test": "pnpm -r test",
     "check": "biome check .",
     "fix": "biome check --write .",
