@@ -87,6 +87,7 @@ a:hover {
 .dp-nav {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 16px;
   flex: 1;
   overflow-x: hidden;
