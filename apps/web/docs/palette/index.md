@@ -1,26 +1,14 @@
 # Palette
 
-`@domphy/palette` is Domphy's color-palette engine: it **generates** accessible sequential color ramps and **measures** their quality. It is the design-time companion to `@domphy/theme` — theme ships the runtime tokens, palette generates and validates the ramps behind them.
+`@domphy/palette` is Domphy's color-palette quality engine: **measure and validate** sequential color ramps using five perceptual metrics in CIELAB. It is the design-time companion to `@domphy/theme` — theme ships the runtime tokens, palette validates the ramps behind them.
 
-Framework-agnostic, zero dependencies, pure color science in CIELAB. (Ported from the *Chromametry* research project, same author.)
+Framework-agnostic, zero dependencies, pure color science. (Ported from the *Chromametry* research project, same author.)
 
 ## Install
 
 ```bash
 npm install @domphy/palette
 ```
-
-## Generate
-
-`generateRamp(seedHexes, steps)` produces a perceptually-even, WCAG-aware ramp:
-
-```ts
-import { generateRamp } from "@domphy/palette"
-
-const blue = generateRamp(["#3b82f6"], 18) // 18 hex stops, white → color → black
-```
-
-`optimize()` searches the generator's warp parameters against the quality metrics — it's how the built-in defaults were tuned.
 
 ## Measure
 
@@ -43,9 +31,8 @@ palette.score // aggregate score across all ramps
 
 ## Why this matters
 
-Most design systems hand-pick color steps; few can *prove* their palettes are perceptually even and accessible. `@domphy/palette` makes palette quality a measurable, optimizable property — and `@domphy/theme` is built on top of it.
+Most design systems hand-pick color steps; few can *prove* their palettes are perceptually even and accessible. `@domphy/palette` makes palette quality a measurable property — and `@domphy/theme` is built on top of it.
 
-## The two papers
+## Paper
 
-1. [**Measuring palette quality**](./measuring) — the five metrics, how they're computed, and a benchmark of popular design systems.
-2. [**Generating accessible palettes**](./generating) — how the ramp generator produces even, WCAG-aware ramps, and how it's tuned.
+[**Measuring palette quality**](./measuring) — the five metrics, how they're computed, and a benchmark of popular design systems.

@@ -215,11 +215,7 @@ export const config: SiteConfig = {
     "/docs/doctor/": [{ text: "Overview", link: "/docs/doctor/" }],
     "/docs/palette/": [
       { text: "Overview", link: "/docs/palette/" },
-      { text: "Paper I — Measuring Quality", link: "/docs/palette/measuring" },
-      {
-        text: "Paper II — Generating Palettes",
-        link: "/docs/palette/generating",
-      },
+      { text: "Paper — Measuring Quality", link: "/docs/palette/measuring" },
     ],
     "/docs/app/": [
       { text: "Overview", link: "/docs/app/" },

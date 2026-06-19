@@ -4714,79 +4714,19 @@ The adapter tears down FormKit's listeners automatically on removal (`_onRemove`
 
 ## Palette docs (`@domphy/palette`)
 
-### generating.md
-
-# Paper II — Generating Accessible Palettes
-
-[Paper I](./measuring) defines what makes a sequential ramp good. This paper describes how `@domphy/palette`'s generator produces ramps that score well **by construction**, and how it was tuned against those very metrics.
-
-```ts
-import { generateRamp } from "@domphy/palette"
-const blue = generateRamp(["#3b82f6"], 18) // white → color → black, 18 perceptual steps
-```
-
-## The model
-
-From one or more seed colors, the generator builds a ramp from light to dark by interpolating in a **perceptual** space rather than sRGB:
-
-1. **Anchor in CIELAB / OKLab.** The seed is converted to perceptual coordinates so interpolation moves the way the eye sees, not the way bytes increase.
-2. **Lightness on an H–K-corrected axis.** Steps are placed on an *equivalent achromatic lightness* axis (`toLightnessEAL` / `fromLightnessEAL`) that accounts for the Helmholtz–Kohlrausch effect — highly chromatic colors appear lighter than their L\* suggests, so the ramp compensates to keep **lightness linearity** high.
-3. **A tuned lightness warp.** A two-parameter warp `(p, q)` reshapes the lightness distribution so the ramp spends its range where it matters — guaranteeing a WCAG **4.5:1** contrast pair exists (high **contrast efficiency**) instead of wasting steps at the extremes.
-4. **Monotone chroma.** Chroma across the ramp is fitted with **monotone cubic splines** (`createMonotone`), so the saturation arc is smooth with no kinks (high **chroma smoothness**) and hue is held steady (high **hue stability**).
-5. **Even spacing.** The step placement targets uniform **ΔE2000** between neighbors (high **spacing uniformity**).
-
-The output is a list of hex stops directly usable as design-system tokens.
-
-## Tuned by the metrics
-
-The warp defaults (`p = 0.605`, `q = 0.685`) were not guessed — they were found by `optimize()`, which searches the parameter space and scores each candidate ramp with the [Paper I metrics](./measuring), keeping the parameters that maximize the geometric-mean score:
-
-```ts
-import { optimize } from "@domphy/palette"
-const result = optimize() // grid + refine search → best (p, q) and score
-```
-
-This closes the loop: **the same metrics that grade a palette also tune the generator that makes one.** Generation and validation are one science, not two heuristics.
-
-## With Domphy
-
-Generate a ramp, validate it, feed it to the theme:
-
-```ts
-import { generateRamp, Ramp } from "@domphy/palette"
-
-const brand = generateRamp(["#7c3aed"], 18)
-console.log(new Ramp(brand, "brand").score) // verify before shipping
-// → register `brand` as a theme color ramp in @domphy/theme
-```
-
-`@domphy/theme` ships Adobe-Spectrum-derived ramps by default (top of the [benchmark](./measuring)); `@domphy/palette` lets you generate brand ramps to the same standard and prove it.
-
 ### index.md
 
 # Palette
 
-`@domphy/palette` is Domphy's color-palette engine: it **generates** accessible sequential color ramps and **measures** their quality. It is the design-time companion to `@domphy/theme` — theme ships the runtime tokens, palette generates and validates the ramps behind them.
+`@domphy/palette` is Domphy's color-palette quality engine: **measure and validate** sequential color ramps using five perceptual metrics in CIELAB. It is the design-time companion to `@domphy/theme` — theme ships the runtime tokens, palette validates the ramps behind them.
 
-Framework-agnostic, zero dependencies, pure color science in CIELAB. (Ported from the *Chromametry* research project, same author.)
+Framework-agnostic, zero dependencies, pure color science. (Ported from the *Chromametry* research project, same author.)
 
 ## Install
 
 ```bash
 npm install @domphy/palette
 ```
-
-## Generate
-
-`generateRamp(seedHexes, steps)` produces a perceptually-even, WCAG-aware ramp:
-
-```ts
-import { generateRamp } from "@domphy/palette"
-
-const blue = generateRamp(["#3b82f6"], 18) // 18 hex stops, white → color → black
-```
-
-`optimize()` searches the generator's warp parameters against the quality metrics — it's how the built-in defaults were tuned.
 
 ## Measure
 
@@ -4809,12 +4749,11 @@ palette.score // aggregate score across all ramps
 
 ## Why this matters
 
-Most design systems hand-pick color steps; few can *prove* their palettes are perceptually even and accessible. `@domphy/palette` makes palette quality a measurable, optimizable property — and `@domphy/theme` is built on top of it.
+Most design systems hand-pick color steps; few can *prove* their palettes are perceptually even and accessible. `@domphy/palette` makes palette quality a measurable property — and `@domphy/theme` is built on top of it.
 
-## The two papers
+## Paper
 
-1. [**Measuring palette quality**](./measuring) — the five metrics, how they're computed, and a benchmark of popular design systems.
-2. [**Generating accessible palettes**](./generating) — how the ramp generator produces even, WCAG-aware ramps, and how it's tuned.
+[**Measuring palette quality**](./measuring) — the five metrics, how they're computed, and a benchmark of popular design systems.
 
 ### measuring.md
 
@@ -4868,7 +4807,7 @@ const score = new Palette({ blue, red, green }).score
 if (score < 80) console.warn("palette quality below target")
 ```
 
-Run it in CI to keep a design system's palettes measurably accessible over time. See [Paper II — Generating accessible palettes](./generating) for how the generator produces high-scoring ramps by construction.
+Run it in CI to keep a design system's palettes measurably accessible over time.
 
 
 
@@ -6214,8 +6153,9 @@ interface Diagnostic {
 
 | Rule | Severity | Catches |
 | --- | --- | --- |
-| `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` literals in `style` — use a typography patch |
-| `raw-theme-value` | info | a literal hex/rgb/hsl color in a color style prop (`color`, `background`, `border`, `fill`, …) — use `themeColor()` so theming/dark mode apply |
+| `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` / `fontFamily` / `textDecoration` literals in `style` — use a typography patch |
+| `raw-theme-value` | info | a literal hex/rgb/hsl color in a color style prop (`color`, `background`, `border`, `fill`, …). The hint uses **`@domphy/palette` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
+| `raw-spacing-value` | info | a literal `rem`/`em`/`px` value in a layout spacing prop (`padding`, `margin`, `gap`, …) — suggests `themeSpacing(n)` for consistent theme density |
 | `unknown-tone` | warning | a `dataTone` value that isn't valid tone grammar (`inherit` / `base` / a number / `shift-N` / `increase-N` / `decrease-N`) — catches invented words like `surface` / `text` |
 | `void-content` | error | a void tag (`input`, `img`, `br`, …) with non-null content |
 | `missing-key` | warning | a **dynamic** list (returned by a reactive function) of element children missing `_key` |
@@ -6477,12 +6417,7 @@ export { avatar };
 ### badge
 
 ```ts
-import {
-  type DomphyElement,
-  type PartialElement,
-  toState,
-  type ValueOrState,
-} from "@domphy/core";
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -7217,7 +7152,7 @@ import {
  */
 function command(): PartialElement {
   return {
-    _onSchedule: (node, element) => {
+    _onSchedule: (_node, element) => {
       merge(element, {
         _context: {
           command: {
@@ -9009,8 +8944,8 @@ function inputColor(
     accentColor?: ValueOrState<ThemeColor>;
   } = {},
 ): PartialElement {
-  const color = toState(props.color ?? "neutral", "color");
-  const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+  const _color = toState(props.color ?? "neutral", "color");
+  const _accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
     type: "color",
@@ -9336,7 +9271,7 @@ function inputOTP(): PartialElement {
       alignItems: "center",
       gap: themeSpacing(2),
       "& > *": {
-        minWidth: themeSpacing(9) + "!important",
+        minWidth: `${themeSpacing(9)}!important`,
       },
     },
     _onMount: (node) => {
@@ -10112,7 +10047,7 @@ function menu(
   const partial: PartialElement = {
     role: "menu",
     dataTone: "shift-17",
-    _onSchedule: (node, element) => {
+    _onSchedule: (_node, element) => {
       const partial = {
         _context: {
           menu: {
@@ -10182,17 +10117,17 @@ function menuItem(
       let children = (node.parent?.children.items ?? []) as ElementNode[];
       children = children.filter(
         (n) =>
-          n.type == "ElementNode" && n.attributes.get("role") == "menuitem",
+          n.type === "ElementNode" && n.attributes.get("role") === "menuitem",
       );
       // Strict key check: an explicit _key of 0 or "" must not fall back to index.
       const key =
         node.key !== null && node.key !== undefined
           ? node.key
-          : children.findIndex((n) => n == node);
+          : children.indexOf(node);
       if (context.selectable) {
         node.attributes.set(
           "ariaCurrent",
-          (listener) => context.activeKey.get(listener) == key || undefined,
+          (listener) => context.activeKey.get(listener) === key || undefined,
         );
         node.addEvent("click", () => context.activeKey.set(key));
       }
@@ -10211,7 +10146,7 @@ function menuItem(
           n.type === "ElementNode" &&
           (n as ElementNode).attributes.get("role") === "menuitem",
       ) as ElementNode[];
-      const idx = items.findIndex((n) => n === node);
+      const idx = items.indexOf(node);
       let next = idx;
       if (k === "ArrowDown") next = (idx + 1) % items.length;
       else if (k === "ArrowUp") next = (idx - 1 + items.length) % items.length;
@@ -10223,17 +10158,17 @@ function menuItem(
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
-      gap: (listener) => themeSpacing(2),
+      gap: (_listener) => themeSpacing(2),
       width: "100%",
       fontSize: (listener) => themeSize(listener, "inherit"),
       height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       border: "none",
       outline: "none",
-      color: (listener) => themeColor(listener, "shift-9"),
-      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      color: (listener) => themeColor(listener, "shift-9", color),
+      backgroundColor: (listener) => themeColor(listener, "inherit", color),
       "&:hover:not([disabled]):not([aria-current=true])": {
-        backgroundColor: (listener) => themeColor(listener, "shift-2"),
+        backgroundColor: (listener) => themeColor(listener, "shift-2", color),
       },
       // Menu uses the current/indicator band instead of the selected fill band.
       "&[aria-current=true]": {
@@ -10601,12 +10536,7 @@ export { pagination };
 
 ```ts
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
-import {
-  type ThemeColor,
-  themeColor,
-  themeSize,
-  themeSpacing,
-} from "@domphy/theme";
+import { type ThemeColor, themeColor, themeSize } from "@domphy/theme";
 
 /**
  * Themed paragraph primitive: comfortable line-height, reset margins and themed
@@ -10648,7 +10578,6 @@ import {
   type DomphyElement,
   merge,
   type PartialElement,
-  State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -11232,7 +11161,7 @@ export { selectBox };
 ### selectItem
 
 ```ts
-import { type PartialElement, type State, toState } from "@domphy/core";
+import type { PartialElement } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -11273,7 +11202,7 @@ function selectItem(
         const state = select.value;
         node.attributes.set("ariaSelected", (listener) => {
           const val = state.get(listener);
-          return select.multiple ? val.includes(value) : val == value;
+          return select.multiple ? val.includes(value) : val === value;
         });
         node.addEvent("click", () => {
           const val = state.get();
@@ -11282,7 +11211,7 @@ function selectItem(
               ? state.set(val.filter((v: number | string) => v !== value))
               : state.set(val.concat([value]));
           } else {
-            val != value && state.set(value);
+            val !== value && state.set(value);
           }
         });
       }
@@ -11325,7 +11254,6 @@ export { selectItem };
 import {
   type DomphyElement,
   type PartialElement,
-  State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -11595,7 +11523,7 @@ function splitter(
     max = 90,
   } = props;
   return {
-    _onSchedule: (node, element) => {
+    _onSchedule: (_node, element) => {
       merge(element, {
         _context: {
           splitter: {
@@ -11864,17 +11792,17 @@ function tab(
       }
       let children = (node.parent?.children.items ?? []) as ElementNode[];
       children = children.filter(
-        (n) => n.type == "ElementNode" && n.attributes.get("role") == "tab",
+        (n) => n.type === "ElementNode" && n.attributes.get("role") === "tab",
       );
       const key =
         node.key !== null && node.key !== undefined
           ? node.key
-          : children.findIndex((n) => n == node);
+          : children.indexOf(node);
 
       const part: PartialElement = {
-        id: "tab" + node.parent!.nodeId + key,
-        ariaControls: "tabpanel" + node.parent!.nodeId + key,
-        ariaSelected: (listener) => context.activeKey.get(listener) == key,
+        id: `tab${node.parent!.nodeId}${key}`,
+        ariaControls: `tabpanel${node.parent!.nodeId}${key}`,
+        ariaSelected: (listener) => context.activeKey.get(listener) === key,
         onClick: () => context.activeKey.set(key),
         onKeyDown: (e: Event) => {
           const k = (e as KeyboardEvent).key;
@@ -11885,7 +11813,7 @@ function tab(
               n.type === "ElementNode" &&
               (n as ElementNode).attributes.get("role") === "tab",
           ) as ElementNode[];
-          const idx = tabs.findIndex((n) => n === node);
+          const idx = tabs.indexOf(node);
           let next = idx;
           if (k === "ArrowRight") next = (idx + 1) % tabs.length;
           else if (k === "ArrowLeft")
@@ -11933,8 +11861,8 @@ export { tab };
 ### tabPanel
 
 ```ts
-import { type ElementNode, merge, type PartialElement } from "@domphy/core";
-import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import type { ElementNode, PartialElement } from "@domphy/core";
+import { themeDensity, themeSpacing } from "@domphy/theme";
 
 /**
  * Styles a tab panel inside a `tabs` tablist. Wires up the panel's
@@ -11960,16 +11888,16 @@ function tabPanel(): PartialElement {
       let children = (node.parent?.children.items ?? []) as ElementNode[];
       children = children.filter(
         (n) =>
-          n.type == "ElementNode" && n.attributes.get("role") == "tabpanel",
+          n.type === "ElementNode" && n.attributes.get("role") === "tabpanel",
       );
       const key =
         node.key !== null && node.key !== undefined
           ? node.key
-          : children.findIndex((n) => n == node);
+          : children.indexOf(node);
       const part: PartialElement = {
-        id: "tabpanel" + node.parent!.nodeId + key,
-        ariaLabelledby: "tab" + node.parent!.nodeId + key,
-        hidden: (listener) => context.activeKey.get(listener) != key,
+        id: `tabpanel${node.parent!.nodeId}${key}`,
+        ariaLabelledby: `tab${node.parent!.nodeId}${key}`,
+        hidden: (listener) => context.activeKey.get(listener) !== key,
       };
       node.merge(part);
     },
@@ -11983,12 +11911,7 @@ export { tabPanel };
 ### table
 
 ```ts
-import {
-  type DomphyElement,
-  type PartialElement,
-  toState,
-  type ValueOrState,
-} from "@domphy/core";
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -12059,7 +11982,7 @@ function table(
 
       "& tbody tr:hover": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-2") + "!important",
+          `${themeColor(listener, "shift-2")}!important`,
       },
     },
   };
@@ -12091,7 +12014,7 @@ function tabs(
 ): PartialElement {
   const partial: PartialElement = {
     role: "tablist",
-    _onSchedule: (node, element) => {
+    _onSchedule: (_node, element) => {
       const partial = {
         _context: {
           tabs: {
@@ -12235,7 +12158,7 @@ function textarea(
         el.style.overflow = "hidden";
         const resize = () => {
           el.style.height = "auto";
-          el.style.height = el.scrollHeight + "px";
+          el.style.height = `${el.scrollHeight}px`;
         };
         el.addEventListener("input", resize);
         resize();
@@ -12514,11 +12437,7 @@ export { toggle };
 ### toggleGroup
 
 ```ts
-import {
-  type PartialElement,
-  toState,
-  type ValueOrState,
-} from "@domphy/core";
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,

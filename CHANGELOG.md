@@ -58,7 +58,7 @@ Packages are versioned in lockstep. All packages share the same version number.
 ## [0.12.0] — 2026-05-28
 
 ### Added
-- `@domphy/palette`: new package — color palette engine: `generateRamp`, `Ramp`, `Palette` (5 CIELAB quality metrics). Design-time companion to `@domphy/theme`. Ported from the Chromametry project.
+- `@domphy/palette`: new package — color palette quality engine: `Ramp`, `Palette`, `Swatch` (5 CIELAB metrics). Design-time companion to `@domphy/theme`. Ported from the Chromametry project.
 
 ---
 

@@ -140,9 +140,9 @@ Render Mermaid diagrams for Domphy — build-time `renderMermaidToSvg` / `render
 
 ## Palette (`@domphy/palette`)
 
-Color-palette engine (design-time companion to `@domphy/theme`): generate accessible ramps (`generateRamp`) + measure palette quality (5 CIELAB metrics).
+Color-palette quality engine (design-time companion to `@domphy/theme`): measure palette quality with 5 CIELAB metrics (`Ramp`, `Palette`, `Swatch`).
 
-- [Overview](https://www.domphy.com/docs/palette/) · [Measuring quality](https://www.domphy.com/docs/palette/measuring) · [Generating palettes](https://www.domphy.com/docs/palette/generating)
+- [Overview](https://www.domphy.com/docs/palette/) · [Measuring quality](https://www.domphy.com/docs/palette/measuring)
 
 ## Doctor (`@domphy/doctor`)
 

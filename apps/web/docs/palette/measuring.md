@@ -48,4 +48,4 @@ const score = new Palette({ blue, red, green }).score
 if (score < 80) console.warn("palette quality below target")
 ```
 
-Run it in CI to keep a design system's palettes measurably accessible over time. See [Paper II — Generating accessible palettes](./generating) for how the generator produces high-scoring ramps by construction.
+Run it in CI to keep a design system's palettes measurably accessible over time.
