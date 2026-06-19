@@ -11,13 +11,11 @@ const App = {
 }
 ```
 
-**Reactive UI without React.**
+**UI as plain objects. No JSX, no compiler.**
 
-`{ button: 'Save', $: [button()] }` — that's a Domphy component. A plain JS object. No JSX, no compiler, no React peer dep. Drop it in a script tag and it works.
+`{ button: 'Save', $: [button()] }` — that's a Domphy component. Paste it in a script tag and it runs. No build step, no framework overhead, no wrappers around your DOM.
 
-The full TanStack suite (query, table, router, form, virtual) runs on Domphy with byte-identical APIs — same `createQuery`/`createTable`/`createRouter` you already know, just without the React peer dependency.
-
-**Good fit for tool apps** (plugins, extensions, dashboards): you get reactivity + a full design system + TanStack data tools without shipping a 40 kB runtime or setting up a JSX compiler.
+**Good fit for tool apps** (plugins, extensions, dashboards, panels): you get reactivity + 74 polished UI patches + a full design system without shipping a 40 kB runtime or setting up a JSX compiler.
 
 **Works well with AI**: plain objects are what LLMs generate naturally, and `@domphy/doctor` validates the output — the model reads the report and self-corrects (see [Building with AI](#building-with-ai)).
 
