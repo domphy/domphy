@@ -84,16 +84,12 @@ a:hover {
 .dp-logo:hover {
   text-decoration: none;
 }
-.dp-header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-left: auto;
-}
 .dp-nav {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1;
+  overflow-x: hidden;
 }
 .dp-nav a {
   color: var(--dp-text-soft);
@@ -158,9 +154,12 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 .dp-search-slot {
   width: 200px;
+  display: flex;
+  align-items: center;
 }
 .dp-theme-toggle,
 .dp-menu-toggle {
