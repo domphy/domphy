@@ -111,7 +111,7 @@ a:hover {
   display: none;
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  right: 0;
   background: var(--dp-bg-soft);
   border: 1px solid var(--dp-border);
   border-radius: 8px;
@@ -156,7 +156,7 @@ a:hover {
   cursor: pointer;
 }
 .dp-search-static::placeholder {
-  color: var(--dp-text-mute);
+  color: var(--dp-text-soft);
 }
 .dp-theme-toggle,
 .dp-menu-toggle {
