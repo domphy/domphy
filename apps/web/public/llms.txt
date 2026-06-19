@@ -1,6 +1,6 @@
 # Domphy
 
-> The AI-friendly UI framework. `@domphy/core` is the runtime (reactivity, rendering, CSS-in-JS, SSR). `@domphy/theme` provides design tokens. `@domphy/ui` ships 74 patches that customize native HTML tags — no components, no JSX, no virtual DOM. Built to be **learnable by AI in-context** (this file) and **self-correcting** via `@domphy/doctor`, so agents write correct Domphy despite little training data.
+> The AI-friendly UI framework. `@domphy/core` is the runtime (reactivity, rendering, CSS-in-JS, SSR). `@domphy/theme` provides design tokens. `@domphy/ui` ships 74 patches that customize native HTML tags — no components, no JSX, no virtual DOM. Built to be **learnable by AI in-context** (this file) and **self-correcting** via `@domphy/doctor`, so agents write correct Domphy despite little training data. **Fits tool apps well** (SketchUp/Figma plugins, browser extensions, dashboards) — full reactivity + design system + TanStack data tools with no React runtime or JSX compiler.
 
 A **patch** is a function returning a `PartialElement`: a stateless descriptor applied to a host element via the `$` property. Patches carry no rendering lifecycle, own no state, and create no DOM boundary. Compose by listing multiple patches; the runtime merges them on the native element.
 

@@ -25,6 +25,8 @@ features:
     details: query, table, router, virtual, form — byte-identical TanStack cores + thin adapters. Same API you already know, no React peer dep.
   - title: AI code that actually works
     details: Plain objects are what LLMs naturally generate. @domphy/doctor validates generated trees and reports exactly what's wrong — models self-correct without you debugging JSX.
+  - title: Right-sized for tool apps
+    details: SketchUp plugins, Figma panels, browser extensions, dashboards — you get reactivity + design system + TanStack data tools with no React runtime, no JSX compiler, no framework overhead.
 ---
 
 ## Installation

@@ -17,6 +17,8 @@ Domphy is a patch-based UI framework — elements are plain JS objects, behavior
 
 Rough ecosystem mapping: `@domphy/core` ≈ react-dom + SSR + CSS-in-JS in one package. `@domphy/theme` + `@domphy/ui` ≈ MUI. The data packages are the same TanStack cores you know — just without the React peer dep.
 
+**Fits tool apps well.** SketchUp plugins, Figma panels, browser extensions, dashboards — you get reactivity + design system + TanStack data tools without a React runtime, a JSX compiler, or the React ecosystem's churn. No overhead tax for apps that don't need a full SPA.
+
 **If you use AI to code:** plain objects are what LLMs generate naturally, and `@domphy/doctor` validates the output — the model reads the report and fixes its own mistakes (see [Building with AI](#building-with-ai)).
 
 ## Packages
