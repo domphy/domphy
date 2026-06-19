@@ -84,11 +84,16 @@ a:hover {
 .dp-logo:hover {
   text-decoration: none;
 }
-.dp-nav {
+.dp-header-right {
   display: flex;
   align-items: center;
   gap: 16px;
   margin-left: auto;
+}
+.dp-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 .dp-nav a {
   color: var(--dp-text-soft);
@@ -153,7 +158,6 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: 16px;
 }
 .dp-search-slot {
   width: 200px;

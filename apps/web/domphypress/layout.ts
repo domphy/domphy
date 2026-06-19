@@ -53,34 +53,38 @@ function header(config: SiteConfig): DomphyElement {
     header: [
       { a: config.title, href: "/", class: "dp-logo" },
       {
-        nav: config.nav.map((item) =>
-          item.items
-            ? navDropdown(item as any)
-            : pageLink(item.text, item.link!),
-        ),
-        class: "dp-nav",
-        ariaLabel: "Primary",
-      },
-      {
         div: [
-          // Search island: the bootstrap mounts the Domphy search widget here.
-          { div: "", dataIsland: "search", class: "dp-search-slot" },
           {
-            button: "◐",
-            type: "button",
-            class: "dp-theme-toggle",
-            ariaLabel: "Toggle dark mode",
-            dataThemeToggle: "",
+            nav: config.nav.map((item) =>
+              item.items
+                ? navDropdown(item as any)
+                : pageLink(item.text, item.link!),
+            ),
+            class: "dp-nav",
+            ariaLabel: "Primary",
           },
           {
-            button: "☰",
-            type: "button",
-            class: "dp-menu-toggle",
-            ariaLabel: "Toggle menu",
-            dataMenuToggle: "",
+            div: [
+              { div: "", dataIsland: "search", class: "dp-search-slot" },
+              {
+                button: "◐",
+                type: "button",
+                class: "dp-theme-toggle",
+                ariaLabel: "Toggle dark mode",
+                dataThemeToggle: "",
+              },
+              {
+                button: "☰",
+                type: "button",
+                class: "dp-menu-toggle",
+                ariaLabel: "Toggle menu",
+                dataMenuToggle: "",
+              },
+            ],
+            class: "dp-header-actions",
           },
         ],
-        class: "dp-header-actions",
+        class: "dp-header-right",
       },
     ],
     class: "dp-header",
