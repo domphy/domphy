@@ -63,10 +63,6 @@ a:hover {
 }
 
 /* --- Header ------------------------------------------------------------- */
-.dp-header {
-  /* Visual styling only — layout (flex/gap) is applied via toolbar() patch in layout.ts */
-  overflow: hidden;
-}
 .dp-logo {
   font-weight: 700;
   font-size: 18px;
@@ -78,8 +74,7 @@ a:hover {
   text-decoration: none;
 }
 .dp-nav {
-  /* Layout applied via toolbar() patch; only visual overrides here */
-  overflow-x: hidden;
+  /* Layout applied via toolbar() patch */
 }
 .dp-nav a {
   color: var(--dp-text-soft);
