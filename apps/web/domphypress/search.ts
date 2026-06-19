@@ -498,6 +498,8 @@ export function mountSearch(
   host: HTMLElement,
   options: SearchWidgetOptions = {},
 ): ElementNode {
+  // Clear the SSR-rendered static placeholder before mounting the interactive widget.
+  while (host.firstChild) host.removeChild(host.firstChild);
   const node = new ElementNode(searchWidget(options));
   node.render(host);
   return node;

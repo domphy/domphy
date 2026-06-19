@@ -64,32 +64,21 @@ a:hover {
 
 /* --- Header ------------------------------------------------------------- */
 .dp-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  height: var(--dp-header-h);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 0 24px;
-  background: color-mix(in srgb, var(--dp-bg) 86%, transparent);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--dp-border);
+  /* Visual styling only — layout (flex/gap) is applied via toolbar() patch in layout.ts */
+  overflow: hidden;
 }
 .dp-logo {
   font-weight: 700;
   font-size: 18px;
   color: var(--dp-text);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .dp-logo:hover {
   text-decoration: none;
 }
 .dp-nav {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 16px;
-  flex: 1;
+  /* Layout applied via toolbar() patch; only visual overrides here */
   overflow-x: hidden;
 }
 .dp-nav a {
@@ -152,15 +141,27 @@ a:hover {
   display: flex;
 }
 .dp-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  /* Layout applied via toolbar() patch; flex-shrink prevents compression */
   flex-shrink: 0;
 }
 .dp-search-slot {
   width: 200px;
-  display: flex;
-  align-items: center;
+}
+.dp-search-static {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--dp-border);
+  border-radius: 6px;
+  background: var(--dp-bg-soft);
+  color: var(--dp-text-soft);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+.dp-search-static::placeholder {
+  color: var(--dp-text-mute);
 }
 .dp-theme-toggle,
 .dp-menu-toggle {

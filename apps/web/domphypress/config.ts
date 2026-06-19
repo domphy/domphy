@@ -161,6 +161,7 @@ export const config: SiteConfig = {
           { text: "Textarea", link: "/docs/ui/patches/textarea" },
           { text: "Toast", link: "/docs/ui/patches/toast" },
           { text: "Toggle", link: "/docs/ui/patches/toggle" },
+          { text: "Toolbar", link: "/docs/ui/patches/toolbar" },
           { text: "Tooltip", link: "/docs/ui/patches/tooltip" },
           {
             text: "TransitionGroup",

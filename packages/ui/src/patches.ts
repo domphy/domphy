@@ -69,6 +69,7 @@ export * from "./patches/textarea.js";
 export * from "./patches/toast.js";
 export * from "./patches/toggle.js";
 export * from "./patches/toggleGroup.js";
+export * from "./patches/toolbar.js";
 export * from "./patches/tooltip.js";
 export * from "./patches/transitionGroup.js";
 export * from "./patches/unorderedList.js";

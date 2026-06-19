@@ -5,6 +5,7 @@
 
 import { navLink } from "@domphy/app";
 import type { DomphyElement } from "@domphy/core";
+import { toolbar, toolbarSpacer } from "@domphy/ui";
 import { prevNextForRoute, sidebarForRoute } from "./routes.js";
 import type { SidebarItem, SiteConfig, TocEntry } from "./types.js";
 
@@ -52,18 +53,32 @@ function header(config: SiteConfig): DomphyElement {
   return {
     header: [
       { a: config.title, href: "/", class: "dp-logo" },
+      toolbarSpacer(),
       {
         nav: config.nav.map((item) =>
           item.items
             ? navDropdown(item as any)
             : pageLink(item.text, item.link!),
         ),
+        $: [toolbar({ gap: 4 })],
         class: "dp-nav",
         ariaLabel: "Primary",
       },
       {
         div: [
-          { div: "", dataIsland: "search", class: "dp-search-slot" },
+          {
+            div: [
+              {
+                input: null,
+                type: "search",
+                placeholder: "Search docs...",
+                class: "dp-search-static",
+                ariaLabel: "Search documentation",
+              },
+            ],
+            dataIsland: "search",
+            class: "dp-search-slot",
+          },
           {
             button: "◐",
             type: "button",
@@ -79,9 +94,21 @@ function header(config: SiteConfig): DomphyElement {
             dataMenuToggle: "",
           },
         ],
+        $: [toolbar({ gap: 2 })],
         class: "dp-header-actions",
       },
     ],
+    $: [toolbar({ gap: 4 })],
+    style: {
+      position: "sticky",
+      top: 0,
+      zIndex: 30,
+      height: "var(--dp-header-h)",
+      padding: "0 24px",
+      background: "color-mix(in srgb, var(--dp-bg) 86%, transparent)",
+      backdropFilter: "blur(8px)",
+      borderBottom: "1px solid var(--dp-border)",
+    },
     class: "dp-header",
   };
 }
