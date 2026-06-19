@@ -403,7 +403,7 @@ ${config.head.join("\n")}
 
 export { run as buildSite };
 
-// Auto-run when invoked directly (`tsx build.ts`); imported by dev.ts otherwise.
+// Auto-run when invoked directly via `tsx build.ts`.
 if (process.argv[1]?.replace(/\\/g, "/").endsWith("domphypress/build.ts")) {
   run().catch((error) => {
     console.error(error);
