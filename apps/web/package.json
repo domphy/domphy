@@ -12,8 +12,8 @@
     "postinstall": "puppeteer browsers install chrome-headless-shell"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Huu Khanh Nguyen",
+  "license": "MIT",
   "devDependencies": {
     "@codemirror/lang-javascript": "^6.2.4",
     "@codemirror/theme-one-dark": "^6.1.3",

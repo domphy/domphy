@@ -3,6 +3,7 @@
   "description": "A composable UI framework.",
   "main": "index.js",
   "scripts": {
+    "dev": "pnpm -r dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "check": "biome check .",
@@ -10,15 +11,20 @@
     "publish:core": "cd packages/core && pnpm publish --access public --no-git-checks",
     "publish:theme": "cd packages/theme && pnpm publish --access public --no-git-checks",
     "publish:ui": "cd packages/ui && pnpm publish --access public --no-git-checks",
+    "publish:app": "cd packages/app && pnpm publish --access public --no-git-checks",
     "publish:query": "cd packages/query && pnpm publish --access public --no-git-checks",
     "publish:table": "cd packages/table && pnpm publish --access public --no-git-checks",
     "publish:router": "cd packages/router && pnpm publish --access public --no-git-checks",
     "publish:virtual": "cd packages/virtual && pnpm publish --access public --no-git-checks",
     "publish:form": "cd packages/form && pnpm publish --access public --no-git-checks",
     "publish:dnd": "cd packages/dnd && pnpm publish --access public --no-git-checks",
+    "publish:floating": "cd packages/floating && pnpm publish --access public --no-git-checks",
     "publish:palette": "cd packages/palette && pnpm publish --access public --no-git-checks",
     "publish:doctor": "cd packages/doctor && pnpm publish --access public --no-git-checks",
+    "publish:markdown": "cd packages/markdown && pnpm publish --access public --no-git-checks",
+    "publish:mermaid": "cd packages/mermaid && pnpm publish --access public --no-git-checks",
     "publish:mcp": "cd packages/mcp && pnpm publish --access public --no-git-checks",
+    "publish:create-domphy": "cd packages/create-domphy && pnpm publish --access public --no-git-checks",
     "bench": "pnpm --filter bench bench",
     "bench:dry": "pnpm --filter bench bench:dry"
   },
@@ -30,5 +36,5 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.6"
   },
-  "version": "0.0.1"
+  "version": "0.16.0"
 }
