@@ -1,4 +1,4 @@
-# @domphy/ui
+﻿# @domphy/ui
 
 Ready-made patches for Domphy.
 
@@ -68,7 +68,7 @@ Most customization should happen in one of these ways:
 
 ## Docs
 
-- [UI guide](https://www.domphy.com/docs/ui/)
-- [Customization](https://www.domphy.com/docs/ui/customization)
-- [Creation](https://www.domphy.com/docs/ui/creation)
-- [Patch catalog](https://www.domphy.com/docs/ui/patches/button)
+- [UI guide](https://domphy.com/docs/ui/)
+- [Customization](https://domphy.com/docs/ui/customization)
+- [Creation](https://domphy.com/docs/ui/creation)
+- [Patch catalog](https://domphy.com/docs/ui/patches/button)

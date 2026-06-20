@@ -1,4 +1,4 @@
-# @domphy/doctor
+﻿# @domphy/doctor
 
 A static analyzer for Domphy element trees. It walks the plain-object tree and flags non-idiomatic patterns, giving humans — and especially **AI agents** — a feedback loop to self-correct generated code.
 
@@ -61,4 +61,4 @@ By default the doctor **invokes reactive content functions** with a no-op listen
 
 ## For AI agents
 
-Run `diagnose()` on generated Domphy code and feed `format()` back to the model — it will fix the issues itself. This is the self-correction loop that lets agents write correct Domphy despite having little training data for it. See the repo `AGENTS.md` and [`llms.txt`](https://www.domphy.com/llms.txt) for the rules the doctor enforces.
+Run `diagnose()` on generated Domphy code and feed `format()` back to the model — it will fix the issues itself. This is the self-correction loop that lets agents write correct Domphy despite having little training data for it. See the repo `AGENTS.md` and [`llms.txt`](https://domphy.com/llms.txt) for the rules the doctor enforces.

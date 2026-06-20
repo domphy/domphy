@@ -1,4 +1,4 @@
-# @domphy/mcp
+﻿# @domphy/mcp
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that gives MCP-capable AI agents (Claude Desktop, Cursor, …) first-class access to Domphy — so they can look up the real API and validate their own output instead of guessing.
 
@@ -10,7 +10,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server that gives MC
 | `domphy_get_patch` | one patch's full contract (host tag, signature, doc, source) |
 | `domphy_list_packages` | all `@domphy/*` packages with versions + descriptions |
 | `domphy_rules` | the Domphy code-generation rules (`llms.txt`) |
-| `domphy_diagnose` | run [`@domphy/doctor`](https://www.domphy.com/docs/doctor/) on a JSON element tree and return issues to fix |
+| `domphy_diagnose` | run [`@domphy/doctor`](https://domphy.com/docs/doctor/) on a JSON element tree and return issues to fix |
 
 Patch/package data is fetched live from `domphy.com` (always current with the latest release); `domphy_diagnose` runs locally.
 

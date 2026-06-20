@@ -1,4 +1,4 @@
-// DomphyPress — shared contracts between the engine modules (pipeline, layout,
+﻿// DomphyPress — shared contracts between the engine modules (pipeline, layout,
 // islands, search, build). This file is the single source of truth for the data
 // shapes each module produces and consumes; modules are built against it so they
 // integrate without coupling to each other's internals.
@@ -31,7 +31,7 @@ export interface SiteConfig {
   description: string;
   /** Deploy base path, e.g. "/". */
   base: string;
-  /** Canonical hostname for sitemap/og, e.g. "https://www.domphy.com". */
+  /** Canonical hostname for sitemap/og, e.g. "https://domphy.com". */
   hostname: string;
   /** Top navigation bar. */
   nav: NavItem[];

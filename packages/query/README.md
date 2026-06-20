@@ -1,4 +1,4 @@
-# @domphy/query
+﻿# @domphy/query
 
 Framework-agnostic async state management for Domphy apps: fetching, caching, background refetching, mutations, infinite queries, and SSR hydration.
 
@@ -56,7 +56,7 @@ const App = {
 
 ## Documentation
 
-- [Query docs](https://www.domphy.com/docs/query/)
+- [Query docs](https://domphy.com/docs/query/)
 - The API is identical to [TanStack Query core](https://tanstack.com/query/latest/docs/reference/QueryClient) — its reference applies as-is.
 
 ## License

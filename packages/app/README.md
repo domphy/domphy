@@ -1,4 +1,4 @@
-# @domphy/app
+﻿# @domphy/app
 
 A port of the Next.js App Router feature set for Domphy: nested routing and layouts, client navigation with prefetching, loading/error/not-found boundaries, data loading with revalidation, the Metadata API, middleware, server rendering with hydration, API route handlers, and image/script helpers.
 
@@ -83,4 +83,4 @@ await app.hydrate(document.getElementById("app")!.firstElementChild as HTMLEleme
 
 ## Documentation
 
-Full guides at [domphy.com/docs/app](https://www.domphy.com/docs/app/).
+Full guides at [domphy.com/docs/app](https://domphy.com/docs/app/).

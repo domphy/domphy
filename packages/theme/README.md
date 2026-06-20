@@ -1,4 +1,4 @@
-# @domphy/theme
+﻿# @domphy/theme
 
 Context-aware color, size, density, and spacing for Domphy.
 
@@ -70,6 +70,6 @@ Custom color ramps should follow the current 18-step model.
 
 ## Docs
 
-- [Theme guide](https://www.domphy.com/docs/theme/)
-- [Theme setup](https://www.domphy.com/docs/theme/setup)
-- [Theme API](https://www.domphy.com/docs/theme/api)
+- [Theme guide](https://domphy.com/docs/theme/)
+- [Theme setup](https://domphy.com/docs/theme/setup)
+- [Theme API](https://domphy.com/docs/theme/api)

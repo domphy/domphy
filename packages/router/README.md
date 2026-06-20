@@ -1,4 +1,4 @@
-# @domphy/router
+﻿# @domphy/router
 
 Framework-agnostic, fully type-safe routing for Domphy apps: nested routes, path params, validated search params, loaders with caching, redirects, scroll restoration, and SSR streaming.
 
@@ -73,5 +73,5 @@ const App = {
 
 ## Documentation
 
-- [Router docs](https://www.domphy.com/docs/router/)
+- [Router docs](https://domphy.com/docs/router/)
 - The API is identical to [TanStack Router core](https://tanstack.com/router/latest) — its reference applies as-is.

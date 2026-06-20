@@ -1,4 +1,4 @@
-# @domphy/table
+﻿# @domphy/table
 
 Headless table logic for Domphy apps: sorting, filtering, pagination, row selection, grouping, expanding, column pinning, sizing, visibility, and faceting. Domphy owns the rendering — this package owns the table state.
 
@@ -66,7 +66,7 @@ const App = {
 
 ## Documentation
 
-- [Table docs](https://www.domphy.com/docs/table/)
+- [Table docs](https://domphy.com/docs/table/)
 - The API is identical to [TanStack Table v8](https://tanstack.com/table/v8/docs) — its reference applies as-is.
 
 ## License

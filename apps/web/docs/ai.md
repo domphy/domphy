@@ -1,9 +1,9 @@
-# Building Domphy apps with AI
+﻿# Building Domphy apps with AI
 
 Domphy publishes two machine-readable context files so any AI assistant can generate correct Domphy code without guessing:
 
-- **[`llms.txt`](https://www.domphy.com/llms.txt)** — curated index. Critical rules + links to every doc page and patch. Small, cheap to include in every prompt.
-- **[`llms-full.txt`](https://www.domphy.com/llms-full.txt)** — one-shot full dump (~200 KB). Critical rules + quickstart + every core/theme doc + every patch source file. Use when you want the AI to have the whole framework in a single fetch.
+- **[`llms.txt`](https://domphy.com/llms.txt)** — curated index. Critical rules + links to every doc page and patch. Small, cheap to include in every prompt.
+- **[`llms-full.txt`](https://domphy.com/llms-full.txt)** — one-shot full dump (~200 KB). Critical rules + quickstart + every core/theme doc + every patch source file. Use when you want the AI to have the whole framework in a single fetch.
 
 Both files are auto-generated from the canonical docs and patch source on every release — they never drift.
 
@@ -24,7 +24,7 @@ Add Domphy as a project skill. Inside your project root:
 
 ```bash
 mkdir -p .claude/skills/domphy
-curl -fsSL https://www.domphy.com/llms-full.txt -o .claude/skills/domphy/SKILL.md
+curl -fsSL https://domphy.com/llms-full.txt -o .claude/skills/domphy/SKILL.md
 ```
 
 Then prepend this frontmatter to `SKILL.md`:
@@ -43,7 +43,7 @@ Claude Code auto-loads the skill when it detects Domphy code in your project.
 Save the file as a project rule:
 
 ```bash
-curl -fsSL https://www.domphy.com/llms-full.txt -o .cursor/rules/domphy.mdc
+curl -fsSL https://domphy.com/llms-full.txt -o .cursor/rules/domphy.mdc
 ```
 
 Cursor reads `.cursor/rules/*.mdc` automatically.
@@ -53,17 +53,17 @@ Cursor reads `.cursor/rules/*.mdc` automatically.
 These tools read `AGENTS.md` at project root:
 
 ```bash
-curl -fsSL https://www.domphy.com/llms-full.txt -o AGENTS.md
+curl -fsSL https://domphy.com/llms-full.txt -o AGENTS.md
 ```
 
 ### ChatGPT / Gemini / claude.ai (web)
 
-For a one-off question, paste the URL `https://www.domphy.com/llms-full.txt` into the chat — most chat UIs will fetch it. If the tool cannot fetch URLs, open the URL in a browser and paste the contents into the conversation as a system message.
+For a one-off question, paste the URL `https://domphy.com/llms-full.txt` into the chat — most chat UIs will fetch it. If the tool cannot fetch URLs, open the URL in a browser and paste the contents into the conversation as a system message.
 
 For a project, save the file once and attach it to every conversation:
 
 ```bash
-curl -fsSL https://www.domphy.com/llms-full.txt -o domphy-context.md
+curl -fsSL https://domphy.com/llms-full.txt -o domphy-context.md
 ```
 
 ### GitHub Copilot (editor)
@@ -71,7 +71,7 @@ curl -fsSL https://www.domphy.com/llms-full.txt -o domphy-context.md
 Copilot doesn't read external rules, but if you have `AGENTS.md` in the repo root, the Copilot Chat sidebar will use it as context:
 
 ```bash
-curl -fsSL https://www.domphy.com/llms-full.txt -o AGENTS.md
+curl -fsSL https://domphy.com/llms-full.txt -o AGENTS.md
 ```
 
 ## Prompt template
@@ -106,7 +106,7 @@ Tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domph
 
 ## Machine-readable manifest
 
-[`manifest.json`](https://www.domphy.com/manifest.json) is a deterministic index of every package and every patch (name, host tag, signature, doc) — auto-generated each release. Tools and agents can query it directly instead of parsing docs.
+[`manifest.json`](https://domphy.com/manifest.json) is a deterministic index of every package and every patch (name, host tag, signature, doc) — auto-generated each release. Tools and agents can query it directly instead of parsing docs.
 
 ## Keeping context fresh
 
@@ -114,7 +114,7 @@ Re-fetch `llms-full.txt` after each Domphy release to pick up new patches and ru
 
 ```bash
 # in your project root
-curl -fsSL https://www.domphy.com/llms-full.txt -o AGENTS.md
+curl -fsSL https://domphy.com/llms-full.txt -o AGENTS.md
 ```
 
 Or pin to a tagged version via the GitHub raw URL:

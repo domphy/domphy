@@ -1,4 +1,4 @@
-# Domphy
+﻿# Domphy
 
 ```ts
 const count = toState(0)
@@ -55,11 +55,11 @@ Plain objects are what LLMs generate naturally. JSX is not. That's the core reas
 When an agent generates Domphy code → run `diagnose(app)` → feed the report back → the model fixes its own output. No manual debugging. Domphy is built to make this loop work:
 
 - **[`AGENTS.md`](./AGENTS.md)** — the canonical cross-tool agent spec (Cursor, Claude Code, Copilot, Codex, Aider all read it).
-- **[`llms.txt`](https://www.domphy.com/llms.txt)** — curated index: rules + links to every doc page and patch.
-- **[`llms-full.txt`](https://www.domphy.com/llms-full.txt)** — one-shot dump: rules + quickstart + every core/theme/package doc + every patch source. Auto-generated, never drifts.
-- **[`@domphy/doctor`](https://www.domphy.com/docs/doctor/)** — run `diagnose(app)` on generated code and feed the report back to the model; it fixes the issues itself. The feedback loop that lets agents write correct Domphy despite thin training data.
+- **[`llms.txt`](https://domphy.com/llms.txt)** — curated index: rules + links to every doc page and patch.
+- **[`llms-full.txt`](https://domphy.com/llms-full.txt)** — one-shot dump: rules + quickstart + every core/theme/package doc + every patch source. Auto-generated, never drifts.
+- **[`@domphy/doctor`](https://domphy.com/docs/doctor/)** — run `diagnose(app)` on generated code and feed the report back to the model; it fixes the issues itself. The feedback loop that lets agents write correct Domphy despite thin training data.
 
-See the [AI guide](https://www.domphy.com/docs/ai) for per-tool setup.
+See the [AI guide](https://domphy.com/docs/ai) for per-tool setup.
 
 ## Install
 
@@ -90,7 +90,7 @@ npm install -D @domphy/doctor # validate Domphy code (AI/CI)
 
 ## Documentation
 
-Full docs: [domphy.com](https://www.domphy.com) — [Core](https://www.domphy.com/docs/core/) · [Theme](https://www.domphy.com/docs/theme/) · [UI](https://www.domphy.com/docs/ui/) · [Query](https://www.domphy.com/docs/query/) · [Router](https://www.domphy.com/docs/router/) · [Table](https://www.domphy.com/docs/table/) · [Virtual](https://www.domphy.com/docs/virtual/) · [Form](https://www.domphy.com/docs/form/) · [DnD](https://www.domphy.com/docs/dnd/) · [Palette](https://www.domphy.com/docs/palette/) · [App](https://www.domphy.com/docs/app/) · [Markdown](https://www.domphy.com/docs/markdown/) · [Mermaid](https://www.domphy.com/docs/mermaid/) · [Doctor](https://www.domphy.com/docs/doctor/) · [Integrations](https://www.domphy.com/docs/integrations/)
+Full docs: [domphy.com](https://domphy.com) — [Core](https://domphy.com/docs/core/) · [Theme](https://domphy.com/docs/theme/) · [UI](https://domphy.com/docs/ui/) · [Query](https://domphy.com/docs/query/) · [Router](https://domphy.com/docs/router/) · [Table](https://domphy.com/docs/table/) · [Virtual](https://domphy.com/docs/virtual/) · [Form](https://domphy.com/docs/form/) · [DnD](https://domphy.com/docs/dnd/) · [Palette](https://domphy.com/docs/palette/) · [App](https://domphy.com/docs/app/) · [Markdown](https://domphy.com/docs/markdown/) · [Mermaid](https://domphy.com/docs/mermaid/) · [Doctor](https://domphy.com/docs/doctor/) · [Integrations](https://domphy.com/docs/integrations/)
 
 ## Monorepo
 

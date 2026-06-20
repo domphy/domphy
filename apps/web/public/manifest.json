@@ -1,9 +1,9 @@
-{
+﻿{
   "name": "domphy",
   "version": "0.16.0",
   "generated": "auto",
-  "rules": "https://www.domphy.com/llms.txt",
-  "tones": "https://www.domphy.com/tones.json",
+  "rules": "https://domphy.com/llms.txt",
+  "tones": "https://domphy.com/tones.json",
   "packages": [
     {
       "name": "@domphy/app",

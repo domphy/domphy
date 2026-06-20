@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+﻿import { readFile } from "node:fs/promises";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { diagnose, fix, format, validate } from "@domphy/doctor";
 
@@ -7,7 +7,7 @@ import { diagnose, fix, format, validate } from "@domphy/doctor";
  * they are unit-testable. The server (index.ts) wires these to MCP requests.
  */
 
-const ORIGIN = process.env.DOMPHY_ORIGIN ?? "https://www.domphy.com";
+const ORIGIN = process.env.DOMPHY_ORIGIN ?? "https://domphy.com";
 
 // Path to the app-block registry produced by `apps/web/scripts/app-manifest.mjs`.
 // Read lazily (per call) so the env var can be set after this module loads, and

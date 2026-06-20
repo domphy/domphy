@@ -1,4 +1,4 @@
-// Generates apps/web/public/manifest.json — a machine-readable index of every
+﻿// Generates apps/web/public/manifest.json — a machine-readable index of every
 // @domphy package and every @domphy/ui patch (name, host tag, props schema, doc,
 // example). Also writes apps/web/public/tones.json (valid tone names + theme
 // color names). Agents/MCP query these for a deterministic API surface.
@@ -248,8 +248,8 @@ const manifest = {
   name: "domphy",
   version: packages.find((p) => p.name === "@domphy/core")?.version ?? "0.0.0",
   generated: "auto",
-  rules: "https://www.domphy.com/llms.txt",
-  tones: "https://www.domphy.com/tones.json",
+  rules: "https://domphy.com/llms.txt",
+  tones: "https://domphy.com/tones.json",
   packages,
   patches,
 };

@@ -1,4 +1,4 @@
-# @domphy/core
+﻿# @domphy/core
 
 Domphy runtime for DOM rendering, reactivity, SSR, and CSS-in-JS using plain JavaScript objects.
 
@@ -54,6 +54,6 @@ new ElementNode(App).mount(document.getElementById("app")!)
 
 ## Docs
 
-- [Core guide](https://www.domphy.com/docs/core/)
-- [ElementNode API](https://www.domphy.com/docs/core/api/element-node)
-- [Reactivity](https://www.domphy.com/docs/core/reactivity)
+- [Core guide](https://domphy.com/docs/core/)
+- [ElementNode API](https://domphy.com/docs/core/api/element-node)
+- [Reactivity](https://domphy.com/docs/core/reactivity)
