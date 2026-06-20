@@ -8,7 +8,7 @@ export const config: SiteConfig = {
   description:
     "The AI-friendly UI framework — patch-based, framework-agnostic, no virtual DOM.",
   base: "/",
-  hostname: "https://www.domphy.com",
+  hostname: "https://domphy.com",
   head: [
     `<link rel="icon" href="/favicon.svg">`,
     `<script async src="https://www.googletagmanager.com/gtag/js?id=G-NKPX3DHXWE"></script>`,
