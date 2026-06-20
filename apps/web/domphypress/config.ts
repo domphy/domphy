@@ -38,6 +38,7 @@ export const config: SiteConfig = {
       ],
     },
     { text: "AI", link: "/docs/ai" },
+    { text: "Showcases", link: "/docs/showcases/" },
     { text: "Playground", link: "/docs/playground" },
   ],
   sidebar: {
@@ -250,6 +251,7 @@ export const config: SiteConfig = {
       },
     ],
     "/docs/research/": [{ text: "Research", link: "/docs/research/" }],
+    "/docs/showcases/": [{ text: "Showcases", link: "/docs/showcases/" }],
     "/docs/": [
       { text: "Overview", link: "/docs/" },
       { text: "Quickstart", link: "/docs/quickstart" },
@@ -267,6 +269,7 @@ export const config: SiteConfig = {
       { text: "Doctor", link: "/docs/doctor/" },
       { text: "Integrations", link: "/docs/integrations/" },
       { text: "Research", link: "/docs/research/" },
+      { text: "Showcases", link: "/docs/showcases/" },
       { text: "Playground", link: "/docs/playground" },
     ],
   },
