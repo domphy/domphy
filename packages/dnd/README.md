@@ -1,4 +1,6 @@
-# @domphy/dnd
+﻿# @domphy/dnd
+
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/dnd/) · [npm](https://www.npmjs.com/package/@domphy/dnd)
 
 Drag & drop and sortable lists for Domphy: reorder, transfer between lists, multi-drag, keyboard accessibility, and drop animations.
 

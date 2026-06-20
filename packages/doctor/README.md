@@ -1,5 +1,7 @@
 ﻿# @domphy/doctor
 
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/doctor/) · [npm](https://www.npmjs.com/package/@domphy/doctor)
+
 A static analyzer for Domphy element trees. It walks the plain-object tree and flags non-idiomatic patterns, giving humans — and especially **AI agents** — a feedback loop to self-correct generated code.
 
 Because Domphy UIs are plain objects, the doctor can inspect them directly (no parser, no build step), including the output of reactive `(listener) => …` functions.

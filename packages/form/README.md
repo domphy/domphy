@@ -1,4 +1,6 @@
-# @domphy/form
+﻿# @domphy/form
+
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/form/) · [npm](https://www.npmjs.com/package/@domphy/form)
 
 Headless form state, validation, and submission for Domphy apps: typed values, per-field and form-level (sync + async) validators, touched/blurred/dirty tracking, arrays, and Standard Schema support.
 

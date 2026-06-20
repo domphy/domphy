@@ -1,4 +1,6 @@
-# @domphy/palette
+﻿# @domphy/palette
+
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/palette/) · [npm](https://www.npmjs.com/package/@domphy/palette)
 
 Domphy's color-palette quality engine. **Validates** palette quality with five color-science metrics computed in CIELAB — framework-agnostic, zero runtime dependencies.
 

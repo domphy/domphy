@@ -1,4 +1,4 @@
-# Markdown
+﻿# Markdown
 
 `@domphy/markdown` parses Markdown into **Domphy element trees** — plain objects like `{ h1: ... }`, `{ ul: [...] }`, `{ pre: [{ code: ... }] }` — so the result can be server-rendered by `@domphy/core` / `@domphy/app` with no client runtime.
 
@@ -44,7 +44,7 @@ title: Hello
 ---
 # Hello World
 
-A paragraph with **bold** and a [link](https://domphy.dev).
+A paragraph with **bold** and a [link](https://domphy.com).
 
 - one
 - two

@@ -1,5 +1,7 @@
 ﻿# @domphy/mcp
 
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/mcp/) · [npm](https://www.npmjs.com/package/@domphy/mcp)
+
 A [Model Context Protocol](https://modelcontextprotocol.io) server that gives MCP-capable AI agents (Claude Desktop, Cursor, …) first-class access to Domphy — so they can look up the real API and validate their own output instead of guessing.
 
 ## Tools

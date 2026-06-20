@@ -1,5 +1,7 @@
 ﻿# @domphy/table
 
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/table/) · [npm](https://www.npmjs.com/package/@domphy/table)
+
 Headless table logic for Domphy apps: sorting, filtering, pagination, row selection, grouping, expanding, column pinning, sizing, visibility, and faceting. Domphy owns the rendering — this package owns the table state.
 
 This package is a 1-1 port of [`@tanstack/table-core`](https://github.com/TanStack/table/tree/main/packages/table-core) v8.21.3 (MIT, © Tanner Linsley). The source is kept byte-identical to upstream so future versions can be diffed and merged directly. All credit for the design and implementation goes to the TanStack Table team.

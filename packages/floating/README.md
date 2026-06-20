@@ -1,4 +1,6 @@
-# @domphy/floating
+﻿# @domphy/floating
+
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/ui/) · [npm](https://www.npmjs.com/package/@domphy/floating)
 
 Anchor positioning for tooltips, popovers, dropdowns, and menus — `computePosition`, `autoUpdate`, and the `offset` / `flip` / `shift` / `arrow` / `size` middleware.
 

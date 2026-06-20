@@ -1,5 +1,7 @@
 ﻿# @domphy/query
 
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/query/) · [npm](https://www.npmjs.com/package/@domphy/query)
+
 Framework-agnostic async state management for Domphy apps: fetching, caching, background refetching, mutations, infinite queries, and SSR hydration.
 
 This package is a 1-1 port of [`@tanstack/query-core`](https://github.com/TanStack/query/tree/main/packages/query-core) v5.90.20 (MIT, © Tanner Linsley). The source is kept byte-identical to upstream so future versions can be diffed and merged directly. All credit for the design and implementation goes to the TanStack Query team.

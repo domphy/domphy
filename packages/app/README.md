@@ -1,5 +1,7 @@
 ﻿# @domphy/app
 
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/app/) · [npm](https://www.npmjs.com/package/@domphy/app)
+
 A port of the Next.js App Router feature set for Domphy: nested routing and layouts, client navigation with prefetching, loading/error/not-found boundaries, data loading with revalidation, the Metadata API, middleware, server rendering with hydration, API route handlers, and image/script helpers.
 
 It is a runtime library — routes are declared as a plain object tree (the equivalent of the `app/` directory) and pages/layouts are ordinary Domphy blocks. No bundler plugin or file-system convention is required.

@@ -1,6 +1,6 @@
-# @domphy/markdown
+﻿# @domphy/markdown
 
-Parse Markdown into [Domphy](https://domphy.dev) element trees so it can be server-rendered by `@domphy/core` / `@domphy/app`.
+Parse Markdown into [Domphy](https://domphy.com) element trees so it can be server-rendered by `@domphy/core` / `@domphy/app`.
 
 It walks [markdown-it](https://github.com/markdown-it/markdown-it)'s token stream and builds plain Domphy element objects (`{ h1: ... }`, `{ ul: [...] }`, `{ pre: [{ code: ... }] }`, ...) — semantic tags only, no inline typography styles. Styling stays the consumer's job via patches and theme.
 
@@ -33,7 +33,7 @@ title: Hello
 ---
 # Hello World
 
-A paragraph with **bold** and a [link](https://domphy.dev).
+A paragraph with **bold** and a [link](https://domphy.com).
 
 - one
 - two

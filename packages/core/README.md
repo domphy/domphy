@@ -1,5 +1,7 @@
 ﻿# @domphy/core
 
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/core/) · [npm](https://www.npmjs.com/package/@domphy/core)
+
 Domphy runtime for DOM rendering, reactivity, SSR, and CSS-in-JS using plain JavaScript objects.
 
 No JSX, no compiler, no virtual DOM.

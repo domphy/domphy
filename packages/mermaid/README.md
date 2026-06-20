@@ -1,4 +1,6 @@
-# @domphy/mermaid
+﻿# @domphy/mermaid
+
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/mermaid/) · [npm](https://www.npmjs.com/package/@domphy/mermaid)
 
 Render [Mermaid](https://mermaid.js.org/) diagrams for Domphy.
 

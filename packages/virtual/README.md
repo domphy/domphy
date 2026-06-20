@@ -1,4 +1,6 @@
-# @domphy/virtual
+﻿# @domphy/virtual
+
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/virtual/) · [npm](https://www.npmjs.com/package/@domphy/virtual)
 
 Headless list, grid, and window virtualization for Domphy apps: render only the rows/columns in view, with dynamic measurement, sticky ranges, and smooth scroll-to.
 

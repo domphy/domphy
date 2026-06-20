@@ -1,5 +1,7 @@
 ﻿# @domphy/router
 
+**[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/router/) · [npm](https://www.npmjs.com/package/@domphy/router)
+
 Framework-agnostic, fully type-safe routing for Domphy apps: nested routes, path params, validated search params, loaders with caching, redirects, scroll restoration, and SSR streaming.
 
 This package is a 1-1 port of [`@tanstack/router-core`](https://github.com/TanStack/router/tree/main/packages/router-core) v1.171.13 (MIT, © Tanner Linsley). The upstream `src/` is kept byte-identical so future versions can be diffed and merged directly — the only edits to ported files are the self-referencing import `@tanstack/router-core/isServer` → `@domphy/router/isServer` (5 files) and, in `index.ts`, re-exporting `@tanstack/history` (mirroring `@tanstack/react-router`) plus the Domphy adapter. The adapter itself lives in the separate, non-upstream `src/domphy/` directory (`createRouter`/`createRoute` — framework-agnostic ports of `@tanstack/react-router`'s wrappers, no hooks or components). All credit for the design and implementation goes to the TanStack Router team.
