@@ -356,7 +356,9 @@ function buildSitemap(pages: BuiltPage[], hostname: string): string {
   const urls = pages
     .map((page) => {
       const loc =
-        page.route === "/" ? `${hostname}/` : `${hostname}${page.route}`.replace(/\/+$/, "") + "/";
+        page.route === "/"
+          ? `${hostname}/`
+          : `${`${hostname}${page.route}`.replace(/\/+$/, "")}/`;
       return `  <url><loc>${loc}</loc></url>`;
     })
     .join("\n");
