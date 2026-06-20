@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.domphy.com/sitemap.xml
+Sitemap: https://domphy.com/sitemap.xml
