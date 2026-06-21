@@ -4,29 +4,31 @@ layout: home
 hero:
   name: Domphy
   text: UI as plain objects. No JSX, no compiler.
-  tagline: "{ button: 'Save', $: [button()] } — that's your component. Paste it in a script tag and it runs. No build step, no framework overhead, no wrappers."
+  tagline: "{ button: 'Save', $: [button()] } — that's your component. Works in a script tag, Vite, or a browser extension. No build step, no 42 kB React runtime, no wrappers."
   actions:
     - theme: brand
       text: Get Started
       link: /docs/quickstart
     - theme: alt
+      text: Why Domphy
+      link: /docs/guide/why-domphy
+    - theme: alt
       text: Building with AI
       link: /docs/ai
-    - theme: alt
-      text: GitHub
-      link: https://github.com/domphy/domphy
 
 features:
   - title: No compiler, no syntax tax
-    details: Elements are plain JS objects. No JSX transform, no build step required. Works in a script tag, a Vite project, a browser extension — anywhere JS runs.
+    details: Elements are plain JS objects. No JSX transform, no build step required. Works in a script tag, a Vite project, a browser extension — anywhere JS runs. ~9 kB core vs React's 42 kB.
   - title: Add behavior, not abstraction
-    details: "Want a tooltip on a button? $: [button(), tooltip()]. One DOM node. No wrapper component, no mystery div > div > button > span."
-  - title: Right size for tool apps
-    details: Building a SketchUp plugin, Figma panel, or browser extension? You need reactivity and a design system — not a 40 kB runtime and a JSX compiler.
+    details: "Want a tooltip on a button? $: [button(), tooltip()]. One DOM node. No wrapper component, no mystery div > div > button > span. Patches apply to the native element you wrote."
+  - title: Built-in design system
+    details: themeColor, themeSpacing, themeSize — dark mode, density, size scales are native. No Tailwind configuration, no CSS-in-CSS variable plumbing. Write once, adapts everywhere.
   - title: AI generates it correctly
-    details: Plain objects are what LLMs produce naturally. @domphy/doctor catches mistakes and tells the model exactly what to fix — self-corrects without you debugging.
-  - title: 74 patches, zero wrappers
-    details: button, card, dialog, tooltip, motion, table, form — all patches on native elements. 74 ready-made. Compose any combination. No component hierarchy to fight.
+    details: Plain objects are what LLMs produce naturally. @domphy/doctor catches mistakes and tells the model exactly what to fix — self-corrects without you debugging. No other framework ships this loop.
+  - title: Full TanStack-compatible stack
+    details: "1-1 ports of TanStack Query, Table, Router, Virtual, Form — identical APIs. The Domphy adapter is the only difference. If you know TanStack, you already know the data layer."
+  - title: Right size for tool apps
+    details: "Building a SketchUp plugin, Figma panel, or VS Code extension? You need reactivity and a design system — not a 42 kB runtime and a JSX compiler. Domphy is the framework for plugin ecosystems."
 ---
 
 ## Installation
@@ -42,7 +44,9 @@ npm install @domphy/ui
 
 ## Start Here
 
+- [Why Domphy](/docs/guide/why-domphy) — how it compares to React, Svelte, Solid
+- [Coming from React](/docs/guide/from-react) — your React concepts translated
 - [Documentation](/docs/)
 - [Core Guide](/docs/core/)
 - [UI Patches](/docs/ui/)
-- [Integrations](/docs/integrations/)
+- [Building with AI](/docs/ai)
