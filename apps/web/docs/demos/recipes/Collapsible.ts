@@ -1,4 +1,5 @@
 import { type DomphyElement, toState } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { button, details } from "@domphy/ui";
 
 const open = toState(false);
@@ -21,7 +22,7 @@ const App: DomphyElement<"div"> = {
       open: (listener) => open.get(listener),
     },
   ],
-  style: { display: "flex", flexDirection: "column", gap: "1rem" },
+  style: { display: "flex", flexDirection: "column", gap: themeSpacing(4) },
 };
 
 export default App;

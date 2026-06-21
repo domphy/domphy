@@ -11,7 +11,7 @@ const App: DomphyElement<"div"> = {
     {
       h2: "Theme Overview",
       style: {
-        marginBlock: `0 0 ${themeSpacing(3)}`,
+        marginBlock: `0 ${themeSpacing(3)}`,
         fontSize: (listener) => themeSize(listener, "increase-1"),
       },
     },

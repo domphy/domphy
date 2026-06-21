@@ -1,4 +1,5 @@
 import { type DomphyElement, toState } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { button, heading } from "@domphy/ui";
 
 const count = toState(0);
@@ -17,7 +18,7 @@ const App: DomphyElement<"div"> = {
       $: [button()],
     },
   ],
-  style: { display: "flex", gap: "8px", alignItems: "center" },
+  style: { display: "flex", gap: themeSpacing(2), alignItems: "center" },
 };
 
 export default App;

@@ -5,17 +5,17 @@ import { skeleton } from "@domphy/ui";
 const App: DomphyElement<"div"> = {
   div: [
     {
-      div: null,
+      div: "",
       $: [skeleton()],
       style: { width: "100%", height: themeSpacing(5) },
     },
     {
-      div: null,
+      div: "",
       $: [skeleton()],
       style: { width: "75%", height: themeSpacing(5) },
     },
     {
-      div: null,
+      div: "",
       $: [skeleton()],
       style: {
         width: themeSpacing(12),

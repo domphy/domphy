@@ -1,5 +1,4 @@
-import type { DomphyElement } from "@domphy/core";
-import { toState } from "@domphy/core";
+import { type DomphyElement, toState } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
 import { stepItem, steps } from "@domphy/ui";
 

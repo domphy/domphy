@@ -1,4 +1,5 @@
 import { type DomphyElement, toState } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { button, dialog, heading } from "@domphy/ui";
 
 const open = toState(false);
@@ -19,8 +20,8 @@ const alertDialog: DomphyElement<"dialog"> = {
       style: {
         display: "flex",
         justifyContent: "flex-end",
-        gap: "0.5rem",
-        marginTop: "1rem",
+        gap: themeSpacing(2),
+        marginTop: themeSpacing(4),
       },
     },
   ],
@@ -36,7 +37,7 @@ const App: DomphyElement<"div"> = {
     },
     alertDialog,
   ],
-  style: { display: "flex", flexDirection: "column", gap: "1rem" },
+  style: { display: "flex", flexDirection: "column", gap: themeSpacing(4) },
 };
 
 export default App;
