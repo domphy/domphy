@@ -1,0 +1,76 @@
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSpacing,
+} from "@domphy/theme";
+
+/**
+ * Container patch that groups `<details>` elements into a bordered accordion.
+ * In `type: "single"` mode (default), opening one item closes all siblings.
+ *
+ * @param props.type - `"single"` (default) or `"multiple"`. Single mode auto-closes siblings.
+ * @param props.color - Theme color tone for borders and backgrounds. Defaults to `"neutral"`.
+ * @param props.accentColor - Accent color for focus outlines on summary. Defaults to `"primary"`.
+ * @example
+ * { div: [
+ *   { details: [{ summary: "Section A" }, { p: "Content A" }], $: [details()] },
+ *   { details: [{ summary: "Section B" }, { p: "Content B" }], $: [details()] },
+ * ], $: [accordion()] }
+ */
+function accordion(
+  props: {
+    type?: "single" | "multiple";
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
+  } = {},
+): PartialElement {
+  const { type = "single" } = props;
+  const color = toState(props.color ?? "neutral", "color");
+  const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+
+  return {
+    _onMount: (node) => {
+      if (type !== "single") return;
+
+      const el = node.domElement;
+      if (!el) return;
+      el.addEventListener("click", (event) => {
+        const summary = (event.target as Element).closest("summary");
+        if (!summary) return;
+        const item = summary.closest("details") as HTMLDetailsElement | null;
+        if (!item || item.parentElement !== el) return;
+        if (!item.open) {
+          Array.from(el.querySelectorAll(":scope > details")).forEach(
+            (detail) => {
+              if (detail !== item) (detail as HTMLDetailsElement).open = false;
+            },
+          );
+        }
+      });
+    },
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      outline: (listener) =>
+        `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+      outlineOffset: "-1px",
+      overflow: "hidden",
+      "& > details": {
+        borderBottom: (listener) =>
+          `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+      },
+      "& > details:last-child": {
+        borderBottom: "none",
+      },
+      "& > details > summary:focus-visible": {
+        outline: (listener) =>
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+      },
+    },
+  };
+}
+
+export { accordion };
