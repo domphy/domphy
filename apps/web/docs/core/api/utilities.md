@@ -97,3 +97,19 @@ Notes:
 - Deterministic: identical input always produces identical output.
 - CSS-safe: output always starts with a letter.
 - Not cryptographic: use it for IDs and CSS names, not security.
+
+---
+
+## `configure(options)`
+
+Set global runtime options. Call once before mounting your app.
+
+```ts
+import { configure } from "@domphy/core"
+
+configure({ cspNonce: "abc123" })
+```
+
+| Option | Type | Description |
+|---|---|---|
+| `cspNonce` | `string` | Nonce stamped on every `<style>` element injected by Domphy. Required when your Content-Security-Policy uses `style-src 'nonce-...'` instead of `'unsafe-inline'`. |

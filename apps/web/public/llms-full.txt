@@ -292,6 +292,7 @@ const App: DomphyElement<"div"> = {
 | `_onUpdate(node)` | After the update cycle finishes | updated children and `domElement` |
 | `_onBeforeRemove(node, done)` | Before removal, must call `done()` | `domElement`, current runtime state |
 | `_onRemove(node)` | After the node is fully removed | node instance after removal work completes |
+| `_onError(node, error, reset)` | An error was thrown by a reactive child expression in this subtree | All node properties; call `reset()` to clear children and render fallback UI. If no ancestor handles it, the error is logged to console. |
 
 `_onSchedule` is the right place to apply context-aware patches. Unlike inline `$: [patches]`, it can read parent context before parsing begins.
 
@@ -861,7 +862,7 @@ This naming boundary is important:
 - `onClick` is a DOM event
 - `_onMount` is a Domphy lifecycle hook
 
-Available hooks include `Schedule`, `Init`, `Insert`, `Mount`, `BeforeUpdate`, `Update`, `BeforeRemove`, and `Remove`.
+Available hooks include `Schedule`, `Init`, `Insert`, `Mount`, `BeforeUpdate`, `Update`, `BeforeRemove`, `Remove`, and `Error` (`_onError` — error boundary for reactive children).
 
 ```ts
 {
@@ -998,6 +999,14 @@ color: (listener) => themeColor(listener, "shift-9", "primary")
 
 Use this for text color, background color, outline color, and interaction states.
 
+### `themeColorToken(object, tone?, color?)`
+
+Same signature as `themeColor` but returns the resolved token **value** (e.g. `"#4a7ff4"`) instead of a `var(--…)` CSS reference. Use at design-time or when integrating with third-party APIs that require a concrete color string.
+
+```ts
+const hex = themeColorToken(null, "shift-9", "primary") // e.g. "#4a7ff4"
+```
+
 ### `themeSize(object, size?)`
 
 Resolve a font size from the nearest `dataSize` context.
@@ -1094,6 +1103,7 @@ type ThemeInput = {
   baseTones: Record<string, number>
   fontSizes: string[]
   densities: number[]
+  darkBias: number
   custom: Record<string, string | number>
 }
 ```
@@ -8214,10 +8224,14 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), details, [tabindex]:not([tabindex="-1"])';
+
 /**
  * Modal dialog patch driven by an `open` State. Calls `showModal()`/`close()`,
- * fades via opacity, locks page scroll while open, focuses the first focusable
- * child, and closes on outside (backdrop) click. Apply to a `<dialog>` element.
+ * fades via opacity, locks page scroll while open, traps Tab focus within the
+ * dialog, restores focus to the previously focused element on close, sets
+ * `aria-modal`, and closes on outside (backdrop) click. Apply to a `<dialog>`.
  *
  * @hostTag dialog
  * @param props.color - Theme color tone for the dialog surface. Defaults to "neutral".
@@ -8229,6 +8243,8 @@ function dialog(
 ): PartialElement {
   const { color = "neutral", open = false } = props;
   const state = toState(open);
+  let previousFocus: HTMLElement | null = null;
+
   return {
     _onInsert: (node) => {
       if (node.tagName !== "dialog") {
@@ -8250,33 +8266,68 @@ function dialog(
       if (dlg.style.opacity === "0") {
         dlg.close();
         document.body.style.overflow = "";
+        previousFocus?.focus();
+        previousFocus = null;
       }
     },
     _onMount: (node) => {
       const dlg = node.domElement as HTMLDialogElement;
+      dlg.setAttribute("aria-modal", "true");
+
+      const trapFocus = (e: KeyboardEvent) => {
+        if (e.key !== "Tab") return;
+        const focusables = Array.from(
+          dlg.querySelectorAll<HTMLElement>(FOCUSABLE),
+        ).filter(
+          (el) =>
+            !el.closest("[aria-hidden='true']") && el.offsetParent !== null,
+        );
+        if (!focusables.length) {
+          e.preventDefault();
+          return;
+        }
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey) {
+          if (
+            document.activeElement === first ||
+            document.activeElement === dlg
+          ) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      };
+
       const update = (val: boolean) => {
         if (val) {
+          previousFocus = document.activeElement as HTMLElement;
           dlg.showModal();
           document.body.style.overflow = "hidden";
+          dlg.addEventListener("keydown", trapFocus);
           requestAnimationFrame(() => {
             dlg.style.opacity = "1";
-            const focusable = dlg.querySelector<HTMLElement>(
-              'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-            );
+            const focusable = dlg.querySelector<HTMLElement>(FOCUSABLE);
             focusable?.focus();
           });
         } else {
           dlg.style.opacity = "0";
+          dlg.removeEventListener("keydown", trapFocus);
         }
       };
       update(state.get());
       const release = state.addListener(update);
-      // Release the listener on the user-provided `open` State and always
-      // restore page scroll on removal — otherwise removing an open dialog
-      // leaks the listener and leaves document.body locked at overflow:hidden.
       node.addHook("Remove", () => {
         release();
         document.body.style.overflow = "";
+        dlg.removeEventListener("keydown", trapFocus);
+        previousFocus?.focus();
+        previousFocus = null;
       });
     },
     style: {
@@ -8377,36 +8428,48 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
-type Placement = "left" | "right" | "top" | "bottom";
+type PhysicalPlacement = "left" | "right" | "top" | "bottom";
+type Placement = PhysicalPlacement | "start" | "end";
 
-const translateOut: Record<Placement, string> = {
+const translateOut: Record<PhysicalPlacement, string> = {
   left: "translateX(-100%)",
   right: "translateX(100%)",
   top: "translateY(-100%)",
   bottom: "translateY(100%)",
 };
 
-const marginMap: Record<Placement, string> = {
+const marginMap: Record<PhysicalPlacement, string> = {
   left: "0 auto 0 0",
   right: "0 0 0 auto",
   top: "0 0 auto 0",
   bottom: "auto 0 0 0",
 };
 
-const isVertical = (p: Placement) => p === "left" || p === "right";
+const isVertical = (p: PhysicalPlacement) => p === "left" || p === "right";
+
+function resolvePhysical(
+  placement: Placement,
+  isRTL: boolean,
+): PhysicalPlacement {
+  if (placement === "start") return isRTL ? "right" : "left";
+  if (placement === "end") return isRTL ? "left" : "right";
+  return placement;
+}
 
 /**
  * Edge-anchored modal drawer driven by an `open` State. Slides in/out from a
  * chosen edge via a transform transition, calls `showModal()`/`close()`, locks
- * page scroll while open, and closes on backdrop click. Apply to a `<dialog>`
- * element.
+ * page scroll while open, and closes on backdrop click. Apply to a `<dialog>`.
+ *
+ * `"start"` and `"end"` placements resolve to left/right based on the
+ * document's `dir` attribute at mount time, enabling RTL-aware drawers.
  *
  * @hostTag dialog
  * @param props.color - Theme color tone for the drawer surface. Defaults to "neutral".
  * @param props.open - Open state (`ValueOrState<boolean>`); set true/false to show/hide. Defaults to false.
- * @param props.placement - Edge to anchor to, "left" | "right" | "top" | "bottom". Defaults to "right".
- * @param props.size - CSS length for the drawer's width (left/right) or height (top/bottom). Defaults to themeSpacing(80) for left/right, themeSpacing(64) for top/bottom.
- * @example { dialog: [...], $: [drawer({ open, placement: "left" })] }
+ * @param props.placement - Edge to anchor to. "left" | "right" | "top" | "bottom" | "start" | "end". Defaults to "end".
+ * @param props.size - CSS length for the drawer's width (left/right/start/end) or height (top/bottom). Defaults to themeSpacing(80) for vertical, themeSpacing(64) for horizontal.
+ * @example { dialog: [...], $: [drawer({ open, placement: "start" })] }
  */
 function drawer(
   props: {
@@ -8416,9 +8479,13 @@ function drawer(
     size?: string;
   } = {},
 ): PartialElement {
-  const { color = "neutral", open = false, placement = "right", size } = props;
+  const { color = "neutral", open = false, placement = "end", size } = props;
   const state = toState(open);
-  const defaultSize = isVertical(placement)
+  const isLogical = placement === "start" || placement === "end";
+
+  // For static rendering / SSR assume LTR as fallback; corrected at mount time.
+  const physicalFallback = resolvePhysical(placement, false);
+  const defaultSize = isVertical(physicalFallback)
     ? themeSpacing(80)
     : themeSpacing(64);
   const drawerSize = size ?? defaultSize;
@@ -8442,6 +8509,23 @@ function drawer(
     },
     _onMount: (node) => {
       const dlg = node.domElement as HTMLDialogElement;
+
+      // Resolve logical placements at mount time using document direction.
+      const isRTL =
+        isLogical &&
+        (dlg.ownerDocument.documentElement.dir === "rtl" ||
+          dlg.ownerDocument.dir === "rtl");
+      const physical = resolvePhysical(placement, isRTL);
+
+      // Correct initial styles for logical placements whose physical direction
+      // may differ from the LTR fallback used in the static style block.
+      if (isLogical) {
+        dlg.style.transform = translateOut[physical];
+        dlg.style.margin = marginMap[physical];
+        dlg.style.width = isVertical(physical) ? drawerSize : "100dvw";
+        dlg.style.height = isVertical(physical) ? "100dvh" : drawerSize;
+      }
+
       const update = (val: boolean) => {
         if (val) {
           dlg.showModal();
@@ -8450,30 +8534,27 @@ function drawer(
             dlg.style.transform = "translate(0, 0)";
           });
         } else {
-          dlg.style.transform = translateOut[placement];
+          dlg.style.transform = translateOut[physical];
         }
       };
       update(state.get());
       const release = state.addListener(update);
-      // Release the `open` State listener and restore page scroll on removal
-      // (an open drawer removed mid-transition would otherwise leak the
-      // listener and leave document.body locked at overflow:hidden).
       node.addHook("Remove", () => {
         release();
         document.body.style.overflow = "";
       });
     },
     style: {
-      transform: translateOut[placement],
+      transform: translateOut[physicalFallback],
       transition: "transform 0.25s ease",
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-10", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       border: "none",
       padding: (listener) => themeSpacing(themeDensity(listener) * 3),
-      margin: marginMap[placement],
-      width: isVertical(placement) ? drawerSize : "100dvw",
-      height: isVertical(placement) ? "100dvh" : drawerSize,
+      margin: marginMap[physicalFallback],
+      width: isVertical(physicalFallback) ? drawerSize : "100dvw",
+      height: isVertical(physicalFallback) ? "100dvh" : drawerSize,
       maxWidth: "100dvw",
       maxHeight: "100dvh",
       boxShadow: (listener) =>
@@ -8571,6 +8652,48 @@ function empty(
 }
 
 export { empty };
+```
+
+### errorBoundary
+
+```ts
+import type { DomphyElement, PartialElement } from "@domphy/core";
+
+/**
+ * Catches errors thrown inside reactive child expressions and renders a
+ * fallback element instead of crashing the whole tree. Apply to any container.
+ *
+ * Only errors in *reactive* children (functions returning element arrays) are
+ * caught. Errors during static construction propagate normally — those are
+ * programming errors, not runtime data errors.
+ *
+ * @hostTag any
+ * @param props.fallback - Fallback element or factory `(error, reset) => element`. Defaults to a plain error message div.
+ * @param props.onError - Optional callback for logging/telemetry.
+ * @example { div: (l) => renderUserContent(l), $: [errorBoundary({ fallback: { p: "Something went wrong." } })] }
+ */
+function errorBoundary(
+  props: {
+    fallback?:
+      | DomphyElement
+      | ((error: unknown, reset: () => void) => DomphyElement);
+    onError?: (error: unknown) => void;
+  } = {},
+): PartialElement {
+  return {
+    _onError: (node, error, reset) => {
+      props.onError?.(error);
+      const fallbackEl =
+        typeof props.fallback === "function"
+          ? props.fallback(error, reset)
+          : (props.fallback ??
+            ({ div: "An error occurred." } as DomphyElement));
+      node.children.update([fallbackEl]);
+    },
+  };
+}
+
+export { errorBoundary };
 ```
 
 ### figure

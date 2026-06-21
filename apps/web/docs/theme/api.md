@@ -15,6 +15,14 @@ color: (listener) => themeColor(listener, "shift-9", "primary")
 
 Use this for text color, background color, outline color, and interaction states.
 
+### `themeColorToken(object, tone?, color?)`
+
+Same signature as `themeColor` but returns the resolved token **value** (e.g. `"#4a7ff4"`) instead of a `var(--…)` CSS reference. Use at design-time or when integrating with third-party APIs that require a concrete color string.
+
+```ts
+const hex = themeColorToken(null, "shift-9", "primary") // e.g. "#4a7ff4"
+```
+
 ### `themeSize(object, size?)`
 
 Resolve a font size from the nearest `dataSize` context.
@@ -111,6 +119,7 @@ type ThemeInput = {
   baseTones: Record<string, number>
   fontSizes: string[]
   densities: number[]
+  darkBias: number
   custom: Record<string, string | number>
 }
 ```

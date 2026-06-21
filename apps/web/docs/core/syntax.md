@@ -164,7 +164,7 @@ This naming boundary is important:
 - `onClick` is a DOM event
 - `_onMount` is a Domphy lifecycle hook
 
-Available hooks include `Schedule`, `Init`, `Insert`, `Mount`, `BeforeUpdate`, `Update`, `BeforeRemove`, and `Remove`.
+Available hooks include `Schedule`, `Init`, `Insert`, `Mount`, `BeforeUpdate`, `Update`, `BeforeRemove`, `Remove`, and `Error` (`_onError` — error boundary for reactive children).
 
 ```ts
 {

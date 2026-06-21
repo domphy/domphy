@@ -26,7 +26,7 @@ function offsetSize(origin: number, size: ElementSize = "inherit"): number {
   } else {
     resultSize = origin;
   }
-  return Math.max(0, Math.min(8, resultSize));
+  return Math.max(0, Math.min(7, resultSize));
 }
 
 function contextSize(object: ElementNode | Listener | null): number {

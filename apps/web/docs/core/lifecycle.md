@@ -65,6 +65,7 @@ const App: DomphyElement<"div"> = {
 | `_onUpdate(node)` | After the update cycle finishes | updated children and `domElement` |
 | `_onBeforeRemove(node, done)` | Before removal, must call `done()` | `domElement`, current runtime state |
 | `_onRemove(node)` | After the node is fully removed | node instance after removal work completes |
+| `_onError(node, error, reset)` | An error was thrown by a reactive child expression in this subtree | All node properties; call `reset()` to clear children and render fallback UI. If no ancestor handles it, the error is logged to console. |
 
 `_onSchedule` is the right place to apply context-aware patches. Unlike inline `$: [patches]`, it can read parent context before parsing begins.
 

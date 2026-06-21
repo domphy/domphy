@@ -9,85 +9,129 @@
       "name": "@domphy/app",
       "version": "0.16.0",
       "description": "Domphy App - a port of the Next.js App Router feature set for Domphy: routing, nested layouts, navigation, data loading, metadata, middleware, SSR and API routes",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/core",
       "version": "0.16.0",
       "description": "Domphy Core UI Framework",
-      "subpaths": ["."],
+      "subpaths": [
+        "."
+      ],
       "peerDependencies": []
     },
     {
       "name": "create-domphy",
       "version": "0.16.0",
       "description": "Scaffold a runnable Domphy starter project (npm create domphy@latest)",
-      "subpaths": ["."],
+      "subpaths": [
+        "."
+      ],
       "peerDependencies": []
     },
     {
       "name": "@domphy/dnd",
       "version": "0.16.0",
       "description": "Domphy Drag & Drop - reactive adapter for the framework-agnostic @formkit/drag-and-drop engine",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/doctor",
       "version": "0.16.0",
       "description": "Domphy Doctor - static analyzer that flags non-idiomatic Domphy element trees (AI self-correction)",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/floating",
       "version": "0.16.0",
       "description": "Domphy Floating - anchor positioning (tooltips, popovers, dropdowns), a 1-1 vendor of floating-ui (dom + core + utils), zero dependencies",
-      "subpaths": ["."],
+      "subpaths": [
+        "."
+      ],
       "peerDependencies": []
     },
     {
       "name": "@domphy/form",
       "version": "0.16.0",
       "description": "Domphy Form - headless form state, validation and submission, a 1-1 port of @tanstack/form-core",
-      "subpaths": [".", "./domphy"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./domphy"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/markdown",
       "version": "0.16.0",
       "description": "Domphy Markdown - parse Markdown into Domphy element trees (markdown-it) for SSR with @domphy/core",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/mcp",
       "version": "0.16.0",
       "description": "Domphy MCP server - exposes patches, packages, rules, and the doctor to MCP-capable AI agents",
-      "subpaths": [".", "./tools"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./tools"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/mermaid",
       "version": "0.16.0",
       "description": "Domphy Mermaid - build-time (SSG) and client-side Mermaid diagram rendering, with markdown tree integration for @domphy/markdown",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core", "mermaid"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core",
+        "mermaid"
+      ]
     },
     {
       "name": "@domphy/palette",
       "version": "0.16.0",
       "description": "Domphy Palette - color-palette engine that generates optimal color ramps and validates palette quality, a port of chromametry",
-      "subpaths": ["."],
+      "subpaths": [
+        "."
+      ],
       "peerDependencies": []
     },
     {
       "name": "@domphy/query",
       "version": "0.16.0",
       "description": "Domphy Query - async state management, a 1-1 port of @tanstack/query-core",
-      "subpaths": [".", "./domphy"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./domphy"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/router",
@@ -107,29 +151,48 @@
       "name": "@domphy/table",
       "version": "0.16.0",
       "description": "Domphy Table - headless table logic, a 1-1 port of @tanstack/table-core",
-      "subpaths": [".", "./domphy"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./domphy"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/theme",
       "version": "0.16.0",
       "description": "Domphy Design System",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/ui",
       "version": "0.16.0",
       "description": "Domphy UI",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core", "@domphy/theme"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core",
+        "@domphy/theme"
+      ]
     },
     {
       "name": "@domphy/virtual",
       "version": "0.16.0",
       "description": "Domphy Virtual - headless list/grid virtualization, a 1-1 port of @tanstack/virtual-core",
-      "subpaths": [".", "./domphy"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./domphy"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     }
   ],
   "patches": [
@@ -622,7 +685,7 @@
           "doc": "Open state (`ValueOrState<boolean>`); set it to true/false to show/hide. Defaults to false."
         }
       ],
-      "doc": "Modal dialog patch driven by an `open` State. Calls `showModal()`/`close()`, fades via opacity, locks page scroll while open, focuses the first focusable child, and closes on outside (backdrop) click. Apply to a `<dialog>` element.",
+      "doc": "Modal dialog patch driven by an `open` State. Calls `showModal()`/`close()`, fades via opacity, locks page scroll while open, traps Tab focus within the dialog, restores focus to the previously focused element on close, sets `aria-modal`, and closes on outside (backdrop) click. Apply to a `<dialog>`.",
       "example": "{ dialog: [...], $: [dialog({ open })] }",
       "source": "packages/ui/src/patches/dialog.ts"
     },
@@ -663,17 +726,17 @@
           "name": "placement",
           "type": "Placement",
           "optional": true,
-          "doc": "Edge to anchor to, \"left\" | \"right\" | \"top\" | \"bottom\". Defaults to \"right\"."
+          "doc": "Edge to anchor to. \"left\" | \"right\" | \"top\" | \"bottom\" | \"start\" | \"end\". Defaults to \"end\"."
         },
         {
           "name": "size",
           "type": "string",
           "optional": true,
-          "doc": "CSS length for the drawer's width (left/right) or height (top/bottom). Defaults to themeSpacing(80) for left/right, themeSpacing(64) for top/bottom."
+          "doc": "CSS length for the drawer's width (left/right/start/end) or height (top/bottom). Defaults to themeSpacing(80) for vertical, themeSpacing(64) for horizontal."
         }
       ],
-      "doc": "Edge-anchored modal drawer driven by an `open` State. Slides in/out from a chosen edge via a transform transition, calls `showModal()`/`close()`, locks page scroll while open, and closes on backdrop click. Apply to a `<dialog>` element.",
-      "example": "{ dialog: [...], $: [drawer({ open, placement: \"left\" })] }",
+      "doc": "Edge-anchored modal drawer driven by an `open` State. Slides in/out from a chosen edge via a transform transition, calls `showModal()`/`close()`, locks page scroll while open, and closes on backdrop click. Apply to a `<dialog>`. `\"start\"` and `\"end\"` placements resolve to left/right based on the document's `dir` attribute at mount time, enabling RTL-aware drawers.",
+      "example": "{ dialog: [...], $: [drawer({ open, placement: \"start\" })] }",
       "source": "packages/ui/src/patches/drawer.ts"
     },
     {
@@ -707,6 +770,28 @@
       "doc": "Styles a container as an empty-state placeholder: centered flex column with muted coloring and comfortable padding. Provide the icon, title, and description as child elements.",
       "example": "{ div: [ { span: \"📭\", $: [heading({ level: 1 })] }, { p: \"No items yet\", $: [paragraph()] }, { span: \"Add your first item to get started\", $: [small()] }, ], $: [empty()] }",
       "source": "packages/ui/src/patches/empty.ts"
+    },
+    {
+      "name": "errorBoundary",
+      "hostTag": "any",
+      "signature": "errorBoundary(props: { fallback?: | DomphyElement | ((error: unknown, reset: () => void) => DomphyElement); onError?: (error: unknown) => void; } = {})",
+      "props": [
+        {
+          "name": "fallback",
+          "type": "| DomphyElement | ((error: unknown, reset: () => void) => DomphyElement)",
+          "optional": true,
+          "doc": "Fallback element or factory `(error, reset) => element`. Defaults to a plain error message div."
+        },
+        {
+          "name": "onError",
+          "type": "(error: unknown) => void",
+          "optional": true,
+          "doc": "Optional callback for logging/telemetry."
+        }
+      ],
+      "doc": "Catches errors thrown inside reactive child expressions and renders a fallback element instead of crashing the whole tree. Apply to any container. Only errors in *reactive* children (functions returning element arrays) are caught. Errors during static construction propagate normally — those are programming errors, not runtime data errors.",
+      "example": "{ div: (l) => renderUserContent(l), $: [errorBoundary({ fallback: { p: \"Something went wrong.\" } })] }",
+      "source": "packages/ui/src/patches/errorBoundary.ts"
     },
     {
       "name": "figure",

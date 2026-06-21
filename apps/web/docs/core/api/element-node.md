@@ -101,6 +101,7 @@ node.addHook("BeforeRemove", (node, done) => {
 | `Update` | After children diff |
 | `BeforeRemove` | Before DOM removal — call `done()` to proceed |
 | `Remove` | After DOM removal |
+| `Error` | Caught error from a reactive child (`(node, error, reset) => void`) — call `reset()` to clear children and render fallback |
 
 ### `getRoot()`
 
