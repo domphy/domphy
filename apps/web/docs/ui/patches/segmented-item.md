@@ -10,8 +10,8 @@ Use `segmentedItem` on a `<button>` placed inside a `segmented` control. It read
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `color` | `ThemeColor \| State<ThemeColor>` | `"neutral"` | Resting text and hover background tone. |
-| `accentColor` | `ThemeColor \| State<ThemeColor>` | `"primary"` | Selected state background and focus-outline tone. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Resting text and hover background tone. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Selected state background and focus-outline tone. |
 
 <CodeEditor :code="Segmented" />
 

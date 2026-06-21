@@ -10,7 +10,7 @@ Use `segmented` on a wrapper element to build a single-select pill control. It e
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `value` | `string \| State<string>` | `""` | Initially selected item key. Pass a `State` to control selection externally. |
+| `value` | `ValueOrState<string>` | `""` | Initially selected item key. Pass a `State` to control selection externally. |
 | `color` | `ThemeColor` | `"neutral"` | Background tone of the pill container. |
 
 <CodeEditor :code="Segmented" />

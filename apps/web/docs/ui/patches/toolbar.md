@@ -27,7 +27,7 @@ const Header = {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `gap` | `number` | `4` | Spacing multiplier for gap. `4` = `1em`, scales with `themeDensity`. |
+| `gap` | `number` | `4` | Spacing multiplier for gap between items. Final gap = `themeSpacing(density × gap)`; at default density (1.5), `gap 4` ≈ `1.5em`. |
 
 ## toolbarSpacer
 

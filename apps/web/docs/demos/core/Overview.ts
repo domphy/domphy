@@ -1,4 +1,5 @@
 import { type DomphyElement, toState } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 
 const count = toState(0);
 
@@ -7,7 +8,7 @@ const App: DomphyElement<"div"> = {
     {
       h1: "Core Overview",
       style: {
-        marginBlock: "0 12px",
+        marginBlock: `0 ${themeSpacing(3)}`,
       },
     },
     {
@@ -17,8 +18,8 @@ const App: DomphyElement<"div"> = {
       button: "Increment",
       onClick: () => count.set(count.get() + 1),
       style: {
-        paddingBlock: "8px",
-        paddingInline: "16px",
+        paddingBlock: themeSpacing(2),
+        paddingInline: themeSpacing(4),
       },
     },
   ],

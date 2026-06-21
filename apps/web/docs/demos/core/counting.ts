@@ -1,4 +1,5 @@
 import { type DomphyElement, toState } from "@domphy/core";
+import { themeColor, themeSpacing } from "@domphy/theme";
 
 // Create a State instance
 const count = toState(0);
@@ -16,12 +17,12 @@ const button: DomphyElement<"button"> = {
 
   // Standard Nested CSS nesting
   style: {
-    padding: "4px 16px",
-    backgroundColor: "#0f62fe",
-    borderRadius: "6px",
-    color: "#ffffff",
+    padding: `${themeSpacing(1)} ${themeSpacing(4)}`,
+    backgroundColor: (listener) => themeColor(listener, "shift-9", "primary"),
+    borderRadius: themeSpacing(1.5),
+    color: (listener) => themeColor(listener, "inherit", "primary"),
     "&:hover": {
-      backgroundColor: "#4589ff",
+      backgroundColor: (listener) => themeColor(listener, "shift-7", "primary"),
     },
   },
 };
