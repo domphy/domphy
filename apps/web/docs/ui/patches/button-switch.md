@@ -6,7 +6,15 @@ import ButtonSwitch from "../../demos/patches/ButtonSwitch.ts?raw"
 
 # Button Switch
 
-Use the button-switch patch to customize this element.
+A pill-shaped toggle switch with `role="switch"`. Clicking flips the bound `checked` state and slides the thumb. Apply to a `<button>` element whose first child is a `<span>` (used as the thumb).
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `checked` | `boolean` (or `State`) | `false` | Toggle state — `true` = on. |
+| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for the unchecked (off) track. |
+| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the checked (on) track. |
 
 <CodeEditor :code="ButtonSwitch" />
 

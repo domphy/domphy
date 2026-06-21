@@ -6,7 +6,14 @@ import InputRadio from "../../demos/patches/InputRadio.ts?raw"
 
 # Input Radio
 
-Use the input-radio patch to customize this element.
+Styles a custom radio button with a themed circular box, checked dot, hover, focus, and disabled states. Apply to an `<input type="radio">` element — the patch sets `type: "radio"`.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for the box border and resting background. |
+| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the checked dot and focus ring. |
 
 <CodeEditor :code="InputRadio" />
 

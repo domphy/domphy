@@ -6,7 +6,14 @@ import InputFile from "../../demos/patches/InputFile.ts?raw"
 
 # Input File
 
-Use the input-file patch to customize this element.
+Styles a native file input with a themed upload button, border, hover, focus, and disabled states. Apply to an `<input type="file">` element — the patch sets `type: "file"`.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for text, border, and the upload button. |
+| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the hover/focus ring. |
 
 <CodeEditor :code="InputFile" />
 

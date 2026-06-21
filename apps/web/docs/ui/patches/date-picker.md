@@ -22,8 +22,8 @@ The `datePicker` patch turns a native `<input>` into a calendar date picker — 
 | `weekStartsOn` | `0..6` | from locale | Override the first day of the week (0 = Sunday). |
 | `format` | `(value) => string` | `Intl` medium | Override the input display string. |
 | `onChange` | `(value) => void` | — | Called whenever the selection changes. |
-| `accentColor` | `ThemeColor` | `"primary"` | Accent for selected/active days. |
-| `placement` | `Placement` | `"bottom-start"` | Popover placement relative to the input. |
+| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Accent for selected/active days. |
+| `placement` | `Placement` (or `State`) | `"bottom-start"` | Popover placement relative to the input. |
 
 ## Notes
 

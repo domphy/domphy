@@ -6,7 +6,14 @@ import InputNumber from "../../demos/patches/InputNumber.ts?raw"
 
 # Input Number
 
-Use `inputNumber` on a native `input` element. It styles the browser's built-in number input, including the spin buttons. Use standard HTML attributes (`min`, `max`, `step`, `value`, `disabled`) directly on the element.
+Use `inputNumber` on a native `input` element. It styles the browser's built-in number input, including visible spin buttons. Use standard HTML attributes (`min`, `max`, `step`, `value`, `disabled`) directly on the element.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for text and border. |
+| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the hover/focus ring. |
 
 <CodeEditor :code="InputNumber" />
 

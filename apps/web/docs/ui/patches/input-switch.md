@@ -6,7 +6,13 @@ import InputSwitch from "../../demos/patches/InputSwitch.ts?raw"
 
 # Input Switch
 
-Use the input-switch patch to customize this element.
+Styles a checkbox as a toggle switch: a themed track and sliding knob that animates and recolors on checked, plus a disabled state. Apply to an `<input type="checkbox">` element — the patch sets `type: "checkbox"`.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the checked (on) track. |
 
 <CodeEditor :code="InputSwitch" />
 

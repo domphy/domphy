@@ -6,7 +6,14 @@ import InputRange from "../../demos/patches/InputRange.ts?raw"
 
 # Input Range
 
-Use the input-range patch to customize this element.
+Styles a range slider with a themed track and thumb, plus hover, focus, and disabled states. Apply to an `<input type="range">` element — the patch sets `type: "range"`.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for the slider track. |
+| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the thumb and focus ring. |
 
 <CodeEditor :code="InputRange" />
 

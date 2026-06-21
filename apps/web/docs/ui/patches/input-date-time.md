@@ -6,7 +6,15 @@ import InputDateTime from "../../demos/patches/InputDateTime.ts?raw"
 
 # Input Date Time
 
-Use the input-date-time patch to customize this element.
+Styles a native date/time input with themed border, padding, hover, focus, invalid, and disabled states. The `mode` prop selects the input `type`. Apply to an `<input>` element — the patch sets `type` to the chosen `mode`.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `mode` | `"date" \| "time" \| "week" \| "month" \| "datetime-local"` | `"datetime-local"` | Selects the native input `type`. |
+| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for text and border. |
+| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the hover/focus ring. |
 
 <CodeEditor :code="InputDateTime" />
 

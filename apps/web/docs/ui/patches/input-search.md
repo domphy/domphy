@@ -6,7 +6,14 @@ import InputSearch from "../../demos/patches/InputSearch.ts?raw"
 
 # Input Search
 
-Use the input-search patch to customize this element.
+Styles a search input with themed border, padding, placeholder color, native search decorations, hover, focus, and disabled states. Apply to an `<input type="search">` element — the patch sets `type: "search"`.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for text, border, and placeholder. |
+| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the hover/focus ring. |
 
 <CodeEditor :code="InputSearch" />
 

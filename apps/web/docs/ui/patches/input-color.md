@@ -6,7 +6,14 @@ import InputColor from "../../demos/patches/InputColor.ts?raw"
 
 # Input Color
 
-Use the input-color patch to customize this element.
+Styles a native color picker swatch with themed padding, a rounded swatch, and disabled styling. Apply to an `<input type="color">` element — the patch sets `type: "color"`.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone used for the disabled state background. |
+| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the swatch accent. |
 
 <CodeEditor :code="InputColor" />
 
