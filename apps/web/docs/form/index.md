@@ -76,8 +76,9 @@ const Field = {
 | `values(l)` / `state(l)` | Reactive form values / full form state. |
 | `canSubmit(l)` / `isSubmitting(l)` / `isValid(l)` / `isSubmitted(l)` | Reactive flags. |
 | `field<TData>(name, options?)` | Create and mount a reactive field handle. |
-| `handleSubmit()` | Run validation and submission. |
+| `handleSubmit()` | Run validation and submission. Returns `Promise<void>`. |
 | `reset(values?)` | Reset to defaults (or given values). |
+| `version(l)` | Reactive change counter — increments on every store flush. |
 | `form` | The underlying `FormApi`. |
 | `destroy()` | Unmount the form and all fields; call from `_onRemove`. |
 
@@ -87,9 +88,9 @@ const Field = {
 | --- | --- |
 | `value(l)` | Reactive value — bind to the input's `value`/`checked`. |
 | `errors(l)` / `meta(l)` | Reactive validation errors / full field meta. |
-| `handleChange(value)` | Update the value (from `onInput`/`onChange`). |
+| `handleChange(value \| updater)` | Update the value (from `onInput`/`onChange`). Accepts a direct value or an `(prev) => next` updater function. |
 | `handleBlur()` | Mark blurred and run blur validators. |
-| `setValue(updater)` | Set the value programmatically. |
+| `setValue(value \| updater)` | Set the value programmatically. Accepts a direct value or an `(prev) => next` updater function. |
 | `api` | The underlying `FieldApi`. |
 
 Field and form `options` (validators, async debouncing, listeners, arrays, Standard Schema) are the upstream form-core options — see the [TanStack Form docs](https://tanstack.com/form/latest).
