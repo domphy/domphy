@@ -12,8 +12,8 @@ Use `inputNumber` on a native `input` element. It styles the browser's built-in 
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for text and border. |
-| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the hover/focus ring. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for text and border. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color tone for the hover/focus ring. |
 
 <CodeEditor :code="InputNumber" />
 

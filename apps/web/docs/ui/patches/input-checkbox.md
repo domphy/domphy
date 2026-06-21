@@ -12,8 +12,8 @@ Styles a custom checkbox with a themed box, check mark, indeterminate state, hov
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for the box border and resting background. |
-| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the checked/indeterminate fill and focus ring. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for the box border and resting background. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color tone for the checked/indeterminate fill and focus ring. |
 
 <CodeEditor :code="InputCheckbox" />
 

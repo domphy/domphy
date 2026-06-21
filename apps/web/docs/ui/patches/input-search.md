@@ -12,8 +12,8 @@ Styles a search input with themed border, padding, placeholder color, native sea
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for text, border, and placeholder. |
-| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the hover/focus ring. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for text, border, and placeholder. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color tone for the hover/focus ring. |
 
 <CodeEditor :code="InputSearch" />
 

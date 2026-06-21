@@ -12,8 +12,8 @@ Styles a range slider with a themed track and thumb, plus hover, focus, and disa
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for the slider track. |
-| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the thumb and focus ring. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for the slider track. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color tone for the thumb and focus ring. |
 
 <CodeEditor :code="InputRange" />
 

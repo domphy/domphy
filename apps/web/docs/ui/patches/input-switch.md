@@ -12,7 +12,7 @@ Styles a checkbox as a toggle switch: a themed track and sliding knob that anima
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the checked (on) track. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color tone for the checked (on) track. |
 
 <CodeEditor :code="InputSwitch" />
 

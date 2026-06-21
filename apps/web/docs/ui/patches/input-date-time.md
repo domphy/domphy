@@ -13,8 +13,8 @@ Styles a native date/time input with themed border, padding, hover, focus, inval
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `mode` | `"date" \| "time" \| "week" \| "month" \| "datetime-local"` | `"datetime-local"` | Selects the native input `type`. |
-| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for text and border. |
-| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the hover/focus ring. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for text and border. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color tone for the hover/focus ring. |
 
 <CodeEditor :code="InputDateTime" />
 

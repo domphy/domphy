@@ -12,8 +12,8 @@ Styles a custom radio button with a themed circular box, checked dot, hover, foc
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for the box border and resting background. |
-| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the checked dot and focus ring. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for the box border and resting background. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color tone for the checked dot and focus ring. |
 
 <CodeEditor :code="InputRadio" />
 

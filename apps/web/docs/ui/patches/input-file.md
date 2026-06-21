@@ -12,8 +12,8 @@ Styles a native file input with a themed upload button, border, hover, focus, an
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for text, border, and the upload button. |
-| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the hover/focus ring. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for text, border, and the upload button. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color tone for the hover/focus ring. |
 
 <CodeEditor :code="InputFile" />
 
