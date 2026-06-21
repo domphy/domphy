@@ -17,7 +17,7 @@ npm install @domphy/palette
 ```ts
 import { Ramp } from "@domphy/palette"
 
-const ramp = new Ramp(blue, "blue")
+const ramp = new Ramp(blueHexes, "blue")
 ramp.metrics       // { contrastEfficiency, lightnessLinearity, chromaSmoothness, hueStability, spacingUniformity }
 ramp.score         // 0–100 (geometric mean of the normalized metrics)
 ramp.wcag[45].span // how many steps clear WCAG 4.5:1

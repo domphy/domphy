@@ -7,7 +7,7 @@ A sequential color ramp (e.g. `blue-50` … `blue-900`) is good when it is **per
 Each metric normalizes to `[0, 1]`; `Ramp.score` is the geometric mean, scaled to `0–100`.
 
 1. **Contrast Efficiency** — how efficiently the ramp uses its lightness range to reach a WCAG **4.5:1** contrast pair. A ramp that wastes lightness span (or never reaches 4.5:1) scores low.
-2. **Lightness Linearity** — how linear the lightness progression is across the steps, with a **Helmholtz–Kohlrausch** correction (so highly-chromatic steps that *look* lighter are accounted for). Even visual steps → high score.
+2. **Lightness Linearity** — how linear the lightness progression is across the steps, using the **High et al. (2023) L_EAL** (Equivalent Achromatic Lightness) model to account for the Helmholtz–Kohlrausch effect (highly-chromatic steps that *look* lighter are accounted for). Even visual steps → high score.
 3. **Chroma Smoothness** — detects kinks and artifacts in the saturation curve using **monotone cubic splines**. A smooth chroma arc scores high; a jagged one (a step that suddenly desaturates) scores low.
 4. **Hue Stability** — quantifies hue drift across the lightness ramp. A ramp that stays "the same color" from light to dark scores high; one that shifts hue (blue → purple at the dark end) scores low.
 5. **Spacing Uniformity** — consistency of perceptual spacing between adjacent steps, measured with **ΔE2000**. Evenly-spaced steps score high.
