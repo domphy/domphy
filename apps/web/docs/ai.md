@@ -102,7 +102,7 @@ For MCP-capable agents (Claude Desktop, Cursor, …), the [`@domphy/mcp`](https:
 { "mcpServers": { "domphy": { "command": "npx", "args": ["-y", "@domphy/mcp"] } } }
 ```
 
-Tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_diagnose` + `domphy_validate` (run the doctor), and — for large codebases — `domphy_list_app_blocks` / `domphy_get_app_block`, which surface the blocks an app already has (from a generated `app-manifest.json`) so the agent reuses them instead of re-creating them. The agent looks up the real API before writing and validates after.
+Tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones` (valid tone/color names for `themeColor()`), `domphy_diagnose` + `domphy_validate` + `domphy_fix` (run and autofix the doctor), and — for large codebases — `domphy_list_app_blocks` / `domphy_get_app_block`, which surface the blocks an app already has (from a generated `app-manifest.json`) so the agent reuses them instead of re-creating them. The agent looks up the real API before writing and validates after.
 
 ## Machine-readable manifest
 

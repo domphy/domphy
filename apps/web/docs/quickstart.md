@@ -11,7 +11,13 @@ import WithForm from "./demos/quickstart/04-form.ts"
 ## Install
 
 ::: code-group
-```bash [NPM]
+```bash [Scaffold new project]
+npm create domphy@latest my-app
+cd my-app
+npm install
+npm run dev
+```
+```bash [Add to existing project]
 npm install @domphy/ui
 ```
 ```html [CDN]
@@ -19,7 +25,7 @@ npm install @domphy/ui
 ```
 :::
 
-`@domphy/ui` includes `@domphy/core` and `@domphy/theme` — one install gives you everything.
+`npm create domphy@latest` scaffolds a Vite + TypeScript starter with everything wired up. For an existing project, `npm install @domphy/ui` is enough — it includes `@domphy/core` and `@domphy/theme`.
 
 ## 1. Hello World
 
