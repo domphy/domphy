@@ -14,7 +14,9 @@ import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
  *   { span: "Add your first item to get started", $: [small()] },
  * ], $: [empty()] }
  */
-function empty(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement {
+function empty(
+  props: { color?: ValueOrState<ThemeColor> } = {},
+): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
 
   return {
@@ -30,7 +32,8 @@ function empty(props: { color?: ValueOrState<ThemeColor> } = {}): PartialElement
       color: (listener) => themeColor(listener, "shift-6", color.get(listener)),
       // First child (icon area): more muted color to visually recede behind the text
       "& > :first-child": {
-        color: (listener) => themeColor(listener, "shift-5", color.get(listener)),
+        color: (listener) =>
+          themeColor(listener, "shift-5", color.get(listener)),
       },
     },
   };

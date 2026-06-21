@@ -36,9 +36,7 @@ function segmentedItem(
       }
       const ctx = node.getContext("segmented");
       if (!ctx) {
-        console.warn(
-          `"segmentedItem" patch must be used inside a "segmented"`,
-        );
+        console.warn(`"segmentedItem" patch must be used inside a "segmented"`);
         return;
       }
       const siblings = (node.parent?.children.items ?? []) as ElementNode[];
@@ -54,8 +52,9 @@ function segmentedItem(
           ? String(node.key)
           : String(items.indexOf(node));
 
-      node.attributes.set("ariaSelected", (listener) =>
-        ctx.value.get(listener) === key,
+      node.attributes.set(
+        "ariaSelected",
+        (listener) => ctx.value.get(listener) === key,
       );
 
       node.addEvent("click", () => ctx.value.set(key));

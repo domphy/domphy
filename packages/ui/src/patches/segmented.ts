@@ -10,10 +10,7 @@ import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
  * @example { div: null, $: [segmented({ value: "month" })] }
  */
 function segmented(
-  props: {
-    value?: ValueOrState<string>;
-    color?: ThemeColor;
-  } = {},
+  props: { value?: ValueOrState<string>; color?: ThemeColor } = {},
 ): PartialElement {
   const { color = "neutral" } = props;
   return {
