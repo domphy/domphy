@@ -22,6 +22,10 @@ export class StyleList {
   addCSS(obj: Record<string, any>, parentSelector: string = ""): void {
     if (!this.items || !this.parent) return;
     const basic: Record<string, any> = {};
+    // Conditional at-rules (@media/@container/@supports/@layer) must be inserted
+    // AFTER the base property block so that same-specificity rules in the at-rule
+    // override the base when the condition matches (later rules win in the cascade).
+    const conditionalRules: StyleRule[] = [];
 
     function getSelector(selector: string, prev: string): string {
       return selector.startsWith("&")
@@ -38,7 +42,7 @@ export class StyleList {
           if (typeof value === "object" && value != null) {
             const rule = new StyleRule(key, this.parent);
             rule.styleList!.addCSS(value, parentSelector);
-            this.items.push(rule);
+            conditionalRules.push(rule);
           }
         } else if (key.startsWith("@keyframes")) {
           const rule = new StyleRule(key, this.parent);
@@ -73,6 +77,10 @@ export class StyleList {
     if (Object.keys(basic).length) {
       const rule = new StyleRule(parentSelector, this.parent);
       for (const key in basic) rule.insertStyle(key, basic[key]);
+      this.items.push(rule);
+    }
+
+    for (const rule of conditionalRules) {
       this.items.push(rule);
     }
   }

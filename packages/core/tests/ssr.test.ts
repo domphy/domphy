@@ -180,6 +180,32 @@ describe("SSR: generateCSS", () => {
     expect(css).toContain("color: green");
   });
 
+  it("emits @media AFTER base properties so at-rule wins the cascade", () => {
+    const css = new ElementNode({
+      div: "x",
+      style: {
+        color: "red",
+        "@media (max-width: 640px)": { color: "blue" },
+      },
+    } as DomphyElement).generateCSS();
+    // @media block must appear after the base rule so same-specificity cascade
+    // lets the at-rule override the base when the condition matches.
+    expect(css.indexOf("@media")).toBeGreaterThan(css.indexOf("color: red"));
+  });
+
+  it("emits @container AFTER base properties", () => {
+    const css = new ElementNode({
+      div: "x",
+      style: {
+        fontSize: "16px",
+        "@container (min-width: 400px)": { fontSize: "20px" },
+      },
+    } as DomphyElement).generateCSS();
+    expect(css.indexOf("@container")).toBeGreaterThan(
+      css.indexOf("font-size: 16px"),
+    );
+  });
+
   it("resolves reactive style props to their initial value", () => {
     const c = toState("red");
     const css = new ElementNode({
