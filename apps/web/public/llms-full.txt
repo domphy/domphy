@@ -33,7 +33,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 
 - `@domphy/core` — runtime: rendering, reactivity, lifecycle, SSR, CSS-in-JS (≈ `react-dom` + SSR + CSS-in-JS in one)
 - `@domphy/theme` — context-aware color/size/spacing tokens
-- `@domphy/ui` — 74 patches for native HTML (≈ MUI)
+- `@domphy/ui` — 85 patches for native HTML (≈ MUI)
 
 **Data & logic** — 1-1 ports of the TanStack cores (identical API) + a Domphy adapter at the `/domphy` subpath:
 
@@ -127,7 +127,7 @@ Form state, validation, and submission live in [`@domphy/form`](/docs/form/) (`c
 
 - [Core concepts](/docs/core/) — Syntax, reactivity, lifecycle
 - [Theme](/docs/theme/) — Tone, size, density
-- [All 74 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
+- [All 85 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
 - [Research](/docs/research/) — The two papers behind the design system
 
 
@@ -5872,7 +5872,7 @@ title: Hello
 ---
 # Hello World
 
-A paragraph with **bold** and a [link](https://domphy.dev).
+A paragraph with **bold** and a [link](https://domphy.com).
 
 - one
 - two
@@ -6155,8 +6155,11 @@ interface Diagnostic {
 | --- | --- | --- |
 | `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` / `fontFamily` / `textDecoration` literals in `style` — use a typography patch |
 | `raw-theme-value` | info | a literal hex/rgb/hsl color in a color style prop (`color`, `background`, `border`, `fill`, …). The hint uses **`@domphy/palette` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
-| `raw-spacing-value` | info | a literal `rem`/`em`/`px` value in a layout spacing prop (`padding`, `margin`, `gap`, …) — suggests `themeSpacing(n)` for consistent theme density |
-| `unknown-tone` | warning | a `dataTone` value that isn't valid tone grammar (`inherit` / `base` / a number / `shift-N` / `increase-N` / `decrease-N`) — catches invented words like `surface` / `text` |
+| `raw-spacing-value` | info | a literal `rem`/`em`/`px` value in a layout spacing prop (`padding`, `paddingBlock`, `paddingInline`, `margin`, `marginBlock`, `marginInline`, `gap`, …) — suggests `themeSpacing(n)` for consistent theme density |
+| `unknown-tone` | warning | a `dataTone` value that isn't valid tone grammar (`inherit` / `base` / a number / `shift-N` / `increase-N` / `decrease-N` with N ≤ 17) — catches invented words like `surface` / `text`, and out-of-range offsets like `shift-25` |
+| `middle-surface-anchor` | warning | a `dataTone: "shift-N"` where N is 4–13 — a mid-ramp surface anchor causes child tones to clamp and collapse contrast; prefer edge anchors (0–3 light, 14–17 dark) |
+| `unknown-density` | warning / error | a `dataDensity` value that isn't `"inherit"` / `"increase-N"` / `"decrease-N"` (N ≤ 4), or uses `shift-` (invalid for density). Error when N > 4 (out of the 5-step scale). |
+| `unknown-size` | warning / error | a `dataSize` value that isn't `"inherit"` / `"increase-N"` / `"decrease-N"` (N ≤ 7), or uses `shift-` (invalid for size). Error when N > 7 (out of the 8-step scale). |
 | `void-content` | error | a void tag (`input`, `img`, `br`, …) with non-null content |
 | `missing-key` | warning | a **dynamic** list (returned by a reactive function) of element children missing `_key` |
 | `unknown-tag` | warning | an element whose first key isn't a valid HTML/SVG tag (typo) |
@@ -6307,6 +6310,87 @@ function abbreviation(
 }
 
 export { abbreviation };
+```
+
+### accordion
+
+```ts
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSpacing,
+} from "@domphy/theme";
+
+/**
+ * Container patch that groups `<details>` elements into a bordered accordion.
+ * In `type: "single"` mode (default), opening one item closes all siblings.
+ *
+ * @param props.type - `"single"` (default) or `"multiple"`. Single mode auto-closes siblings.
+ * @param props.color - Theme color tone for borders and backgrounds. Defaults to `"neutral"`.
+ * @param props.accentColor - Accent color for focus outlines on summary. Defaults to `"primary"`.
+ * @example
+ * { div: [
+ *   { details: [{ summary: "Section A" }, { p: "Content A" }], $: [details()] },
+ *   { details: [{ summary: "Section B" }, { p: "Content B" }], $: [details()] },
+ * ], $: [accordion()] }
+ */
+function accordion(
+  props: {
+    type?: "single" | "multiple";
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
+  } = {},
+): PartialElement {
+  const { type = "single" } = props;
+  const color = toState(props.color ?? "neutral", "color");
+  const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+
+  return {
+    _onMount: (node) => {
+      if (type !== "single") return;
+
+      const el = node.domElement;
+      if (!el) return;
+      el.addEventListener("click", (event) => {
+        const summary = (event.target as Element).closest("summary");
+        if (!summary) return;
+        const item = summary.closest("details") as HTMLDetailsElement | null;
+        if (!item || item.parentElement !== el) return;
+        if (!item.open) {
+          Array.from(el.querySelectorAll(":scope > details")).forEach(
+            (detail) => {
+              if (detail !== item) (detail as HTMLDetailsElement).open = false;
+            },
+          );
+        }
+      });
+    },
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      outline: (listener) =>
+        `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+      outlineOffset: "-1px",
+      overflow: "hidden",
+      "& > details": {
+        borderBottom: (listener) =>
+          `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+      },
+      "& > details:last-child": {
+        borderBottom: "none",
+      },
+      "& > details > summary:focus-visible": {
+        outline: (listener) =>
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+      },
+    },
+  };
+}
+
+export { accordion };
 ```
 
 ### alert
@@ -8440,6 +8524,53 @@ function emphasis(
 }
 
 export { emphasis };
+```
+
+### empty
+
+```ts
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+
+/**
+ * Styles a container as an empty-state placeholder: centered flex column with
+ * muted coloring and comfortable padding. Provide the icon, title, and
+ * description as child elements.
+ *
+ * @param props.color - Theme color tone for the muted text/icon. Defaults to `"neutral"`.
+ * @example
+ * { div: [
+ *   { span: "📭", $: [heading({ level: 1 })] },
+ *   { p: "No items yet", $: [paragraph()] },
+ *   { span: "Add your first item to get started", $: [small()] },
+ * ], $: [empty()] }
+ */
+function empty(
+  props: { color?: ValueOrState<ThemeColor> } = {},
+): PartialElement {
+  const color = toState(props.color ?? "neutral", "color");
+
+  return {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: themeSpacing(3),
+      paddingBlock: themeSpacing(12),
+      paddingInline: themeSpacing(6),
+      textAlign: "center",
+      color: (listener) => themeColor(listener, "shift-6", color.get(listener)),
+      // First child (icon area): more muted color to visually recede behind the text
+      "& > :first-child": {
+        color: (listener) =>
+          themeColor(listener, "shift-5", color.get(listener)),
+      },
+    },
+  };
+}
+
+export { empty };
 ```
 
 ### figure
@@ -10934,6 +11065,144 @@ function progress(
 export { progress };
 ```
 
+### segmented
+
+```ts
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+
+/**
+ * Container patch that establishes a `segmented` context for single-select navigation.
+ * Style: inline pill-shaped control with muted background. Use with `segmentedItem` patches on child `<button>` elements.
+ *
+ * @param props.value - Initially selected item key. Accepts a value or state. Defaults to `""`.
+ * @param props.color - Theme color for the control background. Defaults to `"neutral"`.
+ * @example { div: null, $: [segmented({ value: "month" })] }
+ */
+function segmented(
+  props: { value?: ValueOrState<string>; color?: ThemeColor } = {},
+): PartialElement {
+  const { color = "neutral" } = props;
+  return {
+    role: "group",
+    _context: {
+      segmented: { value: toState(props.value ?? "") },
+    },
+    style: {
+      display: "inline-flex",
+      paddingBlock: themeSpacing(1),
+      paddingInline: themeSpacing(1),
+      gap: themeSpacing(0.5),
+      borderRadius: themeSpacing(10),
+      backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+    },
+  };
+}
+
+export { segmented };
+```
+
+### segmentedItem
+
+```ts
+import {
+  type ElementNode,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
+
+/**
+ * Styles and wires a single option inside a `segmented` control on the host `<button>`.
+ * Sets `aria-selected` and handles click-to-select against the parent `segmented` context.
+ *
+ * @hostTag button
+ * @param props.color - Theme color for resting state. Defaults to `"neutral"`.
+ * @param props.accentColor - Theme color for selected state. Defaults to `"primary"`.
+ * @example { button: "Month", $: [segmentedItem()] }
+ */
+function segmentedItem(
+  props: {
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
+  } = {},
+): PartialElement {
+  const color = toState(props.color ?? "neutral", "color");
+  const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+  return {
+    role: "option",
+    _onInsert: (node) => {
+      if (node.tagName !== "button") {
+        console.warn(`"segmentedItem" patch must use button tag`);
+      }
+      const ctx = node.getContext("segmented");
+      if (!ctx) {
+        console.warn(`"segmentedItem" patch must be used inside a "segmented"`);
+        return;
+      }
+      const siblings = (node.parent?.children.items ?? []) as ElementNode[];
+      const items = siblings.filter(
+        (sibling) =>
+          sibling.type === "ElementNode" &&
+          sibling.attributes.get("role") === "option",
+      );
+      // node.key is null (not undefined) when absent — check both so an
+      // explicit _key of 0 or "" keeps its real key instead of "null"/index.
+      const key =
+        node.key !== null && node.key !== undefined
+          ? String(node.key)
+          : String(items.indexOf(node));
+
+      node.attributes.set(
+        "ariaSelected",
+        (listener) => ctx.value.get(listener) === key,
+      );
+
+      node.addEvent("click", () => ctx.value.set(key));
+    },
+    style: {
+      cursor: "pointer",
+      fontSize: (listener) => themeSize(listener, "inherit"),
+      height: themeSpacing(6),
+      paddingBlock: themeSpacing(1),
+      paddingInline: themeSpacing(3),
+      border: "none",
+      borderRadius: themeSpacing(10),
+      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      backgroundColor: "transparent",
+      transition: "background-color 300ms ease",
+      "&:hover:not([disabled]):not([aria-selected=true])": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-3", color.get(listener)),
+      },
+      "&[aria-selected=true]": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-0", accentColor.get(listener)),
+        color: (listener) =>
+          themeColor(listener, "shift-10", accentColor.get(listener)),
+      },
+      "&:focus-visible": {
+        outline: (listener) =>
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        outlineOffset: `-${themeSpacing(0.5)}`,
+      },
+      "&[disabled]": {
+        opacity: 0.7,
+        cursor: "not-allowed",
+      },
+    },
+  };
+}
+
+export { segmentedItem };
+```
+
 ### select
 
 ```ts
@@ -11638,6 +11907,207 @@ function splitterHandle(): PartialElement {
 }
 
 export { splitter, splitterPanel, splitterHandle };
+```
+
+### stepItem
+
+```ts
+import type { ElementNode, PartialElement, State } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
+
+/**
+ * Styles a single step inside a `steps` container. Sets `data-status`
+ * (`"pending"` | `"active"` | `"done"`) and `aria-current="step"` on the host element
+ * based on the parent `steps` context. The element's content is the step label.
+ *
+ * @example { li: "Shipping", $: [stepItem()] }
+ */
+function stepItem(): PartialElement {
+  return {
+    _onInsert: (node) => {
+      const context = node.getContext("steps") as
+        | {
+            current: State<number>;
+            direction: "horizontal" | "vertical";
+            color: ThemeColor;
+            accentColor: ThemeColor;
+          }
+        | undefined;
+
+      if (!context) {
+        console.warn(`"stepItem" patch must be used inside a "steps"`);
+        return;
+      }
+
+      const siblings = (node.parent?.children.items ?? []) as ElementNode[];
+      const items = siblings.filter((n) => n.type === "ElementNode");
+      const index = items.indexOf(node);
+
+      if (node.domElement) node.domElement.dataset.step = String(index + 1);
+
+      node.attributes.set("dataStatus", (listener) => {
+        const current = context.current.get(listener);
+        if (index < current) return "done";
+        if (index === current) return "active";
+        return "pending";
+      });
+
+      node.attributes.set("ariaCurrent", (listener) => {
+        return context.current.get(listener) === index ? "step" : undefined;
+      });
+    },
+    style: {
+      position: "relative",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: themeSpacing(1),
+      flex: "1",
+      fontSize: (listener) => themeSize(listener, "decrease-1"),
+      textAlign: "center",
+      // Circle indicator via ::before using data-step content
+      "&::before": {
+        content: "attr(data-step)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: themeSpacing(6),
+        height: themeSpacing(6),
+        borderRadius: themeSpacing(999),
+        fontSize: (listener) => themeSize(listener, "decrease-1"),
+        fontWeight: "600",
+        flexShrink: "0",
+        border: (listener) =>
+          `2px solid ${themeColor(listener, "shift-4", "neutral")}`,
+        backgroundColor: (listener) => themeColor(listener, "inherit"),
+        color: (listener) => themeColor(listener, "shift-8"),
+        transition:
+          "background-color 200ms ease, color 200ms ease, border-color 200ms ease",
+        zIndex: "1",
+      },
+      // Connector line to the previous sibling — shown on non-first items
+      "&:not(:first-child)::after": {
+        content: '""',
+        position: "absolute",
+        top: themeSpacing(3),
+        right: `calc(50% + ${themeSpacing(3)})`,
+        left: `calc(-50% + ${themeSpacing(3)})`,
+        height: "2px",
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-3", "neutral"),
+        zIndex: "0",
+      },
+      // Active step — accent colored filled circle
+      "&[data-status=active]::before": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-6", "primary"),
+        borderColor: (listener) => themeColor(listener, "shift-6", "primary"),
+        color: (listener) => themeColor(listener, "shift-15", "primary"),
+      },
+      // Done step — muted filled circle with checkmark
+      "&[data-status=done]::before": {
+        content: '"✓"',
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-3", "neutral"),
+        borderColor: (listener) => themeColor(listener, "shift-3", "neutral"),
+        color: (listener) => themeColor(listener, "shift-9", "neutral"),
+      },
+      // Done step connector — filled track
+      "&[data-status=done]:not(:first-child)::after": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-3", "neutral"),
+      },
+      // Active step connector — accent track up to the active item
+      "&[data-status=active]:not(:first-child)::after": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-6", "primary"),
+      },
+      // Pending text — muted
+      "&[data-status=pending]": {
+        color: (listener) => themeColor(listener, "shift-7"),
+      },
+      // Active text — default emphasis
+      "&[data-status=active]": {
+        color: (listener) => themeColor(listener, "shift-10"),
+        fontWeight: "600",
+      },
+      // Done text — secondary
+      "&[data-status=done]": {
+        color: (listener) => themeColor(listener, "shift-8"),
+      },
+    },
+  };
+}
+
+export { stepItem };
+```
+
+### steps
+
+```ts
+import {
+  merge,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
+import { type ThemeColor, themeSpacing } from "@domphy/theme";
+
+/**
+ * Container patch for a step-progress indicator. Establishes `steps` context
+ * with a reactive `current` index. Use with `stepItem` patches on child elements.
+ *
+ * @param props.current - Zero-based index of the active step. Accepts a value or state. Defaults to `0`.
+ * @param props.direction - `"horizontal"` (default) or `"vertical"` layout.
+ * @param props.color - Theme color for pending/track elements. Defaults to `"neutral"`.
+ * @param props.accentColor - Theme color for active/completed elements. Defaults to `"primary"`.
+ * @example { ol: null, $: [steps({ current: 1 })] }
+ */
+function steps(
+  props: {
+    current?: ValueOrState<number>;
+    direction?: "horizontal" | "vertical";
+    color?: ThemeColor;
+    accentColor?: ThemeColor;
+  } = {},
+): PartialElement {
+  const direction = props.direction ?? "horizontal";
+  const color = props.color ?? "neutral";
+  const accentColor = props.accentColor ?? "primary";
+
+  const partial: PartialElement = {
+    _onSchedule: (_node, element) => {
+      const contextPartial = {
+        _context: {
+          steps: {
+            current: toState(props.current ?? 0),
+            direction,
+            color,
+            accentColor,
+          },
+        },
+      };
+      merge(element, contextPartial);
+    },
+    style: {
+      display: "flex",
+      flexDirection: direction === "vertical" ? "column" : "row",
+      alignItems: direction === "vertical" ? "flex-start" : "center",
+      gap: themeSpacing(2),
+      listStyle: "none",
+      margin: "0",
+      padding: "0",
+    },
+  };
+  return partial;
+}
+
+export { steps };
 ```
 
 ### strong
@@ -12488,6 +12958,44 @@ function toggleGroup(
 }
 
 export { toggleGroup };
+```
+
+### toolbar
+
+```ts
+import type { DomphyElement, PartialElement } from "@domphy/core";
+import { themeDensity, themeSpacing } from "@domphy/theme";
+
+/**
+ * A horizontal flex row with vertically centered items. Useful for headers,
+ * toolbars, navigation bars, and action strips.
+ *
+ * @param props.gap - Spacing multiplier for gap between items (default 4 = 1em).
+ * @example { header: [...], $: [toolbar()] }
+ * @example { nav: [...], $: [toolbar({ gap: 3 })] }
+ */
+function toolbar(props: { gap?: number } = {}): PartialElement {
+  const gap = props.gap ?? 4;
+  return {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: (listener) => themeSpacing(themeDensity(listener) * gap),
+    },
+  };
+}
+
+/**
+ * A flex spacer that expands to fill available space in a toolbar, pushing
+ * subsequent items to the far end.
+ *
+ * @example { header: [logo, toolbarSpacer(), nav, actions], $: [toolbar()] }
+ */
+function toolbarSpacer(): DomphyElement {
+  return { div: null, style: { flex: "1 1 0" } };
+}
+
+export { toolbar, toolbarSpacer };
 ```
 
 ### tooltip

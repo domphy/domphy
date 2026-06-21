@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "domphy",
   "version": "0.16.0",
   "generated": "auto",
@@ -154,6 +154,34 @@
       "doc": "Styles an abbreviation/acronym with a dotted underline and a \"help\" cursor, shifting to the accent color on hover. Apply to an `<abbr>` element.",
       "example": "{ abbr: \"HTML\", title: \"HyperText Markup Language\", $: [abbreviation({ accentColor: \"primary\" })] }",
       "source": "packages/ui/src/patches/abbreviation.ts"
+    },
+    {
+      "name": "accordion",
+      "hostTag": null,
+      "signature": "accordion(props: { type?: \"single\" | \"multiple\"; color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "type",
+          "type": "\"single\" | \"multiple\"",
+          "optional": true,
+          "doc": "`\"single\"` (default) or `\"multiple\"`. Single mode auto-closes siblings."
+        },
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone for borders and backgrounds. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Accent color for focus outlines on summary. Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Container patch that groups `<details>` elements into a bordered accordion. In `type: \"single\"` mode (default), opening one item closes all siblings.",
+      "example": "{ div: [ { details: [{ summary: \"Section A\" }, { p: \"Content A\" }], $: [details()] }, { details: [{ summary: \"Section B\" }, { p: \"Content B\" }], $: [details()] }, ], $: [accordion()] }",
+      "source": "packages/ui/src/patches/accordion.ts"
     },
     {
       "name": "alert",
@@ -663,6 +691,22 @@
       "doc": "Italic emphasized inline text. Apply to an `<em>` element.",
       "example": "{ em: \"important\", $: [emphasis()] }",
       "source": "packages/ui/src/patches/emphasis.ts"
+    },
+    {
+      "name": "empty",
+      "hostTag": null,
+      "signature": "empty(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone for the muted text/icon. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Styles a container as an empty-state placeholder: centered flex column with muted coloring and comfortable padding. Provide the icon, title, and description as child elements.",
+      "example": "{ div: [ { span: \"📭\", $: [heading({ level: 1 })] }, { p: \"No items yet\", $: [paragraph()] }, { span: \"Add your first item to get started\", $: [small()] }, ], $: [empty()] }",
+      "source": "packages/ui/src/patches/empty.ts"
     },
     {
       "name": "figure",
@@ -1328,6 +1372,50 @@
       "source": "packages/ui/src/patches/progress.ts"
     },
     {
+      "name": "segmented",
+      "hostTag": null,
+      "signature": "segmented(props: { value?: ValueOrState<string>; color?: ThemeColor } = {})",
+      "props": [
+        {
+          "name": "value",
+          "type": "ValueOrState<string>",
+          "optional": true,
+          "doc": "Initially selected item key. Accepts a value or state. Defaults to `\"\"`."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color for the control background. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Container patch that establishes a `segmented` context for single-select navigation. Style: inline pill-shaped control with muted background. Use with `segmentedItem` patches on child `<button>` elements.",
+      "example": "{ div: null, $: [segmented({ value: \"month\" })] }",
+      "source": "packages/ui/src/patches/segmented.ts"
+    },
+    {
+      "name": "segmentedItem",
+      "hostTag": "button",
+      "signature": "segmentedItem(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color for resting state. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color for selected state. Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Styles and wires a single option inside a `segmented` control on the host `<button>`. Sets `aria-selected` and handles click-to-select against the parent `segmented` context.",
+      "example": "{ button: \"Month\", $: [segmentedItem()] }",
+      "source": "packages/ui/src/patches/segmentedItem.ts"
+    },
+    {
       "name": "select",
       "hostTag": "select",
       "signature": "select(props: { color?: ThemeColor; accentColor?: ThemeColor } = {})",
@@ -1564,6 +1652,49 @@
       "source": "packages/ui/src/patches/splitter.ts"
     },
     {
+      "name": "stepItem",
+      "hostTag": null,
+      "signature": "stepItem()",
+      "props": [],
+      "doc": "Styles a single step inside a `steps` container. Sets `data-status` (`\"pending\"` | `\"active\"` | `\"done\"`) and `aria-current=\"step\"` on the host element based on the parent `steps` context. The element's content is the step label.",
+      "example": "{ li: \"Shipping\", $: [stepItem()] }",
+      "source": "packages/ui/src/patches/stepItem.ts"
+    },
+    {
+      "name": "steps",
+      "hostTag": null,
+      "signature": "steps(props: { current?: ValueOrState<number>; direction?: \"horizontal\" | \"vertical\"; color?: ThemeColor; accentColor?: ThemeColor; } = {})",
+      "props": [
+        {
+          "name": "current",
+          "type": "ValueOrState<number>",
+          "optional": true,
+          "doc": "Zero-based index of the active step. Accepts a value or state. Defaults to `0`."
+        },
+        {
+          "name": "direction",
+          "type": "\"horizontal\" | \"vertical\"",
+          "optional": true,
+          "doc": "`\"horizontal\"` (default) or `\"vertical\"` layout."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color for pending/track elements. Defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Theme color for active/completed elements. Defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "Container patch for a step-progress indicator. Establishes `steps` context with a reactive `current` index. Use with `stepItem` patches on child elements.",
+      "example": "{ ol: null, $: [steps({ current: 1 })] }",
+      "source": "packages/ui/src/patches/steps.ts"
+    },
+    {
       "name": "strong",
       "hostTag": "strong",
       "signature": "strong(props: { color?: ValueOrState<ThemeColor> } = {})",
@@ -1795,6 +1926,22 @@
       "doc": "Container patch that establishes a `toggleGroup` context (shared selection `value` + `multiple` flag) and `group` role for child `toggle` patches, with a bordered segmented-control style. No host tag check; typically applied to a wrapper element.",
       "example": "{ div: null, $: [toggleGroup({ multiple: true })] }",
       "source": "packages/ui/src/patches/toggleGroup.ts"
+    },
+    {
+      "name": "toolbar",
+      "hostTag": null,
+      "signature": "toolbar(props: { gap?: number } = {})",
+      "props": [
+        {
+          "name": "gap",
+          "type": "number",
+          "optional": true,
+          "doc": "Spacing multiplier for gap between items (default 4 = 1em)."
+        }
+      ],
+      "doc": "A horizontal flex row with vertically centered items. Useful for headers, toolbars, navigation bars, and action strips.",
+      "example": "{ header: [...], $: [toolbar()] }",
+      "source": "packages/ui/src/patches/toolbar.ts"
     },
     {
       "name": "tooltip",
