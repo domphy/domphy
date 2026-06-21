@@ -4,7 +4,7 @@ import { button, popover, popoverArrow } from "@domphy/ui";
 
 const content: DomphyElement<"div"> = {
   div: "Popover content",
-  dataTone: "shift-6",
+  dataTone: "shift-17",
   style: {
     paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
     paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),

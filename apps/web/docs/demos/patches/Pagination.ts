@@ -8,11 +8,11 @@ const page2 = toState(5);
 const App: DomphyElement<"div"> = {
   div: [
     {
-      div: [],
+      div: "",
       $: [pagination({ value: page, total: 5 })],
     },
     {
-      div: [],
+      div: "",
       $: [pagination({ value: page2, total: 20 })],
     },
   ],

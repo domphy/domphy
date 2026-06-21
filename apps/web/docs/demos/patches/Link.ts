@@ -18,7 +18,7 @@ const App: DomphyElement<"div"> = {
   style: {
     display: "flex",
     flexWrap: "wrap",
-    rowGap: themeSpacing(9),
+    rowGap: themeSpacing(4),
     columnGap: themeSpacing(4),
   },
 };
