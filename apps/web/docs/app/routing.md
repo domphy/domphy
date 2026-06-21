@@ -54,7 +54,7 @@ function PostPage(context: RouteContext<Post>) {
 }
 ```
 
-`RouteContext` carries `pathname`, `params`, `searchParams`, `hash`, `data` (the segment's loader result) and `segmentData` (every matched segment's loader result, keyed by segment id).
+`RouteContext` carries `pathname` (the rendered path, after any middleware rewrite), `url` (the address-bar path, before rewrites), `params`, `searchParams`, `hash`, `data` (the segment's loader result), and `segmentData` (every matched segment's loader result, keyed by segment id).
 
 ## Route Groups
 
