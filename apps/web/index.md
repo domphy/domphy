@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Domphy
-  text: UI as plain objects. No JSX, no compiler.
-  tagline: "{ button: 'Save', $: [button()] } — that's your component. Works in a script tag, Vite, or a browser extension. No build step, no wrappers."
+  text: UI as plain objects.
+  tagline: "{ button: 'Save', $: [button()] } — that's your component. Works in a script tag, Vite, or a browser extension."
   actions:
     - theme: brand
       text: Get Started
@@ -18,9 +18,9 @@ hero:
 
 features:
   - title: No compiler, no syntax tax
-    details: Elements are plain JS objects. No JSX transform, no build step required. Works in a script tag, a Vite project, a browser extension — anywhere JS runs. ~9 kB core.
+    details: Elements are plain JS objects. Works in a script tag, a Vite project, a browser extension — anywhere JS runs. ~9 kB core.
   - title: Add behavior, not abstraction
-    details: "Want a tooltip on a button? $: [button(), tooltip()]. One DOM node. No wrapper component, no mystery div > div > button > span. Patches apply to the native element you wrote."
+    details: "Want a tooltip on a button? $: [button(), tooltip()]. One DOM node. Patches apply to the native element you wrote — no wrapper components."
   - title: Built-in design system
     details: themeColor, themeSpacing, themeSize — dark mode, density, size scales are native. No Tailwind configuration, no CSS-in-CSS variable plumbing. Write once, adapts everywhere.
   - title: AI generates it correctly
@@ -28,7 +28,7 @@ features:
   - title: Full TanStack-compatible stack
     details: "1-1 ports of TanStack Query, Table, Router, Virtual, Form — identical APIs. The Domphy adapter is the only difference."
   - title: Right size for tool apps
-    details: "Building a SketchUp plugin, Figma panel, or VS Code extension? Domphy brings reactivity and a design system without a JSX compiler — the right fit for plugin ecosystems."
+    details: "Building a SketchUp plugin, Figma panel, or VS Code extension? Domphy brings reactivity and a design system — the right fit for plugin ecosystems."
 ---
 
 ## Installation
