@@ -175,7 +175,7 @@ Use the low-level API when updates are event-driven and local, and when you want
 
 ## Derived Reactivity
 
-The `(listener) => state.get(listener)` form is the foundation: an explicit listener subscribes a reactive part to a state. On top of it, Domphy ships derived primitives — `computed`, `effect`, `effectScope`, `batch`, and `untrack` — for computations that depend on **other** reactive values. They build on the same `Notifier` machinery, so they participate in the same flush and cycle detection as a plain `state.get`.
+The `(listener) => state.get(listener)` form is the foundation: an explicit listener subscribes a reactive part to a state. On top of it, Domphy ships derived primitives — `computed`, `effect`, `effectScope`, `batch`, `untrack`, and `flushSync` — for computations that depend on **other** reactive values. They build on the same `Notifier` machinery, so they participate in the same flush and cycle detection as a plain `state.get`.
 
 These primitives **auto-track**: a reactive read with no explicit listener inside a `computed` or `effect` subscribes automatically. The explicit `(l) => state.get(l)` path used in elements is unchanged — both work, and they compose.
 
@@ -264,6 +264,21 @@ effect(() => {
   console.log(a.get(), untrack(() => b.get()))
 })
 ```
+
+### flushSync
+
+`flushSync()` drains the entire pending reaction queue synchronously before returning. Normally Domphy schedules flushes via microtask; `flushSync` forces all queued notifier flushes and reactive re-runs to complete immediately. Use it in tests or imperative code where you need the DOM/state to be fully settled before reading it back.
+
+```ts
+import { toState, flushSync } from "@domphy/core"
+
+const count = toState(0)
+count.set(1)
+flushSync()
+// count.get() === 1 and all downstream effects/computeds are already settled
+```
+
+If a diverging reactive loop prevents settling, `flushSync` breaks after 10 000 iterations and logs a `console.error`.
 
 ## External State Systems
 

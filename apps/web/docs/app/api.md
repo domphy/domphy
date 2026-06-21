@@ -41,7 +41,9 @@
 
 ### `defineRoutes(routes)` / `Route`
 
-`path`, `page`, `layout`, `loading`, `error`, `notFound`, `metadata`, `loader`, `revalidate`, `middleware`, `redirect`, `permanent`, `children`. See [Routing](./routing).
+`path`, `page`, `layout`, `loading`, `error`, `notFound`, `metadata`, `loader`, `revalidate`, `middleware`, `redirect`, `permanent`, `children`, `lazy`. See [Routing](./routing).
+
+`lazy: () => Promise<RouteModule>` — code-split the heavy parts of a route into a separately bundled module loaded on first match. The module may supply any of `page`, `layout`, `loading`, `error`, `notFound`, `metadata`, `loader`, or `middleware`; eager fields on the route win on conflict. Resolved once and cached for the lifetime of the route object.
 
 ### Blocks and contexts
 
