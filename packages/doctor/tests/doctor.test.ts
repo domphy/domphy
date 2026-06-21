@@ -115,40 +115,78 @@ describe("diagnose", () => {
     expect(rules({ div: "x", dataTone: "text" })).toContain("unknown-tone");
     // out-of-range but valid grammar
     expect(rules({ div: "x", dataTone: "shift-25" })).toContain("unknown-tone");
-    expect(rules({ div: "x", dataTone: "increase-18" })).toContain("unknown-tone");
+    expect(rules({ div: "x", dataTone: "increase-18" })).toContain(
+      "unknown-tone",
+    );
     // valid edge tones
-    expect(rules({ div: "x", dataTone: "shift-0" })).not.toContain("unknown-tone");
-    expect(rules({ div: "x", dataTone: "shift-17" })).not.toContain("unknown-tone");
-    expect(rules({ div: "x", dataTone: "increase-17" })).not.toContain("unknown-tone");
-    expect(rules({ div: "x", dataTone: "increase-2" })).not.toContain("unknown-tone");
+    expect(rules({ div: "x", dataTone: "shift-0" })).not.toContain(
+      "unknown-tone",
+    );
+    expect(rules({ div: "x", dataTone: "shift-17" })).not.toContain(
+      "unknown-tone",
+    );
+    expect(rules({ div: "x", dataTone: "increase-17" })).not.toContain(
+      "unknown-tone",
+    );
+    expect(rules({ div: "x", dataTone: "increase-2" })).not.toContain(
+      "unknown-tone",
+    );
     expect(rules({ div: "x", dataTone: "base" })).not.toContain("unknown-tone");
     expect(rules({ div: "x", dataTone: "3" })).not.toContain("unknown-tone");
   });
 
   it("warns on mid-ramp dataTone surface anchors (middle-surface-anchor)", () => {
     // shift-4 through shift-13 are mid-ramp
-    expect(rules({ div: "x", dataTone: "shift-4" })).toContain("middle-surface-anchor");
-    expect(rules({ div: "x", dataTone: "shift-9" })).toContain("middle-surface-anchor");
-    expect(rules({ div: "x", dataTone: "shift-13" })).toContain("middle-surface-anchor");
+    expect(rules({ div: "x", dataTone: "shift-4" })).toContain(
+      "middle-surface-anchor",
+    );
+    expect(rules({ div: "x", dataTone: "shift-9" })).toContain(
+      "middle-surface-anchor",
+    );
+    expect(rules({ div: "x", dataTone: "shift-13" })).toContain(
+      "middle-surface-anchor",
+    );
     // edge anchors are fine
-    expect(rules({ div: "x", dataTone: "shift-3" })).not.toContain("middle-surface-anchor");
-    expect(rules({ div: "x", dataTone: "shift-14" })).not.toContain("middle-surface-anchor");
-    expect(rules({ div: "x", dataTone: "shift-0" })).not.toContain("middle-surface-anchor");
+    expect(rules({ div: "x", dataTone: "shift-3" })).not.toContain(
+      "middle-surface-anchor",
+    );
+    expect(rules({ div: "x", dataTone: "shift-14" })).not.toContain(
+      "middle-surface-anchor",
+    );
+    expect(rules({ div: "x", dataTone: "shift-0" })).not.toContain(
+      "middle-surface-anchor",
+    );
     // increase/decrease don't trigger middle-surface-anchor (not a surface anchor)
-    expect(rules({ div: "x", dataTone: "increase-9" })).not.toContain("middle-surface-anchor");
+    expect(rules({ div: "x", dataTone: "increase-9" })).not.toContain(
+      "middle-surface-anchor",
+    );
   });
 
   it("validates dataDensity range (unknown-density)", () => {
     // invalid grammar
-    expect(rules({ div: "x", dataDensity: "shift-1" })).toContain("unknown-density");
-    expect(rules({ div: "x", dataDensity: "compact" })).toContain("unknown-density");
+    expect(rules({ div: "x", dataDensity: "shift-1" })).toContain(
+      "unknown-density",
+    );
+    expect(rules({ div: "x", dataDensity: "compact" })).toContain(
+      "unknown-density",
+    );
     // out of range: N > 4
-    expect(rules({ div: "x", dataDensity: "increase-5" })).toContain("unknown-density");
-    expect(rules({ div: "x", dataDensity: "decrease-5" })).toContain("unknown-density");
+    expect(rules({ div: "x", dataDensity: "increase-5" })).toContain(
+      "unknown-density",
+    );
+    expect(rules({ div: "x", dataDensity: "decrease-5" })).toContain(
+      "unknown-density",
+    );
     // valid
-    expect(rules({ div: "x", dataDensity: "inherit" })).not.toContain("unknown-density");
-    expect(rules({ div: "x", dataDensity: "increase-4" })).not.toContain("unknown-density");
-    expect(rules({ div: "x", dataDensity: "decrease-0" })).not.toContain("unknown-density");
+    expect(rules({ div: "x", dataDensity: "inherit" })).not.toContain(
+      "unknown-density",
+    );
+    expect(rules({ div: "x", dataDensity: "increase-4" })).not.toContain(
+      "unknown-density",
+    );
+    expect(rules({ div: "x", dataDensity: "decrease-0" })).not.toContain(
+      "unknown-density",
+    );
   });
 
   it("validates dataSize range (unknown-size)", () => {
@@ -156,20 +194,38 @@ describe("diagnose", () => {
     expect(rules({ div: "x", dataSize: "shift-2" })).toContain("unknown-size");
     expect(rules({ div: "x", dataSize: "large" })).toContain("unknown-size");
     // out of range: N > 7
-    expect(rules({ div: "x", dataSize: "increase-8" })).toContain("unknown-size");
-    expect(rules({ div: "x", dataSize: "decrease-10" })).toContain("unknown-size");
+    expect(rules({ div: "x", dataSize: "increase-8" })).toContain(
+      "unknown-size",
+    );
+    expect(rules({ div: "x", dataSize: "decrease-10" })).toContain(
+      "unknown-size",
+    );
     // valid
-    expect(rules({ div: "x", dataSize: "inherit" })).not.toContain("unknown-size");
-    expect(rules({ div: "x", dataSize: "increase-7" })).not.toContain("unknown-size");
-    expect(rules({ div: "x", dataSize: "decrease-0" })).not.toContain("unknown-size");
+    expect(rules({ div: "x", dataSize: "inherit" })).not.toContain(
+      "unknown-size",
+    );
+    expect(rules({ div: "x", dataSize: "increase-7" })).not.toContain(
+      "unknown-size",
+    );
+    expect(rules({ div: "x", dataSize: "decrease-0" })).not.toContain(
+      "unknown-size",
+    );
   });
 
   it("flags raw-spacing-value for logical CSS properties (paddingBlock etc.)", () => {
-    expect(rules({ div: "x", style: { paddingBlock: "8px" } })).toContain("raw-spacing-value");
-    expect(rules({ div: "x", style: { paddingInline: "1rem" } })).toContain("raw-spacing-value");
-    expect(rules({ div: "x", style: { marginBlock: "0.5em" } })).toContain("raw-spacing-value");
+    expect(rules({ div: "x", style: { paddingBlock: "8px" } })).toContain(
+      "raw-spacing-value",
+    );
+    expect(rules({ div: "x", style: { paddingInline: "1rem" } })).toContain(
+      "raw-spacing-value",
+    );
+    expect(rules({ div: "x", style: { marginBlock: "0.5em" } })).toContain(
+      "raw-spacing-value",
+    );
     // reactive is fine
-    expect(rules({ div: "x", style: { paddingBlock: () => "8px" } })).not.toContain("raw-spacing-value");
+    expect(
+      rules({ div: "x", style: { paddingBlock: () => "8px" } }),
+    ).not.toContain("raw-spacing-value");
   });
 
   it("flags literal colors (raw-theme-value), not tokens or keywords", () => {

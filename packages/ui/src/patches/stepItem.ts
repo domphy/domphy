@@ -1,4 +1,4 @@
-import { type ElementNode, type PartialElement, type State } from "@domphy/core";
+import type { ElementNode, PartialElement, State } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -72,7 +72,8 @@ function stepItem(): PartialElement {
           `2px solid ${themeColor(listener, "shift-4", "neutral")}`,
         backgroundColor: (listener) => themeColor(listener, "inherit"),
         color: (listener) => themeColor(listener, "shift-8"),
-        transition: "background-color 200ms ease, color 200ms ease, border-color 200ms ease",
+        transition:
+          "background-color 200ms ease, color 200ms ease, border-color 200ms ease",
         zIndex: "1",
       },
       // Connector line to the previous sibling — shown on non-first items
@@ -83,29 +84,34 @@ function stepItem(): PartialElement {
         right: `calc(50% + ${themeSpacing(3)})`,
         left: `calc(-50% + ${themeSpacing(3)})`,
         height: "2px",
-        backgroundColor: (listener) => themeColor(listener, "shift-3", "neutral"),
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-3", "neutral"),
         zIndex: "0",
       },
       // Active step — accent colored filled circle
       "&[data-status=active]::before": {
-        backgroundColor: (listener) => themeColor(listener, "shift-6", "primary"),
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-6", "primary"),
         borderColor: (listener) => themeColor(listener, "shift-6", "primary"),
         color: (listener) => themeColor(listener, "shift-15", "primary"),
       },
       // Done step — muted filled circle with checkmark
       "&[data-status=done]::before": {
         content: '"✓"',
-        backgroundColor: (listener) => themeColor(listener, "shift-3", "neutral"),
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-3", "neutral"),
         borderColor: (listener) => themeColor(listener, "shift-3", "neutral"),
         color: (listener) => themeColor(listener, "shift-9", "neutral"),
       },
       // Done step connector — filled track
       "&[data-status=done]:not(:first-child)::after": {
-        backgroundColor: (listener) => themeColor(listener, "shift-3", "neutral"),
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-3", "neutral"),
       },
       // Active step connector — accent track up to the active item
       "&[data-status=active]:not(:first-child)::after": {
-        backgroundColor: (listener) => themeColor(listener, "shift-6", "primary"),
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-6", "primary"),
       },
       // Pending text — muted
       "&[data-status=pending]": {
