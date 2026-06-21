@@ -6,7 +6,7 @@ import Menu from "../../demos/patches/Menu.ts?raw"
 
 # Menu Item
 
-Use `menuItem` on a `<button>` placed inside a `menu`. It sets `role="menuitem"`, wires click/keyboard selection (Enter/Space activate; Arrow/Home/End move focus between items), and reflects the active item via `aria-current`.
+Use `menuItem` on a `<button>` placed inside a `menu`. It sets `role="menuitem"`, wires keyboard navigation (Enter/Space activate; Arrow/Home/End move focus between items). Selection tracking (`aria-current`, click-to-activate) is only wired when the parent `menu` has `selectable: true` (the default). With `selectable: false`, only keyboard navigation is active.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|

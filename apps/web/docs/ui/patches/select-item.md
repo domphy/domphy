@@ -10,7 +10,7 @@ Use `selectItem` on a `<div>` placed inside a `selectList`. It reads the `select
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `value` | `string \| number` | `null` | The option value compared against and written to the select state. |
+| `value` | `string \| number \| null` | `null` | The option value compared against and written to the select state. |
 | `color` | `ThemeColor` | `"neutral"` | Text and resting background tone. |
 | `accentColor` | `ThemeColor` | `"primary"` | Selected state and focus tone. |
 

@@ -8,6 +8,14 @@ import Menu from "../../demos/patches/Menu.ts?raw"
 
 Apply the `menu()` patch to a container (typically a `<div>`) to create a vertical navigation menu with `role="menu"`. Pair it with `menuItem()` on each `<button>` child — items wire keyboard navigation (Arrow&nbsp;/ Home&nbsp;/ End) and track the active selection via `activeKey`. Use `selectable: false` to disable selection tracking when you only need keyboard navigation.
 
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `activeKey` | `ValueOrState<number \| string>` | `null` | Currently selected item key. Accepts a plain value or a reactive `State`. |
+| `selectable` | `boolean` | `true` | Whether items track and update the active selection on click. |
+| `color` | `ThemeColor` | `"neutral"` | Background color tone for the menu container. |
+
 <CodeEditor :code="Menu" />
 
 ::: details Customization

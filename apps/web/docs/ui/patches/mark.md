@@ -6,7 +6,13 @@ import Mark from "../../demos/patches/Mark.ts?raw"
 
 # Mark
 
-Use the mark patch to customize this element.
+Apply the `mark` patch to a `<mark>` element to get a tinted highlight background, rounded corners, and inline-flex layout. Must be used on a `<mark>` element. The patch sets `dataTone: "shift-2"` on the element.
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `accentColor` | `ThemeColor` | `"highlight"` | Accent color tone for the highlight fill and text. |
 
 <CodeEditor :code="Mark" />
 

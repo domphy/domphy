@@ -6,7 +6,14 @@ import Label from "../../demos/patches/Label.ts?raw"
 
 # Label
 
-Use the label patch to customize this element.
+Apply the `label` patch to a `<label>` element to get themed text color, inline-flex layout with gap, focus-within highlighting, and a disabled state. Must be used on a `<label>` element.
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `color` | `ThemeColor` | `"neutral"` | Base color tone for the label text. |
+| `accentColor` | `ThemeColor` | `"primary"` | Accent color tone applied on focus-within. |
 
 <CodeEditor :code="Label" />
 

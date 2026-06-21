@@ -48,16 +48,35 @@ async function includeFile(absPath, title) {
   }
 }
 
+async function collectFiles(absDir, prefix = "") {
+  const entries = await readdir(absDir, { withFileTypes: true });
+  const results = [];
+  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    if (entry.isDirectory()) {
+      const sub = await collectFiles(
+        resolve(absDir, entry.name),
+        prefix ? `${prefix}/${entry.name}` : entry.name,
+      );
+      results.push(...sub);
+    } else if (entry.name.endsWith(".md") || entry.name.endsWith(".ts")) {
+      results.push({
+        absPath: resolve(absDir, entry.name),
+        relLabel: prefix ? `${prefix}/${entry.name}` : entry.name,
+        name: entry.name,
+      });
+    }
+  }
+  return results;
+}
+
 async function includeDir(absDir, sectionTitle, stripper = stripVitepress) {
-  const files = (await readdir(absDir))
-    .filter((f) => f.endsWith(".md") || f.endsWith(".ts"))
-    .sort();
+  const files = await collectFiles(absDir);
   hr();
   push(`## ${sectionTitle}\n`);
-  for (const f of files) {
-    const body = await readFile(resolve(absDir, f), "utf8");
-    push(`### ${basename(f)}\n`);
-    if (f.endsWith(".ts")) {
+  for (const { absPath, relLabel, name } of files) {
+    const body = await readFile(absPath, "utf8");
+    push(`### ${relLabel}\n`);
+    if (name.endsWith(".ts")) {
       push("```ts");
       push(body.trim());
       push("```\n");

@@ -3,12 +3,12 @@ import { inputOTP, inputText } from "@domphy/ui";
 
 const App: DomphyElement<"div"> = {
   div: [
-    { input: null, $: [inputText()], maxLength: 1 },
-    { input: null, $: [inputText()], maxLength: 1 },
-    { input: null, $: [inputText()], maxLength: 1 },
-    { input: null, $: [inputText()], maxLength: 1 },
-    { input: null, $: [inputText()], maxLength: 1 },
-    { input: null, $: [inputText()], maxLength: 1 },
+    { input: null, $: [inputText()], maxlength: 1 },
+    { input: null, $: [inputText()], maxlength: 1 },
+    { input: null, $: [inputText()], maxlength: 1 },
+    { input: null, $: [inputText()], maxlength: 1 },
+    { input: null, $: [inputText()], maxlength: 1 },
+    { input: null, $: [inputText()], maxlength: 1 },
   ],
   $: [inputOTP()],
 };

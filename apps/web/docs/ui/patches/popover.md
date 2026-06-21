@@ -22,10 +22,7 @@ The patch wires accessibility automatically: `aria-haspopup="dialog"`, `aria-exp
 ## Example
 
 ```ts
-import { toState } from "@domphy/core";
 import { button, popover } from "@domphy/ui";
-
-const open = toState(false);
 
 const content = {
   div: "Popover content",

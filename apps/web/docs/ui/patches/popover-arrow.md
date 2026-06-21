@@ -6,7 +6,7 @@ import PopoverArrow from "../../demos/patches/PopoverArrow.ts?raw"
 
 # Popover Arrow
 
-Apply the popoverArrow patch to a floating popover container to add a small rotated arrow (rendered via `::after`) that points toward the anchor element. Pass `placement` matching the popover's floating placement — the arrow is automatically drawn on the opposite side. Use `color` to match the popover surface and `bordered` to control whether the arrow has a 1&nbsp;px border.
+Apply the popoverArrow patch to a floating popover container to add a small rotated arrow (rendered via `::after`) that points toward the anchor element. Pass `placement` matching the popover's floating placement — the arrow is automatically drawn on the opposite side. Use `color` to match the popover surface and `bordered` to control whether the arrow has a 1&nbsp;px border. Use `sideOffset` (a CSS length string, default `themeSpacing(6)`) to adjust how far the arrow is offset toward the start or end edge.
 
 <CodeEditor :code="PopoverArrow" />
 
