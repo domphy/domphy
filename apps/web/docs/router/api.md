@@ -10,7 +10,12 @@
 | `createRoute(options)` | Create a route: `getParentRoute`, `path` (or `id` for pathless layouts), `validateSearch`, `beforeLoad`, `loader`, `loaderDeps`, `staleTime`, `gcTime`, `shouldReload` |
 | `createRootRoute(options?)` | Create the root of the tree |
 | `createRootRouteWithContext<T>()` | Root route factory with a required typed router context |
-| `RouterCore`, `BaseRoute`, `BaseRootRoute` | The underlying classes (advanced — the `create*` functions wrap them) |
+| `rootRouteWithContext<T>()` | Alias for `createRootRouteWithContext` |
+| `createRouteMask(options)` | Create a route mask (renders a different route at a given URL) |
+| `getRouteApi(id)` | Get a type-safe route API handle by route id |
+| `NotFoundRoute` | A pre-built route that renders a not-found boundary at any unmatched path |
+| `RouterCore`, `BaseRoute`, `BaseRootRoute`, `BaseRouteApi` | The underlying classes (advanced — the `create*` functions wrap them) |
+| `getStoreFactory` | Low-level store factory used by the router internals |
 
 ## Router Instance
 

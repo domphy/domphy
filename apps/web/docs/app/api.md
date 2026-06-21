@@ -41,9 +41,13 @@
 
 ### `defineRoutes(routes)` / `Route`
 
-`path`, `page`, `layout`, `loading`, `error`, `notFound`, `metadata`, `loader`, `revalidate`, `middleware`, `redirect`, `permanent`, `children`, `lazy`. See [Routing](./routing).
+`path`, `page`, `layout`, `loading`, `error`, `notFound`, `metadata`, `loader`, `revalidate`, `middleware`, `redirect`, `permanent`, `children`, `slots`, `intercept`, `lazy`. See [Routing](./routing).
 
 `lazy: () => Promise<RouteModule>` — code-split the heavy parts of a route into a separately bundled module loaded on first match. The module may supply any of `page`, `layout`, `loading`, `error`, `notFound`, `metadata`, `loader`, or `middleware`; eager fields on the route win on conflict. Resolved once and cached for the lifetime of the route object.
+
+`slots: Record<string, Route[]>` — parallel route slots rendered independently alongside the segment's main tree. Each slot is matched against the sub-path and passed as the third argument to the segment's `layout`. See [Routing — Parallel Routes](./routing#parallel-routes).
+
+`intercept: true` — when set on a slot route, the route only matches during client-side navigation (soft nav), not on a hard load of the same URL. Used to render a modal or overlay over the current page while preserving the full-page view on direct URL access. See [Routing — Intercepting Routes](./routing#intercepting-routes).
 
 ### Blocks and contexts
 
