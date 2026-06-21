@@ -36,10 +36,14 @@ function changeLang(lng: string) {
   void i18next.changeLanguage(lng).then(() => lang.set(lng));
 }
 
-function translate(listener: any, key: string, options?: object) {
+function translate(
+  listener: any,
+  key: string,
+  options?: Record<string, unknown>,
+): string {
   lang.get(listener);
   if (!ready.get(listener)) return "Loading...";
-  return i18next.t(key, options);
+  return i18next.t(key, options as any) as unknown as string;
 }
 
 const App: DomphyElement<"div"> = {

@@ -58,7 +58,7 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 
 ## Wiring
 
-1. Make the outer element a fixed-height scroll container and wire it: `_onMount: (node) => list.setScrollElement(node.domElement)`.
+1. Make the outer element a fixed-height scroll container and wire it: `_onMount: (node) => list.setScrollElement(node.domElement)`. Add `_onRemove: () => list.destroy()` to detach observers when the container is removed.
 2. Inside, render a relative spacer whose height is `list.getTotalSize(l)`.
 3. Map `list.getVirtualItems(l)` into absolutely-positioned children using each item's `start`/`size`, keyed by `item.key`.
 4. For variable-height rows, call `list.measureElement(node.domElement)` from each row's `_onMount` and drop the fixed `height`.

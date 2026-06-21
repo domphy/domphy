@@ -31,7 +31,7 @@ const App: DomphyElement<"div"> = {
             color: (cl) => themeColor(cl, "shift-9"),
             borderBottom: (cl) => `1px solid ${themeColor(cl, "shift-3")}`,
           },
-          _key: item.key,
+          _key: item.key as string | number,
         })),
       style: {
         position: "relative",

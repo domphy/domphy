@@ -42,5 +42,8 @@ jobs:
       - name: Lint (Biome)
         run: pnpm check
 
+      - name: Type-check demo + editor files
+        run: cd apps/web && npx tsc --noEmit
+
       - name: Test all packages
         run: pnpm --filter "@domphy/*" test

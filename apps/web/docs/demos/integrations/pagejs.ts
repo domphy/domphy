@@ -1,7 +1,7 @@
 import { type DomphyElement, toState } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
 import { button, heading, paragraph } from "@domphy/ui";
-import page from "page";
+import page, { type Context as PageContext } from "page";
 
 // --- Route State ---
 const route = toState("/");
@@ -10,7 +10,7 @@ const params = toState<Record<string, string>>({});
 // --- Route Definitions ---
 page("/", () => route.set("/"));
 page("/about", () => route.set("/about"));
-page("/users/:id", (ctx) => {
+page("/users/:id", (ctx: PageContext) => {
   params.set(ctx.params);
   route.set("/users/:id");
 });
@@ -46,13 +46,13 @@ const RouterView: DomphyElement<"div"> = {
   div: (listener) => {
     switch (route.get(listener)) {
       case "/":
-        return Home;
+        return [Home];
       case "/about":
-        return About;
+        return [About];
       case "/users/:id":
-        return UserDetail;
+        return [UserDetail];
       default:
-        return { p: "404 — Page not found", $: [paragraph()] };
+        return [{ p: "404 — Page not found", $: [paragraph()] }];
     }
   },
 };

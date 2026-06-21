@@ -1,4 +1,4 @@
-import { State } from "./classes/State.js";
+import { type ReadableState, State } from "./classes/State.js";
 import { addEvent, addHook, deepClone } from "./helpers.js";
 import type {
   DomphyElement,
@@ -97,10 +97,13 @@ export function hashString(str: string = ""): string {
   return String.fromCharCode(97 + (hash % 26)) + hash.toString(16);
 }
 
-export function toState<T>(val: T | State<T>, name?: string): State<T> {
+export function toState<T>(
+  val: T | State<T> | ReadableState<T>,
+  name?: string,
+): State<T> {
   return val instanceof State || (val as any)?._isState
     ? (val as State<T>)
-    : new State<T>(val, name);
+    : new State<T>(val as T, name);
 }
 
 export function r<T>(fn: (listener: Listener) => T): (listener: Listener) => T {

@@ -11,7 +11,7 @@ const schema = z.object({
 // --- Form State ---
 const name = toState("");
 const email = toState("");
-const errors = toState<z.ZodFormattedError<typeof schema._type> | null>(null);
+const errors = toState<z.ZodFormattedError<typeof schema.type> | null>(null);
 const submitted = toState(false);
 
 function validate() {

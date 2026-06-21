@@ -1,4 +1,4 @@
-import type { DomphyElement, State } from "@domphy/core";
+import { computed, type DomphyElement, type State } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
 import { icon, tooltip } from "@domphy/ui";
 
@@ -35,49 +35,31 @@ export const Toolbar = (props: {
       body.style.height = "";
     }
   });
+  const gridTooltip = computed(() =>
+    hasGrid.get() ? "Hide sizing grid" : "Show sizing grid",
+  );
+  const themeTooltip = computed(() =>
+    isDark.get() ? "Switch to light theme" : "Switch to dark theme",
+  );
+  const screenTooltip = computed(() =>
+    isFull.get() ? "Exit fullscreen preview" : "Enter fullscreen preview",
+  );
+
   const toggleGrid: DomphyElement<"span"> = {
     span: (listener) => (hasGrid.get(listener) ? gridOff : gridOn),
     onClick: () => hasGrid.set(!hasGrid.get()),
-    $: [
-      icon(),
-      tooltip({
-        content: {
-          span: (listener) =>
-            hasGrid.get(listener) ? "Hide sizing grid" : "Show sizing grid",
-        },
-      }),
-    ],
+    $: [icon(), tooltip({ content: gridTooltip })],
   };
 
   const toggleTheme: DomphyElement<"span"> = {
     span: (listener) => (isDark.get(listener) ? light : dark),
     onClick: () => isDark.set(!isDark.get()),
-    $: [
-      icon(),
-      tooltip({
-        content: {
-          span: (listener) =>
-            isDark.get(listener)
-              ? "Switch to light theme"
-              : "Switch to dark theme",
-        },
-      }),
-    ],
+    $: [icon(), tooltip({ content: themeTooltip })],
   };
   const toggleScreen: DomphyElement<"span"> = {
     span: (listener) => (isFull.get(listener) ? exit : fullscreen),
     onClick: () => isFull.set(!isFull.get()),
-    $: [
-      icon(),
-      tooltip({
-        content: {
-          span: (listener) =>
-            isFull.get(listener)
-              ? "Exit fullscreen preview"
-              : "Enter fullscreen preview",
-        },
-      }),
-    ],
+    $: [icon(), tooltip({ content: screenTooltip })],
   };
 
   return {

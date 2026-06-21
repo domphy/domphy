@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2018",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "outDir": "build",
@@ -18,5 +19,5 @@
       "@domphy/ui/*": ["../../packages/ui/src/*"]
     }
   },
-  "include": ["docs/demos", "docs/editor", "docs/preview"]
+  "include": ["shims.d.ts", "docs/demos", "docs/editor", "docs/preview"]
 }

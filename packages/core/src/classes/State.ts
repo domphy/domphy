@@ -3,7 +3,11 @@ import { activeCollector } from "./Collector.js";
 import { Notifier } from "./Notifier.js";
 
 export type ValueListener<T> = ((_value: T) => void) & Handler;
-export type ValueOrState<T> = T | State<T>;
+export type ReadableState<T> = {
+  readonly _isState: true;
+  get(listener?: ValueListener<T>): T;
+};
+export type ValueOrState<T> = T | State<T> | ReadableState<T>;
 
 export class State<T> {
   readonly _isState = true;
