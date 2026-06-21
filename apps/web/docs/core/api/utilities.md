@@ -113,3 +113,39 @@ configure({ cspNonce: "abc123" })
 | Option | Type | Description |
 |---|---|---|
 | `cspNonce` | `string` | Nonce stamped on every `<style>` element injected by Domphy. Required when your Content-Security-Policy uses `style-src 'nonce-...'` instead of `'unsafe-inline'`. |
+
+---
+
+## `flushSync()`
+
+Synchronously drains all pending state-change notifications and the deduplicated effect/computed reaction queue. Useful in tests and imperative code that must observe the DOM immediately after `.set()` instead of waiting for the next microtask.
+
+```ts
+import { toState, flushSync } from "@domphy/core"
+
+const count = toState(0)
+count.set(1)
+flushSync()
+// count.get() === 1 and all downstream effects/computeds are settled
+```
+
+If a diverging reactive loop prevents settling, `flushSync` breaks after 10 000 iterations and logs a `console.error`. Inside `batch()`, batched writes still flush when the batch ends — `flushSync` does not flush them early.
+
+---
+
+## `r(fn)`
+
+Identity helper for reactive functions. Returns `fn` unchanged. Its sole purpose is to give TypeScript a typed entry point for inline reactive expressions so editors can infer the listener type without an extra cast.
+
+```ts
+import { r } from "@domphy/core"
+
+const box = {
+  div: "Hello",
+  style: {
+    color: r((listener) => active.get(listener) ? "red" : "gray"),
+  },
+}
+```
+
+`r` does not wrap or modify the function at runtime — it is a zero-cost identity.
