@@ -56,8 +56,11 @@ interface Diagnostic {
 | --- | --- | --- |
 | `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` / `fontFamily` / `textDecoration` literals in `style` — use a typography patch |
 | `raw-theme-value` | info | a literal hex/rgb/hsl color in a color style prop (`color`, `background`, `border`, `fill`, …). The hint uses **`@domphy/palette` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
-| `raw-spacing-value` | info | a literal `rem`/`em`/`px` value in a layout spacing prop (`padding`, `margin`, `gap`, …) — suggests `themeSpacing(n)` for consistent theme density |
-| `unknown-tone` | warning | a `dataTone` value that isn't valid tone grammar (`inherit` / `base` / a number / `shift-N` / `increase-N` / `decrease-N`) — catches invented words like `surface` / `text` |
+| `raw-spacing-value` | info | a literal `rem`/`em`/`px` value in a layout spacing prop (`padding`, `paddingBlock`, `paddingInline`, `margin`, `marginBlock`, `marginInline`, `gap`, …) — suggests `themeSpacing(n)` for consistent theme density |
+| `unknown-tone` | warning | a `dataTone` value that isn't valid tone grammar (`inherit` / `base` / a number / `shift-N` / `increase-N` / `decrease-N` with N ≤ 17) — catches invented words like `surface` / `text`, and out-of-range offsets like `shift-25` |
+| `middle-surface-anchor` | warning | a `dataTone: "shift-N"` where N is 4–13 — a mid-ramp surface anchor causes child tones to clamp and collapse contrast; prefer edge anchors (0–3 light, 14–17 dark) |
+| `unknown-density` | warning / error | a `dataDensity` value that isn't `"inherit"` / `"increase-N"` / `"decrease-N"` (N ≤ 4), or uses `shift-` (invalid for density). Error when N > 4 (out of the 5-step scale). |
+| `unknown-size` | warning / error | a `dataSize` value that isn't `"inherit"` / `"increase-N"` / `"decrease-N"` (N ≤ 7), or uses `shift-` (invalid for size). Error when N > 7 (out of the 8-step scale). |
 | `void-content` | error | a void tag (`input`, `img`, `br`, …) with non-null content |
 | `missing-key` | warning | a **dynamic** list (returned by a reactive function) of element children missing `_key` |
 | `unknown-tag` | warning | an element whose first key isn't a valid HTML/SVG tag (typo) |

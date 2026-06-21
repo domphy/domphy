@@ -68,17 +68,31 @@ const LITERAL_COLOR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\s*\(/;
 
 // Spacing style properties where literal rem/em/px values should use themeSpacing().
 // These are layout, not typography, but themeSpacing() ensures density consistency.
+// Logical properties (paddingBlock, paddingInline, etc.) are included — they are
+// used in Domphy patches and must also go through themeSpacing() for density scaling.
 const SPACING_STYLE = new Set([
   "margin",
   "marginTop",
   "marginRight",
   "marginBottom",
   "marginLeft",
+  "marginInline",
+  "marginBlock",
+  "marginInlineStart",
+  "marginInlineEnd",
+  "marginBlockStart",
+  "marginBlockEnd",
   "padding",
   "paddingTop",
   "paddingRight",
   "paddingBottom",
   "paddingLeft",
+  "paddingInline",
+  "paddingBlock",
+  "paddingInlineStart",
+  "paddingInlineEnd",
+  "paddingBlockStart",
+  "paddingBlockEnd",
   "gap",
   "rowGap",
   "columnGap",
@@ -88,15 +102,29 @@ const SPACING_STYLE = new Set([
 // "inherit", "0" (unitless zero is fine), or computed values.
 const LITERAL_SPACING = /^(\d+(?:\.\d+)?)(rem|em|px)$/;
 
-// Valid `dataTone` grammar: "inherit", "base", an integer, or one of the offset
-// families increase-/decrease-/shift- followed by an integer. The exact upper
-// bound is theme-specific (default 10 tones), so only the grammar is checked —
-// enough to catch tone WORDS like "surface"/"text"/"muted" that LLMs invent.
-const TONE_PATTERN = /^(?:increase|decrease|shift)-\d+$/;
+// Parses "increase-N" / "decrease-N" / "shift-N" into family + numeric offset.
+// Returns null when the pattern doesn't match (grammar error).
+function parseOffset(
+  value: string,
+): { family: "increase" | "decrease" | "shift"; n: number } | null {
+  const m = value.match(/^(increase|decrease|shift)-(\d+)$/);
+  if (!m) return null;
+  return {
+    family: m[1] as "increase" | "decrease" | "shift",
+    n: parseInt(m[2], 10),
+  };
+}
+
+// Valid `dataTone` grammar AND range:
+//   "inherit", "base", a bare integer, or shift-N/increase-N/decrease-N where N ≤ 17.
+//   The default Domphy theme has 18 tone steps (0–17). Values with valid grammar
+//   but N > 17 are also rejected here so they surface as `unknown-tone` errors.
 function isValidTone(value: string): boolean {
   if (value === "inherit" || value === "base") return true;
   if (/^-?\d+$/.test(value)) return true;
-  return TONE_PATTERN.test(value);
+  const parsed = parseOffset(value);
+  if (!parsed) return false;
+  return parsed.n <= 17; // tone ramp has 18 steps: 0–17
 }
 
 // ─── Chromametry integration ─────────────────────────────────────────────────
@@ -394,18 +422,81 @@ function walk(
     }
   }
 
-  // unknown-tone: a `dataTone` attribute whose value is a string that is not a
-  // valid tone. Tree-visible (an authored attribute), unlike a `tone` patch prop
-  // which is consumed before the tree exists.
+  // unknown-tone: dataTone is not valid grammar, or it's valid grammar but the
+  // numeric offset is out of the 18-step ramp range (0–17).
   const dataTone = element.dataTone;
-  if (typeof dataTone === "string" && !isValidTone(dataTone)) {
-    out.push({
-      rule: "unknown-tone",
-      severity: "warning",
-      path: here,
-      message: `\`dataTone\` "${dataTone}" is not a valid tone.`,
-      hint: 'Use "inherit", "base", a number, or "increase-N"/"decrease-N"/"shift-N" (e.g. "shift-9"). Words like "surface"/"text" are not Domphy tones.',
-    });
+  if (typeof dataTone === "string") {
+    if (!isValidTone(dataTone)) {
+      out.push({
+        rule: "unknown-tone",
+        severity: "warning",
+        path: here,
+        message: `\`dataTone\` "${dataTone}" is not a valid tone.`,
+        hint: 'Use "inherit", "base", a number, or "shift-N"/"increase-N"/"decrease-N" with N ≤ 17 (the ramp has 18 steps). Words like "surface"/"text" are not tones.',
+      });
+    } else {
+      // middle-surface-anchor: shift-4 through shift-13 sets a mid-ramp surface
+      // anchor. Children's tones may clamp and fold back, collapsing the contrast
+      // between background and text. Edge anchors (0–3 light, 14–17 dark) are safe.
+      const parsed = parseOffset(dataTone);
+      if (parsed?.family === "shift" && parsed.n >= 4 && parsed.n <= 13) {
+        out.push({
+          rule: "middle-surface-anchor",
+          severity: "warning",
+          path: here,
+          message: `\`dataTone: "${dataTone}"\` uses a mid-ramp surface anchor (steps 4–13). Child tones derived from this surface may clamp and collapse contrast.`,
+          hint: "Prefer edge anchors: shift-0–3 for light surfaces, shift-14–17 for dark. Mid anchors are only correct for intentionally inverted/highlighted regions.",
+        });
+      }
+    }
+  }
+
+  // unknown-density: dataDensity value is invalid grammar or out of the 5-step
+  // density range (increase/decrease 0–4; the scale factors are 0.75, 1, 1.5, 2, 2.5).
+  const dataDensity = element.dataDensity;
+  if (typeof dataDensity === "string" && dataDensity !== "inherit") {
+    const parsed = parseOffset(dataDensity);
+    if (!parsed || parsed.family === "shift") {
+      out.push({
+        rule: "unknown-density",
+        severity: "warning",
+        path: here,
+        message: `\`dataDensity\` "${dataDensity}" is not a valid density offset.`,
+        hint: 'Use "inherit", "increase-N", or "decrease-N" where N is 0–4. "shift-" is not valid for density.',
+      });
+    } else if (parsed.n > 4) {
+      out.push({
+        rule: "unknown-density",
+        severity: "error",
+        path: here,
+        message: `\`dataDensity\` "${dataDensity}" N=${parsed.n} is out of range — the density scale has 5 steps (max offset: 4).`,
+        hint: 'Use "increase-N" or "decrease-N" where N ≤ 4. Density factors: [0.75, 1, 1.5, 2, 2.5].',
+      });
+    }
+  }
+
+  // unknown-size: dataSize value is invalid grammar or out of the 8-step size
+  // range (increase/decrease 0–7).
+  const dataSize = element.dataSize;
+  if (typeof dataSize === "string" && dataSize !== "inherit") {
+    const parsed = parseOffset(dataSize);
+    if (!parsed || parsed.family === "shift") {
+      out.push({
+        rule: "unknown-size",
+        severity: "warning",
+        path: here,
+        message: `\`dataSize\` "${dataSize}" is not a valid size offset.`,
+        hint: 'Use "inherit", "increase-N", or "decrease-N" where N is 0–7. "shift-" is not valid for size.',
+      });
+    } else if (parsed.n > 7) {
+      out.push({
+        rule: "unknown-size",
+        severity: "error",
+        path: here,
+        message: `\`dataSize\` "${dataSize}" N=${parsed.n} is out of range — the size scale has 8 steps (max offset: 7).`,
+        hint: 'Use "increase-N" or "decrease-N" where N ≤ 7.',
+      });
+    }
   }
 
   walk(content, here, out, false, runReactive);

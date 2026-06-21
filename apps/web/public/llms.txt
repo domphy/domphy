@@ -32,7 +32,7 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 - **Forms use `@domphy/form`** — `createForm` from `@domphy/form/domphy`; bind inputs with `value: (l) => field.value(l)` + `onInput: (e) => field.handleChange(e.target.value)`. The old ui `form()`/`field()` patches and `FormState`/`FieldState` were REMOVED; only the layout patch `formGroup()` remains in `@domphy/ui`.
 - Reactive content/attributes use `(listener) => state.get(listener)`. A controlled input (value bound to a state you also `.set()` in `onInput`) is safe. For derived values prefer `computed(fn)` (lazy + cached); side-effects use `effect(fn)`; group disposal with `effectScope()`; coalesce writes with `batch(fn)`. In tests/imperative code, `flushSync()` drains pending reactivity synchronously so the DOM reflects a `.set()` immediately.
 - **Data/logic packages are 1-1 TanStack core ports + a Domphy adapter at the `/domphy` subpath** (`@domphy/core` is a peer dep): `createQuery`/`createMutation`/`createInfiniteQuery` (`@domphy/query/domphy`), `createDomphyTable` (`@domphy/table/domphy`), `createVirtualizer` (`@domphy/virtual/domphy`), `createForm` (`@domphy/form/domphy`), `createRouter`/`createRoute` (`@domphy/router`). Drag & drop: `dragDrop()` (`@domphy/dnd`). Animation: the `motion()` patch (`@domphy/ui`). Next-style app framework: `@domphy/app`.
-- **Self-check generated code with `@domphy/doctor`**: `diagnose(app)` / `validate(app)` + `format(...)` reports `inline-typography` (fontSize/lineHeight/fontWeight/letterSpacing/fontFamily/textDecoration literals — use patches) / `raw-theme-value` (literal hex/rgb colors — hint gives nearest `themeColor()` via CIELAB/LCH match powered by `@domphy/palette`) / `raw-spacing-value` (literal rem/em/px spacing — use `themeSpacing(n)`) / `unknown-tone` / `void-content` / `missing-_key` / `duplicate-_key` / `unstable-_key` / `unknown-tag` — fix what it lists before finishing (`fix(app)` auto-applies the lossless ones).
+- **Self-check generated code with `@domphy/doctor`**: `diagnose(app)` / `validate(app)` + `format(...)` reports `inline-typography` (fontSize/lineHeight/fontWeight/letterSpacing/fontFamily/textDecoration literals — use patches) / `raw-theme-value` (literal hex/rgb colors — hint gives nearest `themeColor()` via CIELAB/LCH match powered by `@domphy/palette`) / `raw-spacing-value` (literal rem/em/px on padding/paddingBlock/paddingInline/margin/marginBlock/marginInline/gap — use `themeSpacing(n)`) / `unknown-tone` (invalid dataTone; valid: inherit/base/shift-N/increase-N/decrease-N, N ≤ 17) / `middle-surface-anchor` (dataTone shift-4–13 mid-ramp collapses contrast — use edge anchors shift-0–3 or shift-14–17) / `unknown-density` (invalid dataDensity; valid: inherit/increase-N/decrease-N, N ≤ 4) / `unknown-size` (invalid dataSize; valid: inherit/increase-N/decrease-N, N ≤ 7) / `void-content` / `missing-key` / `duplicate-key` / `unstable-key` / `unknown-tag` — fix what it lists before finishing (`fix(app)` auto-applies the lossless ones).
 - Read the per-patch / per-package doc before using one you haven't used before. Each has its own prop contract.
 
 ## Getting started
@@ -57,6 +57,33 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 - [Size](https://domphy.com/docs/theme/size): `themeSize`, `themeSpacing`, density
 - [Tone](https://domphy.com/docs/theme/tone): light/dark handling
 - [API](https://domphy.com/docs/theme/api): full theme API reference
+
+### Theme quick-reference
+
+**Color** — `themeColor(listener, tone?, color?)`:
+- `tone`: `"inherit"` | `"base"` | `"shift-N"` | `"increase-N"` | `"decrease-N"` (N ≤ 17, 18-step ramp)
+- `color`: `"neutral"` | `"primary"` | `"secondary"` | `"info"` | `"success"` | `"warning"` | `"attention"` | `"error"` | `"danger"` | `"highlight"`
+- Surface roles from edge anchor: bg=`"inherit"`, stroke=`"shift-3"`, muted=`"shift-6"`, body text=`"shift-9"`, heading=`"shift-11"`, hover=`"increase-1"`, pressed=`"increase-2"`
+- **dataTone**: edge anchors `shift-0`–`shift-3` (light) or `shift-14`–`shift-17` (dark). Mid-ramp `shift-4`–`shift-13` → `middle-surface-anchor` warning (collapses contrast).
+
+**Spacing** — `themeSpacing(n)` = `n/4 em`:
+- For bounded controls: `themeSpacing(themeDensity(l) * n)` — density scales padding/gap.
+- For structural layout: bare `themeSpacing(n)` (no density multiplier).
+- Never hardcode `"6px"` / `"1.5em"` — doctor flags as `raw-spacing-value`.
+- **dataDensity**: `"increase-N"` or `"decrease-N"` where N ≤ 4 (5-step scale: 0.75, 1, 1.5, 2, 2.5).
+
+**Size** — `themeSize(listener, size?)`:
+- `size`: `"inherit"` | `"increase-N"` | `"decrease-N"` (N ≤ 7, 8-step scale)
+- Never hardcode `fontSize: "16px"` — use `fontSize: (l) => themeSize(l, "inherit")`.
+- **dataSize**: `"increase-N"` or `"decrease-N"` where N ≤ 7.
+
+**Bounded control geometry formula** (button/input, density `d`, 1 line):
+```ts
+paddingBlock: (l) => themeSpacing(themeDensity(l) * 1),
+paddingInline: (l) => themeSpacing(themeDensity(l) * 3),
+borderRadius: (l) => themeSpacing(themeDensity(l) * 1),
+// Use outline not border — border adds 2px to height, deviating from canonical sizes.
+```
 
 ## Patches (`@domphy/ui`)
 
@@ -147,7 +174,7 @@ Color-palette quality engine (design-time companion to `@domphy/theme`): measure
 
 ## Doctor (`@domphy/doctor`)
 
-Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagnostic[]`; `validate(element)` returns `{ ok, issues, summary }`; `fix(element)` returns `{ tree, applied, report }`, applying lossless fixes (e.g. void-content) and listing the rest. Rules: inline-typography, raw-theme-value, raw-spacing-value, unknown-tone, void-content, missing-key, duplicate-key, unstable-key, unknown-tag. Run it on generated code and fix what it reports — the AI self-correction loop. Pairs with the app-block registry (`app-manifest.json`) for large codebases.
+Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagnostic[]`; `validate(element)` returns `{ ok, issues, summary }`; `fix(element)` returns `{ tree, applied, report }`, applying lossless fixes (e.g. void-content) and listing the rest. Rules: `inline-typography`, `raw-theme-value`, `raw-spacing-value` (incl. logical props paddingBlock/paddingInline/marginBlock/marginInline), `unknown-tone` (dataTone grammar + range ≤ 17), `middle-surface-anchor` (dataTone shift-4–13 collapses contrast), `unknown-density` (dataDensity range ≤ 4), `unknown-size` (dataSize range ≤ 7), `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. Run it on generated code and fix what it reports — the AI self-correction loop. Pairs with the app-block registry (`app-manifest.json`) for large codebases.
 
 - [Overview](https://domphy.com/docs/doctor/)
 
