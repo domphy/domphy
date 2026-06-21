@@ -1,17 +1,11 @@
-import { toState } from "@domphy/core";
 import type { DomphyElement } from "@domphy/core";
+import { toState } from "@domphy/core";
 import { toggle, toggleGroup } from "@domphy/ui";
 
 const selected = toState<string[]>([], "selected");
 
 const App: DomphyElement<"div"> = {
   div: {
-    div: null,
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: "16px",
-    },
     div: [
       // Single-select example
       {
@@ -47,6 +41,11 @@ const App: DomphyElement<"div"> = {
         },
       },
     ],
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "16px",
+    },
   },
 };
 
