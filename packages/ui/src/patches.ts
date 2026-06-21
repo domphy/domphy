@@ -53,6 +53,8 @@ export * from "./patches/select.js";
 export * from "./patches/selectBox.js";
 export * from "./patches/selectItem.js";
 export * from "./patches/selectList.js";
+export * from "./patches/segmented.js";
+export * from "./patches/segmentedItem.js";
 export * from "./patches/skeleton.js";
 export * from "./patches/small.js";
 export * from "./patches/spinner.js";
