@@ -6,12 +6,14 @@ This page lists the public helpers exported by `@domphy/theme`.
 
 ### `themeColor(object, tone?, color?)`
 
-Resolve a color variable from the current theme and tone context.
+Resolve a color CSS variable reference (`var(--…)`) from the current theme and tone context.
 
 ```ts
 backgroundColor: (listener) => themeColor(listener, "inherit", "primary")
 color: (listener) => themeColor(listener, "shift-9", "primary")
 ```
+
+`object` accepts an `ElementNode`, a `Listener`, or `null`. Pass `null` to resolve against the `light` theme with no context.
 
 Use this for text color, background color, outline color, and interaction states.
 
@@ -22,6 +24,8 @@ Same signature as `themeColor` but returns the resolved token **value** (e.g. `"
 ```ts
 const hex = themeColorToken(null, "shift-9", "primary") // e.g. "#4a7ff4"
 ```
+
+`object` may be `null` — resolves against the `light` theme with no node context.
 
 ### `themeSize(object, size?)`
 
@@ -125,3 +129,16 @@ type ThemeInput = {
 ```
 
 For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
+
+## Exported Types
+
+| Type | Description |
+| --- | --- |
+| `ThemeInput` | Full theme shape accepted by `setTheme()`. All fields are optional when passing a partial. |
+| `PartialThemeInput` | Deep-partial version of `ThemeInput` — what `setTheme()` actually accepts at runtime. |
+| `ThemeVars` | Object of `var(--…)` CSS variable references returned by `themeVars()`. |
+| `ThemeColor` | Union of valid color family names (`"neutral" \| "primary" \| …`) derived from `ThemeInput["colors"]`. |
+| `ElementTone` | Valid tone descriptor strings: `"inherit"`, `"base"`, `"shift-N"`, `"increase-N"`, `"decrease-N"`. |
+| `ElementTones` | Runtime array of all valid tone strings (exported as a value for validation tooling). |
+| `ElementSize` | Valid size descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–7). |
+| `ElementDensity` | Valid density descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–4). |
