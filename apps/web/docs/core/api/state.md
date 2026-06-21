@@ -2,6 +2,20 @@
 
 Reactive value container. When the value changes, all listeners are notified.
 
+## `ReadableState<T>`
+
+A read-only view of a `State<T>`. Exposes only `get(listener?)` — no `set`, `reset`, or `addListener`. Use it when you want to pass a state to a consumer that should read but not mutate it.
+
+```ts
+import type { ReadableState } from "@domphy/core"
+
+function display(count: ReadableState<number>) {
+  return { p: (l) => `Count: ${count.get(l)}` }
+}
+```
+
+`ReadableState<T>` is exported as a named type from `@domphy/core`. `State<T>` satisfies `ReadableState<T>` — any `State` can be passed where a `ReadableState` is expected. `toState()` also accepts `ReadableState<T>` as input (returns it as-is).
+
 ```ts
 import { toState } from "@domphy/core"
 

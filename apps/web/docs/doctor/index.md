@@ -41,14 +41,18 @@ console.log(format(diagnose(App)))
 `diagnose(element, options?)` returns `Diagnostic[]`:
 
 ```ts
+type Severity = "error" | "warning" | "info"
+
 interface Diagnostic {
   rule: string // "inline-typography" | "void-content" | "missing-key" | …
-  severity: "error" | "warning" | "info"
+  severity: Severity
   path: string // "div > ul > li"
   message: string
   hint?: string
 }
 ```
+
+`Severity` is exported from `@domphy/doctor` as its own named type.
 
 ## Rules
 

@@ -7,7 +7,7 @@ import Basic from "../demos/virtual/basic.ts?raw"
 
 `@domphy/virtual` renders only the rows/columns currently in view — essential for long lists, grids, and tables — with dynamic measurement, overscan, sticky ranges, and smooth scroll-to.
 
-It is a **1-1 port of [`@tanstack/virtual-core`](https://github.com/TanStack/virtual/tree/main/packages/virtual-core) v3.17.0** (MIT, © Tanner Linsley and the TanStack team). The `src/` is byte-identical to upstream, so the entire [TanStack Virtual reference](https://tanstack.com/virtual/latest) applies as-is and future versions can be diffed and merged directly. The only addition is the Domphy adapter in `src/domphy/`.
+It is **based on [`@tanstack/virtual-core`](https://github.com/TanStack/virtual/tree/main/packages/virtual-core) v3.17.0** (MIT, © Tanner Linsley and the TanStack team) with additional features: iOS WebKit scroll deferral, `scrollBy`/`scrollToEnd`/`takeSnapshot` methods, lazy typed-array fast-path, and `laneAssignmentMode`/`useCachedMeasurements` options. The entire [TanStack Virtual reference](https://tanstack.com/virtual/latest) applies for the base API; Domphy-specific additions are documented here. The Domphy adapter lives in `src/domphy/`.
 
 The core is framework-agnostic with zero dependencies.
 
@@ -52,7 +52,7 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 | `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount` for variable sizes. |
 | `scrollToIndex(i, opts?)` / `scrollToOffset(px, opts?)` | Imperative scrolling. |
 | `setOptions(opts)` | Update `count`/options, then re-measure. |
-| `virtualizer` | The underlying `Virtualizer` — the full virtual-core API. |
+| `virtualizer` | The underlying `Virtualizer` — the full virtual-core API. Includes Domphy additions not in upstream: `scrollBy(delta, opts?)`, `scrollToEnd(opts?)`, `takeSnapshot()`, `getDistanceFromEnd()`, `isAtEnd(threshold?)`. |
 | `version(l)` | Raw reactive change counter. |
 | `destroy()` | Detach observers; call from `_onRemove`. |
 

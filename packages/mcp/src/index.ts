@@ -19,7 +19,7 @@ import {
 } from "./tools.js";
 
 const server = new Server(
-  { name: "domphy", version: "0.14.0" },
+  { name: "domphy", version: "0.16.0" },
   { capabilities: { tools: {} } },
 );
 

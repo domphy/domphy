@@ -80,6 +80,7 @@ After hydration the router takes over: clicks on `navLink` anchors navigate clie
 `renderToStream` trades the single `renderToString` string for a web `ReadableStream` that flushes in two phases: the **shell** (layouts wrapping each segment's `loading` fallback) goes out immediately for a fast first byte, then the resolved **content**, head and hydration data stream in once the loaders settle.
 
 ```ts
+// `redirect` is optional (undefined when no redirect occurred)
 const { stream, status, redirect } = await app.renderToStream(request.url, {
   head: `<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">`,
   bootstrap: `<script type="module" src="/client.js"></script>`,

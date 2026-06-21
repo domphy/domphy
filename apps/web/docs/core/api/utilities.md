@@ -8,18 +8,20 @@ import { toState, merge, hashString } from "@domphy/core"
 
 Use `Utilities` here rather than `Functions`: these are reusable helper APIs, not the main object model like `ElementNode`, `ElementList`, or `State`.
 
-## `toState(value)`
+## `toState(value, name?)`
 
-Creates a `State` from a raw value. If the input is already a `State`, returns it as-is.
+Creates a `State` from a raw value. If the input is already a `State` or `ReadableState`, returns it as-is.
 
 ```ts
-const a = toState(0)   // State<number>
-const b = toState(a)   // same State<number>, no wrapping
+const a = toState(0)         // State<number>
+const b = toState(a)         // same State<number>, no wrapping
+const c = toState(0, "count") // State<number> with debug name "count"
 ```
 
 | Parameter | Type | Description |
 |---|---|---|
-| `value` | `T \| State<T>` | Raw value or existing `State` |
+| `value` | `T \| State<T> \| ReadableState<T>` | Raw value, existing `State`, or `ReadableState` |
+| `name` | `string` (optional) | Debug name for the state, used in devtools and error messages |
 
 Returns `State<T>`.
 

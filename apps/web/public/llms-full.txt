@@ -33,7 +33,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 
 - `@domphy/core` — runtime: rendering, reactivity, lifecycle, SSR, CSS-in-JS (≈ `react-dom` + SSR + CSS-in-JS in one)
 - `@domphy/theme` — context-aware color/size/spacing tokens
-- `@domphy/ui` — 85 patches for native HTML (≈ MUI)
+- `@domphy/ui` — 82 patches for native HTML (≈ MUI)
 
 **Data & logic** — 1-1 ports of the TanStack cores (identical API) + a Domphy adapter at the `/domphy` subpath:
 
@@ -141,6 +141,856 @@ Form state, validation, and submission live in [`@domphy/form`](/docs/form/) (`c
 
 
 ## Core docs
+
+### api/attribute-list.md
+
+# AttributeList
+
+Manages HTML attributes on an `ElementNode`. Accessed via `node.attributes`.
+
+Attributes set via element definition are managed automatically. Use `AttributeList` directly when you need to read or mutate attributes imperatively inside lifecycle hooks.
+
+## Methods
+
+### `get(name)`
+
+Returns the current value of an attribute.
+
+```ts
+node.attributes.get("class")     // "btn active"
+node.attributes.get("disabled")  // true | undefined
+```
+
+---
+
+### `set(name, value)`
+
+Sets or updates an attribute value.
+
+```ts
+node.attributes.set("aria-expanded", "true")
+node.attributes.set("tabindex", 0)
+node.attributes.set("disabled", true)
+```
+
+---
+
+### `has(name)`
+
+Returns `true` if the attribute exists.
+
+```ts
+node.attributes.has("disabled")  // boolean
+```
+
+---
+
+### `remove(name)`
+
+Removes an attribute from the element.
+
+```ts
+node.attributes.remove("disabled")
+```
+
+---
+
+### `toggle(name, force?)`
+
+Toggles a boolean attribute (`disabled`, `hidden`, `checked`, etc.).
+
+```ts
+node.attributes.toggle("disabled")         // flip
+node.attributes.toggle("disabled", true)   // force on
+node.attributes.toggle("disabled", false)  // force off
+```
+
+---
+
+### `onChange(name, callback)`
+
+Subscribes to changes on a specific attribute after the node is mounted and the attribute already exists. The listener auto-releases when the node is removed.
+
+```ts
+node.attributes.onChange("aria-expanded", (value) => {
+    console.log("expanded:", value)
+})
+```
+
+If you need to observe a value immediately, set the attribute first, then subscribe inside `_onMount` or another mounted lifecycle hook.
+
+---
+
+### `addClass(className)`
+
+Adds a class to the element's class list.
+
+```ts
+node.attributes.addClass("active")
+```
+
+---
+
+### `removeClass(className)`
+
+Removes a class from the element's class list.
+
+```ts
+node.attributes.removeClass("active")
+```
+
+---
+
+### `hasClass(className)`
+
+Returns `true` if the class exists in the element's class list.
+
+```ts
+node.attributes.hasClass("active")      // boolean
+```
+
+---
+
+### `toggleClass(className)`
+
+Toggles a class in the element's class list.
+
+```ts
+node.attributes.toggleClass("active")
+```
+
+---
+
+### `replaceClass(oldClass, newClass)`
+
+Replaces an existing class with a new one.
+
+```ts
+node.attributes.replaceClass("old", "new")
+```
+
+### api/element-list.md
+
+# ElementList
+
+Manages the ordered list of child nodes under an `ElementNode`. Accessed via `node.children`.
+
+```ts
+node.children          // ElementList
+node.children.items    // NodeItem[]
+```
+
+## Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `items` | `NodeItem[]` | Ordered array of child nodes (`ElementNode` or `TextNode`) |
+| `owner` | `ElementNode` | The `ElementNode` that this list belongs to |
+
+## Methods
+
+### `insert(input, index?, updateDom?, silent?)`
+
+Creates a new child node and inserts it at the given index. Returns the new node.
+
+```ts
+// Append at end
+const created = node.children.insert({ div: "Hello" })
+
+// Insert at specific index
+const created = node.children.insert({ div: "Hello" }, 2)
+
+// Insert without touching DOM (DOM already updated externally)
+const created = node.children.insert({ div: "Hello" }, 2, false)
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `input` | `DomphyElement \| string \| number \| null` | required | Element or scalar child content to insert |
+| `index` | `number` | end | Position to insert at |
+| `updateDom` | `boolean` | `true` | Whether to update the DOM |
+| `silent` | `boolean` | `false` | Whether to suppress the `Update` hook |
+
+Returns the created `ElementNode` or `TextNode`. Cast to `ElementNode` when you need methods like `.remove()`:
+
+```ts
+const toastNode = node.parent!.children.insert(Toast) as ElementNode
+setTimeout(() => toastNode.remove(), 3000)
+```
+
+---
+
+### `remove(item, updateDom?, silent?)`
+
+Removes a specific node from the list.
+
+```ts
+node.children.remove(targetNode)
+
+// Remove without touching DOM
+node.children.remove(targetNode, false)
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `item` | `NodeItem` | required | The node to remove |
+| `updateDom` | `boolean` | `true` | Whether to remove from DOM |
+| `silent` | `boolean` | `false` | Whether to suppress the `Update` hook |
+
+Triggers `BeforeRemove` hook if present — removal waits for `done()` to be called.
+
+---
+
+### `update(inputs, updateDom?, silent?)`
+
+Reconciles the child list against a new array of inputs. Reuses keyed nodes, inserts new ones, removes stale ones — in order.
+
+```ts
+node.children.update(newItemsArray)
+
+// Sync logical list without touching DOM (DOM already updated externally)
+node.children.update(newItemsArray, false)
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `inputs` | `ElementInput[]` | required | New desired child list |
+| `updateDom` | `boolean` | `true` | Whether to update the DOM |
+| `silent` | `boolean` | `false` | Whether to suppress hooks |
+
+Pass `false` for `updateDom` when an external library (e.g. SortableJS) has already updated the DOM — prevents double update.
+
+---
+
+### `move(fromIndex, toIndex, updateDom?, silent?)`
+
+Moves a node from one index to another within the list.
+
+```ts
+node.children.move(0, 2)
+
+// Move logical position only — DOM already moved externally
+node.children.move(oldIndex, newIndex, false)
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `fromIndex` | `number` | required | Current position |
+| `toIndex` | `number` | required | Target position |
+| `updateDom` | `boolean` | `true` | Whether to move in DOM |
+| `silent` | `boolean` | `false` | Whether to suppress the `Update` hook |
+
+---
+
+### `swap(aIndex, bIndex, updateDom?, silent?)`
+
+Swaps two nodes at the given indices.
+
+```ts
+node.children.swap(0, 1)
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `aIndex` | `number` | required | Index of first node |
+| `bIndex` | `number` | required | Index of second node |
+| `updateDom` | `boolean` | `true` | Whether to swap in DOM |
+| `silent` | `boolean` | `false` | Whether to suppress the `Update` hook |
+
+---
+
+### `clear(updateDom?, silent?)`
+
+Removes all children.
+
+```ts
+node.children.clear()
+```
+
+---
+
+### `generateHTML()`
+
+Generates the HTML string for all child nodes. Used for Server-Side Rendering (SSR).
+
+```ts
+const html = node.children.generateHTML()
+```
+
+---
+
+## The `updateDom` flag
+
+All mutating methods accept `updateDom` (default `true`). Pass `false` when the DOM has already been updated by an external source — prevents double mutation.
+
+Common case: SortableJS drag-and-drop.
+
+```ts
+Sortable.create(el, {
+    onEnd(evt) {
+        // SortableJS already moved the DOM node — sync logical tree only
+        node.children.move(evt.oldIndex!, evt.newIndex!, false)
+    }
+})
+```
+
+## Common patterns
+
+**Insert and auto-remove (toast):**
+
+```ts
+onClick: (_, node) => {
+    const toastNode = node.parent!.children.insert(Toast) as ElementNode
+    setTimeout(() => toastNode.remove(), 3000)
+}
+```
+
+**Reactive list (state-driven):**
+
+```ts
+const items = toState<Item[]>([])
+
+const List: DomphyElement<"ul"> = {
+    ul: (listener) => items.get(listener).map(item => ({
+        li: item.name,
+        _key: item.id,
+    }))
+}
+```
+
+**Imperative reorder:**
+
+```ts
+node.children.move(from, to)
+node.children.swap(a, b)
+```
+
+### api/element-node.md
+
+# ElementNode
+
+Core node representing a single HTML element in the Domphy tree.
+
+```ts
+import { ElementNode } from "@domphy/core"
+
+const node = new ElementNode({ div: "Hello World" })
+node.render(document.body)
+```
+
+## Constructor
+
+```ts
+new ElementNode(domphyElement: DomphyElement, parent?: ElementNode | null)
+```
+
+## Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `type` | `string` | Always `"ElementNode"` |
+| `parent` | `ElementNode \| null` | Parent node. `null` if root |
+| `tagName` | `TagName` | HTML tag name e.g. `"div"` |
+| `children` | `ElementList` | Child nodes |
+| `styles` | `StyleList` | Scoped CSS styles |
+| `attributes` | `AttributeList` | HTML attributes |
+| `domElement` | `HTMLElement \| null` | Mounted DOM element |
+| `key` | `string \| number \| null` | Identity key for diffing |
+| `nodeId` | `string` | Hash used for scoped CSS class generation |
+| `pathId` | `string` | Hash of the node path in the tree |
+| `_portal` | `((root) => Element) \| undefined` | Redirects DOM mount target when present |
+
+The scoped CSS class is attached through `node.attributes` using the pattern ``${tagName}_${nodeId}``.
+
+## Methods
+
+### `render(domElement)`
+
+Creates a DOM node and appends it to the target.
+
+```ts
+node.render(document.body)
+node.render(document.getElementById("app")!)
+```
+
+### `mount(domElement, domStyle?)`
+
+Hydrates onto an existing DOM element. Used for SSR.
+
+```ts
+const html = node.generateHTML()
+const css = node.generateCSS()
+// ... send to client ...
+const domStyle = document.getElementById("domphy-style") as HTMLStyleElement
+node.mount(document.getElementById("app")!, domStyle)
+```
+
+When doing SSR, render CSS into `<style id="domphy-style">...</style>` on the server, then pass that same style element to `mount()` on the client.
+
+### `remove()`
+
+Removes this node from its parent.
+
+```ts
+node.remove()
+```
+
+### `merge(partial)`
+
+Updates this node from a partial element descriptor.
+
+```ts
+node.merge({ style: { color: "red" }, class: "active" })
+```
+
+### `addEvent(name, callback)`
+
+Registers a DOM event listener. Multiple callbacks are chained.
+
+```ts
+node.addEvent("click", (e, node) => console.log(node.tagName))
+```
+
+### `addHook(name, callback)`
+
+Registers a lifecycle hook. Multiple callbacks are chained.
+
+```ts
+node.addHook("Mount", (node) => console.log("mounted"))
+node.addHook("BeforeRemove", (node, done) => {
+  animate(node.domElement).then(done)
+})
+```
+
+| Hook | Trigger |
+|---|---|
+| `Insert` | Node added to children list |
+| `Mount` | DOM element created |
+| `BeforeUpdate` | Before children diff |
+| `Update` | After children diff |
+| `BeforeRemove` | Before DOM removal — call `done()` to proceed |
+| `Remove` | After DOM removal |
+| `Error` | Caught error from a reactive child (`(node, error, reset) => void`) — call `reset()` to clear children and render fallback |
+
+### `getRoot()`
+
+Returns the root node of the tree.
+
+```ts
+const root = node.getRoot()
+```
+
+### `getContext(name)` / `setContext(name, value)`
+
+Inherited context — walks up the tree to find the nearest value.
+
+```ts
+// Parent
+node.setContext("theme", "dark")
+
+// Any descendant
+const theme = node.getContext("theme") // "dark"
+```
+
+### `getMetadata(name)` / `setMetadata(key, value)`
+
+Local metadata — not inherited by children.
+
+```ts
+node.setMetadata("id", "user-123")
+node.getMetadata("id") // "user-123"
+```
+
+### `generateHTML()`
+
+Generates HTML string. Used for SSR.
+
+```ts
+const html = node.generateHTML()
+// "<div class="div_abc123">Hello</div>"
+```
+
+### `generateCSS()`
+
+Generates CSS string for this node and all descendants. Used for SSR.
+
+```ts
+const css = node.generateCSS()
+```
+
+### api/notifier.md
+
+# Notifier
+
+Subscription utility used internally by `State` and `AttributeList`.
+
+## Methods
+
+### `addListener(event, listener)`
+
+Registers a listener for an event. Returns a `release` function to unsubscribe.
+
+```ts
+const release = notifier.addListener("change", (value) => {
+  console.log(value)
+})
+
+// Unsubscribe
+release()
+```
+
+If the listener has an `onSubscribe` callback, it is called immediately with the `release` function — useful for auto-cleanup:
+
+```ts
+const listener = (value: string) => console.log(value)
+
+listener.onSubscribe = (release) => {
+  node.addHook("BeforeRemove", release)  // auto-cleanup on node remove
+}
+
+notifier.addListener("change", listener)
+```
+
+### `removeListener(event, listener)`
+
+Removes a specific listener from an event.
+
+```ts
+notifier.removeListener("change", listener)
+```
+
+### `notify(event, ...args)`
+
+Calls all listeners registered for an event.
+
+```ts
+notifier.notify("change", newValue)
+```
+
+## `Listener` type
+
+```ts
+type Listener = ((...args: any[]) => any) & {
+  onSubscribe?: (release: () => void) => void
+}
+```
+
+`onSubscribe` is called once when the listener is registered. Use it to tie the listener's lifetime to another object.
+
+### api/state.md
+
+# State
+
+Reactive value container. When the value changes, all listeners are notified.
+
+## `ReadableState<T>`
+
+A read-only view of a `State<T>`. Exposes only `get(listener?)` — no `set`, `reset`, or `addListener`. Use it when you want to pass a state to a consumer that should read but not mutate it.
+
+```ts
+import type { ReadableState } from "@domphy/core"
+
+function display(count: ReadableState<number>) {
+  return { p: (l) => `Count: ${count.get(l)}` }
+}
+```
+
+`ReadableState<T>` is exported as a named type from `@domphy/core`. `State<T>` satisfies `ReadableState<T>` — any `State` can be passed where a `ReadableState` is expected. `toState()` also accepts `ReadableState<T>` as input (returns it as-is).
+
+```ts
+import { toState } from "@domphy/core"
+
+const count = toState(0)
+
+count.get()        // 0
+count.set(1)       // notify all listeners
+count.get()        // 1
+count.reset()      // back to 0
+```
+
+Create a `State` with `toState()` from `@domphy/core`. The `toState()` function is documented in the Utilities page.
+
+## Methods
+
+### `get(listener?)`
+
+Returns the current value. If a listener is provided, subscribes it to future changes.
+
+```ts
+const value = count.get()
+
+// With listener — auto-subscribe
+const value = count.get(listener)
+```
+
+### `set(newValue)`
+
+Updates the value and notifies all listeners.
+
+```ts
+count.set(5)
+```
+
+### `reset()`
+
+Resets the value to `initialValue`.
+
+```ts
+const filter = toState("all")
+filter.set("active")
+filter.reset()
+filter.get()  // "all"
+```
+
+### `onChange(listener)`
+
+Subscribes a listener to value changes. Returns a `release` function.
+
+```ts
+const release = count.onChange((value) => {
+  console.log(value)
+})
+
+// Unsubscribe
+release()
+```
+
+## Reactive children
+
+Pass a function as children to make an element reactive:
+
+```ts
+const count = toState(0)
+
+const node: DomphyElement = {
+  p: (listener) => `Count: ${count.get(listener)}`
+//                                      ↑ subscribes automatically
+}
+```
+
+When `count.set()` is called, the element re-renders automatically.
+
+## `initialValue`
+
+The value passed to the constructor. Used by `reset()`.
+
+```ts
+const count = toState(0)
+count.initialValue  // 0
+```
+
+### api/text-node.md
+
+# TextNode
+
+Represents a text or inline HTML node in the Domphy tree. `TextNode` is created automatically when children contain strings or numbers. You usually do not instantiate it directly.
+
+```ts
+const node: DomphyElement = {
+  div: "Hello World"     // -> TextNode internally
+}
+
+const node2: DomphyElement = {
+  div: 42                // -> TextNode internally
+}
+
+const node3: DomphyElement = {
+  div: "<b>Bold</b>"     // -> TextNode with inline HTML
+}
+```
+
+## Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `type` | `string` | Always `"TextNode"` |
+| `parent` | `ElementNode` | Parent node |
+| `text` | `string` | Current text content |
+| `domText` | `ChildNode` | Mounted DOM node |
+
+## Inline HTML
+
+`TextNode` accepts a single-root HTML string. Multiple root elements are not supported.
+
+```ts
+"<b>Hello</b>"                  // valid
+"<span class='highlight' />"    // valid
+"<b>Hello</b> <i>World</i>"     // invalid: multiple roots
+```
+
+Single-root HTML is required so DOM operations like `move()` and `swap()` can keep node identity stable.
+
+## Empty string
+
+An empty string `""` is stored as a zero-width space (`\u200B`) so the DOM node still exists.
+
+```ts
+{ div: "" }  // renders as &#8203;
+```
+
+## `generateHTML()`
+
+Returns the text content as an HTML string. Used for SSR.
+
+```ts
+node.generateHTML()  // "Hello World" or "&#8203;" for empty string
+```
+
+### api/utilities.md
+
+# Utilities
+
+Top-level helper functions exported by `@domphy/core`.
+
+```ts
+import { toState, merge, hashString } from "@domphy/core"
+```
+
+Use `Utilities` here rather than `Functions`: these are reusable helper APIs, not the main object model like `ElementNode`, `ElementList`, or `State`.
+
+## `toState(value, name?)`
+
+Creates a `State` from a raw value. If the input is already a `State` or `ReadableState`, returns it as-is.
+
+```ts
+const a = toState(0)         // State<number>
+const b = toState(a)         // same State<number>, no wrapping
+const c = toState(0, "count") // State<number> with debug name "count"
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `value` | `T \| State<T> \| ReadableState<T>` | Raw value, existing `State`, or `ReadableState` |
+| `name` | `string` (optional) | Debug name for the state, used in devtools and error messages |
+
+Returns `State<T>`.
+
+Common use case: normalize patch props so callers can pass either a plain value or a reactive state.
+
+```ts
+const openState = toState(props.open ?? false)
+```
+
+---
+
+## `merge(source, target)`
+
+Deep-merges `target` into `source` using Domphy's composition rules.
+
+```ts
+const base = { class: "card", style: { padding: "1rem" } }
+merge(base, { class: "active", style: { color: "red" } })
+
+// base is now:
+// { class: "card active", style: { padding: "1rem", color: "red" } }
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `source` | `Record<string, any>` | Object to mutate |
+| `target` | `Record<string, any>` | Values to merge into `source` |
+
+Returns the same `source` object after merge.
+
+Key merge behaviors:
+
+- Plain objects are merged deeply.
+- `class`, `transform`, `rel` and similar fields are space-joined.
+- `animation`, `transition`, `boxShadow` and similar fields are comma-joined.
+- Event handlers like `onClick` are chained.
+- Hooks like `_onMount` are chained.
+- Most other keys are overwritten by `target`.
+
+Use `merge()` when composing patches or mutating a raw element in `_onSchedule`.
+
+---
+
+## `hashString(str?)`
+
+Generates a deterministic string hash. The result always starts with a lowercase letter, so it is safe to use as a CSS identifier.
+
+```ts
+hashString("hello")  // e.g. "b4a2f1c3"
+hashString("hello")  // same input, same output
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `str` | `string` | `""` | Input string to hash |
+
+Returns a `string`.
+
+Primary use case: generate a stable animation name from keyframes.
+
+```ts
+const keyframes = { to: { transform: "rotate(360deg)" } }
+const animationName = hashString(JSON.stringify(keyframes))
+
+const style = {
+  animation: `${animationName} 0.7s linear infinite`,
+  [`@keyframes ${animationName}`]: keyframes,
+}
+```
+
+Do not use `hashString()` to generate ids for Domphy nodes. `ElementNode` already exposes `node.nodeId`, which is the runtime-scoped unique id used by the framework.
+
+Notes:
+
+- Deterministic: identical input always produces identical output.
+- CSS-safe: output always starts with a letter.
+- Not cryptographic: use it for IDs and CSS names, not security.
+
+---
+
+## `configure(options)`
+
+Set global runtime options. Call once before mounting your app.
+
+```ts
+import { configure } from "@domphy/core"
+
+configure({ cspNonce: "abc123" })
+```
+
+| Option | Type | Description |
+|---|---|---|
+| `cspNonce` | `string` | Nonce stamped on every `<style>` element injected by Domphy. Required when your Content-Security-Policy uses `style-src 'nonce-...'` instead of `'unsafe-inline'`. |
+
+---
+
+## `flushSync()`
+
+Synchronously drains all pending state-change notifications and the deduplicated effect/computed reaction queue. Useful in tests and imperative code that must observe the DOM immediately after `.set()` instead of waiting for the next microtask.
+
+```ts
+import { toState, flushSync } from "@domphy/core"
+
+const count = toState(0)
+count.set(1)
+flushSync()
+// count.get() === 1 and all downstream effects/computeds are settled
+```
+
+If a diverging reactive loop prevents settling, `flushSync` breaks after 10 000 iterations and logs a `console.error`. Inside `batch()`, batched writes still flush when the batch ends — `flushSync` does not flush them early.
+
+---
+
+## `r(fn)`
+
+Identity helper for reactive functions. Returns `fn` unchanged. Its sole purpose is to give TypeScript a typed entry point for inline reactive expressions so editors can infer the listener type without an extra cast.
+
+```ts
+import { r } from "@domphy/core"
+
+const box = {
+  div: "Hello",
+  style: {
+    color: r((listener) => active.get(listener) ? "red" : "gray"),
+  },
+}
+```
+
+`r` does not wrap or modify the function at runtime — it is a zero-cost identity.
 
 ### index.md
 
@@ -303,6 +1153,128 @@ const App: DomphyElement<"div"> = {
 `_onSchedule` is the right place to apply context-aware patches. Unlike inline `$: [patches]`, it can read parent context before parsing begins.
 
 See also [ElementNode API](./api/element-node).
+
+### patterns/insert-content.md
+
+# Insert Content
+
+There are five common patterns for adding content. Each has a distinct trade-off.
+
+## 1. CSS `::before` / `::after`
+
+For purely decorative or static text content, use pseudo-elements in style — no extra DOM nodes.
+
+```ts
+{
+  div: "Saved",
+  style: {
+    "&::before": { content: '"✓ "' },
+    "&::after":  { content: '" !"' },
+  },
+}
+```
+
+Best for icons, decorative symbols, labels, badges, and separators.
+
+---
+
+## 2. Declare In Tree + Hide
+
+Declare the element upfront and toggle its visibility via state. The element is always in the logical tree.
+
+```ts
+const open = toState(false)
+
+const App = {
+  div: [
+    { button: "Open", onClick: () => open.set(true) },
+    {
+      dialog: "...",
+      $: [dialog({ open })],
+    },
+  ],
+}
+```
+
+Best for singletons that should preserve state between shows: dialog, drawer, popover, dropdown.
+
+---
+
+## 3. Imperative Insert
+
+Insert a new element at runtime. Call `.remove()` when done.
+
+```ts
+const successToast: DomphyElement<"div"> = {
+  div: "Saved successfully",
+  $: [toast({ placement: "bottom-left" })],
+}
+
+const App = {
+  div: [{
+    button: "Show Toast",
+    $: [button()],
+    onClick: (_, node) => {
+      const toastNode = node.parent!.children.insert(successToast) as ElementNode
+      setTimeout(() => toastNode.remove(), 3000)
+    },
+  }],
+}
+```
+
+Best for ephemeral elements that are created, shown, then destroyed: toast, notification, snackbar.
+
+---
+
+## 4. Reactive Children
+
+Derive the child list from state. The parent re-diffs its children whenever state changes.
+
+```ts
+const items = toState<Item[]>([])
+
+const App = {
+  ul: (listener) => items.get(listener).map(item => ({
+    li: item.name,
+    _key: item.id,
+  })),
+}
+```
+
+Best for lists driven by external data: filtered results, rows, tabs, repeated structures.
+
+Avoid this for single-element toggling when a simple declare-and-hide or imperative insert is clearer.
+
+---
+
+## 5. DOM API In `_onMount`
+
+Use browser DOM APIs directly inside `_onMount` to insert content outside the Domphy tree.
+
+```ts
+{
+  div: "App",
+  _onMount: (node) => {
+    const style = document.createElement("style")
+    style.textContent = `.theme { color: red }`
+    document.head.appendChild(style)
+
+    node.addHook("Remove", () => style.remove())
+  },
+}
+```
+
+Best for nodes outside the app root such as `<head>` or third-party containers. Do not use this to manage content inside the Domphy tree.
+
+## Summary
+
+| Pattern | Best for | DOM nodes |
+| --- | --- | --- |
+| CSS `::before`/`::after` | Decorative icons, labels, separators | None |
+| Declare + hide | Dialog, drawer, popover | Always present |
+| Imperative insert | Toast, notification | Created on demand |
+| Reactive children | Lists from data | Created on demand |
+| DOM API in `_onMount` | Outside root — `<head>`, third-party | Unmanaged |
 
 ### portal.md
 
@@ -2543,21 +3515,27 @@ const unsubscribe = observer.subscribe((result) => {
 
 `subscribe` returns an unsubscribe function. When the last subscriber leaves, the query becomes inactive and is garbage-collected after `gcTime`.
 
-## A Reusable `createQuery` Helper
+## A Reusable Query State Helper
 
-Most Domphy apps wrap the bridge once and reuse it:
+Most Domphy apps wrap the observer bridge once and reuse it. Note: this manual pattern is an alternative to the adapter's `createQuery` from `@domphy/query/domphy` (which takes a `QueryClient` + options directly and is the recommended approach for most use cases).
 
 ```ts
-import { QueryObserver } from "@domphy/query"
+import { QueryClient, QueryObserver } from "@domphy/query"
 import { toState } from "@domphy/core"
 
-function createQuery<T>(options: { queryKey: unknown[]; queryFn: () => Promise<T> }) {
+const queryClient = new QueryClient()
+queryClient.mount()
+
+function makeQueryStates<T>(
+    client: QueryClient,
+    options: { queryKey: unknown[]; queryFn: () => Promise<T> },
+) {
     const data = toState<T | undefined>(undefined)
     const loading = toState(true)
     const fetching = toState(false)
     const error = toState<Error | null>(null)
 
-    const observer = new QueryObserver<T>(queryClient, options)
+    const observer = new QueryObserver<T>(client, options)
 
     observer.subscribe((result) => {
         data.set(result.data)
@@ -2569,7 +3547,7 @@ function createQuery<T>(options: { queryKey: unknown[]; queryFn: () => Promise<T
     return { data, loading, fetching, error, observer }
 }
 
-const todos = createQuery({
+const todos = makeQueryStates(queryClient, {
     queryKey: ["todos"],
     queryFn: () => fetch("/api/todos").then((res) => res.json()),
 })
@@ -4547,7 +5525,7 @@ Column filters and the global filter compose — a row must pass both to appear 
 
 `@domphy/virtual` renders only the rows/columns currently in view — essential for long lists, grids, and tables — with dynamic measurement, overscan, sticky ranges, and smooth scroll-to.
 
-It is a **1-1 port of [`@tanstack/virtual-core`](https://github.com/TanStack/virtual/tree/main/packages/virtual-core) v3.17.0** (MIT, © Tanner Linsley and the TanStack team). The `src/` is byte-identical to upstream, so the entire [TanStack Virtual reference](https://tanstack.com/virtual/latest) applies as-is and future versions can be diffed and merged directly. The only addition is the Domphy adapter in `src/domphy/`.
+It is **based on [`@tanstack/virtual-core`](https://github.com/TanStack/virtual/tree/main/packages/virtual-core) v3.17.0** (MIT, © Tanner Linsley and the TanStack team) with additional features: iOS WebKit scroll deferral, `scrollBy`/`scrollToEnd`/`takeSnapshot` methods, lazy typed-array fast-path, and `laneAssignmentMode`/`useCachedMeasurements` options. The entire [TanStack Virtual reference](https://tanstack.com/virtual/latest) applies for the base API; Domphy-specific additions are documented here. The Domphy adapter lives in `src/domphy/`.
 
 The core is framework-agnostic with zero dependencies.
 
@@ -4587,7 +5565,7 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 | `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount` for variable sizes. |
 | `scrollToIndex(i, opts?)` / `scrollToOffset(px, opts?)` | Imperative scrolling. |
 | `setOptions(opts)` | Update `count`/options, then re-measure. |
-| `virtualizer` | The underlying `Virtualizer` — the full virtual-core API. |
+| `virtualizer` | The underlying `Virtualizer` — the full virtual-core API. Includes Domphy additions not in upstream: `scrollBy(delta, opts?)`, `scrollToEnd(opts?)`, `takeSnapshot()`, `getDistanceFromEnd()`, `isAtEnd(threshold?)`. |
 | `version(l)` | Raw reactive change counter. |
 | `destroy()` | Detach observers; call from `_onRemove`. |
 
@@ -4951,11 +5929,16 @@ Combine with [`renderToString`](./ssr) in one server: route `/api/*` to the API 
 | `app.render(target)` | client render: starts the router, renders into `target` |
 | `app.hydrate(target, style?)` | SSR hydration: seeds loader data from `bootstrapScript`, mounts onto existing DOM |
 | `app.renderToString(url, { headers? })` | server render, returns `SSRResult` |
+| `app.renderToStream(url, options?)` | streaming SSR; flushes the shell immediately, streams resolved content; returns `StreamResult` |
 | `app.destroy()` | removes the tree and releases history listeners |
 
 `AppOptions`: `history` (`HistoryAdapter | null`, default browser), `middleware`, `notFound`, `error`.
 
 `SSRResult`: `html`, `css`, `head`, `status`, `redirect?`, `data`, `bootstrapScript`.
+
+`StreamResult`: `stream` (`ReadableStream<Uint8Array>`), `status` (`number`), `redirect?` (`string`).
+
+`RenderToStreamOptions` extends `RenderToStringOptions` with `head?` (markup for `<head>`, sent in the first flush) and `bootstrap?` (markup before `</body>`, typically the client bundle `<script>`).
 
 ## Router
 
@@ -5846,6 +6829,7 @@ After hydration the router takes over: clicks on `navLink` anchors navigate clie
 `renderToStream` trades the single `renderToString` string for a web `ReadableStream` that flushes in two phases: the **shell** (layouts wrapping each segment's `loading` fallback) goes out immediately for a fast first byte, then the resolved **content**, head and hydration data stream in once the loaders settle.
 
 ```ts
+// `redirect` is optional (undefined when no redirect occurred)
 const { stream, status, redirect } = await app.renderToStream(request.url, {
   head: `<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">`,
   bootstrap: `<script type="module" src="/client.js"></script>`,
@@ -6200,14 +7184,18 @@ console.log(format(diagnose(App)))
 `diagnose(element, options?)` returns `Diagnostic[]`:
 
 ```ts
+type Severity = "error" | "warning" | "info"
+
 interface Diagnostic {
   rule: string // "inline-typography" | "void-content" | "missing-key" | …
-  severity: "error" | "warning" | "info"
+  severity: Severity
   path: string // "div > ul > li"
   message: string
   hint?: string
 }
 ```
+
+`Severity` is exported from `@domphy/doctor` as its own named type.
 
 ## Rules
 

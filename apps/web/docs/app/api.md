@@ -11,11 +11,16 @@
 | `app.render(target)` | client render: starts the router, renders into `target` |
 | `app.hydrate(target, style?)` | SSR hydration: seeds loader data from `bootstrapScript`, mounts onto existing DOM |
 | `app.renderToString(url, { headers? })` | server render, returns `SSRResult` |
+| `app.renderToStream(url, options?)` | streaming SSR; flushes the shell immediately, streams resolved content; returns `StreamResult` |
 | `app.destroy()` | removes the tree and releases history listeners |
 
 `AppOptions`: `history` (`HistoryAdapter | null`, default browser), `middleware`, `notFound`, `error`.
 
 `SSRResult`: `html`, `css`, `head`, `status`, `redirect?`, `data`, `bootstrapScript`.
+
+`StreamResult`: `stream` (`ReadableStream<Uint8Array>`), `status` (`number`), `redirect?` (`string`).
+
+`RenderToStreamOptions` extends `RenderToStringOptions` with `head?` (markup for `<head>`, sent in the first flush) and `bootstrap?` (markup before `</body>`, typically the client bundle `<script>`).
 
 ## Router
 

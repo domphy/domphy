@@ -22,21 +22,27 @@ const unsubscribe = observer.subscribe((result) => {
 
 `subscribe` returns an unsubscribe function. When the last subscriber leaves, the query becomes inactive and is garbage-collected after `gcTime`.
 
-## A Reusable `createQuery` Helper
+## A Reusable Query State Helper
 
-Most Domphy apps wrap the bridge once and reuse it:
+Most Domphy apps wrap the observer bridge once and reuse it. Note: this manual pattern is an alternative to the adapter's `createQuery` from `@domphy/query/domphy` (which takes a `QueryClient` + options directly and is the recommended approach for most use cases).
 
 ```ts
-import { QueryObserver } from "@domphy/query"
+import { QueryClient, QueryObserver } from "@domphy/query"
 import { toState } from "@domphy/core"
 
-function createQuery<T>(options: { queryKey: unknown[]; queryFn: () => Promise<T> }) {
+const queryClient = new QueryClient()
+queryClient.mount()
+
+function makeQueryStates<T>(
+    client: QueryClient,
+    options: { queryKey: unknown[]; queryFn: () => Promise<T> },
+) {
     const data = toState<T | undefined>(undefined)
     const loading = toState(true)
     const fetching = toState(false)
     const error = toState<Error | null>(null)
 
-    const observer = new QueryObserver<T>(queryClient, options)
+    const observer = new QueryObserver<T>(client, options)
 
     observer.subscribe((result) => {
         data.set(result.data)
@@ -48,7 +54,7 @@ function createQuery<T>(options: { queryKey: unknown[]; queryFn: () => Promise<T
     return { data, loading, fetching, error, observer }
 }
 
-const todos = createQuery({
+const todos = makeQueryStates(queryClient, {
     queryKey: ["todos"],
     queryFn: () => fetch("/api/todos").then((res) => res.json()),
 })
