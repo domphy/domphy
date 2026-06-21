@@ -214,11 +214,15 @@ const patch: PartialElement = {
 ```
 
 Lifecycle hooks available:
-- `_onSchedule(node)` — before DOM insert (synchronous)
-- `_onInsert(node)` — after DOM insert (DOM access available, before layout)
-- `_onMount(node)` — after first paint
+- `_onSchedule(node, raw)` — before parsing; mutate the raw element here (e.g. apply context-aware patches)
+- `_onInit(node)` — after parsing, before insertion; node properties are set, no siblings yet
+- `_onInsert(node)` — added to the parent child list; siblings and position available
+- `_onMount(node)` — DOM element created and connected; `node.domElement` is available
+- `_onBeforeUpdate(node, rawChildren)` — before a child update cycle; inspect incoming raw children
+- `_onUpdate(node)` — after the update cycle; children and DOM reflect the latest state
 - `_onBeforeRemove(node, done)` — before removal; **must** call `done()` to proceed
 - `_onRemove(node)` — after removal
+- `_onError(node, error, reset)` — catches errors thrown by reactive children in this subtree; call `reset()` to clear children and render fallback UI
 
 ## Refs
 
@@ -356,6 +360,50 @@ const input = {
 ```
 
 `motion()` uses the Web Animations API natively. Enter/exit animations tie into Domphy's `_onMount`/`_onBeforeRemove` lifecycle — no extra library.
+
+## Error boundaries
+
+```tsx
+// React
+<ErrorBoundary fallback={<p>Something went wrong.</p>}>
+  <RiskyComponent />
+</ErrorBoundary>
+```
+
+```ts
+// Domphy — errorBoundary() patch
+import { errorBoundary } from "@domphy/ui"
+
+{
+  div: (l) => renderRiskyContent(l),
+  $: [
+    errorBoundary({
+      fallback: (error, reset) => ({
+        div: [
+          { p: `Error: ${String(error)}` },
+          { button: "Try again", onClick: reset },
+        ],
+      }),
+      onError: (error) => reportToSentry(error),
+    }),
+  ],
+}
+```
+
+The `errorBoundary()` patch catches errors thrown by reactive child expressions in the subtree. Calling `reset()` clears the boundary so the next reactive evaluation runs again. Static construction errors propagate normally.
+
+## Global config
+
+```ts
+// React (no built-in equivalent — depends on the renderer)
+
+// Domphy — call once before mounting
+import { configure } from "@domphy/core"
+
+configure({ cspNonce: "abc123" })
+```
+
+`configure({ cspNonce })` stamps a CSP nonce on every `<style>` element Domphy injects. Required when your Content-Security-Policy uses `style-src 'nonce-...'` instead of `'unsafe-inline'`. Call it before the first `render()`.
 
 ## The mental model shift in one sentence
 
