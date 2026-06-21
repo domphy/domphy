@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { ElementNode } from "../src/classes/ElementNode.ts";
+import { configure } from "../src/config.ts";
 import type { DomphyElement } from "../src/types.ts";
 import { toState } from "../src/utils.ts";
 
@@ -392,6 +393,111 @@ describe("SSR: hydration via mount()", () => {
     // rule is gone or at least not mutated to the post-removal value
     const rule = ruleFor(styleEl, token);
     expect(rule?.style.color ?? "red").not.toBe("purple");
+  });
+});
+
+describe("XSS: inline HTML sanitization", () => {
+  // isHTML() detects paired tags and self-closing tags with a trailing slash.
+  // Strings that don't match are treated as plain text and escaped — already safe.
+  // Strings that DO match are passed to innerHTML and must be sanitized first.
+
+  it("strips event handler attrs from inline HTML (generateHTML / SSR)", () => {
+    // <span onclick=...>text</span> is detected as HTML → must strip onclick
+    const html = new ElementNode({
+      div: '<span onclick="alert(1)">text</span>',
+    } as DomphyElement).generateHTML();
+    expect(html).not.toContain("onclick");
+    expect(html).toContain("<span");
+    expect(html).toContain("text");
+  });
+
+  it("strips on* attrs from inline HTML (client _createDOMNode)", () => {
+    const host = document.createElement("div");
+    new ElementNode({
+      div: '<a href="ok" onclick="alert(1)">link</a>',
+    } as DomphyElement).render(host);
+    expect(host.querySelector("a")!.getAttribute("onclick")).toBeNull();
+    expect(host.querySelector("a")!.getAttribute("href")).toBe("ok");
+  });
+
+  it("strips on* from self-closing tags detected as HTML", () => {
+    // <img .../> has trailing slash → isHTML detects it → sanitize onerror
+    const html = new ElementNode({
+      div: '<img src="x" onerror="alert(1)"/>',
+    } as DomphyElement).generateHTML();
+    expect(html).not.toContain("onerror");
+    expect(html).toContain("src=");
+  });
+
+  it("neutralises javascript: href (SSR)", () => {
+    const html = new ElementNode({
+      div: '<a href="javascript:alert(1)">x</a>',
+    } as DomphyElement).generateHTML();
+    expect(html).not.toContain("javascript:");
+  });
+
+  it("leaves safe inline HTML untouched", () => {
+    const html = new ElementNode({
+      div: "<strong>bold</strong>",
+    } as DomphyElement).generateHTML();
+    expect(html).toContain("<strong>bold</strong>");
+  });
+});
+
+describe("CSP: nonce support", () => {
+  afterEach(() => configure({ cspNonce: undefined }));
+
+  it("applies nonce to the injected <style> element when configure() sets cspNonce", () => {
+    configure({ cspNonce: "test-nonce-123" });
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    new ElementNode({
+      div: "x",
+      style: { color: "red" },
+    } as DomphyElement).render(host);
+    const style =
+      document.head.querySelector<HTMLStyleElement>("#domphy-style");
+    expect(style?.nonce).toBe("test-nonce-123");
+  });
+});
+
+describe("Error boundary: _onError hook", () => {
+  it("calls _onError when a reactive child throws", async () => {
+    const errors: unknown[] = [];
+    const boom = toState(false);
+    const host = document.createElement("div");
+    new ElementNode({
+      div: (l: any) => {
+        if (boom.get(l)) throw new Error("boom");
+        return "ok";
+      },
+      _onError: (_node: any, err: unknown) => errors.push(err),
+    } as any).render(host);
+    expect(errors).toHaveLength(0);
+    boom.set(true);
+    await flush();
+    expect(errors).toHaveLength(1);
+    expect((errors[0] as Error).message).toBe("boom");
+  });
+
+  it("walks up to find the nearest _onError ancestor", async () => {
+    const errors: unknown[] = [];
+    const boom = toState(false);
+    const host = document.createElement("div");
+    new ElementNode({
+      div: [
+        {
+          span: (l: any) => {
+            if (boom.get(l)) throw new Error("child");
+            return "ok";
+          },
+        },
+      ],
+      _onError: (_node: any, err: unknown) => errors.push(err),
+    } as any).render(host);
+    boom.set(true);
+    await flush();
+    expect(errors).toHaveLength(1);
   });
 });
 

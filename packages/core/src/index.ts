@@ -5,6 +5,7 @@ export * from "./classes/Notifier.js";
 export * from "./classes/Reactive.js";
 export * from "./classes/RecordState.js";
 export * from "./classes/State.js";
+export { configure } from "./config.js";
 export * from "./constants.js";
 export * from "./types.js";
 export * from "./utils.js";

@@ -7,10 +7,14 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), details, [tabindex]:not([tabindex="-1"])';
+
 /**
  * Modal dialog patch driven by an `open` State. Calls `showModal()`/`close()`,
- * fades via opacity, locks page scroll while open, focuses the first focusable
- * child, and closes on outside (backdrop) click. Apply to a `<dialog>` element.
+ * fades via opacity, locks page scroll while open, traps Tab focus within the
+ * dialog, restores focus to the previously focused element on close, sets
+ * `aria-modal`, and closes on outside (backdrop) click. Apply to a `<dialog>`.
  *
  * @hostTag dialog
  * @param props.color - Theme color tone for the dialog surface. Defaults to "neutral".
@@ -22,6 +26,8 @@ function dialog(
 ): PartialElement {
   const { color = "neutral", open = false } = props;
   const state = toState(open);
+  let previousFocus: HTMLElement | null = null;
+
   return {
     _onInsert: (node) => {
       if (node.tagName !== "dialog") {
@@ -43,33 +49,68 @@ function dialog(
       if (dlg.style.opacity === "0") {
         dlg.close();
         document.body.style.overflow = "";
+        previousFocus?.focus();
+        previousFocus = null;
       }
     },
     _onMount: (node) => {
       const dlg = node.domElement as HTMLDialogElement;
+      dlg.setAttribute("aria-modal", "true");
+
+      const trapFocus = (e: KeyboardEvent) => {
+        if (e.key !== "Tab") return;
+        const focusables = Array.from(
+          dlg.querySelectorAll<HTMLElement>(FOCUSABLE),
+        ).filter(
+          (el) =>
+            !el.closest("[aria-hidden='true']") && el.offsetParent !== null,
+        );
+        if (!focusables.length) {
+          e.preventDefault();
+          return;
+        }
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey) {
+          if (
+            document.activeElement === first ||
+            document.activeElement === dlg
+          ) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      };
+
       const update = (val: boolean) => {
         if (val) {
+          previousFocus = document.activeElement as HTMLElement;
           dlg.showModal();
           document.body.style.overflow = "hidden";
+          dlg.addEventListener("keydown", trapFocus);
           requestAnimationFrame(() => {
             dlg.style.opacity = "1";
-            const focusable = dlg.querySelector<HTMLElement>(
-              'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-            );
+            const focusable = dlg.querySelector<HTMLElement>(FOCUSABLE);
             focusable?.focus();
           });
         } else {
           dlg.style.opacity = "0";
+          dlg.removeEventListener("keydown", trapFocus);
         }
       };
       update(state.get());
       const release = state.addListener(update);
-      // Release the listener on the user-provided `open` State and always
-      // restore page scroll on removal — otherwise removing an open dialog
-      // leaks the listener and leaves document.body locked at overflow:hidden.
       node.addHook("Remove", () => {
         release();
         document.body.style.overflow = "";
+        dlg.removeEventListener("keydown", trapFocus);
+        previousFocus?.focus();
+        previousFocus = null;
       });
     },
     style: {

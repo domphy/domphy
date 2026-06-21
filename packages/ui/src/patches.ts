@@ -20,6 +20,7 @@ export * from "./patches/divider.js";
 export * from "./patches/drawer.js";
 export * from "./patches/emphasis.js";
 export * from "./patches/empty.js";
+export * from "./patches/errorBoundary.js";
 export * from "./patches/figure.js";
 export * from "./patches/formGroup.js";
 export * from "./patches/heading.js";

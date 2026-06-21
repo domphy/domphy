@@ -75,8 +75,12 @@ export class ElementNode {
       if (typeof children === "function") {
         let listener: any = () => {
           if (this._disposed) return;
-          const input = children(listener);
-          this.children!.update(Array.isArray(input) ? input : [input]);
+          try {
+            const input = children(listener);
+            this.children!.update(Array.isArray(input) ? input : [input]);
+          } catch (error) {
+            this._handleError(error);
+          }
         };
 
         listener!.elementNode = this;
@@ -191,6 +195,7 @@ export class ElementNode {
           "_onUpdate",
           "_onBeforeRemove",
           "_onRemove",
+          "_onError",
         ].includes(originalKey)
       ) {
         this.addHook(originalKey.substring(3) as keyof HookMap, value);
@@ -259,6 +264,7 @@ export class ElementNode {
       "_onUpdate",
       "_onBeforeRemove",
       "_onRemove",
+      "_onError",
     ];
     const keep = new Set<string>(["class"]);
     let userClass: string | null = null;
@@ -292,6 +298,25 @@ export class ElementNode {
     if (this._events) {
       for (const key in this._events) this._bindEvent(key as EventName);
     }
+  }
+
+  // Walk ancestors to find the nearest Error hook. The boundary node receives
+  // the error and a `reset` callback that clears its children (allowing it to
+  // re-render with fresh data or a fallback). If no handler is found, log to
+  // console so errors in reactive children are never silently swallowed.
+  _handleError(error: unknown): void {
+    let node: ElementNode | null = this;
+    while (node) {
+      if (node._hooks.Error) {
+        const boundary = node;
+        node._hooks.Error(boundary, error, () => {
+          boundary.children.update([]);
+        });
+        return;
+      }
+      node = node.parent;
+    }
+    console.error("[Domphy] Unhandled error in reactive child:", error);
   }
 
   addEvent(

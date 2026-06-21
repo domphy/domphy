@@ -7,36 +7,48 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
-type Placement = "left" | "right" | "top" | "bottom";
+type PhysicalPlacement = "left" | "right" | "top" | "bottom";
+type Placement = PhysicalPlacement | "start" | "end";
 
-const translateOut: Record<Placement, string> = {
+const translateOut: Record<PhysicalPlacement, string> = {
   left: "translateX(-100%)",
   right: "translateX(100%)",
   top: "translateY(-100%)",
   bottom: "translateY(100%)",
 };
 
-const marginMap: Record<Placement, string> = {
+const marginMap: Record<PhysicalPlacement, string> = {
   left: "0 auto 0 0",
   right: "0 0 0 auto",
   top: "0 0 auto 0",
   bottom: "auto 0 0 0",
 };
 
-const isVertical = (p: Placement) => p === "left" || p === "right";
+const isVertical = (p: PhysicalPlacement) => p === "left" || p === "right";
+
+function resolvePhysical(
+  placement: Placement,
+  isRTL: boolean,
+): PhysicalPlacement {
+  if (placement === "start") return isRTL ? "right" : "left";
+  if (placement === "end") return isRTL ? "left" : "right";
+  return placement;
+}
 
 /**
  * Edge-anchored modal drawer driven by an `open` State. Slides in/out from a
  * chosen edge via a transform transition, calls `showModal()`/`close()`, locks
- * page scroll while open, and closes on backdrop click. Apply to a `<dialog>`
- * element.
+ * page scroll while open, and closes on backdrop click. Apply to a `<dialog>`.
+ *
+ * `"start"` and `"end"` placements resolve to left/right based on the
+ * document's `dir` attribute at mount time, enabling RTL-aware drawers.
  *
  * @hostTag dialog
  * @param props.color - Theme color tone for the drawer surface. Defaults to "neutral".
  * @param props.open - Open state (`ValueOrState<boolean>`); set true/false to show/hide. Defaults to false.
- * @param props.placement - Edge to anchor to, "left" | "right" | "top" | "bottom". Defaults to "right".
- * @param props.size - CSS length for the drawer's width (left/right) or height (top/bottom). Defaults to themeSpacing(80) for left/right, themeSpacing(64) for top/bottom.
- * @example { dialog: [...], $: [drawer({ open, placement: "left" })] }
+ * @param props.placement - Edge to anchor to. "left" | "right" | "top" | "bottom" | "start" | "end". Defaults to "end".
+ * @param props.size - CSS length for the drawer's width (left/right/start/end) or height (top/bottom). Defaults to themeSpacing(80) for vertical, themeSpacing(64) for horizontal.
+ * @example { dialog: [...], $: [drawer({ open, placement: "start" })] }
  */
 function drawer(
   props: {
@@ -46,9 +58,13 @@ function drawer(
     size?: string;
   } = {},
 ): PartialElement {
-  const { color = "neutral", open = false, placement = "right", size } = props;
+  const { color = "neutral", open = false, placement = "end", size } = props;
   const state = toState(open);
-  const defaultSize = isVertical(placement)
+  const isLogical = placement === "start" || placement === "end";
+
+  // For static rendering / SSR assume LTR as fallback; corrected at mount time.
+  const physicalFallback = resolvePhysical(placement, false);
+  const defaultSize = isVertical(physicalFallback)
     ? themeSpacing(80)
     : themeSpacing(64);
   const drawerSize = size ?? defaultSize;
@@ -72,6 +88,23 @@ function drawer(
     },
     _onMount: (node) => {
       const dlg = node.domElement as HTMLDialogElement;
+
+      // Resolve logical placements at mount time using document direction.
+      const isRTL =
+        isLogical &&
+        (dlg.ownerDocument.documentElement.dir === "rtl" ||
+          dlg.ownerDocument.dir === "rtl");
+      const physical = resolvePhysical(placement, isRTL);
+
+      // Correct initial styles for logical placements whose physical direction
+      // may differ from the LTR fallback used in the static style block.
+      if (isLogical) {
+        dlg.style.transform = translateOut[physical];
+        dlg.style.margin = marginMap[physical];
+        dlg.style.width = isVertical(physical) ? drawerSize : "100dvw";
+        dlg.style.height = isVertical(physical) ? "100dvh" : drawerSize;
+      }
+
       const update = (val: boolean) => {
         if (val) {
           dlg.showModal();
@@ -80,30 +113,27 @@ function drawer(
             dlg.style.transform = "translate(0, 0)";
           });
         } else {
-          dlg.style.transform = translateOut[placement];
+          dlg.style.transform = translateOut[physical];
         }
       };
       update(state.get());
       const release = state.addListener(update);
-      // Release the `open` State listener and restore page scroll on removal
-      // (an open drawer removed mid-transition would otherwise leak the
-      // listener and leave document.body locked at overflow:hidden).
       node.addHook("Remove", () => {
         release();
         document.body.style.overflow = "";
       });
     },
     style: {
-      transform: translateOut[placement],
+      transform: translateOut[physicalFallback],
       transition: "transform 0.25s ease",
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-10", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       border: "none",
       padding: (listener) => themeSpacing(themeDensity(listener) * 3),
-      margin: marginMap[placement],
-      width: isVertical(placement) ? drawerSize : "100dvw",
-      height: isVertical(placement) ? "100dvh" : drawerSize,
+      margin: marginMap[physicalFallback],
+      width: isVertical(physicalFallback) ? drawerSize : "100dvw",
+      height: isVertical(physicalFallback) ? "100dvh" : drawerSize,
       maxWidth: "100dvw",
       maxHeight: "100dvh",
       boxShadow: (listener) =>

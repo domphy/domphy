@@ -1,4 +1,4 @@
-import { escapeHTML, isHTML } from "../helpers.js";
+import { escapeHTML, isHTML, sanitizeHTMLString } from "../helpers.js";
 import type { ElementNode } from "./ElementNode.js";
 
 export class TextNode {
@@ -16,6 +16,19 @@ export class TextNode {
     if (isHTML(this.text)) {
       const tpl = document.createElement("template");
       tpl.innerHTML = this.text.trim();
+      // Strip event-handler attributes and javascript: URLs from all elements.
+      tpl.content.querySelectorAll("*").forEach((el) => {
+        for (const attr of Array.from(el.attributes)) {
+          if (/^on/i.test(attr.name)) {
+            el.removeAttribute(attr.name);
+          } else if (
+            /^(?:href|src|action|formaction)$/i.test(attr.name) &&
+            /^\s*javascript:/i.test(attr.value)
+          ) {
+            el.setAttribute(attr.name, "#");
+          }
+        }
+      });
       newNode = tpl.content.firstChild || document.createTextNode("");
     } else {
       newNode = document.createTextNode(this.text);
@@ -56,7 +69,9 @@ export class TextNode {
     // HTML, anything else is plain text and must be escaped so the server
     // output is XSS-safe and parses back to the same text node the client
     // builds (otherwise hydration child alignment drifts).
-    return isHTML(this.text) ? this.text : escapeHTML(this.text);
+    return isHTML(this.text)
+      ? sanitizeHTMLString(this.text)
+      : escapeHTML(this.text);
   }
 
   render(domText: ChildNode | DocumentFragment | HTMLElement): void {

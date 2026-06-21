@@ -82,6 +82,7 @@ export type HookMap = {
   Update?: (node: ElementNode) => void;
   BeforeRemove?: (node: ElementNode, done: () => void) => void;
   Remove?: (node: ElementNode) => void;
+  Error?: (node: ElementNode, error: unknown, reset: () => void) => void;
 };
 
 export type PropertyHookMap = {

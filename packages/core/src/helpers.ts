@@ -1,4 +1,5 @@
 import type { ElementNode } from "./classes/ElementNode.js";
+import { getConfig } from "./config.js";
 import { HtmlTags } from "./constants/HtmlTags.js";
 import { eventNameMap } from "./types/EventProperties.js";
 import type {
@@ -186,6 +187,29 @@ export function isHTML(str: string): boolean {
   );
 }
 
+// Strip event-handler attributes and javascript: URLs from an HTML string.
+// Works in both SSR (no DOM) and client contexts. Not a full sanitizer — it
+// removes the most common XSS vectors so user-generated strings passed as
+// inline HTML content can't execute arbitrary code.
+export function sanitizeHTMLString(html: string): string {
+  // Remove on* event handler attributes (onclick, onerror, onload, …)
+  let result = html.replace(
+    /\s+on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/g,
+    "",
+  );
+  // Also strip on* when preceded by "/" (e.g. <svg/onload=…>)
+  result = result.replace(
+    /\/on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/g,
+    "/",
+  );
+  // Neutralise javascript: scheme in URL attributes
+  result = result.replace(
+    /((?:href|src|action|formaction)\s*=\s*)(["']?)[\s]*javascript:[^"'\s>]*/gi,
+    "$1$2#",
+  );
+  return result;
+}
+
 export function escapeHTML(str: string): string {
   return str
     .replace(/&/g, "&amp;")
@@ -315,6 +339,7 @@ export function collectCSSRules(
 
 export function ensureDomStyle(
   styleParent: HTMLHeadElement | ShadowRoot,
+  nonce?: string,
 ): HTMLStyleElement {
   let domStyle = styleParent.querySelector(
     "#domphy-style",
@@ -323,6 +348,8 @@ export function ensureDomStyle(
   if (!domStyle) {
     domStyle = document.createElement("style");
     domStyle.id = "domphy-style";
+    const resolvedNonce = nonce ?? getConfig().cspNonce;
+    if (resolvedNonce) domStyle.nonce = resolvedNonce;
     styleParent.appendChild(domStyle);
   }
 
