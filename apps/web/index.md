@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Domphy
   text: UI as plain objects. No JSX, no compiler.
-  tagline: "{ button: 'Save', $: [button()] } — that's your component. Works in a script tag, Vite, or a browser extension. No build step, no 42 kB React runtime, no wrappers."
+  tagline: "{ button: 'Save', $: [button()] } — that's your component. Works in a script tag, Vite, or a browser extension. No build step, no wrappers."
   actions:
     - theme: brand
       text: Get Started
@@ -18,7 +18,7 @@ hero:
 
 features:
   - title: No compiler, no syntax tax
-    details: Elements are plain JS objects. No JSX transform, no build step required. Works in a script tag, a Vite project, a browser extension — anywhere JS runs. ~9 kB core vs React's 42 kB.
+    details: Elements are plain JS objects. No JSX transform, no build step required. Works in a script tag, a Vite project, a browser extension — anywhere JS runs. ~9 kB core.
   - title: Add behavior, not abstraction
     details: "Want a tooltip on a button? $: [button(), tooltip()]. One DOM node. No wrapper component, no mystery div > div > button > span. Patches apply to the native element you wrote."
   - title: Built-in design system
@@ -26,9 +26,9 @@ features:
   - title: AI generates it correctly
     details: Plain objects are what LLMs produce naturally. @domphy/doctor catches mistakes and tells the model exactly what to fix — self-corrects without you debugging. No other framework ships this loop.
   - title: Full TanStack-compatible stack
-    details: "1-1 ports of TanStack Query, Table, Router, Virtual, Form — identical APIs. The Domphy adapter is the only difference. If you know TanStack, you already know the data layer."
+    details: "1-1 ports of TanStack Query, Table, Router, Virtual, Form — identical APIs. The Domphy adapter is the only difference."
   - title: Right size for tool apps
-    details: "Building a SketchUp plugin, Figma panel, or VS Code extension? You need reactivity and a design system — not a 42 kB runtime and a JSX compiler. Domphy is the framework for plugin ecosystems."
+    details: "Building a SketchUp plugin, Figma panel, or VS Code extension? Domphy brings reactivity and a design system without a JSX compiler — the right fit for plugin ecosystems."
 ---
 
 ## Installation
