@@ -669,10 +669,10 @@
           "name": "size",
           "type": "string",
           "optional": true,
-          "doc": "CSS length for the drawer's width (left/right/start/end) or height (top/bottom). Defaults to themeSpacing(80) for vertical, themeSpacing(64) for horizontal."
+          "doc": "CSS length for the drawer's width (left/right/start/end) or height (top/bottom). Defaults to themeSpacing(80) for left/right, themeSpacing(64) for top/bottom."
         }
       ],
-      "doc": "Edge-anchored modal drawer driven by an `open` State. Slides in/out from a chosen edge via a transform transition, calls `showModal()`/`close()`, locks page scroll while open, and closes on backdrop click. Apply to a `<dialog>`. `\"start\"` and `\"end\"` placements resolve to left/right based on the document's `dir` attribute at mount time, enabling RTL-aware drawers.",
+      "doc": "Edge-anchored modal drawer driven by an `open` State. Slides in/out from a chosen edge via a transform transition, calls `showModal()`/`close()`, locks page scroll while open, and closes on backdrop click. Apply to a `<dialog>`. Because the patch uses the native `<dialog>` `showModal()` API, the browser automatically sets `aria-modal=\"true\"`, traps focus inside the drawer while it is open, and restores focus to the previously focused element when `close()` is called. `\"start\"` and `\"end\"` placements resolve to left/right based on the document's `dir` attribute at mount time, enabling RTL-aware drawers: `\"start\"` → left (LTR) / right (RTL); `\"end\"` → right (LTR) / left (RTL).",
       "example": "{ dialog: [...], $: [drawer({ open, placement: \"start\" })] }",
       "source": "packages/ui/src/patches/drawer.ts"
     },

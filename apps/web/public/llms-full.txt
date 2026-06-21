@@ -513,7 +513,7 @@ Use the low-level API when updates are event-driven and local, and when you want
 
 ## Derived Reactivity
 
-The `(listener) => state.get(listener)` form is the foundation: an explicit listener subscribes a reactive part to a state. On top of it, Domphy ships derived primitives — `computed`, `effect`, `effectScope`, `batch`, and `untrack` — for computations that depend on **other** reactive values. They build on the same `Notifier` machinery, so they participate in the same flush and cycle detection as a plain `state.get`.
+The `(listener) => state.get(listener)` form is the foundation: an explicit listener subscribes a reactive part to a state. On top of it, Domphy ships derived primitives — `computed`, `effect`, `effectScope`, `batch`, `untrack`, and `flushSync` — for computations that depend on **other** reactive values. They build on the same `Notifier` machinery, so they participate in the same flush and cycle detection as a plain `state.get`.
 
 These primitives **auto-track**: a reactive read with no explicit listener inside a `computed` or `effect` subscribes automatically. The explicit `(l) => state.get(l)` path used in elements is unchanged — both work, and they compose.
 
@@ -602,6 +602,21 @@ effect(() => {
   console.log(a.get(), untrack(() => b.get()))
 })
 ```
+
+### flushSync
+
+`flushSync()` drains the entire pending reaction queue synchronously before returning. Normally Domphy schedules flushes via microtask; `flushSync` forces all queued notifier flushes and reactive re-runs to complete immediately. Use it in tests or imperative code where you need the DOM/state to be fully settled before reading it back.
+
+```ts
+import { toState, flushSync } from "@domphy/core"
+
+const count = toState(0)
+count.set(1)
+flushSync()
+// count.get() === 1 and all downstream effects/computeds are already settled
+```
+
+If a diverging reactive loop prevents settling, `flushSync` breaks after 10 000 iterations and logs a `console.error`.
 
 ## External State Systems
 
@@ -990,12 +1005,14 @@ This page lists the public helpers exported by `@domphy/theme`.
 
 ### `themeColor(object, tone?, color?)`
 
-Resolve a color variable from the current theme and tone context.
+Resolve a color CSS variable reference (`var(--…)`) from the current theme and tone context.
 
 ```ts
 backgroundColor: (listener) => themeColor(listener, "inherit", "primary")
 color: (listener) => themeColor(listener, "shift-9", "primary")
 ```
+
+`object` accepts an `ElementNode`, a `Listener`, or `null`. Pass `null` to resolve against the `light` theme with no context.
 
 Use this for text color, background color, outline color, and interaction states.
 
@@ -1006,6 +1023,8 @@ Same signature as `themeColor` but returns the resolved token **value** (e.g. `"
 ```ts
 const hex = themeColorToken(null, "shift-9", "primary") // e.g. "#4a7ff4"
 ```
+
+`object` may be `null` — resolves against the `light` theme with no node context.
 
 ### `themeSize(object, size?)`
 
@@ -1109,6 +1128,19 @@ type ThemeInput = {
 ```
 
 For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
+
+## Exported Types
+
+| Type | Description |
+| --- | --- |
+| `ThemeInput` | Full theme shape accepted by `setTheme()`. All fields are optional when passing a partial. |
+| `PartialThemeInput` | Deep-partial version of `ThemeInput` — what `setTheme()` actually accepts at runtime. |
+| `ThemeVars` | Object of `var(--…)` CSS variable references returned by `themeVars()`. |
+| `ThemeColor` | Union of valid color family names (`"neutral" \| "primary" \| …`) derived from `ThemeInput["colors"]`. |
+| `ElementTone` | Valid tone descriptor strings: `"inherit"`, `"base"`, `"shift-N"`, `"increase-N"`, `"decrease-N"`. |
+| `ElementTones` | Runtime array of all valid tone strings (exported as a value for validation tooling). |
+| `ElementSize` | Valid size descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–7). |
+| `ElementDensity` | Valid density descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–4). |
 
 ### index.md
 
@@ -2745,7 +2777,12 @@ The dehydrated state is plain JSON-serializable data (`DehydratedState`) — emb
 | `createRoute(options)` | Create a route: `getParentRoute`, `path` (or `id` for pathless layouts), `validateSearch`, `beforeLoad`, `loader`, `loaderDeps`, `staleTime`, `gcTime`, `shouldReload` |
 | `createRootRoute(options?)` | Create the root of the tree |
 | `createRootRouteWithContext<T>()` | Root route factory with a required typed router context |
-| `RouterCore`, `BaseRoute`, `BaseRootRoute` | The underlying classes (advanced — the `create*` functions wrap them) |
+| `rootRouteWithContext<T>()` | Alias for `createRootRouteWithContext` |
+| `createRouteMask(options)` | Create a route mask (renders a different route at a given URL) |
+| `getRouteApi(id)` | Get a type-safe route API handle by route id |
+| `NotFoundRoute` | A pre-built route that renders a not-found boundary at any unmatched path |
+| `RouterCore`, `BaseRoute`, `BaseRootRoute`, `BaseRouteApi` | The underlying classes (advanced — the `create*` functions wrap them) |
+| `getStoreFactory` | Low-level store factory used by the router internals |
 
 ## Router Instance
 
@@ -4634,8 +4671,9 @@ const Field = {
 | `values(l)` / `state(l)` | Reactive form values / full form state. |
 | `canSubmit(l)` / `isSubmitting(l)` / `isValid(l)` / `isSubmitted(l)` | Reactive flags. |
 | `field<TData>(name, options?)` | Create and mount a reactive field handle. |
-| `handleSubmit()` | Run validation and submission. |
+| `handleSubmit()` | Run validation and submission. Returns `Promise<void>`. |
 | `reset(values?)` | Reset to defaults (or given values). |
+| `version(l)` | Reactive change counter — increments on every store flush. |
 | `form` | The underlying `FormApi`. |
 | `destroy()` | Unmount the form and all fields; call from `_onRemove`. |
 
@@ -4645,9 +4683,9 @@ const Field = {
 | --- | --- |
 | `value(l)` | Reactive value — bind to the input's `value`/`checked`. |
 | `errors(l)` / `meta(l)` | Reactive validation errors / full field meta. |
-| `handleChange(value)` | Update the value (from `onInput`/`onChange`). |
+| `handleChange(value \| updater)` | Update the value (from `onInput`/`onChange`). Accepts a direct value or an `(prev) => next` updater function. |
 | `handleBlur()` | Mark blurred and run blur validators. |
-| `setValue(updater)` | Set the value programmatically. |
+| `setValue(value \| updater)` | Set the value programmatically. Accepts a direct value or an `(prev) => next` updater function. |
 | `api` | The underlying `FieldApi`. |
 
 Field and form `options` (validators, async debouncing, listeners, arrays, Standard Schema) are the upstream form-core options — see the [TanStack Form docs](https://tanstack.com/form/latest).
@@ -4937,7 +4975,13 @@ Combine with [`renderToString`](./ssr) in one server: route `/api/*` to the API 
 
 ### `defineRoutes(routes)` / `Route`
 
-`path`, `page`, `layout`, `loading`, `error`, `notFound`, `metadata`, `loader`, `revalidate`, `middleware`, `redirect`, `permanent`, `children`. See [Routing](./routing).
+`path`, `page`, `layout`, `loading`, `error`, `notFound`, `metadata`, `loader`, `revalidate`, `middleware`, `redirect`, `permanent`, `children`, `slots`, `intercept`, `lazy`. See [Routing](./routing).
+
+`lazy: () => Promise<RouteModule>` — code-split the heavy parts of a route into a separately bundled module loaded on first match. The module may supply any of `page`, `layout`, `loading`, `error`, `notFound`, `metadata`, `loader`, or `middleware`; eager fields on the route win on conflict. Resolved once and cached for the lifetime of the route object.
+
+`slots: Record<string, Route[]>` — parallel route slots rendered independently alongside the segment's main tree. Each slot is matched against the sub-path and passed as the third argument to the segment's `layout`. See [Routing — Parallel Routes](./routing#parallel-routes).
+
+`intercept: true` — when set on a slot route, the route only matches during client-side navigation (soft nav), not on a hard load of the same URL. Used to render a modal or overlay over the current page while preserving the full-page view on direct URL access. See [Routing — Intercepting Routes](./routing#intercepting-routes).
 
 ### Blocks and contexts
 
@@ -5576,7 +5620,7 @@ function PostPage(context: RouteContext<Post>) {
 }
 ```
 
-`RouteContext` carries `pathname`, `params`, `searchParams`, `hash`, `data` (the segment's loader result) and `segmentData` (every matched segment's loader result, keyed by segment id).
+`RouteContext` carries `pathname` (the rendered path, after any middleware rewrite), `url` (the address-bar path, before rewrites), `params`, `searchParams`, `hash`, `data` (the segment's loader result), and `segmentData` (every matched segment's loader result, keyed by segment id).
 
 ## Route Groups
 
@@ -8461,14 +8505,20 @@ function resolvePhysical(
  * chosen edge via a transform transition, calls `showModal()`/`close()`, locks
  * page scroll while open, and closes on backdrop click. Apply to a `<dialog>`.
  *
+ * Because the patch uses the native `<dialog>` `showModal()` API, the browser
+ * automatically sets `aria-modal="true"`, traps focus inside the drawer while
+ * it is open, and restores focus to the previously focused element when
+ * `close()` is called.
+ *
  * `"start"` and `"end"` placements resolve to left/right based on the
- * document's `dir` attribute at mount time, enabling RTL-aware drawers.
+ * document's `dir` attribute at mount time, enabling RTL-aware drawers:
+ * `"start"` → left (LTR) / right (RTL); `"end"` → right (LTR) / left (RTL).
  *
  * @hostTag dialog
  * @param props.color - Theme color tone for the drawer surface. Defaults to "neutral".
  * @param props.open - Open state (`ValueOrState<boolean>`); set true/false to show/hide. Defaults to false.
  * @param props.placement - Edge to anchor to. "left" | "right" | "top" | "bottom" | "start" | "end". Defaults to "end".
- * @param props.size - CSS length for the drawer's width (left/right/start/end) or height (top/bottom). Defaults to themeSpacing(80) for vertical, themeSpacing(64) for horizontal.
+ * @param props.size - CSS length for the drawer's width (left/right/start/end) or height (top/bottom). Defaults to themeSpacing(80) for left/right, themeSpacing(64) for top/bottom.
  * @example { dialog: [...], $: [drawer({ open, placement: "start" })] }
  */
 function drawer(

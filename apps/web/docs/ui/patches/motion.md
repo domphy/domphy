@@ -16,7 +16,12 @@ motion({
   initial?: MotionKeyframe,                 // start state, applied before the enter animation
   animate?: MotionKeyframe | State<MotionKeyframe>, // target; pass a State to re-animate on change
   exit?: MotionKeyframe,                     // animated to right before removal
-  transition?: { duration?, delay?, easing?, iterations? }, // duration/delay in ms
+  transition?: {
+    duration?: number,    // ms, default 300
+    delay?: number,       // ms, default 0
+    easing?: string,      // CSS easing, default "ease"
+    iterations?: number,  // default 1
+  },
 })
 ```
 

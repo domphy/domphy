@@ -4,12 +4,9 @@ import Tabs from "../../demos/patches/Tabs.ts?raw"
 
 </script>
 
-# Tabs
+# Tab Panel
 
-Container patch that establishes a `tabs` context (with a shared `activeKey`
-state) and the `tablist` role for child `tab`/`tabPanel` patches. Typically
-applied to a wrapper element. Accepts an optional `activeKey` prop (initial
-active tab key, defaults to `0`).
+Use the tabPanel patch to customize this element. Apply to a `<div>` placed inside a `tabs` control alongside `tab` buttons. Wires up `role="tabpanel"`, `id`, `aria-labelledby`, and toggles `hidden` based on the active key. Must be used inside a `tabs` patch.
 
 <CodeEditor :code="Tabs" />
 
@@ -22,10 +19,9 @@ active tab key, defaults to `0`).
 :::
 
 ::: code-group
-<<< ../../../../../packages/ui/src/patches/tabs.ts [tabs]
-<<< ../../../../../packages/ui/src/patches/tab.ts [tab]
 <<< ../../../../../packages/ui/src/patches/tabPanel.ts [tabPanel]
+<<< ../../../../../packages/ui/src/patches/tab.ts [tab]
+<<< ../../../../../packages/ui/src/patches/tabs.ts [tabs]
 :::
-
 
 

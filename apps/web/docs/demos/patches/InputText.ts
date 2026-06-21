@@ -27,8 +27,8 @@ const App: DomphyElement<"div"> = {
     },
     {
       input: null,
-      value: "Invalid",
-      ariaInvalid: true,
+      value: "Error state",
+      "data-status": "error",
       $: [inputText()],
     },
   ],

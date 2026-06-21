@@ -4,12 +4,12 @@ import Tabs from "../../demos/patches/Tabs.ts?raw"
 
 </script>
 
-# Tabs
+# Tab
 
-Container patch that establishes a `tabs` context (with a shared `activeKey`
-state) and the `tablist` role for child `tab`/`tabPanel` patches. Typically
-applied to a wrapper element. Accepts an optional `activeKey` prop (initial
-active tab key, defaults to `0`).
+Styles a single tab trigger inside a `tabs` tablist on the host `<button>` element.
+Wires up the tab's id/aria-controls/aria-selected, click selection, and
+arrow/Home/End keyboard navigation via the surrounding `tabs` context.
+Must be used inside a `tabs` patch.
 
 <CodeEditor :code="Tabs" />
 
@@ -22,8 +22,8 @@ active tab key, defaults to `0`).
 :::
 
 ::: code-group
-<<< ../../../../../packages/ui/src/patches/tabs.ts [tabs]
 <<< ../../../../../packages/ui/src/patches/tab.ts [tab]
+<<< ../../../../../packages/ui/src/patches/tabs.ts [tabs]
 <<< ../../../../../packages/ui/src/patches/tabPanel.ts [tabPanel]
 :::
 

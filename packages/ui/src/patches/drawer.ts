@@ -40,14 +40,20 @@ function resolvePhysical(
  * chosen edge via a transform transition, calls `showModal()`/`close()`, locks
  * page scroll while open, and closes on backdrop click. Apply to a `<dialog>`.
  *
+ * Because the patch uses the native `<dialog>` `showModal()` API, the browser
+ * automatically sets `aria-modal="true"`, traps focus inside the drawer while
+ * it is open, and restores focus to the previously focused element when
+ * `close()` is called.
+ *
  * `"start"` and `"end"` placements resolve to left/right based on the
- * document's `dir` attribute at mount time, enabling RTL-aware drawers.
+ * document's `dir` attribute at mount time, enabling RTL-aware drawers:
+ * `"start"` → left (LTR) / right (RTL); `"end"` → right (LTR) / left (RTL).
  *
  * @hostTag dialog
  * @param props.color - Theme color tone for the drawer surface. Defaults to "neutral".
  * @param props.open - Open state (`ValueOrState<boolean>`); set true/false to show/hide. Defaults to false.
  * @param props.placement - Edge to anchor to. "left" | "right" | "top" | "bottom" | "start" | "end". Defaults to "end".
- * @param props.size - CSS length for the drawer's width (left/right/start/end) or height (top/bottom). Defaults to themeSpacing(80) for vertical, themeSpacing(64) for horizontal.
+ * @param props.size - CSS length for the drawer's width (left/right/start/end) or height (top/bottom). Defaults to themeSpacing(80) for left/right, themeSpacing(64) for top/bottom.
  * @example { dialog: [...], $: [drawer({ open, placement: "start" })] }
  */
 function drawer(

@@ -6,7 +6,7 @@ import InputText from "../../demos/patches/InputText.ts?raw"
 
 # Input Text
 
-Use the input-text patch to customize this element.
+Use `inputText` on a native `input` element. It automatically sets `type="text"` and applies themed border, focus ring, placeholder, disabled, and validation (`data-status`) states. Use standard HTML attributes (`placeholder`, `value`, `disabled`) directly on the element.
 
 <CodeEditor :code="InputText" />
 
