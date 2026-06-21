@@ -10,7 +10,7 @@ Use `empty` on a container to display an empty-state placeholder. It centers chi
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `color` | `ThemeColor` | `"neutral"` | Color tone for the muted text and icon. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Color tone for the muted text and icon. |
 
 <CodeEditor :code="Empty" />
 

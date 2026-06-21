@@ -8,6 +8,13 @@ import InputText from "../../demos/patches/InputText.ts?raw"
 
 Use `inputText` on a native `input` element. It automatically sets `type="text"` and applies themed border, focus ring, placeholder, disabled, and validation (`data-status`) states. Use standard HTML attributes (`placeholder`, `value`, `disabled`) directly on the element.
 
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Text/border color tone. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Hover/focus ring color tone. |
+
 <CodeEditor :code="InputText" />
 
 ::: details Customization

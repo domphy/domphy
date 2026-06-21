@@ -6,7 +6,13 @@ import Heading from "../../demos/patches/Heading.ts?raw"
 
 # Heading
 
-Use the heading patch to customize this element.
+Styles a heading, scaling font size by level relative to the theme base size. Apply to `<h1>`–`<h6>`.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for the heading text. |
 
 <CodeEditor :code="Heading" />
 

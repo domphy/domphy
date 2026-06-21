@@ -6,7 +6,13 @@ import Icon from "../../demos/patches/Icon.ts?raw"
 
 # Icon
 
-Use the icon patch to customize this element.
+Styles an inline icon container: square box that centers its content with themed color. Apply to a `<span>`.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for the icon. |
 
 <CodeEditor :code="Icon" />
 

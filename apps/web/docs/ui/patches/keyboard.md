@@ -6,7 +6,13 @@ import Keyboard from "../../demos/patches/Keyboard.ts?raw"
 
 # Keyboard
 
-Use the keyboard patch to customize this element.
+Renders keyboard-key styling (themed background, border and padding). Apply to a `<kbd>`.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Color tone for text/background/border. |
 
 <CodeEditor :code="Keyboard" />
 

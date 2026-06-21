@@ -6,7 +6,13 @@ import Image from "../../demos/patches/Image.ts?raw"
 
 # Image
 
-Use the image patch to customize this element.
+Styles a responsive image: full-width, cover-fit, rounded corners with a themed placeholder background. Apply to an `<img>`.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Placeholder background color tone. |
 
 <CodeEditor :code="Image" />
 
