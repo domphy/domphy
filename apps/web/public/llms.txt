@@ -151,6 +151,14 @@ Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagno
 
 - [Overview](https://domphy.com/docs/doctor/)
 
+## Floating (`@domphy/floating`)
+
+Anchor positioning for tooltips, popovers, dropdowns, and menus — a 1-1 vendor of [floating-ui](https://github.com/floating-ui/floating-ui) (`@floating-ui/dom` + core + utils) bundled as a **zero-dependency** package. Used internally by `@domphy/ui` overlays (`tooltip`, `popover`, `selectBox`, `combobox`). Full [Floating UI reference](https://floating-ui.com) applies as-is.
+
+## Scaffolder (`create-domphy`)
+
+`npm create domphy@latest <dir>` — scaffolds a runnable Vite + TypeScript starter: `themeApply`, sample patches, and an `AGENTS.md` ready for AI agents. Not scoped as `@domphy/*`; published separately.
+
 ## AI tooling
 
 - [`manifest.json`](https://domphy.com/manifest.json): machine-readable index of every package + patch (name, host tag, signature, props schema, doc, example). Query this instead of parsing docs.

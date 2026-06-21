@@ -1,3 +1,5 @@
+declare const process: { env: Record<string, string | undefined> } | undefined;
+
 // Dev-only warning guard. A consumer bundler (Vite / webpack / esbuild)
 // statically replaces `process.env.NODE_ENV`, so production builds fold this to
 // `false` and tree-shake the guarded warnings out entirely. The `typeof process`

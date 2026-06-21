@@ -47,6 +47,7 @@ App layer & tools:
 - `@domphy/doctor` — static analyzer that flags non-idiomatic element trees (`diagnose`/`validate`) and applies lossless autofixes (`fix`); powers AI self-correction
 - `@domphy/mcp` — MCP server exposing patches/packages/rules + the doctor + the app-block registry to AI agents
 - `@domphy/floating` — anchor positioning (vendored [floating-ui](https://github.com/floating-ui/floating-ui), zero-dependency); powers the `@domphy/ui` overlays so it has no third-party runtime dependency
+- `create-domphy` — scaffolder: `npm create domphy@latest <dir>` writes a Vite + TypeScript starter with AGENTS.md
 
 `@domphy/core` is a peer dependency of the data/logic packages, so a consumer installs **one** copy.
 

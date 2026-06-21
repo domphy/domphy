@@ -9,7 +9,7 @@ import {
   themeColor,
   themeSize,
   themeSpacing,
-} from "@domphy/ui";
+} from "@domphy/theme";
 
 /**
  * @experiment
