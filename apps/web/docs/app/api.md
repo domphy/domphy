@@ -56,7 +56,7 @@
 
 ### Blocks and contexts
 
-- `PageBlock(context)` / `LayoutBlock(children, context)` — receive `RouteContext`: `pathname`, `url`, `params`, `searchParams`, `hash`, `data`, `segmentData`, `headers?`
+- `PageBlock(context)` / `LayoutBlock(children, context, slots)` — receive `RouteContext`: `pathname`, `url`, `params`, `searchParams`, `hash`, `data`, `segmentData`, `headers?`. `slots` is `Record<string, DomphyElement>` containing rendered parallel-route slot trees.
 - `LoadingBlock(context)`, `ErrorBlock(error, retry)`, `NotFoundBlock()`
 - `Loader(loaderContext)` — `LoaderContext`: `pathname`, `url`, `params`, `searchParams`, `headers?`
 - `Middleware(middlewareContext)` — `MiddlewareContext`: `url`, `pathname`, `searchParams`, `headers?`
@@ -71,7 +71,7 @@
 ## Patches & Blocks
 
 - `navLink({ href, prefetch?, replace?, scroll?, exact?, router? })` — `a` patch, see [Navigation](./navigation)
-- `optimizedImage({ src, width?, height?, fill?, sizes?, quality?, priority?, placeholder?, blurDataURL?, loader?, deviceSizes? })` — `img` patch, see [Image & Script](./assets)
+- `optimizedImage({ src, alt?, width?, height?, fill?, sizes?, quality?, priority?, placeholder?, blurDataURL?, loader?, deviceSizes? })` — `img` patch, see [Image & Script](./assets)
 - `script({ src, strategy?, id?, async?, onLoad?, onError? })` — script block, see [Image & Script](./assets)
 
 ## Metadata

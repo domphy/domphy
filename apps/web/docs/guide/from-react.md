@@ -52,6 +52,16 @@ const double = computed(() => count.get() * 2)
 
 `computed` is lazy and cached — only recomputes when dependencies change.
 
+`computed` returns a `Computed<T>`, which satisfies `ReadableState<T>` — the read-only state interface from `@domphy/core`. Use `ReadableState<T>` in function signatures when the caller should only read, not write:
+
+```ts
+import type { ReadableState } from "@domphy/core"
+
+function display(count: ReadableState<number>) {
+  return { p: (l) => count.get(l) }
+}
+```
+
 ## Effects
 
 ```tsx
@@ -218,7 +228,7 @@ Lifecycle hooks available:
 - `_onInit(node)` — after parsing, before insertion; node properties are set, no siblings yet
 - `_onInsert(node)` — added to the parent child list; siblings and position available
 - `_onMount(node)` — DOM element created and connected; `node.domElement` is available
-- `_onBeforeUpdate(node, rawChildren)` — before a child update cycle; inspect incoming raw children
+- `_onBeforeUpdate(node, children)` — before a child update cycle; inspect incoming raw children
 - `_onUpdate(node)` — after the update cycle; children and DOM reflect the latest state
 - `_onBeforeRemove(node, done)` — before removal; **must** call `done()` to proceed
 - `_onRemove(node)` — after removal

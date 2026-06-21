@@ -95,6 +95,8 @@ node.addHook("BeforeRemove", (node, done) => {
 
 | Hook | Trigger |
 |---|---|
+| `Schedule` | `(node, rawElement) => void` — fired before parsing; use to apply context-aware patches via `merge(rawElement, ...)` |
+| `Init` | `(node) => void` — fired after parsing, before insertion into the tree |
 | `Insert` | Node added to children list |
 | `Mount` | DOM element created |
 | `BeforeUpdate` | Before children diff |

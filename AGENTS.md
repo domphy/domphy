@@ -46,7 +46,7 @@ const App = {
 | --- | --- |
 | `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code) |
 | `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`) |
-| `@domphy/ui` | 87 patches (`button`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, …) |
+| `@domphy/ui` | 82 patches (`button`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, …) |
 | `@domphy/query` | async state — TanStack query-core port; adapter `createQuery`/`createMutation`/`createInfiniteQuery` at `@domphy/query/domphy` |
 | `@domphy/table` | headless tables — table-core port; adapter `createDomphyTable` at `@domphy/table/domphy` |
 | `@domphy/router` | type-safe routing — router-core port; `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
@@ -61,6 +61,7 @@ const App = {
 | `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
 | `@domphy/mcp` | MCP server: patches (with props/example), packages, rules, tones, doctor (`domphy_diagnose`/`domphy_validate`/`domphy_fix`) + app-block registry |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
+| `domphy-web` | docs website — built with DomphyPress on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
 
 Data/logic packages are **1-1 TanStack core ports** (byte-identical upstream API) + a thin Domphy adapter at the `/domphy` subpath; `@domphy/core` is their peer dependency.
 

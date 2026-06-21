@@ -8,7 +8,7 @@ import Steps from "../../demos/patches/Steps.ts?raw"
 
 Use `stepItem` on a `<li>` placed inside a `steps` container. It reads the parent `steps` context to set `data-status` (`"pending"` | `"active"` | `"done"`) and `aria-current="step"` on the host element. The element's text content becomes the step label.
 
-`stepItem` takes no props — all theming is inherited from the parent `steps` context.
+`stepItem` takes no props. Active-step coloring uses the `primary` theme color and done/pending steps use `neutral` — these are fixed in the patch and are not currently driven by the parent `steps` context props.
 
 <CodeEditor :code="Steps" />
 

@@ -17,7 +17,7 @@ const App = {
 
 `{ button: 'Save', $: [button()] }` — that's a Domphy component. Paste it in a script tag and it runs. No build step, no framework overhead, no wrappers around your DOM.
 
-**Good fit for tool apps** (plugins, extensions, dashboards, panels): you get reactivity + 87 polished UI patches + a full design system without shipping a 40 kB runtime or setting up a JSX compiler.
+**Good fit for tool apps** (plugins, extensions, dashboards, panels): you get reactivity + 82 polished UI patches + a full design system without shipping a 40 kB runtime or setting up a JSX compiler.
 
 **Works well with AI**: plain objects are what LLMs generate naturally, and `@domphy/doctor` validates the output — the model reads the report and self-corrects (see [Building with AI](#building-with-ai)).
 
@@ -27,7 +27,7 @@ Core runtime + design system:
 
 - `@domphy/core` — rendering, reactivity (`toState`/`RecordState`/`computed`/`effect`/`effectScope`/`batch`/`untrack`/`flushSync`), lifecycle, SSR, CSS-in-JS; exports `ReadableState<T>`, `ValueOrState<T>`, `configure({ cspNonce })`
 - `@domphy/theme` — context-aware color, size, and spacing tokens
-- `@domphy/ui` — 87 ready-made patches (`button`, `card`, `dialog`, `motion`, `errorBoundary`, …) built on core + theme
+- `@domphy/ui` — 82 ready-made patches (`button`, `card`, `dialog`, `motion`, `errorBoundary`, …) built on core + theme
 
 Data & logic — **1-1 ports of the TanStack cores** (byte-identical upstream API) + a thin Domphy adapter at the `/domphy` subpath:
 
@@ -97,4 +97,4 @@ Full docs: [domphy.com](https://domphy.com) — [Core](https://domphy.com/docs/c
 
 ## Monorepo
 
-`packages/{core,theme,ui,query,table,router,virtual,form,dnd,palette,doctor,mcp,floating,app,markdown,mermaid,create-domphy}` + `apps/web` (docs website, built with DomphyPress — `apps/web/domphypress/` on `@domphy/app` + `@domphy/markdown`).
+`packages/{core,theme,ui,query,table,router,virtual,form,dnd,palette,doctor,mcp,floating,app,markdown,mermaid,create-domphy}` + `apps/web` (`domphy-web` — docs site, DomphyPress).

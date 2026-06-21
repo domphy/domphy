@@ -45,10 +45,10 @@ Calls all listeners registered for an event.
 notifier.notify("change", newValue)
 ```
 
-## `Listener` type
+## `Handler` type
 
 ```ts
-type Listener = ((...args: any[]) => any) & {
+type Handler = ((...args: any[]) => any) & {
   onSubscribe?: (release: () => void) => void
 }
 ```

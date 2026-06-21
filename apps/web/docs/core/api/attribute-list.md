@@ -61,12 +61,12 @@ node.attributes.toggle("disabled", false)  // force off
 
 ---
 
-### `onChange(name, callback)`
+### `addListener(name, callback)`
 
 Subscribes to changes on a specific attribute after the node is mounted and the attribute already exists. The listener auto-releases when the node is removed.
 
 ```ts
-node.attributes.onChange("aria-expanded", (value) => {
+node.attributes.addListener("aria-expanded", (value) => {
     console.log("expanded:", value)
 })
 ```

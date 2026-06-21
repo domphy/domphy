@@ -61,12 +61,12 @@ filter.reset()
 filter.get()  // "all"
 ```
 
-### `onChange(listener)`
+### `addListener(listener)`
 
-Subscribes a listener to value changes. Returns a `release` function.
+Subscribes a listener to value changes. Returns a release function.
 
 ```ts
-const release = count.onChange((value) => {
+const release = count.addListener((value) => {
   console.log(value)
 })
 
