@@ -66,7 +66,7 @@ const Nav: DomphyElement<"nav"> = {
   ],
   style: {
     display: "flex",
-    gap: themeSpacing(9),
+    gap: themeSpacing(2),
   },
 };
 
@@ -75,7 +75,7 @@ const App: DomphyElement<"div"> = {
   style: {
     display: "flex",
     flexDirection: "column",
-    gap: themeSpacing(9),
+    gap: themeSpacing(2),
   },
 };
 

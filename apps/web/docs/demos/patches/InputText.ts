@@ -28,14 +28,14 @@ const App: DomphyElement<"div"> = {
     {
       input: null,
       value: "Error state",
-      "data-status": "error",
+      dataStatus: "error",
       $: [inputText()],
     },
   ],
   style: {
     display: "flex",
     flexWrap: "wrap",
-    rowGap: themeSpacing(9),
+    rowGap: themeSpacing(4),
     columnGap: themeSpacing(4),
   },
 };

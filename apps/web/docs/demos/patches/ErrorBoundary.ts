@@ -1,6 +1,6 @@
 import { type DomphyElement, toState } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
-import { button, errorBoundary, paragraph, small } from "@domphy/ui";
+import { button, errorBoundary, paragraph } from "@domphy/ui";
 
 const shouldThrow = toState(false);
 
@@ -22,7 +22,7 @@ const App: DomphyElement<"div"> = {
             div: [
               {
                 p: `Error: ${error instanceof Error ? error.message : String(error)}`,
-                $: [small()],
+                $: [paragraph()],
                 style: { color: (cl) => themeColor(cl, "shift-9", "danger") },
               },
               {
