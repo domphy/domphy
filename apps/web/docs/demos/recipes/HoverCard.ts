@@ -1,4 +1,5 @@
 import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { avatar, card, heading, link, paragraph, popover } from "@domphy/ui";
 
 const profileCard: DomphyElement<"div"> = {
@@ -16,8 +17,8 @@ const profileCard: DomphyElement<"div"> = {
   style: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.5rem",
-    maxWidth: "16rem",
+    gap: themeSpacing(2),
+    maxWidth: themeSpacing(64),
   },
 };
 

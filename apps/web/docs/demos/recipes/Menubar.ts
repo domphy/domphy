@@ -1,4 +1,5 @@
 import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { button, menu, menuItem, popover } from "@domphy/ui";
 
 const fileMenu: DomphyElement<"div"> = {
@@ -46,7 +47,7 @@ const App: DomphyElement<"nav"> = {
       $: [button(), popover({ openOn: "hover", content: viewMenu })],
     },
   ],
-  style: { display: "flex", gap: "0" },
+  style: { display: "flex", gap: themeSpacing(0) },
 };
 
 export default App;

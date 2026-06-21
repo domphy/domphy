@@ -42,8 +42,8 @@ const App: DomphyElement<"div"> = {
   },
   onContextMenu: (e: MouseEvent) => {
     e.preventDefault();
-    x.set((e as MouseEvent).clientX);
-    y.set((e as MouseEvent).clientY);
+    x.set(e.clientX);
+    y.set(e.clientY);
     open.set(true);
   },
 };
