@@ -30,7 +30,9 @@ Domphy UIs are **plain JS objects**. A `{ div: [...] }` is just an object litera
 <script src="https://unpkg.com/@domphy/ui/dist/core-theme-ui.global.js"></script>
 <script>
   const App = { button: "Hello", $: [Domphy.button()] }
-  Domphy.render(App, document.body)
+  const { core, theme } = Domphy
+  theme.themeApply()
+  new core.ElementNode(App).render(document.body)
 </script>
 ```
 
