@@ -43,7 +43,7 @@ jobs:
         run: pnpm check
 
       - name: Type-check demo + editor files
-        run: cd apps/web && npx tsc --noEmit
+        run: cd apps/web && pnpm exec tsc --noEmit
 
       - name: Test all packages
         run: pnpm --filter "@domphy/*" test
