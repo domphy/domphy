@@ -47,7 +47,7 @@ See the [`@domphy/form` docs](/docs/form/) for validators, async validation, arr
 
 ## formGroup
 
-`formGroup({ color?, layout? })` is the one form patch that stays in `@domphy/ui` — it is pure layout (label + control + help text) with no state. `layout` is `"vertical"` (default) or `"horizontal"`. Host tag: `fieldset` or `div`.
+`formGroup({ color?, layout? })` is the one form patch that stays in `@domphy/ui` — it is pure layout (label + control + help text) with no state. `layout` is `"horizontal"` (default) or `"vertical"`. Host tag: `fieldset`.
 
 ```ts
 { div: [{ label: "Name", $: [label()] }, { input: null, $: [inputText()] }], $: [formGroup()] }

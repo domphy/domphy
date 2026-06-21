@@ -25,50 +25,38 @@ function validate() {
 }
 
 // --- UI ---
-const nameField: DomphyElement<"div"> = {
-  div: [
-    {
-      label: "Name",
-      $: [label()],
-    },
-    {
-      input: null,
-      $: [inputText()],
-      value: (listener) => name.get(listener),
-      onInput: (e) => name.set((e.target as HTMLInputElement).value),
-    },
-    {
-      div: (listener) => errors.get(listener)?.name?._errors[0] ?? "",
-      $: [alert({ color: "error" })],
-      hidden: (listener) => !errors.get(listener)?.name?._errors.length,
-    },
-  ],
-};
-
-const emailField: DomphyElement<"div"> = {
-  div: [
-    {
-      label: "Email",
-      $: [label()],
-    },
-    {
-      input: null,
-      $: [inputText()],
-      type: "email",
-      value: (listener) => email.get(listener),
-      onInput: (e) => email.set((e.target as HTMLInputElement).value),
-    },
-    {
-      div: (listener) => errors.get(listener)?.email?._errors[0] ?? "",
-      $: [alert({ color: "error" })],
-      hidden: (listener) => !errors.get(listener)?.email?._errors.length,
-    },
-  ],
-};
-
 const App: DomphyElement<"form"> = {
   form: [
-    { fieldset: [nameField, emailField], $: [formGroup()] },
+    {
+      fieldset: [
+        { label: "Name", $: [label()] },
+        {
+          input: null,
+          $: [inputText()],
+          value: (listener) => name.get(listener),
+          onInput: (e) => name.set((e.target as HTMLInputElement).value),
+        },
+        {
+          div: (listener) => errors.get(listener)?.name?._errors[0] ?? "",
+          $: [alert({ color: "error" })],
+          hidden: (listener) => !errors.get(listener)?.name?._errors.length,
+        },
+        { label: "Email", $: [label()] },
+        {
+          input: null,
+          $: [inputText()],
+          type: "email",
+          value: (listener) => email.get(listener),
+          onInput: (e) => email.set((e.target as HTMLInputElement).value),
+        },
+        {
+          div: (listener) => errors.get(listener)?.email?._errors[0] ?? "",
+          $: [alert({ color: "error" })],
+          hidden: (listener) => !errors.get(listener)?.email?._errors.length,
+        },
+      ],
+      $: [formGroup()],
+    },
     {
       div: "Submitted!",
       $: [alert({ color: "success" })],

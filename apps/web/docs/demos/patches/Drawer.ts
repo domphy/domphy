@@ -12,7 +12,14 @@ const App: DomphyElement<"div"> = {
       onClick: () => open.set(true),
     },
     {
-      dialog: "Drawer content",
+      dialog: [
+        { p: "Drawer content" },
+        {
+          button: "Close",
+          $: [button({ color: "primary" })],
+          onClick: () => open.set(false),
+        },
+      ],
       $: [drawer({ open, placement: "right" })],
     },
   ],

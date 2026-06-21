@@ -1,11 +1,11 @@
 import type { DomphyElement } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
-import { button, empty, heading, paragraph, small } from "@domphy/ui";
+import { button, empty, heading, small } from "@domphy/ui";
 
 const noItems: DomphyElement<"div"> = {
   div: [
     { span: "📭" },
-    { p: "No items yet", $: [paragraph()] },
+    { h3: "No items yet", $: [heading()] },
     { span: "Add your first item to get started", $: [small()] },
     { button: "Add item", $: [button({ color: "primary" })] },
   ],

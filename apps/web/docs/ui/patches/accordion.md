@@ -11,8 +11,8 @@ Use `accordion` on a container of `<details>` elements to build a bordered accor
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `type` | `"single" \| "multiple"` | `"single"` | In single mode, opening one item closes all siblings. |
-| `color` | `ThemeColor \| State<ThemeColor>` | `"neutral"` | Border and background tone. |
-| `accentColor` | `ThemeColor \| State<ThemeColor>` | `"primary"` | Focus-outline tone on summary elements. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Border and background tone. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Focus-outline tone on summary elements. |
 
 <CodeEditor :code="Accordion" />
 

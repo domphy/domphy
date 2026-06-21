@@ -1,4 +1,4 @@
-import { type DomphyElement, toState } from "@domphy/core";
+import { type DomphyElement, type Listener, toState } from "@domphy/core";
 import { button } from "@domphy/ui";
 import i18next from "i18next";
 
@@ -37,7 +37,7 @@ function changeLang(lng: string) {
 }
 
 function translate(
-  listener: any,
+  listener: Listener,
   key: string,
   options?: Record<string, unknown>,
 ): string {

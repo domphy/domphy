@@ -30,8 +30,10 @@ const App: DomphyElement<"ul"> = {
       onEnd(evt) {
         // SortableJS already moved the DOM — pass false to sync logical tree only
         node.children.move(evt.oldIndex!, evt.newIndex!, false);
-        const newOrder = node.children.items.map((c: any) => c.input);
-        items.set(newOrder);
+        const arr = [...items.get()];
+        const [moved] = arr.splice(evt.oldIndex!, 1);
+        arr.splice(evt.newIndex!, 0, moved);
+        items.set(arr);
       },
     });
   },

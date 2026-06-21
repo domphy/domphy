@@ -13,7 +13,7 @@ The `datePicker` patch turns a native `<input>` into a calendar date picker — 
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `value` | `Date \| null \| [Date \| null, Date \| null]` (or a `State`) | `null` / `[null, null]` | Controlled selection. A `Date` in single mode, a `[start, end]` tuple in range mode. |
+| `value` | `ValueOrState<DatePickerValue>` | `null` / `[null, null]` | Controlled selection. A `Date` in single mode, a `[start, end]` tuple in range mode. `DatePickerValue = Date \| null \| [Date \| null, Date \| null]` |
 | `mode` | `"single" \| "range"` | `"single"` | Selection mode. |
 | `time` | `boolean` | `false` | Also pick hour + minute (applied to the selected date(s)). |
 | `min` / `max` | `Date` | — | Clamp the selectable range. |
@@ -22,8 +22,8 @@ The `datePicker` patch turns a native `<input>` into a calendar date picker — 
 | `weekStartsOn` | `0..6` | from locale | Override the first day of the week (0 = Sunday). |
 | `format` | `(value) => string` | `Intl` medium | Override the input display string. |
 | `onChange` | `(value) => void` | — | Called whenever the selection changes. |
-| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Accent for selected/active days. |
-| `placement` | `Placement` (or `State`) | `"bottom-start"` | Popover placement relative to the input. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Accent for selected/active days. |
+| `placement` | `ValueOrState<Placement>` | `"bottom-start"` | Popover placement relative to the input. |
 
 ## Notes
 

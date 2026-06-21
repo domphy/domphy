@@ -10,7 +10,7 @@ Use `breadcrumbEllipsis` on a `<button>` element to represent collapsed items in
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `color` | `ThemeColor \| State<ThemeColor>` | `"neutral"` | Color tone for the trigger text and hover/focus states. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Color tone for the trigger text and hover/focus states. |
 
 <CodeEditor :code="BreadcrumbEllipsis" />
 

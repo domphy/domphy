@@ -12,9 +12,9 @@ A pill-shaped toggle switch with `role="switch"`. Clicking flips the bound `chec
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `checked` | `boolean` (or `State`) | `false` | Toggle state — `true` = on. |
-| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for the unchecked (off) track. |
-| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the checked (on) track. |
+| `checked` | `ValueOrState<boolean>` | `false` | Toggle state — `true` = on. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for the unchecked (off) track. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color tone for the checked (on) track. |
 
 <CodeEditor :code="ButtonSwitch" />
 
