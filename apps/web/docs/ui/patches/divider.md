@@ -6,7 +6,7 @@ import Divider from "../../demos/patches/Divider.ts?raw"
 
 # Divider
 
-Use the divider patch to customize this element.
+Use `divider` on a `div` element. It renders a horizontal separator (`role="separator"`) with a labelled line on each side of the element's text content — suitable for "or" dividers. The `color` prop controls the text and rule color tone.
 
 <CodeEditor :code="Divider" />
 

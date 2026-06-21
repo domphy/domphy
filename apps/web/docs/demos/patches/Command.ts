@@ -5,11 +5,11 @@ import { command, commandItem, commandSearch } from "@domphy/ui";
 const App: DomphyElement<"div"> = {
   div: [
     { input: null, $: [commandSearch()], placeholder: "Search..." },
-    { div: "New File", $: [commandItem()], role: "button" },
-    { div: "Open Folder", $: [commandItem()], role: "button" },
-    { div: "Save As...", $: [commandItem()], role: "button" },
-    { div: "Run Tests", $: [commandItem()], role: "button" },
-    { div: "Close Editor", $: [commandItem()], role: "button" },
+    { button: "New File", $: [commandItem()] },
+    { button: "Open Folder", $: [commandItem()] },
+    { button: "Save As...", $: [commandItem()] },
+    { button: "Run Tests", $: [commandItem()] },
+    { button: "Close Editor", $: [commandItem()] },
   ],
   $: [command()],
   style: { width: themeSpacing(60) },

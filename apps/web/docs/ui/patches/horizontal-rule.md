@@ -6,7 +6,7 @@ import HorizontalRule from "../../demos/patches/HorizontalRule.ts?raw"
 
 # Horizontal Rule
 
-Use the horizontal-rule patch to customize this element.
+Use `horizontalRule` on an `hr` element. It renders a thematic break as a thin 1px themed line with vertical margin. The `color` prop controls the rule color tone.
 
 <CodeEditor :code="HorizontalRule" />
 

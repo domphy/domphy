@@ -6,7 +6,7 @@ import Pagination from "../../demos/patches/Pagination.ts?raw"
 
 # Pagination
 
-Use the `pagination` patch on a `div`. Pass `total` (number of pages) and an optional `value` state for the current page. The patch renders prev/next buttons and numbered page buttons with smart windowing for large page counts.
+Use `pagination` on a `div`. Pass `total` (required, number of pages) and an optional `value` (a plain number or a `State<number>`) for the current page. The patch internally creates a reactive state if none is provided, renders prev/next arrow buttons and numbered page buttons with smart ellipsis windowing for large page counts. Use `color` to set the base button tone (default `"neutral"`) and `accentColor` for the active page highlight (default `"primary"`).
 
 <CodeEditor :code="Pagination" />
 

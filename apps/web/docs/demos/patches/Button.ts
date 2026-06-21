@@ -30,7 +30,7 @@ const App: DomphyElement<"div"> = {
   style: {
     display: "flex",
     flexWrap: "wrap",
-    rowGap: themeSpacing(9),
+    rowGap: themeSpacing(3),
     columnGap: themeSpacing(4),
   },
 };

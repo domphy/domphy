@@ -6,7 +6,12 @@ import Segmented from "../../demos/patches/Segmented.ts?raw"
 
 # Segmented Item
 
-Use the segmentedItem patch to customize this element. Apply to a `<button>` placed inside a `segmented` control.
+Use `segmentedItem` on a `<button>` placed inside a `segmented` control. It reads the parent `segmented` context, sets `aria-selected`, and handles click-to-select. Use `_key` on each button to set its selection key; otherwise the index is used.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `color` | `ThemeColor \| State<ThemeColor>` | `"neutral"` | Resting text and hover background tone. |
+| `accentColor` | `ThemeColor \| State<ThemeColor>` | `"primary"` | Selected state background and focus-outline tone. |
 
 <CodeEditor :code="Segmented" />
 

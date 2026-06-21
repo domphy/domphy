@@ -85,13 +85,19 @@ npm install @domphy/ui
 
 ## Install
 
+npm create domphy@latest my-app
+cd my-app
+npm install
+npm run dev
+```
+```bash [Add to existing project]
 npm install @domphy/ui
 ```
 ```html [CDN]
 <script src="https://unpkg.com/@domphy/ui/dist/core-theme-ui.global.js"></script>
 ```
 
-`@domphy/ui` includes `@domphy/core` and `@domphy/theme` — one install gives you everything.
+`npm create domphy@latest` scaffolds a Vite + TypeScript starter with everything wired up. For an existing project, `npm install @domphy/ui` is enough — it includes `@domphy/core` and `@domphy/theme`.
 
 ## 1. Hello World
 
@@ -4587,7 +4593,7 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 
 ## Wiring
 
-1. Make the outer element a fixed-height scroll container and wire it: `_onMount: (node) => list.setScrollElement(node.domElement)`.
+1. Make the outer element a fixed-height scroll container and wire it: `_onMount: (node) => list.setScrollElement(node.domElement)`. Add `_onRemove: () => list.destroy()` to detach observers when the container is removed.
 2. Inside, render a relative spacer whose height is `list.getTotalSize(l)`.
 3. Map `list.getVirtualItems(l)` into absolutely-positioned children using each item's `start`/`size`, keyed by `item.key`.
 4. For variable-height rows, call `list.measureElement(node.domElement)` from each row's `_onMount` and drop the fixed `height`.
@@ -4783,7 +4789,7 @@ npm install @domphy/palette
 ```ts
 import { Ramp } from "@domphy/palette"
 
-const ramp = new Ramp(blue, "blue")
+const ramp = new Ramp(blueHexes, "blue")
 ramp.metrics       // { contrastEfficiency, lightnessLinearity, chromaSmoothness, hueStability, spacingUniformity }
 ramp.score         // 0–100 (geometric mean of the normalized metrics)
 ramp.wcag[45].span // how many steps clear WCAG 4.5:1
@@ -4814,7 +4820,7 @@ A sequential color ramp (e.g. `blue-50` … `blue-900`) is good when it is **per
 Each metric normalizes to `[0, 1]`; `Ramp.score` is the geometric mean, scaled to `0–100`.
 
 1. **Contrast Efficiency** — how efficiently the ramp uses its lightness range to reach a WCAG **4.5:1** contrast pair. A ramp that wastes lightness span (or never reaches 4.5:1) scores low.
-2. **Lightness Linearity** — how linear the lightness progression is across the steps, with a **Helmholtz–Kohlrausch** correction (so highly-chromatic steps that *look* lighter are accounted for). Even visual steps → high score.
+2. **Lightness Linearity** — how linear the lightness progression is across the steps, using the **High et al. (2023) L_EAL** (Equivalent Achromatic Lightness) model to account for the Helmholtz–Kohlrausch effect (highly-chromatic steps that *look* lighter are accounted for). Even visual steps → high score.
 3. **Chroma Smoothness** — detects kinks and artifacts in the saturation curve using **monotone cubic splines**. A smooth chroma arc scores high; a jagged one (a step that suddenly desaturates) scores low.
 4. **Hue Stability** — quantifies hue drift across the lightness ramp. A ramp that stays "the same color" from light to dark scores high; one that shifts hue (blue → purple at the dark end) scores low.
 5. **Spacing Uniformity** — consistency of perceptual spacing between adjacent steps, measured with **ΔE2000**. Evenly-spaced steps score high.

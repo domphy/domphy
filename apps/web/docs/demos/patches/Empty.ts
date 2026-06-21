@@ -15,7 +15,7 @@ const noItems: DomphyElement<"div"> = {
 const noResults: DomphyElement<"div"> = {
   div: [
     { span: "🔍" },
-    { h2: "No results found", $: [heading({ level: 2 })] },
+    { h2: "No results found", $: [heading()] },
     { span: "Try adjusting your search or filters", $: [small()] },
   ],
   $: [empty({ color: "neutral" })],

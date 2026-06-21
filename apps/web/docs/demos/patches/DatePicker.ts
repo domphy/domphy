@@ -35,7 +35,7 @@ const App: DomphyElement<"div"> = {
     display: "flex",
     flexDirection: "column",
     gap: themeSpacing(6),
-    maxWidth: "22rem",
+    maxWidth: themeSpacing(88),
   },
 };
 

@@ -6,10 +6,12 @@ import Tabs from "../../demos/patches/Tabs.ts?raw"
 
 # Tab
 
-Styles a single tab trigger inside a `tabs` tablist on the host `<button>` element.
-Wires up the tab's id/aria-controls/aria-selected, click selection, and
-arrow/Home/End keyboard navigation via the surrounding `tabs` context.
-Must be used inside a `tabs` patch.
+Use `tab` on a `<button>` inside a `tabs` tablist. It wires the tab's `id`, `aria-controls`, `aria-selected`, click selection, and ArrowLeft/ArrowRight/Home/End keyboard navigation via the surrounding `tabs` context. Must be used inside a `tabs` patch.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `color` | `ThemeColor` | `"neutral"` | Resting and hover underline tone. |
+| `accentColor` | `ThemeColor` | `"primary"` | Active and focus underline tone. |
 
 <CodeEditor :code="Tabs" />
 

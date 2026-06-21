@@ -6,7 +6,12 @@ import Segmented from "../../demos/patches/Segmented.ts?raw"
 
 # Segmented
 
-Use the segmented patch to customize this element. Pair with `segmentedItem` patches on child `<button>` elements to build a single-select pill control.
+Use `segmented` on a wrapper element to build a single-select pill control. It establishes a `segmented` context that child `segmentedItem` buttons read to sync selection. The container has an inline pill style with a muted background.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `value` | `string \| State<string>` | `""` | Initially selected item key. Pass a `State` to control selection externally. |
+| `color` | `ThemeColor` | `"neutral"` | Background tone of the pill container. |
 
 <CodeEditor :code="Segmented" />
 

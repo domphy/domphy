@@ -12,8 +12,8 @@ const App: DomphyElement<"div"> = {
     paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
     paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
     borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
-    color: (listener) => themeColor(listener, "shift-6"),
-    backgroundColor: (listener) => themeColor(listener),
+    color: (listener) => themeColor(listener, "shift-9", "neutral"),
+    backgroundColor: (listener) => themeColor(listener, "inherit", "neutral"),
   },
   $: [popoverArrow({ placement: "bottom" })],
 };

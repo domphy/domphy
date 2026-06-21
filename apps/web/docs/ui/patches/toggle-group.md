@@ -6,7 +6,13 @@ import ToggleGroup from "../../demos/patches/ToggleGroup.ts?raw"
 
 # Toggle Group
 
-Use the `toggleGroup` patch on a wrapper element and `toggle` patches on child `<button>` elements to build a segmented toggle control. Supports single-select and multi-select modes.
+Use `toggleGroup` on a wrapper element to build a segmented toggle control. It establishes a `toggleGroup` context that child `toggle` buttons use to sync selection. Supports single-select and multi-select modes via the `multiple` prop.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `value` | `string \| string[] \| State<...>` | `""` (single) or `[]` (multiple) | Selected key(s). Pass a `State` to control selection externally. |
+| `multiple` | `boolean` | `false` | Allow multiple toggles selected at once. |
+| `color` | `ThemeColor` | `"neutral"` | Background and border tone for the group. |
 
 <CodeEditor :code="ToggleGroup" />
 

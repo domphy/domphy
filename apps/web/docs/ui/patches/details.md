@@ -6,7 +6,7 @@ import Details from "../../demos/patches/Details.ts?raw"
 
 # Details
 
-Use the details patch to customize this element.
+Use `details` on a `details` element. It styles a native disclosure widget: the `summary` child gets a themed header with a rotating chevron indicator, and the body content gets an expand/collapse transition. The `color` prop controls the surface and text tone. The `accentColor` prop controls the summary focus outline tone. The `duration` prop sets the transition speed in milliseconds (default `240`).
 
 <CodeEditor :code="Details" />
 

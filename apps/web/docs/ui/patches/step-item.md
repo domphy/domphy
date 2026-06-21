@@ -6,7 +6,9 @@ import Steps from "../../demos/patches/Steps.ts?raw"
 
 # Step Item
 
-Use the stepItem patch to customize this element. Apply to a `<li>` placed inside a `steps` container. The element's text content becomes the step label.
+Use `stepItem` on a `<li>` placed inside a `steps` container. It reads the parent `steps` context to set `data-status` (`"pending"` | `"active"` | `"done"`) and `aria-current="step"` on the host element. The element's text content becomes the step label.
+
+`stepItem` takes no props — all theming is inherited from the parent `steps` context.
 
 <CodeEditor :code="Steps" />
 

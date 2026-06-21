@@ -6,7 +6,7 @@ import FormGroup from "../../demos/patches/FormGroup.ts?raw"
 
 # Form Group
 
-Use the formGroup patch to lay out label + input pairs inside a `<fieldset>`. Unlike other patches that only style the element itself, formGroup defines a grid layout contract for its children: `legend`, `label`, inputs, and help text (`p`).
+Use `formGroup` on a `fieldset` element. It defines a grid layout contract for its children: `legend` spans the full width, `label` elements occupy the first column, controls (any non-`legend`/`label`/`p` child) occupy the second column, and help text `p` elements appear below their control. Set `layout` to `"vertical"` to stack labels above controls instead of placing them side by side (default `"horizontal"`). The `color` prop controls the legend, text, and surface tone.
 
 <CodeEditor :code="FormGroup" />
 

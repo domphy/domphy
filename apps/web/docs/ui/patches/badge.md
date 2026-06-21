@@ -6,7 +6,7 @@ import Badge from "../../demos/patches/Badge.ts?raw"
 
 # Badge
 
-Use the badge patch to customize this element.
+Apply the badge patch to any inline container (typically a `<span>` wrapping an icon or button) to render a small count bubble pinned to its top-right corner via a `::after` pseudo-element. Use `label` to set the count and `color` to control the severity tone.
 
 <CodeEditor :code="Badge" />
 

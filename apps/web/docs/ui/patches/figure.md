@@ -6,7 +6,7 @@ import Figure from "../../demos/patches/Figure.ts?raw"
 
 # Figure
 
-Use the figure patch to customize this element.
+Use `figure` on a `figure` element. It arranges media (`img`, `svg`, `video`, `canvas`) and a `figcaption` in a column layout. Media elements are made block-level with `max-width: 100%` and a border radius. The caption uses a smaller font size. The `color` prop controls the figure and caption text tone.
 
 <CodeEditor :code="Figure" />
 

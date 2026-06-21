@@ -6,7 +6,7 @@ import Menu from "../../demos/patches/Menu.ts?raw"
 
 # Menu
 
-Use the menu patch to customize this element.
+Apply the `menu()` patch to a container (typically a `<div>`) to create a vertical navigation menu with `role="menu"`. Pair it with `menuItem()` on each `<button>` child — items wire keyboard navigation (Arrow&nbsp;/ Home&nbsp;/ End) and track the active selection via `activeKey`. Use `selectable: false` to disable selection tracking when you only need keyboard navigation.
 
 <CodeEditor :code="Menu" />
 

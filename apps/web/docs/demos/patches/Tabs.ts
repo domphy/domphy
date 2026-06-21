@@ -1,29 +1,22 @@
 import type { DomphyElement } from "@domphy/core";
 import { tab, tabPanel, tabs } from "@domphy/ui";
 
-const numbers = [1, 2, 3, 4, 5];
+const labels = ["Overview", "Usage", "API", "Examples"];
 
+// tabs(), tab(), and tabPanel() must all share the same direct parent so that
+// the ARIA id/aria-controls/aria-labelledby wiring resolves correctly.
 const App: DomphyElement<"div"> = {
   div: [
-    {
-      div: numbers.map((n) => {
-        return {
-          button: `Tab ${n}`,
-          $: [tab()],
-        };
-      }),
-      style: {
-        display: "flex",
-      },
-    },
-    {
-      div: numbers.map((n) => {
-        return {
-          div: `Panel ${n}`,
-          $: [tabPanel()],
-        };
-      }),
-    },
+    ...labels.map((label, i) => ({
+      button: label,
+      _key: i,
+      $: [tab()],
+    })),
+    ...labels.map((label, i) => ({
+      div: `Content for ${label}`,
+      _key: i,
+      $: [tabPanel()],
+    })),
   ],
   $: [tabs()],
 };

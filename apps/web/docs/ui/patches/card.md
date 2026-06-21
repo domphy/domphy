@@ -6,7 +6,7 @@ import Card from "../../demos/patches/Card.ts?raw"
 
 # Card
 
-Use the card patch to customize this element.
+Use `card` on a `div` (any block container). It creates a grid surface with six named regions: `img` (image), heading elements (title), `p` (description), `aside` (aside), `div` (content), and `footer` (footer). Children are auto-placed by element type. The `color` prop controls the surface and border tone.
 
 <CodeEditor :code="Card" />
 

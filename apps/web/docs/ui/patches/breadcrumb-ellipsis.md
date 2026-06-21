@@ -6,7 +6,11 @@ import BreadcrumbEllipsis from "../../demos/patches/BreadcrumbEllipsis.ts?raw"
 
 # Breadcrumb Ellipsis
 
-Use `breadcrumbEllipsis` on a `button` element to represent collapsed items in a breadcrumb trail. It renders an accessible trigger with hover and focus-visible states. Typically placed inside a `breadcrumb` nav alongside `link` items.
+Use `breadcrumbEllipsis` on a `<button>` element to represent collapsed items in a breadcrumb trail. It renders an accessible trigger (aria-label "More breadcrumb items") with hover and focus-visible states. Typically placed inside a `breadcrumb` nav alongside `link` items.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `color` | `ThemeColor \| State<ThemeColor>` | `"neutral"` | Color tone for the trigger text and hover/focus states. |
 
 <CodeEditor :code="BreadcrumbEllipsis" />
 

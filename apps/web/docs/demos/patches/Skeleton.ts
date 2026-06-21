@@ -16,8 +16,12 @@ const App: DomphyElement<"div"> = {
     },
     {
       div: null,
-      $: [skeleton({ radius: 99 })],
-      style: { width: themeSpacing(12), height: themeSpacing(12) },
+      $: [skeleton()],
+      style: {
+        width: themeSpacing(12),
+        height: themeSpacing(12),
+        borderRadius: "50%",
+      },
     },
   ],
   style: {

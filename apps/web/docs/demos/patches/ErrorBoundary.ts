@@ -27,7 +27,7 @@ const App: DomphyElement<"div"> = {
               },
               {
                 button: "Reset",
-                $: [button({ size: "sm" })],
+                $: [button()],
                 onClick: () => {
                   shouldThrow.set(false);
                   reset();
