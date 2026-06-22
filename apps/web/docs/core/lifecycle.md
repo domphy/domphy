@@ -67,6 +67,8 @@ const App: DomphyElement<"div"> = {
 | `_onRemove(node)` | After the node is fully removed | node instance after removal work completes |
 | `_onError(node, error, reset)` | An error was thrown by a reactive child expression in this subtree | All node properties; call `reset()` to clear children and render fallback UI. If no ancestor handles it, the error is logged to console. |
 
+For a declarative error boundary, use the `errorBoundary()` patch from `@domphy/ui`, which wraps `_onError` with a fallback-rendering API — see [Error Boundary](/docs/ui/patches/error-boundary).
+
 `_onSchedule` is the right place to apply context-aware patches. Unlike inline `$: [patches]`, it can read parent context before parsing begins.
 
 See also [ElementNode API](./api/element-node).

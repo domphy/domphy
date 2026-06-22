@@ -6,7 +6,7 @@ import Menu from "../../demos/patches/Menu.ts?raw"
 
 # Menu
 
-Apply the `menu()` patch to a container (typically a `<div>`) to create a vertical navigation menu with `role="menu"`. Pair it with `menuItem()` on each `<button>` child — items wire keyboard navigation (Arrow&nbsp;/ Home&nbsp;/ End) and track the active selection via `activeKey`. Use `selectable: false` to disable selection tracking when you only need keyboard navigation.
+Apply the `menu()` patch to a container (typically a `<div>`) to create a vertical navigation menu with `role="menu"`. Pair it with `menuItem()` on each `<button>` child — `menuItem` wires keyboard navigation (Arrow&nbsp;/ Home&nbsp;/ End) and tracks the active selection via `activeKey`. `menu()` itself only establishes the shared context and layout. Use `selectable: false` to disable selection tracking when you only need keyboard navigation.
 
 ## Props
 

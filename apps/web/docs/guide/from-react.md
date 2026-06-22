@@ -216,10 +216,10 @@ useEffect(() => {
 const patch: PartialElement = {
   _onMount: (node) => {
     const sub = api.subscribe(handler)
-    node._onBeforeRemove = (n, done) => {
+    node.addHook("BeforeRemove", (n, done) => {
       sub.unsubscribe()
       done()
-    }
+    })
   },
 }
 ```
