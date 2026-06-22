@@ -9899,6 +9899,81 @@ function errorBoundary(
 export { errorBoundary };
 ```
 
+### fab
+
+```ts
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
+
+const SIZE_MAP = { small: 8, medium: 10, large: 14 } as const;
+
+/**
+ * Floating Action Button — a circular elevated button typically used for the
+ * primary action on a screen. Apply to a `<button>` element.
+ *
+ * @hostTag button
+ * @param props.color - Button color tone. Optional `ValueOrState<ThemeColor>`, defaults to `"primary"`.
+ * @param props.size - Button size preset. Optional `"small" | "medium" | "large"`, defaults to `"medium"`.
+ * @example { button: "+", $: [fab()] }
+ * @example { button: "+", $: [fab({ size: "small", color: "neutral" })] }
+ */
+function fab(
+  props: {
+    color?: ValueOrState<ThemeColor>;
+    size?: "small" | "medium" | "large";
+  } = {},
+): PartialElement {
+  const color = toState(props.color ?? "primary", "color");
+  const dim = themeSpacing(SIZE_MAP[props.size ?? "medium"]);
+
+  return {
+    _onInsert: (node) => {
+      if (node.tagName !== "button") {
+        console.warn('"fab" patch must use button tag');
+      }
+    },
+    style: {
+      appearance: "none",
+      border: "none",
+      cursor: "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+      width: dim,
+      height: dim,
+      borderRadius: "50%",
+      fontSize: (listener) => themeSize(listener, "inherit"),
+      backgroundColor: (listener) =>
+        themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "shift-0", color.get(listener)),
+      boxShadow: (listener) =>
+        `0 ${themeSpacing(1)} ${themeSpacing(4)} ${themeColor(listener, "shift-4", "neutral")}`,
+      transition: "background-color 200ms ease, box-shadow 200ms ease",
+      "&:hover:not([disabled])": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-10", color.get(listener)),
+        boxShadow: (listener) =>
+          `0 ${themeSpacing(2)} ${themeSpacing(6)} ${themeColor(listener, "shift-5", "neutral")}`,
+      },
+      "&:focus-visible": {
+        outline: (listener) =>
+          `2px solid ${themeColor(listener, "shift-6", color.get(listener))}`,
+        outlineOffset: "2px",
+      },
+      "&[disabled]": { opacity: 0.5, cursor: "not-allowed" },
+    },
+  };
+}
+
+export { fab };
+```
+
 ### figure
 
 ```ts
@@ -11415,6 +11490,123 @@ function link(
 export { link };
 ```
 
+### list
+
+```ts
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
+
+/**
+ * Styles a navigation/display list container. Sets `list-style: none` and
+ * zero padding; pairs with `listItem` and `listItemButton`. Apply to `<ul>`.
+ *
+ * @hostTag ul
+ * @param props.color - Surface color tone. Optional `ThemeColor`, defaults to `"neutral"`.
+ * @example { ul: [...], $: [list()] }
+ */
+function list(props: { color?: ThemeColor } = {}): PartialElement {
+  const { color = "neutral" } = props;
+  return {
+    _context: { list: { color } },
+    style: {
+      listStyle: "none",
+      margin: 0,
+      padding: 0,
+      display: "flex",
+      flexDirection: "column",
+    },
+  };
+}
+
+/**
+ * A non-interactive list row. Typically wraps an icon + text. Apply to `<li>`.
+ *
+ * @hostTag li
+ * @param props.dense - Reduce vertical padding. Optional `boolean`, defaults to `false`.
+ * @example { li: "Item", $: [listItem()] }
+ */
+function listItem(props: { dense?: boolean } = {}): PartialElement {
+  const { dense = false } = props;
+  return {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: (listener) => themeSpacing(themeDensity(listener) * 2),
+      paddingBlock: (listener) =>
+        themeSpacing(dense ? 1 : themeDensity(listener) * 2),
+      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+      fontSize: (listener) => themeSize(listener, "inherit"),
+    },
+  };
+}
+
+/**
+ * An interactive (clickable) list row with hover/focus-visible states. Apply
+ * to `<button>` or `<a>` inside an `<li>`.
+ *
+ * @param props.color - Color tone. Optional `ValueOrState<ThemeColor>`, defaults to `"neutral"`.
+ * @param props.accentColor - Focus/active accent. Optional `ThemeColor`, defaults to `"primary"`.
+ * @param props.dense - Reduce vertical padding. Optional `boolean`, defaults to `false`.
+ * @example { button: "Action", $: [listItemButton()] }
+ */
+function listItemButton(
+  props: {
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ThemeColor;
+    dense?: boolean;
+  } = {},
+): PartialElement {
+  const color = toState(props.color ?? "neutral", "color");
+  const accentColor = props.accentColor ?? "primary";
+  const { dense = false } = props;
+
+  return {
+    cursor: "pointer",
+    style: {
+      appearance: "none",
+      border: "none",
+      background: "transparent",
+      textDecoration: "none",
+      textAlign: "left",
+      display: "flex",
+      alignItems: "center",
+      width: "100%",
+      gap: (listener) => themeSpacing(themeDensity(listener) * 2),
+      paddingBlock: (listener) =>
+        themeSpacing(dense ? 1 : themeDensity(listener) * 2),
+      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+      fontSize: (listener) => themeSize(listener, "inherit"),
+      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      transition: "background-color 150ms ease",
+      "&:hover:not([disabled])": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-2", color.get(listener)),
+      },
+      "&[aria-current=page], &[aria-selected=true]": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-3", accentColor),
+        color: (listener) => themeColor(listener, "shift-12", accentColor),
+      },
+      "&:focus-visible": {
+        outline: (listener) =>
+          `2px solid ${themeColor(listener, "shift-6", accentColor)}`,
+        outlineOffset: "-2px",
+      },
+      "&[disabled]": { opacity: 0.5, cursor: "not-allowed" },
+    },
+  };
+}
+
+export { list, listItem, listItemButton };
+```
+
 ### mark
 
 ```ts
@@ -12398,6 +12590,130 @@ function progress(
 }
 
 export { progress };
+```
+
+### rating
+
+```ts
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+
+const STAR_FILLED =
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em">` +
+  `<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>` +
+  `</svg>`;
+const STAR_EMPTY =
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em">` +
+  `<path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/>` +
+  `</svg>`;
+
+/**
+ * Interactive star rating applied to a container `<div>`. Manages its own star
+ * children: click to set, Arrow keys to adjust, hover to preview. In `readOnly`
+ * mode stars are non-interactive. Apply to a `<div>` element.
+ *
+ * @hostTag div
+ * @param props.value - Current rating (0 – max). `ValueOrState<number>`, defaults to `0`.
+ * @param props.max - Total number of stars. Optional `number`, defaults to `5`.
+ * @param props.onChange - Called with the new value when the user picks a star.
+ * @param props.readOnly - Disable interaction. Optional `boolean`, defaults to `false`.
+ * @param props.color - Star color tone. Optional `ThemeColor`, defaults to `"warning"`.
+ * @example { div: null, $: [rating({ value: ratingState, onChange: (v) => ratingState.set(v) })] }
+ */
+function rating(
+  props: {
+    value?: ValueOrState<number>;
+    max?: number;
+    onChange?: (value: number) => void;
+    readOnly?: boolean;
+    color?: ThemeColor;
+  } = {},
+): PartialElement {
+  const { max = 5, readOnly = false, onChange } = props;
+  const color = props.color ?? "warning";
+  const valueState = toState(props.value ?? 0);
+
+  return {
+    role: "group",
+    ariaLabel: "Rating",
+    style: {
+      display: "inline-flex",
+      gap: themeSpacing(0.5),
+      fontSize: "1.5rem",
+      cursor: readOnly ? "default" : "pointer",
+      color: (listener) => themeColor(listener, "shift-8", color),
+    },
+    _onMount: (node) => {
+      const container = node.domElement as HTMLElement;
+      let current = valueState.get();
+      let hovered = 0;
+
+      const render = () => {
+        const active = hovered > 0 ? hovered : current;
+        Array.from(container.children).forEach((star, i) => {
+          (star as HTMLElement).innerHTML = i < active ? STAR_FILLED : STAR_EMPTY;
+        });
+      };
+
+      container.innerHTML = "";
+      for (let i = 1; i <= max; i++) {
+        const star = document.createElement("button");
+        star.type = "button";
+        star.setAttribute("aria-label", `${i} star${i > 1 ? "s" : ""}`);
+        star.style.cssText =
+          "background:none;border:none;padding:0;cursor:inherit;color:inherit;font-size:inherit;display:flex;align-items:center;";
+
+        if (!readOnly) {
+          const index = i;
+          star.addEventListener("click", () => {
+            const next = index === current ? 0 : index;
+            current = next;
+            valueState.set(next);
+            onChange?.(next);
+            hovered = 0;
+            render();
+          });
+          star.addEventListener("mouseenter", () => {
+            hovered = index;
+            render();
+          });
+          star.addEventListener("mouseleave", () => {
+            hovered = 0;
+            render();
+          });
+          star.addEventListener("keydown", (e: KeyboardEvent) => {
+            let next = current;
+            if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+              next = Math.min(max, current + 1);
+              e.preventDefault();
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+              next = Math.max(0, current - 1);
+              e.preventDefault();
+            } else {
+              return;
+            }
+            current = next;
+            valueState.set(next);
+            onChange?.(next);
+            render();
+            const target = next > 0 ? next - 1 : 0;
+            (container.children[target] as HTMLElement)?.focus();
+          });
+        }
+        container.appendChild(star);
+      }
+      render();
+
+      const release = valueState.addListener((v) => {
+        current = v;
+        if (hovered === 0) render();
+      });
+      node.addHook("Remove", release);
+    },
+  };
+}
+
+export { rating };
 ```
 
 ### segmented
@@ -14075,6 +14391,109 @@ function textarea(
 }
 
 export { textarea };
+```
+
+### timeline
+
+```ts
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSpacing,
+} from "@domphy/theme";
+
+/**
+ * Container for a vertical timeline. Sets list reset styles. Apply to `<ol>` or `<ul>`.
+ *
+ * @example { ol: [...], $: [timeline()] }
+ */
+function timeline(): PartialElement {
+  return {
+    style: {
+      listStyle: "none",
+      margin: 0,
+      padding: 0,
+      display: "flex",
+      flexDirection: "column",
+    },
+  };
+}
+
+/**
+ * A single event row in a `timeline`. Uses a 2-column grid: the left column holds
+ * a dot (`::before`) and optional connector line (`::after`); the right column holds
+ * the user's content. Apply to `<li>`.
+ *
+ * @param props.active - Full-opacity dot (accent color). `ValueOrState<boolean>`, defaults to `false`.
+ * @param props.last - Suppress the vertical connector below this item. `boolean`, defaults to `false`.
+ * @param props.color - Dot/connector color tone. `ThemeColor`, defaults to `"neutral"`.
+ * @param props.accentColor - Active dot color tone. `ThemeColor`, defaults to `"primary"`.
+ * @example { li: [{ b: "2024" }, { p: "Event" }], $: [timelineItem({ active: true })] }
+ */
+function timelineItem(
+  props: {
+    active?: ValueOrState<boolean>;
+    last?: boolean;
+    color?: ThemeColor;
+    accentColor?: ThemeColor;
+  } = {},
+): PartialElement {
+  const { last = false } = props;
+  const color = props.color ?? "neutral";
+  const accentColor = props.accentColor ?? "primary";
+  const activeState = toState(props.active ?? false);
+
+  return {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "2rem 1fr",
+      columnGap: (listener) => themeSpacing(themeDensity(listener) * 2),
+      paddingBottom: (listener) =>
+        last ? "0" : themeSpacing(themeDensity(listener) * 4),
+      position: "relative",
+
+      // Dot
+      "&::before": {
+        content: '""',
+        display: "block",
+        width: "0.75rem",
+        height: "0.75rem",
+        borderRadius: "50%",
+        justifySelf: "center",
+        marginTop: "0.25em",
+        transition: "background-color 200ms ease, opacity 200ms ease",
+        backgroundColor: (listener) =>
+          themeColor(
+            listener,
+            "shift-8",
+            activeState.get(listener) ? accentColor : color,
+          ),
+        opacity: (listener) => (activeState.get(listener) ? "1" : "0.4"),
+      },
+
+      // Vertical connector to the next item
+      ...(last
+        ? {}
+        : {
+            "&::after": {
+              content: '""',
+              position: "absolute",
+              left: "calc(1rem - 1px)",
+              top: "1.25rem",
+              bottom: (listener) =>
+                `-${themeSpacing(themeDensity(listener) * 4)}`,
+              width: "2px",
+              backgroundColor: (listener) =>
+                themeColor(listener, "shift-3", color),
+            },
+          }),
+    },
+  };
+}
+
+export { timeline, timelineItem };
 ```
 
 ### toast
