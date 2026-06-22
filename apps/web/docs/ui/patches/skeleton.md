@@ -8,6 +8,12 @@ import Skeleton from "../../demos/patches/Skeleton.ts?raw"
 
 Use the skeleton patch on any block element to show a loading placeholder. The animation pulses between full and reduced opacity.
 
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for the placeholder background. |
+
 <CodeEditor :code="Skeleton" />
 
 ::: details Customization

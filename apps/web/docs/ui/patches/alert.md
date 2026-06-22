@@ -8,6 +8,12 @@ import Alert from "../../demos/patches/Alert.ts?raw"
 
 Use the alert patch on a `div` to show an inline notification. The `color` prop controls the severity theme — use `primary`, `success`, `warning`, or `error`.
 
+## Props
+
+| Prop | Type | Default |
+|------|------|---------|
+| `color` | `ValueOrState<ThemeColor>` | `"primary"` |
+
 <CodeEditor :code="Alert" />
 
 ::: details Customization

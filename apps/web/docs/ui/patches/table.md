@@ -9,6 +9,12 @@ import Table from "../../demos/patches/Table.ts?raw"
 
 Use the table patch to customize this element.
 
+## Props
+
+| Prop | Type | Default |
+|------|------|---------|
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` |
+
 <CodeEditor :code="Table" />
 
 ## Code snippets

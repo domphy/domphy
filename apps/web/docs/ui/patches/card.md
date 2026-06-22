@@ -8,6 +8,12 @@ import Card from "../../demos/patches/Card.ts?raw"
 
 Use `card` on a `div` (any block container). It creates a grid surface with six named regions: `img` (image), heading elements (title), `p` (description), `aside` (aside), `div` (content), and `footer` (footer). Children are auto-placed by element type. The `color` prop controls the surface and border tone.
 
+## Props
+
+| Prop | Type | Default |
+|------|------|---------|
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` |
+
 <CodeEditor :code="Card" />
 
 ::: details Customization

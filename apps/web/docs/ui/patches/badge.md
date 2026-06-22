@@ -8,6 +8,13 @@ import Badge from "../../demos/patches/Badge.ts?raw"
 
 Apply the badge patch to any inline container (typically a `<span>` wrapping an icon or button) to render a small count bubble pinned to its top-right corner via a `::after` pseudo-element. Use `label` to set the count and `color` to control the severity tone.
 
+## Props
+
+| Prop | Type | Default |
+|------|------|---------|
+| `color` | `ValueOrState<ThemeColor>` | `"danger"` |
+| `label` | `ValueOrState<string \| number>` | `999` |
+
 <CodeEditor :code="Badge" />
 
 ::: details Customization

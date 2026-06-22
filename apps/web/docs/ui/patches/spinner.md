@@ -8,6 +8,12 @@ import Spinner from "../../demos/patches/Spinner.ts?raw"
 
 Use the spinner patch on a `span` to show a circular loading indicator.
 
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for the ring and highlight border. |
+
 <CodeEditor :code="Spinner" />
 
 ::: details Customization

@@ -8,6 +8,12 @@ import Avatar from "../../demos/patches/Avatar.ts?raw"
 
 Use the avatar patch on a `span` element. Put text (initials) or an `img` directly as children — the patch styles the container and automatically makes any child `img` cover the full area.
 
+## Props
+
+| Prop | Type | Default |
+|------|------|---------|
+| `color` | `ValueOrState<ThemeColor>` | `"primary"` |
+
 <CodeEditor :code="Avatar" />
 
 ::: details Customization
