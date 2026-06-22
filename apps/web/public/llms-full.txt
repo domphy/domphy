@@ -1921,7 +1921,7 @@ Hook timing, arguments, and usage are covered in [Lifecycle](./lifecycle).
 `$` applies one or more patches to the host element.
 
 ```ts
-{ button: "Submit", $: [button(), loading({ open: true })] }
+{ button: "Submit", $: [button(), tooltip({ content: "Save" })] }
 ```
 
 A patch is a function returning a `PartialElement`. Domphy merges patch output into the element before rendering.

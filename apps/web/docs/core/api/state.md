@@ -10,7 +10,7 @@ A read-only view of a `State<T>`. Exposes only `get(listener?)` — no `set`, `r
 export type ReadableState<T> = {
   readonly _isState: true;
   get(listener?: ValueListener<T>): T;
-}
+};
 ```
 
 The `_isState: true` discriminant lets runtime code and type guards distinguish a `ReadableState` from a plain value.

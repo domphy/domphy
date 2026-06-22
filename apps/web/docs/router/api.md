@@ -78,7 +78,7 @@ Re-exported from `@tanstack/history`:
 |---|---|
 | `@domphy/router/ssr/server` | `createRequestHandler`, `attachRouterServerSsrUtils`, `transformStreamWithRouter`, `transformReadableStreamWithRouter`, `transformPipeableStreamWithRouter`, `createSsrStreamResponse`, `defineHandlerCallback`, `getOrigin`, `getNormalizedURL`; types: `RequestHandler` |
 | `@domphy/router/ssr/client` | `hydrate`, `json`, `mergeHeaders`; types: `DehydratedRouter`, `DehydratedMatch` |
-| `@domphy/router/isServer` | `isServer` boolean, resolved per build condition |
+| `@domphy/router/isServer` | `isServer` — `boolean | undefined`, resolved per build condition; `undefined` in development/test, `true` on server runtimes, `false` in browsers |
 
 See [SSR](./ssr) for how these fit Domphy.
 

@@ -25,7 +25,7 @@ npm install @domphy/ui
 ```
 :::
 
-`npm create domphy@latest` scaffolds a Vite + TypeScript starter with everything wired up. For an existing project, `npm install @domphy/ui` is enough — it includes `@domphy/core` and `@domphy/theme`.
+`npm create domphy@latest` scaffolds a Vite + TypeScript starter with everything wired up. For an existing project, `npm install @domphy/ui @domphy/core @domphy/theme` is enough — `@domphy/ui` depends on both as peer packages.
 
 ## 1. Hello World
 
