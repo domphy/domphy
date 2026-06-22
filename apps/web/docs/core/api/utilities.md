@@ -151,3 +151,52 @@ const box = {
 ```
 
 `r` does not wrap or modify the function at runtime — it is a zero-cost identity.
+
+---
+
+## `runBatched(fn)`
+
+Runs `fn` inside a batch, coalescing all state writes into a single downstream flush. Equivalent to calling `batch(fn)` directly. Returns the value returned by `fn`.
+
+```ts
+import { runBatched } from "@domphy/core"
+
+runBatched(() => {
+  a.set(10)
+  b.set(20)
+})
+// downstream effects/computeds re-run once
+```
+
+Use `runBatched` when passing a batch-wrapped callback to external code that expects a plain function signature.
+
+---
+
+## `hasPendingNotifiers()`
+
+Returns `true` if there are reactive notifications queued but not yet flushed.
+
+```ts
+import { hasPendingNotifiers } from "@domphy/core"
+
+a.set(1)
+hasPendingNotifiers() // true — flush has not run yet
+```
+
+Useful in tests or scheduling code to check whether any state change is still pending before reading derived values.
+
+---
+
+## `flushPendingNotifiers()`
+
+Flushes all currently queued notifiers synchronously, without draining the full effect/computed reaction queue (unlike `flushSync`). Each pending notifier runs its downstream callbacks once.
+
+```ts
+import { flushPendingNotifiers } from "@domphy/core"
+
+a.set(1)
+flushPendingNotifiers()
+// notifiers for `a` have fired; any newly queued notifiers are not flushed
+```
+
+Prefer `flushSync()` when you need a fully settled reactive graph. Use `flushPendingNotifiers()` when you only need one notification pass (e.g. inside a scheduler that will call it in a loop).

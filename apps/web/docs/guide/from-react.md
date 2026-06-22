@@ -338,10 +338,10 @@ const { register, handleSubmit } = useForm()
 // @domphy/form — TanStack Form port
 import { createForm } from "@domphy/form/domphy"
 
-const form = createForm(() => ({
+const form = createForm({
   defaultValues: { email: "" },
   onSubmit: ({ value }) => console.log(value),
-}))
+})
 
 const emailField = form.field("email")
 

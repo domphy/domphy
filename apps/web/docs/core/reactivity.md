@@ -235,12 +235,13 @@ Each run re-collects dependencies, so reads no longer reached — for example be
 
 ### effectScope
 
-`effectScope()` groups reactive resources so they can be disposed together. Anything created inside `scope.run(fn)` — effects, computeds, listeners, and nested scopes — is owned by the scope, and `scope.stop()` tears the whole group down in one call.
+`effectScope()` returns an `EffectScopeHandle` that groups reactive resources so they can be disposed together. Anything created inside `scope.run(fn)` — effects, computeds, listeners, and nested scopes — is owned by the scope, and `scope.stop()` tears the whole group down in one call.
 
 ```ts
 import { effectScope } from "@domphy/core"
+import type { EffectScopeHandle } from "@domphy/core"
 
-const scope = effectScope()
+const scope: EffectScopeHandle = effectScope()
 
 scope.run(() => {
   effect(() => console.log(a.get()))
