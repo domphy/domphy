@@ -6,7 +6,7 @@ const noItems: DomphyElement<"div"> = {
   div: [
     { span: "📭" },
     { h3: "No items yet", $: [heading()] },
-    { span: "Add your first item to get started", $: [small()] },
+    { small: "Add your first item to get started", $: [small()] },
     { button: "Add item", $: [button({ color: "primary" })] },
   ],
   $: [empty()],
@@ -16,7 +16,7 @@ const noResults: DomphyElement<"div"> = {
   div: [
     { span: "🔍" },
     { h2: "No results found", $: [heading()] },
-    { span: "Try adjusting your search or filters", $: [small()] },
+    { small: "Try adjusting your search or filters", $: [small()] },
   ],
   $: [empty({ color: "neutral" })],
 };
