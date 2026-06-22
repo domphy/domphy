@@ -29,7 +29,7 @@ Domphy UIs are **plain JS objects**. A `{ div: [...] }` is just an object litera
 ```html
 <script src="https://unpkg.com/@domphy/ui/dist/core-theme-ui.global.js"></script>
 <script>
-  const App = { button: "Hello", $: [Domphy.button()] }
+  const App = { button: "Hello", $: [Domphy.ui.button()] }
   const { core, theme } = Domphy
   theme.themeApply()
   new core.ElementNode(App).render(document.body)
@@ -133,15 +133,15 @@ The APIs are **byte-identical** to the TanStack originals. If you know TanStack 
 
 At default configuration:
 
-| | Hello World | Full app overhead |
+| | Hello World (gzip) | Full app overhead (gzip) |
 |---|---|---|
-| Domphy (`@domphy/core` + `@domphy/theme`) | ~9 kB | ~9 kB |
+| Domphy (`@domphy/core` + `@domphy/theme`) | ~15 kB | ~15 kB |
 | Svelte | ~3 kB | ~3 kB |
 | Solid | ~7 kB | ~7 kB |
 | Vue | ~22 kB | ~22 kB |
 | React + ReactDOM | ~42 kB | ~42 kB |
 
-`@domphy/ui` adds ~35 kB when you import all 82 patches; in practice, tree-shaking cuts this to only what you use.
+`@domphy/ui` adds ~22 kB (gzip) / ~88 kB (minified) when you import all patches; in practice, tree-shaking cuts this to only what you use.
 
 ## Next steps
 

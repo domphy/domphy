@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import CodeEditor from "../editor/index.vue"
 import Basic from "../demos/form/basic.ts?raw"
 </script>
 

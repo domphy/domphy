@@ -18,7 +18,7 @@ hero:
 
 features:
   - title: No compiler, no syntax tax
-    details: Elements are plain JS objects. Works in a script tag, a Vite project, a browser extension — anywhere JS runs. ~9 kB core.
+    details: Elements are plain JS objects. Works in a script tag, a Vite project, a browser extension — anywhere JS runs. ~12 kB core (gzip).
   - title: Add behavior, not abstraction
     details: "Want a tooltip on a button? $: [button(), tooltip()]. One DOM node. Patches apply to the native element you wrote — no wrapper components."
   - title: Built-in design system
