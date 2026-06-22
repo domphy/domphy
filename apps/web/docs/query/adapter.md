@@ -140,7 +140,7 @@ const Feed: DomphyElement<"div"> = {
 }
 ```
 
-Adds `hasNextPage(l)`, `hasPreviousPage(l)`, `isFetchingNextPage(l)`, `isFetchingPreviousPage(l)`, `fetchNextPage(options?)`, and `fetchPreviousPage(options?)` on top of the `createQuery` accessors.
+InfiniteQueryHandle accessors: `data`, `error`, `status`, `isPending`, `isFetching`, `isSuccess`, `isError`, `hasNextPage`, `hasPreviousPage`, `isFetchingNextPage`, `isFetchingPreviousPage`; methods: `fetchNextPage`, `fetchPreviousPage`, `refetch`, `destroy`. Note: `fetchStatus`, `isLoading`, `isRefetching`, `isStale`, and `setOptions` are not available on the infinite variant.
 
 ## When to use the bridge directly
 

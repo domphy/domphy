@@ -8,6 +8,12 @@ import Button from "../../demos/patches/Button.ts?raw"
 
 Use the button patch to customize this element.
 
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"primary"` | Button color tone. |
+
 <CodeEditor :code="Button" />
 
 ::: details Customization

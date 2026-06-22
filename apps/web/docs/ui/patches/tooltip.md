@@ -8,6 +8,14 @@ import Tooltip from "../../demos/patches/Tooltip.ts?raw"
 
 Use the tooltip patch to customize this element.
 
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `open` | `ValueOrState<boolean>` | `false` | Controlled open state of the tooltip. |
+| `placement` | `ValueOrState<Placement>` | `"top"` | Floating placement relative to the trigger element. |
+| `content` | `ValueOrState<string>` | `"Tooltip Content"` | Text content rendered inside the tooltip. |
+
 <CodeEditor :code="Tooltip" />
 
 ::: details Customization

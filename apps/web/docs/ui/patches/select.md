@@ -8,6 +8,13 @@ import Select from "../../demos/patches/Select.ts?raw"
 
 Use the select patch to customize this element.
 
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ThemeColor` | `"neutral"` | Theme color tone for text, background, and outline. |
+| `accentColor` | `ThemeColor` | `"primary"` | Theme color tone for hover and focus outlines. |
+
 <CodeEditor :code="Select" />
 
 ::: details Customization
