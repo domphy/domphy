@@ -12,13 +12,13 @@ import {
  * shifted tone. Apply to a `<blockquote>` element.
  *
  * @hostTag blockquote
- * @param props.color - Surface/bar color tone. Optional `ValueOrState<ThemeColor>`, default "inherit".
+ * @param props.color - Surface/bar color tone. Optional `ValueOrState<ThemeColor>`, default "neutral".
  * @example { blockquote: "Design is how it works.", $: [blockquote({ color: "primary" })] }
  */
 function blockquote(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {
-  const color = toState(props.color ?? "inherit", "color");
+  const color = toState(props.color ?? "neutral", "color");
 
   return {
     _onInsert: (node) => {

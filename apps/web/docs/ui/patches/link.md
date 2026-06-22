@@ -12,8 +12,8 @@ Apply the `link` patch to an `<a>` element to get themed text color, hover under
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `color` | `ThemeColor` | `"primary"` | Base color tone for the link text. |
-| `accentColor` | `ThemeColor` | `"secondary"` | Accent color tone for visited and focus states. |
+| `color` | `ValueOrState<ThemeColor>` | `"primary"` | Base color tone for the link text. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"secondary"` | Accent color tone for visited and focus states. |
 
 <CodeEditor :code="Link" />
 

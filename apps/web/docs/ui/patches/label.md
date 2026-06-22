@@ -12,8 +12,8 @@ Apply the `label` patch to a `<label>` element to get themed text color, inline-
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `color` | `ThemeColor` | `"neutral"` | Base color tone for the label text. |
-| `accentColor` | `ThemeColor` | `"primary"` | Accent color tone applied on focus-within. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Base color tone for the label text. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Accent color tone applied on focus-within. |
 
 <CodeEditor :code="Label" />
 

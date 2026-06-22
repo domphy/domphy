@@ -98,7 +98,7 @@ await renderMermaidInTree(body, {
 })
 ```
 
-`TreeOptions` extends the cache options, plus `renderer` and a `class` for the wrapping element (default `"mermaid"`).
+`TreeOptions` extends the cache options, plus `renderer` and a `className` for the wrapping element (default `"mermaid"`).
 
 ## Client-side patch
 
