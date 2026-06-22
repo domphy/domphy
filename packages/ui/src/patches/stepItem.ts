@@ -14,6 +14,10 @@ import {
  * @example { li: "Shipping", $: [stepItem()] }
  */
 function stepItem(): PartialElement {
+  // Mutable slots populated from context in _onInsert; defaults match steps defaults.
+  let color: ThemeColor = "neutral";
+  let accentColor: ThemeColor = "primary";
+
   return {
     _onInsert: (node) => {
       const context = node.getContext("steps") as
@@ -29,6 +33,10 @@ function stepItem(): PartialElement {
         console.warn(`"stepItem" patch must be used inside a "steps"`);
         return;
       }
+
+      // Read color values from context so steps() props take effect.
+      color = context.color;
+      accentColor = context.accentColor;
 
       const siblings = (node.parent?.children.items ?? []) as ElementNode[];
       const items = siblings.filter((n) => n.type === "ElementNode");
@@ -69,7 +77,7 @@ function stepItem(): PartialElement {
         fontWeight: "600",
         flexShrink: "0",
         border: (listener) =>
-          `2px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          `2px solid ${themeColor(listener, "shift-4", color)}`,
         backgroundColor: (listener) => themeColor(listener, "inherit"),
         color: (listener) => themeColor(listener, "shift-8"),
         transition:
@@ -85,33 +93,33 @@ function stepItem(): PartialElement {
         left: `calc(-50% + ${themeSpacing(3)})`,
         height: "2px",
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", "neutral"),
+          themeColor(listener, "shift-3", color),
         zIndex: "0",
       },
       // Active step — accent colored filled circle
       "&[data-status=active]::before": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-6", "primary"),
-        borderColor: (listener) => themeColor(listener, "shift-6", "primary"),
-        color: (listener) => themeColor(listener, "shift-15", "primary"),
+          themeColor(listener, "shift-6", accentColor),
+        borderColor: (listener) => themeColor(listener, "shift-6", accentColor),
+        color: (listener) => themeColor(listener, "shift-15", accentColor),
       },
       // Done step — muted filled circle with checkmark
       "&[data-status=done]::before": {
         content: '"✓"',
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", "neutral"),
-        borderColor: (listener) => themeColor(listener, "shift-3", "neutral"),
-        color: (listener) => themeColor(listener, "shift-9", "neutral"),
+          themeColor(listener, "shift-3", color),
+        borderColor: (listener) => themeColor(listener, "shift-3", color),
+        color: (listener) => themeColor(listener, "shift-9", color),
       },
       // Done step connector — filled track
       "&[data-status=done]:not(:first-child)::after": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", "neutral"),
+          themeColor(listener, "shift-3", color),
       },
       // Active step connector — accent track up to the active item
       "&[data-status=active]:not(:first-child)::after": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-6", "primary"),
+          themeColor(listener, "shift-6", accentColor),
       },
       // Pending text — muted
       "&[data-status=pending]": {
