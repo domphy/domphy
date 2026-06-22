@@ -41,9 +41,11 @@ function resolvePhysical(
  * page scroll while open, and closes on backdrop click. Apply to a `<dialog>`.
  *
  * Because the patch uses the native `<dialog>` `showModal()` API, the browser
- * automatically sets `aria-modal="true"`, traps focus inside the drawer while
- * it is open, and restores focus to the previously focused element when
- * `close()` is called.
+ * traps focus inside the drawer while it is open and restores focus to the
+ * previously focused element when `close()` is called. Note: `aria-modal` is
+ * NOT set automatically by the browser or by this patch (unlike the `dialog`
+ * patch, which explicitly calls `setAttribute("aria-modal", "true")`). Add it
+ * manually if your accessibility requirements need it.
  *
  * `"start"` and `"end"` placements resolve to left/right based on the
  * document's `dir` attribute at mount time, enabling RTL-aware drawers:
