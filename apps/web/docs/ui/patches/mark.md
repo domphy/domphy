@@ -12,7 +12,7 @@ Apply the `mark` patch to a `<mark>` element to get a tinted highlight backgroun
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `accentColor` | `ThemeColor` | `"highlight"` | Accent color tone for the highlight fill and text. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"highlight"` | Accent color tone for the highlight fill and text. |
 
 <CodeEditor :code="Mark" />
 

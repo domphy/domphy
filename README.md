@@ -97,4 +97,4 @@ Full docs: [domphy.com](https://domphy.com) — [Core](https://domphy.com/docs/c
 
 ## Monorepo
 
-`packages/{core,theme,ui,query,table,router,virtual,form,dnd,palette,doctor,mcp,floating,app,markdown,mermaid,create-domphy}` + `apps/web` (`domphy-web` — docs site, DomphyPress) + `bench` (benchmarks).
+`packages/{core,theme,ui,query,table,router,virtual,form,dnd,palette,doctor,mcp,floating,app,markdown,mermaid,create-domphy}` + `apps/{web,app}` (`domphy-web` — docs site, DomphyPress; `apps/app` — demo/integration app) + `bench` (benchmarks).
