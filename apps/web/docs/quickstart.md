@@ -69,5 +69,5 @@ Form state, validation, and submission live in [`@domphy/form`](/docs/form/) (`c
 
 - [Core concepts](/docs/core/) — Syntax, reactivity, lifecycle
 - [Theme](/docs/theme/) — Tone, size, density
-- [All 86 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
+- [All 82 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
 - [Research](/docs/research/) — The two papers behind the design system
