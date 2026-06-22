@@ -76,8 +76,8 @@ Re-exported from `@tanstack/history`:
 
 | Entry | Main exports |
 |---|---|
-| `@domphy/router/ssr/server` | `createRequestHandler`, `attachRouterServerSsrUtils`, `transformStreamWithRouter`, `transformReadableStreamWithRouter`, `transformPipeableStreamWithRouter`, `createSsrStreamResponse`, `defineHandlerCallback`, `getOrigin`, `getNormalizedURL` |
-| `@domphy/router/ssr/client` | `hydrate`, `json`, `mergeHeaders` |
+| `@domphy/router/ssr/server` | `createRequestHandler`, `attachRouterServerSsrUtils`, `transformStreamWithRouter`, `transformReadableStreamWithRouter`, `transformPipeableStreamWithRouter`, `createSsrStreamResponse`, `defineHandlerCallback`, `getOrigin`, `getNormalizedURL`; types: `RequestHandler` |
+| `@domphy/router/ssr/client` | `hydrate`, `json`, `mergeHeaders`; types: `DehydratedRouter`, `DehydratedMatch` |
 | `@domphy/router/isServer` | `isServer` boolean, resolved per build condition |
 
 See [SSR](./ssr) for how these fit Domphy.
@@ -93,4 +93,4 @@ All public types are re-exported, including:
 - loading: `LoaderFnContext`, `RouteLoaderFn`, `DeferredPromise`
 - search: `SearchMiddleware`, `SearchValidator`, `SearchParser`, `SearchSerializer`
 - control flow: `Redirect`, `RedirectOptions`, `NotFoundError`
-- ssr: `DehydratedRouter`, `DehydratedMatch`, `Manifest`, `RequestHandler`
+- ssr: `Manifest`
