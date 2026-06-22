@@ -1,6 +1,6 @@
 {
   "name": "@domphy/virtual",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Domphy Virtual - headless list/grid virtualization, a 1-1 port of @tanstack/virtual-core",
   "type": "module",
   "sideEffects": false,

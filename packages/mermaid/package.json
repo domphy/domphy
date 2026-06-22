@@ -1,6 +1,6 @@
 {
   "name": "@domphy/mermaid",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Domphy Mermaid - build-time (SSG) and client-side Mermaid diagram rendering, with markdown tree integration for @domphy/markdown",
   "type": "module",
   "sideEffects": false,
