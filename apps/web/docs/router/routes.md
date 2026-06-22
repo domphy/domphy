@@ -1,3 +1,8 @@
+<script setup lang="ts">
+import CodeEditor from "../editor/index.vue"
+import RouterContext from "../demos/router/context.ts?raw"
+</script>
+
 # Route Trees
 
 A route tree is built from plain function calls — no file conventions, no JSX. Every route declares its parent with `getParentRoute`, and the tree is assembled once with `addChildren`. This is what gives params, search params, context, and loader data their types.
@@ -158,3 +163,7 @@ const router = createRouter({
 ```
 
 Every loader and `beforeLoad` then receives `context` — the standard place to pass API clients or session data without globals.
+
+Call `router.update({ context: newContext })` when context values change at runtime (e.g. after login), then navigate to re-run `beforeLoad` guards.
+
+<CodeEditor :code="RouterContext" />
