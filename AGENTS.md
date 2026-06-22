@@ -73,12 +73,18 @@ Data/logic packages are **1-1 TanStack core ports** (byte-identical upstream API
 
 ## Design system — strict rules
 
-### Color (`themeColor`)
+### Color (`themeColor`, `themeColorToken`)
 ```ts
 themeColor(listener, tone?, color?)
 // tone: "inherit" | "base" | "shift-N" | "increase-N" | "decrease-N"  (N ≤ 17)
 // color: "neutral" | "primary" | "secondary" | "info" | "success" | "warning"
 //        | "attention" | "error" | "danger" | "highlight"
+// Returns a var(--…) CSS reference — reactive, resolves at paint time.
+
+themeColorToken(listener, tone?, color?)
+// Same signature as themeColor but returns the resolved token value (e.g. "#4a7ff4")
+// instead of a var(--…) CSS reference. Use at design-time or when a third-party
+// API requires a concrete hex/rgb string.
 ```
 Tone semantics (three-layer model):
 - **Surface anchor** (`dataTone` on container): sets the floor for all children. Use **edge anchors only**: `shift-0`–`shift-3` (light surface) or `shift-14`–`shift-17` (dark surface). Mid-ramp anchors (`shift-4`–`shift-13`) cause children to clamp and collapse contrast — `middle-surface-anchor` error.
