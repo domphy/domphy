@@ -33,7 +33,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 
 - `@domphy/core` — runtime: rendering, reactivity, lifecycle, SSR, CSS-in-JS (≈ `react-dom` + SSR + CSS-in-JS in one)
 - `@domphy/theme` — context-aware color/size/spacing tokens
-- `@domphy/ui` — 82 patches for native HTML (≈ MUI)
+- `@domphy/ui` — 86 patches for native HTML (≈ MUI)
 
 **Data & logic** — 1-1 ports of the TanStack cores (identical API) + a Domphy adapter at the `/domphy` subpath:
 
@@ -133,7 +133,7 @@ Form state, validation, and submission live in [`@domphy/form`](/docs/form/) (`c
 
 - [Core concepts](/docs/core/) — Syntax, reactivity, lifecycle
 - [Theme](/docs/theme/) — Tone, size, density
-- [All 82 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
+- [All 86 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
 - [Research](/docs/research/) — The two papers behind the design system
 
 
@@ -207,12 +207,12 @@ node.attributes.toggle("disabled", false)  // force off
 
 ---
 
-### `onChange(name, callback)`
+### `addListener(name, callback)`
 
 Subscribes to changes on a specific attribute after the node is mounted and the attribute already exists. The listener auto-releases when the node is removed.
 
 ```ts
-node.attributes.onChange("aria-expanded", (value) => {
+node.attributes.addListener("aria-expanded", (value) => {
     console.log("expanded:", value)
 })
 ```
@@ -564,6 +564,8 @@ node.addHook("BeforeRemove", (node, done) => {
 
 | Hook | Trigger |
 |---|---|
+| `Schedule` | `(node, rawElement) => void` — fired before parsing; use to apply context-aware patches via `merge(rawElement, ...)` |
+| `Init` | `(node) => void` — fired after parsing, before insertion into the tree |
 | `Insert` | Node added to children list |
 | `Mount` | DOM element created |
 | `BeforeUpdate` | Before children diff |
@@ -667,10 +669,10 @@ Calls all listeners registered for an event.
 notifier.notify("change", newValue)
 ```
 
-## `Listener` type
+## `Handler` type
 
 ```ts
-type Listener = ((...args: any[]) => any) & {
+type Handler = ((...args: any[]) => any) & {
   onSubscribe?: (release: () => void) => void
 }
 ```
@@ -686,6 +688,15 @@ Reactive value container. When the value changes, all listeners are notified.
 ## `ReadableState<T>`
 
 A read-only view of a `State<T>`. Exposes only `get(listener?)` — no `set`, `reset`, or `addListener`. Use it when you want to pass a state to a consumer that should read but not mutate it.
+
+```ts
+export type ReadableState<T> = {
+  readonly _isState: true;
+  get(listener?: ValueListener<T>): T;
+}
+```
+
+The `_isState: true` discriminant lets runtime code and type guards distinguish a `ReadableState` from a plain value.
 
 ```ts
 import type { ReadableState } from "@domphy/core"
@@ -742,12 +753,12 @@ filter.reset()
 filter.get()  // "all"
 ```
 
-### `onChange(listener)`
+### `addListener(listener)`
 
-Subscribes a listener to value changes. Returns a `release` function.
+Subscribes a listener to value changes. Returns a release function.
 
 ```ts
-const release = count.onChange((value) => {
+const release = count.addListener((value) => {
   console.log(value)
 })
 
@@ -778,6 +789,30 @@ The value passed to the constructor. Used by `reset()`.
 const count = toState(0)
 count.initialValue  // 0
 ```
+
+## `ValueOrState<T>`
+
+A union type accepted by patch props and element attributes that can be either a plain value, a reactive `State<T>`, or a read-only `ReadableState<T>`.
+
+```ts
+export type ValueOrState<T> = T | State<T> | ReadableState<T>;
+```
+
+Use it in function signatures when a prop should accept both static values and reactive states:
+
+```ts
+import type { ValueOrState } from "@domphy/core"
+
+function myPatch(open: ValueOrState<boolean>): PartialElement {
+  return {
+    ariaExpanded: typeof open === "object" && open._isState
+      ? (l) => (open as ReadableState<boolean>).get(l)
+      : open,
+  }
+}
+```
+
+In practice most patch props accept `ValueOrState<T>` so callers can pass `true` / `false` or a `toState(false)` interchangeably.
 
 ### api/text-node.md
 
@@ -1505,6 +1540,18 @@ const b = toState(2)
 ### computed
 
 `computed(fn)` is a lazy, cached derived value. `fn` runs on first read and the result is cached; it re-evaluates only after a tracked dependency changes — never on every read. A `computed` is read like a state: `c.get()` for the current value, `c.get(listener)` to subscribe, and `(l) => c.get(l)` to bind it in an element.
+
+`computed` returns a `Computed<T>`, which satisfies `ReadableState<T>`:
+
+```ts
+export interface Computed<T> {
+  readonly _isState: true;
+  readonly _notifier: Notifier;
+  get(listener?: ValueListener<T>): T;
+}
+```
+
+The `_notifier` property holds the internal dependency-tracking node. It is part of the public interface but intended for advanced integrations; normal usage only needs `get(listener?)`.
 
 ```ts
 import { computed } from "@domphy/core"
@@ -3827,8 +3874,8 @@ Re-exported from `@tanstack/history`:
 
 | Entry | Main exports |
 |---|---|
-| `@domphy/router/ssr/server` | `createRequestHandler`, `attachRouterServerSsrUtils`, `transformStreamWithRouter`, `transformReadableStreamWithRouter`, `transformPipeableStreamWithRouter`, `createSsrStreamResponse`, `defineHandlerCallback`, `getOrigin`, `getNormalizedURL` |
-| `@domphy/router/ssr/client` | `hydrate`, `json`, `mergeHeaders` |
+| `@domphy/router/ssr/server` | `createRequestHandler`, `attachRouterServerSsrUtils`, `transformStreamWithRouter`, `transformReadableStreamWithRouter`, `transformPipeableStreamWithRouter`, `createSsrStreamResponse`, `defineHandlerCallback`, `getOrigin`, `getNormalizedURL`; types: `RequestHandler` |
+| `@domphy/router/ssr/client` | `hydrate`, `json`, `mergeHeaders`; types: `DehydratedRouter`, `DehydratedMatch` |
 | `@domphy/router/isServer` | `isServer` boolean, resolved per build condition |
 
 See [SSR](./ssr) for how these fit Domphy.
@@ -3844,7 +3891,7 @@ All public types are re-exported, including:
 - loading: `LoaderFnContext`, `RouteLoaderFn`, `DeferredPromise`
 - search: `SearchMiddleware`, `SearchValidator`, `SearchParser`, `SearchSerializer`
 - control flow: `Redirect`, `RedirectOptions`, `NotFoundError`
-- ssr: `DehydratedRouter`, `DehydratedMatch`, `Manifest`, `RequestHandler`
+- ssr: `Manifest`
 
 ### data-loading.md
 
@@ -4988,7 +5035,7 @@ All public types are re-exported, including:
 - instance shapes: `Table`, `Column`, `Row`, `Cell`, `Header`, `HeaderGroup`, `RowModel`, `RowData`
 - options & state: `TableOptions`, `TableState`, `InitialTableState`, `Updater`
 - column defs: `ColumnDef`, `AccessorKeyColumnDef`, `AccessorFnColumnDef`, `DisplayColumnDef`, `GroupColumnDef`, `IdentifiedColumnDef`, `ColumnHelper`, `CellContext`, `HeaderContext`
-- feature state: `SortingState`, `ColumnFiltersState`, `GlobalFilterState` (via `TableState`), `PaginationState`, `RowSelectionState`, `GroupingState`, `ExpandedState`, `VisibilityState`, `ColumnOrderState`, `ColumnPinningState`, `RowPinningState`, `ColumnSizingState`, `ColumnSizingInfoState`
+- feature state: `SortingState`, `ColumnFiltersState`, `GlobalFilterTableState` (via `TableState`), `PaginationState`, `RowSelectionState`, `GroupingState`, `ExpandedState`, `VisibilityState`, `ColumnOrderState`, `ColumnPinningState`, `RowPinningState`, `ColumnSizingState`, `ColumnSizingInfoState`
 - functions: `SortingFn`, `FilterFn`, `AggregationFn`, `AccessorFn`, plus `BuiltInSortingFn`, `BuiltInFilterFn`, `BuiltInAggregationFn`
 
 ## CDN Global
@@ -5974,7 +6021,7 @@ Combine with [`renderToString`](./ssr) in one server: route `/api/*` to the API 
 
 ### Blocks and contexts
 
-- `PageBlock(context)` / `LayoutBlock(children, context)` — receive `RouteContext`: `pathname`, `url`, `params`, `searchParams`, `hash`, `data`, `segmentData`, `headers?`
+- `PageBlock(context)` / `LayoutBlock(children, context, slots)` — receive `RouteContext`: `pathname`, `url`, `params`, `searchParams`, `hash`, `data`, `segmentData`, `headers?`. `slots` is `Record<string, DomphyElement>` containing rendered parallel-route slot trees.
 - `LoadingBlock(context)`, `ErrorBlock(error, retry)`, `NotFoundBlock()`
 - `Loader(loaderContext)` — `LoaderContext`: `pathname`, `url`, `params`, `searchParams`, `headers?`
 - `Middleware(middlewareContext)` — `MiddlewareContext`: `url`, `pathname`, `searchParams`, `headers?`
@@ -5989,7 +6036,7 @@ Combine with [`renderToString`](./ssr) in one server: route `/api/*` to the API 
 ## Patches & Blocks
 
 - `navLink({ href, prefetch?, replace?, scroll?, exact?, router? })` — `a` patch, see [Navigation](./navigation)
-- `optimizedImage({ src, width?, height?, fill?, sizes?, quality?, priority?, placeholder?, blurDataURL?, loader?, deviceSizes? })` — `img` patch, see [Image & Script](./assets)
+- `optimizedImage({ src, alt?, width?, height?, fill?, sizes?, quality?, priority?, placeholder?, blurDataURL?, loader?, deviceSizes? })` — `img` patch, see [Image & Script](./assets)
 - `script({ src, strategy?, id?, async?, onLoad?, onError? })` — script block, see [Image & Script](./assets)
 
 ## Metadata
@@ -7285,12 +7332,12 @@ Each entry carries `{ name, kind, file, signature, jsdoc, exportKind }` — a ma
 
 | Tool | Does |
 | --- | --- |
-| `domphy_list_patches` | Lists all available `@domphy/ui` patches (name, summary). |
-| `domphy_get_patch` | Returns one patch's source, props table, and usage example by name. |
-| `domphy_list_packages` | Lists all Domphy packages with their description and subpath exports. |
-| `domphy_rules` | Lists all `@domphy/doctor` rules (id, description, fixable flag). |
-| `domphy_tones` | Lists valid color tones/names accepted by theme helpers. |
-| `domphy_diagnose` | Runs `diagnose()` on a JSON element tree, returning `Diagnostic[]`. |
+| `domphy_list_patches` | Lists all `@domphy/ui` patches with their host tag and signature. |
+| `domphy_get_patch` | Gets one patch's full contract (host tag, signature, props, example, doc, source) by name. |
+| `domphy_list_packages` | Lists all `@domphy/*` packages with versions and descriptions. |
+| `domphy_rules` | Gets the Domphy code-generation rules (`llms.txt`) for AI agents to follow. |
+| `domphy_tones` | Gets valid tone and theme color names for `themeColor()`/`dataTone` — avoids invented tones. |
+| `domphy_diagnose` | Runs `diagnose()` on a JSON element tree and returns the raw `Diagnostic[]`, without the structured report wrapper that `validate()` adds. |
 | `domphy_validate` | Runs the aggregate `validate()` on a JSON element tree, returning `{ ok, issues, summary }`. |
 | `domphy_fix` | Applies the lossless autofix to a JSON element tree, returning `{ tree, applied, report }`. |
 | `domphy_list_app_blocks` | Lists the app's own blocks (name, kind, signature, file) from `app-manifest.json`. |
