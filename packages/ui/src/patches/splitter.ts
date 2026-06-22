@@ -87,6 +87,8 @@ function splitterPanel(): PartialElement {
  */
 function splitterHandle(): PartialElement {
   return {
+    role: "separator",
+    tabindex: 0,
     _onMount: (node) => {
       const ctx = node.getContext("splitter");
       if (!ctx) {
@@ -97,6 +99,39 @@ function splitterHandle(): PartialElement {
       const isHorizontal = ctx.direction === "horizontal";
 
       handle.style.cursor = isHorizontal ? "col-resize" : "row-resize";
+      handle.setAttribute(
+        "aria-orientation",
+        isHorizontal ? "vertical" : "horizontal",
+      );
+      handle.setAttribute("aria-valuemin", String(ctx.min));
+      handle.setAttribute("aria-valuemax", String(ctx.max));
+      handle.setAttribute("aria-valuenow", String(Math.round(ctx.size.get())));
+
+      const releaseAriaValue = ctx.size.addListener((size: number) => {
+        handle.setAttribute("aria-valuenow", String(Math.round(size)));
+      });
+
+      const onKeydown = (e: KeyboardEvent) => {
+        const step = e.shiftKey ? 10 : 1;
+        let next: number | null = null;
+        if (isHorizontal) {
+          if (e.key === "ArrowRight")
+            next = Math.min(ctx.size.get() + step, ctx.max);
+          else if (e.key === "ArrowLeft")
+            next = Math.max(ctx.size.get() - step, ctx.min);
+        } else {
+          if (e.key === "ArrowDown")
+            next = Math.min(ctx.size.get() + step, ctx.max);
+          else if (e.key === "ArrowUp")
+            next = Math.max(ctx.size.get() - step, ctx.min);
+        }
+        if (e.key === "Home") next = ctx.min;
+        else if (e.key === "End") next = ctx.max;
+        if (next !== null) {
+          e.preventDefault();
+          ctx.size.set(next);
+        }
+      };
 
       const onMousedown = (e: MouseEvent) => {
         e.preventDefault();
@@ -119,10 +154,13 @@ function splitterHandle(): PartialElement {
         document.addEventListener("mouseup", onMouseup);
       };
 
+      handle.addEventListener("keydown", onKeydown);
       handle.addEventListener("mousedown", onMousedown);
-      node.addHook("Remove", () =>
-        handle.removeEventListener("mousedown", onMousedown),
-      );
+      node.addHook("Remove", () => {
+        releaseAriaValue();
+        handle.removeEventListener("keydown", onKeydown);
+        handle.removeEventListener("mousedown", onMousedown);
+      });
     },
     style: {
       flexShrink: 0,
@@ -132,6 +170,10 @@ function splitterHandle(): PartialElement {
       backgroundColor: (listener) => themeColor(listener, "shift-2"),
       "&:hover": {
         backgroundColor: (listener) => themeColor(listener, "shift-3"),
+      },
+      "&:focus-visible": {
+        outline: (listener) => `2px solid ${themeColor(listener, "shift-6")}`,
+        outlineOffset: "2px",
       },
       "&::after": {
         content: '""',

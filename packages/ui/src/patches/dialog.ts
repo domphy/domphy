@@ -88,6 +88,12 @@ function dialog(
         }
       };
 
+      const onCancel = (e: Event) => {
+        e.preventDefault();
+        state.set(false);
+      };
+      dlg.addEventListener("cancel", onCancel);
+
       const update = (val: boolean) => {
         if (val) {
           previousFocus = document.activeElement as HTMLElement;
@@ -109,6 +115,7 @@ function dialog(
       const release = state.addListener(update);
       node.addHook("Remove", () => {
         release();
+        dlg.removeEventListener("cancel", onCancel);
         document.body.style.overflow = "";
         dlg.removeEventListener("keydown", trapFocus);
         previousFocus?.focus();

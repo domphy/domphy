@@ -83,6 +83,8 @@ function pagination(props: {
   };
 
   return {
+    role: "navigation",
+    ariaLabel: "Pagination",
     _onInsert: (node) => {
       if (node.tagName !== "div")
         console.warn('"pagination" patch must use div tag');
@@ -108,6 +110,7 @@ function pagination(props: {
             if (p === "...") {
               items.push({
                 span: "…",
+                ariaHidden: "true",
                 style: {
                   display: "inline-flex",
                   alignItems: "center",

@@ -21,6 +21,7 @@ function inputSwitch(
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
+    role: "switch",
     dataTone: "shift-2",
     type: "checkbox",
     _onSchedule: (node) => {

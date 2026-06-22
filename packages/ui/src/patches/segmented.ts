@@ -14,7 +14,7 @@ function segmented(
 ): PartialElement {
   const { color = "neutral" } = props;
   return {
-    role: "group",
+    role: "radiogroup",
     _context: {
       segmented: { value: toState(props.value ?? "") },
     },

@@ -29,7 +29,7 @@ function segmentedItem(
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
   return {
-    role: "option",
+    role: "radio",
     _onInsert: (node) => {
       if (node.tagName !== "button") {
         console.warn(`"segmentedItem" patch must use button tag`);
@@ -43,7 +43,7 @@ function segmentedItem(
       const items = siblings.filter(
         (sibling) =>
           sibling.type === "ElementNode" &&
-          sibling.attributes.get("role") === "option",
+          sibling.attributes.get("role") === "radio",
       );
       // node.key is null (not undefined) when absent — check both so an
       // explicit _key of 0 or "" keeps its real key instead of "null"/index.
@@ -53,7 +53,7 @@ function segmentedItem(
           : String(items.indexOf(node));
 
       node.attributes.set(
-        "ariaSelected",
+        "ariaChecked",
         (listener) => ctx.value.get(listener) === key,
       );
 
@@ -70,11 +70,11 @@ function segmentedItem(
       color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
       backgroundColor: "transparent",
       transition: "background-color 300ms ease",
-      "&:hover:not([disabled]):not([aria-selected=true])": {
+      "&:hover:not([disabled]):not([aria-checked=true])": {
         backgroundColor: (listener) =>
           themeColor(listener, "shift-3", color.get(listener)),
       },
-      "&[aria-selected=true]": {
+      "&[aria-checked=true]": {
         backgroundColor: (listener) =>
           themeColor(listener, "shift-0", accentColor.get(listener)),
         color: (listener) =>

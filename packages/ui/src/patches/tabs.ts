@@ -18,6 +18,7 @@ function tabs(
 ): PartialElement {
   const partial: PartialElement = {
     role: "tablist",
+    ariaOrientation: "horizontal",
     _onSchedule: (_node, element) => {
       const partial = {
         _context: {

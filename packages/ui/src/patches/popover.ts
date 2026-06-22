@@ -69,6 +69,9 @@ function popover(props: {
         }
       }
     },
+    onKeyDown: (e) => {
+      if ((e as KeyboardEvent).key === "Escape" && openState.get()) hide();
+    },
     onFocus: () => openOn === "hover" && show(),
     onBlur: (e, node) => {
       const related = (e as FocusEvent).relatedTarget as Node | null;
