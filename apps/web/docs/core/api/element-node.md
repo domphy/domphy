@@ -28,7 +28,6 @@ new ElementNode(domphyElement: DomphyElement, parent?: ElementNode | null)
 | `domElement` | `HTMLElement \| null` | Mounted DOM element |
 | `key` | `string \| number \| null` | Identity key for diffing |
 | `nodeId` | `string` | Hash used for scoped CSS class generation |
-| `pathId` | `string` | Hash of the node path in the tree |
 | `_portal` | `((root) => Element) \| undefined` | Redirects DOM mount target when present |
 
 The scoped CSS class is attached through `node.attributes` using the pattern ``${tagName}_${nodeId}``.

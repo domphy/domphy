@@ -3,7 +3,7 @@
 Domphy publishes two machine-readable context files so any AI assistant can generate correct Domphy code without guessing:
 
 - **[`llms.txt`](https://domphy.com/llms.txt)** — curated index. Critical rules + links to every doc page and patch. Small, cheap to include in every prompt.
-- **[`llms-full.txt`](https://domphy.com/llms-full.txt)** — one-shot full dump (~200 KB). Critical rules + quickstart + every core/theme doc + every patch source file. Use when you want the AI to have the whole framework in a single fetch.
+- **[`llms-full.txt`](https://domphy.com/llms-full.txt)** — one-shot full dump (~478 KB). Critical rules + quickstart + every core/theme doc + every patch source file. Use when you want the AI to have the whole framework in a single fetch.
 
 Both files are auto-generated from the canonical docs and patch source on every release — they never drift.
 
