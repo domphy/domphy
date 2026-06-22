@@ -23,7 +23,7 @@ import { creatFloating } from "../utils/floating.js";
  * @example { button: "Open", $: [popover({ openOn: "click", content: { div: "Hi" } })] }
  */
 function popover(props: {
-  openOn: "click" | "hover";
+  openOn?: "click" | "hover";
   open?: ValueOrState<boolean>;
   placement?: ValueOrState<Placement>;
   content: DomphyElement;

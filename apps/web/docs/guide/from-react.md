@@ -78,7 +78,8 @@ import { effect } from "@domphy/core"
 
 const stop = effect(() => {
   document.title = `Count: ${count.get()}`
-  // return cleanup function (optional)
+  // Note: unlike React useEffect, returning a function has no effect.
+  // To clean up, call the returned stop() function directly.
 })
 // call stop() to dispose
 ```

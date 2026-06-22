@@ -9,7 +9,7 @@ import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
  * @param props.color - Theme color tone for the muted text/icon. Defaults to `"neutral"`.
  * @example
  * { div: [
- *   { span: "📭", $: [heading({ level: 1 })] },
+ *   { span: "📭" },
  *   { p: "No items yet", $: [paragraph()] },
  *   { span: "Add your first item to get started", $: [small()] },
  * ], $: [empty()] }

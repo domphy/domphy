@@ -14,7 +14,7 @@ The patch wires accessibility automatically: `aria-haspopup="dialog"`, `aria-exp
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `openOn` | `"click" \| "hover"` | `"click"` | Interaction that opens the popover. |
+| `openOn` | `"click" \| "hover"` | `"click"` | Interaction that opens the popover. Optional — defaults to `"click"` when omitted. |
 | `content` | `DomphyElement` | — | The floating content element to display. Required. |
 | `open` | `ValueOrState<boolean>` | `false` | Controlled open state. |
 | `placement` | `ValueOrState<Placement>` | `"bottom"` | Floating placement (e.g. `"top-start"`, `"right"`). |
