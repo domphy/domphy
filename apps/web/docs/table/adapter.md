@@ -27,7 +27,7 @@ import { createColumnHelper, getCoreRowModel, getSortedRowModel, getPaginationRo
 import { createDomphyTable } from "@domphy/table/domphy"
 import { table as tableUI } from "@domphy/ui"
 
-const { table, version } = createDomphyTable<Person>({
+const { table, version, destroy } = createDomphyTable<Person>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),

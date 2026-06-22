@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import DomphyPreview from "./preview/index.vue"
+import DomphyPreview from "./preview/Container.ts"
 import HelloWorld from "./demos/quickstart/01-hello.ts"
 import WithPatches from "./demos/quickstart/02-patches.ts"
 import WithState from "./demos/quickstart/03-state.ts"

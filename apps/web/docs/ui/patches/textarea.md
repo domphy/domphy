@@ -12,8 +12,8 @@ Styles a multi-line text input with themed border, hover, focus, invalid, and di
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for the border and text. |
-| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the hover/focus outline. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for the border and text. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color tone for the hover/focus outline. |
 | `autoResize` | `boolean` | `false` | When `true`, grows the textarea height to fit its content on input. |
 
 <CodeEditor :code="Textarea" />

@@ -12,8 +12,8 @@ Styles a single toggle button inside a `toggleGroup` on the host `<button>` elem
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `color` | `ThemeColor` (or `State`) | `"neutral"` | Theme color tone for the resting/hover background and text. |
-| `accentColor` | `ThemeColor` (or `State`) | `"primary"` | Theme color tone for the pressed/focus state. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for the resting/hover background and text. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color tone for the pressed/focus state. |
 
 <CodeEditor :code="Toggle" />
 
