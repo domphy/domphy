@@ -12419,7 +12419,7 @@ import {
 
 /**
  * Styles and wires a single option inside a `segmented` control on the host `<button>`.
- * Sets `aria-selected` and handles click-to-select against the parent `segmented` context.
+ * Sets `aria-checked` and handles click-to-select against the parent `segmented` context.
  *
  * @hostTag button
  * @param props.color - Theme color for resting state. Defaults to `"neutral"`.
