@@ -35,7 +35,7 @@ features:
 
 ::: code-group
 ```bash [NPM]
-npm install @domphy/ui
+npm install @domphy/ui @domphy/core @domphy/theme
 ```
 ```html [CDN]
 <script src="https://unpkg.com/@domphy/ui/dist/core-theme-ui.global.js"></script>

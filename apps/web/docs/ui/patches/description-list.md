@@ -8,6 +8,12 @@ import DescriptionList from "../../demos/patches/DescriptionList.ts?raw"
 
 Use the description-list patch to customize this element.
 
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color for the description list text and borders. |
+
 <CodeEditor :code="DescriptionList" />
 
 ::: details Customization
