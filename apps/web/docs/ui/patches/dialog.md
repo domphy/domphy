@@ -6,7 +6,7 @@ import Dialog from "../../demos/patches/Dialog.ts?raw"
 
 # Dialog
 
-Apply the `dialog` patch to a `<dialog>` element. It drives open/close via the native `showModal()`/`close()` API, fades with a 200 ms opacity transition, and closes when the user clicks the backdrop.
+Apply the `dialog` patch to a `<dialog>` element. It drives open/close via the native `showModal()`/`close()` API, fades with a 200 ms opacity transition, and closes when the user clicks the backdrop or presses Escape (via the animated state path, not an abrupt browser close).
 
 The patch handles accessibility automatically: it sets `aria-modal="true"`, traps Tab focus within the dialog while open (cycling between first and last focusable elements), restores focus to the previously focused element when closed, and locks page scroll while open.
 
