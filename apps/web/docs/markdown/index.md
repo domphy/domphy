@@ -95,7 +95,7 @@ parseMarkdown(md, {
 
 | Option | Type | Description |
 | --- | --- | --- |
-| `highlight` | `(code, language) => string \| DomphyElement \| null` | Highlighter for fenced code blocks. A returned string is used as the `<code>` inner HTML; a `DomphyElement` becomes its single child. |
+| `highlight` | `(code, language) => string \| DomphyElement \| null \| undefined` | Highlighter for fenced code blocks. A returned string is used as the `<code>` inner HTML; a `DomphyElement` becomes its single child. |
 | `anchorSlugify` | `(text) => string` | Slug function for heading `id`s and toc entries. |
 | `mdOptions` | `markdown-it` options | Merged into the markdown-it constructor (e.g. `{ breaks: true }`). |
 

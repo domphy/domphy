@@ -10,7 +10,7 @@ Apply the `popover` patch to any trigger element (typically a `button`). It atta
 
 The patch wires accessibility automatically: `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`, and focus/blur dismissal.
 
-The popover also opens whenever the trigger receives focus, regardless of the `openOn` value. Focus-open is unconditional and is not gated by `openOn`.
+When `openOn` is `"hover"`, the popover also opens on focus and closes on blur. When `openOn` is `"click"`, focus has no effect.
 
 ## Props
 
