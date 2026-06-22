@@ -6,7 +6,7 @@ import Segmented from "../../demos/patches/Segmented.ts?raw"
 
 # Segmented Item
 
-Use `segmentedItem` on a `<button>` placed inside a `segmented` control. It reads the parent `segmented` context, sets `aria-selected`, and handles click-to-select. Use `_key` on each button to set its selection key; otherwise the index is used.
+Use `segmentedItem` on a `<button>` placed inside a `segmented` control. It reads the parent `segmented` context, sets `aria-checked`, and handles click-to-select. Use `_key` on each button to set its selection key; otherwise the index is used.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|

@@ -52,8 +52,6 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 - `@domphy/mermaid` — render Mermaid diagrams (build-time SVG + client patch)
 - `@domphy/doctor` — static analyzer that flags non-idiomatic code (`diagnose`/`validate`; powers AI self-correction)
 - `@domphy/mcp` — MCP server exposing patches/packages/rules + doctor + app-block registry to agents
-- `@domphy/floating` — anchor positioning (vendored floating-ui, zero-dependency); powers `@domphy/ui` overlays
-- `create-domphy` — scaffolder: `npm create domphy@latest <dir>` writes a Vite + TypeScript starter with AGENTS.md
 
 Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. For anything outside these packages (charts, rich text, i18n…), use the vanilla library directly — see [Integrations](/docs/integrations/).
 
@@ -93,13 +91,13 @@ npm install
 npm run dev
 ```
 ```bash [Add to existing project]
-npm install @domphy/ui
+npm install @domphy/ui @domphy/core @domphy/theme
 ```
 ```html [CDN]
 <script src="https://unpkg.com/@domphy/ui/dist/core-theme-ui.global.js"></script>
 ```
 
-`npm create domphy@latest` scaffolds a Vite + TypeScript starter with everything wired up. For an existing project, `npm install @domphy/ui` is enough — it includes `@domphy/core` and `@domphy/theme`.
+`npm create domphy@latest` scaffolds a Vite + TypeScript starter with everything wired up. For an existing project, `npm install @domphy/ui @domphy/core @domphy/theme` is enough — `@domphy/ui` depends on both as peer packages.
 
 ## 1. Hello World
 
@@ -499,7 +497,6 @@ new ElementNode(domphyElement: DomphyElement, parent?: ElementNode | null)
 | `domElement` | `HTMLElement \| null` | Mounted DOM element |
 | `key` | `string \| number \| null` | Identity key for diffing |
 | `nodeId` | `string` | Hash used for scoped CSS class generation |
-| `pathId` | `string` | Hash of the node path in the tree |
 | `_portal` | `((root) => Element) \| undefined` | Redirects DOM mount target when present |
 
 The scoped CSS class is attached through `node.attributes` using the pattern ``${tagName}_${nodeId}``.
@@ -695,7 +692,7 @@ A read-only view of a `State<T>`. Exposes only `get(listener?)` — no `set`, `r
 export type ReadableState<T> = {
   readonly _isState: true;
   get(listener?: ValueListener<T>): T;
-}
+};
 ```
 
 The `_isState: true` discriminant lets runtime code and type guards distinguish a `ReadableState` from a plain value.
@@ -1029,6 +1026,55 @@ const box = {
 
 `r` does not wrap or modify the function at runtime — it is a zero-cost identity.
 
+---
+
+## `runBatched(fn)`
+
+Runs `fn` inside a batch, coalescing all state writes into a single downstream flush. Equivalent to calling `batch(fn)` directly. Returns the value returned by `fn`.
+
+```ts
+import { runBatched } from "@domphy/core"
+
+runBatched(() => {
+  a.set(10)
+  b.set(20)
+})
+// downstream effects/computeds re-run once
+```
+
+Use `runBatched` when passing a batch-wrapped callback to external code that expects a plain function signature.
+
+---
+
+## `hasPendingNotifiers()`
+
+Returns `true` if there are reactive notifications queued but not yet flushed.
+
+```ts
+import { hasPendingNotifiers } from "@domphy/core"
+
+a.set(1)
+hasPendingNotifiers() // true — flush has not run yet
+```
+
+Useful in tests or scheduling code to check whether any state change is still pending before reading derived values.
+
+---
+
+## `flushPendingNotifiers()`
+
+Flushes all currently queued notifiers synchronously, without draining the full effect/computed reaction queue (unlike `flushSync`). Each pending notifier runs its downstream callbacks once.
+
+```ts
+import { flushPendingNotifiers } from "@domphy/core"
+
+a.set(1)
+flushPendingNotifiers()
+// notifiers for `a` have fired; any newly queued notifiers are not flushed
+```
+
+Prefer `flushSync()` when you need a fully settled reactive graph. Use `flushPendingNotifiers()` when you only need one notification pass (e.g. inside a scheduler that will call it in a loop).
+
 ### index.md
 
 # Core
@@ -1186,6 +1232,8 @@ const App: DomphyElement<"div"> = {
 | `_onBeforeRemove(node, done)` | Before removal, must call `done()` | `domElement`, current runtime state |
 | `_onRemove(node)` | After the node is fully removed | node instance after removal work completes |
 | `_onError(node, error, reset)` | An error was thrown by a reactive child expression in this subtree | All node properties; call `reset()` to clear children and render fallback UI. If no ancestor handles it, the error is logged to console. |
+
+For a declarative error boundary, use the `errorBoundary()` patch from `@domphy/ui`, which wraps `_onError` with a fallback-rendering API — see [Error Boundary](/docs/ui/patches/error-boundary).
 
 `_onSchedule` is the right place to apply context-aware patches. Unlike inline `$: [patches]`, it can read parent context before parsing begins.
 
@@ -1588,12 +1636,13 @@ Each run re-collects dependencies, so reads no longer reached — for example be
 
 ### effectScope
 
-`effectScope()` groups reactive resources so they can be disposed together. Anything created inside `scope.run(fn)` — effects, computeds, listeners, and nested scopes — is owned by the scope, and `scope.stop()` tears the whole group down in one call.
+`effectScope()` returns an `EffectScopeHandle` that groups reactive resources so they can be disposed together. Anything created inside `scope.run(fn)` — effects, computeds, listeners, and nested scopes — is owned by the scope, and `scope.stop()` tears the whole group down in one call.
 
 ```ts
 import { effectScope } from "@domphy/core"
+import type { EffectScopeHandle } from "@domphy/core"
 
-const scope = effectScope()
+const scope: EffectScopeHandle = effectScope()
 
 scope.run(() => {
   effect(() => console.log(a.get()))
@@ -1923,7 +1972,7 @@ Hook timing, arguments, and usage are covered in [Lifecycle](./lifecycle).
 `$` applies one or more patches to the host element.
 
 ```ts
-{ button: "Submit", $: [button(), tooltip({ content: "Save" })] }
+{ button: "Submit", $: [button(), loading({ open: true })] }
 ```
 
 A patch is a function returning a `PartialElement`. Domphy merges patch output into the element before rendering.
@@ -3063,7 +3112,7 @@ const Feed: DomphyElement<"div"> = {
 }
 ```
 
-Adds `hasNextPage(l)`, `hasPreviousPage(l)`, `isFetchingNextPage(l)`, `isFetchingPreviousPage(l)`, `fetchNextPage(options?)`, and `fetchPreviousPage(options?)` on top of the `createQuery` accessors.
+InfiniteQueryHandle accessors: `data`, `error`, `status`, `isPending`, `isFetching`, `isSuccess`, `isError`, `hasNextPage`, `hasPreviousPage`, `isFetchingNextPage`, `isFetchingPreviousPage`; methods: `fetchNextPage`, `fetchPreviousPage`, `refetch`, `destroy`. Note: `fetchStatus`, `isLoading`, `isRefetching`, `isStale`, and `setOptions` are not available on the infinite variant.
 
 ## When to use the bridge directly
 
@@ -3878,7 +3927,7 @@ Re-exported from `@tanstack/history`:
 |---|---|
 | `@domphy/router/ssr/server` | `createRequestHandler`, `attachRouterServerSsrUtils`, `transformStreamWithRouter`, `transformReadableStreamWithRouter`, `transformPipeableStreamWithRouter`, `createSsrStreamResponse`, `defineHandlerCallback`, `getOrigin`, `getNormalizedURL`; types: `RequestHandler` |
 | `@domphy/router/ssr/client` | `hydrate`, `json`, `mergeHeaders`; types: `DehydratedRouter`, `DehydratedMatch` |
-| `@domphy/router/isServer` | `isServer` boolean, resolved per build condition |
+| `@domphy/router/isServer` | `isServer` — `boolean | undefined`, resolved per build condition; `undefined` in development/test, `true` on server runtimes, `false` in browsers |
 
 See [SSR](./ssr) for how these fit Domphy.
 
@@ -4475,6 +4524,8 @@ const router = createRouter({
 
 Every loader and `beforeLoad` then receives `context` — the standard place to pass API clients or session data without globals.
 
+Call `router.update({ context: newContext })` when context values change at runtime (e.g. after login), then navigate to re-run `beforeLoad` guards.
+
 ### search-params.md
 
 # Search Params
@@ -4744,7 +4795,7 @@ import { createColumnHelper, getCoreRowModel, getSortedRowModel, getPaginationRo
 import { createDomphyTable } from "@domphy/table/domphy"
 import { table as tableUI } from "@domphy/ui"
 
-const { table, version } = createDomphyTable<Person>({
+const { table, version, destroy } = createDomphyTable<Person>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
@@ -7016,7 +7067,7 @@ parseMarkdown(md, {
 
 | Option | Type | Description |
 | --- | --- | --- |
-| `highlight` | `(code, language) => string \| DomphyElement \| null` | Highlighter for fenced code blocks. A returned string is used as the `<code>` inner HTML; a `DomphyElement` becomes its single child. |
+| `highlight` | `(code, language) => string \| DomphyElement \| null \| undefined` | Highlighter for fenced code blocks. A returned string is used as the `<code>` inner HTML; a `DomphyElement` becomes its single child. |
 | `anchorSlugify` | `(text) => string` | Slug function for heading `id`s and toc entries. |
 | `mdOptions` | `markdown-it` options | Merged into the markdown-it constructor (e.g. `{ breaks: true }`). |
 
@@ -7160,7 +7211,7 @@ await renderMermaidInTree(body, {
 })
 ```
 
-`TreeOptions` extends the cache options, plus `renderer` and a `class` for the wrapping element (default `"mermaid"`).
+`TreeOptions` extends the cache options, plus `renderer` and a `className` for the wrapping element (default `"mermaid"`).
 
 ## Client-side patch
 
@@ -7456,7 +7507,7 @@ function accordion(
 
       const el = node.domElement;
       if (!el) return;
-      el.addEventListener("click", (event) => {
+      const handler = (event: Event) => {
         const summary = (event.target as Element).closest("summary");
         if (!summary) return;
         const item = summary.closest("details") as HTMLDetailsElement | null;
@@ -7468,7 +7519,9 @@ function accordion(
             },
           );
         }
-      });
+      };
+      el.addEventListener("click", handler);
+      node.addHook("Remove", () => el.removeEventListener("click", handler));
     },
     style: {
       display: "flex",
@@ -7673,13 +7726,13 @@ import {
  * shifted tone. Apply to a `<blockquote>` element.
  *
  * @hostTag blockquote
- * @param props.color - Surface/bar color tone. Optional `ValueOrState<ThemeColor>`, default "inherit".
+ * @param props.color - Surface/bar color tone. Optional `ValueOrState<ThemeColor>`, default "neutral".
  * @example { blockquote: "Design is how it works.", $: [blockquote({ color: "primary" })] }
  */
 function blockquote(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {
-  const color = toState(props.color ?? "inherit", "color");
+  const color = toState(props.color ?? "neutral", "color");
 
   return {
     _onInsert: (node) => {
@@ -9337,6 +9390,7 @@ function dialog(
   const { color = "neutral", open = false } = props;
   const state = toState(open);
   let previousFocus: HTMLElement | null = null;
+  let closing = false;
 
   return {
     _onInsert: (node) => {
@@ -9355,13 +9409,13 @@ function dialog(
       if (!inside) state.set(false);
     },
     onTransitionEnd: (_e, node) => {
+      if (!closing) return;
+      closing = false;
       const dlg = node.domElement as HTMLDialogElement;
-      if (dlg.style.opacity === "0") {
-        dlg.close();
-        document.body.style.overflow = "";
-        previousFocus?.focus();
-        previousFocus = null;
-      }
+      dlg.close();
+      document.body.style.overflow = "";
+      previousFocus?.focus();
+      previousFocus = null;
     },
     _onMount: (node) => {
       const dlg = node.domElement as HTMLDialogElement;
@@ -9397,6 +9451,12 @@ function dialog(
         }
       };
 
+      const onCancel = (e: Event) => {
+        e.preventDefault();
+        state.set(false);
+      };
+      dlg.addEventListener("cancel", onCancel);
+
       const update = (val: boolean) => {
         if (val) {
           previousFocus = document.activeElement as HTMLElement;
@@ -9409,6 +9469,7 @@ function dialog(
             focusable?.focus();
           });
         } else {
+          closing = true;
           dlg.style.opacity = "0";
           dlg.removeEventListener("keydown", trapFocus);
         }
@@ -9417,6 +9478,7 @@ function dialog(
       const release = state.addListener(update);
       node.addHook("Remove", () => {
         release();
+        dlg.removeEventListener("cancel", onCancel);
         document.body.style.overflow = "";
         dlg.removeEventListener("keydown", trapFocus);
         previousFocus?.focus();
@@ -9555,9 +9617,9 @@ function resolvePhysical(
  * page scroll while open, and closes on backdrop click. Apply to a `<dialog>`.
  *
  * Because the patch uses the native `<dialog>` `showModal()` API, the browser
- * automatically sets `aria-modal="true"`, traps focus inside the drawer while
- * it is open, and restores focus to the previously focused element when
- * `close()` is called.
+ * traps focus inside the drawer while it is open and restores focus to the
+ * previously focused element when `close()` is called. Sets `aria-modal="true"`.
+ * Escape key closes the drawer via the animated state path (not immediate close).
  *
  * `"start"` and `"end"` placements resolve to left/right based on the
  * document's `dir` attribute at mount time, enabling RTL-aware drawers:
@@ -9608,6 +9670,13 @@ function drawer(
     },
     _onMount: (node) => {
       const dlg = node.domElement as HTMLDialogElement;
+      dlg.setAttribute("aria-modal", "true");
+
+      const onCancel = (e: Event) => {
+        e.preventDefault();
+        state.set(false);
+      };
+      dlg.addEventListener("cancel", onCancel);
 
       // Resolve logical placements at mount time using document direction.
       const isRTL =
@@ -9640,6 +9709,7 @@ function drawer(
       const release = state.addListener(update);
       node.addHook("Remove", () => {
         release();
+        dlg.removeEventListener("cancel", onCancel);
         document.body.style.overflow = "";
       });
     },
@@ -9720,7 +9790,7 @@ import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
  * @param props.color - Theme color tone for the muted text/icon. Defaults to `"neutral"`.
  * @example
  * { div: [
- *   { span: "📭", $: [heading({ level: 1 })] },
+ *   { span: "📭" },
  *   { p: "No items yet", $: [paragraph()] },
  *   { span: "Add your first item to get started", $: [small()] },
  * ], $: [empty()] }
@@ -10979,6 +11049,7 @@ function inputSwitch(
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
+    role: "switch",
     dataTone: "shift-2",
     type: "checkbox",
     _onSchedule: (node) => {
@@ -11808,6 +11879,8 @@ function pagination(props: {
   };
 
   return {
+    role: "navigation",
+    ariaLabel: "Pagination",
     _onInsert: (node) => {
       if (node.tagName !== "div")
         console.warn('"pagination" patch must use div tag');
@@ -11833,6 +11906,7 @@ function pagination(props: {
             if (p === "...") {
               items.push({
                 span: "…",
+                ariaHidden: "true",
                 style: {
                   display: "inline-flex",
                   alignItems: "center",
@@ -11952,7 +12026,7 @@ import { creatFloating } from "../utils/floating.js";
  * @example { button: "Open", $: [popover({ openOn: "click", content: { div: "Hi" } })] }
  */
 function popover(props: {
-  openOn: "click" | "hover";
+  openOn?: "click" | "hover";
   open?: ValueOrState<boolean>;
   placement?: ValueOrState<Placement>;
   content: DomphyElement;
@@ -11998,7 +12072,10 @@ function popover(props: {
         }
       }
     },
-    onFocus: () => show(),
+    onKeyDown: (e) => {
+      if ((e as KeyboardEvent).key === "Escape" && openState.get()) hide();
+    },
+    onFocus: () => openOn === "hover" && show(),
     onBlur: (e, node) => {
       const related = (e as FocusEvent).relatedTarget as Node | null;
       const root = node.getRoot().domElement as Element;
@@ -12306,7 +12383,7 @@ function segmented(
 ): PartialElement {
   const { color = "neutral" } = props;
   return {
-    role: "group",
+    role: "radiogroup",
     _context: {
       segmented: { value: toState(props.value ?? "") },
     },
@@ -12358,7 +12435,7 @@ function segmentedItem(
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
   return {
-    role: "option",
+    role: "radio",
     _onInsert: (node) => {
       if (node.tagName !== "button") {
         console.warn(`"segmentedItem" patch must use button tag`);
@@ -12372,7 +12449,7 @@ function segmentedItem(
       const items = siblings.filter(
         (sibling) =>
           sibling.type === "ElementNode" &&
-          sibling.attributes.get("role") === "option",
+          sibling.attributes.get("role") === "radio",
       );
       // node.key is null (not undefined) when absent — check both so an
       // explicit _key of 0 or "" keeps its real key instead of "null"/index.
@@ -12382,7 +12459,7 @@ function segmentedItem(
           : String(items.indexOf(node));
 
       node.attributes.set(
-        "ariaSelected",
+        "ariaChecked",
         (listener) => ctx.value.get(listener) === key,
       );
 
@@ -12399,11 +12476,11 @@ function segmentedItem(
       color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
       backgroundColor: "transparent",
       transition: "background-color 300ms ease",
-      "&:hover:not([disabled]):not([aria-selected=true])": {
+      "&:hover:not([disabled]):not([aria-checked=true])": {
         backgroundColor: (listener) =>
           themeColor(listener, "shift-3", color.get(listener)),
       },
-      "&[aria-selected=true]": {
+      "&[aria-checked=true]": {
         backgroundColor: (listener) =>
           themeColor(listener, "shift-0", accentColor.get(listener)),
         color: (listener) =>
@@ -13073,6 +13150,8 @@ function splitterPanel(): PartialElement {
  */
 function splitterHandle(): PartialElement {
   return {
+    role: "separator",
+    tabindex: 0,
     _onMount: (node) => {
       const ctx = node.getContext("splitter");
       if (!ctx) {
@@ -13083,6 +13162,39 @@ function splitterHandle(): PartialElement {
       const isHorizontal = ctx.direction === "horizontal";
 
       handle.style.cursor = isHorizontal ? "col-resize" : "row-resize";
+      handle.setAttribute(
+        "aria-orientation",
+        isHorizontal ? "vertical" : "horizontal",
+      );
+      handle.setAttribute("aria-valuemin", String(ctx.min));
+      handle.setAttribute("aria-valuemax", String(ctx.max));
+      handle.setAttribute("aria-valuenow", String(Math.round(ctx.size.get())));
+
+      const releaseAriaValue = ctx.size.addListener((size: number) => {
+        handle.setAttribute("aria-valuenow", String(Math.round(size)));
+      });
+
+      const onKeydown = (e: KeyboardEvent) => {
+        const step = e.shiftKey ? 10 : 1;
+        let next: number | null = null;
+        if (isHorizontal) {
+          if (e.key === "ArrowRight")
+            next = Math.min(ctx.size.get() + step, ctx.max);
+          else if (e.key === "ArrowLeft")
+            next = Math.max(ctx.size.get() - step, ctx.min);
+        } else {
+          if (e.key === "ArrowDown")
+            next = Math.min(ctx.size.get() + step, ctx.max);
+          else if (e.key === "ArrowUp")
+            next = Math.max(ctx.size.get() - step, ctx.min);
+        }
+        if (e.key === "Home") next = ctx.min;
+        else if (e.key === "End") next = ctx.max;
+        if (next !== null) {
+          e.preventDefault();
+          ctx.size.set(next);
+        }
+      };
 
       const onMousedown = (e: MouseEvent) => {
         e.preventDefault();
@@ -13105,10 +13217,13 @@ function splitterHandle(): PartialElement {
         document.addEventListener("mouseup", onMouseup);
       };
 
+      handle.addEventListener("keydown", onKeydown);
       handle.addEventListener("mousedown", onMousedown);
-      node.addHook("Remove", () =>
-        handle.removeEventListener("mousedown", onMousedown),
-      );
+      node.addHook("Remove", () => {
+        releaseAriaValue();
+        handle.removeEventListener("keydown", onKeydown);
+        handle.removeEventListener("mousedown", onMousedown);
+      });
     },
     style: {
       flexShrink: 0,
@@ -13118,6 +13233,10 @@ function splitterHandle(): PartialElement {
       backgroundColor: (listener) => themeColor(listener, "shift-2"),
       "&:hover": {
         backgroundColor: (listener) => themeColor(listener, "shift-3"),
+      },
+      "&:focus-visible": {
+        outline: (listener) => `2px solid ${themeColor(listener, "shift-6")}`,
+        outlineOffset: "2px",
       },
       "&::after": {
         content: '""',
@@ -13150,6 +13269,10 @@ import {
  * @example { li: "Shipping", $: [stepItem()] }
  */
 function stepItem(): PartialElement {
+  // Mutable slots populated from context in _onInsert; defaults match steps defaults.
+  let color: ThemeColor = "neutral";
+  let accentColor: ThemeColor = "primary";
+
   return {
     _onInsert: (node) => {
       const context = node.getContext("steps") as
@@ -13165,6 +13288,10 @@ function stepItem(): PartialElement {
         console.warn(`"stepItem" patch must be used inside a "steps"`);
         return;
       }
+
+      // Read color values from context so steps() props take effect.
+      color = context.color;
+      accentColor = context.accentColor;
 
       const siblings = (node.parent?.children.items ?? []) as ElementNode[];
       const items = siblings.filter((n) => n.type === "ElementNode");
@@ -13205,7 +13332,7 @@ function stepItem(): PartialElement {
         fontWeight: "600",
         flexShrink: "0",
         border: (listener) =>
-          `2px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          `2px solid ${themeColor(listener, "shift-4", color)}`,
         backgroundColor: (listener) => themeColor(listener, "inherit"),
         color: (listener) => themeColor(listener, "shift-8"),
         transition:
@@ -13220,34 +13347,31 @@ function stepItem(): PartialElement {
         right: `calc(50% + ${themeSpacing(3)})`,
         left: `calc(-50% + ${themeSpacing(3)})`,
         height: "2px",
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", "neutral"),
+        backgroundColor: (listener) => themeColor(listener, "shift-3", color),
         zIndex: "0",
       },
       // Active step — accent colored filled circle
       "&[data-status=active]::before": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-6", "primary"),
-        borderColor: (listener) => themeColor(listener, "shift-6", "primary"),
-        color: (listener) => themeColor(listener, "shift-15", "primary"),
+          themeColor(listener, "shift-6", accentColor),
+        borderColor: (listener) => themeColor(listener, "shift-6", accentColor),
+        color: (listener) => themeColor(listener, "shift-15", accentColor),
       },
       // Done step — muted filled circle with checkmark
       "&[data-status=done]::before": {
         content: '"✓"',
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", "neutral"),
-        borderColor: (listener) => themeColor(listener, "shift-3", "neutral"),
-        color: (listener) => themeColor(listener, "shift-9", "neutral"),
+        backgroundColor: (listener) => themeColor(listener, "shift-3", color),
+        borderColor: (listener) => themeColor(listener, "shift-3", color),
+        color: (listener) => themeColor(listener, "shift-9", color),
       },
       // Done step connector — filled track
       "&[data-status=done]:not(:first-child)::after": {
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", "neutral"),
+        backgroundColor: (listener) => themeColor(listener, "shift-3", color),
       },
       // Active step connector — accent track up to the active item
       "&[data-status=active]:not(:first-child)::after": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-6", "primary"),
+          themeColor(listener, "shift-6", accentColor),
       },
       // Pending text — muted
       "&[data-status=pending]": {
@@ -13706,11 +13830,12 @@ function tabs(
 ): PartialElement {
   const partial: PartialElement = {
     role: "tablist",
+    ariaOrientation: "horizontal",
     _onSchedule: (_node, element) => {
       const partial = {
         _context: {
           tabs: {
-            activeKey: toState(props.activeKey || 0),
+            activeKey: toState(props.activeKey ?? 0),
           },
         },
       };
@@ -13854,6 +13979,7 @@ function textarea(
         };
         el.addEventListener("input", resize);
         resize();
+        node.addHook("Remove", () => el.removeEventListener("input", resize));
       }
     },
     style: {
@@ -13997,13 +14123,20 @@ function toast(
     },
     _onMount: () => requestAnimationFrame(() => state.set(true)),
     _onBeforeRemove: (node, done) => {
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        node.domElement!.removeEventListener("transitionend", onEnd);
+        done();
+      };
       const onEnd = (e: Event) => {
-        if ((e as TransitionEvent).propertyName === "transform") {
-          node.domElement!.removeEventListener("transitionend", onEnd);
-          done();
-        }
+        if ((e as TransitionEvent).propertyName === "transform") finish();
       };
       node.domElement!.addEventListener("transitionend", onEnd);
+      // Fallback: if transitionend never fires (reduced-motion, display:none,
+      // early detach), unblock removal after the transition duration + buffer.
+      setTimeout(finish, 350);
       state.set(false);
     },
   };
