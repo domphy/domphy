@@ -8463,10 +8463,11 @@ function commandSearch(
 }
 
 /**
- * Selectable item (`role="option"`) in a command palette. Subscribes to the
- * parent `command` context's query State and hides itself when its text content
- * does not match the current query. Typically applied to a `<button>` (or any
- * clickable element) used inside a `command()`.
+ * Selectable item (`role="option"`) in a command palette. On mount, immediately
+ * hides itself if the current query doesn't match its text content, and subscribes
+ * to future query changes — so items added dynamically after a search is typed are
+ * correctly filtered. Typically applied to a `<button>` (or any clickable element)
+ * used inside a `command()`.
  *
  * @param props.color - Base theme color tone. Defaults to "neutral".
  * @param props.accentColor - Accent color used for the focus outline. Defaults to "primary".
@@ -9632,8 +9633,10 @@ function resolvePhysical(
 
 /**
  * Edge-anchored modal drawer driven by an `open` State. Slides in/out from a
- * chosen edge via a transform transition, calls `showModal()`/`close()`, locks
- * page scroll while open, and closes on backdrop click. Apply to a `<dialog>`.
+ * chosen edge via a 250 ms transform transition, calls `showModal()`/`close()`,
+ * locks page scroll while open, and closes on backdrop click. A 350 ms fallback
+ * ensures `close()` is always called even when `transitionend` doesn't fire
+ * (reduced-motion, `display:none`, detached element). Apply to a `<dialog>`.
  *
  * Because the patch uses the native `<dialog>` `showModal()` API, the browser
  * traps focus inside the drawer while it is open and restores focus to the
@@ -13176,8 +13179,10 @@ function splitterPanel(): PartialElement {
 
 /**
  * The draggable divider inside a `splitter`. Reads the `splitter` context, shows the
- * appropriate resize cursor, and on mouse drag updates the context `size` state (clamped to
- * `min`/`max`). Warns if used outside a `splitter`. Takes no props.
+ * appropriate resize cursor, and updates the context `size` state (clamped to `min`/`max`)
+ * via mouse drag or keyboard: Arrow keys move by 1%, Home/End jump to min/max, hold Shift
+ * for 10× step. Sets `role="separator"`, `tabindex="0"`, and `aria-value*` attributes.
+ * Warns if used outside a `splitter`. Takes no props.
  *
  * @example { div: null, $: [splitterHandle()] }
  */

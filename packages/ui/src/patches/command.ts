@@ -87,10 +87,11 @@ function commandSearch(
 }
 
 /**
- * Selectable item (`role="option"`) in a command palette. Subscribes to the
- * parent `command` context's query State and hides itself when its text content
- * does not match the current query. Typically applied to a `<button>` (or any
- * clickable element) used inside a `command()`.
+ * Selectable item (`role="option"`) in a command palette. On mount, immediately
+ * hides itself if the current query doesn't match its text content, and subscribes
+ * to future query changes — so items added dynamically after a search is typed are
+ * correctly filtered. Typically applied to a `<button>` (or any clickable element)
+ * used inside a `command()`.
  *
  * @param props.color - Base theme color tone. Defaults to "neutral".
  * @param props.accentColor - Accent color used for the focus outline. Defaults to "primary".

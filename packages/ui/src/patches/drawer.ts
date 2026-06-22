@@ -37,8 +37,10 @@ function resolvePhysical(
 
 /**
  * Edge-anchored modal drawer driven by an `open` State. Slides in/out from a
- * chosen edge via a transform transition, calls `showModal()`/`close()`, locks
- * page scroll while open, and closes on backdrop click. Apply to a `<dialog>`.
+ * chosen edge via a 250 ms transform transition, calls `showModal()`/`close()`,
+ * locks page scroll while open, and closes on backdrop click. A 350 ms fallback
+ * ensures `close()` is always called even when `transitionend` doesn't fire
+ * (reduced-motion, `display:none`, detached element). Apply to a `<dialog>`.
  *
  * Because the patch uses the native `<dialog>` `showModal()` API, the browser
  * traps focus inside the drawer while it is open and restores focus to the

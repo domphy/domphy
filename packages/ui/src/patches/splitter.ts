@@ -80,8 +80,10 @@ function splitterPanel(): PartialElement {
 
 /**
  * The draggable divider inside a `splitter`. Reads the `splitter` context, shows the
- * appropriate resize cursor, and on mouse drag updates the context `size` state (clamped to
- * `min`/`max`). Warns if used outside a `splitter`. Takes no props.
+ * appropriate resize cursor, and updates the context `size` state (clamped to `min`/`max`)
+ * via mouse drag or keyboard: Arrow keys move by 1%, Home/End jump to min/max, hold Shift
+ * for 10× step. Sets `role="separator"`, `tabindex="0"`, and `aria-value*` attributes.
+ * Warns if used outside a `splitter`. Takes no props.
  *
  * @example { div: null, $: [splitterHandle()] }
  */
