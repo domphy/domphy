@@ -44,6 +44,7 @@ function textarea(
         };
         el.addEventListener("input", resize);
         resize();
+        node.addHook("Remove", () => el.removeEventListener("input", resize));
       }
     },
     style: {

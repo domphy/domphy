@@ -22,7 +22,7 @@ function tabs(
       const partial = {
         _context: {
           tabs: {
-            activeKey: toState(props.activeKey || 0),
+            activeKey: toState(props.activeKey ?? 0),
           },
         },
       };

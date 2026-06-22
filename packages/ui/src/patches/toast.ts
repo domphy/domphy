@@ -90,13 +90,20 @@ function toast(
     },
     _onMount: () => requestAnimationFrame(() => state.set(true)),
     _onBeforeRemove: (node, done) => {
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        node.domElement!.removeEventListener("transitionend", onEnd);
+        done();
+      };
       const onEnd = (e: Event) => {
-        if ((e as TransitionEvent).propertyName === "transform") {
-          node.domElement!.removeEventListener("transitionend", onEnd);
-          done();
-        }
+        if ((e as TransitionEvent).propertyName === "transform") finish();
       };
       node.domElement!.addEventListener("transitionend", onEnd);
+      // Fallback: if transitionend never fires (reduced-motion, display:none,
+      // early detach), unblock removal after the transition duration + buffer.
+      setTimeout(finish, 350);
       state.set(false);
     },
   };

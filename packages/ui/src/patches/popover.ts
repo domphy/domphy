@@ -69,7 +69,7 @@ function popover(props: {
         }
       }
     },
-    onFocus: () => show(),
+    onFocus: () => openOn === "hover" && show(),
     onBlur: (e, node) => {
       const related = (e as FocusEvent).relatedTarget as Node | null;
       const root = node.getRoot().domElement as Element;

@@ -36,7 +36,7 @@ function accordion(
 
       const el = node.domElement;
       if (!el) return;
-      el.addEventListener("click", (event) => {
+      const handler = (event: Event) => {
         const summary = (event.target as Element).closest("summary");
         if (!summary) return;
         const item = summary.closest("details") as HTMLDetailsElement | null;
@@ -48,7 +48,9 @@ function accordion(
             },
           );
         }
-      });
+      };
+      el.addEventListener("click", handler);
+      node.addHook("Remove", () => el.removeEventListener("click", handler));
     },
     style: {
       display: "flex",

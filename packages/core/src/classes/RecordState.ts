@@ -30,7 +30,7 @@ export class RecordState<T extends Record<string, any> = Record<string, any>> {
 
   set<K extends keyof T>(key: K, value: T[K]): void {
     this._record[key] = value;
-    this._notifier.notify(key as string);
+    this._notifier.notify(key as string, value);
   }
 
   addListener<K extends keyof T>(key: K, fn: Listener): () => void {

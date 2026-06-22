@@ -27,6 +27,7 @@ function dialog(
   const { color = "neutral", open = false } = props;
   const state = toState(open);
   let previousFocus: HTMLElement | null = null;
+  let closing = false;
 
   return {
     _onInsert: (node) => {
@@ -45,13 +46,13 @@ function dialog(
       if (!inside) state.set(false);
     },
     onTransitionEnd: (_e, node) => {
+      if (!closing) return;
+      closing = false;
       const dlg = node.domElement as HTMLDialogElement;
-      if (dlg.style.opacity === "0") {
-        dlg.close();
-        document.body.style.overflow = "";
-        previousFocus?.focus();
-        previousFocus = null;
-      }
+      dlg.close();
+      document.body.style.overflow = "";
+      previousFocus?.focus();
+      previousFocus = null;
     },
     _onMount: (node) => {
       const dlg = node.domElement as HTMLDialogElement;
@@ -99,6 +100,7 @@ function dialog(
             focusable?.focus();
           });
         } else {
+          closing = true;
           dlg.style.opacity = "0";
           dlg.removeEventListener("keydown", trapFocus);
         }

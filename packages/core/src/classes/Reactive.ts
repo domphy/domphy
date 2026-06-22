@@ -63,7 +63,13 @@ function drainReactions(): void {
   while (REACTION_QUEUE.size > 0) {
     const jobs = [...REACTION_QUEUE];
     REACTION_QUEUE.clear();
-    for (const job of jobs) job();
+    for (const job of jobs) {
+      try {
+        job();
+      } catch (e) {
+        console.error("[Domphy] Uncaught error in effect:", e);
+      }
+    }
   }
 }
 
