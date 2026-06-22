@@ -60,7 +60,7 @@ All public types are re-exported, including:
 - instance shapes: `Table`, `Column`, `Row`, `Cell`, `Header`, `HeaderGroup`, `RowModel`, `RowData`
 - options & state: `TableOptions`, `TableState`, `InitialTableState`, `Updater`
 - column defs: `ColumnDef`, `AccessorKeyColumnDef`, `AccessorFnColumnDef`, `DisplayColumnDef`, `GroupColumnDef`, `IdentifiedColumnDef`, `ColumnHelper`, `CellContext`, `HeaderContext`
-- feature state: `SortingState`, `ColumnFiltersState`, `GlobalFilterState` (via `TableState`), `PaginationState`, `RowSelectionState`, `GroupingState`, `ExpandedState`, `VisibilityState`, `ColumnOrderState`, `ColumnPinningState`, `RowPinningState`, `ColumnSizingState`, `ColumnSizingInfoState`
+- feature state: `SortingState`, `ColumnFiltersState`, `GlobalFilterTableState` (via `TableState`), `PaginationState`, `RowSelectionState`, `GroupingState`, `ExpandedState`, `VisibilityState`, `ColumnOrderState`, `ColumnPinningState`, `RowPinningState`, `ColumnSizingState`, `ColumnSizingInfoState`
 - functions: `SortingFn`, `FilterFn`, `AggregationFn`, `AccessorFn`, plus `BuiltInSortingFn`, `BuiltInFilterFn`, `BuiltInAggregationFn`
 
 ## CDN Global

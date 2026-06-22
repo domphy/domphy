@@ -141,7 +141,7 @@ At default configuration:
 | Vue | ~22 kB | ~22 kB |
 | React + ReactDOM | ~42 kB | ~42 kB |
 
-`@domphy/ui` adds ~22 kB (gzip) / ~88 kB (minified) when you import all patches; in practice, tree-shaking cuts this to only what you use.
+`@domphy/ui` adds ~40 kB (gzip) / ~143 kB (minified) when you import all patches; in practice, tree-shaking cuts this to only what you use.
 
 ## Next steps
 
