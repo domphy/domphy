@@ -49,7 +49,7 @@ Insert a new element at runtime. Call `.remove()` when done.
 ```ts
 const successToast: DomphyElement<"div"> = {
   div: "Saved successfully",
-  $: [toast({ placement: "bottom-left" })],
+  $: [toast({ position: "bottom-left" })],
 }
 
 const App = {
