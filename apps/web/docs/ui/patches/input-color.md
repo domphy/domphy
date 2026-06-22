@@ -13,6 +13,7 @@ Styles a native color picker swatch with themed padding, a rounded swatch, and d
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone used for the disabled state background. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color tone. |
 
 <CodeEditor :code="InputColor" />
 
