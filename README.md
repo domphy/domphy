@@ -33,7 +33,7 @@ Data & logic — **1-1 ports of the TanStack cores** (byte-identical upstream AP
 
 - `@domphy/query` — async state — port of `@tanstack/query-core` (`createQuery`/`createMutation`/`createInfiniteQuery`)
 - `@domphy/table` — headless tables — port of `@tanstack/table-core` (`createDomphyTable`)
-- `@domphy/router` — type-safe routing — port of `@tanstack/router-core` (`createRouter`/`createRoute`)
+- `@domphy/router` — type-safe routing — port of `@tanstack/router-core` (`createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext`)
 - `@domphy/virtual` — virtualization — port of `@tanstack/virtual-core` (`createVirtualizer`)
 - `@domphy/form` — forms — port of `@tanstack/form-core` (`createForm`)
 
@@ -97,4 +97,4 @@ Full docs: [domphy.com](https://domphy.com) — [Core](https://domphy.com/docs/c
 
 ## Monorepo
 
-`packages/{core,theme,ui,query,table,router,virtual,form,dnd,palette,doctor,mcp,floating,app,markdown,mermaid,create-domphy}` + `apps/web` (`domphy-web` — docs site, DomphyPress).
+`packages/{core,theme,ui,query,table,router,virtual,form,dnd,palette,doctor,mcp,floating,app,markdown,mermaid,create-domphy}` + `apps/web` (`domphy-web` — docs site, DomphyPress) + `bench` (benchmarks).

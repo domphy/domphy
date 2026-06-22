@@ -7,6 +7,15 @@ Reactive value container. When the value changes, all listeners are notified.
 A read-only view of a `State<T>`. Exposes only `get(listener?)` — no `set`, `reset`, or `addListener`. Use it when you want to pass a state to a consumer that should read but not mutate it.
 
 ```ts
+export type ReadableState<T> = {
+  readonly _isState: true;
+  get(listener?: ValueListener<T>): T;
+}
+```
+
+The `_isState: true` discriminant lets runtime code and type guards distinguish a `ReadableState` from a plain value.
+
+```ts
 import type { ReadableState } from "@domphy/core"
 
 function display(count: ReadableState<number>) {
@@ -97,3 +106,27 @@ The value passed to the constructor. Used by `reset()`.
 const count = toState(0)
 count.initialValue  // 0
 ```
+
+## `ValueOrState<T>`
+
+A union type accepted by patch props and element attributes that can be either a plain value, a reactive `State<T>`, or a read-only `ReadableState<T>`.
+
+```ts
+export type ValueOrState<T> = T | State<T> | ReadableState<T>;
+```
+
+Use it in function signatures when a prop should accept both static values and reactive states:
+
+```ts
+import type { ValueOrState } from "@domphy/core"
+
+function myPatch(open: ValueOrState<boolean>): PartialElement {
+  return {
+    ariaExpanded: typeof open === "object" && open._isState
+      ? (l) => (open as ReadableState<boolean>).get(l)
+      : open,
+  }
+}
+```
+
+In practice most patch props accept `ValueOrState<T>` so callers can pass `true` / `false` or a `toState(false)` interchangeably.

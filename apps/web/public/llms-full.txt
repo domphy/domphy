@@ -7285,6 +7285,12 @@ Each entry carries `{ name, kind, file, signature, jsdoc, exportKind }` — a ma
 
 | Tool | Does |
 | --- | --- |
+| `domphy_list_patches` | Lists all available `@domphy/ui` patches (name, summary). |
+| `domphy_get_patch` | Returns one patch's source, props table, and usage example by name. |
+| `domphy_list_packages` | Lists all Domphy packages with their description and subpath exports. |
+| `domphy_rules` | Lists all `@domphy/doctor` rules (id, description, fixable flag). |
+| `domphy_tones` | Lists valid color tones/names accepted by theme helpers. |
+| `domphy_diagnose` | Runs `diagnose()` on a JSON element tree, returning `Diagnostic[]`. |
 | `domphy_validate` | Runs the aggregate `validate()` on a JSON element tree, returning `{ ok, issues, summary }`. |
 | `domphy_fix` | Applies the lossless autofix to a JSON element tree, returning `{ tree, applied, report }`. |
 | `domphy_list_app_blocks` | Lists the app's own blocks (name, kind, signature, file) from `app-manifest.json`. |

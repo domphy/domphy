@@ -190,6 +190,18 @@ const b = toState(2)
 
 `computed(fn)` is a lazy, cached derived value. `fn` runs on first read and the result is cached; it re-evaluates only after a tracked dependency changes — never on every read. A `computed` is read like a state: `c.get()` for the current value, `c.get(listener)` to subscribe, and `(l) => c.get(l)` to bind it in an element.
 
+`computed` returns a `Computed<T>`, which satisfies `ReadableState<T>`:
+
+```ts
+export interface Computed<T> {
+  readonly _isState: true;
+  readonly _notifier: Notifier;
+  get(listener?: ValueListener<T>): T;
+}
+```
+
+The `_notifier` property holds the internal dependency-tracking node. It is part of the public interface but intended for advanced integrations; normal usage only needs `get(listener?)`.
+
 ```ts
 import { computed } from "@domphy/core"
 
