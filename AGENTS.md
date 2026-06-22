@@ -104,13 +104,13 @@ themeDensity(listener)  // returns density factor: 0.75 | 1 | 1.5 | 2 | 2.5
 - **Always** call `themeSpacing(themeDensity(l) * n)` for padding/gap on bounded controls (buttons, inputs) — not `themeSpacing(n)` alone.
 - Use bare `themeSpacing(n)` for structural spacing (between sections) where density shouldn't multiply.
 - Never hardcode `"6px"` / `"1.5em"` — use `themeSpacing(n)`.
-- `dataDensity`: `"increase-N"` or `"decrease-N"` where N ≤ 4 (5-step scale: 0.75, 1, 1.5, 2, 2.5).
+- `dataDensity`: `"inherit"` | `"increase-N"` | `"decrease-N"` where N ≤ 4 (5-step scale: 0.75, 1, 1.5, 2, 2.5).
 
 ### Size (`themeSize`)
 ```ts
 themeSize(listener, size?)  // size: "inherit" | "increase-N" | "decrease-N"  (N ≤ 7)
 ```
-- `dataSize`: `"increase-N"` or `"decrease-N"` where N ≤ 7 (8-step scale).
+- `dataSize`: `"inherit"` | `"increase-N"` | `"decrease-N"` where N ≤ 7 (8-step scale).
 - Never hardcode `fontSize: "16px"` — use `fontSize: (l) => themeSize(l, "inherit")`.
 
 ### Component geometry formula
