@@ -56,13 +56,12 @@ const App = {
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes |
 | `@domphy/doctor` | static analyzer — `diagnose(element)` / `validate(element)` flag non-idiomatic trees; `fix(element)` applies lossless autofixes. **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — internal to `@domphy/ui` overlays |
-| `@domphy/palette` | color-palette engine: `generateRamp` + `Ramp`/`Palette` quality metrics (design-time companion to theme) |
+| `@domphy/palette` | color-palette engine: `Ramp`/`Palette`/`Swatch` — 5 CIELAB quality metrics (design-time companion to theme) |
 | `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `tokensToDomphy`); powers this docs site |
 | `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
 | `domphy-web` | docs website — built with DomphyPress on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
-| `apps/app` | demo / integration app (internal) |
 | `bench` | benchmarks (internal, not published) |
 
 Data/logic packages are **1-1 TanStack core ports** (byte-identical upstream API) + a thin Domphy adapter at the `/domphy` subpath; `@domphy/core` is their peer dependency.
