@@ -92,8 +92,7 @@ function stepItem(): PartialElement {
         right: `calc(50% + ${themeSpacing(3)})`,
         left: `calc(-50% + ${themeSpacing(3)})`,
         height: "2px",
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", color),
+        backgroundColor: (listener) => themeColor(listener, "shift-3", color),
         zIndex: "0",
       },
       // Active step — accent colored filled circle
@@ -106,15 +105,13 @@ function stepItem(): PartialElement {
       // Done step — muted filled circle with checkmark
       "&[data-status=done]::before": {
         content: '"✓"',
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", color),
+        backgroundColor: (listener) => themeColor(listener, "shift-3", color),
         borderColor: (listener) => themeColor(listener, "shift-3", color),
         color: (listener) => themeColor(listener, "shift-9", color),
       },
       // Done step connector — filled track
       "&[data-status=done]:not(:first-child)::after": {
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", color),
+        backgroundColor: (listener) => themeColor(listener, "shift-3", color),
       },
       // Active step connector — accent track up to the active item
       "&[data-status=active]:not(:first-child)::after": {
