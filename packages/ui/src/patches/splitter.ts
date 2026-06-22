@@ -133,6 +133,8 @@ function splitterHandle(): PartialElement {
         }
       };
 
+      let cancelDrag: (() => void) | null = null;
+
       const onMousedown = (e: MouseEvent) => {
         e.preventDefault();
         const container = handle.parentElement!;
@@ -148,6 +150,13 @@ function splitterHandle(): PartialElement {
         const onMouseup = () => {
           document.removeEventListener("mousemove", onMousemove);
           document.removeEventListener("mouseup", onMouseup);
+          cancelDrag = null;
+        };
+
+        cancelDrag = () => {
+          document.removeEventListener("mousemove", onMousemove);
+          document.removeEventListener("mouseup", onMouseup);
+          cancelDrag = null;
         };
 
         document.addEventListener("mousemove", onMousemove);
@@ -157,6 +166,7 @@ function splitterHandle(): PartialElement {
       handle.addEventListener("keydown", onKeydown);
       handle.addEventListener("mousedown", onMousedown);
       node.addHook("Remove", () => {
+        cancelDrag?.();
         releaseAriaValue();
         handle.removeEventListener("keydown", onKeydown);
         handle.removeEventListener("mousedown", onMousedown);

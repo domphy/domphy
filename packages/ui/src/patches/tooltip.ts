@@ -42,10 +42,13 @@ function tooltip(
   const placeState = toState(placement);
   const contentState = toState(content);
 
-  let tooltipId: string | null = null;
+  // Pre-generate ID so the trigger can reference it via aria-describedby
+  // before the tooltip content element is first inserted into the DOM.
+  const tooltipId = `domphy-tt-${Math.random().toString(36).slice(2, 9)}`;
 
   const contentElement: DomphyElement<"span"> = {
     span: (listener) => contentState.get(listener),
+    id: tooltipId,
   };
 
   const { show, hide, anchorPartial } = creatFloating({
@@ -58,11 +61,6 @@ function tooltip(
     role: "tooltip",
     dataSize: "decrease-1",
     dataTone: "shift-17",
-    _onInsert: (node) => {
-      const id = node.attributes.get("id");
-      tooltipId = id || node.nodeId;
-      !id && node.attributes.set("id", tooltipId);
-    },
     style: {
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
@@ -77,13 +75,12 @@ function tooltip(
   contentElement.$.push(tooltipPartial);
 
   const triggerPartial: PartialElement = {
+    ariaDescribedby: tooltipId,
     onMouseEnter: () => show(),
     onMouseLeave: () => hide(),
     onFocus: () => show(),
     onBlur: () => hide(),
     onKeyDown: (e) => (e as KeyboardEvent).key === "Escape" && hide(),
-    _onMount: (node) =>
-      tooltipId && node.attributes.set("ariaDescribedby", tooltipId),
   };
 
   merge(anchorPartial, triggerPartial);

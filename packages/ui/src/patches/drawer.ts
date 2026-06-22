@@ -85,13 +85,6 @@ function drawer(
       if (e.target !== node.domElement) return;
       state.set(false);
     },
-    onTransitionEnd: (_e, node) => {
-      const dlg = node.domElement as HTMLDialogElement;
-      if (!state.get()) {
-        dlg.close();
-        document.body.style.overflow = "";
-      }
-    },
     _onMount: (node) => {
       const dlg = node.domElement as HTMLDialogElement;
       dlg.setAttribute("aria-modal", "true");
@@ -118,15 +111,33 @@ function drawer(
         dlg.style.height = isVertical(physical) ? "100dvh" : drawerSize;
       }
 
+      let closing = false;
+      const finishClose = () => {
+        if (!closing) return;
+        closing = false;
+        dlg.close();
+        document.body.style.overflow = "";
+      };
+
+      const onTransitionEnd = (e: Event) => {
+        if (e.target !== dlg) return;
+        if ((e as TransitionEvent).propertyName !== "transform") return;
+        finishClose();
+      };
+      dlg.addEventListener("transitionend", onTransitionEnd);
+
       const update = (val: boolean) => {
         if (val) {
+          closing = false;
           dlg.showModal();
           document.body.style.overflow = "hidden";
           requestAnimationFrame(() => {
             dlg.style.transform = "translate(0, 0)";
           });
         } else {
+          closing = true;
           dlg.style.transform = translateOut[physical];
+          setTimeout(finishClose, 350);
         }
       };
       update(state.get());
@@ -134,6 +145,7 @@ function drawer(
       node.addHook("Remove", () => {
         release();
         dlg.removeEventListener("cancel", onCancel);
+        dlg.removeEventListener("transitionend", onTransitionEnd);
         document.body.style.overflow = "";
       });
     },

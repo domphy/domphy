@@ -109,6 +109,16 @@ function dialog(
           closing = true;
           dlg.style.opacity = "0";
           dlg.removeEventListener("keydown", trapFocus);
+          // Fallback: if transitionend never fires (reduced-motion, display:none),
+          // unblock close after the transition duration + buffer.
+          setTimeout(() => {
+            if (!closing) return;
+            closing = false;
+            dlg.close();
+            document.body.style.overflow = "";
+            previousFocus?.focus();
+            previousFocus = null;
+          }, 350);
         }
       };
       update(state.get());

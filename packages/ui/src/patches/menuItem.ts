@@ -68,6 +68,7 @@ function menuItem(
           n.type === "ElementNode" &&
           (n as ElementNode).attributes.get("role") === "menuitem",
       ) as ElementNode[];
+      if (!items.length) return;
       const idx = items.indexOf(node);
       let next = idx;
       if (k === "ArrowDown") next = (idx + 1) % items.length;

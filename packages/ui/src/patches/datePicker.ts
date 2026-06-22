@@ -122,7 +122,9 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   const selection = toState<DatePickerValue>(
     props.value ?? (mode === "range" ? [null, null] : null),
   );
-  if (onChange) selection.addListener((value) => onChange(value));
+  const releaseOnChange = onChange
+    ? selection.addListener((value) => onChange(value))
+    : null;
 
   const primaryDate = ((): Date => {
     const current = selection.get();
@@ -307,6 +309,11 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         openAndFocus();
       }
     },
+    _onMount: (node) =>
+      releaseOnChange &&
+      node.addHook("Remove", () => {
+        releaseOnChange();
+      }),
   };
   function openAndFocus(): void {
     const current = isSelectedPrimary() ?? new Date();

@@ -110,9 +110,11 @@ function commandItem(
       }
       const el = node.domElement as HTMLElement;
       const text = el.textContent?.toLowerCase() ?? "";
-      const release = ctx.query.addListener((q: string) => {
+      const applyFilter = (q: string) => {
         el.hidden = q.length > 0 && !text.includes(q.toLowerCase());
-      });
+      };
+      applyFilter(ctx.query.get());
+      const release = ctx.query.addListener(applyFilter);
       node.addHook("Remove", release);
     },
     style: {

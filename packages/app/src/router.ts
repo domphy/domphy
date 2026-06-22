@@ -67,6 +67,7 @@ interface TransitionOptions {
   scroll?: boolean;
   fromHistory?: boolean;
   initial?: boolean;
+  _redirectDepth?: number;
 }
 
 let defaultRouter: AppRouter | null = null;
@@ -95,6 +96,7 @@ export class AppRouter {
   private headers?: Headers;
   private navigationToken = 0;
   private releaseHistory: (() => void) | null = null;
+  private releaseRevalidated: (() => void) | null = null;
   private currentMatch: RouteMatch | null = null;
   /** Cache keys backing the current render, used to drive stale-while-revalidate re-renders. */
   private currentRenderKeys = new Set<string>();
@@ -135,7 +137,9 @@ export class AppRouter {
     this.tree = toState<DomphyElement>({ div: "" });
     // Stale-while-revalidate: when a displayed loader entry refreshes in the
     // background, re-render the current route so the fresh data appears.
-    this.cache.onRevalidated((key) => this.onRevalidated(key));
+    this.releaseRevalidated = this.cache.onRevalidated((key) =>
+      this.onRevalidated(key),
+    );
     defaultRouter = this;
   }
 
@@ -303,6 +307,8 @@ export class AppRouter {
   destroy(): void {
     this.releaseHistory?.();
     this.releaseHistory = null;
+    this.releaseRevalidated?.();
+    this.releaseRevalidated = null;
     if (defaultRouter === this) defaultRouter = null;
   }
 
@@ -568,6 +574,7 @@ export class AppRouter {
           for (const middleware of routeMiddleware(route) ?? []) {
             const result = await middleware(middlewareContext);
             if (isRewrite(result)) {
+              if (token !== this.navigationToken) return;
               await this.transition(
                 new URL(result.__domphyRewrite, url),
                 options,
@@ -584,9 +591,21 @@ export class AppRouter {
     } catch (error) {
       if (token !== this.navigationToken) return;
       if (error instanceof RedirectSignal) {
+        const depth = (options._redirectDepth ?? 0) + 1;
+        if (depth > 10) {
+          const failure = new Error(
+            `[Domphy] Redirect loop detected: too many consecutive redirects (>${depth - 1})`,
+          );
+          this.tree.set(this.errorBlock(failure, () => void this.refresh()));
+          this.state.set("status", "error");
+          this.state.set("error", failure);
+          this.events.notify("routeChangeError", failure, href);
+          return;
+        }
         await this.transition(this.resolve(error.to), {
           ...options,
           replace: true,
+          _redirectDepth: depth,
         });
         // Set after the inner transition so its entry reset does not erase this.
         this.lastRedirect = { to: error.to, permanent: error.permanent };

@@ -24,6 +24,8 @@ function transitionGroup(
   const { duration = 300, delay = 0 } = props;
 
   let previousRects: RectMap = new Map();
+  // Cancels any in-flight animation for a given DOM element before starting a new one.
+  const cancelMap = new Map<HTMLElement, () => void>();
 
   return {
     _onBeforeUpdate: (node) => {
@@ -50,8 +52,8 @@ function transitionGroup(
         const deltaY = prev.top - next.top;
         if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) return;
 
-        const previousTransition = dom.style.transition;
-        const previousTransform = dom.style.transform;
+        // Cancel any in-flight animation on this element before starting a new one.
+        cancelMap.get(dom)?.();
 
         dom.style.transition = "none";
         dom.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
@@ -62,21 +64,28 @@ function transitionGroup(
           dom.style.transform = "translate(0px, 0px)";
         });
 
-        const cleanup = () => {
-          dom.style.transition = previousTransition;
-          dom.style.transform = previousTransform;
+        let cancelled = false;
+        const finish = () => {
+          if (cancelled) return;
+          cancelled = true;
+          cancelMap.delete(dom);
           dom.removeEventListener("transitionend", onEnd);
+          dom.style.transition = "";
+          dom.style.transform = "";
         };
 
         const onEnd = (event: Event) => {
-          const transitionEvent = event as TransitionEvent;
-          if (transitionEvent.propertyName === "transform") {
-            cleanup();
-          }
+          if ((event as TransitionEvent).propertyName === "transform") finish();
         };
 
+        cancelMap.set(dom, () => {
+          cancelled = true;
+          cancelMap.delete(dom);
+          dom.removeEventListener("transitionend", onEnd);
+        });
+
         dom.addEventListener("transitionend", onEnd);
-        setTimeout(cleanup, duration + delay + 34);
+        setTimeout(finish, duration + delay + 34);
       });
       previousRects.clear();
     },

@@ -50,7 +50,8 @@ function inputOTP(): PartialElement {
         e.preventDefault();
         const text = e.clipboardData?.getData("text") ?? "";
         const inputs = getInputs();
-        const startIdx = inputs.indexOf(e.target as HTMLInputElement);
+        const found = inputs.indexOf(e.target as HTMLInputElement);
+        const startIdx = found === -1 ? 0 : found;
         [...text].forEach((char, i) => {
           if (inputs[startIdx + i]) inputs[startIdx + i].value = char;
         });

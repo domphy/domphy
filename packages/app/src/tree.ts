@@ -122,7 +122,10 @@ export function buildTree(input: BuildTreeInput): BuiltTree {
     status = "loading";
   } else {
     const leaf = chain[chain.length - 1];
-    inner = routePage(leaf)!(contexts[chain.length - 1]);
+    const page = routePage(leaf);
+    inner = page
+      ? page(contexts[chain.length - 1])
+      : ({ div: "" } as DomphyElement);
     inner._key = `${match.route.id}:page`;
     wrapLimit = chain.length - 1;
     status = "idle";

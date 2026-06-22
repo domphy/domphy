@@ -187,21 +187,24 @@ export class DomphyApp {
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         controller.enqueue(encoder.encode(open));
-        const { content, data, head } = await rest;
-        const contentNode = new ElementNode({
-          div: [content],
-          style: { display: "contents" },
-        });
-        const chunk =
-          `<style>${contentNode.generateCSS()}</style>` +
-          `<template id="domphy-head">${head}</template>` +
-          `<template id="domphy-content">${contentNode.generateHTML()}</template>` +
-          `<script>${STREAM_SWAP_SCRIPT}</script>` +
-          `<script>window.${HYDRATION_GLOBAL} = ${serializeData(data)};</script>` +
-          `${bootstrap}</body></html>`;
-        controller.enqueue(encoder.encode(chunk));
-        controller.close();
-        serverRouter.destroy();
+        try {
+          const { content, data, head } = await rest;
+          const contentNode = new ElementNode({
+            div: [content],
+            style: { display: "contents" },
+          });
+          const chunk =
+            `<style>${contentNode.generateCSS()}</style>` +
+            `<template id="domphy-head">${head}</template>` +
+            `<template id="domphy-content">${contentNode.generateHTML()}</template>` +
+            `<script>${STREAM_SWAP_SCRIPT}</script>` +
+            `<script>window.${HYDRATION_GLOBAL} = ${serializeData(data)};</script>` +
+            `${bootstrap}</body></html>`;
+          controller.enqueue(encoder.encode(chunk));
+          controller.close();
+        } finally {
+          serverRouter.destroy();
+        }
       },
     });
 

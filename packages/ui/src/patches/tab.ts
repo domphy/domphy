@@ -57,6 +57,7 @@ function tab(
               n.type === "ElementNode" &&
               (n as ElementNode).attributes.get("role") === "tab",
           ) as ElementNode[];
+          if (!tabs.length) return;
           const idx = tabs.indexOf(node);
           let next = idx;
           if (k === "ArrowRight") next = (idx + 1) % tabs.length;
