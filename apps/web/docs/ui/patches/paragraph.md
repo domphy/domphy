@@ -8,6 +8,12 @@ import Paragraph from "../../demos/patches/Paragraph.ts?raw"
 
 Use the paragraph patch to customize this element.
 
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Color tone for the paragraph text. |
+
 <CodeEditor :code="Paragraph" />
 
 ::: details Customization

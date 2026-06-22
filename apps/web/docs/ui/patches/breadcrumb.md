@@ -10,6 +10,13 @@ Use `breadcrumb` on a `nav` element. It styles direct children automatically. Ma
 
 Use `breadcrumbEllipsis` on a `button` element to represent collapsed breadcrumb items.
 
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Color tone for the breadcrumb. |
+| `separator` | `string` | `"/"` | Separator character rendered between breadcrumb items. |
+
 <CodeEditor :code="Breadcrumb" />
 
 ::: details Customization
