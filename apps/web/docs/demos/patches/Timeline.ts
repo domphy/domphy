@@ -1,5 +1,5 @@
 import type { DomphyElement } from "@domphy/core";
-import { heading, paragraph, small, timeline, timelineItem } from "@domphy/ui";
+import { heading, small, timeline, timelineItem } from "@domphy/ui";
 
 const events = [
   { date: "Jan 2024", title: "Project started", done: true },

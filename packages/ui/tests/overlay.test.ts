@@ -48,7 +48,7 @@ beforeEach(() => {
   // host is a non-dialog element (warn test case). Stub close on HTMLElement so
   // the fallback timer does not throw "not a function" during fake-timer drain.
   if (!(HTMLElement.prototype as any).close) {
-    (HTMLElement.prototype as any).close = function () {};
+    (HTMLElement.prototype as any).close = () => {};
   }
 });
 

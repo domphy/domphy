@@ -1,4 +1,4 @@
-import { type DomphyElement, toState } from "@domphy/core";
+import { type DomphyElement } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
 import { buttonGhost } from "@domphy/ui";
 
