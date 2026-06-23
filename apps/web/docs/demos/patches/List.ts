@@ -11,11 +11,12 @@ const App: DomphyElement<"div"> = {
     {
       ul: items.map(
         (label): DomphyElement<"li"> => ({
+          // biome-ignore lint/suspicious/noExplicitAny: DomphyElement union is too deep for TS to resolve nested tag literals
           li: {
             button: label,
             onClick: () => selected.set(label),
             $: [listItemButton()],
-          },
+          } as any,
           ariaSelected: (l) => (selected.get(l) === label ? "true" : undefined),
           $: [listItem()],
         }),
