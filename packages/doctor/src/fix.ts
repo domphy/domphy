@@ -1,9 +1,9 @@
-import { HtmlTags, SvgTags, VoidTags } from "@domphy/core";
 import {
   type DiagnoseOptions,
   type ValidationReport,
   validate,
 } from "./diagnose.js";
+import { findTag, isPlainObject, VOID } from "./shared.js";
 
 // Autofix for Domphy element trees. We ONLY apply transforms that are provably
 // lossless — they fix structurally-invalid input without guessing intent. Every
@@ -12,20 +12,6 @@ import {
 // a "fix" would corrupt the author's meaning (e.g. an index key is itself the
 // unstable-key anti-pattern). Those are returned in `report` for the model or a
 // human to resolve. The fixer set is a registry so safe transforms can be added.
-
-const TAGS = new Set<string>([...HtmlTags, ...SvgTags]);
-const VOID = new Set<string>(VoidTags);
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function findTag(element: Record<string, unknown>): string | undefined {
-  for (const key in element) {
-    if (TAGS.has(key)) return key;
-  }
-  return undefined;
-}
 
 // Structural clone that preserves functions (reactive `(listener) => …` values)
 // by reference — a JSON clone would drop them. Primitives pass through.

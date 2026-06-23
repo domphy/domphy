@@ -11,7 +11,7 @@ let _chain: ChainEntry[] = [];
 // it is the standard fallback. The `.catch` mimics `queueMicrotask`'s
 // behaviour of surfacing thrown errors to the global error handler rather
 // than silently becoming an unhandled-rejection.
-const _microtask: (cb: () => void) => void =
+export const _microtask: (cb: () => void) => void =
   typeof queueMicrotask === "function"
     ? queueMicrotask
     : (cb) => {

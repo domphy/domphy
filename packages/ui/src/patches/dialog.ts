@@ -57,6 +57,7 @@ function dialog(
     _onMount: (node) => {
       const dlg = node.domElement as HTMLDialogElement;
       dlg.setAttribute("aria-modal", "true");
+      let closeTimer: ReturnType<typeof setTimeout> | null = null;
 
       const trapFocus = (e: KeyboardEvent) => {
         if (e.key !== "Tab") return;
@@ -111,7 +112,8 @@ function dialog(
           dlg.removeEventListener("keydown", trapFocus);
           // Fallback: if transitionend never fires (reduced-motion, display:none),
           // unblock close after the transition duration + buffer.
-          setTimeout(() => {
+          closeTimer = setTimeout(() => {
+            closeTimer = null;
             if (!closing) return;
             closing = false;
             dlg.close();
@@ -124,6 +126,10 @@ function dialog(
       update(state.get());
       const release = state.addListener(update);
       node.addHook("Remove", () => {
+        if (closeTimer) {
+          clearTimeout(closeTimer);
+          closeTimer = null;
+        }
         release();
         dlg.removeEventListener("cancel", onCancel);
         document.body.style.overflow = "";

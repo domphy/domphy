@@ -42,15 +42,6 @@ export class DataCache {
     }
   }
 
-  snapshot(keys: string[]): Record<string, unknown> {
-    const record: Record<string, unknown> = {};
-    for (const key of keys) {
-      const entry = this.entries.get(key);
-      if (entry) record[key] = entry.data;
-    }
-    return record;
-  }
-
   invalidate(prefix?: string): void {
     if (prefix === undefined) {
       this.entries.clear();
@@ -164,8 +155,29 @@ export class DataCache {
     const existing = this.entries.get(key);
     if (existing && Date.now() - existing.timestamp <= PREFETCH_LIFETIME)
       return;
-    if (this.inflight.has(key)) return;
-    const data = await loader(context);
-    this.entries.set(key, { data, timestamp: Date.now(), consumable: true });
+    const pending = this.inflight.get(key);
+    if (pending) {
+      await pending;
+      return;
+    }
+    // Track the loader call in `inflight` so two concurrent prefetches for the
+    // same key (and a concurrent `load()`) share one loader invocation.
+    const promise = Promise.resolve(loader(context)).then(
+      (data) => {
+        this.inflight.delete(key);
+        this.entries.set(key, {
+          data,
+          timestamp: Date.now(),
+          consumable: true,
+        });
+        return data;
+      },
+      (error) => {
+        this.inflight.delete(key);
+        throw error;
+      },
+    );
+    this.inflight.set(key, promise);
+    await promise;
   }
 }

@@ -120,5 +120,5 @@ pnpm add mermaid
 ```
 
 ::: tip
-Prefer the build-time path for documentation and content sites: the SVG is in the HTML on first paint, with no Mermaid runtime, no layout shift, and no client work. Reach for `mermaidClient()` only when the diagram source is dynamic in the browser.
+Prefer the build-time path for documentation and content sites: the SVG is in the HTML on first paint, with no Mermaid runtime, no layout shift, and no client work. Reach for `mermaidClient()` only when the diagram source is dynamic in the browser, or when your build environment can't run a headless browser reliably — this docs site itself renders Mermaid client-side because serverless build hosts (e.g. Vercel) don't ship a stable Chrome.
 :::

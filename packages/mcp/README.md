@@ -9,12 +9,17 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server that gives MC
 | Tool | Does |
 | --- | --- |
 | `domphy_list_patches` | every `@domphy/ui` patch with host tag + signature |
-| `domphy_get_patch` | one patch's full contract (host tag, signature, doc, source) |
+| `domphy_get_patch` | one patch's full contract (host tag, signature, props, example, doc, source) |
 | `domphy_list_packages` | all `@domphy/*` packages with versions + descriptions |
-| `domphy_rules` | the Domphy code-generation rules (`llms.txt`) |
+| `domphy_rules` | the Domphy code-generation rules (`llms.txt`) to follow |
+| `domphy_tones` | the valid tone names + theme color names for `themeColor()`/`dataTone` |
 | `domphy_diagnose` | run [`@domphy/doctor`](https://domphy.com/docs/doctor/) on a JSON element tree and return issues to fix |
+| `domphy_validate` | run the doctor's aggregate `validate()` — returns `{ ok, issues, summary }` with severity counts |
+| `domphy_fix` | apply the doctor's lossless autofix — returns `{ tree, applied, report }` (only provably-safe fixes applied) |
+| `domphy_list_app_blocks` | list the current app's OWN reusable Domphy blocks from its `app-manifest.json` |
+| `domphy_get_app_block` | get one app block's full source + signature + jsdoc, by name |
 
-Patch/package data is fetched live from `domphy.com` (always current with the latest release); `domphy_diagnose` runs locally.
+Patch/package/rules/tones data is fetched live from `domphy.com` (always current with the latest release); `domphy_diagnose`/`domphy_validate`/`domphy_fix` run locally, and the app-block tools read the local `app-manifest.json`.
 
 ## Use
 

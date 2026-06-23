@@ -12,7 +12,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
-import { creatFloating } from "../utils/floating.js";
+import { createFloating } from "../utils/floating.js";
 import { popoverArrow } from "./popoverArrow.js";
 
 /**
@@ -51,7 +51,7 @@ function tooltip(
     id: tooltipId,
   };
 
-  const { show, hide, anchorPartial } = creatFloating({
+  const { show, hide, anchorPartial } = createFloating({
     open,
     placement: placeState,
     content: contentElement,

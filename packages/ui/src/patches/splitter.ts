@@ -189,6 +189,10 @@ function splitterHandle(): PartialElement {
       },
       "&::after": {
         content: '""',
+        // A small grip dot so the handle is visibly draggable. Without an
+        // explicit size the pseudo-element collapses to 0x0 and is invisible.
+        width: themeSpacing(1),
+        height: themeSpacing(1),
         borderRadius: themeSpacing(999),
         backgroundColor: (listener) => themeColor(listener, "shift-4"),
       },

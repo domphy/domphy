@@ -15,10 +15,8 @@ import {
  * @param props.color - Surface color tone. Optional `ThemeColor`, defaults to `"neutral"`.
  * @example { ul: [...], $: [list()] }
  */
-function list(props: { color?: ThemeColor } = {}): PartialElement {
-  const { color = "neutral" } = props;
+function list(_props: { color?: ThemeColor } = {}): PartialElement {
   return {
-    _context: { list: { color } },
     style: {
       listStyle: "none",
       margin: 0,

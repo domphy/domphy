@@ -1,5 +1,5 @@
-import { HtmlTags, SvgTags, VoidTags } from "@domphy/core";
 import { cssRgbToRgb, hexToRgb, labToLch, rgbToLab } from "@domphy/palette";
+import { findTag, isPlainObject, VOID } from "./shared.js";
 
 export type Severity = "error" | "warning" | "info";
 
@@ -23,8 +23,6 @@ export interface DiagnoseOptions {
   runReactive?: boolean;
 }
 
-const TAGS = new Set<string>([...HtmlTags, ...SvgTags]);
-const VOID = new Set<string>(VoidTags);
 const RESERVED = new Set([
   "$",
   "style",
@@ -162,6 +160,19 @@ function parseLiteralToLch(value: string): [number, number, number] | null {
   }
 }
 
+// Pulls the first parseable color token out of a (possibly shorthand) value.
+// Shorthands such as "1px solid #ccc" or "0 0 4px rgba(0,0,0,.5)" embed the
+// color among other tokens, so `parseLiteralToLch` (which expects the value to
+// START with the color) would otherwise miss it. Matches a #hex literal or a
+// complete rgb()/rgba() call (with its arguments). hsl()/named colors are left
+// for the generic fallback, matching parseLiteralToLch's own coverage.
+const EMBEDDED_COLOR = /#[0-9a-fA-F]{3,8}\b|rgba?\s*\([^)]*\)/;
+
+function extractColorLiteral(value: string): string | null {
+  const match = EMBEDDED_COLOR.exec(value);
+  return match ? match[0] : null;
+}
+
 /**
  * Converts LCH coordinates into a concrete `themeColor()` call suggestion plus
  * a perceptual description. The tone and color-family are approximations for the
@@ -219,17 +230,6 @@ function buildSpacingHint(prop: string, value: string): string | null {
 }
 
 // ─── Tree walkers ─────────────────────────────────────────────────────────────
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function findTag(element: Record<string, unknown>): string | undefined {
-  for (const key in element) {
-    if (TAGS.has(key)) return key;
-  }
-  return undefined;
-}
 
 /** Statically analyzes a Domphy element tree and returns idiomatic-usage diagnostics. */
 export function diagnose(
@@ -391,7 +391,11 @@ function walk(
         typeof value === "string" &&
         LITERAL_COLOR.test(value)
       ) {
-        const lch = parseLiteralToLch(value);
+        // For shorthands (border/outline/background) the color is embedded in a
+        // larger string, so extract the color token first; fall back to the
+        // whole value (covers the simple `color: "#fff"` case).
+        const colorLiteral = extractColorLiteral(value) ?? value;
+        const lch = parseLiteralToLch(colorLiteral);
         const colorHint = lch
           ? buildColorHint(lch)
           : "(l) => themeColor(l, tone, colorName)";

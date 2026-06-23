@@ -1,5 +1,5 @@
 import { Swatch } from "./Swatch";
-import { calcDeltaE2000, calcScore, createMonotone, hexToRgb, rgbToLab } from "./utils";
+import { calcDeltaE2000, calcScore, createMonotone } from "./utils";
 
 export type ContrastValue = {
     efficiency: number;
@@ -43,14 +43,6 @@ export class Ramp {
 
     get steps() {
         return this.colors.length;
-    }
-
-    get direction() {
-        if (this.colors.length === 0) return "lighten";
-
-        const firstLab = rgbToLab(hexToRgb(this.colors[0]));
-        const lastLab = rgbToLab(hexToRgb(this.colors[this.colors.length - 1]));
-        return firstLab[0] > lastLab[0] ? "darken" : "lighten";
     }
 
     get baseColor() {
@@ -157,13 +149,6 @@ export class Ramp {
         }
 
         return contrasts;
-    }
-
-    get contrasts() {
-        return {
-            wcag: this.wcag,
-            apca: this.apca,
-        };
     }
 
     get deltaECurve() {

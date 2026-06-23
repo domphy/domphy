@@ -1,97 +1,97 @@
 {
   "name": "domphy",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "generated": "auto",
   "rules": "https://domphy.com/llms.txt",
   "tones": "https://domphy.com/tones.json",
   "packages": [
     {
       "name": "@domphy/app",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy App - a port of the Next.js App Router feature set for Domphy: routing, nested layouts, navigation, data loading, metadata, middleware, SSR and API routes",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/core",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy Core UI Framework",
       "subpaths": ["."],
       "peerDependencies": []
     },
     {
       "name": "create-domphy",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Scaffold a runnable Domphy starter project (npm create domphy@latest)",
       "subpaths": ["."],
       "peerDependencies": []
     },
     {
       "name": "@domphy/dnd",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy Drag & Drop - reactive adapter for the framework-agnostic @formkit/drag-and-drop engine",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/doctor",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy Doctor - static analyzer that flags non-idiomatic Domphy element trees (AI self-correction)",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/floating",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy Floating - anchor positioning (tooltips, popovers, dropdowns), a 1-1 vendor of floating-ui (dom + core + utils), zero dependencies",
       "subpaths": ["."],
       "peerDependencies": []
     },
     {
       "name": "@domphy/form",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy Form - headless form state, validation and submission, a 1-1 port of @tanstack/form-core",
       "subpaths": [".", "./domphy"],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/markdown",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy Markdown - parse Markdown into Domphy element trees (markdown-it) for SSR with @domphy/core",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/mcp",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy MCP server - exposes patches, packages, rules, and the doctor to MCP-capable AI agents",
       "subpaths": [".", "./tools"],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/mermaid",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy Mermaid - build-time (SSG) and client-side Mermaid diagram rendering, with markdown tree integration for @domphy/markdown",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core", "mermaid"]
     },
     {
       "name": "@domphy/palette",
-      "version": "0.16.0",
-      "description": "Domphy Palette - color-palette engine that generates optimal color ramps and validates palette quality, a port of chromametry",
+      "version": "0.17.0",
+      "description": "Domphy Palette - color-science toolkit: measure and validate palette quality with CIELAB metrics, a port of chromametry",
       "subpaths": ["."],
       "peerDependencies": []
     },
     {
       "name": "@domphy/query",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy Query - async state management, a 1-1 port of @tanstack/query-core",
       "subpaths": [".", "./domphy"],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/router",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy Router - type-safe routing, a 1-1 port of @tanstack/router-core",
       "subpaths": [
         ".",
@@ -105,28 +105,28 @@
     },
     {
       "name": "@domphy/table",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy Table - headless table logic, a 1-1 port of @tanstack/table-core",
       "subpaths": [".", "./domphy"],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/theme",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy Design System",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/ui",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy UI",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core", "@domphy/theme"]
     },
     {
       "name": "@domphy/virtual",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "description": "Domphy Virtual - headless list/grid virtualization, a 1-1 port of @tanstack/virtual-core",
       "subpaths": [".", "./domphy"],
       "peerDependencies": ["@domphy/core"]
@@ -246,7 +246,7 @@
           "name": "color",
           "type": "ValueOrState<ThemeColor>",
           "optional": true,
-          "doc": "Surface/bar color tone. Optional `ValueOrState<ThemeColor>`, default \"inherit\"."
+          "doc": "Surface/bar color tone. Optional `ValueOrState<ThemeColor>`, default \"neutral\"."
         }
       ],
       "doc": "Styles a quotation block with a colored inset side bar, padded surface, and shifted tone. Apply to a `<blockquote>` element.",
@@ -306,6 +306,22 @@
       "doc": "A themed button control with density-aware padding/radius and hover, focus-visible, `[disabled]`, and `[aria-busy=true]` states. Apply to a `<button>` element.",
       "example": "{ button: \"Save\", $: [button({ color: \"primary\" })] }",
       "source": "packages/ui/src/patches/button.ts"
+    },
+    {
+      "name": "buttonGhost",
+      "hostTag": "button",
+      "signature": "buttonGhost(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Text color tone. Optional `ValueOrState<ThemeColor>`, defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "A transparent button with no border or background — suitable for icon actions, inline controls, and delete/close triggers. Apply to a `<button>` element.",
+      "example": "{ button: \"×\", $: [buttonGhost()] }",
+      "source": "packages/ui/src/patches/buttonGhost.ts"
     },
     {
       "name": "buttonSwitch",
@@ -452,7 +468,7 @@
           "doc": "Accent color used for the focus outline. Defaults to \"primary\"."
         }
       ],
-      "doc": "Selectable item (`role=\"option\"`) in a command palette. Subscribes to the parent `command` context's query State and hides itself when its text content does not match the current query. Typically applied to a `<button>` (or any clickable element) used inside a `command()`.",
+      "doc": "Selectable item (`role=\"option\"`) in a command palette. On mount, immediately hides itself if the current query doesn't match its text content, and subscribes to future query changes — so items added dynamically after a search is typed are correctly filtered. Typically applied to a `<button>` (or any clickable element) used inside a `command()`.",
       "example": "{ button: \"Open file\", $: [commandItem({ color: \"neutral\" })] }",
       "source": "packages/ui/src/patches/command.ts"
     },
@@ -672,7 +688,7 @@
           "doc": "CSS length for the drawer's width (left/right/start/end) or height (top/bottom). Defaults to themeSpacing(80) for left/right, themeSpacing(64) for top/bottom."
         }
       ],
-      "doc": "Edge-anchored modal drawer driven by an `open` State. Slides in/out from a chosen edge via a transform transition, calls `showModal()`/`close()`, locks page scroll while open, and closes on backdrop click. Apply to a `<dialog>`. Because the patch uses the native `<dialog>` `showModal()` API, the browser automatically sets `aria-modal=\"true\"`, traps focus inside the drawer while it is open, and restores focus to the previously focused element when `close()` is called. `\"start\"` and `\"end\"` placements resolve to left/right based on the document's `dir` attribute at mount time, enabling RTL-aware drawers: `\"start\"` → left (LTR) / right (RTL); `\"end\"` → right (LTR) / left (RTL).",
+      "doc": "Edge-anchored modal drawer driven by an `open` State. Slides in/out from a chosen edge via a 250 ms transform transition, calls `showModal()`/`close()`, locks page scroll while open, and closes on backdrop click. A 350 ms fallback ensures `close()` is always called even when `transitionend` doesn't fire (reduced-motion, `display:none`, detached element). Apply to a `<dialog>`. Because the patch uses the native `<dialog>` `showModal()` API, the browser traps focus inside the drawer while it is open and restores focus to the previously focused element when `close()` is called. Sets `aria-modal=\"true\"`. Escape key closes the drawer via the animated state path (not immediate close). `\"start\"` and `\"end\"` placements resolve to left/right based on the document's `dir` attribute at mount time, enabling RTL-aware drawers: `\"start\"` → left (LTR) / right (RTL); `\"end\"` → right (LTR) / left (RTL).",
       "example": "{ dialog: [...], $: [drawer({ open, placement: \"start\" })] }",
       "source": "packages/ui/src/patches/drawer.ts"
     },
@@ -705,7 +721,7 @@
         }
       ],
       "doc": "Styles a container as an empty-state placeholder: centered flex column with muted coloring and comfortable padding. Provide the icon, title, and description as child elements.",
-      "example": "{ div: [ { span: \"📭\", $: [heading({ level: 1 })] }, { p: \"No items yet\", $: [paragraph()] }, { span: \"Add your first item to get started\", $: [small()] }, ], $: [empty()] }",
+      "example": "{ div: [ { span: \"📭\" }, { p: \"No items yet\", $: [paragraph()] }, { span: \"Add your first item to get started\", $: [small()] }, ], $: [empty()] }",
       "source": "packages/ui/src/patches/empty.ts"
     },
     {
@@ -729,6 +745,28 @@
       "doc": "Catches errors thrown inside reactive child expressions and renders a fallback element instead of crashing the whole tree. Apply to any container. Only errors in *reactive* children (functions returning element arrays) are caught. Errors during static construction propagate normally — those are programming errors, not runtime data errors.",
       "example": "{ div: (l) => renderUserContent(l), $: [errorBoundary({ fallback: { p: \"Something went wrong.\" } })] }",
       "source": "packages/ui/src/patches/errorBoundary.ts"
+    },
+    {
+      "name": "fab",
+      "hostTag": "button",
+      "signature": "fab(props: { color?: ValueOrState<ThemeColor>; size?: \"small\" | \"medium\" | \"large\"; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Button color tone. Optional `ValueOrState<ThemeColor>`, defaults to `\"primary\"`."
+        },
+        {
+          "name": "size",
+          "type": "\"small\" | \"medium\" | \"large\"",
+          "optional": true,
+          "doc": "Button size preset. Optional `\"small\" | \"medium\" | \"large\"`, defaults to `\"medium\"`."
+        }
+      ],
+      "doc": "Floating Action Button — a circular elevated button typically used for the primary action on a screen. Apply to a `<button>` element.",
+      "example": "{ button: \"+\", $: [fab()] }",
+      "source": "packages/ui/src/patches/fab.ts"
     },
     {
       "name": "figure",
@@ -857,7 +895,7 @@
     {
       "name": "inputColor",
       "hostTag": "input",
-      "signature": "inputColor(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "signature": "inputColor(_props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
       "props": [
         {
           "name": "color",
@@ -1122,6 +1160,66 @@
       "source": "packages/ui/src/patches/link.ts"
     },
     {
+      "name": "list",
+      "hostTag": "ul",
+      "signature": "list(_props: { color?: ThemeColor } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Surface color tone. Optional `ThemeColor`, defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "Styles a navigation/display list container. Sets `list-style: none` and zero padding; pairs with `listItem` and `listItemButton`. Apply to `<ul>`.",
+      "example": "{ ul: [...], $: [list()] }",
+      "source": "packages/ui/src/patches/list.ts"
+    },
+    {
+      "name": "listItem",
+      "hostTag": "li",
+      "signature": "listItem(props: { dense?: boolean } = {})",
+      "props": [
+        {
+          "name": "dense",
+          "type": "boolean",
+          "optional": true,
+          "doc": "Reduce vertical padding. Optional `boolean`, defaults to `false`."
+        }
+      ],
+      "doc": "A non-interactive list row. Typically wraps an icon + text. Apply to `<li>`.",
+      "example": "{ li: \"Item\", $: [listItem()] }",
+      "source": "packages/ui/src/patches/list.ts"
+    },
+    {
+      "name": "listItemButton",
+      "hostTag": null,
+      "signature": "listItemButton(props: { color?: ValueOrState<ThemeColor>; accentColor?: ThemeColor; dense?: boolean; } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Color tone. Optional `ValueOrState<ThemeColor>`, defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Focus/active accent. Optional `ThemeColor`, defaults to `\"primary\"`."
+        },
+        {
+          "name": "dense",
+          "type": "boolean",
+          "optional": true,
+          "doc": "Reduce vertical padding. Optional `boolean`, defaults to `false`."
+        }
+      ],
+      "doc": "An interactive (clickable) list row with hover/focus-visible states. Apply to `<button>` or `<a>` inside an `<li>`.",
+      "example": "{ button: \"Action\", $: [listItemButton()] }",
+      "source": "packages/ui/src/patches/list.ts"
+    },
+    {
       "name": "mark",
       "hostTag": "mark",
       "signature": "mark(props: { accentColor?: ValueOrState<ThemeColor> } = {})",
@@ -1290,12 +1388,12 @@
     {
       "name": "popover",
       "hostTag": null,
-      "signature": "popover(props: { openOn: \"click\" | \"hover\"; open?: ValueOrState<boolean>; placement?: ValueOrState<Placement>; content: DomphyElement; })",
+      "signature": "popover(props: { openOn?: \"click\" | \"hover\"; open?: ValueOrState<boolean>; placement?: ValueOrState<Placement>; content: DomphyElement; })",
       "props": [
         {
           "name": "openOn",
           "type": "\"click\" | \"hover\"",
-          "optional": false,
+          "optional": true,
           "doc": "Interaction that opens the popover: `\"click\"` or `\"hover\"`. Defaults to `\"click\"`."
         },
         {
@@ -1394,6 +1492,46 @@
       "source": "packages/ui/src/patches/progress.ts"
     },
     {
+      "name": "rating",
+      "hostTag": "div",
+      "signature": "rating(props: { value?: ValueOrState<number>; max?: number; onChange?: (value: number) => void; readOnly?: boolean; color?: ThemeColor; } = {})",
+      "props": [
+        {
+          "name": "value",
+          "type": "ValueOrState<number>",
+          "optional": true,
+          "doc": "Current rating (0 – max). `ValueOrState<number>`, defaults to `0`."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "optional": true,
+          "doc": "Total number of stars. Optional `number`, defaults to `5`."
+        },
+        {
+          "name": "onChange",
+          "type": "(value: number) => void",
+          "optional": true,
+          "doc": "Called with the new value when the user picks a star."
+        },
+        {
+          "name": "readOnly",
+          "type": "boolean",
+          "optional": true,
+          "doc": "Disable interaction. Optional `boolean`, defaults to `false`."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Star color tone. Optional `ThemeColor`, defaults to `\"warning\"`."
+        }
+      ],
+      "doc": "Interactive star rating applied to a container `<div>`. Manages its own star children: click to set, Arrow keys to adjust, hover to preview. In `readOnly` mode stars are non-interactive. Apply to a `<div>` element.",
+      "example": "{ div: null, $: [rating({ value: ratingState, onChange: (v) => ratingState.set(v) })] }",
+      "source": "packages/ui/src/patches/rating.ts"
+    },
+    {
       "name": "segmented",
       "hostTag": null,
       "signature": "segmented(props: { value?: ValueOrState<string>; color?: ThemeColor } = {})",
@@ -1433,7 +1571,7 @@
           "doc": "Theme color for selected state. Defaults to `\"primary\"`."
         }
       ],
-      "doc": "Styles and wires a single option inside a `segmented` control on the host `<button>`. Sets `aria-selected` and handles click-to-select against the parent `segmented` context.",
+      "doc": "Styles and wires a single option inside a `segmented` control on the host `<button>`. Sets `aria-checked` and handles click-to-select against the parent `segmented` context.",
       "example": "{ button: \"Month\", $: [segmentedItem()] }",
       "source": "packages/ui/src/patches/segmentedItem.ts"
     },
@@ -1660,7 +1798,7 @@
       "hostTag": null,
       "signature": "splitterHandle()",
       "props": [],
-      "doc": "The draggable divider inside a `splitter`. Reads the `splitter` context, shows the appropriate resize cursor, and on mouse drag updates the context `size` state (clamped to `min`/`max`). Warns if used outside a `splitter`. Takes no props.",
+      "doc": "The draggable divider inside a `splitter`. Reads the `splitter` context, shows the appropriate resize cursor, and updates the context `size` state (clamped to `min`/`max`) via mouse drag or keyboard: Arrow keys move by 1%, Home/End jump to min/max, hold Shift for 10× step. Sets `role=\"separator\"`, `tabindex=\"0\"`, and `aria-value*` attributes. Warns if used outside a `splitter`. Takes no props.",
       "example": "{ div: null, $: [splitterHandle()] }",
       "source": "packages/ui/src/patches/splitter.ts"
     },
@@ -1876,6 +2014,49 @@
       "doc": "Styles a multi-line text input (border, focus/hover/invalid/disabled states) on the host `<textarea>` element, with optional auto-resize to content.",
       "example": "{ textarea: null, $: [textarea({ autoResize: true })] }",
       "source": "packages/ui/src/patches/textarea.ts"
+    },
+    {
+      "name": "timeline",
+      "hostTag": null,
+      "signature": "timeline()",
+      "props": [],
+      "doc": "Container for a vertical timeline. Sets list reset styles. Apply to `<ol>` or `<ul>`.",
+      "example": "{ ol: [...], $: [timeline()] }",
+      "source": "packages/ui/src/patches/timeline.ts"
+    },
+    {
+      "name": "timelineItem",
+      "hostTag": null,
+      "signature": "timelineItem(props: { active?: ValueOrState<boolean>; last?: boolean; color?: ThemeColor; accentColor?: ThemeColor; } = {})",
+      "props": [
+        {
+          "name": "active",
+          "type": "ValueOrState<boolean>",
+          "optional": true,
+          "doc": "Full-opacity dot (accent color). `ValueOrState<boolean>`, defaults to `false`."
+        },
+        {
+          "name": "last",
+          "type": "boolean",
+          "optional": true,
+          "doc": "Suppress the vertical connector below this item. `boolean`, defaults to `false`."
+        },
+        {
+          "name": "color",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Dot/connector color tone. `ThemeColor`, defaults to `\"neutral\"`."
+        },
+        {
+          "name": "accentColor",
+          "type": "ThemeColor",
+          "optional": true,
+          "doc": "Active dot color tone. `ThemeColor`, defaults to `\"primary\"`."
+        }
+      ],
+      "doc": "A single event row in a `timeline`. Uses a 2-column grid: the left column holds a dot (`::before`) and optional connector line (`::after`); the right column holds the user's content. Apply to `<li>`.",
+      "example": "{ li: [{ b: \"2024\" }, { p: \"Event\" }], $: [timelineItem({ active: true })] }",
+      "source": "packages/ui/src/patches/timeline.ts"
     },
     {
       "name": "toast",

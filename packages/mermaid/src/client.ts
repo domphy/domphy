@@ -53,7 +53,15 @@ export function makeMermaidClient(
   defaultLoader: MermaidLoader,
   options: MermaidClientOptions,
 ): PartialElement {
+  // Tracks whether the node has been torn down. Rendering is asynchronous, so
+  // the element may be removed before the render promise resolves; this guard
+  // stops a late `.then` from writing into a node that no longer exists.
+  let disposed = false;
+
   return {
+    _onRemove: () => {
+      disposed = true;
+    },
     _onMount: (node) => {
       const host = node.domElement;
       if (!host) return;
@@ -79,6 +87,9 @@ export function makeMermaidClient(
           return mermaid.render(id, source);
         })
         .then(({ svg, bindFunctions }) => {
+          // The node may have been removed while the render was in flight; do
+          // not write into a torn-down element.
+          if (disposed) return;
           // Replace the source code block with the rendered SVG, mirroring the
           // build-time wrapper so styling is consistent across paths.
           host.innerHTML = svg;

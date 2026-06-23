@@ -6,7 +6,7 @@ import {
   type ValueOrState,
 } from "@domphy/core";
 import type { Placement } from "@domphy/floating";
-import { creatFloating } from "../utils/floating.js";
+import { createFloating } from "../utils/floating.js";
 
 /**
  * Floating popover primitive. Attaches to its host as the anchor/trigger and
@@ -34,7 +34,7 @@ function popover(props: {
   const openState = toState(open);
   const placeState = toState(placement);
 
-  const { show, hide, anchorPartial } = creatFloating({
+  const { show, hide, anchorPartial } = createFloating({
     open: openState,
     placement: placeState,
     content: props.content,

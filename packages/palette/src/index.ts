@@ -1,6 +1,5 @@
 // Color-math utilities (CIELAB / Oklab / CIEDE2000 / interpolation helpers).
 export * from "./utils";
-export * from "./math";
 
 // Metrics: validate palette quality in CIELAB.
 export { Swatch } from "./Swatch";

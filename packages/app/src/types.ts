@@ -73,11 +73,7 @@ export interface RewriteResult {
  */
 export type Middleware = (
   context: MiddlewareContext,
-) =>
-  | RewriteResult
-  | undefined
-  | undefined
-  | Promise<RewriteResult | undefined | undefined>;
+) => RewriteResult | undefined | Promise<RewriteResult | undefined>;
 
 /**
  * One route segment, the equivalent of one folder in the Next.js `app` directory.

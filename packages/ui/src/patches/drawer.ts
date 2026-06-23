@@ -114,7 +114,9 @@ function drawer(
       }
 
       let closing = false;
+      let closeTimer: ReturnType<typeof setTimeout> | null = null;
       const finishClose = () => {
+        closeTimer = null;
         if (!closing) return;
         closing = false;
         dlg.close();
@@ -139,12 +141,16 @@ function drawer(
         } else {
           closing = true;
           dlg.style.transform = translateOut[physical];
-          setTimeout(finishClose, 350);
+          closeTimer = setTimeout(finishClose, 350);
         }
       };
       update(state.get());
       const release = state.addListener(update);
       node.addHook("Remove", () => {
+        if (closeTimer) {
+          clearTimeout(closeTimer);
+          closeTimer = null;
+        }
         release();
         dlg.removeEventListener("cancel", onCancel);
         dlg.removeEventListener("transitionend", onTransitionEnd);

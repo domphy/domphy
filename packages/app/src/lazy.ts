@@ -54,11 +54,6 @@ export function hasPendingLazy(route: Route): boolean {
   return route.lazy !== undefined && !resolved.has(route);
 }
 
-/** Whether a route ever declared a lazy import (resolved or not). */
-export function isLazy(route: Route): boolean {
-  return route.lazy !== undefined;
-}
-
 /**
  * Resolves a route's lazy import exactly once and merges it with the eager
  * fields (eager wins). Returns immediately for routes without `lazy`. The

@@ -147,7 +147,7 @@ Each entry carries `{ name, kind, file, signature, jsdoc, exportKind }` — a ma
 | `domphy_list_packages` | Lists all `@domphy/*` packages with versions and descriptions. |
 | `domphy_rules` | Gets the Domphy code-generation rules (`llms.txt`) for AI agents to follow. |
 | `domphy_tones` | Gets valid tone and theme color names for `themeColor()`/`dataTone` — avoids invented tones. |
-| `domphy_diagnose` | Runs `diagnose()` on a JSON element tree and returns the raw `Diagnostic[]`, without the structured report wrapper that `validate()` adds. |
+| `domphy_diagnose` | Runs `diagnose()` on a JSON element tree and returns a formatted text report (`format(diagnose(...))`), without the structured `{ ok, issues, summary }` wrapper that `validate()` adds. |
 | `domphy_validate` | Runs the aggregate `validate()` on a JSON element tree, returning `{ ok, issues, summary }`. |
 | `domphy_fix` | Applies the lossless autofix to a JSON element tree, returning `{ tree, applied, report }`. |
 | `domphy_list_app_blocks` | Lists the app's own blocks (name, kind, signature, file) from `app-manifest.json`. |

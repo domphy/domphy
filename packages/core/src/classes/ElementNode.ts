@@ -71,7 +71,7 @@ export class ElementNode {
 
     const children = (domphyElement as any)[this.tagName];
 
-    if (children != null && children !== undefined) {
+    if (children != null) {
       if (typeof children === "function") {
         let listener: any = () => {
           if (this._disposed) return;

@@ -18,10 +18,10 @@ export default defineConfig([
   },
   {
     // Browser IIFE build: only the client-side patch is browser-safe, so the
-    // global bundle exposes that path. `mermaid` stays external — the host page
-    // loads it (and the patch reaches it via a runtime dynamic import), keeping
-    // the bundle tiny. `target: es2020` lets esbuild keep that dynamic import as
-    // a real `import()` instead of bundling mermaid in.
+    // global bundle exposes that path. `mermaid` stays external — this entry
+    // (`src/global.ts`) reads it from `globalThis.mermaid`, so the host page
+    // loads the library separately (e.g. via a CDN <script>) and nothing is
+    // bundled in, keeping the bundle tiny.
     entry: { mermaid: "src/global.ts" },
     format: ["iife"],
     globalName: "Domphy",

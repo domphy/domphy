@@ -16,7 +16,7 @@ import {
   shift,
 } from "@domphy/floating";
 
-function creatFloating(props: {
+function createFloating(props: {
   open?: ValueOrState<boolean>;
   placement: State<Placement>;
   content: DomphyElement;
@@ -135,4 +135,4 @@ function creatFloating(props: {
   return { show, hide, anchorPartial };
 }
 
-export { creatFloating };
+export { createFloating };

@@ -91,7 +91,7 @@ export class AttributeList {
 
     const add = (classes: string, newClass: string) => {
       const list = (classes || "").split(" ").filter((e: string) => e);
-      !list.includes(newClass) && list.push(className);
+      !list.includes(newClass) && list.push(newClass);
       return list.join(" ");
     };
 

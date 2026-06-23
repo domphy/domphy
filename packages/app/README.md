@@ -77,10 +77,13 @@ const result = await app.renderToString(request.url, { headers: request.headers 
 // result.bootstrapScript (inline loader data for hydration)
 ```
 
-On the client:
+On the client, pass the server-rendered `<style id="domphy-style">` element as the
+second argument so reactive style updates after hydration are not dropped:
 
 ```ts
-await app.hydrate(document.getElementById("app")!.firstElementChild as HTMLElement)
+const mountTarget = document.getElementById("app")!.firstElementChild as HTMLElement
+const style = document.getElementById("domphy-style") as HTMLStyleElement
+await app.hydrate(mountTarget, style)
 ```
 
 ## Documentation

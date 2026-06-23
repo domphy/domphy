@@ -47,7 +47,9 @@ function selectList(
       return vals.map((v) => ({
         input: null,
         name: props.name,
-        value: v || "",
+        // Preserve a legitimate numeric 0 (and other falsy-but-valid values);
+        // `v || ""` would drop them.
+        value: v == null ? "" : String(v),
       }));
     },
     hidden: true,

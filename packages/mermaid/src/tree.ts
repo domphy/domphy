@@ -81,9 +81,10 @@ function tagKeyOf(element: ElementRecord): string | null {
 }
 
 /**
- * Recursively collects every mermaid `<pre>`/`<code>` block in the tree, calling
- * `onFound` for each so its source can be batched. Returns nothing; replacement
- * happens in a second pass once all SVGs are rendered.
+ * Recursively walks the tree and accumulates every distinct mermaid diagram
+ * source into the `sources` set, so all diagrams can be batched and rendered in
+ * one pass. Returns nothing; the actual replacement happens in a second pass
+ * (`replaceInChildren`) once all SVGs are rendered.
  */
 function collectSources(elements: Child[], sources: Set<string>): void {
   for (const element of elements) {

@@ -155,32 +155,6 @@ export function validate(
   return true;
 }
 
-export function isValid(element: DomphyElement): boolean {
-  if (Array.isArray(element)) return false;
-  if (!element || typeof element !== "object") return false;
-
-  const keys = Object.keys(element);
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    const val = element[key as keyof typeof element];
-    if (i === 0 && !HtmlTags.includes(key)) return false;
-    if (
-      key === "style" &&
-      (val == null || typeof val !== "object" || Array.isArray(val))
-    )
-      return false;
-    if (key.startsWith("_on") && typeof val !== "function") return false;
-    if (key.startsWith("on") && typeof val !== "function") return false;
-    if (key === "_portalChildren" && !Array.isArray(val)) return false;
-    if (
-      (key === "_context" || key === "_metadata") &&
-      (val == null || typeof val !== "object" || Array.isArray(val))
-    )
-      return false;
-  }
-  return true;
-}
-
 export function isHTML(str: string): boolean {
   return /<([a-z][\w-]*)(\s[^>]*)?>.*<\/\1>|<([a-z][\w-]*)(\s[^>]*)?\/>/i.test(
     str.trim(),

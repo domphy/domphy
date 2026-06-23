@@ -16,11 +16,6 @@ export interface ScriptProps {
 
 const loadedScripts = new Set<string>();
 
-/** Resets script dedupe between tests. */
-export function resetScripts(): void {
-  loadedScripts.clear();
-}
-
 function whenIdle(callback: () => void): void {
   const idle = (
     globalThis as { requestIdleCallback?: (cb: () => void) => void }

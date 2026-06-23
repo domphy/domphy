@@ -5,8 +5,6 @@ import type { Highlight, TocEntry } from "./types.js";
 // The `import("markdown-it").Token` namespace-member form does not survive the
 // d.ts rollup once this type appears in a publicly exported signature.
 type Token = ReturnType<import("markdown-it").default["parse"]>[number];
-/** markdown-it instance type. */
-type MarkdownIt = import("markdown-it").default;
 
 /** A child of a Domphy element: a string text node or a nested element. */
 type Child = string | DomphyElement;
@@ -23,6 +21,28 @@ interface WalkContext {
   toc: TocEntry[];
 }
 
+/**
+ * Parses an inline CSS string (`"text-align:center; color:red"`) into a Domphy
+ * style object. Property names are converted from kebab-case to camelCase
+ * (`text-align` becomes `textAlign`) so they match the keys Domphy expects.
+ * Malformed declarations (no colon, empty name) are skipped.
+ */
+function parseStyleString(style: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const declaration of style.split(";")) {
+    const colon = declaration.indexOf(":");
+    if (colon === -1) continue;
+    const name = declaration.slice(0, colon).trim();
+    const value = declaration.slice(colon + 1).trim();
+    if (!name || !value) continue;
+    const camel = name.replace(/-([a-z])/g, (_match, letter: string) =>
+      letter.toUpperCase(),
+    );
+    result[camel] = value;
+  }
+  return result;
+}
+
 /** Copies markdown-it token attributes onto a Domphy element object. */
 function applyAttrs(element: MutableElement, token: Token): void {
   if (!token.attrs) return;
@@ -30,6 +50,11 @@ function applyAttrs(element: MutableElement, token: Token): void {
     if (name === "class") {
       // markdown-it uses `class`; Domphy element objects accept it directly.
       element.class = value;
+    } else if (name === "style" && typeof value === "string") {
+      // markdown-it emits aligned table cells as `style="text-align:center"`, a
+      // STRING. Domphy treats `style` as an OBJECT, so a raw string would be
+      // dropped and column alignment lost. Parse it into a Domphy style object.
+      element.style = parseStyleString(value);
     } else {
       element[name] = value;
     }
@@ -331,6 +356,3 @@ export function walkTokens(
 
   return root;
 }
-
-/** Convenience type for the markdown-it instance used by the walker. */
-export type Parser = MarkdownIt;

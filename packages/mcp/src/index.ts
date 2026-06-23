@@ -18,8 +18,14 @@ import {
   validateTree,
 } from "./tools.js";
 
+// Keep this in lockstep with the `version` field in package.json. The build
+// (tsup/esbuild) does not inject the package version, and a JSON import of
+// package.json is awkward under this dts/bundle setup, so it is hardcoded here.
+// Bump both together on every release.
+const SERVER_VERSION = "0.17.0";
+
 const server = new Server(
-  { name: "domphy", version: "0.16.0" },
+  { name: "domphy", version: SERVER_VERSION },
   { capabilities: { tools: {} } },
 );
 
@@ -161,10 +167,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         text = await getAppBlock(String(args.name));
         break;
       default:
-        text = `Unknown tool: ${name}`;
+        // Unknown tool is a client error — flag it so callers can distinguish
+        // it from a successful result that happens to mention "Unknown".
+        return {
+          content: [{ type: "text", text: `Unknown tool: ${name}` }],
+          isError: true,
+        };
     }
   } catch (error) {
-    text = `Error: ${(error as Error).message}`;
+    // A handler threw — surface a readable message AND mark the result as an
+    // error so MCP clients do not treat the failure text as a normal answer.
+    return {
+      content: [{ type: "text", text: `Error: ${(error as Error).message}` }],
+      isError: true,
+    };
   }
   return { content: [{ type: "text", text }] };
 });

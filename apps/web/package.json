@@ -7,8 +7,10 @@
   "scripts": {
     "llms": "node scripts/llms-full.mjs",
     "manifest": "node scripts/manifest.mjs",
+    "app-manifest": "node scripts/app-manifest.mjs",
+    "test": "vitest run",
     "preview": "tsx domphypress/serve.ts",
-    "build": "pnpm --filter \"@domphy/*\" build && node scripts/manifest.mjs && node scripts/llms-full.mjs && tsx domphypress/build.ts",
+    "build": "pnpm --filter \"@domphy/*\" build && node scripts/manifest.mjs && node scripts/app-manifest.mjs && node scripts/llms-full.mjs && tsx domphypress/build.ts",
     "postinstall": "puppeteer browsers install chrome-headless-shell"
   },
   "keywords": [],
@@ -49,6 +51,8 @@
     "puppeteer": "^24.37.5",
     "sortablejs": "^1.15.7",
     "sucrase": "^3.35.1",
+    "vitest": "^4.0.18",
+    "jsdom": "^29.1.1",
     "zod": "^4.3.6"
   }
 }

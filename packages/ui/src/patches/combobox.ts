@@ -14,7 +14,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
-import { creatFloating } from "../utils/floating.js";
+import { createFloating } from "../utils/floating.js";
 import { tag } from "./tag.js";
 
 /**
@@ -59,7 +59,7 @@ function combobox(props: {
 
   const state = toState(props.value);
   const openState = toState(open);
-  const { show, hide, anchorPartial } = creatFloating({
+  const { show, hide, anchorPartial } = createFloating({
     open: openState,
     placement: toState(placement),
     content: props.content,

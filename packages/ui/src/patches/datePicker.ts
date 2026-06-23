@@ -13,7 +13,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
-import { creatFloating } from "../utils/floating.js";
+import { createFloating } from "../utils/floating.js";
 
 /** A single date selection, or a `[start, end]` tuple in range mode. */
 export type DatePickerValue = Date | null | [Date | null, Date | null];
@@ -277,12 +277,12 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
 
   // --- floating popover ------------------------------------------------------
   const calendar = buildCalendar();
-  const { show, hide, anchorPartial } = creatFloating({
+  const { show, hide, anchorPartial } = createFloating({
     open: false,
     placement: placeState,
     content: calendar,
   });
-  // selectDate calls this before `creatFloating` returns `hide`, so route through a ref.
+  // selectDate calls this before `createFloating` returns `hide`, so route through a ref.
   function instantHideRef(): void {
     hide();
   }

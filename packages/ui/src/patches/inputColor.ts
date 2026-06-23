@@ -1,4 +1,4 @@
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import type { PartialElement, ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -18,14 +18,11 @@ import {
  * @example { input: null, type: "color", $: [inputColor()] }
  */
 function inputColor(
-  props: {
+  _props: {
     color?: ValueOrState<ThemeColor>;
     accentColor?: ValueOrState<ThemeColor>;
   } = {},
 ): PartialElement {
-  const _color = toState(props.color ?? "neutral", "color");
-  const _accentColor = toState(props.accentColor ?? "primary", "accentColor");
-
   return {
     type: "color",
     _onSchedule: (node, element) => {
@@ -51,7 +48,6 @@ function inputColor(
       "&::-webkit-color-swatch": {
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
       },
-      "&:hover:not([disabled]), &:focus-visible": {},
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",

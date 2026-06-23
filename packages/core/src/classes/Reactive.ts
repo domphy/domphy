@@ -5,6 +5,7 @@ import {
   runWithCollector,
 } from "./Collector.js";
 import {
+  _microtask,
   flushPendingNotifiers,
   hasPendingNotifiers,
   Notifier,
@@ -31,20 +32,8 @@ import type { ValueListener } from "./State.js";
 // (e.g. a downstream computed reacting) are processed in the same drain — so a
 // `batch` of writes collapses into a single downstream flush.
 
-// Microtask scheduler with the same `queueMicrotask` fallback as Notifier, for
-// older embedded Chromium runtimes that predate it.
-const scheduleMicrotask: (callback: () => void) => void =
-  typeof queueMicrotask === "function"
-    ? queueMicrotask
-    : (callback) => {
-        Promise.resolve()
-          .then(callback)
-          .catch((error) => {
-            setTimeout(() => {
-              throw error;
-            }, 0);
-          });
-      };
+// Reuses the shared `_microtask` scheduler from Notifier (same `queueMicrotask`
+// fallback for older embedded Chromium runtimes that predate it).
 
 const REACTION_QUEUE: Set<() => void> = new Set();
 let reactionDrainScheduled = false;
@@ -53,7 +42,7 @@ function scheduleReaction(job: () => void): void {
   REACTION_QUEUE.add(job);
   if (reactionDrainScheduled) return;
   reactionDrainScheduled = true;
-  scheduleMicrotask(drainReactions);
+  _microtask(drainReactions);
 }
 
 function drainReactions(): void {

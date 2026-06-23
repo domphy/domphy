@@ -91,9 +91,14 @@ function toast(
     _onMount: () => requestAnimationFrame(() => state.set(true)),
     _onBeforeRemove: (node, done) => {
       let finished = false;
+      let timer: ReturnType<typeof setTimeout> | null = null;
       const finish = () => {
         if (finished) return;
         finished = true;
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
         node.domElement!.removeEventListener("transitionend", onEnd);
         done();
       };
@@ -103,7 +108,17 @@ function toast(
       node.domElement!.addEventListener("transitionend", onEnd);
       // Fallback: if transitionend never fires (reduced-motion, display:none,
       // early detach), unblock removal after the transition duration + buffer.
-      setTimeout(finish, 350);
+      timer = setTimeout(finish, 350);
+      // If the node is detached before the exit animation settles, clear the
+      // pending fallback timer and the transitionend listener so they cannot
+      // fire on a removed node.
+      node.addHook("Remove", () => {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        node.domElement?.removeEventListener("transitionend", onEnd);
+      });
       state.set(false);
     },
   };

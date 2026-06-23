@@ -6,7 +6,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
-const Headinghift: Record<string, string> = {
+const HeadingShift: Record<string, string> = {
   h6: "decrease-1",
   h5: "inherit",
   h4: "increase-1",
@@ -42,7 +42,7 @@ function heading(
       marginTop: 0,
       marginBottom: themeSpacing(2),
       fontSize: (listener) => {
-        const offset = Headinghift[listener.elementNode.tagName] || "inherit";
+        const offset = HeadingShift[listener.elementNode.tagName] || "inherit";
         return themeSize(listener, offset);
       },
     },

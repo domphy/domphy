@@ -103,11 +103,6 @@ export function sidebarForRoute(
   return bestPrefix ? config.sidebar[bestPrefix] : [];
 }
 
-/** Normalizes a sidebar/nav link to a comparable route (trailing-slash aware). */
-function normalizeLink(link: string): string {
-  return link;
-}
-
 /** Resolves previous/next page links within the active sidebar group. */
 export function prevNextForRoute(
   route: string,
@@ -116,10 +111,7 @@ export function prevNextForRoute(
   prev?: { text: string; link: string };
   next?: { text: string; link: string };
 } {
-  const flat = flattenSidebar(sidebarForRoute(route, config)).map((item) => ({
-    ...item,
-    link: normalizeLink(item.link),
-  }));
+  const flat = flattenSidebar(sidebarForRoute(route, config));
   // Match by route, tolerating a trailing slash difference.
   const index = flat.findIndex(
     (item) =>

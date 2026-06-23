@@ -27,12 +27,20 @@ export class ElementList {
     const dom = this.owner.domElement;
 
     const el = node instanceof ElementNode ? node.domElement : node.domText;
-    if (el) {
-      const currentRef = dom.childNodes[index] || null;
-      if (el !== currentRef) {
-        dom.insertBefore(el, currentRef);
-      }
-    }
+    if (!el) return;
+    // `el` still occupies its old DOM slot when this runs, so a positional
+    // `childNodes[index]` reference is off by one for a forward move. Reference
+    // the node that should FOLLOW `el` in the new logical order by identity
+    // instead — direction-agnostic and correct for forward and backward moves
+    // (and for a move to the last slot, where there is no following node).
+    const following = this.items[index + 1];
+    const ref =
+      following instanceof ElementNode
+        ? following.domElement
+        : following instanceof TextNode
+          ? following.domText
+          : null;
+    if (el !== ref) dom.insertBefore(el, ref ?? null);
   }
 
   _swapDomElement(aNode: NodeItem, bNode: NodeItem) {

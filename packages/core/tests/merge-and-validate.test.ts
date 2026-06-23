@@ -59,6 +59,57 @@ describe("merge", () => {
 
     expect(source).toEqual({ title: "kept" });
   });
+
+  it("joins comma-list keys reactively when the new value is a function", () => {
+    const source: Record<string, any> = { transition: "opacity 120ms" };
+    const target: Record<string, any> = {
+      transition: () => "transform 120ms",
+    };
+
+    merge(source, target);
+
+    expect(typeof source.transition).toBe("function");
+    expect(source.transition({})).toBe("opacity 120ms, transform 120ms");
+  });
+
+  it("joins comma-list keys reactively when the old value is a function", () => {
+    const source: Record<string, any> = { boxShadow: () => "0 0 1px red" };
+    const target: Record<string, any> = { boxShadow: "0 0 2px blue" };
+
+    merge(source, target);
+
+    expect(typeof source.boxShadow).toBe("function");
+    expect(source.boxShadow({})).toBe("0 0 1px red, 0 0 2px blue");
+  });
+
+  it("joins adjacent (content) keys reactively with no separator", () => {
+    const source: Record<string, any> = { content: () => "Hello" };
+    const target: Record<string, any> = { content: () => " world" };
+
+    merge(source, target);
+
+    expect(typeof source.content).toBe("function");
+    expect(source.content({})).toBe("Hello world");
+  });
+
+  it("joins space-list (class) keys reactively with a space separator", () => {
+    const source: Record<string, any> = { class: "base" };
+    const target: Record<string, any> = { class: () => "active" };
+
+    merge(source, target);
+
+    expect(typeof source.class).toBe("function");
+    expect(source.class({})).toBe("base active");
+  });
+
+  it("drops falsy parts from a reactive join", () => {
+    const source: Record<string, any> = { transition: () => "" };
+    const target: Record<string, any> = { transition: () => "color 1s" };
+
+    merge(source, target);
+
+    expect(source.transition({})).toBe("color 1s");
+  });
 });
 
 describe("validate", () => {

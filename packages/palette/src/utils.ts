@@ -1,4 +1,4 @@
-/** Calculate relative luminance from linear RGB (0-1). */
+/** Gamma-encode linear RGB (0-1) to 8-bit sRGB channels (0-255). */
 const lrgbToSrgb = (rgb: number[]) => {
     const toSRGB = (c: number) => {
         const clamped = Math.max(0, Math.min(1, c));

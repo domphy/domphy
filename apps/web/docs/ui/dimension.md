@@ -32,7 +32,7 @@ Density levels: `[0.75, 1, 1.5, 2, 2.5]`
 | [Table](/docs/ui/patches/table) | 9nU |
 | [Alert](/docs/ui/patches/alert), [Blockquote](/docs/ui/patches/blockquote), [Details](/docs/ui/patches/details), [Figure](/docs/ui/patches/figure), [Image](/docs/ui/patches/image), [Popover](/docs/ui/patches/popover), [Preformated](/docs/ui/patches/preformated), [Tabs](/docs/ui/patches/tabs), [Textarea](/docs/ui/patches/textarea), [Toast](/docs/ui/patches/toast) | `(6n + 6)U` |
 | (Layout Regions) [Dialog](/docs/ui/patches/dialog), [Drawer](/docs/ui/patches/drawer), [Form Group](/docs/ui/patches/form-group), [Menu](/docs/ui/patches/menu), [Tab Panel](/docs/ui/patches/tabs) | n/a |
-| (Behavior) `field()`, [Form](/docs/ui/patches/form), [TransitionGroup](/docs/ui/patches/transition-group) | n/a |
+| (Behavior) [TransitionGroup](/docs/ui/patches/transition-group) | n/a |
 
 The formula applies to elements at or above the `6U` baseline, the height of one body text line. The table uses the current theme base density at `d = 1.5`. Elements intentionally sized below this baseline follow a proportional sub-scale of `2U / 4U / 6U`, so they stay fixed across density levels unless their own patch defines another rule.
 

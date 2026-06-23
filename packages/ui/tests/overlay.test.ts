@@ -230,7 +230,7 @@ describe("alert", () => {
 // ---------------------------------------------------------------------------
 // tooltip
 // Floating content is portaled to document root. Tests that need tooltip shown
-// use fake timers to advance the 100ms show-debounce in creatFloating.
+// use fake timers to advance the 100ms show-debounce in createFloating.
 // ---------------------------------------------------------------------------
 
 describe("tooltip", () => {

@@ -39,7 +39,7 @@ Data & logic — **1-1 ports of the TanStack cores** (byte-identical upstream AP
 
 App layer & tools:
 
-- `@domphy/palette` — color-palette engine: generate accessible ramps + measure palette quality (5 CIELAB metrics); the design-time companion to `@domphy/theme`
+- `@domphy/palette` — color-science toolkit: measure & validate palette quality (5 CIELAB metrics); the design-time companion to `@domphy/theme`
 - `@domphy/dnd` — drag & drop / sortable lists (`dragDrop`, wraps `@formkit/drag-and-drop`)
 - `@domphy/app` — Next.js App Router-style framework: nested routes/layouts, loaders with stale-while-revalidate, metadata, middleware, parallel + intercepting routes, lazy code-split routes, SSR + streaming, API routes
 - `@domphy/markdown` — parse Markdown into Domphy element trees for SSR/SSG (markdown-it → Domphy; frontmatter, TOC, anchors). This docs site is built on it.

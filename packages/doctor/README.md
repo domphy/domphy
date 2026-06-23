@@ -42,7 +42,7 @@ console.log(format(issues))
 
 ```ts
 interface Diagnostic {
-  rule: string          // "inline-typography" | "void-content" | "missing-key" | "unknown-tag"
+  rule: string          // one of the 12 rule ids below, e.g. "inline-typography"
   severity: "error" | "warning" | "info"
   path: string          // "div > ul > li"
   message: string
@@ -52,12 +52,22 @@ interface Diagnostic {
 
 ## Rules
 
+The doctor implements 12 rules:
+
 | Rule | Severity | Catches |
 | --- | --- | --- |
-| `inline-typography` | warning | `fontSize`/`lineHeight`/`fontWeight`/`letterSpacing` literals in `style` — use a typography patch |
-| `void-content` | error | a void tag (`input`, `img`, `br`, …) with non-null content |
 | `missing-key` | warning | a **dynamic** list (from a reactive function) of element children missing `_key` |
+| `unstable-key` | warning | a dynamic list whose `_key`s are the array index (`0, 1, 2, …`) — unstable across reorders |
+| `duplicate-key` | error | two sibling elements sharing the same `_key` value |
 | `unknown-tag` | warning | an element whose first key isn't a valid HTML/SVG tag (typo) |
+| `void-content` | error | a void tag (`input`, `img`, `br`, …) with non-null content |
+| `inline-typography` | warning | `fontSize`/`lineHeight`/`fontWeight`/`letterSpacing`/`fontFamily`/`textDecoration` literals in `style` — use a typography patch |
+| `raw-theme-value` | info | a literal color (`#hex`, `rgb()`/`rgba()`) in a color `style` prop — use `themeColor()` (the hint includes an LCH-derived suggestion) |
+| `raw-spacing-value` | info | a literal `rem`/`em`/`px` spacing value in a spacing `style` prop — use `themeSpacing()` |
+| `unknown-tone` | warning | a `dataTone` that isn't valid tone grammar, or whose offset is out of the 18-step ramp (0–17) |
+| `middle-surface-anchor` | warning | a `dataTone` of `shift-4`…`shift-13` (mid-ramp surface anchor) that may collapse child contrast |
+| `unknown-density` | warning/error | a `dataDensity` that isn't valid grammar, or whose offset is out of the 5-step range (0–4) |
+| `unknown-size` | warning/error | a `dataSize` that isn't valid grammar, or whose offset is out of the 8-step range (0–7) |
 
 By default the doctor **invokes reactive content functions** with a no-op listener to inspect their output (this is how `missing-key` is detected). Pass `{ runReactive: false }` if your reactive functions have side effects.
 
