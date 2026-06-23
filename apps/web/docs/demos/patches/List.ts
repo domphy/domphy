@@ -9,15 +9,17 @@ const items = ["Inbox", "Sent", "Drafts", "Trash"];
 const App: DomphyElement<"div"> = {
   div: [
     {
-      ul: items.map((label) => ({
-        li: {
-          button: label,
-          onClick: () => selected.set(label),
-          $: [listItemButton()],
-        },
-        ariaSelected: (l) => (selected.get(l) === label ? "true" : undefined),
-        $: [listItem()],
-      })),
+      ul: items.map(
+        (label): DomphyElement<"li"> => ({
+          li: {
+            button: label,
+            onClick: () => selected.set(label),
+            $: [listItemButton()],
+          },
+          ariaSelected: (l) => (selected.get(l) === label ? "true" : undefined),
+          $: [listItem()],
+        }),
+      ),
       $: [list()],
       style: { width: "200px" },
     },
