@@ -1,4 +1,4 @@
-import type { DomphyElement, Listener } from "@domphy/core";
+import type { DomphyElement } from "@domphy/core";
 import { toState } from "@domphy/core";
 import { list, listItem, listItemButton, paragraph } from "@domphy/ui";
 
@@ -12,11 +12,10 @@ const App: DomphyElement<"div"> = {
       ul: items.map((label) => ({
         li: {
           button: label,
-          ariaSelected: (l: Listener) =>
-            selected.get(l) === label ? "true" : undefined,
           onClick: () => selected.set(label),
           $: [listItemButton()],
         },
+        ariaSelected: (l) => (selected.get(l) === label ? "true" : undefined),
         $: [listItem()],
       })),
       $: [list()],
