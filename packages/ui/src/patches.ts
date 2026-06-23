@@ -7,6 +7,7 @@ export * from "./patches/blockquote.js";
 export * from "./patches/breadcrumb.js";
 export * from "./patches/breadcrumbEllipsis.js";
 export * from "./patches/button.js";
+export * from "./patches/buttonGhost.js";
 export * from "./patches/buttonSwitch.js";
 export * from "./patches/card.js";
 export * from "./patches/code.js";
