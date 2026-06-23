@@ -111,6 +111,7 @@ export const config: SiteConfig = {
             link: "/docs/ui/patches/breadcrumb-ellipsis",
           },
           { text: "Button", link: "/docs/ui/patches/button" },
+          { text: "Button Ghost", link: "/docs/ui/patches/button-ghost" },
           { text: "Button Switch", link: "/docs/ui/patches/button-switch" },
           { text: "Card", link: "/docs/ui/patches/card" },
           { text: "Code", link: "/docs/ui/patches/code" },
