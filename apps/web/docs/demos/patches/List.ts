@@ -12,10 +12,7 @@ const App: DomphyElement<"div"> = {
       ul: items.map((label) => ({
         li: {
           button: label,
-          ariaSelected: (l: unknown) =>
-            selected.get(l as Parameters<typeof selected.get>[0]) === label
-              ? "true"
-              : undefined,
+          ariaSelected: (l) => (selected.get(l) === label ? "true" : undefined),
           onClick: () => selected.set(label),
           $: [listItemButton()],
         },
