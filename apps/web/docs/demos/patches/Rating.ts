@@ -7,7 +7,10 @@ const ratingState = toState(3);
 const App: DomphyElement<"div"> = {
   div: [
     { h3: "Pick a rating", $: [heading()] },
-    { div: null, $: [rating({ value: ratingState, onChange: (v) => ratingState.set(v) })] },
+    {
+      div: null,
+      $: [rating({ value: ratingState, onChange: (v) => ratingState.set(v) })],
+    },
     {
       p: (l) => `Selected: ${ratingState.get(l)} / 5`,
       $: [paragraph()],

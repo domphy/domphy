@@ -52,9 +52,7 @@ describe("heading", () => {
   it("warns when applied to a non-heading tag", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     render({ div: [{ span: "title", $: [heading()] }] } as DomphyElement);
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("heading"),
-    );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("heading"));
     warn.mockRestore();
   });
 
@@ -385,7 +383,13 @@ describe("abbreviation", () => {
   it("releases color state listeners on removal", () => {
     const color = toState<"neutral" | "primary">("neutral", "abbrColor");
     const { node } = render({
-      div: [{ abbr: "HTML", title: "HyperText Markup Language", $: [abbreviation({ color })] }],
+      div: [
+        {
+          abbr: "HTML",
+          title: "HyperText Markup Language",
+          $: [abbreviation({ color })],
+        },
+      ],
     } as DomphyElement);
     expect(listenerCount(color)).toBeGreaterThanOrEqual(1);
     node.remove();

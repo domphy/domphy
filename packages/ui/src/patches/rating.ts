@@ -54,7 +54,8 @@ function rating(
       const render = () => {
         const active = hovered > 0 ? hovered : current;
         Array.from(container.children).forEach((star, i) => {
-          (star as HTMLElement).innerHTML = i < active ? STAR_FILLED : STAR_EMPTY;
+          (star as HTMLElement).innerHTML =
+            i < active ? STAR_FILLED : STAR_EMPTY;
         });
       };
 

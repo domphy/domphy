@@ -95,9 +95,9 @@ describe("accordion", () => {
     Object.defineProperty(clickEvent, "target", {
       get: () => detailB.querySelector("summary"),
     });
-    detailB.querySelector("summary")!.dispatchEvent(
-      new MouseEvent("click", { bubbles: true }),
-    );
+    detailB
+      .querySelector("summary")!
+      .dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     // The handler listens for click then closes siblings that are open.
     // We open B and fire click on B's summary — A should close.
@@ -423,7 +423,11 @@ describe("empty", () => {
 
   it("renders with three children (icon + title + description)", () => {
     const { host } = render({
-      div: [{ span: "🔍" }, { p: "No results" }, { span: "Try another search" }],
+      div: [
+        { span: "🔍" },
+        { p: "No results" },
+        { span: "Try another search" },
+      ],
       $: [empty()],
     } as DomphyElement);
     // The container div is the direct child of host; check it has 3 child elements.
@@ -696,9 +700,7 @@ describe("splitter", () => {
     render({
       div: [{ div: "Content", $: [splitterPanel()] }],
     } as DomphyElement);
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("splitterPanel"),
-    );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("splitterPanel"));
     warn.mockRestore();
   });
 
@@ -878,9 +880,7 @@ describe("timeline", () => {
       render({
         div: [
           {
-            ol: [
-              { li: "Event", $: [timelineItem({ active })] },
-            ],
+            ol: [{ li: "Event", $: [timelineItem({ active })] }],
             $: [timeline()],
           },
         ],

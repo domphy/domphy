@@ -77,9 +77,7 @@ describe("button", () => {
   it("warns when applied to a non-button tag", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     render({ div: [{ div: "x", $: [button()] }] } as DomphyElement);
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("button"),
-    );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("button"));
     warn.mockRestore();
   });
 
@@ -129,9 +127,7 @@ describe("buttonGhost", () => {
   it("warns when applied to a non-button tag", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     render({ div: [{ span: "x", $: [buttonGhost()] }] } as DomphyElement);
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("buttonGhost"),
-    );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("buttonGhost"));
     warn.mockRestore();
   });
 
@@ -294,9 +290,7 @@ describe("toggle", () => {
     render({
       div: [{ button: "Bold", $: [toggle()] }],
     } as DomphyElement);
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("toggleGroup"),
-    );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("toggleGroup"));
     warn.mockRestore();
   });
 

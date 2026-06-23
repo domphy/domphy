@@ -324,9 +324,7 @@ describe("selectItem", () => {
   it("releases listeners when removed", () => {
     const value = toState("a", "selVal");
     const app: DomphyElement = {
-      div: [
-        { div: "A", $: [selectItem({ value: "a" })], _key: "a" },
-      ],
+      div: [{ div: "A", $: [selectItem({ value: "a" })], _key: "a" }],
       _context: {
         select: { value, multiple: false },
       },

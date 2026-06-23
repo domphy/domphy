@@ -48,9 +48,7 @@ describe("inputText", () => {
   it("warns when applied to a non-input tag", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     render({ div: [{ div: null, $: [inputText()] }] } as DomphyElement);
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("inputText"),
-    );
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("inputText"));
     warn.mockRestore();
   });
 
@@ -76,7 +74,10 @@ describe("inputText", () => {
   });
 
   it("releases accentColor listener after node.remove()", () => {
-    const accentColor = toState<"primary" | "success">("primary", "accentColor");
+    const accentColor = toState<"primary" | "success">(
+      "primary",
+      "accentColor",
+    );
     const { node } = render({
       input: null,
       $: [inputText({ accentColor })],
@@ -160,7 +161,10 @@ describe("inputRange", () => {
   });
 
   it("releases accentColor listener after node.remove()", () => {
-    const accentColor = toState<"primary" | "success">("primary", "accentColor");
+    const accentColor = toState<"primary" | "success">(
+      "primary",
+      "accentColor",
+    );
     const { node } = render({
       input: null,
       type: "range",
@@ -312,7 +316,10 @@ describe("inputSwitch", () => {
   });
 
   it("releases accentColor listener after node.remove()", () => {
-    const accentColor = toState<"primary" | "success">("primary", "accentColor");
+    const accentColor = toState<"primary" | "success">(
+      "primary",
+      "accentColor",
+    );
     const { node } = render({
       input: null,
       type: "checkbox",
@@ -396,7 +403,10 @@ describe("textarea", () => {
     expect(el.style.height).toBeDefined();
 
     // Simulate an input event and confirm height is updated.
-    Object.defineProperty(el, "scrollHeight", { value: 120, configurable: true });
+    Object.defineProperty(el, "scrollHeight", {
+      value: 120,
+      configurable: true,
+    });
     el.dispatchEvent(new Event("input"));
     expect(el.style.height).toBe("120px");
   });
@@ -448,7 +458,9 @@ describe("inputOTP", () => {
       ],
       $: [inputOTP()],
     } as DomphyElement);
-    const inputs = Array.from(host.querySelectorAll("input")) as HTMLInputElement[];
+    const inputs = Array.from(
+      host.querySelectorAll("input"),
+    ) as HTMLInputElement[];
     inputs[0].focus();
     inputs[0].value = "1";
     inputs[0].dispatchEvent(new Event("input", { bubbles: true }));
@@ -464,7 +476,9 @@ describe("inputOTP", () => {
       ],
       $: [inputOTP()],
     } as DomphyElement);
-    const inputs = Array.from(host.querySelectorAll("input")) as HTMLInputElement[];
+    const inputs = Array.from(
+      host.querySelectorAll("input"),
+    ) as HTMLInputElement[];
     inputs[1].focus();
     inputs[1].value = "";
     inputs[1].dispatchEvent(
@@ -483,14 +497,18 @@ describe("inputOTP", () => {
       ],
       $: [inputOTP()],
     } as DomphyElement);
-    const inputs = Array.from(host.querySelectorAll("input")) as HTMLInputElement[];
+    const inputs = Array.from(
+      host.querySelectorAll("input"),
+    ) as HTMLInputElement[];
     inputs[0].focus();
 
     const clipboardData = {
       getData: (_type: string) => "4567",
     };
     const pasteEvent = new Event("paste", { bubbles: true }) as ClipboardEvent;
-    Object.defineProperty(pasteEvent, "clipboardData", { value: clipboardData });
+    Object.defineProperty(pasteEvent, "clipboardData", {
+      value: clipboardData,
+    });
     Object.defineProperty(pasteEvent, "target", { value: inputs[0] });
     host.querySelector("div")!.dispatchEvent(pasteEvent);
 
@@ -509,7 +527,9 @@ describe("inputOTP", () => {
       ],
       $: [inputOTP()],
     } as DomphyElement);
-    const inputs = Array.from(host.querySelectorAll("input")) as HTMLInputElement[];
+    const inputs = Array.from(
+      host.querySelectorAll("input"),
+    ) as HTMLInputElement[];
     inputs[1].focus();
 
     inputs[1].dispatchEvent(

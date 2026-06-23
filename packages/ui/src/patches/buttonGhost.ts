@@ -47,8 +47,10 @@ function buttonGhost(
       outline: "none",
       color: (listener) => themeColor(listener, "shift-6", color.get(listener)),
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
-        backgroundColor: (listener) => themeColor(listener, "shift-2", color.get(listener)),
+        color: (listener) =>
+          themeColor(listener, "shift-9", color.get(listener)),
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-2", color.get(listener)),
       },
       "&:focus-visible": {
         boxShadow: (listener) =>

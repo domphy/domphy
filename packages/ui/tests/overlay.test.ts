@@ -265,7 +265,10 @@ describe("tooltip", () => {
     expect(() =>
       render({
         div: [
-          { button: "Btn", $: [tooltip({ placement: "bottom", content: "Down" })] },
+          {
+            button: "Btn",
+            $: [tooltip({ placement: "bottom", content: "Down" })],
+          },
         ],
       } as DomphyElement),
     ).not.toThrow();
@@ -293,7 +296,9 @@ describe("tooltip", () => {
 describe("popover", () => {
   it("sets aria-haspopup='dialog' on the trigger", () => {
     const { host } = render({
-      div: [{ button: "Open", $: [popover({ content: { div: "Popover body" } })] }],
+      div: [
+        { button: "Open", $: [popover({ content: { div: "Popover body" } })] },
+      ],
     } as DomphyElement);
     const btn = host.querySelector("button");
     expect(btn?.getAttribute("aria-haspopup")).toBe("dialog");
