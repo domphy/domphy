@@ -1,6 +1,6 @@
 {
   "name": "@domphy/floating",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "description": "Domphy Floating - anchor positioning (tooltips, popovers, dropdowns), a 1-1 vendor of floating-ui (dom + core + utils), zero dependencies",
   "type": "module",
   "sideEffects": false,
