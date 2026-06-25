@@ -5,7 +5,6 @@ import type {
   EventName,
   Handler,
   HookMap,
-  Listener,
 } from "./types.js";
 
 export function merge(
@@ -104,8 +103,4 @@ export function toState<T>(
   return val instanceof State || (val as any)?._isState
     ? (val as State<T>)
     : new State<T>(val as T, name);
-}
-
-export function r<T>(fn: (listener: Listener) => T): (listener: Listener) => T {
-  return fn;
 }
