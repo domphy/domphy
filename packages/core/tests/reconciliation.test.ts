@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { _resetKeylessWarnings } from "../src/classes/ElementList.ts";
 import { ElementNode } from "../src/classes/ElementNode.ts";
 import type { DomphyElement } from "../src/types.ts";
 import { toState } from "../src/utils.ts";
@@ -26,6 +27,7 @@ function listenerCount(state: any): number {
 
 afterEach(() => {
   document.body.innerHTML = "";
+  _resetKeylessWarnings();
 });
 
 describe("#3 keyed reconciliation reflects new data on the reused node", () => {
@@ -229,6 +231,106 @@ describe("#11 unkeyed lists reuse DOM by position (preserve focus/value/scroll)"
     expect(inputsAfter[1]).toBe(row1Input); // row 1's nested input reused after move
     expect(document.activeElement).toBe(row1Input);
     expect(row1Input.value).toBe("hello");
+  });
+});
+
+describe("DEV warning: unkeyed reactive list reconciled by position", () => {
+  const KEY_HINT = "without _key";
+
+  it("warns when an unkeyed reactive list's contents change (stale closure / dynamic)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    // The footgun: each row's content is a reactive closure captured on FIRST
+    // render. With no _key, the reused node keeps the stale closure when a
+    // different model is selected. (Mirrors the real "panel renders differently
+    // each open" / "catalog click switched 3D but not the side panel" bugs.)
+    const model = toState({ id: "a", name: "Model A" }, "warnModel");
+    mountApp({
+      div: (l: any) => {
+        model.get(l); // subscribe so the list re-runs when the model changes
+        // Two unkeyed sibling rows whose content is a reactive function.
+        return [
+          { div: (l2: any) => `name:${model.get(l2).name}` },
+          { div: (l2: any) => `id:${model.get(l2).id}` },
+        ];
+      },
+    } as DomphyElement);
+
+    expect(warn).not.toHaveBeenCalled(); // silent on first render
+
+    model.set({ id: "b", name: "Model B" }); // select a different model
+    await flush();
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain(KEY_HINT);
+
+    // Throttled: re-running the same call-site again does not spam.
+    model.set({ id: "c", name: "Model C" });
+    await flush();
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    warn.mockRestore();
+  });
+
+  it("warns when an UNKEYED list's length changes between renders", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const rows = toState([{ t: "a" }], "warnLen");
+    mountApp({
+      ul: (l: any) => rows.get(l).map((r: any) => ({ li: r.t })),
+    } as DomphyElement);
+
+    expect(warn).not.toHaveBeenCalled();
+
+    rows.set([{ t: "a" }, { t: "b" }]); // grew → positional reconcile is risky
+    await flush();
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain(KEY_HINT);
+
+    warn.mockRestore();
+  });
+
+  it("does NOT warn when each item has a _key (keyed reconciliation)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const model = toState({ id: "a", name: "Model A" }, "keyedModel");
+    mountApp({
+      div: (l: any) => {
+        model.get(l); // subscribe so the list re-runs on change
+        return [
+          { div: (l2: any) => `name:${model.get(l2).name}`, _key: "name" },
+          { div: (l2: any) => `id:${model.get(l2).id}`, _key: "id" },
+        ];
+      },
+    } as DomphyElement);
+
+    model.set({ id: "b", name: "Model B" });
+    await flush();
+    model.set({ id: "c", name: "Model C" });
+    await flush();
+
+    expect(warn).not.toHaveBeenCalled();
+
+    warn.mockRestore();
+  });
+
+  it("does NOT warn for a static, fixed-length unkeyed list (no closure, no length change)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    // Two unkeyed inputs with non-reactive content, length stays 2.
+    const data = toState([{ v: "x" }, { v: "y" }], "staticList");
+    mountApp({
+      div: (l: any) =>
+        data.get(l).map((it: any) => ({ input: null, placeholder: it.v })),
+    } as DomphyElement);
+
+    data.set([{ v: "X" }, { v: "Y" }]); // same length, no function content
+    await flush();
+
+    expect(warn).not.toHaveBeenCalled();
+
+    warn.mockRestore();
   });
 });
 

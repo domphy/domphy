@@ -7,6 +7,16 @@ import { TextNode } from "./TextNode.js";
 type ElementInput = DomphyElement | null | undefined | number | string;
 type NodeItem = ElementNode | TextNode;
 
+// DEV-only: call-sites that have already emitted the missing-`_key` reactive-list
+// warning, so it fires at most once per site instead of every reactive frame.
+// Keyed by the owner node's stable nodeId (same call-site → same id).
+const _warnedKeylessSites = new Set<string>();
+
+// Test-only: clear the once-per-site throttle so each test starts clean.
+export function _resetKeylessWarnings(): void {
+  _warnedKeylessSites.clear();
+}
+
 export class ElementList {
   items: NodeItem[] = [];
   owner: ElementNode;
@@ -79,12 +89,26 @@ export class ElementList {
     const oldSet = new Set<NodeItem>(oldItems);
     const claimed = new Set<NodeItem>();
 
+    // DEV-only footgun detection (warn-only — does NOT change reconciliation).
+    // An unkeyed object element reused BY POSITION whose new content is a reactive
+    // function is the dangerous case: patch() leaves a function child's listener
+    // untouched, so the reused node keeps the closure captured on its FIRST render
+    // and the subtree renders STALE data when the source changes (a different model
+    // is selected, a panel reopened, …). Track such reuse and a length change.
+    let unkeyedObjectInputs = 0;
+    let staleClosureReuse = false;
+    const lengthChanged =
+      __DEV__ && oldItems.length > 0
+        ? inputs.length !== oldItems.length
+        : false;
+
     // build target order using existing ops (mutating this.items)
     for (let i = 0; i < inputs.length; i++) {
       const input = inputs[i];
       const isObj = typeof input === "object" && input !== null;
       const key = isObj ? (input as any)._key : undefined;
       const tag = isObj ? getTagName(input as DomphyElement) : undefined;
+      if (__DEV__ && isObj && key === undefined) unkeyedObjectInputs++;
 
       // Keyed reuse: same key + same tag → reuse the node and patch it in place
       // (preserves DOM identity/state while reflecting new data).
@@ -116,6 +140,11 @@ export class ElementList {
           oldSet.has(at) &&
           !claimed.has(at)
         ) {
+          // The new element's content is a reactive function → patch() will NOT
+          // refresh it (it leaves function children untouched), so the reused node
+          // is about to render with its original, now-stale closure.
+          if (__DEV__ && typeof (input as any)[tag as string] === "function")
+            staleClosureReuse = true;
           at.parent = this.owner as any;
           at.patch(input as DomphyElement);
           claimed.add(at);
@@ -143,6 +172,27 @@ export class ElementList {
     const extras = this.items.slice(inputs.length);
     for (const node of extras) this.remove(node, updateDom, true);
     keyed.forEach((node) => this.remove(node, updateDom, true));
+
+    // Warn (once per call-site) when an UNKEYED reactive list is reconciled in a
+    // risky way: positional reuse just froze a reactive closure (staleClosureReuse)
+    // or the unkeyed list grew/shrank (lengthChanged) — both mean child state may
+    // not follow the data. A static, fixed-length unkeyed list never trips this.
+    // Skips the first render (gated on oldItems.length > 0) and keyed lists.
+    if (
+      __DEV__ &&
+      oldItems.length > 0 &&
+      unkeyedObjectInputs > 0 &&
+      (staleClosureReuse || lengthChanged)
+    ) {
+      const siteId = this.owner.nodeId;
+      if (!_warnedKeylessSites.has(siteId)) {
+        _warnedKeylessSites.add(siteId);
+        console.warn(
+          `[domphy] reactive list reconciled by position without _key — child state/closures may not update when data changes. Add _key to each item. (parent <${this.owner.tagName}>, ${unkeyedObjectInputs} unkeyed item${unkeyedObjectInputs === 1 ? "" : "s"})`,
+        );
+      }
+    }
+
     if (!silent) this.owner._hooks?.Update?.(this.owner);
   }
 
