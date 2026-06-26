@@ -166,11 +166,10 @@ describe("@domphy/markdown parseMarkdown", () => {
     expect(headerCells.every((cell) => "th" in cell)).toBe(true);
   });
 
-  it("passes raw html_block through as element content", () => {
+  it("passes raw html_block through as a direct string child (no wrapper div)", () => {
     const body = markdownToDomphy('<div class="raw">hi</div>');
-    const block = asRecord(body[0]);
-    expect(typeof block.div).toBe("string");
-    expect(block.div as string).toContain("raw");
+    expect(typeof body[0]).toBe("string");
+    expect(body[0] as string).toContain("raw");
   });
 
   it("parses YAML frontmatter and strips it from the body", () => {

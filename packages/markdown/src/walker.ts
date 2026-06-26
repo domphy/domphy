@@ -339,10 +339,15 @@ export function walkTokens(
         break;
       }
       case "html_block": {
-        // Block-level raw HTML. Pass it through as content. A single-root HTML
-        // string renders as inline HTML in Domphy; for multi-root blocks we
-        // wrap in a div so the whole block is preserved as one element's HTML.
-        top().children.push({ div: token.content.trim() } as DomphyElement);
+        // Block-level raw HTML. Push each root element as its own child string
+        // so there is no extra wrapper div. TextNode handles single-root strings
+        // via isHTML detection; multi-root blocks are split into individual
+        // html_block tokens by callers (e.g. press buildCodeGroupTokens) so that
+        // each push here is a single-root element → no wrapper needed.
+        const html = token.content.trim();
+        if (html) {
+          top().children.push(html as unknown as DomphyElement);
+        }
         break;
       }
       default: {

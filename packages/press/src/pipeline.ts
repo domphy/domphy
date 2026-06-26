@@ -184,13 +184,6 @@ function buildCodeGroupTokens(
 
   if (fences.length === 0) return tokens.slice(openIndex, closeIndex + 1);
 
-  // Inputs as direct children of .code-group (before .tabs) — enables CSS :checked sibling selector
-  const inputsHtml = fences
-    .map(
-      (_, i) =>
-        `<input type="radio" name="cg-${groupId}" id="cgt-${groupId}-${i}"${i === 0 ? " checked" : ""}>`,
-    )
-    .join("");
   const labelsHtml = fences
     .map(
       (fence, i) =>
@@ -198,10 +191,15 @@ function buildCodeGroupTokens(
     )
     .join("");
 
-  // Pre-render all fences into a single <div class="blocks"> html_block so the
-  // wrapper is a complete HTML element. Splitting into separate open/close tag
-  // tokens causes isHTML() to return false (no matching close tag) and the
-  // partial tags get text-escaped and shown literally in the output.
+  // One token per input — each is a single-root element so the walker can push
+  // it directly without a wrapper div (no multi-root firstChild truncation).
+  const inputTokens = fences.map((_, i) =>
+    buildHtmlBlock(
+      Token,
+      `<input type="radio" name="cg-${groupId}" id="cgt-${groupId}-${i}"${i === 0 ? " checked" : ""}>`,
+    ),
+  );
+
   const blocksHtml = fences
     .map((fence) => {
       const rawInfo = (fence.token.info ?? "").replace(/\[[^\]]*\]/, "").trim();
@@ -210,7 +208,8 @@ function buildCodeGroupTokens(
     .join("");
 
   const inner: MarkdownItToken[] = [
-    buildHtmlBlock(Token, `${inputsHtml}<div class="tabs">${labelsHtml}</div>`),
+    ...inputTokens,
+    buildHtmlBlock(Token, `<div class="tabs">${labelsHtml}</div>`),
     buildHtmlBlock(Token, `<div class="blocks">${blocksHtml}</div>`),
   ];
   return [open, ...inner, close];
