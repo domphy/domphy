@@ -27641,7 +27641,7 @@ import { themeColor } from "@domphy/theme"
 { span: "Subscribe", style: { color: "#aaa" } }
 
 // Prefer: theme token — tone relationships are theme-aware
-{ span: "Subscribe", style: { color: themeColor(node, "shift-4") } }
+{ span: "Subscribe", style: { color: (l) => themeColor(l, "shift-4") } }
 ```
 
 If you intentionally need a lower threshold — for example large decorative text where WCAG AA allows 3:1 — pass `minContrast` to `checkLayout`:
