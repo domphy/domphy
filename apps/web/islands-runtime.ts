@@ -32,7 +32,7 @@ async function mountPreview(
   host: HTMLElement,
   element: DomphyElement,
 ): Promise<void> {
-  const { Container } = await import("../docs/preview/Container.js");
+  const { Container } = await import("./docs/preview/Container.js");
   themeApply();
   new ElementNode(Container(element)).render(host);
 }
@@ -44,7 +44,7 @@ async function mountEditor(
   storageKey?: string,
 ): Promise<void> {
   const { Container: EditorContainer } = await import(
-    "../docs/editor/Container.js"
+    "./docs/editor/Container.js"
   );
   themeApply();
   const shadowHost = document.createElement("div");
