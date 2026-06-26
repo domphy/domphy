@@ -10,9 +10,12 @@ description: "Automatic data refreshing with polling intervals, window focus ref
 Auto-refresh data on a timer — useful for dashboards, live feeds, or anything that changes server-side:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createQuery } from "@domphy/query/domphy"
 
-const stats = createQuery({
+const queryClient = new QueryClient()
+
+const stats = createQuery(queryClient, {
   queryKey: () => ["stats"],
   queryFn: fetchStats,
   refetchInterval: 5_000,   // refetch every 5 seconds
@@ -26,7 +29,9 @@ Polling runs in the background — the UI shows fresh data while `isFetching` is
 Pause polling when the data has reached a terminal state:
 
 ```ts
-const jobStatus = createQuery({
+const queryClient = new QueryClient()
+
+const jobStatus = createQuery(queryClient, {
   queryKey: () => ["job", jobId],
   queryFn: () => fetchJobStatus(jobId),
   refetchInterval: (query) => {
@@ -43,7 +48,9 @@ const jobStatus = createQuery({
 By default, polling pauses when the browser tab is hidden. Enable background polling:
 
 ```ts
-const alerts = createQuery({
+const queryClient = new QueryClient()
+
+const alerts = createQuery(queryClient, {
   queryKey: () => ["alerts"],
   queryFn: fetchAlerts,
   refetchInterval: 30_000,
@@ -56,7 +63,9 @@ const alerts = createQuery({
 When the user returns to your app (tab focus, `Alt+Tab`), stale queries automatically refetch:
 
 ```ts
-const data = createQuery({
+const queryClient = new QueryClient()
+
+const data = createQuery(queryClient, {
   queryKey: () => ["dashboard"],
   queryFn: fetchDashboard,
   staleTime: 60_000,           // data is fresh for 1 minute
@@ -71,7 +80,9 @@ const data = createQuery({
 Disable for data that shouldn't silently refresh:
 
 ```ts
-const draftContent = createQuery({
+const queryClient = new QueryClient()
+
+const draftContent = createQuery(queryClient, {
   queryKey: () => ["draft", id],
   queryFn: () => fetchDraft(id),
   refetchOnWindowFocus: false,   // don't overwrite user edits on tab switch
@@ -83,7 +94,9 @@ const draftContent = createQuery({
 Set defaults for all queries at the client level:
 
 ```ts
-const client = createQueryClient({
+import { QueryClient } from "@domphy/query"
+
+const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,              // all queries fresh for 30s
@@ -102,7 +115,9 @@ const client = createQueryClient({
 When the device goes offline and comes back online, stale queries automatically refetch:
 
 ```ts
-const userProfile = createQuery({
+const queryClient = new QueryClient()
+
+const userProfile = createQuery(queryClient, {
   queryKey: () => ["user", userId],
   queryFn: () => fetchUser(userId),
   refetchOnReconnect: true,   // default: true
@@ -116,7 +131,9 @@ const userProfile = createQuery({
 For data that only refreshes on explicit user action:
 
 ```ts
-const config = createQuery({
+const queryClient = new QueryClient()
+
+const config = createQuery(queryClient, {
   queryKey: () => ["config"],
   queryFn: fetchConfig,
   staleTime: Infinity,            // never goes stale
@@ -137,7 +154,9 @@ const RefreshButton = {
 Trigger a refetch manually without invalidating the cache:
 
 ```ts
-const feed = createQuery({
+const queryClient = new QueryClient()
+
+const feed = createQuery(queryClient, {
   queryKey: () => ["feed"],
   queryFn: fetchFeed,
 })

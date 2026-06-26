@@ -1783,10 +1783,13 @@ const Widget = {
 When using `@domphy/query`, set `throwOnError: true` to let query errors propagate to the nearest error boundary:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createQuery } from "@domphy/query/domphy"
 import { errorBoundary } from "@domphy/ui"
 
-const query = createQuery({
+const queryClient = new QueryClient()
+
+const query = createQuery(queryClient, {
   queryKey: () => ["post", id],
   queryFn: () => fetchPost(id),
   throwOnError: true,   // error propagates to errorBoundary
@@ -4463,42 +4466,56 @@ const Card = {
 }
 ```
 
-## Theme motion tokens
+## Motion constants
 
-Use `themeMotion` to access the theme's timing and easing tokens instead of hardcoded values:
+Use named constants to avoid magic values in transitions. These follow Material Design 3 motion guidelines:
 
 ```ts
-import { themeMotion } from "@domphy/theme"
+// Define once, use everywhere
+const DURATION = {
+  instant:  "50ms",
+  fast:     "100ms",
+  medium:   "200ms",
+  slow:     "300ms",
+  slower:   "500ms",
+} as const
+
+const EASING = {
+  standard:    "cubic-bezier(0.2, 0, 0, 1)",    // general UI changes
+  decelerate:  "cubic-bezier(0, 0, 0, 1)",       // entering
+  accelerate:  "cubic-bezier(0.3, 0, 1, 1)",     // leaving
+  linear:      "linear",                          // continuous progress
+} as const
 
 const AnimatedBadge = {
   span: "New",
   style: {
-    transition: `
-      opacity ${themeMotion("duration-fast")} ${themeMotion("easing-standard")},
-      transform ${themeMotion("duration-medium")} ${themeMotion("easing-decelerate")}
-    `,
+    transition: [
+      `opacity ${DURATION.fast} ${EASING.standard}`,
+      `transform ${DURATION.medium} ${EASING.decelerate}`,
+    ].join(", "),
   },
 }
 ```
 
-**Duration tokens:**
+**Duration reference:**
 
-| Token | Value |
-|-------|-------|
-| `duration-instant` | 50ms |
-| `duration-fast` | 100ms |
-| `duration-medium` | 200ms |
-| `duration-slow` | 300ms |
-| `duration-slower` | 500ms |
+| Constant | Value | Use |
+|----------|-------|-----|
+| `DURATION.instant` | 50ms | Hover highlights |
+| `DURATION.fast` | 100ms | Tooltips, badges |
+| `DURATION.medium` | 200ms | Most UI transitions |
+| `DURATION.slow` | 300ms | Drawers, modals |
+| `DURATION.slower` | 500ms | Page transitions |
 
-**Easing tokens (Material Design 3 compliant):**
+**Easing reference (Material Design 3):**
 
-| Token | Curve | Use for |
-|-------|-------|---------|
-| `easing-standard` | cubic-bezier(0.2, 0, 0, 1) | General UI changes |
-| `easing-decelerate` | cubic-bezier(0, 0, 0, 1) | Elements entering |
-| `easing-accelerate` | cubic-bezier(0.3, 0, 1, 1) | Elements leaving |
-| `easing-linear` | linear | Continuous progress |
+| Constant | Curve | Use for |
+|----------|-------|---------|
+| `EASING.standard` | cubic-bezier(0.2, 0, 0, 1) | General UI changes |
+| `EASING.decelerate` | cubic-bezier(0, 0, 0, 1) | Elements entering |
+| `EASING.accelerate` | cubic-bezier(0.3, 0, 1, 1) | Elements leaving |
+| `EASING.linear` | linear | Continuous progress |
 
 ## Keyframe animations
 
@@ -6178,7 +6195,12 @@ description: "Polling, dependent queries, select/transform, retry strategies, op
 Automatically refetch on an interval with `refetchInterval`:
 
 ```ts
-const prices = createQuery({
+import { QueryClient } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
+
+const queryClient = new QueryClient()
+
+const prices = createQuery(queryClient, {
   queryKey: () => ["prices"],
   queryFn: fetchPrices,
   refetchInterval: 5000,           // ms — refetch every 5 seconds
@@ -6189,7 +6211,9 @@ const prices = createQuery({
 Stop polling conditionally:
 
 ```ts
-const job = createQuery({
+const queryClient = new QueryClient()
+
+const job = createQuery(queryClient, {
   queryKey: () => ["job", jobId],
   queryFn: () => fetchJob(jobId),
   refetchInterval: (query) =>
@@ -6202,12 +6226,14 @@ const job = createQuery({
 Wait for one query's result before starting another using `enabled`:
 
 ```ts
-const user = createQuery({
+const queryClient = new QueryClient()
+
+const user = createQuery(queryClient, {
   queryKey: () => ["user", userId],
   queryFn: () => fetchUser(userId),
 })
 
-const posts = createQuery({
+const posts = createQuery(queryClient, {
   queryKey: () => ["posts", user.data()?.id],
   queryFn: () => fetchPosts(user.data()!.id),
   enabled: () => !!user.data()?.id,    // only run when user is loaded
@@ -6221,9 +6247,12 @@ const posts = createQuery({
 Use the `skipToken` sentinel instead of `enabled` when the key itself depends on optional data:
 
 ```ts
-import { skipToken } from "@domphy/query"
+import { QueryClient, skipToken } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
 
-const profile = createQuery({
+const queryClient = new QueryClient()
+
+const profile = createQuery(queryClient, {
   queryKey: () => ["profile", selectedId ?? skipToken],
   queryFn: selectedId ? () => fetchProfile(selectedId) : skipToken,
 })
@@ -6236,7 +6265,9 @@ When `skipToken` is the `queryFn`, the query is permanently disabled until it ch
 Transform query data in the observer without changing the cache:
 
 ```ts
-const users = createQuery({
+const queryClient = new QueryClient()
+
+const users = createQuery(queryClient, {
   queryKey: () => ["users"],
   queryFn: fetchUsers,
   select: (data) => data.filter((u) => u.active).map((u) => u.name),
@@ -6252,7 +6283,9 @@ const users = createQuery({
 Override the default 3 retries:
 
 ```ts
-const payment = createQuery({
+const queryClient = new QueryClient()
+
+const payment = createQuery(queryClient, {
   queryKey: () => ["payment", id],
   queryFn: () => processPayment(id),
   retry: (failCount, error) => {
@@ -6268,20 +6301,23 @@ const payment = createQuery({
 Apply an update immediately and roll back if the mutation fails:
 
 ```ts
-const client = useQueryClient()
+import { QueryClient } from "@domphy/query"
+import { createMutation } from "@domphy/query/domphy"
 
-const toggle = createMutation({
+const queryClient = new QueryClient()
+
+const toggle = createMutation(queryClient, {
   mutationFn: (id: string) => toggleTask(id),
 
   onMutate: async (id) => {
     // Cancel any in-flight refetches so they don't overwrite
-    await client.cancelQueries({ queryKey: ["tasks"] })
+    await queryClient.cancelQueries({ queryKey: ["tasks"] })
 
     // Snapshot current value
-    const previous = client.getQueryData<Task[]>(["tasks"])
+    const previous = queryClient.getQueryData<Task[]>(["tasks"])
 
     // Optimistically update the cache
-    client.setQueryData<Task[]>(["tasks"], (old = []) =>
+    queryClient.setQueryData<Task[]>(["tasks"], (old = []) =>
       old.map((t) => t.id === id ? { ...t, done: !t.done } : t)
     )
 
@@ -6290,12 +6326,12 @@ const toggle = createMutation({
 
   onError: (_err, _id, context) => {
     // Roll back on failure
-    client.setQueryData(["tasks"], context?.previous)
+    queryClient.setQueryData(["tasks"], context?.previous)
   },
 
   onSettled: () => {
     // Always refetch to sync with server
-    client.invalidateQueries({ queryKey: ["tasks"] })
+    queryClient.invalidateQueries({ queryKey: ["tasks"] })
   },
 })
 ```
@@ -6305,9 +6341,11 @@ const toggle = createMutation({
 When multiple observers subscribe to the same `queryKey` simultaneously, only **one** network request fires. All observers receive the same response:
 
 ```ts
+const queryClient = new QueryClient()
+
 // Both createQuery calls below share a single fetch for ["config"]
-const configA = createQuery({ queryKey: () => ["config"], queryFn: fetchConfig })
-const configB = createQuery({ queryKey: () => ["config"], queryFn: fetchConfig })
+const configA = createQuery(queryClient, { queryKey: () => ["config"], queryFn: fetchConfig })
+const configB = createQuery(queryClient, { queryKey: () => ["config"], queryFn: fetchConfig })
 // fetchConfig() is called once; configA and configB both resolve to the same data
 ```
 
@@ -6318,12 +6356,14 @@ Deduplication is in-flight only. A second subscriber arriving after the first re
 Run mutations sequentially with an async queue:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createMutation } from "@domphy/query/domphy"
 
+const queryClient = new QueryClient()
 const queue = toState<string[]>([])
 let running = false
 
-const save = createMutation({
+const save = createMutation(queryClient, {
   mutationFn: (id: string) => saveDraft(id),
   onSettled: () => {
     const next = queue.get().slice(1)
@@ -6350,9 +6390,11 @@ function enqueue(id: string) {
 Run multiple queries at once with `QueriesObserver`:
 
 ```ts
-import { QueriesObserver } from "@domphy/query"
+import { QueryClient, QueriesObserver } from "@domphy/query"
 
-const observer = new QueriesObserver(client, [
+const queryClient = new QueryClient()
+
+const observer = new QueriesObserver(queryClient, [
   { queryKey: ["user"], queryFn: fetchUser },
   { queryKey: ["settings"], queryFn: fetchSettings },
   { queryKey: ["notifications"], queryFn: fetchNotifications },
@@ -6385,7 +6427,9 @@ const [user, settings, notifications] = createQueries([
 Disable focus refetch for static data:
 
 ```ts
-const constants = createQuery({
+const queryClient = new QueryClient()
+
+const constants = createQuery(queryClient, {
   queryKey: () => ["constants"],
   queryFn: fetchConstants,
   staleTime: Infinity,       // never stale
@@ -7027,11 +7071,14 @@ description: "Run multiple queries concurrently, chain dependent queries, and co
 Run multiple independent queries simultaneously — all start at the same time:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createQuery } from "@domphy/query/domphy"
 
+const queryClient = new QueryClient()
+
 // These two queries fire in parallel
-const user    = createQuery({ queryKey: () => ["user", userId],  queryFn: () => fetchUser(userId) })
-const profile = createQuery({ queryKey: () => ["profile", userId], queryFn: () => fetchProfile(userId) })
+const user    = createQuery(queryClient, { queryKey: () => ["user", userId],  queryFn: () => fetchUser(userId) })
+const profile = createQuery(queryClient, { queryKey: () => ["profile", userId], queryFn: () => fetchProfile(userId) })
 
 const Dashboard = {
   div: (l) => {
@@ -7080,12 +7127,14 @@ const RepoList = {
 A query that depends on another query's result. Use `enabled` to prevent firing until the prerequisite resolves:
 
 ```ts
-const user = createQuery({
+const queryClient = new QueryClient()
+
+const user = createQuery(queryClient, {
   queryKey: () => ["user"],
   queryFn: fetchCurrentUser,
 })
 
-const permissions = createQuery({
+const permissions = createQuery(queryClient, {
   queryKey: () => ["permissions", user.data()?.id],
   queryFn: () => fetchPermissions(user.data()!.id),
   enabled: () => !!user.data()?.id,   // only runs when user.data().id exists
@@ -7100,15 +7149,17 @@ When `enabled` is `false`:
 Chain three or more queries:
 
 ```ts
-const org = createQuery({ queryKey: () => ["org"], queryFn: fetchOrg })
+const queryClient = new QueryClient()
 
-const teams = createQuery({
+const org = createQuery(queryClient, { queryKey: () => ["org"], queryFn: fetchOrg })
+
+const teams = createQuery(queryClient, {
   queryKey: () => ["teams", org.data()?.id],
   queryFn: () => fetchTeams(org.data()!.id),
   enabled: () => !!org.data()?.id,
 })
 
-const members = createQuery({
+const members = createQuery(queryClient, {
   queryKey: () => ["members", teams.data()?.[0]?.id],
   queryFn: () => fetchMembers(teams.data()![0].id),
   enabled: () => !!teams.data()?.[0]?.id,
@@ -7120,9 +7171,11 @@ const members = createQuery({
 Aggregate results from multiple queries:
 
 ```ts
-const users   = createQuery({ queryKey: () => ["users"],   queryFn: fetchUsers })
-const groups  = createQuery({ queryKey: () => ["groups"],  queryFn: fetchGroups })
-const settings = createQuery({ queryKey: () => ["settings"], queryFn: fetchSettings })
+const queryClient = new QueryClient()
+
+const users   = createQuery(queryClient, { queryKey: () => ["users"],   queryFn: fetchUsers })
+const groups  = createQuery(queryClient, { queryKey: () => ["groups"],  queryFn: fetchGroups })
+const settings = createQuery(queryClient, { queryKey: () => ["settings"], queryFn: fetchSettings })
 
 const isAllLoaded = computed((l) =>
   !users.isPending(l) && !groups.isPending(l) && !settings.isPending(l)
@@ -7146,16 +7199,16 @@ const Page = {
 Pre-load data before the user navigates to it:
 
 ```ts
-import { useQueryClient } from "@domphy/query/domphy"
+import { QueryClient } from "@domphy/query"
 
-const client = useQueryClient()
+const queryClient = new QueryClient()
 
 // Prefetch on hover
 const NavLink = {
   a: "Dashboard",
   href: "/dashboard",
   onMouseenter: () => {
-    client.prefetchQuery({
+    queryClient.prefetchQuery({
       queryKey: ["dashboard"],
       queryFn: fetchDashboard,
       staleTime: 30_000,   // don't re-prefetch if fresh within 30s
@@ -7171,7 +7224,9 @@ Prefetched data goes into the cache — when the user navigates, the query is al
 Show a subtle indicator when data is being refreshed in the background (stale-while-revalidate):
 
 ```ts
-const posts = createQuery({
+const queryClient = new QueryClient()
+
+const posts = createQuery(queryClient, {
   queryKey: () => ["posts"],
   queryFn: fetchPosts,
   staleTime: 30_000,   // fresh for 30 seconds
@@ -7203,18 +7258,22 @@ const PostList = {
 Seed a query's cache before it mounts — useful for data from SSR or a previous navigation:
 
 ```ts
-const post = createQuery({
+const queryClient = new QueryClient()
+
+const post = createQuery(queryClient, {
   queryKey: () => ["post", postId],
   queryFn: () => fetchPost(postId),
-  initialData: () => client.getQueryData(["post", postId]),   // from cache if available
-  initialDataUpdatedAt: () => client.getQueryState(["post", postId])?.dataUpdatedAt,
+  initialData: () => queryClient.getQueryData(["post", postId]),   // from cache if available
+  initialDataUpdatedAt: () => queryClient.getQueryState(["post", postId])?.dataUpdatedAt,
 })
 ```
 
 Or inject static data (marks as stale immediately so it refetches):
 
 ```ts
-const config = createQuery({
+const queryClient = new QueryClient()
+
+const config = createQuery(queryClient, {
   queryKey: () => ["config"],
   queryFn: fetchConfig,
   initialData: window.__INITIAL_CONFIG__,   // injected by server
@@ -7227,7 +7286,9 @@ const config = createQuery({
 Show placeholder content while the real data loads (no loading spinner needed):
 
 ```ts
-const post = createQuery({
+const queryClient = new QueryClient()
+
+const post = createQuery(queryClient, {
   queryKey: () => ["post", postId],
   queryFn: () => fetchPost(postId),
   placeholderData: {
@@ -7251,11 +7312,13 @@ const PostView = {
 Prevent blank states when paginating — keep the current page visible while the next page loads:
 
 ```ts
-import { keepPreviousData } from "@domphy/query"
+import { QueryClient, keepPreviousData } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
 
+const queryClient = new QueryClient()
 const page = toState(1)
 
-const posts = createQuery({
+const posts = createQuery(queryClient, {
   queryKey: () => ["posts", page.get()],
   queryFn: () => fetchPage(page.get()),
   placeholderData: keepPreviousData,   // shows page N while page N+1 loads
@@ -7278,9 +7341,12 @@ description: "Automatic data refreshing with polling intervals, window focus ref
 Auto-refresh data on a timer — useful for dashboards, live feeds, or anything that changes server-side:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createQuery } from "@domphy/query/domphy"
 
-const stats = createQuery({
+const queryClient = new QueryClient()
+
+const stats = createQuery(queryClient, {
   queryKey: () => ["stats"],
   queryFn: fetchStats,
   refetchInterval: 5_000,   // refetch every 5 seconds
@@ -7294,7 +7360,9 @@ Polling runs in the background — the UI shows fresh data while `isFetching` is
 Pause polling when the data has reached a terminal state:
 
 ```ts
-const jobStatus = createQuery({
+const queryClient = new QueryClient()
+
+const jobStatus = createQuery(queryClient, {
   queryKey: () => ["job", jobId],
   queryFn: () => fetchJobStatus(jobId),
   refetchInterval: (query) => {
@@ -7311,7 +7379,9 @@ const jobStatus = createQuery({
 By default, polling pauses when the browser tab is hidden. Enable background polling:
 
 ```ts
-const alerts = createQuery({
+const queryClient = new QueryClient()
+
+const alerts = createQuery(queryClient, {
   queryKey: () => ["alerts"],
   queryFn: fetchAlerts,
   refetchInterval: 30_000,
@@ -7324,7 +7394,9 @@ const alerts = createQuery({
 When the user returns to your app (tab focus, `Alt+Tab`), stale queries automatically refetch:
 
 ```ts
-const data = createQuery({
+const queryClient = new QueryClient()
+
+const data = createQuery(queryClient, {
   queryKey: () => ["dashboard"],
   queryFn: fetchDashboard,
   staleTime: 60_000,           // data is fresh for 1 minute
@@ -7339,7 +7411,9 @@ const data = createQuery({
 Disable for data that shouldn't silently refresh:
 
 ```ts
-const draftContent = createQuery({
+const queryClient = new QueryClient()
+
+const draftContent = createQuery(queryClient, {
   queryKey: () => ["draft", id],
   queryFn: () => fetchDraft(id),
   refetchOnWindowFocus: false,   // don't overwrite user edits on tab switch
@@ -7351,7 +7425,9 @@ const draftContent = createQuery({
 Set defaults for all queries at the client level:
 
 ```ts
-const client = createQueryClient({
+import { QueryClient } from "@domphy/query"
+
+const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,              // all queries fresh for 30s
@@ -7370,7 +7446,9 @@ const client = createQueryClient({
 When the device goes offline and comes back online, stale queries automatically refetch:
 
 ```ts
-const userProfile = createQuery({
+const queryClient = new QueryClient()
+
+const userProfile = createQuery(queryClient, {
   queryKey: () => ["user", userId],
   queryFn: () => fetchUser(userId),
   refetchOnReconnect: true,   // default: true
@@ -7384,7 +7462,9 @@ const userProfile = createQuery({
 For data that only refreshes on explicit user action:
 
 ```ts
-const config = createQuery({
+const queryClient = new QueryClient()
+
+const config = createQuery(queryClient, {
   queryKey: () => ["config"],
   queryFn: fetchConfig,
   staleTime: Infinity,            // never goes stale
@@ -7405,7 +7485,9 @@ const RefreshButton = {
 Trigger a refetch manually without invalidating the cache:
 
 ```ts
-const feed = createQuery({
+const queryClient = new QueryClient()
+
+const feed = createQuery(queryClient, {
   queryKey: () => ["feed"],
   queryFn: fetchFeed,
 })
@@ -7723,9 +7805,12 @@ Domphy doesn't use React Suspense, but the same pattern — "show a fallback whi
 The simplest approach uses `_onError` as an error boundary and conditional rendering for the pending state:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createQuery } from "@domphy/query/domphy"
 
-const user = createQuery({
+const queryClient = new QueryClient()
+
+const user = createQuery(queryClient, {
   queryKey: () => ["user"],
   queryFn: fetchUser,
 })
@@ -7744,7 +7829,9 @@ const UserPage = {
 When `throwOnError: true`, a query error is thrown into the Domphy element tree. The nearest ancestor with `_onError` catches it:
 
 ```ts
-const user = createQuery({
+const queryClient = new QueryClient()
+
+const user = createQuery(queryClient, {
   queryKey: () => ["user"],
   queryFn: fetchUser,
   throwOnError: true,   // throw errors into the element tree
@@ -7768,7 +7855,9 @@ This mirrors React's `Suspense` + `ErrorBoundary` pattern but without React.
 Use `suspense: true` to make the query participate in a Domphy-managed pending state. The component pauses rendering until the query resolves:
 
 ```ts
-const post = createQuery({
+const queryClient = new QueryClient()
+
+const post = createQuery(queryClient, {
   queryKey: () => ["post", postId],
   queryFn: () => fetchPost(postId),
   suspense: true,
@@ -7799,12 +7888,14 @@ const PostPage = {
 Separate critical data from non-critical data — render the page with placeholder content for slow queries:
 
 ```ts
-const criticalData = createQuery({
+const queryClient = new QueryClient()
+
+const criticalData = createQuery(queryClient, {
   queryKey: () => ["page", id],
   queryFn: () => fetchPage(id),
 })
 
-const slowStats = createQuery({
+const slowStats = createQuery(queryClient, {
   queryKey: () => ["stats", id],
   queryFn: () => fetchStats(id),
   // Stats can be deferred — render a placeholder and update when ready
@@ -7829,26 +7920,26 @@ const Page = {
 With `@domphy/app`'s SSR mode, queries can stream their data progressively. The server renders the page shell immediately, then flushes query results as they resolve:
 
 ```ts
-import { dehydrate, HydrationBoundary } from "@domphy/query"
+import { QueryClient, dehydrate, HydrationBoundary } from "@domphy/query"
 
 // Server-side route loader
 export async function loader({ params }) {
-  const client = createQueryClient()
+  const queryClient = new QueryClient()
 
   // Critical data — await before sending first byte
-  await client.prefetchQuery({
+  await queryClient.prefetchQuery({
     queryKey: ["post", params.id],
     queryFn: () => fetchPost(params.id),
   })
 
   // Non-critical data — prefetch but don't block
-  client.prefetchQuery({
+  queryClient.prefetchQuery({
     queryKey: ["related", params.id],
     queryFn: () => fetchRelated(params.id),
   })
 
   return {
-    dehydratedState: dehydrate(client),
+    dehydratedState: dehydrate(queryClient),
   }
 }
 
@@ -7918,6 +8009,7 @@ description: "Type inference, typed query keys, error types, and TypeScript-safe
 Query data types are inferred from `queryFn`'s return type — no manual annotation needed:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createQuery } from "@domphy/query/domphy"
 
 interface User { id: string; name: string; email: string }
@@ -7926,7 +8018,9 @@ async function fetchUser(id: string): Promise<User> {
   return fetch(`/api/users/${id}`).then((r) => r.json())
 }
 
-const user = createQuery({
+const queryClient = new QueryClient()
+
+const user = createQuery(queryClient, {
   queryKey: () => ["user", userId],
   queryFn: () => fetchUser(userId),
   // No type annotation needed — data is inferred as User
@@ -7941,7 +8035,10 @@ const name = user.data()?.name   // string | undefined
 Define reusable, fully-typed query configs with the `queryOptions` helper:
 
 ```ts
-import { queryOptions } from "@domphy/query"
+import { QueryClient, queryOptions } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
+
+const queryClient = new QueryClient()
 
 const userQueryOptions = (id: string) => queryOptions({
   queryKey: ["user", id] as const,
@@ -7950,9 +8047,9 @@ const userQueryOptions = (id: string) => queryOptions({
 })
 
 // Use anywhere — type is preserved
-const user = createQuery(userQueryOptions(userId))
-client.prefetchQuery(userQueryOptions(nextUserId))
-client.getQueryData(userQueryOptions(userId).queryKey)   // → User | undefined
+const user = createQuery(queryClient, userQueryOptions(userId))
+queryClient.prefetchQuery(userQueryOptions(nextUserId))
+queryClient.getQueryData(userQueryOptions(userId).queryKey)   // → User | undefined
 ```
 
 ## Typed query keys
@@ -7982,13 +8079,18 @@ client.getQueryData<User>(queryKeys.users.detail(userId))
 By default, `query.error(l)` is typed as `Error | null`. Narrow to your API error type:
 
 ```ts
+import { QueryClient } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
+
 interface ApiError {
   status: number
   message: string
   code: string
 }
 
-const user = createQuery<User, ApiError>({
+const queryClient = new QueryClient()
+
+const user = createQuery<User, ApiError>(queryClient, {
   queryKey: () => ["user"],
   queryFn: async () => {
     const res = await fetch("/api/user")
@@ -8007,14 +8109,19 @@ const statusCode = user.error()?.status
 Type the mutation variables, data, and error:
 
 ```ts
+import { QueryClient } from "@domphy/query"
+import { createMutation } from "@domphy/query/domphy"
+
 interface CreatePostInput { title: string; body: string }
 interface Post { id: string; title: string; body: string }
 
-const createPost = createMutation<Post, ApiError, CreatePostInput>({
+const queryClient = new QueryClient()
+
+const createPost = createMutation<Post, ApiError, CreatePostInput>(queryClient, {
   mutationFn: (input) => api.post<Post>("/posts", input),
   onSuccess: (data) => {
     // data: Post ✓
-    client.setQueryData<Post[]>(["posts"], (old = []) => [...old, data])
+    queryClient.setQueryData<Post[]>(["posts"], (old = []) => [...old, data])
   },
   onError: (error) => {
     // error: ApiError ✓
@@ -8030,9 +8137,14 @@ createPost.mutate({ title: 42 })   // ✗ Error: title must be string
 ## Infinite query types
 
 ```ts
+import { QueryClient } from "@domphy/query"
+import { createInfiniteQuery } from "@domphy/query/domphy"
+
 interface PostPage { posts: Post[]; nextCursor: string | null }
 
-const feed = createInfiniteQuery<PostPage, ApiError, PostPage, string[], string>({
+const queryClient = new QueryClient()
+
+const feed = createInfiniteQuery<PostPage, ApiError, PostPage, string[], string>(queryClient, {
   queryKey: () => ["feed"],
   queryFn: ({ pageParam }) => fetchFeedPage(pageParam),
   initialPageParam: "",
@@ -8080,13 +8192,16 @@ function renderQuery<T>(query: UseQueryResult<T, Error>) {
 Integrate `@domphy/form` and `@domphy/query` with shared types:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createForm } from "@domphy/form/domphy"
 import { createMutation } from "@domphy/query/domphy"
 
 interface LoginInput { email: string; password: string }
 interface LoginResult { token: string; user: User }
 
-const loginMutation = createMutation<LoginResult, ApiError, LoginInput>({
+const queryClient = new QueryClient()
+
+const loginMutation = createMutation<LoginResult, ApiError, LoginInput>(queryClient, {
   mutationFn: (input) => api.post<LoginResult>("/auth/login", input),
 })
 
@@ -8632,15 +8747,16 @@ description: "Perform mutations in route loaders, handle optimistic updates, and
 The most common pattern: perform mutations using `createMutation` from `@domphy/query`, then invalidate the relevant queries to reflect the updated state:
 
 ```ts
-import { createMutation, useQueryClient } from "@domphy/query/domphy"
+import { QueryClient } from "@domphy/query"
+import { createMutation } from "@domphy/query/domphy"
 
-const client = useQueryClient()
+const queryClient = new QueryClient()
 
-const createPost = createMutation({
+const createPost = createMutation(queryClient, {
   mutationFn: (data: PostInput) => api.post("/posts", data),
   onSuccess: (post) => {
     // Invalidate the posts list — it will refetch automatically
-    client.invalidateQueries({ queryKey: ["posts"] })
+    queryClient.invalidateQueries({ queryKey: ["posts"] })
     router.navigate({ to: `/posts/${post.id}` })
   },
 })
@@ -8687,24 +8803,25 @@ const newPostRoute = createRoute({
 Update the cache immediately, then revert if the server request fails:
 
 ```ts
-import { createMutation, useQueryClient } from "@domphy/query/domphy"
+import { QueryClient } from "@domphy/query"
+import { createMutation } from "@domphy/query/domphy"
 
 interface Todo { id: string; text: string; done: boolean }
 
-const client = useQueryClient()
+const queryClient = new QueryClient()
 
-const toggleTodo = createMutation({
+const toggleTodo = createMutation(queryClient, {
   mutationFn: (id: string) => api.patch(`/todos/${id}/toggle`),
 
   onMutate: async (id) => {
     // Cancel any in-flight refetches
-    await client.cancelQueries({ queryKey: ["todos"] })
+    await queryClient.cancelQueries({ queryKey: ["todos"] })
 
     // Snapshot the current state
-    const previous = client.getQueryData<Todo[]>(["todos"])
+    const previous = queryClient.getQueryData<Todo[]>(["todos"])
 
     // Optimistically update the cache
-    client.setQueryData<Todo[]>(["todos"], (todos = []) =>
+    queryClient.setQueryData<Todo[]>(["todos"], (todos = []) =>
       todos.map((t) => t.id === id ? { ...t, done: !t.done } : t)
     )
 
@@ -8713,12 +8830,12 @@ const toggleTodo = createMutation({
 
   onError: (_err, _id, context) => {
     // Revert on error
-    client.setQueryData(["todos"], context?.previous)
+    queryClient.setQueryData(["todos"], context?.previous)
   },
 
   onSettled: () => {
     // Always refetch after success or error to ensure consistency
-    client.invalidateQueries({ queryKey: ["todos"] })
+    queryClient.invalidateQueries({ queryKey: ["todos"] })
   },
 })
 ```
@@ -8750,11 +8867,13 @@ const TodoItem = (todo: Todo) => ({
 After a mutation, reload the route's loader data to reflect the change:
 
 ```ts
-const deletePost = createMutation({
+const queryClient = new QueryClient()
+
+const deletePost = createMutation(queryClient, {
   mutationFn: (id: string) => api.delete(`/posts/${id}`),
   onSuccess: async () => {
     // Invalidate the query cache
-    await client.invalidateQueries({ queryKey: ["posts"] })
+    await queryClient.invalidateQueries({ queryKey: ["posts"] })
     // Navigate to the list (the list route's loader will refetch)
     router.navigate({ to: "/posts" })
   },
@@ -8764,7 +8883,9 @@ const deletePost = createMutation({
 Or, if you're using route loaders (not `@domphy/query`), force the current route to reload:
 
 ```ts
-const deletePost = createMutation({
+const queryClient = new QueryClient()
+
+const deletePost = createMutation(queryClient, {
   mutationFn: (id: string) => api.delete(`/posts/${id}`),
   onSuccess: async () => {
     // Force the route to reload its loader
@@ -8802,7 +8923,9 @@ const mutating = useIsMutating({ mutationKey: ["createPost"] })
 Register callbacks on the `QueryClient` to handle all mutations centrally (e.g., show toast notifications):
 
 ```ts
-const client = createQueryClient({
+import { QueryClient, MutationCache } from "@domphy/query"
+
+const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onError: (error) => {
       toast.error(`Operation failed: ${error.message}`)
@@ -8817,7 +8940,9 @@ const client = createQueryClient({
 ## Error handling
 
 ```ts
-const saveForm = createMutation({
+const queryClient = new QueryClient()
+
+const saveForm = createMutation(queryClient, {
   mutationFn: submitFormData,
   onError: (error: ApiError) => {
     if (error.status === 422) {
@@ -12355,6 +12480,7 @@ Combine `@domphy/virtual` (virtualizer) with `@domphy/query` (infinite query) to
 ## Basic setup
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createVirtualizer } from "@domphy/virtual/domphy"
 import { createInfiniteQuery } from "@domphy/query/domphy"
 import { toState, computed } from "@domphy/core"
@@ -12362,8 +12488,10 @@ import { toState, computed } from "@domphy/core"
 interface Post { id: string; title: string }
 interface Page { posts: Post[]; nextCursor: string | null }
 
+const queryClient = new QueryClient()
+
 // Infinite query: loads pages of data
-const feed = createInfiniteQuery<Page>({
+const feed = createInfiniteQuery<Page>(queryClient, {
   queryKey: () => ["feed"],
   queryFn: ({ pageParam }) => fetchPosts(pageParam as string),
   initialPageParam: "",
@@ -12512,7 +12640,9 @@ const feedRoute = createRoute({
 Pre-populate the first page to avoid a loading flash:
 
 ```ts
-const feed = createInfiniteQuery<Page>({
+const queryClient = new QueryClient()
+
+const feed = createInfiniteQuery<Page>(queryClient, {
   queryKey: () => ["feed"],
   queryFn: ({ pageParam }) => fetchPosts(pageParam as string),
   initialPageParam: "",

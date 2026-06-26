@@ -10,6 +10,7 @@ Combine `@domphy/virtual` (virtualizer) with `@domphy/query` (infinite query) to
 ## Basic setup
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createVirtualizer } from "@domphy/virtual/domphy"
 import { createInfiniteQuery } from "@domphy/query/domphy"
 import { toState, computed } from "@domphy/core"
@@ -17,8 +18,10 @@ import { toState, computed } from "@domphy/core"
 interface Post { id: string; title: string }
 interface Page { posts: Post[]; nextCursor: string | null }
 
+const queryClient = new QueryClient()
+
 // Infinite query: loads pages of data
-const feed = createInfiniteQuery<Page>({
+const feed = createInfiniteQuery<Page>(queryClient, {
   queryKey: () => ["feed"],
   queryFn: ({ pageParam }) => fetchPosts(pageParam as string),
   initialPageParam: "",
@@ -167,7 +170,9 @@ const feedRoute = createRoute({
 Pre-populate the first page to avoid a loading flash:
 
 ```ts
-const feed = createInfiniteQuery<Page>({
+const queryClient = new QueryClient()
+
+const feed = createInfiniteQuery<Page>(queryClient, {
   queryKey: () => ["feed"],
   queryFn: ({ pageParam }) => fetchPosts(pageParam as string),
   initialPageParam: "",

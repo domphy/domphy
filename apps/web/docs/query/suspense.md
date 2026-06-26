@@ -12,9 +12,12 @@ Domphy doesn't use React Suspense, but the same pattern — "show a fallback whi
 The simplest approach uses `_onError` as an error boundary and conditional rendering for the pending state:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createQuery } from "@domphy/query/domphy"
 
-const user = createQuery({
+const queryClient = new QueryClient()
+
+const user = createQuery(queryClient, {
   queryKey: () => ["user"],
   queryFn: fetchUser,
 })
@@ -33,7 +36,9 @@ const UserPage = {
 When `throwOnError: true`, a query error is thrown into the Domphy element tree. The nearest ancestor with `_onError` catches it:
 
 ```ts
-const user = createQuery({
+const queryClient = new QueryClient()
+
+const user = createQuery(queryClient, {
   queryKey: () => ["user"],
   queryFn: fetchUser,
   throwOnError: true,   // throw errors into the element tree
@@ -57,7 +62,9 @@ This mirrors React's `Suspense` + `ErrorBoundary` pattern but without React.
 Use `suspense: true` to make the query participate in a Domphy-managed pending state. The component pauses rendering until the query resolves:
 
 ```ts
-const post = createQuery({
+const queryClient = new QueryClient()
+
+const post = createQuery(queryClient, {
   queryKey: () => ["post", postId],
   queryFn: () => fetchPost(postId),
   suspense: true,
@@ -88,12 +95,14 @@ const PostPage = {
 Separate critical data from non-critical data — render the page with placeholder content for slow queries:
 
 ```ts
-const criticalData = createQuery({
+const queryClient = new QueryClient()
+
+const criticalData = createQuery(queryClient, {
   queryKey: () => ["page", id],
   queryFn: () => fetchPage(id),
 })
 
-const slowStats = createQuery({
+const slowStats = createQuery(queryClient, {
   queryKey: () => ["stats", id],
   queryFn: () => fetchStats(id),
   // Stats can be deferred — render a placeholder and update when ready
@@ -118,26 +127,26 @@ const Page = {
 With `@domphy/app`'s SSR mode, queries can stream their data progressively. The server renders the page shell immediately, then flushes query results as they resolve:
 
 ```ts
-import { dehydrate, HydrationBoundary } from "@domphy/query"
+import { QueryClient, dehydrate, HydrationBoundary } from "@domphy/query"
 
 // Server-side route loader
 export async function loader({ params }) {
-  const client = createQueryClient()
+  const queryClient = new QueryClient()
 
   // Critical data — await before sending first byte
-  await client.prefetchQuery({
+  await queryClient.prefetchQuery({
     queryKey: ["post", params.id],
     queryFn: () => fetchPost(params.id),
   })
 
   // Non-critical data — prefetch but don't block
-  client.prefetchQuery({
+  queryClient.prefetchQuery({
     queryKey: ["related", params.id],
     queryFn: () => fetchRelated(params.id),
   })
 
   return {
-    dehydratedState: dehydrate(client),
+    dehydratedState: dehydrate(queryClient),
   }
 }
 

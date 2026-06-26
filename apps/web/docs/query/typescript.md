@@ -10,6 +10,7 @@ description: "Type inference, typed query keys, error types, and TypeScript-safe
 Query data types are inferred from `queryFn`'s return type — no manual annotation needed:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createQuery } from "@domphy/query/domphy"
 
 interface User { id: string; name: string; email: string }
@@ -18,7 +19,9 @@ async function fetchUser(id: string): Promise<User> {
   return fetch(`/api/users/${id}`).then((r) => r.json())
 }
 
-const user = createQuery({
+const queryClient = new QueryClient()
+
+const user = createQuery(queryClient, {
   queryKey: () => ["user", userId],
   queryFn: () => fetchUser(userId),
   // No type annotation needed — data is inferred as User
@@ -33,7 +36,10 @@ const name = user.data()?.name   // string | undefined
 Define reusable, fully-typed query configs with the `queryOptions` helper:
 
 ```ts
-import { queryOptions } from "@domphy/query"
+import { QueryClient, queryOptions } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
+
+const queryClient = new QueryClient()
 
 const userQueryOptions = (id: string) => queryOptions({
   queryKey: ["user", id] as const,
@@ -42,9 +48,9 @@ const userQueryOptions = (id: string) => queryOptions({
 })
 
 // Use anywhere — type is preserved
-const user = createQuery(userQueryOptions(userId))
-client.prefetchQuery(userQueryOptions(nextUserId))
-client.getQueryData(userQueryOptions(userId).queryKey)   // → User | undefined
+const user = createQuery(queryClient, userQueryOptions(userId))
+queryClient.prefetchQuery(userQueryOptions(nextUserId))
+queryClient.getQueryData(userQueryOptions(userId).queryKey)   // → User | undefined
 ```
 
 ## Typed query keys
@@ -74,13 +80,18 @@ client.getQueryData<User>(queryKeys.users.detail(userId))
 By default, `query.error(l)` is typed as `Error | null`. Narrow to your API error type:
 
 ```ts
+import { QueryClient } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
+
 interface ApiError {
   status: number
   message: string
   code: string
 }
 
-const user = createQuery<User, ApiError>({
+const queryClient = new QueryClient()
+
+const user = createQuery<User, ApiError>(queryClient, {
   queryKey: () => ["user"],
   queryFn: async () => {
     const res = await fetch("/api/user")
@@ -99,14 +110,19 @@ const statusCode = user.error()?.status
 Type the mutation variables, data, and error:
 
 ```ts
+import { QueryClient } from "@domphy/query"
+import { createMutation } from "@domphy/query/domphy"
+
 interface CreatePostInput { title: string; body: string }
 interface Post { id: string; title: string; body: string }
 
-const createPost = createMutation<Post, ApiError, CreatePostInput>({
+const queryClient = new QueryClient()
+
+const createPost = createMutation<Post, ApiError, CreatePostInput>(queryClient, {
   mutationFn: (input) => api.post<Post>("/posts", input),
   onSuccess: (data) => {
     // data: Post ✓
-    client.setQueryData<Post[]>(["posts"], (old = []) => [...old, data])
+    queryClient.setQueryData<Post[]>(["posts"], (old = []) => [...old, data])
   },
   onError: (error) => {
     // error: ApiError ✓
@@ -122,9 +138,14 @@ createPost.mutate({ title: 42 })   // ✗ Error: title must be string
 ## Infinite query types
 
 ```ts
+import { QueryClient } from "@domphy/query"
+import { createInfiniteQuery } from "@domphy/query/domphy"
+
 interface PostPage { posts: Post[]; nextCursor: string | null }
 
-const feed = createInfiniteQuery<PostPage, ApiError, PostPage, string[], string>({
+const queryClient = new QueryClient()
+
+const feed = createInfiniteQuery<PostPage, ApiError, PostPage, string[], string>(queryClient, {
   queryKey: () => ["feed"],
   queryFn: ({ pageParam }) => fetchFeedPage(pageParam),
   initialPageParam: "",
@@ -172,13 +193,16 @@ function renderQuery<T>(query: UseQueryResult<T, Error>) {
 Integrate `@domphy/form` and `@domphy/query` with shared types:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createForm } from "@domphy/form/domphy"
 import { createMutation } from "@domphy/query/domphy"
 
 interface LoginInput { email: string; password: string }
 interface LoginResult { token: string; user: User }
 
-const loginMutation = createMutation<LoginResult, ApiError, LoginInput>({
+const queryClient = new QueryClient()
+
+const loginMutation = createMutation<LoginResult, ApiError, LoginInput>(queryClient, {
   mutationFn: (input) => api.post<LoginResult>("/auth/login", input),
 })
 

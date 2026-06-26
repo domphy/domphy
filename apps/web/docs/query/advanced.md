@@ -10,7 +10,12 @@ description: "Polling, dependent queries, select/transform, retry strategies, op
 Automatically refetch on an interval with `refetchInterval`:
 
 ```ts
-const prices = createQuery({
+import { QueryClient } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
+
+const queryClient = new QueryClient()
+
+const prices = createQuery(queryClient, {
   queryKey: () => ["prices"],
   queryFn: fetchPrices,
   refetchInterval: 5000,           // ms — refetch every 5 seconds
@@ -21,7 +26,9 @@ const prices = createQuery({
 Stop polling conditionally:
 
 ```ts
-const job = createQuery({
+const queryClient = new QueryClient()
+
+const job = createQuery(queryClient, {
   queryKey: () => ["job", jobId],
   queryFn: () => fetchJob(jobId),
   refetchInterval: (query) =>
@@ -34,12 +41,14 @@ const job = createQuery({
 Wait for one query's result before starting another using `enabled`:
 
 ```ts
-const user = createQuery({
+const queryClient = new QueryClient()
+
+const user = createQuery(queryClient, {
   queryKey: () => ["user", userId],
   queryFn: () => fetchUser(userId),
 })
 
-const posts = createQuery({
+const posts = createQuery(queryClient, {
   queryKey: () => ["posts", user.data()?.id],
   queryFn: () => fetchPosts(user.data()!.id),
   enabled: () => !!user.data()?.id,    // only run when user is loaded
@@ -53,9 +62,12 @@ const posts = createQuery({
 Use the `skipToken` sentinel instead of `enabled` when the key itself depends on optional data:
 
 ```ts
-import { skipToken } from "@domphy/query"
+import { QueryClient, skipToken } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
 
-const profile = createQuery({
+const queryClient = new QueryClient()
+
+const profile = createQuery(queryClient, {
   queryKey: () => ["profile", selectedId ?? skipToken],
   queryFn: selectedId ? () => fetchProfile(selectedId) : skipToken,
 })
@@ -68,7 +80,9 @@ When `skipToken` is the `queryFn`, the query is permanently disabled until it ch
 Transform query data in the observer without changing the cache:
 
 ```ts
-const users = createQuery({
+const queryClient = new QueryClient()
+
+const users = createQuery(queryClient, {
   queryKey: () => ["users"],
   queryFn: fetchUsers,
   select: (data) => data.filter((u) => u.active).map((u) => u.name),
@@ -84,7 +98,9 @@ const users = createQuery({
 Override the default 3 retries:
 
 ```ts
-const payment = createQuery({
+const queryClient = new QueryClient()
+
+const payment = createQuery(queryClient, {
   queryKey: () => ["payment", id],
   queryFn: () => processPayment(id),
   retry: (failCount, error) => {
@@ -100,20 +116,23 @@ const payment = createQuery({
 Apply an update immediately and roll back if the mutation fails:
 
 ```ts
-const client = useQueryClient()
+import { QueryClient } from "@domphy/query"
+import { createMutation } from "@domphy/query/domphy"
 
-const toggle = createMutation({
+const queryClient = new QueryClient()
+
+const toggle = createMutation(queryClient, {
   mutationFn: (id: string) => toggleTask(id),
 
   onMutate: async (id) => {
     // Cancel any in-flight refetches so they don't overwrite
-    await client.cancelQueries({ queryKey: ["tasks"] })
+    await queryClient.cancelQueries({ queryKey: ["tasks"] })
 
     // Snapshot current value
-    const previous = client.getQueryData<Task[]>(["tasks"])
+    const previous = queryClient.getQueryData<Task[]>(["tasks"])
 
     // Optimistically update the cache
-    client.setQueryData<Task[]>(["tasks"], (old = []) =>
+    queryClient.setQueryData<Task[]>(["tasks"], (old = []) =>
       old.map((t) => t.id === id ? { ...t, done: !t.done } : t)
     )
 
@@ -122,12 +141,12 @@ const toggle = createMutation({
 
   onError: (_err, _id, context) => {
     // Roll back on failure
-    client.setQueryData(["tasks"], context?.previous)
+    queryClient.setQueryData(["tasks"], context?.previous)
   },
 
   onSettled: () => {
     // Always refetch to sync with server
-    client.invalidateQueries({ queryKey: ["tasks"] })
+    queryClient.invalidateQueries({ queryKey: ["tasks"] })
   },
 })
 ```
@@ -137,9 +156,11 @@ const toggle = createMutation({
 When multiple observers subscribe to the same `queryKey` simultaneously, only **one** network request fires. All observers receive the same response:
 
 ```ts
+const queryClient = new QueryClient()
+
 // Both createQuery calls below share a single fetch for ["config"]
-const configA = createQuery({ queryKey: () => ["config"], queryFn: fetchConfig })
-const configB = createQuery({ queryKey: () => ["config"], queryFn: fetchConfig })
+const configA = createQuery(queryClient, { queryKey: () => ["config"], queryFn: fetchConfig })
+const configB = createQuery(queryClient, { queryKey: () => ["config"], queryFn: fetchConfig })
 // fetchConfig() is called once; configA and configB both resolve to the same data
 ```
 
@@ -150,12 +171,14 @@ Deduplication is in-flight only. A second subscriber arriving after the first re
 Run mutations sequentially with an async queue:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createMutation } from "@domphy/query/domphy"
 
+const queryClient = new QueryClient()
 const queue = toState<string[]>([])
 let running = false
 
-const save = createMutation({
+const save = createMutation(queryClient, {
   mutationFn: (id: string) => saveDraft(id),
   onSettled: () => {
     const next = queue.get().slice(1)
@@ -182,9 +205,11 @@ function enqueue(id: string) {
 Run multiple queries at once with `QueriesObserver`:
 
 ```ts
-import { QueriesObserver } from "@domphy/query"
+import { QueryClient, QueriesObserver } from "@domphy/query"
 
-const observer = new QueriesObserver(client, [
+const queryClient = new QueryClient()
+
+const observer = new QueriesObserver(queryClient, [
   { queryKey: ["user"], queryFn: fetchUser },
   { queryKey: ["settings"], queryFn: fetchSettings },
   { queryKey: ["notifications"], queryFn: fetchNotifications },
@@ -217,7 +242,9 @@ const [user, settings, notifications] = createQueries([
 Disable focus refetch for static data:
 
 ```ts
-const constants = createQuery({
+const queryClient = new QueryClient()
+
+const constants = createQuery(queryClient, {
   queryKey: () => ["constants"],
   queryFn: fetchConstants,
   staleTime: Infinity,       // never stale

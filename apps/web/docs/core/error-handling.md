@@ -146,10 +146,13 @@ const Widget = {
 When using `@domphy/query`, set `throwOnError: true` to let query errors propagate to the nearest error boundary:
 
 ```ts
+import { QueryClient } from "@domphy/query"
 import { createQuery } from "@domphy/query/domphy"
 import { errorBoundary } from "@domphy/ui"
 
-const query = createQuery({
+const queryClient = new QueryClient()
+
+const query = createQuery(queryClient, {
   queryKey: () => ["post", id],
   queryFn: () => fetchPost(id),
   throwOnError: true,   // error propagates to errorBoundary

@@ -10,15 +10,16 @@ description: "Perform mutations in route loaders, handle optimistic updates, and
 The most common pattern: perform mutations using `createMutation` from `@domphy/query`, then invalidate the relevant queries to reflect the updated state:
 
 ```ts
-import { createMutation, useQueryClient } from "@domphy/query/domphy"
+import { QueryClient } from "@domphy/query"
+import { createMutation } from "@domphy/query/domphy"
 
-const client = useQueryClient()
+const queryClient = new QueryClient()
 
-const createPost = createMutation({
+const createPost = createMutation(queryClient, {
   mutationFn: (data: PostInput) => api.post("/posts", data),
   onSuccess: (post) => {
     // Invalidate the posts list — it will refetch automatically
-    client.invalidateQueries({ queryKey: ["posts"] })
+    queryClient.invalidateQueries({ queryKey: ["posts"] })
     router.navigate({ to: `/posts/${post.id}` })
   },
 })
@@ -65,24 +66,25 @@ const newPostRoute = createRoute({
 Update the cache immediately, then revert if the server request fails:
 
 ```ts
-import { createMutation, useQueryClient } from "@domphy/query/domphy"
+import { QueryClient } from "@domphy/query"
+import { createMutation } from "@domphy/query/domphy"
 
 interface Todo { id: string; text: string; done: boolean }
 
-const client = useQueryClient()
+const queryClient = new QueryClient()
 
-const toggleTodo = createMutation({
+const toggleTodo = createMutation(queryClient, {
   mutationFn: (id: string) => api.patch(`/todos/${id}/toggle`),
 
   onMutate: async (id) => {
     // Cancel any in-flight refetches
-    await client.cancelQueries({ queryKey: ["todos"] })
+    await queryClient.cancelQueries({ queryKey: ["todos"] })
 
     // Snapshot the current state
-    const previous = client.getQueryData<Todo[]>(["todos"])
+    const previous = queryClient.getQueryData<Todo[]>(["todos"])
 
     // Optimistically update the cache
-    client.setQueryData<Todo[]>(["todos"], (todos = []) =>
+    queryClient.setQueryData<Todo[]>(["todos"], (todos = []) =>
       todos.map((t) => t.id === id ? { ...t, done: !t.done } : t)
     )
 
@@ -91,12 +93,12 @@ const toggleTodo = createMutation({
 
   onError: (_err, _id, context) => {
     // Revert on error
-    client.setQueryData(["todos"], context?.previous)
+    queryClient.setQueryData(["todos"], context?.previous)
   },
 
   onSettled: () => {
     // Always refetch after success or error to ensure consistency
-    client.invalidateQueries({ queryKey: ["todos"] })
+    queryClient.invalidateQueries({ queryKey: ["todos"] })
   },
 })
 ```
@@ -128,11 +130,13 @@ const TodoItem = (todo: Todo) => ({
 After a mutation, reload the route's loader data to reflect the change:
 
 ```ts
-const deletePost = createMutation({
+const queryClient = new QueryClient()
+
+const deletePost = createMutation(queryClient, {
   mutationFn: (id: string) => api.delete(`/posts/${id}`),
   onSuccess: async () => {
     // Invalidate the query cache
-    await client.invalidateQueries({ queryKey: ["posts"] })
+    await queryClient.invalidateQueries({ queryKey: ["posts"] })
     // Navigate to the list (the list route's loader will refetch)
     router.navigate({ to: "/posts" })
   },
@@ -142,7 +146,9 @@ const deletePost = createMutation({
 Or, if you're using route loaders (not `@domphy/query`), force the current route to reload:
 
 ```ts
-const deletePost = createMutation({
+const queryClient = new QueryClient()
+
+const deletePost = createMutation(queryClient, {
   mutationFn: (id: string) => api.delete(`/posts/${id}`),
   onSuccess: async () => {
     // Force the route to reload its loader
@@ -180,7 +186,9 @@ const mutating = useIsMutating({ mutationKey: ["createPost"] })
 Register callbacks on the `QueryClient` to handle all mutations centrally (e.g., show toast notifications):
 
 ```ts
-const client = createQueryClient({
+import { QueryClient, MutationCache } from "@domphy/query"
+
+const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onError: (error) => {
       toast.error(`Operation failed: ${error.message}`)
@@ -195,7 +203,9 @@ const client = createQueryClient({
 ## Error handling
 
 ```ts
-const saveForm = createMutation({
+const queryClient = new QueryClient()
+
+const saveForm = createMutation(queryClient, {
   mutationFn: submitFormData,
   onError: (error: ApiError) => {
     if (error.status === 422) {
