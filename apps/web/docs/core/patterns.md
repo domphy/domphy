@@ -107,8 +107,8 @@ function badge(variant: "success" | "error" | "warning" | "info") {
     return {
       span: text,
       style: {
-        background: themeColor(colorMap[variant], 2),
-        color: themeColor(colorMap[variant], 10),
+        background: (l) => themeColor(l, "shift-2", colorMap[variant]),
+        color: (l) => themeColor(l, "shift-10", colorMap[variant]),
         padding: "2px 6px",
         borderRadius: "4px",
         fontSize: "0.75rem",

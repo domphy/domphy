@@ -228,7 +228,7 @@ import { themeColor } from "@domphy/theme"
 const Muted = {
   span: "Secondary info",
   style: {
-    color: themeColor("neutral", 6),   // tone-shifted neutral text
+    color: (l) => themeColor(l, "base", "neutral"),   // base neutral text color
     fontSize: themeSize(2),
   },
 }

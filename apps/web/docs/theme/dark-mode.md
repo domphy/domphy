@@ -120,8 +120,8 @@ const CodeEditor = {
   div: EditorContent,
   "data-theme": "dark",   // force dark within this subtree
   style: {
-    background: themeColor("neutral", 0),   // resolves to dark background
-    color: themeColor("neutral", 12),       // resolves to light text
+    background: (l) => themeColor(l, "shift-1", "neutral"),   // near-dark edge in dark theme
+    color: (l) => themeColor(l, "shift-12", "neutral"),       // near-light in dark theme
   },
 }
 ```
