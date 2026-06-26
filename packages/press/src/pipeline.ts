@@ -11,8 +11,9 @@ import {
 } from "@domphy/markdown";
 import MarkdownIt from "markdown-it";
 import container from "markdown-it-container";
+// markdown-it-emoji@3.x has no default export — import named 'full' directly
 // @ts-expect-error -- no bundled types
-import emojiPkg from "markdown-it-emoji";
+import { full as emojiPlugin } from "markdown-it-emoji";
 // @ts-expect-error -- no bundled types
 import includeUntyped from "markdown-it-include";
 // @ts-expect-error -- no bundled types
@@ -33,9 +34,6 @@ const include = includeUntyped as (
 const markPlugin = markUntyped as MdPlugin;
 const subPlugin = subUntyped as MdPlugin;
 const supPlugin = supUntyped as MdPlugin;
-// markdown-it-emoji@3.x exports { bare, full, light } — use the full set
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const emojiPlugin = ((emojiPkg as any).full ?? emojiPkg) as MdPlugin;
 
 // --- <<< code imports --------------------------------------------------------
 
