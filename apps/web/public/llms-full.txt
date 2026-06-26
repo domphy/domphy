@@ -17178,10 +17178,16 @@ The SSR challenge is different: **how to pre-populate forms with server data** a
 The simplest approach with `@domphy/app` — load the data in the route loader and pass it to the form as `defaultValues`:
 
 ```ts
+import { type Listener, toState } from "@domphy/core"
+import { type AnyRouteMatch } from "@domphy/router"
 import { createRoute } from "@domphy/router"
 import { createForm } from "@domphy/form/domphy"
 import { inputText, label, formGroup, button } from "@domphy/ui"
 import { themeSpacing } from "@domphy/theme"
+
+// Reactive state synced from the router (set up once in app bootstrap):
+//   router.subscribe("onResolved", () => matches.set(router.state.matches))
+declare const matches: ReturnType<typeof toState<AnyRouteMatch[]>>
 
 interface Post {
   id: number
@@ -17197,8 +17203,9 @@ const editPostRoute = createRoute({
   component: EditPost,
 })
 
-function EditPost() {
-  const post = editPostRoute.useLoaderData() as Post
+function EditPost(l: Listener) {
+  const matches = routerState.get(l).matches
+  const post = matches.find(m => m.routeId === editPostRoute.id)?.loaderData as Post
 
   const form = createForm<{ title: string; body: string }>({
     defaultValues: { title: post.title, body: post.body },
@@ -19261,7 +19268,7 @@ interface ParentConfig<T> {
 Import plugins from `@domphy/dnd` (re-exported from `@formkit/drag-and-drop`):
 
 ```ts
-import { animations, multiDrag, handleClass } from "@domphy/dnd"
+import { animations } from "@domphy/dnd"
 ```
 
 ### `animations(config?)`
@@ -19280,30 +19287,9 @@ interface AnimationsConfig {
 }
 ```
 
-### `multiDrag(config?)`
+### Drag handles via `handleClass`
 
-Allow selecting multiple items (hold `Shift` or `Ctrl/Cmd`) and dragging them together:
-
-```ts
-import { multiDrag, selections } from "@domphy/dnd"
-
-const selectedItems = selections(items)   // tracks selected subset
-
-const App = {
-  ul: (l) => items.get(l).map((item) => ({
-    li: item.label,
-    _key: item.id,
-    class: (l) => selectedItems.get(l).has(item.id) ? "selected" : "",
-  })),
-  $: [dragDrop(items, {
-    plugins: [multiDrag({ selectedClass: "selected" })],
-  })],
-}
-```
-
-### `handleClass(className?)`
-
-Scope dragging to a handle element inside each item. Items without a matching handle element are not draggable by direct drag — only by their handle:
+`handleClass` is a config string key — not a plugin. Scope dragging to a handle element inside each item:
 
 ```ts
 { ul: (l) => items.get(l).map((item) => ({
@@ -19315,6 +19301,8 @@ Scope dragging to a handle element inside each item. Items without a matching ha
 })),
 $: [dragDrop(items, { handleClass: "handle" })] }
 ```
+
+Items without a matching `.handle` element are not draggable by direct drag.
 
 ---
 
@@ -19400,13 +19388,15 @@ All `@formkit/drag-and-drop` exports are re-exported from `@domphy/dnd`:
 ```ts
 import {
   dragAndDrop,      // low-level setup for a container element
-  useDragAndDrop,   // framework-agnostic reactive helper
-  selections,       // multi-select state helper
-  swap,             // swap two elements without triggering full re-sort
-  insert,           // insert at specific index
-  multiDrag,
-  animations,
-  handleClass,
+  animations,       // plugin: smooth CSS transitions
+  insert,           // plugin: insert items at specific positions
+  sort,             // plugin: sort-only (no transfer)
+  transfer,         // plugin: transfer between lists
+  dropOrSwap,       // drop zone: swap positions instead of shift
+  parentValues,     // get current values from a parent element
+  setParentValues,  // programmatically update a parent's values
+  nodes,            // map of all registered node elements
+  parents,          // map of all registered parent elements
 } from "@domphy/dnd"
 ```
 
@@ -24221,16 +24211,16 @@ description: "Customize diagram appearance with Mermaid themes, fontFamily, and 
 
 ## Global configuration
 
-Pass a `config` object to the `mermaid` patch to apply settings to all diagrams on the page:
+Pass options to `mermaidClient` to apply settings to all diagrams on the page. The `theme` key is top-level; anything else that Mermaid accepts goes inside `mermaidConfig`:
 
 ```ts
-import { mermaid } from "@domphy/mermaid"
+import { mermaidClient } from "@domphy/mermaid"
 
 const DiagramPage = {
   div: DiagramContent,
-  $: [mermaid({
-    config: {
-      theme: "default",
+  $: [mermaidClient({
+    theme: "default",
+    mermaidConfig: {
       fontFamily: "Inter, sans-serif",
       fontSize: 14,
       startOnLoad: false,
@@ -24252,27 +24242,26 @@ Mermaid ships five built-in themes:
 | `"base"` | Minimal — best base for custom theming |
 
 ```ts
-// Match the Domphy theme
-const isDark = themeName(myElement) === "dark"
+import { mermaidClient } from "@domphy/mermaid"
 
 const DiagramBlock = {
   div: null,
-  $: [mermaid({
-    config: { theme: isDark ? "dark" : "default" },
-  })],
+  $: [mermaidClient({ theme: "dark" })],
 }
 ```
 
 ## Theme variables (custom theme)
 
-Use the `"base"` theme with `themeVariables` for full control:
+Use the `"base"` theme with `themeVariables` inside `mermaidConfig` for full control:
 
 ```ts
+import { mermaidClient } from "@domphy/mermaid"
+
 const DiagramBlock = {
   div: null,
-  $: [mermaid({
-    config: {
-      theme: "base",
+  $: [mermaidClient({
+    theme: "base",
+    mermaidConfig: {
       themeVariables: {
         primaryColor: "#7c3aed",        // node fill
         primaryTextColor: "#ffffff",    // node text
@@ -24346,30 +24335,33 @@ sequenceDiagram
 Reactively switch diagram theme when the Domphy theme changes:
 
 ```ts
+import { mermaidClient } from "@domphy/mermaid"
 import { themeName } from "@domphy/theme"
-import { toState, effect } from "@domphy/core"
+import { toState } from "@domphy/core"
 
 const diagramTheme = toState<"default" | "dark">("default")
 
-// Sync with Domphy theme
-effect(() => {
-  const name = themeName(someElement)
-  diagramTheme.set(name === "dark" ? "dark" : "default")
-})
-
 const DiagramBlock = {
   div: null,
-  $: [(l) => mermaid({ config: { theme: diagramTheme.get(l) } })],
+  $: [(l) => mermaidClient({ theme: diagramTheme.get(l) })],
+}
+
+// Update diagramTheme whenever the page theme changes
+function syncTheme(node: ElementNode) {
+  const name = themeName(node)
+  diagramTheme.set(name === "dark" ? "dark" : "default")
 }
 ```
 
 ## Render options
 
 ```ts
+import { mermaidClient } from "@domphy/mermaid"
+
 const DiagramBlock = {
   div: null,
-  $: [mermaid({
-    config: {
+  $: [mermaidClient({
+    mermaidConfig: {
       securityLevel: "strict",    // or "loose" for trusted HTML in labels
       maxTextSize: 50_000,        // max characters — raise for large diagrams
       maxEdges: 500,              // max edges before truncation warning
@@ -24420,12 +24412,12 @@ flowchart LR
 ```ts
 import { renderMermaidInTree } from "@domphy/mermaid"
 
-const diagram = await renderMermaidInTree({
+const diagram = await renderMermaidInTree([{
   pre: [{ code: `flowchart LR
   A[Start] --> B{Decision}
   B -- Yes --> C[Do it]
   B -- No --> D[Skip it]` }],
-})
+}])
 ```
 
 Flowchart directions: `TB` (top→bottom), `LR` (left→right), `BT`, `RL`.
