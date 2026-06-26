@@ -9164,18 +9164,22 @@ const authLayout = createRoute({
       throw redirect({ to: "/login" })
     }
   },
-  component: () => ({
-    div: [
-      NavBar,
-      { div: RouterOutlet },   // render child routes
-    ],
-  }),
 })
 
 // All children are automatically protected
 const dashboardRoute = createRoute({ getParentRoute: () => authLayout, path: "/dashboard" })
 const settingsRoute  = createRoute({ getParentRoute: () => authLayout, path: "/settings" })
 const profileRoute   = createRoute({ getParentRoute: () => authLayout, path: "/profile" })
+
+// In the App renderers map, the auth layout wraps its children with NavBar:
+const renderers: Record<string, (match: AnyRouteMatch, rest: AnyRouteMatch[]) => DomphyElement> = {
+  [authLayout.id]: (_match, rest) => ({
+    div: [NavBar, ...rest.map((m) => renderMatch(m, rest.slice(1)))],
+  }),
+  [dashboardRoute.id]: () => DashboardPage,
+  [settingsRoute.id]:  () => SettingsPage,
+  [profileRoute.id]:   () => ProfilePage,
+}
 ```
 
 ## Role-based access control
@@ -27871,8 +27875,8 @@ createI18n<TLocale extends string, TMessages>(options): I18nInstance
 
 ```ts
 detectLocale({
-  fromUrl?: boolean     // check URL prefix (/en/..., /vi/...)
-  fromBrowser?: boolean // check navigator.language
+  storageKey?: string   // localStorage key to read persisted locale from
+  pathSegment?: boolean // check first URL path segment (/vi/...) — default true
 })
 ```
 
@@ -27897,101 +27901,110 @@ t("nav.missing")  // ✗ TypeScript error
 
 ---
 title: "Lazy Loading & Backend"
-description: "Load translations on-demand, split by route, integrate with a backend API, and handle loading states."
+description: "Load translations on-demand and handle loading states with @domphy/i18n."
 ---
 
 # Lazy Loading & Backend
 
-## Why lazy-load translations?
+## How @domphy/i18n handles locales
 
-Shipping all translations upfront increases initial bundle size. Lazy loading splits translations by:
-- **Locale** — load only the active locale
-- **Namespace** — load only the translations needed for the current page/feature
-- **Route** — load translations on navigation
-
-## Locale-split with dynamic imports
-
-Vite/Rollup tree-shakes dynamic `import()` with template literals:
+`createI18n` takes a `locales` object with static translation data. The simplest approach is static imports — Vite/Rollup will include all locales in the bundle:
 
 ```ts
-import { createI18n } from "@domphy/i18n/domphy"
+import { createI18n } from "@domphy/i18n"
+import en from "./locales/en.json"
+import fr from "./locales/fr.json"
+import vi from "./locales/vi.json"
 
-const { t, setLocale } = createI18n({
-  locale: "en",
-  messages: {
-    en: () => import("./locales/en.json"),
-    fr: () => import("./locales/fr.json"),
-    de: () => import("./locales/de.json"),
-    ja: () => import("./locales/ja.json"),
-  },
+const i18n = createI18n<"en" | "fr" | "vi", typeof en>({
+  globalKey: "__myapp_i18n__",
+  namespace: "app",
+  locales: { en, fr, vi },
+  defaultLocale: "en",
 })
 ```
 
-Each locale is a separate chunk — only `en.json` downloads on first load. When the user switches to French, `fr.json` downloads and caches.
+## Locale-split with dynamic imports
 
-## Namespace lazy loading per route
-
-Load translations when a route mounts — not before:
+To avoid bundling all locales upfront, load translations dynamically before calling `createI18n`:
 
 ```ts
-import { createI18n } from "@domphy/i18n/domphy"
+import { createI18n } from "@domphy/i18n"
 
-const { t, loadNamespace } = createI18n({
-  locale: "en",
-  namespaces: {
-    common: () => import("./locales/en/common.json"),
-    // "dashboard" namespace not preloaded — loaded on demand
-  },
-})
+type Locale = "en" | "fr" | "vi"
 
-// In the dashboard route loader:
-const dashboardRoute = createRoute({
-  path: "/dashboard",
-  loader: async () => {
-    await loadNamespace("dashboard", () => import("./locales/en/dashboard.json"))
-  },
-  component: () => DashboardPage,
-})
+async function createI18nLazy(initialLocale: Locale) {
+  const [en, fr, vi] = await Promise.all([
+    import("./locales/en.json"),
+    import("./locales/fr.json"),
+    import("./locales/vi.json"),
+  ])
+
+  const i18n = createI18n<Locale, typeof en.default>({
+    globalKey: "__myapp_i18n__",
+    namespace: "app",
+    locales: { en: en.default, fr: fr.default, vi: vi.default },
+    defaultLocale: "en",
+  })
+
+  await i18n.initI18n(initialLocale)
+  return i18n
+}
+```
+
+For truly on-demand loading (only active locale), fetch before init and defer others:
+
+```ts
+async function createI18nOnDemand(initialLocale: Locale) {
+  // Only load the initial locale upfront
+  const initialMessages = await import(`./locales/${initialLocale}.json`)
+
+  // Load remaining locales lazily on setLocale
+  const localeModules: Record<Locale, Record<string, unknown>> = {
+    [initialLocale]: initialMessages.default,
+  } as Record<Locale, Record<string, unknown>>
+
+  const loaders: Record<Locale, () => Promise<Record<string, unknown>>> = {
+    en: () => import("./locales/en.json").then(m => m.default),
+    fr: () => import("./locales/fr.json").then(m => m.default),
+    vi: () => import("./locales/vi.json").then(m => m.default),
+  }
+
+  // Pre-load remaining locales in background
+  for (const locale of (["en", "fr", "vi"] as Locale[]).filter(l => l !== initialLocale)) {
+    loaders[locale]().then(messages => { localeModules[locale] = messages })
+  }
+
+  return createI18n<Locale, typeof initialMessages.default>({
+    globalKey: "__myapp_i18n__",
+    namespace: "app",
+    locales: localeModules as Record<Locale, typeof initialMessages.default>,
+    defaultLocale: initialLocale,
+  })
+}
 ```
 
 ## HTTP backend
 
-Fetch translations from a server at runtime — useful for translations stored in a CMS or translation management system:
+Fetch translations from a server at runtime:
 
 ```ts
-const { t } = createI18n({
-  locale: "en",
-  messages: {
-    en: async () => {
-      const response = await fetch("/api/translations/en")
-      return response.json()
-    },
-    fr: async () => {
-      const response = await fetch("/api/translations/fr")
-      return response.json()
-    },
-  },
-})
-```
+const [enMessages, frMessages] = await Promise.all([
+  fetch("/api/translations/en").then(r => r.json()),
+  fetch("/api/translations/fr").then(r => r.json()),
+])
 
-With a translation management service (Lokalise, Crowdin, Phrase):
-
-```ts
-const LOKALISE_CDN = "https://cdn.lokalise.com/my-project"
-
-const { t } = createI18n({
-  locale: navigator.language.split("-")[0] as Locale,
-  messages: {
-    en: () => fetch(`${LOKALISE_CDN}/en.json`).then(r => r.json()),
-    fr: () => fetch(`${LOKALISE_CDN}/fr.json`).then(r => r.json()),
-    de: () => fetch(`${LOKALISE_CDN}/de.json`).then(r => r.json()),
-  },
+const i18n = createI18n<"en" | "fr", typeof enMessages>({
+  globalKey: "__myapp_i18n__",
+  namespace: "app",
+  locales: { en: enMessages, fr: frMessages },
+  defaultLocale: "en",
 })
 ```
 
 ## Handling the loading state
 
-Translations load asynchronously — show a loading state while the initial locale loads:
+Show a loading state while translations are being fetched:
 
 ```ts
 import { toState } from "@domphy/core"
@@ -27999,8 +28012,9 @@ import { toState } from "@domphy/core"
 const translationsReady = toState(false)
 
 async function initApp() {
-  const { t } = createI18n({ locale: "en", messages: { en: () => import("./en.json") } })
-  await initI18n()   // load the initial locale
+  const messages = await fetch("/api/translations/en").then(r => r.json())
+  const i18n = createI18n({ globalKey: "__app__", namespace: "app", locales: { en: messages }, defaultLocale: "en" })
+  await i18n.initI18n()
   translationsReady.set(true)
 }
 
@@ -28013,79 +28027,41 @@ const App = {
 
 ## Locale detection
 
-Auto-detect locale from browser, user preference, or URL:
+Use `detectLocale` to pick the initial locale:
 
 ```ts
-import { detectLocale } from "@domphy/i18n"
+const i18n = createI18n<"en" | "fr" | "vi", typeof en>({ ... })
 
-const supported: Locale[] = ["en", "fr", "de", "ja", "zh"]
+// Detect from URL path (/vi/...) then localStorage, then default
+const locale = i18n.detectLocale({ pathSegment: true, storageKey: "locale" })
+await i18n.initI18n(locale)
 
-function getInitialLocale(): Locale {
-  // 1. Check URL param (?lang=fr)
-  const urlParam = new URLSearchParams(location.search).get("lang")
-  if (urlParam && supported.includes(urlParam as Locale)) return urlParam as Locale
-
-  // 2. Check saved preference
-  const saved = localStorage.getItem("locale")
-  if (saved && supported.includes(saved as Locale)) return saved as Locale
-
-  // 3. Browser language
-  return detectLocale(navigator.languages, supported, "en") as Locale
+// Save preference on switch
+const { setLocale } = i18n
+async function switchLocale(next: "en" | "fr" | "vi") {
+  await setLocale(next)
+  localStorage.setItem("locale", next)
 }
-
-const { t, setLocale } = createI18n({
-  locale: getInitialLocale(),
-  messages: { ... },
-})
-```
-
-## Preloading on hover
-
-Preload the translated page before the user navigates to it:
-
-```ts
-const NavLink = (href: string, label: string, namespace: string) => ({
-  a: label,
-  href,
-  onMouseenter: async () => {
-    await loadNamespace(namespace)
-  },
-})
-```
-
-## Caching loaded namespaces
-
-Loaded namespaces are cached in memory — `loadNamespace("dashboard")` on re-navigation is instant:
-
-```ts
-// First call: fetches from network (~200ms)
-await loadNamespace("dashboard", () => import("./locales/en/dashboard.json"))
-
-// Subsequent calls: returns from memory cache (~0ms)
-await loadNamespace("dashboard", () => import("./locales/en/dashboard.json"))
 ```
 
 ## SSR considerations
 
-On the server, translations must be loaded synchronously (or pre-awaited):
+On the server, use static imports — fetch is unavailable or requires a polyfill:
 
 ```ts
-// Server-side
-import en from "./locales/en.json"   // static import — synchronous
+import en from "./locales/en.json"
 import fr from "./locales/fr.json"
 
-const MESSAGES = { en, fr }
-
-const { t } = createI18n({
-  locale: userLocale,
-  messages: {
-    en: () => Promise.resolve(MESSAGES.en),
-    fr: () => Promise.resolve(MESSAGES.fr),
-  },
+const i18n = createI18n<"en" | "fr", typeof en>({
+  globalKey: "__app_ssr__",
+  namespace: "app",
+  locales: { en, fr },
+  defaultLocale: "en",
 })
-```
 
-With `@domphy/app` SSR, the server can read the `Accept-Language` header or cookie to choose the locale, then hydrate the client with the same locale.
+// Initialize with the locale from Accept-Language or cookie
+await i18n.initI18n(userLocale)
+```
 
 ### formatting.md
 
@@ -28148,38 +28124,35 @@ function formatNumber(value: number, locale: string): string {
 // de-DE: "Price: 1.234.567,89"
 ```
 
-Or register a custom formatter in the i18n instance:
+Or format before passing to `t()`:
 
 ```ts
-const { t } = createI18n({
-  locale: "en",
-  messages: { en: () => import("./en.json") },
-  formatters: {
-    number: (value, locale) => new Intl.NumberFormat(locale).format(Number(value)),
-    currency: (value, locale) =>
-      new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(Number(value)),
-  },
-})
+// In translations: { "price": "Price: {{amount}}" }
+const { t, getLocale } = i18n
 
-// In translations:
-// { "price": "Price: {{amount, currency}}" }
-t("price", { amount: 42.5 })   // "Price: $42.50"
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat(getLocale(), { style: "currency", currency: "USD" }).format(value)
+}
+
+{ span: (l) => t(l, "price", { amount: formatCurrency(42.5) }) }
+// "Price: $42.50"
 ```
 
 ## Date formatting
 
+Format dates before passing as interpolation values:
+
 ```ts
-const { t } = createI18n({
-  locale: "en",
-  formatters: {
-    date: (value, locale) =>
-      new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(String(value))),
-    time: (value, locale) =>
-      new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(new Date(String(value))),
-    datetime: (value, locale) =>
-      new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(String(value))),
-  },
-})
+const { t, getLocale } = i18n
+
+function formatDate(value: Date): string {
+  return new Intl.DateTimeFormat(getLocale(), { dateStyle: "medium" }).format(value)
+}
+
+// { "lastSeen": "Last seen {{date}}" }
+{ span: (l) => t(l, "lastSeen", { date: formatDate(new Date("2025-06-26")) }) }
+// "Last seen Jun 26, 2025"
+```
 
 // { "lastSeen": "Last seen {{date, date}}" }
 t("lastSeen", { date: "2025-06-26" })   // "Last seen Jun 26, 2025"
@@ -28267,15 +28240,13 @@ t("missing.key", { defaultValue: "Fallback text" })
 
 ## Typed interpolation
 
-With TypeScript, interpolation values can be typed:
+Use the `t` function returned from `createI18n` — its key type is inferred from the messages generic:
 
 ```ts
-import type { TFunction } from "@domphy/i18n"
+const { t } = createI18n<"en", typeof en>({ ... })
 
-function render(t: TFunction) {
-  // t expects exactly { name: string } for this key
-  return { span: t("greeting", { name: "Alice" }) }
-}
+// t("greeting", { name: "Alice" }) — key and interpolation vars are type-checked
+const greeting = t("greeting", { name: "Alice" })
 ```
 
 ### index.md
@@ -28342,7 +28313,7 @@ console.log(getLocale()) // "vi"
 const { detectLocale } = i18n
 
 // Auto-detect from URL prefix (/vi/...) or Accept-Language header
-const detected = detectLocale({ fromUrl: true })
+const detected = detectLocale({ pathSegment: true })
 await initI18n(detected)
 ```
 
@@ -28366,8 +28337,7 @@ description: "Wire @domphy/i18n into a full app — router integration, lazy nam
 A complete `@domphy/i18n` setup involves three pieces: the i18n instance, a router hook that loads the right namespace for each route, and a locale switcher.
 
 ```ts
-import i18next from "@domphy/i18n"
-import { initReactI18next } from "i18next-react-dom"   // or native adapter
+import i18next from "i18next"
 
 await i18next.init({
   lng: detectLocale(),          // see detectLocale() below
@@ -28424,7 +28394,7 @@ Expose the current locale as Domphy state so the UI updates when it changes:
 
 ```ts
 import { toState } from "@domphy/core"
-import i18next from "@domphy/i18n"
+import i18next from "i18next"
 
 export const currentLocale = toState(i18next.language)
 
@@ -28565,164 +28535,132 @@ Domphy respects `dir` on the root element — CSS logical properties (`margin-in
 
 ---
 title: "Namespaces"
-description: "Split translations into multiple files by feature or domain to keep bundles small and maintainable."
+description: "Using the @domphy/i18n namespace option and splitting translations by feature."
 ---
 
 # Namespaces
 
-## What are namespaces?
+## Single namespace
 
-Namespaces let you split translations into separate files. Instead of one large translation object, each feature or section has its own file:
-
-```
-translations/
-  en/
-    common.json      ← shared strings (buttons, labels)
-    auth.json        ← login/signup pages
-    dashboard.json   ← dashboard feature
-    errors.json      ← error messages
-  fr/
-    common.json
-    auth.json
-    ...
-```
-
-## Defining namespaces
-
-Pass a namespace map when creating the i18n instance. Each namespace is lazily loaded:
+`@domphy/i18n` uses a single `namespace` string per instance — this is the i18next resource namespace under which all keys are stored:
 
 ```ts
-import { createI18n } from "@domphy/i18n/domphy"
+import { createI18n } from "@domphy/i18n"
 
-const { t, setLocale } = createI18n({
-  locale: "en",
-  namespaces: {
-    common:    () => import(`./translations/en/common.json`),
-    auth:      () => import(`./translations/en/auth.json`),
-    dashboard: () => import(`./translations/en/dashboard.json`),
-  },
-  defaultNs: "common",   // used when no namespace is specified
+const i18n = createI18n<"en" | "fr", typeof en>({
+  globalKey: "__myapp_i18n__",
+  namespace: "app",   // all keys stored under this namespace
+  locales: { en, fr },
+  defaultLocale: "en",
 })
 ```
 
-## Using namespaces in translations
+## Splitting by feature with separate instances
 
-Prefix the key with `namespace:`:
-
-```ts
-t("common:save")               // key "save" from common namespace
-t("auth:login.title")          // key "login.title" from auth namespace
-t("dashboard:widgets.count")   // key "widgets.count" from dashboard namespace
-t("save")                      // uses defaultNs "common"
-```
-
-## Dynamic locale + namespace loading
-
-Load the right namespace files for the active locale:
+For large apps with distinct translation domains, create one `createI18n` instance per domain and give each a unique `globalKey` and `namespace`:
 
 ```ts
-import { createI18n } from "@domphy/i18n/domphy"
-import { toState } from "@domphy/core"
+import { createI18n } from "@domphy/i18n"
+import enCommon from "./locales/en/common.json"
+import enAuth from "./locales/en/auth.json"
+import frCommon from "./locales/fr/common.json"
+import frAuth from "./locales/fr/auth.json"
 
-const locale = toState<"en" | "fr">("en")
-
-const { t, setLocale } = createI18n({
-  locale: locale.get(),
-  namespaces: {
-    common:    async () => {
-      const l = locale.get()
-      return import(`./translations/${l}/common.json`)
-    },
-    dashboard: async () => {
-      const l = locale.get()
-      return import(`./translations/${l}/dashboard.json`)
-    },
-  },
+export const commonI18n = createI18n<"en" | "fr", typeof enCommon>({
+  globalKey: "__app_common__",
+  namespace: "common",
+  locales: { en: enCommon, fr: frCommon },
+  defaultLocale: "en",
 })
 
-locale.subscribe((newLocale) => setLocale(newLocale))
+export const authI18n = createI18n<"en" | "fr", typeof enAuth>({
+  globalKey: "__app_auth__",
+  namespace: "auth",
+  locales: { en: enAuth, fr: frAuth },
+  defaultLocale: "en",
+})
+
+// Initialize both upfront (or lazily per route)
+await Promise.all([commonI18n.initI18n(), authI18n.initI18n()])
 ```
 
-Bundlers (Vite, Rollup) can statically analyze `import(`./translations/${l}/common.json`)` and create per-locale chunks.
-
-## Preloading namespaces
-
-Load a namespace before it's needed (e.g. before a route renders):
+Each instance manages its own locale state. If you want them to stay in sync, call `setLocale` on all:
 
 ```ts
-import { preloadNamespace } from "@domphy/i18n"
-
-// Before navigating to the dashboard
-async function navigateToDashboard() {
-  await preloadNamespace("dashboard")
-  router.navigate({ to: "/dashboard" })
+async function setAppLocale(locale: "en" | "fr") {
+  await Promise.all([commonI18n.setLocale(locale), authI18n.setLocale(locale)])
+  localStorage.setItem("locale", locale)
 }
 ```
 
-## Namespace fallback
+## Route-based lazy loading
 
-If a key is missing in the active namespace, fall back to `common`:
+Initialize a namespace instance in a route loader instead of at app startup:
 
 ```ts
-const { t } = createI18n({
-  locale: "en",
-  namespaces: { common: ..., auth: ... },
-  defaultNs: "common",
-  fallbackNs: "common",   // try "common" if key not found in current ns
-})
+import { createRoute } from "@domphy/router"
+import { createI18n } from "@domphy/i18n"
 
-t("auth:some.missing.key")   // not in auth → tries common → falls back to key name
+const dashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard",
+  loader: async () => {
+    const { default: en } = await import("./locales/en/dashboard.json")
+    const { default: fr } = await import("./locales/fr/dashboard.json")
+
+    const dashboardI18n = createI18n<"en" | "fr", typeof en>({
+      globalKey: "__app_dashboard__",
+      namespace: "dashboard",
+      locales: { en, fr },
+      defaultLocale: "en",
+    })
+    await dashboardI18n.initI18n(commonI18n.getLocale())
+    return dashboardI18n
+  },
+  component: DashboardPage,
+})
 ```
 
 ## Translation file structure
 
-Keep namespace files flat or nested — both work:
+Both flat and nested key structures work — access nested keys with dot notation:
 
 ```json
-// Flat (easier to search):
+// Flat:
 {
-  "loginTitle": "Sign in to your account",
-  "loginEmail": "Email address",
-  "loginPassword": "Password",
-  "loginSubmit": "Sign in"
+  "loginTitle": "Sign in",
+  "loginEmail": "Email address"
 }
 ```
 
 ```json
-// Nested (easier to browse):
+// Nested:
 {
   "login": {
-    "title": "Sign in to your account",
-    "fields": {
-      "email": "Email address",
-      "password": "Password"
-    },
-    "submit": "Sign in"
+    "title": "Sign in",
+    "fields": { "email": "Email address" }
   }
 }
 ```
 
-Access nested keys with dot notation: `t("auth:login.fields.email")`.
+```ts
+t("login.title")         // nested
+t("loginTitle")          // flat
+```
 
-## TypeScript typed namespaces
+## TypeScript typed keys
 
-Define types for your translation keys to get autocomplete and catch missing keys at compile time:
+Pass your translation object as the second generic parameter — keys are flattened to dot-notation strings at compile time:
 
 ```ts
-import type en_common from "./translations/en/common.json"
-import type en_auth from "./translations/en/auth.json"
+import type en_auth from "./locales/en/auth.json"
 
-declare module "@domphy/i18n" {
-  interface TranslationMap {
-    common:    typeof en_common
-    auth:      typeof en_auth
-  }
-}
+const authI18n = createI18n<"en" | "fr", typeof en_auth>({ ... })
+const { t } = authI18n
 
-// Now t() is fully typed with autocomplete
-t("common:save")   // ✓
-t("auth:login.title")   // ✓
-t("common:nonexistent")   // ✗ TypeScript error
+t("login.title")          // ✓ type-checked
+t("login.fields.email")   // ✓
+t("nonexistent")          // ✗ TypeScript error
 ```
 
 ### pluralization.md
@@ -28749,11 +28687,14 @@ Pass the `count` interpolation variable — `@domphy/i18n` maps it to the correc
 ```
 
 ```ts
-import { createI18n } from "@domphy/i18n/domphy"
+import { createI18n } from "@domphy/i18n"
+import en from "./translations/en.json"
 
-const { t } = createI18n({
-  locale: "en",
-  messages: { en: () => import("./translations/en.json") },
+const { t } = createI18n<"en", typeof en>({
+  globalKey: "__myapp__",
+  namespace: "app",
+  locales: { en },
+  defaultLocale: "en",
 })
 
 // Usage
@@ -28895,24 +28836,29 @@ description: "Full configuration and usage guide for @domphy/i18n."
 
 ```ts
 import { createI18n } from "@domphy/i18n"
-import i18next from "i18next"
 
-const i18n = createI18n({
-  /** i18next instance to use. Always pass your own configured instance. */
-  instance: i18next,
-  /** Supported locale codes. */
-  locales: ["en", "fr", "vi"],
-  /** Fallback locale if detection fails. */
-  defaultLocale: "en",
-  /** Message resources keyed by locale then key. */
-  messages: {
-    en: { greeting: "Hello, {{name}}!", items_one: "{{count}} item", items_other: "{{count}} items" },
-    fr: { greeting: "Bonjour, {{name}}!" },
-    vi: { greeting: "Xin chào, {{name}}!" },
+const en = {
+  greeting: "Hello, {{name}}!",
+  items_one: "{{count}} item",
+  items_other: "{{count}} items",
+} as const
+
+const i18n = createI18n<"en" | "fr" | "vi", typeof en>({
+  /** Unique key on globalThis — must differ per app to avoid cross-app collision. */
+  globalKey: "__myapp_i18n__",
+  /** i18next resource namespace. */
+  namespace: "app",
+  /** Translation objects keyed by locale code. */
+  locales: {
+    en,
+    fr: { greeting: "Bonjour, {{name}}!", items_one: "{{count}} article", items_other: "{{count}} articles" },
+    vi: { greeting: "Xin chào, {{name}}!", items_one: "{{count}} mục", items_other: "{{count}} mục" },
   },
-  /** Optional: detect locale from browser/URL. Defaults to navigator.language. */
-  detectLocale: () => localStorage.getItem("lang") ?? navigator.language,
+  /** Locale used before initI18n() is called. */
+  defaultLocale: "en",
 })
+
+await i18n.initI18n()
 ```
 
 ## Reactive translation
@@ -28927,10 +28873,10 @@ const Header = {
 }
 ```
 
-When no listener is needed (e.g. outside reactive context):
+When no listener is needed (outside reactive context):
 
 ```ts
-const label = t(null, "greeting", { name: "World" })
+const label = t("greeting", { name: "World" })
 ```
 
 ## Locale switching
@@ -28939,7 +28885,7 @@ const label = t(null, "greeting", { name: "World" })
 const { setLocale, getLocale } = i18n
 
 // Switch locale — all reactive t(l, ...) re-render automatically
-setLocale("vi")
+await setLocale("vi")
 
 // Read current locale
 console.log(getLocale()) // "vi"
@@ -28947,31 +28893,34 @@ console.log(getLocale()) // "vi"
 
 ## Locale detection
 
+`detectLocale` reads from the URL path segment or localStorage and returns the best matching locale:
+
 ```ts
 const { detectLocale, initI18n } = i18n
 
-// initI18n runs detectLocale + initializes the i18next instance
-await initI18n()
+await initI18n(detectLocale({ pathSegment: true, storageKey: "locale" }))
 ```
 
 ## globalThis dedup
 
-`createI18n` registers the i18next instance on `globalThis` under a unique key derived from the locale list. This ensures a single instance even when Vite splits the module across chunks — important for SSR + client hydration consistency.
+`createI18n` registers the i18next instance on `globalThis[globalKey]`. This ensures a single instance across Vite code-split chunks and SSR + client hydration — multiple calls with the same `globalKey` return the same instance.
 
-## i18next integration
+## i18next plugin integration
 
-`@domphy/i18n` wraps any i18next instance — bring your own plugins (HTTP backend, language detector, pluralisation, etc.):
+The underlying i18next instance is created internally. To add plugins (HTTP backend, language detector, etc.) use i18next directly alongside the wrapper, or access the exported `i18n` type for integration:
 
 ```ts
-import i18next from "i18next"
+import { createInstance } from "i18next"
 import HttpBackend from "i18next-http-backend"
 
-await i18next.use(HttpBackend).init({
-  lng: "en",
-  backend: { loadPath: "/locales/{{lng}}.json" },
-})
+// For advanced use cases, create a pre-configured instance and pass locale messages:
+const resources = {
+  en: { app: { greeting: "Hello!" } },
+  vi: { app: { greeting: "Xin chào!" } },
+}
 
-const { t } = createI18n({ instance: i18next, locales: ["en", "fr"], defaultLocale: "en", messages: {} })
+// @domphy/i18n bundles the messages at createI18n time — for HTTP-loaded messages,
+// fetch them before calling createI18n and pass the resolved objects in locales.
 ```
 
 
@@ -31394,7 +31343,7 @@ The tree's `input` is now `null`; the `p`'s inline `fontSize` is reported but no
 | `void-content` | error | A void tag (`input`, `img`, `br`, `hr`, …) has non-null content |
 | `unknown-tag` | warning | The first key of an element object is not a known HTML/SVG tag |
 | `inline-typography` | warning | `fontSize`, `lineHeight`, `fontWeight`, `letterSpacing`, `fontFamily`, or `textDecoration` is set inline instead of via a typography patch |
-| `raw-theme-value` | info | A color-bearing style prop (`color`, `backgroundColor`, `border`, …) uses a hex or `rgb()`/`rgba()` literal instead of `themeColor()` |
+| `raw-theme-value` | info | A color-bearing style prop (`color`, `backgroundColor`, `border`, …) uses a hex, `rgb()`/`rgba()`, or `hsl()`/`hsla()` literal instead of `themeColor()` |
 | `raw-spacing-value` | info | A spacing prop (`padding`, `margin`, `gap`, …) uses a literal `px`/`rem`/`em` value instead of `themeSpacing()` |
 | `unknown-tone` | warning | `dataTone` is not valid grammar, or the offset `N` exceeds 17 (the ramp has 18 steps, 0–17) |
 | `middle-surface-anchor` | warning | `dataTone: "shift-N"` where 4 ≤ N ≤ 13 — a mid-ramp anchor where child tones may collapse contrast |
