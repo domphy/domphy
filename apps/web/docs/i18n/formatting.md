@@ -57,38 +57,35 @@ function formatNumber(value: number, locale: string): string {
 // de-DE: "Price: 1.234.567,89"
 ```
 
-Or register a custom formatter in the i18n instance:
+Or format before passing to `t()`:
 
 ```ts
-const { t } = createI18n({
-  locale: "en",
-  messages: { en: () => import("./en.json") },
-  formatters: {
-    number: (value, locale) => new Intl.NumberFormat(locale).format(Number(value)),
-    currency: (value, locale) =>
-      new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(Number(value)),
-  },
-})
+// In translations: { "price": "Price: {{amount}}" }
+const { t, getLocale } = i18n
 
-// In translations:
-// { "price": "Price: {{amount, currency}}" }
-t("price", { amount: 42.5 })   // "Price: $42.50"
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat(getLocale(), { style: "currency", currency: "USD" }).format(value)
+}
+
+{ span: (l) => t(l, "price", { amount: formatCurrency(42.5) }) }
+// "Price: $42.50"
 ```
 
 ## Date formatting
 
+Format dates before passing as interpolation values:
+
 ```ts
-const { t } = createI18n({
-  locale: "en",
-  formatters: {
-    date: (value, locale) =>
-      new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(String(value))),
-    time: (value, locale) =>
-      new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(new Date(String(value))),
-    datetime: (value, locale) =>
-      new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(String(value))),
-  },
-})
+const { t, getLocale } = i18n
+
+function formatDate(value: Date): string {
+  return new Intl.DateTimeFormat(getLocale(), { dateStyle: "medium" }).format(value)
+}
+
+// { "lastSeen": "Last seen {{date}}" }
+{ span: (l) => t(l, "lastSeen", { date: formatDate(new Date("2025-06-26")) }) }
+// "Last seen Jun 26, 2025"
+```
 
 // { "lastSeen": "Last seen {{date, date}}" }
 t("lastSeen", { date: "2025-06-26" })   // "Last seen Jun 26, 2025"
@@ -176,13 +173,11 @@ t("missing.key", { defaultValue: "Fallback text" })
 
 ## Typed interpolation
 
-With TypeScript, interpolation values can be typed:
+Use the `t` function returned from `createI18n` — its key type is inferred from the messages generic:
 
 ```ts
-import type { TFunction } from "@domphy/i18n"
+const { t } = createI18n<"en", typeof en>({ ... })
 
-function render(t: TFunction) {
-  // t expects exactly { name: string } for this key
-  return { span: t("greeting", { name: "Alice" }) }
-}
+// t("greeting", { name: "Alice" }) — key and interpolation vars are type-checked
+const greeting = t("greeting", { name: "Alice" })
 ```

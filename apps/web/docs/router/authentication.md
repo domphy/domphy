@@ -99,18 +99,22 @@ const authLayout = createRoute({
       throw redirect({ to: "/login" })
     }
   },
-  component: () => ({
-    div: [
-      NavBar,
-      { div: RouterOutlet },   // render child routes
-    ],
-  }),
 })
 
 // All children are automatically protected
 const dashboardRoute = createRoute({ getParentRoute: () => authLayout, path: "/dashboard" })
 const settingsRoute  = createRoute({ getParentRoute: () => authLayout, path: "/settings" })
 const profileRoute   = createRoute({ getParentRoute: () => authLayout, path: "/profile" })
+
+// In the App renderers map, the auth layout wraps its children with NavBar:
+const renderers: Record<string, (match: AnyRouteMatch, rest: AnyRouteMatch[]) => DomphyElement> = {
+  [authLayout.id]: (_match, rest) => ({
+    div: [NavBar, ...rest.map((m) => renderMatch(m, rest.slice(1)))],
+  }),
+  [dashboardRoute.id]: () => DashboardPage,
+  [settingsRoute.id]:  () => SettingsPage,
+  [profileRoute.id]:   () => ProfilePage,
+}
 ```
 
 ## Role-based access control

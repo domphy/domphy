@@ -20,11 +20,14 @@ Pass the `count` interpolation variable — `@domphy/i18n` maps it to the correc
 ```
 
 ```ts
-import { createI18n } from "@domphy/i18n/domphy"
+import { createI18n } from "@domphy/i18n"
+import en from "./translations/en.json"
 
-const { t } = createI18n({
-  locale: "en",
-  messages: { en: () => import("./translations/en.json") },
+const { t } = createI18n<"en", typeof en>({
+  globalKey: "__myapp__",
+  namespace: "app",
+  locales: { en },
+  defaultLocale: "en",
 })
 
 // Usage

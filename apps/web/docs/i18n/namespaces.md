@@ -1,161 +1,129 @@
 ---
 title: "Namespaces"
-description: "Split translations into multiple files by feature or domain to keep bundles small and maintainable."
+description: "Using the @domphy/i18n namespace option and splitting translations by feature."
 ---
 
 # Namespaces
 
-## What are namespaces?
+## Single namespace
 
-Namespaces let you split translations into separate files. Instead of one large translation object, each feature or section has its own file:
-
-```
-translations/
-  en/
-    common.json      ← shared strings (buttons, labels)
-    auth.json        ← login/signup pages
-    dashboard.json   ← dashboard feature
-    errors.json      ← error messages
-  fr/
-    common.json
-    auth.json
-    ...
-```
-
-## Defining namespaces
-
-Pass a namespace map when creating the i18n instance. Each namespace is lazily loaded:
+`@domphy/i18n` uses a single `namespace` string per instance — this is the i18next resource namespace under which all keys are stored:
 
 ```ts
-import { createI18n } from "@domphy/i18n/domphy"
+import { createI18n } from "@domphy/i18n"
 
-const { t, setLocale } = createI18n({
-  locale: "en",
-  namespaces: {
-    common:    () => import(`./translations/en/common.json`),
-    auth:      () => import(`./translations/en/auth.json`),
-    dashboard: () => import(`./translations/en/dashboard.json`),
-  },
-  defaultNs: "common",   // used when no namespace is specified
+const i18n = createI18n<"en" | "fr", typeof en>({
+  globalKey: "__myapp_i18n__",
+  namespace: "app",   // all keys stored under this namespace
+  locales: { en, fr },
+  defaultLocale: "en",
 })
 ```
 
-## Using namespaces in translations
+## Splitting by feature with separate instances
 
-Prefix the key with `namespace:`:
-
-```ts
-t("common:save")               // key "save" from common namespace
-t("auth:login.title")          // key "login.title" from auth namespace
-t("dashboard:widgets.count")   // key "widgets.count" from dashboard namespace
-t("save")                      // uses defaultNs "common"
-```
-
-## Dynamic locale + namespace loading
-
-Load the right namespace files for the active locale:
+For large apps with distinct translation domains, create one `createI18n` instance per domain and give each a unique `globalKey` and `namespace`:
 
 ```ts
-import { createI18n } from "@domphy/i18n/domphy"
-import { toState } from "@domphy/core"
+import { createI18n } from "@domphy/i18n"
+import enCommon from "./locales/en/common.json"
+import enAuth from "./locales/en/auth.json"
+import frCommon from "./locales/fr/common.json"
+import frAuth from "./locales/fr/auth.json"
 
-const locale = toState<"en" | "fr">("en")
-
-const { t, setLocale } = createI18n({
-  locale: locale.get(),
-  namespaces: {
-    common:    async () => {
-      const l = locale.get()
-      return import(`./translations/${l}/common.json`)
-    },
-    dashboard: async () => {
-      const l = locale.get()
-      return import(`./translations/${l}/dashboard.json`)
-    },
-  },
+export const commonI18n = createI18n<"en" | "fr", typeof enCommon>({
+  globalKey: "__app_common__",
+  namespace: "common",
+  locales: { en: enCommon, fr: frCommon },
+  defaultLocale: "en",
 })
 
-locale.subscribe((newLocale) => setLocale(newLocale))
+export const authI18n = createI18n<"en" | "fr", typeof enAuth>({
+  globalKey: "__app_auth__",
+  namespace: "auth",
+  locales: { en: enAuth, fr: frAuth },
+  defaultLocale: "en",
+})
+
+// Initialize both upfront (or lazily per route)
+await Promise.all([commonI18n.initI18n(), authI18n.initI18n()])
 ```
 
-Bundlers (Vite, Rollup) can statically analyze `import(`./translations/${l}/common.json`)` and create per-locale chunks.
-
-## Preloading namespaces
-
-Load a namespace before it's needed (e.g. before a route renders):
+Each instance manages its own locale state. If you want them to stay in sync, call `setLocale` on all:
 
 ```ts
-import { preloadNamespace } from "@domphy/i18n"
-
-// Before navigating to the dashboard
-async function navigateToDashboard() {
-  await preloadNamespace("dashboard")
-  router.navigate({ to: "/dashboard" })
+async function setAppLocale(locale: "en" | "fr") {
+  await Promise.all([commonI18n.setLocale(locale), authI18n.setLocale(locale)])
+  localStorage.setItem("locale", locale)
 }
 ```
 
-## Namespace fallback
+## Route-based lazy loading
 
-If a key is missing in the active namespace, fall back to `common`:
+Initialize a namespace instance in a route loader instead of at app startup:
 
 ```ts
-const { t } = createI18n({
-  locale: "en",
-  namespaces: { common: ..., auth: ... },
-  defaultNs: "common",
-  fallbackNs: "common",   // try "common" if key not found in current ns
-})
+import { createRoute } from "@domphy/router"
+import { createI18n } from "@domphy/i18n"
 
-t("auth:some.missing.key")   // not in auth → tries common → falls back to key name
+const dashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard",
+  loader: async () => {
+    const { default: en } = await import("./locales/en/dashboard.json")
+    const { default: fr } = await import("./locales/fr/dashboard.json")
+
+    const dashboardI18n = createI18n<"en" | "fr", typeof en>({
+      globalKey: "__app_dashboard__",
+      namespace: "dashboard",
+      locales: { en, fr },
+      defaultLocale: "en",
+    })
+    await dashboardI18n.initI18n(commonI18n.getLocale())
+    return dashboardI18n
+  },
+  component: DashboardPage,
+})
 ```
 
 ## Translation file structure
 
-Keep namespace files flat or nested — both work:
+Both flat and nested key structures work — access nested keys with dot notation:
 
 ```json
-// Flat (easier to search):
+// Flat:
 {
-  "loginTitle": "Sign in to your account",
-  "loginEmail": "Email address",
-  "loginPassword": "Password",
-  "loginSubmit": "Sign in"
+  "loginTitle": "Sign in",
+  "loginEmail": "Email address"
 }
 ```
 
 ```json
-// Nested (easier to browse):
+// Nested:
 {
   "login": {
-    "title": "Sign in to your account",
-    "fields": {
-      "email": "Email address",
-      "password": "Password"
-    },
-    "submit": "Sign in"
+    "title": "Sign in",
+    "fields": { "email": "Email address" }
   }
 }
 ```
 
-Access nested keys with dot notation: `t("auth:login.fields.email")`.
+```ts
+t("login.title")         // nested
+t("loginTitle")          // flat
+```
 
-## TypeScript typed namespaces
+## TypeScript typed keys
 
-Define types for your translation keys to get autocomplete and catch missing keys at compile time:
+Pass your translation object as the second generic parameter — keys are flattened to dot-notation strings at compile time:
 
 ```ts
-import type en_common from "./translations/en/common.json"
-import type en_auth from "./translations/en/auth.json"
+import type en_auth from "./locales/en/auth.json"
 
-declare module "@domphy/i18n" {
-  interface TranslationMap {
-    common:    typeof en_common
-    auth:      typeof en_auth
-  }
-}
+const authI18n = createI18n<"en" | "fr", typeof en_auth>({ ... })
+const { t } = authI18n
 
-// Now t() is fully typed with autocomplete
-t("common:save")   // ✓
-t("auth:login.title")   // ✓
-t("common:nonexistent")   // ✗ TypeScript error
+t("login.title")          // ✓ type-checked
+t("login.fields.email")   // ✓
+t("nonexistent")          // ✗ TypeScript error
 ```

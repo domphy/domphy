@@ -1,100 +1,109 @@
 ---
 title: "Lazy Loading & Backend"
-description: "Load translations on-demand, split by route, integrate with a backend API, and handle loading states."
+description: "Load translations on-demand and handle loading states with @domphy/i18n."
 ---
 
 # Lazy Loading & Backend
 
-## Why lazy-load translations?
+## How @domphy/i18n handles locales
 
-Shipping all translations upfront increases initial bundle size. Lazy loading splits translations by:
-- **Locale** — load only the active locale
-- **Namespace** — load only the translations needed for the current page/feature
-- **Route** — load translations on navigation
-
-## Locale-split with dynamic imports
-
-Vite/Rollup tree-shakes dynamic `import()` with template literals:
+`createI18n` takes a `locales` object with static translation data. The simplest approach is static imports — Vite/Rollup will include all locales in the bundle:
 
 ```ts
-import { createI18n } from "@domphy/i18n/domphy"
+import { createI18n } from "@domphy/i18n"
+import en from "./locales/en.json"
+import fr from "./locales/fr.json"
+import vi from "./locales/vi.json"
 
-const { t, setLocale } = createI18n({
-  locale: "en",
-  messages: {
-    en: () => import("./locales/en.json"),
-    fr: () => import("./locales/fr.json"),
-    de: () => import("./locales/de.json"),
-    ja: () => import("./locales/ja.json"),
-  },
+const i18n = createI18n<"en" | "fr" | "vi", typeof en>({
+  globalKey: "__myapp_i18n__",
+  namespace: "app",
+  locales: { en, fr, vi },
+  defaultLocale: "en",
 })
 ```
 
-Each locale is a separate chunk — only `en.json` downloads on first load. When the user switches to French, `fr.json` downloads and caches.
+## Locale-split with dynamic imports
 
-## Namespace lazy loading per route
-
-Load translations when a route mounts — not before:
+To avoid bundling all locales upfront, load translations dynamically before calling `createI18n`:
 
 ```ts
-import { createI18n } from "@domphy/i18n/domphy"
+import { createI18n } from "@domphy/i18n"
 
-const { t, loadNamespace } = createI18n({
-  locale: "en",
-  namespaces: {
-    common: () => import("./locales/en/common.json"),
-    // "dashboard" namespace not preloaded — loaded on demand
-  },
-})
+type Locale = "en" | "fr" | "vi"
 
-// In the dashboard route loader:
-const dashboardRoute = createRoute({
-  path: "/dashboard",
-  loader: async () => {
-    await loadNamespace("dashboard", () => import("./locales/en/dashboard.json"))
-  },
-  component: () => DashboardPage,
-})
+async function createI18nLazy(initialLocale: Locale) {
+  const [en, fr, vi] = await Promise.all([
+    import("./locales/en.json"),
+    import("./locales/fr.json"),
+    import("./locales/vi.json"),
+  ])
+
+  const i18n = createI18n<Locale, typeof en.default>({
+    globalKey: "__myapp_i18n__",
+    namespace: "app",
+    locales: { en: en.default, fr: fr.default, vi: vi.default },
+    defaultLocale: "en",
+  })
+
+  await i18n.initI18n(initialLocale)
+  return i18n
+}
+```
+
+For truly on-demand loading (only active locale), fetch before init and defer others:
+
+```ts
+async function createI18nOnDemand(initialLocale: Locale) {
+  // Only load the initial locale upfront
+  const initialMessages = await import(`./locales/${initialLocale}.json`)
+
+  // Load remaining locales lazily on setLocale
+  const localeModules: Record<Locale, Record<string, unknown>> = {
+    [initialLocale]: initialMessages.default,
+  } as Record<Locale, Record<string, unknown>>
+
+  const loaders: Record<Locale, () => Promise<Record<string, unknown>>> = {
+    en: () => import("./locales/en.json").then(m => m.default),
+    fr: () => import("./locales/fr.json").then(m => m.default),
+    vi: () => import("./locales/vi.json").then(m => m.default),
+  }
+
+  // Pre-load remaining locales in background
+  for (const locale of (["en", "fr", "vi"] as Locale[]).filter(l => l !== initialLocale)) {
+    loaders[locale]().then(messages => { localeModules[locale] = messages })
+  }
+
+  return createI18n<Locale, typeof initialMessages.default>({
+    globalKey: "__myapp_i18n__",
+    namespace: "app",
+    locales: localeModules as Record<Locale, typeof initialMessages.default>,
+    defaultLocale: initialLocale,
+  })
+}
 ```
 
 ## HTTP backend
 
-Fetch translations from a server at runtime — useful for translations stored in a CMS or translation management system:
+Fetch translations from a server at runtime:
 
 ```ts
-const { t } = createI18n({
-  locale: "en",
-  messages: {
-    en: async () => {
-      const response = await fetch("/api/translations/en")
-      return response.json()
-    },
-    fr: async () => {
-      const response = await fetch("/api/translations/fr")
-      return response.json()
-    },
-  },
-})
-```
+const [enMessages, frMessages] = await Promise.all([
+  fetch("/api/translations/en").then(r => r.json()),
+  fetch("/api/translations/fr").then(r => r.json()),
+])
 
-With a translation management service (Lokalise, Crowdin, Phrase):
-
-```ts
-const LOKALISE_CDN = "https://cdn.lokalise.com/my-project"
-
-const { t } = createI18n({
-  locale: navigator.language.split("-")[0] as Locale,
-  messages: {
-    en: () => fetch(`${LOKALISE_CDN}/en.json`).then(r => r.json()),
-    fr: () => fetch(`${LOKALISE_CDN}/fr.json`).then(r => r.json()),
-    de: () => fetch(`${LOKALISE_CDN}/de.json`).then(r => r.json()),
-  },
+const i18n = createI18n<"en" | "fr", typeof enMessages>({
+  globalKey: "__myapp_i18n__",
+  namespace: "app",
+  locales: { en: enMessages, fr: frMessages },
+  defaultLocale: "en",
 })
 ```
 
 ## Handling the loading state
 
-Translations load asynchronously — show a loading state while the initial locale loads:
+Show a loading state while translations are being fetched:
 
 ```ts
 import { toState } from "@domphy/core"
@@ -102,8 +111,9 @@ import { toState } from "@domphy/core"
 const translationsReady = toState(false)
 
 async function initApp() {
-  const { t } = createI18n({ locale: "en", messages: { en: () => import("./en.json") } })
-  await initI18n()   // load the initial locale
+  const messages = await fetch("/api/translations/en").then(r => r.json())
+  const i18n = createI18n({ globalKey: "__app__", namespace: "app", locales: { en: messages }, defaultLocale: "en" })
+  await i18n.initI18n()
   translationsReady.set(true)
 }
 
@@ -116,76 +126,38 @@ const App = {
 
 ## Locale detection
 
-Auto-detect locale from browser, user preference, or URL:
+Use `detectLocale` to pick the initial locale:
 
 ```ts
-import { detectLocale } from "@domphy/i18n"
+const i18n = createI18n<"en" | "fr" | "vi", typeof en>({ ... })
 
-const supported: Locale[] = ["en", "fr", "de", "ja", "zh"]
+// Detect from URL path (/vi/...) then localStorage, then default
+const locale = i18n.detectLocale({ pathSegment: true, storageKey: "locale" })
+await i18n.initI18n(locale)
 
-function getInitialLocale(): Locale {
-  // 1. Check URL param (?lang=fr)
-  const urlParam = new URLSearchParams(location.search).get("lang")
-  if (urlParam && supported.includes(urlParam as Locale)) return urlParam as Locale
-
-  // 2. Check saved preference
-  const saved = localStorage.getItem("locale")
-  if (saved && supported.includes(saved as Locale)) return saved as Locale
-
-  // 3. Browser language
-  return detectLocale(navigator.languages, supported, "en") as Locale
+// Save preference on switch
+const { setLocale } = i18n
+async function switchLocale(next: "en" | "fr" | "vi") {
+  await setLocale(next)
+  localStorage.setItem("locale", next)
 }
-
-const { t, setLocale } = createI18n({
-  locale: getInitialLocale(),
-  messages: { ... },
-})
-```
-
-## Preloading on hover
-
-Preload the translated page before the user navigates to it:
-
-```ts
-const NavLink = (href: string, label: string, namespace: string) => ({
-  a: label,
-  href,
-  onMouseenter: async () => {
-    await loadNamespace(namespace)
-  },
-})
-```
-
-## Caching loaded namespaces
-
-Loaded namespaces are cached in memory — `loadNamespace("dashboard")` on re-navigation is instant:
-
-```ts
-// First call: fetches from network (~200ms)
-await loadNamespace("dashboard", () => import("./locales/en/dashboard.json"))
-
-// Subsequent calls: returns from memory cache (~0ms)
-await loadNamespace("dashboard", () => import("./locales/en/dashboard.json"))
 ```
 
 ## SSR considerations
 
-On the server, translations must be loaded synchronously (or pre-awaited):
+On the server, use static imports — fetch is unavailable or requires a polyfill:
 
 ```ts
-// Server-side
-import en from "./locales/en.json"   // static import — synchronous
+import en from "./locales/en.json"
 import fr from "./locales/fr.json"
 
-const MESSAGES = { en, fr }
-
-const { t } = createI18n({
-  locale: userLocale,
-  messages: {
-    en: () => Promise.resolve(MESSAGES.en),
-    fr: () => Promise.resolve(MESSAGES.fr),
-  },
+const i18n = createI18n<"en" | "fr", typeof en>({
+  globalKey: "__app_ssr__",
+  namespace: "app",
+  locales: { en, fr },
+  defaultLocale: "en",
 })
-```
 
-With `@domphy/app` SSR, the server can read the `Accept-Language` header or cookie to choose the locale, then hydrate the client with the same locale.
+// Initialize with the locale from Accept-Language or cookie
+await i18n.initI18n(userLocale)
+```

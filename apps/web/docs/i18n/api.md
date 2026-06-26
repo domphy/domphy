@@ -35,8 +35,8 @@ createI18n<TLocale extends string, TMessages>(options): I18nInstance
 
 ```ts
 detectLocale({
-  fromUrl?: boolean     // check URL prefix (/en/..., /vi/...)
-  fromBrowser?: boolean // check navigator.language
+  storageKey?: string   // localStorage key to read persisted locale from
+  pathSegment?: boolean // check first URL path segment (/vi/...) — default true
 })
 ```
 

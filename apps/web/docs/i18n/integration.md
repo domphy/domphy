@@ -10,8 +10,7 @@ description: "Wire @domphy/i18n into a full app — router integration, lazy nam
 A complete `@domphy/i18n` setup involves three pieces: the i18n instance, a router hook that loads the right namespace for each route, and a locale switcher.
 
 ```ts
-import i18next from "@domphy/i18n"
-import { initReactI18next } from "i18next-react-dom"   // or native adapter
+import i18next from "i18next"
 
 await i18next.init({
   lng: detectLocale(),          // see detectLocale() below
@@ -68,7 +67,7 @@ Expose the current locale as Domphy state so the UI updates when it changes:
 
 ```ts
 import { toState } from "@domphy/core"
-import i18next from "@domphy/i18n"
+import i18next from "i18next"
 
 export const currentLocale = toState(i18next.language)
 
