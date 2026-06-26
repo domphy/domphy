@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RUNTIME_SCRIPT, htmlDocument } from "../html-template.ts";
+import { htmlDocument, RUNTIME_SCRIPT } from "../html-template.ts";
 
 const emptyResult = { html: "<p>Hello</p>", css: "", head: "", status: 200 };
 
@@ -21,7 +21,9 @@ describe("htmlDocument", () => {
   });
 
   it("serializes island specs as JSON with < escaped to avoid script injection", () => {
-    const specs = [{ kind: "search" as const, id: "search", source: "<script>" }];
+    const specs = [
+      { kind: "search" as const, id: "search", source: "<script>" },
+    ];
     const html = htmlDocument(emptyResult, "", specs, []);
     expect(html).toContain("__DP_PAGE_ISLANDS__");
     // Raw < would allow "</script>" inside JSON to close the script tag prematurely
@@ -32,16 +34,26 @@ describe("htmlDocument", () => {
   });
 
   it("includes extra head entries", () => {
-    const html = htmlDocument(emptyResult, "", [], [
-      '<link rel="canonical" href="https://domphy.com/">',
-      '<meta name="og:title" content="Domphy">',
-    ]);
+    const html = htmlDocument(
+      emptyResult,
+      "",
+      [],
+      [
+        '<link rel="canonical" href="https://domphy.com/">',
+        '<meta name="og:title" content="Domphy">',
+      ],
+    );
     expect(html).toContain('rel="canonical"');
-    expect(html).toContain('og:title');
+    expect(html).toContain("og:title");
   });
 
   it("embeds page HTML in #domphy-app", () => {
-    const html = htmlDocument({ ...emptyResult, html: "<h1>Title</h1>" }, "", [], []);
+    const html = htmlDocument(
+      { ...emptyResult, html: "<h1>Title</h1>" },
+      "",
+      [],
+      [],
+    );
     expect(html).toContain('<div id="domphy-app"><h1>Title</h1></div>');
   });
 });

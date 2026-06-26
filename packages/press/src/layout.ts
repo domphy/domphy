@@ -105,7 +105,7 @@ function socialLinkEl(social: SocialLink): DomphyElement {
 // --- Page link helper ---------------------------------------------------
 
 function pageLink(text: string, href: string): DomphyElement {
-  return { a: text, href, $: [navLink({ href })] } as DomphyElement;
+  return { a: text, href, $: [navLink({ href, exact: true })] } as DomphyElement;
 }
 
 // --- Nav dropdown -------------------------------------------------------
@@ -529,11 +529,17 @@ function pageLinkWithBadge(
   href: string,
   badge?: SidebarItem["badge"],
 ): DomphyElement {
-  if (!badge) return pageLink(text, href);
+  if (!badge) {
+    return {
+      a: text,
+      href,
+      $: [navLink({ href, exact: true })],
+    } as DomphyElement;
+  }
   return {
     a: [{ span: text }, badgeEl(badge)],
     href,
-    $: [navLink({ href })],
+    $: [navLink({ href, exact: true })],
     style: { display: "flex", alignItems: "center" },
   } as DomphyElement;
 }

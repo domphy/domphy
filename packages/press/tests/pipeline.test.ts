@@ -32,7 +32,11 @@ describe("renderDoc", () => {
   it("generates TOC entries from headings", async () => {
     const source = "## Section One\n\n### Sub\n\n## Section Two\n";
     const { toc } = await renderDoc(source, opts);
-    expect(toc.map((e) => e.text)).toEqual(["Section One", "Sub", "Section Two"]);
+    expect(toc.map((e) => e.text)).toEqual([
+      "Section One",
+      "Sub",
+      "Section Two",
+    ]);
   });
 
   it("parses frontmatter fields", async () => {

@@ -7550,9 +7550,14 @@ The loop becomes: list the app's blocks → reuse them → generate → `domphy_
 
 ### index.md
 
-# Audit
+---
+title: "@domphy/audit"
+description: "Baseline-free layout and theme verification for Domphy UIs via Playwright."
+---
 
-`@domphy/audit` is a **baseline-free layout verifier** for Domphy UIs. It runs after the browser renders the page and checks the actual layout geometry against mathematical rules — no historical screenshot needed.
+# @domphy/audit
+
+`@domphy/audit` is a **baseline-free layout and theme verifier** for Domphy UIs. It runs after the browser renders the page and checks actual layout, theme setup, and overlay behavior — no screenshots, no baselines.
 
 It is the runtime complement to `@domphy/doctor` (which checks the source tree before render):
 
@@ -7567,21 +7572,34 @@ It is the runtime complement to `@domphy/doctor` (which checks the source tree b
 
 ```bash
 npm install -D @domphy/audit playwright
+npx playwright install chromium
 ```
 
 Playwright is an optional peer dependency — bring the version your project already uses.
 
-## Usage
+## CLI
+
+The fastest way to audit any URL:
+
+```bash
+npx @domphy/audit https://myapp.com
+npx @domphy/audit http://localhost:5173 --static
+```
+
+Exits 0 if no issues, exits 1 if any issues found. `--static` skips the interactive hover scan.
+
+## Usage with Playwright
 
 ```ts
 import { test, expect } from "@playwright/test"
-import { checkLayout } from "@domphy/audit"
+import { scanInteractive } from "@domphy/audit"
 import { writeFileSync } from "node:fs"
 
 test("no layout violations", async ({ page }) => {
   await page.goto("/dashboard")
+  await page.waitForLoadState("networkidle")
 
-  const result = await checkLayout(page)
+  const result = await scanInteractive(page)
 
   // Save SVG for debugging failed runs
   if (!result.ok) writeFileSync("layout-audit.svg", result.svg)
@@ -7592,73 +7610,135 @@ test("no layout violations", async ({ page }) => {
 
 ## What it checks
 
-### Overlap
+### Theme (`checkTheme`)
 
-Sibling elements whose bounding boxes intersect are flagged as errors. Ancestor–descendant relationships are excluded (a parent containing its child is normal).
+Detects missing Domphy theme setup — the most common cause of transparent backgrounds and invisible text:
+
+- `data-theme` attribute missing on `<html>` — CSS vars like `--neutral-0` are scoped to `[data-theme]` and will be unresolved
+- `--neutral-0` CSS custom property unresolved (resolves to empty string)
+
+```ts
+import { checkTheme } from "@domphy/audit"
+
+const issues = await checkTheme(page)
+// [{ type: "theme", message: "document.documentElement is missing data-theme attribute..." }]
+```
+
+### Overlay (`checkOverlays`)
+
+Detects visible positioned overlay elements (absolute/fixed, z-index > 0, not `display:none`) with:
+
+- **Transparent background** — `background-color: rgba(0,0,0,0)` on a visible overlay lets content bleed through
+- **Hover gap** — physical gap > 4px between a trigger element and its dropdown (gap fires `mouseleave` on mouse crossing it, closing the dropdown prematurely)
+
+```ts
+import { checkOverlays } from "@domphy/audit"
+
+const issues = await checkOverlays(page)
+```
+
+### Overlap (`detectOverlaps`)
+
+Sibling elements whose bounding boxes intersect are flagged. Ancestor–descendant relationships are excluded.
 
 ```ts
 import { detectOverlaps } from "@domphy/audit"
 
 const issues = await detectOverlaps(page)
-// [{ type: "overlap", message: "<button.button_a3f> overlaps <button.button_b7c> by 12×4px", rect: {...} }]
+// [{ type: "overlap", message: "...", rect: {...} }]
 ```
 
-### Geometry
+### Geometry (`verifyGeometry`)
 
-Domphy-styled buttons obey a deterministic height formula derived from density and font size:
+Domphy-styled buttons obey a deterministic height formula:
 
 ```
-height = (6 + 2d) × U    where U = fontSize / 4
+height = (6 + 2d) × U    where U = fontSize / 4,  d = density value
 ```
 
-`verifyGeometry` detects buttons whose rendered height deviates from this formula, catching cases where a density patch was forgotten or overridden.
+Detects buttons whose rendered height deviates from this formula.
 
 ```ts
 import { verifyGeometry } from "@domphy/audit"
 
 const issues = await verifyGeometry(page)
-// [{ type: "geometry", message: "button height: got 28.0px, expected 36.0px (d=1.5, U=4.0px)", rect: {...} }]
 ```
 
-Only buttons with a Domphy-generated class (`button_{nodeId}`) are checked.
+### Contrast (`checkContrast`)
 
-### Contrast
-
-Text elements are checked for WCAG 4.5:1 minimum contrast ratio using computed `color` and resolved background color. The Domphy Tone Span theorem (K=9) guarantees compliant contrast when tones are applied correctly — this check catches the cases where they weren't.
+Text elements are checked for WCAG 4.5:1 minimum contrast ratio using computed `color` and resolved background color.
 
 ```ts
 import { checkContrast } from "@domphy/audit"
 
-const issues = await checkContrast(page)          // default 4.5:1
-const issues2 = await checkContrast(page, 3.0)    // custom threshold
+const issues = await checkContrast(page)           // default 4.5:1
+const issues2 = await checkContrast(page, 3.0)     // custom threshold
 ```
+
+## `scanInteractive(page, options?)`
+
+Runs all checks in sequence and also **auto-discovers overlay triggers**: finds elements with hidden absolutely-positioned children, hovers each, then checks for newly-visible overlay bugs.
+
+```ts
+import { scanInteractive } from "@domphy/audit"
+import type { AuditPageFull } from "@domphy/audit"
+
+const result = await scanInteractive(page as AuditPageFull, {
+  hoverDelay: 150,   // ms to wait after hover (default: 150)
+  staticOnly: false, // set true to skip interactive hover scan
+})
+
+console.log(result.ok)        // boolean
+console.log(result.issues)    // AuditIssue[]
+console.log(result.svg)       // annotated SVG string
+```
+
+`AuditPageFull` extends `AuditPage` with `hover(selector)` and `waitForTimeout(ms)` — the Playwright `Page` object satisfies this interface directly.
 
 ## SVG output
 
-Every `checkLayout` call returns an `svg` string — a lightweight skeleton of the rendered layout with issues annotated:
+Every result includes an `svg` string — a lightweight text skeleton of the rendered layout with issues annotated by color:
 
-- Gray outlines — all visible elements
-- **Red fill** — overlap intersection areas
-- **Orange fill** — geometry violations
-- **Gold fill** — contrast failures
+- **Red** — overlap areas
+- **Orange** — geometry violations
+- **Gold** — contrast failures
+- **Purple** — theme/overlay issues
 
-The SVG is pure text (not a screenshot), so it is fast to generate, tiny, and diffable in version control.
+The SVG is pure text (not a screenshot): fast, tiny, and diffable in CI.
 
 ```ts
 import { snapshot, toSVG } from "@domphy/audit"
 
-const layout = await snapshot(page)          // collect bounding boxes
-const svg = toSVG(layout, issues)            // render annotated SVG
+const layout = await snapshot(page)     // collect bounding boxes
+const svg = toSVG(layout, issues)       // render annotated SVG
 ```
 
-## Options
+## Types
 
 ```ts
-await checkLayout(page, {
-  checks: ["overlap", "geometry"],   // skip contrast check
-  tolerance: 2,                      // geometry px tolerance (default 1)
-  minContrast: 3.0,                  // WCAG threshold (default 4.5)
-})
+type IssueType = "overlap" | "geometry" | "contrast" | "theme" | "overlay"
+
+interface AuditIssue {
+  type: IssueType
+  message: string
+  rect?: { x: number; y: number; width: number; height: number }
+}
+
+interface AuditResult {
+  ok: boolean
+  issues: AuditIssue[]
+  svg: string
+}
+
+interface AuditPage {
+  evaluate<T>(fn: () => T | Promise<T>): Promise<T>
+  evaluate<T, A>(fn: (arg: A) => T | Promise<T>, arg: A): Promise<T>
+}
+
+interface AuditPageFull extends AuditPage {
+  hover(selector: string, options?: { force?: boolean }): Promise<void>
+  waitForTimeout(ms: number): Promise<void>
+}
 ```
 
 
@@ -7901,6 +7981,184 @@ const { t } = createI18n({ instance: i18next, locales: ["en", "fr"], defaultLoca
 
 
 ## Press docs (`@domphy/press`)
+
+### api.md
+
+---
+title: "Programmatic API"
+description: "Full programmatic API reference for @domphy/press — build pipeline, rendering, and server."
+---
+
+# Programmatic API
+
+All functions are exported from `@domphy/press`.
+
+## Build
+
+### `buildSite(options)`
+
+Builds the full static site: discovers pages, renders each Markdown file, generates search index, builds the islands bundle, and writes all output files.
+
+```ts
+import { buildSite } from "@domphy/press"
+import { config } from "./press.config.js"
+
+await buildSite({
+  config,
+  srcDir: config.srcDir,
+  outDir: config.outDir,
+  publicDir: "public",   // optional, copied to outDir as-is
+})
+```
+
+`BuildOptions`:
+
+```ts
+interface BuildOptions {
+  config: SiteConfig
+  srcDir: string       // absolute path to Markdown source directory
+  outDir: string       // absolute path to output directory
+  publicDir?: string   // optional: absolute path to static assets folder
+}
+```
+
+### `defineConfig(config)`
+
+Type-helper passthrough. Returns its argument typed as `SiteConfig`. Use this in `press.config.ts` for TypeScript inference:
+
+```ts
+import { defineConfig } from "@domphy/press"
+export default defineConfig({ /* inferred as SiteConfig */ })
+```
+
+## Rendering
+
+### `renderDoc(source, options)`
+
+Renders a Markdown string to a `RenderedDoc`. The primary transform in the build pipeline — also usable standalone for custom pipelines or SSR:
+
+```ts
+import { renderDoc, createHighlighter } from "@domphy/press"
+
+const highlight = await createHighlighter()
+
+const result = await renderDoc("# Hello\n\nContent.", {
+  filePath: "/docs/guide/index.md",
+  docsDir: "/docs",
+  repoRoot: "/",
+  highlight,
+})
+// result.body: DomphyElement[]
+// result.toc: TocEntry[]
+// result.title: string
+// result.frontmatter: Record<string, unknown>
+// result.islands: IslandRef[]
+```
+
+`RenderDocOptions`:
+
+```ts
+interface RenderDocOptions {
+  filePath: string                             // absolute path to the .md file
+  docsDir: string                              // absolute path to srcDir
+  repoRoot: string                             // repo root (for git last-updated)
+  highlight: (code: string, lang: string) => string
+}
+```
+
+`RenderedDoc`:
+
+```ts
+interface RenderedDoc {
+  frontmatter: Record<string, unknown>
+  body: DomphyElement[]
+  toc: TocEntry[]
+  islands: IslandRef[]
+  title: string
+}
+```
+
+### `createHighlighter()`
+
+Creates a Shiki-based syntax highlighter. Returns `(code, lang) => string`. The highlighter is shared/cached per process:
+
+```ts
+import { createHighlighter } from "@domphy/press"
+
+const highlight = await createHighlighter()
+const html = highlight("const x = 1", "typescript")
+```
+
+### `homeShell(ctx)` / `pageShell(ctx)`
+
+Layout shells used internally by `buildSite()`. Pass a `LayoutContext` to get the full page element tree (header + sidebar + content + TOC + footer). Useful for custom SSR pipelines:
+
+```ts
+import { homeShell, pageShell } from "@domphy/press"
+import type { LayoutContext } from "@domphy/press"
+
+const ctx: LayoutContext = { route: "/", title: "...", body: [...], /* ... */ }
+const element = pageShell(ctx)  // DomphyElement
+```
+
+### `pressCSS()`
+
+Returns a CSS string containing the global press reset and markdown content styles (code blocks, custom containers, tables, etc.). Inject into `<head>` of every page:
+
+```ts
+import { pressCSS } from "@domphy/press"
+
+const css = pressCSS()  // string
+```
+
+## Server
+
+### `startServer(root, port)`
+
+Starts a static file server to preview the built output:
+
+```ts
+import { startServer } from "@domphy/press"
+
+const server = startServer("/path/to/dist", 4173)
+// server is a Node.js http.Server
+```
+
+### `startDevServer(options)`
+
+Starts a development server with live rebuild on Markdown changes. Used by the `domphy-press dev` CLI command:
+
+```ts
+import { startDevServer } from "@domphy/press"
+
+await startDevServer({ config, srcDir, outDir })
+```
+
+## TocEntry
+
+```ts
+interface TocEntry {
+  level: number   // heading level 1-6
+  text: string    // plain-text heading content
+  slug: string    // anchor id
+}
+```
+
+## LayoutContext
+
+```ts
+interface LayoutContext {
+  route: string
+  title: string
+  body: DomphyElement[]
+  toc: TocEntry[]
+  frontmatter: Record<string, unknown>
+  config: SiteConfig
+  lastUpdated?: string    // ISO 8601 date from git, when lastUpdated: true
+  readingTime?: number    // estimated reading minutes
+  filePath?: string       // relative path from srcDir
+}
+```
 
 ### config.md
 
@@ -8250,6 +8508,122 @@ Layout element styles come from Domphy's `generateCSS()` via inline `style:{}` o
 
 See [Customization](/docs/press/customization) for full examples.
 
+### i18n.md
+
+---
+title: "Internationalization"
+description: "Multi-locale documentation sites with @domphy/press."
+---
+
+# Internationalization
+
+Press supports multi-locale documentation via locale routing. Each locale has its own root URL prefix (`/en/`, `/vi/`, etc.) and its own `themeConfig` overrides.
+
+## Setup
+
+Define `locales` in `press.config.ts`. Each key becomes the URL prefix; the key `"/"` is the root (default) locale:
+
+```ts
+import { defineConfig } from "@domphy/press"
+
+export default defineConfig({
+  title: "My Docs",
+  locales: {
+    "/": {
+      label: "English",
+      lang: "en",
+    },
+    "/vi/": {
+      label: "Tiếng Việt",
+      lang: "vi",
+      title: "Tài liệu của tôi",
+      themeConfig: {
+        nav: [
+          { text: "Hướng dẫn", link: "/vi/guide/" },
+        ],
+        sidebar: {
+          "/vi/guide/": [
+            { text: "Bắt đầu", link: "/vi/guide/" },
+          ],
+        },
+      },
+    },
+  },
+  themeConfig: {
+    nav: [
+      { text: "Guide", link: "/guide/" },
+    ],
+    sidebar: {
+      "/guide/": [
+        { text: "Getting Started", link: "/guide/" },
+      ],
+    },
+  },
+})
+```
+
+## File structure
+
+Locale-specific Markdown lives in subdirectories matching the locale prefix:
+
+```
+docs/
+  guide/           ← default locale (/guide/...)
+    index.md
+    intro.md
+  vi/
+    guide/         ← /vi/guide/...
+      index.md
+      intro.md
+```
+
+## `LocaleConfig` fields
+
+```ts
+interface LocaleConfig {
+  label: string                      // shown in the locale switcher
+  lang: string                       // HTML lang attribute, e.g. "en" or "vi"
+  title?: string                     // overrides site title for this locale
+  description?: string               // overrides site description
+  themeConfig?: Partial<ThemeConfig> // nav/sidebar/etc. overrides for this locale
+}
+```
+
+## Language switcher
+
+Press renders a locale switcher in the nav automatically when `locales` is defined. It shows each locale's `label` and links to the corresponding route in the other locale.
+
+## RTL support
+
+Set `lang` to an RTL language code (e.g. `"ar"`, `"he"`) to enable automatic `dir="rtl"` on the `<html>` element and mirrored layout.
+
+## Using `@domphy/i18n` for UI strings
+
+For translating UI strings (button labels, placeholders, error messages) in custom slot components, use `@domphy/i18n` alongside Press locales:
+
+```ts
+import { createI18n } from "@domphy/i18n"
+import en from "./locales/en.json"
+import vi from "./locales/vi.json"
+
+const i18n = createI18n<"en" | "vi", typeof en>({
+  globalKey: "__my_docs_i18n__",
+  namespace: "docs",
+  locales: { en, vi },
+  defaultLocale: "en",
+})
+
+// In a slot:
+slots: {
+  footer: (ctx) => ({
+    footer: i18n.t("footer.copyright"),
+    // ...
+  }),
+}
+```
+
+See the [`@domphy/i18n`](/docs/i18n/) package docs for the full API.
+
 ### index.md
 
 ---
@@ -8461,6 +8835,297 @@ features:
 
 ```md
 // include: ./snippets/install.md
+```
+
+### routing.md
+
+---
+title: "Routing"
+description: "How @domphy/press maps Markdown files to URL routes, and the routing utilities available."
+---
+
+# Routing
+
+## File → Route mapping
+
+Press converts Markdown files under `srcDir` to URL routes automatically:
+
+| File | Route |
+|------|-------|
+| `docs/index.md` | `/` |
+| `docs/guide/index.md` | `/guide/` |
+| `docs/guide/intro.md` | `/guide/intro` |
+| `docs/api/core.md` | `/api/core` |
+
+Rules:
+- A file named `index.md` maps to the directory route (`/guide/` not `/guide/index`)
+- Any other `.md` file maps to `/path/slug` (no trailing slash)
+- Subdirectories are flattened with `/` separators
+
+## Route → Output file
+
+Each route is written as `<route>/index.html` in `outDir`:
+
+| Route | Output |
+|-------|--------|
+| `/` | `dist/index.html` |
+| `/guide/` | `dist/guide/index.html` |
+| `/guide/intro` | `dist/guide/intro/index.html` |
+
+This produces clean URLs without `.html` extensions on all web hosts.
+
+## Sidebar prefix matching
+
+The `sidebar` config is keyed by route prefix. Press picks the **longest** matching prefix for the current route:
+
+```ts
+sidebar: {
+  "/docs/": [
+    { text: "Overview", link: "/docs/" },
+  ],
+  "/docs/core/": [  // longer prefix → wins for /docs/core/...
+    { text: "Core Overview", link: "/docs/core/" },
+    { text: "Syntax", link: "/docs/core/syntax" },
+  ],
+}
+```
+
+## Routing utilities
+
+These are exported from `@domphy/press` for use in custom build scripts or server-side rendering:
+
+### `routeForFile(srcRelativePath)`
+
+Converts a file path relative to `srcDir` into a URL route:
+
+```ts
+import { routeForFile } from "@domphy/press"
+
+routeForFile("guide/index.md")   // → "/guide/"
+routeForFile("guide/intro.md")   // → "/guide/intro"
+routeForFile("index.md")         // → "/"
+```
+
+### `outFileForRoute(route)`
+
+Returns the output HTML filename for a given route:
+
+```ts
+import { outFileForRoute } from "@domphy/press"
+
+outFileForRoute("/")             // → "index.html"
+outFileForRoute("/guide/")       // → "guide/index.html"
+outFileForRoute("/guide/intro")  // → "guide/intro/index.html"
+```
+
+### `discoverPages(srcDir)`
+
+Scans `srcDir` for all `.md` files and returns a sorted list of `PageEntry` objects:
+
+```ts
+import { discoverPages } from "@domphy/press"
+
+const pages = discoverPages("/path/to/docs")
+// [
+//   { route: "/", outFile: "index.html", filePath: "/path/to/docs/index.md" },
+//   { route: "/guide/", outFile: "guide/index.html", filePath: "..." },
+//   ...
+// ]
+```
+
+### `flattenSidebar(items)`
+
+Flattens a nested `SidebarItem[]` tree to an ordered flat list of `{ text, link }` entries. Useful for generating prev/next links or a flat sitemap:
+
+```ts
+import { flattenSidebar } from "@domphy/press"
+
+const flat = flattenSidebar([
+  { text: "Intro", link: "/guide/intro" },
+  { text: "Advanced", items: [
+    { text: "Config", link: "/guide/config" },
+  ]},
+])
+// [
+//   { text: "Intro", link: "/guide/intro" },
+//   { text: "Config", link: "/guide/config" },
+// ]
+```
+
+### `sidebarForRoute(route, config)`
+
+Returns the `SidebarItem[]` for the current route using longest-prefix matching:
+
+```ts
+import { sidebarForRoute } from "@domphy/press"
+
+const items = sidebarForRoute("/guide/intro", config)
+```
+
+### `prevNextForRoute(route, config)`
+
+Returns the previous and next pages for the current route based on the flattened sidebar order:
+
+```ts
+import { prevNextForRoute } from "@domphy/press"
+
+const { prev, next } = prevNextForRoute("/guide/intro", config)
+// prev: undefined (first page)
+// next: { text: "Config", link: "/guide/config" }
+```
+
+## `PageEntry` type
+
+```ts
+interface PageEntry {
+  route: string     // URL route, e.g. "/guide/intro"
+  outFile: string   // relative output path, e.g. "guide/intro/index.html"
+  filePath: string  // absolute path to the .md source file
+}
+```
+
+### search.md
+
+---
+title: "Search"
+description: "Built-in client-side search in @domphy/press — no server, no third-party service."
+---
+
+# Search
+
+Press ships a built-in client-side full-text search. No server, no Algolia account required — the index is built at compile time and shipped as a JSON file.
+
+## Configuration
+
+Search is **enabled by default**. To disable:
+
+```ts
+themeConfig: {
+  search: false,
+}
+```
+
+To customize the UI:
+
+```ts
+themeConfig: {
+  search: {
+    placeholder: "Search documentation…",
+    limit: 10,           // max results to show (default: 10)
+  },
+}
+```
+
+## How it works
+
+1. **Build time** — `buildSite()` calls `buildSearchIndex(docs)` which tokenizes all page titles, body text, and TOC heading text into an inverted index stored in `/assets/search-index.json`.
+2. **Runtime** — The search widget lazy-loads the index on first focus, runs tokenized prefix queries client-side, and displays results with section links.
+3. **Highlighting** — Results show the matched page title, section heading, and route. The current query terms are highlighted in the result list.
+
+## Programmatic API
+
+### `buildSearchIndex(docs)`
+
+Builds a serialized JSON index string from an array of `SearchDocument` objects. Used internally by `buildSite()` but also callable for custom pipelines:
+
+```ts
+import { buildSearchIndex } from "@domphy/press"
+import type { SearchDocument } from "@domphy/press"
+
+const docs: SearchDocument[] = [
+  { route: "/guide/", title: "Getting Started", text: "...", toc: [...] },
+]
+
+const indexJson = buildSearchIndex(docs)  // compact JSON string
+```
+
+### `queryIndex(serializedIndex, query, limit?)`
+
+Queries a serialized index string (from `buildSearchIndex`) for a given search term. Returns scored, ranked `SearchResult[]`:
+
+```ts
+import { queryIndex } from "@domphy/press"
+
+const results = queryIndex(indexJson, "reactivity", 5)
+// [
+//   { route: "/core/", pageTitle: "Core", heading: "Reactivity", slug: "reactivity", score: ... },
+//   ...
+// ]
+```
+
+`SearchResult`:
+
+```ts
+interface SearchResult {
+  route: string      // page route
+  pageTitle: string  // title of the page
+  heading: string    // matched heading (page title for page-level hits, section heading for section hits)
+  slug: string       // heading slug (empty string for page-level hits)
+  score: number      // relevance score — higher is better
+}
+```
+
+### `searchWidget(options?)`
+
+Returns a Domphy element containing the full search UI — input field + dropdown results. Suitable for embedding in a custom header slot:
+
+```ts
+import { searchWidget } from "@domphy/press"
+
+const widget = searchWidget({
+  placeholder: "Search…",
+  limit: 8,
+})
+```
+
+`SearchWidgetOptions`:
+
+```ts
+interface SearchWidgetOptions {
+  placeholder?: string    // input placeholder text
+  limit?: number          // max results (default: 10)
+}
+```
+
+### `mountSearch(container, options?)`
+
+Mounts the search widget into a DOM element. Call this in a browser island or after DOM ready:
+
+```ts
+import { mountSearch } from "@domphy/press/browser"
+
+const el = document.getElementById("search-container")!
+mountSearch(el, { placeholder: "Search…", limit: 8 })
+```
+
+Import from `@domphy/press/browser` (not the main entry) to avoid pulling Node.js built-ins into browser bundles.
+
+## Custom search placement
+
+Replace the default search input in the header by overriding the `header` slot and embedding `searchWidget()`:
+
+```ts
+import { defineConfig, type LayoutContext, searchWidget } from "@domphy/press"
+import { themeColor, themeSpacing } from "@domphy/theme"
+
+export default defineConfig({
+  themeConfig: {
+    slots: {
+      header: (ctx: LayoutContext) => ({
+        header: [
+          { a: ctx.config.title, href: "/" },
+          searchWidget({ placeholder: "Search…" }),
+        ],
+        style: {
+          display: "flex",
+          gap: themeSpacing(4),
+          padding: `0 ${themeSpacing(6)}`,
+          background: themeColor(null, "shift-1"),
+        },
+      }),
+    },
+  },
+})
 ```
 
 

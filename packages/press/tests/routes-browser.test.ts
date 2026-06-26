@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { flattenSidebar, prevNextForRoute, sidebarForRoute } from "../src/routes-browser.ts";
+import {
+  flattenSidebar,
+  prevNextForRoute,
+  sidebarForRoute,
+} from "../src/routes-browser.ts";
 import type { SiteConfig } from "../src/types.ts";
 
 const config: SiteConfig = {

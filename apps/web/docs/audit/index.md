@@ -1,6 +1,11 @@
-# Audit
+---
+title: "@domphy/audit"
+description: "Baseline-free layout and theme verification for Domphy UIs via Playwright."
+---
 
-`@domphy/audit` is a **baseline-free layout verifier** for Domphy UIs. It runs after the browser renders the page and checks the actual layout geometry against mathematical rules — no historical screenshot needed.
+# @domphy/audit
+
+`@domphy/audit` is a **baseline-free layout and theme verifier** for Domphy UIs. It runs after the browser renders the page and checks actual layout, theme setup, and overlay behavior — no screenshots, no baselines.
 
 It is the runtime complement to `@domphy/doctor` (which checks the source tree before render):
 
@@ -15,21 +20,34 @@ It is the runtime complement to `@domphy/doctor` (which checks the source tree b
 
 ```bash
 npm install -D @domphy/audit playwright
+npx playwright install chromium
 ```
 
 Playwright is an optional peer dependency — bring the version your project already uses.
 
-## Usage
+## CLI
+
+The fastest way to audit any URL:
+
+```bash
+npx @domphy/audit https://myapp.com
+npx @domphy/audit http://localhost:5173 --static
+```
+
+Exits 0 if no issues, exits 1 if any issues found. `--static` skips the interactive hover scan.
+
+## Usage with Playwright
 
 ```ts
 import { test, expect } from "@playwright/test"
-import { checkLayout } from "@domphy/audit"
+import { scanInteractive } from "@domphy/audit"
 import { writeFileSync } from "node:fs"
 
 test("no layout violations", async ({ page }) => {
   await page.goto("/dashboard")
+  await page.waitForLoadState("networkidle")
 
-  const result = await checkLayout(page)
+  const result = await scanInteractive(page)
 
   // Save SVG for debugging failed runs
   if (!result.ok) writeFileSync("layout-audit.svg", result.svg)
@@ -40,71 +58,133 @@ test("no layout violations", async ({ page }) => {
 
 ## What it checks
 
-### Overlap
+### Theme (`checkTheme`)
 
-Sibling elements whose bounding boxes intersect are flagged as errors. Ancestor–descendant relationships are excluded (a parent containing its child is normal).
+Detects missing Domphy theme setup — the most common cause of transparent backgrounds and invisible text:
+
+- `data-theme` attribute missing on `<html>` — CSS vars like `--neutral-0` are scoped to `[data-theme]` and will be unresolved
+- `--neutral-0` CSS custom property unresolved (resolves to empty string)
+
+```ts
+import { checkTheme } from "@domphy/audit"
+
+const issues = await checkTheme(page)
+// [{ type: "theme", message: "document.documentElement is missing data-theme attribute..." }]
+```
+
+### Overlay (`checkOverlays`)
+
+Detects visible positioned overlay elements (absolute/fixed, z-index > 0, not `display:none`) with:
+
+- **Transparent background** — `background-color: rgba(0,0,0,0)` on a visible overlay lets content bleed through
+- **Hover gap** — physical gap > 4px between a trigger element and its dropdown (gap fires `mouseleave` on mouse crossing it, closing the dropdown prematurely)
+
+```ts
+import { checkOverlays } from "@domphy/audit"
+
+const issues = await checkOverlays(page)
+```
+
+### Overlap (`detectOverlaps`)
+
+Sibling elements whose bounding boxes intersect are flagged. Ancestor–descendant relationships are excluded.
 
 ```ts
 import { detectOverlaps } from "@domphy/audit"
 
 const issues = await detectOverlaps(page)
-// [{ type: "overlap", message: "<button.button_a3f> overlaps <button.button_b7c> by 12×4px", rect: {...} }]
+// [{ type: "overlap", message: "...", rect: {...} }]
 ```
 
-### Geometry
+### Geometry (`verifyGeometry`)
 
-Domphy-styled buttons obey a deterministic height formula derived from density and font size:
+Domphy-styled buttons obey a deterministic height formula:
 
 ```
-height = (6 + 2d) × U    where U = fontSize / 4
+height = (6 + 2d) × U    where U = fontSize / 4,  d = density value
 ```
 
-`verifyGeometry` detects buttons whose rendered height deviates from this formula, catching cases where a density patch was forgotten or overridden.
+Detects buttons whose rendered height deviates from this formula.
 
 ```ts
 import { verifyGeometry } from "@domphy/audit"
 
 const issues = await verifyGeometry(page)
-// [{ type: "geometry", message: "button height: got 28.0px, expected 36.0px (d=1.5, U=4.0px)", rect: {...} }]
 ```
 
-Only buttons with a Domphy-generated class (`button_{nodeId}`) are checked.
+### Contrast (`checkContrast`)
 
-### Contrast
-
-Text elements are checked for WCAG 4.5:1 minimum contrast ratio using computed `color` and resolved background color. The Domphy Tone Span theorem (K=9) guarantees compliant contrast when tones are applied correctly — this check catches the cases where they weren't.
+Text elements are checked for WCAG 4.5:1 minimum contrast ratio using computed `color` and resolved background color.
 
 ```ts
 import { checkContrast } from "@domphy/audit"
 
-const issues = await checkContrast(page)          // default 4.5:1
-const issues2 = await checkContrast(page, 3.0)    // custom threshold
+const issues = await checkContrast(page)           // default 4.5:1
+const issues2 = await checkContrast(page, 3.0)     // custom threshold
 ```
+
+## `scanInteractive(page, options?)`
+
+Runs all checks in sequence and also **auto-discovers overlay triggers**: finds elements with hidden absolutely-positioned children, hovers each, then checks for newly-visible overlay bugs.
+
+```ts
+import { scanInteractive } from "@domphy/audit"
+import type { AuditPageFull } from "@domphy/audit"
+
+const result = await scanInteractive(page as AuditPageFull, {
+  hoverDelay: 150,   // ms to wait after hover (default: 150)
+  staticOnly: false, // set true to skip interactive hover scan
+})
+
+console.log(result.ok)        // boolean
+console.log(result.issues)    // AuditIssue[]
+console.log(result.svg)       // annotated SVG string
+```
+
+`AuditPageFull` extends `AuditPage` with `hover(selector)` and `waitForTimeout(ms)` — the Playwright `Page` object satisfies this interface directly.
 
 ## SVG output
 
-Every `checkLayout` call returns an `svg` string — a lightweight skeleton of the rendered layout with issues annotated:
+Every result includes an `svg` string — a lightweight text skeleton of the rendered layout with issues annotated by color:
 
-- Gray outlines — all visible elements
-- **Red fill** — overlap intersection areas
-- **Orange fill** — geometry violations
-- **Gold fill** — contrast failures
+- **Red** — overlap areas
+- **Orange** — geometry violations
+- **Gold** — contrast failures
+- **Purple** — theme/overlay issues
 
-The SVG is pure text (not a screenshot), so it is fast to generate, tiny, and diffable in version control.
+The SVG is pure text (not a screenshot): fast, tiny, and diffable in CI.
 
 ```ts
 import { snapshot, toSVG } from "@domphy/audit"
 
-const layout = await snapshot(page)          // collect bounding boxes
-const svg = toSVG(layout, issues)            // render annotated SVG
+const layout = await snapshot(page)     // collect bounding boxes
+const svg = toSVG(layout, issues)       // render annotated SVG
 ```
 
-## Options
+## Types
 
 ```ts
-await checkLayout(page, {
-  checks: ["overlap", "geometry"],   // skip contrast check
-  tolerance: 2,                      // geometry px tolerance (default 1)
-  minContrast: 3.0,                  // WCAG threshold (default 4.5)
-})
+type IssueType = "overlap" | "geometry" | "contrast" | "theme" | "overlay"
+
+interface AuditIssue {
+  type: IssueType
+  message: string
+  rect?: { x: number; y: number; width: number; height: number }
+}
+
+interface AuditResult {
+  ok: boolean
+  issues: AuditIssue[]
+  svg: string
+}
+
+interface AuditPage {
+  evaluate<T>(fn: () => T | Promise<T>): Promise<T>
+  evaluate<T, A>(fn: (arg: A) => T | Promise<T>, arg: A): Promise<T>
+}
+
+interface AuditPageFull extends AuditPage {
+  hover(selector: string, options?: { force?: boolean }): Promise<void>
+  waitForTimeout(ms: number): Promise<void>
+}
 ```

@@ -30,12 +30,8 @@ import {
 } from "@domphy/press";
 import { themeCSS } from "@domphy/theme";
 import * as esbuild from "esbuild";
+import { htmlDocument, type PageIslandSpec } from "./html-template.js";
 import { config } from "./press.config.js";
-import {
-  type PageIslandSpec,
-  htmlDocument,
-  RUNTIME_SCRIPT as _RUNTIME_SCRIPT,
-} from "./html-template.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const appRoot = resolve(here);
@@ -188,7 +184,6 @@ bootstrap(previewRegistry);
   });
 }
 
-
 function buildSitemap(pages: BuiltPage[], hostname: string): string {
   const urls = pages
     .map((page) => {
@@ -293,7 +288,12 @@ async function run(): Promise<void> {
   for (const page of built) {
     try {
       const result = await app.renderToString(page.route);
-      const doc = htmlDocument(result, generatedCss, pageIslandSpecs(page), config.head);
+      const doc = htmlDocument(
+        result,
+        generatedCss,
+        pageIslandSpecs(page),
+        config.head,
+      );
       const outPath = join(outDir, page.outFile);
       mkdirSync(dirname(outPath), { recursive: true });
       writeFileSync(outPath, doc, "utf8");

@@ -110,21 +110,30 @@ describe("detectLocale()", () => {
 
   it("returns defaultLocale when no signals are present", () => {
     const i18n = makeI18n();
-    const locale = i18n.detectLocale({ storageKey: "lang", pathSegment: false });
+    const locale = i18n.detectLocale({
+      storageKey: "lang",
+      pathSegment: false,
+    });
     expect(locale).toBe("en");
   });
 
   it("reads locale from localStorage when storageKey is provided", () => {
     localStorage.setItem("lang", "vi");
     const i18n = makeI18n();
-    const locale = i18n.detectLocale({ storageKey: "lang", pathSegment: false });
+    const locale = i18n.detectLocale({
+      storageKey: "lang",
+      pathSegment: false,
+    });
     expect(locale).toBe("vi");
   });
 
   it("ignores an unknown locale in localStorage and falls back to default", () => {
     localStorage.setItem("lang", "fr");
     const i18n = makeI18n();
-    const locale = i18n.detectLocale({ storageKey: "lang", pathSegment: false });
+    const locale = i18n.detectLocale({
+      storageKey: "lang",
+      pathSegment: false,
+    });
     expect(locale).toBe("en");
   });
 });

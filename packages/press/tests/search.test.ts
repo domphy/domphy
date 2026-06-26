@@ -29,8 +29,12 @@ describe("buildSearchIndex", () => {
   it("index contains entries for each doc and its toc sections", () => {
     const index = JSON.parse(buildSearchIndex(docs));
     const routes = index.entries.map((e: { route: string }) => e.route);
-    expect(routes.filter((r: string) => r === "/core").length).toBeGreaterThanOrEqual(1);
-    expect(routes.filter((r: string) => r === "/theme").length).toBeGreaterThanOrEqual(1);
+    expect(
+      routes.filter((r: string) => r === "/core").length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      routes.filter((r: string) => r === "/theme").length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it("has postings for terms in the docs", () => {
