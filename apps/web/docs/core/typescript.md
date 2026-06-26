@@ -235,9 +235,8 @@ import type {
   DomphyElement,   // any valid element
   Listener,        // listener callback argument
   State,           // toState return type
-  Patch,           // patch definition
+  PartialElement,  // patch return type
   ElementNode,     // DOM element wrapper
-  TextNode,        // text node wrapper
   AttributeList,   // $-attribute list
   ElementList,     // element list in element.children
 } from "@domphy/core"

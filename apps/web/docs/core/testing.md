@@ -64,7 +64,7 @@ describe("subscription", () => {
     const name = toState("Alice")
     const callback = vi.fn()
 
-    name.subscribe(callback)
+    name.addListener(callback)
     name.set("Bob")
 
     expect(callback).toHaveBeenCalledWith("Bob")
@@ -74,7 +74,7 @@ describe("subscription", () => {
     const count = toState(0)
     const callback = vi.fn()
 
-    count.subscribe(callback)
+    count.addListener(callback)
     count.set(0)   // same value
 
     expect(callback).not.toHaveBeenCalled()
