@@ -126,13 +126,6 @@ function header(config: SiteConfig): DomphyElement {
       },
     ],
     $: [toolbar({ gap: 4 })],
-    style: {
-      position: "sticky", top: 0, zIndex: 30,
-      height: "var(--dp-header-h)", padding: "0 24px",
-      background: "color-mix(in srgb, var(--dp-bg) 86%, transparent)",
-      backdropFilter: "blur(8px)",
-      borderBottom: "1px solid var(--dp-border)",
-    },
     class: "dp-header",
   }
 }

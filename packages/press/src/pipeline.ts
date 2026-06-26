@@ -15,6 +15,8 @@ import subUntyped from "markdown-it-sub"
 import supUntyped from "markdown-it-sup"
 // @ts-expect-error -- no bundled types
 import includeUntyped from "markdown-it-include"
+// @ts-expect-error -- no bundled types
+import emojiUntyped from "markdown-it-emoji"
 import { escapeHtml, renderFence } from "./highlight.js"
 import type { RenderDocOptions, RenderedDoc, TocEntry } from "./types.js"
 
@@ -24,6 +26,7 @@ const include = includeUntyped as (md: MarkdownIt, options: { root: string }) =>
 const markPlugin = markUntyped as MdPlugin
 const subPlugin = subUntyped as MdPlugin
 const supPlugin = supUntyped as MdPlugin
+const emojiPlugin = emojiUntyped as MdPlugin
 
 // --- <<< code imports --------------------------------------------------------
 
@@ -227,6 +230,7 @@ function createParser(docsDir: string, highlight: (code: string, lang: string) =
   md.use(markPlugin)
   md.use(subPlugin)
   md.use(supPlugin)
+  md.use(emojiPlugin)
   const noopRender = () => ""
   const ADMONITION_NAMES = Object.keys(ADMONITION_TITLES)
   for (const name of [...ADMONITION_NAMES, "details", "code-group", "steps"]) {
@@ -267,6 +271,16 @@ function createParser(docsDir: string, highlight: (code: string, lang: string) =
     }
     return true
   })
+  // Images: add loading=lazy
+  md.core.ruler.push("press_image_lazy", (state: CoreState) => {
+    for (const token of state.tokens) {
+      if (token.type !== "inline" || !token.children) continue
+      for (const child of token.children) {
+        if (child.type === "image") child.attrSet("loading", "lazy")
+      }
+    }
+    return true
+  })
   return md
 }
 
@@ -288,6 +302,26 @@ function firstH1(toc: TocEntry[]): string | undefined {
 
 // --- Public API --------------------------------------------------------------
 
+// Inject visual anchor link into heading elements after tokensToDomphy.
+function injectHeadingAnchors(elements: DomphyElement[]): DomphyElement[] {
+  return elements.map(el => {
+    if (!el || typeof el !== "object" || Array.isArray(el)) return el
+    const rec = el as Record<string, unknown>
+    const tag = Object.keys(rec).find(k => /^h[1-6]$/.test(k))
+    if (tag && typeof rec.id === "string") {
+      const id = rec.id
+      const children = Array.isArray(rec[tag]) ? [...(rec[tag] as DomphyElement[])] : rec[tag] != null ? [rec[tag] as DomphyElement] : []
+      children.push({ a: "#", href: `#${id}`, class: "header-anchor", ariaHidden: "true" } as DomphyElement)
+      return { ...rec, [tag]: children } as DomphyElement
+    }
+    const tag2 = Object.keys(rec).find(k => /^[a-z][a-z0-9]*$/.test(k) && k !== "style" && k !== "class" && !k.startsWith("data") && !k.startsWith("on") && !k.startsWith("aria") && !k.startsWith("_") && k !== "$" && k !== "href" && k !== "src" && k !== "id" && k !== "type" && k !== "name")
+    if (tag2 && Array.isArray(rec[tag2])) {
+      return { ...rec, [tag2]: injectHeadingAnchors(rec[tag2] as DomphyElement[]) } as DomphyElement
+    }
+    return el
+  })
+}
+
 export async function renderDoc(source: string, options: RenderDocOptions): Promise<RenderedDoc> {
   const { filePath, docsDir, highlight } = options
   const fileDir = dirname(filePath)
@@ -296,9 +330,9 @@ export async function renderDoc(source: string, options: RenderDocOptions): Prom
   const expanded = expandCodeImports(stripped, fileDir, docsDir)
   const md = createParser(docsDir, highlight)
   const tokens = md.parse(expanded, {}) as MarkdownItToken[]
-  // highlight still passed to tokensToDomphy for any inline code handling
   const { body, toc } = tokensToDomphy(tokens, { highlight })
+  const withAnchors = injectHeadingAnchors(body as DomphyElement[])
   const frontmatterTitle = typeof frontmatter.title === "string" ? frontmatter.title : undefined
   const title = frontmatterTitle ?? firstH1(toc) ?? titleFromFilePath(filePath)
-  return { frontmatter, body: body as DomphyElement[], toc, islands: [], title }
+  return { frontmatter, body: withAnchors, toc, islands: [], title }
 }

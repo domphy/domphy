@@ -6,6 +6,7 @@ export { discoverPages, routeForFile, sidebarForRoute, prevNextForRoute, flatten
 export { buildSearchIndex, queryIndex, searchWidget, mountSearch } from "./search.js"
 export { createHighlighter, renderFence, parseFenceInfo } from "./highlight.js"
 export { pageShell, homeShell } from "./layout.js"
+export { pressCSS } from "./theme.js"
 export type { SiteConfig, UserConfig } from "./config.js"
 export type {
   NavItem, SidebarItem, ThemeConfig, LocaleConfig, SocialLink, EditLink,

@@ -15,8 +15,7 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       }
-    },
-    "./theme.css": "./theme.css"
+    }
   },
   "scripts": {
     "build": "tsup",
@@ -39,6 +38,7 @@
     "markdown-it": "^14.1.0",
     "markdown-it-container": "^4.0.0",
     "markdown-it-include": "^2.0.0",
+    "markdown-it-emoji": "^3.0.0",
     "markdown-it-mark": "^4.0.0",
     "markdown-it-sub": "^2.0.0",
     "markdown-it-sup": "^2.0.0",
@@ -64,5 +64,5 @@
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
-  "files": ["dist", "theme.css", "README.md"]
+  "files": ["dist", "README.md"]
 }

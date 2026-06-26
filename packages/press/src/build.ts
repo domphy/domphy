@@ -9,12 +9,14 @@ import { dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { execSync } from "node:child_process"
 import { createApp, defineRoutes } from "@domphy/app"
+import { themeCSS } from "@domphy/theme"
 import * as esbuild from "esbuild"
 import { createHighlighter } from "./highlight.js"
 import { homeShell, type LayoutContext, pageShell } from "./layout.js"
 import { renderDoc } from "./pipeline.js"
 import { discoverPages } from "./routes.js"
 import { buildSearchIndex } from "./search.js"
+import { pressCSS } from "./theme.js"
 import type { SiteConfig } from "./types.js"
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -151,7 +153,7 @@ function htmlDocument(
   result: { html: string; css: string; head: string; status: number },
   config: SiteConfig,
   searchEnabled: boolean,
-  themeCss: string,
+  generatedCss: string,
   pageHead: string[],
   lang: string,
 ): string {
@@ -166,7 +168,7 @@ ${result.head}
 ${config.head.join("\n")}
 ${pageHead.join("\n")}
 ${mermaidScript}
-<style>${themeCss}</style>
+<style>${generatedCss}</style>
 <style id="domphy-style">${result.css}</style>
 <script>${RUNTIME_SCRIPT}</script>
 </head>
@@ -183,11 +185,10 @@ export interface BuildOptions {
   srcDir: string
   outDir: string
   publicDir?: string
-  themeCssPath?: string
 }
 
 export async function buildSite(options: BuildOptions): Promise<void> {
-  const { config, srcDir, outDir, publicDir, themeCssPath } = options
+  const { config, srcDir, outDir, publicDir } = options
   const searchEnabled = config.themeConfig.search !== false
   const showLastUpdated = !!config.lastUpdated
 
@@ -208,9 +209,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
   console.log(`Discovered ${localePages.length} pages.`)
 
   const highlight = await createHighlighter()
-  const themeCss = themeCssPath
-    ? readFileSync(themeCssPath, "utf8")
-    : readFileSync(join(here, "..", "theme.css"), "utf8")
+  const generatedCss = themeCSS() + pressCSS()
 
   // 1. Render markdown → Domphy docs
   const built: Array<{
@@ -296,7 +295,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
       const result = await app.renderToString(page.route)
       const pageHead = pageHeadMap.get(page.route) ?? []
       const lang = pageLangMap.get(page.route) ?? "en"
-      const html = htmlDocument(result, config, searchEnabled, themeCss, pageHead, lang)
+      const html = htmlDocument(result, config, searchEnabled, generatedCss, pageHead, lang)
       const outPath = join(outDir, page.outFile)
       mkdirSync(dirname(outPath), { recursive: true })
       writeFileSync(outPath, html, "utf8")
