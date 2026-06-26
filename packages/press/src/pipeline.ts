@@ -191,14 +191,16 @@ function buildCodeGroupTokens(
     )
     .join("");
 
-  // One token per input — each is a single-root element so the walker can push
-  // it directly without a wrapper div (no multi-root firstChild truncation).
-  const inputTokens = fences.map((_, i) =>
-    buildHtmlBlock(
-      Token,
-      `<input type="radio" name="cg-${groupId}" id="cgt-${groupId}-${i}"${i === 0 ? " checked" : ""}>`,
-    ),
-  );
+  // Bundle inputs + tabs into one html_block. The combined string contains
+  // <div class="tabs">...</div> so isHTML() returns true and SSR emits the full
+  // string. Each element becomes a direct child of .code-group (CSS :checked ~
+  // .blocks selector requires inputs as siblings of .blocks at the same level).
+  const inputsHtml = fences
+    .map(
+      (_, i) =>
+        `<input type="radio" name="cg-${groupId}" id="cgt-${groupId}-${i}"${i === 0 ? " checked" : ""}>`,
+    )
+    .join("");
 
   const blocksHtml = fences
     .map((fence) => {
@@ -208,8 +210,7 @@ function buildCodeGroupTokens(
     .join("");
 
   const inner: MarkdownItToken[] = [
-    ...inputTokens,
-    buildHtmlBlock(Token, `<div class="tabs">${labelsHtml}</div>`),
+    buildHtmlBlock(Token, `${inputsHtml}<div class="tabs">${labelsHtml}</div>`),
     buildHtmlBlock(Token, `<div class="blocks">${blocksHtml}</div>`),
   ];
   return [open, ...inner, close];

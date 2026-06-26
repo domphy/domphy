@@ -59,4 +59,38 @@ describe("renderDoc", () => {
     expect(heading).toBeDefined();
     expect((heading as any).id).toBeDefined();
   });
+
+  it("code-group: inputs and blocks are direct children, no extra wrapper divs", async () => {
+    const md = [
+      "::: code-group",
+      "",
+      "```ts [TS]",
+      "const x = 1",
+      "```",
+      "",
+      "```js [JS]",
+      "const x = 1",
+      "```",
+      "",
+      ":::",
+    ].join("\n");
+    const { body } = await renderDoc(md, opts);
+    const cg = body.find(
+      (el) =>
+        typeof el === "object" &&
+        el !== null &&
+        "div" in el &&
+        (el as any).class === "code-group",
+    ) as Record<string, unknown> | undefined;
+    expect(cg, "code-group div not found").toBeDefined();
+    const children = cg!.div as unknown[];
+    // Children must be strings (raw HTML) — NOT objects with a .div key
+    for (const child of children) {
+      expect(typeof child).toBe("string");
+    }
+    const allHtml = children.join("");
+    expect(allHtml).toContain('<input type="radio"');
+    expect(allHtml).toContain('class="tabs"');
+    expect(allHtml).toContain('class="blocks"');
+  });
 });
