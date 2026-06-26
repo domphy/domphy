@@ -6,7 +6,7 @@ import { navLink } from "@domphy/app";
 import type { DomphyElement, StyleObject } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { toolbar, toolbarSpacer } from "@domphy/ui";
-import { prevNextForRoute, sidebarForRoute } from "./routes.js";
+import { prevNextForRoute, sidebarForRoute } from "./routes-browser.js";
 import type { SidebarItem, SiteConfig, SocialLink, TocEntry } from "./types.js";
 
 // Avoids TypeScript widening string literals to 'string' when style objects
