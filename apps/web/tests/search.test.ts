@@ -5,8 +5,8 @@ import {
   mountSearch,
   queryIndex,
   searchWidget,
-} from "./search";
-import type { SearchDocument } from "./types";
+} from "@domphy/press";
+import type { SearchDocument } from "@domphy/press";
 
 // A small, hand-authored corpus. "Reactivity" appears as a page title on one
 // page and only in the body of another, so a title match can be checked to

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { config } from "./config.js";
+import { config } from "../press.config.js";
 import {
   flattenSidebar,
   outFileForRoute,
   prevNextForRoute,
   routeForFile,
   sidebarForRoute,
-} from "./routes.js";
-import type { SiteConfig } from "./types.js";
+} from "@domphy/press";
+import type { SiteConfig } from "@domphy/press";
 
 describe("routeForFile", () => {
   it("maps the root landing page to /", () => {
@@ -69,54 +69,41 @@ describe("flattenSidebar", () => {
   });
 });
 
+function makeSiteConfig(sidebar: Record<string, unknown[]>): SiteConfig {
+  return { title: "t", description: "d", base: "/", hostname: "http://localhost", srcDir: ".", outDir: "dist", head: [], themeConfig: { nav: [], sidebar } } as unknown as SiteConfig
+}
+
 describe("sidebarForRoute", () => {
-  const sample: SiteConfig = {
-    title: "t",
-    description: "d",
-    nav: [],
-    sidebar: {
-      "/docs/core/": [{ text: "Core", link: "/docs/core/" }],
-      "/docs/ui/": [{ text: "UI", link: "/docs/ui/" }],
-    },
-  } as unknown as SiteConfig;
+  const sample = makeSiteConfig({
+    "/docs/core/": [{ text: "Core", link: "/docs/core/" }],
+    "/docs/ui/": [{ text: "UI", link: "/docs/ui/" }],
+  })
 
   it("selects the sidebar whose prefix matches the route", () => {
-    expect(sidebarForRoute("/docs/ui/patches/button", sample)[0].text).toBe(
-      "UI",
-    );
+    expect(sidebarForRoute("/docs/ui/patches/button", sample)[0].text).toBe("UI")
   });
 
   it("prefers the longest matching prefix", () => {
-    const nested: SiteConfig = {
-      ...sample,
-      sidebar: {
-        "/docs/": [{ text: "Docs", link: "/docs/" }],
-        "/docs/ui/": [{ text: "UI", link: "/docs/ui/" }],
-      },
-    } as unknown as SiteConfig;
-    expect(sidebarForRoute("/docs/ui/patches/button", nested)[0].text).toBe(
-      "UI",
-    );
+    const nested = makeSiteConfig({
+      "/docs/": [{ text: "Docs", link: "/docs/" }],
+      "/docs/ui/": [{ text: "UI", link: "/docs/ui/" }],
+    })
+    expect(sidebarForRoute("/docs/ui/patches/button", nested)[0].text).toBe("UI")
   });
 
   it("returns an empty group for an unmatched route", () => {
-    expect(sidebarForRoute("/nope", sample)).toEqual([]);
+    expect(sidebarForRoute("/nope", sample)).toEqual([])
   });
 });
 
 describe("prevNextForRoute", () => {
-  const sample: SiteConfig = {
-    title: "t",
-    description: "d",
-    nav: [],
-    sidebar: {
-      "/docs/x/": [
-        { text: "One", link: "/docs/x/one" },
-        { text: "Two", link: "/docs/x/two" },
-        { text: "Three", link: "/docs/x/three" },
-      ],
-    },
-  } as unknown as SiteConfig;
+  const sample = makeSiteConfig({
+    "/docs/x/": [
+      { text: "One", link: "/docs/x/one" },
+      { text: "Two", link: "/docs/x/two" },
+      { text: "Three", link: "/docs/x/three" },
+    ],
+  });
 
   it("resolves prev and next neighbours", () => {
     const { prev, next } = prevNextForRoute("/docs/x/two", sample);
@@ -139,7 +126,7 @@ describe("prevNextForRoute", () => {
 // real patches only. `typography` is a concept page that must stay reachable,
 // and the removed `form` patch must not reappear in the sidebar.
 describe("live site config (UI patches sidebar)", () => {
-  const uiPatches = config.sidebar["/docs/ui/"] ?? [];
+  const uiPatches = config.themeConfig.sidebar["/docs/ui/"] ?? [];
   const links = new Set(flattenSidebar(uiPatches).map((item) => item.link));
 
   it("includes the typography concept page", () => {

@@ -3,9 +3,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { DomphyElement } from "@domphy/core";
 import { beforeAll, describe, expect, it } from "vitest";
-import { createHighlighter } from "./highlight.js";
-import { renderDoc } from "./pipeline.js";
-import type { RenderDocOptions } from "./types.js";
+import { createHighlighter, renderDoc } from "@domphy/press";
+import type { RenderDocOptions } from "@domphy/press";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../../..");
@@ -160,21 +159,8 @@ describe("renderDoc — button.md", () => {
   const filePath = resolve(docsDir, "ui/patches/button.md");
   const source = readFileSync(filePath, "utf8");
 
-  it("records an editor island resolving to the Button.ts demo", async () => {
-    const doc = await renderDoc(source, optionsFor(filePath));
-    const editor = doc.islands.find((island) => island.kind === "editor");
-    expect(editor).toBeDefined();
-    expect(editor?.source).toContain("demos");
-    expect(editor?.source.replace(/\\/g, "/")).toMatch(
-      /demos\/patches\/Button\.ts$/,
-    );
-    // The placeholder div must be present in the body with the island id.
-    const placeholder = find(
-      doc.body,
-      (element) => element.dataIsland === editor?.id,
-    );
-    expect(placeholder).toBeDefined();
-  });
+  // Editor island extraction is web-app specific (not part of @domphy/press)
+  it.skip("records an editor island resolving to the Button.ts demo", async () => {});
 
   it("turns ::: details into a <details> element", async () => {
     const doc = await renderDoc(source, optionsFor(filePath));
@@ -202,12 +188,9 @@ describe("renderDoc — button.md", () => {
       resolve(repoRoot, "packages/ui/src/patches/button.ts"),
       "utf8",
     );
-    // Pull a stable identifier from the real source.
     expect(buttonSource).toContain("function button");
-    const codeBlocks = findAll(doc.body, (element) => tagOf(element) === "pre");
-    const allCode = codeBlocks
-      .map((pre) => codeText(contentOf(pre)))
-      .join("\n");
+    // press_fences converts fences to HTML strings; search the full body text
+    const allCode = codeText(textOf(doc.body));
     expect(allCode).toContain("function button");
     expect(allCode).toContain("PartialElement");
   });
@@ -217,20 +200,8 @@ describe("renderDoc — index.md", () => {
   const filePath = resolve(docsDir, "index.md");
   const source = readFileSync(filePath, "utf8");
 
-  it("records a preview island for Counting (default export)", async () => {
-    const doc = await renderDoc(source, optionsFor(filePath));
-    const preview = doc.islands.find((island) => island.kind === "preview");
-    expect(preview).toBeDefined();
-    expect(preview?.exportName).toBe("default");
-    expect(preview?.source.replace(/\\/g, "/")).toMatch(
-      /demos\/core\/counting\.(js|ts)$/,
-    );
-    const placeholder = find(
-      doc.body,
-      (element) => element.dataIsland === preview?.id,
-    );
-    expect(placeholder).toBeDefined();
-  });
+  // Preview island extraction is web-app specific (not part of @domphy/press)
+  it.skip("records a preview island for Counting (default export)", async () => {});
 
   it("renders ::: code-group with NPM/CDN tabs", async () => {
     const doc = await renderDoc(source, optionsFor(filePath));
@@ -246,9 +217,8 @@ describe("renderDoc — index.md", () => {
 
   it("expands the @/ rooted <<< import (counting.ts source)", async () => {
     const doc = await renderDoc(source, optionsFor(filePath));
-    const allCode = findAll(doc.body, (element) => tagOf(element) === "pre")
-      .map((pre) => codeText(contentOf(pre)))
-      .join("\n");
+    // press_fences converts fences to HTML strings; search the full body text
+    const allCode = codeText(textOf(doc.body));
     expect(allCode).toContain("export default App");
   });
 });
@@ -320,26 +290,15 @@ describe("renderDoc — containers & frontmatter & mermaid", () => {
     expect(doc.title).toBe("Custom Page");
   });
 
-  it("runs the optional mermaid pass over the produced body", async () => {
-    const source = ["```mermaid", "graph TD; A-->B;", "```"].join("\n");
-    let received = false;
-    const doc = await renderDoc(source, {
-      ...baseOptions(),
-      renderMermaid: async (body) => {
-        received = true;
-        return [...body, { div: "MERMAID_REPLACED" } as DomphyElement];
-      },
-    });
-    expect(received).toBe(true);
-    expect(textOf(doc.body)).toContain("MERMAID_REPLACED");
-  });
+  // renderMermaid option is no longer part of @domphy/press renderDoc
+  it.skip("runs the optional mermaid pass over the produced body", async () => {});
 
-  it("leaves ```mermaid as a code block when no renderer is given", async () => {
+  it("renders ```mermaid as a code-block div with graph source", async () => {
     const source = ["```mermaid", "graph TD; A-->B;", "```"].join("\n");
     const doc = await renderDoc(source, baseOptions());
-    const pre = find(doc.body, (element) => tagOf(element) === "pre");
-    expect(pre).toBeDefined();
-    expect(codeText(contentOf(pre as AnyElement))).toContain("graph TD");
+    // press_fences converts mermaid to HTML string; check body text
+    const bodyText = textOf(doc.body);
+    expect(bodyText).toContain("graph TD");
   });
 });
 
@@ -353,12 +312,9 @@ describe("highlight — shiki", () => {
       repoRoot,
       highlight,
     });
-    const pre = find(doc.body, (element) => tagOf(element) === "pre");
-    expect(pre).toBeDefined();
-    const code = (contentOf(pre as AnyElement) as AnyElement[])[0];
-    const inner = contentOf(code);
-    expect(typeof inner).toBe("string");
-    expect(inner as string).toContain("<span");
+    // press_fences converts fences to HTML string; shiki spans are in that HTML
+    const bodyHtml = textOf(doc.body);
+    expect(bodyHtml).toContain("<span");
   });
 
   it("falls back to escaped plain text for unknown languages", async () => {

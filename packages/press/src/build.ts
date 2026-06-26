@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url"
 import { execSync } from "node:child_process"
 import { createApp, defineRoutes } from "@domphy/app"
 import { themeCSS } from "@domphy/theme"
-import * as esbuild from "esbuild"
+import type * as EsbuildType from "esbuild"
 import { createHighlighter } from "./highlight.js"
 import { homeShell, type LayoutContext, pageShell } from "./layout.js"
 import { renderDoc } from "./pipeline.js"
@@ -101,7 +101,8 @@ async function buildIslandsBundle(outDir: string, searchEnabled: boolean): Promi
   const tmpEntry = join(outDir, "_press_islands_entry.js")
   mkdirSync(outDir, { recursive: true })
   writeFileSync(tmpEntry, entrySource, "utf8")
-  await esbuild.build({
+  const { build: esbuildBuild } = await import("esbuild") as typeof EsbuildType
+  await esbuildBuild({
     entryPoints: { "press-islands": tmpEntry },
     bundle: true, splitting: false, format: "esm",
     outdir: join(outDir, "assets"), entryNames: "[name]",

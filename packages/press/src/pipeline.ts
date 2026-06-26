@@ -16,7 +16,7 @@ import supUntyped from "markdown-it-sup"
 // @ts-expect-error -- no bundled types
 import includeUntyped from "markdown-it-include"
 // @ts-expect-error -- no bundled types
-import emojiUntyped from "markdown-it-emoji"
+import emojiPkg from "markdown-it-emoji"
 import { escapeHtml, renderFence } from "./highlight.js"
 import type { RenderDocOptions, RenderedDoc, TocEntry } from "./types.js"
 
@@ -26,7 +26,9 @@ const include = includeUntyped as (md: MarkdownIt, options: { root: string }) =>
 const markPlugin = markUntyped as MdPlugin
 const subPlugin = subUntyped as MdPlugin
 const supPlugin = supUntyped as MdPlugin
-const emojiPlugin = emojiUntyped as MdPlugin
+// markdown-it-emoji@3.x exports { bare, full, light } — use the full set
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const emojiPlugin = ((emojiPkg as any).full ?? emojiPkg) as MdPlugin
 
 // --- <<< code imports --------------------------------------------------------
 

@@ -9,7 +9,7 @@
 
 import { type DomphyElement, ElementNode } from "@domphy/core";
 import { themeApply } from "@domphy/theme";
-import { mountSearch } from "./search.js";
+import { mountSearch } from "@domphy/press";
 
 // The editor and preview Containers are dynamically imported so a page with only
 // the (lightweight) search island does not pull the CodeMirror/transform editor
