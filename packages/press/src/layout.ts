@@ -117,7 +117,8 @@ function navDropdown(item: {
   const menuStyle = style({
     display: "none",
     position: "absolute",
-    top: `calc(100% + ${ts(2)})`,
+    top: "100%",
+    paddingTop: ts(2),
     right: "0",
     background: bgSoft,
     border: `1px solid ${border}`,
@@ -256,7 +257,8 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
   const menuStyle = style({
     display: "none",
     position: "absolute",
-    top: `calc(100% + ${ts(2)})`,
+    top: "100%",
+    paddingTop: ts(2),
     right: "0",
     background: bgSoft,
     border: `1px solid ${border}`,

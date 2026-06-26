@@ -206,7 +206,7 @@ function htmlDocument(
     ? mermaidHeadScript(config.themeConfig.mermaid)
     : "";
   return `<!DOCTYPE html>
-<html lang="${lang}">
+<html lang="${lang}" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
