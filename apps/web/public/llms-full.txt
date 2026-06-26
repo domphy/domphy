@@ -1265,8 +1265,8 @@ function Counter(label: string) {
   return {
     div: [
       { span: (l) => `${label}: ${count.get(l)}` },
-      { button: "+", onClick: () => count.set(n => n + 1) },
-      { button: "-", onClick: () => count.set(n => n - 1) },
+      { button: "+", onClick: () => count.set(count.get() + 1) },
+      { button: "-", onClick: () => count.set(count.get() - 1) },
     ],
   }
 }
@@ -1490,14 +1490,14 @@ const EmailField = {
   input: null,
   type: "email",
   value: (l) => ctx.values.get(l).email,
-  onInput: (e) => ctx.values.set((v) => ({ ...v, email: (e.target as HTMLInputElement).value })),
+  onInput: (e) => ctx.values.set({ ...ctx.values.get(), email: (e.target as HTMLInputElement).value }),
 }
 
 const PasswordField = {
   input: null,
   type: "password",
   value: (l) => ctx.values.get(l).password,
-  onInput: (e) => ctx.values.set((v) => ({ ...v, password: (e.target as HTMLInputElement).value })),
+  onInput: (e) => ctx.values.set({ ...ctx.values.get(), password: (e.target as HTMLInputElement).value }),
 }
 
 export const SignupForm = {
@@ -1550,7 +1550,7 @@ interface CartEvent {
   productId: string
 }
 
-export const cartEvents = new Notifier<CartEvent>()
+export const cartEvents = new Notifier()
 ```
 
 ```ts
@@ -1559,7 +1559,7 @@ import { cartEvents } from "./events.js"
 
 export const AddToCartButton = (productId: string) => ({
   button: "Add to cart",
-  onClick: () => cartEvents.notify({ type: "add", productId }),
+  onClick: () => cartEvents.notify("cart", { type: "add", productId }),
 })
 ```
 
@@ -1570,9 +1570,9 @@ import { toState } from "@domphy/core"
 
 const count = toState(0)
 
-cartEvents.subscribe((event) => {
-  if (event.type === "add") count.set((n) => n + 1)
-  if (event.type === "remove") count.set((n) => Math.max(0, n - 1))
+cartEvents.addListener("cart", (event: { type: "add" | "remove"; productId: string }) => {
+  if (event.type === "add") count.set(count.get() + 1)
+  if (event.type === "remove") count.set(Math.max(0, count.get() - 1))
 })
 
 export const CartCount = {
@@ -1681,12 +1681,12 @@ interface AsyncState<T> {
 const post = toState<AsyncState<Post>>({ data: null, loading: false, error: null })
 
 async function loadPost(id: string) {
-  post.set((s) => ({ ...s, loading: true, error: null }))
+  post.set({ ...post.get(), loading: true, error: null })
   try {
     const data = await fetchPost(id)
     post.set({ data, loading: false, error: null })
   } catch (err) {
-    post.set((s) => ({ ...s, loading: false, error: (err as Error).message }))
+    post.set({ ...post.get(), loading: false, error: (err as Error).message })
   }
 }
 
@@ -2608,7 +2608,7 @@ const tabMounted = toState({ overview: true, analytics: false, settings: false }
 
 // Only mount a tab's content once it has been viewed
 activeTab.addListener((tab) => {
-  tabMounted.set((m) => ({ ...m, [tab]: true }))
+  tabMounted.set({ ...tabMounted.get(), [tab]: true })
 })
 
 const Tabs = {
@@ -3680,7 +3680,7 @@ import { toState, computed } from "@domphy/core"
 describe("counter state", () => {
   it("increments", () => {
     const count = toState(0)
-    count.set((n) => n + 1)
+    count.set(count.get() + 1)
     expect(count.get()).toBe(1)
   })
 
@@ -3812,7 +3812,7 @@ describe("async data loading", () => {
     const fetchData = vi.fn().mockResolvedValue("Hello")
 
     async function load() {
-      state.set((s) => ({ ...s, loading: true }))
+      state.set({ ...state.get(), loading: true })
       const data = await fetchData()
       state.set({ data, loading: false })
     }
@@ -4663,7 +4663,7 @@ type Theme = "light" | "dark"
 const theme = toState<Theme>("light")
 
 function toggleTheme() {
-  theme.set((t): Theme => t === "light" ? "dark" : "light")
+  theme.set(theme.get() === "light" ? "dark" : "light")
 }
 ```
 
@@ -4925,10 +4925,12 @@ import { toState } from "@domphy/core"
 const removingIds = toState<Set<string>>(new Set())
 
 function removeItem(id: string) {
-  removingIds.set((s) => new Set([...s, id]))
+  removingIds.set(new Set([...removingIds.get(), id]))
   setTimeout(() => {
-    items.set((list) => list.filter((i) => i.id !== id))
-    removingIds.set((s) => { const next = new Set(s); next.delete(id); return next })
+    items.set(items.get().filter((i) => i.id !== id))
+    const next = new Set(removingIds.get())
+    next.delete(id)
+    removingIds.set(next)
   }, 200)   // match animation duration
 }
 
@@ -5192,7 +5194,7 @@ const menuOpen = toState(false)
 const MobileMenuButton = {
   button: (l) => menuOpen.get(l) ? "✕" : "☰",
   $: [button()],
-  onClick: () => menuOpen.set((v) => !v),
+  onClick: () => menuOpen.set(!menuOpen.get()),
   style: { display: "none", "@media(max-width:767px)": { display: "flex" } },
 }
 
@@ -6669,7 +6671,7 @@ const save = createMutation(queryClient, {
 })
 
 function enqueue(id: string) {
-  queue.set((prev) => [...prev, id])
+  queue.set([...queue.get(), id])
   if (!running) {
     running = true
     save.mutate(id)
@@ -12575,7 +12577,7 @@ const table = createDomphyTable({
   ],
   meta: {
     updateData: (rowIndex, columnId, value) => {
-      tableData.set((rows) => rows.map((row, i) =>
+      tableData.set(tableData.get().map((row, i) =>
         i === rowIndex ? { ...row, [columnId]: value } : row
       ))
     },
@@ -12642,9 +12644,8 @@ const CategoryFilter = {
               onChange: (e: Event) => {
                 const checked = (e.target as HTMLInputElement).checked
                 const cat = String(value)
-                selectedCategories.set((prev) =>
-                  checked ? [...prev, cat] : prev.filter((c) => c !== cat)
-                )
+                const current = selectedCategories.get()
+                selectedCategories.set(checked ? [...current, cat] : current.filter((c) => c !== cat))
                 // Apply filter to table
                 col.setFilterValue(selectedCategories.get() || undefined)
               },
@@ -13619,7 +13620,7 @@ const allRows = toState<Row[]>([])
 const query = createQuery({
   queryKey: () => ["rows", page.get()],
   queryFn: () => fetchRows(page.get()),
-  onSuccess: (newRows) => allRows.set((prev) => [...prev, ...newRows]),
+  onSuccess: (newRows) => allRows.set([...allRows.get(), ...newRows]),
 })
 
 const list = createVirtualizer({
@@ -13627,7 +13628,7 @@ const list = createVirtualizer({
   estimateSize: () => 40,
   onChange: (v) => {
     if (v.isAtEnd(100) && !query.isFetching()) {
-      page.set((n) => n + 1)
+      page.set(page.get() + 1)
     }
   },
 })
@@ -28780,9 +28781,9 @@ const itemCount = toState(0)
 
 const Counter = {
   div: [
-    { button: "−", onClick: () => itemCount.set((n) => Math.max(0, n - 1)) },
+    { button: "−", onClick: () => itemCount.set(Math.max(0, itemCount.get() - 1)) },
     { span: (l) => t("items", { count: itemCount.get(l) }) },
-    { button: "+", onClick: () => itemCount.set((n) => n + 1) },
+    { button: "+", onClick: () => itemCount.set(itemCount.get() + 1) },
   ],
 }
 ```
