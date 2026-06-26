@@ -5662,20 +5662,20 @@ description: "The themeSpacing scale, density multiplier, layout vs component sp
 
 ## `themeSpacing(n)` — the base scale
 
-`themeSpacing(n)` returns `n * 0.25rem` (n/4 em at 16px root = 4px steps):
+`themeSpacing(n)` returns `n/4 em` (scales with font size — 4px steps at 16px base):
 
 ```ts
 import { themeSpacing } from "@domphy/theme"
 
-themeSpacing(1)   // "0.25rem" = 4px
-themeSpacing(2)   // "0.5rem"  = 8px
-themeSpacing(3)   // "0.75rem" = 12px
-themeSpacing(4)   // "1rem"    = 16px
-themeSpacing(5)   // "1.25rem" = 20px
-themeSpacing(6)   // "1.5rem"  = 24px
-themeSpacing(8)   // "2rem"    = 32px
-themeSpacing(12)  // "3rem"    = 48px
-themeSpacing(16)  // "4rem"    = 64px
+themeSpacing(1)   // "0.25em" = 4px at 16px base
+themeSpacing(2)   // "0.5em"  = 8px
+themeSpacing(3)   // "0.75em" = 12px
+themeSpacing(4)   // "1em"    = 16px
+themeSpacing(5)   // "1.25em" = 20px
+themeSpacing(6)   // "1.5em"  = 24px
+themeSpacing(8)   // "2em"    = 32px
+themeSpacing(12)  // "3em"    = 48px
+themeSpacing(16)  // "4em"    = 64px
 ```
 
 Never hardcode spacing literals (`"16px"`, `"1.5rem"`) — `@domphy/doctor` flags those as `raw-spacing-value`.
@@ -15678,7 +15678,7 @@ const App = {
               button: "Remove",
               type: "button",
               $: [button()],
-              onClick: () => form.removeFieldValue("tags", i),
+              onClick: () => form.form.removeFieldValue("tags", i),
             },
           ],
         }
@@ -15688,7 +15688,7 @@ const App = {
       button: "Add Tag",
       type: "button",
       $: [button()],
-      onClick: () => form.pushFieldValue("tags", ""),
+      onClick: () => form.form.pushFieldValue("tags", ""),
     },
     {
       button: "Save",
@@ -15738,7 +15738,7 @@ const ContactRow = (i: number) => {
       {
         button: "✕",
         type: "button",
-        onClick: () => form.removeFieldValue("contacts", i),
+        onClick: () => form.form.removeFieldValue("contacts", i),
       },
     ],
   }
@@ -15750,7 +15750,7 @@ const App = {
     {
       button: "Add Contact",
       type: "button",
-      onClick: () => form.pushFieldValue("contacts", { name: "", email: "" }),
+      onClick: () => form.form.pushFieldValue("contacts", { name: "", email: "" }),
     },
   ],
   onSubmit: (e) => { e.preventDefault(); form.handleSubmit() },
@@ -15766,7 +15766,7 @@ Implement drag-to-reorder or up/down buttons:
   button: "↑",
   type: "button",
   disabled: i === 0,
-  onClick: () => form.swapFieldValues("contacts", i, i - 1),
+  onClick: () => form.form.swapFieldValues("contacts", i, i - 1),
 }
 ```
 
@@ -16012,7 +16012,7 @@ Show a "You have unsaved changes" warning only when the user has modified the fo
 ```ts
 const UnsavedBanner = {
   div: "You have unsaved changes.",
-  hidden: (l) => !form.isDirty(l),
+  hidden: (l) => !form.state(l).isDirty,
   style: {
     padding: "8px 16px",
     background: "var(--warning-3)",
@@ -16024,7 +16024,7 @@ const UnsavedBanner = {
 const SaveButton = {
   button: (l) => form.isSubmitting(l) ? "Saving…" : "Save",
   type: "submit",
-  disabled: (l) => !form.isDirty(l) || !form.canSubmit(l),
+  disabled: (l) => !form.state(l).isDirty || !form.canSubmit(l),
 }
 ```
 
@@ -16448,7 +16448,7 @@ function createForm<T>(options) {
   return {
     values: (l) => {
       // Subscribe listener to FormApi state
-      api.subscribe(() => l?.notify())
+      api.store.subscribe(() => l?.notify())
       return api.state.values
     },
     field: (name, fieldOptions) => createFieldHandle(api, name, fieldOptions),
@@ -16505,7 +16505,7 @@ form.canSubmit(l)      // boolean
 form.isSubmitting(l)   // boolean
 form.isValid(l)        // boolean
 form.isSubmitted(l)    // boolean
-form.isDirty(l)        // boolean
+form.state(l).isDirty  // boolean
 
 // Non-reactive (no listener) — snapshot
 form.form.state.values
@@ -17129,13 +17129,11 @@ const TotalDisplay = {
 For complete control, subscribe to the underlying `FormApi` state:
 
 ```ts
-form.form.subscribe(
-  (state) => state.values,           // selector — only re-fires when values change
-  (values) => {
-    console.log("Form values changed:", values)
-    autosave(values)
-  }
-)
+form.form.store.subscribe(() => {
+  const values = form.form.state.values
+  console.log("Form values changed:", values)
+  autosave(values)
+})
 ```
 
 ## Field-level subscription
