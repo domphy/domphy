@@ -64,7 +64,7 @@ An app-level fallback can be passed to `createApp(routes, { error })` — the `g
 `notFound` is the `not-found.tsx` equivalent. It renders when:
 
 - no route matches the URL (the app-level `createApp(routes, { notFound })` block, falling back to a built-in 404), or
-- a loader, metadata function or middleware calls `notFound()` — then the nearest segment-level block renders inside the ancestor layouts.
+- a loader or middleware calls `notFound()` — then the nearest segment-level block renders inside the ancestor layouts.
 
 ```ts
 import { notFound } from "@domphy/app"

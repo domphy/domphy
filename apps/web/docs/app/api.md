@@ -93,5 +93,5 @@
 - `compileRoutes(routes)` / `matchRoute(compiled, pathname)` / `matchPath(segments, pathname)` / `parseSegment(part)` — the matcher
 - `buildHref(pattern, params)` — fill params into a pattern
 - `createBrowserHistory()` / `createMemoryHistory(initial?)` / `HistoryAdapter` — history backends
-- `DataCache` — the loader cache (`seed`, `snapshot`, `invalidate`, `load`, `prefetch`)
+- `DataCache` — the loader cache (`seed`, `invalidate`, `load`, `prefetch`, `onRevalidated`, `flushRevalidations`)
 - `buildTree(...)` — composes layouts + boundaries (used by the router)
