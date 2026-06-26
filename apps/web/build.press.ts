@@ -210,7 +210,7 @@ function htmlDocument(
 ): string {
   const specsJson = JSON.stringify(islandSpecs).replace(/</g, "\\u003c");
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
