@@ -1,6 +1,6 @@
 {
   "name": "@domphy/audit",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "description": "Domphy Audit — baseline-free layout verification via Playwright (overlap, geometry, contrast)",
   "type": "module",
   "sideEffects": false,
