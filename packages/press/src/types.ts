@@ -1,5 +1,6 @@
 import type { DomphyElement } from "@domphy/core"
 import type { TocEntry } from "@domphy/markdown"
+export type { DomphyElement }
 
 export type { TocEntry }
 
@@ -31,6 +32,23 @@ export interface EditLink {
   text?: string
 }
 
+/** Override built-in layout slots. Each function receives the full LayoutContext
+ *  and must return a DomphyElement (or null to omit the slot entirely). */
+export interface LayoutSlots {
+  /** Replace the entire header bar. */
+  header?: (ctx: unknown) => DomphyElement | null
+  /** Replace the sidebar navigation. */
+  sidebar?: (ctx: unknown) => DomphyElement | null
+  /** Replace the TOC aside panel. */
+  aside?: (ctx: unknown) => DomphyElement | null
+  /** Replace the prev/next pagination row. */
+  prevNext?: (ctx: unknown) => DomphyElement | null
+  /** Replace the doc footer (edit link + last updated). */
+  docFooter?: (ctx: unknown) => DomphyElement | null
+  /** Replace the page footer bar. */
+  footer?: (ctx: unknown) => DomphyElement | null
+}
+
 export interface ThemeConfig {
   nav: NavItem[]
   /** Keys are route prefixes (e.g. "/guide/"). Longest match wins. */
@@ -49,6 +67,8 @@ export interface ThemeConfig {
   mermaid?: boolean | { cdn?: string }
   /** Dismissible announcement bar shown above the page. */
   announcementBar?: { id?: string; text: string; dismissible?: boolean }
+  /** Override individual layout slots with custom components. */
+  slots?: LayoutSlots
 }
 
 export interface LocaleConfig {

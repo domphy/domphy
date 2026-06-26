@@ -315,27 +315,47 @@ function pageBadge(frontmatter: Record<string, unknown>): DomphyElement | null {
   return { span: text, class: `dp-badge dp-badge-${type} dp-page-badge` } as DomphyElement
 }
 
+// --- Slot resolver ----------------------------------------------------------
+
+type SlotFn = (ctx: LayoutContext) => DomphyElement | null
+
+function resolveSlot(ctx: LayoutContext, key: keyof import("./types.js").LayoutSlots, fallback: SlotFn): DomphyElement | null {
+  const override = ctx.config.themeConfig.slots?.[key]
+  return override ? (override as SlotFn)(ctx) : fallback(ctx)
+}
+
 // --- Shells -----------------------------------------------------------------
 
 export function pageShell(ctx: LayoutContext): DomphyElement {
+  const slots = ctx.config.themeConfig.slots
+  const showSidebar = ctx.frontmatter.sidebar !== false
+
   const main: DomphyElement[] = []
   const badge = pageBadge(ctx.frontmatter)
   if (badge) main.push({ div: [badge], class: "dp-page-badge-row" })
   main.push({ div: ctx.body, class: "dp-content" })
-  const pn = prevNext(ctx)
+  const pn = resolveSlot(ctx, "prevNext", prevNext)
   if (pn) main.push(pn)
-  const footer = docFooter(ctx)
-  if (footer) main.push(footer)
-  const shellChildren: DomphyElement[] = [sidebar(ctx), { main, class: "dp-main" }]
-  const aside = tocAside(ctx)
-  if (aside) shellChildren.push(aside)
+  const docFooterEl = resolveSlot(ctx, "docFooter", docFooter)
+  if (docFooterEl) main.push(docFooterEl)
+
+  const sidebarEl = showSidebar ? resolveSlot(ctx, "sidebar", sidebar) : null
+  const shellChildren: DomphyElement[] = [
+    ...(sidebarEl ? [sidebarEl] : []),
+    { main, class: `dp-main${showSidebar ? "" : " dp-main-full"}` },
+  ]
+  const asideEl = resolveSlot(ctx, "aside", tocAside)
+  if (asideEl && showSidebar) shellChildren.push(asideEl)
+
+  const headerEl = resolveSlot(ctx, "header", header)
   const bar = announcementBar(ctx.config)
+  const footerContent = slots?.footer ? slots.footer(ctx) : ({ footer: ctx.config.themeConfig.footerMessage ?? "", class: "dp-footer" } as DomphyElement)
   return {
     div: [
       ...(bar ? [bar] : []),
-      header(ctx),
+      ...(headerEl ? [headerEl] : []),
       { div: shellChildren, class: "dp-shell" },
-      { footer: ctx.config.themeConfig.footerMessage ?? "", class: "dp-footer" },
+      ...(footerContent ? [footerContent] : []),
     ],
   }
 }

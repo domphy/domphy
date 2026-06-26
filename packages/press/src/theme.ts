@@ -98,6 +98,7 @@ a:hover{text-decoration:underline}
 .dp-sidebar a[aria-current="page"]{color:${brand};font-weight:600;background:${bgSoft}}
 .dp-sidebar-link-with-badge{display:flex;align-items:center}
 .dp-main{padding:${ts(8)} ${ts(12)} ${ts(20)};min-width:0}
+.dp-main-full{grid-column:1 / -1;max-width:${contentMax};margin:0 auto}
 .dp-content{max-width:${contentMax}}
 .dp-aside{position:sticky;top:${headerH};max-height:calc(100vh - ${headerH});overflow-y:auto;padding:${ts(8)} ${ts(6)};font-size:13px}
 .dp-aside-title{font-weight:700;margin-bottom:${ts(2)};color:${text}}
