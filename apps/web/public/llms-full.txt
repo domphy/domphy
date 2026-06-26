@@ -10351,6 +10351,207 @@ setupScrollRestoration(router)
 
 For SSR pages, `@domphy/router/scroll-restoration-script` exports `getScrollRestorationScriptForRouter(router)` — an inline script to embed in the server HTML `<head>` so the scroll position is restored *before* hydration, avoiding a visible jump. (The export resolves to a no-op stub in browser builds.)
 
+### type-safety.md
+
+---
+title: "Type Safety"
+description: "End-to-end TypeScript safety for route params, search params, loader data, and navigation."
+---
+
+# Type Safety
+
+## Route params are typed
+
+Define the expected params shape in `createRoute` — TypeScript then enforces them in loaders and components:
+
+```ts
+import { createRoute } from "@domphy/router"
+import { z } from "zod"
+
+const postRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/posts/$postId",
+  // Zod schema for path params
+  params: {
+    parse: (params) => ({
+      postId: z.string().transform(Number).parse(params.postId),
+    }),
+    stringify: (params) => ({
+      postId: String(params.postId),
+    }),
+  },
+  loader: ({ params }) => {
+    // params.postId: number (Zod transformed it)
+    return fetchPost(params.postId)
+  },
+})
+```
+
+## Search params with Zod
+
+Type and validate URL search params:
+
+```ts
+import { z } from "zod"
+
+const SearchSchema = z.object({
+  query:  z.string().default(""),
+  page:   z.number().int().min(1).default(1),
+  sort:   z.enum(["name", "date", "price"]).default("date"),
+  filter: z.array(z.string()).default([]),
+})
+
+type SearchParams = z.infer<typeof SearchSchema>
+
+const searchRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/search",
+  validateSearch: SearchSchema.parse,
+  component: () => {
+    const { query, page, sort } = searchRoute.useSearch()
+    // query: string, page: number, sort: "name"|"date"|"price"
+    return {
+      div: [
+        { h1: (l) => `Results for "${query}"` },
+        { p: `Page ${page}` },
+      ],
+    }
+  },
+})
+```
+
+## Typed loader data
+
+Loader return type flows automatically into the component:
+
+```ts
+interface Post { id: number; title: string; body: string }
+
+const postRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/posts/$postId",
+  loader: async ({ params }) => {
+    // TypeScript infers the return type
+    const post: Post = await fetchPost(Number(params.postId))
+    return { post }
+  },
+  component: () => {
+    const { post } = postRoute.useLoaderData()
+    // post: Post — no type assertion needed
+
+    return {
+      article: [
+        { h1: post.title },
+        { p: post.body },
+      ],
+    }
+  },
+})
+```
+
+## `Link` type safety
+
+`router.navigate()` and `Link` components are typed against the route tree:
+
+```ts
+import { createRouter } from "@domphy/router"
+import { link } from "@domphy/router/domphy"
+
+const router = createRouter({
+  routeTree: rootRoute,
+})
+
+// TypeScript error if "to" path is not in the route tree
+const NavLink = {
+  a: "Blog",
+  $: [link({ to: "/blog" })],                          // OK
+}
+
+const WrongLink = {
+  a: "Nope",
+  $: [link({ to: "/nope-does-not-exist" })],           // ✗ TypeScript error
+}
+
+// Navigate with typed params
+router.navigate({
+  to: "/posts/$postId",
+  params: { postId: "42" },   // TypeScript requires postId: string
+})
+```
+
+## Route context typing
+
+Provide a typed context to all routes:
+
+```ts
+import { createRootRouteWithContext } from "@domphy/router"
+
+interface RouterContext {
+  queryClient: QueryClient
+  currentUser: User | null
+}
+
+const rootRoute = createRootRouteWithContext<RouterContext>()({
+  component: () => ({ div: null }),
+})
+
+const router = createRouter({
+  routeTree: rootRoute,
+  context: {
+    queryClient,
+    currentUser: null,
+  },
+})
+
+const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile",
+  beforeLoad: ({ context }) => {
+    // context.queryClient: QueryClient — typed
+    // context.currentUser: User | null — typed
+    if (!context.currentUser) {
+      throw redirect({ to: "/login" })
+    }
+  },
+})
+```
+
+## Generic route utility types
+
+```ts
+import type {
+  RouteById,
+  RouteByPath,
+  FullSearchSchema,
+  AllParams,
+} from "@domphy/router"
+
+// Type of the /posts/$postId route
+type PostRoute = RouteByPath<typeof router.routeTree, "/posts/$postId">
+
+// All accumulated search params at a route
+type SearchParams = FullSearchSchema<typeof router.routeTree>
+
+// All path params across the route tree
+type AllRouteParams = AllParams<typeof router.routeTree>
+```
+
+## Strict mode
+
+Enable strict TypeScript mode for the strictest checks — `noImplicitAny`, `exactOptionalPropertyTypes`, `strictNullChecks`:
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "strict": true,
+    "exactOptionalPropertyTypes": true
+  }
+}
+```
+
+With these settings, route code like `params.postId` is typed as `string` (not `string | undefined`) because the router guarantees param presence — no unnecessary `?.` chains needed.
+
 
 
 ---
@@ -15880,6 +16081,191 @@ This is exactly how DomphyPress (this site) works: its markdown-it instance adds
 
 ## Mermaid docs (`@domphy/mermaid`)
 
+### configuration.md
+
+---
+title: "Configuration & Themes"
+description: "Customize diagram appearance with Mermaid themes, fontFamily, and per-diagram directives."
+---
+
+# Configuration & Themes
+
+## Global configuration
+
+Pass a `config` object to the `mermaid` patch to apply settings to all diagrams on the page:
+
+```ts
+import { mermaid } from "@domphy/mermaid"
+
+const DiagramPage = {
+  div: DiagramContent,
+  $: [mermaid({
+    config: {
+      theme: "default",
+      fontFamily: "Inter, sans-serif",
+      fontSize: 14,
+      startOnLoad: false,
+    },
+  })],
+}
+```
+
+## Built-in themes
+
+Mermaid ships five built-in themes:
+
+| Theme | Description |
+|-------|-------------|
+| `"default"` | Light blue palette — works on light backgrounds |
+| `"neutral"` | Gray tones — subtle, professional |
+| `"dark"` | Dark background — for dark mode |
+| `"forest"` | Green tones |
+| `"base"` | Minimal — best base for custom theming |
+
+```ts
+// Match the Domphy theme
+const isDark = themeName(myElement) === "dark"
+
+const DiagramBlock = {
+  div: null,
+  $: [mermaid({
+    config: { theme: isDark ? "dark" : "default" },
+  })],
+}
+```
+
+## Theme variables (custom theme)
+
+Use the `"base"` theme with `themeVariables` for full control:
+
+```ts
+const DiagramBlock = {
+  div: null,
+  $: [mermaid({
+    config: {
+      theme: "base",
+      themeVariables: {
+        primaryColor: "#7c3aed",        // node fill
+        primaryTextColor: "#ffffff",    // node text
+        primaryBorderColor: "#5b21b6",  // node border
+        lineColor: "#6b7280",           // edge color
+        secondaryColor: "#f3f4f6",      // secondary node fill
+        tertiaryColor: "#fef3c7",       // tertiary node fill
+        background: "#ffffff",          // diagram background
+        mainBkg: "#ede9fe",             // main node background
+        nodeBorder: "#7c3aed",
+        clusterBkg: "#f5f3ff",
+        titleColor: "#1f2937",
+        edgeLabelBackground: "#ffffff",
+        fontFamily: "Inter, sans-serif",
+      },
+    },
+  })],
+}
+```
+
+## Per-diagram directives
+
+Embed configuration directly in the diagram source using `%%{init: ...}%%`:
+
+```markdown
+```mermaid
+%%{init: {"theme": "forest", "themeVariables": {"primaryColor": "#34d399"}}}%%
+flowchart LR
+  A --> B --> C
+```
+```
+
+Directives override global config for that single diagram.
+
+## Flowchart direction
+
+```markdown
+```mermaid
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart TD
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Do thing]
+  B -->|No| D[Skip]
+  C --> E[End]
+  D --> E
+```
+```
+
+Curve options: `"basis"`, `"linear"`, `"cardinal"`, `"step"`, `"stepBefore"`, `"stepAfter"`.
+
+## Sequence diagram config
+
+```markdown
+```mermaid
+%%{init: {"sequence": {
+  "diagramMarginX": 50,
+  "actorMargin": 80,
+  "boxTextMargin": 5,
+  "messageMargin": 35,
+  "mirrorActors": false,
+  "useMaxWidth": true
+}}}%%
+sequenceDiagram
+  Alice->>Bob: Hello
+  Bob-->>Alice: Hi!
+```
+```
+
+## Dark mode integration
+
+Reactively switch diagram theme when the Domphy theme changes:
+
+```ts
+import { themeName } from "@domphy/theme"
+import { toState, effect } from "@domphy/core"
+
+const diagramTheme = toState<"default" | "dark">("default")
+
+// Sync with Domphy theme
+effect(() => {
+  const name = themeName(someElement)
+  diagramTheme.set(name === "dark" ? "dark" : "default")
+})
+
+const DiagramBlock = {
+  div: null,
+  $: [(l) => mermaid({ config: { theme: diagramTheme.get(l) } })],
+}
+```
+
+## Render options
+
+```ts
+const DiagramBlock = {
+  div: null,
+  $: [mermaid({
+    config: {
+      securityLevel: "strict",    // or "loose" for trusted HTML in labels
+      maxTextSize: 50_000,        // max characters — raise for large diagrams
+      maxEdges: 500,              // max edges before truncation warning
+      logLevel: "error",          // "fatal"|"error"|"warn"|"info"|"debug"
+    },
+  })],
+}
+```
+
+## Accessibility
+
+Mermaid generates `<title>` and `<desc>` elements inside each SVG — screen readers pick these up automatically. Add them with the `accTitle` and `accDescr` directives:
+
+```markdown
+```mermaid
+---
+title: Deployment flow
+---
+accTitle: Deployment pipeline diagram
+accDescr: Shows stages from commit to production
+flowchart LR
+  Commit --> CI --> Staging --> Production
+```
+```
+
 ### diagrams.md
 
 ---
@@ -17136,6 +17522,215 @@ Registers the instance under `globalKey` on `globalThis` — ensures a single in
 
 See the [Setup guide](./setup.md) for full options reference.
 
+### integration.md
+
+---
+title: "Integration Guide"
+description: "Wire @domphy/i18n into a full app — router integration, lazy namespace loading, and locale detection."
+---
+
+# Integration Guide
+
+## App setup
+
+A complete `@domphy/i18n` setup involves three pieces: the i18n instance, a router hook that loads the right namespace for each route, and a locale switcher.
+
+```ts
+import i18next from "@domphy/i18n"
+import { initReactI18next } from "i18next-react-dom"   // or native adapter
+
+await i18next.init({
+  lng: detectLocale(),          // see detectLocale() below
+  fallbackLng: "en",
+  ns: ["common"],               // always-loaded namespaces
+  defaultNS: "common",
+  resources: {
+    en: {
+      common: {
+        "nav.home": "Home",
+        "nav.about": "About",
+        "actions.save": "Save",
+        "actions.cancel": "Cancel",
+      },
+    },
+    vi: {
+      common: {
+        "nav.home": "Trang chủ",
+        "nav.about": "Về chúng tôi",
+        "actions.save": "Lưu",
+        "actions.cancel": "Hủy",
+      },
+    },
+  },
+})
+```
+
+## Locale detection
+
+Auto-detect the user's preferred locale:
+
+```ts
+function detectLocale(): string {
+  // 1. URL param (?lng=vi)
+  const url = new URLSearchParams(window.location.search)
+  const urlLng = url.get("lng")
+  if (urlLng) return urlLng
+
+  // 2. localStorage
+  const stored = localStorage.getItem("lng")
+  if (stored) return stored
+
+  // 3. Browser preference
+  const [browserLng] = navigator.language.split("-")
+  return browserLng
+
+  // 4. Fallback handled by i18next.init fallbackLng
+}
+```
+
+## Reactive locale state
+
+Expose the current locale as Domphy state so the UI updates when it changes:
+
+```ts
+import { toState } from "@domphy/core"
+import i18next from "@domphy/i18n"
+
+export const currentLocale = toState(i18next.language)
+
+// Keep in sync when i18next changes locale
+i18next.on("languageChanged", (lng) => {
+  currentLocale.set(lng)
+  localStorage.setItem("lng", lng)
+})
+
+export function t(key: string, options?: object): string {
+  return i18next.t(key, options)
+}
+```
+
+## Locale switcher component
+
+```ts
+const LOCALES = [
+  { code: "en", label: "English" },
+  { code: "vi", label: "Tiếng Việt" },
+  { code: "ja", label: "日本語" },
+]
+
+const LocaleSwitcher = {
+  div: [
+    {
+      select: LOCALES.map(({ code, label }) => ({
+        option: label,
+        value: code,
+      })),
+      value: (l) => currentLocale.get(l),
+      onChange: (e: Event) => {
+        const lng = (e.target as HTMLSelectElement).value
+        i18next.changeLanguage(lng)
+      },
+      "aria-label": "Select language",
+    },
+  ],
+}
+```
+
+## Router integration — load namespaces per route
+
+Load only the translations needed for the current route:
+
+```ts
+import { createRoute } from "@domphy/router"
+
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin",
+  beforeLoad: async () => {
+    // Load "admin" namespace before the route renders
+    await i18next.loadNamespaces(["admin"])
+  },
+  component: () => ({
+    div: [
+      { h1: i18next.t("admin:dashboard.title") },
+    ],
+  }),
+})
+```
+
+## Using translations in elements
+
+```ts
+import { computed } from "@domphy/core"
+
+// Reactive translation — updates on locale change
+const Header = {
+  header: [
+    {
+      nav: [
+        { a: (l) => i18next.t("nav.home"), href: "/" },
+        { a: (l) => i18next.t("nav.about"), href: "/about" },
+      ],
+    },
+    LocaleSwitcher,
+  ],
+}
+```
+
+Note: `i18next.t()` is synchronous but not reactive — wrap in a listener function `(l) => i18next.t(key)` and subscribe to `currentLocale` for auto-updates:
+
+```ts
+import { effect } from "@domphy/core"
+
+// Force re-render on locale change by reading currentLocale in each listener
+const PageTitle = {
+  h1: (l) => {
+    currentLocale.get(l)    // subscribe to locale changes
+    return i18next.t("page.title")
+  },
+}
+```
+
+## TypeScript: typed translation keys
+
+Use `i18next-typescript` plugin for typed keys:
+
+```ts
+// i18n.d.ts
+import "i18next"
+
+declare module "i18next" {
+  interface CustomTypeOptions {
+    defaultNS: "common"
+    resources: {
+      common: typeof import("./locales/en/common.json")
+      admin: typeof import("./locales/en/admin.json")
+    }
+  }
+}
+
+// Now t() is typed:
+i18next.t("nav.home")              // OK
+i18next.t("nav.nonexistent")       // ✗ TypeScript error
+i18next.t("admin:dashboard.title") // OK (with ns prefix)
+```
+
+## RTL support
+
+Handle right-to-left languages (Arabic, Hebrew, Persian):
+
+```ts
+const RTL_LANGUAGES = new Set(["ar", "he", "fa", "ur"])
+
+effect(() => {
+  const lng = currentLocale.get()
+  document.documentElement.setAttribute("dir", RTL_LANGUAGES.has(lng) ? "rtl" : "ltr")
+  document.documentElement.setAttribute("lang", lng)
+})
+```
+
+Domphy respects `dir` on the root element — CSS logical properties (`margin-inline-start`, `padding-inline`) automatically flip for RTL.
+
 ### namespaces.md
 
 ---
@@ -18321,6 +18916,210 @@ Layout element styles come from Domphy's `generateCSS()` via inline `style:{}` o
 - **Theme tokens** — use `themeColor`/`themeSpacing` from `@domphy/theme`; they return CSS variable references so dark mode works automatically.
 
 See [Customization](/docs/press/customization) for full examples.
+
+### extending-markdown.md
+
+---
+title: "Extending Markdown"
+description: "Add custom remark/rehype plugins, custom code block renderers, and Domphy component embeds."
+---
+
+# Extending Markdown
+
+## Remark and rehype plugins
+
+`@domphy/press` processes Markdown through `remark` and `rehype`. Add plugins in `press.config.ts`:
+
+```ts
+// press.config.ts
+import { defineConfig } from "@domphy/press"
+import remarkGfm from "remark-gfm"
+import remarkMath from "remark-math"
+import rehypeKatex from "rehype-katex"
+import rehypeAutolinkHeadings from "rehype-autolink-headings"
+
+export default defineConfig({
+  markdown: {
+    remarkPlugins: [
+      remarkGfm,
+      remarkMath,
+    ],
+    rehypePlugins: [
+      rehypeKatex,
+      [rehypeAutolinkHeadings, { behavior: "wrap" }],
+    ],
+  },
+})
+```
+
+## Math rendering
+
+With `remark-math` + `rehype-katex`, inline and block math works out of the box:
+
+```markdown
+Inline math: $E = mc^2$
+
+Block math:
+$$
+\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}
+$$
+```
+
+Add the KaTeX CSS to your HTML:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+```
+
+## Custom code block renderer
+
+Replace the default code block with a custom component — e.g., add a copy button:
+
+```ts
+// press.config.ts
+import { defineConfig } from "@domphy/press"
+import { CodeBlock } from "./src/CodeBlock"
+
+export default defineConfig({
+  markdown: {
+    components: {
+      // Replace <pre><code> with custom component
+      pre: CodeBlock,
+    },
+  },
+})
+```
+
+```ts
+// src/CodeBlock.ts
+import { button, tooltip } from "@domphy/ui"
+import { toState } from "@domphy/core"
+
+export function CodeBlock({ code, lang }: { code: string; lang: string }) {
+  const copied = toState(false)
+
+  function copy() {
+    navigator.clipboard.writeText(code)
+    copied.set(true)
+    setTimeout(() => copied.set(false), 2000)
+  }
+
+  return {
+    div: [
+      {
+        pre: { code },
+        class: `language-${lang}`,
+      },
+      {
+        button: (l) => copied.get(l) ? "✓ Copied" : "Copy",
+        onClick: copy,
+        $: [button({ variant: "ghost" }), tooltip({ content: "Copy code" })],
+        style: { position: "absolute", top: "8px", right: "8px" },
+      },
+    ],
+    style: { position: "relative" },
+  }
+}
+```
+
+## Custom directive syntax
+
+Install `remark-directive` to add custom block/inline directives:
+
+```ts
+// press.config.ts
+import remarkDirective from "remark-directive"
+import { remarkDomphyDirectives } from "./src/directives"
+
+export default defineConfig({
+  markdown: {
+    remarkPlugins: [remarkDirective, remarkDomphyDirectives],
+  },
+})
+```
+
+```markdown
+
+::badge[New]{type="success"}
+```
+
+Implement the directive handler:
+
+```ts
+// src/directives.ts
+import type { Plugin } from "unified"
+import { visit } from "unist-util-visit"
+
+export const remarkDomphyDirectives: Plugin = () => (tree) => {
+  visit(tree, (node: any) => {
+    if (node.type === "containerDirective") {
+      const type = node.name  // "tip", "warning", "danger", "info"
+      node.type = "html"
+      node.value = `<div class="callout callout-${type}">${nodeToHtml(node)}</div>`
+    }
+  })
+}
+```
+
+## Frontmatter
+
+Every Markdown file can have YAML frontmatter — access it in layouts:
+
+```markdown
+---
+title: "My Page"
+description: "A short description."
+date: 2024-01-15
+tags: [guide, advanced]
+---
+
+# Content starts here
+```
+
+Access in custom layout:
+
+```ts
+// press.config.ts
+export default defineConfig({
+  theme: {
+    layout: ({ frontmatter, content }) => ({
+      article: [
+        {
+          header: [
+            { h1: frontmatter.title },
+            { p: frontmatter.description },
+          ],
+        },
+        { div: content },
+        frontmatter.tags?.length
+          ? { div: frontmatter.tags.map((tag: string) => ({ span: tag, class: "tag" })) }
+          : null,
+      ].filter(Boolean),
+    }),
+  },
+})
+```
+
+## Syntax highlighting themes
+
+Switch the Shiki syntax highlighting theme:
+
+```ts
+export default defineConfig({
+  markdown: {
+    highlight: {
+      theme: {
+        light: "github-light",
+        dark: "github-dark",
+      },
+      // Or a single theme:
+      // theme: "nord"
+    },
+  },
+})
+```
+
+Available themes: `github-light`, `github-dark`, `monokai`, `one-dark-pro`, `dracula`, `solarized-light`, `material-theme`, `catppuccin-latte`, etc. Full list at the Shiki docs.
 
 ### i18n.md
 

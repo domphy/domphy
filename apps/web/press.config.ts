@@ -262,6 +262,7 @@ export const config = defineConfig({
         { text: "Error Handling", link: "/docs/router/error-handling" },
         { text: "Navigation Blocking", link: "/docs/router/navigation-blocking" },
         { text: "Router Context", link: "/docs/router/router-context" },
+        { text: "Type Safety", link: "/docs/router/type-safety" },
         { text: "SSR", link: "/docs/router/ssr" },
         { text: "API Reference", link: "/docs/router/api" },
       ],
@@ -324,6 +325,7 @@ export const config = defineConfig({
       "/docs/mermaid/": [
         { text: "Overview", link: "/docs/mermaid/" },
         { text: "Supported Diagrams", link: "/docs/mermaid/diagrams" },
+        { text: "Configuration & Themes", link: "/docs/mermaid/configuration" },
       ],
       "/docs/i18n/": [
         { text: "Overview", link: "/docs/i18n/" },
@@ -332,6 +334,7 @@ export const config = defineConfig({
         { text: "Pluralization", link: "/docs/i18n/pluralization" },
         { text: "Interpolation & Formatting", link: "/docs/i18n/formatting" },
         { text: "Lazy Loading & Backend", link: "/docs/i18n/backend" },
+        { text: "Integration Guide", link: "/docs/i18n/integration" },
         { text: "API Reference", link: "/docs/i18n/api" },
       ],
       "/docs/press/": [
@@ -342,6 +345,7 @@ export const config = defineConfig({
         { text: "Search", link: "/docs/press/search" },
         { text: "Internationalization", link: "/docs/press/i18n" },
         { text: "Custom Theme & Slots", link: "/docs/press/custom-theme" },
+        { text: "Extending Markdown", link: "/docs/press/extending-markdown" },
         { text: "Customization", link: "/docs/press/customization" },
         { text: "Deploying", link: "/docs/press/deploy" },
         { text: "Programmatic API", link: "/docs/press/api" },
