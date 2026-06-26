@@ -134,13 +134,13 @@ borderRadius: (l) => themeSpacing(themeDensity(l) * 1),
 
 Async state management — a 1-1 port of `@tanstack/query-core` (identical API). Adapter `createQuery`/`createMutation`/`createInfiniteQuery` (`@domphy/query/domphy`).
 
-- [Overview](https://domphy.com/docs/query/) · [Queries](https://domphy.com/docs/query/queries) · [Mutations](https://domphy.com/docs/query/mutations) · [Parallel & Dependent](https://domphy.com/docs/query/parallel) · [Caching](https://domphy.com/docs/query/caching) · [Infinite Queries](https://domphy.com/docs/query/infinite-queries) · [Polling & Window Focus](https://domphy.com/docs/query/polling) · [Query Invalidation](https://domphy.com/docs/query/invalidation) · [Suspense & Streaming](https://domphy.com/docs/query/suspense) · [SSR](https://domphy.com/docs/query/ssr) · [Advanced Patterns](https://domphy.com/docs/query/advanced) · [TypeScript](https://domphy.com/docs/query/typescript) · [Devtools](https://domphy.com/docs/query/devtools) · [API](https://domphy.com/docs/query/api)
+- [Overview](https://domphy.com/docs/query/) · [Queries](https://domphy.com/docs/query/queries) · [Mutations](https://domphy.com/docs/query/mutations) · [Parallel & Dependent](https://domphy.com/docs/query/parallel) · [Caching](https://domphy.com/docs/query/caching) · [Infinite Queries](https://domphy.com/docs/query/infinite-queries) · [Polling & Window Focus](https://domphy.com/docs/query/polling) · [Query Invalidation](https://domphy.com/docs/query/invalidation) · [Testing](https://domphy.com/docs/query/testing) · [Suspense & Streaming](https://domphy.com/docs/query/suspense) · [SSR](https://domphy.com/docs/query/ssr) · [Advanced Patterns](https://domphy.com/docs/query/advanced) · [TypeScript](https://domphy.com/docs/query/typescript) · [Devtools](https://domphy.com/docs/query/devtools) · [API](https://domphy.com/docs/query/api)
 
 ## Router (`@domphy/router`)
 
 Type-safe routing — a 1-1 port of `@tanstack/router-core` (identical API) plus `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext`.
 
-- [Overview](https://domphy.com/docs/router/) · [Routes](https://domphy.com/docs/router/routes) · [Navigation](https://domphy.com/docs/router/navigation) · [Search Params](https://domphy.com/docs/router/search-params) · [Data Loading](https://domphy.com/docs/router/data-loading) · [Data Mutations](https://domphy.com/docs/router/data-mutations) · [Code Splitting](https://domphy.com/docs/router/lazy-loading) · [Authentication](https://domphy.com/docs/router/authentication) · [Error Handling](https://domphy.com/docs/router/error-handling) · [Navigation Blocking](https://domphy.com/docs/router/navigation-blocking) · [Router Context](https://domphy.com/docs/router/router-context) · [Type Safety](https://domphy.com/docs/router/type-safety) · [SSR](https://domphy.com/docs/router/ssr) · [API](https://domphy.com/docs/router/api)
+- [Overview](https://domphy.com/docs/router/) · [Routes](https://domphy.com/docs/router/routes) · [Navigation](https://domphy.com/docs/router/navigation) · [Search Params](https://domphy.com/docs/router/search-params) · [Data Loading](https://domphy.com/docs/router/data-loading) · [Data Mutations](https://domphy.com/docs/router/data-mutations) · [Code Splitting](https://domphy.com/docs/router/lazy-loading) · [Authentication](https://domphy.com/docs/router/authentication) · [Error Handling](https://domphy.com/docs/router/error-handling) · [Navigation Blocking](https://domphy.com/docs/router/navigation-blocking) · [Router Context](https://domphy.com/docs/router/router-context) · [Type Safety](https://domphy.com/docs/router/type-safety) · [Scroll Restoration](https://domphy.com/docs/router/scroll-restoration) · [SSR](https://domphy.com/docs/router/ssr) · [API](https://domphy.com/docs/router/api)
 
 ## Table (`@domphy/table`)
 
@@ -152,7 +152,7 @@ Headless table logic — a 1-1 port of `@tanstack/table-core` v8 (identical API)
 
 List/grid virtualization — a 1-1 port of `@tanstack/virtual-core` (identical API). Adapter `createVirtualizer` (`@domphy/virtual/domphy`).
 
-- [Overview](https://domphy.com/docs/virtual/) · [Usage Patterns](https://domphy.com/docs/virtual/usage) · [Infinite Scroll](https://domphy.com/docs/virtual/infinite-scroll) · [API Reference](https://domphy.com/docs/virtual/api)
+- [Overview](https://domphy.com/docs/virtual/) · [Usage Patterns](https://domphy.com/docs/virtual/usage) · [Infinite Scroll](https://domphy.com/docs/virtual/infinite-scroll) · [Grid Virtualization](https://domphy.com/docs/virtual/grid) · [API Reference](https://domphy.com/docs/virtual/api)
 
 ## Form (`@domphy/form`)
 

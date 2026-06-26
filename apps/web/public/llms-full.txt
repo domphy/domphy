@@ -8325,6 +8325,246 @@ const LoadingBar = {
 
 `queryClient.isFetching()` returns the count of in-flight queries — `0` when nothing is loading.
 
+### testing.md
+
+---
+title: "Testing"
+description: "Test queries, mutations, and cache behavior with Vitest, mock query clients, and controlled async."
+---
+
+# Testing
+
+## Setup
+
+Install test dependencies:
+
+```bash
+pnpm add -D vitest @vitest/ui jsdom @testing-library/jest-dom
+```
+
+Configure Vitest:
+
+```ts
+// vitest.config.ts
+import { defineConfig } from "vitest/config"
+
+export default defineConfig({
+  test: {
+    environment: "jsdom",
+    globals: true,
+  },
+})
+```
+
+## Create a test QueryClient
+
+Always use a fresh `QueryClient` per test to avoid state leaking between tests:
+
+```ts
+import { QueryClient } from "@domphy/query"
+import { afterEach, beforeEach } from "vitest"
+
+let queryClient: QueryClient
+
+beforeEach(() => {
+  queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,       // disable retries in tests — fail fast
+        gcTime: Infinity,   // keep cache alive for the whole test
+      },
+    },
+  })
+  queryClient.mount()
+})
+
+afterEach(() => {
+  queryClient.unmount()
+  queryClient.clear()     // wipe all cached data
+})
+```
+
+## Test a query with mocked fetch
+
+```ts
+import { createQuery } from "@domphy/query/domphy"
+import { describe, it, expect, vi } from "vitest"
+
+describe("createQuery", () => {
+  it("fetches and stores data", async () => {
+    const mockFetchUser = vi.fn().mockResolvedValue({ id: 1, name: "Alice" })
+
+    const user = createQuery(queryClient, {
+      queryKey: () => ["user", 1],
+      queryFn: mockFetchUser,
+    })
+
+    // Initially pending
+    expect(user.isPending()).toBe(true)
+
+    // Wait for data
+    await vi.waitFor(() => expect(user.isSuccess()).toBe(true))
+
+    expect(user.data()).toEqual({ id: 1, name: "Alice" })
+    expect(mockFetchUser).toHaveBeenCalledTimes(1)
+  })
+})
+```
+
+## Test error handling
+
+```ts
+it("handles fetch errors", async () => {
+  const error = new Error("Network error")
+  const mockFetch = vi.fn().mockRejectedValue(error)
+
+  const query = createQuery(queryClient, {
+    queryKey: () => ["fail"],
+    queryFn: mockFetch,
+    retry: false,
+  })
+
+  await vi.waitFor(() => expect(query.isError()).toBe(true))
+
+  expect(query.error()).toBe(error)
+})
+```
+
+## Test mutations
+
+```ts
+import { createMutation } from "@domphy/query/domphy"
+
+it("mutation calls mutationFn and updates state", async () => {
+  const mockCreate = vi.fn().mockResolvedValue({ id: 42, name: "New post" })
+
+  const createPost = createMutation(queryClient, {
+    mutationFn: mockCreate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] })
+    },
+  })
+
+  expect(createPost.isPending()).toBe(false)
+
+  createPost.mutate({ name: "New post" })
+
+  await vi.waitFor(() => expect(createPost.isSuccess()).toBe(true))
+
+  expect(mockCreate).toHaveBeenCalledWith({ name: "New post" })
+  expect(createPost.data()).toEqual({ id: 42, name: "New post" })
+})
+```
+
+## Pre-populate the cache for component tests
+
+Skip the async loading phase by seeding the cache before render:
+
+```ts
+it("renders user data from cache", () => {
+  // Pre-populate — no network request needed
+  queryClient.setQueryData(["user", 1], { id: 1, name: "Alice" })
+
+  const user = createQuery(queryClient, {
+    queryKey: () => ["user", 1],
+    queryFn: () => fetch("/api/users/1"),
+    staleTime: Infinity,   // won't refetch — use cached value
+  })
+
+  expect(user.isSuccess()).toBe(true)
+  expect(user.data()).toEqual({ id: 1, name: "Alice" })
+})
+```
+
+## Test cache invalidation
+
+```ts
+it("invalidates and refetches after mutation", async () => {
+  const mockFetch = vi.fn()
+    .mockResolvedValueOnce([{ id: 1, text: "Todo 1" }])   // first fetch
+    .mockResolvedValueOnce([{ id: 1, text: "Todo 1" }, { id: 2, text: "Todo 2" }])   // after create
+
+  const todos = createQuery(queryClient, {
+    queryKey: () => ["todos"],
+    queryFn: mockFetch,
+  })
+
+  await vi.waitFor(() => expect(todos.isSuccess()).toBe(true))
+  expect(todos.data()).toHaveLength(1)
+
+  const createTodo = createMutation(queryClient, {
+    mutationFn: vi.fn().mockResolvedValue({ id: 2, text: "Todo 2" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["todos"] }),
+  })
+
+  createTodo.mutate({ text: "Todo 2" })
+
+  await vi.waitFor(() => expect(todos.data()).toHaveLength(2))
+  expect(mockFetch).toHaveBeenCalledTimes(2)
+})
+```
+
+## Testing with fake timers
+
+For polling and staleTime tests, use Vitest's fake timers:
+
+```ts
+import { vi, beforeEach, afterEach } from "vitest"
+
+beforeEach(() => vi.useFakeTimers())
+afterEach(() => vi.useRealTimers())
+
+it("refetches every 5 seconds", async () => {
+  const mockFetch = vi.fn().mockResolvedValue("data")
+
+  const query = createQuery(queryClient, {
+    queryKey: () => ["polling"],
+    queryFn: mockFetch,
+    refetchInterval: 5_000,
+  })
+
+  await vi.waitFor(() => expect(query.isSuccess()).toBe(true))
+  expect(mockFetch).toHaveBeenCalledTimes(1)
+
+  // Advance 5 seconds
+  await vi.advanceTimersByTimeAsync(5_000)
+  expect(mockFetch).toHaveBeenCalledTimes(2)
+
+  // Another 5 seconds
+  await vi.advanceTimersByTimeAsync(5_000)
+  expect(mockFetch).toHaveBeenCalledTimes(3)
+})
+```
+
+## Testing with MSW (Mock Service Worker)
+
+For integration-level tests that go through actual fetch:
+
+```ts
+import { setupServer } from "msw/node"
+import { http, HttpResponse } from "msw"
+
+const server = setupServer(
+  http.get("/api/users/:id", ({ params }) => {
+    return HttpResponse.json({ id: params.id, name: "Alice" })
+  }),
+)
+
+beforeAll(() => server.listen())
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
+
+it("fetches user from API", async () => {
+  const user = createQuery(queryClient, {
+    queryKey: () => ["user", "1"],
+    queryFn: () => fetch("/api/users/1").then(r => r.json()),
+  })
+
+  await vi.waitFor(() => expect(user.isSuccess()).toBe(true))
+  expect(user.data()).toEqual({ id: "1", name: "Alice" })
+})
+```
+
 ### typescript.md
 
 ---
@@ -10433,6 +10673,184 @@ const router = createRouter({
 Every loader and `beforeLoad` then receives `context` — the standard place to pass API clients or session data without globals.
 
 Call `router.update({ context: newContext })` when context values change at runtime (e.g. after login), then navigate to re-run `beforeLoad` guards.
+
+### scroll-restoration.md
+
+---
+title: "Scroll Restoration"
+description: "Restore scroll position on navigation, per-route scroll behavior, and hash-link scrolling."
+---
+
+# Scroll Restoration
+
+## Default behavior
+
+`@domphy/router` does not automatically restore scroll position — scroll behavior is explicit and composable. The most common setup scrolls to the top on every navigation:
+
+```ts
+import { createRouter } from "@domphy/router"
+
+const router = createRouter({
+  routeTree,
+  scrollRestoration: false,   // manual control (default)
+})
+
+// Scroll to top on route change
+router.subscribe("onBeforeNavigate", () => {
+  window.scrollTo({ top: 0, behavior: "instant" })
+})
+```
+
+## Scroll restoration on back/forward
+
+Save the scroll position before leaving a route, restore it when returning:
+
+```ts
+const SCROLL_KEY = "router-scroll-positions"
+
+function saveScroll(key: string) {
+  const positions = JSON.parse(sessionStorage.getItem(SCROLL_KEY) ?? "{}")
+  positions[key] = window.scrollY
+  sessionStorage.setItem(SCROLL_KEY, JSON.stringify(positions))
+}
+
+function restoreScroll(key: string) {
+  const positions = JSON.parse(sessionStorage.getItem(SCROLL_KEY) ?? "{}")
+  const saved = positions[key]
+  if (saved != null) {
+    requestAnimationFrame(() => window.scrollTo({ top: saved, behavior: "instant" }))
+  }
+}
+
+router.subscribe("onBeforeNavigate", ({ toLocation, fromLocation }) => {
+  if (fromLocation?.pathname) {
+    saveScroll(fromLocation.pathname)
+  }
+})
+
+router.subscribe("onNavigated", ({ toLocation, historyAction }) => {
+  if (historyAction === "pop") {
+    // Back/forward — restore
+    restoreScroll(toLocation.pathname)
+  } else {
+    // New navigation — scroll to top
+    window.scrollTo({ top: 0, behavior: "instant" })
+  }
+})
+```
+
+## Per-route scroll behavior
+
+Override scroll for specific routes:
+
+```ts
+const postRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/posts/$postId",
+  component: () => PostPage,
+  // Scroll to top when entering any post
+  onEnter: () => window.scrollTo({ top: 0 }),
+})
+
+const commentsRoute = createRoute({
+  getParentRoute: () => postRoute,
+  path: "comments",
+  // Scroll to the comments section
+  onEnter: () => {
+    document.getElementById("comments")?.scrollIntoView({ behavior: "smooth" })
+  },
+})
+```
+
+## Hash link scrolling
+
+Scroll to an element when the URL has a `#anchor`:
+
+```ts
+router.subscribe("onNavigated", ({ toLocation }) => {
+  const hash = toLocation.hash
+  if (hash) {
+    // Wait for DOM to render before scrolling
+    requestAnimationFrame(() => {
+      const target = document.getElementById(hash.slice(1))
+      target?.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
+  } else {
+    window.scrollTo({ top: 0, behavior: "instant" })
+  }
+})
+```
+
+Link to a specific section:
+
+```ts
+import { link } from "@domphy/router/domphy"
+
+const ApiLink = {
+  a: "API Reference",
+  href: "/docs/core/#api-reference",
+  $: [link({ to: "/docs/core/", hash: "#api-reference" })],
+}
+```
+
+## Infinite scroll with virtual list — scroll restoration
+
+For pages with a virtual infinite scroll list, save/restore the scroll offset of the container element:
+
+```ts
+import { toState } from "@domphy/core"
+import { createRoute } from "@domphy/router"
+
+const feedContainer = toState<HTMLElement | null>(null)
+
+const feedRoute = createRoute({
+  path: "/feed",
+  component: () => FeedPage,
+  onLeave: () => {
+    const el = feedContainer.get()
+    if (el) sessionStorage.setItem("feed-scroll", String(el.scrollTop))
+  },
+  onEnter: () => {
+    requestAnimationFrame(() => {
+      const el = feedContainer.get()
+      const saved = sessionStorage.getItem("feed-scroll")
+      if (el && saved) el.scrollTop = Number(saved)
+    })
+  },
+})
+```
+
+## Blocking scroll during transitions
+
+For page transitions (fade/slide), prevent scroll jump mid-animation:
+
+```ts
+import { toState } from "@domphy/core"
+
+const isTransitioning = toState(false)
+
+router.subscribe("onBeforeNavigate", () => {
+  isTransitioning.set(true)
+  document.body.style.overflow = "hidden"
+})
+
+router.subscribe("onNavigated", () => {
+  setTimeout(() => {
+    isTransitioning.set(false)
+    document.body.style.overflow = ""
+    window.scrollTo({ top: 0, behavior: "instant" })
+  }, 300)   // match your CSS transition duration
+})
+```
+
+## Route-level scroll position API
+
+| Method | Description |
+|--------|-------------|
+| `router.subscribe("onBeforeNavigate", fn)` | Fires before navigation starts |
+| `router.subscribe("onNavigated", fn)` | Fires after navigation completes |
+| `toLocation.hash` | URL hash (`"#section"` or `""`) |
+| `historyAction` | `"push"` / `"pop"` / `"replace"` |
 
 ### search-params.md
 
@@ -13123,6 +13541,196 @@ import {
 | `windowScroll` | Scroll function for the browser window. |
 | `defaultRangeExtractor` | Standard range calculation. Pass to `rangeExtractor` as a base. |
 | `defaultKeyExtractor` | Returns item index as the key. |
+
+### grid.md
+
+---
+title: "Grid Virtualization"
+description: "Virtualize two-dimensional grids and spreadsheet-like layouts with column and row virtualizers."
+---
+
+# Grid Virtualization
+
+## Two-dimensional virtualization
+
+For grids and spreadsheets, create separate virtualizers for rows and columns:
+
+```ts
+import { createVirtualizer } from "@domphy/virtual/domphy"
+import { toState } from "@domphy/core"
+
+const ROW_COUNT = 10_000
+const COL_COUNT = 50
+
+const container = toState<HTMLElement | null>(null)
+
+const rowVirtualizer = createVirtualizer({
+  count: ROW_COUNT,
+  estimateSize: () => 40,           // row height in px
+  getScrollElement: () => container.get(),
+  overscan: 5,
+})
+
+const colVirtualizer = createVirtualizer({
+  count: COL_COUNT,
+  estimateSize: () => 120,          // column width in px
+  getScrollElement: () => container.get(),
+  horizontal: true,                 // scroll horizontally
+  overscan: 2,
+})
+```
+
+## Rendering the grid
+
+```ts
+const Grid = {
+  div: [
+    {
+      div: (l) => {
+        const totalHeight = rowVirtualizer.getTotalSize(l)
+        const totalWidth  = colVirtualizer.getTotalSize(l)
+        const virtualRows = rowVirtualizer.getVirtualItems(l)
+        const virtualCols = colVirtualizer.getVirtualItems(l)
+
+        return {
+          div: virtualRows.map((virtualRow) => ({
+            _key: virtualRow.key,
+            div: virtualCols.map((virtualCol) => ({
+              _key: virtualCol.key,
+              div: `Row ${virtualRow.index}, Col ${virtualCol.index}`,
+              style: {
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: `${virtualCol.size}px`,
+                height: `${virtualRow.size}px`,
+                transform: `translateX(${virtualCol.start}px) translateY(${virtualRow.start}px)`,
+                borderRight: "1px solid var(--neutral-4)",
+                borderBottom: "1px solid var(--neutral-4)",
+                padding: "4px 8px",
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
+              },
+            })),
+            style: { position: "absolute", top: 0, left: 0, display: "contents" },
+          })),
+          style: {
+            position: "relative",
+            height: `${totalHeight}px`,
+            width: `${totalWidth}px`,
+          },
+        }
+      },
+    },
+  ],
+  style: {
+    overflow: "auto",
+    height: "600px",
+    width: "100%",
+    position: "relative",
+  },
+  _onMount: (el) => container.set(el),
+}
+```
+
+## Sticky headers
+
+Pin the first row and first column while the rest scroll:
+
+```ts
+const headers = ["Name", "Email", "Role", "Status", "Created", "Actions"]
+
+const StickyGrid = {
+  div: [
+    // Sticky header row
+    {
+      div: (l) => {
+        const virtualCols = colVirtualizer.getVirtualItems(l)
+        const totalWidth  = colVirtualizer.getTotalSize(l)
+
+        return {
+          div: virtualCols.map((vc) => ({
+            _key: vc.key,
+            div: headers[vc.index] ?? `Col ${vc.index}`,
+            style: {
+              position: "absolute",
+              left: `${vc.start}px`,
+              width: `${vc.size}px`,
+              padding: "8px",
+              fontWeight: "600",
+            },
+          })),
+          style: { position: "relative", width: `${totalWidth}px` },
+        }
+      },
+      style: {
+        position: "sticky",
+        top: 0,
+        background: "var(--neutral-1)",
+        zIndex: 1,
+        borderBottom: "2px solid var(--neutral-4)",
+        height: "40px",
+      },
+    },
+    // Scrollable body
+    {
+      div: null,
+      // ...same grid render as above
+    },
+  ],
+  style: { overflow: "auto", height: "600px" },
+}
+```
+
+## Variable row heights
+
+When rows have different heights (e.g., expandable rows), use `measureElement`:
+
+```ts
+const rowVirtualizer = createVirtualizer({
+  count: ROW_COUNT,
+  estimateSize: () => 40,      // initial estimate
+  measureElement: (el) => el.getBoundingClientRect().height,
+  getScrollElement: () => container.get(),
+})
+
+// Attach measurement ref to each row
+const Row = (virtualRow: VirtualItem) => ({
+  div: RowContent(virtualRow.index),
+  _onMount: (el: HTMLElement) => rowVirtualizer.measureElement(el),
+  _key: virtualRow.key,
+  style: {
+    position: "absolute",
+    top: 0,
+    transform: `translateY(${virtualRow.start}px)`,
+    width: "100%",
+  },
+})
+```
+
+## Scroll to cell
+
+Navigate programmatically to a specific row/column:
+
+```ts
+function scrollToCell(row: number, col: number) {
+  rowVirtualizer.scrollToIndex(row, { align: "center", behavior: "smooth" })
+  colVirtualizer.scrollToIndex(col, { align: "center", behavior: "smooth" })
+}
+
+const GoToButton = {
+  button: "Go to row 5000, col 25",
+  onClick: () => scrollToCell(5000, 25),
+}
+```
+
+## Performance tips
+
+- Set realistic `estimateSize` — bad estimates cause layout jumps on first render
+- Use `overscan: 3–5` for rows, `overscan: 1–2` for columns (columns change less often during vertical scroll)
+- For fixed-size grids (all cells same size), avoid `measureElement` — `estimateSize` is much faster
+- Use `_key` on both row and cell elements for stable reconciliation
 
 ### index.md
 

@@ -245,6 +245,7 @@ export const config = defineConfig({
         { text: "Infinite Queries", link: "/docs/query/infinite-queries" },
         { text: "Polling & Window Focus", link: "/docs/query/polling" },
         { text: "Query Invalidation", link: "/docs/query/invalidation" },
+        { text: "Testing", link: "/docs/query/testing" },
         { text: "Suspense & Streaming", link: "/docs/query/suspense" },
         { text: "SSR & Hydration", link: "/docs/query/ssr" },
         { text: "Advanced Patterns", link: "/docs/query/advanced" },
@@ -265,6 +266,7 @@ export const config = defineConfig({
         { text: "Navigation Blocking", link: "/docs/router/navigation-blocking" },
         { text: "Router Context", link: "/docs/router/router-context" },
         { text: "Type Safety", link: "/docs/router/type-safety" },
+        { text: "Scroll Restoration", link: "/docs/router/scroll-restoration" },
         { text: "SSR", link: "/docs/router/ssr" },
         { text: "API Reference", link: "/docs/router/api" },
       ],
@@ -290,6 +292,7 @@ export const config = defineConfig({
         { text: "Overview", link: "/docs/virtual/" },
         { text: "Usage Patterns", link: "/docs/virtual/usage" },
         { text: "Infinite Scroll", link: "/docs/virtual/infinite-scroll" },
+        { text: "Grid Virtualization", link: "/docs/virtual/grid" },
         { text: "API Reference", link: "/docs/virtual/api" },
       ],
       "/docs/form/": [
