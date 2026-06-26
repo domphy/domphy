@@ -1218,6 +1218,218 @@ flushPendingNotifiers()
 
 Prefer `flushSync()` when you need a fully settled reactive graph. Use `flushPendingNotifiers()` when you only need one notification pass (e.g. inside a scheduler that will call it in a loop).
 
+### composing.md
+
+---
+title: "Composing Elements"
+description: "How to build reusable, composable UI components as plain objects — props patterns, slots, and element composition."
+---
+
+# Composing Elements
+
+## Elements are values
+
+A Domphy element is a plain object — you can store it in a variable, pass it as a function argument, return it from a function, or put it in an array:
+
+```ts
+const Icon = { span: "✓", style: { color: "green" } }
+
+const Row = {
+  div: [Icon, { span: "Done" }],
+  style: { display: "flex", gap: "8px" },
+}
+```
+
+No instantiation, no lifecycle — just values.
+
+## Component functions
+
+Create parameterized components as functions that return elements:
+
+```ts
+interface AlertProps {
+  type: "info" | "success" | "warning" | "error"
+  message: string
+  onDismiss?: () => void
+}
+
+function Alert({ type, message, onDismiss }: AlertProps) {
+  const icons = { info: "ℹ", success: "✓", warning: "⚠", error: "✕" }
+
+  return {
+    div: [
+      { span: icons[type] },
+      { p: message },
+      onDismiss
+        ? { button: "✕", onClick: onDismiss, "aria-label": "Dismiss" }
+        : null,
+    ].filter(Boolean),
+    role: "alert",
+    class: `alert alert-${type}`,
+  }
+}
+
+// Usage
+const ErrorAlert = Alert({ type: "error", message: "Something went wrong", onDismiss: () => {} })
+```
+
+## Reactive components
+
+A component function returns a new element every time it's called — for reactive components, use a listener-based render function:
+
+```ts
+function Counter(label: string) {
+  const count = toState(0)
+
+  return {
+    div: [
+      { span: (l) => `${label}: ${count.get(l)}` },
+      { button: "+", onClick: () => count.set(n => n + 1) },
+      { button: "-", onClick: () => count.set(n => n - 1) },
+    ],
+  }
+}
+
+const App = {
+  div: [
+    Counter("Apples"),
+    Counter("Oranges"),   // each has its own independent count state
+  ],
+}
+```
+
+Each call to `Counter()` creates a new `toState` — the two counters are independent.
+
+## Slot pattern (children-like content)
+
+Pass child elements via a prop:
+
+```ts
+function Card({
+  title,
+  children,
+  footer,
+}: {
+  title: string
+  children: DomphyElement | DomphyElement[]
+  footer?: DomphyElement
+}) {
+  return {
+    div: [
+      { h3: title },
+      { div: children },
+      footer ? { div: footer } : null,
+    ].filter(Boolean),
+    class: "card",
+  }
+}
+
+const ProfileCard = Card({
+  title: "Alice",
+  children: { p: "Software engineer" },
+  footer: { button: "Follow" },
+})
+```
+
+## Spreading and merging elements
+
+Merge partial elements to extend a base component:
+
+```ts
+const base = {
+  button: "Click",
+  style: { padding: "8px 16px" },
+}
+
+// Extend with additional style
+const primary = {
+  ...base,
+  style: { ...base.style, background: "blue", color: "white" },
+}
+
+// Add a patch
+const iconButton = {
+  ...base,
+  $: [...(base.$ ?? []), tooltip({ content: "Submit form" })],
+}
+```
+
+## Element arrays and conditionals
+
+```ts
+function UserMenu(user: User | null) {
+  if (!user) {
+    return [
+      { a: "Log in", href: "/login" },
+      { a: "Sign up", href: "/signup" },
+    ]
+  }
+
+  return [
+    { span: user.name },
+    { a: "Profile", href: `/profile/${user.id}` },
+    { button: "Log out", onClick: logout },
+  ]
+}
+
+const Nav = {
+  nav: (l) => UserMenu(currentUser.get(l)),
+}
+```
+
+## Render list with transforms
+
+```ts
+interface Post { id: string; title: string; published: boolean }
+
+function PostList(posts: Post[]) {
+  const published = posts.filter(p => p.published)
+
+  return {
+    ul: published.map(post => ({
+      li: [
+        { a: post.title, href: `/posts/${post.id}` },
+        { span: "Published", class: "badge" },
+      ],
+      _key: post.id,
+    })),
+  }
+}
+```
+
+## Composition vs patching
+
+| Use | When |
+|-----|------|
+| **Function returning element** | Reusable component with props |
+| **Patch (`$`)** | Behavior/style that applies on top of any native element |
+| **Spread (`...base`)** | Extend a specific element shape |
+| **Array of elements** | Multiple sibling elements |
+
+Patches are stateless and composable — prefer them for behaviors. Functions are better when you need encapsulated state or complex DOM structure.
+
+## Lazy rendering
+
+Defer rendering of expensive elements until needed:
+
+```ts
+import { toState } from "@domphy/core"
+
+const showChart = toState(false)
+
+const Dashboard = {
+  div: [
+    { button: "Show chart", onClick: () => showChart.set(true) },
+    // Chart only renders when showChart is true
+    {
+      div: (l) => showChart.get(l) ? HeavyChart : null,
+    },
+  ],
+}
+```
+
+`null` renders nothing — the Chart component's `_onMount`/`_onRemove` lifecycle runs only when it's actually added to the DOM.
+
 ### context.md
 
 ---
@@ -7052,6 +7264,198 @@ const posts = createQuery({
 
 `posts.isPlaceholderData(l)` is `true` when showing the previous page's data.
 
+### polling.md
+
+---
+title: "Polling & Window Focus"
+description: "Automatic data refreshing with polling intervals, window focus refetching, and network reconnect."
+---
+
+# Polling & Window Focus
+
+## Polling with `refetchInterval`
+
+Auto-refresh data on a timer — useful for dashboards, live feeds, or anything that changes server-side:
+
+```ts
+import { createQuery } from "@domphy/query/domphy"
+
+const stats = createQuery({
+  queryKey: () => ["stats"],
+  queryFn: fetchStats,
+  refetchInterval: 5_000,   // refetch every 5 seconds
+})
+```
+
+Polling runs in the background — the UI shows fresh data while `isFetching` is `true`.
+
+## Conditional polling
+
+Pause polling when the data has reached a terminal state:
+
+```ts
+const jobStatus = createQuery({
+  queryKey: () => ["job", jobId],
+  queryFn: () => fetchJobStatus(jobId),
+  refetchInterval: (query) => {
+    // Stop polling when job is done or failed
+    const status = query.state.data?.status
+    if (status === "done" || status === "failed") return false
+    return 2_000   // poll every 2 seconds while running
+  },
+})
+```
+
+## `refetchIntervalInBackground`
+
+By default, polling pauses when the browser tab is hidden. Enable background polling:
+
+```ts
+const alerts = createQuery({
+  queryKey: () => ["alerts"],
+  queryFn: fetchAlerts,
+  refetchInterval: 30_000,
+  refetchIntervalInBackground: true,   // keep polling even when tab is hidden
+})
+```
+
+## Window focus refetching
+
+When the user returns to your app (tab focus, `Alt+Tab`), stale queries automatically refetch:
+
+```ts
+const data = createQuery({
+  queryKey: () => ["dashboard"],
+  queryFn: fetchDashboard,
+  staleTime: 60_000,           // data is fresh for 1 minute
+  refetchOnWindowFocus: true,  // refetch when window regains focus (default: true)
+})
+```
+
+`refetchOnWindowFocus` triggers when:
+- User switches back to your browser tab
+- User returns from another application
+
+Disable for data that shouldn't silently refresh:
+
+```ts
+const draftContent = createQuery({
+  queryKey: () => ["draft", id],
+  queryFn: () => fetchDraft(id),
+  refetchOnWindowFocus: false,   // don't overwrite user edits on tab switch
+})
+```
+
+## Global config
+
+Set defaults for all queries at the client level:
+
+```ts
+const client = createQueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,              // all queries fresh for 30s
+      refetchOnWindowFocus: true,     // refetch on focus (default)
+      refetchOnReconnect: true,       // refetch when network reconnects
+      refetchInterval: false,         // no polling by default
+      retry: 3,                       // retry 3 times on failure
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30_000),
+    },
+  },
+})
+```
+
+## Network reconnect refetching
+
+When the device goes offline and comes back online, stale queries automatically refetch:
+
+```ts
+const userProfile = createQuery({
+  queryKey: () => ["user", userId],
+  queryFn: () => fetchUser(userId),
+  refetchOnReconnect: true,   // default: true
+})
+```
+
+`@domphy/query` subscribes to `window.addEventListener("online")` — no extra setup needed.
+
+## Disabling all background refetching
+
+For data that only refreshes on explicit user action:
+
+```ts
+const config = createQuery({
+  queryKey: () => ["config"],
+  queryFn: fetchConfig,
+  staleTime: Infinity,            // never goes stale
+  refetchOnWindowFocus: false,    // no focus refetch
+  refetchOnReconnect: false,      // no reconnect refetch
+  refetchInterval: false,         // no polling
+})
+
+// Refresh only on explicit button click
+const RefreshButton = {
+  button: "Refresh config",
+  onClick: () => config.refetch(),
+}
+```
+
+## `refetch()` on demand
+
+Trigger a refetch manually without invalidating the cache:
+
+```ts
+const feed = createQuery({
+  queryKey: () => ["feed"],
+  queryFn: fetchFeed,
+})
+
+const RefreshFeed = {
+  button: "↻ Refresh",
+  onClick: () => feed.refetch(),
+  disabled: (l) => feed.isFetching(l),
+}
+```
+
+## Detecting staleness
+
+Check if the current data is stale (older than `staleTime`):
+
+```ts
+const query = client.getQueryState(["stats"])
+const isStale = query?.isStale ?? true   // true if data is older than staleTime
+
+// Or reactively:
+const isStale = (l) => {
+  const state = client.getQueryState(["stats"])
+  return state ? Date.now() - (state.dataUpdatedAt ?? 0) > 30_000 : true
+}
+```
+
+## Online status indicator
+
+Show the user when the app is offline:
+
+```ts
+import { onlineManager } from "@domphy/query"
+import { toState } from "@domphy/core"
+
+const isOnline = toState(onlineManager.isOnline())
+
+onlineManager.subscribe((online) => isOnline.set(online))
+
+const OfflineBanner = {
+  div: "You're offline — data may be outdated",
+  hidden: (l) => isOnline.get(l),
+  style: {
+    background: "var(--warning-3)",
+    color: "var(--warning-11)",
+    padding: "8px 16px",
+    textAlign: "center",
+  },
+}
+```
+
 ### queries.md
 
 # Queries
@@ -10151,6 +10555,213 @@ The IIFE bundle exposes everything under `Domphy.table`:
 </script>
 ```
 
+### column-visibility.md
+
+---
+title: "Column Visibility & Ordering"
+description: "Show/hide columns with user-controlled visibility, persist column preferences, and reorder columns."
+---
+
+# Column Visibility & Ordering
+
+## Column visibility
+
+Enable column visibility — users can show/hide columns:
+
+```ts
+import { createDomphyTable } from "@domphy/table/domphy"
+import { toState } from "@domphy/core"
+
+const columnVisibility = toState<Record<string, boolean>>({})
+
+const table = createDomphyTable({
+  data: () => rows,
+  columns,
+  state: { columnVisibility: columnVisibility.get() },
+  onColumnVisibilityChange: (updater) => {
+    columnVisibility.set(
+      typeof updater === "function"
+        ? updater(columnVisibility.get())
+        : updater
+    )
+  },
+  enableHiding: true,
+})
+```
+
+## Column visibility toggle UI
+
+```ts
+const ColumnToggle = {
+  div: [
+    { h4: "Columns" },
+    {
+      div: (l) => table.getAllLeafColumns(l).map((col) => ({
+        _key: col.id,
+        label: [
+          {
+            input: null,
+            type: "checkbox",
+            checked: (l) => col.getIsVisible(),
+            disabled: !col.getCanHide(),
+            onChange: () => col.toggleVisibility(),
+          },
+          { span: String(col.columnDef.header ?? col.id) },
+        ],
+      })),
+    },
+  ],
+}
+```
+
+`col.getCanHide()` returns `false` for columns with `enableHiding: false` — prevent critical columns from being hidden.
+
+## Pin certain columns as always visible
+
+```ts
+const columns = [
+  columnHelper.accessor("id", {
+    header: "ID",
+    enableHiding: false,   // cannot be hidden
+  }),
+  columnHelper.accessor("name", {
+    header: "Name",
+  }),
+  columnHelper.accessor("status", {
+    header: "Status",
+  }),
+]
+```
+
+## Column ordering
+
+Reorder columns programmatically or via drag-and-drop:
+
+```ts
+import { toState } from "@domphy/core"
+
+const columnOrder = toState<string[]>([])
+
+const table = createDomphyTable({
+  data: () => rows,
+  columns,
+  state: { columnOrder: columnOrder.get() },
+  onColumnOrderChange: (updater) => {
+    columnOrder.set(
+      typeof updater === "function"
+        ? updater(columnOrder.get())
+        : updater
+    )
+  },
+})
+
+// Move a column
+function moveColumn(fromId: string, toId: string) {
+  table.table.setColumnOrder((old) => {
+    const order = old.length
+      ? [...old]
+      : table.getAllLeafColumns().map(c => c.id)
+
+    const from = order.indexOf(fromId)
+    const to = order.indexOf(toId)
+    if (from === -1 || to === -1) return old
+
+    const next = [...order]
+    next.splice(from, 1)
+    next.splice(to, 0, fromId)
+    return next
+  })
+}
+```
+
+## Column ordering with drag and drop
+
+Combine with `@domphy/dnd` for drag-to-reorder headers:
+
+```ts
+import { dragDrop } from "@domphy/dnd"
+import { toState } from "@domphy/core"
+
+const headerOrder = toState<string[]>([])
+
+const HeaderRow = {
+  tr: (l) => {
+    const headers = table.getHeaderGroups(l)[0]?.headers ?? []
+    return headers.map((header) => ({
+      th: String(header.column.columnDef.header ?? ""),
+      _key: header.id,
+      style: { cursor: "grab" },
+    }))
+  },
+  $: [dragDrop(headerOrder, {
+    group: "column-headers",
+    onSort: (order) => table.table.setColumnOrder(order),
+  })],
+}
+```
+
+## Persisting column state
+
+Save column visibility and order to localStorage:
+
+```ts
+const STORAGE_KEY = "table-column-state"
+
+interface ColumnState {
+  visibility: Record<string, boolean>
+  order: string[]
+}
+
+function loadColumnState(): ColumnState {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") ?? { visibility: {}, order: [] }
+  } catch {
+    return { visibility: {}, order: [] }
+  }
+}
+
+function saveColumnState(state: ColumnState) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+}
+
+const saved = loadColumnState()
+const columnVisibility = toState(saved.visibility)
+const columnOrder = toState(saved.order)
+
+// Persist on change
+columnVisibility.subscribe((v) => saveColumnState({ visibility: v, order: columnOrder.get() }))
+columnOrder.subscribe((o) => saveColumnState({ visibility: columnVisibility.get(), order: o }))
+```
+
+## "Show all" / "Hide all" buttons
+
+```ts
+const ShowAllButton = {
+  button: "Show all",
+  onClick: () => table.table.resetColumnVisibility(),
+}
+
+const HideButton = (columnId: string) => ({
+  button: "Hide",
+  onClick: () => table.table.getColumn(columnId)?.toggleVisibility(false),
+})
+```
+
+## Visibility API
+
+| Method | Description |
+|--------|-------------|
+| `col.getIsVisible()` | `true` if column is visible |
+| `col.getCanHide()` | `false` if `enableHiding: false` |
+| `col.toggleVisibility(value?)` | Toggle or set visibility |
+| `table.getVisibleLeafColumns(l)` | All visible leaf columns |
+| `table.getIsAllColumnsVisible(l)` | `true` if all columns visible |
+| `table.getIsSomeColumnsVisible(l)` | `true` if some columns visible |
+| `table.toggleAllColumnsVisible()` | Toggle all |
+| `table.resetColumnVisibility()` | Reset to initial state |
+| `table.setColumnOrder(updater)` | Set column order |
+| `table.resetColumnOrder()` | Reset to initial order |
+
 ### columns.md
 
 # Columns & Row Models
@@ -13097,6 +13708,224 @@ const SendButton = {
 ```
 
 No extra debounce or lock needed — the form state handles it.
+
+### typescript.md
+
+---
+title: "TypeScript"
+description: "Generic form typing, DeepKeys for nested fields, typed validators, and inference patterns."
+---
+
+# TypeScript
+
+## Typed form values
+
+The generic parameter on `createForm<T>` types all field values, validators, and state:
+
+```ts
+import { createForm } from "@domphy/form/domphy"
+
+interface SignupInput {
+  email: string
+  password: string
+  profile: {
+    name: string
+    bio: string
+  }
+}
+
+const form = createForm<SignupInput>({
+  defaultValues: {
+    email: "",
+    password: "",
+    profile: { name: "", bio: "" },
+  },
+  onSubmit: ({ value }) => {
+    // value: SignupInput — fully typed
+    console.log(value.email, value.profile.name)
+  },
+})
+
+// form.values(l) → SignupInput (typed)
+```
+
+## `DeepKeys` — nested field paths
+
+`form.field<V>(name, opts)` accepts a `DeepKeys<T>` string — the dot-notation path to any nested field:
+
+```ts
+const emailField  = form.field<string>("email", {})
+const nameField   = form.field<string>("profile.name", {})
+const bioField    = form.field<string>("profile.bio", {})
+
+// TypeScript ensures the path and value type match
+const wrongField  = form.field<number>("email", {})   // ✗ Error: email is string
+const badPath     = form.field<string>("profile.unknown", {})   // ✗ Error: path not in type
+```
+
+## Typed validators
+
+Validators receive `{ value: V }` where `V` is the field type:
+
+```ts
+const emailField = form.field<string>("email", {
+  validators: {
+    onChange: ({ value }) => {
+      // value: string — TypeScript infers this
+      return value.includes("@") ? undefined : "Invalid email"
+    },
+    onBlurAsync: async ({ value }) => {
+      // value: string
+      const taken = await checkEmailTaken(value)
+      return taken ? "Email already in use" : undefined
+    },
+  },
+})
+```
+
+## Form-level validators
+
+```ts
+const form = createForm<LoginInput>({
+  defaultValues: { email: "", password: "" },
+  validators: {
+    onSubmit: ({ value }) => {
+      // value: LoginInput — full form values
+      if (!value.email && !value.password) {
+        return "Please fill in the form"
+      }
+    },
+  },
+  onSubmit: ({ value }) => login(value),
+})
+```
+
+## `FormState` type
+
+```ts
+import type { FormState } from "@domphy/form"
+
+// Full form state type (simplified):
+interface FormState<T> {
+  values: T
+  errors: unknown[]
+  isSubmitting: boolean
+  isSubmitted: boolean
+  isValid: boolean
+  isDirty: boolean
+  isPristine: boolean
+  canSubmit: boolean
+  submissionAttempts: number
+  fieldMeta: Record<DeepKeys<T>, FieldMeta>
+}
+
+// Access:
+const state: FormState<LoginInput> = form.state()
+```
+
+## `FieldMeta` type
+
+```ts
+import type { FieldMeta } from "@domphy/form"
+
+interface FieldMeta {
+  isTouched: boolean
+  isDirty: boolean
+  isPristine: boolean
+  isValidating: boolean
+  errors: unknown[]
+  errorMap: {
+    onChange?: unknown
+    onBlur?: unknown
+    onSubmit?: unknown
+    onMount?: unknown
+  }
+}
+```
+
+## Array fields with typed elements
+
+```ts
+interface InvoiceInput {
+  client: string
+  items: Array<{
+    description: string
+    qty: number
+    price: number
+  }>
+}
+
+const form = createForm<InvoiceInput>({
+  defaultValues: { client: "", items: [] },
+  onSubmit: ({ value }) => createInvoice(value),
+})
+
+// The items array — value type is InvoiceInput["items"]
+const itemsField = form.field<InvoiceInput["items"]>("items", {})
+
+// Push a new item — TypeScript checks the type
+itemsField.pushValue({ description: "", qty: 1, price: 0 })
+itemsField.pushValue({ description: 42 })   // ✗ Error: description must be string
+```
+
+## Accessing sub-field values with dot notation
+
+```ts
+// Each item's fields — TypeScript resolves the path type
+function ItemRow(index: number) {
+  const descField  = form.field<string>(`items[${index}].description`, {})
+  const qtyField   = form.field<number>(`items[${index}].qty`, {})
+  const priceField = form.field<number>(`items[${index}].price`, {})
+
+  return {
+    tr: [
+      { td: DescriptionInput(descField) },
+      { td: NumberInput(qtyField) },
+      { td: NumberInput(priceField) },
+    ],
+  }
+}
+```
+
+## `onSubmit` context type
+
+```ts
+const form = createForm<FormData>({
+  defaultValues: { ... },
+  onSubmit: ({ value, formApi, context }) => {
+    // value: FormData
+    // formApi: FormApi<FormData>
+    // context: whatever was passed to form.handleSubmit(undefined, context)
+  },
+})
+```
+
+## Generic form components
+
+Build typed reusable field inputs:
+
+```ts
+import type { FieldHandle } from "@domphy/form/domphy"
+
+function TextInput<T>(field: FieldHandle<T, string>) {
+  return {
+    div: [
+      {
+        input: null,
+        type: "text",
+        value: (l) => String(field.value(l) ?? ""),
+        onInput: (e: Event) => field.handleChange((e.target as HTMLInputElement).value),
+        onBlur: () => field.handleBlur(),
+      },
+      {
+        p: (l) => String(field.errors(l)[0] ?? ""),
+        hidden: (l) => field.errors(l).length === 0,
+        style: { color: "red", fontSize: "0.875rem" },
+      },
+    ],
+  }
+}
+```
 
 ### validation.md
 
