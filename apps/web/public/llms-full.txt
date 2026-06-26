@@ -5748,6 +5748,157 @@ focusManager.setFocused(true)   // force
 onlineManager.setOnline(false)  // simulate offline
 ```
 
+### devtools.md
+
+---
+title: "Devtools"
+description: "Inspect query cache, monitor requests, and debug stale/fetching state with the @domphy/query devtools panel."
+---
+
+# Devtools
+
+The `@domphy/query` devtools panel lets you inspect every query and mutation in your app: their keys, state (`pending`/`success`/`error`), staleness, `dataUpdatedAt`, and the cached data.
+
+## Installation
+
+The devtools panel is separate from `@domphy/query` — install it independently:
+
+```bash
+pnpm add @domphy/query-devtools
+```
+
+Or use the peer-installed version via `@domphy/query`:
+
+```ts
+import { QueryDevtools } from "@domphy/query/devtools"
+```
+
+## Mounting the devtools
+
+Attach the devtools to your app as a Domphy element — it appears as a floating panel:
+
+```ts
+import { createQueryClient, QueryClientProvider } from "@domphy/query"
+import { QueryDevtools } from "@domphy/query/devtools"
+
+const client = createQueryClient()
+
+const App = {
+  div: [
+    MainContent,
+    // Floating devtools panel — only in development
+    ...(import.meta.env.DEV ? [{ div: null, $: [QueryDevtools({ client })] }] : []),
+  ],
+}
+```
+
+Or using the `devtools()` patch which handles the dev/prod toggle automatically:
+
+```ts
+import { devtools } from "@domphy/query/devtools"
+
+const App = {
+  div: [
+    MainContent,
+    {
+      div: null,
+      $: [devtools({ client, initialIsOpen: false })],
+    },
+  ],
+}
+```
+
+## Configuration
+
+```ts
+QueryDevtools({
+  client,              // required — QueryClient instance
+  initialIsOpen: false,   // start collapsed (default: false)
+  position: "bottom-right",  // "top-left" | "top-right" | "bottom-left" | "bottom-right"
+  panelProps: {        // props for the panel container
+    style: { height: "500px" },
+  },
+  closeButtonProps: {  // props for the close button
+    "aria-label": "Close query devtools",
+  },
+  toggleButtonProps: { // props for the toggle (floating) button
+    style: { marginBottom: "40px" },
+  },
+  errorTypes: [
+    // Register custom error types for better display
+    { name: "ApiError", initializer: (q) => new Error(`${q.queryKey} failed`) },
+  ],
+})
+```
+
+## What the devtools show
+
+The panel has two sections:
+
+**Query list** — all active queries sorted by most recently updated:
+- Query key (nested JSON)
+- Status badge: `fresh` (green), `stale` (yellow), `fetching` (blue), `paused` (gray), `inactive` (dim)
+- Observer count — how many components are subscribed
+- Click any query to expand its details
+
+**Query detail pane** (when a query is selected):
+- Full query key
+- Status + `dataUpdatedAt`
+- Stale time config
+- Refetch count
+- Raw `data` (JSON tree viewer)
+- Raw `error` (if errored)
+- Action buttons: **Refetch**, **Invalidate**, **Reset**, **Remove**
+
+## Using devtools in tests
+
+In integration tests, you can inspect query state programmatically without the visual panel:
+
+```ts
+import { createQueryClient } from "@domphy/query"
+
+const client = createQueryClient()
+
+// After your async operations:
+const queryState = client.getQueryState(["user", "123"])
+console.log(queryState?.status)          // "success"
+console.log(queryState?.dataUpdatedAt)   // timestamp
+console.log(queryState?.data)            // cached data
+
+// List all active queries:
+const queries = client.getQueryCache().getAll()
+queries.forEach(q => {
+  console.log(q.queryKey, q.state.status, q.state.data)
+})
+```
+
+## Debugging stale data
+
+If a query shows data but it's not refreshing, check:
+
+1. **`staleTime`** — set to `Infinity`? Check with devtools: `Status: fresh`
+2. **`enabled: false`** — query is disabled, won't refetch
+3. **No observers** — no component is subscribed; GC may have cleared it
+4. **Network tab** — is the request being made but returning cached data?
+
+Force a refetch from devtools by clicking **Invalidate** on the query in the panel, or programmatically:
+
+```ts
+await client.invalidateQueries({ queryKey: ["user"] })
+```
+
+## Bundle size
+
+The devtools add ~60kb to your bundle. Always conditionally import:
+
+```ts
+// Vite tree-shakes this correctly
+if (import.meta.env.DEV) {
+  const { QueryDevtools } = await import("@domphy/query/devtools")
+  mountDevtools(QueryDevtools({ client }))
+}
+```
+
 ### index.md
 
 # Query
@@ -6519,6 +6670,203 @@ dehydrate(queryClient, {
 
 The dehydrated state is plain JSON-serializable data (`DehydratedState`) — embed it in HTML, send it over the wire, or store it.
 
+### suspense.md
+
+---
+title: "Suspense & Streaming"
+description: "Use Suspense-style loading states, throwOnError, and streaming SSR with @domphy/query."
+---
+
+# Suspense & Streaming
+
+## Suspense-like patterns in Domphy
+
+Domphy doesn't use React Suspense, but the same pattern — "show a fallback while loading, render when ready" — works with reactive state.
+
+The simplest approach uses `_onError` as an error boundary and conditional rendering for the pending state:
+
+```ts
+import { createQuery } from "@domphy/query/domphy"
+
+const user = createQuery({
+  queryKey: () => ["user"],
+  queryFn: fetchUser,
+})
+
+const UserPage = {
+  div: (l) => {
+    if (user.isPending(l)) return { div: "Loading…" }
+    if (user.isError(l))   return { div: "Error loading user" }
+    return UserContent
+  },
+}
+```
+
+## `throwOnError` — propagate errors up
+
+When `throwOnError: true`, a query error is thrown into the Domphy element tree. The nearest ancestor with `_onError` catches it:
+
+```ts
+const user = createQuery({
+  queryKey: () => ["user"],
+  queryFn: fetchUser,
+  throwOnError: true,   // throw errors into the element tree
+})
+
+const ErrorBoundary = {
+  div: UserSection,
+  _onError: (error, reset) => ({
+    div: [
+      { p: `Error: ${error.message}` },
+      { button: "Retry", onClick: reset },
+    ],
+  }),
+}
+```
+
+This mirrors React's `Suspense` + `ErrorBoundary` pattern but without React.
+
+## Controlled pending with `suspense` flag
+
+Use `suspense: true` to make the query participate in a Domphy-managed pending state. The component pauses rendering until the query resolves:
+
+```ts
+const post = createQuery({
+  queryKey: () => ["post", postId],
+  queryFn: () => fetchPost(postId),
+  suspense: true,
+})
+
+// With suspense: true, post.data(l) is always defined — no undefined check needed
+const PostContent = {
+  article: [
+    { h1: (l) => post.data(l)!.title },
+    { p: (l) => post.data(l)!.body },
+  ],
+}
+```
+
+The parent wraps this with a pending boundary:
+
+```ts
+import { pending } from "@domphy/ui"
+
+const PostPage = {
+  div: PostContent,
+  $: [pending({ fallback: { div: "Loading post…" } })],
+}
+```
+
+## Deferred / background data
+
+Separate critical data from non-critical data — render the page with placeholder content for slow queries:
+
+```ts
+const criticalData = createQuery({
+  queryKey: () => ["page", id],
+  queryFn: () => fetchPage(id),
+})
+
+const slowStats = createQuery({
+  queryKey: () => ["stats", id],
+  queryFn: () => fetchStats(id),
+  // Stats can be deferred — render a placeholder and update when ready
+})
+
+const Page = {
+  div: [
+    // Critical content — shown immediately (with skeleton while loading)
+    {
+      article: (l) => criticalData.isPending(l) ? SkeletonArticle : Article(criticalData.data(l)!),
+    },
+    // Stats — deferred, shows loading indicator independently
+    {
+      aside: (l) => slowStats.isPending(l) ? { div: "Loading stats…" } : Stats(slowStats.data(l)!),
+    },
+  ],
+}
+```
+
+## SSR streaming
+
+With `@domphy/app`'s SSR mode, queries can stream their data progressively. The server renders the page shell immediately, then flushes query results as they resolve:
+
+```ts
+import { dehydrate, HydrationBoundary } from "@domphy/query"
+
+// Server-side route loader
+export async function loader({ params }) {
+  const client = createQueryClient()
+
+  // Critical data — await before sending first byte
+  await client.prefetchQuery({
+    queryKey: ["post", params.id],
+    queryFn: () => fetchPost(params.id),
+  })
+
+  // Non-critical data — prefetch but don't block
+  client.prefetchQuery({
+    queryKey: ["related", params.id],
+    queryFn: () => fetchRelated(params.id),
+  })
+
+  return {
+    dehydratedState: dehydrate(client),
+  }
+}
+
+// Client-side — hydrate from server state
+const PostPage = {
+  div: PostContent,
+  $: [HydrationBoundary({ state: loaderData.dehydratedState })],
+}
+```
+
+## Waterfall prevention
+
+Avoid query waterfalls (query 1 loads → query 2 starts → query 3 starts) by prefetching all queries for a page in the loader:
+
+```ts
+// Instead of:
+// Component A mounts → starts query A
+// Component B (in A) mounts → starts query B (after A resolves)
+
+// Do this:
+async function prefetchAll(client: QueryClient, params: PageParams) {
+  await Promise.all([
+    client.prefetchQuery({ queryKey: ["user"], queryFn: fetchUser }),
+    client.prefetchQuery({ queryKey: ["posts", params.userId], queryFn: () => fetchPosts(params.userId) }),
+    client.prefetchQuery({ queryKey: ["settings"], queryFn: fetchSettings }),
+  ])
+}
+```
+
+All queries start simultaneously — no waterfall.
+
+## `useIsFetching` — global loading indicator
+
+Show a top-level loading bar when any query is in-flight:
+
+```ts
+import { useIsFetching } from "@domphy/query/domphy"
+
+const isFetching = useIsFetching()
+
+const LoadingBar = {
+  div: null,
+  hidden: (l) => isFetching(l) === 0,
+  style: {
+    position: "fixed",
+    top: 0, left: 0, right: 0,
+    height: "2px",
+    background: "var(--primary-5)",
+    animation: "indeterminate 1s linear infinite",
+  },
+}
+```
+
+`useIsFetching()` returns the count of in-flight queries — `0` when nothing is loading.
+
 ### typescript.md
 
 ---
@@ -7233,6 +7581,224 @@ const CommentList: DomphyElement<"section"> = {
 }
 ```
 
+### data-mutations.md
+
+---
+title: "Data Mutations"
+description: "Perform mutations in route loaders, handle optimistic updates, and coordinate server actions with router state."
+---
+
+# Data Mutations
+
+## Mutations with `@domphy/query`
+
+The most common pattern: perform mutations using `createMutation` from `@domphy/query`, then invalidate the relevant queries to reflect the updated state:
+
+```ts
+import { createMutation, useQueryClient } from "@domphy/query/domphy"
+
+const client = useQueryClient()
+
+const createPost = createMutation({
+  mutationFn: (data: PostInput) => api.post("/posts", data),
+  onSuccess: (post) => {
+    // Invalidate the posts list — it will refetch automatically
+    client.invalidateQueries({ queryKey: ["posts"] })
+    router.navigate({ to: `/posts/${post.id}` })
+  },
+})
+```
+
+## Route action pattern
+
+For form submissions that navigate after success, use a route-level action:
+
+```ts
+import { createRoute } from "@domphy/router"
+import { createForm } from "@domphy/form/domphy"
+
+const newPostRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/posts/new",
+  component: () => {
+    const form = createForm<PostInput>({
+      defaultValues: { title: "", body: "" },
+      onSubmit: async ({ value }) => {
+        const post = await api.post("/posts", value)
+        // Navigate after successful creation
+        router.navigate({ to: `/posts/${post.id}` })
+      },
+    })
+
+    return {
+      form: [
+        // form fields...
+        {
+          button: (l) => form.isSubmitting(l) ? "Creating…" : "Create post",
+          type: "submit",
+          disabled: (l) => !form.canSubmit(l),
+        },
+      ],
+      onSubmit: (e: Event) => { e.preventDefault(); form.handleSubmit() },
+    }
+  },
+})
+```
+
+## Optimistic mutations
+
+Update the cache immediately, then revert if the server request fails:
+
+```ts
+import { createMutation, useQueryClient } from "@domphy/query/domphy"
+
+interface Todo { id: string; text: string; done: boolean }
+
+const client = useQueryClient()
+
+const toggleTodo = createMutation({
+  mutationFn: (id: string) => api.patch(`/todos/${id}/toggle`),
+
+  onMutate: async (id) => {
+    // Cancel any in-flight refetches
+    await client.cancelQueries({ queryKey: ["todos"] })
+
+    // Snapshot the current state
+    const previous = client.getQueryData<Todo[]>(["todos"])
+
+    // Optimistically update the cache
+    client.setQueryData<Todo[]>(["todos"], (todos = []) =>
+      todos.map((t) => t.id === id ? { ...t, done: !t.done } : t)
+    )
+
+    return { previous }
+  },
+
+  onError: (_err, _id, context) => {
+    // Revert on error
+    client.setQueryData(["todos"], context?.previous)
+  },
+
+  onSettled: () => {
+    // Always refetch after success or error to ensure consistency
+    client.invalidateQueries({ queryKey: ["todos"] })
+  },
+})
+```
+
+## Mutation state in the UI
+
+```ts
+const TodoItem = (todo: Todo) => ({
+  li: [
+    {
+      input: null,
+      type: "checkbox",
+      checked: todo.done,
+      disabled: (l) => toggleTodo.isPending(l),
+      onChange: () => toggleTodo.mutate(todo.id),
+    },
+    { span: todo.text },
+    {
+      span: "Saving…",
+      hidden: (l) => !toggleTodo.isPending(l),
+      style: { fontSize: "0.75rem", opacity: 0.6 },
+    },
+  ],
+})
+```
+
+## Mutation + route loader coordination
+
+After a mutation, reload the route's loader data to reflect the change:
+
+```ts
+const deletePost = createMutation({
+  mutationFn: (id: string) => api.delete(`/posts/${id}`),
+  onSuccess: async () => {
+    // Invalidate the query cache
+    await client.invalidateQueries({ queryKey: ["posts"] })
+    // Navigate to the list (the list route's loader will refetch)
+    router.navigate({ to: "/posts" })
+  },
+})
+```
+
+Or, if you're using route loaders (not `@domphy/query`), force the current route to reload:
+
+```ts
+const deletePost = createMutation({
+  mutationFn: (id: string) => api.delete(`/posts/${id}`),
+  onSuccess: async () => {
+    // Force the route to reload its loader
+    await router.invalidate()
+    router.navigate({ to: "/posts" })
+  },
+})
+```
+
+`router.invalidate()` marks all route loaders as stale and re-runs them on the next render.
+
+## Pending mutations
+
+Track all in-flight mutations with `useIsMutating`:
+
+```ts
+import { useIsMutating } from "@domphy/query/domphy"
+
+const mutating = useIsMutating()
+
+const SaveIndicator = {
+  div: "Saving…",
+  hidden: (l) => mutating(l) === 0,
+}
+```
+
+Or track a specific mutation key:
+
+```ts
+const mutating = useIsMutating({ mutationKey: ["createPost"] })
+```
+
+## Global mutation callbacks
+
+Register callbacks on the `QueryClient` to handle all mutations centrally (e.g., show toast notifications):
+
+```ts
+const client = createQueryClient({
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      toast.error(`Operation failed: ${error.message}`)
+    },
+    onSuccess: () => {
+      toast.success("Saved")
+    },
+  }),
+})
+```
+
+## Error handling
+
+```ts
+const saveForm = createMutation({
+  mutationFn: submitFormData,
+  onError: (error: ApiError) => {
+    if (error.status === 422) {
+      // Validation error — display field errors
+      error.fields?.forEach(({ field, message }) => {
+        form.form.setFieldMeta(field, (meta) => ({
+          ...meta,
+          errors: [message],
+        }))
+      })
+    } else {
+      // Unexpected error — show generic toast
+      toast.error("Something went wrong. Please try again.")
+    }
+  },
+})
+```
+
 ### error-handling.md
 
 ---
@@ -7710,6 +8276,185 @@ npx vite-bundle-analyzer dist/stats.html
 Aim for:
 - Initial bundle (router + core + theme): < 30 kB gzip
 - Per-route chunks: < 10 kB gzip for simple pages, < 50 kB for heavy ones
+
+### navigation-blocking.md
+
+---
+title: "Navigation Blocking"
+description: "Prevent navigation away from unsaved forms, confirm before leaving, and handle beforeunload."
+---
+
+# Navigation Blocking
+
+Prevent accidental navigation away from a page with unsaved changes — show a confirmation dialog before the user leaves.
+
+## `useBlocker` — block programmatic navigation
+
+`useBlocker` halts all navigation (back button, router.navigate, link clicks) when a condition is true:
+
+```ts
+import { useBlocker } from "@domphy/router"
+import { toState } from "@domphy/core"
+
+const formDirty = toState(false)
+
+const { proceed, reset, status } = useBlocker({
+  shouldBlockFn: () => formDirty.get(),
+  withResolver: true,
+})
+```
+
+When `shouldBlockFn` returns `true`, navigation is blocked. `status` becomes `"blocked"`. Your UI can then show a confirmation:
+
+```ts
+const UnsavedChangesDialog = {
+  div: [
+    { h2: "Unsaved changes" },
+    { p: "You have unsaved changes. Leave anyway?" },
+    {
+      div: [
+        { button: "Stay", onClick: () => reset() },
+        { button: "Leave", onClick: () => proceed() },
+      ],
+    },
+  ],
+  hidden: (l) => status(l) !== "blocked",
+  style: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.5)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 100,
+  },
+}
+```
+
+- `proceed()` — allow the navigation to continue
+- `reset()` — cancel the blocked navigation, stay on current page
+
+## Wiring with form state
+
+```ts
+import { createForm } from "@domphy/form/domphy"
+import { useBlocker } from "@domphy/router"
+
+const form = createForm<EditInput>({
+  defaultValues: { title: "", body: "" },
+  onSubmit: async ({ value }) => {
+    await savePost(value)
+    // After successful save, isDirty becomes false — blocker relaxes
+  },
+})
+
+const { proceed, reset, status } = useBlocker({
+  shouldBlockFn: () => form.isDirty(),
+  withResolver: true,
+})
+
+const EditPage = {
+  div: [
+    EditForm,
+    UnsavedChangesDialog,   // shows when status === "blocked"
+  ],
+}
+```
+
+## `beforeunload` for browser navigation
+
+`useBlocker` only intercepts router navigation. To block browser-level navigation (refresh, closing tab, navigating to external URL), also wire `beforeunload`:
+
+```ts
+import { effect } from "@domphy/core"
+
+// Show native browser dialog when closing/refreshing with unsaved changes
+effect(() => {
+  const dirty = formDirty.get()
+
+  if (dirty) {
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ""   // Chrome requires this
+    }
+    window.addEventListener("beforeunload", handler)
+    return () => window.removeEventListener("beforeunload", handler)
+  }
+})
+```
+
+Note: modern browsers show their own generic message — you can't customize the text in `beforeunload`.
+
+## Auto-save (alternative to blocking)
+
+Instead of blocking navigation, auto-save the form periodically so there's never unsaved work:
+
+```ts
+import { effect } from "@domphy/core"
+
+// Auto-save every 10 seconds when the form is dirty
+effect(() => {
+  const dirty = form.isDirty()
+  if (!dirty) return
+
+  const timer = setInterval(async () => {
+    if (form.isDirty()) {
+      await saveDraft(form.form.state.values)
+    }
+  }, 10_000)
+
+  return () => clearInterval(timer)
+})
+```
+
+Or save on `visibilitychange` (user switches tabs):
+
+```ts
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && form.form.state.isDirty) {
+    saveDraft(form.form.state.values)
+  }
+})
+```
+
+## Blocking state machine
+
+The blocker state transitions:
+
+```
+idle → (navigation attempted, shouldBlockFn = true) → blocked
+blocked → proceed() → unblocked (navigation continues)
+blocked → reset() → idle (navigation cancelled)
+```
+
+Access the full state:
+
+```ts
+const blocker = useBlocker({ shouldBlockFn: () => isDirty })
+
+// blocker.state → "idle" | "blocked"
+// blocker.location → the location the user tried to navigate to (when blocked)
+// blocker.proceed() → allow navigation
+// blocker.reset() → cancel navigation
+```
+
+## Multiple blockers
+
+Multiple `useBlocker` calls coexist — navigation is blocked if ANY returns `true`:
+
+```ts
+const videoBlocker = useBlocker({
+  shouldBlockFn: () => videoPlaying.get(),
+  withResolver: true,
+})
+
+const formBlocker = useBlocker({
+  shouldBlockFn: () => form.isDirty(),
+  withResolver: true,
+})
+
+// Both must be resolved / reset before navigation proceeds
+```
 
 ### navigation.md
 
@@ -8729,6 +9474,237 @@ const App: DomphyElement<"table"> = {
 ```
 
 In Domphy these map to plain element objects — no render-prop indirection. If a column has a `cell` function returning a string, call it with `cell.getContext()`; otherwise `cell.getValue()` is all you need. Use `header.id`, `row.id`, and `cell.id` as `_key` so reconciliation stays stable across sorts and filters.
+
+### custom-features.md
+
+---
+title: "Custom Features & Plugins"
+description: "Extend @domphy/table with custom table features, plugin factories, and row-level state."
+---
+
+# Custom Features & Plugins
+
+`@domphy/table` (a port of `@tanstack/table-core`) supports custom features — extend the table with your own state, reducers, and methods following the same plugin architecture as built-in features (sorting, filtering, etc.).
+
+## Custom feature structure
+
+A custom feature is a plain object with hooks that integrate with the table lifecycle:
+
+```ts
+import type { TableFeature, Table, RowData } from "@domphy/table"
+
+interface HighlightFeature {
+  highlightedRows: Set<string>
+  setHighlightedRows: (ids: string[]) => void
+  toggleHighlight: (id: string) => void
+  getIsHighlighted: (id: string) => boolean
+}
+
+const HighlightFeature: TableFeature = {
+  getInitialState: (state) => ({
+    ...state,
+    highlightedRows: new Set<string>(),
+  }),
+
+  getDefaultOptions: (table) => ({
+    onHighlightChange: (updater) => {
+      const newSet = typeof updater === "function"
+        ? updater(table.getState().highlightedRows)
+        : updater
+      table.options.onHighlightChange?.(newSet)
+    },
+  }),
+
+  createTable: (table) => {
+    table.setHighlightedRows = (ids) => {
+      table.options.onHighlightChange(new Set(ids))
+    }
+
+    table.toggleHighlight = (id) => {
+      table.options.onHighlightChange((prev) => {
+        const next = new Set(prev)
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
+        return next
+      })
+    }
+  },
+
+  createRow: (row, table) => {
+    row.getIsHighlighted = () => table.getState().highlightedRows.has(row.id)
+  },
+}
+```
+
+## Registering a custom feature
+
+Pass features to `createDomphyTable`:
+
+```ts
+import { createDomphyTable } from "@domphy/table/domphy"
+import { toState } from "@domphy/core"
+
+const highlighted = toState<Set<string>>(new Set())
+
+const table = createDomphyTable({
+  _features: [HighlightFeature],
+  data: () => rows,
+  columns,
+  state: {
+    highlightedRows: highlighted.get(),
+  },
+  onHighlightChange: (newSet) => highlighted.set(newSet),
+})
+
+// Now table has .toggleHighlight() and rows have .getIsHighlighted()
+table.toggleHighlight("row-1")
+```
+
+## Row-level state
+
+Custom state per row (stored in the table, not in the row data):
+
+```ts
+const ExpandedNotesFeature: TableFeature = {
+  getInitialState: (state) => ({
+    ...state,
+    expandedNotes: {} as Record<string, string>,
+  }),
+
+  createTable: (table) => {
+    table.setNote = (rowId: string, note: string) => {
+      table.setState((prev) => ({
+        ...prev,
+        expandedNotes: { ...prev.expandedNotes, [rowId]: note },
+      }))
+    }
+
+    table.getNote = (rowId: string): string => {
+      return table.getState().expandedNotes[rowId] ?? ""
+    }
+  },
+
+  createRow: (row, table) => {
+    row.getNote = () => table.getNote(row.id)
+    row.setNote = (note: string) => table.setNote(row.id, note)
+  },
+}
+```
+
+## Column-level feature
+
+Custom column options and methods:
+
+```ts
+const TooltipFeature: TableFeature = {
+  createColumn: (column) => {
+    column.getTooltip = () => column.columnDef.meta?.tooltip ?? ""
+    column.hasTooltip = () => !!column.columnDef.meta?.tooltip
+  },
+}
+
+// Usage in column definition:
+columnHelper.accessor("status", {
+  header: "Status",
+  meta: { tooltip: "Current approval status" },
+})
+
+// Render with tooltip:
+const HeaderCell = (header: Header<any, unknown>) => ({
+  th: [
+    { span: String(header.column.columnDef.header ?? "") },
+    header.column.hasTooltip()
+      ? { span: header.column.getTooltip(), $: [tooltip()] }
+      : null,
+  ].filter(Boolean),
+})
+```
+
+## TypeScript: augmenting table types
+
+Extend the TanStack table type declarations to get full IntelliSense for custom features:
+
+```ts
+// types/table-extensions.d.ts
+import "@domphy/table"
+
+declare module "@domphy/table" {
+  interface TableMeta<TData extends RowData> {
+    updateData?: (rowIndex: number, columnId: string, value: unknown) => void
+  }
+
+  interface ColumnMeta<TData extends RowData, TValue> {
+    tooltip?: string
+    editable?: boolean
+  }
+
+  interface TableState {
+    highlightedRows: Set<string>
+    expandedNotes: Record<string, string>
+  }
+
+  interface Table<TData extends RowData> {
+    toggleHighlight: (id: string) => void
+    setHighlightedRows: (ids: string[]) => void
+    getNote: (rowId: string) => string
+    setNote: (rowId: string, note: string) => void
+  }
+
+  interface Row<TData extends RowData> {
+    getIsHighlighted: () => boolean
+    getNote: () => string
+    setNote: (note: string) => void
+  }
+}
+```
+
+## Editable cells plugin
+
+A common plugin pattern — make cells editable inline:
+
+```ts
+const EditableCellFeature: TableFeature = {
+  createTable: (table) => {
+    table.updateCellData = (rowIndex: number, columnId: string, value: unknown) => {
+      const updateFn = table.options.meta?.updateData
+      if (updateFn) updateFn(rowIndex, columnId, value)
+    }
+  },
+}
+
+// In the data-source:
+const tableData = toState(initialRows)
+
+const table = createDomphyTable({
+  _features: [EditableCellFeature],
+  data: () => tableData.get(),
+  columns: [
+    columnHelper.accessor("name", {
+      header: "Name",
+      cell: (info) => ({
+        input: null,
+        type: "text",
+        value: String(info.getValue() ?? ""),
+        onBlur: (e: FocusEvent) => {
+          info.table.updateCellData(
+            info.row.index,
+            info.column.id,
+            (e.target as HTMLInputElement).value
+          )
+        },
+      }),
+      meta: { editable: true },
+    }),
+  ],
+  meta: {
+    updateData: (rowIndex, columnId, value) => {
+      tableData.set((rows) => rows.map((row, i) =>
+        i === rowIndex ? { ...row, [columnId]: value } : row
+      ))
+    },
+  },
+})
+```
 
 ### faceting.md
 
@@ -10706,6 +11682,184 @@ const Field = {
 | `api` | The underlying `FieldApi`. |
 
 Field and form `options` (validators, async debouncing, listeners, arrays, Standard Schema) are the upstream form-core options — see the [TanStack Form docs](https://tanstack.com/form/latest).
+
+### listeners.md
+
+---
+title: "Listeners & Side Effects"
+description: "React to field value changes, implement linked fields, computed derived values, and form-level side effects."
+---
+
+# Listeners & Side Effects
+
+## `onChangeListenTo` — linked field validation
+
+When field B's validation depends on field A's value, use `onChangeListenTo` to re-run B's validators whenever A changes:
+
+```ts
+const form = createForm<{ password: string; confirmPassword: string }>({
+  defaultValues: { password: "", confirmPassword: "" },
+  onSubmit: ({ value }) => submit(value),
+})
+
+const passwordField = form.field<string>("password", {})
+
+const confirmField = form.field<string>("confirmPassword", {
+  validators: {
+    onChange: ({ value, fieldApi }) => {
+      const password = fieldApi.form.getFieldValue("password")
+      return value === password ? undefined : "Passwords do not match"
+    },
+  },
+  onChangeListenTo: ["password"],   // re-validate when "password" changes
+})
+```
+
+Without `onChangeListenTo`, the `confirmPassword` validator only runs when the user types in `confirmPassword` — not when they update `password`.
+
+## Form-level `onChange` listener
+
+React to any value change at the form level:
+
+```ts
+const form = createForm<PriceInput>({
+  defaultValues: { quantity: 1, unitPrice: 10, total: 10 },
+  onSubmit: ({ value }) => checkout(value),
+  onChange: ({ value }) => {
+    // Compute derived fields
+    const total = value.quantity * value.unitPrice
+    form.form.setFieldValue("total", total, { touch: false })
+  },
+})
+```
+
+## Watching field values with `effect`
+
+For side effects outside the form (e.g. showing a live preview, making an API call), use `@domphy/core`'s `effect`:
+
+```ts
+import { effect } from "@domphy/core"
+import { toState } from "@domphy/core"
+
+const form = createForm<SearchInput>({
+  defaultValues: { query: "", filters: [] },
+  onSubmit: () => {},
+})
+
+const queryField = form.field<string>("query", {})
+const results = toState<SearchResult[]>([])
+
+// Trigger search whenever query changes (with debounce)
+effect(() => {
+  const query = queryField.value()   // reactive read
+  if (!query) { results.set([]); return }
+
+  let cancelled = false
+  const timer = setTimeout(async () => {
+    const data = await searchApi(query)
+    if (!cancelled) results.set(data)
+  }, 300)
+
+  return () => {
+    cancelled = true
+    clearTimeout(timer)
+  }
+})
+```
+
+## `onBlurListenTo` — cross-field blur validation
+
+Re-run a field's blur validators when another field blurs:
+
+```ts
+const emailField = form.field<string>("email", {
+  validators: {
+    onBlur: ({ value }) => validateEmail(value),
+  },
+  onBlurListenTo: ["username"],   // also re-validate when "username" blurs
+})
+```
+
+## Dependent fields — show/hide based on another field
+
+```ts
+import { toState } from "@domphy/core"
+
+const form = createForm<ShippingInput>({
+  defaultValues: { method: "standard", expediteReason: "" },
+  onSubmit: ({ value }) => submit(value),
+})
+
+const methodField = form.field<string>("method", {})
+const reasonField = form.field<string>("expediteReason", {
+  validators: {
+    onSubmit: ({ value, fieldApi }) => {
+      if (fieldApi.form.getFieldValue("method") === "express" && !value) {
+        return "Please provide a reason for express shipping"
+      }
+    },
+  },
+  onChangeListenTo: ["method"],
+})
+
+const ShippingForm = {
+  form: [
+    ShippingMethodSelect,
+    // Only show reason field when "express" is selected
+    {
+      div: ReasonInput,
+      hidden: (l) => methodField.value(l) !== "express",
+    },
+  ],
+  onSubmit: (e) => { e.preventDefault(); form.handleSubmit() },
+}
+```
+
+## Computed derived values
+
+Keep derived values in sync with form state using `computed`:
+
+```ts
+import { computed } from "@domphy/core"
+
+const quantityField = form.field<number>("quantity", {})
+const priceField = form.field<number>("price", {})
+
+const total = computed((l) => {
+  const qty = quantityField.value(l) ?? 0
+  const price = priceField.value(l) ?? 0
+  return qty * price
+})
+
+const TotalDisplay = {
+  div: (l) => `Total: $${total.get(l).toFixed(2)}`,
+}
+```
+
+## Subscription to raw FormApi
+
+For complete control, subscribe to the underlying `FormApi` state:
+
+```ts
+form.form.subscribe(
+  (state) => state.values,           // selector — only re-fires when values change
+  (values) => {
+    console.log("Form values changed:", values)
+    autosave(values)
+  }
+)
+```
+
+## Field-level subscription
+
+```ts
+const emailApi = emailField.api
+
+emailApi.store.subscribe(() => {
+  const { value, meta } = emailApi.state
+  console.log(`email: ${value}, errors: ${meta.errors}`)
+})
+```
 
 ### submission.md
 
@@ -14479,6 +15633,246 @@ export default defineConfig({ /* SiteConfig */ })
 ```
 
 For custom icons, pass a URL or SVG data URI as `icon`.
+
+### custom-theme.md
+
+---
+title: "Custom Theme & Slots"
+description: "Override layout regions, customize colors and fonts, and extend the press theme for brand-specific doc sites."
+---
+
+# Custom Theme & Slots
+
+## Slot system overview
+
+`@domphy/press` exposes named layout slots — replace any region of the default layout without rebuilding the entire shell:
+
+```ts
+// press.config.ts
+import { defineConfig } from "@domphy/press"
+import { CustomLogo, CustomFooter, CustomSidebarHeader } from "./theme"
+
+export default defineConfig({
+  themeConfig: {
+    slots: {
+      logo: CustomLogo,           // replace the site logo
+      footer: CustomFooter,       // replace the footer
+      sidebarHeader: CustomSidebarHeader,   // insert above sidebar nav
+      navBefore: AnnouncementBar, // before the top nav
+      contentBefore: EditBanner,  // before every page's content
+      contentAfter: PageFeedback, // after every page's content
+    },
+  },
+})
+```
+
+## Available slots
+
+| Slot | Location | Default |
+|------|----------|---------|
+| `logo` | Top-left of nav | Site title text |
+| `navBefore` | Before the nav bar | — |
+| `navAfter` | After the nav bar | — |
+| `sidebarHeader` | Top of sidebar panel | — |
+| `sidebarFooter` | Bottom of sidebar panel | — |
+| `contentBefore` | Before page content | — |
+| `contentAfter` | After page content | — |
+| `footer` | Bottom of every page | Auto-generated |
+| `docAside` | Right side TOC panel | TOC |
+| `notFound` | 404 page | Default 404 |
+
+## Custom logo
+
+Replace the text logo with an SVG or image:
+
+```ts
+const CustomLogo = {
+  a: [
+    {
+      img: null,
+      src: "/logo.svg",
+      alt: "My Docs",
+      style: { height: "28px", width: "auto" },
+    },
+  ],
+  href: "/",
+  style: { display: "flex", alignItems: "center" },
+}
+```
+
+## Theme colors
+
+Override the press theme colors to match your brand. The press theme uses Domphy `@domphy/theme` — set theme variables on `:root`:
+
+```ts
+// In press.config.ts — inject CSS into the head
+export default defineConfig({
+  head: [
+    `<style>
+      :root {
+        /* Override primary color family */
+        --primary-hue: 260;    /* purple */
+        --primary-chroma: 0.18;
+
+        /* Override neutral warmth */
+        --neutral-hue: 240;
+        --neutral-chroma: 0.01;
+      }
+    </style>`,
+  ],
+})
+```
+
+Or use `themeApply` in a client script:
+
+```ts
+// client/theme-setup.ts
+import { themeApply } from "@domphy/theme"
+
+themeApply(document.documentElement, {
+  primary: { hue: 260, chroma: 0.18 },
+  neutral: { hue: 240, chroma: 0.01 },
+})
+```
+
+## Custom fonts
+
+Add Google Fonts or self-hosted fonts:
+
+```ts
+export default defineConfig({
+  head: [
+    `<link rel="preconnect" href="https://fonts.googleapis.com">`,
+    `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`,
+    `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap">`,
+    `<style>
+      :root {
+        --font-sans: 'Inter', system-ui, sans-serif;
+        --font-mono: 'Fira Code', monospace;
+      }
+    </style>`,
+  ],
+})
+```
+
+## Custom CSS
+
+Inject global CSS for the docs site:
+
+```ts
+export default defineConfig({
+  head: [
+    `<style>
+      /* Wider content area */
+      .doc-content { max-width: 900px; }
+
+      /* Custom code block style */
+      .shiki { border-radius: 8px; border: 1px solid var(--neutral-3); }
+
+      /* Hide sidebar on print */
+      @media print {
+        .doc-sidebar { display: none; }
+        .doc-content { max-width: 100%; }
+      }
+    </style>`,
+  ],
+})
+```
+
+## Custom footer
+
+```ts
+const Footer = {
+  footer: [
+    {
+      div: [
+        { span: "© 2025 My Company" },
+        { a: "Privacy", href: "/privacy" },
+        { a: "Terms", href: "/terms" },
+      ],
+      style: {
+        display: "flex",
+        gap: "1rem",
+        justifyContent: "center",
+        padding: "2rem",
+        borderTop: "1px solid var(--neutral-3)",
+      },
+    },
+  ],
+}
+```
+
+## Page-level slots with frontmatter
+
+Control slots per-page using frontmatter:
+
+```md
+---
+title: "Getting Started"
+layout: home
+aside: false
+---
+```
+
+```ts
+// In press.config.ts — react to page-level layout options
+export default defineConfig({
+  themeConfig: {
+    slots: {
+      docAside: (context) =>
+        context.frontmatter.aside === false ? null : DefaultTOC,
+    },
+  },
+})
+```
+
+`context` receives:
+- `context.frontmatter` — the page's frontmatter object
+- `context.route` — current route path
+- `context.sidebar` — resolved sidebar for the current route
+
+## Announcement bar
+
+Show a dismissible banner at the top of the site:
+
+```ts
+export default defineConfig({
+  themeConfig: {
+    announcementBar: {
+      id: "v2-release",   // unique — controls dismiss state in localStorage
+      content: "🎉 Domphy v2.0 is out! <a href='/blog/v2'>Read the release notes</a>",
+      closeable: true,
+    },
+  },
+})
+```
+
+## Extending the layout component
+
+For deeper customization beyond slots — replace the entire layout:
+
+```ts
+import { createPressLayout } from "@domphy/press/browser"
+
+const CustomLayout = createPressLayout({
+  // Override render functions for each layout region
+  renderNav: (context) => CustomNav,
+  renderSidebar: (context) => CustomSidebar,
+  renderContent: (context, content) => ({
+    article: [
+      CustomContentHeader(context),
+      content,
+      CustomContentFooter(context),
+    ],
+  }),
+})
+
+export default defineConfig({
+  themeConfig: {
+    layout: CustomLayout,
+  },
+})
+```
 
 ### customization.md
 

@@ -129,19 +129,19 @@ borderRadius: (l) => themeSpacing(themeDensity(l) * 1),
 
 Async state management — a 1-1 port of `@tanstack/query-core` (identical API). Adapter `createQuery`/`createMutation`/`createInfiniteQuery` (`@domphy/query/domphy`).
 
-- [Overview](https://domphy.com/docs/query/) · [Queries](https://domphy.com/docs/query/queries) · [Mutations](https://domphy.com/docs/query/mutations) · [Parallel & Dependent](https://domphy.com/docs/query/parallel) · [Caching](https://domphy.com/docs/query/caching) · [Infinite Queries](https://domphy.com/docs/query/infinite-queries) · [SSR](https://domphy.com/docs/query/ssr) · [Advanced Patterns](https://domphy.com/docs/query/advanced) · [TypeScript](https://domphy.com/docs/query/typescript) · [API](https://domphy.com/docs/query/api)
+- [Overview](https://domphy.com/docs/query/) · [Queries](https://domphy.com/docs/query/queries) · [Mutations](https://domphy.com/docs/query/mutations) · [Parallel & Dependent](https://domphy.com/docs/query/parallel) · [Caching](https://domphy.com/docs/query/caching) · [Infinite Queries](https://domphy.com/docs/query/infinite-queries) · [Suspense & Streaming](https://domphy.com/docs/query/suspense) · [SSR](https://domphy.com/docs/query/ssr) · [Advanced Patterns](https://domphy.com/docs/query/advanced) · [TypeScript](https://domphy.com/docs/query/typescript) · [Devtools](https://domphy.com/docs/query/devtools) · [API](https://domphy.com/docs/query/api)
 
 ## Router (`@domphy/router`)
 
 Type-safe routing — a 1-1 port of `@tanstack/router-core` (identical API) plus `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext`.
 
-- [Overview](https://domphy.com/docs/router/) · [Routes](https://domphy.com/docs/router/routes) · [Navigation](https://domphy.com/docs/router/navigation) · [Search Params](https://domphy.com/docs/router/search-params) · [Data Loading](https://domphy.com/docs/router/data-loading) · [Code Splitting](https://domphy.com/docs/router/lazy-loading) · [Authentication](https://domphy.com/docs/router/authentication) · [Error Handling](https://domphy.com/docs/router/error-handling) · [SSR](https://domphy.com/docs/router/ssr) · [API](https://domphy.com/docs/router/api)
+- [Overview](https://domphy.com/docs/router/) · [Routes](https://domphy.com/docs/router/routes) · [Navigation](https://domphy.com/docs/router/navigation) · [Search Params](https://domphy.com/docs/router/search-params) · [Data Loading](https://domphy.com/docs/router/data-loading) · [Data Mutations](https://domphy.com/docs/router/data-mutations) · [Code Splitting](https://domphy.com/docs/router/lazy-loading) · [Authentication](https://domphy.com/docs/router/authentication) · [Error Handling](https://domphy.com/docs/router/error-handling) · [Navigation Blocking](https://domphy.com/docs/router/navigation-blocking) · [SSR](https://domphy.com/docs/router/ssr) · [API](https://domphy.com/docs/router/api)
 
 ## Table (`@domphy/table`)
 
 Headless table logic — a 1-1 port of `@tanstack/table-core` v8 (identical API). Adapter `createDomphyTable` (`@domphy/table/domphy`).
 
-- [Overview](https://domphy.com/docs/table/) · [Columns & Row Models](https://domphy.com/docs/table/columns) · [Sorting & Filtering](https://domphy.com/docs/table/sorting-filtering) · [Pagination & Selection](https://domphy.com/docs/table/pagination-selection) · [Advanced](https://domphy.com/docs/table/advanced) · [Faceting & Filter UI](https://domphy.com/docs/table/faceting) · [Row Pinning](https://domphy.com/docs/table/row-pinning) · [Virtualization](https://domphy.com/docs/table/virtualization) · [API](https://domphy.com/docs/table/api)
+- [Overview](https://domphy.com/docs/table/) · [Columns & Row Models](https://domphy.com/docs/table/columns) · [Sorting & Filtering](https://domphy.com/docs/table/sorting-filtering) · [Pagination & Selection](https://domphy.com/docs/table/pagination-selection) · [Advanced](https://domphy.com/docs/table/advanced) · [Faceting & Filter UI](https://domphy.com/docs/table/faceting) · [Row Pinning](https://domphy.com/docs/table/row-pinning) · [Custom Features](https://domphy.com/docs/table/custom-features) · [Virtualization](https://domphy.com/docs/table/virtualization) · [API](https://domphy.com/docs/table/api)
 
 ## Virtual (`@domphy/virtual`)
 
@@ -153,7 +153,7 @@ List/grid virtualization — a 1-1 port of `@tanstack/virtual-core` (identical A
 
 Headless form state/validation — a 1-1 port of `@tanstack/form-core` (identical API). Adapter `createForm` (`@domphy/form/domphy`); `form.field(name, opts)` returns a reactive field handle.
 
-- [Overview](https://domphy.com/docs/form/) · [Core Concepts](https://domphy.com/docs/form/concepts) · [Validation](https://domphy.com/docs/form/validation) · [Field Arrays](https://domphy.com/docs/form/arrays) · [Submission & Async](https://domphy.com/docs/form/submission)
+- [Overview](https://domphy.com/docs/form/) · [Core Concepts](https://domphy.com/docs/form/concepts) · [Validation](https://domphy.com/docs/form/validation) · [Field Arrays](https://domphy.com/docs/form/arrays) · [Submission & Async](https://domphy.com/docs/form/submission) · [Listeners & Side Effects](https://domphy.com/docs/form/listeners)
 
 ## DnD (`@domphy/dnd`)
 
@@ -177,7 +177,7 @@ Reactive i18next wrapper for Domphy. `createI18n<TLocale, TMessages>(options)` r
 
 VitePress-baseline static doc site framework. `defineConfig(SiteConfig)` → build with `buildSite` / serve with `startServer` / `startDevServer`. Nested config: `themeConfig.{ nav, sidebar, search, socialLinks, editLink, mermaid, announcementBar, tocTitle, slots }`. Layout elements carry inline `style:{}` objects; `generateCSS()` (Domphy core) emits all layout CSS from those — no class-targeted CSS strings for layout. `pressCSS()` covers only global reset + icon masks + JS-managed state rules. Override any layout region via `themeConfig.slots`. Browser-safe sub-path: `@domphy/press/browser` (layout + routes + theme + search UI, no Node.js built-ins — use in esbuild/Vite client bundles). Exports: `renderDoc`, `discoverPages`, `outFileForRoute`, `sidebarForRoute`, `prevNextForRoute`, `flattenSidebar`, `buildSearchIndex`, `queryIndex`, `searchWidget`, `mountSearch`, `createHighlighter`, `renderFence`, `pageShell`, `homeShell`, types: `LayoutSlots`, `LayoutContext`, `DomphyElement`.
 
-- [Overview](https://domphy.com/docs/press/) · [Config](https://domphy.com/docs/press/config) · [Routing](https://domphy.com/docs/press/routing) · [Markdown](https://domphy.com/docs/press/markdown) · [Search](https://domphy.com/docs/press/search) · [i18n](https://domphy.com/docs/press/i18n) · [Customization](https://domphy.com/docs/press/customization) · [Deploy](https://domphy.com/docs/press/deploy) · [API](https://domphy.com/docs/press/api)
+- [Overview](https://domphy.com/docs/press/) · [Config](https://domphy.com/docs/press/config) · [Routing](https://domphy.com/docs/press/routing) · [Markdown](https://domphy.com/docs/press/markdown) · [Search](https://domphy.com/docs/press/search) · [i18n](https://domphy.com/docs/press/i18n) · [Custom Theme & Slots](https://domphy.com/docs/press/custom-theme) · [Customization](https://domphy.com/docs/press/customization) · [Deploy](https://domphy.com/docs/press/deploy) · [API](https://domphy.com/docs/press/api)
 
 ## Markdown (`@domphy/markdown`)
 
