@@ -5,7 +5,12 @@ export interface Rect {
   height: number;
 }
 
-export type IssueType = "overlap" | "geometry" | "contrast";
+export type IssueType =
+  | "overlap"
+  | "geometry"
+  | "contrast"
+  | "theme"
+  | "overlay";
 
 export interface AuditIssue {
   type: IssueType;

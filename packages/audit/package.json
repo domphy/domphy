@@ -1,11 +1,14 @@
 {
   "name": "@domphy/audit",
-  "version": "0.18.1",
-  "description": "Domphy Audit — baseline-free layout verification via Playwright (overlap, geometry, contrast)",
+  "version": "0.19.0",
+  "description": "Domphy Audit — baseline-free layout verification via Playwright (theme, overlap, geometry, contrast, overlay)",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "domphy-audit": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "import": {
