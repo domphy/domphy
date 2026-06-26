@@ -200,7 +200,7 @@ Respond to the user's system preference:
 const prefersDark = createBreakpoint("(prefers-color-scheme: dark)")
 
 // Apply theme based on system preference (if user hasn't manually set one)
-prefersDark.subscribe((dark) => {
+prefersDark.addListener((dark) => {
   const saved = localStorage.getItem("dp-theme")
   if (!saved) {
     document.documentElement.setAttribute("data-theme", dark ? "dark" : "light")
