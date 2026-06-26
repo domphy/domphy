@@ -2358,8 +2358,8 @@ function badge(variant: "success" | "error" | "warning" | "info") {
     return {
       span: text,
       style: {
-        background: themeColor(colorMap[variant], 2),
-        color: themeColor(colorMap[variant], 10),
+        background: (l) => themeColor(l, "shift-2", colorMap[variant]),
+        color: (l) => themeColor(l, "shift-10", colorMap[variant]),
         padding: "2px 6px",
         borderRadius: "4px",
         fontSize: "0.75rem",
@@ -4633,8 +4633,8 @@ const CodeEditor = {
   div: EditorContent,
   "data-theme": "dark",   // force dark within this subtree
   style: {
-    background: themeColor("neutral", 0),   // resolves to dark background
-    color: themeColor("neutral", 12),       // resolves to light text
+    background: (l) => themeColor(l, "shift-1", "neutral"),   // near-dark edge in dark theme
+    color: (l) => themeColor(l, "shift-12", "neutral"),       // near-light in dark theme
   },
 }
 ```
@@ -6337,7 +6337,7 @@ import { themeColor } from "@domphy/theme"
 const Muted = {
   span: "Secondary info",
   style: {
-    color: themeColor("neutral", 6),   // tone-shifted neutral text
+    color: (l) => themeColor(l, "base", "neutral"),   // base neutral text color
     fontSize: themeSize(2),
   },
 }
