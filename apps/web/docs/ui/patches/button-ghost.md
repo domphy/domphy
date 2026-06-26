@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import ButtonGhost from "../../demos/patches/ButtonGhost.ts?raw"
 
 </script>

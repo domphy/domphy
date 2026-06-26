@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Figure from "../../demos/patches/Figure.ts?raw"
 
 </script>

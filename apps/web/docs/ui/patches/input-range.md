@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import InputRange from "../../demos/patches/InputRange.ts?raw"
 
 </script>

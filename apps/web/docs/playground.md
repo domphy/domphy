@@ -5,7 +5,6 @@ aside: false
 layout: page
 ---
 <script setup>
-import CodeEditor from './editor/index.vue'
 const code = `
 import { type DomphyElement } from '@domphy/core'
 import { themeSpacing, themeColor, themeSize } from "@domphy/theme"

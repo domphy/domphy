@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import HorizontalRule from "../../demos/patches/HorizontalRule.ts?raw"
 
 </script>

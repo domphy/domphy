@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Table from "../../demos/patches/Table.ts?raw"
 
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Tabs from "../../demos/patches/Tabs.ts?raw"
 
 </script>

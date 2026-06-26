@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Fab from "../../demos/patches/Fab.ts?raw"
 
 </script>

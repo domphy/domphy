@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import ToggleGroup from "../../demos/patches/ToggleGroup.ts?raw"
 
 </script>

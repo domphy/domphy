@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Menubar from "../../demos/recipes/Menubar.ts?raw"
 </script>
 

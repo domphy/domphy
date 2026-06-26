@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Strong from "../../demos/patches/Strong.ts?raw"
 
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import ContextMenu from "../../demos/recipes/ContextMenu.ts?raw"
 </script>
 

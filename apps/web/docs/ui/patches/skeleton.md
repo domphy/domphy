@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Skeleton from "../../demos/patches/Skeleton.ts?raw"
 
 </script>

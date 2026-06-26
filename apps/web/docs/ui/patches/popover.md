@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Popover from "../../demos/patches/Popover.ts?raw"
 
 </script>

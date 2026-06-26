@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Divider from "../../demos/patches/Divider.ts?raw"
 
 </script>

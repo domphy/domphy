@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Typography from "../../demos/patches/Typography.ts?raw"
 
 </script>

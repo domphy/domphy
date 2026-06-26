@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../editor/index.vue"
+
 import sortablejs from "../demos/integrations/sortablejs.ts?raw"
 </script>
 

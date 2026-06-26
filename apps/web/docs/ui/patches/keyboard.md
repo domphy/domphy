@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Keyboard from "../../demos/patches/Keyboard.ts?raw"
 
 </script>

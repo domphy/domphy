@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Alert from "../../demos/patches/Alert.ts?raw"
 
 </script>

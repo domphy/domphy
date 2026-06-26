@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Card from "../../demos/patches/Card.ts?raw"
 
 </script>

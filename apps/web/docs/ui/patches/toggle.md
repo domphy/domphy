@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Toggle from "../../demos/patches/Toggle.ts?raw"
 
 </script>

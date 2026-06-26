@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import UnorderedList from "../../demos/patches/UnorderedList.ts?raw"
 
 </script>

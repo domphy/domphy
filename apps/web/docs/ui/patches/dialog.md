@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Dialog from "../../demos/patches/Dialog.ts?raw"
 
 </script>

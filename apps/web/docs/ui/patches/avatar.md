@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Avatar from "../../demos/patches/Avatar.ts?raw"
 
 </script>

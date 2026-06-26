@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Menu from "../../demos/patches/Menu.ts?raw"
 
 </script>

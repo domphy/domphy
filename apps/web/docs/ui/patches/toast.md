@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Toast from "../../demos/patches/Toast.ts?raw"
 
 </script>

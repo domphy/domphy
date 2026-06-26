@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import ErrorBoundary from "../../demos/patches/ErrorBoundary.ts?raw"
 
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import AlertDialog from "../../demos/recipes/AlertDialog.ts?raw"
 </script>
 

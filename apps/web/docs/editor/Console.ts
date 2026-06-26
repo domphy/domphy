@@ -79,7 +79,7 @@ export function Console(
       return [ConsoleHeader(logs, copied), ...currentLogs.map(ConsoleLog)];
     },
     style: {
-      borderTop: "1px solid var(--vp-c-divider)",
+      borderTop: "1px solid #2a2a2a",
       background: "#141414",
       fontFamily: "monospace",
       fontSize: "12px",

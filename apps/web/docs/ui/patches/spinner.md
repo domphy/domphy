@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Spinner from "../../demos/patches/Spinner.ts?raw"
 
 </script>

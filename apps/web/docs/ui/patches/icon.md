@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Icon from "../../demos/patches/Icon.ts?raw"
 
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import OrderedList from "../../demos/patches/OrderedList.ts?raw"
 
 </script>

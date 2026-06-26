@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Rating from "../../demos/patches/Rating.ts?raw"
 
 </script>

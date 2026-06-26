@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Timeline from "../../demos/patches/Timeline.ts?raw"
 
 </script>

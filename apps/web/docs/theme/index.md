@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../editor/index.vue"
+
 import Overview from "../demos/theme/Overview.ts?raw"
 </script>
 

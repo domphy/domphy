@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Label from "../../demos/patches/Label.ts?raw"
 
 </script>

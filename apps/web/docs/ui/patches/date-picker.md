@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import DatePicker from "../../demos/patches/DatePicker.ts?raw"
 </script>
 

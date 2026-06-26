@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../editor/index.vue"
+
 import Basic from "../demos/router/basic.ts?raw"
 import Loader from "../demos/router/loader.ts?raw"
 </script>

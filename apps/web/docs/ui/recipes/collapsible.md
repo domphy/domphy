@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Collapsible from "../../demos/recipes/Collapsible.ts?raw"
 </script>
 

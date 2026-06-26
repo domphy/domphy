@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../editor/index.vue"
+
 import zod from "../demos/integrations/zod.ts?raw"
 </script>
 

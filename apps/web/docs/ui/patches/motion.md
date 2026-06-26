@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Motion from "../../demos/patches/Motion.ts?raw"
 </script>
 

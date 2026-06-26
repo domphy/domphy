@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import InputOTP from "../../demos/patches/InputOTP.ts?raw"
 
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import SelectList from "../../demos/patches/SelectList.ts?raw"
 
 </script>

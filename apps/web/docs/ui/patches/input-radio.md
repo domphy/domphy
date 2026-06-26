@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import InputRadio from "../../demos/patches/InputRadio.ts?raw"
 
 </script>

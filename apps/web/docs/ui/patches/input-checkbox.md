@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import InputCheckbox from "../../demos/patches/InputCheckbox.ts?raw"
 
 </script>

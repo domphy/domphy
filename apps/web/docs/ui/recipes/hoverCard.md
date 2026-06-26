@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import HoverCard from "../../demos/recipes/HoverCard.ts?raw"
 </script>
 

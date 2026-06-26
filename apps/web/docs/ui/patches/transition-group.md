@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import TransitionGroup from "../../demos/patches/TransitionGroup.ts?raw"
 
 </script>

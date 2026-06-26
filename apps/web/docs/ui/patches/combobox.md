@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Combobox from "../../demos/patches/Combobox.ts?raw"
 
 </script>

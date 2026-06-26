@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Textarea from "../../demos/patches/Textarea.ts?raw"
 
 </script>

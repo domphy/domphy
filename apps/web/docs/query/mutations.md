@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../editor/index.vue"
+
 import Mutation from "../demos/query/mutation.ts?raw"
 </script>
 

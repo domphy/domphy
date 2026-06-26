@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Pagination from "../../demos/patches/Pagination.ts?raw"
 
 </script>

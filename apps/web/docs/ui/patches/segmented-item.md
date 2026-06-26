@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Segmented from "../../demos/patches/Segmented.ts?raw"
 
 </script>

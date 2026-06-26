@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Tooltip from "../../demos/patches/Tooltip.ts?raw"
 
 </script>

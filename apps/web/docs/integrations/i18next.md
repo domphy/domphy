@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../editor/index.vue"
+
 import i18next from "../demos/integrations/i18next.ts?raw"
 </script>
 

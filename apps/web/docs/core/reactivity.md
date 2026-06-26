@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import DomphyPreview from "../preview/index.vue"
+
 import Counting from "../demos/core/counting.js"
 </script>
 

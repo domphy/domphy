@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Heading from "../../demos/patches/Heading.ts?raw"
 
 </script>

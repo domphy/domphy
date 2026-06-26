@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Badge from "../../demos/patches/Badge.ts?raw"
 
 </script>

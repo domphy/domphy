@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import BreadcrumbEllipsis from "../../demos/patches/BreadcrumbEllipsis.ts?raw"
 
 </script>

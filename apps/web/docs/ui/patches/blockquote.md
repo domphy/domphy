@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Blockquote from "../../demos/patches/Blockquote.ts?raw"
 
 </script>

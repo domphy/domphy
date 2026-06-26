@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import DescriptionList from "../../demos/patches/DescriptionList.ts?raw"
 
 </script>

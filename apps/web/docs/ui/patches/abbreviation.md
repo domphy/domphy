@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Abbreviation from "../../demos/patches/Abbreviation.ts?raw"
 
 </script>

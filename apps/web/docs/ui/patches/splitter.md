@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Splitter from "../../demos/patches/Splitter.ts?raw"
 
 </script>

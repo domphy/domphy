@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import InputDateTime from "../../demos/patches/InputDateTime.ts?raw"
 
 </script>

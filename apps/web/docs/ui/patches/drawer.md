@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Drawer from "../../demos/patches/Drawer.ts?raw"
 
 </script>

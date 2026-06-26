@@ -1,4 +1,5 @@
 import { type DomphyElement, toState } from "@domphy/core";
+import { themeColor } from "@domphy/theme";
 import { Console } from "./Console";
 import { Editor } from "./Editor";
 import { ErrorOverlay } from "./ErrorOverlay";
@@ -93,13 +94,13 @@ export function Container(
     style: {
       display: "flex",
       flexDirection: "column",
-      border: "1px solid var(--vp-c-divider)",
+      border: (listener) => `1px solid ${themeColor(listener, "shift-3")}`,
       overflow: "hidden",
       position: (listener) => (isFull.get(listener) ? "fixed" : "relative"),
       inset: 0,
       height: (listener) => (isFull.get(listener) ? "100vh" : "600px"),
       zIndex: 10,
-      backgroundColor: `var(--vp-c-bg)`,
+      backgroundColor: (listener) => themeColor(listener, "inherit"),
     },
   };
   return {

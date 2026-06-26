@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../editor/index.vue"
+
 import pagejs from "../demos/integrations/pagejs.ts?raw"
 </script>
 

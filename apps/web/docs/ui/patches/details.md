@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CodeEditor from "../../editor/index.vue"
+
 import Details from "../../demos/patches/Details.ts?raw"
 
 </script>
