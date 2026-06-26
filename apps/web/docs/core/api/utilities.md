@@ -135,25 +135,6 @@ If a diverging reactive loop prevents settling, `flushSync` breaks after 10 000 
 
 ---
 
-## `r(fn)`
-
-Identity helper for reactive functions. Returns `fn` unchanged. Its sole purpose is to give TypeScript a typed entry point for inline reactive expressions so editors can infer the listener type without an extra cast.
-
-```ts
-import { r } from "@domphy/core"
-
-const box = {
-  div: "Hello",
-  style: {
-    color: r((listener) => active.get(listener) ? "red" : "gray"),
-  },
-}
-```
-
-`r` does not wrap or modify the function at runtime — it is a zero-cost identity.
-
----
-
 ## `runBatched(fn)`
 
 Runs `fn` inside a batch, coalescing all state writes into a single downstream flush. Equivalent to calling `batch(fn)` directly. Returns the value returned by `fn`.

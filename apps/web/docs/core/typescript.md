@@ -44,7 +44,7 @@ interface FormData {
 }
 
 const form = new RecordState<FormData>({ name: "", email: "", age: 0 })
-// form.get(l, "name") → string
+// form.get("name", l) → string
 // form.set("age", 25) — type-checked
 ```
 
@@ -87,24 +87,23 @@ const Input = {
 
 ## Typing patches
 
-When creating custom patches, type the `Patch` interface:
+A custom patch is a function returning `PartialElement`:
 
 ```ts
-import type { Patch, ElementNode } from "@domphy/core"
+import type { PartialElement, ElementNode } from "@domphy/core"
 
 interface TooltipOptions {
   text: string
   placement?: "top" | "bottom" | "left" | "right"
 }
 
-function tooltip(options: TooltipOptions): Patch {
+function tooltip(options: TooltipOptions): PartialElement {
   return {
-    apply(node: ElementNode) {
-      node.domElement.title = options.text
-      // ... position logic
+    _onMount: (node: ElementNode) => {
+      if (node.domElement) node.domElement.title = options.text
     },
-    destroy(node: ElementNode) {
-      node.domElement.title = ""
+    _onRemove: (node: ElementNode) => {
+      if (node.domElement) node.domElement.title = ""
     },
   }
 }
@@ -175,14 +174,15 @@ UI patches are typed — TypeScript will catch invalid prop values:
 
 ```ts
 import { button, inputText, label } from "@domphy/ui"
-import type { Tone, Size, Density } from "@domphy/theme"
+import type { ElementTone, ElementSize, ElementDensity } from "@domphy/theme"
 
-// Type-safe tone/size/density
-const btn = button({
-  tone: "shift-1",     // ✓
-  size: 3,             // ✓
-  density: 5,          // ✗ Error: density max is 4
-})
+// button() only accepts { color?: ValueOrState<ThemeColor> }
+const btn = button({ color: "primary" })
+
+// Use ElementTone / ElementSize / ElementDensity for typing custom patches:
+function myPatch(tone: ElementTone, size: ElementSize, density: ElementDensity): import("@domphy/core").PartialElement {
+  return { /* ... */ }
+}
 ```
 
 ## Path types for @domphy/form

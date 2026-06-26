@@ -85,16 +85,14 @@ export default defineConfig({
 })
 ```
 
-Or use `themeApply` in a client script:
+Or call `themeApply()` after `setTheme()` to inject updated CSS variables into the page:
 
 ```ts
 // client/theme-setup.ts
-import { themeApply } from "@domphy/theme"
+import { setTheme, themeApply } from "@domphy/theme"
 
-themeApply(document.documentElement, {
-  primary: { hue: 260, chroma: 0.18 },
-  neutral: { hue: 240, chroma: 0.01 },
-})
+setTheme("light", { colors: { primary: [/*...18 lch values...*/], neutral: [/*...18 lch values...*/] } })
+themeApply()  // injects updated CSS vars into the document
 ```
 
 ## Custom fonts
@@ -203,7 +201,7 @@ export default defineConfig({
     announcementBar: {
       id: "v2-release",   // unique — controls dismiss state in localStorage
       content: "🎉 Domphy v2.0 is out! <a href='/blog/v2'>Read the release notes</a>",
-      closeable: true,
+      dismissible: true,
     },
   },
 })
@@ -211,27 +209,17 @@ export default defineConfig({
 
 ## Extending the layout component
 
-For deeper customization beyond slots — replace the entire layout:
+For deeper layout customization, override the layout shell functions exported from `@domphy/press`:
 
 ```ts
-import { createPressLayout } from "@domphy/press/browser"
+import { defineConfig, homeShell, pageShell } from "@domphy/press"
 
-const CustomLayout = createPressLayout({
-  // Override render functions for each layout region
-  renderNav: (context) => CustomNav,
-  renderSidebar: (context) => CustomSidebar,
-  renderContent: (context, content) => ({
-    article: [
-      CustomContentHeader(context),
-      content,
-      CustomContentFooter(context),
-    ],
-  }),
-})
-
+// pageShell(context, content) and homeShell(context) are the layout entry points.
+// Pass custom overrides via themeConfig slots (see Customization guide).
 export default defineConfig({
   themeConfig: {
-    layout: CustomLayout,
+    // Use slots to inject content into specific regions of the built-in layout.
+    // For full layout replacement, provide a custom press theme via pressCSS + custom shell.
   },
 })
 ```

@@ -137,7 +137,7 @@ const form = new RecordState({ name: "", email: "", bio: "" })
 // Only re-renders when 'name' changes, not when 'email' or 'bio' change
 const NameField = {
   input: null,
-  value: (l) => form.get(l, "name"),
+  value: (l) => form.get("name", l),
   onInput: (e) => form.set("name", (e.target as HTMLInputElement).value),
 }
 ```

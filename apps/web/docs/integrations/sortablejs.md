@@ -35,7 +35,7 @@ const List: DomphyElement<"ul"> = {
         _key: item.id,
     })),
     _onMount: (node) => {
-        Sortable.create(node.el, {
+        Sortable.create(node.domElement as HTMLElement, {
             onEnd(evt) {
                 // SortableJS already moved the DOM node.
                 // Pass false to sync the logical tree without touching the DOM again.
@@ -54,9 +54,11 @@ If you need to read the new order back into a state (e.g. to persist to the serv
 onEnd(evt) {
     node.children.move(evt.oldIndex!, evt.newIndex!, false)
 
-    // Read current logical order and sync back to state (silent — no re-render needed)
-    const newOrder = node.children.map((child) => child.input as { id: number; name: string })
-    items.set(newOrder)
+    // Re-order the state array to match SortableJS's DOM move
+    const arr = [...items.get()]
+    const [moved] = arr.splice(evt.oldIndex!, 1)
+    arr.splice(evt.newIndex!, 0, moved)
+    items.set(arr)
 }
 ```
 
