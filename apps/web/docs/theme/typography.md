@@ -27,7 +27,7 @@ import { themeSize } from "@domphy/theme"
 
 const Caption = {
   span: "Posted 3 days ago",
-  style: { fontSize: themeSize(1) },   // "12px" (or rem equivalent)
+  style: { fontSize: (l) => themeSize(l, "decrease-1") },   // smaller than base
 }
 ```
 
@@ -118,7 +118,7 @@ Line height affects readability. Theme defaults:
 const Body = {
   p: "Readable paragraph text.",
   style: {
-    fontSize: themeSize(3),
+    fontSize: (l) => themeSize(l, "inherit"),
     lineHeight: "1.6",
   },
 }
@@ -186,7 +186,7 @@ Fine-tune tracking for display text or all-caps labels:
 const Eyebrow = {
   span: "CATEGORY",
   style: {
-    fontSize: themeSize(0),
+    fontSize: (l) => themeSize(l, "decrease-2"),
     fontWeight: 600,
     letterSpacing: "0.08em",
     textTransform: "uppercase",
@@ -229,7 +229,7 @@ const Muted = {
   span: "Secondary info",
   style: {
     color: (l) => themeColor(l, "base", "neutral"),   // base neutral text color
-    fontSize: themeSize(2),
+    fontSize: (l) => themeSize(l, "decrease-1"),
   },
 }
 ```
