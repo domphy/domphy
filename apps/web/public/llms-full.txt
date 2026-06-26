@@ -2607,7 +2607,7 @@ const activeTab = toState<"overview" | "analytics" | "settings">("overview")
 const tabMounted = toState({ overview: true, analytics: false, settings: false })
 
 // Only mount a tab's content once it has been viewed
-activeTab.subscribe((tab) => {
+activeTab.addListener((tab) => {
   tabMounted.set((m) => ({ ...m, [tab]: true }))
 })
 
