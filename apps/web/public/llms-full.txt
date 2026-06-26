@@ -6136,7 +6136,7 @@ import { themeSize } from "@domphy/theme"
 
 const Caption = {
   span: "Posted 3 days ago",
-  style: { fontSize: themeSize(1) },   // "12px" (or rem equivalent)
+  style: { fontSize: (l) => themeSize(l, "decrease-1") },   // smaller than base
 }
 ```
 
@@ -6227,7 +6227,7 @@ Line height affects readability. Theme defaults:
 const Body = {
   p: "Readable paragraph text.",
   style: {
-    fontSize: themeSize(3),
+    fontSize: (l) => themeSize(l, "inherit"),
     lineHeight: "1.6",
   },
 }
@@ -6295,7 +6295,7 @@ Fine-tune tracking for display text or all-caps labels:
 const Eyebrow = {
   span: "CATEGORY",
   style: {
-    fontSize: themeSize(0),
+    fontSize: (l) => themeSize(l, "decrease-2"),
     fontWeight: 600,
     letterSpacing: "0.08em",
     textTransform: "uppercase",
@@ -6338,7 +6338,7 @@ const Muted = {
   span: "Secondary info",
   style: {
     color: (l) => themeColor(l, "base", "neutral"),   // base neutral text color
-    fontSize: themeSize(2),
+    fontSize: (l) => themeSize(l, "decrease-1"),
   },
 }
 ```
@@ -21347,7 +21347,7 @@ Combine with [`renderToString`](./ssr) in one server: route `/api/*` to the API 
 - `compileRoutes(routes)` / `matchRoute(compiled, pathname)` / `matchPath(segments, pathname)` / `parseSegment(part)` — the matcher
 - `buildHref(pattern, params)` — fill params into a pattern
 - `createBrowserHistory()` / `createMemoryHistory(initial?)` / `HistoryAdapter` — history backends
-- `DataCache` — the loader cache (`seed`, `snapshot`, `invalidate`, `load`, `prefetch`)
+- `DataCache` — the loader cache (`seed`, `invalidate`, `load`, `prefetch`, `onRevalidated`, `flushRevalidations`)
 - `buildTree(...)` — composes layouts + boundaries (used by the router)
 
 ### assets.md
@@ -21660,7 +21660,7 @@ An app-level fallback can be passed to `createApp(routes, { error })` — the `g
 `notFound` is the `not-found.tsx` equivalent. It renders when:
 
 - no route matches the URL (the app-level `createApp(routes, { notFound })` block, falling back to a built-in 404), or
-- a loader, metadata function or middleware calls `notFound()` — then the nearest segment-level block renders inside the ancestor layouts.
+- a loader or middleware calls `notFound()` — then the nearest segment-level block renders inside the ancestor layouts.
 
 ```ts
 import { notFound } from "@domphy/app"
