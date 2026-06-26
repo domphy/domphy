@@ -947,7 +947,6 @@ function contentDiv(body: DomphyElement[]): DomphyElement {
         margin: `${ts(4)} 0`,
         padding: `${ts(4)} ${ts(5)}`,
         background: bgSoft,
-        border: `1px solid ${border}`,
         borderRadius: ts(2),
         overflowX: "auto",
         fontSize: "13.5px",
@@ -957,6 +956,11 @@ function contentDiv(body: DomphyElement[]): DomphyElement {
         fontFamily: `ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace`,
         background: "none",
         padding: "0",
+      },
+      "& .code-block pre": {
+        border: "none",
+        borderRadius: "0",
+        margin: "0",
       },
       "& table": {
         borderCollapse: "collapse",
