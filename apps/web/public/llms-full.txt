@@ -3709,7 +3709,7 @@ describe("subscription", () => {
     const name = toState("Alice")
     const callback = vi.fn()
 
-    name.subscribe(callback)
+    name.addListener(callback)
     name.set("Bob")
 
     expect(callback).toHaveBeenCalledWith("Bob")
@@ -3719,7 +3719,7 @@ describe("subscription", () => {
     const count = toState(0)
     const callback = vi.fn()
 
-    count.subscribe(callback)
+    count.addListener(callback)
     count.set(0)   // same value
 
     expect(callback).not.toHaveBeenCalled()
@@ -4142,9 +4142,8 @@ import type {
   DomphyElement,   // any valid element
   Listener,        // listener callback argument
   State,           // toState return type
-  Patch,           // patch definition
+  PartialElement,  // patch return type
   ElementNode,     // DOM element wrapper
-  TextNode,        // text node wrapper
   AttributeList,   // $-attribute list
   ElementList,     // element list in element.children
 } from "@domphy/core"
