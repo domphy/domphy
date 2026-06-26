@@ -142,9 +142,9 @@ const GroupByDepartment = {
   onClick: (l) => {
     const isGrouped = grouping.get().includes("department")
     if (isGrouped) {
-      grouping.set(g => g.filter(id => id !== "department"))
+      grouping.set(grouping.get().filter(id => id !== "department"))
     } else {
-      grouping.set(g => [...g, "department"])
+      grouping.set([...grouping.get(), "department"])
     }
   },
 }

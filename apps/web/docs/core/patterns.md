@@ -79,7 +79,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 const cart = toState<CartState>({ items: [], total: 0 })
 
 function dispatch(action: CartAction) {
-  cart.set(current => cartReducer(current, action))
+  cart.set(cartReducer(cart.get(), action))
 }
 
 // Usage
@@ -135,12 +135,10 @@ function createAccordion() {
   const openItems = toState<Set<string>>(new Set())
 
   function toggleItem(id: string) {
-    openItems.set(current => {
-      const next = new Set(current)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+    const next = new Set(openItems.get())
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    openItems.set(next)
   }
 
   function Item(id: string, header: string, content: DomphyElement) {
