@@ -1218,6 +1218,408 @@ flushPendingNotifiers()
 
 Prefer `flushSync()` when you need a fully settled reactive graph. Use `flushPendingNotifiers()` when you only need one notification pass (e.g. inside a scheduler that will call it in a loop).
 
+### context.md
+
+---
+title: "Context & Shared State"
+description: "Pass data deeply without prop drilling — module-level state, scoped context objects, and top-down data flow."
+---
+
+# Context & Shared State
+
+Domphy has no built-in "context" API (no `createContext` / `useContext`). Instead:
+
+- **Module-level state** — a `State` defined at module scope is automatically shared across all components that import it.
+- **Scoped context objects** — pass a plain object down through `_mount` props or function arguments.
+- **Event bus / pub-sub** — coordinate loosely-coupled components.
+
+## Module-level state (most common)
+
+Define state at module scope; any element tree that imports it subscribes automatically:
+
+```ts
+// state/auth.ts
+import { toState } from "@domphy/core"
+
+export const currentUser = toState<{ name: string; role: string } | null>(null)
+export const setUser = (user: typeof currentUser extends { get(): infer T } ? T : never) =>
+  currentUser.set(user)
+```
+
+```ts
+// Header.ts
+import { currentUser } from "./state/auth.js"
+
+export const Header = {
+  header: [
+    { span: "Domphy" },
+    {
+      span: (l) => currentUser.get(l)?.name ?? "Guest",
+    },
+  ],
+}
+```
+
+```ts
+// LoginButton.ts
+import { setUser } from "./state/auth.js"
+
+export const LoginButton = {
+  button: "Log in",
+  onClick: () => setUser({ name: "Alice", role: "admin" }),
+}
+```
+
+Both `Header` and `LoginButton` share the same `currentUser` state — no prop threading needed. This is the idiomatic substitute for React Context.
+
+## Scoped context (passed as argument)
+
+When you want isolated instances (e.g. a reusable `FormContext` per form), pass a context object explicitly:
+
+```ts
+// form-context.ts
+import { toState } from "@domphy/core"
+
+export function createFormContext<T extends Record<string, string>>(defaults: T) {
+  const values = toState<T>(defaults)
+  const errors = toState<Partial<Record<keyof T, string>>>({})
+  return { values, errors }
+}
+```
+
+```ts
+// SignupForm.ts
+import { createFormContext } from "./form-context.js"
+
+const ctx = createFormContext({ email: "", password: "" })
+
+const EmailField = {
+  input: null,
+  type: "email",
+  value: (l) => ctx.values.get(l).email,
+  onInput: (e) => ctx.values.set((v) => ({ ...v, email: (e.target as HTMLInputElement).value })),
+}
+
+const PasswordField = {
+  input: null,
+  type: "password",
+  value: (l) => ctx.values.get(l).password,
+  onInput: (e) => ctx.values.set((v) => ({ ...v, password: (e.target as HTMLInputElement).value })),
+}
+
+export const SignupForm = {
+  form: [EmailField, PasswordField],
+}
+```
+
+Each `createFormContext()` call creates independent state — two `SignupForm` instances would have separate `ctx` objects.
+
+## Providing context via `_mount` props
+
+Pass context to a subtree by closing over it:
+
+```ts
+// ThemeContext.ts
+export interface ThemeConfig {
+  accentColor: string
+  borderRadius: string
+}
+
+export function withTheme(config: ThemeConfig) {
+  return (children: unknown[]) => ({
+    div: children,
+    style: {
+      "--accent": config.accentColor,
+      "--radius": config.borderRadius,
+    },
+  })
+}
+```
+
+```ts
+const App = withTheme({ accentColor: "#6366f1", borderRadius: "0.5rem" })([
+  Header,
+  MainContent,
+  Footer,
+])
+```
+
+## Event bus (pub/sub)
+
+For decoupled communication between independent subtrees, use a `Notifier`:
+
+```ts
+// events.ts
+import { Notifier } from "@domphy/core"
+
+interface CartEvent {
+  type: "add" | "remove"
+  productId: string
+}
+
+export const cartEvents = new Notifier<CartEvent>()
+```
+
+```ts
+// AddToCartButton.ts
+import { cartEvents } from "./events.js"
+
+export const AddToCartButton = (productId: string) => ({
+  button: "Add to cart",
+  onClick: () => cartEvents.notify({ type: "add", productId }),
+})
+```
+
+```ts
+// CartCount.ts
+import { cartEvents } from "./events.js"
+import { toState } from "@domphy/core"
+
+const count = toState(0)
+
+cartEvents.subscribe((event) => {
+  if (event.type === "add") count.set((n) => n + 1)
+  if (event.type === "remove") count.set((n) => Math.max(0, n - 1))
+})
+
+export const CartCount = {
+  span: (l) => String(count.get(l)),
+}
+```
+
+## Derived state (computed)
+
+Use `computed` to derive values from multiple sources — automatically re-evaluates when dependencies change:
+
+```ts
+import { toState, computed } from "@domphy/core"
+
+const items = toState<{ price: number; qty: number }[]>([])
+const discount = toState(0)
+
+const subtotal = computed((l) => items.get(l).reduce((s, i) => s + i.price * i.qty, 0))
+const total = computed((l) => subtotal.get(l) * (1 - discount.get(l) / 100))
+
+export const OrderSummary = {
+  div: [
+    { span: (l) => `Subtotal: $${subtotal.get(l).toFixed(2)}` },
+    { span: (l) => `Total: $${total.get(l).toFixed(2)}` },
+  ],
+}
+```
+
+`computed` is lazy: it only re-runs when a subscribed listener reads it AND a dependency has changed.
+
+## Comparing to React patterns
+
+| React | Domphy |
+|-------|--------|
+| `createContext` + `useContext` | Module-level `toState` export |
+| `Context.Provider` with value | Close over a local `createXxxContext()` object |
+| `useReducer` + `Context` | `toState` + updater functions in the same module |
+| `Redux` / `Zustand` store | Module-level `RecordState` or `toState` |
+| `useId()` | `crypto.randomUUID()` or a counter in module scope |
+| `useRef(value)` | Mutable variable in module scope or closure |
+
+### error-handling.md
+
+---
+title: "Error Handling"
+description: "Catch render errors, display fallbacks, recover from async failures, and integrate error boundaries."
+---
+
+# Error Handling
+
+## Catching errors in render functions
+
+Domphy render functions (listener callbacks) run synchronously. Wrap them in try/catch if they can throw:
+
+```ts
+import { toState } from "@domphy/core"
+
+const userData = toState<unknown>(null)
+
+const UserCard = {
+  div: (l) => {
+    try {
+      const user = userData.get(l) as { name: string }
+      return `Hello, ${user.name}`
+    } catch {
+      return "Unable to display user"
+    }
+  },
+}
+```
+
+## Error boundary patch
+
+`@domphy/ui` provides an `errorBoundary` patch that catches render errors in its subtree:
+
+```ts
+import { errorBoundary } from "@domphy/ui"
+
+const SafeWidget = {
+  div: RiskyWidget,
+  $: [errorBoundary({
+    fallback: (error) => ({
+      div: `Something went wrong: ${error.message}`,
+      style: { color: "red" },
+    }),
+    onError: (error, info) => console.error("Widget error:", error, info),
+  })],
+}
+```
+
+`errorBoundary` installs a try/catch around the subtree's render and re-mount cycle. When a child throws, the `fallback` function renders instead.
+
+## Async error handling
+
+For async operations (fetching, saving), keep error state alongside loading state:
+
+```ts
+import { toState } from "@domphy/core"
+
+interface AsyncState<T> {
+  data: T | null
+  loading: boolean
+  error: string | null
+}
+
+const post = toState<AsyncState<Post>>({ data: null, loading: false, error: null })
+
+async function loadPost(id: string) {
+  post.set((s) => ({ ...s, loading: true, error: null }))
+  try {
+    const data = await fetchPost(id)
+    post.set({ data, loading: false, error: null })
+  } catch (err) {
+    post.set((s) => ({ ...s, loading: false, error: (err as Error).message }))
+  }
+}
+
+const PostView = {
+  div: (l) => {
+    const { data, loading, error } = post.get(l)
+    if (loading) return { div: "Loading…" }
+    if (error)   return { div: error, style: { color: "red" } }
+    if (!data)   return { div: "No post" }
+    return { article: [{ h1: data.title }, { p: data.body }] }
+  },
+}
+```
+
+## Global error handler
+
+Catch unhandled promise rejections and runtime errors globally:
+
+```ts
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("Unhandled promise rejection:", event.reason)
+  showErrorToast(String(event.reason))
+})
+
+window.addEventListener("error", (event) => {
+  console.error("Global error:", event.error)
+  showErrorToast(event.message)
+})
+```
+
+## Error recovery
+
+Allow users to retry after an error with a reset mechanism:
+
+```ts
+import { toState } from "@domphy/core"
+import { button } from "@domphy/ui"
+
+const fetchState = toState<"idle" | "loading" | "error">("idle")
+const errorMessage = toState("")
+
+async function load() {
+  fetchState.set("loading")
+  try {
+    await fetchData()
+    fetchState.set("idle")
+  } catch (err) {
+    errorMessage.set((err as Error).message)
+    fetchState.set("error")
+  }
+}
+
+const Widget = {
+  div: (l) => {
+    switch (fetchState.get(l)) {
+      case "loading": return { div: "Loading…" }
+      case "error":   return {
+        div: [
+          { p: (l) => errorMessage.get(l) },
+          {
+            button: "Retry",
+            $: [button()],
+            onClick: () => load(),
+          },
+        ],
+      }
+      default: return { div: "Content loaded" }
+    }
+  },
+}
+```
+
+## Error boundaries with @domphy/query
+
+When using `@domphy/query`, set `throwOnError: true` to let query errors propagate to the nearest error boundary:
+
+```ts
+import { createQuery } from "@domphy/query/domphy"
+import { errorBoundary } from "@domphy/ui"
+
+const query = createQuery({
+  queryKey: () => ["post", id],
+  queryFn: () => fetchPost(id),
+  throwOnError: true,   // error propagates to errorBoundary
+})
+
+const SafePost = {
+  div: PostContent,
+  $: [errorBoundary({
+    fallback: (error) => ({
+      div: `Failed to load post: ${(error as Error).message}`,
+    }),
+  })],
+}
+```
+
+## Logging errors
+
+Structured error logging with context:
+
+```ts
+function logError(error: Error, context: Record<string, unknown> = {}) {
+  console.error({
+    message: error.message,
+    stack: error.stack,
+    timestamp: new Date().toISOString(),
+    ...context,
+  })
+  // send to your error tracking service
+  errorTracker?.captureException(error, { extra: context })
+}
+```
+
+Use in async handlers:
+
+```ts
+async function saveForm(data: FormData) {
+  try {
+    await api.post("/form", data)
+  } catch (err) {
+    logError(err as Error, { action: "saveForm", formId: data.id })
+    throw err   // re-throw so the caller can update UI
+  }
+}
+```
+
 ### index.md
 
 # Core
@@ -1503,6 +1905,192 @@ Best for nodes outside the app root such as `<head>` or third-party containers. 
 | Imperative insert | Toast, notification | Created on demand |
 | Reactive children | Lists from data | Created on demand |
 | DOM API in `_onMount` | Outside root — `<head>`, third-party | Unmanaged |
+
+### performance.md
+
+---
+title: "Performance"
+description: "Batch updates, computed state, granular subscriptions, lazy rendering, and avoiding unnecessary re-renders."
+---
+
+# Performance
+
+Domphy's listener model is inherently granular — only elements that call `state.get(l)` with a listener re-render when that state changes. This section covers patterns for keeping updates fast at scale.
+
+## Granular subscriptions
+
+The most important rule: **read state as deeply as possible**. An element only re-renders when the state it subscribed to changes.
+
+```ts
+// BAD — entire list re-renders when any user field changes
+const UserList = {
+  ul: (l) => users.get(l).map((user) => ({ li: user.name })),
+}
+
+// GOOD — each row subscribes independently; only the changed row re-renders
+const UserRow = (userId: string) => ({
+  li: (l) => users.get(l).find((u) => u.id === userId)?.name ?? "",
+})
+
+const UserList = {
+  ul: (l) => users.get(l).map((user) => ({
+    ...UserRow(user.id),
+    _key: user.id,
+  })),
+}
+```
+
+For lists, always provide `_key`. Without a key, Domphy cannot match old elements to new elements and must re-create everything.
+
+## Computed state
+
+Use `computed` to memoize derived values. `computed` tracks its own dependencies — it only re-runs when those specific dependencies change:
+
+```ts
+import { toState, computed } from "@domphy/core"
+
+const items = toState<Item[]>([])
+const filter = toState<"all" | "active" | "done">("all")
+
+// Only re-runs when items OR filter changes
+const filteredItems = computed((l) => {
+  const f = filter.get(l)
+  const all = items.get(l)
+  return f === "all" ? all : all.filter((i) => i.status === f)
+})
+
+const ItemCount = {
+  span: (l) => `${filteredItems.get(l).length} items`,
+}
+```
+
+Without `computed`, `ItemCount` would re-run its full filter logic on every `items` change even when `filter` hasn't changed.
+
+## Batch updates
+
+When updating multiple states in response to one event, batch them to trigger a single re-render pass:
+
+```ts
+import { batch } from "@domphy/core"
+
+function applySettings(newTheme: string, newLocale: string) {
+  batch(() => {
+    theme.set(newTheme)
+    locale.set(newLocale)
+    // ... more state changes
+  })
+  // Elements subscribed to both re-render once, not twice
+}
+```
+
+Without `batch`, each `set` triggers a separate notification cycle. For 3+ state changes in one handler, always batch.
+
+## Lazy / deferred rendering
+
+For heavy sections that are off-screen or behind a tab, defer their initial render:
+
+```ts
+import { toState } from "@domphy/core"
+
+const activeTab = toState<"overview" | "analytics" | "settings">("overview")
+const tabMounted = toState({ overview: true, analytics: false, settings: false })
+
+// Only mount a tab's content once it has been viewed
+activeTab.subscribe((tab) => {
+  tabMounted.set((m) => ({ ...m, [tab]: true }))
+})
+
+const Tabs = {
+  div: [
+    // Tab buttons
+    { div: TabBar },
+    // Tab panels — use 'hidden' rather than conditional render to preserve state
+    {
+      div: AnalyticsPanel,
+      hidden: (l) => activeTab.get(l) !== "analytics",
+      // Only mount once tabMounted.analytics is true
+      _if: (l) => tabMounted.get(l).analytics,
+    },
+  ],
+}
+```
+
+## Avoiding object allocation in render functions
+
+Creating new objects inside a render function can cause downstream listeners to re-render unnecessarily (referential inequality). For static config, define it outside the function:
+
+```ts
+// BAD — new style object on every render
+const Label = {
+  span: (l) => text.get(l),
+  style: (l) => ({ color: "blue", fontWeight: "bold" }),  // new object each time
+}
+
+// GOOD — static object defined once
+const LABEL_STYLE = { color: "blue", fontWeight: "bold" }
+
+const Label = {
+  span: (l) => text.get(l),
+  style: LABEL_STYLE,
+}
+```
+
+## `RecordState` for field-level granularity
+
+`RecordState` lets you subscribe to individual fields of an object instead of the whole object:
+
+```ts
+import { RecordState } from "@domphy/core"
+
+const form = new RecordState({ name: "", email: "", bio: "" })
+
+// Only re-renders when 'name' changes, not when 'email' or 'bio' change
+const NameField = {
+  input: null,
+  value: (l) => form.get(l, "name"),
+  onInput: (e) => form.set("name", (e.target as HTMLInputElement).value),
+}
+```
+
+vs `toState` where reading `form.get(l)` subscribes to the whole object.
+
+## Large lists — virtualization
+
+For 100+ items, render only what's visible using `@domphy/virtual`. See the [Virtual docs](/docs/virtual/).
+
+## Profiling
+
+Identify slow re-renders in the browser:
+
+1. Open DevTools → Performance tab
+2. Record while interacting
+3. Look for long "Scripting" blocks — they indicate expensive listener callbacks
+
+Or add timing in development:
+
+```ts
+import { toState } from "@domphy/core"
+
+function timedState<T>(initial: T, name: string) {
+  const state = toState(initial)
+  const original = state.set.bind(state)
+  state.set = (...args) => {
+    const t = performance.now()
+    original(...args)
+    console.debug(`${name}.set took ${(performance.now() - t).toFixed(2)}ms`)
+  }
+  return state
+}
+```
+
+## Checklist
+
+- [ ] All dynamic lists have `_key` on each item
+- [ ] Derived values use `computed` rather than re-computing in every listener
+- [ ] Multiple state updates in one handler use `batch()`
+- [ ] Off-screen / tabbed content uses `hidden` or deferred mount rather than eager rendering
+- [ ] Lists > 200 items use `@domphy/virtual`
+- [ ] `RecordState` used when only individual fields update independently
 
 ### portal.md
 
@@ -1879,6 +2467,241 @@ const field = {
 
 - Do not move ordinary form synchronization into hooks; keep it in flat event handlers such as `onInput`, `onChange`, or `onClick` so the read path and write path stay visible.
 
+### refs.md
+
+---
+title: "Refs & DOM Access"
+description: "Access DOM nodes directly using _onMount, _onRemove, and ElementNode.domElement."
+---
+
+# Refs & DOM Access
+
+Domphy does not have a `ref` API like React. Instead, use the `_onMount` and `_onRemove` lifecycle hooks to access the underlying DOM node.
+
+## `_onMount`
+
+Called after the element is inserted into the DOM. The argument is the `ElementNode` wrapper with a `.domElement` property:
+
+```ts
+import type { ElementNode } from "@domphy/core"
+
+const Canvas = {
+  canvas: null,
+  width: 400,
+  height: 300,
+  _onMount: (node: ElementNode) => {
+    const canvas = node.domElement as HTMLCanvasElement
+    const ctx = canvas.getContext("2d")!
+    ctx.fillStyle = "#6366f1"
+    ctx.fillRect(0, 0, 400, 300)
+  },
+}
+```
+
+## `_onRemove`
+
+Called before the element is removed from the DOM. Use it to clean up timers, observers, and event listeners:
+
+```ts
+let interval: ReturnType<typeof setInterval>
+
+const LiveClock = {
+  time: null,
+  _onMount: (node: ElementNode) => {
+    const el = node.domElement as HTMLTimeElement
+    interval = setInterval(() => {
+      el.textContent = new Date().toLocaleTimeString()
+    }, 1000)
+  },
+  _onRemove: () => {
+    clearInterval(interval)
+  },
+}
+```
+
+## Storing element references
+
+Close over a variable to keep a ref you can use later:
+
+```ts
+import { toState } from "@domphy/core"
+import type { ElementNode } from "@domphy/core"
+
+let inputRef: HTMLInputElement | null = null
+
+const SearchInput = {
+  input: null,
+  type: "search",
+  placeholder: "Search…",
+  _onMount: (node: ElementNode) => {
+    inputRef = node.domElement as HTMLInputElement
+  },
+  _onRemove: () => {
+    inputRef = null
+  },
+}
+
+// Programmatically focus the input
+function focusSearch() {
+  inputRef?.focus()
+}
+
+const SearchButton = {
+  button: "Focus search",
+  onClick: focusSearch,
+}
+```
+
+## `toState` as a ref
+
+Use `toState<HTMLElement | null>(null)` to make the ref reactive — useful when other elements need to observe it:
+
+```ts
+import { toState } from "@domphy/core"
+import type { ElementNode } from "@domphy/core"
+
+const anchorRef = toState<HTMLButtonElement | null>(null)
+
+const Anchor = {
+  button: "Open",
+  _onMount: (node: ElementNode) => {
+    anchorRef.set(node.domElement as HTMLButtonElement)
+  },
+  _onRemove: () => anchorRef.set(null),
+}
+
+const Popover = {
+  div: "Popover content",
+  // Position relative to the anchor
+  style: (l) => {
+    const anchor = anchorRef.get(l)
+    if (!anchor) return { display: "none" }
+    const rect = anchor.getBoundingClientRect()
+    return {
+      position: "fixed",
+      top: `${rect.bottom + 8}px`,
+      left: `${rect.left}px`,
+    }
+  },
+}
+```
+
+## Wiring third-party libraries
+
+`_onMount` is the right place to integrate any library that requires a DOM node:
+
+```ts
+// Chart.js integration
+import { Chart } from "chart.js/auto"
+
+let chart: Chart | null = null
+
+const ChartCanvas = {
+  canvas: null,
+  _onMount: (node: ElementNode) => {
+    chart = new Chart(node.domElement as HTMLCanvasElement, {
+      type: "bar",
+      data: { labels: ["A", "B", "C"], datasets: [{ data: [1, 2, 3] }] },
+    })
+  },
+  _onRemove: () => {
+    chart?.destroy()
+    chart = null
+  },
+}
+```
+
+## Forwarding refs to child elements
+
+When a component needs to expose a DOM ref to its parent, accept a callback:
+
+```ts
+import type { ElementNode } from "@domphy/core"
+
+interface InputProps {
+  placeholder?: string
+  onRef?: (el: HTMLInputElement | null) => void
+}
+
+function Input({ placeholder, onRef }: InputProps) {
+  return {
+    input: null,
+    type: "text",
+    placeholder: placeholder ?? "",
+    _onMount: (node: ElementNode) => onRef?.(node.domElement as HTMLInputElement),
+    _onRemove: () => onRef?.(null),
+  }
+}
+
+// Usage: parent gets the DOM element
+let ref: HTMLInputElement | null = null
+const field = Input({ placeholder: "Name", onRef: (el) => { ref = el } })
+```
+
+## ResizeObserver
+
+Observe size changes without polling:
+
+```ts
+import { toState } from "@domphy/core"
+
+const width = toState(0)
+let observer: ResizeObserver | null = null
+
+const ResponsiveBox = {
+  div: (l) => `Width: ${width.get(l)}px`,
+  _onMount: (node) => {
+    observer = new ResizeObserver(([entry]) => {
+      width.set(Math.round(entry.contentRect.width))
+    })
+    observer.observe(node.domElement)
+  },
+  _onRemove: () => {
+    observer?.disconnect()
+    observer = null
+  },
+}
+```
+
+## IntersectionObserver
+
+Trigger lazy loading or animations when an element enters the viewport:
+
+```ts
+import { toState } from "@domphy/core"
+
+function lazyLoad(src: string) {
+  const visible = toState(false)
+  let observer: IntersectionObserver | null = null
+
+  return {
+    img: null,
+    src: (l) => visible.get(l) ? src : "",
+    alt: "lazy image",
+    _onMount: (node) => {
+      observer = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) {
+          visible.set(true)
+          observer?.disconnect()
+        }
+      }, { rootMargin: "200px" })
+      observer.observe(node.domElement)
+    },
+    _onRemove: () => observer?.disconnect(),
+  }
+}
+```
+
+## Comparing to React
+
+| React | Domphy |
+|-------|--------|
+| `useRef<T>(null)` → `ref.current` | `let ref: T \| null = null` closed over in `_onMount` |
+| `ref={myRef}` on JSX | `_onMount: (node) => { ref = node.domElement }` |
+| `useCallback` ref | Callback passed as prop, called in `_onMount` |
+| `useImperativeHandle` | Return an object with methods from a function, close over DOM ref |
+| `forwardRef` | Accept `onRef` callback as prop |
+
 ### ssr.md
 
 # SSR
@@ -2207,6 +3030,515 @@ const App = {
 | `$` | Patch list |
 | `_key`, `_context`, `_metadata`, `_portal` | Reserved internal keys |
 
+### testing.md
+
+---
+title: "Testing"
+description: "Unit-test Domphy element trees, reactive state, and patches with Vitest and jsdom."
+---
+
+# Testing
+
+## Setup
+
+Domphy UIs are plain objects — most logic can be unit-tested with Vitest without a browser:
+
+```bash
+npm install -D vitest jsdom
+```
+
+```ts
+// vitest.config.ts
+import { defineConfig } from "vitest/config"
+
+export default defineConfig({
+  test: {
+    environment: "jsdom",
+  },
+})
+```
+
+## Testing state
+
+`State` is a plain class — no mocking required:
+
+```ts
+import { describe, expect, it } from "vitest"
+import { toState, computed } from "@domphy/core"
+
+describe("counter state", () => {
+  it("increments", () => {
+    const count = toState(0)
+    count.set((n) => n + 1)
+    expect(count.get()).toBe(1)
+  })
+
+  it("computed re-derives on dependency change", () => {
+    const a = toState(2)
+    const b = toState(3)
+    const sum = computed(() => a.get() + b.get())
+
+    expect(sum.get()).toBe(5)
+    a.set(10)
+    expect(sum.get()).toBe(13)
+  })
+})
+```
+
+Note: calling `state.get()` without a listener returns the current value without subscribing.
+
+## Testing reactive subscriptions
+
+```ts
+import { describe, expect, it, vi } from "vitest"
+import { toState } from "@domphy/core"
+
+describe("subscription", () => {
+  it("notifies on change", () => {
+    const name = toState("Alice")
+    const callback = vi.fn()
+
+    name.subscribe(callback)
+    name.set("Bob")
+
+    expect(callback).toHaveBeenCalledWith("Bob")
+  })
+
+  it("does not notify if value unchanged", () => {
+    const count = toState(0)
+    const callback = vi.fn()
+
+    count.subscribe(callback)
+    count.set(0)   // same value
+
+    expect(callback).not.toHaveBeenCalled()
+  })
+})
+```
+
+## Testing element trees
+
+Mount an element tree into a real DOM node and assert the output:
+
+```ts
+import { describe, expect, it, beforeEach, afterEach } from "vitest"
+import { toState } from "@domphy/core"
+import { ElementNode } from "@domphy/core"
+
+// Helper to mount a Domphy element and return the DOM node
+function mount(element: unknown): HTMLElement {
+  const container = document.createElement("div")
+  const node = new ElementNode(element)
+  container.appendChild(node.domElement)
+  return container
+}
+
+describe("Counter component", () => {
+  it("renders initial count", () => {
+    const count = toState(0)
+    const Counter = { span: (l) => String(count.get(l)) }
+    const dom = mount(Counter)
+    expect(dom.querySelector("span")?.textContent).toBe("0")
+  })
+
+  it("updates DOM when state changes", async () => {
+    const count = toState(0)
+    const Counter = { span: (l) => String(count.get(l)) }
+    const dom = mount(Counter)
+
+    count.set(5)
+    await Promise.resolve()   // flush microtask queue
+
+    expect(dom.querySelector("span")?.textContent).toBe("5")
+  })
+})
+```
+
+## Testing user interactions
+
+Simulate DOM events on mounted elements:
+
+```ts
+import { describe, expect, it } from "vitest"
+import { toState } from "@domphy/core"
+import { ElementNode } from "@domphy/core"
+
+describe("input field", () => {
+  it("updates state on input", async () => {
+    const value = toState("")
+    const Input = {
+      input: null,
+      type: "text",
+      value: (l) => value.get(l),
+      onInput: (e: Event) => value.set((e.target as HTMLInputElement).value),
+    }
+
+    const container = document.createElement("div")
+    const node = new ElementNode(Input)
+    container.appendChild(node.domElement)
+
+    const input = container.querySelector("input") as HTMLInputElement
+    input.value = "hello"
+    input.dispatchEvent(new Event("input"))
+
+    expect(value.get()).toBe("hello")
+  })
+})
+```
+
+## Testing async state
+
+```ts
+import { describe, expect, it, vi } from "vitest"
+import { toState } from "@domphy/core"
+
+describe("async data loading", () => {
+  it("transitions through loading → success", async () => {
+    const state = toState<{ data: string | null; loading: boolean }>({
+      data: null, loading: false,
+    })
+
+    const fetchData = vi.fn().mockResolvedValue("Hello")
+
+    async function load() {
+      state.set((s) => ({ ...s, loading: true }))
+      const data = await fetchData()
+      state.set({ data, loading: false })
+    }
+
+    const loadPromise = load()
+    expect(state.get().loading).toBe(true)
+    expect(state.get().data).toBe(null)
+
+    await loadPromise
+    expect(state.get().loading).toBe(false)
+    expect(state.get().data).toBe("Hello")
+  })
+})
+```
+
+## Testing patches
+
+```ts
+import { describe, expect, it } from "vitest"
+import { ElementNode } from "@domphy/core"
+import { tooltip } from "./tooltip.js"
+
+describe("tooltip patch", () => {
+  it("sets title attribute", () => {
+    const el = { span: "hover me", $: [tooltip({ text: "A tooltip" })] }
+    const node = new ElementNode(el)
+    expect((node.domElement as HTMLSpanElement).title).toBe("A tooltip")
+  })
+})
+```
+
+## Testing CSS output
+
+Check that a Domphy element generates the expected CSS:
+
+```ts
+import { describe, expect, it } from "vitest"
+import { ElementNode } from "@domphy/core"
+import { button } from "@domphy/ui"
+
+describe("button patch CSS", () => {
+  it("generates height CSS variable", () => {
+    const el = { button: "Click", $: [button()] }
+    const node = new ElementNode(el)
+    const css = node.generateCSS()
+    expect(css).toContain("height")
+  })
+})
+```
+
+## Testing `@domphy/press` pages
+
+The press pipeline exports `renderDoc` which runs entirely in Node — no browser needed:
+
+```ts
+import { describe, expect, it } from "vitest"
+import { renderDoc } from "@domphy/press"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+
+describe("docs rendering", () => {
+  it("extracts title from H1", async () => {
+    const result = await renderDoc("# My Page\n\nContent.", {
+      filePath: join(tmpdir(), "test.md"),
+      docsDir: tmpdir(),
+      repoRoot: tmpdir(),
+      highlight: (code) => code,
+    })
+    expect(result.title).toBe("My Page")
+  })
+})
+```
+
+## Test organization
+
+```
+src/
+  components/
+    Counter.ts
+    Counter.test.ts     ← unit test for Counter
+  state/
+    cart.ts
+    cart.test.ts        ← unit test for cart state
+tests/
+  integration/
+    checkout.test.ts    ← end-to-end flow test
+```
+
+Keep state tests separate from component tests — state tests are the cheapest and fastest; run them first.
+
+### typescript.md
+
+---
+title: "TypeScript"
+description: "Typing Domphy elements, state, patches, event handlers, and components."
+---
+
+# TypeScript
+
+Domphy is written in TypeScript and ships full type definitions. This page covers patterns for getting full type safety in UI code.
+
+## Element types
+
+```ts
+import type { DomphyElement } from "@domphy/core"
+
+// A function returning a Domphy element
+function heading(text: string): DomphyElement {
+  return { h1: text }
+}
+
+// A plain element — no function wrapper needed for static content
+const footer: DomphyElement = { footer: "© 2025 Acme" }
+```
+
+`DomphyElement` is the union of all valid element shapes:
+- `{ tag: content }` — element with tag as key
+- `string | number | boolean` — text node
+- `DomphyElement[]` — array of elements
+- `null | undefined` — renders nothing
+
+## Typing state
+
+```ts
+import { toState, RecordState } from "@domphy/core"
+
+// Simple state
+const count = toState<number>(0)   // State<number>
+const user = toState<User | null>(null)   // State<User | null>
+
+// Record state — typed fields
+interface FormData {
+  name: string
+  email: string
+  age: number
+}
+
+const form = new RecordState<FormData>({ name: "", email: "", age: 0 })
+// form.get(l, "name") → string
+// form.set("age", 25) — type-checked
+```
+
+## Typing listener callbacks
+
+Listener functions receive a `Listener` parameter:
+
+```ts
+import type { Listener } from "@domphy/core"
+
+function renderCount(l: Listener): string {
+  return `Count: ${count.get(l)}`
+}
+
+const Counter = {
+  span: (l: Listener) => renderCount(l),
+}
+```
+
+In practice, TypeScript infers the `Listener` type from context — explicit annotation is only needed for extracted functions.
+
+## Typing event handlers
+
+DOM event handlers are typed as `(event: Event) => void`. For specific event types, cast `event.target`:
+
+```ts
+const Input = {
+  input: null,
+  type: "text",
+  value: (l) => name.get(l),
+  onInput: (event: Event) => {
+    const target = event.target as HTMLInputElement
+    name.set(target.value)
+  },
+  onKeyDown: (event: KeyboardEvent) => {
+    if (event.key === "Enter") submit()
+  },
+}
+```
+
+## Typing patches
+
+When creating custom patches, type the `Patch` interface:
+
+```ts
+import type { Patch, ElementNode } from "@domphy/core"
+
+interface TooltipOptions {
+  text: string
+  placement?: "top" | "bottom" | "left" | "right"
+}
+
+function tooltip(options: TooltipOptions): Patch {
+  return {
+    apply(node: ElementNode) {
+      node.domElement.title = options.text
+      // ... position logic
+    },
+    destroy(node: ElementNode) {
+      node.domElement.title = ""
+    },
+  }
+}
+```
+
+## Typing components
+
+Components are just functions that return `DomphyElement`. Type their props explicitly:
+
+```ts
+import type { DomphyElement } from "@domphy/core"
+
+interface CardProps {
+  title: string
+  body: string
+  action?: DomphyElement
+}
+
+function Card({ title, body, action }: CardProps): DomphyElement {
+  return {
+    article: [
+      { h2: title },
+      { p: body },
+      ...(action ? [action] : []),
+    ],
+  }
+}
+
+const MyCard = Card({
+  title: "Hello",
+  body: "World",
+  action: { button: "Click me" },
+})
+```
+
+## Generic state utilities
+
+```ts
+import { toState, computed } from "@domphy/core"
+import type { State, Listener } from "@domphy/core"
+
+// Generic async state pattern
+interface AsyncState<T> {
+  data: T | null
+  loading: boolean
+  error: string | null
+}
+
+function createAsyncState<T>(initial: T | null = null): State<AsyncState<T>> {
+  return toState<AsyncState<T>>({ data: initial, loading: false, error: null })
+}
+
+// Generic selector
+function select<T, R>(state: State<T>, fn: (value: T, l: Listener) => R): (l: Listener) => R {
+  return (l: Listener) => fn(state.get(l), l)
+}
+
+const userName = select(user, (u) => u?.name ?? "Guest")
+
+const Header = {
+  span: (l) => userName(l),   // (l: Listener) => string
+}
+```
+
+## Typing @domphy/ui patches
+
+UI patches are typed — TypeScript will catch invalid prop values:
+
+```ts
+import { button, inputText, label } from "@domphy/ui"
+import type { Tone, Size, Density } from "@domphy/theme"
+
+// Type-safe tone/size/density
+const btn = button({
+  tone: "shift-1",     // ✓
+  size: 3,             // ✓
+  density: 5,          // ✗ Error: density max is 4
+})
+```
+
+## Path types for @domphy/form
+
+Form field names are typed with `DeepKeys`:
+
+```ts
+import { createForm } from "@domphy/form/domphy"
+import type { DeepKeys } from "@domphy/form"
+
+interface UserForm {
+  profile: { name: string; bio: string }
+  notifications: { email: boolean; sms: boolean }
+}
+
+const form = createForm<UserForm>({
+  defaultValues: {
+    profile: { name: "", bio: "" },
+    notifications: { email: true, sms: false },
+  },
+  onSubmit: ({ value }) => save(value),
+})
+
+// DeepKeys<UserForm> = "profile" | "notifications" | "profile.name" | "profile.bio" | "notifications.email" | "notifications.sms"
+const nameField = form.field<string>("profile.name", {})   // ✓
+const badField  = form.field<string>("profile.age", {})    // ✗ Error: not a valid key
+```
+
+## Strict mode
+
+Enable strict TypeScript for the strongest guarantees:
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true
+  }
+}
+```
+
+With `strict: true`, Domphy's listener callbacks will correctly require handling `T | undefined` when indexing arrays.
+
+## Type utilities
+
+```ts
+import type {
+  DomphyElement,   // any valid element
+  Listener,        // listener callback argument
+  State,           // toState return type
+  Patch,           // patch definition
+  ElementNode,     // DOM element wrapper
+  TextNode,        // text node wrapper
+  AttributeList,   // $-attribute list
+  ElementList,     // element list in element.children
+} from "@domphy/core"
+```
+
 
 
 ---
@@ -2414,6 +3746,259 @@ Main mental model:
 3. [Size](./size) for sizing and density rules
 4. [API](./api) for the full function reference
 
+### motion.md
+
+---
+title: "Motion & Animation"
+description: "CSS transitions, keyframe animations, spring physics, and coordinating animated state changes."
+---
+
+# Motion & Animation
+
+## CSS transitions
+
+The simplest animations — use `transition` on any element:
+
+```ts
+import { toState } from "@domphy/core"
+
+const open = toState(false)
+
+const Drawer = {
+  div: "Drawer content",
+  style: (l) => ({
+    transform: open.get(l) ? "translateX(0)" : "translateX(-100%)",
+    transition: "transform 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+  }),
+}
+```
+
+For Domphy UI components, the `motion` patch applies theme-consistent transitions:
+
+```ts
+import { motion } from "@domphy/ui"
+
+const Card = {
+  div: "Content",
+  $: [motion({ duration: "fast", easing: "standard" })],
+}
+```
+
+## Theme motion tokens
+
+Use `themeMotion` to access the theme's timing and easing tokens instead of hardcoded values:
+
+```ts
+import { themeMotion } from "@domphy/theme"
+
+const AnimatedBadge = {
+  span: "New",
+  style: {
+    transition: `
+      opacity ${themeMotion("duration-fast")} ${themeMotion("easing-standard")},
+      transform ${themeMotion("duration-medium")} ${themeMotion("easing-decelerate")}
+    `,
+  },
+}
+```
+
+**Duration tokens:**
+
+| Token | Value |
+|-------|-------|
+| `duration-instant` | 50ms |
+| `duration-fast` | 100ms |
+| `duration-medium` | 200ms |
+| `duration-slow` | 300ms |
+| `duration-slower` | 500ms |
+
+**Easing tokens (Material Design 3 compliant):**
+
+| Token | Curve | Use for |
+|-------|-------|---------|
+| `easing-standard` | cubic-bezier(0.2, 0, 0, 1) | General UI changes |
+| `easing-decelerate` | cubic-bezier(0, 0, 0, 1) | Elements entering |
+| `easing-accelerate` | cubic-bezier(0.3, 0, 1, 1) | Elements leaving |
+| `easing-linear` | linear | Continuous progress |
+
+## Keyframe animations
+
+Define keyframes in a `<style>` tag in your HTML template (or inject via `@domphy/app` head config):
+
+```ts
+// In press.config.ts or app head
+const head = [
+  `<style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>`,
+]
+```
+
+Apply via `animation` style:
+
+```ts
+const Toast = {
+  div: "Saved!",
+  style: {
+    animation: "fadeIn 200ms cubic-bezier(0, 0, 0, 1) both",
+  },
+}
+
+const Spinner = {
+  div: null,
+  style: {
+    width: "20px",
+    height: "20px",
+    border: "2px solid currentColor",
+    borderTopColor: "transparent",
+    borderRadius: "50%",
+    animation: "spin 600ms linear infinite",
+  },
+}
+```
+
+## Animate on state change
+
+Trigger animations by adding/removing a CSS class reactively:
+
+```ts
+import { toState } from "@domphy/core"
+
+const animating = toState(false)
+
+function triggerAnimation() {
+  animating.set(true)
+  setTimeout(() => animating.set(false), 300)   // reset after animation
+}
+
+const Notification = {
+  div: "Alert!",
+  class: (l) => animating.get(l) ? "shake" : "",
+  // CSS: .shake { animation: shake 300ms ease-in-out; }
+}
+```
+
+## View Transitions API
+
+Smooth cross-page transitions with the browser's View Transitions API:
+
+```ts
+import { toState } from "@domphy/core"
+
+const route = toState("/home")
+
+function navigate(to: string) {
+  if (!document.startViewTransition) {
+    route.set(to)
+    return
+  }
+  document.startViewTransition(() => {
+    route.set(to)
+  })
+}
+```
+
+Assign `view-transition-name` to elements that should animate between pages:
+
+```ts
+const Hero = {
+  img: null,
+  src: "/hero.jpg",
+  style: { viewTransitionName: "hero-image" },
+}
+```
+
+## List enter/exit animations
+
+Animate list items when they're added or removed using `@domphy/dnd`'s `animations` plugin or pure CSS:
+
+```ts
+// Pure CSS approach — items fade in on creation
+const ItemList = {
+  ul: (l) => items.get(l).map((item) => ({
+    li: item.text,
+    _key: item.id,
+    style: { animation: "fadeIn 150ms ease both" },
+  })),
+}
+```
+
+For exit animations, you need to delay removal until the animation completes:
+
+```ts
+import { toState } from "@domphy/core"
+
+const removingIds = toState<Set<string>>(new Set())
+
+function removeItem(id: string) {
+  removingIds.set((s) => new Set([...s, id]))
+  setTimeout(() => {
+    items.set((list) => list.filter((i) => i.id !== id))
+    removingIds.set((s) => { const next = new Set(s); next.delete(id); return next })
+  }, 200)   // match animation duration
+}
+
+const ItemList = {
+  ul: (l) => items.get(l).map((item) => ({
+    li: item.text,
+    _key: item.id,
+    class: (l) => removingIds.get(l).has(item.id) ? "fade-out" : "fade-in",
+  })),
+}
+```
+
+## Reduced motion
+
+Always respect the user's motion preference:
+
+```ts
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+const AnimatedElement = {
+  div: "Content",
+  style: {
+    transition: prefersReducedMotion
+      ? "none"
+      : `transform 250ms ${themeMotion("easing-standard")}`,
+  },
+}
+```
+
+Or in CSS (preferred — automatically applies to all elements):
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+## Loading skeleton animation
+
+Pulse animation for skeleton loaders while data loads:
+
+```ts
+import { skeleton } from "@domphy/ui"
+
+const LoadingCard = {
+  div: [
+    { div: null, $: [skeleton()], style: { height: "20px", width: "60%" } },
+    { div: null, $: [skeleton()], style: { height: "14px", marginTop: "8px" } },
+    { div: null, $: [skeleton()], style: { height: "14px", width: "80%", marginTop: "4px" } },
+  ],
+}
+```
+
+`skeleton()` applies a shimmer animation using the theme's neutral color scale.
+
 ### palette.md
 
 # Palette
@@ -2494,6 +4079,239 @@ themeApply()
 ```
 
 See [Setup → Register A Custom Theme](./setup#register-a-custom-theme) for the full example.
+
+### responsive.md
+
+---
+title: "Responsive Design"
+description: "Breakpoints, container queries, adaptive layouts, and viewport-aware state."
+---
+
+# Responsive Design
+
+## CSS breakpoints
+
+Domphy has no JavaScript breakpoint API — use standard CSS media queries directly in `style` objects or `<style>` tags:
+
+```ts
+// Inline style with CSS string for media queries
+const Layout = {
+  div: [Sidebar, Content],
+  style: `
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+
+    @media (min-width: 768px) {
+      grid-template-columns: 240px 1fr;
+    }
+    @media (min-width: 1280px) {
+      grid-template-columns: 280px 1fr 240px;
+    }
+  `,
+}
+```
+
+**Standard breakpoints (Material Design 3 / Bootstrap aligned):**
+
+| Name | Width | Typical target |
+|------|-------|----------------|
+| `sm` | ≥ 480px | Large phones |
+| `md` | ≥ 768px | Tablets |
+| `lg` | ≥ 1024px | Small desktops |
+| `xl` | ≥ 1280px | Desktops |
+| `2xl` | ≥ 1536px | Large monitors |
+
+## Reactive breakpoints with `matchMedia`
+
+For JavaScript-driven layout changes (e.g. mounting different components on mobile vs desktop), observe `matchMedia`:
+
+```ts
+import { toState } from "@domphy/core"
+
+const isMobile = toState(window.matchMedia("(max-width: 767px)").matches)
+
+const mql = window.matchMedia("(max-width: 767px)")
+mql.addEventListener("change", (e) => isMobile.set(e.matches))
+
+// Use in components
+const Navigation = {
+  nav: (l) => isMobile.get(l) ? MobileNav : DesktopNav,
+}
+```
+
+## Utility: `createBreakpoint`
+
+Create a reusable reactive breakpoint helper:
+
+```ts
+import { toState } from "@domphy/core"
+
+function createBreakpoint(query: string) {
+  const state = toState(window.matchMedia(query).matches)
+  const mql = window.matchMedia(query)
+  mql.addEventListener("change", (e) => state.set(e.matches))
+  return state
+}
+
+const isMd = createBreakpoint("(min-width: 768px)")
+const isLg = createBreakpoint("(min-width: 1024px)")
+const isDark = createBreakpoint("(prefers-color-scheme: dark)")
+
+const Header = {
+  header: (l) => isLg.get(l) ? FullHeader : CompactHeader,
+}
+```
+
+## Container queries
+
+Container queries respond to the container's width rather than the viewport — ideal for reusable components:
+
+```ts
+// Define a container
+const Card = {
+  div: CardContent,
+  style: {
+    containerType: "inline-size",
+    containerName: "card",
+  },
+}
+```
+
+```css
+/* CSS for responsive card layout */
+.card-content { display: block; }
+
+@container card (min-width: 400px) {
+  .card-content {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+  }
+}
+```
+
+## Adaptive navigation
+
+Mobile-first navigation pattern — collapse to a hamburger on small screens:
+
+```ts
+import { toState } from "@domphy/core"
+import { button } from "@domphy/ui"
+
+const menuOpen = toState(false)
+
+const MobileMenuButton = {
+  button: (l) => menuOpen.get(l) ? "✕" : "☰",
+  $: [button()],
+  onClick: () => menuOpen.set((v) => !v),
+  style: { display: "none", "@media(max-width:767px)": { display: "flex" } },
+}
+
+const NavLinks = {
+  ul: [
+    { li: { a: "Home", href: "/" } },
+    { li: { a: "Docs", href: "/docs" } },
+  ],
+  style: (l) => ({
+    display: menuOpen.get(l) ? "flex" : "none",
+    "@media(min-width:768px)": { display: "flex" },
+    flexDirection: "column",
+    "@media(min-width:768px)": { flexDirection: "row" },
+  }),
+}
+```
+
+## Adaptive images
+
+Use `srcset` and `sizes` for responsive images — no JavaScript needed:
+
+```ts
+const HeroImage = {
+  img: null,
+  src: "/hero-800.jpg",
+  srcset: "/hero-400.jpg 400w, /hero-800.jpg 800w, /hero-1600.jpg 1600w",
+  sizes: "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 800px",
+  alt: "Hero",
+  loading: "lazy",
+  style: { width: "100%", height: "auto" },
+}
+```
+
+## Hiding elements on mobile/desktop
+
+Use `hidden` reactively:
+
+```ts
+const DesktopSidebar = {
+  aside: SidebarContent,
+  hidden: (l) => !isLg.get(l),
+}
+
+const MobileDrawer = {
+  div: SidebarContent,
+  hidden: (l) => isLg.get(l),
+}
+```
+
+Or pure CSS:
+
+```ts
+const DesktopOnlyColumn = {
+  div: Content,
+  style: { "@media(max-width:767px)": { display: "none" } },
+}
+```
+
+## Fluid spacing
+
+Scale padding/margins with viewport width using `clamp()`:
+
+```ts
+const Section = {
+  section: Content,
+  style: {
+    padding: "clamp(1rem, 5vw, 4rem)",   // 16px → 64px as viewport grows
+  },
+}
+```
+
+## Dark mode
+
+Respond to the user's system preference:
+
+```ts
+const prefersDark = createBreakpoint("(prefers-color-scheme: dark)")
+
+// Apply theme based on system preference (if user hasn't manually set one)
+prefersDark.subscribe((dark) => {
+  const saved = localStorage.getItem("dp-theme")
+  if (!saved) {
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light")
+  }
+})
+```
+
+Or let the `RUNTIME_SCRIPT` handle it — the script in `@domphy/press` (and `apps/web/html-template.ts`) reads `localStorage` and applies the saved theme on first load.
+
+## SSR considerations
+
+`window.matchMedia` is not available in Node.js. Guard breakpoint code:
+
+```ts
+const isClient = typeof window !== "undefined"
+
+const isMobile = toState(
+  isClient ? window.matchMedia("(max-width: 767px)").matches : false
+)
+
+if (isClient) {
+  const mql = window.matchMedia("(max-width: 767px)")
+  mql.addEventListener("change", (e) => isMobile.set(e.matches))
+}
+```
+
+With `@domphy/app` SSR, breakpoints should be resolved client-side via hydration — avoid rendering different HTML on server vs client to prevent hydration mismatches.
 
 ### setup.md
 
@@ -3112,6 +4930,246 @@ Prefer `dataTone` over changing container colors manually.
 ```
 
 Use `dataTheme` only when you truly want a different theme, not just a darker or lighter local surface.
+
+### typography.md
+
+---
+title: "Typography"
+description: "Type scale, font tokens, responsive text, fluid sizing, and pairing with the theme tone system."
+---
+
+# Typography
+
+## Type scale
+
+Domphy theme includes an 8-step type scale (size 0–7, matching `@domphy/theme`'s size system):
+
+| Step | Default | Use case |
+|------|---------|----------|
+| 0 | 11px | Captions, legal text, badges |
+| 1 | 12px | Helper text, timestamps |
+| 2 | 14px | Body text (small) |
+| **3** | **16px** | **Body text (default)** |
+| 4 | 18px | Lead text, secondary headings |
+| 5 | 20px | H3, section headers |
+| 6 | 24px | H2, card titles |
+| 7 | 32px | H1, page titles |
+
+Access via `themeSize`:
+
+```ts
+import { themeSize } from "@domphy/theme"
+
+const Caption = {
+  span: "Posted 3 days ago",
+  style: { fontSize: themeSize(1) },   // "12px" (or rem equivalent)
+}
+```
+
+## Font tokens
+
+Override the theme's font stack at any scope:
+
+```ts
+import { themeApply } from "@domphy/theme"
+
+// Global font setup (in app root)
+document.documentElement.style.setProperty("--font-sans", "'Inter', system-ui, sans-serif")
+document.documentElement.style.setProperty("--font-mono", "'JetBrains Mono', monospace")
+```
+
+Or via theme configuration:
+
+```ts
+import { themeApply } from "@domphy/theme"
+
+themeApply(document.documentElement, {
+  fontSans: "'Inter', system-ui, sans-serif",
+  fontMono: "'JetBrains Mono', monospace",
+  fontSerif: "'Lora', Georgia, serif",
+})
+```
+
+In elements, reference font tokens:
+
+```ts
+const MonoText = {
+  code: "const x = 1",
+  style: { fontFamily: "var(--font-mono)" },
+}
+```
+
+## Typography patch
+
+Apply the full typography treatment (size + weight + line-height + color) with the `typography` patch:
+
+```ts
+import { typography } from "@domphy/ui"
+
+const Article = {
+  article: [
+    { h1: "Title", $: [typography({ size: 7, weight: "bold" })] },
+    { p: "Body text.", $: [typography({ size: 3 })] },
+    { small: "Caption", $: [typography({ size: 1, tone: "shift-3" })] },
+  ],
+}
+```
+
+## Responsive text
+
+Scale text size based on viewport width using CSS `clamp()`:
+
+```ts
+const Hero = {
+  h1: "Welcome",
+  style: {
+    // Scales from 24px at 320px viewport to 48px at 1280px
+    fontSize: "clamp(1.5rem, 3vw + 0.5rem, 3rem)",
+    lineHeight: "1.1",
+  },
+}
+```
+
+Or define size steps per breakpoint with CSS media queries in a `<style>` block:
+
+```css
+h1 { font-size: 1.75rem; }
+@media (min-width: 768px) { h1 { font-size: 2.25rem; } }
+@media (min-width: 1280px) { h1 { font-size: 3rem; } }
+```
+
+## Line height
+
+Line height affects readability. Theme defaults:
+
+| Use | Line height |
+|-----|------------|
+| Headings (tight) | 1.1–1.2 |
+| Body text | 1.5–1.6 |
+| Dense UI (captions, labels) | 1.25 |
+| Code | 1.75 |
+
+```ts
+const Body = {
+  p: "Readable paragraph text.",
+  style: {
+    fontSize: themeSize(3),
+    lineHeight: "1.6",
+  },
+}
+```
+
+## Font weight
+
+```ts
+const weights = {
+  thin:       100,
+  extralight: 200,
+  light:      300,
+  regular:    400,   // body
+  medium:     500,   // labels, buttons
+  semibold:   600,   // subheadings
+  bold:       700,   // headings
+  extrabold:  800,
+  black:      900,
+}
+
+const Heading = {
+  h2: "Section",
+  style: { fontWeight: weights.semibold },
+}
+```
+
+## Prose / content regions
+
+For user-generated or markdown-rendered content, apply the `paragraph` patch to set consistent spacing and line-height across all text elements:
+
+```ts
+import { paragraph } from "@domphy/ui"
+
+const Content = {
+  article: markdownBody,   // rendered markdown elements
+  $: [paragraph()],        // applies body typography to all text children
+}
+```
+
+## Vertical rhythm
+
+Consistent spacing between text blocks using `themeSpacing`:
+
+```ts
+import { themeSpacing } from "@domphy/theme"
+
+const TextBlock = {
+  div: [
+    { h2: "Section Title" },
+    { p: "First paragraph." },
+    { p: "Second paragraph." },
+  ],
+  style: {
+    "& h2": { marginBottom: themeSpacing(2) },
+    "& p + p": { marginTop: themeSpacing(3) },
+  },
+}
+```
+
+## Letter spacing
+
+Fine-tune tracking for display text or all-caps labels:
+
+```ts
+const Eyebrow = {
+  span: "CATEGORY",
+  style: {
+    fontSize: themeSize(0),
+    fontWeight: 600,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+  },
+}
+```
+
+## Font loading
+
+Preload critical fonts in your HTML head for zero-layout-shift:
+
+```ts
+// In press.config.ts or app head config
+const head = [
+  `<link rel="preconnect" href="https://fonts.googleapis.com">`,
+  `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`,
+  `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">`,
+]
+```
+
+Or self-host with `@font-face`:
+
+```css
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-var.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+```
+
+## Pairing with tone
+
+Text color inherits from the tone system — use `themeColor` for accessible text:
+
+```ts
+import { themeColor } from "@domphy/theme"
+
+const Muted = {
+  span: "Secondary info",
+  style: {
+    color: themeColor("neutral", 6),   // tone-shifted neutral text
+    fontSize: themeSize(2),
+  },
+}
+```
+
+See the [Tone guide](/docs/theme/tone) for the full color-role model.
 
 
 
@@ -3959,6 +6017,257 @@ new MutationObserver(queryClient, {
 })
 ```
 
+### parallel.md
+
+---
+title: "Parallel & Dependent Queries"
+description: "Run multiple queries concurrently, chain dependent queries, and combine results."
+---
+
+# Parallel & Dependent Queries
+
+## Parallel queries
+
+Run multiple independent queries simultaneously — all start at the same time:
+
+```ts
+import { createQuery } from "@domphy/query/domphy"
+
+// These two queries fire in parallel
+const user    = createQuery({ queryKey: () => ["user", userId],  queryFn: () => fetchUser(userId) })
+const profile = createQuery({ queryKey: () => ["profile", userId], queryFn: () => fetchProfile(userId) })
+
+const Dashboard = {
+  div: (l) => {
+    const u = user.data(l)
+    const p = profile.data(l)
+    if (user.isPending(l) || profile.isPending(l)) return { div: "Loading…" }
+    return {
+      div: [
+        { h1: u?.name ?? "" },
+        { p: p?.bio ?? "" },
+      ],
+    }
+  },
+}
+```
+
+## `createQueries` — dynamic parallel queries
+
+When the number of queries is dynamic (e.g. one query per item in a list):
+
+```ts
+import { createQueries } from "@domphy/query/domphy"
+
+const repoIds = toState<string[]>(["react", "vue", "svelte"])
+
+// Creates one query per repo id — automatically added/removed as ids change
+const repoQueries = createQueries((l) =>
+  repoIds.get(l).map((id) => ({
+    queryKey: ["repo", id],
+    queryFn: () => fetchRepo(id),
+  }))
+)
+
+const RepoList = {
+  ul: (l) => repoQueries(l).map((q, i) => ({
+    _key: i,
+    li: q.isPending ? "Loading…" : q.data?.fullName ?? "",
+  })),
+}
+```
+
+`createQueries` takes a reactive function returning a query array. Queries are keyed by position — the count can change reactively.
+
+## Dependent queries
+
+A query that depends on another query's result. Use `enabled` to prevent firing until the prerequisite resolves:
+
+```ts
+const user = createQuery({
+  queryKey: () => ["user"],
+  queryFn: fetchCurrentUser,
+})
+
+const permissions = createQuery({
+  queryKey: () => ["permissions", user.data()?.id],
+  queryFn: () => fetchPermissions(user.data()!.id),
+  enabled: () => !!user.data()?.id,   // only runs when user.data().id exists
+})
+```
+
+When `enabled` is `false`:
+- `isPending` = `true`
+- `isFetching` = `false`
+- `status` = `"pending"`
+
+Chain three or more queries:
+
+```ts
+const org = createQuery({ queryKey: () => ["org"], queryFn: fetchOrg })
+
+const teams = createQuery({
+  queryKey: () => ["teams", org.data()?.id],
+  queryFn: () => fetchTeams(org.data()!.id),
+  enabled: () => !!org.data()?.id,
+})
+
+const members = createQuery({
+  queryKey: () => ["members", teams.data()?.[0]?.id],
+  queryFn: () => fetchMembers(teams.data()![0].id),
+  enabled: () => !!teams.data()?.[0]?.id,
+})
+```
+
+## Combining results
+
+Aggregate results from multiple queries:
+
+```ts
+const users   = createQuery({ queryKey: () => ["users"],   queryFn: fetchUsers })
+const groups  = createQuery({ queryKey: () => ["groups"],  queryFn: fetchGroups })
+const settings = createQuery({ queryKey: () => ["settings"], queryFn: fetchSettings })
+
+const isAllLoaded = computed((l) =>
+  !users.isPending(l) && !groups.isPending(l) && !settings.isPending(l)
+)
+
+const hasAnyError = computed((l) =>
+  users.isError(l) || groups.isError(l) || settings.isError(l)
+)
+
+const Page = {
+  div: (l) => {
+    if (!isAllLoaded.get(l)) return { div: "Loading…" }
+    if (hasAnyError.get(l))  return { div: "Error loading data" }
+    return AppContent
+  },
+}
+```
+
+## Prefetching
+
+Pre-load data before the user navigates to it:
+
+```ts
+import { useQueryClient } from "@domphy/query/domphy"
+
+const client = useQueryClient()
+
+// Prefetch on hover
+const NavLink = {
+  a: "Dashboard",
+  href: "/dashboard",
+  onMouseenter: () => {
+    client.prefetchQuery({
+      queryKey: ["dashboard"],
+      queryFn: fetchDashboard,
+      staleTime: 30_000,   // don't re-prefetch if fresh within 30s
+    })
+  },
+}
+```
+
+Prefetched data goes into the cache — when the user navigates, the query is already warm and renders instantly.
+
+## Background refetch indicators
+
+Show a subtle indicator when data is being refreshed in the background (stale-while-revalidate):
+
+```ts
+const posts = createQuery({
+  queryKey: () => ["posts"],
+  queryFn: fetchPosts,
+  staleTime: 30_000,   // fresh for 30 seconds
+})
+
+const PostList = {
+  div: [
+    // Background refetch indicator — subtle, not a full loading spinner
+    {
+      div: "↻ Refreshing…",
+      hidden: (l) => !posts.isFetching(l) || posts.isPending(l),
+      style: { fontSize: "0.75rem", opacity: 0.6 },
+    },
+    {
+      ul: (l) => (posts.data(l) ?? []).map((p) => ({
+        li: p.title,
+        _key: p.id,
+      })),
+    },
+  ],
+}
+```
+
+`isFetching` is `true` during both the initial load AND background refreshes.
+`isPending` is only `true` during the initial load (no data yet).
+
+## Initial data
+
+Seed a query's cache before it mounts — useful for data from SSR or a previous navigation:
+
+```ts
+const post = createQuery({
+  queryKey: () => ["post", postId],
+  queryFn: () => fetchPost(postId),
+  initialData: () => client.getQueryData(["post", postId]),   // from cache if available
+  initialDataUpdatedAt: () => client.getQueryState(["post", postId])?.dataUpdatedAt,
+})
+```
+
+Or inject static data (marks as stale immediately so it refetches):
+
+```ts
+const config = createQuery({
+  queryKey: () => ["config"],
+  queryFn: fetchConfig,
+  initialData: window.__INITIAL_CONFIG__,   // injected by server
+  staleTime: 10_000,
+})
+```
+
+## Placeholder data
+
+Show placeholder content while the real data loads (no loading spinner needed):
+
+```ts
+const post = createQuery({
+  queryKey: () => ["post", postId],
+  queryFn: () => fetchPost(postId),
+  placeholderData: {
+    id: postId,
+    title: "Loading…",
+    body: "",
+  },
+})
+
+// post.data() is always defined (placeholder or real)
+const PostView = {
+  article: [
+    { h1: (l) => post.data(l)?.title ?? "" },
+    { p: (l) => post.data(l)?.body ?? "" },
+  ],
+}
+```
+
+## Keeping previous data during pagination
+
+Prevent blank states when paginating — keep the current page visible while the next page loads:
+
+```ts
+import { keepPreviousData } from "@domphy/query"
+
+const page = toState(1)
+
+const posts = createQuery({
+  queryKey: () => ["posts", page.get()],
+  queryFn: () => fetchPage(page.get()),
+  placeholderData: keepPreviousData,   // shows page N while page N+1 loads
+})
+```
+
+`posts.isPlaceholderData(l)` is `true` when showing the previous page's data.
+
 ### queries.md
 
 # Queries
@@ -4210,6 +6519,201 @@ dehydrate(queryClient, {
 
 The dehydrated state is plain JSON-serializable data (`DehydratedState`) — embed it in HTML, send it over the wire, or store it.
 
+### typescript.md
+
+---
+title: "TypeScript"
+description: "Type inference, typed query keys, error types, and TypeScript-safe mutation patterns."
+---
+
+# TypeScript
+
+## Automatic type inference
+
+Query data types are inferred from `queryFn`'s return type — no manual annotation needed:
+
+```ts
+import { createQuery } from "@domphy/query/domphy"
+
+interface User { id: string; name: string; email: string }
+
+async function fetchUser(id: string): Promise<User> {
+  return fetch(`/api/users/${id}`).then((r) => r.json())
+}
+
+const user = createQuery({
+  queryKey: () => ["user", userId],
+  queryFn: () => fetchUser(userId),
+  // No type annotation needed — data is inferred as User
+})
+
+// user.data(l) → User | undefined  ✓ (correctly typed)
+const name = user.data()?.name   // string | undefined
+```
+
+## `queryOptions` helper
+
+Define reusable, fully-typed query configs with the `queryOptions` helper:
+
+```ts
+import { queryOptions } from "@domphy/query"
+
+const userQueryOptions = (id: string) => queryOptions({
+  queryKey: ["user", id] as const,
+  queryFn: () => fetchUser(id),
+  staleTime: 60_000,
+})
+
+// Use anywhere — type is preserved
+const user = createQuery(userQueryOptions(userId))
+client.prefetchQuery(userQueryOptions(nextUserId))
+client.getQueryData(userQueryOptions(userId).queryKey)   // → User | undefined
+```
+
+## Typed query keys
+
+Define query key factories for type-safe cache operations:
+
+```ts
+export const queryKeys = {
+  users: {
+    all:  () => ["users"] as const,
+    list: (filters: UserFilters) => ["users", "list", filters] as const,
+    detail: (id: string) => ["users", "detail", id] as const,
+  },
+  posts: {
+    all:   () => ["posts"] as const,
+    byTag: (tag: string) => ["posts", "tag", tag] as const,
+  },
+}
+
+// Strongly typed invalidation
+client.invalidateQueries({ queryKey: queryKeys.users.all() })
+client.getQueryData<User>(queryKeys.users.detail(userId))
+```
+
+## Error types
+
+By default, `query.error(l)` is typed as `Error | null`. Narrow to your API error type:
+
+```ts
+interface ApiError {
+  status: number
+  message: string
+  code: string
+}
+
+const user = createQuery<User, ApiError>({
+  queryKey: () => ["user"],
+  queryFn: async () => {
+    const res = await fetch("/api/user")
+    if (!res.ok) throw await res.json() as ApiError
+    return res.json() as Promise<User>
+  },
+})
+
+// user.error(l) → ApiError | null (fully typed)
+const errorMsg = user.error()?.message
+const statusCode = user.error()?.status
+```
+
+## Mutation types
+
+Type the mutation variables, data, and error:
+
+```ts
+interface CreatePostInput { title: string; body: string }
+interface Post { id: string; title: string; body: string }
+
+const createPost = createMutation<Post, ApiError, CreatePostInput>({
+  mutationFn: (input) => api.post<Post>("/posts", input),
+  onSuccess: (data) => {
+    // data: Post ✓
+    client.setQueryData<Post[]>(["posts"], (old = []) => [...old, data])
+  },
+  onError: (error) => {
+    // error: ApiError ✓
+    console.error(error.code, error.message)
+  },
+})
+
+// mutate is typed
+createPost.mutate({ title: "Hello", body: "World" })
+createPost.mutate({ title: 42 })   // ✗ Error: title must be string
+```
+
+## Infinite query types
+
+```ts
+interface PostPage { posts: Post[]; nextCursor: string | null }
+
+const feed = createInfiniteQuery<PostPage, ApiError, PostPage, string[], string>({
+  queryKey: () => ["feed"],
+  queryFn: ({ pageParam }) => fetchFeedPage(pageParam),
+  initialPageParam: "",
+  getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+})
+
+// feed.data(l)?.pages → PostPage[]  ✓
+const allPosts = feed.data()?.pages.flatMap((p) => p.posts) ?? []
+```
+
+## `QueryClient` typed methods
+
+```ts
+// Typed getQueryData
+const user = client.getQueryData<User>(["user", id])   // User | undefined
+
+// Typed setQueryData
+client.setQueryData<User[]>(["users"], (old = []) => [...old, newUser])
+
+// Typed cancelQueries
+await client.cancelQueries({ queryKey: ["user"] })
+
+// Typed invalidation with partial key matching
+client.invalidateQueries({ queryKey: ["users"], exact: false })
+// Invalidates ["users"], ["users", "list", ...], ["users", "detail", ...]
+```
+
+## Discriminated union for async state
+
+When you want exhaustive type-narrowing of query states:
+
+```ts
+import type { UseQueryResult } from "@domphy/query"
+
+function renderQuery<T>(query: UseQueryResult<T, Error>) {
+  if (query.status === "pending") return { div: "Loading…" }
+  if (query.status === "error")   return { div: `Error: ${query.error.message}` }
+  // TypeScript now knows query.data: T (non-nullable)
+  return renderData(query.data)
+}
+```
+
+## Type-safe mutations with form
+
+Integrate `@domphy/form` and `@domphy/query` with shared types:
+
+```ts
+import { createForm } from "@domphy/form/domphy"
+import { createMutation } from "@domphy/query/domphy"
+
+interface LoginInput { email: string; password: string }
+interface LoginResult { token: string; user: User }
+
+const loginMutation = createMutation<LoginResult, ApiError, LoginInput>({
+  mutationFn: (input) => api.post<LoginResult>("/auth/login", input),
+})
+
+const loginForm = createForm<LoginInput>({
+  defaultValues: { email: "", password: "" },
+  onSubmit: async ({ value }) => {
+    await loginMutation.mutateAsync(value)
+    // loginMutation.data() → LoginResult (typed)
+  },
+})
+```
+
 
 
 ---
@@ -4315,6 +6819,237 @@ All public types are re-exported, including:
 - search: `SearchMiddleware`, `SearchValidator`, `SearchParser`, `SearchSerializer`
 - control flow: `Redirect`, `RedirectOptions`, `NotFoundError`
 - ssr: `Manifest`
+
+### authentication.md
+
+---
+title: "Authenticated Routes"
+description: "Protect routes behind auth checks, redirect unauthenticated users, and handle login flows."
+---
+
+# Authenticated Routes
+
+## Route context for auth
+
+Inject authentication state into the router via `context`. This lets all routes access auth without prop-threading:
+
+```ts
+import { createRouter, createRootRouteWithContext } from "@domphy/router"
+import { toState } from "@domphy/core"
+
+interface AuthContext {
+  isAuthenticated: () => boolean
+  user: () => User | null
+}
+
+// Root route typed with context
+const rootRoute = createRootRouteWithContext<AuthContext>()({
+  component: () => ({ div: "..." }),
+})
+
+// Provide context when creating the router
+const auth = {
+  isAuthenticated: () => !!localStorage.getItem("token"),
+  user: () => JSON.parse(localStorage.getItem("user") ?? "null"),
+}
+
+const router = createRouter({
+  routeTree: rootRoute,
+  context: auth,
+})
+```
+
+## Protecting a route with `beforeLoad`
+
+Use `beforeLoad` to redirect unauthenticated users before the route renders:
+
+```ts
+import { createRoute, redirect } from "@domphy/router"
+
+const dashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard",
+  beforeLoad: ({ context }) => {
+    if (!context.isAuthenticated()) {
+      throw redirect({ to: "/login", search: { returnTo: "/dashboard" } })
+    }
+  },
+  component: () => Dashboard,
+})
+```
+
+`beforeLoad` runs on every navigation to the route. Throwing `redirect(...)` cancels the navigation and redirects instead.
+
+## Redirect with return URL
+
+After login, redirect back to the page the user was trying to reach:
+
+```ts
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/login",
+  validateSearch: (search) => ({
+    returnTo: typeof search.returnTo === "string" ? search.returnTo : "/",
+  }),
+  component: () => LoginPage,
+})
+
+// In LoginPage:
+const LoginPage = {
+  form: [
+    // ... form fields
+    {
+      button: "Log in",
+      onClick: async () => {
+        await login(credentials)
+        const returnTo = router.state.location.search.returnTo ?? "/"
+        router.navigate({ to: returnTo })
+      },
+    },
+  ],
+}
+```
+
+## Auth group route (layout route)
+
+Create a pathless layout route that wraps all authenticated pages. Put the `beforeLoad` check once:
+
+```ts
+const authLayout = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "_auth",   // no path — just a guard
+  beforeLoad: ({ context }) => {
+    if (!context.isAuthenticated()) {
+      throw redirect({ to: "/login" })
+    }
+  },
+  component: () => ({
+    div: [
+      NavBar,
+      { div: RouterOutlet },   // render child routes
+    ],
+  }),
+})
+
+// All children are automatically protected
+const dashboardRoute = createRoute({ getParentRoute: () => authLayout, path: "/dashboard" })
+const settingsRoute  = createRoute({ getParentRoute: () => authLayout, path: "/settings" })
+const profileRoute   = createRoute({ getParentRoute: () => authLayout, path: "/profile" })
+```
+
+## Role-based access control
+
+Check roles in `beforeLoad`:
+
+```ts
+const adminRoute = createRoute({
+  getParentRoute: () => authLayout,
+  path: "/admin",
+  beforeLoad: ({ context }) => {
+    const user = context.user()
+    if (!user || user.role !== "admin") {
+      throw redirect({ to: "/", search: { error: "forbidden" } })
+    }
+  },
+  component: () => AdminPanel,
+})
+```
+
+For multiple roles:
+
+```ts
+function requireRole(...roles: string[]) {
+  return ({ context }: { context: AuthContext }) => {
+    const user = context.user()
+    if (!user || !roles.includes(user.role)) {
+      throw redirect({ to: "/" })
+    }
+  }
+}
+
+const editorRoute = createRoute({
+  getParentRoute: () => authLayout,
+  path: "/editor",
+  beforeLoad: requireRole("editor", "admin"),
+  component: () => EditorPage,
+})
+```
+
+## Token refresh in loaders
+
+Handle expired tokens before loading route data:
+
+```ts
+const protectedRoute = createRoute({
+  getParentRoute: () => authLayout,
+  path: "/data",
+  beforeLoad: async ({ context }) => {
+    // If token is expired, refresh before proceeding
+    if (isTokenExpired()) {
+      try {
+        await refreshToken()
+      } catch {
+        throw redirect({ to: "/login" })
+      }
+    }
+  },
+  loader: async () => {
+    // Token is now valid
+    return fetchProtectedData()
+  },
+})
+```
+
+## Loading auth state asynchronously
+
+When auth state is fetched from the server (not from localStorage), defer rendering until it's ready:
+
+```ts
+const authState = toState<{ user: User | null; loading: boolean }>({
+  user: null, loading: true,
+})
+
+// Fetch auth on app start
+async function initAuth() {
+  try {
+    const user = await fetchCurrentUser()
+    authState.set({ user, loading: false })
+  } catch {
+    authState.set({ user: null, loading: false })
+  }
+}
+
+initAuth()
+
+const App = {
+  div: (l) => {
+    const { loading } = authState.get(l)
+    if (loading) return { div: "Loading…" }
+    return RouterApp
+  },
+}
+```
+
+Then provide `user` from `authState` in the router context.
+
+## Logout
+
+Clear auth state and redirect to login:
+
+```ts
+function logout() {
+  localStorage.removeItem("token")
+  localStorage.removeItem("user")
+  // Invalidate all cached query data
+  client.clear()
+  router.navigate({ to: "/login" })
+}
+
+const LogoutButton = {
+  button: "Log out",
+  onClick: logout,
+}
+```
 
 ### data-loading.md
 
@@ -4496,6 +7231,201 @@ const CommentList: DomphyElement<"section"> = {
         return list.map((comment) => ({ p: comment.text, _key: comment.id }))
     },
 }
+```
+
+### error-handling.md
+
+---
+title: "Error Handling & Not Found"
+description: "Route-level error components, not-found errors, error recovery, and fallback UIs."
+---
+
+# Error Handling & Not Found
+
+## Route error component
+
+Each route can define its own `errorComponent` — rendered when the route's loader throws:
+
+```ts
+import { createRoute } from "@domphy/router"
+
+const postRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/posts/$id",
+  loader: async ({ params }) => {
+    const post = await fetchPost(params.id)
+    if (!post) throw new Error("Post not found")
+    return post
+  },
+  component: () => PostPage,
+  errorComponent: ({ error }) => ({
+    div: [
+      { h2: "Something went wrong" },
+      { p: (error as Error).message },
+      { button: "Go back", onClick: () => history.back() },
+    ],
+  }),
+})
+```
+
+`errorComponent` receives `{ error: unknown; reset: () => void }`.
+
+## Global error boundary
+
+Set a global `defaultErrorComponent` on the router to catch all unhandled errors:
+
+```ts
+const router = createRouter({
+  routeTree,
+  defaultErrorComponent: ({ error, reset }) => ({
+    div: [
+      { h1: "Unexpected error" },
+      { pre: (error as Error).message, style: { fontSize: "0.875rem" } },
+      { button: "Try again", onClick: reset },
+    ],
+    style: { padding: "2rem", textAlign: "center" },
+  }),
+})
+```
+
+`reset` re-runs the failed route transition — useful after fixing a transient error.
+
+## Not-found errors
+
+When a resource doesn't exist (404-equivalent), throw `notFound()` from a loader instead of returning `null`:
+
+```ts
+import { createRoute, notFound } from "@domphy/router"
+
+const userRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/users/$id",
+  loader: async ({ params }) => {
+    const user = await fetchUser(params.id)
+    if (!user) throw notFound()   // ← renders notFoundComponent, not errorComponent
+    return user
+  },
+  component: () => UserProfile,
+  notFoundComponent: () => ({
+    div: [
+      { h1: "User not found" },
+      { a: "Browse users", href: "/users" },
+    ],
+  }),
+})
+```
+
+## Global not-found route
+
+Catch all unmatched paths:
+
+```ts
+const rootRoute = createRootRoute({
+  notFoundComponent: () => ({
+    div: [
+      { h1: "404 — Page not found" },
+      { p: "The page you're looking for doesn't exist." },
+      { a: "Back to home", href: "/" },
+    ],
+    style: { padding: "4rem", textAlign: "center" },
+  }),
+})
+```
+
+Or use `createRoute` with path `*`:
+
+```ts
+const catchAll = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "*",
+  component: () => NotFoundPage,
+})
+```
+
+## Error vs. not-found — when to use which
+
+| Scenario | Use |
+|----------|-----|
+| Server error (5xx), network failure | `throw new Error(...)` → `errorComponent` |
+| Resource doesn't exist (404) | `throw notFound()` → `notFoundComponent` |
+| User not authorized (401/403) | `throw redirect(...)` → redirects to login |
+| Missing required search param | `throw new Error(...)` or `throw notFound()` depending on UX |
+
+## Retrying after error
+
+The `reset` function in `errorComponent` re-runs the route:
+
+```ts
+const errorBoundary = ({ error, reset }) => ({
+  div: [
+    { p: `Error: ${(error as Error).message}` },
+    {
+      button: "Retry",
+      onClick: async () => {
+        // Optional: clear the cache before retrying
+        await client.invalidateQueries()
+        reset()
+      },
+    },
+  ],
+})
+```
+
+## Handling loader errors globally
+
+Log all route errors centrally:
+
+```ts
+const router = createRouter({
+  routeTree,
+  onError: (error) => {
+    console.error("Route error:", error)
+    errorReporter.capture(error)
+  },
+})
+```
+
+## TypeScript: typed errors
+
+When your loaders throw typed errors, narrow in `errorComponent`:
+
+```ts
+class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message)
+  }
+}
+
+const route = createRoute({
+  loader: async () => {
+    const res = await fetch("/api/data")
+    if (!res.ok) throw new ApiError(res.status, await res.text())
+    return res.json()
+  },
+  errorComponent: ({ error }) => {
+    if (error instanceof ApiError) {
+      return { div: `API Error ${error.status}: ${error.message}` }
+    }
+    return { div: "Unknown error" }
+  },
+})
+```
+
+## Pending component during error recovery
+
+While a retry is in flight, show a pending state:
+
+```ts
+const route = createRoute({
+  pendingComponent: () => ({ div: "Retrying…" }),
+  pendingMinMs: 200,
+  errorComponent: ({ reset }) => ({
+    div: [
+      { p: "Failed to load. " },
+      { button: "Retry", onClick: reset },
+    ],
+  }),
+})
 ```
 
 ### index.md
@@ -5800,6 +8730,181 @@ const App: DomphyElement<"table"> = {
 
 In Domphy these map to plain element objects — no render-prop indirection. If a column has a `cell` function returning a string, call it with `cell.getContext()`; otherwise `cell.getValue()` is all you need. Use `header.id`, `row.id`, and `cell.id` as `_key` so reconciliation stays stable across sorts and filters.
 
+### faceting.md
+
+---
+title: "Faceting & Filter UI"
+description: "Compute unique values and ranges for building filter dropdowns, checkboxes, and sliders."
+---
+
+# Faceting & Filter UI
+
+Faceting extracts unique values or min/max ranges from column data — the inputs you need to build filter controls like dropdowns, multi-select checkboxes, and range sliders.
+
+## Column faceting — unique values
+
+Enable `getFacetedUniqueValues()` for a column to get a `Map<value, count>`:
+
+```ts
+import { createDomphyTable } from "@domphy/table/domphy"
+
+const table = createDomphyTable({
+  data: () => products,
+  columns: [
+    columnHelper.accessor("category", {
+      header: "Category",
+      filterFn: "arrIncludesSome",   // matches multi-select filter
+      meta: { facet: true },
+    }),
+    columnHelper.accessor("brand",    { header: "Brand" }),
+    columnHelper.accessor("price",    { header: "Price" }),
+  ],
+  getFacetedRowModel: getFacetedRowModel(),
+  getFacetedUniqueValues: getFacetedUniqueValues(),
+  getFacetedMinMaxValues: getFacetedMinMaxValues(),
+})
+```
+
+## Building a checkbox filter from unique values
+
+```ts
+import { toState } from "@domphy/core"
+
+const selectedCategories = toState<string[]>([])
+
+const CategoryFilter = {
+  div: [
+    { h3: "Category" },
+    {
+      div: (l) => {
+        const col = table.table.getColumn("category")!
+        const facetMap = col.getFacetedUniqueValues()
+        return [...facetMap.entries()].map(([value, count]) => ({
+          _key: String(value),
+          label: [
+            {
+              input: null,
+              type: "checkbox",
+              checked: (l) => selectedCategories.get(l).includes(String(value)),
+              onChange: (e: Event) => {
+                const checked = (e.target as HTMLInputElement).checked
+                const cat = String(value)
+                selectedCategories.set((prev) =>
+                  checked ? [...prev, cat] : prev.filter((c) => c !== cat)
+                )
+                // Apply filter to table
+                col.setFilterValue(selectedCategories.get() || undefined)
+              },
+            },
+            { span: `${value} (${count})` },
+          ],
+        }))
+      },
+    },
+  ],
+}
+```
+
+## Min/max range filter (price slider)
+
+```ts
+import { toState } from "@domphy/core"
+
+const priceRange = toState<[number, number]>([0, 10000])
+
+// Initialize from facet data after mount
+function initPriceFilter() {
+  const col = table.table.getColumn("price")!
+  const [min, max] = col.getFacetedMinMaxValues() ?? [0, 10000]
+  priceRange.set([min, max])
+}
+
+const PriceRangeFilter = {
+  div: [
+    { h3: "Price" },
+    {
+      div: [
+        {
+          input: null,
+          type: "range",
+          min: (l) => String(priceRange.get(l)[0]),
+          max: (l) => String(priceRange.get(l)[1]),
+          value: (l) => String(priceRange.get(l)[0]),
+          onInput: (e: Event) => {
+            const min = Number((e.target as HTMLInputElement).value)
+            priceRange.set(([_, max]) => [min, max])
+            table.table.getColumn("price")?.setFilterValue(priceRange.get())
+          },
+        },
+        {
+          span: (l) => `$${priceRange.get(l)[0]} — $${priceRange.get(l)[1]}`,
+        },
+      ],
+    },
+  ],
+  _onMount: initPriceFilter,
+}
+```
+
+## Global faceting
+
+`getFacetedUniqueValues()` per column looks at filtered rows by default. To always show ALL values (even when filtered out), use global faceting:
+
+```ts
+import { getFacetedRowModel, getFacetedUniqueValues } from "@domphy/table"
+
+const table = createDomphyTable({
+  data: () => products,
+  columns,
+  getFacetedRowModel: getFacetedRowModel(),
+  getFacetedUniqueValues: getFacetedUniqueValues(),
+  // Pass the pre-filter row model for global (unfiltered) facets
+  // table.table.getPreFilteredRowModel() in custom facet function
+})
+```
+
+## Faceting API
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `column.getFacetedRowModel()` | `RowModel` | Rows before this column's filter is applied |
+| `column.getFacetedUniqueValues()` | `Map<any, number>` | Unique values + counts |
+| `column.getFacetedMinMaxValues()` | `[min, max] \| undefined` | Min/max for number columns |
+
+## Active filter indicator
+
+Show a badge or indicator when a filter is active:
+
+```ts
+const FilterBadge = (columnId: string) => {
+  const col = table.table.getColumn(columnId)!
+  return {
+    span: "●",
+    hidden: (l) => !col.getIsFiltered(),
+    style: { color: "var(--accent-5)", marginLeft: "4px" },
+    title: (l) => `Filtered: ${JSON.stringify(col.getFilterValue())}`,
+  }
+}
+
+// Usage in column header
+const Header = (col: HeaderCell) => ({
+  th: [
+    { span: String(col.columnDef.header ?? "") },
+    FilterBadge(col.id),
+  ],
+})
+```
+
+## Resetting all filters
+
+```ts
+const ClearFilters = {
+  button: "Clear all filters",
+  onClick: () => table.table.resetColumnFilters(),
+  hidden: (l) => !table.table.getState().columnFilters.length,
+}
+```
+
 ### index.md
 
 # Table
@@ -6008,6 +9113,181 @@ td: cell.column.id === "select"
 ```
 
 Because the whole `table:` render function re-runs on every `tableVersion` bump, `checked` stays in sync with `state.rowSelection` without any extra wiring. Selection survives sorting and filtering (it is keyed by `row.id`); whether it survives pagination of filtered-out rows depends on `enableSubRowSelection` and your row id strategy — pass `getRowId: (row) => row.id` to key selection by your own ids instead of row index.
+
+### row-pinning.md
+
+---
+title: "Row Pinning & Sticky Rows"
+description: "Pin rows to the top or bottom of the table — for summaries, totals, and sticky header rows."
+---
+
+# Row Pinning & Sticky Rows
+
+## Basic row pinning
+
+Pin specific rows to the top or bottom using `setRowPinning`:
+
+```ts
+import { createDomphyTable } from "@domphy/table/domphy"
+
+const table = createDomphyTable({
+  data: () => rows,
+  columns,
+  enableRowPinning: true,
+  keepPinnedRows: true,   // keep pinned rows visible even when filtered out
+})
+
+// Pin a row to the top
+table.getRow("row-id").pin("top")
+
+// Pin to bottom
+table.getRow("summary-row").pin("bottom")
+
+// Unpin
+table.getRow("row-id").pin(false)
+```
+
+## Rendering pinned rows
+
+Separate the pinned and non-pinned rows in the render:
+
+```ts
+const Table = {
+  table: [
+    // Pinned top rows — sticky
+    {
+      tbody: (l) => table.getTopRows(l).map((row) => ({
+        tr: row.getVisibleCells().map((cell) => ({
+          td: String(cell.getValue() ?? ""),
+          _key: cell.id,
+        })),
+        _key: row.id,
+        style: {
+          position: "sticky",
+          top: "40px",   // offset below table header
+          background: "var(--neutral-1)",
+          zIndex: 1,
+        },
+      })),
+    },
+    // Regular (non-pinned) rows
+    {
+      tbody: (l) => table.getCenterRows(l).map((row) => ({
+        tr: row.getVisibleCells().map((cell) => ({
+          td: String(cell.getValue() ?? ""),
+          _key: cell.id,
+        })),
+        _key: row.id,
+      })),
+    },
+    // Pinned bottom rows — sticky
+    {
+      tbody: (l) => table.getBottomRows(l).map((row) => ({
+        tr: row.getVisibleCells().map((cell) => ({
+          td: String(cell.getValue() ?? ""),
+          _key: cell.id,
+        })),
+        _key: row.id,
+        style: {
+          position: "sticky",
+          bottom: 0,
+          background: "var(--neutral-1)",
+        },
+      })),
+    },
+  ],
+}
+```
+
+## Summary / totals row
+
+Pin a computed totals row to the bottom without adding it to the data:
+
+```ts
+import { createDomphyTable } from "@domphy/table/domphy"
+import { toState } from "@domphy/core"
+
+interface SalesRow { product: string; qty: number; revenue: number }
+
+const data = toState<SalesRow[]>([
+  { product: "Widget A", qty: 10, revenue: 500 },
+  { product: "Widget B", qty: 5,  revenue: 300 },
+])
+
+const table = createDomphyTable({
+  data: () => data.get(),
+  columns: [
+    columnHelper.accessor("product", { header: "Product" }),
+    columnHelper.accessor("qty",     { header: "Qty",     footer: (info) => {
+      const rows = info.table.getFilteredRowModel().rows
+      return rows.reduce((sum, r) => sum + (r.getValue<number>("qty") ?? 0), 0)
+    }}),
+    columnHelper.accessor("revenue", { header: "Revenue", footer: (info) => {
+      const rows = info.table.getFilteredRowModel().rows
+      const total = rows.reduce((sum, r) => sum + (r.getValue<number>("revenue") ?? 0), 0)
+      return `$${total.toLocaleString()}`
+    }}),
+  ],
+})
+
+// Render footer as a sticky totals row
+const TotalsRow = {
+  tfoot: {
+    tr: (l) => table.getFooterGroups(l)[0]?.headers.map((header) => ({
+      td: String(header.column.columnDef.footer?.({ table: table.table, header, column: header.column }) ?? ""),
+      _key: header.id,
+      style: { fontWeight: "bold" },
+    })) ?? [],
+    style: {
+      position: "sticky",
+      bottom: 0,
+      background: "var(--neutral-2)",
+    },
+  },
+}
+```
+
+## Row pinning with row selection
+
+Pin all selected rows to the top — useful for batch-action tables:
+
+```ts
+const table = createDomphyTable({
+  data: () => rows,
+  columns,
+  enableRowPinning: true,
+  enableRowSelection: true,
+  // Auto-pin selected rows to the top
+  onRowSelectionChange: (updater) => {
+    const newSelection = typeof updater === "function"
+      ? updater(table.table.getState().rowSelection)
+      : updater
+
+    // Pin newly selected rows
+    Object.keys(newSelection).forEach((id) => {
+      if (newSelection[id]) table.getRow(id)?.pin("top")
+      else table.getRow(id)?.pin(false)
+    })
+
+    table.table.setRowSelection(newSelection)
+  },
+})
+```
+
+## Pinned row API
+
+| Method | Description |
+|--------|-------------|
+| `row.pin("top")` | Pin row to the top |
+| `row.pin("bottom")` | Pin row to the bottom |
+| `row.pin(false)` | Unpin row |
+| `row.getIsPinned()` | `"top"` \| `"bottom"` \| `false` |
+| `row.getPinnedIndex()` | Position in the pinned list |
+| `table.getTopRows(l)` | Reactive list of top-pinned rows |
+| `table.getBottomRows(l)` | Reactive list of bottom-pinned rows |
+| `table.getCenterRows(l)` | Non-pinned rows (between top and bottom) |
+| `table.setRowPinning(updater)` | Programmatically set pinning state |
+| `table.resetRowPinning()` | Unpin all rows |
 
 ### sorting-filtering.md
 
@@ -7158,6 +10438,186 @@ const fieldApi = field.api   // FieldApi<TData, string>
 
 The full TanStack Form v1 API applies to both — see [TanStack Form docs](https://tanstack.com/form/latest) for `FormApi` methods (`setFieldValue`, `getFieldValue`, `setFieldMeta`, `validateField`, etc.).
 
+### concepts.md
+
+---
+title: "Core Concepts"
+description: "How @domphy/form manages state, validation lifecycle, field state, and the relationship between FormApi and the Domphy adapter."
+---
+
+# Core Concepts
+
+## Architecture
+
+`@domphy/form` is a **1-1 port of `@tanstack/form-core`** — the same `FormApi`, `FieldApi`, and `ValidationLogic` classes, byte-identical. The Domphy adapter (`@domphy/form/domphy`) wraps them with reactive handles that plug into Domphy's listener system.
+
+```
+FormApi (TanStack core)
+   ↓ wrapped by
+createForm() adapter        ← you call this
+   ↓ returns
+form handle {
+  values(l), state(l), canSubmit(l)   ← reactive reads
+  field(name, opts)                   ← create a field handle
+  handleSubmit(), reset()             ← imperative actions
+  form                                ← underlying FormApi
+}
+```
+
+## Form state lifecycle
+
+```
+Initial            → user types →    Dirty
+                   → user blurs →    Touched
+                   → submit once →   isSubmitted = true (validates all)
+                   → submitting →    isSubmitting = true
+                   → submit done →   isSubmitting = false
+```
+
+Key flags:
+
+| Flag | Description |
+|------|-------------|
+| `isSubmitted` | `true` after first submit attempt |
+| `isSubmitting` | `true` during async submission |
+| `isValid` | `true` when no field has errors |
+| `canSubmit` | `true` when valid AND not submitting |
+| `isPristine` | `true` when no field has been changed |
+| `isDirty` | `true` when any field has changed from defaultValues |
+
+## Field state lifecycle
+
+```
+Initial
+  → onChange →  isDirty, value updates, onChange validators run
+  → onBlur  →  isTouched = true, onBlur validators run
+  → onSubmit → all validators run regardless of touched state
+```
+
+Field meta:
+
+```ts
+interface FieldMeta {
+  isTouched: boolean
+  isDirty: boolean
+  isPristine: boolean
+  isBlurred: boolean
+  isValidating: boolean   // async validator in-flight
+  touchedAt: number | null
+  errors: unknown[]
+  errorMap: Partial<Record<"onChange"|"onBlur"|"onSubmit"|"onMount", unknown>>
+}
+```
+
+## Validation execution order
+
+1. `onChange` validators — every keystroke
+2. `onChangeAsync` validators — debounced after onChange
+3. `onBlur` validators — when field loses focus
+4. `onBlurAsync` validators — async on blur
+5. `onMount` validators — once on field creation
+6. `onSubmit` validators — only on `handleSubmit()`
+7. `onSubmitAsync` validators — async on submit
+
+Earlier validators block later ones in the same "timing group" — if `onChange` returns an error, `onChangeAsync` does not run until the sync error clears.
+
+## The adapter pattern
+
+The Domphy adapter converts `FormApi` subscriptions to listener-based reactivity:
+
+```ts
+// Inside createForm() — simplified
+function createForm<T>(options) {
+  const api = new FormApi(options)
+  api.mount()
+
+  return {
+    values: (l) => {
+      // Subscribe listener to FormApi state
+      api.subscribe(() => l?.notify())
+      return api.state.values
+    },
+    field: (name, fieldOptions) => createFieldHandle(api, name, fieldOptions),
+    handleSubmit: () => api.handleSubmit(),
+    // ...
+  }
+}
+```
+
+This means `form.values(l)` re-renders only when `FormApi.state.values` changes — not on every keystroke unless the element's listener reads from the values state.
+
+## `form.field()` creates a stable handle
+
+Unlike React hooks, `form.field()` can be called anywhere — it creates a field handle that persists for the form's lifetime:
+
+```ts
+const form = createForm<{ email: string; name: string }>({
+  defaultValues: { email: "", name: "" },
+  onSubmit: ({ value }) => submit(value),
+})
+
+// Create once — these are stable objects
+const emailField = form.field<string>("email", {
+  validators: { onChange: ({ value }) => value.includes("@") ? undefined : "Invalid" },
+})
+const nameField = form.field<string>("name", {})
+```
+
+Do not call `form.field()` inside a reactive render function (it re-registers the field on each render). Create fields in module scope or component setup.
+
+## Form options
+
+```ts
+const form = createForm<T>({
+  defaultValues: T,                      // required — initial field values
+  onSubmit: ({ value, formApi }) => {},  // called when form is valid and submitted
+  onSubmitInvalid: ({ value, formApi }) => {},  // called on submit when invalid
+  validators: {                          // form-level validators
+    onChange: ({ value }) => string | undefined,
+    onSubmit: ({ value }) => string | undefined,
+  },
+  asyncDebounceMs: 200,                  // global debounce for all async validators
+  defaultState: Partial<FormState>,      // override initial state flags
+})
+```
+
+## Reading form state
+
+```ts
+// Reactive reads (pass listener l)
+form.values(l)         // T — current values
+form.state(l)          // FormState<T> — full state including meta
+form.canSubmit(l)      // boolean
+form.isSubmitting(l)   // boolean
+form.isValid(l)        // boolean
+form.isSubmitted(l)    // boolean
+form.isDirty(l)        // boolean
+
+// Non-reactive (no listener) — snapshot
+form.form.state.values
+form.form.getFieldValue("email")
+```
+
+## Field handle API
+
+```ts
+const field = form.field<string>("name", options)
+
+// Reactive
+field.value(l)     // string — current value
+field.errors(l)    // unknown[] — current errors
+field.meta(l)      // FieldMeta — full field state
+
+// Imperative
+field.handleChange(newValue)          // update + run onChange validators
+field.handleBlur()                    // mark touched + run onBlur validators
+field.setValue(newValue)              // update without running validators
+field.pushValue(item)                 // for array fields — push
+field.removeValue(index)              // for array fields — remove
+field.swapValues(indexA, indexB)      // for array fields — swap
+field.api                             // underlying FieldApi
+```
+
 ### index.md
 
 # Form
@@ -7246,6 +10706,226 @@ const Field = {
 | `api` | The underlying `FieldApi`. |
 
 Field and form `options` (validators, async debouncing, listeners, arrays, Standard Schema) are the upstream form-core options — see the [TanStack Form docs](https://tanstack.com/form/latest).
+
+### submission.md
+
+---
+title: "Submission & Async"
+description: "Handle form submission, async submit handlers, server errors, multi-step forms, and reset."
+---
+
+# Submission & Async
+
+## Basic submission
+
+Wire a form element's `onSubmit` to `form.handleSubmit()`:
+
+```ts
+import { createForm } from "@domphy/form/domphy"
+
+const form = createForm<{ email: string; message: string }>({
+  defaultValues: { email: "", message: "" },
+  onSubmit: async ({ value }) => {
+    await sendMessage(value.email, value.message)
+  },
+})
+
+const ContactForm = {
+  form: [
+    // ... fields
+    {
+      button: "Send",
+      type: "submit",
+      disabled: (l) => !form.canSubmit(l),
+    },
+  ],
+  onSubmit: (e: Event) => {
+    e.preventDefault()
+    form.handleSubmit()
+  },
+}
+```
+
+`handleSubmit()`:
+1. Runs all `onSubmit` validators across all fields
+2. If any validator fails, sets `isSubmitted = true` and stops (errors are displayed)
+3. If all pass, calls your `onSubmit` handler
+4. Sets `isSubmitting = true` during the async handler
+5. Sets `isSubmitting = false` when done
+
+## Async submission with loading state
+
+```ts
+const form = createForm<LoginInput>({
+  defaultValues: { email: "", password: "" },
+  onSubmit: async ({ value }) => {
+    const result = await loginApi(value)
+    router.navigate({ to: "/dashboard" })
+  },
+})
+
+const SubmitButton = {
+  button: (l) => form.isSubmitting(l) ? "Signing in…" : "Sign in",
+  type: "submit",
+  disabled: (l) => !form.canSubmit(l) || form.isSubmitting(l),
+}
+```
+
+## Handling server errors
+
+Return a rejection from `onSubmit` to display a server error:
+
+```ts
+const form = createForm<LoginInput>({
+  defaultValues: { email: "", password: "" },
+  onSubmit: async ({ value }) => {
+    const result = await loginApi(value)
+    if (result.error === "invalid_credentials") {
+      // Set a form-level error by throwing
+      throw new Error("Invalid email or password")
+    }
+  },
+})
+
+// Display form-level errors
+const FormError = {
+  p: (l) => String(form.state(l).errors[0] ?? ""),
+  hidden: (l) => form.state(l).errors.length === 0,
+  style: { color: "red" },
+}
+```
+
+For field-level server errors (e.g. "email already taken"):
+
+```ts
+onSubmit: async ({ value, formApi }) => {
+  const result = await registerApi(value)
+  if (result.error === "email_taken") {
+    formApi.setFieldMeta("email", (meta) => ({
+      ...meta,
+      errors: ["Email already in use"],
+      errorMap: { onSubmit: "Email already in use" },
+    }))
+  }
+}
+```
+
+## Reset
+
+Reset to default values after submission:
+
+```ts
+const form = createForm<NewItemInput>({
+  defaultValues: { name: "", quantity: 1 },
+  onSubmit: async ({ value, formApi }) => {
+    await addItem(value)
+    formApi.reset()   // clear form after successful submit
+  },
+})
+```
+
+Reset with custom values (e.g. load next draft):
+
+```ts
+form.reset({ name: "", quantity: 1 })
+form.form.reset({ name: nextDraft.name, quantity: nextDraft.qty })
+```
+
+## Multi-step forms (wizard)
+
+Track steps with an external state — each step is a separate set of fields:
+
+```ts
+import { toState } from "@domphy/core"
+
+const step = toState<1 | 2 | 3>(1)
+
+const form = createForm<{
+  // Step 1
+  name: string
+  email: string
+  // Step 2
+  plan: "free" | "pro"
+  // Step 3
+  cardNumber: string
+}>({
+  defaultValues: { name: "", email: "", plan: "free", cardNumber: "" },
+  onSubmit: async ({ value }) => {
+    await subscribe(value)
+    router.navigate({ to: "/welcome" })
+  },
+})
+
+const nameField  = form.field<string>("name", { validators: { onSubmit: ({ value }) => value ? undefined : "Required" } })
+const emailField = form.field<string>("email", {})
+const planField  = form.field<"free" | "pro">("plan", {})
+const cardField  = form.field<string>("cardNumber", {})
+
+async function nextStep() {
+  const current = step.get()
+  if (current === 1) {
+    // Validate step 1 fields manually before advancing
+    await nameField.api.validate("submit")
+    await emailField.api.validate("submit")
+    const hasErrors = nameField.errors().length > 0 || emailField.errors().length > 0
+    if (!hasErrors) step.set(2)
+  } else if (current === 2) {
+    step.set(3)
+  } else {
+    form.handleSubmit()
+  }
+}
+
+const WizardForm = {
+  form: [
+    { div: Step1Fields, hidden: (l) => step.get(l) !== 1 },
+    { div: Step2Fields, hidden: (l) => step.get(l) !== 2 },
+    { div: Step3Fields, hidden: (l) => step.get(l) !== 3 },
+    {
+      button: (l) => step.get(l) === 3 ? "Subscribe" : "Next",
+      type: "button",
+      onClick: nextStep,
+      disabled: (l) => form.isSubmitting(l),
+    },
+  ],
+  onSubmit: (e) => e.preventDefault(),
+}
+```
+
+## Submit with external data (context)
+
+Pass extra data to `handleSubmit` that isn't in the form values:
+
+```ts
+const form = createForm<MessageInput>({
+  defaultValues: { body: "" },
+  onSubmit: async ({ value, context }) => {
+    await sendMessage(value.body, context.threadId, context.csrfToken)
+  },
+})
+
+const SendButton = {
+  button: "Send",
+  onClick: () => form.handleSubmit(
+    {},
+    { threadId: currentThread, csrfToken: getToken() }
+  ),
+}
+```
+
+## Preventing double-submit
+
+`canSubmit` automatically returns `false` while `isSubmitting` is true — wire it to the submit button's `disabled`:
+
+```ts
+{
+  button: "Save",
+  disabled: (l) => !form.canSubmit(l),
+  onClick: () => form.handleSubmit(),
+}
+```
+
+No extra debounce or lock needed — the form state handles it.
 
 ### validation.md
 
@@ -9060,6 +12740,249 @@ This is exactly how DomphyPress (this site) works: its markdown-it instance adds
 
 ## Mermaid docs (`@domphy/mermaid`)
 
+### diagrams.md
+
+---
+title: "Supported Diagrams"
+description: "All diagram types supported by @domphy/mermaid and Mermaid.js syntax reference."
+---
+
+# Supported Diagrams
+
+`@domphy/mermaid` renders any diagram type that [Mermaid.js](https://mermaid.js.org) supports. Below is a quick reference for the most commonly used types with Domphy usage examples.
+
+## Flowchart
+
+```mermaid
+flowchart LR
+  A[Start] --> B{Decision}
+  B -- Yes --> C[Do it]
+  B -- No --> D[Skip it]
+  C --> E[End]
+  D --> E
+```
+
+```ts
+import { renderMermaidInTree } from "@domphy/mermaid"
+
+const diagram = await renderMermaidInTree({
+  pre: [{ code: `flowchart LR
+  A[Start] --> B{Decision}
+  B -- Yes --> C[Do it]
+  B -- No --> D[Skip it]` }],
+})
+```
+
+Flowchart directions: `TB` (top→bottom), `LR` (left→right), `BT`, `RL`.
+
+## Sequence diagram
+
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant Server
+  Browser->>Server: GET /api/user
+  Server-->>Browser: 200 { user }
+  Browser->>Server: POST /api/login
+  Server-->>Browser: 401 Unauthorized
+```
+
+```ts
+const source = `sequenceDiagram
+  participant Browser
+  participant Server
+  Browser->>Server: GET /api/user
+  Server-->>Browser: 200 { user }`
+```
+
+## Class diagram
+
+```mermaid
+classDiagram
+  class Animal {
+    +String name
+    +makeSound() void
+  }
+  class Dog {
+    +fetch() void
+  }
+  Animal <|-- Dog
+```
+
+## State diagram
+
+```mermaid
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Loading : fetch()
+  Loading --> Success : ok
+  Loading --> Error : fail
+  Error --> Idle : reset()
+  Success --> [*]
+```
+
+Useful for documenting `@domphy/query` state transitions.
+
+## Entity-relationship (ERD)
+
+```mermaid
+erDiagram
+  USER ||--o{ ORDER : places
+  ORDER ||--|{ LINE-ITEM : contains
+  PRODUCT }|..|{ LINE-ITEM : includes
+```
+
+## Gantt chart
+
+```mermaid
+gantt
+  title Project Timeline
+  dateFormat YYYY-MM-DD
+  section Design
+    Wireframes     :done,    w1, 2025-01-01, 7d
+    Prototypes     :active,  p1, 2025-01-08, 14d
+  section Development
+    Core           :         c1, after p1, 21d
+    UI             :         u1, after c1, 14d
+```
+
+## Pie chart
+
+```mermaid
+pie title Browser Share
+  "Chrome"  : 65.2
+  "Safari"  : 18.9
+  "Firefox" : 4.0
+  "Other"   : 11.9
+```
+
+## Git graph
+
+```mermaid
+gitGraph
+  commit
+  branch feature
+  checkout feature
+  commit
+  commit
+  checkout main
+  merge feature
+  commit
+```
+
+## Mind map
+
+```mermaid
+mindmap
+  root((Domphy))
+    Core
+      State
+      Computed
+      Patches
+    Packages
+      Query
+      Router
+      Table
+      Virtual
+    Tooling
+      Doctor
+      Audit
+      MCP
+```
+
+## Timeline
+
+```mermaid
+timeline
+  title History of Domphy
+  2023 : Initial concept
+  2024 : First public release
+       : TanStack Query adapter
+  2025 : VitePress-grade docs site
+       : MCP server
+```
+
+## Block diagram
+
+```mermaid
+block-beta
+  columns 3
+  A["Browser"] space B["Server"]
+  A-- "HTTP" -->B
+  B-- "JSON" -->A
+```
+
+## Quadrant chart
+
+```mermaid
+quadrantChart
+  title Performance vs Complexity
+  x-axis Low Complexity --> High Complexity
+  y-axis Low Performance --> High Performance
+  quadrant-1 Optimize
+  quadrant-2 Keep
+  quadrant-3 Reconsider
+  quadrant-4 Migrate
+  React: [0.7, 0.6]
+  Domphy: [0.3, 0.85]
+  Angular: [0.9, 0.5]
+```
+
+## XY Chart
+
+```mermaid
+xychart-beta
+  title "Monthly Users"
+  x-axis [Jan, Feb, Mar, Apr, May, Jun]
+  y-axis "Users (k)" 0 --> 100
+  bar [20, 35, 48, 62, 75, 90]
+  line [20, 35, 48, 62, 75, 90]
+```
+
+## Kanban
+
+```mermaid
+kanban
+  Todo
+    id1[Write tests]
+    id2[Fix bug #42]
+  In Progress
+    id3[Implement search]
+  Done
+    id4[Deploy v2.0]
+```
+
+## Theming diagrams
+
+Override the Mermaid theme per diagram using `%%{init: ...}%%`:
+
+```ts
+const source = `%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#6366f1'}}}%%
+flowchart LR
+  A --> B`
+
+const svg = await renderMermaidToSvg(source, { theme: "dark" })
+```
+
+Available themes: `default`, `dark`, `neutral`, `forest`, `base` (most customizable).
+
+## Build-time vs client-side
+
+| Method | When to use |
+|--------|-------------|
+| `renderMermaidInTree()` | Static docs, SSG — SVG in HTML, no runtime |
+| `mermaidClient()` patch | Dynamic diagrams, user input, live preview |
+
+Build-time is recommended for most docs: smaller page weight, no layout shift, works without JavaScript.
+
+## All supported types
+
+Every Mermaid diagram type works with `@domphy/mermaid`:
+
+flowchart, sequenceDiagram, classDiagram, stateDiagram-v2, erDiagram, gantt, pie, gitGraph, mindmap, timeline, xychart-beta, block-beta, quadrantChart, requirementDiagram, C4Context, sankey-beta, kanban, architecture-beta, packet-beta, radar, treemap, eventModel, wardleyMap, vennDiagram, ZenUML
+
+See [mermaid.js.org](https://mermaid.js.org) for full syntax documentation for each type.
+
 ### index.md
 
 # Mermaid
@@ -9614,6 +13537,197 @@ t("button.save")  // ✓
 t("nav.missing")  // ✗ TypeScript error
 ```
 
+### formatting.md
+
+---
+title: "Interpolation & Formatting"
+description: "Variable substitution, date/number/currency formatting, and rich text interpolation."
+---
+
+# Interpolation & Formatting
+
+## Basic interpolation
+
+Pass values as the second argument to `t()`:
+
+```ts
+// translations/en.json
+{
+  "greeting": "Hello, {{name}}!",
+  "itemsLeft": "{{count}} items left",
+  "welcomeBack": "Welcome back, {{firstName}} {{lastName}}"
+}
+```
+
+```ts
+t("greeting", { name: "Alice" })            // "Hello, Alice!"
+t("itemsLeft", { count: 3 })                // "3 items left"
+t("welcomeBack", { firstName: "John", lastName: "Doe" })
+```
+
+## Nested key access
+
+Use dot notation for nested translation keys:
+
+```json
+{
+  "profile": {
+    "title": "Your Profile",
+    "bio": "Tell us about {{name}}"
+  }
+}
+```
+
+```ts
+t("profile.title")               // "Your Profile"
+t("profile.bio", { name: "you" })  // "Tell us about you"
+```
+
+## Number formatting
+
+Use `Intl.NumberFormat` for locale-aware numbers — pass the formatted string as an interpolation value:
+
+```ts
+function formatNumber(value: number, locale: string): string {
+  return new Intl.NumberFormat(locale).format(value)
+}
+
+// In component
+{ span: (l) => t("price", { amount: formatNumber(1234567.89, locale.get(l)) }) }
+// en-US: "Price: 1,234,567.89"
+// de-DE: "Price: 1.234.567,89"
+```
+
+Or register a custom formatter in the i18n instance:
+
+```ts
+const { t } = createI18n({
+  locale: "en",
+  messages: { en: () => import("./en.json") },
+  formatters: {
+    number: (value, locale) => new Intl.NumberFormat(locale).format(Number(value)),
+    currency: (value, locale) =>
+      new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(Number(value)),
+  },
+})
+
+// In translations:
+// { "price": "Price: {{amount, currency}}" }
+t("price", { amount: 42.5 })   // "Price: $42.50"
+```
+
+## Date formatting
+
+```ts
+const { t } = createI18n({
+  locale: "en",
+  formatters: {
+    date: (value, locale) =>
+      new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(String(value))),
+    time: (value, locale) =>
+      new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(new Date(String(value))),
+    datetime: (value, locale) =>
+      new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(String(value))),
+  },
+})
+
+// { "lastSeen": "Last seen {{date, date}}" }
+t("lastSeen", { date: "2025-06-26" })   // "Last seen Jun 26, 2025"
+```
+
+## Relative time
+
+Use `Intl.RelativeTimeFormat` for "2 hours ago", "in 3 days":
+
+```ts
+function relativeTime(date: Date, locale: string): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" })
+
+  if (Math.abs(seconds) < 60)   return rtf.format(-Math.round(seconds), "second")
+  if (Math.abs(seconds) < 3600) return rtf.format(-Math.round(seconds / 60), "minute")
+  if (Math.abs(seconds) < 86400) return rtf.format(-Math.round(seconds / 3600), "hour")
+  return rtf.format(-Math.round(seconds / 86400), "day")
+}
+
+const Timestamp = (date: Date) => ({
+  time: (l) => relativeTime(date, locale.get(l)),
+  dateTime: date.toISOString(),
+})
+```
+
+## Escaping
+
+Use `{{- variable}}` (with dash) to disable HTML escaping for safe HTML in translations:
+
+```json
+{
+  "linkText": "Read the <a href='{{url}}'>docs</a>",
+  "escaped": "Use &lt;div&gt; tags"
+}
+```
+
+```ts
+t("linkText", { url: "https://domphy.com", interpolation: { escapeValue: false } })
+```
+
+> Only disable escaping for translations you control — never for user-supplied content.
+
+## Context (gender / form variants)
+
+Use `context` to select a translation variant based on gender or other categorical data:
+
+```json
+{
+  "greeting_male":   "He joined",
+  "greeting_female": "She joined",
+  "greeting":        "They joined"
+}
+```
+
+```ts
+t("greeting", { context: "male" })    // "He joined"
+t("greeting", { context: "female" })  // "She joined"
+t("greeting")                          // "They joined" (default)
+```
+
+## Combining context and count
+
+```json
+{
+  "items_male_one":     "{{name}} has {{count}} item",
+  "items_male_other":   "{{name}} has {{count}} items",
+  "items_female_one":   "{{name}} has {{count}} item",
+  "items_female_other": "{{name}} has {{count}} items"
+}
+```
+
+```ts
+t("items", { count: 2, context: "female", name: "Alice" })
+// "Alice has 2 items"
+```
+
+## Default values
+
+Provide a fallback if a key is missing (useful during development):
+
+```ts
+t("missing.key", { defaultValue: "Fallback text" })
+```
+
+## Typed interpolation
+
+With TypeScript, interpolation values can be typed:
+
+```ts
+import type { TFunction } from "@domphy/i18n"
+
+function render(t: TFunction) {
+  // t expects exactly { name: string } for this key
+  return { span: t("greeting", { name: "Alice" }) }
+}
+```
+
 ### index.md
 
 ---
@@ -9687,6 +13801,327 @@ await initI18n(detected)
 Registers the instance under `globalKey` on `globalThis` — ensures a single instance across Vite code-split chunks and SSR + client hydration.
 
 See the [Setup guide](./setup.md) for full options reference.
+
+### namespaces.md
+
+---
+title: "Namespaces"
+description: "Split translations into multiple files by feature or domain to keep bundles small and maintainable."
+---
+
+# Namespaces
+
+## What are namespaces?
+
+Namespaces let you split translations into separate files. Instead of one large translation object, each feature or section has its own file:
+
+```
+translations/
+  en/
+    common.json      ← shared strings (buttons, labels)
+    auth.json        ← login/signup pages
+    dashboard.json   ← dashboard feature
+    errors.json      ← error messages
+  fr/
+    common.json
+    auth.json
+    ...
+```
+
+## Defining namespaces
+
+Pass a namespace map when creating the i18n instance. Each namespace is lazily loaded:
+
+```ts
+import { createI18n } from "@domphy/i18n/domphy"
+
+const { t, setLocale } = createI18n({
+  locale: "en",
+  namespaces: {
+    common:    () => import(`./translations/en/common.json`),
+    auth:      () => import(`./translations/en/auth.json`),
+    dashboard: () => import(`./translations/en/dashboard.json`),
+  },
+  defaultNs: "common",   // used when no namespace is specified
+})
+```
+
+## Using namespaces in translations
+
+Prefix the key with `namespace:`:
+
+```ts
+t("common:save")               // key "save" from common namespace
+t("auth:login.title")          // key "login.title" from auth namespace
+t("dashboard:widgets.count")   // key "widgets.count" from dashboard namespace
+t("save")                      // uses defaultNs "common"
+```
+
+## Dynamic locale + namespace loading
+
+Load the right namespace files for the active locale:
+
+```ts
+import { createI18n } from "@domphy/i18n/domphy"
+import { toState } from "@domphy/core"
+
+const locale = toState<"en" | "fr">("en")
+
+const { t, setLocale } = createI18n({
+  locale: locale.get(),
+  namespaces: {
+    common:    async () => {
+      const l = locale.get()
+      return import(`./translations/${l}/common.json`)
+    },
+    dashboard: async () => {
+      const l = locale.get()
+      return import(`./translations/${l}/dashboard.json`)
+    },
+  },
+})
+
+locale.subscribe((newLocale) => setLocale(newLocale))
+```
+
+Bundlers (Vite, Rollup) can statically analyze `import(`./translations/${l}/common.json`)` and create per-locale chunks.
+
+## Preloading namespaces
+
+Load a namespace before it's needed (e.g. before a route renders):
+
+```ts
+import { preloadNamespace } from "@domphy/i18n"
+
+// Before navigating to the dashboard
+async function navigateToDashboard() {
+  await preloadNamespace("dashboard")
+  router.navigate({ to: "/dashboard" })
+}
+```
+
+## Namespace fallback
+
+If a key is missing in the active namespace, fall back to `common`:
+
+```ts
+const { t } = createI18n({
+  locale: "en",
+  namespaces: { common: ..., auth: ... },
+  defaultNs: "common",
+  fallbackNs: "common",   // try "common" if key not found in current ns
+})
+
+t("auth:some.missing.key")   // not in auth → tries common → falls back to key name
+```
+
+## Translation file structure
+
+Keep namespace files flat or nested — both work:
+
+```json
+// Flat (easier to search):
+{
+  "loginTitle": "Sign in to your account",
+  "loginEmail": "Email address",
+  "loginPassword": "Password",
+  "loginSubmit": "Sign in"
+}
+```
+
+```json
+// Nested (easier to browse):
+{
+  "login": {
+    "title": "Sign in to your account",
+    "fields": {
+      "email": "Email address",
+      "password": "Password"
+    },
+    "submit": "Sign in"
+  }
+}
+```
+
+Access nested keys with dot notation: `t("auth:login.fields.email")`.
+
+## TypeScript typed namespaces
+
+Define types for your translation keys to get autocomplete and catch missing keys at compile time:
+
+```ts
+import type en_common from "./translations/en/common.json"
+import type en_auth from "./translations/en/auth.json"
+
+declare module "@domphy/i18n" {
+  interface TranslationMap {
+    common:    typeof en_common
+    auth:      typeof en_auth
+  }
+}
+
+// Now t() is fully typed with autocomplete
+t("common:save")   // ✓
+t("auth:login.title")   // ✓
+t("common:nonexistent")   // ✗ TypeScript error
+```
+
+### pluralization.md
+
+---
+title: "Pluralization"
+description: "Plural forms, ordinals, and locale-aware count formatting."
+---
+
+# Pluralization
+
+## Basic plural forms
+
+Pass the `count` interpolation variable — `@domphy/i18n` maps it to the correct plural form for the active locale:
+
+```ts
+// translations/en.json
+{
+  "items": "{{count}} item",
+  "items_other": "{{count}} items",
+  "notifications": "{{count}} notification",
+  "notifications_other": "{{count}} notifications"
+}
+```
+
+```ts
+import { createI18n } from "@domphy/i18n/domphy"
+
+const { t } = createI18n({
+  locale: "en",
+  messages: { en: () => import("./translations/en.json") },
+})
+
+// Usage
+t("items", { count: 1 })    // "1 item"
+t("items", { count: 5 })    // "5 items"
+t("items", { count: 0 })    // "0 items"
+```
+
+## Plural key suffixes
+
+Different locales use different numbers of plural forms. The `count` variable selects the right key:
+
+| Suffix | Used when |
+|--------|-----------|
+| `_zero` | count = 0 (Arabic, Czech, etc.) |
+| `_one` | count = 1 (English, German, etc.) |
+| `_two` | count = 2 (Arabic, Hebrew) |
+| `_few` | count = 3–4 (Slavic languages) |
+| `_many` | large numbers (Russian, Polish) |
+| `_other` | default / fallback |
+
+English only needs `_one` and `_other`:
+
+```json
+{
+  "apples_one":   "{{count}} apple",
+  "apples_other": "{{count}} apples"
+}
+```
+
+Russian needs four forms:
+
+```json
+{
+  "apples_one":   "{{count}} яблоко",
+  "apples_few":   "{{count}} яблока",
+  "apples_many":  "{{count}} яблок",
+  "apples_other": "{{count}} яблока"
+}
+```
+
+`@domphy/i18n` uses the CLDR plural rules for each locale — you do not need to implement the rules yourself.
+
+## Zero state
+
+Show a special message when count is zero:
+
+```json
+{
+  "files_zero":  "No files",
+  "files_one":   "{{count}} file",
+  "files_other": "{{count}} files"
+}
+```
+
+```ts
+t("files", { count: 0 })   // "No files"
+t("files", { count: 1 })   // "1 file"
+t("files", { count: 99 })  // "99 files"
+```
+
+## Ordinals
+
+For ordinal numbers ("1st", "2nd", "3rd"), use the `ordinal: true` option:
+
+```json
+{
+  "rank_one":   "{{count}}st",
+  "rank_two":   "{{count}}nd",
+  "rank_few":   "{{count}}rd",
+  "rank_other": "{{count}}th"
+}
+```
+
+```ts
+t("rank", { count: 1, ordinal: true })   // "1st"
+t("rank", { count: 2, ordinal: true })   // "2nd"
+t("rank", { count: 3, ordinal: true })   // "3rd"
+t("rank", { count: 11, ordinal: true })  // "11th"
+```
+
+## Combining plural with other interpolation
+
+```json
+{
+  "userFiles_one":   "{{user}} has {{count}} file",
+  "userFiles_other": "{{user}} has {{count}} files"
+}
+```
+
+```ts
+t("userFiles", { count: 3, user: "Alice" })   // "Alice has 3 files"
+```
+
+## Reactive pluralization
+
+Plurals update reactively when `count` state changes:
+
+```ts
+import { toState } from "@domphy/core"
+
+const itemCount = toState(0)
+
+const Counter = {
+  div: [
+    { button: "−", onClick: () => itemCount.set((n) => Math.max(0, n - 1)) },
+    { span: (l) => t("items", { count: itemCount.get(l) }) },
+    { button: "+", onClick: () => itemCount.set((n) => n + 1) },
+  ],
+}
+```
+
+## `Intl.PluralRules` directly
+
+For edge cases, use the browser's built-in `Intl.PluralRules`:
+
+```ts
+const pr = new Intl.PluralRules("en")
+pr.select(0)   // "other"
+pr.select(1)   // "one"
+pr.select(2)   // "other"
+
+const prRu = new Intl.PluralRules("ru")
+prRu.select(1)    // "one"   → яблоко
+prRu.select(3)    // "few"   → яблока
+prRu.select(11)   // "many"  → яблок
+```
 
 ### setup.md
 

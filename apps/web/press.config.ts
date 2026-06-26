@@ -62,15 +62,18 @@ export const config = defineConfig({
         { text: "Syntax", link: "/docs/core/syntax" },
         { text: "Reactivity", link: "/docs/core/reactivity" },
         { text: "Lifecycle", link: "/docs/core/lifecycle" },
+        { text: "Context & Shared State", link: "/docs/core/context" },
+        { text: "Refs & DOM Access", link: "/docs/core/refs" },
+        { text: "Error Handling", link: "/docs/core/error-handling" },
+        { text: "Performance", link: "/docs/core/performance" },
+        { text: "TypeScript", link: "/docs/core/typescript" },
+        { text: "Testing", link: "/docs/core/testing" },
         { text: "SSR", link: "/docs/core/ssr" },
         { text: "Portal", link: "/docs/core/portal" },
         {
           text: "Patterns",
           items: [
-            {
-              text: "Insert Content",
-              link: "/docs/core/patterns/insert-content",
-            },
+            { text: "Insert Content", link: "/docs/core/patterns/insert-content" },
           ],
         },
         {
@@ -90,6 +93,9 @@ export const config = defineConfig({
         { text: "Overview", link: "/docs/theme/" },
         { text: "Setup", link: "/docs/theme/setup" },
         { text: "Palette", link: "/docs/theme/palette" },
+        { text: "Typography", link: "/docs/theme/typography" },
+        { text: "Motion & Animation", link: "/docs/theme/motion" },
+        { text: "Responsive Design", link: "/docs/theme/responsive" },
         { text: "API", link: "/docs/theme/api" },
         {
           text: "Theory",
@@ -229,10 +235,12 @@ export const config = defineConfig({
         { text: "Domphy Adapter", link: "/docs/query/adapter" },
         { text: "Queries", link: "/docs/query/queries" },
         { text: "Mutations", link: "/docs/query/mutations" },
+        { text: "Parallel & Dependent", link: "/docs/query/parallel" },
         { text: "Caching", link: "/docs/query/caching" },
         { text: "Infinite Queries", link: "/docs/query/infinite-queries" },
         { text: "SSR & Hydration", link: "/docs/query/ssr" },
         { text: "Advanced Patterns", link: "/docs/query/advanced" },
+        { text: "TypeScript", link: "/docs/query/typescript" },
         { text: "API Reference", link: "/docs/query/api" },
       ],
       "/docs/router/": [
@@ -242,6 +250,8 @@ export const config = defineConfig({
         { text: "Search Params", link: "/docs/router/search-params" },
         { text: "Data Loading", link: "/docs/router/data-loading" },
         { text: "Code Splitting", link: "/docs/router/lazy-loading" },
+        { text: "Authentication", link: "/docs/router/authentication" },
+        { text: "Error Handling", link: "/docs/router/error-handling" },
         { text: "SSR", link: "/docs/router/ssr" },
         { text: "API Reference", link: "/docs/router/api" },
       ],
@@ -255,6 +265,8 @@ export const config = defineConfig({
           link: "/docs/table/pagination-selection",
         },
         { text: "Advanced Features", link: "/docs/table/advanced" },
+        { text: "Faceting & Filter UI", link: "/docs/table/faceting" },
+        { text: "Row Pinning", link: "/docs/table/row-pinning" },
         { text: "Virtualization", link: "/docs/table/virtualization" },
         { text: "API Reference", link: "/docs/table/api" },
       ],
@@ -265,8 +277,10 @@ export const config = defineConfig({
       ],
       "/docs/form/": [
         { text: "Overview", link: "/docs/form/" },
+        { text: "Core Concepts", link: "/docs/form/concepts" },
         { text: "Validation", link: "/docs/form/validation" },
         { text: "Field Arrays", link: "/docs/form/arrays" },
+        { text: "Submission & Async", link: "/docs/form/submission" },
       ],
       "/docs/dnd/": [
         { text: "Overview", link: "/docs/dnd/" },
@@ -292,10 +306,16 @@ export const config = defineConfig({
         { text: "API Reference", link: "/docs/app/api" },
       ],
       "/docs/markdown/": [{ text: "Overview", link: "/docs/markdown/" }],
-      "/docs/mermaid/": [{ text: "Overview", link: "/docs/mermaid/" }],
+      "/docs/mermaid/": [
+        { text: "Overview", link: "/docs/mermaid/" },
+        { text: "Supported Diagrams", link: "/docs/mermaid/diagrams" },
+      ],
       "/docs/i18n/": [
         { text: "Overview", link: "/docs/i18n/" },
         { text: "Setup", link: "/docs/i18n/setup" },
+        { text: "Namespaces", link: "/docs/i18n/namespaces" },
+        { text: "Pluralization", link: "/docs/i18n/pluralization" },
+        { text: "Interpolation & Formatting", link: "/docs/i18n/formatting" },
         { text: "API Reference", link: "/docs/i18n/api" },
       ],
       "/docs/press/": [
