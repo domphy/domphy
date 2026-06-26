@@ -264,6 +264,7 @@ export const config = defineConfig({
         { text: "Overview", link: "/docs/press/" },
         { text: "Configuration", link: "/docs/press/config" },
         { text: "Markdown Features", link: "/docs/press/markdown" },
+        { text: "Customization", link: "/docs/press/customization" },
         { text: "Deploying", link: "/docs/press/deploy" },
       ],
       "/docs/mcp/": [

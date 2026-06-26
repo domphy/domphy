@@ -42,8 +42,10 @@ export default defineConfig({ /* SiteConfig */ })
 | `socialLinks` | `SocialLink[]?` | GitHub, Twitter, Discord, etc. icon links in header |
 | `editLink` | `EditLink?` | "Edit this page" link (pattern: `https://github.com/…/:path`) |
 | `outline` | `{ level: [number, number] }?` | TOC heading levels. Default: `[2, 3]` |
+| `tocTitle` | `string?` | TOC section heading text. Default: `"On this page"` |
 | `mermaid` | `boolean \| { cdn? }?` | Enable Mermaid diagrams (loaded via CDN) |
 | `announcementBar` | `{ id?, text, dismissible? }?` | Dismissible banner above the page |
+| `slots` | `LayoutSlots?` | Override individual layout regions with custom Domphy elements |
 
 ## NavItem
 

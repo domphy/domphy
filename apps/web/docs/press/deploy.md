@@ -68,14 +68,10 @@ Set `base` in `press.config.ts` to your repo name (e.g. `"/my-repo/"`).
 
 ## Custom CSS
 
-Override or extend the default theme CSS via `pressCSS`:
+Layout element styles come from Domphy's `generateCSS()` via inline `style:{}` on each element — no class-targeted CSS strings for layout. To customize:
 
-```ts
-import { pressCSS } from "@domphy/press"
+- **Slot override** — replace a layout region with a custom Domphy element using `themeConfig.slots` (recommended — stays in `generateCSS()`).
+- **Extra global CSS** — inject a `<style>` block via `config.head`.
+- **Theme tokens** — use `themeColor`/`themeSpacing` from `@domphy/theme`; they return CSS variable references so dark mode works automatically.
 
-const customCss = pressCSS() + `
-  .dp-header { background: hotpink; }
-`
-```
-
-Pass `customCss` to your custom build script's HTML document function.
+See [Customization](/docs/press/customization) for full examples.
