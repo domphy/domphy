@@ -79,14 +79,15 @@ const PostContent = {
 }
 ```
 
-The parent wraps this with a pending boundary:
+The parent shows a fallback while the query is pending:
 
 ```ts
-import { pending } from "@domphy/ui"
+import { spinner } from "@domphy/ui"
 
 const PostPage = {
-  div: PostContent,
-  $: [pending({ fallback: { div: "Loading post…" } })],
+  div: (l) => post.isPending(l)
+    ? { div: null, $: [spinner()] }
+    : PostContent,
 }
 ```
 
@@ -127,7 +128,7 @@ const Page = {
 With `@domphy/app`'s SSR mode, queries can stream their data progressively. The server renders the page shell immediately, then flushes query results as they resolve:
 
 ```ts
-import { QueryClient, dehydrate, HydrationBoundary } from "@domphy/query"
+import { QueryClient, dehydrate, hydrate } from "@domphy/query"
 
 // Server-side route loader
 export async function loader({ params }) {
@@ -150,10 +151,11 @@ export async function loader({ params }) {
   }
 }
 
-// Client-side — hydrate from server state
+// Client-side — hydrate the server-side cache into the client queryClient
+hydrate(queryClient, loaderData.dehydratedState)
+
 const PostPage = {
   div: PostContent,
-  $: [HydrationBoundary({ state: loaderData.dehydratedState })],
 }
 ```
 
@@ -178,18 +180,26 @@ async function prefetchAll(client: QueryClient, params: PageParams) {
 
 All queries start simultaneously — no waterfall.
 
-## `useIsFetching` — global loading indicator
+## Global loading indicator
 
-Show a top-level loading bar when any query is in-flight:
+Show a top-level loading bar when any query is in-flight. Subscribe to the `QueryCache` to track active fetches:
 
 ```ts
-import { useIsFetching } from "@domphy/query/domphy"
+import { QueryClient } from "@domphy/query"
+import { toState } from "@domphy/core"
 
-const isFetching = useIsFetching()
+const queryClient = new QueryClient()
+const fetchingCount = toState(0)
+
+// Track global fetch count via QueryCache events
+queryClient.getQueryCache().subscribe(() => {
+  const count = queryClient.isFetching()
+  fetchingCount.set(count)
+})
 
 const LoadingBar = {
   div: null,
-  hidden: (l) => isFetching(l) === 0,
+  hidden: (l) => fetchingCount.get(l) === 0,
   style: {
     position: "fixed",
     top: 0, left: 0, right: 0,
@@ -200,4 +210,4 @@ const LoadingBar = {
 }
 ```
 
-`useIsFetching()` returns the count of in-flight queries — `0` when nothing is loading.
+`queryClient.isFetching()` returns the count of in-flight queries — `0` when nothing is loading.

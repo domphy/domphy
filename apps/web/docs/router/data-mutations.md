@@ -162,23 +162,23 @@ const deletePost = createMutation(queryClient, {
 
 ## Pending mutations
 
-Track all in-flight mutations with `useIsMutating`:
+Track all in-flight mutations by subscribing to the `MutationCache`:
 
 ```ts
-import { useIsMutating } from "@domphy/query/domphy"
+import { QueryClient } from "@domphy/query"
+import { toState } from "@domphy/core"
 
-const mutating = useIsMutating()
+const queryClient = new QueryClient()
+const mutatingCount = toState(0)
+
+queryClient.getMutationCache().subscribe(() => {
+  mutatingCount.set(queryClient.isMutating())
+})
 
 const SaveIndicator = {
   div: "Saving…",
-  hidden: (l) => mutating(l) === 0,
+  hidden: (l) => mutatingCount.get(l) === 0,
 }
-```
-
-Or track a specific mutation key:
-
-```ts
-const mutating = useIsMutating({ mutationKey: ["createPost"] })
 ```
 
 ## Global mutation callbacks

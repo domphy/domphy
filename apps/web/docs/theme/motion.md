@@ -34,42 +34,56 @@ const Card = {
 }
 ```
 
-## Theme motion tokens
+## Motion constants
 
-Use `themeMotion` to access the theme's timing and easing tokens instead of hardcoded values:
+Use named constants to avoid magic values in transitions. These follow Material Design 3 motion guidelines:
 
 ```ts
-import { themeMotion } from "@domphy/theme"
+// Define once, use everywhere
+const DURATION = {
+  instant:  "50ms",
+  fast:     "100ms",
+  medium:   "200ms",
+  slow:     "300ms",
+  slower:   "500ms",
+} as const
+
+const EASING = {
+  standard:    "cubic-bezier(0.2, 0, 0, 1)",    // general UI changes
+  decelerate:  "cubic-bezier(0, 0, 0, 1)",       // entering
+  accelerate:  "cubic-bezier(0.3, 0, 1, 1)",     // leaving
+  linear:      "linear",                          // continuous progress
+} as const
 
 const AnimatedBadge = {
   span: "New",
   style: {
-    transition: `
-      opacity ${themeMotion("duration-fast")} ${themeMotion("easing-standard")},
-      transform ${themeMotion("duration-medium")} ${themeMotion("easing-decelerate")}
-    `,
+    transition: [
+      `opacity ${DURATION.fast} ${EASING.standard}`,
+      `transform ${DURATION.medium} ${EASING.decelerate}`,
+    ].join(", "),
   },
 }
 ```
 
-**Duration tokens:**
+**Duration reference:**
 
-| Token | Value |
-|-------|-------|
-| `duration-instant` | 50ms |
-| `duration-fast` | 100ms |
-| `duration-medium` | 200ms |
-| `duration-slow` | 300ms |
-| `duration-slower` | 500ms |
+| Constant | Value | Use |
+|----------|-------|-----|
+| `DURATION.instant` | 50ms | Hover highlights |
+| `DURATION.fast` | 100ms | Tooltips, badges |
+| `DURATION.medium` | 200ms | Most UI transitions |
+| `DURATION.slow` | 300ms | Drawers, modals |
+| `DURATION.slower` | 500ms | Page transitions |
 
-**Easing tokens (Material Design 3 compliant):**
+**Easing reference (Material Design 3):**
 
-| Token | Curve | Use for |
-|-------|-------|---------|
-| `easing-standard` | cubic-bezier(0.2, 0, 0, 1) | General UI changes |
-| `easing-decelerate` | cubic-bezier(0, 0, 0, 1) | Elements entering |
-| `easing-accelerate` | cubic-bezier(0.3, 0, 1, 1) | Elements leaving |
-| `easing-linear` | linear | Continuous progress |
+| Constant | Curve | Use for |
+|----------|-------|---------|
+| `EASING.standard` | cubic-bezier(0.2, 0, 0, 1) | General UI changes |
+| `EASING.decelerate` | cubic-bezier(0, 0, 0, 1) | Elements entering |
+| `EASING.accelerate` | cubic-bezier(0.3, 0, 1, 1) | Elements leaving |
+| `EASING.linear` | linear | Continuous progress |
 
 ## Keyframe animations
 
