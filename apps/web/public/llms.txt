@@ -66,6 +66,7 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 
 - [Setup](https://domphy.com/docs/theme/setup): install and mount the theme
 - [Palette](https://domphy.com/docs/theme/palette): `themeColor`, shift scales
+- [Color Roles & Semantic](https://domphy.com/docs/theme/color-roles): surface/text/border roles, semantic families, interactive states, `themeColorToken`
 - [Dark Mode](https://domphy.com/docs/theme/dark-mode): `data-theme` switching, SSR-safe init, system preference
 - [Spacing System](https://domphy.com/docs/theme/spacing): `themeSpacing(n)`, density multiplier, layout vs component
 - [Typography](https://domphy.com/docs/theme/typography): type scale, font tokens, responsive text
@@ -146,7 +147,7 @@ Type-safe routing — a 1-1 port of `@tanstack/router-core` (identical API) plus
 
 Headless table logic — a 1-1 port of `@tanstack/table-core` v8 (identical API). Adapter `createDomphyTable` (`@domphy/table/domphy`).
 
-- [Overview](https://domphy.com/docs/table/) · [Columns & Row Models](https://domphy.com/docs/table/columns) · [Sorting & Filtering](https://domphy.com/docs/table/sorting-filtering) · [Pagination & Selection](https://domphy.com/docs/table/pagination-selection) · [Advanced](https://domphy.com/docs/table/advanced) · [Grouping & Expanding](https://domphy.com/docs/table/grouping) · [Column Visibility & Ordering](https://domphy.com/docs/table/column-visibility) · [Faceting & Filter UI](https://domphy.com/docs/table/faceting) · [Row Pinning](https://domphy.com/docs/table/row-pinning) · [Custom Features](https://domphy.com/docs/table/custom-features) · [Virtualization](https://domphy.com/docs/table/virtualization) · [API](https://domphy.com/docs/table/api)
+- [Overview](https://domphy.com/docs/table/) · [Columns & Row Models](https://domphy.com/docs/table/columns) · [Sorting & Filtering](https://domphy.com/docs/table/sorting-filtering) · [Pagination & Selection](https://domphy.com/docs/table/pagination-selection) · [Advanced](https://domphy.com/docs/table/advanced) · [Column Groups & Headers](https://domphy.com/docs/table/column-groups) · [Grouping & Expanding](https://domphy.com/docs/table/grouping) · [Column Visibility & Ordering](https://domphy.com/docs/table/column-visibility) · [Faceting & Filter UI](https://domphy.com/docs/table/faceting) · [Row Pinning](https://domphy.com/docs/table/row-pinning) · [Custom Features](https://domphy.com/docs/table/custom-features) · [Virtualization](https://domphy.com/docs/table/virtualization) · [API](https://domphy.com/docs/table/api)
 
 ## Virtual (`@domphy/virtual`)
 

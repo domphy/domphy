@@ -4323,6 +4323,192 @@ For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
 | `ElementSize` | Valid size descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–7). |
 | `ElementDensity` | Valid density descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–4). |
 
+### color-roles.md
+
+---
+title: "Color Roles & Semantic Colors"
+description: "Apply semantic color roles for surfaces, text, borders, and states using themeColor and tone system."
+---
+
+# Color Roles & Semantic Colors
+
+## Semantic vs. literal colors
+
+Never use literal colors (`"#3b82f6"`, `"rgba(0,0,0,0.5)"`) in Domphy elements. The doctor flags these as `raw-theme-value`. Instead, use semantic color roles via `themeColor()`:
+
+```ts
+import { themeColor } from "@domphy/theme"
+
+// ✗ Literal — breaks dark mode, doctor flags it
+const bad = { div: "Error", style: { color: "#ef4444" } }
+
+// ✓ Semantic — adapts to theme and dark mode
+const good = { div: "Error", style: { color: (l) => themeColor(l, "shift-9", "error") } }
+
+// ✓ Even better — use a patch
+const best = { span: "Error", $: [small({ color: "error" })] }
+```
+
+## Surface roles
+
+Use shift scale anchors for backgrounds and borders:
+
+| Role | Tone | Use |
+|------|------|-----|
+| Page background | `"inherit"` | Root background |
+| Card background | `"shift-1"` | Slightly elevated surface |
+| Input background | `"shift-2"` | Form fields, code blocks |
+| Border | `"shift-3"` | Dividers, input borders |
+| Muted border | `"shift-4"` | Subtle separators |
+| Placeholder text | `"shift-6"` | Disabled / hint text |
+| Secondary text | `"shift-8"` | Labels, captions |
+| Body text | `"shift-10"` | Primary readable content |
+| Heading text | `"shift-12"` | High-contrast headings |
+| Icon | `"shift-9"` | Action icons |
+
+```ts
+const Card = {
+  div: CardContent,
+  style: {
+    background: (l) => themeColor(l, "shift-1"),
+    border: (l) => `1px solid ${themeColor(l, "shift-3")}`,
+    borderRadius: (l) => themeSpacing(2),
+    padding: (l) => themeSpacing(4),
+  },
+}
+```
+
+## Semantic color families
+
+Use color families for meaning, not decoration:
+
+| Family | When to use |
+|--------|-------------|
+| `"primary"` | Main actions, links, active states |
+| `"secondary"` | Secondary actions, alternative paths |
+| `"success"` | Completed, confirmed, positive |
+| `"warning"` | Caution, degraded state |
+| `"error"` / `"danger"` | Failed, destructive, critical |
+| `"info"` | Informational, neutral notices |
+| `"attention"` / `"highlight"` | Callouts, promotions |
+| `"neutral"` | Default, disabled, placeholder |
+
+```ts
+const StatusBadge = (status: "success" | "warning" | "error") => ({
+  span: status,
+  style: {
+    background: (l) => themeColor(l, "shift-2", status),
+    color: (l) => themeColor(l, "shift-11", status),
+    border: (l) => `1px solid ${themeColor(l, "shift-5", status)}`,
+    padding: (l) => `${themeSpacing(0.5)} ${themeSpacing(2)}`,
+    borderRadius: (l) => themeSpacing(1),
+    fontSize: (l) => themeSize(l, "decrease-1"),
+  },
+})
+```
+
+## Interactive state colors
+
+Use `"increase-N"` tone for hover/pressed states:
+
+```ts
+import { toState } from "@domphy/core"
+
+function ActionButton({ label, onClick }: { label: string; onClick: () => void }) {
+  const hovered = toState(false)
+
+  return {
+    button: label,
+    onClick,
+    onMouseEnter: () => hovered.set(true),
+    onMouseLeave: () => hovered.set(false),
+    style: {
+      background: (l) => themeColor(l,
+        hovered.get(l) ? "increase-1" : "shift-2",
+        "primary"
+      ),
+      color: (l) => themeColor(l, "shift-11", "primary"),
+      border: (l) => `1px solid ${themeColor(l, "shift-6", "primary")}`,
+      padding: (l) => `${themeSpacing(themeDensity(l) * 1)} ${themeSpacing(themeDensity(l) * 3)}`,
+      cursor: "pointer",
+      transition: "background 100ms ease",
+    },
+  }
+}
+```
+
+## Focus ring
+
+Standard accessible focus ring using the primary color:
+
+```ts
+const FocusableInput = {
+  input: null,
+  type: "text",
+  style: {
+    outline: "none",
+    boxShadow: (l) => `0 0 0 2px ${themeColor(l, "shift-7", "primary")}`,
+  },
+  // Only show ring when focused
+  // Use the CSS :focus-visible selector via a class or :focus-within on parent
+}
+```
+
+## Overlay colors with opacity
+
+For overlays, shadows, and scrims:
+
+```ts
+const Overlay = {
+  div: null,
+  style: {
+    position: "fixed",
+    inset: 0,
+    // Use neutral at high shift with opacity for scrim
+    background: (l) => themeColor(l, "shift-15", "neutral"),
+    opacity: 0.5,
+    zIndex: 100,
+  },
+}
+```
+
+## `themeColorToken` — concrete hex values
+
+When a third-party library requires a raw hex/rgb (e.g., Chart.js, D3, canvas):
+
+```ts
+import { themeColorToken } from "@domphy/theme"
+
+// Returns a concrete string like "#4a7ff4" resolved from the theme
+const chartColor = themeColorToken(myElement, "shift-9", "primary")
+
+// Use in Chart.js config
+const chartConfig = {
+  data: {
+    datasets: [{
+      backgroundColor: themeColorToken(myElement, "shift-3", "primary"),
+      borderColor: themeColorToken(myElement, "shift-9", "primary"),
+    }],
+  },
+}
+```
+
+`themeColorToken` uses CIELAB/LCH matching — the same algorithm that powers `@domphy/doctor`'s `raw-theme-value` hint.
+
+## Color audit
+
+Run the doctor to find literal colors:
+
+```ts
+import { diagnose } from "@domphy/doctor"
+
+const issues = diagnose(MyApp)
+const colorIssues = issues.filter(i => i.rule === "raw-theme-value")
+
+// Each issue includes a hint with the nearest themeColor() equivalent:
+// { rule: "raw-theme-value", message: "Use themeColor(l, 'shift-9', 'error') instead of '#ef4444'" }
+```
+
 ### dark-mode.md
 
 ---
@@ -11627,6 +11813,219 @@ The IIFE bundle exposes everything under `Domphy.table`:
 <script>
     const { createTable, createColumnHelper, getCoreRowModel } = Domphy.table
 </script>
+```
+
+### column-groups.md
+
+---
+title: "Column Groups & Header Groups"
+description: "Span multiple columns with header groups, nested column definitions, and multi-level headers."
+---
+
+# Column Groups & Header Groups
+
+## Basic column groups
+
+Group related columns under a shared header using nested column definitions:
+
+```ts
+import { createColumnHelper, createDomphyTable } from "@domphy/table/domphy"
+
+interface Employee {
+  id: number
+  name: string
+  department: string
+  salary: number
+  startDate: string
+  manager: string
+}
+
+const col = createColumnHelper<Employee>()
+
+const columns = [
+  col.group({
+    id: "personal",
+    header: "Personal Info",
+    columns: [
+      col.accessor("name", { header: "Name" }),
+      col.accessor("department", { header: "Department" }),
+    ],
+  }),
+  col.group({
+    id: "employment",
+    header: "Employment",
+    columns: [
+      col.accessor("salary", { header: "Salary" }),
+      col.accessor("startDate", { header: "Start Date" }),
+      col.accessor("manager", { header: "Manager" }),
+    ],
+  }),
+]
+
+const table = createDomphyTable({ data: () => employees, columns })
+```
+
+## Rendering multi-level headers
+
+Use `table.getHeaderGroups(l)` which returns header rows from top to bottom:
+
+```ts
+const TableHead = {
+  thead: (l) => table.getHeaderGroups(l).map((headerGroup) => ({
+    _key: headerGroup.id,
+    tr: headerGroup.headers.map((header) => ({
+      _key: header.id,
+      th: header.isPlaceholder
+        ? null
+        : String(header.column.columnDef.header ?? ""),
+      colSpan: header.colSpan,    // spans the group's sub-columns
+      rowSpan: header.rowSpan,    // for leaf headers that span multiple rows
+      style: {
+        textAlign: "center",
+        borderBottom: (l) => `1px solid ${themeColor(l, "shift-3")}`,
+        padding: (l) => `${themeSpacing(1)} ${themeSpacing(2)}`,
+      },
+    })),
+  })),
+}
+```
+
+`header.isPlaceholder` is `true` for empty cells in the header row above leaf columns — use `null` content for these.
+
+## Three levels deep
+
+```ts
+const deepColumns = [
+  col.group({
+    id: "contact",
+    header: "Contact",
+    columns: [
+      col.group({
+        id: "contact-primary",
+        header: "Primary",
+        columns: [
+          col.accessor("email", { header: "Email" }),
+          col.accessor("phone", { header: "Phone" }),
+        ],
+      }),
+      col.group({
+        id: "contact-secondary",
+        header: "Secondary",
+        columns: [
+          col.accessor("altEmail", { header: "Alt Email" }),
+        ],
+      }),
+    ],
+  }),
+]
+```
+
+`getHeaderGroups()` returns one row per level — 3 levels → 3 rows in `<thead>`.
+
+## Column span calculation
+
+`header.colSpan` automatically computes how many leaf columns a group spans:
+
+```ts
+// For a group with 3 leaf columns:
+// header.colSpan === 3
+// header.rowSpan === 1 (it spans 1 row)
+
+// For a leaf column in a 2-level deep table:
+// header.colSpan === 1
+// header.rowSpan === 1 (occupies 1 row at the bottom level)
+
+// For a leaf in a 1-level table that also has 2-level groups:
+// header.colSpan === 1
+// header.rowSpan === 2 (spans 2 header rows to fill the gap)
+```
+
+## Column group footers
+
+Define footer content at the group level:
+
+```ts
+const columns = [
+  col.group({
+    id: "financial",
+    header: "Financial",
+    footer: "Totals",
+    columns: [
+      col.accessor("revenue", {
+        header: "Revenue",
+        footer: (info) => {
+          const total = info.table.getFilteredRowModel().rows.reduce(
+            (sum, row) => sum + (row.getValue("revenue") as number),
+            0,
+          )
+          return `$${total.toLocaleString()}`
+        },
+      }),
+      col.accessor("costs", {
+        header: "Costs",
+        footer: (info) => {
+          const total = info.table.getFilteredRowModel().rows.reduce(
+            (sum, row) => sum + (row.getValue("costs") as number),
+            0,
+          )
+          return `$${total.toLocaleString()}`
+        },
+      }),
+    ],
+  }),
+]
+```
+
+## Rendering footer groups
+
+```ts
+const TableFoot = {
+  tfoot: (l) => table.getFooterGroups(l).map((footerGroup) => ({
+    _key: footerGroup.id,
+    tr: footerGroup.headers.map((header) => ({
+      _key: header.id,
+      td: header.isPlaceholder ? null : String(header.column.columnDef.footer ?? ""),
+      colSpan: header.colSpan,
+      style: { fontWeight: "bold", textAlign: "right" },
+    })),
+  })),
+}
+```
+
+## Column group sorting
+
+Sorting applies to leaf columns, not groups. Clicking a group header is not sortable by default — disable sorting on group columns:
+
+```ts
+const columns = [
+  col.group({
+    id: "info",
+    header: "Employee Info",
+    enableSorting: false,   // groups cannot be sorted
+    columns: [
+      col.accessor("name", { header: "Name", enableSorting: true }),
+      col.accessor("department", { header: "Dept", enableSorting: true }),
+    ],
+  }),
+]
+```
+
+## Hide/show column groups
+
+Toggle visibility of all columns in a group at once:
+
+```ts
+function toggleGroup(groupId: string, visible: boolean) {
+  const group = table.table.getColumn(groupId)
+  if (group) {
+    group.getLeafColumns().forEach(col => col.toggleVisibility(visible))
+  }
+}
+
+const HideFinancialColumns = {
+  button: "Hide financial data",
+  onClick: () => toggleGroup("financial", false),
+}
 ```
 
 ### column-visibility.md
