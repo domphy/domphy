@@ -31,6 +31,11 @@ import {
 import { themeCSS } from "@domphy/theme";
 import * as esbuild from "esbuild";
 import { config } from "./press.config.js";
+import {
+  type PageIslandSpec,
+  htmlDocument,
+  RUNTIME_SCRIPT as _RUNTIME_SCRIPT,
+} from "./html-template.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const appRoot = resolve(here);
@@ -125,13 +130,6 @@ interface BuiltPage {
   islands: IslandRef[];
 }
 
-interface PageIslandSpec {
-  kind: "search" | "preview" | "editor";
-  id: string;
-  source?: string;
-  code?: string;
-}
-
 function pageIslandSpecs(page: BuiltPage): PageIslandSpec[] {
   const specs: PageIslandSpec[] = [{ kind: "search", id: "search" }];
   for (const island of page.islands) {
@@ -190,43 +188,6 @@ bootstrap(previewRegistry);
   });
 }
 
-// --- HTML document generation ------------------------------------------------
-
-const RUNTIME_SCRIPT = `
-(function(){
-  try{var t=localStorage.getItem('dp-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}
-  addEventListener('click',function(e){
-    var el=e.target.closest&&e.target.closest('[data-theme-toggle]');
-    if(el){var d=document.documentElement;var n=d.getAttribute('data-theme')==='dark'?'':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('dp-theme',n);}catch(_){}return;}
-    var m=e.target.closest&&e.target.closest('[data-menu-toggle]');
-    if(m){var d2=document.documentElement;d2.setAttribute('data-sidebar',d2.getAttribute('data-sidebar')==='open'?'':'open');}
-  });
-})();`;
-
-function htmlDocument(
-  result: { html: string; css: string; head: string; status: number },
-  generatedCss: string,
-  islandSpecs: PageIslandSpec[],
-): string {
-  const specsJson = JSON.stringify(islandSpecs).replace(/</g, "\\u003c");
-  return `<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-${result.head}
-${config.head.join("\n")}
-<style>${generatedCss}</style>
-<style id="domphy-style">${result.css}</style>
-<script>${RUNTIME_SCRIPT}</script>
-</head>
-<body>
-<div id="domphy-app">${result.html}</div>
-<script>window.__DP_PAGE_ISLANDS__=${specsJson};</script>
-<script type="module" src="/assets/islands-entry.js"></script>
-</body>
-</html>`;
-}
 
 function buildSitemap(pages: BuiltPage[], hostname: string): string {
   const urls = pages
@@ -332,7 +293,7 @@ async function run(): Promise<void> {
   for (const page of built) {
     try {
       const result = await app.renderToString(page.route);
-      const doc = htmlDocument(result, generatedCss, pageIslandSpecs(page));
+      const doc = htmlDocument(result, generatedCss, pageIslandSpecs(page), config.head);
       const outPath = join(outDir, page.outFile);
       mkdirSync(dirname(outPath), { recursive: true });
       writeFileSync(outPath, doc, "utf8");

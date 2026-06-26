@@ -47,3 +47,6 @@ jobs:
 
       - name: Test all packages
         run: pnpm --filter "@domphy/*" test
+
+      - name: Test web app
+        run: pnpm --filter "domphy-web" test

@@ -17,6 +17,7 @@ export default {
   root: here,
   test: {
     include: [
+      "tests/html.test.ts",
       "tests/pipeline.test.ts",
       "tests/search.test.ts",
       "tests/routes.test.ts",
