@@ -7,7 +7,7 @@ description: "Dynamic field arrays, nested object fields, array of objects, and 
 
 ## Basic array field
 
-Use dot-bracket notation for array indexes. Manage array items with `form.pushFieldValue`, `form.removeFieldValue`, and `form.swapFieldValues`:
+Use dot-bracket notation for array indexes. Manage array items with `form.form.pushFieldValue`, `form.form.removeFieldValue`, and `form.form.swapFieldValues`:
 
 ```ts
 import { createForm } from "@domphy/form/domphy"

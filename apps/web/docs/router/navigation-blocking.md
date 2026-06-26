@@ -102,11 +102,11 @@ const form = createForm<EditInput>({
 
 // Auto-save every 10 seconds when dirty
 effect(() => {
-  const dirty = form.isDirty()
+  const dirty = form.state().isDirty
   if (!dirty) return
 
   const timer = setInterval(() => {
-    if (form.isDirty()) saveDraft(form.form.state.values)
+    if (form.state().isDirty) saveDraft(form.form.state.values)
   }, 10_000)
 
   return () => clearInterval(timer)
@@ -114,7 +114,7 @@ effect(() => {
 
 // Also save on tab hide (user switches to another tab)
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden && form.isDirty()) {
+  if (document.hidden && form.state().isDirty) {
     saveDraft(form.form.state.values)
   }
 })
