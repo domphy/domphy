@@ -120,7 +120,7 @@ const menuOpen = toState(false)
 const MobileMenuButton = {
   button: (l) => menuOpen.get(l) ? "✕" : "☰",
   $: [button()],
-  onClick: () => menuOpen.set((v) => !v),
+  onClick: () => menuOpen.set(!menuOpen.get()),
   style: { display: "none", "@media(max-width:767px)": { display: "flex" } },
 }
 

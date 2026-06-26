@@ -201,10 +201,12 @@ import { toState } from "@domphy/core"
 const removingIds = toState<Set<string>>(new Set())
 
 function removeItem(id: string) {
-  removingIds.set((s) => new Set([...s, id]))
+  removingIds.set(new Set([...removingIds.get(), id]))
   setTimeout(() => {
-    items.set((list) => list.filter((i) => i.id !== id))
-    removingIds.set((s) => { const next = new Set(s); next.delete(id); return next })
+    items.set(items.get().filter((i) => i.id !== id))
+    const next = new Set(removingIds.get())
+    next.delete(id)
+    removingIds.set(next)
   }, 200)   // match animation duration
 }
 

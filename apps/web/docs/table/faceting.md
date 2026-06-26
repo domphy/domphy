@@ -55,9 +55,8 @@ const CategoryFilter = {
               onChange: (e: Event) => {
                 const checked = (e.target as HTMLInputElement).checked
                 const cat = String(value)
-                selectedCategories.set((prev) =>
-                  checked ? [...prev, cat] : prev.filter((c) => c !== cat)
-                )
+                const current = selectedCategories.get()
+                selectedCategories.set(checked ? [...current, cat] : current.filter((c) => c !== cat))
                 // Apply filter to table
                 col.setFilterValue(selectedCategories.get() || undefined)
               },

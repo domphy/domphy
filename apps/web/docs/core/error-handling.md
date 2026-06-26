@@ -63,12 +63,12 @@ interface AsyncState<T> {
 const post = toState<AsyncState<Post>>({ data: null, loading: false, error: null })
 
 async function loadPost(id: string) {
-  post.set((s) => ({ ...s, loading: true, error: null }))
+  post.set({ ...post.get(), loading: true, error: null })
   try {
     const data = await fetchPost(id)
     post.set({ data, loading: false, error: null })
   } catch (err) {
-    post.set((s) => ({ ...s, loading: false, error: (err as Error).message }))
+    post.set({ ...post.get(), loading: false, error: (err as Error).message })
   }
 }
 

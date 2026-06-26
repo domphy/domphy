@@ -192,7 +192,7 @@ const save = createMutation(queryClient, {
 })
 
 function enqueue(id: string) {
-  queue.set((prev) => [...prev, id])
+  queue.set([...queue.get(), id])
   if (!running) {
     running = true
     save.mutate(id)

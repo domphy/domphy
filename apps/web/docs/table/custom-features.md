@@ -219,7 +219,7 @@ const table = createDomphyTable({
   ],
   meta: {
     updateData: (rowIndex, columnId, value) => {
-      tableData.set((rows) => rows.map((row, i) =>
+      tableData.set(tableData.get().map((row, i) =>
         i === rowIndex ? { ...row, [columnId]: value } : row
       ))
     },

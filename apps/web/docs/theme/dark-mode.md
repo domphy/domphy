@@ -170,6 +170,6 @@ type Theme = "light" | "dark"
 const theme = toState<Theme>("light")
 
 function toggleTheme() {
-  theme.set((t): Theme => t === "light" ? "dark" : "light")
+  theme.set(theme.get() === "light" ? "dark" : "light")
 }
 ```

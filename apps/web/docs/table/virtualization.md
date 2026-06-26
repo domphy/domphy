@@ -129,7 +129,7 @@ const allRows = toState<Row[]>([])
 const query = createQuery({
   queryKey: () => ["rows", page.get()],
   queryFn: () => fetchRows(page.get()),
-  onSuccess: (newRows) => allRows.set((prev) => [...prev, ...newRows]),
+  onSuccess: (newRows) => allRows.set([...allRows.get(), ...newRows]),
 })
 
 const list = createVirtualizer({
@@ -137,7 +137,7 @@ const list = createVirtualizer({
   estimateSize: () => 40,
   onChange: (v) => {
     if (v.isAtEnd(100) && !query.isFetching()) {
-      page.set((n) => n + 1)
+      page.set(page.get() + 1)
     }
   },
 })

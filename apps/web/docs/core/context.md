@@ -75,14 +75,14 @@ const EmailField = {
   input: null,
   type: "email",
   value: (l) => ctx.values.get(l).email,
-  onInput: (e) => ctx.values.set((v) => ({ ...v, email: (e.target as HTMLInputElement).value })),
+  onInput: (e) => ctx.values.set({ ...ctx.values.get(), email: (e.target as HTMLInputElement).value }),
 }
 
 const PasswordField = {
   input: null,
   type: "password",
   value: (l) => ctx.values.get(l).password,
-  onInput: (e) => ctx.values.set((v) => ({ ...v, password: (e.target as HTMLInputElement).value })),
+  onInput: (e) => ctx.values.set({ ...ctx.values.get(), password: (e.target as HTMLInputElement).value }),
 }
 
 export const SignupForm = {
@@ -135,7 +135,7 @@ interface CartEvent {
   productId: string
 }
 
-export const cartEvents = new Notifier<CartEvent>()
+export const cartEvents = new Notifier()
 ```
 
 ```ts
@@ -144,7 +144,7 @@ import { cartEvents } from "./events.js"
 
 export const AddToCartButton = (productId: string) => ({
   button: "Add to cart",
-  onClick: () => cartEvents.notify({ type: "add", productId }),
+  onClick: () => cartEvents.notify("cart", { type: "add", productId }),
 })
 ```
 
@@ -155,9 +155,9 @@ import { toState } from "@domphy/core"
 
 const count = toState(0)
 
-cartEvents.subscribe((event) => {
-  if (event.type === "add") count.set((n) => n + 1)
-  if (event.type === "remove") count.set((n) => Math.max(0, n - 1))
+cartEvents.addListener("cart", (event: { type: "add" | "remove"; productId: string }) => {
+  if (event.type === "add") count.set(count.get() + 1)
+  if (event.type === "remove") count.set(Math.max(0, count.get() - 1))
 })
 
 export const CartCount = {

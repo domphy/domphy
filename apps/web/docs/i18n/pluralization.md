@@ -133,9 +133,9 @@ const itemCount = toState(0)
 
 const Counter = {
   div: [
-    { button: "−", onClick: () => itemCount.set((n) => Math.max(0, n - 1)) },
+    { button: "−", onClick: () => itemCount.set(Math.max(0, itemCount.get() - 1)) },
     { span: (l) => t("items", { count: itemCount.get(l) }) },
-    { button: "+", onClick: () => itemCount.set((n) => n + 1) },
+    { button: "+", onClick: () => itemCount.set(itemCount.get() + 1) },
   ],
 }
 ```

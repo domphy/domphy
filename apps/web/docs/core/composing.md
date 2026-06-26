@@ -62,8 +62,8 @@ function Counter(label: string) {
   return {
     div: [
       { span: (l) => `${label}: ${count.get(l)}` },
-      { button: "+", onClick: () => count.set(n => n + 1) },
-      { button: "-", onClick: () => count.set(n => n - 1) },
+      { button: "+", onClick: () => count.set(count.get() + 1) },
+      { button: "-", onClick: () => count.set(count.get() - 1) },
     ],
   }
 }

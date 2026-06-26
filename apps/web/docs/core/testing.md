@@ -35,7 +35,7 @@ import { toState, computed } from "@domphy/core"
 describe("counter state", () => {
   it("increments", () => {
     const count = toState(0)
-    count.set((n) => n + 1)
+    count.set(count.get() + 1)
     expect(count.get()).toBe(1)
   })
 
@@ -167,7 +167,7 @@ describe("async data loading", () => {
     const fetchData = vi.fn().mockResolvedValue("Hello")
 
     async function load() {
-      state.set((s) => ({ ...s, loading: true }))
+      state.set({ ...state.get(), loading: true })
       const data = await fetchData()
       state.set({ data, loading: false })
     }
