@@ -8,7 +8,7 @@
 // then loads the bundled entry which calls `bootstrap(previewRegistry)`.
 
 import { type DomphyElement, ElementNode } from "@domphy/core";
-import { mountSearch } from "@domphy/press";
+import { mountSearch } from "@domphy/press/browser";
 import { themeApply } from "@domphy/theme";
 
 // The editor and preview Containers are dynamically imported so a page with only

@@ -10,6 +10,7 @@ export {
   prevNextForRoute,
   sidebarForRoute,
 } from "./routes-browser.js";
+export { mountSearch, queryIndex, searchWidget } from "./search.js";
 export { pressCSS } from "./theme.js";
 export type {
   DomphyElement,
