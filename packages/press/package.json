@@ -1,0 +1,65 @@
+{
+  "name": "@domphy/press",
+  "version": "0.18.0",
+  "description": "Domphy Press — VitePress-baseline static doc site framework built on @domphy/app + @domphy/markdown",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "domphy-press": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./theme.css": "./theme.css"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "pack": "tsup && npm pack",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": ["domphy", "press", "docs", "static-site", "vitepress", "markdown"],
+  "author": "Huu Khanh Nguyen",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/domphy/domphy.git",
+    "directory": "packages/press"
+  },
+  "dependencies": {
+    "esbuild": "^0.25.0",
+    "markdown-it": "^14.1.0",
+    "markdown-it-container": "^4.0.0",
+    "markdown-it-include": "^2.0.0",
+    "shiki": "^1.29.2"
+  },
+  "peerDependencies": {
+    "@domphy/app": "workspace:^",
+    "@domphy/core": "workspace:^",
+    "@domphy/markdown": "workspace:^",
+    "@domphy/theme": "workspace:^",
+    "@domphy/ui": "workspace:^"
+  },
+  "devDependencies": {
+    "@domphy/app": "workspace:*",
+    "@domphy/core": "workspace:*",
+    "@domphy/markdown": "workspace:*",
+    "@domphy/theme": "workspace:*",
+    "@domphy/ui": "workspace:*",
+    "@types/markdown-it": "^14.1.2",
+    "@types/markdown-it-container": "^2.0.10",
+    "@types/node": "^25.9.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "files": ["dist", "theme.css", "README.md"]
+}
