@@ -6948,6 +6948,200 @@ new InfiniteQueryObserver(queryClient, {
 })
 ```
 
+### invalidation.md
+
+---
+title: "Query Invalidation"
+description: "Invalidate and refetch queries by key, exact match, or predicate — understand the stale/invalidation lifecycle."
+---
+
+# Query Invalidation
+
+## What is invalidation?
+
+Marking a query as "invalid" tells `@domphy/query` that the cached data is stale and should be refetched the next time it is observed. Invalidated queries refetch immediately if they have active subscribers; otherwise they refetch lazily on next mount.
+
+## `invalidateQueries`
+
+The main API — invalidates matching queries:
+
+```ts
+import { QueryClient } from "@domphy/query"
+
+const queryClient = new QueryClient()
+
+// Invalidate ALL queries with the "posts" prefix
+await queryClient.invalidateQueries({ queryKey: ["posts"] })
+```
+
+This fuzzy-matches by default — `["posts"]` invalidates `["posts"]`, `["posts", 1]`, `["posts", "list"]`, etc.
+
+## Exact match
+
+Only invalidate a specific key:
+
+```ts
+// Invalidate ONLY ["posts", 1] — not ["posts"] or ["posts", 2]
+await queryClient.invalidateQueries({
+  queryKey: ["posts", 1],
+  exact: true,
+})
+```
+
+## Invalidate after mutation
+
+The most common pattern — after a write, invalidate the affected queries:
+
+```ts
+import { createMutation } from "@domphy/query/domphy"
+
+const createPost = createMutation(queryClient, {
+  mutationFn: (data: PostInput) => api.post("/posts", data),
+  onSuccess: async () => {
+    // Invalidate the list — it will refetch with the new post included
+    await queryClient.invalidateQueries({ queryKey: ["posts"] })
+  },
+})
+
+const updatePost = createMutation(queryClient, {
+  mutationFn: ({ id, data }: { id: number; data: Partial<Post> }) => api.patch(`/posts/${id}`, data),
+  onSuccess: (_result, variables) => {
+    // Invalidate the specific post AND the list
+    queryClient.invalidateQueries({ queryKey: ["posts", variables.id] })
+    queryClient.invalidateQueries({ queryKey: ["posts"] })
+  },
+})
+```
+
+## Predicate-based invalidation
+
+For complex matching logic, use a `predicate` function:
+
+```ts
+// Invalidate all post-related queries for a specific author
+await queryClient.invalidateQueries({
+  predicate: (query) => {
+    const key = query.queryKey as string[]
+    return key[0] === "posts" && key.includes(authorId)
+  },
+})
+
+// Invalidate all queries that have an active observer and are older than 1 minute
+await queryClient.invalidateQueries({
+  predicate: (query) => {
+    const age = Date.now() - (query.state.dataUpdatedAt ?? 0)
+    return age > 60_000 && query.getObserversCount() > 0
+  },
+})
+```
+
+## `refetchType`
+
+Control what happens to invalidated queries:
+
+```ts
+await queryClient.invalidateQueries({
+  queryKey: ["posts"],
+  refetchType: "active",   // only refetch queries with active observers (default)
+})
+
+await queryClient.invalidateQueries({
+  queryKey: ["posts"],
+  refetchType: "all",      // refetch even inactive (background) queries
+})
+
+await queryClient.invalidateQueries({
+  queryKey: ["posts"],
+  refetchType: "none",     // mark stale but don't refetch (refetch on next mount)
+})
+```
+
+## Optimistic updates + invalidation
+
+Combine optimistic cache updates with post-mutation invalidation for smooth UX:
+
+```ts
+interface Todo { id: string; text: string; done: boolean }
+
+const toggleTodo = createMutation(queryClient, {
+  mutationFn: (id: string) => api.patch(`/todos/${id}/toggle`),
+
+  onMutate: async (id) => {
+    await queryClient.cancelQueries({ queryKey: ["todos"] })
+    const previous = queryClient.getQueryData<Todo[]>(["todos"])
+
+    // Optimistic update
+    queryClient.setQueryData<Todo[]>(["todos"], (todos = []) =>
+      todos.map((t) => t.id === id ? { ...t, done: !t.done } : t)
+    )
+
+    return { previous }
+  },
+
+  onError: (_err, _id, context) => {
+    queryClient.setQueryData(["todos"], context?.previous)
+  },
+
+  onSettled: () => {
+    // Final source-of-truth sync regardless of success/failure
+    queryClient.invalidateQueries({ queryKey: ["todos"] })
+  },
+})
+```
+
+## `removeQueries`
+
+Remove a query from the cache entirely (vs. just marking it stale):
+
+```ts
+// Remove when user logs out
+function logout() {
+  // Remove all private data from the cache
+  queryClient.removeQueries({ queryKey: ["user"] })
+  queryClient.removeQueries({ queryKey: ["notifications"] })
+  queryClient.removeQueries({ queryKey: ["orders"] })
+}
+```
+
+## `resetQueries`
+
+Reset a query back to its initial state (removes data, sets status to "pending"):
+
+```ts
+// Reset a form query when the user clicks "clear"
+queryClient.resetQueries({ queryKey: ["draft", formId] })
+```
+
+## `refetchQueries`
+
+Force a refetch without marking as invalid first:
+
+```ts
+// Pull-to-refresh
+async function onPullToRefresh() {
+  await queryClient.refetchQueries({
+    queryKey: ["feed"],
+    type: "active",
+  })
+}
+```
+
+## Tracking invalidations reactively
+
+Listen for cache events to react to invalidations:
+
+```ts
+import { toState } from "@domphy/core"
+
+const isRefreshing = toState(false)
+
+queryClient.getQueryCache().subscribe((event) => {
+  if (event?.type === "updated" && event.action.type === "fetch") {
+    isRefreshing.set(queryClient.isFetching() > 0)
+  }
+})
+```
+
 ### mutations.md
 
 # Mutations
@@ -11647,6 +11841,192 @@ const ClearFilters = {
 }
 ```
 
+### grouping.md
+
+---
+title: "Grouping & Expanding"
+description: "Group rows by column values, aggregate grouped data, and expand/collapse row groups."
+---
+
+# Grouping & Expanding
+
+## Enable grouping
+
+Column grouping lets you fold rows with the same value into a collapsible group:
+
+```ts
+import { createDomphyTable } from "@domphy/table/domphy"
+import { toState } from "@domphy/core"
+
+const grouping = toState<string[]>([])
+
+const table = createDomphyTable({
+  data: () => employees,
+  columns,
+  state: { grouping: grouping.get() },
+  onGroupingChange: (updater) => {
+    grouping.set(typeof updater === "function" ? updater(grouping.get()) : updater)
+  },
+  getExpandedRowModel: getExpandedRowModel(),
+  getGroupedRowModel: getGroupedRowModel(),
+  getAggregatedRowModel: getAggregatedRowModel(),
+})
+```
+
+## Marking columns as groupable
+
+```ts
+import { createColumnHelper } from "@domphy/table"
+
+const col = createColumnHelper<Employee>()
+
+const columns = [
+  col.accessor("department", {
+    header: "Department",
+    enableGrouping: true,
+  }),
+  col.accessor("role", {
+    header: "Role",
+    enableGrouping: true,
+  }),
+  col.accessor("salary", {
+    header: "Salary",
+    aggregationFn: "sum",   // sum salaries in group
+  }),
+  col.accessor("name", {
+    header: "Name",
+    enableGrouping: false,   // cannot group by name
+  }),
+]
+```
+
+## Aggregation functions
+
+Control how grouped values are computed:
+
+| Function | Description |
+|----------|-------------|
+| `"count"` | Count of rows in group |
+| `"sum"` | Sum of numeric values |
+| `"min"` | Minimum value |
+| `"max"` | Maximum value |
+| `"mean"` | Average of numeric values |
+| `"median"` | Median value |
+| `"unique"` | Array of unique values |
+| `"uniqueCount"` | Count of unique values |
+| Custom | `(columnId, leafRows, childRows) => value` |
+
+```ts
+col.accessor("revenue", {
+  header: "Revenue",
+  aggregationFn: (columnId, leafRows) => {
+    return leafRows.reduce((sum, row) => sum + (row.getValue(columnId) as number), 0)
+  },
+  aggregatedCell: ({ getValue }) => `$${(getValue<number>()).toLocaleString()}`,
+})
+```
+
+## Rendering grouped rows
+
+```ts
+const TableBody = {
+  tbody: (l) => table.getRowModel(l).rows.map((row) => ({
+    _key: row.id,
+    tr: (l) => {
+      if (row.getIsGrouped()) {
+        // Group header row
+        return row.getVisibleCells(l).map((cell) => ({
+          td: (l) => {
+            if (cell.getIsGrouped()) {
+              // The grouped cell — show toggle + label
+              return {
+                div: [
+                  {
+                    button: row.getIsExpanded(l) ? "▾" : "▸",
+                    onClick: () => row.toggleExpanded(),
+                    style: { marginRight: "4px", cursor: "pointer" },
+                  },
+                  { span: String(cell.renderValue()) },
+                  { span: ` (${row.subRows.length})`, style: { opacity: 0.6 } },
+                ],
+                style: { display: "flex", alignItems: "center" },
+              }
+            }
+            if (cell.getIsAggregated()) {
+              // Aggregated value cell
+              return { td: String(cell.renderValue()) }
+            }
+            // Placeholder
+            return { td: null }
+          },
+          colSpan: cell.getIsGrouped() ? 1 : undefined,
+          _key: cell.id,
+        }))
+      }
+
+      // Regular leaf row
+      return row.getVisibleCells(l).map((cell) => ({
+        td: String(cell.renderValue()),
+        _key: cell.id,
+      }))
+    },
+  })),
+}
+```
+
+## Programmatic grouping
+
+Toggle grouping by column ID:
+
+```ts
+const GroupByDepartment = {
+  button: (l) => {
+    const isGrouped = grouping.get(l).includes("department")
+    return isGrouped ? "Ungroup" : "Group by Department"
+  },
+  onClick: (l) => {
+    const isGrouped = grouping.get().includes("department")
+    if (isGrouped) {
+      grouping.set(g => g.filter(id => id !== "department"))
+    } else {
+      grouping.set(g => [...g, "department"])
+    }
+  },
+}
+```
+
+Or use the column toggle:
+
+```ts
+const col = table.table.getColumn("department")
+
+const GroupToggle = {
+  button: (l) => col?.getIsGrouped(l) ? "Ungroup" : "Group",
+  onClick: () => col?.toggleGrouping(),
+}
+```
+
+## Expand/collapse all
+
+```ts
+const ExpandAll = {
+  button: (l) => table.getIsAllRowsExpanded(l) ? "Collapse all" : "Expand all",
+  onClick: () => table.table.toggleAllRowsExpanded(),
+}
+```
+
+## Expand API
+
+| Method | Description |
+|--------|-------------|
+| `row.getIsGrouped()` | `true` if this row is a group header |
+| `row.getIsExpanded(l)` | `true` if the group is open |
+| `row.toggleExpanded()` | Toggle expand/collapse |
+| `row.getCanExpand()` | `true` if has subrows |
+| `row.subRows` | Child rows in this group |
+| `table.getIsAllRowsExpanded(l)` | `true` if all groups are open |
+| `table.toggleAllRowsExpanded()` | Toggle all |
+
 ### index.md
 
 # Table
@@ -13382,6 +13762,200 @@ const fieldApi = field.api   // FieldApi<TData, string>
 ```
 
 The full TanStack Form v1 API applies to both — see [TanStack Form docs](https://tanstack.com/form/latest) for `FormApi` methods (`setFieldValue`, `getFieldValue`, `setFieldMeta`, `validateField`, etc.).
+
+### async-values.md
+
+---
+title: "Async Initial Values"
+description: "Load initial form values from an API, handle loading states, and reset when data changes."
+---
+
+# Async Initial Values
+
+## Problem: forms need server data
+
+A common pattern — edit a resource fetched from the API. The form must not initialize until the data arrives, and it should reset if the resource changes (e.g. route param changes).
+
+## Pattern 1: conditional render
+
+Don't create the form until data is ready — the simplest approach:
+
+```ts
+import { QueryClient } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
+import { createForm } from "@domphy/form/domphy"
+
+const queryClient = new QueryClient()
+
+const postQuery = createQuery(queryClient, {
+  queryKey: () => ["post", postId],
+  queryFn: () => fetchPost(postId),
+})
+
+const EditPage = {
+  div: (l) => {
+    if (postQuery.isPending(l)) return { div: "Loading…" }
+    if (postQuery.isError(l))   return { div: "Failed to load post" }
+
+    // Only create form when data is ready — defaultValues are set exactly once
+    return EditForm(postQuery.data(l)!)
+  },
+}
+
+function EditForm(post: Post) {
+  const form = createForm<PostInput>({
+    defaultValues: {
+      title: post.title,
+      body: post.body,
+    },
+    onSubmit: async ({ value }) => {
+      await api.patch(`/posts/${post.id}`, value)
+    },
+  })
+
+  return FormElement(form)
+}
+```
+
+This is reliable — the form is created fresh when data arrives, with the correct defaults.
+
+## Pattern 2: reset on data change
+
+Create the form immediately (with empty defaults), then reset when data loads:
+
+```ts
+import { effect } from "@domphy/core"
+
+const form = createForm<PostInput>({
+  defaultValues: { title: "", body: "" },
+  onSubmit: async ({ value }) => api.patch(`/posts/${postId}`, value),
+})
+
+// Reset form when the query data changes (e.g. navigating to a different post)
+effect(() => {
+  const post = postQuery.data()
+  if (post) {
+    form.form.reset({ title: post.title, body: post.body })
+  }
+})
+```
+
+`form.form.reset(values)` sets all field values to `values` and resets touched/dirty state.
+
+## Pattern 3: async defaultValues
+
+Pass a function as `defaultValues` — called once at mount:
+
+```ts
+const form = createForm<PostInput>({
+  defaultValues: async () => {
+    const post = await fetchPost(postId)
+    return { title: post.title, body: post.body }
+  },
+  onSubmit: async ({ value }) => api.patch(`/posts/${postId}`, value),
+})
+
+// form.state.isLoading is true while defaultValues is resolving
+const FormOrLoader = {
+  div: (l) => form.isLoading(l)
+    ? { div: "Loading…" }
+    : FormElement,
+}
+```
+
+This keeps loading logic inside the form itself — no external query needed for this pattern.
+
+## Reset on route change
+
+When the route changes (different `postId`), reset the form with fresh data:
+
+```ts
+import { createRoute } from "@domphy/router"
+
+const editRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/posts/$postId/edit",
+  loader: ({ params }) => fetchPost(Number(params.postId)),
+  component: () => {
+    const post = editRoute.useLoaderData()
+
+    const form = createForm<PostInput>({
+      defaultValues: { title: post.title, body: post.body },
+      onSubmit: async ({ value }) => api.patch(`/posts/${post.id}`, value),
+    })
+
+    return FormElement(form)
+  },
+})
+```
+
+Because `component` re-runs when the route params change (and therefore `post` changes), the form always initializes with the current post's values.
+
+## Detecting form dirtiness
+
+Show a "You have unsaved changes" warning only when the user has modified the form from its initial values:
+
+```ts
+const UnsavedBanner = {
+  div: "You have unsaved changes.",
+  hidden: (l) => !form.isDirty(l),
+  style: {
+    padding: "8px 16px",
+    background: "var(--warning-3)",
+    color: "var(--warning-11)",
+    borderRadius: "4px",
+  },
+}
+
+const SaveButton = {
+  button: (l) => form.isSubmitting(l) ? "Saving…" : "Save",
+  type: "submit",
+  disabled: (l) => !form.isDirty(l) || !form.canSubmit(l),
+}
+```
+
+## Optimistic reset after save
+
+After a successful save, reset the form so `isDirty` is false and the user sees a clean state:
+
+```ts
+const form = createForm<PostInput>({
+  defaultValues: { title: post.title, body: post.body },
+  onSubmit: async ({ value, formApi }) => {
+    const updated = await api.patch(`/posts/${post.id}`, value)
+    // Reset with the server's canonical values (may differ from what was submitted)
+    formApi.reset({ title: updated.title, body: updated.body })
+  },
+})
+```
+
+## Multi-step forms with async steps
+
+Load data for each step only when the user reaches it:
+
+```ts
+import { toState } from "@domphy/core"
+
+const step = toState<"account" | "profile" | "review">("account")
+const profileData = toState<ProfileData | null>(null)
+
+const WizardForm = {
+  div: (l) => {
+    switch (step.get(l)) {
+      case "account":
+        return AccountStep
+      case "profile":
+        if (!profileData.get(l)) {
+          fetchProfileSuggestions().then(data => profileData.set(data))
+          return { div: "Loading profile suggestions…" }
+        }
+        return ProfileStep(profileData.get(l)!)
+      case "review":
+        return ReviewStep
+    }
+  },
+}
+```
 
 ### concepts.md
 

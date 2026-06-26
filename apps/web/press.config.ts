@@ -243,6 +243,7 @@ export const config = defineConfig({
         { text: "Caching", link: "/docs/query/caching" },
         { text: "Infinite Queries", link: "/docs/query/infinite-queries" },
         { text: "Polling & Window Focus", link: "/docs/query/polling" },
+        { text: "Query Invalidation", link: "/docs/query/invalidation" },
         { text: "Suspense & Streaming", link: "/docs/query/suspense" },
         { text: "SSR & Hydration", link: "/docs/query/ssr" },
         { text: "Advanced Patterns", link: "/docs/query/advanced" },
@@ -276,6 +277,7 @@ export const config = defineConfig({
           link: "/docs/table/pagination-selection",
         },
         { text: "Advanced Features", link: "/docs/table/advanced" },
+        { text: "Grouping & Expanding", link: "/docs/table/grouping" },
         { text: "Column Visibility & Ordering", link: "/docs/table/column-visibility" },
         { text: "Faceting & Filter UI", link: "/docs/table/faceting" },
         { text: "Row Pinning", link: "/docs/table/row-pinning" },
@@ -296,6 +298,7 @@ export const config = defineConfig({
         { text: "Field Arrays", link: "/docs/form/arrays" },
         { text: "Submission & Async", link: "/docs/form/submission" },
         { text: "Listeners & Side Effects", link: "/docs/form/listeners" },
+        { text: "Async Initial Values", link: "/docs/form/async-values" },
         { text: "TypeScript", link: "/docs/form/typescript" },
       ],
       "/docs/dnd/": [

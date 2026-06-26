@@ -133,7 +133,7 @@ borderRadius: (l) => themeSpacing(themeDensity(l) * 1),
 
 Async state management — a 1-1 port of `@tanstack/query-core` (identical API). Adapter `createQuery`/`createMutation`/`createInfiniteQuery` (`@domphy/query/domphy`).
 
-- [Overview](https://domphy.com/docs/query/) · [Queries](https://domphy.com/docs/query/queries) · [Mutations](https://domphy.com/docs/query/mutations) · [Parallel & Dependent](https://domphy.com/docs/query/parallel) · [Caching](https://domphy.com/docs/query/caching) · [Infinite Queries](https://domphy.com/docs/query/infinite-queries) · [Polling & Window Focus](https://domphy.com/docs/query/polling) · [Suspense & Streaming](https://domphy.com/docs/query/suspense) · [SSR](https://domphy.com/docs/query/ssr) · [Advanced Patterns](https://domphy.com/docs/query/advanced) · [TypeScript](https://domphy.com/docs/query/typescript) · [Devtools](https://domphy.com/docs/query/devtools) · [API](https://domphy.com/docs/query/api)
+- [Overview](https://domphy.com/docs/query/) · [Queries](https://domphy.com/docs/query/queries) · [Mutations](https://domphy.com/docs/query/mutations) · [Parallel & Dependent](https://domphy.com/docs/query/parallel) · [Caching](https://domphy.com/docs/query/caching) · [Infinite Queries](https://domphy.com/docs/query/infinite-queries) · [Polling & Window Focus](https://domphy.com/docs/query/polling) · [Query Invalidation](https://domphy.com/docs/query/invalidation) · [Suspense & Streaming](https://domphy.com/docs/query/suspense) · [SSR](https://domphy.com/docs/query/ssr) · [Advanced Patterns](https://domphy.com/docs/query/advanced) · [TypeScript](https://domphy.com/docs/query/typescript) · [Devtools](https://domphy.com/docs/query/devtools) · [API](https://domphy.com/docs/query/api)
 
 ## Router (`@domphy/router`)
 
@@ -145,7 +145,7 @@ Type-safe routing — a 1-1 port of `@tanstack/router-core` (identical API) plus
 
 Headless table logic — a 1-1 port of `@tanstack/table-core` v8 (identical API). Adapter `createDomphyTable` (`@domphy/table/domphy`).
 
-- [Overview](https://domphy.com/docs/table/) · [Columns & Row Models](https://domphy.com/docs/table/columns) · [Sorting & Filtering](https://domphy.com/docs/table/sorting-filtering) · [Pagination & Selection](https://domphy.com/docs/table/pagination-selection) · [Advanced](https://domphy.com/docs/table/advanced) · [Column Visibility & Ordering](https://domphy.com/docs/table/column-visibility) · [Faceting & Filter UI](https://domphy.com/docs/table/faceting) · [Row Pinning](https://domphy.com/docs/table/row-pinning) · [Custom Features](https://domphy.com/docs/table/custom-features) · [Virtualization](https://domphy.com/docs/table/virtualization) · [API](https://domphy.com/docs/table/api)
+- [Overview](https://domphy.com/docs/table/) · [Columns & Row Models](https://domphy.com/docs/table/columns) · [Sorting & Filtering](https://domphy.com/docs/table/sorting-filtering) · [Pagination & Selection](https://domphy.com/docs/table/pagination-selection) · [Advanced](https://domphy.com/docs/table/advanced) · [Grouping & Expanding](https://domphy.com/docs/table/grouping) · [Column Visibility & Ordering](https://domphy.com/docs/table/column-visibility) · [Faceting & Filter UI](https://domphy.com/docs/table/faceting) · [Row Pinning](https://domphy.com/docs/table/row-pinning) · [Custom Features](https://domphy.com/docs/table/custom-features) · [Virtualization](https://domphy.com/docs/table/virtualization) · [API](https://domphy.com/docs/table/api)
 
 ## Virtual (`@domphy/virtual`)
 
@@ -157,7 +157,7 @@ List/grid virtualization — a 1-1 port of `@tanstack/virtual-core` (identical A
 
 Headless form state/validation — a 1-1 port of `@tanstack/form-core` (identical API). Adapter `createForm` (`@domphy/form/domphy`); `form.field(name, opts)` returns a reactive field handle.
 
-- [Overview](https://domphy.com/docs/form/) · [Core Concepts](https://domphy.com/docs/form/concepts) · [Validation](https://domphy.com/docs/form/validation) · [Field Arrays](https://domphy.com/docs/form/arrays) · [Submission & Async](https://domphy.com/docs/form/submission) · [Listeners & Side Effects](https://domphy.com/docs/form/listeners) · [TypeScript](https://domphy.com/docs/form/typescript)
+- [Overview](https://domphy.com/docs/form/) · [Core Concepts](https://domphy.com/docs/form/concepts) · [Validation](https://domphy.com/docs/form/validation) · [Field Arrays](https://domphy.com/docs/form/arrays) · [Submission & Async](https://domphy.com/docs/form/submission) · [Listeners & Side Effects](https://domphy.com/docs/form/listeners) · [Async Initial Values](https://domphy.com/docs/form/async-values) · [TypeScript](https://domphy.com/docs/form/typescript)
 
 ## DnD (`@domphy/dnd`)
 
