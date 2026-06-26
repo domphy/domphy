@@ -31,25 +31,25 @@ const user = createQuery(queryClient, {
 const name = user.data()?.name   // string | undefined
 ```
 
-## `queryOptions` helper
+## Reusable query config
 
-Define reusable, fully-typed query configs with the `queryOptions` helper:
+Define a factory function for reusable, fully-typed query configs:
 
 ```ts
-import { QueryClient, queryOptions } from "@domphy/query"
+import { QueryClient } from "@domphy/query"
 import { createQuery } from "@domphy/query/domphy"
 
 const queryClient = new QueryClient()
 
-const userQueryOptions = (id: string) => queryOptions({
+const userQuery = (id: string) => ({
   queryKey: ["user", id] as const,
   queryFn: () => fetchUser(id),
   staleTime: 60_000,
 })
 
 // Use anywhere — type is preserved
-const user = createQuery(queryClient, userQueryOptions(userId))
-queryClient.prefetchQuery(userQueryOptions(nextUserId))
+const user = createQuery(queryClient, userQuery(userId))
+queryClient.prefetchQuery(userQuery(nextUserId))
 queryClient.getQueryData(userQueryOptions(userId).queryKey)   // → User | undefined
 ```
 
@@ -178,9 +178,9 @@ client.invalidateQueries({ queryKey: ["users"], exact: false })
 When you want exhaustive type-narrowing of query states:
 
 ```ts
-import type { UseQueryResult } from "@domphy/query"
+import type { QueryObserverResult } from "@domphy/query"
 
-function renderQuery<T>(query: UseQueryResult<T, Error>) {
+function renderQuery<T>(query: QueryObserverResult<T, Error>) {
   if (query.status === "pending") return { div: "Loading…" }
   if (query.status === "error")   return { div: `Error: ${query.error.message}` }
   // TypeScript now knows query.data: T (non-nullable)
