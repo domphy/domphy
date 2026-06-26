@@ -12,7 +12,7 @@ For large tables (1 000+ rows), pair `@domphy/table` with `@domphy/virtual` to r
 ```ts
 import { createDomphyTable } from "@domphy/table/domphy"
 import { createVirtualizer } from "@domphy/virtual/domphy"
-import { toState } from "@domphy/core"
+import { toState, effect } from "@domphy/core"
 
 const data = toState<Row[]>(largeDataset)
 
@@ -27,6 +27,8 @@ const table = createDomphyTable({
 })
 
 const ROW_HEIGHT = 40   // px — must be fixed for performant virtualization
+
+let stopTableEffect: (() => void) | undefined
 
 const list = createVirtualizer({
   count: 0,   // updated via setOptions when table rows change
@@ -78,12 +80,13 @@ const App = {
       },
       _onMount: (node) => {
         list.setScrollElement(node.domElement)
-        // Sync count when table rows change
-        table.subscribe(() => {
-          list.setOptions({ count: table.getRowModel().rows.length, estimateSize: () => ROW_HEIGHT })
+        // Sync count whenever table rows change
+        stopTableEffect = effect(() => {
+          table.version()  // track — effect re-runs on every table update
+          list.setOptions({ count: table.table.getRowModel().rows.length, estimateSize: () => ROW_HEIGHT })
         })
       },
-      _onRemove: () => list.destroy(),
+      _onRemove: () => { stopTableEffect?.(); list.destroy() },
       style: { height: "600px", overflowY: "auto", position: "relative" },
     },
   ],
@@ -121,15 +124,22 @@ Replace pagination with scroll-to-load by combining `isAtEnd()` with a data-fetc
 
 ```ts
 import { createQuery } from "@domphy/query/domphy"
-import { toState } from "@domphy/core"
+import { toState, effect } from "@domphy/core"
+import { QueryClient } from "@tanstack/query-core"
 
+const queryClient = new QueryClient()
 const page = toState(0)
 const allRows = toState<Row[]>([])
 
-const query = createQuery({
+const query = createQuery(queryClient, {
   queryKey: () => ["rows", page.get()],
   queryFn: () => fetchRows(page.get()),
-  onSuccess: (newRows) => allRows.set([...allRows.get(), ...newRows]),
+})
+
+// Append new page results as they arrive
+effect(() => {
+  const rows = query.data()
+  if (rows) allRows.set([...allRows.get(), ...rows])
 })
 
 const list = createVirtualizer({
@@ -186,7 +196,7 @@ const table = createDomphyTable({
   manualPagination: true,
   rowCount: () => totalCount.get(),
   state: { pagination: () => pagination.get() },
-  onPaginationChange: (updater) => pagination.set(updater),
+  onPaginationChange: (updater) => pagination.set(typeof updater === "function" ? updater(pagination.get()) : updater),
 })
 ```
 

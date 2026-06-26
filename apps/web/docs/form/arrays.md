@@ -178,12 +178,12 @@ const skills = form.field<string[]>("skills", {
 })
 ```
 
-## Field group (FormGroupApi)
+## Reusable nested sections
 
-`FormGroupApi` creates a typed sub-form bound to a nested path. Useful for extracting reusable form sections:
+Extract repeated nested sections as component functions using dot-path field access:
 
 ```ts
-import { createForm, FormGroupApi } from "@domphy/form/domphy"
+import { createForm } from "@domphy/form/domphy"
 
 const form = createForm<{ billing: AddressData; shipping: AddressData }>({
   defaultValues: {
@@ -194,9 +194,7 @@ const form = createForm<{ billing: AddressData; shipping: AddressData }>({
 })
 
 function AddressSection(prefix: "billing" | "shipping") {
-  const group = form.group<AddressData>(prefix)   // typed to AddressData
-  const street = group.field<string>("street", {})
-  // group.field("street") is equivalent to form.field("billing.street")
+  const street = form.field<string>(`${prefix}.street`, {})
 
   return {
     fieldset: [

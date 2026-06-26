@@ -170,8 +170,8 @@ const columnVisibility = toState(saved.visibility)
 const columnOrder = toState(saved.order)
 
 // Persist on change
-columnVisibility.subscribe((v) => saveColumnState({ visibility: v, order: columnOrder.get() }))
-columnOrder.subscribe((o) => saveColumnState({ visibility: columnVisibility.get(), order: o }))
+columnVisibility.addListener((v) => saveColumnState({ visibility: v, order: columnOrder.get() }))
+columnOrder.addListener((o) => saveColumnState({ visibility: columnVisibility.get(), order: o }))
 ```
 
 ## "Show all" / "Hide all" buttons

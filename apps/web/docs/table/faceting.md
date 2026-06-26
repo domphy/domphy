@@ -97,7 +97,7 @@ const PriceRangeFilter = {
           value: (l) => String(priceRange.get(l)[0]),
           onInput: (e: Event) => {
             const min = Number((e.target as HTMLInputElement).value)
-            priceRange.set(([_, max]) => [min, max])
+            priceRange.set([min, priceRange.get()[1]])
             table.table.getColumn("price")?.setFilterValue(priceRange.get())
           },
         },
