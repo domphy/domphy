@@ -70,6 +70,7 @@ export const config = defineConfig({
         { text: "Composing Elements", link: "/docs/core/composing" },
         { text: "TypeScript", link: "/docs/core/typescript" },
         { text: "Testing", link: "/docs/core/testing" },
+        { text: "Migration Guide", link: "/docs/core/migration" },
         { text: "SSR", link: "/docs/core/ssr" },
         { text: "Portal", link: "/docs/core/portal" },
         {

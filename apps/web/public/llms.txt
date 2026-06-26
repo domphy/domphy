@@ -55,6 +55,7 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 - [Performance](https://domphy.com/docs/core/performance): granular subscriptions, `_key`, computed memoization, `batch()`, lazy rendering
 - [Common Patterns](https://domphy.com/docs/core/patterns): state machines, reducers, compound components, factories, code organization
 - [Composing Elements](https://domphy.com/docs/core/composing): component functions, slots, merging, reactive patterns
+- [Migration Guide](https://domphy.com/docs/core/migration): v0.17→v0.18 breaking changes, form patch removal, themeColor signature
 - [TypeScript](https://domphy.com/docs/core/typescript): `DomphyElement`, `State<T>`, event handler types, component patterns
 - [Testing](https://domphy.com/docs/core/testing): Vitest+jsdom setup, testing reactive state, ElementNode in tests
 - [Portal](https://domphy.com/docs/core/portal): render into arbitrary containers
