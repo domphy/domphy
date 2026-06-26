@@ -1152,25 +1152,6 @@ If a diverging reactive loop prevents settling, `flushSync` breaks after 10 000 
 
 ---
 
-## `r(fn)`
-
-Identity helper for reactive functions. Returns `fn` unchanged. Its sole purpose is to give TypeScript a typed entry point for inline reactive expressions so editors can infer the listener type without an extra cast.
-
-```ts
-import { r } from "@domphy/core"
-
-const box = {
-  div: "Hello",
-  style: {
-    color: r((listener) => active.get(listener) ? "red" : "gray"),
-  },
-}
-```
-
-`r` does not wrap or modify the function at runtime — it is a zero-cost identity.
-
----
-
 ## `runBatched(fn)`
 
 Runs `fn` inside a batch, coalescing all state writes into a single downstream flush. Equivalent to calling `batch(fn)` directly. Returns the value returned by `fn`.
@@ -2677,7 +2658,7 @@ const form = new RecordState({ name: "", email: "", bio: "" })
 // Only re-renders when 'name' changes, not when 'email' or 'bio' change
 const NameField = {
   input: null,
-  value: (l) => form.get(l, "name"),
+  value: (l) => form.get("name", l),
   onInput: (e) => form.set("name", (e.target as HTMLInputElement).value),
 }
 ```
@@ -3970,7 +3951,7 @@ interface FormData {
 }
 
 const form = new RecordState<FormData>({ name: "", email: "", age: 0 })
-// form.get(l, "name") → string
+// form.get("name", l) → string
 // form.set("age", 25) — type-checked
 ```
 
@@ -4013,24 +3994,23 @@ const Input = {
 
 ## Typing patches
 
-When creating custom patches, type the `Patch` interface:
+A custom patch is a function returning `PartialElement`:
 
 ```ts
-import type { Patch, ElementNode } from "@domphy/core"
+import type { PartialElement, ElementNode } from "@domphy/core"
 
 interface TooltipOptions {
   text: string
   placement?: "top" | "bottom" | "left" | "right"
 }
 
-function tooltip(options: TooltipOptions): Patch {
+function tooltip(options: TooltipOptions): PartialElement {
   return {
-    apply(node: ElementNode) {
-      node.domElement.title = options.text
-      // ... position logic
+    _onMount: (node: ElementNode) => {
+      if (node.domElement) node.domElement.title = options.text
     },
-    destroy(node: ElementNode) {
-      node.domElement.title = ""
+    _onRemove: (node: ElementNode) => {
+      if (node.domElement) node.domElement.title = ""
     },
   }
 }
@@ -4101,14 +4081,15 @@ UI patches are typed — TypeScript will catch invalid prop values:
 
 ```ts
 import { button, inputText, label } from "@domphy/ui"
-import type { Tone, Size, Density } from "@domphy/theme"
+import type { ElementTone, ElementSize, ElementDensity } from "@domphy/theme"
 
-// Type-safe tone/size/density
-const btn = button({
-  tone: "shift-1",     // ✓
-  size: 3,             // ✓
-  density: 5,          // ✗ Error: density max is 4
-})
+// button() only accepts { color?: ValueOrState<ThemeColor> }
+const btn = button({ color: "primary" })
+
+// Use ElementTone / ElementSize / ElementDensity for typing custom patches:
+function myPatch(tone: ElementTone, size: ElementSize, density: ElementDensity): import("@domphy/core").PartialElement {
+  return { /* ... */ }
+}
 ```
 
 ## Path types for @domphy/form
@@ -29277,16 +29258,14 @@ export default defineConfig({
 })
 ```
 
-Or use `themeApply` in a client script:
+Or call `themeApply()` after `setTheme()` to inject updated CSS variables into the page:
 
 ```ts
 // client/theme-setup.ts
-import { themeApply } from "@domphy/theme"
+import { setTheme, themeApply } from "@domphy/theme"
 
-themeApply(document.documentElement, {
-  primary: { hue: 260, chroma: 0.18 },
-  neutral: { hue: 240, chroma: 0.01 },
-})
+setTheme("light", { colors: { primary: [/*...18 lch values...*/], neutral: [/*...18 lch values...*/] } })
+themeApply()  // injects updated CSS vars into the document
 ```
 
 ## Custom fonts
@@ -29395,7 +29374,7 @@ export default defineConfig({
     announcementBar: {
       id: "v2-release",   // unique — controls dismiss state in localStorage
       content: "🎉 Domphy v2.0 is out! <a href='/blog/v2'>Read the release notes</a>",
-      closeable: true,
+      dismissible: true,
     },
   },
 })
@@ -29403,27 +29382,17 @@ export default defineConfig({
 
 ## Extending the layout component
 
-For deeper customization beyond slots — replace the entire layout:
+For deeper layout customization, override the layout shell functions exported from `@domphy/press`:
 
 ```ts
-import { createPressLayout } from "@domphy/press/browser"
+import { defineConfig, homeShell, pageShell } from "@domphy/press"
 
-const CustomLayout = createPressLayout({
-  // Override render functions for each layout region
-  renderNav: (context) => CustomNav,
-  renderSidebar: (context) => CustomSidebar,
-  renderContent: (context, content) => ({
-    article: [
-      CustomContentHeader(context),
-      content,
-      CustomContentFooter(context),
-    ],
-  }),
-})
-
+// pageShell(context, content) and homeShell(context) are the layout entry points.
+// Pass custom overrides via themeConfig slots (see Customization guide).
 export default defineConfig({
   themeConfig: {
-    layout: CustomLayout,
+    // Use slots to inject content into specific regions of the built-in layout.
+    // For full layout replacement, provide a custom press theme via pressCSS + custom shell.
   },
 })
 ```
