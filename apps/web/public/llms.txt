@@ -153,19 +153,19 @@ Headless table logic — a 1-1 port of `@tanstack/table-core` v8 (identical API)
 
 List/grid virtualization — a 1-1 port of `@tanstack/virtual-core` (identical API). Adapter `createVirtualizer` (`@domphy/virtual/domphy`).
 
-- [Overview](https://domphy.com/docs/virtual/) · [Usage Patterns](https://domphy.com/docs/virtual/usage) · [Infinite Scroll](https://domphy.com/docs/virtual/infinite-scroll) · [Grid Virtualization](https://domphy.com/docs/virtual/grid) · [API Reference](https://domphy.com/docs/virtual/api)
+- [Overview](https://domphy.com/docs/virtual/) · [Usage Patterns](https://domphy.com/docs/virtual/usage) · [Infinite Scroll](https://domphy.com/docs/virtual/infinite-scroll) · [Grid Virtualization](https://domphy.com/docs/virtual/grid) · [API Reference](https://domphy.com/docs/virtual/api) · [Scroll Navigation](https://domphy.com/docs/virtual/scroll-to) · [Dynamic Sizes](https://domphy.com/docs/virtual/dynamic-sizes) · [Masonry Layout](https://domphy.com/docs/virtual/masonry) · [Window Virtualizer](https://domphy.com/docs/virtual/window-virtualizer)
 
 ## Form (`@domphy/form`)
 
 Headless form state/validation — a 1-1 port of `@tanstack/form-core` (identical API). Adapter `createForm` (`@domphy/form/domphy`); `form.field(name, opts)` returns a reactive field handle.
 
-- [Overview](https://domphy.com/docs/form/) · [Core Concepts](https://domphy.com/docs/form/concepts) · [Validation](https://domphy.com/docs/form/validation) · [Field Arrays](https://domphy.com/docs/form/arrays) · [Submission & Async](https://domphy.com/docs/form/submission) · [Listeners & Side Effects](https://domphy.com/docs/form/listeners) · [Async Initial Values](https://domphy.com/docs/form/async-values) · [TypeScript](https://domphy.com/docs/form/typescript)
+- [Overview](https://domphy.com/docs/form/) · [Core Concepts](https://domphy.com/docs/form/concepts) · [Validation](https://domphy.com/docs/form/validation) · [Field Arrays](https://domphy.com/docs/form/arrays) · [Submission & Async](https://domphy.com/docs/form/submission) · [Listeners & Side Effects](https://domphy.com/docs/form/listeners) · [Async Initial Values](https://domphy.com/docs/form/async-values) · [TypeScript](https://domphy.com/docs/form/typescript) · [UI Patches & Form Fields](https://domphy.com/docs/form/ui-integration) · [Devtools](https://domphy.com/docs/form/devtools) · [Form Composition](https://domphy.com/docs/form/composition) · [Testing Forms](https://domphy.com/docs/form/testing) · [SSR & Hydration](https://domphy.com/docs/form/ssr) · [Linked Fields](https://domphy.com/docs/form/linked-fields)
 
 ## DnD (`@domphy/dnd`)
 
 Drag & drop / sortable lists — wraps the framework-agnostic `@formkit/drag-and-drop` engine via `dragDrop(state, config?)`.
 
-- [Overview](https://domphy.com/docs/dnd/) · [API Reference](https://domphy.com/docs/dnd/api)
+- [Overview](https://domphy.com/docs/dnd/) · [API Reference](https://domphy.com/docs/dnd/api) · [Sortable List](https://domphy.com/docs/dnd/sortable) · [Multi-Container](https://domphy.com/docs/dnd/multi-container) · [Multi-Drag](https://domphy.com/docs/dnd/multi-drag) · [Animations](https://domphy.com/docs/dnd/animations) · [Handles & Filtering](https://domphy.com/docs/dnd/handles-and-filtering) · [Accessibility](https://domphy.com/docs/dnd/accessibility)
 
 ## App (`@domphy/app`)
 
@@ -189,19 +189,19 @@ VitePress-baseline static doc site framework. `defineConfig(SiteConfig)` → bui
 
 Parse Markdown into Domphy element trees for SSR/SSG — `parseMarkdown(md, options)` → `{ frontmatter, body, toc }` (markdown-it under the hood; pluggable `highlight`, anchors, TOC). Lower-level `tokensToDomphy`/`walkTokens`/`splitFrontmatter` let you run your own markdown-it (extra plugins) and reuse the canonical token→Domphy walker. This documentation site is built on it.
 
-- [Overview](https://domphy.com/docs/markdown/)
+- [Overview](https://domphy.com/docs/markdown/) · [Frontmatter](https://domphy.com/docs/markdown/frontmatter) · [Syntax Reference](https://domphy.com/docs/markdown/syntax-reference) · [Syntax Highlighting](https://domphy.com/docs/markdown/highlighting) · [Table of Contents](https://domphy.com/docs/markdown/table-of-contents)
 
 ## Mermaid (`@domphy/mermaid`)
 
 Render Mermaid diagrams for Domphy — build-time `renderMermaidToSvg` / `renderMermaidInTree` (replaces ```mermaid code blocks with inline SVG via mermaid-cli) and a client `mermaidClient()` patch.
 
-- [Overview](https://domphy.com/docs/mermaid/) · [Supported Diagrams](https://domphy.com/docs/mermaid/diagrams) · [Configuration & Themes](https://domphy.com/docs/mermaid/configuration)
+- [Overview](https://domphy.com/docs/mermaid/) · [Supported Diagrams](https://domphy.com/docs/mermaid/diagrams) · [Configuration & Themes](https://domphy.com/docs/mermaid/configuration) · [Flowchart](https://domphy.com/docs/mermaid/flowchart) · [Sequence Diagrams](https://domphy.com/docs/mermaid/sequence) · [Class & State Diagrams](https://domphy.com/docs/mermaid/class-diagram) · [ER, Gantt, Pie & Git Graphs](https://domphy.com/docs/mermaid/er-gantt-pie) · [Client-Side Rendering](https://domphy.com/docs/mermaid/client) · [Build-Time Integration](https://domphy.com/docs/mermaid/build)
 
 ## Palette (`@domphy/palette`)
 
 Color-palette quality engine (design-time companion to `@domphy/theme`): measure palette quality with 5 CIELAB metrics (`Ramp`, `Palette`, `Swatch`).
 
-- [Overview](https://domphy.com/docs/palette/) · [Measuring quality](https://domphy.com/docs/palette/measuring)
+- [Overview](https://domphy.com/docs/palette/) · [Measuring quality](https://domphy.com/docs/palette/measuring) · [Ramp](https://domphy.com/docs/palette/ramp) · [Accessibility & Contrast](https://domphy.com/docs/palette/accessibility) · [Swatch & Color Utilities](https://domphy.com/docs/palette/swatch)
 
 ## Audit (`@domphy/audit`)
 
@@ -220,15 +220,19 @@ CLI: `npx @domphy/audit <url> [--static]` — runs full `scanInteractive` and ex
 
 `svg` output: lightweight SVG skeleton annotated with issue positions (red=overlap, orange=geometry, gold=contrast, purple=theme/overlay). Individual checkers importable separately. No dep on `@domphy/core`.
 
+- [Overview](https://domphy.com/docs/audit/) · [Interpreting Audit Results](https://domphy.com/docs/audit/interpreting-results) · [CI Integration](https://domphy.com/docs/audit/ci-integration) · [checkLayout API](https://domphy.com/docs/audit/check-layout)
+
 ## Doctor (`@domphy/doctor`)
 
 Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagnostic[]`; `validate(element)` returns `{ ok, issues, summary }`; `fix(element)` returns `{ tree, applied, report }`, applying lossless fixes (e.g. void-content) and listing the rest. Rules: `inline-typography`, `raw-theme-value`, `raw-spacing-value` (incl. logical props paddingBlock/paddingInline/marginBlock/marginInline), `unknown-tone` (dataTone grammar + range ≤ 17), `middle-surface-anchor` (dataTone shift-4–13 collapses contrast), `unknown-density` (dataDensity range ≤ 4), `unknown-size` (dataSize range ≤ 7), `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. Run it on generated code and fix what it reports — the AI self-correction loop. Pairs with the app-block registry (`app-manifest.json`) for large codebases.
 
-- [Overview](https://domphy.com/docs/doctor/)
+- [Overview](https://domphy.com/docs/doctor/) · [Rules Reference](https://domphy.com/docs/doctor/rules) · [Configuration & API](https://domphy.com/docs/doctor/configuration) · [Agent Loop](https://domphy.com/docs/doctor/agent-loop)
 
 ## Floating (`@domphy/floating`)
 
 Anchor positioning for tooltips, popovers, dropdowns, and menus — a 1-1 vendor of [floating-ui](https://github.com/floating-ui/floating-ui) (`@floating-ui/dom` + core + utils) bundled as a **zero-dependency** package. Used internally by `@domphy/ui` overlays (`tooltip`, `popover`, `selectBox`, `combobox`). Full [Floating UI reference](https://floating-ui.com) applies as-is.
+
+- [Getting Started](https://domphy.com/docs/floating) · [Placement](https://domphy.com/docs/floating/placement) · [offset](https://domphy.com/docs/floating/offset) · [flip & autoPlacement](https://domphy.com/docs/floating/flip) · [shift & limitShift](https://domphy.com/docs/floating/shift) · [arrow](https://domphy.com/docs/floating/arrow) · [size](https://domphy.com/docs/floating/size) · [autoUpdate, hide & Virtual Elements](https://domphy.com/docs/floating/auto-update)
 
 ## Scaffolder (`create-domphy`)
 
