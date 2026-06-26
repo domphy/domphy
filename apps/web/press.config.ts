@@ -232,6 +232,7 @@ export const config = defineConfig({
         { text: "Caching", link: "/docs/query/caching" },
         { text: "Infinite Queries", link: "/docs/query/infinite-queries" },
         { text: "SSR & Hydration", link: "/docs/query/ssr" },
+        { text: "Advanced Patterns", link: "/docs/query/advanced" },
         { text: "API Reference", link: "/docs/query/api" },
       ],
       "/docs/router/": [
@@ -240,6 +241,7 @@ export const config = defineConfig({
         { text: "Navigation", link: "/docs/router/navigation" },
         { text: "Search Params", link: "/docs/router/search-params" },
         { text: "Data Loading", link: "/docs/router/data-loading" },
+        { text: "Code Splitting", link: "/docs/router/lazy-loading" },
         { text: "SSR", link: "/docs/router/ssr" },
         { text: "API Reference", link: "/docs/router/api" },
       ],
@@ -253,11 +255,23 @@ export const config = defineConfig({
           link: "/docs/table/pagination-selection",
         },
         { text: "Advanced Features", link: "/docs/table/advanced" },
+        { text: "Virtualization", link: "/docs/table/virtualization" },
         { text: "API Reference", link: "/docs/table/api" },
       ],
-      "/docs/virtual/": [{ text: "Overview", link: "/docs/virtual/" }],
-      "/docs/form/": [{ text: "Overview", link: "/docs/form/" }],
-      "/docs/dnd/": [{ text: "Overview", link: "/docs/dnd/" }],
+      "/docs/virtual/": [
+        { text: "Overview", link: "/docs/virtual/" },
+        { text: "Usage Patterns", link: "/docs/virtual/usage" },
+        { text: "API Reference", link: "/docs/virtual/api" },
+      ],
+      "/docs/form/": [
+        { text: "Overview", link: "/docs/form/" },
+        { text: "Validation", link: "/docs/form/validation" },
+        { text: "Field Arrays", link: "/docs/form/arrays" },
+      ],
+      "/docs/dnd/": [
+        { text: "Overview", link: "/docs/dnd/" },
+        { text: "API Reference", link: "/docs/dnd/api" },
+      ],
       "/docs/doctor/": [{ text: "Overview", link: "/docs/doctor/" }],
       "/docs/audit/": [{ text: "Overview", link: "/docs/audit/" }],
       "/docs/palette/": [

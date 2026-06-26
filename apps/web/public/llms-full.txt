@@ -70,7 +70,7 @@ const App = {
 | `@domphy/palette` | color-palette engine: `Ramp`/`Palette`/`Swatch` — 5 CIELAB quality metrics (design-time companion to theme) |
 | `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `tokensToDomphy`); powers this docs site |
 | `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
-| `@domphy/audit` | baseline-free layout verification via Playwright — `checkLayout(page)` detects sibling overlaps, Domphy geometry violations (button height formula), WCAG contrast failures. Returns `{ ok, issues, svg }` (SVG layout map annotated with issues). Individual checkers: `detectOverlaps`, `verifyGeometry`, `checkContrast`. Complements `@domphy/doctor` (static pre-render) with runtime post-render checks. |
+| `@domphy/audit` | baseline-free layout + theme verification via Playwright — `scanInteractive(page)` runs static + interactive checks (auto-hovers triggers, checks newly-visible overlays). Issue types: `theme` (missing `data-theme`, unresolved CSS vars), `overlay` (transparent bg, hover gap), `overlap`, `geometry`, `contrast`. CLI: `npx @domphy/audit <url>`. Returns `{ ok, issues, svg }`. Complements `@domphy/doctor` (static pre-render) with runtime post-render checks. |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
 | `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading |
 | `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
@@ -156,7 +156,7 @@ Use the `motion()` patch (`@domphy/ui`): declarative `initial`/`animate`/`exit` 
 
 ## Conventions
 
-- Build: tsup (packages), DomphyPress (docs — `apps/web/domphypress/`, built on `@domphy/app` + `@domphy/markdown`). Tests: Vitest (+ jsdom for DOM).
+- Build: tsup (packages), custom press build script (docs — `apps/web/build.press.ts`, built on `@domphy/press`). Tests: Vitest (+ jsdom for DOM) — CI runs both `pnpm --filter "@domphy/*" test` and `pnpm --filter "domphy-web" test`.
 - Before editing UI code, read the relevant patch doc (`apps/web/docs/ui/patches/*.md`) or use the `domphy` skill — each patch has its own prop contract.
 - Keep this file, `apps/web/public/llms.txt`, and `apps/web/scripts/llms-full.mjs` in sync when the public API changes.
 
@@ -3261,6 +3261,235 @@ InfiniteQueryHandle accessors: `data`, `error`, `status`, `isPending`, `isFetchi
 
 The adapter covers the common cases. Reach for the raw [bridge pattern](./) when you need full control over which result fields drive which states, or when wiring a query into an existing custom state model. The adapter is built on exactly that bridge — there is no hidden machinery.
 
+### advanced.md
+
+---
+title: "Advanced Patterns"
+description: "Polling, dependent queries, select/transform, retry strategies, optimistic updates with rollback, and query batching."
+---
+
+# Advanced Patterns
+
+## Polling
+
+Automatically refetch on an interval with `refetchInterval`:
+
+```ts
+const prices = createQuery({
+  queryKey: () => ["prices"],
+  queryFn: fetchPrices,
+  refetchInterval: 5000,           // ms — refetch every 5 seconds
+  refetchIntervalInBackground: true, // keep polling even when tab is hidden
+})
+```
+
+Stop polling conditionally:
+
+```ts
+const job = createQuery({
+  queryKey: () => ["job", jobId],
+  queryFn: () => fetchJob(jobId),
+  refetchInterval: (query) =>
+    query.state.data?.status === "done" ? false : 2000,  // stop when complete
+})
+```
+
+## Dependent queries
+
+Wait for one query's result before starting another using `enabled`:
+
+```ts
+const user = createQuery({
+  queryKey: () => ["user", userId],
+  queryFn: () => fetchUser(userId),
+})
+
+const posts = createQuery({
+  queryKey: () => ["posts", user.data()?.id],
+  queryFn: () => fetchPosts(user.data()!.id),
+  enabled: () => !!user.data()?.id,    // only run when user is loaded
+})
+```
+
+`enabled: false` also works as a static disable (e.g. feature flags, dev-only queries).
+
+## Skipping queries with `skipToken`
+
+Use the `skipToken` sentinel instead of `enabled` when the key itself depends on optional data:
+
+```ts
+import { skipToken } from "@domphy/query"
+
+const profile = createQuery({
+  queryKey: () => ["profile", selectedId ?? skipToken],
+  queryFn: selectedId ? () => fetchProfile(selectedId) : skipToken,
+})
+```
+
+When `skipToken` is the `queryFn`, the query is permanently disabled until it changes.
+
+## Select / transform
+
+Transform query data in the observer without changing the cache:
+
+```ts
+const users = createQuery({
+  queryKey: () => ["users"],
+  queryFn: fetchUsers,
+  select: (data) => data.filter((u) => u.active).map((u) => u.name),
+})
+
+// users.data() is now string[] even though the cache holds User[]
+```
+
+`select` runs after every refetch. The result is referentially stable between refetches if the raw data is unchanged (`keepPreviousData` logic).
+
+## Custom retry
+
+Override the default 3 retries:
+
+```ts
+const payment = createQuery({
+  queryKey: () => ["payment", id],
+  queryFn: () => processPayment(id),
+  retry: (failCount, error) => {
+    if ((error as any).status === 401) return false     // don't retry auth failures
+    return failCount < 2                                // retry up to 2 times
+  },
+  retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30_000),  // exponential backoff, max 30s
+})
+```
+
+## Optimistic mutations with rollback
+
+Apply an update immediately and roll back if the mutation fails:
+
+```ts
+const client = useQueryClient()
+
+const toggle = createMutation({
+  mutationFn: (id: string) => toggleTask(id),
+
+  onMutate: async (id) => {
+    // Cancel any in-flight refetches so they don't overwrite
+    await client.cancelQueries({ queryKey: ["tasks"] })
+
+    // Snapshot current value
+    const previous = client.getQueryData<Task[]>(["tasks"])
+
+    // Optimistically update the cache
+    client.setQueryData<Task[]>(["tasks"], (old = []) =>
+      old.map((t) => t.id === id ? { ...t, done: !t.done } : t)
+    )
+
+    return { previous }   // return context for rollback
+  },
+
+  onError: (_err, _id, context) => {
+    // Roll back on failure
+    client.setQueryData(["tasks"], context?.previous)
+  },
+
+  onSettled: () => {
+    // Always refetch to sync with server
+    client.invalidateQueries({ queryKey: ["tasks"] })
+  },
+})
+```
+
+## Request deduplication
+
+When multiple observers subscribe to the same `queryKey` simultaneously, only **one** network request fires. All observers receive the same response:
+
+```ts
+// Both createQuery calls below share a single fetch for ["config"]
+const configA = createQuery({ queryKey: () => ["config"], queryFn: fetchConfig })
+const configB = createQuery({ queryKey: () => ["config"], queryFn: fetchConfig })
+// fetchConfig() is called once; configA and configB both resolve to the same data
+```
+
+Deduplication is in-flight only. A second subscriber arriving after the first response is cached gets the cache, not a new fetch.
+
+## Mutation sequencing / batching
+
+Run mutations sequentially with an async queue:
+
+```ts
+import { createMutation } from "@domphy/query/domphy"
+
+const queue = toState<string[]>([])
+let running = false
+
+const save = createMutation({
+  mutationFn: (id: string) => saveDraft(id),
+  onSettled: () => {
+    const next = queue.get().slice(1)
+    queue.set(next)
+    running = false
+    if (next.length > 0) {
+      running = true
+      save.mutate(next[0])
+    }
+  },
+})
+
+function enqueue(id: string) {
+  queue.set((prev) => [...prev, id])
+  if (!running) {
+    running = true
+    save.mutate(id)
+  }
+}
+```
+
+## Parallel queries
+
+Run multiple queries at once with `QueriesObserver`:
+
+```ts
+import { QueriesObserver } from "@domphy/query"
+
+const observer = new QueriesObserver(client, [
+  { queryKey: ["user"], queryFn: fetchUser },
+  { queryKey: ["settings"], queryFn: fetchSettings },
+  { queryKey: ["notifications"], queryFn: fetchNotifications },
+])
+```
+
+Or use the adapter version:
+
+```ts
+import { createQueries } from "@domphy/query/domphy"
+
+const [user, settings, notifications] = createQueries([
+  { queryKey: () => ["user"],          queryFn: fetchUser },
+  { queryKey: () => ["settings"],      queryFn: fetchSettings },
+  { queryKey: () => ["notifications"], queryFn: fetchNotifications },
+])
+```
+
+## Background refetch behavior
+
+| Option | Default | Effect |
+|--------|---------|--------|
+| `staleTime` | `0` | Data is considered stale immediately. Stale data triggers background refetch on mount / focus. |
+| `gcTime` | `5min` | How long unused (no observers) query data stays in cache before garbage collected. |
+| `refetchOnMount` | `true` | Refetch stale data when an observer mounts. Set `"always"` to refetch even fresh data. |
+| `refetchOnWindowFocus` | `true` | Refetch when window regains focus. |
+| `refetchOnReconnect` | `true` | Refetch when network reconnects. |
+| `networkMode` | `"online"` | `"always"` ignores online status (useful for non-network queries). |
+
+Disable focus refetch for static data:
+
+```ts
+const constants = createQuery({
+  queryKey: () => ["constants"],
+  queryFn: fetchConstants,
+  staleTime: Infinity,       // never stale
+  refetchOnWindowFocus: false,
+})
+```
+
 ### api.md
 
 # API Reference
@@ -4368,6 +4597,189 @@ See [Navigation](./navigation) for active links, history types, and blocking.
 4. [Data Loading](./data-loading) for loaders, caching, `redirect()`, and `notFound()`
 5. [SSR](./ssr) for the server and client SSR entries
 6. [API Reference](./api) for the full export list
+
+### lazy-loading.md
+
+---
+title: "Code Splitting & Lazy Loading"
+description: "Lazy-load route components, preload on hover, split vendor chunks, and reduce initial bundle size."
+---
+
+# Code Splitting & Lazy Loading
+
+## Lazy route component
+
+Split each route's component into its own chunk with a dynamic `import()`. Pass `component` as an async factory:
+
+```ts
+import { createRoute } from "@domphy/router"
+
+export const DashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard",
+  component: async () => {
+    const { Dashboard } = await import("./pages/Dashboard.js")
+    return Dashboard
+  },
+})
+```
+
+The router resolves the component before rendering — users see the pending UI while the chunk loads.
+
+## Pending UI during load
+
+Show a loading state while a lazy component fetches:
+
+```ts
+export const DashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard",
+  component: async () => {
+    const { Dashboard } = await import("./pages/Dashboard.js")
+    return Dashboard
+  },
+  pendingComponent: () => ({ div: "Loading dashboard…" }),
+  pendingMinMs: 200,    // don't flash the pending UI for fast loads
+})
+```
+
+`pendingMinMs` (default `0`) sets a minimum display time — prevents a flash when the chunk is already cached.
+
+## Preloading on hover
+
+Preload a route's chunk before the user clicks — reduces perceived latency:
+
+```ts
+import { createRoute, preloadRoute } from "@domphy/router"
+
+const NavLink = (to: string, label: string) => ({
+  a: label,
+  href: to,
+  onMouseenter: () => preloadRoute({ to }),   // fires on hover
+  onClick: (e) => { e.preventDefault(); router.navigate({ to }) },
+})
+```
+
+`preloadRoute` resolves the component and loader concurrently. Subsequent navigation uses the cached result instantly.
+
+## Lazy loader
+
+Loaders can also be lazy. Combine with the component for a single chunk:
+
+```ts
+export const SettingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings",
+  loader: async () => {
+    const { loadSettings } = await import("./loaders/settings.js")
+    return loadSettings()
+  },
+  component: async () => {
+    const { SettingsPage } = await import("./pages/Settings.js")
+    return SettingsPage
+  },
+})
+```
+
+## Chunk grouping with Vite
+
+Group related routes into a single chunk to reduce round-trips:
+
+```ts
+// vite.config.ts
+export default {
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "admin": [
+            "./src/pages/Admin.ts",
+            "./src/pages/Users.ts",
+            "./src/pages/Roles.ts",
+          ],
+        },
+      },
+    },
+  },
+}
+```
+
+Then import from the same chunk:
+
+```ts
+const AdminRoute = createRoute({
+  path: "/admin",
+  component: async () => {
+    const { Admin } = await import("./pages/Admin.js")   // triggers "admin" chunk load
+    return Admin
+  },
+})
+```
+
+## Route-level error handling
+
+Catch chunk load failures (network errors, cache invalidation):
+
+```ts
+const LazyRoute = createRoute({
+  path: "/reports",
+  component: async () => {
+    try {
+      const { Reports } = await import("./pages/Reports.js")
+      return Reports
+    } catch {
+      const { ErrorPage } = await import("./pages/ErrorPage.js")
+      return () => ErrorPage({ message: "Failed to load this page." })
+    }
+  },
+  errorComponent: ({ error }) => ({
+    div: `Error: ${error.message}`,
+  }),
+})
+```
+
+## Preload intent
+
+Use `router.preloadRoute()` with `intent: "hover"` | `"render"` to control when routes start loading:
+
+```ts
+// Preload on idle after initial render — good for "next likely page"
+requestIdleCallback(() => {
+  router.preloadRoute({ to: "/dashboard" })
+})
+```
+
+## Critical path vs async chunks
+
+Keep the initial bundle lean by marking non-critical imports as lazy:
+
+```ts
+// BEFORE — entire charting library in initial bundle
+import { Chart } from "chart.js"
+
+// AFTER — loaded only when the analytics page is actually visited
+const AnalyticsRoute = createRoute({
+  path: "/analytics",
+  component: async () => {
+    await import("chart.js")                         // side-effect import
+    const { Analytics } = await import("./Analytics.js")
+    return Analytics
+  },
+})
+```
+
+## Bundle analysis
+
+After `vite build`, inspect chunk sizes:
+
+```bash
+vite build --mode analyze
+npx vite-bundle-analyzer dist/stats.html
+```
+
+Aim for:
+- Initial bundle (router + core + theme): < 30 kB gzip
+- Per-route chunks: < 10 kB gzip for simple pages, < 50 kB for heavy ones
 
 ### navigation.md
 
@@ -5755,12 +6167,434 @@ const SearchInput: DomphyElement<"input"> = {
 
 Column filters and the global filter compose — a row must pass both to appear in `table.getRowModel()`.
 
+### virtualization.md
+
+---
+title: "Virtualization & Large Datasets"
+description: "Render 100k+ row tables with @domphy/virtual, including row virtualization, infinite scroll, and column pinning with virtual columns."
+---
+
+# Virtualization & Large Datasets
+
+For large tables (1 000+ rows), pair `@domphy/table` with `@domphy/virtual` to render only visible rows.
+
+## Row virtualization
+
+```ts
+import { createDomphyTable } from "@domphy/table/domphy"
+import { createVirtualizer } from "@domphy/virtual/domphy"
+import { toState } from "@domphy/core"
+
+const data = toState<Row[]>(largeDataset)
+
+const table = createDomphyTable({
+  data: () => data.get(),
+  columns: [
+    columnHelper.accessor("name", { header: "Name" }),
+    columnHelper.accessor("status", { header: "Status" }),
+    columnHelper.accessor("amount", { header: "Amount" }),
+  ],
+  // Optional: server-side pagination can skip virtualization
+})
+
+const ROW_HEIGHT = 40   // px — must be fixed for performant virtualization
+
+const list = createVirtualizer({
+  count: 0,   // updated via setOptions when table rows change
+  estimateSize: () => ROW_HEIGHT,
+  overscan: 10,
+})
+
+const App = {
+  div: [
+    // Fixed header — NOT virtualized
+    {
+      div: (l) => table.getHeaderGroups(l).map((group) => ({
+        _key: group.id,
+        div: group.headers.map((header) => ({
+          _key: header.id,
+          div: String(header.column.columnDef.header ?? ""),
+          style: { width: `${header.column.getSize()}px` },
+        })),
+        style: { display: "flex" },
+      })),
+      style: { position: "sticky", top: 0, background: "white", zIndex: 1 },
+    },
+    // Scrollable body — virtualized
+    {
+      div: {
+        // Spacer holds the full scroll height
+        div: (l) => list.getVirtualItems(l).map((virtualRow) => {
+          const row = table.getRowModel().rows[virtualRow.index]
+          return {
+            _key: row.id,
+            div: row.getVisibleCells().map((cell) => ({
+              _key: cell.id,
+              div: String(cell.getValue() ?? ""),
+              style: { width: `${cell.column.getSize()}px` },
+            })),
+            style: {
+              position: "absolute",
+              top: `${virtualRow.start}px`,
+              height: `${ROW_HEIGHT}px`,
+              display: "flex",
+              width: "100%",
+            },
+          }
+        }),
+        style: {
+          position: "relative",
+          height: () => `${list.getTotalSize()}px`,
+        },
+      },
+      _onMount: (node) => {
+        list.setScrollElement(node.domElement)
+        // Sync count when table rows change
+        table.subscribe(() => {
+          list.setOptions({ count: table.getRowModel().rows.length, estimateSize: () => ROW_HEIGHT })
+        })
+      },
+      _onRemove: () => list.destroy(),
+      style: { height: "600px", overflowY: "auto", position: "relative" },
+    },
+  ],
+}
+```
+
+## Dynamic row heights
+
+When rows have variable heights (expandable rows, multi-line cells), use `measureElement`:
+
+```ts
+const list = createVirtualizer({
+  count: 0,
+  estimateSize: () => 48,   // initial estimate
+  overscan: 5,
+})
+
+// In the row render:
+{
+  div: row.getVisibleCells().map(...),
+  _key: row.id,
+  _onMount: (node) => list.measureElement(node.domElement),   // auto-measures height
+  style: {
+    position: "absolute",
+    top: `${virtualRow.start}px`,
+    // No fixed height — measured from DOM
+    width: "100%",
+  },
+}
+```
+
+## Infinite scroll
+
+Replace pagination with scroll-to-load by combining `isAtEnd()` with a data-fetching trigger:
+
+```ts
+import { createQuery } from "@domphy/query/domphy"
+import { toState } from "@domphy/core"
+
+const page = toState(0)
+const allRows = toState<Row[]>([])
+
+const query = createQuery({
+  queryKey: () => ["rows", page.get()],
+  queryFn: () => fetchRows(page.get()),
+  onSuccess: (newRows) => allRows.set((prev) => [...prev, ...newRows]),
+})
+
+const list = createVirtualizer({
+  count: () => allRows.get().length,
+  estimateSize: () => 40,
+  onChange: (v) => {
+    if (v.isAtEnd(100) && !query.isFetching()) {
+      page.set((n) => n + 1)
+    }
+  },
+})
+```
+
+## Column virtualization
+
+For wide tables (50+ columns), virtualize columns too:
+
+```ts
+const colVirt = createVirtualizer({
+  count: table.getAllLeafColumns().length,
+  estimateSize: (i) => table.getAllLeafColumns()[i].getSize(),
+  horizontal: true,
+  overscan: 3,
+})
+
+// In row render — only render visible columns
+const VisibleCells = (row: Row<Data>) => (l: Listener) =>
+  colVirt.getVirtualItems(l).map((virtCol) => {
+    const cell = row.getAllCells()[virtCol.index]
+    return {
+      _key: cell.id,
+      div: String(cell.getValue() ?? ""),
+      style: {
+        position: "absolute",
+        left: `${virtCol.start}px`,
+        width: `${virtCol.size}px`,
+        height: "100%",
+      },
+    }
+  })
+```
+
+## Server-side data (manual pagination)
+
+Use `manualPagination` when the server handles paging instead of the table:
+
+```ts
+const totalCount = toState(0)
+const pagination = toState({ pageIndex: 0, pageSize: 50 })
+
+const table = createDomphyTable({
+  data: () => serverData.get(),
+  columns,
+  manualPagination: true,
+  rowCount: () => totalCount.get(),
+  state: { pagination: () => pagination.get() },
+  onPaginationChange: (updater) => pagination.set(updater),
+})
+```
+
+With server pagination there is no need for client-side row virtualization — just use the built-in paginator.
+
+## Performance tips
+
+- **Fixed column widths**: call `table.setColumnSizing({ name: 200, status: 100, ... })` upfront to avoid layout thrash on first render.
+- **Memoize cell renderers**: if cell content is expensive, compute it outside the reactive path and key by row+column ID.
+- **`overscan: 5–15`**: for fast scroll / touch inertia, higher overscan reduces blank flash.
+- **Stable data reference**: avoid re-creating the data array on each render tick — use `toState` so the reference only changes when data actually changes.
+
 
 
 ---
 
 
 ## Virtual docs (`@domphy/virtual`)
+
+### api.md
+
+---
+title: "API Reference"
+description: "Virtualizer, createVirtualizer adapter, VirtualizerOptions, VirtualItem, and all methods."
+---
+
+# API Reference
+
+## `createVirtualizer(options)` <Badge text="Domphy adapter" />
+
+```ts
+import { createVirtualizer } from "@domphy/virtual/domphy"
+```
+
+Returns a **reactive virtualizer handle**. Call inside a component body (not top-level module).
+
+```ts
+const list = createVirtualizer<HTMLDivElement, HTMLDivElement>(options)
+```
+
+### Handle methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `getVirtualItems(l)` | `VirtualItem[]` | Reactive list of items currently in range. Pass a listener to subscribe. |
+| `getTotalSize(l?)` | `number` | Total scroll size in px. Pass listener to subscribe reactively. |
+| `setScrollElement(el)` | `void` | Wire the scroll container. Call from `_onMount`. |
+| `measureElement(el)` | `void` | Measure an item element. Call from item `_onMount` for variable heights. |
+| `scrollToIndex(i, opts?)` | `void` | Scroll to item at index. |
+| `scrollToOffset(px, opts?)` | `void` | Scroll to an absolute offset. |
+| `setOptions(opts)` | `void` | Update `count`, `estimateSize`, or other options reactively. |
+| `version(l)` | `number` | Raw change counter — subscribe to know when any item changes. |
+| `destroy()` | `void` | Detach resize observers. Call from `_onRemove`. |
+
+The `virtualizer` property exposes the underlying `Virtualizer` instance with additional methods:
+
+| Method | Description |
+|--------|-------------|
+| `scrollBy(delta, opts?)` | Scroll by a relative amount. |
+| `scrollToEnd(opts?)` | Scroll to the end of the list. |
+| `takeSnapshot()` | Capture current offsets for later restore. |
+| `getDistanceFromEnd()` | Pixels from current scroll position to the end. |
+| `isAtEnd(threshold?)` | `true` if within `threshold` (default `0`) px of the end. |
+
+---
+
+## `VirtualizerOptions`
+
+```ts
+interface VirtualizerOptions<TScrollElement, TItemElement> {
+  // Required
+  count: number                          // total item count
+  estimateSize: (index: number) => number  // item height/width estimate in px
+
+  // Scroll element
+  getScrollElement?: () => TScrollElement | null
+  observeElementRect?: (instance, callback) => () => void
+  observeElementOffset?: (instance, callback) => () => void
+  scrollToFn?: (offset, options, instance) => void
+
+  // Layout
+  horizontal?: boolean                   // default false (vertical)
+  paddingStart?: number                  // px before first item
+  paddingEnd?: number                    // px after last item
+  gap?: number                           // px gap between items
+
+  // Range control
+  overscan?: number                      // extra items beyond visible (default 1)
+  rangeExtractor?: (range: Range) => number[]
+  initialRect?: { width: number; height: number }
+  initialOffset?: number | (() => number)
+
+  // Key extraction
+  getItemKey?: (index: number) => Key
+
+  // Dynamic measurement
+  measureElement?: (el: TItemElement, entry: ResizeObserverEntry | undefined, instance: Virtualizer<TScrollElement, TItemElement>) => number
+  scrollMargin?: number
+
+  // Scroll anchoring
+  followOnAppend?: "ancestor" | "anchor"
+  scrollAnchor?: "start" | "end"
+  isRtl?: boolean
+
+  // Lanes (masonry)
+  lanes?: number
+  laneAssignmentMode?: "sequential" | "shortest"
+
+  // Performance
+  useCachedMeasurements?: boolean
+
+  // Callbacks
+  onChange?: (instance: Virtualizer<TScrollElement, TItemElement>, sync: boolean) => void
+  debug?: boolean
+}
+```
+
+---
+
+## `VirtualItem`
+
+```ts
+interface VirtualItem {
+  key: Key                 // stable key (getItemKey result or index)
+  index: number            // 0-based position in data
+  start: number            // px offset from the start of the list (absolute position)
+  end: number              // start + size
+  size: number             // measured or estimated height/width
+  lane: number             // for multi-lane masonry layouts (default: 0)
+}
+```
+
+Use `start` to `position: absolute` + `translateY` (vertical) or `translateX` / `left` (horizontal).
+
+---
+
+## `Range`
+
+```ts
+interface Range {
+  startIndex: number      // first visible item index
+  endIndex: number        // last visible item index
+  overscan: number        // configured overscan value
+  count: number           // total item count
+}
+```
+
+Passed to `rangeExtractor` — return an array of indexes to render.
+
+---
+
+## `ScrollToOptions`
+
+```ts
+interface ScrollToOptions {
+  align?: "start" | "center" | "end" | "auto"   // default "auto"
+  behavior?: "auto" | "smooth"                  // default "auto"
+}
+```
+
+`"auto"` alignment moves the viewport the minimum distance needed to bring the item into view.
+
+---
+
+## `Virtualizer` class (low-level)
+
+Import directly when not using the Domphy adapter:
+
+```ts
+import { Virtualizer } from "@domphy/virtual"
+```
+
+```ts
+const virtualizer = new Virtualizer(options)
+virtualizer._didMount()
+
+// In your render loop
+const items = virtualizer.getVirtualItems()
+const totalSize = virtualizer.getTotalSize()
+
+// Cleanup
+virtualizer.cleanup()
+```
+
+### Additional methods on `Virtualizer`
+
+| Method | Description |
+|--------|-------------|
+| `getMeasurements()` | All measurements (index → Rect). |
+| `calculateRange()` | Recalculate the current visible range. |
+| `getVirtualIndexes()` | Just the indexes (lighter than full VirtualItems). |
+| `getVirtualItemForOffset(px)` | Find the item at a given scroll offset. |
+| `getSize()` | Container viewport size. |
+| `getScrollOffset()` | Current scroll offset. |
+| `getMaxScrollOffset()` | Maximum scrollable offset. |
+| `resizeItem(index, size)` | Programmatically override an item's measured size. |
+| `scrollToIndex(i, opts?)` | Scroll to item. |
+| `scrollToOffset(px, opts?)` | Scroll to absolute offset. |
+| `scrollBy(delta, opts?)` | Relative scroll. |
+| `scrollToEnd(opts?)` | Scroll to the last item. |
+| `getDistanceFromEnd()` | Distance from current position to end. |
+| `isAtEnd(threshold?)` | True if at/near the end. |
+| `getOffsetForIndex(i, align?)` | Compute target scroll offset for an item. |
+| `getOffsetForAlignment(align, size)` | Offset for a given alignment + size. |
+| `takeSnapshot()` | Capture current item offsets. |
+| `measure()` | Force re-measurement of all items. |
+| `indexFromElement(el)` | Get item index from a DOM element. |
+
+---
+
+## Low-level helpers
+
+```ts
+import {
+  observeElementRect,
+  observeWindowRect,
+  observeElementOffset,
+  observeWindowOffset,
+  measureElement,
+  elementScroll,
+  windowScroll,
+  defaultRangeExtractor,
+  defaultKeyExtractor,
+} from "@domphy/virtual"
+```
+
+| Helper | Description |
+|--------|-------------|
+| `observeElementRect` | ResizeObserver-based rect tracker for a DOM element. |
+| `observeWindowRect` | Tracks `window.innerWidth/Height`. |
+| `observeElementOffset` | Scroll-event-based offset tracker for a DOM element. |
+| `observeWindowOffset` | Tracks `window.scrollX/Y`. |
+| `measureElement` | Default measurement strategy (uses `offsetHeight`/`offsetWidth`). |
+| `elementScroll` | Default scroll function for a DOM element. |
+| `windowScroll` | Scroll function for the browser window. |
+| `defaultRangeExtractor` | Standard range calculation. Pass to `rangeExtractor` as a base. |
+| `defaultKeyExtractor` | Returns item index as the key. |
 
 ### index.md
 
@@ -5821,12 +6655,508 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 
 Pass your own `observeElementRect` / `observeElementOffset` / `scrollToFn` to virtualize against the window instead of an element.
 
+### usage.md
+
+---
+title: "Usage Patterns"
+description: "Variable sizes, window scroll, horizontal lists, sticky ranges, and overscan."
+---
+
+# Usage Patterns
+
+## Variable heights (dynamic measurement)
+
+When item heights differ, pass `estimateSize` as a best guess and wire `measureElement` so the virtualizer measures each item after render.
+
+```ts
+import { Virtualizer } from "@domphy/virtual"
+import { createVirtualizer } from "@domphy/virtual/domphy"
+import { toState } from "@domphy/core"
+
+const data = toState(Array.from({ length: 10_000 }, (_, i) => ({
+  id: i,
+  text: i % 5 === 0 ? "A longer item that wraps to multiple lines." : "Short",
+})))
+
+const list = createVirtualizer({
+  count: 10_000,
+  estimateSize: () => 40,   // initial guess in px — refined on measure
+  overscan: 5,
+})
+
+const App = {
+  div: {
+    // scroll container — fixed height
+    div: [
+      {
+        // spacer — holds the total scroll height
+        div: null,
+        style: { height: () => `${list.getTotalSize()}px`, position: "relative" },
+        div: (l) => list.getVirtualItems(l).map((item) => ({
+          div: data.get()[item.index].text,
+          _key: item.key,
+          _onMount: (node) => list.measureElement(node.domElement),
+          style: {
+            position: "absolute",
+            top: 0,
+            transform: `translateY(${item.start}px)`,
+            width: "100%",
+          },
+        })),
+      },
+    ],
+    _onMount: (node) => list.setScrollElement(node.domElement),
+    _onRemove: () => list.destroy(),
+    style: { height: "600px", overflow: "auto" },
+  },
+}
+```
+
+`measureElement` replaces the estimate with the actual rendered height and schedules a re-layout.
+
+## Window scroll
+
+Virtualize against the browser window instead of a container. Use `observeWindowRect` and `observeWindowOffset` options:
+
+```ts
+import { observeWindowRect, observeWindowOffset, windowScroll } from "@domphy/virtual"
+import { createVirtualizer } from "@domphy/virtual/domphy"
+
+const list = createVirtualizer({
+  count: 5000,
+  estimateSize: () => 50,
+  getScrollElement: () => typeof window !== "undefined" ? window : null,
+  observeElementRect: observeWindowRect,
+  observeElementOffset: observeWindowOffset,
+  scrollToFn: windowScroll,
+})
+
+const App = {
+  div: {
+    // No fixed height on outer container — page scrolls naturally
+    div: {
+      div: (l) => list.getVirtualItems(l).map((item) => ({
+        div: `Row ${item.index}`,
+        _key: item.key,
+        style: {
+          position: "absolute",
+          top: `${item.start}px`,
+          height: `${item.size}px`,
+        },
+      })),
+      style: { position: "relative", height: () => `${list.getTotalSize()}px` },
+    },
+    _onMount: () => list.setScrollElement(window as any),
+    _onRemove: () => list.destroy(),
+  },
+}
+```
+
+## Horizontal virtualization
+
+Swap the scroll axis with `horizontal: true`. Items are positioned by `start` along the x-axis:
+
+```ts
+const list = createVirtualizer({
+  count: 500,
+  estimateSize: () => 120,   // column width
+  horizontal: true,
+  overscan: 3,
+})
+
+const App = {
+  div: {
+    // flex row inside a horizontally scrollable container
+    div: {
+      div: (l) => list.getVirtualItems(l).map((item) => ({
+        div: `Col ${item.index}`,
+        _key: item.key,
+        style: {
+          position: "absolute",
+          left: `${item.start}px`,
+          width: `${item.size}px`,
+          height: "100%",
+        },
+      })),
+      style: {
+        position: "relative",
+        width: () => `${list.getTotalSize()}px`,
+        height: "100%",
+      },
+    },
+    _onMount: (node) => list.setScrollElement(node.domElement),
+    _onRemove: () => list.destroy(),
+    style: { width: "800px", height: "60px", overflowX: "auto", overflowY: "hidden" },
+  },
+}
+```
+
+## Overscan
+
+`overscan` (default `1`) controls how many items beyond the visible viewport to render. Higher values reduce blank-flash on fast scroll at the cost of rendering more items:
+
+```ts
+const list = createVirtualizer({
+  count: 10_000,
+  estimateSize: () => 40,
+  overscan: 10,   // render 10 extra items before and after the visible range
+})
+```
+
+For very fast scrollers or touch inertia, `overscan: 5–15` is typical.
+
+## Sticky items (range extractor)
+
+Implement sticky headers with a custom `rangeExtractor`. The default extractor returns `startIndex..endIndex` — extend it to prepend section-header indexes:
+
+```ts
+import { defaultRangeExtractor } from "@domphy/virtual"
+
+const sectionHeaders = new Set([0, 50, 100, 150])   // item indexes that are headers
+
+const list = createVirtualizer({
+  count: 200,
+  estimateSize: () => 40,
+  rangeExtractor: (range) => {
+    const active = [...sectionHeaders].filter((i) => i <= range.startIndex)
+    const last = active[active.length - 1]
+    const defaults = defaultRangeExtractor(range)
+    return last !== undefined && !defaults.includes(last)
+      ? [last, ...defaults]
+      : defaults
+  },
+})
+```
+
+Render the sticky header item with `position: sticky; top: 0` and a higher `z-index` than regular rows.
+
+## Scroll to index on load
+
+Scroll to an item after mounting (e.g. restore a saved position):
+
+```ts
+const App = {
+  div: {
+    // scroll container...
+    _onMount: (node) => {
+      list.setScrollElement(node.domElement)
+      list.scrollToIndex(savedIndex, { align: "start", behavior: "auto" })
+    },
+  },
+}
+```
+
+`align` options: `"start"` | `"center"` | `"end"` | `"auto"` (smallest movement).
+
+## Follow on append (infinite scroll)
+
+Use `followOnAppend: "anchor"` to keep the viewport anchored at the bottom as new items are added — useful for chat messages, live feeds:
+
+```ts
+const list = createVirtualizer({
+  count: items.length,
+  estimateSize: () => 48,
+  followOnAppend: "anchor",    // viewport stays at bottom when count grows
+  scrollAnchor: "end",
+})
+```
+
+When the user scrolls up, the anchor is released until they scroll back to the bottom.
+
+## Virtualized grid (2D)
+
+For a fixed-column grid, compose two virtualizers — one for rows, one for columns:
+
+```ts
+const rowList = createVirtualizer({ count: rowCount, estimateSize: () => 50, horizontal: false })
+const colList = createVirtualizer({ count: colCount, estimateSize: () => 120, horizontal: true })
+
+const App = {
+  div: {
+    div: {
+      div: (l) => rowList.getVirtualItems(l).map((row) => ({
+        _key: row.key,
+        div: (l) => colList.getVirtualItems(l).map((col) => ({
+          div: `${row.index},${col.index}`,
+          _key: col.key,
+          style: {
+            position: "absolute",
+            left: `${col.start}px`,
+            width: `${col.size}px`,
+            height: `${row.size}px`,
+          },
+        })),
+        style: {
+          position: "absolute",
+          top: `${row.start}px`,
+          left: 0,
+          height: `${row.size}px`,
+          width: () => `${colList.getTotalSize()}px`,
+        },
+      })),
+      style: {
+        position: "relative",
+        height: () => `${rowList.getTotalSize()}px`,
+        width: () => `${colList.getTotalSize()}px`,
+      },
+    },
+    _onMount: (node) => {
+      rowList.setScrollElement(node.domElement)
+      colList.setScrollElement(node.domElement)
+    },
+    _onRemove: () => { rowList.destroy(); colList.destroy() },
+    style: { height: "600px", width: "100%", overflow: "auto" },
+  },
+}
+```
+
 
 
 ---
 
 
 ## Form docs (`@domphy/form`)
+
+### arrays.md
+
+---
+title: "Field Arrays & Nested Forms"
+description: "Dynamic field arrays, nested object fields, array of objects, and sub-forms."
+---
+
+# Field Arrays & Nested Forms
+
+## Basic array field
+
+Use dot-bracket notation for array indexes. Manage array items with `form.pushFieldValue`, `form.removeFieldValue`, and `form.swapFieldValues`:
+
+```ts
+import { createForm } from "@domphy/form/domphy"
+import { toState } from "@domphy/core"
+import { button } from "@domphy/ui"
+
+const form = createForm<{ tags: string[] }>({
+  defaultValues: { tags: [""] },
+  onSubmit: ({ value }) => save(value.tags),
+})
+
+const App = {
+  form: [
+    {
+      div: (l) => form.values(l).tags.map((_, i) => {
+        const field = form.field<string>(`tags[${i}]`, {})
+        return {
+          _key: i,
+          div: [
+            {
+              input: null,
+              type: "text",
+              value: (l) => field.value(l),
+              onInput: (e) => field.handleChange((e.target as HTMLInputElement).value),
+            },
+            {
+              button: "Remove",
+              type: "button",
+              $: [button()],
+              onClick: () => form.removeFieldValue("tags", i),
+            },
+          ],
+        }
+      }),
+    },
+    {
+      button: "Add Tag",
+      type: "button",
+      $: [button()],
+      onClick: () => form.pushFieldValue("tags", ""),
+    },
+    {
+      button: "Save",
+      type: "submit",
+      $: [button({ tone: "shift-1" })],
+    },
+  ],
+  onSubmit: (e) => { e.preventDefault(); form.handleSubmit() },
+}
+```
+
+## Array of objects
+
+The same pattern works for arrays of objects. Field names use dot notation for nested keys:
+
+```ts
+const form = createForm<{
+  contacts: Array<{ name: string; email: string }>
+}>({
+  defaultValues: { contacts: [{ name: "", email: "" }] },
+  onSubmit: ({ value }) => save(value.contacts),
+})
+
+const ContactRow = (i: number) => {
+  const nameField = form.field<string>(`contacts[${i}].name`, {
+    validators: { onChange: ({ value }) => value ? undefined : "Required" },
+  })
+  const emailField = form.field<string>(`contacts[${i}].email`, {
+    validators: { onChange: ({ value }) => value.includes("@") ? undefined : "Invalid" },
+  })
+
+  return {
+    _key: i,
+    div: [
+      {
+        input: null,
+        placeholder: "Name",
+        value: (l) => nameField.value(l),
+        onInput: (e) => nameField.handleChange((e.target as HTMLInputElement).value),
+      },
+      {
+        input: null,
+        placeholder: "Email",
+        value: (l) => emailField.value(l),
+        onInput: (e) => emailField.handleChange((e.target as HTMLInputElement).value),
+      },
+      {
+        button: "✕",
+        type: "button",
+        onClick: () => form.removeFieldValue("contacts", i),
+      },
+    ],
+  }
+}
+
+const App = {
+  form: [
+    { div: (l) => form.values(l).contacts.map((_, i) => ContactRow(i)) },
+    {
+      button: "Add Contact",
+      type: "button",
+      onClick: () => form.pushFieldValue("contacts", { name: "", email: "" }),
+    },
+  ],
+  onSubmit: (e) => { e.preventDefault(); form.handleSubmit() },
+}
+```
+
+## Reordering with swapFieldValues
+
+Implement drag-to-reorder or up/down buttons:
+
+```ts
+{
+  button: "↑",
+  type: "button",
+  disabled: i === 0,
+  onClick: () => form.swapFieldValues("contacts", i, i - 1),
+}
+```
+
+`swapFieldValues(fieldName, indexA, indexB)` — swaps two elements and preserves per-field state (touched, dirty, errors).
+
+## Nested object fields
+
+For deeply nested objects, create sub-fields with the full dot-path:
+
+```ts
+const form = createForm<{
+  address: { street: string; city: string; zip: string }
+}>({
+  defaultValues: { address: { street: "", city: "", zip: "" } },
+  onSubmit: ({ value }) => save(value),
+})
+
+const street = form.field<string>("address.street", {
+  validators: { onChange: ({ value }) => value ? undefined : "Required" },
+})
+const city   = form.field<string>("address.city", {})
+const zip    = form.field<string>("address.zip", {
+  validators: { onChange: ({ value }) => /^\d{5}$/.test(value) ? undefined : "5 digits" },
+})
+```
+
+## Array field validators
+
+Validate the entire array (e.g. minimum length):
+
+```ts
+const form = createForm<{ skills: string[] }>({
+  defaultValues: { skills: [] },
+  validators: {
+    onChange: ({ value }) =>
+      value.skills.length === 0 ? "Add at least one skill" : undefined,
+  },
+  onSubmit: ({ value }) => save(value),
+})
+```
+
+Or add a validator on the array field itself:
+
+```ts
+const skills = form.field<string[]>("skills", {
+  validators: {
+    onChange: ({ value }) =>
+      value.length < 1 ? "At least one skill required" : undefined,
+  },
+})
+```
+
+## Field group (FormGroupApi)
+
+`FormGroupApi` creates a typed sub-form bound to a nested path. Useful for extracting reusable form sections:
+
+```ts
+import { createForm, FormGroupApi } from "@domphy/form/domphy"
+
+const form = createForm<{ billing: AddressData; shipping: AddressData }>({
+  defaultValues: {
+    billing: { street: "", city: "", zip: "" },
+    shipping: { street: "", city: "", zip: "" },
+  },
+  onSubmit: ({ value }) => submit(value),
+})
+
+function AddressSection(prefix: "billing" | "shipping") {
+  const group = form.group<AddressData>(prefix)   // typed to AddressData
+  const street = group.field<string>("street", {})
+  // group.field("street") is equivalent to form.field("billing.street")
+
+  return {
+    fieldset: [
+      { legend: prefix === "billing" ? "Billing" : "Shipping" },
+      {
+        input: null,
+        placeholder: "Street",
+        value: (l) => street.value(l),
+        onInput: (e) => street.handleChange((e.target as HTMLInputElement).value),
+      },
+    ],
+  }
+}
+```
+
+## Resetting arrays
+
+`form.reset()` restores the form to `defaultValues` including all array contents:
+
+```ts
+{ button: "Reset", type: "button", onClick: () => form.reset() }
+```
+
+Reset to specific values:
+
+```ts
+form.reset({ contacts: [{ name: "Alice", email: "alice@example.com" }] })
+```
+
+## Reading raw FormApi
+
+For advanced use cases (custom validation runners, field state inspection), access the underlying TanStack `FormApi`:
+
+```ts
+const rawForm = form.form    // FormApi<TData>
+const fieldApi = field.api   // FieldApi<TData, string>
+```
+
+The full TanStack Form v1 API applies to both — see [TanStack Form docs](https://tanstack.com/form/latest) for `FormApi` methods (`setFieldValue`, `getFieldValue`, `setFieldMeta`, `validateField`, etc.).
 
 ### index.md
 
@@ -5917,12 +7247,487 @@ const Field = {
 
 Field and form `options` (validators, async debouncing, listeners, arrays, Standard Schema) are the upstream form-core options — see the [TanStack Form docs](https://tanstack.com/form/latest).
 
+### validation.md
+
+---
+title: "Validation"
+description: "Sync and async validators, Standard Schema (Zod/Valibot/ArkType), form-level validators, and error display."
+---
+
+# Validation
+
+## Validator timing
+
+Each field accepts a `validators` object. Keys control **when** validation runs:
+
+| Key | Fires on |
+|-----|----------|
+| `onChange` | Every value change (`handleChange`) |
+| `onChangeAsync` | Same but async (debounced by default) |
+| `onBlur` | `handleBlur()` call |
+| `onBlurAsync` | Async blur validator |
+| `onSubmit` | Only when the form is submitted |
+| `onSubmitAsync` | Async submit-time validator |
+| `onMount` | Once, when the field is first created |
+| `onMountAsync` | Async on-mount validator |
+
+Validators return `undefined` (valid) or a string error message:
+
+```ts
+const email = form.field<string>("email", {
+  validators: {
+    onChange: ({ value }) =>
+      value.includes("@") ? undefined : "Must be a valid email",
+    onBlur: ({ value }) =>
+      value.length >= 5 ? undefined : "Too short",
+    onSubmit: ({ value }) =>
+      value.endsWith(".com") ? undefined : "Only .com addresses accepted",
+  },
+})
+```
+
+## Async validators
+
+Async validators return a `Promise<string | undefined>`:
+
+```ts
+const username = form.field<string>("username", {
+  validators: {
+    onChangeAsync: async ({ value }) => {
+      if (!value) return undefined
+      const taken = await checkUsernameAvailable(value)
+      return taken ? undefined : "Username already taken"
+    },
+    onChangeAsyncDebounceMs: 300,    // wait 300ms after last keystroke (default: 0)
+  },
+})
+```
+
+Use `asyncDebounceMs` on the field options for a global default:
+
+```ts
+const field = form.field("name", { asyncDebounceMs: 500 })
+```
+
+## Form-level validators
+
+Run validators on the whole form value — useful for cross-field checks:
+
+```ts
+const form = createForm<{ start: string; end: string }>({
+  defaultValues: { start: "", end: "" },
+  validators: {
+    onChange: ({ value }) => {
+      if (!value.start || !value.end) return
+      return value.end < value.start ? "End must be after start" : undefined
+    },
+  },
+  onSubmit: ({ value }) => submitRange(value),
+})
+```
+
+Read form-level errors:
+
+```ts
+{ div: (l) => String(form.state(l).errors[0] ?? ""), style: { color: "red" } }
+```
+
+## Standard Schema (Zod, Valibot, ArkType)
+
+Pass any Standard Schema compatible schema as the validator:
+
+```ts
+import { z } from "zod"
+
+const SignupSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  confirm: z.string(),
+}).refine((v) => v.password === v.confirm, {
+  message: "Passwords must match",
+  path: ["confirm"],
+})
+
+const form = createForm({
+  defaultValues: { email: "", password: "", confirm: "" },
+  validators: {
+    onChange: SignupSchema,    // runs on every change using the schema
+  },
+  onSubmit: ({ value }) => signUp(value),
+})
+```
+
+Field-level schema (validates just one field's value):
+
+```ts
+const email = form.field("email", {
+  validators: {
+    onChange: z.string().email(),
+  },
+})
+```
+
+Valibot and ArkType work the same way — any schema with a Standard Schema `~standard` property.
+
+## Displaying errors
+
+Read `field.errors(l)` reactively:
+
+```ts
+import { inputText, label } from "@domphy/ui"
+
+const EmailField = {
+  div: [
+    { label: "Email", $: [label()] },
+    {
+      input: null,
+      $: [inputText()],
+      value: (l) => email.value(l),
+      onInput: (e) => email.handleChange((e.target as HTMLInputElement).value),
+      onBlur: () => email.handleBlur(),
+    },
+    {
+      // Error message — hidden when no errors
+      p: (l) => String(email.errors(l)[0] ?? ""),
+      hidden: (l) => email.errors(l).length === 0,
+      style: { color: "red", fontSize: "0.875rem" },
+    },
+  ],
+}
+```
+
+For multiple errors (e.g. cross-field schema errors):
+
+```ts
+{
+  ul: (l) => email.errors(l).map((err, i) => ({ li: String(err), _key: i })),
+  hidden: (l) => email.errors(l).length === 0,
+}
+```
+
+## Error metadata
+
+`field.meta(l)` returns the full `FieldMeta`:
+
+```ts
+interface FieldMeta {
+  touchedAt: number | null    // timestamp of first blur
+  isTouched: boolean
+  isDirty: boolean
+  isPristine: boolean
+  isBlurred: boolean
+  errors: unknown[]
+  errorMap: Partial<Record<ValidationSource, unknown>>
+  isValidating: boolean
+}
+```
+
+Show a spinner on async validation:
+
+```ts
+{ span: "Checking...", hidden: (l) => !username.meta(l).isValidating }
+```
+
+## Validators with context
+
+Validators receive a `context` object — attach extra data via `form.handleSubmit(data, context)`:
+
+```ts
+const form = createForm<LoginForm>({
+  defaultValues: { email: "", password: "" },
+  validators: {
+    onSubmitAsync: async ({ value, context }) => {
+      const result = await loginApi(value.email, value.password, context?.csrfToken)
+      return result.error ? "Invalid credentials" : undefined
+    },
+  },
+  onSubmit: ({ value }) => {},
+})
+
+// Pass context on submit
+const button = {
+  button: "Log in",
+  onClick: () => form.handleSubmit({}, { csrfToken: getCsrfToken() }),
+}
+```
+
+## Preventing invalid submissions
+
+`form.canSubmit(l)` returns `false` when:
+- Any field has an error **and** `isSubmitted` is true (after first submit attempt), or
+- The form is currently validating asynchronously
+
+Wire to button `disabled`:
+
+```ts
+{
+  button: "Submit",
+  $: [button()],
+  disabled: (l) => !form.canSubmit(l) || form.isSubmitting(l),
+  onClick: () => form.handleSubmit(),
+}
+```
+
+## Linked field validators
+
+Run a validator on `fieldB` when `fieldA` changes using `listeners`:
+
+```ts
+const password = form.field("password", {})
+
+const confirm = form.field("confirm", {
+  validators: {
+    onChangeListenTo: ["password"],   // re-validate when password changes
+    onChange: ({ value, fieldApi }) =>
+      value !== fieldApi.form.getFieldValue("password")
+        ? "Passwords must match"
+        : undefined,
+  },
+})
+```
+
 
 
 ---
 
 
 ## DnD docs (`@domphy/dnd`)
+
+### api.md
+
+---
+title: "API Reference"
+description: "dragDrop adapter, configuration, plugins, multi-list transfer, and FormKit drag-and-drop API."
+---
+
+# API Reference
+
+## `dragDrop(state, config?)`
+
+```ts
+import { dragDrop } from "@domphy/dnd"
+```
+
+A Domphy patch applied via `$`. Wires the FormKit drag-and-drop engine to a reactive state array.
+
+```ts
+const list = createVirtualizer(...)   // or just toState([...])
+const App = {
+  ul: (l) => items.get(l).map((item) => ({ li: item.label, _key: item.id })),
+  $: [dragDrop(items, config?)],
+}
+```
+
+`dragDrop` calls `dragAndDrop()` from `@formkit/drag-and-drop` under the hood and patches:
+- `_onMount(node)` — registers the container
+- `_onRemove()` — tears down listeners automatically
+
+### `state` argument
+
+Any object with `.get()` and `.set(updater)` methods (Domphy `State<T[]>` or custom). On reorder, FormKit calls `state.set(newArray)` so the reactive list re-renders.
+
+### `config` (ParentConfig)
+
+```ts
+interface ParentConfig<T> {
+  // Transfer between lists
+  group?: string                             // lists with same group can exchange items
+
+  // Sorting
+  sortable?: boolean                         // default: true
+  lockAxis?: "x" | "y"                       // restrict drag direction
+
+  // Handles
+  draggable?: (el: HTMLElement) => boolean   // filter which children are draggable
+  handleClass?: string                       // CSS class of drag handles inside items
+
+  // Drop zone
+  accepts?: (data: DragState<T>, parent: HTMLElement, currentParent: HTMLElement) => boolean
+
+  // Thresholds
+  threshold?: { horizontal: number; vertical: number }   // 0–1 (default 0.5)
+
+  // Plugins
+  plugins?: Plugin[]
+
+  // Callbacks
+  onDragstart?: (data: DragStartEventData<T>) => void
+  onDragend?: (data: DragEndEventData<T>) => void
+  onSort?: (data: SortEventData<T>) => void
+  onTransfer?: (data: TransferEventData<T>) => void
+}
+```
+
+---
+
+## Plugins
+
+Import plugins from `@domphy/dnd` (re-exported from `@formkit/drag-and-drop`):
+
+```ts
+import { animations, multiDrag, handleClass } from "@domphy/dnd"
+```
+
+### `animations(config?)`
+
+Smooth CSS transitions for dragging and drop. No extra setup required:
+
+```ts
+{ ul: ..., $: [dragDrop(items, { plugins: [animations()] })] }
+```
+
+```ts
+interface AnimationsConfig {
+  duration?: number                     // ms, default 150
+  easing?: string                       // CSS easing, default "ease"
+  remapFinished?: boolean               // remap items to final positions after animation
+}
+```
+
+### `multiDrag(config?)`
+
+Allow selecting multiple items (hold `Shift` or `Ctrl/Cmd`) and dragging them together:
+
+```ts
+import { multiDrag, selections } from "@domphy/dnd"
+
+const selectedItems = selections(items)   // tracks selected subset
+
+const App = {
+  ul: (l) => items.get(l).map((item) => ({
+    li: item.label,
+    _key: item.id,
+    class: (l) => selectedItems.get(l).has(item.id) ? "selected" : "",
+  })),
+  $: [dragDrop(items, {
+    plugins: [multiDrag({ selectedClass: "selected" })],
+  })],
+}
+```
+
+### `handleClass(className?)`
+
+Scope dragging to a handle element inside each item. Items without a matching handle element are not draggable by direct drag — only by their handle:
+
+```ts
+{ ul: (l) => items.get(l).map((item) => ({
+  _key: item.id,
+  li: [
+    { span: "⠿", class: "handle" },
+    { span: item.label },
+  ],
+})),
+$: [dragDrop(items, { handleClass: "handle" })] }
+```
+
+---
+
+## Transfer between lists
+
+Two lists with the same `group` exchange items when an item is dragged from one to the other. Both lists must use `group`:
+
+```ts
+const todo = toState<Task[]>([...])
+const done = toState<Task[]>([...])
+
+const TodoList = {
+  ul: (l) => todo.get(l).map((t) => ({ li: t.text, _key: t.id })),
+  $: [dragDrop(todo, { group: "kanban" })],
+}
+
+const DoneList = {
+  ul: (l) => done.get(l).map((t) => ({ li: t.text, _key: t.id })),
+  $: [dragDrop(done, { group: "kanban" })],
+}
+```
+
+Use `accepts` to limit what can transfer in:
+
+```ts
+dragDrop(done, {
+  group: "kanban",
+  accepts: (data) => data.targetParentValues.every((t) => t.status === "todo"),
+})
+```
+
+---
+
+## Sortable with server sync
+
+Wire `onSort` to persist new order after each drag:
+
+```ts
+dragDrop(items, {
+  onSort: async ({ newValues }) => {
+    await api.patch("/tasks/order", { ids: newValues.map((t) => t.id) })
+  },
+})
+```
+
+---
+
+## Drag state types
+
+```ts
+interface DragStartEventData<T> {
+  values: T[]           // items being dragged
+  parent: HTMLElement
+}
+
+interface DragEndEventData<T> {
+  values: T[]           // items dropped
+  parent: HTMLElement
+  targetParent: HTMLElement | null
+}
+
+interface SortEventData<T> {
+  newValues: T[]        // reordered list
+  previousValues: T[]
+  parent: HTMLElement
+}
+
+interface TransferEventData<T> {
+  values: T[]           // items transferred
+  sourceParent: HTMLElement
+  targetParent: HTMLElement
+  targetParentValues: T[]
+  previousParentValues: T[]
+}
+```
+
+---
+
+## Low-level FormKit API
+
+All `@formkit/drag-and-drop` exports are re-exported from `@domphy/dnd`:
+
+```ts
+import {
+  dragAndDrop,      // low-level setup for a container element
+  useDragAndDrop,   // framework-agnostic reactive helper
+  selections,       // multi-select state helper
+  swap,             // swap two elements without triggering full re-sort
+  insert,           // insert at specific index
+  multiDrag,
+  animations,
+  handleClass,
+} from "@domphy/dnd"
+```
+
+See [FormKit drag-and-drop docs](https://drag-and-drop.formkit.com) for the full API surface. The `dragDrop` adapter is a thin wrapper — anything `dragAndDrop()` supports is available via `config`.
+
+---
+
+## Accessibility
+
+FormKit drag-and-drop includes keyboard accessibility built in:
+
+- `Tab` to focus an item
+- `Space` to pick up / drop
+- Arrow keys to move while picked up
+- `Escape` to cancel
+
+No additional setup required. ARIA roles (`role="listitem"`, `aria-grabbed`, `aria-dropeffect`) are applied automatically.
 
 ### index.md
 
