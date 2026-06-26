@@ -5,6 +5,7 @@ export interface PageIslandSpec {
   id: string;
   source?: string;
   code?: string;
+  storageKey?: string;
 }
 
 export interface RenderResult {

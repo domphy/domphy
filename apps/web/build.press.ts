@@ -116,6 +116,90 @@ function sanitizeStyles(node: unknown): void {
   }
 }
 
+// --- Editor island extraction ------------------------------------------------
+
+interface EditorIslandRef {
+  kind: "editor";
+  id: string;
+  source?: string;
+  inlineCode?: string;
+  storageKey?: string;
+}
+
+/**
+ * Extracts <CodeEditor> tags from VitePress-style markdown, replacing them
+ * with `<div data-island="editor-N">` placeholders. Returns the rewritten
+ * source and the extracted island refs.
+ *
+ * Handled patterns:
+ *  1. `:code="Var"` where Var is a `const Var = \`...\`` in the script block
+ *  2. `:code="Var"` where Var is `import Var from "./path?raw"` → resolves path
+ */
+function extractEditorIslands(
+  source: string,
+  filePath: string,
+): { source: string; islands: EditorIslandRef[] } {
+  const fileDir = dirname(filePath);
+  const islands: EditorIslandRef[] = [];
+
+  // Extract script block content before stripping
+  const scriptMatch = source.match(/<script\b[^>]*>([\s\S]*?)<\/script>/i);
+  const script = scriptMatch ? scriptMatch[1] : "";
+
+  // Build a map: varName → code string (from inline const or ?raw import)
+  const codeMap: Record<string, string> = {};
+
+  // Handle: import Var from "./path?raw" (or path.ts?raw)
+  for (const m of script.matchAll(/import\s+(\w+)\s+from\s+["']([^"']+\?raw)["']/g)) {
+    const [, varName, rawPath] = m;
+    const cleanPath = rawPath.replace(/\?raw$/, "");
+    const absPath = resolve(fileDir, cleanPath);
+    if (existsSync(absPath)) {
+      codeMap[varName] = readFileSync(absPath, "utf8");
+    }
+  }
+
+  // Handle: const Var = `...template literal...`
+  for (const m of script.matchAll(/const\s+(\w+)\s*=\s*`([\s\S]*?)`/g)) {
+    const [, varName, content] = m;
+    codeMap[varName] = content.trim();
+  }
+
+  // Find and replace <CodeEditor :code="Var" storageKey="..." /> tags
+  let counter = 0;
+  const processed = source.replace(
+    /<CodeEditor\b([^>]*?)(?:\/>|><\/CodeEditor>)/g,
+    (_match, attrs: string) => {
+      const codeAttr = attrs.match(/:code=["'](\w+)["']/);
+      const storageAttr = attrs.match(/storageKey=["']([^"']+)["']/);
+      const storageKey = storageAttr ? storageAttr[1] : undefined;
+
+      let inlineCode: string | undefined;
+      let source: string | undefined;
+
+      if (codeAttr) {
+        const varName = codeAttr[1];
+        inlineCode = codeMap[varName];
+        if (!inlineCode) {
+          // Last resort: look for the source path from import ... ?raw
+          const importMatch = script.match(
+            new RegExp(`import\\s+${varName}\\s+from\\s+["']([^"']+)["']`),
+          );
+          if (importMatch) {
+            source = resolve(fileDir, importMatch[1].replace(/\?raw$/, ""));
+          }
+        }
+      }
+
+      const id = `editor-${counter++}`;
+      islands.push({ kind: "editor", id, source, inlineCode, storageKey });
+      return `<div data-island="${id}" style="margin:2rem 0"></div>`;
+    },
+  );
+
+  return { source: processed, islands };
+}
+
 // --- Island helpers ----------------------------------------------------------
 
 interface BuiltPage {
@@ -130,10 +214,17 @@ function pageIslandSpecs(page: BuiltPage): PageIslandSpec[] {
   const specs: PageIslandSpec[] = [{ kind: "search", id: "search" }];
   for (const island of page.islands) {
     if (island.kind === "editor") {
-      const code = existsSync(island.source!)
-        ? readFileSync(island.source!, "utf8")
-        : "// demo source not found";
-      specs.push({ kind: "editor", id: island.id, code });
+      const editorIsland = island as unknown as EditorIslandRef;
+      let code = editorIsland.inlineCode;
+      if (!code && editorIsland.source) {
+        code = existsSync(editorIsland.source)
+          ? readFileSync(editorIsland.source, "utf8")
+          : "// demo source not found";
+      }
+      code ??= "// demo source not found";
+      const spec: PageIslandSpec = { kind: "editor", id: island.id, code };
+      if (editorIsland.storageKey) spec.storageKey = editorIsland.storageKey;
+      specs.push(spec);
     } else {
       specs.push({ kind: "preview", id: island.id, source: island.source! });
     }
@@ -208,7 +299,11 @@ async function run(): Promise<void> {
   const searchDocs: SearchDocument[] = [];
 
   for (const page of startedPages) {
-    const source = readFileSync(page.filePath, "utf8");
+    const rawSource = readFileSync(page.filePath, "utf8");
+    const { source, islands: editorIslands } = extractEditorIslands(
+      rawSource,
+      page.filePath,
+    );
     const doc = await renderDoc(source, {
       filePath: page.filePath,
       docsDir,
@@ -223,7 +318,10 @@ async function run(): Promise<void> {
       outFile: page.outFile,
       title: doc.title,
       doc,
-      islands: doc.islands,
+      islands: [
+        ...doc.islands,
+        ...(editorIslands as unknown as IslandRef[]),
+      ],
     });
     searchDocs.push({
       route: page.route,
