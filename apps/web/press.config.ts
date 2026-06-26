@@ -76,7 +76,10 @@ export const config = defineConfig({
         {
           text: "Patterns",
           items: [
-            { text: "Insert Content", link: "/docs/core/patterns/insert-content" },
+            {
+              text: "Insert Content",
+              link: "/docs/core/patterns/insert-content",
+            },
           ],
         },
         {
@@ -264,7 +267,10 @@ export const config = defineConfig({
         { text: "Code Splitting", link: "/docs/router/lazy-loading" },
         { text: "Authentication", link: "/docs/router/authentication" },
         { text: "Error Handling", link: "/docs/router/error-handling" },
-        { text: "Navigation Blocking", link: "/docs/router/navigation-blocking" },
+        {
+          text: "Navigation Blocking",
+          link: "/docs/router/navigation-blocking",
+        },
         { text: "Router Context", link: "/docs/router/router-context" },
         { text: "Type Safety", link: "/docs/router/type-safety" },
         { text: "Scroll Restoration", link: "/docs/router/scroll-restoration" },
@@ -283,7 +289,10 @@ export const config = defineConfig({
         { text: "Advanced Features", link: "/docs/table/advanced" },
         { text: "Column Groups & Headers", link: "/docs/table/column-groups" },
         { text: "Grouping & Expanding", link: "/docs/table/grouping" },
-        { text: "Column Visibility & Ordering", link: "/docs/table/column-visibility" },
+        {
+          text: "Column Visibility & Ordering",
+          link: "/docs/table/column-visibility",
+        },
         { text: "Faceting & Filter UI", link: "/docs/table/faceting" },
         { text: "Row Pinning", link: "/docs/table/row-pinning" },
         { text: "Custom Features", link: "/docs/table/custom-features" },

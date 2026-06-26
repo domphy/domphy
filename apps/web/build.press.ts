@@ -150,7 +150,9 @@ function extractEditorIslands(
   const codeMap: Record<string, string> = {};
 
   // Handle: import Var from "./path?raw" (or path.ts?raw)
-  for (const m of script.matchAll(/import\s+(\w+)\s+from\s+["']([^"']+\?raw)["']/g)) {
+  for (const m of script.matchAll(
+    /import\s+(\w+)\s+from\s+["']([^"']+\?raw)["']/g,
+  )) {
     const [, varName, rawPath] = m;
     const cleanPath = rawPath.replace(/\?raw$/, "");
     const absPath = resolve(fileDir, cleanPath);
@@ -318,10 +320,7 @@ async function run(): Promise<void> {
       outFile: page.outFile,
       title: doc.title,
       doc,
-      islands: [
-        ...doc.islands,
-        ...(editorIslands as unknown as IslandRef[]),
-      ],
+      islands: [...doc.islands, ...(editorIslands as unknown as IslandRef[])],
     });
     searchDocs.push({
       route: page.route,

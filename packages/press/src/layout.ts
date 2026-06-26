@@ -105,7 +105,11 @@ function socialLinkEl(social: SocialLink): DomphyElement {
 // --- Page link helper ---------------------------------------------------
 
 function pageLink(text: string, href: string): DomphyElement {
-  return { a: text, href, $: [navLink({ href, exact: true })] } as DomphyElement;
+  return {
+    a: text,
+    href,
+    $: [navLink({ href, exact: true })],
+  } as DomphyElement;
 }
 
 // --- Nav dropdown -------------------------------------------------------
