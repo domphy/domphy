@@ -1,5 +1,4 @@
-import { describe, expect, it } from "vitest";
-import { config } from "../press.config.js";
+import type { SiteConfig } from "@domphy/press";
 import {
   flattenSidebar,
   outFileForRoute,
@@ -7,7 +6,8 @@ import {
   routeForFile,
   sidebarForRoute,
 } from "@domphy/press";
-import type { SiteConfig } from "@domphy/press";
+import { describe, expect, it } from "vitest";
+import { config } from "../press.config.js";
 
 describe("routeForFile", () => {
   it("maps the root landing page to /", () => {
@@ -70,29 +70,42 @@ describe("flattenSidebar", () => {
 });
 
 function makeSiteConfig(sidebar: Record<string, unknown[]>): SiteConfig {
-  return { title: "t", description: "d", base: "/", hostname: "http://localhost", srcDir: ".", outDir: "dist", head: [], themeConfig: { nav: [], sidebar } } as unknown as SiteConfig
+  return {
+    title: "t",
+    description: "d",
+    base: "/",
+    hostname: "http://localhost",
+    srcDir: ".",
+    outDir: "dist",
+    head: [],
+    themeConfig: { nav: [], sidebar },
+  } as unknown as SiteConfig;
 }
 
 describe("sidebarForRoute", () => {
   const sample = makeSiteConfig({
     "/docs/core/": [{ text: "Core", link: "/docs/core/" }],
     "/docs/ui/": [{ text: "UI", link: "/docs/ui/" }],
-  })
+  });
 
   it("selects the sidebar whose prefix matches the route", () => {
-    expect(sidebarForRoute("/docs/ui/patches/button", sample)[0].text).toBe("UI")
+    expect(sidebarForRoute("/docs/ui/patches/button", sample)[0].text).toBe(
+      "UI",
+    );
   });
 
   it("prefers the longest matching prefix", () => {
     const nested = makeSiteConfig({
       "/docs/": [{ text: "Docs", link: "/docs/" }],
       "/docs/ui/": [{ text: "UI", link: "/docs/ui/" }],
-    })
-    expect(sidebarForRoute("/docs/ui/patches/button", nested)[0].text).toBe("UI")
+    });
+    expect(sidebarForRoute("/docs/ui/patches/button", nested)[0].text).toBe(
+      "UI",
+    );
   });
 
   it("returns an empty group for an unmatched route", () => {
-    expect(sidebarForRoute("/nope", sample)).toEqual([])
+    expect(sidebarForRoute("/nope", sample)).toEqual([]);
   });
 });
 

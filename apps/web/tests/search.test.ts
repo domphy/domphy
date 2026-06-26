@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { SearchDocument } from "@domphy/press";
 import {
   buildSearchIndex,
   mountSearch,
   queryIndex,
   searchWidget,
 } from "@domphy/press";
-import type { SearchDocument } from "@domphy/press";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // A small, hand-authored corpus. "Reactivity" appears as a page title on one
 // page and only in the body of another, so a title match can be checked to

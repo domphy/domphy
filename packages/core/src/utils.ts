@@ -1,11 +1,6 @@
 import { type ReadableState, State } from "./classes/State.js";
 import { addEvent, addHook, deepClone } from "./helpers.js";
-import type {
-  DomphyElement,
-  EventName,
-  Handler,
-  HookMap,
-} from "./types.js";
+import type { DomphyElement, EventName, Handler, HookMap } from "./types.js";
 
 export function merge(
   source: Record<string, any> = {},

@@ -1,23 +1,39 @@
 import type { AuditIssue, AuditPage } from "./types.js";
 
-export async function checkContrast(page: AuditPage, minRatio = 4.5): Promise<AuditIssue[]> {
+export async function checkContrast(
+  page: AuditPage,
+  minRatio = 4.5,
+): Promise<AuditIssue[]> {
   const findings = await page.evaluate((min: number) => {
     function parseRgb(css: string): [number, number, number, number] | null {
-      const match = css.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      const match = css.match(
+        /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/,
+      );
       if (!match) return null;
-      return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3]), match[4] !== undefined ? parseFloat(match[4]) : 1];
+      return [
+        parseInt(match[1], 10),
+        parseInt(match[2], 10),
+        parseInt(match[3], 10),
+        match[4] !== undefined ? parseFloat(match[4]) : 1,
+      ];
     }
 
     function luminance(r: number, g: number, b: number): number {
       const WEIGHTS = [0.2126, 0.7152, 0.0722];
       return [r, g, b].reduce((sum, channel, i) => {
         const normalized = channel / 255;
-        const linear = normalized <= 0.03928 ? normalized / 12.92 : Math.pow((normalized + 0.055) / 1.055, 2.4);
+        const linear =
+          normalized <= 0.03928
+            ? normalized / 12.92
+            : ((normalized + 0.055) / 1.055) ** 2.4;
         return sum + linear * WEIGHTS[i];
       }, 0);
     }
 
-    function contrastRatio(fg: [number, number, number], bg: [number, number, number]): number {
+    function contrastRatio(
+      fg: [number, number, number],
+      bg: [number, number, number],
+    ): number {
       const l1 = luminance(...fg);
       const l2 = luminance(...bg);
       const lighter = Math.max(l1, l2);
@@ -36,7 +52,10 @@ export async function checkContrast(page: AuditPage, minRatio = 4.5): Promise<Au
     }
 
     const TEXT_TAGS = "p,span,li,td,th,h1,h2,h3,h4,h5,h6,button,a,label";
-    const result: { message: string; rect: { x: number; y: number; width: number; height: number } }[] = [];
+    const result: {
+      message: string;
+      rect: { x: number; y: number; width: number; height: number };
+    }[] = [];
 
     for (const el of Array.from(document.querySelectorAll(TEXT_TAGS))) {
       if (!el.textContent?.trim()) continue;
@@ -53,7 +72,12 @@ export async function checkContrast(page: AuditPage, minRatio = 4.5): Promise<Au
       if (ratio < min) {
         result.push({
           message: `contrast ${ratio.toFixed(2)}:1 < ${min} on <${el.tagName.toLowerCase()}> "${el.textContent.trim().slice(0, 40)}"`,
-          rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+          rect: {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          },
         });
       }
     }

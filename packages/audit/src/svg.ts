@@ -1,6 +1,16 @@
 import type { AuditIssue, AuditPage, Rect } from "./types.js";
 
-const SKIP_TAGS = new Set(["html", "head", "body", "script", "style", "meta", "link", "noscript", "title"]);
+const SKIP_TAGS = new Set([
+  "html",
+  "head",
+  "body",
+  "script",
+  "style",
+  "meta",
+  "link",
+  "noscript",
+  "title",
+]);
 const ISSUE_COLORS: Record<string, string> = {
   overlap: "red",
   geometry: "orange",
@@ -25,9 +35,18 @@ export async function snapshot(page: AuditPage): Promise<LayoutSnapshot> {
     const boxes = Array.from(document.querySelectorAll("*"))
       .map((el) => {
         const r = el.getBoundingClientRect();
-        return { tag: el.tagName.toLowerCase(), rect: { x: r.x, y: r.y, width: r.width, height: r.height } };
+        return {
+          tag: el.tagName.toLowerCase(),
+          rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+        };
       })
-      .filter(({ rect }) => rect.width > 0 && rect.height > 0 && rect.y < height && rect.x < width);
+      .filter(
+        ({ rect }) =>
+          rect.width > 0 &&
+          rect.height > 0 &&
+          rect.y < height &&
+          rect.x < width,
+      );
     return { width, height, boxes };
   });
 }

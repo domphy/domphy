@@ -1,12 +1,13 @@
-import { defineConfig } from "@domphy/press"
-import { dirname, join } from "node:path"
-import { fileURLToPath } from "node:url"
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "@domphy/press";
 
-const here = dirname(fileURLToPath(import.meta.url))
+const here = dirname(fileURLToPath(import.meta.url));
 
 export const config = defineConfig({
   title: "Domphy",
-  description: "The AI-friendly UI framework — patch-based, framework-agnostic, no virtual DOM.",
+  description:
+    "The AI-friendly UI framework — patch-based, framework-agnostic, no virtual DOM.",
   base: "/",
   hostname: "https://domphy.com",
   srcDir: join(here, "docs"),
@@ -65,7 +66,12 @@ export const config = defineConfig({
         { text: "Portal", link: "/docs/core/portal" },
         {
           text: "Patterns",
-          items: [{ text: "Insert Content", link: "/docs/core/patterns/insert-content" }],
+          items: [
+            {
+              text: "Insert Content",
+              link: "/docs/core/patterns/insert-content",
+            },
+          ],
         },
         {
           text: "API Reference",
@@ -108,7 +114,10 @@ export const config = defineConfig({
             { text: "Badge", link: "/docs/ui/patches/badge" },
             { text: "Blockquote", link: "/docs/ui/patches/blockquote" },
             { text: "Breadcrumb", link: "/docs/ui/patches/breadcrumb" },
-            { text: "Breadcrumb Ellipsis", link: "/docs/ui/patches/breadcrumb-ellipsis" },
+            {
+              text: "Breadcrumb Ellipsis",
+              link: "/docs/ui/patches/breadcrumb-ellipsis",
+            },
             { text: "Button", link: "/docs/ui/patches/button" },
             { text: "Button Ghost", link: "/docs/ui/patches/button-ghost" },
             { text: "Button Switch", link: "/docs/ui/patches/button-switch" },
@@ -117,7 +126,10 @@ export const config = defineConfig({
             { text: "Combobox", link: "/docs/ui/patches/combobox" },
             { text: "Command", link: "/docs/ui/patches/command" },
             { text: "Date Picker", link: "/docs/ui/patches/date-picker" },
-            { text: "Description List", link: "/docs/ui/patches/description-list" },
+            {
+              text: "Description List",
+              link: "/docs/ui/patches/description-list",
+            },
             { text: "Accordion", link: "/docs/ui/patches/accordion" },
             { text: "Details", link: "/docs/ui/patches/details" },
             { text: "Dialog", link: "/docs/ui/patches/dialog" },
@@ -129,12 +141,18 @@ export const config = defineConfig({
             { text: "Figure", link: "/docs/ui/patches/figure" },
             { text: "Form Group", link: "/docs/ui/patches/form-group" },
             { text: "Heading", link: "/docs/ui/patches/heading" },
-            { text: "Horizontal Rule", link: "/docs/ui/patches/horizontal-rule" },
+            {
+              text: "Horizontal Rule",
+              link: "/docs/ui/patches/horizontal-rule",
+            },
             { text: "Icon", link: "/docs/ui/patches/icon" },
             { text: "Image", link: "/docs/ui/patches/image" },
             { text: "Input Checkbox", link: "/docs/ui/patches/input-checkbox" },
             { text: "Input Color", link: "/docs/ui/patches/input-color" },
-            { text: "Input Date Time", link: "/docs/ui/patches/input-date-time" },
+            {
+              text: "Input Date Time",
+              link: "/docs/ui/patches/input-date-time",
+            },
             { text: "Input File", link: "/docs/ui/patches/input-file" },
             { text: "Input Number", link: "/docs/ui/patches/input-number" },
             { text: "Input OTP", link: "/docs/ui/patches/input-otp" },
@@ -187,7 +205,10 @@ export const config = defineConfig({
             { text: "Toggle Group", link: "/docs/ui/patches/toggle-group" },
             { text: "Toolbar", link: "/docs/ui/patches/toolbar" },
             { text: "Tooltip", link: "/docs/ui/patches/tooltip" },
-            { text: "TransitionGroup", link: "/docs/ui/patches/transition-group" },
+            {
+              text: "TransitionGroup",
+              link: "/docs/ui/patches/transition-group",
+            },
             { text: "Typography", link: "/docs/ui/patches/typography" },
             { text: "Unordered List", link: "/docs/ui/patches/unordered-list" },
           ],
@@ -227,7 +248,10 @@ export const config = defineConfig({
         { text: "Domphy Adapter", link: "/docs/table/adapter" },
         { text: "Columns & Row Models", link: "/docs/table/columns" },
         { text: "Sorting & Filtering", link: "/docs/table/sorting-filtering" },
-        { text: "Pagination & Selection", link: "/docs/table/pagination-selection" },
+        {
+          text: "Pagination & Selection",
+          link: "/docs/table/pagination-selection",
+        },
         { text: "Advanced Features", link: "/docs/table/advanced" },
         { text: "API Reference", link: "/docs/table/api" },
       ],
@@ -277,7 +301,10 @@ export const config = defineConfig({
           text: "Example",
           items: [
             { text: "i18next", link: "/docs/integrations/i18next" },
-            { text: "TanStack Query", link: "/docs/integrations/tanstack-query" },
+            {
+              text: "TanStack Query",
+              link: "/docs/integrations/tanstack-query",
+            },
             { text: "Chart.js", link: "/docs/integrations/chartjs" },
             { text: "SortableJS", link: "/docs/integrations/sortablejs" },
             { text: "Zod", link: "/docs/integrations/zod" },
@@ -324,4 +351,4 @@ export const config = defineConfig({
       ],
     },
   },
-})
+});

@@ -136,7 +136,7 @@ export class ElementList {
           oldSet.has(at) &&
           !claimed.has(at)
         ) {
-              at.parent = this.owner as any;
+          at.parent = this.owner as any;
           at.patch(input as DomphyElement);
           claimed.add(at);
           continue;

@@ -1,13 +1,16 @@
-import type { SiteConfig } from "./types.js"
+import type { SiteConfig } from "./types.js";
 
-export type { SiteConfig }
+export type { SiteConfig };
 
-export type UserConfig = Omit<SiteConfig, "base" | "srcDir" | "outDir" | "head"> & {
-  base?: string
-  srcDir?: string
-  outDir?: string
-  head?: string[]
-}
+export type UserConfig = Omit<
+  SiteConfig,
+  "base" | "srcDir" | "outDir" | "head"
+> & {
+  base?: string;
+  srcDir?: string;
+  outDir?: string;
+  head?: string[];
+};
 
 export function defineConfig(config: UserConfig): SiteConfig {
   return {
@@ -17,5 +20,5 @@ export function defineConfig(config: UserConfig): SiteConfig {
     head: [],
     ...config,
     themeConfig: Object.assign({ nav: [], sidebar: {} }, config.themeConfig),
-  }
+  };
 }

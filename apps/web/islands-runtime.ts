@@ -8,8 +8,8 @@
 // then loads the bundled entry which calls `bootstrap(previewRegistry)`.
 
 import { type DomphyElement, ElementNode } from "@domphy/core";
-import { themeApply } from "@domphy/theme";
 import { mountSearch } from "@domphy/press";
+import { themeApply } from "@domphy/theme";
 
 // The editor and preview Containers are dynamically imported so a page with only
 // the (lightweight) search island does not pull the CodeMirror/transform editor

@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { DomphyElement } from "@domphy/core";
-import { beforeAll, describe, expect, it } from "vitest";
-import { createHighlighter, renderDoc } from "@domphy/press";
 import type { RenderDocOptions } from "@domphy/press";
+import { createHighlighter, renderDoc } from "@domphy/press";
+import { beforeAll, describe, expect, it } from "vitest";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../../..");

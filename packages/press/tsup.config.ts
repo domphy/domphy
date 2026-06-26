@@ -1,4 +1,4 @@
-import { defineConfig } from "tsup"
+import { defineConfig } from "tsup";
 
 export default defineConfig([
   {
@@ -37,4 +37,4 @@ export default defineConfig([
     minify: true,
     target: "es2020",
   },
-])
+]);

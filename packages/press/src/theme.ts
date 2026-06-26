@@ -8,23 +8,25 @@
 //   4. Markdown-rendered HTML content (code blocks, custom blocks, etc.)
 //   5. Shiki dark-mode override (data-attr on html, targets third-party spans)
 
-import { themeColor, themeSpacing } from "@domphy/theme"
+import { themeColor, themeSpacing } from "@domphy/theme";
 
-const tc = (tone: string, color?: string): string => themeColor(null, tone as any, color)
-const ts = (n: number): string => themeSpacing(n)
+const tc = (tone: string, color?: string): string =>
+  themeColor(null, tone as any, color);
+const ts = (n: number): string => themeSpacing(n);
 
-const bg        = tc("inherit")
-const bgSoft    = tc("shift-1")
-const bgMute    = tc("shift-2")
-const border    = tc("shift-3")
-const textSoft  = tc("shift-6")
-const text      = tc("shift-9")
-const textStrong = tc("shift-11")
-const brand     = tc("shift-9", "primary")
+const bg = tc("inherit");
+const bgSoft = tc("shift-1");
+const bgMute = tc("shift-2");
+const border = tc("shift-3");
+const textSoft = tc("shift-6");
+const text = tc("shift-9");
+const textStrong = tc("shift-11");
+const brand = tc("shift-9", "primary");
 
-const headerH   = ts(14)
+const headerH = ts(14);
 
-export function pressCSS(): string { return `
+export function pressCSS(): string {
+  return `
 /* ------------------------------------------------------------------ reset */
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:calc(${headerH} + ${ts(4)})}
@@ -66,12 +68,12 @@ a:hover{text-decoration:underline}
 .code-block code{font-family:inherit;background:none;padding:0;font-size:inherit}
 .code-block .line{display:inline-block;width:100%}
 .code-block .line.highlighted{background:color-mix(in srgb,${brand} 10%,transparent)}
-.code-block .line.diff.add{background:color-mix(in srgb,${tc("shift-7","success")} 12%,transparent)}
-.code-block .line.diff.add::before{content:"+ ";color:${tc("shift-7","success")}}
-.code-block .line.diff.remove{background:color-mix(in srgb,${tc("shift-9","danger")} 10%,transparent);opacity:.7}
-.code-block .line.diff.remove::before{content:"- ";color:${tc("shift-9","danger")}}
-.code-block .line.highlighted.error{background:color-mix(in srgb,${tc("shift-9","error")} 10%,transparent)}
-.code-block .line.highlighted.warning{background:color-mix(in srgb,${tc("shift-7","warning")} 10%,transparent)}
+.code-block .line.diff.add{background:color-mix(in srgb,${tc("shift-7", "success")} 12%,transparent)}
+.code-block .line.diff.add::before{content:"+ ";color:${tc("shift-7", "success")}}
+.code-block .line.diff.remove{background:color-mix(in srgb,${tc("shift-9", "danger")} 10%,transparent);opacity:.7}
+.code-block .line.diff.remove::before{content:"- ";color:${tc("shift-9", "danger")}}
+.code-block .line.highlighted.error{background:color-mix(in srgb,${tc("shift-9", "error")} 10%,transparent)}
+.code-block .line.highlighted.warning{background:color-mix(in srgb,${tc("shift-7", "warning")} 10%,transparent)}
 .code-block pre.has-focus .line:not(.focus){opacity:.4;filter:blur(.4px);transition:opacity .2s,filter .2s}
 .code-block pre.has-focus:hover .line{opacity:1;filter:none}
 .code-block .line-number{display:inline-block;min-width:2.5em;margin-right:1em;color:${textSoft};text-align:right;user-select:none;font-size:.9em}
@@ -86,8 +88,8 @@ a:hover{text-decoration:underline}
 .code-group .tabs label{padding:${ts(1)} ${ts(3)};font-size:13px;font-weight:500;color:${textSoft};border-radius:${ts(1.25)};cursor:pointer}
 .code-group .blocks>.code-block{display:none;margin:0;border:none;border-radius:0}
 .code-group .blocks>.code-block pre{border-radius:0}
-${Array.from({length: 8}, (_, i) => `.code-group>input:nth-of-type(${i+1}):checked~.blocks>.code-block:nth-child(${i+1})`).join(",\n")}{display:block}
-${Array.from({length: 8}, (_, i) => `.code-group>input:nth-of-type(${i+1}):checked~.tabs>label:nth-child(${i+1})`).join(",\n")}{color:${brand};background:${bgMute}}
+${Array.from({ length: 8 }, (_, i) => `.code-group>input:nth-of-type(${i + 1}):checked~.blocks>.code-block:nth-child(${i + 1})`).join(",\n")}{display:block}
+${Array.from({ length: 8 }, (_, i) => `.code-group>input:nth-of-type(${i + 1}):checked~.tabs>label:nth-child(${i + 1})`).join(",\n")}{color:${brand};background:${bgMute}}
 
 /* ---------------------------------------------------------- card containers */
 .custom-block.card{background:${bgSoft};border:1px solid ${border};border-radius:${ts(3)};padding:${ts(5)} ${ts(6)};margin:${ts(3)} 0}
@@ -104,9 +106,9 @@ a.custom-block.link-card .link-card-title{font-size:16px;font-weight:600;color:$
 .custom-block-title{font-weight:700;margin:0 0 ${ts(1)} !important;font-size:13px}
 .custom-block.tip,.custom-block.success{background:color-mix(in srgb,${brand} 8%,${bg});border-color:color-mix(in srgb,${brand} 28%,transparent)}
 .custom-block.info,.custom-block.note,.custom-block.abstract{background:${bgSoft};border-color:${border}}
-.custom-block.warning,.custom-block.question{background:color-mix(in srgb,${tc("shift-6","warning")} 10%,${bg});border-color:${tc("shift-6","warning")}}
-.custom-block.danger,.custom-block.failure,.custom-block.bug{background:color-mix(in srgb,${tc("shift-7","danger")} 10%,${bg});border-color:${tc("shift-7","danger")}}
-.custom-block.example{background:color-mix(in srgb,${tc("shift-7","secondary")} 10%,${bg});border-color:${tc("shift-7","secondary")}}
+.custom-block.warning,.custom-block.question{background:color-mix(in srgb,${tc("shift-6", "warning")} 10%,${bg});border-color:${tc("shift-6", "warning")}}
+.custom-block.danger,.custom-block.failure,.custom-block.bug{background:color-mix(in srgb,${tc("shift-7", "danger")} 10%,${bg});border-color:${tc("shift-7", "danger")}}
+.custom-block.example{background:color-mix(in srgb,${tc("shift-7", "secondary")} 10%,${bg});border-color:${tc("shift-7", "secondary")}}
 .custom-block.quote{background:${bgSoft};border-color:${border};border-left-width:4px;border-radius:0 ${ts(2)} ${ts(2)} 0}
 details.custom-block summary{cursor:pointer;font-weight:600}
 
@@ -126,4 +128,5 @@ details.custom-block summary{cursor:pointer;font-weight:600}
 
 /* ---------------------------------------------------------------- shiki dark */
 html[data-theme="dark"] .shiki,html[data-theme="dark"] .shiki span{color:var(--shiki-dark,inherit) !important}
-` }
+`;
+}

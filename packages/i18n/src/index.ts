@@ -17,85 +17,91 @@
 //     defaultLocale: 'en',
 //   })
 
-import { type Listener, toState } from "@domphy/core"
-import { createInstance, type i18n } from "i18next"
+import { type Listener, toState } from "@domphy/core";
+import { createInstance, type i18n } from "i18next";
 
-export type { i18n }
+export type { i18n };
 
 export interface DetectOptions {
   /** localStorage key to read persisted locale from. */
-  storageKey?: string
+  storageKey?: string;
   /** Whether to try reading locale from the first URL path segment (e.g. /vi/...). */
-  pathSegment?: boolean
+  pathSegment?: boolean;
 }
 
 export interface CreateI18nOptions<TLocale extends string> {
   /** Unique key under globalThis — must differ per app to avoid cross-app collision. */
-  globalKey: string
+  globalKey: string;
   /** i18next resource namespace. */
-  namespace: string
+  namespace: string;
   /** Translation objects keyed by locale code. */
-  locales: Record<TLocale, Record<string, unknown>>
+  locales: Record<TLocale, Record<string, unknown>>;
   /** Locale used before initI18n / detectLocale is called. */
-  defaultLocale: TLocale
+  defaultLocale: TLocale;
 }
 
 export interface I18nInstance<TKey extends string, TLocale extends string> {
   /** Static call: t("key") — no reactivity. */
-  t(key: TKey, options?: Record<string, unknown>): string
+  t(key: TKey, options?: Record<string, unknown>): string;
   /** Reactive call: t(listener, "key") — Domphy re-renders on setLocale(). */
-  t(listener: Listener, key: TKey, options?: Record<string, unknown>): string
+  t(listener: Listener, key: TKey, options?: Record<string, unknown>): string;
   /** Reactive locale state — subscribe in Domphy render functions. */
-  locale: ReturnType<typeof toState<TLocale>>
-  initI18n(locale?: TLocale): Promise<void>
-  setLocale(locale: TLocale): Promise<void>
-  getLocale(): TLocale
-  detectLocale(options?: DetectOptions): TLocale
+  locale: ReturnType<typeof toState<TLocale>>;
+  initI18n(locale?: TLocale): Promise<void>;
+  setLocale(locale: TLocale): Promise<void>;
+  getLocale(): TLocale;
+  detectLocale(options?: DetectOptions): TLocale;
 }
 
 interface Store<TLocale extends string> {
-  instance: i18n
-  localeState: ReturnType<typeof toState<TLocale>>
-  initialized: boolean
+  instance: i18n;
+  localeState: ReturnType<typeof toState<TLocale>>;
+  initialized: boolean;
 }
 
 function getOrCreateStore<TLocale extends string>(
   globalKey: string,
   defaultLocale: TLocale,
 ): Store<TLocale> {
-  const g = globalThis as unknown as Record<string, Store<TLocale> | undefined>
-  let store = g[globalKey]
+  const g = globalThis as unknown as Record<string, Store<TLocale> | undefined>;
+  let store = g[globalKey];
   if (!store) {
     store = {
       instance: createInstance(),
       localeState: toState<TLocale>(defaultLocale),
       initialized: false,
-    }
-    g[globalKey] = store
+    };
+    g[globalKey] = store;
   }
-  return store
+  return store;
 }
 
-export function createI18n<TLocale extends string, TMessages extends Record<string, unknown> = Record<string, unknown>>(
+export function createI18n<
+  TLocale extends string,
+  TMessages extends Record<string, unknown> = Record<string, unknown>,
+>(
   options: CreateI18nOptions<TLocale>,
 ): I18nInstance<Extract<keyof FlattenKeys<TMessages>, string>, TLocale> {
-  const { globalKey, namespace, locales, defaultLocale } = options
+  const { globalKey, namespace, locales, defaultLocale } = options;
 
   const resources = Object.fromEntries(
-    Object.entries(locales).map(([locale, messages]) => [locale, { [namespace]: messages }]),
-  ) as Record<TLocale, Record<string, Record<string, unknown>>>
+    Object.entries(locales).map(([locale, messages]) => [
+      locale,
+      { [namespace]: messages },
+    ]),
+  ) as Record<TLocale, Record<string, Record<string, unknown>>>;
 
   function getStore() {
-    return getOrCreateStore<TLocale>(globalKey, defaultLocale)
+    return getOrCreateStore<TLocale>(globalKey, defaultLocale);
   }
 
   async function initI18n(locale: TLocale = defaultLocale): Promise<void> {
-    const store = getStore()
+    const store = getStore();
     if (store.initialized) {
-      await setLocale(locale)
-      return
+      await setLocale(locale);
+      return;
     }
-    store.initialized = true
+    store.initialized = true;
     await store.instance.init({
       lng: locale,
       fallbackLng: defaultLocale,
@@ -104,41 +110,45 @@ export function createI18n<TLocale extends string, TMessages extends Record<stri
       interpolation: { escapeValue: false },
       resources,
       initImmediate: false,
-    })
-    store.localeState.set(locale)
+    });
+    store.localeState.set(locale);
   }
 
   async function setLocale(locale: TLocale): Promise<void> {
-    const store = getStore()
+    const store = getStore();
     if (!store.initialized) {
-      await initI18n(locale)
-      return
+      await initI18n(locale);
+      return;
     }
-    if (store.instance.language === locale) return
-    await store.instance.changeLanguage(locale)
-    store.localeState.set(locale)
+    if (store.instance.language === locale) return;
+    await store.instance.changeLanguage(locale);
+    store.localeState.set(locale);
   }
 
   function getLocale(): TLocale {
-    const lang = getStore().instance.language
-    return (lang in locales ? lang : defaultLocale) as TLocale
+    const lang = getStore().instance.language;
+    return (lang in locales ? lang : defaultLocale) as TLocale;
   }
 
   function detectLocale(opts: DetectOptions = {}): TLocale {
-    const { storageKey, pathSegment = true } = opts
+    const { storageKey, pathSegment = true } = opts;
     if (pathSegment) {
       try {
-        const seg = location.pathname.split("/")[1]
-        if (seg && seg in locales) return seg as TLocale
-      } catch { /* SSR */ }
+        const seg = location.pathname.split("/")[1];
+        if (seg && seg in locales) return seg as TLocale;
+      } catch {
+        /* SSR */
+      }
     }
     if (storageKey) {
       try {
-        const stored = localStorage.getItem(storageKey)
-        if (stored && stored in locales) return stored as TLocale
-      } catch { /* SSR / private mode */ }
+        const stored = localStorage.getItem(storageKey);
+        if (stored && stored in locales) return stored as TLocale;
+      } catch {
+        /* SSR / private mode */
+      }
     }
-    return defaultLocale
+    return defaultLocale;
   }
 
   function t(
@@ -146,22 +156,27 @@ export function createI18n<TLocale extends string, TMessages extends Record<stri
     b?: Extract<keyof FlattenKeys<TMessages>, string> | Record<string, unknown>,
     c?: Record<string, unknown>,
   ): string {
-    const store = getStore()
+    const store = getStore();
     if (typeof a === "function") {
-      store.localeState.get(a as Listener)
-      return store.instance.t(b as string, c) as string
+      store.localeState.get(a as Listener);
+      return store.instance.t(b as string, c) as string;
     }
-    return store.instance.t(a as string, b as Record<string, unknown> | undefined) as string
+    return store.instance.t(
+      a as string,
+      b as Record<string, unknown> | undefined,
+    ) as string;
   }
 
   return {
     t,
-    get locale() { return getStore().localeState },
+    get locale() {
+      return getStore().localeState;
+    },
     initI18n,
     setLocale,
     getLocale,
     detectLocale,
-  } as I18nInstance<Extract<keyof FlattenKeys<TMessages>, string>, TLocale>
+  } as I18nInstance<Extract<keyof FlattenKeys<TMessages>, string>, TLocale>;
 }
 
 // Utility: flatten nested object keys to dot-notation string literals.
@@ -169,5 +184,5 @@ export function createI18n<TLocale extends string, TMessages extends Record<stri
 type FlattenKeys<T, Prefix extends string = ""> = {
   [K in Extract<keyof T, string>]: T[K] extends Record<string, unknown>
     ? FlattenKeys<T[K], `${Prefix}${K}.`>
-    : `${Prefix}${K}`
-}[Extract<keyof T, string>]
+    : `${Prefix}${K}`;
+}[Extract<keyof T, string>];

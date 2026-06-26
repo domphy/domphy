@@ -166,9 +166,9 @@ Reactive i18next wrapper for Domphy. `createI18n<TLocale, TMessages>(options)` r
 
 ## Press (`@domphy/press`)
 
-VitePress-baseline static doc site framework. `defineConfig(SiteConfig)` → build with `buildSite` / serve with `startServer` / `startDevServer`. Nested config: `themeConfig.{ nav, sidebar, search, socialLinks, editLink, mermaid, announcementBar }`. Renders Markdown via `@domphy/markdown` + shiki (fences → HTML strings via `press_fences`). CSS-in-JS: `pressCSS()` + `themeCSS()` — no `.css` file. Exports: `renderDoc`, `discoverPages`, `outFileForRoute`, `sidebarForRoute`, `prevNextForRoute`, `flattenSidebar`, `buildSearchIndex`, `queryIndex`, `searchWidget`, `mountSearch`, `createHighlighter`, `renderFence`, `pageShell`, `homeShell`.
+VitePress-baseline static doc site framework. `defineConfig(SiteConfig)` → build with `buildSite` / serve with `startServer` / `startDevServer`. Nested config: `themeConfig.{ nav, sidebar, search, socialLinks, editLink, mermaid, announcementBar, tocTitle, slots }`. Layout CSS via `generateCSS()` from inline `style:{}` on elements — no class-targeted CSS strings for layout. Override any layout region via `themeConfig.slots`. Exports: `renderDoc`, `discoverPages`, `outFileForRoute`, `sidebarForRoute`, `prevNextForRoute`, `flattenSidebar`, `buildSearchIndex`, `queryIndex`, `searchWidget`, `mountSearch`, `createHighlighter`, `renderFence`, `pageShell`, `homeShell`, types: `LayoutSlots`, `LayoutContext`, `DomphyElement`.
 
-- [Overview](https://domphy.com/docs/press/) · [Config](https://domphy.com/docs/press/config) · [Markdown](https://domphy.com/docs/press/markdown) · [Deploy](https://domphy.com/docs/press/deploy)
+- [Overview](https://domphy.com/docs/press/) · [Config](https://domphy.com/docs/press/config) · [Markdown](https://domphy.com/docs/press/markdown) · [Customization](https://domphy.com/docs/press/customization) · [Deploy](https://domphy.com/docs/press/deploy)
 
 ## Markdown (`@domphy/markdown`)
 

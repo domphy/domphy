@@ -36,7 +36,7 @@ export default defineConfig({ /* SiteConfig */ })
 |---|---|---|
 | `nav` | `NavItem[]` | Top navigation bar |
 | `sidebar` | `Record<string, SidebarItem[]>` | Sidebar keyed by route prefix — longest match wins |
-| `logo` | `string?` | Path to logo image |
+| `logo` | `string \| { light: string; dark: string }?` | Logo image — single URL or separate light/dark variants |
 | `search` | `false \| { placeholder?, limit? }?` | Built-in local search. Pass `false` to disable |
 | `footerMessage` | `string?` | Footer content |
 | `socialLinks` | `SocialLink[]?` | GitHub, Twitter, Discord, etc. icon links in header |
@@ -71,7 +71,7 @@ export default defineConfig({ /* SiteConfig */ })
 ## SocialLink
 
 ```ts
-{ icon: "github" | "twitter" | "discord" | "youtube" | "npm" | string; link: string; ariaLabel?: string }
+{ icon: "github" | "twitter" | "discord" | "youtube" | "linkedin" | "mastodon" | "npm" | "bluesky" | string; link: string; ariaLabel?: string }
 ```
 
 For custom icons, pass a URL or SVG data URI as `icon`.

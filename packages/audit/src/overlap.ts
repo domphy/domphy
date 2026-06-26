@@ -8,8 +8,16 @@ export async function detectOverlaps(page: AuditPage): Promise<AuditIssue[]> {
       .filter(({ rect }) => rect.width > 0 && rect.height > 0);
 
     const result: {
-      a: { tag: string; cls: string; rect: { x: number; y: number; width: number; height: number } };
-      b: { tag: string; cls: string; rect: { x: number; y: number; width: number; height: number } };
+      a: {
+        tag: string;
+        cls: string;
+        rect: { x: number; y: number; width: number; height: number };
+      };
+      b: {
+        tag: string;
+        cls: string;
+        rect: { x: number; y: number; width: number; height: number };
+      };
       ix: { x: number; y: number; width: number; height: number };
     }[] = [];
 
@@ -46,7 +54,7 @@ export async function detectOverlaps(page: AuditPage): Promise<AuditIssue[]> {
 
   return pairs.map(({ a, b, ix }) => ({
     type: "overlap" as const,
-    message: `<${a.tag}${a.cls ? "." + a.cls : ""}> overlaps <${b.tag}${b.cls ? "." + b.cls : ""}> by ${ix.width.toFixed(0)}×${ix.height.toFixed(0)}px`,
+    message: `<${a.tag}${a.cls ? `.${a.cls}` : ""}> overlaps <${b.tag}${b.cls ? `.${b.cls}` : ""}> by ${ix.width.toFixed(0)}×${ix.height.toFixed(0)}px`,
     rect: ix,
   }));
 }
