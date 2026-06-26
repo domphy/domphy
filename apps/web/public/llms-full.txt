@@ -1906,6 +1906,295 @@ Best for nodes outside the app root such as `<head>` or third-party containers. 
 | Reactive children | Lists from data | Created on demand |
 | DOM API in `_onMount` | Outside root — `<head>`, third-party | Unmanaged |
 
+### patterns.md
+
+---
+title: "Common Patterns"
+description: "Reusable patterns: state machines, reducers, compound components, factory functions, and code organization."
+---
+
+# Common Patterns
+
+## State machine
+
+Manage complex multi-state UI (wizard, upload flow, auth) with an explicit state machine:
+
+```ts
+import { toState } from "@domphy/core"
+
+type UploadState =
+  | { status: "idle" }
+  | { status: "uploading"; progress: number }
+  | { status: "success"; url: string }
+  | { status: "error"; message: string }
+
+const upload = toState<UploadState>({ status: "idle" })
+
+async function startUpload(file: File) {
+  upload.set({ status: "uploading", progress: 0 })
+  try {
+    const url = await uploadFile(file, (progress) => {
+      upload.set({ status: "uploading", progress })
+    })
+    upload.set({ status: "success", url })
+  } catch (error) {
+    upload.set({ status: "error", message: (error as Error).message })
+  }
+}
+
+const UploadUI = {
+  div: (l) => {
+    const state = upload.get(l)
+    switch (state.status) {
+      case "idle": return { button: "Upload file", onClick: () => fileInput.click() }
+      case "uploading": return { div: `Uploading… ${state.progress}%` }
+      case "success": return { a: "View file", href: state.url }
+      case "error": return { div: `Error: ${state.message}` }
+    }
+  },
+}
+```
+
+## Reducer pattern
+
+For complex state transitions, centralize updates in a reducer:
+
+```ts
+import { toState } from "@domphy/core"
+
+type CartAction =
+  | { type: "ADD_ITEM"; item: CartItem }
+  | { type: "REMOVE_ITEM"; id: string }
+  | { type: "UPDATE_QTY"; id: string; qty: number }
+  | { type: "CLEAR" }
+
+interface CartState { items: CartItem[]; total: number }
+
+function cartReducer(state: CartState, action: CartAction): CartState {
+  switch (action.type) {
+    case "ADD_ITEM":
+      return { ...state, items: [...state.items, action.item] }
+    case "REMOVE_ITEM":
+      return { ...state, items: state.items.filter(i => i.id !== action.id) }
+    case "UPDATE_QTY":
+      return {
+        ...state,
+        items: state.items.map(i => i.id === action.id ? { ...i, qty: action.qty } : i),
+      }
+    case "CLEAR":
+      return { items: [], total: 0 }
+  }
+}
+
+const cart = toState<CartState>({ items: [], total: 0 })
+
+function dispatch(action: CartAction) {
+  cart.set(current => cartReducer(current, action))
+}
+
+// Usage
+dispatch({ type: "ADD_ITEM", item: { id: "1", name: "Widget", qty: 1, price: 10 } })
+dispatch({ type: "UPDATE_QTY", id: "1", qty: 3 })
+```
+
+## Component factory pattern
+
+Create parameterized components (like React's Higher-Order Components) as plain functions:
+
+```ts
+import { themeColor } from "@domphy/theme"
+
+// Factory that creates a styled badge with a given variant
+function badge(variant: "success" | "error" | "warning" | "info") {
+  const colorMap = {
+    success: "success",
+    error: "error",
+    warning: "warning",
+    info: "info",
+  } as const
+
+  return function Badge(text: string) {
+    return {
+      span: text,
+      style: {
+        background: themeColor(colorMap[variant], 2),
+        color: themeColor(colorMap[variant], 10),
+        padding: "2px 6px",
+        borderRadius: "4px",
+        fontSize: "0.75rem",
+      },
+    }
+  }
+}
+
+const SuccessBadge = badge("success")
+const ErrorBadge = badge("error")
+
+// Usage
+{ div: [SuccessBadge("Active"), ErrorBadge("Failed")] }
+```
+
+## Compound component pattern
+
+Build components that share state without prop-drilling:
+
+```ts
+import { toState } from "@domphy/core"
+
+function createAccordion() {
+  const openItems = toState<Set<string>>(new Set())
+
+  function toggleItem(id: string) {
+    openItems.set(current => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function Item(id: string, header: string, content: DomphyElement) {
+    return {
+      div: [
+        {
+          button: header,
+          onClick: () => toggleItem(id),
+          "aria-expanded": (l) => String(openItems.get(l).has(id)),
+        },
+        {
+          div: content,
+          hidden: (l) => !openItems.get(l).has(id),
+        },
+      ],
+    }
+  }
+
+  return { Item }
+}
+
+const { Item } = createAccordion()
+
+const FAQ = {
+  div: [
+    Item("q1", "What is Domphy?", { p: "UI as plain JS objects." }),
+    Item("q2", "Does it use JSX?", { p: "No JSX — plain objects only." }),
+    Item("q3", "Does it have a virtual DOM?", { p: "No virtual DOM." }),
+  ],
+}
+```
+
+## List with key tracking
+
+When list items change (add/remove/reorder), use `_key` for correct reconciliation:
+
+```ts
+import { toState } from "@domphy/core"
+
+interface Task { id: string; text: string; done: boolean }
+
+const tasks = toState<Task[]>([
+  { id: "t1", text: "Write tests", done: false },
+  { id: "t2", text: "Deploy", done: true },
+])
+
+const TaskList = {
+  ul: (l) => tasks.get(l).map(task => ({
+    li: task.text,
+    _key: task.id,   // stable key — tells reconciler to MOVE this item, not re-create it
+    class: task.done ? "done" : "",
+  })),
+}
+```
+
+Without `_key`, reordering a list destroys and recreates all DOM nodes. With `_key`, Domphy moves the existing nodes.
+
+## Async data loading pattern
+
+```ts
+import { toState, computed } from "@domphy/core"
+
+type AsyncState<T> =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; data: T }
+  | { status: "error"; error: Error }
+
+function createAsyncState<T>() {
+  const state = toState<AsyncState<T>>({ status: "idle" })
+
+  async function load(fn: () => Promise<T>) {
+    state.set({ status: "loading" })
+    try {
+      const data = await fn()
+      state.set({ status: "success", data })
+    } catch (error) {
+      state.set({ status: "error", error: error as Error })
+    }
+  }
+
+  const data = computed((l): T | undefined => {
+    const s = state.get(l)
+    return s.status === "success" ? s.data : undefined
+  })
+
+  const isLoading = computed((l) => state.get(l).status === "loading")
+  const error = computed((l) => {
+    const s = state.get(l)
+    return s.status === "error" ? s.error : null
+  })
+
+  return { state, load, data, isLoading, error }
+}
+```
+
+## Module structure
+
+Organize a feature module:
+
+```
+features/
+  posts/
+    state.ts        ← toState, RecordState, computed
+    api.ts          ← fetch functions (no Domphy imports)
+    components.ts   ← DomphyElement definitions
+    index.ts        ← re-exports
+```
+
+```ts
+// features/posts/state.ts
+import { toState, computed } from "@domphy/core"
+import type { Post } from "./api"
+
+export const posts = toState<Post[]>([])
+export const selectedId = toState<string | null>(null)
+export const selectedPost = computed((l) =>
+  posts.get(l).find(p => p.id === selectedId.get(l)) ?? null
+)
+```
+
+## Debounced state
+
+Rate-limit expensive operations triggered by rapid state changes:
+
+```ts
+import { toState, effect } from "@domphy/core"
+
+const query = toState("")
+const results = toState<SearchResult[]>([])
+
+effect(() => {
+  const text = query.get()
+  if (!text) { results.set([]); return }
+
+  const timer = setTimeout(async () => {
+    const data = await search(text)
+    results.set(data)
+  }, 300)
+
+  return () => clearTimeout(timer)   // cleanup cancels previous timer
+})
+```
+
 ### performance.md
 
 ---
@@ -3693,6 +3982,184 @@ For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
 | `ElementSize` | Valid size descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–7). |
 | `ElementDensity` | Valid density descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–4). |
 
+### dark-mode.md
+
+---
+title: "Dark Mode"
+description: "Implement light/dark mode switching, system preference detection, persistence, and SSR-safe theming."
+---
+
+# Dark Mode
+
+## How Domphy handles dark mode
+
+Domphy uses the `data-theme` attribute on `<html>` (or any ancestor element) to switch between light and dark. All CSS variables are scoped to `[data-theme]` — no separate dark stylesheet is needed.
+
+```html
+<!-- Light mode -->
+<html data-theme="light">
+
+<!-- Dark mode -->
+<html data-theme="dark">
+```
+
+## Reading the theme
+
+```ts
+import { toState } from "@domphy/core"
+
+const theme = toState<"light" | "dark">(
+  document.documentElement.getAttribute("data-theme") as "light" | "dark" ?? "light"
+)
+```
+
+## Switching themes
+
+```ts
+function setTheme(t: "light" | "dark") {
+  document.documentElement.setAttribute("data-theme", t)
+  localStorage.setItem("dp-theme", t)
+  theme.set(t)
+}
+
+const ThemeToggle = {
+  button: (l) => theme.get(l) === "dark" ? "☀ Light" : "◑ Dark",
+  onClick: () => setTheme(theme.get() === "dark" ? "light" : "dark"),
+}
+```
+
+## System preference detection
+
+Follow the OS preference on first visit, then remember the user's choice:
+
+```ts
+function initTheme(): "light" | "dark" {
+  const saved = localStorage.getItem("dp-theme") as "light" | "dark" | null
+  if (saved) return saved
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+}
+
+const currentTheme = initTheme()
+document.documentElement.setAttribute("data-theme", currentTheme)
+const theme = toState<"light" | "dark">(currentTheme)
+
+// Update if the system preference changes and no user choice is saved
+const mql = window.matchMedia("(prefers-color-scheme: dark)")
+mql.addEventListener("change", (e) => {
+  if (!localStorage.getItem("dp-theme")) {
+    setTheme(e.matches ? "dark" : "light")
+  }
+})
+```
+
+## SSR-safe initialization
+
+Prevent flash-of-wrong-theme (FOWT) by injecting a blocking script in the HTML `<head>`:
+
+```html
+<head>
+  <!-- Must run synchronously before any rendering — no defer/async -->
+  <script>
+    (function() {
+      const saved = localStorage.getItem("dp-theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.setAttribute(
+        "data-theme",
+        saved ?? (prefersDark ? "dark" : "light")
+      );
+    })();
+  </script>
+</head>
+```
+
+`@domphy/press` (and `apps/web/html-template.ts`) injects this script automatically as `RUNTIME_SCRIPT`.
+
+## CSS-only dark mode (no JS)
+
+If you only need system preference (no user toggle), use media query only:
+
+```css
+/* Light is default */
+:root[data-theme="light"], :root:not([data-theme]) {
+  --neutral-0: #ffffff;
+  --neutral-9: #111111;
+}
+
+/* Dark mode: both explicit and system preference */
+:root[data-theme="dark"],
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --neutral-0: #111111;
+    --neutral-9: #ffffff;
+  }
+}
+```
+
+## Per-component dark mode
+
+Apply dark mode to a specific component (e.g. a code editor with forced dark background):
+
+```ts
+import { themeColor } from "@domphy/theme"
+
+const CodeEditor = {
+  div: EditorContent,
+  "data-theme": "dark",   // force dark within this subtree
+  style: {
+    background: themeColor("neutral", 0),   // resolves to dark background
+    color: themeColor("neutral", 12),       // resolves to light text
+  },
+}
+```
+
+## Color-scheme property
+
+Set `color-scheme` alongside `data-theme` so the browser renders native elements (scrollbars, inputs) correctly:
+
+```ts
+function setTheme(t: "light" | "dark") {
+  document.documentElement.setAttribute("data-theme", t)
+  document.documentElement.style.colorScheme = t   // native element theming
+  localStorage.setItem("dp-theme", t)
+}
+```
+
+Or in CSS:
+
+```css
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+```
+
+## Contrast checking
+
+Use `@domphy/audit`'s `checkContrast` to verify all text elements have sufficient contrast in both themes:
+
+```ts
+import { checkContrast } from "@domphy/audit"
+
+// Run in CI for both themes
+document.documentElement.setAttribute("data-theme", "light")
+const lightResults = await checkContrast(page)
+
+document.documentElement.setAttribute("data-theme", "dark")
+const darkResults = await checkContrast(page)
+
+const failures = [...lightResults, ...darkResults].filter(r => !r.ok)
+```
+
+## TypeScript: typed theme state
+
+```ts
+type Theme = "light" | "dark"
+
+const theme = toState<Theme>("light")
+
+function toggleTheme() {
+  theme.set((t): Theme => t === "light" ? "dark" : "light")
+}
+```
+
 ### index.md
 
 # Theme
@@ -4662,6 +5129,172 @@ At `w = 1`, `d = 1.5`:
 That is a `5.56%` deviation from the sizing model.
 
 For the underlying tone model, see [Tone](./tone).
+
+### spacing.md
+
+---
+title: "Spacing System"
+description: "The themeSpacing scale, density multiplier, layout vs component spacing, and common patterns."
+---
+
+# Spacing System
+
+## `themeSpacing(n)` — the base scale
+
+`themeSpacing(n)` returns `n * 0.25rem` (n/4 em at 16px root = 4px steps):
+
+```ts
+import { themeSpacing } from "@domphy/theme"
+
+themeSpacing(1)   // "0.25rem" = 4px
+themeSpacing(2)   // "0.5rem"  = 8px
+themeSpacing(3)   // "0.75rem" = 12px
+themeSpacing(4)   // "1rem"    = 16px
+themeSpacing(5)   // "1.25rem" = 20px
+themeSpacing(6)   // "1.5rem"  = 24px
+themeSpacing(8)   // "2rem"    = 32px
+themeSpacing(12)  // "3rem"    = 48px
+themeSpacing(16)  // "4rem"    = 64px
+```
+
+Never hardcode spacing literals (`"16px"`, `"1.5rem"`) — `@domphy/doctor` flags those as `raw-spacing-value`.
+
+## Density-aware spacing
+
+For **bounded controls** (buttons, inputs, badges), multiply by `themeDensity(l)` so the component scales with the user's density preference:
+
+```ts
+import { themeSpacing, themeDensity } from "@domphy/theme"
+
+const Button = {
+  button: "Click me",
+  style: {
+    paddingBlock:  (l) => themeSpacing(themeDensity(l) * 1),  // 4px × density
+    paddingInline: (l) => themeSpacing(themeDensity(l) * 3),  // 12px × density
+    borderRadius:  (l) => themeSpacing(themeDensity(l) * 1),
+  },
+}
+```
+
+**Density scale** (`dataDensity`):
+
+| Density | Multiplier | Typical use |
+|---------|-----------|-------------|
+| `decrease-4` | 0.75 | Ultra-compact (data grids) |
+| `decrease-2` | 1.0 | Compact |
+| `inherit` / `decrease-1` | 1.25 | Default |
+| `increase-1` | 1.5 | Comfortable |
+| `increase-2` | 2.0 | Touch targets |
+| `increase-4` | 2.5 | Accessible large |
+
+```ts
+const CompactTable = {
+  div: TableContent,
+  dataDensity: "decrease-2",   // all descendants inherit compact density
+}
+```
+
+## Layout vs component spacing
+
+| Use | Rule |
+|-----|------|
+| **Component internal padding** (button, input, card) | `themeSpacing(density * n)` |
+| **Gap between components in a layout** | `themeSpacing(n)` (no density) |
+| **Section/page padding** | `themeSpacing(n)` (no density) |
+| **Between tightly-related elements** | `themeSpacing(1–2)` |
+| **Between loosely-related sections** | `themeSpacing(4–8)` |
+
+The reason: density should affect UI chrome (button size, input height) but NOT the page's structural rhythm. If density affected both, a "compact" page would have a broken layout grid.
+
+## Common spacing values
+
+| Spacing | Value | Use |
+|---------|-------|-----|
+| `themeSpacing(0.5)` | 2px | Hairline gap between tightly stacked items |
+| `themeSpacing(1)` | 4px | Icon-to-label gap, tight list gap |
+| `themeSpacing(2)` | 8px | Internal button padding, small component gap |
+| `themeSpacing(3)` | 12px | Medium gap, form label-to-input |
+| `themeSpacing(4)` | 16px | Default content padding, card padding |
+| `themeSpacing(6)` | 24px | Section padding, between cards |
+| `themeSpacing(8)` | 32px | Between sections |
+| `themeSpacing(12)` | 48px | Large section breaks |
+
+## Using spacing in grid/flex layouts
+
+```ts
+const CardGrid = {
+  div: (l) => cards.get(l).map((card) => ({ div: card.title, _key: card.id })),
+  style: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+    gap: themeSpacing(4),   // 16px gap between cards
+    padding: themeSpacing(6),   // 24px page padding
+  },
+}
+```
+
+## Padding shorthand
+
+```ts
+// All sides
+padding: themeSpacing(4)
+
+// Block and inline separately
+paddingBlock: themeSpacing(2),
+paddingInline: themeSpacing(4),
+
+// Individual sides
+paddingTop: themeSpacing(2),
+paddingRight: themeSpacing(4),
+paddingBottom: themeSpacing(2),
+paddingLeft: themeSpacing(4),
+```
+
+Domphy's doctor watches these properties: `margin`, `padding`, `gap`, `rowGap`, `columnGap` and all their longhand variants.
+
+## Border radius
+
+Follow the bounded control pattern:
+
+```ts
+// Tight radius (small components)
+borderRadius: (l) => themeSpacing(themeDensity(l) * 0.5),
+
+// Medium radius (cards, modals)
+borderRadius: themeSpacing(2),   // 8px (no density — structural, not control)
+
+// Large radius (pills, chips)
+borderRadius: "9999px",   // exception: fully-round is categorical, not a spacing value
+```
+
+## Spacing in scroll containers
+
+```ts
+const ScrollArea = {
+  div: Content,
+  style: {
+    overflowY: "auto",
+    padding: themeSpacing(4),
+    // Prevent content from touching scrollbar
+    paddingRight: themeSpacing(6),
+  },
+}
+```
+
+## inset shorthand
+
+For overlays and sticky elements:
+
+```ts
+const Overlay = {
+  div: null,
+  style: {
+    position: "fixed",
+    inset: 0,   // shorthand for top/right/bottom/left: 0 (no spacing needed)
+    background: "rgba(0,0,0,0.5)",
+  },
+}
+```
 
 ### tone.md
 
@@ -8595,6 +9228,192 @@ A navigation called with `ignoreBlocker: true` bypasses blockers.
 
 Each event carries `fromLocation`, `toLocation`, and `pathChanged` / `hrefChanged` flags. Two more events exist for framework adapters (`onBeforeRouteMount`, `onRendered`) — plain Domphy apps rarely need them.
 
+### router-context.md
+
+---
+title: "Router Context"
+description: "Inject dependencies into all routes via router context — auth, query clients, feature flags, and shared services."
+---
+
+# Router Context
+
+Router context is a typed object available to every route's `beforeLoad`, `loader`, and component. It's the correct way to share dependencies (auth state, query clients, analytics) with routes without globals.
+
+## Defining context type
+
+```ts
+import { createRootRouteWithContext, createRouter } from "@domphy/router"
+import { createQueryClient, QueryClient } from "@domphy/query"
+
+interface RouterContext {
+  queryClient: QueryClient
+  auth: {
+    isAuthenticated: () => boolean
+    user: () => User | null
+  }
+  featureFlags: {
+    newDashboard: boolean
+    betaSearch: boolean
+  }
+}
+
+const rootRoute = createRootRouteWithContext<RouterContext>()({
+  component: () => RootLayout,
+})
+```
+
+## Providing context when creating the router
+
+```ts
+const queryClient = createQueryClient()
+
+const router = createRouter({
+  routeTree: rootRoute.addChildren([...]),
+  context: {
+    queryClient,
+    auth: {
+      isAuthenticated: () => !!localStorage.getItem("token"),
+      user: () => JSON.parse(localStorage.getItem("user") ?? "null"),
+    },
+    featureFlags: {
+      newDashboard: import.meta.env.VITE_NEW_DASHBOARD === "true",
+      betaSearch: false,
+    },
+  },
+})
+```
+
+## Accessing context in `beforeLoad`
+
+```ts
+const dashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard",
+  beforeLoad: ({ context }) => {
+    if (!context.auth.isAuthenticated()) {
+      throw redirect({ to: "/login" })
+    }
+  },
+})
+```
+
+## Accessing context in loaders
+
+```ts
+const postsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/posts",
+  loader: async ({ context }) => {
+    // Use queryClient from context — no global import needed
+    return context.queryClient.ensureQueryData({
+      queryKey: ["posts"],
+      queryFn: fetchPosts,
+    })
+  },
+  component: () => PostsList,
+})
+```
+
+## Accessing context in components
+
+Access router context in a component via `router.options.context`:
+
+```ts
+const ProfilePage = {
+  div: (l) => {
+    const user = router.options.context.auth.user()
+    return { h1: `Welcome, ${user?.name ?? "Guest"}` }
+  },
+}
+```
+
+Or pass it through loaderData:
+
+```ts
+const userRoute = createRoute({
+  loader: ({ context }) => ({ user: context.auth.user() }),
+  component: () => {
+    const { user } = userRoute.useLoaderData()
+    return { h1: `Welcome, ${user?.name ?? "Guest"}` }
+  },
+})
+```
+
+## Dynamic context (reactive values)
+
+If context values change after the router is created (e.g. auth state updates), pass an accessor function instead of a static value:
+
+```ts
+import { toState } from "@domphy/core"
+
+const authState = toState<{ user: User | null; token: string | null }>({
+  user: null,
+  token: localStorage.getItem("token"),
+})
+
+const router = createRouter({
+  routeTree,
+  context: {
+    // These functions read from reactive state — always current
+    auth: {
+      isAuthenticated: () => !!authState.get().token,
+      user: () => authState.get().user,
+    },
+    queryClient,
+  },
+})
+
+// When auth changes, context.auth.user() automatically returns the new value
+async function login(credentials: Credentials) {
+  const { user, token } = await loginApi(credentials)
+  authState.set({ user, token })
+  localStorage.setItem("token", token)
+  router.navigate({ to: "/dashboard" })
+}
+```
+
+## Per-route context modification
+
+A route can add to the context for its children using `beforeLoad`'s return value:
+
+```ts
+const orgRoute = createRoute({
+  getParentRoute: () => authRoute,
+  path: "/org/$orgId",
+  beforeLoad: async ({ params, context }) => {
+    const org = await context.queryClient.ensureQueryData({
+      queryKey: ["org", params.orgId],
+      queryFn: () => fetchOrg(params.orgId),
+    })
+    // Return additional context — available to all child routes
+    return { org }
+  },
+})
+
+const settingsRoute = createRoute({
+  getParentRoute: () => orgRoute,
+  path: "/settings",
+  loader: ({ context }) => {
+    // context.org is available here — provided by orgRoute.beforeLoad
+    return fetchOrgSettings(context.org.id)
+  },
+})
+```
+
+## TypeScript: typed context
+
+With `createRootRouteWithContext<RouterContext>()`, TypeScript fully types all context accesses:
+
+```ts
+// beforeLoad context is RouterContext — full type safety
+beforeLoad: ({ context }) => {
+  context.auth.isAuthenticated()   // ✓ () => boolean
+  context.queryClient.prefetchQuery   // ✓ QueryClient method
+  context.featureFlags.newDashboard   // ✓ boolean
+  context.auth.unknownMethod()   // ✗ TypeScript error
+}
+```
+
 ### routes.md
 
 # Route Trees
@@ -10910,6 +11729,204 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 4. For variable-height rows, call `list.measureElement(node.domElement)` from each row's `_onMount` and drop the fixed `height`.
 
 Pass your own `observeElementRect` / `observeElementOffset` / `scrollToFn` to virtualize against the window instead of an element.
+
+### infinite-scroll.md
+
+---
+title: "Infinite Scroll"
+description: "Implement infinite scroll by combining @domphy/virtual with @domphy/query's infinite queries."
+---
+
+# Infinite Scroll
+
+Combine `@domphy/virtual` (virtualizer) with `@domphy/query` (infinite query) to render millions of items without DOM bloat.
+
+## Basic setup
+
+```ts
+import { createVirtualizer } from "@domphy/virtual/domphy"
+import { createInfiniteQuery } from "@domphy/query/domphy"
+import { toState, computed } from "@domphy/core"
+
+interface Post { id: string; title: string }
+interface Page { posts: Post[]; nextCursor: string | null }
+
+// Infinite query: loads pages of data
+const feed = createInfiniteQuery<Page>({
+  queryKey: () => ["feed"],
+  queryFn: ({ pageParam }) => fetchPosts(pageParam as string),
+  initialPageParam: "",
+  getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+})
+
+// Flatten pages into a single list
+const allPosts = computed((l): Post[] =>
+  feed.data(l)?.pages.flatMap(p => p.posts) ?? []
+)
+
+const isFetchingMore = computed((l) => feed.isFetchingNextPage(l))
+const hasMore = computed((l) => feed.hasNextPage(l))
+
+// Virtualizer
+const container = toState<HTMLElement | null>(null)
+const virtualizer = createVirtualizer({
+  count: (l) => allPosts.get(l).length + (hasMore.get(l) ? 1 : 0),   // +1 for loader row
+  estimateSize: () => 72,
+  getScrollElement: () => container.get(),
+})
+```
+
+## Detecting scroll-to-bottom
+
+Trigger `fetchNextPage()` when the last item is visible:
+
+```ts
+import { effect } from "@domphy/core"
+
+effect(() => {
+  const items = virtualizer.getVirtualItems()
+  if (!items.length) return
+
+  const lastItem = items[items.length - 1]
+  const total = allPosts.get().length
+  const isLast = lastItem.index >= total - 1
+
+  if (isLast && hasMore.get() && !feed.isFetchingNextPage()) {
+    feed.fetchNextPage()
+  }
+})
+```
+
+## Rendering the virtual list
+
+```ts
+const FeedList = {
+  div: [
+    {
+      div: (l) => {
+        const items = virtualizer.getVirtualItems(l)
+        const total = virtualizer.getTotalSize(l)
+
+        return {
+          div: items.map(virtualItem => {
+            const post = allPosts.get()[virtualItem.index]
+            const isLoader = !post
+
+            return {
+              _key: virtualItem.key,
+              div: isLoader
+                ? { div: "Loading more…", style: { padding: "1rem", textAlign: "center" } }
+                : PostCard(post),
+              style: {
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualItem.start}px)`,
+                height: `${virtualItem.size}px`,
+              },
+            }
+          }),
+          style: { position: "relative", height: `${total}px` },
+        }
+      },
+    },
+  ],
+  style: {
+    height: "600px",
+    overflowY: "auto",
+    position: "relative",
+  },
+  _onMount: (el) => container.set(el),
+}
+```
+
+## Dynamic heights
+
+If post heights vary (different content lengths), use `measureElement`:
+
+```ts
+const virtualizer = createVirtualizer({
+  count: () => allPosts.get().length,
+  estimateSize: () => 80,   // initial estimate
+  measureElement: (el) => el.getBoundingClientRect().height,
+  getScrollElement: () => container.get(),
+})
+
+// In the item render, attach the measurement ref:
+const PostItem = (post: Post, virtualItem: VirtualItem) => ({
+  div: [
+    { h3: post.title },
+    { p: post.excerpt },
+  ],
+  _onMount: (el) => virtualizer.measureElement(el),   // actual height replaces estimate
+  _key: virtualItem.key,
+  style: {
+    position: "absolute",
+    top: 0,
+    transform: `translateY(${virtualItem.start}px)`,
+    width: "100%",
+  },
+})
+```
+
+## Scroll restoration
+
+Restore scroll position when navigating back:
+
+```ts
+import { createRoute } from "@domphy/router"
+
+const feedRoute = createRoute({
+  path: "/feed",
+  component: () => FeedList,
+  // Save scroll position before leaving
+  onLeave: () => {
+    sessionStorage.setItem("feed-scroll", String(container.get()?.scrollTop ?? 0))
+  },
+  // Restore on return
+  onEnter: () => {
+    const saved = sessionStorage.getItem("feed-scroll")
+    if (saved) {
+      requestAnimationFrame(() => {
+        container.get()?.scrollTo({ top: Number(saved) })
+      })
+    }
+  },
+})
+```
+
+## Initial data
+
+Pre-populate the first page to avoid a loading flash:
+
+```ts
+const feed = createInfiniteQuery<Page>({
+  queryKey: () => ["feed"],
+  queryFn: ({ pageParam }) => fetchPosts(pageParam as string),
+  initialPageParam: "",
+  getNextPageParam: (page) => page.nextCursor ?? undefined,
+  initialData: {
+    pages: [firstPageFromSSR],
+    pageParams: [""],
+  },
+})
+```
+
+## Scroll to top
+
+Provide a "Back to top" button:
+
+```ts
+const BackToTop = {
+  button: "↑ Back to top",
+  onClick: () => {
+    container.get()?.scrollTo({ top: 0, behavior: "smooth" })
+    virtualizer.scrollToIndex(0, { behavior: "smooth" })
+  },
+  hidden: (l) => (container.get()?.scrollTop ?? 0) < 300,
+}
+```
 
 ### usage.md
 
@@ -14690,6 +15707,200 @@ t("nav.home")     // ✓
 t("button.save")  // ✓
 t("nav.missing")  // ✗ TypeScript error
 ```
+
+### backend.md
+
+---
+title: "Lazy Loading & Backend"
+description: "Load translations on-demand, split by route, integrate with a backend API, and handle loading states."
+---
+
+# Lazy Loading & Backend
+
+## Why lazy-load translations?
+
+Shipping all translations upfront increases initial bundle size. Lazy loading splits translations by:
+- **Locale** — load only the active locale
+- **Namespace** — load only the translations needed for the current page/feature
+- **Route** — load translations on navigation
+
+## Locale-split with dynamic imports
+
+Vite/Rollup tree-shakes dynamic `import()` with template literals:
+
+```ts
+import { createI18n } from "@domphy/i18n/domphy"
+
+const { t, setLocale } = createI18n({
+  locale: "en",
+  messages: {
+    en: () => import("./locales/en.json"),
+    fr: () => import("./locales/fr.json"),
+    de: () => import("./locales/de.json"),
+    ja: () => import("./locales/ja.json"),
+  },
+})
+```
+
+Each locale is a separate chunk — only `en.json` downloads on first load. When the user switches to French, `fr.json` downloads and caches.
+
+## Namespace lazy loading per route
+
+Load translations when a route mounts — not before:
+
+```ts
+import { createI18n } from "@domphy/i18n/domphy"
+
+const { t, loadNamespace } = createI18n({
+  locale: "en",
+  namespaces: {
+    common: () => import("./locales/en/common.json"),
+    // "dashboard" namespace not preloaded — loaded on demand
+  },
+})
+
+// In the dashboard route loader:
+const dashboardRoute = createRoute({
+  path: "/dashboard",
+  loader: async () => {
+    await loadNamespace("dashboard", () => import("./locales/en/dashboard.json"))
+  },
+  component: () => DashboardPage,
+})
+```
+
+## HTTP backend
+
+Fetch translations from a server at runtime — useful for translations stored in a CMS or translation management system:
+
+```ts
+const { t } = createI18n({
+  locale: "en",
+  messages: {
+    en: async () => {
+      const response = await fetch("/api/translations/en")
+      return response.json()
+    },
+    fr: async () => {
+      const response = await fetch("/api/translations/fr")
+      return response.json()
+    },
+  },
+})
+```
+
+With a translation management service (Lokalise, Crowdin, Phrase):
+
+```ts
+const LOKALISE_CDN = "https://cdn.lokalise.com/my-project"
+
+const { t } = createI18n({
+  locale: navigator.language.split("-")[0] as Locale,
+  messages: {
+    en: () => fetch(`${LOKALISE_CDN}/en.json`).then(r => r.json()),
+    fr: () => fetch(`${LOKALISE_CDN}/fr.json`).then(r => r.json()),
+    de: () => fetch(`${LOKALISE_CDN}/de.json`).then(r => r.json()),
+  },
+})
+```
+
+## Handling the loading state
+
+Translations load asynchronously — show a loading state while the initial locale loads:
+
+```ts
+import { toState } from "@domphy/core"
+
+const translationsReady = toState(false)
+
+async function initApp() {
+  const { t } = createI18n({ locale: "en", messages: { en: () => import("./en.json") } })
+  await initI18n()   // load the initial locale
+  translationsReady.set(true)
+}
+
+initApp()
+
+const App = {
+  div: (l) => translationsReady.get(l) ? MainApp : { div: "Loading…" },
+}
+```
+
+## Locale detection
+
+Auto-detect locale from browser, user preference, or URL:
+
+```ts
+import { detectLocale } from "@domphy/i18n"
+
+const supported: Locale[] = ["en", "fr", "de", "ja", "zh"]
+
+function getInitialLocale(): Locale {
+  // 1. Check URL param (?lang=fr)
+  const urlParam = new URLSearchParams(location.search).get("lang")
+  if (urlParam && supported.includes(urlParam as Locale)) return urlParam as Locale
+
+  // 2. Check saved preference
+  const saved = localStorage.getItem("locale")
+  if (saved && supported.includes(saved as Locale)) return saved as Locale
+
+  // 3. Browser language
+  return detectLocale(navigator.languages, supported, "en") as Locale
+}
+
+const { t, setLocale } = createI18n({
+  locale: getInitialLocale(),
+  messages: { ... },
+})
+```
+
+## Preloading on hover
+
+Preload the translated page before the user navigates to it:
+
+```ts
+const NavLink = (href: string, label: string, namespace: string) => ({
+  a: label,
+  href,
+  onMouseenter: async () => {
+    await loadNamespace(namespace)
+  },
+})
+```
+
+## Caching loaded namespaces
+
+Loaded namespaces are cached in memory — `loadNamespace("dashboard")` on re-navigation is instant:
+
+```ts
+// First call: fetches from network (~200ms)
+await loadNamespace("dashboard", () => import("./locales/en/dashboard.json"))
+
+// Subsequent calls: returns from memory cache (~0ms)
+await loadNamespace("dashboard", () => import("./locales/en/dashboard.json"))
+```
+
+## SSR considerations
+
+On the server, translations must be loaded synchronously (or pre-awaited):
+
+```ts
+// Server-side
+import en from "./locales/en.json"   // static import — synchronous
+import fr from "./locales/fr.json"
+
+const MESSAGES = { en, fr }
+
+const { t } = createI18n({
+  locale: userLocale,
+  messages: {
+    en: () => Promise.resolve(MESSAGES.en),
+    fr: () => Promise.resolve(MESSAGES.fr),
+  },
+})
+```
+
+With `@domphy/app` SSR, the server can read the `Accept-Language` header or cookie to choose the locale, then hydrate the client with the same locale.
 
 ### formatting.md
 

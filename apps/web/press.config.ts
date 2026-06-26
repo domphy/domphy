@@ -66,6 +66,7 @@ export const config = defineConfig({
         { text: "Refs & DOM Access", link: "/docs/core/refs" },
         { text: "Error Handling", link: "/docs/core/error-handling" },
         { text: "Performance", link: "/docs/core/performance" },
+        { text: "Common Patterns", link: "/docs/core/patterns" },
         { text: "TypeScript", link: "/docs/core/typescript" },
         { text: "Testing", link: "/docs/core/testing" },
         { text: "SSR", link: "/docs/core/ssr" },
@@ -93,6 +94,8 @@ export const config = defineConfig({
         { text: "Overview", link: "/docs/theme/" },
         { text: "Setup", link: "/docs/theme/setup" },
         { text: "Palette", link: "/docs/theme/palette" },
+        { text: "Dark Mode", link: "/docs/theme/dark-mode" },
+        { text: "Spacing System", link: "/docs/theme/spacing" },
         { text: "Typography", link: "/docs/theme/typography" },
         { text: "Motion & Animation", link: "/docs/theme/motion" },
         { text: "Responsive Design", link: "/docs/theme/responsive" },
@@ -256,6 +259,7 @@ export const config = defineConfig({
         { text: "Authentication", link: "/docs/router/authentication" },
         { text: "Error Handling", link: "/docs/router/error-handling" },
         { text: "Navigation Blocking", link: "/docs/router/navigation-blocking" },
+        { text: "Router Context", link: "/docs/router/router-context" },
         { text: "SSR", link: "/docs/router/ssr" },
         { text: "API Reference", link: "/docs/router/api" },
       ],
@@ -278,6 +282,7 @@ export const config = defineConfig({
       "/docs/virtual/": [
         { text: "Overview", link: "/docs/virtual/" },
         { text: "Usage Patterns", link: "/docs/virtual/usage" },
+        { text: "Infinite Scroll", link: "/docs/virtual/infinite-scroll" },
         { text: "API Reference", link: "/docs/virtual/api" },
       ],
       "/docs/form/": [
@@ -322,6 +327,7 @@ export const config = defineConfig({
         { text: "Namespaces", link: "/docs/i18n/namespaces" },
         { text: "Pluralization", link: "/docs/i18n/pluralization" },
         { text: "Interpolation & Formatting", link: "/docs/i18n/formatting" },
+        { text: "Lazy Loading & Backend", link: "/docs/i18n/backend" },
         { text: "API Reference", link: "/docs/i18n/api" },
       ],
       "/docs/press/": [

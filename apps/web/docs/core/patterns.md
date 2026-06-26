@@ -1,0 +1,286 @@
+---
+title: "Common Patterns"
+description: "Reusable patterns: state machines, reducers, compound components, factory functions, and code organization."
+---
+
+# Common Patterns
+
+## State machine
+
+Manage complex multi-state UI (wizard, upload flow, auth) with an explicit state machine:
+
+```ts
+import { toState } from "@domphy/core"
+
+type UploadState =
+  | { status: "idle" }
+  | { status: "uploading"; progress: number }
+  | { status: "success"; url: string }
+  | { status: "error"; message: string }
+
+const upload = toState<UploadState>({ status: "idle" })
+
+async function startUpload(file: File) {
+  upload.set({ status: "uploading", progress: 0 })
+  try {
+    const url = await uploadFile(file, (progress) => {
+      upload.set({ status: "uploading", progress })
+    })
+    upload.set({ status: "success", url })
+  } catch (error) {
+    upload.set({ status: "error", message: (error as Error).message })
+  }
+}
+
+const UploadUI = {
+  div: (l) => {
+    const state = upload.get(l)
+    switch (state.status) {
+      case "idle": return { button: "Upload file", onClick: () => fileInput.click() }
+      case "uploading": return { div: `Uploading… ${state.progress}%` }
+      case "success": return { a: "View file", href: state.url }
+      case "error": return { div: `Error: ${state.message}` }
+    }
+  },
+}
+```
+
+## Reducer pattern
+
+For complex state transitions, centralize updates in a reducer:
+
+```ts
+import { toState } from "@domphy/core"
+
+type CartAction =
+  | { type: "ADD_ITEM"; item: CartItem }
+  | { type: "REMOVE_ITEM"; id: string }
+  | { type: "UPDATE_QTY"; id: string; qty: number }
+  | { type: "CLEAR" }
+
+interface CartState { items: CartItem[]; total: number }
+
+function cartReducer(state: CartState, action: CartAction): CartState {
+  switch (action.type) {
+    case "ADD_ITEM":
+      return { ...state, items: [...state.items, action.item] }
+    case "REMOVE_ITEM":
+      return { ...state, items: state.items.filter(i => i.id !== action.id) }
+    case "UPDATE_QTY":
+      return {
+        ...state,
+        items: state.items.map(i => i.id === action.id ? { ...i, qty: action.qty } : i),
+      }
+    case "CLEAR":
+      return { items: [], total: 0 }
+  }
+}
+
+const cart = toState<CartState>({ items: [], total: 0 })
+
+function dispatch(action: CartAction) {
+  cart.set(current => cartReducer(current, action))
+}
+
+// Usage
+dispatch({ type: "ADD_ITEM", item: { id: "1", name: "Widget", qty: 1, price: 10 } })
+dispatch({ type: "UPDATE_QTY", id: "1", qty: 3 })
+```
+
+## Component factory pattern
+
+Create parameterized components (like React's Higher-Order Components) as plain functions:
+
+```ts
+import { themeColor } from "@domphy/theme"
+
+// Factory that creates a styled badge with a given variant
+function badge(variant: "success" | "error" | "warning" | "info") {
+  const colorMap = {
+    success: "success",
+    error: "error",
+    warning: "warning",
+    info: "info",
+  } as const
+
+  return function Badge(text: string) {
+    return {
+      span: text,
+      style: {
+        background: themeColor(colorMap[variant], 2),
+        color: themeColor(colorMap[variant], 10),
+        padding: "2px 6px",
+        borderRadius: "4px",
+        fontSize: "0.75rem",
+      },
+    }
+  }
+}
+
+const SuccessBadge = badge("success")
+const ErrorBadge = badge("error")
+
+// Usage
+{ div: [SuccessBadge("Active"), ErrorBadge("Failed")] }
+```
+
+## Compound component pattern
+
+Build components that share state without prop-drilling:
+
+```ts
+import { toState } from "@domphy/core"
+
+function createAccordion() {
+  const openItems = toState<Set<string>>(new Set())
+
+  function toggleItem(id: string) {
+    openItems.set(current => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function Item(id: string, header: string, content: DomphyElement) {
+    return {
+      div: [
+        {
+          button: header,
+          onClick: () => toggleItem(id),
+          "aria-expanded": (l) => String(openItems.get(l).has(id)),
+        },
+        {
+          div: content,
+          hidden: (l) => !openItems.get(l).has(id),
+        },
+      ],
+    }
+  }
+
+  return { Item }
+}
+
+const { Item } = createAccordion()
+
+const FAQ = {
+  div: [
+    Item("q1", "What is Domphy?", { p: "UI as plain JS objects." }),
+    Item("q2", "Does it use JSX?", { p: "No JSX — plain objects only." }),
+    Item("q3", "Does it have a virtual DOM?", { p: "No virtual DOM." }),
+  ],
+}
+```
+
+## List with key tracking
+
+When list items change (add/remove/reorder), use `_key` for correct reconciliation:
+
+```ts
+import { toState } from "@domphy/core"
+
+interface Task { id: string; text: string; done: boolean }
+
+const tasks = toState<Task[]>([
+  { id: "t1", text: "Write tests", done: false },
+  { id: "t2", text: "Deploy", done: true },
+])
+
+const TaskList = {
+  ul: (l) => tasks.get(l).map(task => ({
+    li: task.text,
+    _key: task.id,   // stable key — tells reconciler to MOVE this item, not re-create it
+    class: task.done ? "done" : "",
+  })),
+}
+```
+
+Without `_key`, reordering a list destroys and recreates all DOM nodes. With `_key`, Domphy moves the existing nodes.
+
+## Async data loading pattern
+
+```ts
+import { toState, computed } from "@domphy/core"
+
+type AsyncState<T> =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; data: T }
+  | { status: "error"; error: Error }
+
+function createAsyncState<T>() {
+  const state = toState<AsyncState<T>>({ status: "idle" })
+
+  async function load(fn: () => Promise<T>) {
+    state.set({ status: "loading" })
+    try {
+      const data = await fn()
+      state.set({ status: "success", data })
+    } catch (error) {
+      state.set({ status: "error", error: error as Error })
+    }
+  }
+
+  const data = computed((l): T | undefined => {
+    const s = state.get(l)
+    return s.status === "success" ? s.data : undefined
+  })
+
+  const isLoading = computed((l) => state.get(l).status === "loading")
+  const error = computed((l) => {
+    const s = state.get(l)
+    return s.status === "error" ? s.error : null
+  })
+
+  return { state, load, data, isLoading, error }
+}
+```
+
+## Module structure
+
+Organize a feature module:
+
+```
+features/
+  posts/
+    state.ts        ← toState, RecordState, computed
+    api.ts          ← fetch functions (no Domphy imports)
+    components.ts   ← DomphyElement definitions
+    index.ts        ← re-exports
+```
+
+```ts
+// features/posts/state.ts
+import { toState, computed } from "@domphy/core"
+import type { Post } from "./api"
+
+export const posts = toState<Post[]>([])
+export const selectedId = toState<string | null>(null)
+export const selectedPost = computed((l) =>
+  posts.get(l).find(p => p.id === selectedId.get(l)) ?? null
+)
+```
+
+## Debounced state
+
+Rate-limit expensive operations triggered by rapid state changes:
+
+```ts
+import { toState, effect } from "@domphy/core"
+
+const query = toState("")
+const results = toState<SearchResult[]>([])
+
+effect(() => {
+  const text = query.get()
+  if (!text) { results.set([]); return }
+
+  const timer = setTimeout(async () => {
+    const data = await search(text)
+    results.set(data)
+  }, 300)
+
+  return () => clearTimeout(timer)   // cleanup cancels previous timer
+})
+```

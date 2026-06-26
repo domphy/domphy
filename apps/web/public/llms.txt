@@ -53,6 +53,7 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 - [Refs & DOM Access](https://domphy.com/docs/core/refs): `_onMount`/`_onRemove` lifecycle, closing over DOM refs, third-party library wiring
 - [Error Handling](https://domphy.com/docs/core/error-handling): `_onError` boundary, async error patterns, global error handlers
 - [Performance](https://domphy.com/docs/core/performance): granular subscriptions, `_key`, computed memoization, `batch()`, lazy rendering
+- [Common Patterns](https://domphy.com/docs/core/patterns): state machines, reducers, compound components, factories, code organization
 - [TypeScript](https://domphy.com/docs/core/typescript): `DomphyElement`, `State<T>`, event handler types, component patterns
 - [Testing](https://domphy.com/docs/core/testing): Vitest+jsdom setup, testing reactive state, ElementNode in tests
 - [Portal](https://domphy.com/docs/core/portal): render into arbitrary containers
@@ -63,6 +64,8 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 
 - [Setup](https://domphy.com/docs/theme/setup): install and mount the theme
 - [Palette](https://domphy.com/docs/theme/palette): `themeColor`, shift scales
+- [Dark Mode](https://domphy.com/docs/theme/dark-mode): `data-theme` switching, SSR-safe init, system preference
+- [Spacing System](https://domphy.com/docs/theme/spacing): `themeSpacing(n)`, density multiplier, layout vs component
 - [Typography](https://domphy.com/docs/theme/typography): type scale, font tokens, responsive text
 - [Motion & Animation](https://domphy.com/docs/theme/motion): CSS transitions, keyframes, reduced motion
 - [Responsive Design](https://domphy.com/docs/theme/responsive): breakpoints, container queries, adaptive layouts
@@ -135,7 +138,7 @@ Async state management — a 1-1 port of `@tanstack/query-core` (identical API).
 
 Type-safe routing — a 1-1 port of `@tanstack/router-core` (identical API) plus `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext`.
 
-- [Overview](https://domphy.com/docs/router/) · [Routes](https://domphy.com/docs/router/routes) · [Navigation](https://domphy.com/docs/router/navigation) · [Search Params](https://domphy.com/docs/router/search-params) · [Data Loading](https://domphy.com/docs/router/data-loading) · [Data Mutations](https://domphy.com/docs/router/data-mutations) · [Code Splitting](https://domphy.com/docs/router/lazy-loading) · [Authentication](https://domphy.com/docs/router/authentication) · [Error Handling](https://domphy.com/docs/router/error-handling) · [Navigation Blocking](https://domphy.com/docs/router/navigation-blocking) · [SSR](https://domphy.com/docs/router/ssr) · [API](https://domphy.com/docs/router/api)
+- [Overview](https://domphy.com/docs/router/) · [Routes](https://domphy.com/docs/router/routes) · [Navigation](https://domphy.com/docs/router/navigation) · [Search Params](https://domphy.com/docs/router/search-params) · [Data Loading](https://domphy.com/docs/router/data-loading) · [Data Mutations](https://domphy.com/docs/router/data-mutations) · [Code Splitting](https://domphy.com/docs/router/lazy-loading) · [Authentication](https://domphy.com/docs/router/authentication) · [Error Handling](https://domphy.com/docs/router/error-handling) · [Navigation Blocking](https://domphy.com/docs/router/navigation-blocking) · [Router Context](https://domphy.com/docs/router/router-context) · [SSR](https://domphy.com/docs/router/ssr) · [API](https://domphy.com/docs/router/api)
 
 ## Table (`@domphy/table`)
 
@@ -147,7 +150,7 @@ Headless table logic — a 1-1 port of `@tanstack/table-core` v8 (identical API)
 
 List/grid virtualization — a 1-1 port of `@tanstack/virtual-core` (identical API). Adapter `createVirtualizer` (`@domphy/virtual/domphy`).
 
-- [Overview](https://domphy.com/docs/virtual/) · [Usage Patterns](https://domphy.com/docs/virtual/usage) · [API Reference](https://domphy.com/docs/virtual/api)
+- [Overview](https://domphy.com/docs/virtual/) · [Usage Patterns](https://domphy.com/docs/virtual/usage) · [Infinite Scroll](https://domphy.com/docs/virtual/infinite-scroll) · [API Reference](https://domphy.com/docs/virtual/api)
 
 ## Form (`@domphy/form`)
 
@@ -171,7 +174,7 @@ Next.js App Router-style framework — runtime (no compiler, no file-system rout
 
 Reactive i18next wrapper for Domphy. `createI18n<TLocale, TMessages>(options)` returns `{ t, setLocale, getLocale, initI18n, detectLocale }`. Reactive call: `t(listener, key, vars?)` re-renders on `setLocale()`; static: `t(key, vars?)`. Typed keys via generic parameter. Options: `globalKey` (dedup across chunks), `namespace`, `locales` (translation objects keyed by locale), `defaultLocale`.
 
-- [Overview](https://domphy.com/docs/i18n/) · [Setup](https://domphy.com/docs/i18n/setup) · [Namespaces](https://domphy.com/docs/i18n/namespaces) · [Pluralization](https://domphy.com/docs/i18n/pluralization) · [Interpolation & Formatting](https://domphy.com/docs/i18n/formatting) · [API](https://domphy.com/docs/i18n/api)
+- [Overview](https://domphy.com/docs/i18n/) · [Setup](https://domphy.com/docs/i18n/setup) · [Namespaces](https://domphy.com/docs/i18n/namespaces) · [Pluralization](https://domphy.com/docs/i18n/pluralization) · [Interpolation & Formatting](https://domphy.com/docs/i18n/formatting) · [Lazy Loading & Backend](https://domphy.com/docs/i18n/backend) · [API](https://domphy.com/docs/i18n/api)
 
 ## Press (`@domphy/press`)
 
