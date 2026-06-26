@@ -92,7 +92,7 @@ function createForm<T>(options) {
   return {
     values: (l) => {
       // Subscribe listener to FormApi state
-      api.subscribe(() => l?.notify())
+      api.store.subscribe(() => l?.notify())
       return api.state.values
     },
     field: (name, fieldOptions) => createFieldHandle(api, name, fieldOptions),
@@ -149,7 +149,7 @@ form.canSubmit(l)      // boolean
 form.isSubmitting(l)   // boolean
 form.isValid(l)        // boolean
 form.isSubmitted(l)    // boolean
-form.isDirty(l)        // boolean
+form.state(l).isDirty  // boolean
 
 // Non-reactive (no listener) — snapshot
 form.form.state.values

@@ -154,13 +154,11 @@ const TotalDisplay = {
 For complete control, subscribe to the underlying `FormApi` state:
 
 ```ts
-form.form.subscribe(
-  (state) => state.values,           // selector — only re-fires when values change
-  (values) => {
-    console.log("Form values changed:", values)
-    autosave(values)
-  }
-)
+form.form.store.subscribe(() => {
+  const values = form.form.state.values
+  console.log("Form values changed:", values)
+  autosave(values)
+})
 ```
 
 ## Field-level subscription

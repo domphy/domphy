@@ -132,7 +132,7 @@ Show a "You have unsaved changes" warning only when the user has modified the fo
 ```ts
 const UnsavedBanner = {
   div: "You have unsaved changes.",
-  hidden: (l) => !form.isDirty(l),
+  hidden: (l) => !form.state(l).isDirty,
   style: {
     padding: "8px 16px",
     background: "var(--warning-3)",
@@ -144,7 +144,7 @@ const UnsavedBanner = {
 const SaveButton = {
   button: (l) => form.isSubmitting(l) ? "Saving…" : "Save",
   type: "submit",
-  disabled: (l) => !form.isDirty(l) || !form.canSubmit(l),
+  disabled: (l) => !form.state(l).isDirty || !form.canSubmit(l),
 }
 ```
 

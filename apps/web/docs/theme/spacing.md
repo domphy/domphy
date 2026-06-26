@@ -7,20 +7,20 @@ description: "The themeSpacing scale, density multiplier, layout vs component sp
 
 ## `themeSpacing(n)` — the base scale
 
-`themeSpacing(n)` returns `n * 0.25rem` (n/4 em at 16px root = 4px steps):
+`themeSpacing(n)` returns `n/4 em` (scales with font size — 4px steps at 16px base):
 
 ```ts
 import { themeSpacing } from "@domphy/theme"
 
-themeSpacing(1)   // "0.25rem" = 4px
-themeSpacing(2)   // "0.5rem"  = 8px
-themeSpacing(3)   // "0.75rem" = 12px
-themeSpacing(4)   // "1rem"    = 16px
-themeSpacing(5)   // "1.25rem" = 20px
-themeSpacing(6)   // "1.5rem"  = 24px
-themeSpacing(8)   // "2rem"    = 32px
-themeSpacing(12)  // "3rem"    = 48px
-themeSpacing(16)  // "4rem"    = 64px
+themeSpacing(1)   // "0.25em" = 4px at 16px base
+themeSpacing(2)   // "0.5em"  = 8px
+themeSpacing(3)   // "0.75em" = 12px
+themeSpacing(4)   // "1em"    = 16px
+themeSpacing(5)   // "1.25em" = 20px
+themeSpacing(6)   // "1.5em"  = 24px
+themeSpacing(8)   // "2em"    = 32px
+themeSpacing(12)  // "3em"    = 48px
+themeSpacing(16)  // "4em"    = 64px
 ```
 
 Never hardcode spacing literals (`"16px"`, `"1.5rem"`) — `@domphy/doctor` flags those as `raw-spacing-value`.

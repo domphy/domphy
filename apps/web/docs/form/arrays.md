@@ -37,7 +37,7 @@ const App = {
               button: "Remove",
               type: "button",
               $: [button()],
-              onClick: () => form.removeFieldValue("tags", i),
+              onClick: () => form.form.removeFieldValue("tags", i),
             },
           ],
         }
@@ -47,7 +47,7 @@ const App = {
       button: "Add Tag",
       type: "button",
       $: [button()],
-      onClick: () => form.pushFieldValue("tags", ""),
+      onClick: () => form.form.pushFieldValue("tags", ""),
     },
     {
       button: "Save",
@@ -97,7 +97,7 @@ const ContactRow = (i: number) => {
       {
         button: "✕",
         type: "button",
-        onClick: () => form.removeFieldValue("contacts", i),
+        onClick: () => form.form.removeFieldValue("contacts", i),
       },
     ],
   }
@@ -109,7 +109,7 @@ const App = {
     {
       button: "Add Contact",
       type: "button",
-      onClick: () => form.pushFieldValue("contacts", { name: "", email: "" }),
+      onClick: () => form.form.pushFieldValue("contacts", { name: "", email: "" }),
     },
   ],
   onSubmit: (e) => { e.preventDefault(); form.handleSubmit() },
@@ -125,7 +125,7 @@ Implement drag-to-reorder or up/down buttons:
   button: "↑",
   type: "button",
   disabled: i === 0,
-  onClick: () => form.swapFieldValues("contacts", i, i - 1),
+  onClick: () => form.form.swapFieldValues("contacts", i, i - 1),
 }
 ```
 
