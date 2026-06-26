@@ -1,7 +1,7 @@
 {
   "name": "@domphy/i18n",
-  "version": "0.18.0",
-  "description": "Domphy i18n — generic i18next wrapper with reactive Domphy integration (globalThis dedup, typed keys, t(listener, key) overload)",
+  "version": "0.19.0",
+  "description": "Domphy i18n \u00e2\u20ac\u201d generic i18next wrapper with reactive Domphy integration (globalThis dedup, typed keys, t(listener, key) overload)",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -26,7 +26,12 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["domphy", "i18n", "i18next", "reactivity"],
+  "keywords": [
+    "domphy",
+    "i18n",
+    "i18next",
+    "reactivity"
+  ],
   "author": "Huu Khanh Nguyen",
   "license": "MIT",
   "repository": {
@@ -47,5 +52,8 @@
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
-  "files": ["dist", "README.md"]
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

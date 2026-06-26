@@ -72,8 +72,10 @@ const App = {
 | `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
 | `@domphy/audit` | baseline-free layout verification via Playwright — `checkLayout(page)` detects sibling overlaps, Domphy geometry violations (button height formula), WCAG contrast failures. Returns `{ ok, issues, svg }` (SVG layout map annotated with issues). Individual checkers: `detectOverlaps`, `verifyGeometry`, `checkContrast`. Complements `@domphy/doctor` (static pre-render) with runtime post-render checks. |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
+| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading |
+| `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
-| `domphy-web` | docs website — built with DomphyPress on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
+| `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
 | `bench` | benchmarks (internal, not published) |
 
 Data/logic packages are **1-1 TanStack core ports** (byte-identical upstream API) + a thin Domphy adapter at the `/domphy` subpath; `@domphy/core` is their peer dependency.
@@ -7658,6 +7660,808 @@ await checkLayout(page, {
   minContrast: 3.0,                  // WCAG threshold (default 4.5)
 })
 ```
+
+
+
+---
+
+
+## i18n docs (`@domphy/i18n`)
+
+### api.md
+
+---
+title: "API Reference"
+description: "Full API reference for @domphy/i18n."
+---
+
+# API Reference
+
+## createI18n
+
+```ts
+createI18n<TLocale extends string, TMessages>(options): I18nInstance
+```
+
+### Options
+
+| Option | Type | Description |
+|---|---|---|
+| `globalKey` | `string` | Unique key on `globalThis` — deduplicates instance across Vite chunks |
+| `namespace` | `string` | i18next resource namespace |
+| `locales` | `Record<TLocale, TMessages>` | Translation objects keyed by locale code |
+| `defaultLocale` | `TLocale` | Fallback locale |
+
+### Returns: I18nInstance
+
+| Member | Signature | Description |
+|---|---|---|
+| `t` | `(key, opts?) → string` | Static translation |
+| `t` | `(listener, key, opts?) → string` | Reactive translation — re-renders on `setLocale` |
+| `initI18n` | `(locale?) → Promise<void>` | Initialize i18next with the given locale (defaults to `defaultLocale`) |
+| `setLocale` | `(locale) → Promise<void>` | Switch locale and trigger reactive re-renders |
+| `getLocale` | `() → TLocale` | Get current locale |
+| `detectLocale` | `(opts?) → TLocale` | Detect locale from URL prefix or `navigator.language` |
+
+## detectLocale options
+
+```ts
+detectLocale({
+  fromUrl?: boolean     // check URL prefix (/en/..., /vi/...)
+  fromBrowser?: boolean // check navigator.language
+})
+```
+
+## Type safety
+
+Pass your translation object as a generic parameter to get fully typed keys:
+
+```ts
+const en = {
+  nav: { home: "Home", about: "About" },
+  button: { save: "Save", cancel: "Cancel" },
+} as const
+
+const { t } = createI18n<"en" | "fr", typeof en>({ ... })
+
+t("nav.home")     // ✓
+t("button.save")  // ✓
+t("nav.missing")  // ✗ TypeScript error
+```
+
+### index.md
+
+---
+title: "@domphy/i18n"
+description: "Internationalization for Domphy — reactive i18next wrapper with Domphy reactivity."
+---
+
+# @domphy/i18n
+
+A thin reactive wrapper around [i18next](https://www.i18next.com/). When the locale changes, any UI element that called `t(listener, key)` re-renders automatically.
+
+## Installation
+
+```bash
+npm install @domphy/i18n i18next
+```
+
+## Quick start
+
+```ts
+import { createI18n } from "@domphy/i18n"
+
+const en = { hello: "Hello, {{name}}!", save: "Save" } as const
+
+const { t, setLocale, getLocale, initI18n } = createI18n<"en" | "vi", typeof en>({
+  globalKey: "__myapp_i18n__",  // must be unique per app
+  namespace: "app",
+  locales: {
+    en,
+    vi: { hello: "Xin chào, {{name}}!", save: "Lưu" },
+  },
+  defaultLocale: "en",
+})
+
+await initI18n()
+```
+
+## Reactive usage
+
+```ts
+// Reactive — re-renders when setLocale() is called
+const Greeting = {
+  p: (l) => t(l, "hello", { name: "World" }),
+}
+
+// Non-reactive (outside element tree)
+const label = t("save")
+```
+
+## Locale switching
+
+```ts
+// Switch locale — all reactive t(l, ...) re-render automatically
+await setLocale("vi")
+
+console.log(getLocale()) // "vi"
+```
+
+## detectLocale
+
+```ts
+const { detectLocale } = i18n
+
+// Auto-detect from URL prefix (/vi/...) or Accept-Language header
+const detected = detectLocale({ fromUrl: true })
+await initI18n(detected)
+```
+
+## globalThis dedup
+
+Registers the instance under `globalKey` on `globalThis` — ensures a single instance across Vite code-split chunks and SSR + client hydration.
+
+See the [Setup guide](./setup.md) for full options reference.
+
+### setup.md
+
+---
+title: "Setup"
+description: "Full configuration and usage guide for @domphy/i18n."
+---
+
+# Setup
+
+## createI18n options
+
+```ts
+import { createI18n } from "@domphy/i18n"
+import i18next from "i18next"
+
+const i18n = createI18n({
+  /** i18next instance to use. Always pass your own configured instance. */
+  instance: i18next,
+  /** Supported locale codes. */
+  locales: ["en", "fr", "vi"],
+  /** Fallback locale if detection fails. */
+  defaultLocale: "en",
+  /** Message resources keyed by locale then key. */
+  messages: {
+    en: { greeting: "Hello, {{name}}!", items_one: "{{count}} item", items_other: "{{count}} items" },
+    fr: { greeting: "Bonjour, {{name}}!" },
+    vi: { greeting: "Xin chào, {{name}}!" },
+  },
+  /** Optional: detect locale from browser/URL. Defaults to navigator.language. */
+  detectLocale: () => localStorage.getItem("lang") ?? navigator.language,
+})
+```
+
+## Reactive translation
+
+Pass a `listener` to re-render when the locale changes:
+
+```ts
+const { t } = i18n
+
+const Header = {
+  h1: (l) => t(l, "greeting", { name: "World" }),
+}
+```
+
+When no listener is needed (e.g. outside reactive context):
+
+```ts
+const label = t(null, "greeting", { name: "World" })
+```
+
+## Locale switching
+
+```ts
+const { setLocale, getLocale } = i18n
+
+// Switch locale — all reactive t(l, ...) re-render automatically
+setLocale("vi")
+
+// Read current locale
+console.log(getLocale()) // "vi"
+```
+
+## Locale detection
+
+```ts
+const { detectLocale, initI18n } = i18n
+
+// initI18n runs detectLocale + initializes the i18next instance
+await initI18n()
+```
+
+## globalThis dedup
+
+`createI18n` registers the i18next instance on `globalThis` under a unique key derived from the locale list. This ensures a single instance even when Vite splits the module across chunks — important for SSR + client hydration consistency.
+
+## i18next integration
+
+`@domphy/i18n` wraps any i18next instance — bring your own plugins (HTTP backend, language detector, pluralisation, etc.):
+
+```ts
+import i18next from "i18next"
+import HttpBackend from "i18next-http-backend"
+
+await i18next.use(HttpBackend).init({
+  lng: "en",
+  backend: { loadPath: "/locales/{{lng}}.json" },
+})
+
+const { t } = createI18n({ instance: i18next, locales: ["en", "fr"], defaultLocale: "en", messages: {} })
+```
+
+
+
+---
+
+
+## Press docs (`@domphy/press`)
+
+### config.md
+
+---
+title: "Configuration"
+description: "Full reference for @domphy/press site configuration."
+---
+
+# Configuration
+
+## defineConfig
+
+```ts
+import { defineConfig } from "@domphy/press"
+
+export default defineConfig({ /* SiteConfig */ })
+```
+
+`defineConfig` is a passthrough helper for TypeScript inference — it returns its argument typed as `SiteConfig`.
+
+## SiteConfig
+
+| Field | Type | Description |
+|---|---|---|
+| `title` | `string` | Site title — appended to page titles |
+| `description` | `string` | Default meta description |
+| `base` | `string` | Deploy base path (e.g. `"/"` or `"/docs/"`) |
+| `hostname` | `string` | Canonical hostname for sitemap and OG (e.g. `"https://example.com"`) |
+| `srcDir` | `string` | Absolute path to the Markdown source directory |
+| `outDir` | `string` | Absolute path to the build output directory |
+| `head` | `string[]` | Raw `<head>` tags injected verbatim (analytics, icons) |
+| `themeConfig` | `ThemeConfig` | Navigation, sidebar, footer, social links, etc. |
+| `lastUpdated` | `boolean?` | Show last-updated date from `git log`. Default: `false` |
+| `locales` | `Record<string, LocaleConfig>?` | i18n locale routing |
+
+## ThemeConfig
+
+| Field | Type | Description |
+|---|---|---|
+| `nav` | `NavItem[]` | Top navigation bar |
+| `sidebar` | `Record<string, SidebarItem[]>` | Sidebar keyed by route prefix — longest match wins |
+| `logo` | `string?` | Path to logo image |
+| `search` | `false \| { placeholder?, limit? }?` | Built-in local search. Pass `false` to disable |
+| `footerMessage` | `string?` | Footer content |
+| `socialLinks` | `SocialLink[]?` | GitHub, Twitter, Discord, etc. icon links in header |
+| `editLink` | `EditLink?` | "Edit this page" link (pattern: `https://github.com/…/:path`) |
+| `outline` | `{ level: [number, number] }?` | TOC heading levels. Default: `[2, 3]` |
+| `mermaid` | `boolean \| { cdn? }?` | Enable Mermaid diagrams (loaded via CDN) |
+| `announcementBar` | `{ id?, text, dismissible? }?` | Dismissible banner above the page |
+
+## NavItem
+
+```ts
+{ text: string; link?: string; items?: { text: string; link: string }[] }
+```
+
+- Flat link: `{ text: "Guide", link: "/guide/" }`
+- Dropdown: `{ text: "Packages", items: [...] }`
+
+## SidebarItem
+
+```ts
+{
+  text: string
+  link?: string
+  items?: SidebarItem[]
+  badge?: { text: string; type?: "tip" | "info" | "warning" | "danger" }
+  collapsed?: boolean
+}
+```
+
+## SocialLink
+
+```ts
+{ icon: "github" | "twitter" | "discord" | "youtube" | "npm" | string; link: string; ariaLabel?: string }
+```
+
+For custom icons, pass a URL or SVG data URI as `icon`.
+
+### deploy.md
+
+---
+title: "Deploying"
+description: "Deploy @domphy/press sites to Vercel, Netlify, and other platforms."
+---
+
+# Deploying
+
+## CLI
+
+```bash
+# Build
+npx domphy-press build
+
+# Preview the build locally
+npx domphy-press preview
+
+# Dev server with live reload
+npx domphy-press dev
+```
+
+Or via the programmatic API:
+
+```ts
+import { buildSite } from "@domphy/press"
+import { config } from "./press.config.js"
+
+await buildSite({ config, srcDir: config.srcDir, outDir: config.outDir })
+```
+
+## Vercel
+
+Add a `vercel.json`:
+
+```json
+{
+  "buildCommand": "domphy-press build",
+  "outputDirectory": "dist"
+}
+```
+
+Or set the **Output Directory** to `dist` in the Vercel project settings.
+
+## Netlify
+
+`netlify.toml`:
+
+```toml
+[build]
+  command = "domphy-press build"
+  publish = "dist"
+```
+
+## GitHub Pages
+
+`.github/workflows/deploy.yml`:
+
+```yaml
+- name: Build
+  run: npx domphy-press build
+
+- name: Deploy
+  uses: peaceiris/actions-gh-pages@v3
+  with:
+    publish_dir: ./dist
+```
+
+Set `base` in `press.config.ts` to your repo name (e.g. `"/my-repo/"`).
+
+## Custom CSS
+
+Override or extend the default theme CSS via `pressCSS`:
+
+```ts
+import { pressCSS } from "@domphy/press"
+
+const customCss = pressCSS() + `
+  .dp-header { background: hotpink; }
+`
+```
+
+Pass `customCss` to your custom build script's HTML document function.
+
+### index.md
+
+---
+title: "@domphy/press"
+description: "Static documentation site framework for Domphy — built on @domphy/app + @domphy/markdown, VitePress-compatible."
+---
+
+# @domphy/press
+
+A VitePress-baseline static documentation site framework built on `@domphy/app` and `@domphy/markdown`. Features the same Markdown authoring experience as VitePress plus Domphy-native CSS-in-JS theming — no separate stylesheet to maintain.
+
+## Features
+
+- **VitePress-compatible Markdown** — containers (tip/warning/danger/info/note/…), code-group tabs, `<<<` file imports, GFM task lists, mark/sub/sup, emoji
+- **Shiki syntax highlighting** — line highlighting, diff annotations, focus groups, copy button
+- **Automatic dark mode** — via `themeCSS()` + `pressCSS()` CSS var overrides; no flash of unstyled content
+- **Built-in local search** — client-side JSON index, no server required
+- **Full VitePress navigation** — top nav, sidebar with collapsible groups and badges, TOC aside, prev/next
+- **Extras** — announcement bar, social links, edit link, last-updated (from git), reading time, heading anchors, mermaid diagrams (CDN), i18n locale routing
+
+## Installation
+
+```bash
+npm install @domphy/press
+```
+
+## Quickstart
+
+Create `press.config.ts`:
+
+```ts
+import { defineConfig } from "@domphy/press"
+
+export default defineConfig({
+  title: "My Docs",
+  description: "Documentation for my project.",
+  base: "/",
+  hostname: "https://example.com",
+  srcDir: "docs",
+  outDir: "dist",
+  head: ['<link rel="icon" href="/favicon.svg">'],
+  themeConfig: {
+    nav: [
+      { text: "Guide", link: "/guide/" },
+    ],
+    sidebar: {
+      "/guide/": [
+        { text: "Getting Started", link: "/guide/" },
+      ],
+    },
+  },
+})
+```
+
+Build:
+
+```bash
+npx domphy-press build
+npx domphy-press preview
+```
+
+See the [Configuration](./config.md) and [Markdown Features](./markdown.md) guides for full details.
+
+### markdown.md
+
+---
+title: "Markdown Features"
+description: "VitePress-compatible Markdown features in @domphy/press."
+---
+
+# Markdown Features
+
+## Custom Containers
+
+```md
+
+This is a tip.
+
+Hidden content.
+
+```
+
+## Steps
+
+```md
+
+2. Configure `press.config.ts`
+3. Run `domphy-press build`
+
+```
+
+## Code Groups
+
+```md
+
+npm install @domphy/press
+\`\`\`
+\`\`\`bash [pnpm]
+pnpm add @domphy/press
+\`\`\`
+
+```
+
+## Line Highlighting
+
+~~~md
+```ts{2,4-6}
+const a = 1  // normal
+const b = 2  // highlighted
+const c = 3  // normal
+const d = 4  // highlighted
+const e = 5  // highlighted
+const f = 6  // highlighted
+```
+~~~
+
+## Diff Annotations
+
+~~~md
+```ts
+const a = 1  // [!code --]
+const b = 2  // [!code ++]
+```
+~~~
+
+## File Imports
+
+```md
+// source: ./path/to/file.ts
+
+// source: /packages/ui/src/patches/button.ts [button]
+```
+
+`@/` resolves to the parent of `srcDir`.
+
+## Emoji
+
+```md
+:tada: :smile: :rocket:  →  🎉 😄 🚀
+```
+
+## Task Lists
+
+```md
+- [x] Done
+- [ ] Todo
+```
+
+## Mark / Sub / Sup
+
+```md
+==highlighted==
+H~2~O
+E=mc^2^
+```
+
+## External Links
+
+Links to `http://` and `https://` automatically get `target="_blank" rel="noopener noreferrer"` and a `↗` suffix in the CSS.
+
+## Mermaid
+
+Enable in config with `mermaid: true`:
+
+````md
+```mermaid
+graph TD; A-->B; B-->C;
+```
+````
+
+Requires `themeConfig.mermaid: true` in `press.config.ts`. Renders via CDN on the client.
+
+## Frontmatter
+
+```yaml
+---
+title: Custom Page Title
+description: SEO meta description
+layout: home     # or "doc" (default)
+aside: false     # hide TOC
+badge: { text: "New", type: "tip" }
+---
+```
+
+## Home Page
+
+```yaml
+---
+layout: home
+hero:
+  name: My Project
+  text: The tagline
+  tagline: Short description
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /guide/
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/…
+features:
+  - icon: ⚡
+    title: Fast
+    details: Description here.
+---
+```
+
+## Include Files
+
+```md
+// include: ./snippets/install.md
+```
+
+
+
+---
+
+
+## MCP docs (`@domphy/mcp`)
+
+### index.md
+
+---
+title: "@domphy/mcp"
+description: "MCP server exposing Domphy knowledge to AI assistants — patches, packages, rules, doctor, and app blocks."
+---
+
+# @domphy/mcp
+
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that exposes Domphy's knowledge base to AI assistants. Connect it to Claude, Cursor, or any MCP-compatible tool to get accurate Domphy context without hallucination.
+
+## What it gives AI assistants
+
+- **Patch catalog** — full API of every `@domphy/ui` patch (host tag, props, style contract)
+- **Package map** — all packages, their purpose, and when to use them
+- **Rules** — the complete AGENTS.md rule set (tone model, doctor rules, naming conventions)
+- **Doctor integration** — validate and fix Domphy element trees live
+- **App block registry** — layout patterns from `@domphy/app`
+
+## Installation
+
+```bash
+npm install -g @domphy/mcp
+# or run directly:
+npx @domphy/mcp
+```
+
+## Connect to Claude Code
+
+Add to your Claude settings (`.claude/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "domphy": {
+      "command": "npx",
+      "args": ["@domphy/mcp"]
+    }
+  }
+}
+```
+
+## Tools reference
+
+See the [Tools Reference](./tools.md) for all 10 tools with full input/output schemas.
+
+### tools.md
+
+---
+title: "Tools Reference"
+description: "Full reference for all 10 @domphy/mcp tools."
+---
+
+# Tools Reference
+
+All tools communicate via the [MCP protocol](https://modelcontextprotocol.io/). In Claude Code, they are automatically discovered after configuring the server.
+
+## domphy_list_patches
+
+List every `@domphy/ui` patch with its host tag and signature.
+
+**Input:** none
+
+**Output:** Array of `{ name, tag, signature }` — one entry per patch.
+
+---
+
+## domphy_get_patch
+
+Get one patch's full contract: host tag, signature, props, example, jsdoc, and source.
+
+**Input:**
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `string` | Patch name, e.g. `"button"` |
+
+**Output:** `{ name, tag, signature, props, example, doc, source }`
+
+---
+
+## domphy_list_packages
+
+List all `@domphy/*` packages with versions and descriptions.
+
+**Input:** none
+
+**Output:** Array of `{ name, version, description }`.
+
+---
+
+## domphy_rules
+
+Get the Domphy code-generation rules (`llms.txt`) — the complete guide for writing correct Domphy code.
+
+**Input:** none
+
+**Output:** string (full llms.txt content)
+
+---
+
+## domphy_tones
+
+Get the valid tone names and theme color names for `themeColor()` and `dataTone`. Use this to avoid inventing tones like `"surface"` or `"text"` that don't exist.
+
+**Input:** none
+
+**Output:** `{ tones: string[], families: string[] }`
+
+---
+
+## domphy_diagnose
+
+Run `@domphy/doctor` on a JSON Domphy element tree and return issues to fix.
+
+Detected issues include: `inline-typography`, `void-content`, `unknown-tag`, missing/duplicate/unstable `_key`, and more.
+
+**Input:**
+
+| Field | Type | Description |
+|---|---|---|
+| `element` | `string` | JSON of the Domphy element tree |
+
+**Output:** Array of `{ rule, path, message, severity }`.
+
+---
+
+## domphy_validate
+
+Run `@domphy/doctor`'s aggregate `validate()` on a JSON element tree.
+
+**Input:**
+
+| Field | Type | Description |
+|---|---|---|
+| `element` | `string` | JSON of the Domphy element tree |
+
+**Output:** `{ ok: boolean, issues: Issue[], summary: { error, warning, info } }`
+
+---
+
+## domphy_fix
+
+Apply `@domphy/doctor`'s lossless autofix to a JSON element tree. Only provably-safe fixes are applied (e.g. `void-content`).
+
+**Input:**
+
+| Field | Type | Description |
+|---|---|---|
+| `element` | `string` | JSON of the Domphy element tree |
+
+**Output:** `{ tree: AnyElement, applied: string[], report: Issue[] }`
+
+---
+
+## domphy_list_app_blocks
+
+List the current app's reusable Domphy blocks from its `app-manifest.json` (name, kind, signature, file).
+
+Run `scripts/app-manifest.mjs` first if `app-manifest.json` is absent.
+
+**Input:** none
+
+**Output:** Array of `{ name, kind, signature, file }`.
+
+---
+
+## domphy_get_app_block
+
+Get one app block's full source, signature, and jsdoc by name.
+
+**Input:**
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `string` | App block name, e.g. `"App"` |
+
+**Output:** `{ name, kind, signature, doc, source }`
 
 
 

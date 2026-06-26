@@ -158,6 +158,18 @@ Next.js App Router-style framework — runtime (no compiler, no file-system rout
 
 - [Overview](https://domphy.com/docs/app/) · [Routing](https://domphy.com/docs/app/routing) · [Layouts & Boundaries](https://domphy.com/docs/app/layouts) · [Navigation](https://domphy.com/docs/app/navigation) · [Data Fetching](https://domphy.com/docs/app/data-fetching) · [Metadata](https://domphy.com/docs/app/metadata) · [Middleware](https://domphy.com/docs/app/middleware) · [SSR](https://domphy.com/docs/app/ssr) · [API Routes](https://domphy.com/docs/app/api-routes) · [Image & Script](https://domphy.com/docs/app/assets) · [API Reference](https://domphy.com/docs/app/api)
 
+## i18n (`@domphy/i18n`)
+
+Reactive i18next wrapper for Domphy. `createI18n<TLocale, TMessages>(options)` returns `{ t, setLocale, getLocale, initI18n, detectLocale }`. Reactive call: `t(listener, key, vars?)` re-renders on `setLocale()`; static: `t(key, vars?)`. Typed keys via generic parameter. Options: `globalKey` (dedup across chunks), `namespace`, `locales` (translation objects keyed by locale), `defaultLocale`.
+
+- [Overview](https://domphy.com/docs/i18n/) · [Setup](https://domphy.com/docs/i18n/setup) · [API](https://domphy.com/docs/i18n/api)
+
+## Press (`@domphy/press`)
+
+VitePress-baseline static doc site framework. `defineConfig(SiteConfig)` → build with `buildSite` / serve with `startServer` / `startDevServer`. Nested config: `themeConfig.{ nav, sidebar, search, socialLinks, editLink, mermaid, announcementBar }`. Renders Markdown via `@domphy/markdown` + shiki (fences → HTML strings via `press_fences`). CSS-in-JS: `pressCSS()` + `themeCSS()` — no `.css` file. Exports: `renderDoc`, `discoverPages`, `outFileForRoute`, `sidebarForRoute`, `prevNextForRoute`, `flattenSidebar`, `buildSearchIndex`, `queryIndex`, `searchWidget`, `mountSearch`, `createHighlighter`, `renderFence`, `pageShell`, `homeShell`.
+
+- [Overview](https://domphy.com/docs/press/) · [Config](https://domphy.com/docs/press/config) · [Markdown](https://domphy.com/docs/press/markdown) · [Deploy](https://domphy.com/docs/press/deploy)
+
 ## Markdown (`@domphy/markdown`)
 
 Parse Markdown into Domphy element trees for SSR/SSG — `parseMarkdown(md, options)` → `{ frontmatter, body, toc }` (markdown-it under the hood; pluggable `highlight`, anchors, TOC). Lower-level `tokensToDomphy`/`walkTokens`/`splitFrontmatter` let you run your own markdown-it (extra plugins) and reuse the canonical token→Domphy walker. This documentation site is built on it.
