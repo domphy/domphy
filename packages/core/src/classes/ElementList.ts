@@ -90,13 +90,9 @@ export class ElementList {
     const claimed = new Set<NodeItem>();
 
     // DEV-only footgun detection (warn-only — does NOT change reconciliation).
-    // An unkeyed object element reused BY POSITION whose new content is a reactive
-    // function is the dangerous case: patch() leaves a function child's listener
-    // untouched, so the reused node keeps the closure captured on its FIRST render
-    // and the subtree renders STALE data when the source changes (a different model
-    // is selected, a panel reopened, …). Track such reuse and a length change.
+    // An unkeyed list that grows or shrinks may pair the wrong node with the
+    // wrong data slot (DOM ordering issue). A fixed-length unkeyed list is safe.
     let unkeyedObjectInputs = 0;
-    let staleClosureReuse = false;
     const lengthChanged =
       __DEV__ && oldItems.length > 0
         ? inputs.length !== oldItems.length
@@ -140,12 +136,7 @@ export class ElementList {
           oldSet.has(at) &&
           !claimed.has(at)
         ) {
-          // The new element's content is a reactive function → patch() will NOT
-          // refresh it (it leaves function children untouched), so the reused node
-          // is about to render with its original, now-stale closure.
-          if (__DEV__ && typeof (input as any)[tag as string] === "function")
-            staleClosureReuse = true;
-          at.parent = this.owner as any;
+              at.parent = this.owner as any;
           at.patch(input as DomphyElement);
           claimed.add(at);
           continue;
@@ -173,23 +164,21 @@ export class ElementList {
     for (const node of extras) this.remove(node, updateDom, true);
     keyed.forEach((node) => this.remove(node, updateDom, true));
 
-    // Warn (once per call-site) when an UNKEYED reactive list is reconciled in a
-    // risky way: positional reuse just froze a reactive closure (staleClosureReuse)
-    // or the unkeyed list grew/shrank (lengthChanged) — both mean child state may
-    // not follow the data. A static, fixed-length unkeyed list never trips this.
+    // Warn (once per call-site) when an unkeyed list changes length — positional
+    // reuse may pair the wrong DOM node with the wrong data slot (focus, scroll,
+    // input value drift). A fixed-length unkeyed list never trips this.
     // Skips the first render (gated on oldItems.length > 0) and keyed lists.
     if (
       __DEV__ &&
       oldItems.length > 0 &&
       unkeyedObjectInputs > 0 &&
-      (staleClosureReuse || lengthChanged)
+      lengthChanged
     ) {
       const siteId = this.owner.nodeId;
       if (!_warnedKeylessSites.has(siteId)) {
         _warnedKeylessSites.add(siteId);
-        console.warn(
-          `[domphy] reactive list reconciled by position without _key — child state/closures may not update when data changes. Add _key to each item. (parent <${this.owner.tagName}>, ${unkeyedObjectInputs} unkeyed item${unkeyedObjectInputs === 1 ? "" : "s"})`,
-        );
+        const msg = `[domphy] unkeyed list length changed — DOM nodes reused by position may not match their data slot (focus/scroll/input-value drift). Add _key to each item. (parent <${this.owner.tagName}>, ${unkeyedObjectInputs} unkeyed item${unkeyedObjectInputs === 1 ? "" : "s"})`;
+        console.warn(msg);
       }
     }
 

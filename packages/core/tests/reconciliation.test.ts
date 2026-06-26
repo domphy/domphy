@@ -28,6 +28,7 @@ function listenerCount(state: any): number {
 afterEach(() => {
   document.body.innerHTML = "";
   _resetKeylessWarnings();
+  vi.restoreAllMocks();
 });
 
 describe("#3 keyed reconciliation reflects new data on the reused node", () => {
@@ -235,20 +236,18 @@ describe("#11 unkeyed lists reuse DOM by position (preserve focus/value/scroll)"
 });
 
 describe("DEV warning: unkeyed reactive list reconciled by position", () => {
-  const KEY_HINT = "without _key";
+  const KEY_HINT = "Add _key";
 
-  it("warns when an unkeyed reactive list's contents change (stale closure / dynamic)", async () => {
+  it("refreshes reactive function children on a positionally-reused unkeyed node", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    // The footgun: each row's content is a reactive closure captured on FIRST
-    // render. With no _key, the reused node keeps the stale closure when a
-    // different model is selected. (Mirrors the real "panel renders differently
-    // each open" / "catalog click switched 3D but not the side panel" bugs.)
+    // Previously a footgun: patch() skipped re-binding reactive function children
+    // on positionally-reused nodes, leaving them pointing at the old closure.
+    // The fix: patch() always tears down and re-sets up function children.
     const model = toState({ id: "a", name: "Model A" }, "warnModel");
-    mountApp({
+    const { host } = mountApp({
       div: (l: any) => {
-        model.get(l); // subscribe so the list re-runs when the model changes
-        // Two unkeyed sibling rows whose content is a reactive function.
+        model.get(l);
         return [
           { div: (l2: any) => `name:${model.get(l2).name}` },
           { div: (l2: any) => `id:${model.get(l2).id}` },
@@ -256,20 +255,26 @@ describe("DEV warning: unkeyed reactive list reconciled by position", () => {
       },
     } as DomphyElement);
 
-    expect(warn).not.toHaveBeenCalled(); // silent on first render
+    const outerDiv = host.querySelector("div")!;
+    const [nameDiv, idDiv] = Array.from(outerDiv.children) as HTMLElement[];
+    expect(nameDiv.textContent).toBe("name:Model A");
+    expect(idDiv.textContent).toBe("id:a");
 
-    model.set({ id: "b", name: "Model B" }); // select a different model
+    model.set({ id: "b", name: "Model B" });
     await flush();
 
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(String(warn.mock.calls[0][0])).toContain(KEY_HINT);
+    // Reactive function children re-bound after patch — no stale closure.
+    expect(host.querySelector("div")!.children[0]).toBe(nameDiv); // same DOM node
+    expect(nameDiv.textContent).toBe("name:Model B");
+    expect(idDiv.textContent).toBe("id:b");
 
-    // Throttled: re-running the same call-site again does not spam.
     model.set({ id: "c", name: "Model C" });
     await flush();
-    expect(warn).toHaveBeenCalledTimes(1);
+    expect(nameDiv.textContent).toBe("name:Model C");
+    expect(idDiv.textContent).toBe("id:c");
 
-    warn.mockRestore();
+    // No warning: length unchanged (not a DOM-ordering hazard).
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("warns when an UNKEYED list's length changes between renders", async () => {

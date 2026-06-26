@@ -25,6 +25,7 @@ export class ElementNode {
   _beforeRemoveFired = false;
   type = "ElementNode";
   parent: ElementNode | null = null;
+  _childrenRelease?: () => void;
   _portal?: (root: ElementNode) => HTMLElement;
   tagName: TagName;
   children = new ElementList(this);
@@ -73,29 +74,37 @@ export class ElementNode {
 
     if (children != null) {
       if (typeof children === "function") {
-        let listener: any = () => {
-          if (this._disposed) return;
-          try {
-            const input = children(listener);
-            this.children!.update(Array.isArray(input) ? input : [input]);
-          } catch (error) {
-            this._handleError(error);
-          }
-        };
-
-        listener!.elementNode = this;
-        listener!.debug = `class:${this.tagName}_${this.nodeId} children`;
-        listener!.onSubscribe = (release: () => void) =>
-          this.addHook("BeforeRemove", () => {
-            release();
-            listener = null;
-          });
-        listener && listener();
+        this._setupFunctionChildren(children);
       } else {
         this.children!.update(Array.isArray(children) ? children : [children]);
       }
     }
     this._hooks.Init && this._hooks.Init(this);
+  }
+
+  _setupFunctionChildren(fn: (listener: any) => any): void {
+    let listener: any = () => {
+      if (this._disposed) return;
+      try {
+        const input = fn(listener);
+        this.children!.update(Array.isArray(input) ? input : [input]);
+      } catch (error) {
+        this._handleError(error);
+      }
+    };
+    listener!.elementNode = this;
+    listener!.debug = `class:${this.tagName}_${this.nodeId} children`;
+    listener!.onSubscribe = (release: () => void) => {
+      this._childrenRelease = () => {
+        release();
+        listener = null;
+      };
+      this.addHook("BeforeRemove", () => {
+        this._childrenRelease?.();
+        this._childrenRelease = undefined;
+      });
+    };
+    listener();
   }
 
   _createDOMNode() {
@@ -233,8 +242,14 @@ export class ElementNode {
     element = mergePartial(element);
 
     // Children / content — recurse so grandchildren are reused/patched too.
+    // Reactive function always wins: release old binding and re-setup with the
+    // new closure so the node reflects the new data source, not the stale one.
     const content = element[this.tagName];
-    if (typeof content !== "function") {
+    if (typeof content === "function") {
+      this._childrenRelease?.();
+      this._childrenRelease = undefined;
+      this._setupFunctionChildren(content);
+    } else {
       const next =
         content == null ? [] : Array.isArray(content) ? content : [content];
       this.children.update(next, !!this.domElement, true);
