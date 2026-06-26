@@ -1,12 +1,13 @@
 // DomphyPress static site generator.
-// Pipeline: discover pages → renderDoc → wrap in layout → renderToString → HTML.
-// Also builds the client islands bundle and writes search-index.json + sitemap.
+// Pipeline: discover pages → renderDoc → layout → renderToString → HTML.
+// Extras: islands bundle, search index, sitemap, git last-updated, locales.
 
 import {
   cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync,
 } from "node:fs"
-import { dirname, join, resolve } from "node:path"
+import { dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
+import { execSync } from "node:child_process"
 import { createApp, defineRoutes } from "@domphy/app"
 import * as esbuild from "esbuild"
 import { createHighlighter } from "./highlight.js"
@@ -74,27 +75,36 @@ function firstParagraphText(body: unknown[]): string {
   return ""
 }
 
+function estimateReadingTime(textContent: string): number {
+  return Math.max(1, Math.round(textContent.split(/\s+/).length / 200))
+}
+
+function getLastUpdated(filePath: string): string | undefined {
+  try {
+    const result = execSync(`git log -1 --format="%aI" -- "${filePath}"`, {
+      encoding: "utf8", stdio: ["pipe", "pipe", "ignore"], timeout: 5000,
+    }).trim()
+    return result || undefined
+  } catch {
+    return undefined
+  }
+}
+
 // --- Islands bundle ----------------------------------------------------------
 
 async function buildIslandsBundle(outDir: string, searchEnabled: boolean): Promise<void> {
   if (!searchEnabled) return
-  // The islands entry just bootstraps search. Inline so no temp file needed.
   const islandsSource = join(here, "islands.js")
-  const entrySource = `
-import { bootstrap } from ${JSON.stringify(islandsSource)};
-bootstrap({ search: { kind: "search", id: "search" } });
-`
+  const entrySource = `import{bootstrap}from${JSON.stringify(islandsSource)};bootstrap({search:{kind:"search",id:"search"}});`
   const tmpEntry = join(outDir, "_press_islands_entry.js")
   mkdirSync(outDir, { recursive: true })
   writeFileSync(tmpEntry, entrySource, "utf8")
   await esbuild.build({
     entryPoints: { "press-islands": tmpEntry },
     bundle: true, splitting: false, format: "esm",
-    outdir: join(outDir, "assets"),
-    entryNames: "[name]",
+    outdir: join(outDir, "assets"), entryNames: "[name]",
     minify: true, sourcemap: false, target: "es2020",
-    define: { "process.env.NODE_ENV": '"production"' },
-    logLevel: "error",
+    define: { "process.env.NODE_ENV": '"production"' }, logLevel: "error",
   })
   rmSync(tmpEntry)
 }
@@ -111,31 +121,51 @@ function buildSitemap(routes: string[], hostname: string): string {
 
 // --- HTML document -----------------------------------------------------------
 
-const RUNTIME_SCRIPT = `
-(function(){
-  try{var t=localStorage.getItem('dp-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}
-  addEventListener('click',function(e){
-    var el=e.target.closest&&e.target.closest('[data-theme-toggle]');
-    if(el){var d=document.documentElement;var n=d.getAttribute('data-theme')==='dark'?'':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('dp-theme',n);}catch(_){}return;}
-    var m=e.target.closest&&e.target.closest('[data-menu-toggle]');
-    if(m){var d2=document.documentElement;d2.setAttribute('data-sidebar',d2.getAttribute('data-sidebar')==='open'?'':'open');}
-  });
+const RUNTIME_SCRIPT = `(function(){
+try{var t=localStorage.getItem('dp-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(_){}
+addEventListener('click',function(e){
+  var el=e.target.closest&&e.target.closest('[data-theme-toggle]');
+  if(el){var d=document.documentElement;var n=d.getAttribute('data-theme')==='dark'?'':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('dp-theme',n);}catch(_){}return;}
+  var m=e.target.closest&&e.target.closest('[data-menu-toggle]');
+  if(m){var d2=document.documentElement;d2.setAttribute('data-sidebar',d2.getAttribute('data-sidebar')==='open'?'':'open');return;}
+  var cp=e.target.closest&&e.target.closest('[data-copy]');
+  if(cp){var ci=cp.closest('.code-block-inner');var ce=ci&&ci.querySelector('code');if(ce){navigator.clipboard&&navigator.clipboard.writeText(ce.textContent||'').then(function(){cp.textContent='✓';setTimeout(function(){cp.textContent='⎘';},2000);}).catch(function(){});}return;}
+  var st=e.target.closest&&e.target.closest('[data-sidebar-toggle]');
+  if(st){var gr=st.closest('.dp-sidebar-group');if(gr)gr.classList.toggle('collapsed');return;}
+  var da=e.target.closest&&e.target.closest('[data-dismiss-announcement]');
+  if(da){var bar=document.querySelector('.dp-announcement');if(bar){var id=bar.getAttribute('data-id');if(id)try{localStorage.setItem('dp-dismiss-'+id,'1');}catch(_){}bar.remove();}return;}
+});
+addEventListener('DOMContentLoaded',function(){
+  try{document.querySelectorAll('.dp-announcement[data-id]').forEach(function(b){if(localStorage.getItem('dp-dismiss-'+b.getAttribute('data-id')))b.remove();});}catch(_){}
+});
 })();`
+
+function mermaidHeadScript(mermaid: boolean | { cdn?: string }): string {
+  const cdn = typeof mermaid === "object" && mermaid.cdn
+    ? mermaid.cdn
+    : "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs"
+  return `<script type="module">import mermaid from '${cdn}';mermaid.initialize({startOnLoad:false,theme:document.documentElement.getAttribute('data-theme')==='dark'?'dark':'default'});document.addEventListener('DOMContentLoaded',()=>mermaid.run({querySelector:'.dp-mermaid'}));</script>`
+}
 
 function htmlDocument(
   result: { html: string; css: string; head: string; status: number },
   config: SiteConfig,
   searchEnabled: boolean,
   themeCss: string,
+  pageHead: string[],
+  lang: string,
 ): string {
   const islandsScript = searchEnabled ? `\n<script type="module" src="${config.base}assets/press-islands.js"></script>` : ""
+  const mermaidScript = config.themeConfig.mermaid ? mermaidHeadScript(config.themeConfig.mermaid) : ""
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ${result.head}
 ${config.head.join("\n")}
+${pageHead.join("\n")}
+${mermaidScript}
 <style>${themeCss}</style>
 <style id="domphy-style">${result.css}</style>
 <script>${RUNTIME_SCRIPT}</script>
@@ -150,22 +180,32 @@ ${config.head.join("\n")}
 
 export interface BuildOptions {
   config: SiteConfig
-  /** Absolute path to srcDir (resolved by CLI before calling buildSite). */
   srcDir: string
-  /** Absolute path to outDir. */
   outDir: string
-  /** Absolute path to public/ dir to copy as-is. Optional. */
   publicDir?: string
-  /** Absolute path to a custom theme.css to override the default. Optional. */
   themeCssPath?: string
 }
 
 export async function buildSite(options: BuildOptions): Promise<void> {
   const { config, srcDir, outDir, publicDir, themeCssPath } = options
   const searchEnabled = config.themeConfig.search !== false
+  const showLastUpdated = !!config.lastUpdated
 
+  // Discover pages: root + locales
   const pages = discoverPages(srcDir)
-  console.log(`Discovered ${pages.length} pages.`)
+  const localePages: Array<{ filePath: string; route: string; outFile: string; localeKey: string }> = pages.map(p => ({ ...p, localeKey: "/" }))
+  if (config.locales) {
+    for (const [localeKey, locale] of Object.entries(config.locales)) {
+      if (localeKey === "/") continue
+      const localeDir = resolve(srcDir, localeKey.replace(/^\//, "").replace(/\/$/, ""))
+      if (!existsSync(localeDir)) continue
+      for (const p of discoverPages(localeDir)) {
+        const prefix = localeKey.replace(/\/$/, "")
+        localePages.push({ filePath: p.filePath, route: prefix + p.route, outFile: p.outFile === "index.html" ? localeKey.replace(/^\//, "") + "index.html" : localeKey.replace(/^\//, "") + p.outFile, localeKey })
+      }
+    }
+  }
+  console.log(`Discovered ${localePages.length} pages.`)
 
   const highlight = await createHighlighter()
   const themeCss = themeCssPath
@@ -174,45 +214,68 @@ export async function buildSite(options: BuildOptions): Promise<void> {
 
   // 1. Render markdown → Domphy docs
   const built: Array<{
-    route: string; outFile: string; title: string
+    route: string; outFile: string; title: string; localeKey: string
     doc: Awaited<ReturnType<typeof renderDoc>>
+    lastUpdated: string | undefined
+    readingTime: number
+    filePath: string
+    relPath: string
   }> = []
   const searchDocs = []
-  for (const page of pages) {
+
+  for (const page of localePages) {
     const source = readFileSync(page.filePath, "utf8")
-    const doc = await renderDoc(source, {
-      filePath: page.filePath, docsDir: srcDir, repoRoot: srcDir, highlight,
-    })
+    const doc = await renderDoc(source, { filePath: page.filePath, docsDir: srcDir, repoRoot: srcDir, highlight })
     sanitizeStyles(doc.body)
-    built.push({ route: page.route, outFile: page.outFile, title: doc.title, doc })
     const textParts: string[] = []
     flattenText(doc.body, textParts)
-    searchDocs.push({
-      route: page.route, title: doc.title,
-      text: textParts.join(" ").replace(/\s+/g, " ").trim().slice(0, 20000),
-      toc: doc.toc,
-    })
+    const textContent = textParts.join(" ").replace(/\s+/g, " ").trim()
+    const readingTime = estimateReadingTime(textContent)
+    const lastUpdated = showLastUpdated ? getLastUpdated(page.filePath) : undefined
+    const relPath = relative(srcDir, page.filePath).replace(/\\/g, "/")
+
+    built.push({ route: page.route, outFile: page.outFile, title: doc.title, localeKey: page.localeKey, doc, lastUpdated, readingTime, filePath: page.filePath, relPath })
+    searchDocs.push({ route: page.route, title: doc.title, text: textContent.slice(0, 20000), toc: doc.toc })
   }
 
+  // Per-page metadata maps (route → head strings / lang code)
+  const pageHeadMap = new Map<string, string[]>()
+  const pageLangMap = new Map<string, string>()
+
   // 2. Define @domphy/app routes
-  const routes = defineRoutes(
+  const appRoutes = defineRoutes(
     built.map(page => {
+      const localeConfig = config.locales?.[page.localeKey]
+      const mergedTheme = localeConfig?.themeConfig
+        ? { ...config.themeConfig, ...localeConfig.themeConfig }
+        : config.themeConfig
+      const mergedConfig: SiteConfig = { ...config, themeConfig: mergedTheme }
+      const lang = localeConfig?.lang ?? "en"
       const ctx: LayoutContext = {
         route: page.route, title: page.title,
         body: page.doc.body, toc: page.doc.toc,
-        frontmatter: page.doc.frontmatter, config,
+        frontmatter: page.doc.frontmatter, config: mergedConfig,
+        lastUpdated: page.lastUpdated, readingTime: page.readingTime,
+        filePath: page.relPath,
       }
-      const isHome = page.route === "/"
+      const isHome = page.route === "/" || (page.localeKey !== "/" && page.route === page.localeKey)
       const description = typeof page.doc.frontmatter.description === "string"
         ? page.doc.frontmatter.description
         : firstParagraphText(page.doc.body) || config.description
-      const pageTitle = page.title === config.title ? config.title : `${page.title} | ${config.title}`
+      const siteTitle = localeConfig?.title ?? config.title
+      const pageTitle = page.title === siteTitle ? siteTitle : `${page.title} | ${siteTitle}`
       const canonical = page.route === "/" ? `${config.hostname}/` : `${config.hostname}${page.route}/`
+      // Store per-page head and lang for use during HTML serialization
+      const pageHead = Array.isArray(page.doc.frontmatter.head)
+        ? (page.doc.frontmatter.head as string[]).filter(s => typeof s === "string")
+        : []
+      pageHeadMap.set(page.route, pageHead)
+      pageLangMap.set(page.route, lang)
       return {
         path: page.route,
         metadata: {
           title: pageTitle, description, metadataBase: config.hostname,
-          openGraph: { title: pageTitle, description, url: page.route === "/" ? "/" : `${page.route}/`, siteName: config.title, type: "website" as const },
+          openGraph: { title: pageTitle, description, url: page.route === "/" ? "/" : `${page.route}/`, siteName: siteTitle, type: "website" as const },
           twitter: { card: "summary" as const, title: pageTitle, description },
           alternates: { canonical },
         },
@@ -220,7 +283,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
       }
     }),
   )
-  const app = createApp(routes)
+  const app = createApp(appRoutes)
 
   // 3. Render each route to static HTML
   rmSync(outDir, { recursive: true, force: true })
@@ -231,11 +294,13 @@ export async function buildSite(options: BuildOptions): Promise<void> {
   for (const page of built) {
     try {
       const result = await app.renderToString(page.route)
-      const doc = htmlDocument(result, config, searchEnabled, themeCss)
+      const pageHead = pageHeadMap.get(page.route) ?? []
+      const lang = pageLangMap.get(page.route) ?? "en"
+      const html = htmlDocument(result, config, searchEnabled, themeCss, pageHead, lang)
       const outPath = join(outDir, page.outFile)
       mkdirSync(dirname(outPath), { recursive: true })
-      writeFileSync(outPath, doc, "utf8")
-      totalBytes += doc.length
+      writeFileSync(outPath, html, "utf8")
+      totalBytes += html.length
       if (result.status !== 200) console.warn(`  ! ${page.route} -> status ${result.status}`)
     } catch (error) {
       failures.push({ route: page.route, error: String((error as Error).message || error) })
@@ -250,8 +315,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
   await buildIslandsBundle(outDir, searchEnabled)
 
   // 5. Search index
-  const searchIndex = buildSearchIndex(searchDocs)
-  writeFileSync(join(outDir, "search-index.json"), searchIndex, "utf8")
+  writeFileSync(join(outDir, "search-index.json"), buildSearchIndex(searchDocs), "utf8")
 
   // 6. Public dir
   if (publicDir && existsSync(publicDir)) cpSync(publicDir, outDir, { recursive: true })

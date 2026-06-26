@@ -1,12 +1,7 @@
-// Shared contracts between press modules. Single source of truth for the data
-// shapes each module produces and consumes.
-
 import type { DomphyElement } from "@domphy/core"
 import type { TocEntry } from "@domphy/markdown"
 
 export type { TocEntry }
-
-// --- Site config -------------------------------------------------------------
 
 export interface NavItem {
   text: string
@@ -18,18 +13,39 @@ export interface SidebarItem {
   text: string
   link?: string
   items?: SidebarItem[]
+  collapsed?: boolean
+  badge?: { text: string; type?: "tip" | "info" | "warning" | "danger" }
+}
+
+export interface SocialLink {
+  /** Built-in names: "github" | "twitter" | "discord" | "youtube" | "linkedin" | "mastodon".
+   *  Or an absolute URL to a custom SVG/image. */
+  icon: string
+  link: string
+  ariaLabel?: string
+}
+
+export interface EditLink {
+  /** Pattern with :path placeholder, e.g. "https://github.com/org/repo/edit/main/docs/:path" */
+  pattern: string
+  text?: string
 }
 
 export interface ThemeConfig {
   nav: NavItem[]
-  /** Keys are route prefixes (e.g. "/guide/"). Longest match wins per VitePress. */
+  /** Keys are route prefixes (e.g. "/guide/"). Longest match wins. */
   sidebar: Record<string, SidebarItem[]>
-  /** Site logo: path to image or inline SVG string. */
   logo?: string
-  /** Local search options. Enabled by default. */
   search?: false | { placeholder?: string; limit?: number }
-  /** Footer text. */
   footerMessage?: string
+  socialLinks?: SocialLink[]
+  editLink?: EditLink
+  /** TOC heading level range. Default [2, 3]. */
+  outline?: { level: [number, number] }
+  /** Enable mermaid diagrams. Pass { cdn } to override CDN URL. */
+  mermaid?: boolean | { cdn?: string }
+  /** Dismissible announcement bar shown above the page. */
+  announcementBar?: { id?: string; text: string; dismissible?: boolean }
 }
 
 export interface LocaleConfig {
@@ -43,22 +59,16 @@ export interface LocaleConfig {
 export interface SiteConfig {
   title: string
   description: string
-  /** Deploy base path. Default "/". */
   base: string
-  /** Canonical hostname for sitemap/og meta. */
   hostname: string
-  /** Directory containing markdown pages. Relative to config file. Default ".". */
   srcDir: string
-  /** Output directory. Default "dist". */
   outDir: string
-  /** Raw <head> strings injected verbatim into every page. */
   head: string[]
   themeConfig: ThemeConfig
-  /** VitePress-style i18n: root locale + additional locales by URL prefix. */
   locales?: Record<string, LocaleConfig>
+  /** Show last-updated date sourced from git. Default false. */
+  lastUpdated?: boolean
 }
-
-// --- Pipeline: markdown -> Domphy elements ----------------------------------
 
 export interface IslandRef {
   id: string
@@ -77,10 +87,8 @@ export interface RenderDocOptions {
   filePath: string
   docsDir: string
   repoRoot: string
-  highlight: (code: string, language: string) => string
+  highlight: (code: string, lang: string) => string
 }
-
-// --- Search ------------------------------------------------------------------
 
 export interface SearchDocument {
   route: string
@@ -88,8 +96,6 @@ export interface SearchDocument {
   text: string
   toc: TocEntry[]
 }
-
-// --- Build -------------------------------------------------------------------
 
 export interface PageEntry {
   route: string
