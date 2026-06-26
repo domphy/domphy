@@ -436,7 +436,6 @@ function createParser(
     "card-grid",
     "link-card",
   ]) {
-    // biome-ignore lint/suspicious/noExplicitAny: markdown-it-container type mismatch
     md.use(container as any, name, { render: noopRender });
   }
   md.core.ruler.push("press_containers", (state: CoreState) => {
