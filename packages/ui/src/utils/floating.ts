@@ -96,6 +96,20 @@ function createFloating(props: {
         const overlayNode = rNode.children!.insert(overlayEle) as ElementNode;
         overlay = overlayNode.domElement!;
       }
+      // Propagate data-theme from the trigger's ancestor so floating content
+      // inherits CSS variable scope. The portal is inserted as a sibling of
+      // [data-theme] page components — without explicit propagation, themeColor()
+      // vars are undefined inside the portal → transparent popover backgrounds.
+      if (
+        reference &&
+        overlay instanceof HTMLElement &&
+        !overlay.hasAttribute("data-theme")
+      ) {
+        const dataTheme = reference
+          .closest("[data-theme]")
+          ?.getAttribute("data-theme");
+        if (dataTheme) overlay.setAttribute("data-theme", dataTheme);
+      }
       return overlay;
     },
   };
