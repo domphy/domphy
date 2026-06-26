@@ -229,7 +229,7 @@ const AnimatedElement = {
   style: {
     transition: prefersReducedMotion
       ? "none"
-      : `transform 250ms ${themeMotion("easing-standard")}`,
+      : "transform 250ms cubic-bezier(0.2, 0, 0, 1)",
   },
 }
 ```

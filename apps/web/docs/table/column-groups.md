@@ -10,7 +10,8 @@ description: "Span multiple columns with header groups, nested column definition
 Group related columns under a shared header using nested column definitions:
 
 ```ts
-import { createColumnHelper, createDomphyTable } from "@domphy/table/domphy"
+import { createColumnHelper } from "@domphy/table"
+import { createDomphyTable } from "@domphy/table/domphy"
 
 interface Employee {
   id: number

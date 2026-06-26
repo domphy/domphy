@@ -4973,7 +4973,7 @@ const AnimatedElement = {
   style: {
     transition: prefersReducedMotion
       ? "none"
-      : `transform 250ms ${themeMotion("easing-standard")}`,
+      : "transform 250ms cubic-bezier(0.2, 0, 0, 1)",
   },
 }
 ```
@@ -6713,16 +6713,15 @@ const observer = new QueriesObserver(queryClient, [
 ])
 ```
 
-Or use the adapter version:
+Or create each query independently — they all run in parallel:
 
 ```ts
-import { createQueries } from "@domphy/query/domphy"
+const queryClient = new QueryClient()
 
-const [user, settings, notifications] = createQueries([
-  { queryKey: () => ["user"],          queryFn: fetchUser },
-  { queryKey: () => ["settings"],      queryFn: fetchSettings },
-  { queryKey: () => ["notifications"], queryFn: fetchNotifications },
-])
+// Run multiple queries in parallel — each is independent
+const user          = createQuery(queryClient, { queryKey: () => ["user"],          queryFn: fetchUser })
+const settings      = createQuery(queryClient, { queryKey: () => ["settings"],      queryFn: fetchSettings })
+const notifications = createQuery(queryClient, { queryKey: () => ["notifications"], queryFn: fetchNotifications })
 ```
 
 ## Background refetch behavior
@@ -6979,10 +6978,10 @@ import { QueryDevtools } from "@domphy/query/devtools"
 Attach the devtools to your app as a Domphy element — it appears as a floating panel:
 
 ```ts
-import { createQueryClient, QueryClientProvider } from "@domphy/query"
+import { QueryClient } from "@domphy/query"
 import { QueryDevtools } from "@domphy/query/devtools"
 
-const client = createQueryClient()
+const client = new QueryClient()
 
 const App = {
   div: [
@@ -7056,9 +7055,9 @@ The panel has two sections:
 In integration tests, you can inspect query state programmatically without the visual panel:
 
 ```ts
-import { createQueryClient } from "@domphy/query"
+import { QueryClient } from "@domphy/query"
 
-const client = createQueryClient()
+const client = new QueryClient()
 
 // After your async operations:
 const queryState = client.getQueryState(["user", "123"])
@@ -7601,32 +7600,18 @@ const Dashboard = {
 }
 ```
 
-## `createQueries` — dynamic parallel queries
+## Multiple parallel queries
 
-When the number of queries is dynamic (e.g. one query per item in a list):
+Run multiple queries in parallel by creating each independently — they all start at the same time:
 
 ```ts
-import { createQueries } from "@domphy/query/domphy"
+const queryClient = new QueryClient()
 
-const repoIds = toState<string[]>(["react", "vue", "svelte"])
-
-// Creates one query per repo id — automatically added/removed as ids change
-const repoQueries = createQueries((l) =>
-  repoIds.get(l).map((id) => ({
-    queryKey: ["repo", id],
-    queryFn: () => fetchRepo(id),
-  }))
-)
-
-const RepoList = {
-  ul: (l) => repoQueries(l).map((q, i) => ({
-    _key: i,
-    li: q.isPending ? "Loading…" : q.data?.fullName ?? "",
-  })),
-}
+// Run multiple queries in parallel — each is independent
+const user   = createQuery(queryClient, { queryKey: () => ["user", userId], queryFn: () => fetchUser(userId) })
+const posts  = createQuery(queryClient, { queryKey: () => ["posts", userId], queryFn: () => fetchPosts(userId) })
+const friends = createQuery(queryClient, { queryKey: () => ["friends", userId], queryFn: () => fetchFriends(userId) })
 ```
-
-`createQueries` takes a reactive function returning a query array. Queries are keyed by position — the count can change reactively.
 
 ## Dependent queries
 
@@ -10529,7 +10514,7 @@ Router context is a typed object available to every route's `beforeLoad`, `loade
 
 ```ts
 import { createRootRouteWithContext, createRouter } from "@domphy/router"
-import { createQueryClient, QueryClient } from "@domphy/query"
+import { QueryClient } from "@domphy/query"
 
 interface RouterContext {
   queryClient: QueryClient
@@ -10551,7 +10536,7 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
 ## Providing context when creating the router
 
 ```ts
-const queryClient = createQueryClient()
+const queryClient = new QueryClient()
 
 const router = createRouter({
   routeTree: rootRoute.addChildren([...]),
@@ -10619,7 +10604,8 @@ Or pass it through loaderData:
 const userRoute = createRoute({
   loader: ({ context }) => ({ user: context.auth.user() }),
   component: () => {
-    const { user } = userRoute.useLoaderData()
+    const match = router.state.matches.find(m => m.routeId === userRoute.id)
+    const user = match?.loaderData?.user
     return { h1: `Welcome, ${user?.name ?? "Guest"}` }
   },
 })
@@ -11832,7 +11818,8 @@ description: "Span multiple columns with header groups, nested column definition
 Group related columns under a shared header using nested column definitions:
 
 ```ts
-import { createColumnHelper, createDomphyTable } from "@domphy/table/domphy"
+import { createColumnHelper } from "@domphy/table"
+import { createDomphyTable } from "@domphy/table/domphy"
 
 interface Employee {
   id: number

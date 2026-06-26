@@ -34,32 +34,18 @@ const Dashboard = {
 }
 ```
 
-## `createQueries` — dynamic parallel queries
+## Multiple parallel queries
 
-When the number of queries is dynamic (e.g. one query per item in a list):
+Run multiple queries in parallel by creating each independently — they all start at the same time:
 
 ```ts
-import { createQueries } from "@domphy/query/domphy"
+const queryClient = new QueryClient()
 
-const repoIds = toState<string[]>(["react", "vue", "svelte"])
-
-// Creates one query per repo id — automatically added/removed as ids change
-const repoQueries = createQueries((l) =>
-  repoIds.get(l).map((id) => ({
-    queryKey: ["repo", id],
-    queryFn: () => fetchRepo(id),
-  }))
-)
-
-const RepoList = {
-  ul: (l) => repoQueries(l).map((q, i) => ({
-    _key: i,
-    li: q.isPending ? "Loading…" : q.data?.fullName ?? "",
-  })),
-}
+// Run multiple queries in parallel — each is independent
+const user   = createQuery(queryClient, { queryKey: () => ["user", userId], queryFn: () => fetchUser(userId) })
+const posts  = createQuery(queryClient, { queryKey: () => ["posts", userId], queryFn: () => fetchPosts(userId) })
+const friends = createQuery(queryClient, { queryKey: () => ["friends", userId], queryFn: () => fetchFriends(userId) })
 ```
-
-`createQueries` takes a reactive function returning a query array. Queries are keyed by position — the count can change reactively.
 
 ## Dependent queries
 

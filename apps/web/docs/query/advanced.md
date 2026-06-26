@@ -216,16 +216,15 @@ const observer = new QueriesObserver(queryClient, [
 ])
 ```
 
-Or use the adapter version:
+Or create each query independently — they all run in parallel:
 
 ```ts
-import { createQueries } from "@domphy/query/domphy"
+const queryClient = new QueryClient()
 
-const [user, settings, notifications] = createQueries([
-  { queryKey: () => ["user"],          queryFn: fetchUser },
-  { queryKey: () => ["settings"],      queryFn: fetchSettings },
-  { queryKey: () => ["notifications"], queryFn: fetchNotifications },
-])
+// Run multiple queries in parallel — each is independent
+const user          = createQuery(queryClient, { queryKey: () => ["user"],          queryFn: fetchUser })
+const settings      = createQuery(queryClient, { queryKey: () => ["settings"],      queryFn: fetchSettings })
+const notifications = createQuery(queryClient, { queryKey: () => ["notifications"], queryFn: fetchNotifications })
 ```
 
 ## Background refetch behavior

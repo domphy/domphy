@@ -26,10 +26,10 @@ import { QueryDevtools } from "@domphy/query/devtools"
 Attach the devtools to your app as a Domphy element — it appears as a floating panel:
 
 ```ts
-import { createQueryClient, QueryClientProvider } from "@domphy/query"
+import { QueryClient } from "@domphy/query"
 import { QueryDevtools } from "@domphy/query/devtools"
 
-const client = createQueryClient()
+const client = new QueryClient()
 
 const App = {
   div: [
@@ -103,9 +103,9 @@ The panel has two sections:
 In integration tests, you can inspect query state programmatically without the visual panel:
 
 ```ts
-import { createQueryClient } from "@domphy/query"
+import { QueryClient } from "@domphy/query"
 
-const client = createQueryClient()
+const client = new QueryClient()
 
 // After your async operations:
 const queryState = client.getQueryState(["user", "123"])

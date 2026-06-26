@@ -11,7 +11,7 @@ Router context is a typed object available to every route's `beforeLoad`, `loade
 
 ```ts
 import { createRootRouteWithContext, createRouter } from "@domphy/router"
-import { createQueryClient, QueryClient } from "@domphy/query"
+import { QueryClient } from "@domphy/query"
 
 interface RouterContext {
   queryClient: QueryClient
@@ -33,7 +33,7 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
 ## Providing context when creating the router
 
 ```ts
-const queryClient = createQueryClient()
+const queryClient = new QueryClient()
 
 const router = createRouter({
   routeTree: rootRoute.addChildren([...]),
@@ -101,7 +101,8 @@ Or pass it through loaderData:
 const userRoute = createRoute({
   loader: ({ context }) => ({ user: context.auth.user() }),
   component: () => {
-    const { user } = userRoute.useLoaderData()
+    const match = router.state.matches.find(m => m.routeId === userRoute.id)
+    const user = match?.loaderData?.user
     return { h1: `Welcome, ${user?.name ?? "Guest"}` }
   },
 })
