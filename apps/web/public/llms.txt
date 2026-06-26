@@ -176,6 +176,16 @@ Color-palette quality engine (design-time companion to `@domphy/theme`): measure
 
 - [Overview](https://domphy.com/docs/palette/) · [Measuring quality](https://domphy.com/docs/palette/measuring)
 
+## Audit (`@domphy/audit`)
+
+Baseline-free layout verification via Playwright. `checkLayout(page, options?)` returns `{ ok, issues, svg }`:
+
+- **overlap** — detects sibling elements whose bounding boxes intersect (excludes ancestor-descendant pairs, uses DOM `contains()`)
+- **geometry** — verifies Domphy-styled buttons match the formula `height = (6 + 2d) * U` where `d` is density value and `U = fontSize/4`; detects when padding doesn't match any valid density
+- **contrast** — WCAG 4.5:1 check on text elements via computed `color` + resolved background color
+
+`svg` output is a lightweight SVG skeleton of the rendered layout with issues annotated in color (red=overlap, orange=geometry, gold=contrast) — text, diffable, no baseline. Individual checkers: `detectOverlaps(page)`, `verifyGeometry(page, tolerance?)`, `checkContrast(page, minRatio?)`. Utility: `snapshot(page)` → `LayoutSnapshot`, `toSVG(layout, issues)` → string. Complements `@domphy/doctor` (static pre-render analysis) with runtime post-render checks. No dep on `@domphy/core`; Playwright is an optional peer dep.
+
 ## Doctor (`@domphy/doctor`)
 
 Static analyzer for Domphy element trees — `diagnose(element)` returns `Diagnostic[]`; `validate(element)` returns `{ ok, issues, summary }`; `fix(element)` returns `{ tree, applied, report }`, applying lossless fixes (e.g. void-content) and listing the rest. Rules: `inline-typography`, `raw-theme-value`, `raw-spacing-value` (incl. logical props paddingBlock/paddingInline/marginBlock/marginInline), `unknown-tone` (dataTone grammar + range ≤ 17), `middle-surface-anchor` (dataTone shift-4–13 collapses contrast), `unknown-density` (dataDensity range ≤ 4), `unknown-size` (dataSize range ≤ 7), `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. Run it on generated code and fix what it reports — the AI self-correction loop. Pairs with the app-block registry (`app-manifest.json`) for large codebases.

@@ -118,6 +118,10 @@ await includeDir(
   resolve(ROOT, "docs/doctor"),
   "Doctor docs (`@domphy/doctor`)",
 );
+await includeDir(
+  resolve(ROOT, "docs/audit"),
+  "Audit docs (`@domphy/audit`)",
+);
 
 hr();
 push("## UI patch source (`@domphy/ui`)\n");

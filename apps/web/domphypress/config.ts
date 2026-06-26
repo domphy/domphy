@@ -35,6 +35,7 @@ export const config: SiteConfig = {
         { text: "Markdown", link: "/docs/markdown/" },
         { text: "Mermaid", link: "/docs/mermaid/" },
         { text: "Doctor", link: "/docs/doctor/" },
+        { text: "Audit", link: "/docs/audit/" },
       ],
     },
     {
@@ -248,6 +249,7 @@ export const config: SiteConfig = {
     "/docs/form/": [{ text: "Overview", link: "/docs/form/" }],
     "/docs/dnd/": [{ text: "Overview", link: "/docs/dnd/" }],
     "/docs/doctor/": [{ text: "Overview", link: "/docs/doctor/" }],
+    "/docs/audit/": [{ text: "Overview", link: "/docs/audit/" }],
     "/docs/palette/": [
       { text: "Overview", link: "/docs/palette/" },
       { text: "Paper — Measuring Quality", link: "/docs/palette/measuring" },
@@ -309,6 +311,7 @@ export const config: SiteConfig = {
       { text: "Palette", link: "/docs/palette/" },
       { text: "App", link: "/docs/app/" },
       { text: "Doctor", link: "/docs/doctor/" },
+      { text: "Audit", link: "/docs/audit/" },
       { text: "Integrations", link: "/docs/integrations/" },
       { text: "Research", link: "/docs/research/" },
       { text: "Showcases", link: "/docs/showcases/" },

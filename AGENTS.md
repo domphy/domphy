@@ -59,6 +59,7 @@ const App = {
 | `@domphy/palette` | color-palette engine: `Ramp`/`Palette`/`Swatch` — 5 CIELAB quality metrics (design-time companion to theme) |
 | `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `tokensToDomphy`); powers this docs site |
 | `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
+| `@domphy/audit` | baseline-free layout verification via Playwright — `checkLayout(page)` detects sibling overlaps, Domphy geometry violations (button height formula), WCAG contrast failures. Returns `{ ok, issues, svg }` (SVG layout map annotated with issues). Individual checkers: `detectOverlaps`, `verifyGeometry`, `checkContrast`. Complements `@domphy/doctor` (static pre-render) with runtime post-render checks. |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
 | `domphy-web` | docs website — built with DomphyPress on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |

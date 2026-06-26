@@ -24,6 +24,7 @@
     "publish:markdown": "cd packages/markdown && pnpm publish --access public --no-git-checks",
     "publish:mermaid": "cd packages/mermaid && pnpm publish --access public --no-git-checks",
     "publish:mcp": "cd packages/mcp && pnpm publish --access public --no-git-checks",
+    "publish:audit": "cd packages/audit && pnpm publish --access public --no-git-checks",
     "publish:create-domphy": "cd packages/create-domphy && pnpm publish --access public --no-git-checks",
     "bench": "pnpm --filter bench bench",
     "bench:dry": "pnpm --filter bench bench:dry"
