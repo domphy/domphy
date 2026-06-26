@@ -58,7 +58,7 @@ describe("setupTransitioner cleanup", () => {
     const originalHistorySubscribe = router.history.subscribe.bind(
       router.history,
     );
-    router.history.subscribe = (cb: () => void) => {
+    (router.history as unknown as { subscribe: (cb: () => void) => () => void }).subscribe = (cb: () => void) => {
       const realUnsub = originalHistorySubscribe(cb);
       return () => {
         historyUnsub();
@@ -88,9 +88,9 @@ describe("setupTransitioner cleanup", () => {
     // and a spy unsubscribe that flips a flag when invoked.
     let registeredUpdate: (() => void) | null = null;
     let unsubscribed = false;
-    const originalSubscribe = router.stores.isLoading.subscribe.bind(
-      router.stores.isLoading,
-    );
+    const originalSubscribe = (
+      router.stores.isLoading as unknown as { subscribe: (cb: () => void) => unknown }
+    ).subscribe.bind(router.stores.isLoading);
     (router.stores.isLoading as never as {
       subscribe: (cb: () => void) => unknown;
     }).subscribe = (cb: () => void) => {
