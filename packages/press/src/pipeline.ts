@@ -161,6 +161,7 @@ function buildCodeGroupTokens(
   openIndex: number,
   closeIndex: number,
   groupId: number,
+  highlight: (code: string, lang: string) => string,
 ): MarkdownItToken[] {
   const open = tokens[openIndex];
   open.tag = "div";
@@ -197,21 +198,28 @@ function buildCodeGroupTokens(
     )
     .join("");
 
+  // Pre-render all fences into a single <div class="blocks"> html_block so the
+  // wrapper is a complete HTML element. Splitting into separate open/close tag
+  // tokens causes isHTML() to return false (no matching close tag) and the
+  // partial tags get text-escaped and shown literally in the output.
+  const blocksHtml = fences
+    .map((fence) => {
+      const rawInfo = (fence.token.info ?? "").replace(/\[[^\]]*\]/, "").trim();
+      return renderFence(fence.token.content, rawInfo, highlight);
+    })
+    .join("");
+
   const inner: MarkdownItToken[] = [
     buildHtmlBlock(Token, `${inputsHtml}<div class="tabs">${labelsHtml}</div>`),
-    buildHtmlBlock(Token, `<div class="blocks">`),
+    buildHtmlBlock(Token, `<div class="blocks">${blocksHtml}</div>`),
   ];
-  fences.forEach((fence) => {
-    fence.token.info = (fence.token.info ?? "")
-      .replace(/\[[^\]]*\]/, "")
-      .trim();
-    inner.push(fence.token);
-  });
-  inner.push(buildHtmlBlock(Token, `</div>`));
   return [open, ...inner, close];
 }
 
-function shapeContainers(tokens: MarkdownItToken[]): MarkdownItToken[] {
+function shapeContainers(
+  tokens: MarkdownItToken[],
+  highlight: (code: string, lang: string) => string,
+): MarkdownItToken[] {
   if (tokens.length === 0) return tokens;
   const Token = tokens[0].constructor as new (
     type: string,
@@ -364,7 +372,14 @@ function shapeContainers(tokens: MarkdownItToken[]): MarkdownItToken[] {
         continue;
       }
       output.push(
-        ...buildCodeGroupTokens(Token, tokens, i, closeIndex, groupCounter++),
+        ...buildCodeGroupTokens(
+          Token,
+          tokens,
+          i,
+          closeIndex,
+          groupCounter++,
+          highlight,
+        ),
       );
       i = closeIndex;
       continue;
@@ -437,7 +452,7 @@ function createParser(
     md.use(container as any, name, { render: noopRender });
   }
   md.core.ruler.push("press_containers", (state: CoreState) => {
-    state.tokens = shapeContainers(state.tokens);
+    state.tokens = shapeContainers(state.tokens, highlight);
     return true;
   });
   md.core.ruler.push("press_task_lists", (state: CoreState) => {
