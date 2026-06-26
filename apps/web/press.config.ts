@@ -287,9 +287,13 @@ export const config = defineConfig({
       "/docs/press/": [
         { text: "Overview", link: "/docs/press/" },
         { text: "Configuration", link: "/docs/press/config" },
+        { text: "Routing", link: "/docs/press/routing" },
         { text: "Markdown Features", link: "/docs/press/markdown" },
+        { text: "Search", link: "/docs/press/search" },
+        { text: "Internationalization", link: "/docs/press/i18n" },
         { text: "Customization", link: "/docs/press/customization" },
         { text: "Deploying", link: "/docs/press/deploy" },
+        { text: "Programmatic API", link: "/docs/press/api" },
       ],
       "/docs/mcp/": [
         { text: "Overview", link: "/docs/mcp/" },
