@@ -16,10 +16,16 @@ The SSR challenge is different: **how to pre-populate forms with server data** a
 The simplest approach with `@domphy/app` — load the data in the route loader and pass it to the form as `defaultValues`:
 
 ```ts
+import { type Listener, toState } from "@domphy/core"
+import { type AnyRouteMatch } from "@domphy/router"
 import { createRoute } from "@domphy/router"
 import { createForm } from "@domphy/form/domphy"
 import { inputText, label, formGroup, button } from "@domphy/ui"
 import { themeSpacing } from "@domphy/theme"
+
+// Reactive state synced from the router (set up once in app bootstrap):
+//   router.subscribe("onResolved", () => matches.set(router.state.matches))
+declare const matches: ReturnType<typeof toState<AnyRouteMatch[]>>
 
 interface Post {
   id: number
@@ -35,8 +41,9 @@ const editPostRoute = createRoute({
   component: EditPost,
 })
 
-function EditPost() {
-  const post = editPostRoute.useLoaderData() as Post
+function EditPost(l: Listener) {
+  const matches = routerState.get(l).matches
+  const post = matches.find(m => m.routeId === editPostRoute.id)?.loaderData as Post
 
   const form = createForm<{ title: string; body: string }>({
     defaultValues: { title: post.title, body: post.body },

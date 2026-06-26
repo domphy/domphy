@@ -21,12 +21,12 @@ flowchart LR
 ```ts
 import { renderMermaidInTree } from "@domphy/mermaid"
 
-const diagram = await renderMermaidInTree({
+const diagram = await renderMermaidInTree([{
   pre: [{ code: `flowchart LR
   A[Start] --> B{Decision}
   B -- Yes --> C[Do it]
   B -- No --> D[Skip it]` }],
-})
+}])
 ```
 
 Flowchart directions: `TB` (top→bottom), `LR` (left→right), `BT`, `RL`.

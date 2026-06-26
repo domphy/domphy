@@ -7,16 +7,16 @@ description: "Customize diagram appearance with Mermaid themes, fontFamily, and 
 
 ## Global configuration
 
-Pass a `config` object to the `mermaid` patch to apply settings to all diagrams on the page:
+Pass options to `mermaidClient` to apply settings to all diagrams on the page. The `theme` key is top-level; anything else that Mermaid accepts goes inside `mermaidConfig`:
 
 ```ts
-import { mermaid } from "@domphy/mermaid"
+import { mermaidClient } from "@domphy/mermaid"
 
 const DiagramPage = {
   div: DiagramContent,
-  $: [mermaid({
-    config: {
-      theme: "default",
+  $: [mermaidClient({
+    theme: "default",
+    mermaidConfig: {
       fontFamily: "Inter, sans-serif",
       fontSize: 14,
       startOnLoad: false,
@@ -38,27 +38,26 @@ Mermaid ships five built-in themes:
 | `"base"` | Minimal — best base for custom theming |
 
 ```ts
-// Match the Domphy theme
-const isDark = themeName(myElement) === "dark"
+import { mermaidClient } from "@domphy/mermaid"
 
 const DiagramBlock = {
   div: null,
-  $: [mermaid({
-    config: { theme: isDark ? "dark" : "default" },
-  })],
+  $: [mermaidClient({ theme: "dark" })],
 }
 ```
 
 ## Theme variables (custom theme)
 
-Use the `"base"` theme with `themeVariables` for full control:
+Use the `"base"` theme with `themeVariables` inside `mermaidConfig` for full control:
 
 ```ts
+import { mermaidClient } from "@domphy/mermaid"
+
 const DiagramBlock = {
   div: null,
-  $: [mermaid({
-    config: {
-      theme: "base",
+  $: [mermaidClient({
+    theme: "base",
+    mermaidConfig: {
       themeVariables: {
         primaryColor: "#7c3aed",        // node fill
         primaryTextColor: "#ffffff",    // node text
@@ -132,30 +131,33 @@ sequenceDiagram
 Reactively switch diagram theme when the Domphy theme changes:
 
 ```ts
+import { mermaidClient } from "@domphy/mermaid"
 import { themeName } from "@domphy/theme"
-import { toState, effect } from "@domphy/core"
+import { toState } from "@domphy/core"
 
 const diagramTheme = toState<"default" | "dark">("default")
 
-// Sync with Domphy theme
-effect(() => {
-  const name = themeName(someElement)
-  diagramTheme.set(name === "dark" ? "dark" : "default")
-})
-
 const DiagramBlock = {
   div: null,
-  $: [(l) => mermaid({ config: { theme: diagramTheme.get(l) } })],
+  $: [(l) => mermaidClient({ theme: diagramTheme.get(l) })],
+}
+
+// Update diagramTheme whenever the page theme changes
+function syncTheme(node: ElementNode) {
+  const name = themeName(node)
+  diagramTheme.set(name === "dark" ? "dark" : "default")
 }
 ```
 
 ## Render options
 
 ```ts
+import { mermaidClient } from "@domphy/mermaid"
+
 const DiagramBlock = {
   div: null,
-  $: [mermaid({
-    config: {
+  $: [mermaidClient({
+    mermaidConfig: {
       securityLevel: "strict",    // or "loose" for trusted HTML in labels
       maxTextSize: 50_000,        // max characters — raise for large diagrams
       maxEdges: 500,              // max edges before truncation warning

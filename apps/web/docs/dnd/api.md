@@ -68,7 +68,7 @@ interface ParentConfig<T> {
 Import plugins from `@domphy/dnd` (re-exported from `@formkit/drag-and-drop`):
 
 ```ts
-import { animations, multiDrag, handleClass } from "@domphy/dnd"
+import { animations } from "@domphy/dnd"
 ```
 
 ### `animations(config?)`
@@ -87,30 +87,9 @@ interface AnimationsConfig {
 }
 ```
 
-### `multiDrag(config?)`
+### Drag handles via `handleClass`
 
-Allow selecting multiple items (hold `Shift` or `Ctrl/Cmd`) and dragging them together:
-
-```ts
-import { multiDrag, selections } from "@domphy/dnd"
-
-const selectedItems = selections(items)   // tracks selected subset
-
-const App = {
-  ul: (l) => items.get(l).map((item) => ({
-    li: item.label,
-    _key: item.id,
-    class: (l) => selectedItems.get(l).has(item.id) ? "selected" : "",
-  })),
-  $: [dragDrop(items, {
-    plugins: [multiDrag({ selectedClass: "selected" })],
-  })],
-}
-```
-
-### `handleClass(className?)`
-
-Scope dragging to a handle element inside each item. Items without a matching handle element are not draggable by direct drag — only by their handle:
+`handleClass` is a config string key — not a plugin. Scope dragging to a handle element inside each item:
 
 ```ts
 { ul: (l) => items.get(l).map((item) => ({
@@ -122,6 +101,8 @@ Scope dragging to a handle element inside each item. Items without a matching ha
 })),
 $: [dragDrop(items, { handleClass: "handle" })] }
 ```
+
+Items without a matching `.handle` element are not draggable by direct drag.
 
 ---
 
@@ -207,13 +188,15 @@ All `@formkit/drag-and-drop` exports are re-exported from `@domphy/dnd`:
 ```ts
 import {
   dragAndDrop,      // low-level setup for a container element
-  useDragAndDrop,   // framework-agnostic reactive helper
-  selections,       // multi-select state helper
-  swap,             // swap two elements without triggering full re-sort
-  insert,           // insert at specific index
-  multiDrag,
-  animations,
-  handleClass,
+  animations,       // plugin: smooth CSS transitions
+  insert,           // plugin: insert items at specific positions
+  sort,             // plugin: sort-only (no transfer)
+  transfer,         // plugin: transfer between lists
+  dropOrSwap,       // drop zone: swap positions instead of shift
+  parentValues,     // get current values from a parent element
+  setParentValues,  // programmatically update a parent's values
+  nodes,            // map of all registered node elements
+  parents,          // map of all registered parent elements
 } from "@domphy/dnd"
 ```
 
