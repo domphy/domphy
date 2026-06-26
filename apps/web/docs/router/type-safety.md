@@ -52,8 +52,9 @@ const searchRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/search",
   validateSearch: SearchSchema.parse,
-  component: () => {
-    const { query, page, sort } = searchRoute.useSearch()
+  component: (l) => {
+    const match = matches.get(l).find((m) => m.routeId === searchRoute.id)
+    const { query, page, sort } = match?.search as SearchParams
     // query: string, page: number, sort: "name"|"date"|"price"
     return {
       div: [
@@ -80,9 +81,10 @@ const postRoute = createRoute({
     const post: Post = await fetchPost(Number(params.postId))
     return { post }
   },
-  component: () => {
-    const { post } = postRoute.useLoaderData()
-    // post: Post — no type assertion needed
+  component: (l) => {
+    const match = matches.get(l).find((m) => m.routeId === postRoute.id)
+    const { post } = match?.loaderData as { post: Post }
+    // post: Post — typed via loader return type
 
     return {
       article: [

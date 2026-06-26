@@ -5,39 +5,76 @@ description: "Prevent navigation away from unsaved forms, confirm before leaving
 
 # Navigation Blocking
 
-Prevent accidental navigation away from a page with unsaved changes — show a confirmation dialog before the user leaves.
+## Blocking with `beforeunload`
 
-## `useBlocker` — block programmatic navigation
-
-`useBlocker` halts all navigation (back button, router.navigate, link clicks) when a condition is true:
+The simplest pattern — show the native browser dialog when the user tries to close/refresh the tab with unsaved changes:
 
 ```ts
-import { useBlocker } from "@domphy/router"
+import { effect } from "@domphy/core"
 import { toState } from "@domphy/core"
 
 const formDirty = toState(false)
 
-const { proceed, reset, status } = useBlocker({
-  shouldBlockFn: () => formDirty.get(),
-  withResolver: true,
+effect(() => {
+  const dirty = formDirty.get()
+
+  if (dirty) {
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ""   // Chrome requires this to show the dialog
+    }
+    window.addEventListener("beforeunload", handler)
+    return () => window.removeEventListener("beforeunload", handler)
+  }
 })
 ```
 
-When `shouldBlockFn` returns `true`, navigation is blocked. `status` becomes `"blocked"`. Your UI can then show a confirmation:
+Note: modern browsers show their own generic message in `beforeunload` — you cannot customize the text.
+
+## Blocking router navigation with a confirmation dialog
+
+For in-app navigation (router.navigate, Link clicks, back button), intercept via `router.subscribe("onBeforeNavigate", ...)` and show a custom dialog:
 
 ```ts
-const UnsavedChangesDialog = {
+import { createRouter } from "@domphy/router"
+import { toState } from "@domphy/core"
+
+const formDirty = toState(false)
+const pendingNavigation = toState<(() => void) | null>(null)
+
+const router = createRouter({ routeTree })
+
+router.subscribe("onBeforeNavigate", ({ event }) => {
+  if (formDirty.get()) {
+    // Store the navigation intent so we can resume it after confirmation
+    pendingNavigation.set(() => event.preventDefault = false)
+    event.preventDefault()   // block for now
+  }
+})
+
+const ConfirmDialog = {
   div: [
     { h2: "Unsaved changes" },
     { p: "You have unsaved changes. Leave anyway?" },
     {
       div: [
-        { button: "Stay", onClick: () => reset() },
-        { button: "Leave", onClick: () => proceed() },
+        {
+          button: "Stay",
+          onClick: () => pendingNavigation.set(null),
+        },
+        {
+          button: "Leave",
+          onClick: () => {
+            formDirty.set(false)                 // clear dirty state
+            const resume = pendingNavigation.get()
+            pendingNavigation.set(null)
+            if (resume) resume()                 // retry the navigation
+          },
+        },
       ],
     },
   ],
-  hidden: (l) => status(l) !== "blocked",
+  hidden: (l) => pendingNavigation.get(l) === null,
   style: {
     position: "fixed",
     inset: 0,
@@ -50,127 +87,91 @@ const UnsavedChangesDialog = {
 }
 ```
 
-- `proceed()` — allow the navigation to continue
-- `reset()` — cancel the blocked navigation, stay on current page
+## Auto-save (alternative to blocking)
 
-## Wiring with form state
+Instead of blocking navigation, auto-save periodically so there's never unsaved work to lose:
 
 ```ts
+import { effect } from "@domphy/core"
 import { createForm } from "@domphy/form/domphy"
-import { useBlocker } from "@domphy/router"
 
 const form = createForm<EditInput>({
   defaultValues: { title: "", body: "" },
-  onSubmit: async ({ value }) => {
-    await savePost(value)
-    // After successful save, isDirty becomes false — blocker relaxes
-  },
+  onSubmit: async ({ value }) => saveFinal(value),
 })
 
-const { proceed, reset, status } = useBlocker({
-  shouldBlockFn: () => form.isDirty(),
-  withResolver: true,
-})
-
-const EditPage = {
-  div: [
-    EditForm,
-    UnsavedChangesDialog,   // shows when status === "blocked"
-  ],
-}
-```
-
-## `beforeunload` for browser navigation
-
-`useBlocker` only intercepts router navigation. To block browser-level navigation (refresh, closing tab, navigating to external URL), also wire `beforeunload`:
-
-```ts
-import { effect } from "@domphy/core"
-
-// Show native browser dialog when closing/refreshing with unsaved changes
-effect(() => {
-  const dirty = formDirty.get()
-
-  if (dirty) {
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault()
-      e.returnValue = ""   // Chrome requires this
-    }
-    window.addEventListener("beforeunload", handler)
-    return () => window.removeEventListener("beforeunload", handler)
-  }
-})
-```
-
-Note: modern browsers show their own generic message — you can't customize the text in `beforeunload`.
-
-## Auto-save (alternative to blocking)
-
-Instead of blocking navigation, auto-save the form periodically so there's never unsaved work:
-
-```ts
-import { effect } from "@domphy/core"
-
-// Auto-save every 10 seconds when the form is dirty
+// Auto-save every 10 seconds when dirty
 effect(() => {
   const dirty = form.isDirty()
   if (!dirty) return
 
-  const timer = setInterval(async () => {
-    if (form.isDirty()) {
-      await saveDraft(form.form.state.values)
-    }
+  const timer = setInterval(() => {
+    if (form.isDirty()) saveDraft(form.form.state.values)
   }, 10_000)
 
   return () => clearInterval(timer)
 })
-```
 
-Or save on `visibilitychange` (user switches tabs):
-
-```ts
+// Also save on tab hide (user switches to another tab)
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden && form.form.state.isDirty) {
+  if (document.hidden && form.isDirty()) {
     saveDraft(form.form.state.values)
   }
 })
 ```
 
-## Blocking state machine
+## "Leave" link with confirmation
 
-The blocker state transitions:
-
-```
-idle → (navigation attempted, shouldBlockFn = true) → blocked
-blocked → proceed() → unblocked (navigation continues)
-blocked → reset() → idle (navigation cancelled)
-```
-
-Access the full state:
+For a specific link that should confirm before leaving:
 
 ```ts
-const blocker = useBlocker({ shouldBlockFn: () => isDirty })
+import { toState } from "@domphy/core"
 
-// blocker.state → "idle" | "blocked"
-// blocker.location → the location the user tried to navigate to (when blocked)
-// blocker.proceed() → allow navigation
-// blocker.reset() → cancel navigation
+const showConfirm = toState(false)
+const targetHref = toState("")
+
+const SafeLink = (href: string, label: string) => ({
+  a: label,
+  href,
+  onClick: (e: MouseEvent) => {
+    if (formDirty.get()) {
+      e.preventDefault()
+      targetHref.set(href)
+      showConfirm.set(true)
+    }
+  },
+})
+
+const LeaveConfirmDialog = {
+  div: [
+    { h2: "Unsaved changes" },
+    { p: "Leave without saving?" },
+    {
+      div: [
+        { button: "Cancel", onClick: () => showConfirm.set(false) },
+        {
+          button: "Leave",
+          onClick: () => {
+            formDirty.set(false)
+            showConfirm.set(false)
+            router.navigate({ to: targetHref.get() })
+          },
+        },
+      ],
+    },
+  ],
+  hidden: (l) => !showConfirm.get(l),
+}
 ```
 
-## Multiple blockers
+## `ignoreBlocker` — bypass confirmation
 
-Multiple `useBlocker` calls coexist — navigation is blocked if ANY returns `true`:
+Some navigations should never be blocked (e.g., logout, error recovery):
 
 ```ts
-const videoBlocker = useBlocker({
-  shouldBlockFn: () => videoPlaying.get(),
-  withResolver: true,
+router.navigate({
+  to: "/login",
+  ignoreBlocker: true,   // skip any blocking logic
+  replace: true,
 })
-
-const formBlocker = useBlocker({
-  shouldBlockFn: () => form.isDirty(),
-  withResolver: true,
-})
-
-// Both must be resolved / reset before navigation proceeds
 ```

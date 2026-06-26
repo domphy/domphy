@@ -109,8 +109,9 @@ const editRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/posts/$postId/edit",
   loader: ({ params }) => fetchPost(Number(params.postId)),
-  component: () => {
-    const post = editRoute.useLoaderData()
+  component: (l) => {
+    const match = matches.get(l).find((m) => m.routeId === editRoute.id)
+    const post = match?.loaderData as Post
 
     const form = createForm<PostInput>({
       defaultValues: { title: post.title, body: post.body },
