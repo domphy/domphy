@@ -60,6 +60,21 @@ a:hover{text-decoration:underline}
 .dp-theme-toggle,.dp-menu-toggle{border:1px solid ${border};background:${bgSoft};color:${text};border-radius:${ts(2)};width:${ts(8.5)};height:${ts(8.5)};cursor:pointer;font-size:16px}
 .dp-menu-toggle{display:none}
 
+/* --------------------------------------------------------- locale switcher */
+.dp-locale-switcher{position:relative;display:flex;align-items:center}
+.dp-locale-current{color:${textSoft};font-size:13px;font-weight:500;cursor:pointer;user-select:none;padding:${ts(1)} ${ts(2)};border:1px solid ${border};border-radius:${ts(1.5)};background:${bgSoft};white-space:nowrap;display:flex;align-items:center;gap:${ts(1)}}
+.dp-locale-current::after{content:" ▾";font-size:10px;opacity:.6}
+.dp-locale-menu{display:none;position:absolute;top:calc(100% + ${ts(2)});right:0;background:${bgSoft};border:1px solid ${border};border-radius:${ts(2)};padding:${ts(1.5)};min-width:${ts(32)};z-index:200;flex-direction:column;gap:${ts(0.5)};box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.dp-locale-switcher:hover .dp-locale-menu,.dp-locale-switcher:focus-within .dp-locale-menu{display:flex}
+.dp-locale-option{display:block;padding:${ts(1.25)} ${ts(2.5)};border-radius:${ts(1.25)};font-size:13px;color:${textSoft}}
+.dp-locale-option:hover{background:${bgMute};color:${text};text-decoration:none}
+.dp-locale-option.active{color:${brand};font-weight:600}
+
+/* -------------------------------------------------- logo light/dark variant */
+[data-theme="dark"] .dp-logo-light{display:none}
+[data-theme="light"] .dp-logo-dark,.dp-logo-dark{display:none}
+[data-theme="dark"] .dp-logo-dark{display:block}
+
 /* ------------------------------------------------------------ social links */
 .dp-social-link{display:inline-flex;align-items:center;justify-content:center;width:${ts(8.5)};height:${ts(8.5)};border-radius:${ts(2)};color:${textSoft};background:${bgSoft};border:1px solid ${border};font-size:10px;font-weight:700;flex-shrink:0}
 .dp-social-link:hover{color:${text};border-color:${textSoft};text-decoration:none}
@@ -91,6 +106,15 @@ a:hover{text-decoration:underline}
 .dp-toc-2{padding-left:0}
 .dp-toc-3{padding-left:${ts(3)}}
 .dp-toc-4{padding-left:${ts(6)}}
+
+/* -------------------------------------------------- card / link-card / card-grid */
+.custom-block.card{background:${bgSoft};border:1px solid ${border};border-radius:${ts(3)};padding:${ts(5)} ${ts(6)};margin:${ts(3)} 0}
+.custom-block.card .card-title{font-size:16px;font-weight:600;color:${textStrong};margin:0 0 ${ts(2)}}
+.custom-block.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(${ts(56)},1fr));gap:${ts(4)};margin:${ts(4)} 0}
+a.custom-block.link-card{display:block;background:${bgSoft};border:1px solid ${border};border-radius:${ts(3)};padding:${ts(5)} ${ts(6)};margin:${ts(3)} 0;transition:border-color .15s,background .15s;text-decoration:none;color:${text}}
+a.custom-block.link-card:hover{border-color:${brand};background:${bgMute};text-decoration:none}
+a.custom-block.link-card .link-card-title{font-size:16px;font-weight:600;color:${brand};margin:0 0 ${ts(2)}}
+.custom-block.card-grid .custom-block.card,.custom-block.card-grid a.custom-block.link-card{margin:0}
 
 /* ------------------------------------------------------------------ badges */
 .dp-badge{display:inline-block;padding:${ts(0.5)} ${ts(1.75)};border-radius:${ts(2.5)};font-size:11px;font-weight:700;line-height:1.4;white-space:nowrap;vertical-align:middle}

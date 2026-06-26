@@ -182,6 +182,30 @@ function shapeContainers(tokens: MarkdownItToken[]): MarkdownItToken[] {
       output.push(token); continue
     }
     if (token.type === "container_steps_close") { token.tag = "div"; output.push(token); continue }
+    if (token.type === "container_card-grid_open") {
+      token.tag = "div"; token.attrSet("class", "custom-block card-grid")
+      output.push(token); continue
+    }
+    if (token.type === "container_card-grid_close") { token.tag = "div"; output.push(token); continue }
+    if (token.type === "container_card_open") {
+      token.tag = "div"; token.attrSet("class", "custom-block card")
+      const title = containerTitle(token.info.trim(), "card")
+      output.push(token)
+      if (title) output.push(...buildTitleTokens(Token, "p", "paragraph_open", "paragraph_close", "card-title", title))
+      continue
+    }
+    if (token.type === "container_card_close") { token.tag = "div"; output.push(token); continue }
+    if (token.type === "container_link-card_open") {
+      const info = token.info.trim().slice("link-card".length).trim()
+      const linkMatch = info.match(/^\[([^\]]+)\]\(([^)]+)\)/)
+      const href = linkMatch ? linkMatch[2] : "#"
+      const title = linkMatch ? linkMatch[1] : info
+      token.tag = "a"; token.attrSet("class", "custom-block link-card"); token.attrSet("href", href)
+      output.push(token)
+      if (title) output.push(...buildTitleTokens(Token, "p", "paragraph_open", "paragraph_close", "link-card-title", title))
+      continue
+    }
+    if (token.type === "container_link-card_close") { token.tag = "a"; output.push(token); continue }
     if (token.type === "container_code-group_open") {
       let depth = 0, closeIndex = -1
       for (let j = i; j < tokens.length; j++) {
@@ -235,7 +259,7 @@ function createParser(docsDir: string, highlight: (code: string, lang: string) =
   md.use(emojiPlugin)
   const noopRender = () => ""
   const ADMONITION_NAMES = Object.keys(ADMONITION_TITLES)
-  for (const name of [...ADMONITION_NAMES, "details", "code-group", "steps"]) {
+  for (const name of [...ADMONITION_NAMES, "details", "code-group", "steps", "card", "card-grid", "link-card"]) {
     // biome-ignore lint/suspicious/noExplicitAny: markdown-it-container type mismatch
     md.use(container as any, name, { render: noopRender })
   }

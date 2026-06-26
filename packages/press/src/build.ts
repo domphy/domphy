@@ -226,6 +226,10 @@ export async function buildSite(options: BuildOptions): Promise<void> {
   for (const page of localePages) {
     const source = readFileSync(page.filePath, "utf8")
     const doc = await renderDoc(source, { filePath: page.filePath, docsDir: srcDir, repoRoot: srcDir, highlight })
+    if (doc.frontmatter.draft === true) {
+      console.log(`  ↷ ${page.route} (draft, skipped)`)
+      continue
+    }
     sanitizeStyles(doc.body)
     const textParts: string[] = []
     flattenText(doc.body, textParts)

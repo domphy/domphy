@@ -35,13 +35,16 @@ export interface ThemeConfig {
   nav: NavItem[]
   /** Keys are route prefixes (e.g. "/guide/"). Longest match wins. */
   sidebar: Record<string, SidebarItem[]>
-  logo?: string
+  /** Single URL or separate light/dark variants. */
+  logo?: string | { light: string; dark: string }
   search?: false | { placeholder?: string; limit?: number }
   footerMessage?: string
   socialLinks?: SocialLink[]
   editLink?: EditLink
   /** TOC heading level range. Default [2, 3]. */
   outline?: { level: [number, number] }
+  /** TOC section heading text. Default "On this page". */
+  tocTitle?: string
   /** Enable mermaid diagrams. Pass { cdn } to override CDN URL. */
   mermaid?: boolean | { cdn?: string }
   /** Dismissible announcement bar shown above the page. */

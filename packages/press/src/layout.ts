@@ -84,15 +84,68 @@ function announcementBar(config: SiteConfig): DomphyElement | null {
   } as DomphyElement
 }
 
+// --- Locale switcher --------------------------------------------------------
+
+function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
+  const { config, route } = ctx
+  if (!config.locales) return null
+  const entries = Object.entries(config.locales)
+  if (entries.length <= 1) return null
+
+  let currentKey = "/"
+  let barePath = route
+  for (const [key] of entries) {
+    if (key !== "/" && route.startsWith(key.replace(/\/$/, ""))) {
+      currentKey = key
+      barePath = route.slice(key.replace(/\/$/, "").length) || "/"
+      break
+    }
+  }
+  const currentLocale = config.locales[currentKey]
+  if (!currentLocale) return null
+
+  const links: DomphyElement[] = entries.map(([key, locale]) => {
+    const prefix = key === "/" ? "" : key.replace(/\/$/, "")
+    const href = prefix + (barePath === "/" ? "/" : barePath)
+    return {
+      a: locale.label,
+      href,
+      class: `dp-locale-option${key === currentKey ? " active" : ""}`,
+      ...(key === currentKey ? { ariaCurrent: "true" } : {}),
+      lang: locale.lang,
+    } as DomphyElement
+  })
+
+  return {
+    div: [
+      { span: ["🌐 ", currentLocale.label], class: "dp-locale-current" },
+      { div: links, class: "dp-locale-menu" },
+    ],
+    class: "dp-locale-switcher",
+    ariaLabel: "Select language",
+  } as DomphyElement
+}
+
 // --- Header -----------------------------------------------------------------
 
-function header(config: SiteConfig): DomphyElement {
+function header(ctx: LayoutContext): DomphyElement {
+  const { config } = ctx
   const searchEnabled = config.themeConfig.search !== false
-  const logoEl: DomphyElement = config.themeConfig.logo
-    ? { a: [{ img: null, src: config.themeConfig.logo, alt: config.title, class: "dp-logo-img" }], href: config.base, class: "dp-logo" } as DomphyElement
+  const logo = config.themeConfig.logo
+  const logoInner: DomphyElement[] = logo
+    ? (typeof logo === "string"
+      ? [{ img: null, src: logo, alt: config.title, class: "dp-logo-img" } as DomphyElement]
+      : [
+          { img: null, src: logo.light, alt: config.title, class: "dp-logo-img dp-logo-light" } as DomphyElement,
+          { img: null, src: logo.dark, alt: config.title, class: "dp-logo-img dp-logo-dark" } as DomphyElement,
+        ])
+    : []
+  const logoEl: DomphyElement = logo
+    ? { a: logoInner, href: config.base, class: "dp-logo" } as DomphyElement
     : { a: config.title, href: config.base, class: "dp-logo" } as DomphyElement
 
   const socialEls: DomphyElement[] = (config.themeConfig.socialLinks ?? []).map(socialLinkEl)
+  const localeEl = localeSwitcher(ctx)
 
   return {
     header: [
@@ -118,6 +171,7 @@ function header(config: SiteConfig): DomphyElement {
             class: "dp-search-slot",
           } as DomphyElement] : []),
           ...socialEls,
+          ...(localeEl ? [localeEl] : []),
           { button: "◐", type: "button", class: "dp-theme-toggle", ariaLabel: "Toggle dark mode", dataThemeToggle: "" },
           { button: "☰", type: "button", class: "dp-menu-toggle", ariaLabel: "Toggle menu", dataMenuToggle: "" },
         ],
@@ -199,9 +253,10 @@ function tocAside(ctx: LayoutContext): DomphyElement | null {
   const [minLevel, maxLevel] = ctx.config.themeConfig.outline?.level ?? [2, 3]
   const entries = ctx.toc.filter(e => e.level >= minLevel && e.level <= maxLevel)
   if (entries.length === 0) return null
+  const tocTitle = ctx.config.themeConfig.tocTitle ?? "On this page"
   return {
     aside: [
-      { div: "On this page", class: "dp-aside-title" },
+      { div: tocTitle, class: "dp-aside-title" },
       { nav: entries.map(e => ({ a: e.text, href: `#${e.slug}`, class: `dp-toc-${e.level}` })), class: "dp-toc" },
     ],
     class: "dp-aside",
@@ -278,7 +333,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
   return {
     div: [
       ...(bar ? [bar] : []),
-      header(ctx.config),
+      header(ctx),
       { div: shellChildren, class: "dp-shell" },
       { footer: ctx.config.themeConfig.footerMessage ?? "", class: "dp-footer" },
     ],
@@ -335,7 +390,7 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
   return {
     div: [
       ...(bar ? [bar] : []),
-      header(ctx.config),
+      header(ctx),
       { main, class: "dp-main dp-main-home" },
       { footer: ctx.config.themeConfig.footerMessage ?? "", class: "dp-footer" },
     ],
