@@ -946,8 +946,89 @@ Axes: `log`
 Dataset + transforms  
 Mark point/line/area  
 
-## Phase 3
+## Phase 3 (shipped)
 
-Series: `custom`  
-Calendar coordinate system  
-Geo/map (if needed)  
+Series: `custom`, `parallel`, `themeRiver`, `map`, `scatter3D`, `bar3D`, `line3D`  
+Calendar coordinate system (`calendar` + `heatmap[coordinateSystem:"calendar"]`)  
+Geo/map (`geo` + `map` series, GeoJSON via `registerMap`)  
+3D charts (`grid3D`, `xAxis3D`, `yAxis3D`, `zAxis3D`)  
+
+### New series types (Phase 3)
+
+#### Calendar / Heatmap
+
+```ts
+// Register a heatmap on a calendar coordinate system:
+{
+  calendar: { range: "2024" },
+  series: [{
+    type: "heatmap",
+    coordinateSystem: "calendar",
+    data: [["2024-01-15", 42], ["2024-03-22", 87]],
+  }],
+  visualMap: { min: 0, max: 100 },
+}
+```
+
+#### Parallel Coordinates
+
+```ts
+{
+  parallel: { left: "10%", right: "5%", top: "10%", bottom: "10%" },
+  parallelAxis: [
+    { dim: 0, name: "Income" },
+    { dim: 1, name: "Education" },
+    { dim: 2, name: "Age" },
+  ],
+  series: [{ type: "parallel", data: [[50000, 16, 35], [80000, 18, 42]] }],
+}
+```
+
+#### ThemeRiver
+
+```ts
+{
+  series: [{
+    type: "themeRiver",
+    data: [
+      ["2024-01", 20, "Category A"],
+      ["2024-02", 30, "Category A"],
+      ["2024-01", 15, "Category B"],
+    ],
+  }],
+}
+```
+
+#### Geo / Map
+
+```ts
+import { registerMap } from "@domphy/chart";
+registerMap("world", worldGeoJSON);
+
+{
+  geo: { map: "world", roam: true },
+  series: [{
+    type: "map",
+    map: "world",
+    data: [{ name: "China", value: 1400 }, { name: "USA", value: 330 }],
+  }],
+  visualMap: { min: 0, max: 1400 },
+}
+```
+
+#### 3D Charts
+
+```ts
+{
+  grid3D: { viewControl: { alpha: 40, beta: 40 } },
+  xAxis3D: { name: "X" },
+  yAxis3D: { name: "Y" },
+  zAxis3D: { name: "Z" },
+  series: [{
+    type: "scatter3D",
+    data: [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+    symbolSize: 10,
+    color: "primary",
+  }],
+}
+```

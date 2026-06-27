@@ -1705,6 +1705,217 @@ export interface CustomSeriesOption {
   color?: ThemeFamily;
 }
 
+// ─── Calendar ─────────────────────────────────────────────────────────────────
+export interface CalendarOption {
+  id?: string;
+  range: string | [string, string];
+  cellSize?: number | [number, number];
+  left?: number | string;
+  top?: number | string;
+  right?: number | string;
+  bottom?: number | string;
+  orient?: "horizontal" | "vertical";
+  dayLabel?: {
+    show?: boolean;
+    nameMap?: string[];
+    firstDay?: number;
+    margin?: number;
+  };
+  monthLabel?: {
+    show?: boolean;
+    nameMap?: string[];
+  };
+  yearLabel?: {
+    show?: boolean;
+    margin?: number;
+  };
+}
+
+// ─── Parallel ─────────────────────────────────────────────────────────────────
+export interface ParallelOption {
+  id?: string;
+  left?: number | string;
+  top?: number | string;
+  right?: number | string;
+  bottom?: number | string;
+  layout?: "horizontal" | "vertical";
+}
+
+export interface ParallelAxisOption {
+  dim: number;
+  parallelIndex?: number;
+  name?: string;
+  type?: "value" | "category" | "time" | "log";
+  min?: number | string;
+  max?: number | string;
+  data?: string[];
+  axisLabel?: { show?: boolean; formatter?: (v: any) => string };
+  splitLine?: { show?: boolean };
+  axisLine?: { show?: boolean };
+  axisTick?: { show?: boolean };
+}
+
+export interface ParallelSeriesOption {
+  type: "parallel";
+  id?: string;
+  name?: string;
+  parallelIndex?: number;
+  data?: number[][];
+  lineStyle?: LineStyleOption;
+  color?: ThemeFamily;
+  smooth?: boolean;
+  label?: LabelOption;
+  z?: number;
+  zlevel?: number;
+  silent?: boolean;
+}
+
+// ─── ThemeRiver ───────────────────────────────────────────────────────────────
+export interface ThemeRiverSeriesOption {
+  type: "themeRiver";
+  id?: string;
+  name?: string;
+  data?: [number | string, number, string][];
+  boundaryGap?: [string, string];
+  label?: LabelOption;
+  color?: ThemeFamily[];
+  left?: number | string;
+  top?: number | string;
+  right?: number | string;
+  bottom?: number | string;
+  z?: number;
+  zlevel?: number;
+  silent?: boolean;
+}
+
+// ─── Geo / Map ────────────────────────────────────────────────────────────────
+export interface GeoRegion {
+  name: string;
+  itemStyle?: ItemStyleOption;
+  label?: LabelOption;
+  selected?: boolean;
+  silent?: boolean;
+}
+
+export interface GeoOption {
+  id?: string;
+  map: string;
+  roam?: boolean | "scale" | "move";
+  center?: [number, number];
+  zoom?: number;
+  left?: string | number;
+  top?: string | number;
+  right?: string | number;
+  bottom?: string | number;
+  regions?: GeoRegion[];
+  silent?: boolean;
+  itemStyle?: ItemStyleOption;
+  label?: LabelOption;
+}
+
+export interface MapDataItem {
+  name: string;
+  value?: number;
+  selected?: boolean;
+  itemStyle?: ItemStyleOption;
+  label?: LabelOption;
+}
+
+export interface MapSeriesOption {
+  type: "map";
+  id?: string;
+  name?: string;
+  map: string;
+  data?: MapDataItem[];
+  geoIndex?: number;
+  nameProperty?: string;
+  selectedMode?: boolean | "single" | "multiple";
+  label?: LabelOption;
+  itemStyle?: ItemStyleOption;
+  emphasis?: EmphasisOption;
+  color?: ThemeFamily[];
+  left?: string | number;
+  top?: string | number;
+  right?: string | number;
+  bottom?: string | number;
+  z?: number;
+  zlevel?: number;
+  silent?: boolean;
+}
+
+// ─── 3D ──────────────────────────────────────────────────────────────────────
+export interface Grid3DOption {
+  id?: string;
+  boxWidth?: number;
+  boxHeight?: number;
+  boxDepth?: number;
+  viewControl?: {
+    projection?: "perspective" | "orthographic";
+    alpha?: number;
+    beta?: number;
+    distance?: number;
+    autoRotate?: boolean;
+    autoRotateSpeed?: number;
+  };
+  left?: string | number;
+  top?: string | number;
+  right?: string | number;
+  bottom?: string | number;
+  width?: string | number;
+  height?: string | number;
+}
+
+export interface Axis3DOption {
+  type?: "value" | "category" | "time" | "log";
+  name?: string;
+  min?: number | string;
+  max?: number | string;
+  data?: (string | number)[];
+  axisLabel?: { show?: boolean; formatter?: (v: any) => string };
+  splitLine?: { show?: boolean };
+  axisLine?: { show?: boolean };
+  axisTick?: { show?: boolean };
+}
+
+export interface Scatter3DSeriesOption {
+  type: "scatter3D";
+  id?: string;
+  name?: string;
+  data?: ([number, number, number] | { value: [number, number, number]; name?: string })[];
+  symbolSize?: number;
+  color?: ThemeFamily;
+  grid3DIndex?: number;
+  z?: number;
+  zlevel?: number;
+  silent?: boolean;
+}
+
+export interface Bar3DSeriesOption {
+  type: "bar3D";
+  id?: string;
+  name?: string;
+  data?: ([number, number, number] | { value: [number, number, number]; name?: string })[];
+  barSize?: number;
+  color?: ThemeFamily;
+  grid3DIndex?: number;
+  z?: number;
+  zlevel?: number;
+  silent?: boolean;
+}
+
+export interface Line3DSeriesOption {
+  type: "line3D";
+  id?: string;
+  name?: string;
+  data?: ([number, number, number] | { value: [number, number, number] })[];
+  lineWidth?: number;
+  color?: ThemeFamily;
+  grid3DIndex?: number;
+  z?: number;
+  zlevel?: number;
+  silent?: boolean;
+}
+
 export type SeriesOption =
   | LineSeriesOption
   | BarSeriesOption
@@ -1719,7 +1930,13 @@ export type SeriesOption =
   | FunnelSeriesOption
   | SankeySeriesOption
   | GraphSeriesOption
-  | CustomSeriesOption;
+  | CustomSeriesOption
+  | ParallelSeriesOption
+  | ThemeRiverSeriesOption
+  | MapSeriesOption
+  | Scatter3DSeriesOption
+  | Bar3DSeriesOption
+  | Line3DSeriesOption;
 
 // ─── Main chart option ────────────────────────────────────────────────────────
 export interface ChartOption {
@@ -1734,6 +1951,14 @@ export interface ChartOption {
   radar?: RadarOption | RadarOption[];
   dataset?: DatasetOption | DatasetOption[];
   series?: SeriesOption[];
+  calendar?: CalendarOption | CalendarOption[];
+  parallel?: ParallelOption | ParallelOption[];
+  parallelAxis?: ParallelAxisOption | ParallelAxisOption[];
+  geo?: GeoOption | GeoOption[];
+  grid3D?: Grid3DOption | Grid3DOption[];
+  xAxis3D?: Axis3DOption | Axis3DOption[];
+  yAxis3D?: Axis3DOption | Axis3DOption[];
+  zAxis3D?: Axis3DOption | Axis3DOption[];
   tooltip?: TooltipOption;
   toolbox?: ToolboxOption;
   dataZoom?: DataZoomOption | DataZoomOption[];

@@ -116,3 +116,24 @@ export type { ZoomWindow } from "./coord/grid.js";
 
 // Engine (for advanced embedding without the Domphy patch)
 export { ChartEngine } from "./engine.js";
+
+// Map registry
+export { registerMap, getRegisteredMap } from "./overlay/geomap.js";
+
+// New series types
+export type {
+  CalendarOption,
+  ParallelOption,
+  ParallelAxisOption,
+  ParallelSeriesOption,
+  ThemeRiverSeriesOption,
+  GeoOption,
+  GeoRegion,
+  MapDataItem,
+  MapSeriesOption,
+  Grid3DOption,
+  Axis3DOption,
+  Scatter3DSeriesOption,
+  Bar3DSeriesOption,
+  Line3DSeriesOption,
+} from "./types.js";

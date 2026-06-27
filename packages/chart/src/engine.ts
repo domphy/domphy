@@ -27,8 +27,16 @@ import type {
   ChartOption, SeriesOption, TooltipParams,
   BoxplotSeriesOption, FunnelSeriesOption, TreemapSeriesOption, SankeySeriesOption, GraphSeriesOption,
   LineSeriesOption,
+  CalendarOption, ParallelOption, ParallelAxisOption, ParallelSeriesOption,
+  ThemeRiverSeriesOption, GeoOption, MapSeriesOption,
+  Grid3DOption, Axis3DOption, Scatter3DSeriesOption, Bar3DSeriesOption, Line3DSeriesOption,
 } from "./types.js";
 import { seriesHex } from "./gl/color.js";
+import { renderCalendar } from "./overlay/calendar.js";
+import { renderParallel } from "./overlay/parallel.js";
+import { renderThemeRiver } from "./overlay/themeriver.js";
+import { renderGeoMap } from "./overlay/geomap.js";
+import { renderGrid3D } from "./gl/Renderer3D.js";
 
 // Accumulate y-values for line series sharing the same stack name.
 // Each stacked series receives the sum of all previous series at the same data index.
@@ -371,6 +379,47 @@ export class ChartEngine {
     const graphSeries = series.filter((s): s is GraphSeriesOption => s.type === "graph");
     if (graphSeries.length > 0) {
       renderGraph(this.overlaysvg, graphSeries, width, height, this.hiddenSeries);
+    }
+
+    // Calendar heatmap
+    const calendars = Array.isArray(option.calendar) ? option.calendar : option.calendar ? [option.calendar] : [];
+    const calendarHeatmap = allSeries.filter((s): s is any => s.type === "heatmap" && (s as any).coordinateSystem === "calendar");
+    if (calendars.length > 0) {
+      renderCalendar(this.overlaysvg, calendars, calendarHeatmap, visualMaps, width, height);
+    }
+
+    // Parallel coordinates
+    const parallelOpts = Array.isArray(option.parallel) ? option.parallel : option.parallel ? [option.parallel] : [];
+    const parallelAxes = Array.isArray(option.parallelAxis) ? option.parallelAxis : option.parallelAxis ? [option.parallelAxis] : [];
+    const parallelSeries = series.filter((s): s is ParallelSeriesOption => s.type === "parallel");
+    if (parallelAxes.length > 0 || parallelSeries.length > 0) {
+      renderParallel(this.overlaysvg, parallelOpts, parallelAxes, parallelSeries, width, height, this.hiddenSeries);
+    }
+
+    // ThemeRiver
+    const themeRiverSeries = series.filter((s): s is ThemeRiverSeriesOption => s.type === "themeRiver");
+    if (themeRiverSeries.length > 0) {
+      renderThemeRiver(this.overlaysvg, themeRiverSeries, width, height, this.hiddenSeries);
+    }
+
+    // Geo map
+    const geos = Array.isArray(option.geo) ? option.geo : option.geo ? [option.geo] : [];
+    const mapSeries = series.filter((s): s is MapSeriesOption => s.type === "map");
+    const geoScatter = series.filter((s): s is any => s.type === "scatter" && (s as any).coordinateSystem === "geo");
+    if (geos.length > 0 || mapSeries.length > 0) {
+      renderGeoMap(this.overlaysvg, geos, mapSeries, geoScatter, visualMaps, width, height);
+    }
+
+    // 3D charts
+    const grid3Ds = Array.isArray(option.grid3D) ? option.grid3D : option.grid3D ? [option.grid3D] : [];
+    const xAxes3D = Array.isArray(option.xAxis3D) ? option.xAxis3D : option.xAxis3D ? [option.xAxis3D] : [];
+    const yAxes3D = Array.isArray(option.yAxis3D) ? option.yAxis3D : option.yAxis3D ? [option.yAxis3D] : [];
+    const zAxes3D = Array.isArray(option.zAxis3D) ? option.zAxis3D : option.zAxis3D ? [option.zAxis3D] : [];
+    const scatter3DSeries = series.filter((s): s is Scatter3DSeriesOption => s.type === "scatter3D");
+    const bar3DSeries = series.filter((s): s is Bar3DSeriesOption => s.type === "bar3D");
+    const line3DSeries = series.filter((s): s is Line3DSeriesOption => s.type === "line3D");
+    if (grid3Ds.length > 0 || scatter3DSeries.length > 0 || bar3DSeries.length > 0 || line3DSeries.length > 0) {
+      renderGrid3D(this.overlaysvg, grid3Ds, xAxes3D, yAxes3D, zAxes3D, scatter3DSeries, bar3DSeries, line3DSeries, width, height);
     }
 
     // VisualMap legend
