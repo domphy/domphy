@@ -92,6 +92,23 @@ loader: async ({ params }) => {
 
 `redirect()` restarts navigation at the target (history entry replaced); `notFound()` renders the nearest `notFound` boundary; errors render the nearest `error` boundary.
 
+## Reading Cookies
+
+Use the `cookies()` helper to parse the `Cookie` request header in a loader — the equivalent of Next.js `cookies()`:
+
+```ts
+import { cookies } from "@domphy/app"
+
+loader: async ({ headers }) => {
+  const jar = cookies(headers)         // ReadonlyMap<string, string>
+  const token = jar.get("auth_token")
+  if (!token) redirect("/login")
+  return verifyToken(token)
+}
+```
+
+On the server, pass `context.headers` (forwarded from the incoming request to `renderToString`). On the client, `cookies()` with no argument falls back to `document.cookie`.
+
 ## Pairing with @domphy/query
 
 Loaders cover route-level data. For cache-rich client data (background refetching, mutations, infinite queries), use [`@domphy/query`](/docs/query/) inside pages — the two compose freely: the loader provides the initial data, an observer keeps it fresh.

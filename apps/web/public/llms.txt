@@ -218,9 +218,9 @@ Drag & drop / sortable lists — wraps the framework-agnostic `@formkit/drag-and
 
 ## App (`@domphy/app`)
 
-Next.js App Router-style framework — runtime (no compiler, no file-system routing): nested routes/layouts, loaders with stale-while-revalidate, metadata, middleware, parallel + intercepting routes, **lazy / code-split routes** (`lazy: () => import(...)`), SSR + streaming (`renderToString`/`renderToStream`), API routes. Routes are a plain object tree via `defineRoutes`; `createApp(routes)`. (This docs site is built on it — see Markdown below.)
+Next.js App Router-style framework — runtime (no compiler, no file-system routing): nested routes/layouts, loaders with stale-while-revalidate, metadata, middleware, parallel + intercepting routes, **lazy / code-split routes** (`lazy: () => import(...)`), SSR + streaming (`renderToString`/`renderToStream`), API routes, **i18n routing** (`createI18nMiddleware` + `getLocale`), **cookie parsing** (`cookies(headers?)`). Routes are a plain object tree via `defineRoutes`; `createApp(routes)`. (This docs site is built on it — see Markdown below.)
 
-- [Overview](https://domphy.com/docs/app/) · [Routing](https://domphy.com/docs/app/routing) · [Layouts & Boundaries](https://domphy.com/docs/app/layouts) · [Navigation](https://domphy.com/docs/app/navigation) · [Data Fetching](https://domphy.com/docs/app/data-fetching) · [Metadata](https://domphy.com/docs/app/metadata) · [Middleware](https://domphy.com/docs/app/middleware) · [SSR](https://domphy.com/docs/app/ssr) · [API Routes](https://domphy.com/docs/app/api-routes) · [Image & Script](https://domphy.com/docs/app/assets) · [API Reference](https://domphy.com/docs/app/api)
+- [Overview](https://domphy.com/docs/app/) · [Routing](https://domphy.com/docs/app/routing) · [Layouts & Boundaries](https://domphy.com/docs/app/layouts) · [Navigation](https://domphy.com/docs/app/navigation) · [Data Fetching](https://domphy.com/docs/app/data-fetching) · [Metadata](https://domphy.com/docs/app/metadata) · [Middleware](https://domphy.com/docs/app/middleware) · [SSR](https://domphy.com/docs/app/ssr) · [API Routes](https://domphy.com/docs/app/api-routes) · [Image & Script](https://domphy.com/docs/app/assets) · [i18n Routing](https://domphy.com/docs/app/i18n) · [API Reference](https://domphy.com/docs/app/api)
 
 ## i18n (`@domphy/i18n`)
 

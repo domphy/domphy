@@ -61,6 +61,16 @@
 - `Loader(loaderContext)` — `LoaderContext`: `pathname`, `url`, `params`, `searchParams`, `headers?`
 - `Middleware(middlewareContext)` — `MiddlewareContext`: `url`, `pathname`, `searchParams`, `headers?`
 
+## Cookies
+
+- `cookies(headers?)` — parses the `Cookie` request header (or `document.cookie` on the client) into a `ReadonlyMap<string, string>`. Pass `context.headers` from a loader to read server-side cookies. See [Data Fetching — Reading Cookies](./data-fetching#reading-cookies).
+
+## i18n Routing
+
+- `createI18nMiddleware(options)` — returns a `Middleware` that strips locale prefixes from incoming URLs and rewrites to the bare path, so page routes don't need to handle locale segments. See [i18n Routing](./i18n).
+- `getLocale(context, options)` — reads the active locale from any `LoaderContext` or `RouteContext`. Extracts the first URL segment from `context.url` (the original URL, before rewrite) and matches it against `options.locales`. Returns `options.defaultLocale` when no prefix is found.
+- `I18nRoutingOptions<TLocale>`: `locales` (`readonly TLocale[]`), `defaultLocale` (`TLocale`), `prefixDefault?` (`boolean`, default `false`).
+
 ## Navigation Control Flow
 
 - `redirect(to)` / `permanentRedirect(to)` — throw, restart navigation at `to`

@@ -53,7 +53,7 @@ const App = {
 | `@domphy/virtual` | virtualization — adapter `createVirtualizer` at `@domphy/virtual/domphy` |
 | `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy` |
 | `@domphy/dnd` | drag & drop — `dragDrop(state, config?)`, `multiList(options)`, `multiListGroup(group, states, config?)` (wraps `@formkit/drag-and-drop`) |
-| `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes |
+| `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`) |
 | `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — internal to `@domphy/ui` overlays |
 | `@domphy/palette` | color-palette engine: `Ramp`/`Palette`/`Swatch` — 5 CIELAB quality metrics (design-time companion to theme) |

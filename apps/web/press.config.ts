@@ -376,6 +376,7 @@ export const config = defineConfig({
         { text: "SSR & Hydration", link: "/docs/app/ssr" },
         { text: "API Routes", link: "/docs/app/api-routes" },
         { text: "Image & Script", link: "/docs/app/assets" },
+        { text: "i18n Routing", link: "/docs/app/i18n" },
         { text: "API Reference", link: "/docs/app/api" },
       ],
       "/docs/markdown/": [

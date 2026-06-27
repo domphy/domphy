@@ -81,6 +81,8 @@ await app.render(document.getElementById("app")!)
 - **SSR** — `renderToString()` plus `renderToStream()` (shell-first streaming) and `hydrate()` with embedded loader data. [SSR](./ssr)
 - **API routes** — `createApiHandler()` on web-standard Request/Response. [API Routes](./api-routes)
 - **Image and Script** — `optimizedImage()` and `script()` helpers. [Image & Script](./assets)
+- **i18n routing** — `createI18nMiddleware()` handles locale-prefix URLs (`/vi/about` → rewrite to `/about`); `getLocale()` reads the active locale from any context. Works with `@domphy/i18n` for translations. [i18n Routing](./i18n)
+- **Cookies** — `cookies(headers?)` parses the Cookie header into a `ReadonlyMap`, the equivalent of Next.js `cookies()`. [Data Fetching](./data-fetching#reading-cookies)
 
 ## What Is Not Ported
 
