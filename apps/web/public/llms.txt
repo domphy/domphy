@@ -248,9 +248,15 @@ Render Mermaid diagrams for Domphy — build-time `renderMermaidToSvg` / `render
 
 ## Palette (`@domphy/palette`)
 
-Color-palette quality engine (design-time companion to `@domphy/theme`): measure palette quality with 5 CIELAB metrics (`Ramp`, `Palette`, `Swatch`).
+Color-palette quality engine (design-time companion to `@domphy/theme`): measure palette quality with 5 CIELAB metrics (`Ramp`, `Palette`, `Swatch`). Zero runtime dependencies, pure color science.
 
 - [Overview](https://domphy.com/docs/palette/) · [Measuring quality](https://domphy.com/docs/palette/measuring) · [Ramp](https://domphy.com/docs/palette/ramp) · [Accessibility & Contrast](https://domphy.com/docs/palette/accessibility) · [Swatch & Color Utilities](https://domphy.com/docs/palette/swatch)
+
+**Color-space utilities** (all named exports): `hexToRgb` / `rgbToHex` — hex ↔ linear sRGB; `rgbToLab` / `labToRgb` — CIELAB (D65); `rgbToOklab` / `oklabToRgb` — Oklab (Björn Ottosson 2020); `labToLch` / `lchToLab` — polar LCH; `toLightnessEAL` / `fromLightnessEAL` — Equivalent Achromatic Lightness (High et al. 2023, Helmholtz–Kohlrausch correction); `calcDeltaE2000` — CIEDE2000 perceptual distance; `cssRgbToRgb` — parse CSS `rgb()` string.
+
+**A11y, mixing, gradient**: `contrastRatio(hex1, hex2)` → WCAG 2.1 contrast ratio (≥4.5 = AA, ≥7 = AAA); `mix(hex1, hex2, ratio=0.5, space='oklab')` → blend two colors perceptually (`'oklab'`|`'lab'`|`'rgb'`); `scale(colors, steps)` → N-step Oklab gradient across ≥2 anchors, returns hex array.
+
+**Quality analysis**: `new Ramp(hexes, name)` → `.metrics` (5 CIELAB scores 0–1), `.score` (0–100), `.wcag[45].span`, `.apca[60].span`; `new Palette(colorsRecord, name)` → aggregate metrics via RMS; `new Swatch(hex)` → `.lab`, `.lch`, `.lightness` (L_EAL), `.chroma`, `.hue`, `.luminance`.
 
 ## Audit (`@domphy/audit`)
 

@@ -330,3 +330,75 @@ export const calcScore = (metrics: number[]): number => {
     const result = Math.max(0, Math.min(1, globalScore));
     return parseFloat((result * 100).toFixed(2));
 };
+
+/**
+ * Compute WCAG 2.1 contrast ratio between two hex colors.
+ * Returns a value >= 1. Passes WCAG AA at >= 4.5, AAA at >= 7.
+ */
+export const contrastRatio = (hex1: string, hex2: string): number => {
+    const [r1, g1, b1] = hexToRgb(hex1);
+    const [r2, g2, b2] = hexToRgb(hex2);
+    const l1 = 0.2126 * r1 + 0.7152 * g1 + 0.0722 * b1;
+    const l2 = 0.2126 * r2 + 0.7152 * g2 + 0.0722 * b2;
+    const lighter = Math.max(l1, l2);
+    const darker = Math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
+};
+
+/**
+ * Mix two hex colors. `ratio` controls how much of the second color is used
+ * (0 = all hex1, 1 = all hex2, default 0.5). Interpolation happens in
+ * the given `space` — defaults to `oklab` (perceptually uniform).
+ */
+export const mix = (
+    hex1: string,
+    hex2: string,
+    ratio = 0.5,
+    space: 'oklab' | 'lab' | 'rgb' = 'oklab'
+): string => {
+    const t = Math.max(0, Math.min(1, ratio));
+    const rgb1 = hexToRgb(hex1);
+    const rgb2 = hexToRgb(hex2);
+
+    if (space === 'rgb') {
+        return rgbToHex(rgb1.map((c, i) => c + t * (rgb2[i] - c)));
+    }
+
+    if (space === 'lab') {
+        const lab1 = rgbToLab(rgb1);
+        const lab2 = rgbToLab(rgb2);
+        return rgbToHex(labToRgb(lab1.map((c, i) => c + t * (lab2[i] - c))));
+    }
+
+    // Default: oklab
+    const ok1 = rgbToOklab(rgb1);
+    const ok2 = rgbToOklab(rgb2);
+    return rgbToHex(oklabToRgb(ok1.map((c, i) => c + t * (ok2[i] - c))));
+};
+
+/**
+ * Generate a `steps`-step gradient across `colors` (2 or more anchors).
+ * Interpolation is in Oklab for perceptual uniformity.
+ * Returns hex strings from the first to the last anchor.
+ */
+export const scale = (colors: string[], steps: number): string[] => {
+    if (colors.length < 2) throw new Error("scale() requires at least 2 colors");
+    if (steps < 1) return [];
+    if (steps === 1) return [colors[0]];
+
+    const oklabs = colors.map(hex => rgbToOklab(hexToRgb(hex)));
+    const segments = oklabs.length - 1;
+    const result: string[] = [];
+
+    for (let i = 0; i < steps; i++) {
+        const t = i / (steps - 1);
+        const pos = t * segments;
+        const seg = Math.min(Math.floor(pos), segments - 1);
+        const localT = pos - seg;
+        const ok1 = oklabs[seg];
+        const ok2 = oklabs[seg + 1];
+        result.push(rgbToHex(oklabToRgb(ok1.map((c, j) => c + localT * (ok2[j] - c)))));
+    }
+
+    return result;
+};

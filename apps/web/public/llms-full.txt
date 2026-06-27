@@ -22645,6 +22645,88 @@ interp(12)  // interpolated chroma at step 12 — on the descending arc
 
 This is primarily an internal utility, but it is exported for ramp generators that need to fit a smooth chroma target before generating colors.
 
+## WCAG contrast, mixing, and scale generation
+
+### `contrastRatio(hex1, hex2)`
+
+Computes the **WCAG 2.1 contrast ratio** between two hex colors. Returns a value ≥ 1. The WCAG thresholds are:
+
+| Ratio | Standard |
+| --- | --- |
+| ≥ 3:1 | Large text, UI components (WCAG AA) |
+| ≥ 4.5:1 | Normal body text (WCAG AA) |
+| ≥ 7:1 | Small text (WCAG AAA) |
+
+```ts
+import { contrastRatio } from "@domphy/palette"
+
+contrastRatio("#3b82f6", "#ffffff")  // ≈ 3.68  — AA fails for normal text
+contrastRatio("#1d4ed8", "#ffffff")  // ≈ 7.05  — AAA
+contrastRatio("#000000", "#ffffff")  // 21.0    — maximum possible contrast
+```
+
+For span-based analysis across a whole ramp (guaranteed-safe pairs), see [`ramp.wcag`](./accessibility) instead. Use `contrastRatio` when checking a specific pair directly.
+
+### `mix(hex1, hex2, ratio?, space?)`
+
+Mixes two hex colors and returns the result as a hex string. `ratio` controls how much of the second color to use (0 = all `hex1`, 1 = all `hex2`, default `0.5`).
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `hex1` | `string` | — | Start color (`#rrggbb`) |
+| `hex2` | `string` | — | End color (`#rrggbb`) |
+| `ratio` | `number` | `0.5` | Blend ratio toward `hex2`, clamped to `[0, 1]` |
+| `space` | `'oklab' \| 'lab' \| 'rgb'` | `'oklab'` | Color space for interpolation |
+
+```ts
+import { mix } from "@domphy/palette"
+
+mix("#ffffff", "#3b82f6")             // 50/50 blend in Oklab
+mix("#ffffff", "#3b82f6", 0.25)       // 25% toward blue
+mix("#ff0000", "#0000ff", 0.5, "lab") // mix in CIELAB
+mix("#ff0000", "#0000ff", 0.5, "rgb") // mix in linear RGB (naive, muddy midpoint)
+```
+
+**Why Oklab by default?** Interpolating in perceptually uniform color spaces avoids the dark/muddy midpoint that RGB mixing produces for complementary hues. Oklab and CIELAB are both good choices; Oklab has slightly better perceptual uniformity for hue.
+
+```ts
+// Comparing red→blue midpoints in different spaces
+mix("#ff0000", "#0000ff", 0.5, "rgb")   // "#7f007f" — dull purple
+mix("#ff0000", "#0000ff", 0.5, "lab")   // brighter, more saturated
+mix("#ff0000", "#0000ff", 0.5, "oklab") // similar to lab, perceptually centered
+```
+
+### `scale(colors, steps)`
+
+Generates a `steps`-step gradient across two or more anchor colors. Interpolation is in **Oklab** for perceptual uniformity. Returns an array of hex strings.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `colors` | `string[]` | Ordered anchor colors (≥ 2). The gradient spans from `colors[0]` to `colors[colors.length - 1]` |
+| `steps` | `number` | Total number of output colors including both endpoints |
+
+```ts
+import { scale } from "@domphy/palette"
+
+// 5-step gradient from white to blue
+scale(["#ffffff", "#3b82f6"], 5)
+// ["#ffffff", "#c4d7fa", "#87b0f5", "#4a88ef", "#3b82f6"]
+
+// 7-step gradient through 3 anchors: white → blue → black
+scale(["#ffffff", "#3b82f6", "#000000"], 7)
+// ["#ffffff", "#aec8f8", "#3b82f6", "#2a5ab1", "#1a3269", "#080f20", "#000000"]
+
+// Use the output to construct a Ramp for quality analysis
+import { Ramp } from "@domphy/palette"
+
+const hexes = scale(["#ffffff", "#2563eb", "#000000"], 18)
+const ramp = new Ramp(hexes, "blue")
+ramp.score     // measure quality
+ramp.wcag[45]  // check contrast span
+```
+
+`scale` is additive-only and does not modify existing generation behavior. It operates independently of `Ramp` — you can feed its output into a `Ramp` for analysis, or use it directly for gradient-based design tokens.
+
 
 
 ---
