@@ -63,7 +63,7 @@ const App = {
 | `@domphy/router` | type-safe routing — router-core port; `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
 | `@domphy/virtual` | virtualization — virtual-core port; adapter `createVirtualizer` at `@domphy/virtual/domphy` |
 | `@domphy/form` | forms — form-core port; adapter `createForm` at `@domphy/form/domphy` |
-| `@domphy/dnd` | drag & drop — `dragDrop(state, config?)` (wraps `@formkit/drag-and-drop`) |
+| `@domphy/dnd` | drag & drop — `dragDrop(state, config?)` / `multiList({group,values})` / `multiListGroup(group, states[])` (wraps `@formkit/drag-and-drop`; animations enabled by default) |
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes |
 | `@domphy/doctor` | static analyzer — `diagnose(element)` / `validate(element)` flag non-idiomatic trees; `fix(element)` applies lossless autofixes. **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — internal to `@domphy/ui` overlays |
@@ -196,7 +196,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 - `@domphy/doctor` — static analyzer that flags non-idiomatic code (`diagnose`/`validate`; powers AI self-correction)
 - `@domphy/mcp` — MCP server exposing patches/packages/rules + doctor + app-block registry to agents
 
-Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. For anything outside these packages (charts, rich text, i18n…), use the vanilla library directly — see [Integrations](/docs/integrations/).
+Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. Charts are first-party (`@domphy/chart`), i18n is first-party (`@domphy/i18n`). For anything outside these packages, use the vanilla library directly — see [Integrations](/docs/integrations/).
 
 ## Why Domphy
 
@@ -19038,10 +19038,10 @@ The `animations()` plugin adds CSS transition animations to sort and transfer op
 
 ## Basic Setup
 
-Import `animations` and add it to `plugins`:
+Animations are **enabled by default** in `dragDrop()` — no extra setup needed:
 
 ```ts
-import { dragDrop, animations } from "@domphy/dnd"
+import { dragDrop } from "@domphy/dnd"
 import { toState } from "@domphy/core"
 import { themeColor, themeSpacing } from "@domphy/theme"
 
@@ -19065,12 +19065,14 @@ const SortableList = {
         userSelect: "none",
       },
     })),
-  $: [dragDrop(items, { plugins: [animations()] })],
+  $: [dragDrop(items)],  // animated by default
   style: { listStyle: "none", padding: "0" },
 }
 ```
 
-No extra CSS is required. `animations()` uses the Web Animations API internally and cleans up after itself.
+To disable animations: `dragDrop(items, { animated: false })`.
+
+`animations()` uses the Web Animations API internally and cleans up after itself.
 
 ## Configuration
 
@@ -19091,32 +19093,39 @@ animations({ duration: 50, easing: "linear" })
 
 ## Animations in Multi-Container
 
-Apply `animations()` to each list independently — each container manages its own animation:
+Animations are on by default in all `dragDrop()` calls — including multi-container setups:
 
 ```ts
 const GROUP = "board"
 
 const ListA = {
   ul: (l) => stateA.get(l).map((item) => ({ li: item.label, _key: item.id })),
-  $: [dragDrop(stateA, { group: GROUP, plugins: [animations()] })],
+  $: [dragDrop(stateA, { group: GROUP })],
 }
 
 const ListB = {
   ul: (l) => stateB.get(l).map((item) => ({ li: item.label, _key: item.id })),
-  $: [dragDrop(stateB, { group: GROUP, plugins: [animations()] })],
+  $: [dragDrop(stateB, { group: GROUP })],
 }
 ```
 
-Lists without `animations()` snap instantly; lists with it animate.
+Pass `animated: false` on any individual list to opt it out of animations.
 
 ## Combining Plugins
 
-`plugins` is an array — pass multiple plugins in any order:
+`animations()` is included by default. To add other plugins alongside it, they are merged automatically — or pass `plugins` directly if you need custom animation config:
 
 ```ts
 import { dragDrop, animations, dropOrSwap } from "@domphy/dnd"
 
+// Other plugins alongside default animation:
 dragDrop(items, {
+  plugins: [dropOrSwap()],  // animations() still runs; extra plugins append
+})
+
+// Custom animation config requires explicit plugin:
+dragDrop(items, {
+  animated: false,  // disable default
   plugins: [
     animations({ duration: 180 }),
     dropOrSwap(),
@@ -19126,14 +19135,13 @@ dragDrop(items, {
 
 ## Visual Feedback with CSS Classes
 
-`animations()` handles the reorder transition. For immediate visual feedback _during_ the drag, use the class config options. These are applied directly to DOM elements by FormKit, so they must live in a stylesheet:
+`animations()` handles the reorder transition (enabled by default). For immediate visual feedback _during_ the drag, use the class config options. These are applied directly to DOM elements by FormKit, so they must live in a stylesheet:
 
 ```ts
 dragDrop(items, {
   draggingClass: "item-dragging",          // the item being dragged
   dropZoneClass: "item-drop-target",       // item currently hovered over
   dropZoneParentClass: "list-drop-active", // parent list being hovered over
-  plugins: [animations()],
 })
 ```
 
@@ -19156,7 +19164,6 @@ dragDrop(items, {
   synthDraggingClass: "synth-dragging",
   synthDropZoneClass: "synth-drop-target",
   synthDropZoneParentClass: "synth-list-active",
-  plugins: [animations()],
 })
 ```
 
@@ -19168,20 +19175,19 @@ const CLS = "item-dragging"
 dragDrop(items, {
   draggingClass: CLS,
   synthDraggingClass: CLS,
-  plugins: [animations()],
 })
 ```
 
 ## Respecting Reduced Motion
 
-Check `prefers-reduced-motion` and skip the plugin when the user has requested it:
+Use `animated: false` to disable animations (e.g. when the user prefers reduced motion):
 
 ```ts
 const prefersReducedMotion =
   window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
 dragDrop(items, {
-  plugins: prefersReducedMotion ? [] : [animations({ duration: 150 })],
+  animated: !prefersReducedMotion,
 })
 ```
 
@@ -39396,11 +39402,11 @@ type SeriesOption =
   | HeatmapSeriesOption    // xAxisIndex, yAxisIndex, coordinateSystem
   | CandlestickSeriesOption // upColor, downColor, data: [open,close,low,high][]
   | GaugeSeriesOption      // min, max, startAngle, endAngle, progress, splitLine, detail, title
-  | BoxplotSeriesOption    // (types only — not yet WebGL rendered)
-  | TreemapSeriesOption    // (SVG layout — not yet rendered)
-  | FunnelSeriesOption     // (not yet rendered)
-  | SankeySeriesOption     // (not yet rendered)
-  | GraphSeriesOption      // (not yet rendered)
+  | BoxplotSeriesOption    // SVG — min/Q1/median/Q3/max with whiskers
+  | TreemapSeriesOption    // SVG — squarified layout, recursive children
+  | FunnelSeriesOption     // SVG — sorted trapezoids with labels
+  | SankeySeriesOption     // SVG — BFS depth + flow relaxation layout, bezier links
+  | GraphSeriesOption      // SVG — Fruchterman-Reingold force-directed, arrows, categories
   | CustomSeriesOption;    // renderItem fn
 ```
 

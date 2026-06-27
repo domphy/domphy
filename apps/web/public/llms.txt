@@ -269,8 +269,8 @@ engine.destroy();
 
 ### API surface (ECharts grade)
 
-- **series (WebGL)**: `line` (smooth, step, areaStyle, connectNulls), `bar` (stack, grouped), `scatter` (symbolSize fn), `pie` (radius, roseType, center), `radar`, `heatmap`, `candlestick` (upColor/downColor), `gauge` (SVG, progress arc, ticks, labels)
-- **series (SVG)**: `boxplot` (min/Q1/median/Q3/max with whiskers), `funnel` (sorted trapezoids with labels), `treemap` (squarified layout, recursive children, auto labels)
+- **series (WebGL)**: `line` (smooth, step, areaStyle, connectNulls, gradient area via `GradientObject`), `bar` (stack, grouped), `scatter` (symbolSize fn), `pie` (radius, roseType, center), `radar`, `heatmap`, `candlestick` (upColor/downColor), `gauge` (SVG, progress arc, ticks, labels)
+- **series (SVG)**: `boxplot` (min/Q1/median/Q3/max with whiskers), `funnel` (sorted trapezoids with labels), `treemap` (squarified layout, recursive children, auto labels), `sankey` (BFS depth + flow relaxation, bezier links), `graph` (Fruchterman-Reingold force-directed, arrows, categories)
 - **series labels**: `label: { show: true, position: "top"|"inside"|"bottom", formatter, fontSize }` on bar, line, scatter, pie (with leader lines + percentage)
 - **axes**: `xAxis`/`yAxis` — type `"value" | "category" | "time" | "log"`, `name`, `min`/`max`, `splitNumber`, `gridIndex`, `axisLabel.rotate`
 - **grid**: `left`/`top`/`right`/`bottom` (px or %)
@@ -285,6 +285,24 @@ engine.destroy();
 - **visualMap**: continuous (gradient bar, min/max labels) + piecewise (color + label per piece); `colorFromVisualMap(vm, value)` utility
 - **toolbox**: type definitions (not yet rendered)
 - **brush**: type definitions (not yet rendered)
+
+### Gradient area fills
+
+`areaStyle.color` accepts a `GradientObject` for gradient fills:
+
+```ts
+areaStyle: {
+  color: {
+    type: "linear", x: 0, y: 0, x2: 0, y2: 1,
+    colorStops: [
+      { offset: 0, color: "rgba(58,77,233,0.8)" },
+      { offset: 1, color: "rgba(58,77,233,0.05)" },
+    ],
+  },
+}
+```
+
+Types: `LinearGradient` (`type:"linear"`, x/y/x2/y2, colorStops), `RadialGradient` (`type:"radial"`, x/y/r, colorStops), `GradientObject = LinearGradient | RadialGradient`, `ColorStop { offset, color }`. All exported from `@domphy/chart`.
 
 ### Color system
 

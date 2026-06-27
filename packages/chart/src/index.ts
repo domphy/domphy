@@ -66,6 +66,11 @@ export type {
   ItemStyleOption,
   AreaStyleOption,
   EmphasisOption,
+  // Gradient
+  ColorStop,
+  LinearGradient,
+  RadialGradient,
+  GradientObject,
   // Graph
   GraphNode,
   GraphLink,
