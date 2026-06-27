@@ -172,6 +172,23 @@ Two render patterns: (1) coarse — call `version(l)` once, then call `table.get
 
 List/grid virtualization — a 1-1 port of `@tanstack/virtual-core` (identical API). Adapter `createVirtualizer` (`@domphy/virtual/domphy`).
 
+**`VirtualizerHandle`** (returned by `createVirtualizer`):
+- `getVirtualItems(l?)` — reactive list of visible `VirtualItem`s
+- `getTotalSize(l?)` — reactive total scroll size for the spacer
+- `setScrollElement(el)` — wire the scroll container from `_onMount`
+- `measureElement(el)` — dynamic measurement ref; call from item `_onMount`
+- `scrollToIndex(i, opts?)` / `scrollToOffset(px, opts?)` — absolute scroll
+- `scrollBy(delta, opts?)` — relative scroll from current position
+- `scrollToEnd(opts?)` — scroll to last item
+- `setOptions(opts)` — update `count`/options and re-measure
+- `version(l?)` — raw reactive change counter
+- `destroy()` — detach observers; call from `_onRemove`
+- `virtualizer` — underlying `Virtualizer` instance; exposes `takeSnapshot()`, `getDistanceFromEnd()`, `isAtEnd(threshold?)`, `resizeItem(index, size)`, `measure()`
+
+Key options: `count`, `estimateSize`, `horizontal`, `overscan`, `gap`, `paddingStart`, `paddingEnd`, `lanes`, `laneAssignmentMode` (`"estimate"|"measured"`), `anchorTo`, `followOnAppend`, `getItemKey`, `rangeExtractor`, `scrollMargin`, `initialMeasurementsCache`, `initialOffset`, `useCachedMeasurements`, `enabled`, `isRtl`.
+
+Extras vs upstream: iOS WebKit momentum-scroll deferral, `scrollBy`/`scrollToEnd`/`takeSnapshot`/`getDistanceFromEnd`/`isAtEnd` directly on the handle, lazy typed-array fast-path (100 k-item cold mount in <1 ms), `laneAssignmentMode`/`useCachedMeasurements`.
+
 - [Overview](https://domphy.com/docs/virtual/) · [Usage Patterns](https://domphy.com/docs/virtual/usage) · [Infinite Scroll](https://domphy.com/docs/virtual/infinite-scroll) · [Grid Virtualization](https://domphy.com/docs/virtual/grid) · [API Reference](https://domphy.com/docs/virtual/api) · [Scroll Navigation](https://domphy.com/docs/virtual/scroll-to) · [Dynamic Sizes](https://domphy.com/docs/virtual/dynamic-sizes) · [Masonry Layout](https://domphy.com/docs/virtual/masonry) · [Window Virtualizer](https://domphy.com/docs/virtual/window-virtualizer)
 
 ## Form (`@domphy/form`)

@@ -191,18 +191,18 @@ const App = {
 
 ## Follow on append (infinite scroll)
 
-Use `followOnAppend: "anchor"` to keep the viewport anchored at the bottom as new items are added — useful for chat messages, live feeds:
+Use `followOnAppend: true` with `anchorTo: "end"` to keep the viewport anchored at the bottom as new items are added — useful for chat messages, live feeds:
 
 ```ts
 const list = createVirtualizer({
   count: items.length,
   estimateSize: () => 48,
-  followOnAppend: "anchor",    // viewport stays at bottom when count grows
-  scrollAnchor: "end",
+  anchorTo: "end",           // anchor the virtualizer to the bottom edge
+  followOnAppend: true,      // auto-scroll to end when new items are appended
 })
 ```
 
-When the user scrolls up, the anchor is released until they scroll back to the bottom.
+`followOnAppend` accepts `true` (instant), `"smooth"`, or `"instant"`. The viewport only auto-scrolls when `isAtEnd()` is true — if the user has scrolled up, the anchor is released until they return to the bottom.
 
 ## Virtualized grid (2D)
 

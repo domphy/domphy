@@ -13,7 +13,7 @@ Combine `@domphy/virtual` (virtualizer) with `@domphy/query` (infinite query) to
 import { QueryClient } from "@domphy/query"
 import { createVirtualizer } from "@domphy/virtual/domphy"
 import { createInfiniteQuery } from "@domphy/query/domphy"
-import { toState, computed } from "@domphy/core"
+import { computed, effect } from "@domphy/core"
 
 interface Post { id: string; title: string }
 interface Page { posts: Post[]; nextCursor: string | null }
@@ -36,31 +36,38 @@ const allPosts = computed((l): Post[] =>
 const isFetchingMore = computed((l) => feed.isFetchingNextPage(l))
 const hasMore = computed((l) => feed.hasNextPage(l))
 
-// Virtualizer
-const container = toState<HTMLElement | null>(null)
+// Virtualizer — count starts at 0 and is updated reactively via setOptions
 const virtualizer = createVirtualizer({
-  count: (l) => allPosts.get(l).length + (hasMore.get(l) ? 1 : 0),   // +1 for loader row
+  count: 0,
   estimateSize: () => 72,
-  getScrollElement: () => container.get(),
+})
+
+// Keep count in sync with loaded data (+1 for the loader row when more pages exist)
+effect(() => {
+  virtualizer.setOptions({
+    count: allPosts.get().length + (hasMore.get() ? 1 : 0),
+  })
 })
 ```
 
 ## Detecting scroll-to-bottom
 
-Trigger `fetchNextPage()` when the last item is visible:
+Trigger `fetchNextPage()` when the last item enters the visible range:
 
 ```ts
 import { effect } from "@domphy/core"
 
 effect(() => {
-  const items = virtualizer.getVirtualItems()
+  // Subscribe to virtualizer changes
+  virtualizer.version()
+  const items = virtualizer.virtualizer.getVirtualItems()
   if (!items.length) return
 
   const lastItem = items[items.length - 1]
   const total = allPosts.get().length
-  const isLast = lastItem.index >= total - 1
+  const isNearEnd = lastItem.index >= total - 1
 
-  if (isLast && hasMore.get() && !feed.isFetchingNextPage()) {
+  if (isNearEnd && hasMore.get() && !isFetchingMore.get()) {
     feed.fetchNextPage()
   }
 })
@@ -69,22 +76,25 @@ effect(() => {
 ## Rendering the virtual list
 
 ```ts
+import { themeColor, themeSpacing } from "@domphy/theme"
+
 const FeedList = {
   div: [
     {
       div: (l) => {
         const items = virtualizer.getVirtualItems(l)
         const total = virtualizer.getTotalSize(l)
+        const posts = allPosts.get(l)
 
         return {
           div: items.map(virtualItem => {
-            const post = allPosts.get()[virtualItem.index]
+            const post = posts[virtualItem.index]
             const isLoader = !post
 
             return {
               _key: virtualItem.key,
               div: isLoader
-                ? { div: "Loading more…", style: { padding: "1rem", textAlign: "center" } }
+                ? { div: "Loading more…", style: { paddingBlock: themeSpacing(3), textAlign: "center" } }
                 : PostCard(post),
               style: {
                 position: "absolute",
@@ -106,7 +116,9 @@ const FeedList = {
     overflowY: "auto",
     position: "relative",
   },
-  _onMount: (el) => container.set(el),
+  _onMount: (node) =>
+    virtualizer.setScrollElement(node.domElement as HTMLElement),
+  _onRemove: () => virtualizer.destroy(),
 }
 ```
 
@@ -116,10 +128,8 @@ If post heights vary (different content lengths), use `measureElement`:
 
 ```ts
 const virtualizer = createVirtualizer({
-  count: () => allPosts.get().length,
+  count: 0,
   estimateSize: () => 80,   // initial estimate
-  measureElement: (el) => el.getBoundingClientRect().height,
-  getScrollElement: () => container.get(),
 })
 
 // In the item render, attach the measurement ref:
@@ -128,7 +138,8 @@ const PostItem = (post: Post, virtualItem: VirtualItem) => ({
     { h3: post.title },
     { p: post.excerpt },
   ],
-  _onMount: (el) => virtualizer.measureElement(el),   // actual height replaces estimate
+  _onMount: (node) =>
+    virtualizer.measureElement(node.domElement as HTMLElement),
   _key: virtualItem.key,
   style: {
     position: "absolute",
@@ -151,14 +162,14 @@ const feedRoute = createRoute({
   component: () => FeedList,
   // Save scroll position before leaving
   onLeave: () => {
-    sessionStorage.setItem("feed-scroll", String(container.get()?.scrollTop ?? 0))
+    sessionStorage.setItem("feed-scroll", String(virtualizer.virtualizer.getScrollOffset()))
   },
   // Restore on return
   onEnter: () => {
     const saved = sessionStorage.getItem("feed-scroll")
     if (saved) {
       requestAnimationFrame(() => {
-        container.get()?.scrollTo({ top: Number(saved) })
+        virtualizer.scrollToOffset(Number(saved))
       })
     }
   },
@@ -191,10 +202,6 @@ Provide a "Back to top" button:
 ```ts
 const BackToTop = {
   button: "↑ Back to top",
-  onClick: () => {
-    container.get()?.scrollTo({ top: 0, behavior: "smooth" })
-    virtualizer.scrollToIndex(0, { behavior: "smooth" })
-  },
-  hidden: (l) => (container.get()?.scrollTop ?? 0) < 300,
+  onClick: () => virtualizer.scrollToIndex(0, { behavior: "smooth" }),
 }
 ```

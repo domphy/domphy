@@ -27,19 +27,21 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>(options)
 | `measureElement(el)` | `void` | Measure an item element. Call from item `_onMount` for variable heights. |
 | `scrollToIndex(i, opts?)` | `void` | Scroll to item at index. |
 | `scrollToOffset(px, opts?)` | `void` | Scroll to an absolute offset. |
+| `scrollBy(delta, opts?)` | `void` | Scroll by a relative pixel delta from the current position. |
+| `scrollToEnd(opts?)` | `void` | Scroll to the last item. |
 | `setOptions(opts)` | `void` | Update `count`, `estimateSize`, or other options reactively. |
 | `version(l)` | `number` | Raw change counter — subscribe to know when any item changes. |
 | `destroy()` | `void` | Detach resize observers. Call from `_onRemove`. |
 
-The `virtualizer` property exposes the underlying `Virtualizer` instance with additional methods:
+The `virtualizer` property exposes the underlying `Virtualizer` instance with additional low-level methods:
 
 | Method | Description |
 |--------|-------------|
-| `scrollBy(delta, opts?)` | Scroll by a relative amount. |
-| `scrollToEnd(opts?)` | Scroll to the end of the list. |
 | `takeSnapshot()` | Capture current offsets for later restore. |
 | `getDistanceFromEnd()` | Pixels from current scroll position to the end. |
 | `isAtEnd(threshold?)` | `true` if within `threshold` (default `0`) px of the end. |
+| `resizeItem(index, size)` | Programmatically override a single item's size. |
+| `measure()` | Clear all cached sizes and force full re-measurement. |
 
 ---
 
@@ -77,13 +79,20 @@ interface VirtualizerOptions<TScrollElement, TItemElement> {
   scrollMargin?: number
 
   // Scroll anchoring
-  followOnAppend?: "ancestor" | "anchor"
-  scrollAnchor?: "start" | "end"
-  isRtl?: boolean
+  anchorTo?: "start" | "end"            // which end to anchor when items prepend/append
+  followOnAppend?: boolean | "auto" | "smooth" | "instant"  // keep viewport at end as items append
+  isRtl?: boolean                        // right-to-left support
 
   // Lanes (masonry)
   lanes?: number
-  laneAssignmentMode?: "sequential" | "shortest"
+  laneAssignmentMode?: "estimate" | "measured"
+
+  // Miscellaneous
+  enabled?: boolean                      // default true; false renders all items without virtualization
+  useScrollendEvent?: boolean            // use native scrollend event (default false)
+  useAnimationFrameWithResizeObserver?: boolean  // rAF-gate ResizeObserver callbacks
+  scrollEndThreshold?: number            // px from end to fire isAtEnd (default 1)
+  isScrollingResetDelay?: number         // ms of no-scroll events before isScrolling=false (default 150)
 
   // Performance
   useCachedMeasurements?: boolean
@@ -151,14 +160,14 @@ import { Virtualizer } from "@domphy/virtual"
 
 ```ts
 const virtualizer = new Virtualizer(options)
-virtualizer._didMount()
+const cleanup = virtualizer._didMount()
 
 // In your render loop
 const items = virtualizer.getVirtualItems()
 const totalSize = virtualizer.getTotalSize()
 
-// Cleanup
-virtualizer.cleanup()
+// Cleanup (call the function returned by _didMount)
+cleanup()
 ```
 
 ### Additional methods on `Virtualizer`

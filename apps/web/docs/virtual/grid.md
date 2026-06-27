@@ -7,28 +7,24 @@ description: "Virtualize two-dimensional grids and spreadsheet-like layouts with
 
 ## Two-dimensional virtualization
 
-For grids and spreadsheets, create separate virtualizers for rows and columns:
+For grids and spreadsheets, create separate virtualizers for rows and columns. Both share the same scroll container — wire them in `_onMount`:
 
 ```ts
 import { createVirtualizer } from "@domphy/virtual/domphy"
-import { toState } from "@domphy/core"
+import { themeColor, themeSpacing } from "@domphy/theme"
 
 const ROW_COUNT = 10_000
 const COL_COUNT = 50
 
-const container = toState<HTMLElement | null>(null)
-
 const rowVirtualizer = createVirtualizer({
   count: ROW_COUNT,
   estimateSize: () => 40,           // row height in px
-  getScrollElement: () => container.get(),
   overscan: 5,
 })
 
 const colVirtualizer = createVirtualizer({
   count: COL_COUNT,
   estimateSize: () => 120,          // column width in px
-  getScrollElement: () => container.get(),
   horizontal: true,                 // scroll horizontally
   overscan: 2,
 })
@@ -59,9 +55,10 @@ const Grid = {
                 width: `${virtualCol.size}px`,
                 height: `${virtualRow.size}px`,
                 transform: `translateX(${virtualCol.start}px) translateY(${virtualRow.start}px)`,
-                borderRight: "1px solid var(--neutral-4)",
-                borderBottom: "1px solid var(--neutral-4)",
-                padding: "4px 8px",
+                borderRight: (cl) => `1px solid ${themeColor(cl, "shift-3")}`,
+                borderBottom: (cl) => `1px solid ${themeColor(cl, "shift-3")}`,
+                paddingBlock: themeSpacing(1),
+                paddingInline: themeSpacing(2),
                 overflow: "hidden",
                 whiteSpace: "nowrap",
                 textOverflow: "ellipsis",
@@ -84,20 +81,29 @@ const Grid = {
     width: "100%",
     position: "relative",
   },
-  _onMount: (el) => container.set(el),
+  _onMount: (node) => {
+    rowVirtualizer.setScrollElement(node.domElement as HTMLElement)
+    colVirtualizer.setScrollElement(node.domElement as HTMLElement)
+  },
+  _onRemove: () => {
+    rowVirtualizer.destroy()
+    colVirtualizer.destroy()
+  },
 }
 ```
 
 ## Sticky headers
 
-Pin the first row and first column while the rest scroll:
+Pin the first row while columns scroll horizontally. The sticky row uses the same column virtualizer so it stays in sync:
 
 ```ts
+import { themeColor, themeSpacing } from "@domphy/theme"
+
 const headers = ["Name", "Email", "Role", "Status", "Created", "Actions"]
 
 const StickyGrid = {
   div: [
-    // Sticky header row
+    // Sticky header row — horizontally in sync with column virtualizer
     {
       div: (l) => {
         const virtualCols = colVirtualizer.getVirtualItems(l)
@@ -111,8 +117,8 @@ const StickyGrid = {
               position: "absolute",
               left: `${vc.start}px`,
               width: `${vc.size}px`,
-              padding: "8px",
-              fontWeight: "600",
+              paddingBlock: themeSpacing(2),
+              paddingInline: themeSpacing(2),
             },
           })),
           style: { position: "relative", width: `${totalWidth}px` },
@@ -121,19 +127,62 @@ const StickyGrid = {
       style: {
         position: "sticky",
         top: 0,
-        background: "var(--neutral-1)",
+        background: (cl) => themeColor(cl, "base"),
         zIndex: 1,
-        borderBottom: "2px solid var(--neutral-4)",
+        borderBottom: (cl) => `2px solid ${themeColor(cl, "shift-4")}`,
         height: "40px",
       },
     },
-    // Scrollable body
+    // Scrollable body rows
     {
-      div: null,
-      // ...same grid render as above
+      div: (l) => {
+        const totalHeight = rowVirtualizer.getTotalSize(l)
+        const totalWidth  = colVirtualizer.getTotalSize(l)
+        const virtualRows = rowVirtualizer.getVirtualItems(l)
+        const virtualCols = colVirtualizer.getVirtualItems(l)
+
+        return {
+          div: virtualRows.map((virtualRow) => ({
+            _key: virtualRow.key,
+            div: virtualCols.map((virtualCol) => ({
+              _key: virtualCol.key,
+              div: `${virtualRow.index},${virtualCol.index}`,
+              style: {
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: `${virtualCol.size}px`,
+                height: `${virtualRow.size}px`,
+                transform: `translateX(${virtualCol.start}px) translateY(${virtualRow.start}px)`,
+                borderRight: (cl) => `1px solid ${themeColor(cl, "shift-3")}`,
+                borderBottom: (cl) => `1px solid ${themeColor(cl, "shift-3")}`,
+                paddingBlock: themeSpacing(1),
+                paddingInline: themeSpacing(2),
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
+              },
+            })),
+            style: { position: "absolute", top: 0, left: 0, display: "contents" },
+          })),
+          style: {
+            position: "relative",
+            height: `${totalHeight}px`,
+            width: `${totalWidth}px`,
+          },
+        }
+      },
     },
   ],
   style: { overflow: "auto", height: "600px" },
+  _onMount: (node) => {
+    rowVirtualizer.setScrollElement(node.domElement as HTMLElement)
+    colVirtualizer.setScrollElement(node.domElement as HTMLElement)
+  },
+  _onRemove: () => {
+    rowVirtualizer.destroy()
+    colVirtualizer.destroy()
+  },
 }
 ```
 
@@ -145,14 +194,14 @@ When rows have different heights (e.g., expandable rows), use `measureElement`:
 const rowVirtualizer = createVirtualizer({
   count: ROW_COUNT,
   estimateSize: () => 40,      // initial estimate
-  measureElement: (el) => el.getBoundingClientRect().height,
-  getScrollElement: () => container.get(),
+  overscan: 5,
 })
 
 // Attach measurement ref to each row
 const Row = (virtualRow: VirtualItem) => ({
   div: RowContent(virtualRow.index),
-  _onMount: (el: HTMLElement) => rowVirtualizer.measureElement(el),
+  _onMount: (node) =>
+    rowVirtualizer.measureElement(node.domElement as HTMLElement),
   _key: virtualRow.key,
   style: {
     position: "absolute",

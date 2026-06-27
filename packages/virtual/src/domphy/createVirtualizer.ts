@@ -46,6 +46,10 @@ export interface VirtualizerHandle<
   measureElement(element: TItem | null): void
   scrollToIndex: Virtualizer<TScroll, TItem>["scrollToIndex"]
   scrollToOffset: Virtualizer<TScroll, TItem>["scrollToOffset"]
+  /** Scroll by a relative pixel delta from the current offset. */
+  scrollBy: Virtualizer<TScroll, TItem>["scrollBy"]
+  /** Scroll to the last item (equivalent to scrollToIndex(count - 1, { align: "end" })). */
+  scrollToEnd: Virtualizer<TScroll, TItem>["scrollToEnd"]
   /** Update options (e.g. `count`) and re-measure. */
   setOptions(options: Partial<VirtualizerOptions<TScroll, TItem>>): void
   destroy(): void
@@ -96,6 +100,8 @@ export function createVirtualizer<
     measureElement: (element) => virtualizer.measureElement(element),
     scrollToIndex: virtualizer.scrollToIndex,
     scrollToOffset: virtualizer.scrollToOffset,
+    scrollBy: virtualizer.scrollBy,
+    scrollToEnd: virtualizer.scrollToEnd,
     setOptions: (next) => {
       virtualizer.setOptions({ ...virtualizer.options, ...next })
       virtualizer._willUpdate()

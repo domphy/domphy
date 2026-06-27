@@ -169,14 +169,13 @@ list.virtualizer.isAtEnd(threshold?: number): boolean
 Returns `true` when the scroll offset is within `threshold` pixels of the maximum (default `0` — exactly at the end). Use it to trigger pagination or show/hide a "scroll to bottom" button:
 
 ```ts
-import { effect } from "@domphy/core"
-import { toState } from "@domphy/core"
+import { effect, toState } from "@domphy/core"
 
 const showScrollButton = toState(false)
 
 effect(() => {
-  // version() subscribes to virtualizer changes
-  list.version(l)
+  // version() without a listener still tracks in effect context
+  list.version()
   showScrollButton.set(!list.virtualizer.isAtEnd(80))
 })
 ```
@@ -292,7 +291,7 @@ const scrollOffset = toState(0)
 
 // Subscribe to scroll changes via version()
 effect(() => {
-  list.version(l)
+  list.version()
   scrollOffset.set(list.virtualizer.getScrollOffset())
 })
 

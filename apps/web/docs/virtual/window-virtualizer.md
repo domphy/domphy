@@ -124,7 +124,7 @@ const App = {
         position: "sticky",
         top: 0,
         height: `${HEADER_HEIGHT}px`,
-        background: (cl) => themeColor(cl, "surface"),
+        background: (cl) => themeColor(cl, "base"),
         zIndex: 10,
         borderBottom: (cl) => `1px solid ${themeColor(cl, "shift-3")}`,
         display: "flex",
