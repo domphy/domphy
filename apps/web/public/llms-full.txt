@@ -21142,6 +21142,74 @@ title: {
 }
 ```
 
+## Toolbox
+
+Built-in chart toolbar with export, zoom, restore, and data-view actions.
+
+```ts
+toolbox: {
+  show: true,
+  right: 20,       // distance from right edge
+  top: 10,
+  feature: {
+    saveAsImage: { title: "Save" },              // download PNG
+    dataZoom: { yAxisIndex: "none" },            // range select on x axis
+    restore:  { title: "Reset" },               // reset zoom/pan
+    dataView: { readOnly: false, title: "Data" }, // tabular data view/edit
+    brush: { type: ["rect", "lineX", "keep", "clear"] }, // enable brush tool
+  },
+}
+```
+
+`yAxisIndex: "none"` keeps the y axis fixed while zooming x. Use `"all"` to allow y-axis zoom too.
+
+## Brush
+
+Area selection for highlighting or filtering data points.
+
+```ts
+brush: {
+  toolbox: ["rect", "lineX", "keep", "clear"],   // tools available without toolbox component
+  brushLink: "all",                              // sync brush across all series
+  brushType: "rect",                             // default tool: "rect" | "polygon" | "lineX" | "lineY"
+  brushMode: "single",                           // "single" | "multiple" selections
+  inBrush: { opacity: 1 },
+  outOfBrush: { opacity: 0.2 },                  // dim unselected points
+}
+```
+
+Brush is most useful paired with the `toolbox.feature.brush` to give users a UI toggle. The `brushLink` option syncs selection across multiple series sharing the same axis.
+
+## Animation
+
+Charts animate in by default. Configure or disable:
+
+```ts
+// Disable all animation (useful for SSR or performance-critical renders):
+{
+  animation: false,
+}
+
+// Customize duration and easing:
+{
+  animation: true,
+  animationDuration: 800,          // ms for initial render animation
+  animationEasing: "cubicOut",     // easing function name (ECharts easing names)
+  animationDurationUpdate: 300,    // ms for data-update transitions
+}
+```
+
+Common `animationEasing` values: `"linear"`, `"quadraticIn"`, `"quadraticOut"`, `"cubicOut"`, `"elasticOut"`, `"bounceOut"`.
+
+Set `animation: false` on individual series to disable animation for that series only:
+
+```ts
+series: [
+  { type: "line", data: [...], animation: false },
+  { type: "bar",  data: [...] },   // still animates
+]
+```
+
 ### colors.md
 
 ---
@@ -21311,6 +21379,290 @@ const App = {
   $: [chart(option)],
 }
 ```
+
+### dataset.md
+
+---
+title: "Dataset"
+description: "Using dataset to share data between series and apply transforms in @domphy/chart."
+---
+
+# Dataset
+
+The `dataset` component decouples data from series configuration. Multiple series can reference the same dataset, and transforms (filter, sort) can derive new datasets from existing ones.
+
+## Basic usage
+
+`dataset.source` accepts either a **2D array** (row-per-data) or an **object array**:
+
+```ts
+// Object array — column names come from object keys
+const option: ChartOption = {
+  dataset: {
+    source: [
+      { month: "Jan", revenue: 320, costs: 280 },
+      { month: "Feb", revenue: 380, costs: 310 },
+      { month: "Mar", revenue: 420, costs: 340 },
+    ],
+  },
+  xAxis: { type: "category" },
+  yAxis: { type: "value" },
+  legend: {},
+  series: [
+    { type: "bar", name: "Revenue", encode: { x: "month", y: "revenue" } },
+    { type: "bar", name: "Costs",   encode: { x: "month", y: "costs"   } },
+  ],
+};
+```
+
+`encode` maps dataset columns to chart axes. Both series above share the same `dataset` — no data duplication.
+
+## Column-index encoding
+
+When `source` is a 2D array, the first row can be a **header row** of column names, or the array can be purely numeric. Either way, `encode` can reference columns by **string name** (if a header row is present) or by **column index**.
+
+**With header row:**
+
+```ts
+const option: ChartOption = {
+  dataset: {
+    source: [
+      ["product", "sales", "price"],
+      ["A", 120, 45],
+      ["B", 200, 62],
+      ["C", 150, 38],
+      ["D", 80,  29],
+    ],
+  },
+  xAxis: { type: "category" },
+  yAxis: { type: "value" },
+  series: [
+    { type: "bar",  name: "Sales", encode: { x: "product", y: "sales" } },
+    { type: "line", name: "Price", encode: { x: "product", y: "price" } },
+  ],
+};
+```
+
+**By column index (no header row):**
+
+```ts
+const option: ChartOption = {
+  dataset: {
+    source: [
+      [0, 120, 45],
+      [1, 200, 62],
+      [2, 150, 38],
+    ],
+  },
+  xAxis: { type: "category" },
+  yAxis: { type: "value" },
+  series: [
+    { type: "bar", encode: { x: 0, y: 1 } },
+  ],
+};
+```
+
+## Transforms
+
+Add a `transform` to derive a new dataset from an existing one. Transforms are listed in the top-level `dataset` array, each referencing a source dataset by index.
+
+### Filter
+
+```ts
+const option: ChartOption = {
+  dataset: [
+    {
+      // index 0 — raw source
+      source: [
+        ["product", "sales", "price"],
+        ["A", 120, 45],
+        ["B", 80,  29],
+        ["C", 200, 62],
+        ["D", 60,  18],
+        ["E", 150, 38],
+      ],
+    },
+    {
+      // index 1 — products with sales > 100
+      fromDatasetIndex: 0,
+      transform: {
+        type: "filter",
+        config: { dimension: "sales", gt: 100 },
+      },
+    },
+  ],
+  xAxis: { type: "category" },
+  yAxis: { type: "value" },
+  series: [
+    {
+      type: "bar",
+      name: "High-volume products",
+      datasetIndex: 1,
+      encode: { x: "product", y: "sales" },
+    },
+  ],
+};
+```
+
+Filter `config` conditions:
+
+| Key | Meaning |
+|-----|---------|
+| `gt`  | greater than |
+| `gte` | greater than or equal |
+| `lt`  | less than |
+| `lte` | less than or equal |
+| `eq`  | equal |
+| `ne`  | not equal |
+
+### Sort
+
+```ts
+dataset: [
+  {
+    source: [
+      ["product", "sales", "price"],
+      ["A", 120, 45],
+      ["B", 80,  29],
+      ["C", 200, 62],
+    ],
+  },
+  {
+    fromDatasetIndex: 0,
+    transform: {
+      type: "sort",
+      config: { dimension: "sales", order: "desc" },
+    },
+  },
+],
+```
+
+`order` is `"asc"` or `"desc"`.
+
+### Chaining transforms
+
+Chain multiple transforms by making each dataset reference the previous one:
+
+```ts
+dataset: [
+  {
+    // index 0 — raw data
+    source: [
+      ["product", "sales", "price"],
+      ["A", 120, 45],
+      ["B", 80,  29],
+      ["C", 200, 62],
+      ["D", 60,  18],
+      ["E", 150, 38],
+    ],
+  },
+  {
+    // index 1 — filter: sales > 100
+    fromDatasetIndex: 0,
+    transform: { type: "filter", config: { dimension: "sales", gt: 100 } },
+  },
+  {
+    // index 2 — sort filtered results by price descending
+    fromDatasetIndex: 1,
+    transform: { type: "sort", config: { dimension: "price", order: "desc" } },
+  },
+],
+```
+
+Series can then pick any dataset index:
+
+```ts
+series: [
+  { type: "bar", name: "All",             datasetIndex: 0, encode: { x: "product", y: "sales" } },
+  { type: "bar", name: "Filtered+sorted", datasetIndex: 2, encode: { x: "product", y: "sales" } },
+],
+```
+
+## Multiple series from one dataset
+
+Derived datasets let you show different views of the same data in separate series without duplicating the source:
+
+```ts
+const option: ChartOption = {
+  dataset: [
+    {
+      source: [
+        ["region", "q1", "q2", "q3", "q4"],
+        ["North", 120, 140, 130, 160],
+        ["South", 80,  110, 95,  130],
+        ["East",  200, 180, 220, 210],
+        ["West",  60,  75,  70,  90],
+      ],
+    },
+    {
+      // top regions: q1 >= 100
+      fromDatasetIndex: 0,
+      transform: { type: "filter", config: { dimension: "q1", gte: 100 } },
+    },
+    {
+      // bottom regions: q1 < 100
+      fromDatasetIndex: 0,
+      transform: { type: "filter", config: { dimension: "q1", lt: 100 } },
+    },
+  ],
+  xAxis: { type: "category" },
+  yAxis: { type: "value" },
+  legend: {},
+  series: [
+    {
+      type: "bar", name: "Top regions (Q1)",
+      datasetIndex: 1,
+      encode: { x: "region", y: "q1" },
+    },
+    {
+      type: "bar", name: "Other regions (Q1)",
+      datasetIndex: 2,
+      encode: { x: "region", y: "q1" },
+    },
+  ],
+};
+```
+
+## Using with chart() patch
+
+Pass a `State<ChartOption>` to `chart()` for reactive dataset updates:
+
+```ts
+import { toState } from "@domphy/core";
+import { chart } from "@domphy/chart";
+import type { ChartOption } from "@domphy/chart";
+
+const source = toState([
+  ["month", "revenue"],
+  ["Jan", 320],
+  ["Feb", 380],
+  ["Mar", 420],
+]);
+
+const option = toState<ChartOption>({
+  dataset: { source: source.v },
+  xAxis: { type: "category" },
+  yAxis: { type: "value" },
+  series: [{ type: "bar", encode: { x: "month", y: "revenue" } }],
+});
+
+// Update data reactively — the chart re-renders automatically
+source.v = [
+  ["month", "revenue"],
+  ["Apr", 390],
+  ["May", 460],
+  ["Jun", 510],
+];
+option.v = { ...option.v, dataset: { source: source.v } };
+
+const App: DomphyElement<"div"> = {
+  div: null,
+  style: { width: "100%", height: "400px", position: "relative" },
+  $: [chart(option)],
+};
+```
+
+When `option` is a `State<ChartOption>`, the `chart()` patch re-renders the chart on every state change. Assign a new `option.v` to trigger an update.
 
 ### engine.md
 
@@ -21699,6 +22051,176 @@ All examples are live — edit the code and see changes instantly.
 ## 3D Line
 
 ## 3D Scatter
+
+## Dataset + Transforms
+
+## Toolbox
+
+## Brush Selection
+
+### geo.md
+
+---
+title: "Geo & Maps"
+description: "Geo coordinate system, registerMap, and built-in world map in @domphy/chart."
+---
+
+# Geo & Maps
+
+## Built-in world map
+
+`map: "world"` is available out of the box — no `registerMap` call needed.
+
+Use it in:
+- `map` series (choropleth) — fill regions by value
+- `geo` option — base layer for overlaying other series
+- `lines` series with `coordinateSystem: "geo"` — draw flight paths / connections
+- `effectScatter` with `coordinateSystem: "geo"` — animated point scatter on map
+
+```ts
+import { chart } from "@domphy/chart"
+import type { ChartOption } from "@domphy/chart"
+
+const option: ChartOption = {
+  series: [
+    {
+      type: "map",
+      map: "world",
+      data: [
+        { name: "United States", value: 320 },
+        { name: "China", value: 580 },
+        { name: "Brazil", value: 210 },
+      ],
+    },
+  ],
+  visualMap: {
+    type: "continuous",
+    min: 0,
+    max: 600,
+    inRange: { color: ["#e0f3f8", "#0077bb"] },
+  },
+}
+```
+
+## Custom GeoJSON (registerMap)
+
+Import `registerMap` from `@domphy/chart` and call it **before** rendering the chart. The `geoJSON` argument must be a standard GeoJSON `FeatureCollection`.
+
+```ts
+import { registerMap } from "@domphy/chart"
+
+const response = await fetch("/maps/vietnam.geojson")
+const geoJSON = await response.json()
+registerMap("vietnam", geoJSON)
+
+// Then use:
+// series: [{ type: "map", map: "vietnam", data: [...] }]
+```
+
+Register as many maps as needed — each name is an independent key in the registry. Names are case-sensitive.
+
+## Geo coordinate option
+
+The `geo` option creates a standalone coordinate system that other series can reference with `coordinateSystem: "geo"`. This is the standard way to overlay `lines`, `effectScatter`, or `scatter` on top of a map.
+
+```ts
+const option: ChartOption = {
+  geo: {
+    map: "world",
+    center: [105, 16], // [lng, lat] — centers on Southeast Asia
+    zoom: 4,
+    roam: false,       // interactive pan/zoom not yet supported
+    itemStyle: {
+      areaColor: "#e6e6e6",
+      borderColor: "#999",
+    },
+  },
+  series: [
+    {
+      type: "lines",
+      coordinateSystem: "geo",
+      data: [
+        {
+          coords: [
+            [106.6, 10.8], // Ho Chi Minh City [lng, lat]
+            [100.5, 13.7], // Bangkok
+          ],
+        },
+      ],
+      lineStyle: { color: "primary", width: 2, curveness: 0.2 },
+    },
+    {
+      type: "effectScatter",
+      coordinateSystem: "geo",
+      data: [
+        { name: "Ho Chi Minh City", value: [106.6, 10.8, 80] },
+        { name: "Bangkok", value: [100.5, 13.7, 60] },
+        { name: "Singapore", value: [103.8, 1.35, 95] },
+      ],
+      encode: { value: 2 },
+      rippleEffect: { brushType: "stroke" },
+    },
+  ],
+}
+```
+
+### geo options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `map` | `string` | Map name — `"world"` or a name registered via `registerMap` |
+| `center` | `[number, number]` | `[longitude, latitude]` of the center point |
+| `zoom` | `number` | Zoom multiplier — `1` fits the map to the container |
+| `roam` | `boolean` | Interactive pan/zoom — not yet supported, keep `false` |
+| `itemStyle` | `object` | Style for each region polygon |
+| `label` | `object` | Region label display options |
+
+## Map series (choropleth)
+
+The `map` series fills regions by value — classic choropleth.
+
+```ts
+const option: ChartOption = {
+  series: [
+    {
+      type: "map",
+      map: "world",
+      nameMap: {
+        "USA": "United States",
+        "UK": "United Kingdom",
+      },
+      data: [
+        { name: "United States", value: 320 },
+        { name: "China", value: 580 },
+        { name: "Germany", value: 140 },
+        { name: "Brazil", value: 210 },
+      ],
+      emphasis: {
+        itemStyle: { areaColor: "#ffd700" },
+      },
+    },
+  ],
+  visualMap: {
+    type: "piecewise",
+    pieces: [
+      { min: 0,   max: 100, label: "Low",    color: "#cce5ff" },
+      { min: 100, max: 300, label: "Medium", color: "#66b3ff" },
+      { min: 300,           label: "High",   color: "#0055cc" },
+    ],
+  },
+  tooltip: { trigger: "item" },
+}
+```
+
+**`nameMap`** — use when your data uses different country/region names than the GeoJSON `name` properties. Keys are your data names; values are the GeoJSON feature names.
+
+## Projection & coordinates
+
+- Built-in projection is **Mercator** — not configurable.
+- GeoJSON coordinates must be **WGS84** `[longitude, latitude]` pairs (standard GeoJSON spec).
+- `geo.center` uses `[longitude, latitude]` — **longitude first**, same as GeoJSON.
+- `geo.zoom` is a plain multiplier: `1` = fit entire map to container, `2` = 2× zoom in, `0.5` = 2× zoom out.
+- Data coordinates for `effectScatter`/`scatter` on geo: `value: [longitude, latitude, optionalSize]`.
 
 ### index.md
 
@@ -22767,7 +23289,7 @@ Set `dataTone="shift-11"` on the chart container → all series colors invert au
 | Mark point/line/area | ✓ | ✓ |
 | Dataset + transforms | ✓ | ✓ |
 | Axis pointer | ✓ | ✓ |
-| Geo roam (interactive pan/zoom) | reserved | ✓ |
+| Geo roam (interactive pan/zoom) | static (`zoom`/`center` only) | ✓ |
 
 ## Bundle size
 

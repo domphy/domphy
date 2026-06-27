@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import Dataset from "../demos/chart/Dataset.ts?raw"
+import Toolbox from "../demos/chart/Toolbox.ts?raw"
+import Brush from "../demos/chart/Brush.ts?raw"
 import LineBar from "../demos/chart/LineBar.ts?raw"
 import LineArea from "../demos/chart/LineArea.ts?raw"
 import BarStacked from "../demos/chart/BarStacked.ts?raw"
@@ -154,3 +157,15 @@ All examples are live — edit the code and see changes instantly.
 ## 3D Scatter
 
 <CodeEditor :code="Scatter3D" storageKey="chart-scatter3d" />
+
+## Dataset + Transforms
+
+<CodeEditor :code="Dataset" storageKey="chart-dataset" />
+
+## Toolbox
+
+<CodeEditor :code="Toolbox" storageKey="chart-toolbox" />
+
+## Brush Selection
+
+<CodeEditor :code="Brush" storageKey="chart-brush" />

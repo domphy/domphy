@@ -419,6 +419,8 @@ export const config = defineConfig({
         { text: "Series Reference", link: "/docs/chart/series" },
         { text: "Axes & Grid", link: "/docs/chart/axes" },
         { text: "Colors & Theme", link: "/docs/chart/colors" },
+        { text: "Dataset", link: "/docs/chart/dataset" },
+        { text: "Geo & Maps", link: "/docs/chart/geo" },
         { text: "Marks", link: "/docs/chart/marks" },
         { text: "Interaction & Events", link: "/docs/chart/events" },
         { text: "ChartEngine API", link: "/docs/chart/engine" },

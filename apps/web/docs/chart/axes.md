@@ -218,3 +218,71 @@ title: {
   top?: number | string,
 }
 ```
+
+## Toolbox
+
+Built-in chart toolbar with export, zoom, restore, and data-view actions.
+
+```ts
+toolbox: {
+  show: true,
+  right: 20,       // distance from right edge
+  top: 10,
+  feature: {
+    saveAsImage: { title: "Save" },              // download PNG
+    dataZoom: { yAxisIndex: "none" },            // range select on x axis
+    restore:  { title: "Reset" },               // reset zoom/pan
+    dataView: { readOnly: false, title: "Data" }, // tabular data view/edit
+    brush: { type: ["rect", "lineX", "keep", "clear"] }, // enable brush tool
+  },
+}
+```
+
+`yAxisIndex: "none"` keeps the y axis fixed while zooming x. Use `"all"` to allow y-axis zoom too.
+
+## Brush
+
+Area selection for highlighting or filtering data points.
+
+```ts
+brush: {
+  toolbox: ["rect", "lineX", "keep", "clear"],   // tools available without toolbox component
+  brushLink: "all",                              // sync brush across all series
+  brushType: "rect",                             // default tool: "rect" | "polygon" | "lineX" | "lineY"
+  brushMode: "single",                           // "single" | "multiple" selections
+  inBrush: { opacity: 1 },
+  outOfBrush: { opacity: 0.2 },                  // dim unselected points
+}
+```
+
+Brush is most useful paired with the `toolbox.feature.brush` to give users a UI toggle. The `brushLink` option syncs selection across multiple series sharing the same axis.
+
+## Animation
+
+Charts animate in by default. Configure or disable:
+
+```ts
+// Disable all animation (useful for SSR or performance-critical renders):
+{
+  animation: false,
+}
+
+// Customize duration and easing:
+{
+  animation: true,
+  animationDuration: 800,          // ms for initial render animation
+  animationEasing: "cubicOut",     // easing function name (ECharts easing names)
+  animationDurationUpdate: 300,    // ms for data-update transitions
+}
+```
+
+Common `animationEasing` values: `"linear"`, `"quadraticIn"`, `"quadraticOut"`, `"cubicOut"`, `"elasticOut"`, `"bounceOut"`.
+
+Set `animation: false` on individual series to disable animation for that series only:
+
+```ts
+series: [
+  { type: "line", data: [...], animation: false },
+  { type: "bar",  data: [...] },   // still animates
+]
+```

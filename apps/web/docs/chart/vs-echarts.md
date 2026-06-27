@@ -92,7 +92,7 @@ Set `dataTone="shift-11"` on the chart container → all series colors invert au
 | Mark point/line/area | ✓ | ✓ |
 | Dataset + transforms | ✓ | ✓ |
 | Axis pointer | ✓ | ✓ |
-| Geo roam (interactive pan/zoom) | reserved | ✓ |
+| Geo roam (interactive pan/zoom) | static (`zoom`/`center` only) | ✓ |
 
 ## Bundle size
 
