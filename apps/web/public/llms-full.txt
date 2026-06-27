@@ -64,13 +64,13 @@ const App = {
 | `@domphy/virtual` | virtualization — adapter `createVirtualizer` at `@domphy/virtual/domphy` |
 | `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy` |
 | `@domphy/dnd` | drag & drop — `dragDrop(state, config?)`, `multiList(options)`, `multiListGroup(group, states, config?)` (wraps `@formkit/drag-and-drop`) |
-| `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes |
+| `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`) |
 | `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — internal to `@domphy/ui` overlays |
 | `@domphy/palette` | color-palette engine: `Ramp`/`Palette`/`Swatch` — 5 CIELAB quality metrics (design-time companion to theme) |
 | `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `tokensToDomphy`); powers this docs site |
 | `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
-| `@domphy/chart` | canvas chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`hexToRgba`, `seriesHex`, `seriesPaletteFamily`, `colorFromVisualMap`); ECharts-compatible type surface |
+| `@domphy/chart` | ECharts-grade chart engine — `chart(option)` patch; `ChartEngine` for headless use. **WebGL series** (luma.gl): `line`/`bar`/`scatter`/`pie`/`radar`/`heatmap`/`candlestick`/`gauge`. **SVG series**: `boxplot`/`funnel`/`treemap`/`sankey`/`graph`/`parallel`/`themeRiver`/`map`(choropleth, `registerMap(name,geoJSON)`)/`custom`. **Calendar coord**: `calendar` + `heatmap[coordinateSystem:"calendar"]`. **Geo coord**: `geo` + `scatter[coordinateSystem:"geo"]`. **3D** (SVG perspective, no extra pkg): `scatter3D`/`bar3D`/`line3D`/`surface3D[shapeW,shapeH]`. Color = theme family names → cascade from `dataTone` (WCAG guaranteed). Spacing → cascade from `dataDensity`. Scale creators: `createLinearScale`/`createOrdinalScale`/`createTimeScale`/`createLogScale`. Dataset transforms: `applyTransforms`/`resolveDataset`. Color utils: `hexToRgba`/`seriesHex`/`familyHex`/`colorFromVisualMap`. |
 | `@domphy/audit` | two audit modes: (1) **static element-tree a11y** (zero-dep, no browser) — `auditA11y(element)` checks a Domphy element tree for `missing-alt`, `missing-label`, `heading-hierarchy`, `missing-lang`; returns `{ ok, issues }` synchronously; works in Node/Vitest/build time; (2) **runtime layout checks via Playwright** — `scanInteractive(page)` (interactive, auto-hovers triggers) and `checkLayout(page, options?)` (static-only aggregator); issue types: `theme`, `overlay`, `overlap`, `geometry`, `contrast`; CLI: `npx @domphy/audit <url>`; returns `{ ok, issues, svg }`. Complements `@domphy/doctor` (Domphy-specific rules) with a11y + layout runtime checks. |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
 | `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component |
@@ -22865,6 +22865,16 @@ Combine with [`renderToString`](./ssr) in one server: route `/api/*` to the API 
 - `Loader(loaderContext)` — `LoaderContext`: `pathname`, `url`, `params`, `searchParams`, `headers?`
 - `Middleware(middlewareContext)` — `MiddlewareContext`: `url`, `pathname`, `searchParams`, `headers?`
 
+## Cookies
+
+- `cookies(headers?)` — parses the `Cookie` request header (or `document.cookie` on the client) into a `ReadonlyMap<string, string>`. Pass `context.headers` from a loader to read server-side cookies. See [Data Fetching — Reading Cookies](./data-fetching#reading-cookies).
+
+## i18n Routing
+
+- `createI18nMiddleware(options)` — returns a `Middleware` that strips locale prefixes from incoming URLs and rewrites to the bare path, so page routes don't need to handle locale segments. See [i18n Routing](./i18n).
+- `getLocale(context, options)` — reads the active locale from any `LoaderContext` or `RouteContext`. Extracts the first URL segment from `context.url` (the original URL, before rewrite) and matches it against `options.locales`. Returns `options.defaultLocale` when no prefix is found.
+- `I18nRoutingOptions<TLocale>`: `locales` (`readonly TLocale[]`), `defaultLocale` (`TLocale`), `prefixDefault?` (`boolean`, default `false`).
+
 ## Navigation Control Flow
 
 - `redirect(to)` / `permanentRedirect(to)` — throw, restart navigation at `to`
@@ -23078,9 +23088,143 @@ loader: async ({ params }) => {
 
 `redirect()` restarts navigation at the target (history entry replaced); `notFound()` renders the nearest `notFound` boundary; errors render the nearest `error` boundary.
 
+## Reading Cookies
+
+Use the `cookies()` helper to parse the `Cookie` request header in a loader — the equivalent of Next.js `cookies()`:
+
+```ts
+import { cookies } from "@domphy/app"
+
+loader: async ({ headers }) => {
+  const jar = cookies(headers)         // ReadonlyMap<string, string>
+  const token = jar.get("auth_token")
+  if (!token) redirect("/login")
+  return verifyToken(token)
+}
+```
+
+On the server, pass `context.headers` (forwarded from the incoming request to `renderToString`). On the client, `cookies()` with no argument falls back to `document.cookie`.
+
 ## Pairing with @domphy/query
 
 Loaders cover route-level data. For cache-rich client data (background refetching, mutations, infinite queries), use [`@domphy/query`](/docs/query/) inside pages — the two compose freely: the loader provides the initial data, an observer keeps it fresh.
+
+### i18n.md
+
+# i18n Routing
+
+`@domphy/app` handles locale-prefix URL routing via middleware. Translations and locale state use [`@domphy/i18n`](/docs/i18n/).
+
+## Setup
+
+```ts
+import { createApp, createI18nMiddleware, getLocale } from "@domphy/app"
+import { createI18n } from "@domphy/i18n"
+import en from "./locales/en.json"
+import vi from "./locales/vi.json"
+
+export const i18nOpts = {
+  locales: ["en", "vi"] as const,
+  defaultLocale: "en" as const,
+} satisfies { locales: readonly string[]; defaultLocale: string }
+
+export const i18n = createI18n({
+  globalKey: "__myapp_i18n__",
+  namespace: "app",
+  locales: { en, vi },
+  defaultLocale: "en",
+})
+
+const app = createApp(routes, {
+  middleware: [createI18nMiddleware(i18nOpts)],
+})
+```
+
+## How It Works
+
+`createI18nMiddleware` intercepts every navigation before routing:
+
+| URL | Action | Route rendered |
+| --- | --- | --- |
+| `/vi/about` | rewrite to `/about` | `about` route with locale `"vi"` |
+| `/en/about` | rewrite to `/about` | `about` route with locale `"en"` |
+| `/about` | pass through | `about` route with `defaultLocale` (`"en"`) |
+
+Your page components and loaders don't need to know about the locale prefix — they always receive the bare pathname.
+
+## Reading the Active Locale
+
+Use `getLocale(context, opts)` in any loader or page to read the locale from the original URL:
+
+```ts
+{
+  path: "about",
+  loader: async (ctx) => {
+    const locale = getLocale(ctx, i18nOpts) // "en" | "vi"
+    await i18n.initI18n(locale)
+    return locale
+  },
+  page: (ctx) => ({
+    h1: (l) => i18n.t(l, "about.title"),
+  }),
+}
+```
+
+`getLocale` reads the first URL segment from `context.url` (the original URL before the middleware rewrite) and matches it against `options.locales`. Falls back to `defaultLocale` when no prefix is present.
+
+## Prefix Default Locale
+
+By default, the default locale has no URL prefix (`/about` → `"en"`). To prefix every locale (Next.js `locales` with `defaultLocale`):
+
+```ts
+createI18nMiddleware({ ...i18nOpts, prefixDefault: true })
+```
+
+With `prefixDefault: true`, a bare `/about` redirects to `/en/about`.
+
+## Options
+
+### `createI18nMiddleware(options)`
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `locales` | `readonly TLocale[]` | required | All supported locale codes |
+| `defaultLocale` | `TLocale` | required | Locale to use when no prefix is detected |
+| `prefixDefault` | `boolean` | `false` | Whether to prefix the default locale in the URL |
+
+Returns a `Middleware` to pass in `createApp(routes, { middleware: [...] })`.
+
+### `getLocale(context, options)`
+
+| Param | Type | Description |
+| --- | --- | --- |
+| `context` | `{ url: string }` | Any loader or route context |
+| `options.locales` | `readonly TLocale[]` | Must match the middleware options |
+| `options.defaultLocale` | `TLocale` | Fallback when no prefix detected |
+
+Returns `TLocale`.
+
+## Switching Locale
+
+Switching locale is a navigation to the locale-prefixed URL:
+
+```ts
+function LocaleSwitcher() {
+  const router = getRouter()
+  return {
+    div: [
+      {
+        button: "English",
+        onClick: () => router.push(`/en${router.state.get("pathname")}`),
+      },
+      {
+        button: "Tiếng Việt",
+        onClick: () => router.push(`/vi${router.state.get("pathname")}`),
+      },
+    ],
+  }
+}
+```
 
 ### index.md
 
@@ -23158,6 +23302,8 @@ await app.render(document.getElementById("app")!)
 - **SSR** — `renderToString()` plus `renderToStream()` (shell-first streaming) and `hydrate()` with embedded loader data. [SSR](./ssr)
 - **API routes** — `createApiHandler()` on web-standard Request/Response. [API Routes](./api-routes)
 - **Image and Script** — `optimizedImage()` and `script()` helpers. [Image & Script](./assets)
+- **i18n routing** — `createI18nMiddleware()` handles locale-prefix URLs (`/vi/about` → rewrite to `/about`); `getLocale()` reads the active locale from any context. Works with `@domphy/i18n` for translations. [i18n Routing](./i18n)
+- **Cookies** — `cookies(headers?)` parses the Cookie header into a `ReadonlyMap`, the equivalent of Next.js `cookies()`. [Data Fetching](./data-fetching#reading-cookies)
 
 ## What Is Not Ported
 
@@ -40078,11 +40224,6 @@ function small(
 
   return {
     dataSize: "decrease-1",
-    _onInsert: (node) => {
-      if (node.tagName !== "small") {
-        console.warn(`"small" primitive patch must use small tag`);
-      }
-    },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-9", color.get(listener)),

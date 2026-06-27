@@ -55,6 +55,10 @@ a:hover{text-decoration:underline}
   html[data-sidebar="open"] nav[aria-label="Documentation"]{transform:translateX(0)}
 }
 
+/* ----------------------------------------------------------------- backdrop */
+.dp-sidebar-backdrop{display:none;position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.4);cursor:pointer}
+@media(max-width:860px){html[data-sidebar="open"] .dp-sidebar-backdrop{display:block}}
+
 /* -------------------------------------------------------- heading anchors */
 .header-anchor{opacity:0;margin-left:${ts(2)};font-weight:400;font-size:.85em;color:${textSoft};transition:opacity .15s}
 :is(h1,h2,h3,h4,h5,h6):hover .header-anchor{opacity:1}
@@ -127,7 +131,8 @@ details.custom-block summary{cursor:pointer;font-weight:600}
 .task-list-check{position:absolute;left:0;top:.25em;width:14px;height:14px;cursor:default;accent-color:${brand}}
 
 /* ---------------------------------------------------------------- shiki dark */
-html[data-theme="dark"] .shiki,html[data-theme="dark"] .shiki span{color:var(--shiki-dark,inherit) !important}
+html[data-theme="dark"] .shiki span{color:var(--shiki-dark,inherit) !important}
+html[data-theme="dark"] .shiki{color:var(--shiki-dark,inherit) !important;background-color:transparent !important}
 
 /* ------------------------------------------------------------------ badges */
 .dp-badge{display:inline-block;padding:2px ${ts(2)};font-size:12px;font-weight:600;border-radius:${ts(1.5)};line-height:1.7;vertical-align:middle;white-space:nowrap}

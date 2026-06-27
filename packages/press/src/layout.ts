@@ -995,7 +995,12 @@ function contentDiv(body: DomphyElement[]): DomphyElement {
 // --- Shells -------------------------------------------------------------
 
 export function pageShell(ctx: LayoutContext): DomphyElement {
-  const showSidebar = ctx.frontmatter.sidebar !== false;
+  // layout: 'page' = no sidebar, no TOC, full-width content (same as VitePress)
+  const layout =
+    typeof ctx.frontmatter.layout === "string"
+      ? ctx.frontmatter.layout
+      : "doc";
+  const showSidebar = layout === "doc" && ctx.frontmatter.sidebar !== false;
 
   const main: DomphyElement[] = [];
   const badge = pageBadge(ctx.frontmatter);
@@ -1020,7 +1025,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
     : {
         padding: `${ts(8)} ${ts(12)} ${ts(20)}`,
         gridColumn: "1 / -1",
-        maxWidth: contentMax,
+        maxWidth: layout === "page" ? "100%" : contentMax,
         margin: "0 auto",
         "@media (max-width: 860px)": { padding: `${ts(6)} ${ts(5)} ${ts(16)}` },
       };
@@ -1029,7 +1034,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
     ...(sidebarEl ? [sidebarEl] : []),
     { main, style: mainStyle },
   ];
-  const asideEl = resolveSlot(ctx, "aside", tocAside);
+  const asideEl = layout !== "page" ? resolveSlot(ctx, "aside", tocAside) : null;
   if (asideEl && showSidebar) shellChildren.push(asideEl);
 
   const headerEl = resolveSlot(ctx, "header", header);
@@ -1047,10 +1052,17 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
         },
       } as DomphyElement);
 
+  // Backdrop: covers screen on mobile when sidebar is open; click closes it
+  const backdrop: DomphyElement = {
+    div: [],
+    class: "dp-sidebar-backdrop",
+  } as unknown as DomphyElement;
+
   return {
     div: [
       ...(bar ? [bar] : []),
       ...(headerEl ? [headerEl] : []),
+      backdrop,
       {
         div: shellChildren,
         style: {
