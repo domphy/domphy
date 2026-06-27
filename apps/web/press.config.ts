@@ -18,9 +18,8 @@ export const config = defineConfig({
     `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NKPX3DHXWE');</script>`,
   ],
   themeConfig: {
-    footerMessage: "Released under the MIT License.",
+    footerMessage: 'Released under the MIT License. Made by <a href="https://khanhhuu.com" target="_blank">Nguyen Huu Khanh</a>.',
     nav: [
-      { text: "Quickstart", link: "/docs/quickstart" },
       { text: "Docs", link: "/docs/" },
       {
         text: "Packages",
@@ -35,25 +34,17 @@ export const config = defineConfig({
           { text: "Virtual", link: "/docs/virtual/" },
           { text: "Form", link: "/docs/form/" },
           { text: "DnD", link: "/docs/dnd/" },
+          { text: "Press", link: "/docs/press/" },
+          { text: "Doctor", link: "/docs/doctor/" },
+          { text: "MCP", link: "/docs/mcp/" },
           { text: "Palette", link: "/docs/palette/" },
+          { text: "i18n", link: "/docs/i18n/" },
           { text: "Markdown", link: "/docs/markdown/" },
           { text: "Mermaid", link: "/docs/mermaid/" },
-          { text: "Doctor", link: "/docs/doctor/" },
           { text: "Audit", link: "/docs/audit/" },
-          { text: "i18n", link: "/docs/i18n/" },
-          { text: "Press", link: "/docs/press/" },
-          { text: "MCP", link: "/docs/mcp/" },
-        ],
-      },
-      {
-        text: "Guide",
-        items: [
-          { text: "Why Domphy", link: "/docs/guide/why-domphy" },
-          { text: "Coming from React", link: "/docs/guide/from-react" },
         ],
       },
       { text: "AI", link: "/docs/ai" },
-      { text: "Showcases", link: "/docs/showcases/" },
       { text: "Playground", link: "/docs/playground" },
     ],
     sidebar: {
@@ -447,11 +438,7 @@ export const config = defineConfig({
           text: "Example",
           items: [
             { text: "i18next", link: "/docs/integrations/i18next" },
-            {
-              text: "TanStack Query",
-              link: "/docs/integrations/tanstack-query",
-            },
-            { text: "Chart.js", link: "/docs/integrations/chartjs" },
+  { text: "Chart.js", link: "/docs/integrations/chartjs" },
             { text: "SortableJS", link: "/docs/integrations/sortablejs" },
             { text: "Zod", link: "/docs/integrations/zod" },
             { text: "page.js", link: "/docs/integrations/pagejs" },
