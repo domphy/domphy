@@ -124,7 +124,7 @@ export function renderCalendar(
     for (const hs of heatmapSeries) {
       if (hs.coordinateSystem !== "calendar") continue;
       if ((hs.calendarIndex ?? 0) !== calIndex) continue;
-      const data = (hs.data ?? []) as [string | number, number][];
+      const data = (hs.data ?? []) as unknown as [string | number, number][];
       for (const item of data) {
         const rawDate = item[0];
         let dateStr: string;
