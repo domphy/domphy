@@ -20,7 +20,7 @@ Real-world apps built with Domphy. Every interface below runs on `@domphy/core`,
 | **Renderer** | Three.js |
 | **UI** | `@domphy/core`, `@domphy/ui`, `@domphy/theme` |
 | **Free tier** | Up to 30 % reduction |
-| **Link** | [3dshouse.com/decimify](https://3dshouse.com/decimify/) |
+| **Link** | [3dshouse.com/decimify-online](https://3dshouse.com/decimify-online) |
 
 ---
 
@@ -36,7 +36,7 @@ Real-world apps built with Domphy. Every interface below runs on `@domphy/core`,
 | **UI** | `@domphy/core`, `@domphy/ui`, `@domphy/theme` |
 | **Export** | SVG, PNG, DXF Lines, DXF Hatch, DXF Faces |
 | **Also ships as** | SketchUp plugin, Blender add-on |
-| **Link** | [3dshouse.com/tracepen](https://3dshouse.com/tracepen) |
+| **Link** | [3dshouse.com/tracepen-online](https://3dshouse.com/tracepen-online) |
 
 <img src="/figures/showcases/tracepen-sketchup.png" alt="Tracepen SketchUp plugin" style="border-radius:8px;width:100%;max-width:800px;display:block;margin:1.5rem 0" />
 
@@ -54,7 +54,7 @@ Real-world apps built with Domphy. Every interface below runs on `@domphy/core`,
 | **UI** | `@domphy/core`, `@domphy/ui`, `@domphy/theme` |
 | **Storage** | Cloudflare R2 |
 | **Auth** | 3dshouse account |
-| **Link** | [3dshouse.com/parashape](https://3dshouse.com/parashape) |
+| **Link** | [3dshouse.com/parashape-sketchup](https://3dshouse.com/parashape-sketchup) |
 
 ---
 
@@ -69,7 +69,7 @@ Real-world apps built with Domphy. Every interface below runs on `@domphy/core`,
 | **Host** | SketchUp 2022+ (HtmlDialog) |
 | **UI** | `@domphy/core`, `@domphy/ui`, `@domphy/theme` |
 | **Price** | Free |
-| **Link** | [3dshouse.com/bevelup](https://3dshouse.com/bevelup) |
+| **Link** | [3dshouse.com/bevelup-sketchup](https://3dshouse.com/bevelup-sketchup) |
 
 ---
 
@@ -82,7 +82,7 @@ Real-world apps built with Domphy. Every interface below runs on `@domphy/core`,
 | **Host** | Revit 2021–2026 (WebView2 addin) |
 | **UI** | `@domphy/core`, `@domphy/ui`, `@domphy/theme` |
 | **Price** | Free, all features |
-| **Link** | [3dshouse.com/metasheet](https://3dshouse.com/metasheet) |
+| **Link** | [3dshouse.com/metasheet-revit](https://3dshouse.com/metasheet-revit) |
 
 ---
 
