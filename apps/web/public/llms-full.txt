@@ -19540,27 +19540,43 @@ interface DragDropConfig<T> extends Partial<ParentConfig<T>> {
 interface ParentConfig<T> {
   // Transfer between lists
   group?: string                             // lists with same group can exchange items
+  name?: string                              // label for accepts() specificity
 
   // Sorting
   sortable?: boolean                         // default: true
-  lockAxis?: "x" | "y"                       // restrict drag direction
+
+  // Drag start
+  disabled?: boolean                         // disable all dragging in this list
+  nativeDrag?: boolean                       // use native HTML5 drag API (default: true)
+  multiDrag?: boolean                        // allow Shift/Ctrl multi-select before drag
 
   // Handles
   draggable?: (el: HTMLElement) => boolean   // filter which children are draggable
-  dragHandle?: string                        // CSS selector for drag handles inside items
+  draggableValue?: (value: T) => boolean     // same filter but receives the item value
+  dragHandle?: string                        // CSS selector for drag handle inside each item
+  externalDragHandle?: {                     // handle element outside the list item
+    el: HTMLElement
+    callback: () => HTMLElement
+  }
 
   // Drop zone
-  accepts?: (data: DragState<T>, parent: HTMLElement, currentParent: HTMLElement) => boolean
+  accepts?: (
+    targetParent: ParentRecord<T>,           // the list being dragged over
+    initialParent: ParentRecord<T>,          // the list where the drag started
+    currentParent: ParentRecord<T>,          // the list most recently hovered
+    state: BaseDragState<T>                  // raw drag state
+  ) => boolean
+  dropZone?: boolean                         // treat the parent element itself as a drop zone
 
   // Thresholds
-  threshold?: { horizontal: number; vertical: number }   // 0–1 (default 0.5)
+  threshold?: { horizontal: number; vertical: number }   // fraction 0–1 (default 0.5)
 
   // Plugins
-  plugins?: Plugin[]
+  plugins?: DNDPlugin[]
 
   // Callbacks
-  onDragstart?: (data: DragStartEventData<T>) => void
-  onDragend?: (data: DragEndEventData<T>) => void
+  onDragstart?: (data: DragstartEventData<T>) => void
+  onDragend?: (data: DragendEventData<T>) => void
   onSort?: (data: SortEventData<T>) => void
   onTransfer?: (data: TransferEventData<T>) => void
 }
@@ -19593,9 +19609,11 @@ Smooth CSS transitions for dragging and drop. **Included by default** in `dragDr
 
 ```ts
 interface AnimationsConfig {
-  duration?: number                     // ms, default 150
-  easing?: string                       // CSS easing, default "ease"
-  remapFinished?: boolean               // remap items to final positions after animation
+  duration?: number          // ms; default 150
+  easing?: string            // CSS easing; default "ease-in-out"
+  remapFinished?: () => void // callback invoked after nodes finish remapping
+  yScale?: number            // Y-axis scale factor during animation
+  xScale?: number            // X-axis scale factor during animation
 }
 ```
 
@@ -19687,7 +19705,8 @@ Use `accepts` to limit what can transfer in:
 ```ts
 dragDrop(done, {
   group: "kanban",
-  accepts: (data) => data.targetParentValues.every((t) => t.status === "todo"),
+  // Only accept items coming from the "todo" column.
+  accepts: (_target, initialParent) => initialParent.el.id === "col-todo",
 })
 ```
 
@@ -19699,8 +19718,8 @@ Wire `onSort` to persist new order after each drag:
 
 ```ts
 dragDrop(items, {
-  onSort: async ({ newValues }) => {
-    await api.patch("/tasks/order", { ids: newValues.map((t) => t.id) })
+  onSort: async ({ values }) => {
+    await api.patch("/tasks/order", { ids: values.map((t) => t.id) })
   },
 })
 ```
@@ -19709,32 +19728,55 @@ dragDrop(items, {
 
 ## Drag state types
 
+These are the exact types from `@formkit/drag-and-drop` (re-exported from `@domphy/dnd`).
+
 ```ts
-interface DragStartEventData<T> {
-  values: T[]           // items being dragged
-  parent: HTMLElement
+// Fired when a drag starts (native or synthetic pointer drag).
+interface DragstartEventData<T> {
+  parent: ParentRecord<T>         // the list containing the dragged item
+  values: T[]                     // current ordered values of that list
+  draggedNode: NodeRecord<T>      // the primary dragged DOM node
+  draggedNodes: NodeRecord<T>[]   // all dragged nodes (>1 in multi-drag)
+  position: number                // starting index of the dragged item
+  state: BaseDragState<T>
 }
 
-interface DragEndEventData<T> {
-  values: T[]           // items dropped
-  parent: HTMLElement
-  targetParent: HTMLElement | null
+// Fired when a drag ends (drop or cancel).
+interface DragendEventData<T> {
+  parent: ParentRecord<T>         // the list where the item landed
+  values: T[]                     // final ordered values of that list
+  draggedNode: NodeRecord<T>
+  draggedNodes: NodeRecord<T>[]
+  state: BaseDragState<T>
 }
 
+// Fired after a reorder within a single list.
 interface SortEventData<T> {
-  newValues: T[]        // reordered list
-  previousValues: T[]
-  parent: HTMLElement
+  parent: ParentRecord<T>
+  previousValues: T[]             // order before the sort
+  values: T[]                     // order after the sort
+  previousNodes: NodeRecord<T>[]
+  nodes: NodeRecord<T>[]
+  draggedNodes: NodeRecord<T>[]
+  targetNodes: NodeRecord<T>[]
+  previousPosition: number        // index before move (0-based)
+  position: number                // index after move (0-based)
+  state: BaseDragState<T>
 }
 
+// Fired after an item crosses from one list to another.
 interface TransferEventData<T> {
-  values: T[]           // items transferred
-  sourceParent: HTMLElement
-  targetParent: HTMLElement
-  targetParentValues: T[]
-  previousParentValues: T[]
+  sourceParent: ParentRecord<T>   // list the item came from
+  targetParent: ParentRecord<T>   // list the item went to
+  initialParent: ParentRecord<T>  // list where the drag first started
+  draggedNodes: NodeRecord<T>[]
+  targetNodes: NodeRecord<T>[]
+  targetIndex: number             // insertion index in the target list
+  state: BaseDragState<T>
 }
 ```
+
+`ParentRecord<T>` exposes `{ el: HTMLElement; data: ParentData<T> }` — access `el` for the DOM node and `data.getValues(el)` for the current values. `NodeRecord<T>` exposes `{ el: Node; data: NodeData<T> }` — access `data.value` for the item value.
 
 ---
 
@@ -19746,14 +19788,16 @@ All `@formkit/drag-and-drop` exports are re-exported from `@domphy/dnd`:
 import {
   dragAndDrop,      // low-level setup for a container element
   animations,       // plugin: smooth CSS transitions
-  insert,           // plugin: insert items at specific positions
-  sort,             // plugin: sort-only (no transfer)
-  transfer,         // plugin: transfer between lists
-  dropOrSwap,       // drop zone: swap positions instead of shift
+  insert,           // plugin: insert items with a drop indicator
+  dropOrSwap,       // plugin: swap positions instead of shift-sort
+  updateConfig,     // update a mounted parent's config without remounting
   parentValues,     // get current values from a parent element
   setParentValues,  // programmatically update a parent's values
-  nodes,            // map of all registered node elements
-  parents,          // map of all registered parent elements
+  sort,             // low-level sort utility (moves nodes in state)
+  transfer,         // low-level transfer utility (moves nodes between parents)
+  nodes,            // WeakMap of all registered draggable node elements
+  parents,          // WeakMap of all registered parent container elements
+  tearDown,         // remove FormKit listeners from a parent element
 } from "@domphy/dnd"
 ```
 
@@ -20213,10 +20257,8 @@ let archiveEl: HTMLElement | null = null
 // Source: items can leave but cannot accept transfers
 dragDrop(todo, {
   group: "archive",
-  accepts: (_target, _initial, _current, state) => {
-    // reject drops that originate from archive
-    return state.initialParent.el !== archiveEl
-  },
+  // The second argument is the list where the drag started — reject if it came from archive.
+  accepts: (_target, initial) => initial.el !== archiveEl,
 })
 
 // Sink: receives items, keeps insertion order, never gives them back

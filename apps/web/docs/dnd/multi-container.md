@@ -165,10 +165,8 @@ let archiveEl: HTMLElement | null = null
 // Source: items can leave but cannot accept transfers
 dragDrop(todo, {
   group: "archive",
-  accepts: (_target, _initial, _current, state) => {
-    // reject drops that originate from archive
-    return state.initialParent.el !== archiveEl
-  },
+  // The second argument is the list where the drag started — reject if it came from archive.
+  accepts: (_target, initial) => initial.el !== archiveEl,
 })
 
 // Sink: receives items, keeps insertion order, never gives them back
