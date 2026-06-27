@@ -15,16 +15,16 @@ import { toState } from "@domphy/core"
 
 const grouping = toState<string[]>([])
 
-const table = createDomphyTable({
-  data: () => employees,
+const dTable = createDomphyTable({
+  data: employees,
   columns,
+  getCoreRowModel: getCoreRowModel(),
   state: { grouping: grouping.get() },
   onGroupingChange: (updater) => {
     grouping.set(typeof updater === "function" ? updater(grouping.get()) : updater)
   },
   getExpandedRowModel: getExpandedRowModel(),
   getGroupedRowModel: getGroupedRowModel(),
-  getAggregatedRowModel: getAggregatedRowModel(),
 })
 ```
 
@@ -83,49 +83,45 @@ col.accessor("revenue", {
 
 ## Rendering grouped rows
 
-```ts
-const TableBody = {
-  tbody: (l) => table.getRowModel(l).rows.map((row) => ({
-    _key: row.id,
-    tr: (l) => {
-      if (row.getIsGrouped()) {
-        // Group header row
-        return row.getVisibleCells(l).map((cell) => ({
-          td: (l) => {
-            if (cell.getIsGrouped()) {
-              // The grouped cell — show toggle + label
-              return {
-                div: [
-                  {
-                    button: row.getIsExpanded(l) ? "▾" : "▸",
-                    onClick: () => row.toggleExpanded(),
-                    style: { marginRight: "4px", cursor: "pointer" },
-                  },
-                  { span: String(cell.renderValue()) },
-                  { span: ` (${row.subRows.length})`, style: { opacity: 0.6 } },
-                ],
-                style: { display: "flex", alignItems: "center" },
-              }
-            }
-            if (cell.getIsAggregated()) {
-              // Aggregated value cell
-              return { td: String(cell.renderValue()) }
-            }
-            // Placeholder
-            return { td: null }
-          },
-          colSpan: cell.getIsGrouped() ? 1 : undefined,
-          _key: cell.id,
-        }))
-      }
+Subscribe to changes with `dTable.getRowModel(l)` or call `version(l)` once at the top:
 
-      // Regular leaf row
-      return row.getVisibleCells(l).map((cell) => ({
-        td: String(cell.renderValue()),
-        _key: cell.id,
-      }))
-    },
-  })),
+```ts
+const { table, version } = dTable
+
+const TableBody = {
+  tbody: (l) => {
+    version(l)
+    return table.getRowModel().rows.map((row) => ({
+      _key: row.id,
+      tr: row.getIsGrouped()
+        ? // Group header row
+          row.getVisibleCells().map((cell) => ({
+            td: cell.getIsGrouped()
+              ? {
+                  div: [
+                    {
+                      button: row.getIsExpanded() ? "▾" : "▸",
+                      onClick: () => row.toggleExpanded(),
+                      style: { marginRight: "4px", cursor: "pointer" },
+                    },
+                    { span: String(cell.renderValue()) },
+                    { span: ` (${row.subRows.length})`, style: { opacity: 0.6 } },
+                  ],
+                  style: { display: "flex", alignItems: "center" },
+                }
+              : cell.getIsAggregated()
+                ? String(cell.renderValue())
+                : null,
+            colSpan: cell.getIsGrouped() ? 1 : undefined,
+            _key: cell.id,
+          }))
+        : // Regular leaf row
+          row.getVisibleCells().map((cell) => ({
+            td: String(cell.renderValue()),
+            _key: cell.id,
+          })),
+    }))
+  },
 }
 ```
 
@@ -153,10 +149,13 @@ const GroupByDepartment = {
 Or use the column toggle:
 
 ```ts
-const col = table.table.getColumn("department")
+const col = dTable.table.getColumn("department")
 
 const GroupToggle = {
-  button: (l) => col?.getIsGrouped(l) ? "Ungroup" : "Group",
+  button: (l) => {
+    version(l)
+    return col?.getIsGrouped() ? "Ungroup" : "Group"
+  },
   onClick: () => col?.toggleGrouping(),
 }
 ```
@@ -165,19 +164,21 @@ const GroupToggle = {
 
 ```ts
 const ExpandAll = {
-  button: (l) => table.getIsAllRowsExpanded(l) ? "Collapse all" : "Expand all",
-  onClick: () => table.table.toggleAllRowsExpanded(),
+  button: (l) => dTable.getIsAllRowsExpanded(l) ? "Collapse all" : "Expand all",
+  onClick: () => dTable.table.toggleAllRowsExpanded(),
 }
 ```
 
 ## Expand API
 
+`dTable` = the `DomphyTable` returned by `createDomphyTable`. Methods marked with `(l?)` accept an optional listener.
+
 | Method | Description |
 |--------|-------------|
 | `row.getIsGrouped()` | `true` if this row is a group header |
-| `row.getIsExpanded(l)` | `true` if the group is open |
+| `row.getIsExpanded()` | `true` if the group is open |
 | `row.toggleExpanded()` | Toggle expand/collapse |
 | `row.getCanExpand()` | `true` if has subrows |
 | `row.subRows` | Child rows in this group |
-| `table.getIsAllRowsExpanded(l)` | `true` if all groups are open |
-| `table.toggleAllRowsExpanded()` | Toggle all |
+| `dTable.getIsAllRowsExpanded(l?)` | `true` if all groups are open |
+| `dTable.table.toggleAllRowsExpanded()` | Toggle all |

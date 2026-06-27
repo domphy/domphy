@@ -7,17 +7,30 @@ description: "Show/hide columns with user-controlled visibility, persist column 
 
 ## Column visibility
 
-Enable column visibility — users can show/hide columns:
+Enable column visibility — users can show/hide columns. `createDomphyTable` handles the state loop automatically; just pass `enableHiding: true`:
 
 ```ts
 import { createDomphyTable } from "@domphy/table/domphy"
+
+const dTable = createDomphyTable({
+  data: rows,
+  columns,
+  getCoreRowModel: getCoreRowModel(),
+  enableHiding: true,
+})
+```
+
+To persist visibility externally (e.g. localStorage), pass your own state and handler:
+
+```ts
 import { toState } from "@domphy/core"
 
 const columnVisibility = toState<Record<string, boolean>>({})
 
-const table = createDomphyTable({
-  data: () => rows,
+const dTable = createDomphyTable({
+  data: rows,
   columns,
+  getCoreRowModel: getCoreRowModel(),
   state: { columnVisibility: columnVisibility.get() },
   onColumnVisibilityChange: (updater) => {
     columnVisibility.set(
@@ -32,18 +45,20 @@ const table = createDomphyTable({
 
 ## Column visibility toggle UI
 
+`getAllLeafColumns(l)` accepts the listener directly, so the list re-renders whenever visibility changes without a separate `version(l)` call:
+
 ```ts
 const ColumnToggle = {
   div: [
     { h4: "Columns" },
     {
-      div: (l) => table.getAllLeafColumns(l).map((col) => ({
+      div: (l) => dTable.getAllLeafColumns(l).map((col) => ({
         _key: col.id,
         label: [
           {
             input: null,
             type: "checkbox",
-            checked: (l) => col.getIsVisible(),
+            checked: col.getIsVisible(),
             disabled: !col.getCanHide(),
             onChange: () => col.toggleVisibility(),
           },
@@ -83,9 +98,10 @@ import { toState } from "@domphy/core"
 
 const columnOrder = toState<string[]>([])
 
-const table = createDomphyTable({
-  data: () => rows,
+const dTable = createDomphyTable({
+  data: rows,
   columns,
+  getCoreRowModel: getCoreRowModel(),
   state: { columnOrder: columnOrder.get() },
   onColumnOrderChange: (updater) => {
     columnOrder.set(
@@ -98,10 +114,10 @@ const table = createDomphyTable({
 
 // Move a column
 function moveColumn(fromId: string, toId: string) {
-  table.table.setColumnOrder((old) => {
+  dTable.table.setColumnOrder((old) => {
     const order = old.length
       ? [...old]
-      : table.getAllLeafColumns().map(c => c.id)
+      : dTable.getAllLeafColumns().map(c => c.id)
 
     const from = order.indexOf(fromId)
     const to = order.indexOf(toId)
@@ -127,7 +143,7 @@ const headerOrder = toState<string[]>([])
 
 const HeaderRow = {
   tr: (l) => {
-    const headers = table.getHeaderGroups(l)[0]?.headers ?? []
+    const headers = dTable.getHeaderGroups(l)[0]?.headers ?? []
     return headers.map((header) => ({
       th: String(header.column.columnDef.header ?? ""),
       _key: header.id,
@@ -136,7 +152,7 @@ const HeaderRow = {
   },
   $: [dragDrop(headerOrder, {
     group: "column-headers",
-    onSort: (order) => table.table.setColumnOrder(order),
+    onSort: (order) => dTable.table.setColumnOrder(order),
   })],
 }
 ```
@@ -179,26 +195,29 @@ columnOrder.addListener((o) => saveColumnState({ visibility: columnVisibility.ge
 ```ts
 const ShowAllButton = {
   button: "Show all",
-  onClick: () => table.table.resetColumnVisibility(),
+  onClick: () => dTable.table.resetColumnVisibility(),
 }
 
 const HideButton = (columnId: string) => ({
   button: "Hide",
-  onClick: () => table.table.getColumn(columnId)?.toggleVisibility(false),
+  onClick: () => dTable.table.getColumn(columnId)?.toggleVisibility(false),
 })
 ```
 
 ## Visibility API
+
+`dTable` = the `DomphyTable` returned by `createDomphyTable`. Methods marked with `(l?)` accept an optional listener for reactive reads.
 
 | Method | Description |
 |--------|-------------|
 | `col.getIsVisible()` | `true` if column is visible |
 | `col.getCanHide()` | `false` if `enableHiding: false` |
 | `col.toggleVisibility(value?)` | Toggle or set visibility |
-| `table.getVisibleLeafColumns(l)` | All visible leaf columns |
-| `table.getIsAllColumnsVisible(l)` | `true` if all columns visible |
-| `table.getIsSomeColumnsVisible(l)` | `true` if some columns visible |
-| `table.toggleAllColumnsVisible()` | Toggle all |
-| `table.resetColumnVisibility()` | Reset to initial state |
-| `table.setColumnOrder(updater)` | Set column order |
-| `table.resetColumnOrder()` | Reset to initial order |
+| `dTable.getAllLeafColumns(l?)` | All leaf columns (visible or hidden) |
+| `dTable.getVisibleLeafColumns(l?)` | Visible leaf columns only |
+| `dTable.getIsAllColumnsVisible(l?)` | `true` if all columns visible |
+| `dTable.getIsSomeColumnsVisible(l?)` | `true` if some columns visible |
+| `dTable.table.toggleAllColumnsVisible()` | Toggle all columns |
+| `dTable.table.resetColumnVisibility()` | Reset to initial state |
+| `dTable.table.setColumnOrder(updater)` | Set column order |
+| `dTable.table.resetColumnOrder()` | Reset to initial order |

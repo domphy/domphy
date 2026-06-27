@@ -11629,17 +11629,70 @@ const App: DomphyElement<"table"> = {
 
 | Member | Description |
 | --- | --- |
-| `table` | The full table-core `Table` instance — every header group, row model, and feature method. |
-| `version(l)` | Reactive change counter. Read it (with the listener) anywhere you render from the instance; it bumps on every state change. |
+| `table` | The raw table-core `Table` instance — every feature method lives here. |
+| `version(l)` | Reactive change counter. Bumps on every table state change. |
 | `state(l)` | The current `TableState`, reactive when a listener is passed. |
 | `setState(updater)` | Forwards to `table.setState`. |
 | `destroy()` | Releases the version state's listeners. |
+| `getRowModel(l?)` | Rows after all active row models (sort, filter, pagination, grouping). |
+| `getHeaderGroups(l?)` | Header groups for `<thead>`. |
+| `getAllLeafColumns(l?)` | All leaf columns regardless of visibility. |
+| `getVisibleLeafColumns(l?)` | Visible leaf columns only. |
+| `getIsAllColumnsVisible(l?)` | `true` when every leaf column is visible. |
+| `getIsSomeColumnsVisible(l?)` | `true` when at least one leaf column is visible. |
+| `getSelectedRowModel(l?)` | Selected rows as a row model (requires `enableRowSelection`). |
+| `getIsAllRowsSelected(l?)` | `true` when all filtered rows are selected. |
+| `getIsSomeRowsSelected(l?)` | `true` when some (not all) filtered rows are selected. |
+| `getIsAllRowsExpanded(l?)` | `true` when all expandable rows are open. |
+| `getCanNextPage(l?)` | `true` when a next page exists (requires `getPaginationRowModel`). |
+| `getCanPreviousPage(l?)` | `true` when a previous page exists. |
+| `getPageCount(l?)` | Total pages after filtering. |
 
-## Why a version counter
+## Two ways to react
 
-A table's rendered output — `getRowModel().rows`, header sort markers, the page indicator — depends on essentially all of the table state. One coarse `version` signal that bumps on any change is the right granularity: read `version(l)` once at the top of the region that renders from the instance, and the whole region reconciles. Domphy patches the DOM in place, so re-deriving rows is cheap and keyed rows keep their nodes.
+**Coarse — one `version(l)` subscription per region:** read `version(l)` once at the top of a render function; everything derived from the table in that function re-runs together. This is the simplest pattern and matches the live example above.
 
-For controls that depend on a single slice (e.g. a page-size selector), you can read `state(l).pagination` instead to avoid re-rendering on unrelated changes.
+```ts
+table: (l) => {
+    version(l)   // one subscription; re-runs on any change
+    return [
+        { thead: table.getHeaderGroups().map(...) },
+        { tbody: table.getRowModel().rows.map(...) },
+    ]
+},
+```
+
+**Fine — per-expression subscriptions:** pass the listener directly to a convenience read method. The subscription is scoped to that expression, so only that element re-renders when the value changes. Useful for buttons or indicators outside the main table body.
+
+```ts
+{
+    button: "Next",
+    disabled: (l) => !dTable.getCanNextPage(l),
+    onClick: () => dTable.table.nextPage(),
+}
+```
+
+```ts
+{ span: (l) => `Page ${dTable.state(l).pagination.pageIndex + 1} of ${dTable.getPageCount(l)}` }
+```
+
+Because all these methods subscribe to the same version counter, the granularity is identical — only the scope of the re-render differs.
+
+## Cleanup
+
+Release the version state when the table's subtree unmounts:
+
+```ts
+{
+    table: (l) => { version(l); return [...] },
+    $: [tableUI()],
+    _onRemove: () => destroy(),
+}
+```
+
+## When to use the bridge directly
+
+Use the raw [bridge pattern](./) when you need fully-controlled state living in your own model, or per-slice signals instead of one counter. The adapter is built on that exact pattern.
 
 ## Cleanup
 
@@ -12119,17 +12172,30 @@ description: "Show/hide columns with user-controlled visibility, persist column 
 
 ## Column visibility
 
-Enable column visibility — users can show/hide columns:
+Enable column visibility — users can show/hide columns. `createDomphyTable` handles the state loop automatically; just pass `enableHiding: true`:
 
 ```ts
 import { createDomphyTable } from "@domphy/table/domphy"
+
+const dTable = createDomphyTable({
+  data: rows,
+  columns,
+  getCoreRowModel: getCoreRowModel(),
+  enableHiding: true,
+})
+```
+
+To persist visibility externally (e.g. localStorage), pass your own state and handler:
+
+```ts
 import { toState } from "@domphy/core"
 
 const columnVisibility = toState<Record<string, boolean>>({})
 
-const table = createDomphyTable({
-  data: () => rows,
+const dTable = createDomphyTable({
+  data: rows,
   columns,
+  getCoreRowModel: getCoreRowModel(),
   state: { columnVisibility: columnVisibility.get() },
   onColumnVisibilityChange: (updater) => {
     columnVisibility.set(
@@ -12144,18 +12210,20 @@ const table = createDomphyTable({
 
 ## Column visibility toggle UI
 
+`getAllLeafColumns(l)` accepts the listener directly, so the list re-renders whenever visibility changes without a separate `version(l)` call:
+
 ```ts
 const ColumnToggle = {
   div: [
     { h4: "Columns" },
     {
-      div: (l) => table.getAllLeafColumns(l).map((col) => ({
+      div: (l) => dTable.getAllLeafColumns(l).map((col) => ({
         _key: col.id,
         label: [
           {
             input: null,
             type: "checkbox",
-            checked: (l) => col.getIsVisible(),
+            checked: col.getIsVisible(),
             disabled: !col.getCanHide(),
             onChange: () => col.toggleVisibility(),
           },
@@ -12195,9 +12263,10 @@ import { toState } from "@domphy/core"
 
 const columnOrder = toState<string[]>([])
 
-const table = createDomphyTable({
-  data: () => rows,
+const dTable = createDomphyTable({
+  data: rows,
   columns,
+  getCoreRowModel: getCoreRowModel(),
   state: { columnOrder: columnOrder.get() },
   onColumnOrderChange: (updater) => {
     columnOrder.set(
@@ -12210,10 +12279,10 @@ const table = createDomphyTable({
 
 // Move a column
 function moveColumn(fromId: string, toId: string) {
-  table.table.setColumnOrder((old) => {
+  dTable.table.setColumnOrder((old) => {
     const order = old.length
       ? [...old]
-      : table.getAllLeafColumns().map(c => c.id)
+      : dTable.getAllLeafColumns().map(c => c.id)
 
     const from = order.indexOf(fromId)
     const to = order.indexOf(toId)
@@ -12239,7 +12308,7 @@ const headerOrder = toState<string[]>([])
 
 const HeaderRow = {
   tr: (l) => {
-    const headers = table.getHeaderGroups(l)[0]?.headers ?? []
+    const headers = dTable.getHeaderGroups(l)[0]?.headers ?? []
     return headers.map((header) => ({
       th: String(header.column.columnDef.header ?? ""),
       _key: header.id,
@@ -12248,7 +12317,7 @@ const HeaderRow = {
   },
   $: [dragDrop(headerOrder, {
     group: "column-headers",
-    onSort: (order) => table.table.setColumnOrder(order),
+    onSort: (order) => dTable.table.setColumnOrder(order),
   })],
 }
 ```
@@ -12291,29 +12360,32 @@ columnOrder.addListener((o) => saveColumnState({ visibility: columnVisibility.ge
 ```ts
 const ShowAllButton = {
   button: "Show all",
-  onClick: () => table.table.resetColumnVisibility(),
+  onClick: () => dTable.table.resetColumnVisibility(),
 }
 
 const HideButton = (columnId: string) => ({
   button: "Hide",
-  onClick: () => table.table.getColumn(columnId)?.toggleVisibility(false),
+  onClick: () => dTable.table.getColumn(columnId)?.toggleVisibility(false),
 })
 ```
 
 ## Visibility API
+
+`dTable` = the `DomphyTable` returned by `createDomphyTable`. Methods marked with `(l?)` accept an optional listener for reactive reads.
 
 | Method | Description |
 |--------|-------------|
 | `col.getIsVisible()` | `true` if column is visible |
 | `col.getCanHide()` | `false` if `enableHiding: false` |
 | `col.toggleVisibility(value?)` | Toggle or set visibility |
-| `table.getVisibleLeafColumns(l)` | All visible leaf columns |
-| `table.getIsAllColumnsVisible(l)` | `true` if all columns visible |
-| `table.getIsSomeColumnsVisible(l)` | `true` if some columns visible |
-| `table.toggleAllColumnsVisible()` | Toggle all |
-| `table.resetColumnVisibility()` | Reset to initial state |
-| `table.setColumnOrder(updater)` | Set column order |
-| `table.resetColumnOrder()` | Reset to initial order |
+| `dTable.getAllLeafColumns(l?)` | All leaf columns (visible or hidden) |
+| `dTable.getVisibleLeafColumns(l?)` | Visible leaf columns only |
+| `dTable.getIsAllColumnsVisible(l?)` | `true` if all columns visible |
+| `dTable.getIsSomeColumnsVisible(l?)` | `true` if some columns visible |
+| `dTable.table.toggleAllColumnsVisible()` | Toggle all columns |
+| `dTable.table.resetColumnVisibility()` | Reset to initial state |
+| `dTable.table.setColumnOrder(updater)` | Set column order |
+| `dTable.table.resetColumnOrder()` | Reset to initial order |
 
 ### columns.md
 
@@ -12882,16 +12954,16 @@ import { toState } from "@domphy/core"
 
 const grouping = toState<string[]>([])
 
-const table = createDomphyTable({
-  data: () => employees,
+const dTable = createDomphyTable({
+  data: employees,
   columns,
+  getCoreRowModel: getCoreRowModel(),
   state: { grouping: grouping.get() },
   onGroupingChange: (updater) => {
     grouping.set(typeof updater === "function" ? updater(grouping.get()) : updater)
   },
   getExpandedRowModel: getExpandedRowModel(),
   getGroupedRowModel: getGroupedRowModel(),
-  getAggregatedRowModel: getAggregatedRowModel(),
 })
 ```
 
@@ -12950,49 +13022,45 @@ col.accessor("revenue", {
 
 ## Rendering grouped rows
 
-```ts
-const TableBody = {
-  tbody: (l) => table.getRowModel(l).rows.map((row) => ({
-    _key: row.id,
-    tr: (l) => {
-      if (row.getIsGrouped()) {
-        // Group header row
-        return row.getVisibleCells(l).map((cell) => ({
-          td: (l) => {
-            if (cell.getIsGrouped()) {
-              // The grouped cell — show toggle + label
-              return {
-                div: [
-                  {
-                    button: row.getIsExpanded(l) ? "▾" : "▸",
-                    onClick: () => row.toggleExpanded(),
-                    style: { marginRight: "4px", cursor: "pointer" },
-                  },
-                  { span: String(cell.renderValue()) },
-                  { span: ` (${row.subRows.length})`, style: { opacity: 0.6 } },
-                ],
-                style: { display: "flex", alignItems: "center" },
-              }
-            }
-            if (cell.getIsAggregated()) {
-              // Aggregated value cell
-              return { td: String(cell.renderValue()) }
-            }
-            // Placeholder
-            return { td: null }
-          },
-          colSpan: cell.getIsGrouped() ? 1 : undefined,
-          _key: cell.id,
-        }))
-      }
+Subscribe to changes with `dTable.getRowModel(l)` or call `version(l)` once at the top:
 
-      // Regular leaf row
-      return row.getVisibleCells(l).map((cell) => ({
-        td: String(cell.renderValue()),
-        _key: cell.id,
-      }))
-    },
-  })),
+```ts
+const { table, version } = dTable
+
+const TableBody = {
+  tbody: (l) => {
+    version(l)
+    return table.getRowModel().rows.map((row) => ({
+      _key: row.id,
+      tr: row.getIsGrouped()
+        ? // Group header row
+          row.getVisibleCells().map((cell) => ({
+            td: cell.getIsGrouped()
+              ? {
+                  div: [
+                    {
+                      button: row.getIsExpanded() ? "▾" : "▸",
+                      onClick: () => row.toggleExpanded(),
+                      style: { marginRight: "4px", cursor: "pointer" },
+                    },
+                    { span: String(cell.renderValue()) },
+                    { span: ` (${row.subRows.length})`, style: { opacity: 0.6 } },
+                  ],
+                  style: { display: "flex", alignItems: "center" },
+                }
+              : cell.getIsAggregated()
+                ? String(cell.renderValue())
+                : null,
+            colSpan: cell.getIsGrouped() ? 1 : undefined,
+            _key: cell.id,
+          }))
+        : // Regular leaf row
+          row.getVisibleCells().map((cell) => ({
+            td: String(cell.renderValue()),
+            _key: cell.id,
+          })),
+    }))
+  },
 }
 ```
 
@@ -13020,10 +13088,13 @@ const GroupByDepartment = {
 Or use the column toggle:
 
 ```ts
-const col = table.table.getColumn("department")
+const col = dTable.table.getColumn("department")
 
 const GroupToggle = {
-  button: (l) => col?.getIsGrouped(l) ? "Ungroup" : "Group",
+  button: (l) => {
+    version(l)
+    return col?.getIsGrouped() ? "Ungroup" : "Group"
+  },
   onClick: () => col?.toggleGrouping(),
 }
 ```
@@ -13032,22 +13103,24 @@ const GroupToggle = {
 
 ```ts
 const ExpandAll = {
-  button: (l) => table.getIsAllRowsExpanded(l) ? "Collapse all" : "Expand all",
-  onClick: () => table.table.toggleAllRowsExpanded(),
+  button: (l) => dTable.getIsAllRowsExpanded(l) ? "Collapse all" : "Expand all",
+  onClick: () => dTable.table.toggleAllRowsExpanded(),
 }
 ```
 
 ## Expand API
 
+`dTable` = the `DomphyTable` returned by `createDomphyTable`. Methods marked with `(l?)` accept an optional listener.
+
 | Method | Description |
 |--------|-------------|
 | `row.getIsGrouped()` | `true` if this row is a group header |
-| `row.getIsExpanded(l)` | `true` if the group is open |
+| `row.getIsExpanded()` | `true` if the group is open |
 | `row.toggleExpanded()` | Toggle expand/collapse |
 | `row.getCanExpand()` | `true` if has subrows |
 | `row.subRows` | Child rows in this group |
-| `table.getIsAllRowsExpanded(l)` | `true` if all groups are open |
-| `table.toggleAllRowsExpanded()` | Toggle all |
+| `dTable.getIsAllRowsExpanded(l?)` | `true` if all groups are open |
+| `dTable.table.toggleAllRowsExpanded()` | Toggle all |
 
 ### index.md
 

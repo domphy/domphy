@@ -4,6 +4,7 @@ import type { TableState } from "../src/index";
 import {
   createColumnHelper,
   getCoreRowModel,
+  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
 } from "../src/index";
@@ -99,5 +100,134 @@ describe("createDomphyTable user onStateChange pass-through", () => {
     expect(onStateChange).toHaveBeenCalledTimes(2);
     // The adapter forwards the raw updater table-core produced.
     expect(typeof onStateChange.mock.calls[0][0]).toBe("function");
+  });
+});
+
+describe("DomphyTable reactive convenience reads", () => {
+  it("getRowModel returns rows and subscribes listener to version", async () => {
+    const dTable = setup();
+    let calls = 0;
+    const listener = () => {
+      calls++;
+      dTable.getRowModel(listener);
+    };
+    dTable.getRowModel(listener);
+
+    // Trigger a change — sort on name asc.
+    dTable.table.getColumn("name")?.toggleSorting(false);
+
+    await flush();
+    expect(calls).toBeGreaterThan(0);
+    expect(dTable.getRowModel().rows[0].original.name).toBe("Alice");
+  });
+
+  it("getHeaderGroups returns header groups", () => {
+    const dTable = setup();
+    const groups = dTable.getHeaderGroups();
+    expect(groups.length).toBeGreaterThan(0);
+    expect(groups[0].headers.length).toBe(2); // name + age columns
+  });
+
+  it("getAllLeafColumns returns all leaf columns", () => {
+    const dTable = setup();
+    expect(dTable.getAllLeafColumns().length).toBe(2);
+  });
+
+  it("getVisibleLeafColumns reflects column visibility", () => {
+    const dTable = setup();
+    expect(dTable.getVisibleLeafColumns().length).toBe(2);
+    dTable.table.getColumn("age")?.toggleVisibility(false);
+    expect(dTable.getVisibleLeafColumns().length).toBe(1);
+  });
+
+  it("getIsAllColumnsVisible / getIsSomeColumnsVisible reflect state", () => {
+    const dTable = setup();
+    expect(dTable.getIsAllColumnsVisible()).toBe(true);
+    dTable.table.getColumn("age")?.toggleVisibility(false);
+    expect(dTable.getIsAllColumnsVisible()).toBe(false);
+    expect(dTable.getIsSomeColumnsVisible()).toBe(true);
+  });
+
+  it("getCanNextPage / getCanPreviousPage / getPageCount reflect pagination", () => {
+    const dTable = setup(); // pageSize=2, 3 rows → 2 pages
+    expect(dTable.getPageCount()).toBe(2);
+    expect(dTable.getCanPreviousPage()).toBe(false);
+    expect(dTable.getCanNextPage()).toBe(true);
+
+    dTable.table.nextPage();
+    expect(dTable.getCanPreviousPage()).toBe(true);
+    expect(dTable.getCanNextPage()).toBe(false);
+  });
+
+  it("getIsAllRowsSelected / getIsSomeRowsSelected reflect selection", () => {
+    const dTable = createDomphyTable<Person>({
+      data: people,
+      columns,
+      getCoreRowModel: getCoreRowModel(),
+      enableRowSelection: true,
+    });
+    expect(dTable.getIsAllRowsSelected()).toBe(false);
+    expect(dTable.getIsSomeRowsSelected()).toBe(false);
+
+    dTable.table.toggleAllRowsSelected(true);
+    expect(dTable.getIsAllRowsSelected()).toBe(true);
+  });
+
+  it("getSelectedRowModel returns selected rows", () => {
+    const dTable = createDomphyTable<Person>({
+      data: people,
+      columns,
+      getCoreRowModel: getCoreRowModel(),
+      enableRowSelection: true,
+    });
+    dTable.table.toggleAllRowsSelected(true);
+    expect(dTable.getSelectedRowModel().rows.length).toBe(people.length);
+  });
+
+  it("getIsAllRowsExpanded reflects expanded state", () => {
+    const dTable = createDomphyTable<Person>({
+      data: people,
+      columns,
+      getCoreRowModel: getCoreRowModel(),
+    });
+    // No sub-rows, so all rows are trivially expanded.
+    expect(typeof dTable.getIsAllRowsExpanded()).toBe("boolean");
+  });
+
+  it("convenience reads notify a listener on version change", async () => {
+    const dTable = setup();
+    let pageCalls = 0;
+    const listener = () => {
+      pageCalls++;
+      dTable.getPageCount(listener);
+    };
+    dTable.getPageCount(listener);
+
+    dTable.table.nextPage();
+    await flush();
+    expect(pageCalls).toBeGreaterThan(0);
+  });
+
+  it("getRowModel without listener returns synchronously without subscribing", () => {
+    const dTable = setup();
+    const rows = dTable.getRowModel();
+    expect(Array.isArray(rows.rows)).toBe(true);
+  });
+
+  it("column filter reduces rows reactively via getFilteredRowModel", async () => {
+    const dTable = createDomphyTable<Person>({
+      data: people,
+      columns,
+      getCoreRowModel: getCoreRowModel(),
+      getFilteredRowModel: getFilteredRowModel(),
+    });
+
+    let rowCount = dTable.getRowModel().rows.length;
+    expect(rowCount).toBe(3);
+
+    dTable.table.getColumn("name")?.setFilterValue("alice");
+    rowCount = dTable.getRowModel().rows.length;
+    expect(rowCount).toBe(1);
+    expect(dTable.getRowModel().rows[0].original.name).toBe("Alice");
   });
 });

@@ -156,6 +156,16 @@ Type-safe routing — a 1-1 port of `@tanstack/router-core` (identical API) plus
 
 Headless table logic — a 1-1 port of `@tanstack/table-core` v8 (identical API). Adapter `createDomphyTable` (`@domphy/table/domphy`).
 
+**`DomphyTable` handle** (returned by `createDomphyTable`):
+- `table` — raw table-core `Table` instance (all feature methods: `setSorting`, `setColumnFilters`, `setGlobalFilter`, `nextPage`, `toggleAllRowsSelected`, `setColumnVisibility`, `toggleAllColumnsVisible`, `setColumnOrder`, `setGrouping`, `toggleAllRowsExpanded`, etc.)
+- `version(l?)` — reactive change counter; bumps on every state change
+- `state(l?)` — full `TableState`, reactive with listener
+- `setState(updater)` — direct state update
+- `destroy()` — releases reactive state
+- **Reactive reads** (accept optional listener `l`): `getRowModel(l?)`, `getHeaderGroups(l?)`, `getAllLeafColumns(l?)`, `getVisibleLeafColumns(l?)`, `getIsAllColumnsVisible(l?)`, `getIsSomeColumnsVisible(l?)`, `getSelectedRowModel(l?)`, `getIsAllRowsSelected(l?)`, `getIsSomeRowsSelected(l?)`, `getIsAllRowsExpanded(l?)`, `getCanNextPage(l?)`, `getCanPreviousPage(l?)`, `getPageCount(l?)`
+
+Two render patterns: (1) coarse — call `version(l)` once, then call `table.getRowModel()` etc. without listener; (2) fine — pass listener directly to a convenience read method (`dTable.getCanNextPage(l)`) so only that element re-renders.
+
 - [Overview](https://domphy.com/docs/table/) · [Columns & Row Models](https://domphy.com/docs/table/columns) · [Sorting & Filtering](https://domphy.com/docs/table/sorting-filtering) · [Pagination & Selection](https://domphy.com/docs/table/pagination-selection) · [Advanced](https://domphy.com/docs/table/advanced) · [Column Groups & Headers](https://domphy.com/docs/table/column-groups) · [Grouping & Expanding](https://domphy.com/docs/table/grouping) · [Column Visibility & Ordering](https://domphy.com/docs/table/column-visibility) · [Faceting & Filter UI](https://domphy.com/docs/table/faceting) · [Row Pinning](https://domphy.com/docs/table/row-pinning) · [Custom Features](https://domphy.com/docs/table/custom-features) · [Virtualization](https://domphy.com/docs/table/virtualization) · [API](https://domphy.com/docs/table/api)
 
 ## Virtual (`@domphy/virtual`)

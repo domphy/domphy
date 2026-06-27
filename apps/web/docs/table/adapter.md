@@ -69,17 +69,70 @@ const App: DomphyElement<"table"> = {
 
 | Member | Description |
 | --- | --- |
-| `table` | The full table-core `Table` instance — every header group, row model, and feature method. |
-| `version(l)` | Reactive change counter. Read it (with the listener) anywhere you render from the instance; it bumps on every state change. |
+| `table` | The raw table-core `Table` instance — every feature method lives here. |
+| `version(l)` | Reactive change counter. Bumps on every table state change. |
 | `state(l)` | The current `TableState`, reactive when a listener is passed. |
 | `setState(updater)` | Forwards to `table.setState`. |
 | `destroy()` | Releases the version state's listeners. |
+| `getRowModel(l?)` | Rows after all active row models (sort, filter, pagination, grouping). |
+| `getHeaderGroups(l?)` | Header groups for `<thead>`. |
+| `getAllLeafColumns(l?)` | All leaf columns regardless of visibility. |
+| `getVisibleLeafColumns(l?)` | Visible leaf columns only. |
+| `getIsAllColumnsVisible(l?)` | `true` when every leaf column is visible. |
+| `getIsSomeColumnsVisible(l?)` | `true` when at least one leaf column is visible. |
+| `getSelectedRowModel(l?)` | Selected rows as a row model (requires `enableRowSelection`). |
+| `getIsAllRowsSelected(l?)` | `true` when all filtered rows are selected. |
+| `getIsSomeRowsSelected(l?)` | `true` when some (not all) filtered rows are selected. |
+| `getIsAllRowsExpanded(l?)` | `true` when all expandable rows are open. |
+| `getCanNextPage(l?)` | `true` when a next page exists (requires `getPaginationRowModel`). |
+| `getCanPreviousPage(l?)` | `true` when a previous page exists. |
+| `getPageCount(l?)` | Total pages after filtering. |
 
-## Why a version counter
+## Two ways to react
 
-A table's rendered output — `getRowModel().rows`, header sort markers, the page indicator — depends on essentially all of the table state. One coarse `version` signal that bumps on any change is the right granularity: read `version(l)` once at the top of the region that renders from the instance, and the whole region reconciles. Domphy patches the DOM in place, so re-deriving rows is cheap and keyed rows keep their nodes.
+**Coarse — one `version(l)` subscription per region:** read `version(l)` once at the top of a render function; everything derived from the table in that function re-runs together. This is the simplest pattern and matches the live example above.
 
-For controls that depend on a single slice (e.g. a page-size selector), you can read `state(l).pagination` instead to avoid re-rendering on unrelated changes.
+```ts
+table: (l) => {
+    version(l)   // one subscription; re-runs on any change
+    return [
+        { thead: table.getHeaderGroups().map(...) },
+        { tbody: table.getRowModel().rows.map(...) },
+    ]
+},
+```
+
+**Fine — per-expression subscriptions:** pass the listener directly to a convenience read method. The subscription is scoped to that expression, so only that element re-renders when the value changes. Useful for buttons or indicators outside the main table body.
+
+```ts
+{
+    button: "Next",
+    disabled: (l) => !dTable.getCanNextPage(l),
+    onClick: () => dTable.table.nextPage(),
+}
+```
+
+```ts
+{ span: (l) => `Page ${dTable.state(l).pagination.pageIndex + 1} of ${dTable.getPageCount(l)}` }
+```
+
+Because all these methods subscribe to the same version counter, the granularity is identical — only the scope of the re-render differs.
+
+## Cleanup
+
+Release the version state when the table's subtree unmounts:
+
+```ts
+{
+    table: (l) => { version(l); return [...] },
+    $: [tableUI()],
+    _onRemove: () => destroy(),
+}
+```
+
+## When to use the bridge directly
+
+Use the raw [bridge pattern](./) when you need fully-controlled state living in your own model, or per-slice signals instead of one counter. The adapter is built on that exact pattern.
 
 ## Cleanup
 
