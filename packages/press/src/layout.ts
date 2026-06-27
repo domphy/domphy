@@ -725,7 +725,21 @@ function tocAside(ctx: LayoutContext): DomphyElement | null {
 // --- Prev/next ----------------------------------------------------------
 
 function prevNext(ctx: LayoutContext): DomphyElement | null {
-  const { prev, next } = prevNextForRoute(ctx.route, ctx.config);
+  let { prev, next } = prevNextForRoute(ctx.route, ctx.config);
+
+  // Frontmatter overrides: false disables, {text,link} replaces
+  const fmPrev = ctx.frontmatter.prev;
+  const fmNext = ctx.frontmatter.next;
+  if (fmPrev === false) prev = undefined;
+  else if (fmPrev && typeof fmPrev === "object") {
+    const p = fmPrev as { text?: string; link?: string };
+    if (p.text && p.link) prev = { text: p.text, link: p.link };
+  }
+  if (fmNext === false) next = undefined;
+  else if (fmNext && typeof fmNext === "object") {
+    const n = fmNext as { text?: string; link?: string };
+    if (n.text && n.link) next = { text: n.text, link: n.link };
+  }
   if (!prev && !next) return null;
   const linkStyle = style({
     display: "block",
@@ -1063,6 +1077,7 @@ interface HeroConfig {
   text?: string;
   tagline?: string;
   actions?: Array<{ theme?: string; text: string; link: string }>;
+  image?: { src: string; alt?: string } | string;
 }
 
 interface FeatureConfig {
@@ -1073,9 +1088,15 @@ interface FeatureConfig {
 }
 
 function heroSection(hero: HeroConfig): DomphyElement {
-  const children: DomphyElement[] = [];
+  const hasImage = Boolean(hero.image);
+  const imageSrc =
+    typeof hero.image === "string" ? hero.image : hero.image?.src;
+  const imageAlt =
+    typeof hero.image === "object" ? (hero.image?.alt ?? "") : "";
+
+  const textChildren: DomphyElement[] = [];
   if (hero.name)
-    children.push({
+    textChildren.push({
       div: hero.name,
       style: {
         fontSize: "56px",
@@ -1089,7 +1110,7 @@ function heroSection(hero: HeroConfig): DomphyElement {
       },
     } as DomphyElement);
   if (hero.text)
-    children.push({
+    textChildren.push({
       h1: hero.text,
       style: {
         fontSize: "30px",
@@ -1099,17 +1120,17 @@ function heroSection(hero: HeroConfig): DomphyElement {
       },
     } as DomphyElement);
   if (hero.tagline)
-    children.push({
+    textChildren.push({
       p: hero.tagline,
       style: {
         fontSize: "18px",
         color: textSoft,
-        maxWidth: ts(160),
-        margin: `${ts(5)} auto 0`,
+        maxWidth: hasImage ? "none" : ts(160),
+        margin: hasImage ? `${ts(5)} 0 0` : `${ts(5)} auto 0`,
       },
     } as DomphyElement);
   if (hero.actions?.length) {
-    const actionStyle = (theme?: string): Record<string, any> => {
+    const actionStyle = (theme?: string): Record<string, unknown> => {
       if (!theme || theme === "brand")
         return {
           padding: `${ts(2.5)} ${ts(5.5)}`,
@@ -1131,7 +1152,7 @@ function heroSection(hero: HeroConfig): DomphyElement {
         "&:hover": { borderColor: brand, textDecoration: "none" },
       };
     };
-    children.push({
+    textChildren.push({
       div: hero.actions.map(
         (a) =>
           ({
@@ -1143,15 +1164,62 @@ function heroSection(hero: HeroConfig): DomphyElement {
       style: {
         display: "flex",
         gap: ts(3),
-        justifyContent: "center",
+        justifyContent: hasImage ? "flex-start" : "center",
         marginTop: ts(7),
         flexWrap: "wrap",
       },
     } as DomphyElement);
   }
+
+  if (!hasImage) {
+    return {
+      section: textChildren,
+      style: { textAlign: "center", padding: `${ts(10)} 0 ${ts(6)}` },
+    };
+  }
+
+  const imageEl: DomphyElement = {
+    div: [
+      {
+        img: null,
+        src: imageSrc,
+        alt: imageAlt,
+        style: {
+          maxWidth: "100%",
+          height: "auto",
+          maxHeight: ts(80),
+          objectFit: "contain",
+          borderRadius: ts(3),
+        },
+      } as DomphyElement,
+    ],
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+  } as DomphyElement;
+
   return {
-    section: children,
-    style: { textAlign: "center", padding: `${ts(10)} 0 ${ts(6)}` },
+    section: [
+      {
+        div: [
+          {
+            div: textChildren,
+            style: { display: "flex", flexDirection: "column", justifyContent: "center" },
+          } as DomphyElement,
+          imageEl,
+        ],
+        style: {
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: ts(12),
+          alignItems: "center",
+          "@media (max-width: 768px)": { gridTemplateColumns: "1fr" },
+        },
+      } as DomphyElement,
+    ],
+    style: { padding: `${ts(10)} 0 ${ts(6)}` },
   };
 }
 

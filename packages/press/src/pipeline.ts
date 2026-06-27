@@ -443,6 +443,7 @@ function shapeTaskLists(tokens: MarkdownItToken[]): MarkdownItToken[] {
 function createParser(
   docsDir: string,
   highlight: (code: string, lang: string) => string,
+  markdownConfig?: (md: unknown) => void,
 ): MarkdownIt {
   const md = new MarkdownIt({ html: true, linkify: true, typographer: false });
   md.enable(["strikethrough", "table"]);
@@ -524,6 +525,7 @@ function createParser(
     }
     return true;
   });
+  markdownConfig?.(md);
   return md;
 }
 
@@ -596,12 +598,12 @@ export async function renderDoc(
   source: string,
   options: RenderDocOptions,
 ): Promise<RenderedDoc> {
-  const { filePath, docsDir, highlight } = options;
+  const { filePath, docsDir, highlight, markdownConfig } = options;
   const fileDir = dirname(filePath);
   const { frontmatter, content } = splitFrontmatter(source);
   const stripped = stripScriptBlocks(content);
   const expanded = expandCodeImports(stripped, fileDir, docsDir);
-  const md = createParser(docsDir, highlight);
+  const md = createParser(docsDir, highlight, markdownConfig);
   const tokens = md.parse(expanded, {}) as MarkdownItToken[];
   const { body, toc } = tokensToDomphy(tokens, { highlight });
   const withAnchors = injectHeadingAnchors(body as DomphyElement[]);

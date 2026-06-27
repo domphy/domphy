@@ -353,6 +353,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
       docsDir: srcDir,
       repoRoot: srcDir,
       highlight,
+      markdownConfig: config.markdown?.config,
     });
     if (doc.frontmatter.draft === true) {
       console.log(`  ↷ ${page.route} (draft, skipped)`);

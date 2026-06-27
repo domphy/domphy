@@ -1,6 +1,7 @@
 import { type BundledLanguage, createHighlighter as createShiki } from "shiki";
 
-const THEME = "github-light";
+const LIGHT_THEME = "github-light";
+const DARK_THEME = "github-dark-dimmed";
 
 const LANGUAGES: BundledLanguage[] = [
   "typescript",
@@ -153,14 +154,18 @@ function annotateLines(
 export async function createHighlighter(): Promise<
   (code: string, lang: string) => string
 > {
-  if (!pending) pending = createShiki({ themes: [THEME], langs: LANGUAGES });
+  if (!pending)
+    pending = createShiki({ themes: [LIGHT_THEME, DARK_THEME], langs: LANGUAGES });
   const highlighter = await pending;
   const loaded = new Set(highlighter.getLoadedLanguages());
   return (code: string, lang: string): string => {
     const resolved = ALIASES[lang?.toLowerCase()] ?? lang?.toLowerCase();
     if (!resolved || !loaded.has(resolved)) return escapeHtml(code);
     return unwrapCode(
-      highlighter.codeToHtml(code, { lang: resolved, theme: THEME }),
+      highlighter.codeToHtml(code, {
+        lang: resolved,
+        themes: { light: LIGHT_THEME, dark: DARK_THEME },
+      }),
     );
   };
 }
@@ -191,6 +196,7 @@ export function renderFence(
     ? `<div class="code-block-title"><span>${escapeHtml(title)}</span></div>`
     : "";
   const preClass = [
+    "shiki",
     lineNumbers ? "line-numbers" : "",
     hasAnnotations ? "has-annotations" : "",
     hasFocus ? "has-focus" : "",
