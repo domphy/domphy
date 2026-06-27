@@ -1,32 +1,41 @@
-import type MarkdownIt from "markdown-it";
 import type { DomphyElement } from "@domphy/core";
-
-/** Options accepted by the underlying markdown-it constructor. */
-type MarkdownItOptions = import("markdown-it").Options;
+import type { Nodes } from "mdast";
+import type { Plugin } from "unified";
 
 /**
- * A highlighter for fenced code blocks. Receives the raw code and the language
- * (empty string when no language is given on the fence). It may return either:
- *  - a string: treated as the inner HTML of the `<code>` element (so a
- *    highlighter that emits `<span class="...">` tokens works directly), or
- *  - a DomphyElement: used as the single child of the `<code>` element.
- * Returning a falsy value falls back to plain escaped text.
+ * A highlighter for fenced code blocks. Receives the raw code and the info
+ * string (language + optional metadata, e.g. `"ts :line-numbers {3-5} [title]"`).
+ * The language is the first whitespace-delimited token of `info`. Returns either:
+ *  - a string: treated as the inner HTML of the `<code>` element
+ *  - a DomphyElement: used directly as the block (lets the highlighter add a
+ *    title bar, copy button, etc. around `<code>`)
+ * Returning null/undefined falls back to escaped plain text.
  */
 export type Highlight = (
   code: string,
-  language: string,
+  info: string,
 ) => string | DomphyElement | null | undefined;
 
 /** Turns heading text into a URL-safe slug used for the heading `id`. */
 export type AnchorSlugify = (text: string) => string;
+
+/** A remark/unified plugin. */
+export type RemarkPlugin = Plugin;
 
 export interface ParseOptions {
   /** Optional highlighter for fenced code blocks. */
   highlight?: Highlight;
   /** Custom slug function for heading anchors and the table of contents. */
   anchorSlugify?: AnchorSlugify;
-  /** Options forwarded to the underlying markdown-it instance. */
-  mdOptions?: MarkdownItOptions;
+  /** Additional remark plugins to apply to the internal processor. */
+  plugins?: RemarkPlugin[];
+  /** Handle MDAST nodes the core walker doesn't recognise (e.g. directives).
+   *  The second arg provides a `walkChildren` helper to recursively convert
+   *  a parent node's children into Domphy children. */
+  onCustom?: (
+    node: Nodes,
+    helper: import("./mdast.js").WalkHelper,
+  ) => DomphyElement | string | null;
 }
 
 /** One entry in the document table of contents. */
@@ -49,83 +58,24 @@ export interface ParseResult {
 }
 
 /**
- * A markdown-it plugin function. Receives the markdown-it instance and
- * configures it (adds rules, enables features, etc.).
- */
-export type MarkdownPlugin = (md: MarkdownIt) => void;
-
-/**
  * Options for {@link createMarkdown}. Extends {@link ParseOptions} with
- * factory-level configuration: plugins, math, and task list support.
+ * factory-level configuration.
  */
 export interface CreateMarkdownOptions extends ParseOptions {
   /**
-   * Additional markdown-it plugins to apply to the internal instance.
-   * Each entry is a function that receives the markdown-it instance and
-   * installs rules or configuration on it (e.g. `md.use(container, "tip")`).
-   *
-   * @example
-   * ```ts
-   * import container from "markdown-it-container"
-   * const parser = createMarkdown({
-   *   plugins: [(md) => md.use(container, "tip")],
-   * })
-   * ```
-   */
-  plugins?: MarkdownPlugin[];
-  /**
-   * Enable built-in LaTeX math support.
-   *
-   * When `true`, `$...$` produces inline math elements and `$$...$$` blocks
-   * produce display math elements. The raw LaTeX is preserved in the element's
-   * content with `class="math math-inline"` / `class="math math-display"` so a
-   * CDN-loaded KaTeX auto-render extension or MathJax can process it.
-   *
-   * @example
-   * ```ts
-   * const parser = createMarkdown({ math: true })
-   * ```
-   * Then in the page `<head>`:
-   * ```html
-   * <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
-   * <script defer src="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.js"></script>
-   * <script defer
-   *   src="https://cdn.jsdelivr.net/npm/katex/dist/contrib/auto-render.min.js"
-   *   onload="renderMathInElement(document.body)"></script>
-   * ```
+   * Enable LaTeX math support. Requires `remark-math` to be installed
+   * (`pnpm add remark-math`). Raw LaTeX is preserved so a CDN-loaded KaTeX
+   * auto-render extension or MathJax can process it client-side.
    * @default false
    */
   math?: boolean;
-  /**
-   * Enable GFM-style task list items.
-   *
-   * When `true`, list items that begin with `[ ]` or `[x]` are rendered as
-   * a disabled checkbox followed by the item text:
-   *
-   * ```markdown
-   * - [x] Done
-   * - [ ] Todo
-   * ```
-   *
-   * Produces `li > [{ input(checkbox, checked, disabled) }, "Done"]` etc.
-   * @default false
-   */
-  tasklists?: boolean;
 }
 
 /**
  * A reusable markdown parser returned by {@link createMarkdown}.
- * Holds a pre-configured markdown-it instance; safe to call repeatedly.
+ * Holds a pre-configured remark processor; safe to call repeatedly.
  */
 export interface MarkdownInstance {
-  /**
-   * Parse a markdown string. Returns frontmatter, body element array, and
-   * collected table of contents — same shape as {@link ParseResult}.
-   */
   parse(markdown: string): ParseResult;
-  /**
-   * Convenience method: parse and return only the body element array.
-   * Equivalent to `.parse(markdown).body`.
-   */
   toDomphy(markdown: string): DomphyElement[];
 }

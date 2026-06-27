@@ -1,7 +1,7 @@
 {
   "name": "@domphy/press",
   "version": "0.20.8",
-  "description": "Domphy Press â€” VitePress-baseline static doc site framework built on @domphy/app + @domphy/markdown",
+  "description": "Domphy Press — VitePress-baseline static doc site framework built on @domphy/app + @domphy/markdown",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -48,14 +48,12 @@
   },
   "dependencies": {
     "esbuild": "^0.25.0",
-    "markdown-it": "^14.1.0",
-    "markdown-it-container": "^4.0.0",
-    "markdown-it-include": "^2.0.0",
-    "markdown-it-emoji": "^3.0.0",
-    "markdown-it-mark": "^4.0.0",
-    "markdown-it-sub": "^2.0.0",
-    "markdown-it-sup": "^2.0.0",
-    "shiki": "^1.29.2"
+    "remark": "^15.0.1",
+    "remark-directive": "^4.0.0",
+    "remark-gfm": "^4.0.1",
+    "shiki": "^1.29.2",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0"
   },
   "peerDependencies": {
     "@domphy/app": "workspace:^",
@@ -70,8 +68,7 @@
     "@domphy/markdown": "workspace:*",
     "@domphy/theme": "workspace:*",
     "@domphy/ui": "workspace:*",
-    "@types/markdown-it": "^14.1.2",
-    "@types/markdown-it-container": "^2.0.10",
+    "@types/mdast": "^4.0.4",
     "@types/node": "^25.9.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

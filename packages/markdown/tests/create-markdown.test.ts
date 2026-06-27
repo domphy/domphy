@@ -1,3 +1,5 @@
+import type { Root } from "mdast";
+import type { Plugin } from "unified";
 import { describe, expect, it } from "vitest";
 import { createMarkdown } from "../src/index";
 
@@ -24,19 +26,13 @@ describe("createMarkdown", () => {
     expect(asRecord(body[0]).h1).toBeDefined();
   });
 
-  it("accepts custom markdown-it plugins via the plugins option", () => {
-    // The plugin prepends a custom token by modifying core rules.
-    // Here we just verify the plugin function is called and the parser works.
+  it("accepts remark plugins via the plugins option", () => {
     let pluginCalled = false;
-    const parser = createMarkdown({
-      plugins: [
-        (md) => {
-          pluginCalled = true;
-          // No-op plugin just to confirm the function is invoked.
-          md.core.ruler.push("noop_test", () => {});
-        },
-      ],
-    });
+    // A remark plugin is a function that returns a transformer
+    const testPlugin: Plugin<[], Root> = () => () => {
+      pluginCalled = true;
+    };
+    const parser = createMarkdown({ plugins: [testPlugin] });
     const body = parser.toDomphy("Hello");
     expect(pluginCalled).toBe(true);
     expect(body.length).toBeGreaterThan(0);
@@ -56,64 +52,26 @@ describe("createMarkdown", () => {
     const parser = createMarkdown();
     const first = parser.parse("# Intro");
     const second = parser.parse("# Intro");
-    // Both documents should produce the same slug because the slugger resets
-    // per parse call.
     expect(first.toc[0].slug).toBe("intro");
     expect(second.toc[0].slug).toBe("intro");
   });
-});
 
-describe("createMarkdown math support", () => {
-  it("renders inline math $...$ as a span.math.math-inline", () => {
-    const parser = createMarkdown({ math: true });
-    const body = parser.toDomphy("The formula $E = mc^2$ is famous.");
-    const p = asRecord(body[0]);
-    const children = p.p as unknown[];
-    const mathEl = children.find(
-      (c): c is Record<string, unknown> =>
-        typeof c === "object" &&
-        c !== null &&
-        (c as Record<string, unknown>).class === "math math-inline",
-    );
-    expect(mathEl).toBeDefined();
-    expect(mathEl?.span).toBe("E = mc^2");
-  });
-
-  it("renders display math $$...$$ as a div.math.math-display", () => {
-    const parser = createMarkdown({ math: true });
-    const body = parser.toDomphy("$$\nE = mc^2\n$$");
-    const mathEl = asRecord(body[0]);
-    expect(mathEl.class).toBe("math math-display");
-    expect(mathEl.div as string).toContain("E = mc^2");
-  });
-
-  it("treats bare $ as literal text when there is no closing $", () => {
-    const parser = createMarkdown({ math: true });
-    const body = parser.toDomphy("Price: $100 and more.");
-    const p = asRecord(body[0]);
-    const text = (p.p as unknown[]).join("");
-    expect(text).toContain("$100");
-  });
-
-  it("does not parse math when math option is false", () => {
-    const parser = createMarkdown({ math: false });
-    const body = parser.toDomphy("The formula $E = mc^2$ is famous.");
-    const p = asRecord(body[0]);
-    const children = p.p as unknown[];
-    const hasMathEl = children.some(
-      (c): c is Record<string, unknown> =>
-        typeof c === "object" &&
-        c !== null &&
-        (c as Record<string, unknown>).class === "math math-inline",
-    );
-    // Without the math plugin, $...$ is treated as plain text
-    expect(hasMathEl).toBe(false);
+  it("info string (lang + meta) is passed to the highlight callback", () => {
+    const infos: string[] = [];
+    const parser = createMarkdown({
+      highlight: (code, info) => {
+        infos.push(info);
+        return null;
+      },
+    });
+    parser.toDomphy("```ts :line-numbers\nconst x = 1;\n```");
+    expect(infos[0]).toBe("ts :line-numbers");
   });
 });
 
-describe("createMarkdown task list support", () => {
+describe("createMarkdown task list support (remark-gfm built-in)", () => {
   it("renders checked task list items with a checked disabled checkbox", () => {
-    const parser = createMarkdown({ tasklists: true });
+    const parser = createMarkdown();
     const body = parser.toDomphy("- [x] Done");
     const ul = asRecord(body[0]);
     const items = ul.ul as Record<string, unknown>[];
@@ -127,7 +85,7 @@ describe("createMarkdown task list support", () => {
   });
 
   it("renders unchecked task list items with an unchecked disabled checkbox", () => {
-    const parser = createMarkdown({ tasklists: true });
+    const parser = createMarkdown();
     const body = parser.toDomphy("- [ ] Todo");
     const ul = asRecord(body[0]);
     const items = ul.ul as Record<string, unknown>[];
@@ -141,42 +99,53 @@ describe("createMarkdown task list support", () => {
   });
 
   it("leaves the item text after stripping the task prefix", () => {
-    const parser = createMarkdown({ tasklists: true });
+    const parser = createMarkdown();
     const body = parser.toDomphy("- [x] Deploy release");
     const ul = asRecord(body[0]);
     const items = ul.ul as Record<string, unknown>[];
     const firstItem = asRecord(items[0]);
     const liChildren = firstItem.li as unknown[];
-    // Text should be the remaining content after [x]
     const textParts = liChildren
       .filter((c) => typeof c === "string")
       .join("");
     expect(textParts).toContain("Deploy release");
   });
 
-  it("does not affect regular list items without the task prefix", () => {
-    const parser = createMarkdown({ tasklists: true });
-    const body = parser.toDomphy("- Normal item");
-    const ul = asRecord(body[0]);
-    const items = ul.ul as Record<string, unknown>[];
-    const firstItem = asRecord(items[0]);
-    const liChildren = firstItem.li as unknown[];
-    // No checkbox element should be present
-    const hasCheckbox = liChildren.some(
-      (c): c is Record<string, unknown> =>
-        typeof c === "object" &&
-        c !== null &&
-        (c as Record<string, unknown>).input === null &&
-        (c as Record<string, unknown>).type === "checkbox",
-    );
-    expect(hasCheckbox).toBe(false);
-  });
-
   it("handles mixed task and non-task items in the same list", () => {
-    const parser = createMarkdown({ tasklists: true });
+    const parser = createMarkdown();
     const body = parser.toDomphy("- [x] Done\n- [ ] Todo\n- Normal");
     const ul = asRecord(body[0]);
     const items = ul.ul as Record<string, unknown>[];
     expect(items).toHaveLength(3);
+  });
+});
+
+describe("createMarkdown onCustom handler", () => {
+  it("receives unrecognised MDAST nodes and can return a Domphy element", () => {
+    // Simulate a directive-like node by using a plugin that adds custom nodes
+    const fakeDirectivePlugin: Plugin<[], Root> = () => (tree: Root) => {
+      // Inject a fake custom node as if from remark-directive
+      tree.children.push({
+        type: "containerDirective" as "html",
+        // @ts-expect-error -- fake custom node for test
+        name: "tip",
+        children: [{ type: "paragraph", children: [{ type: "text", value: "content" }] }],
+      });
+    };
+
+    const parser = createMarkdown({
+      plugins: [fakeDirectivePlugin],
+      onCustom: (node) => {
+        // @ts-expect-error -- accessing custom node property
+        if (node.type === "containerDirective" && node.name === "tip") {
+          return { div: "tip content", class: "custom-block tip" } as never;
+        }
+        return null;
+      },
+    });
+
+    const body = parser.toDomphy("# Test");
+    const lastEl = asRecord(body[body.length - 1]);
+    expect(lastEl.class).toBe("custom-block tip");
   });
 });

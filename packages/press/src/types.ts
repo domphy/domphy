@@ -91,11 +91,8 @@ export interface SiteConfig {
   locales?: Record<string, LocaleConfig>;
   /** Show last-updated date sourced from git. Default false. */
   lastUpdated?: boolean;
-  /** Extend the markdown-it instance used to render all pages. */
-  markdown?: {
-    /** Called with the markdown-it instance after all built-in plugins are set up. */
-    config?: (md: unknown) => void;
-  };
+  /** Reserved for future markdown configuration. */
+  markdown?: Record<string, never>;
 }
 
 export interface IslandRef {
@@ -116,8 +113,6 @@ export interface RenderDocOptions {
   docsDir: string;
   repoRoot: string;
   highlight: (code: string, lang: string) => string;
-  /** Called with the markdown-it instance after all built-in plugins are set up. */
-  markdownConfig?: (md: unknown) => void;
 }
 
 export interface SearchDocument {

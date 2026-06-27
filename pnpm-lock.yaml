@@ -477,33 +477,24 @@ importers:
       esbuild:
         specifier: ^0.25.0
         version: 0.25.12
-      markdown-it:
-        specifier: ^14.1.0
-        version: 14.1.1
-      markdown-it-container:
-        specifier: ^4.0.0
-        version: 4.0.0
-      markdown-it-emoji:
-        specifier: ^3.0.0
-        version: 3.0.0
-      markdown-it-include:
-        specifier: ^2.0.0
-        version: 2.0.0(markdown-it@14.1.1)
-      markdown-it-mark:
-        specifier: ^4.0.0
-        version: 4.0.0
-      markdown-it-sub:
-        specifier: ^2.0.0
-        version: 2.0.0
-      markdown-it-sup:
-        specifier: ^2.0.0
-        version: 2.0.0
+      remark:
+        specifier: ^15.0.1
+        version: 15.0.1
       remark-directive:
         specifier: ^4.0.0
         version: 4.0.0
+      remark-gfm:
+        specifier: ^4.0.1
+        version: 4.0.1
       shiki:
         specifier: ^1.29.2
         version: 1.29.2
+      unified:
+        specifier: ^11.0.5
+        version: 11.0.5
+      unist-util-visit:
+        specifier: ^5.0.0
+        version: 5.1.0
     devDependencies:
       '@domphy/app':
         specifier: workspace:*
@@ -520,12 +511,9 @@ importers:
       '@domphy/ui':
         specifier: workspace:*
         version: link:../ui
-      '@types/markdown-it':
-        specifier: ^14.1.2
-        version: 14.1.2
-      '@types/markdown-it-container':
-        specifier: ^2.0.10
-        version: 2.0.11
+      '@types/mdast':
+        specifier: ^4.0.4
+        version: 4.0.4
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
@@ -3407,15 +3395,6 @@ packages:
     engines: {node: '>=10'}
     peerDependencies:
       markdown-it: '>=8.4.2'
-
-  markdown-it-mark@4.0.0:
-    resolution: {integrity: sha512-YLhzaOsU9THO/cal0lUjfMjrqSMPjjyjChYM7oyj4DnyaXEzA8gnW6cVJeyCrCVeyesrY2PlEdUYJSPFYL4Nkg==}
-
-  markdown-it-sub@2.0.0:
-    resolution: {integrity: sha512-iCBKgwCkfQBRg2vApy9vx1C1Tu6D8XYo8NvevI3OlwzBRmiMtsJ2sXupBgEA7PPxiDwNni3qIUkhZ6j5wofDUA==}
-
-  markdown-it-sup@2.0.0:
-    resolution: {integrity: sha512-5VgmdKlkBd8sgXuoDoxMpiU+BiEt3I49GItBzzw7Mxq9CxvnhE/k09HFli09zgfFDRixDQDfDxi0mgBCXtaTvA==}
 
   markdown-it@14.1.1:
     resolution: {integrity: sha512-BuU2qnTti9YKgK5N+IeMubp14ZUKUUw7yeJbkjtosvHiP0AZ5c8IAgEMk79D0eC8F23r4Ac/q8cAIFdm2FtyoA==}
@@ -7372,12 +7351,6 @@ snapshots:
   markdown-it-include@2.0.0(markdown-it@14.1.1):
     dependencies:
       markdown-it: 14.1.1
-
-  markdown-it-mark@4.0.0: {}
-
-  markdown-it-sub@2.0.0: {}
-
-  markdown-it-sup@2.0.0: {}
 
   markdown-it@14.1.1:
     dependencies:

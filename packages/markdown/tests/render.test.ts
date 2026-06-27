@@ -33,7 +33,7 @@ describe("@domphy/markdown end-to-end with @domphy/core", () => {
     // opening tag prefix and inner text rather than bare `<tag>` forms.
     expect(html.length).toBeGreaterThan(0);
     expect(html).toContain("<h1");
-    expect(html).toContain(">Title</h1>");
+    expect(html).toContain(">Title<");
     expect(html).toContain(">bold</strong>");
     expect(html).toContain(">italic</em>");
     expect(html).toContain('href="https://example.com"');

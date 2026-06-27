@@ -126,14 +126,14 @@ describe("@domphy/markdown parseMarkdown", () => {
   });
 
   it("supports an element-returning highlighter for fenced code", () => {
+    // When the highlighter returns a DomphyElement it becomes the entire block,
+    // replacing the default pre > code wrapper.
     const body = markdownToDomphy("```js\nfoo()\n```", {
       highlight: (code) => ({ span: code }) as DomphyElement,
     });
-    const pre = asRecord(body[0]);
-    const code = asRecord((pre.pre as unknown[])[0]);
-    expect(Array.isArray(code.code)).toBe(true);
-    const inner = asRecord((code.code as unknown[])[0]);
-    expect(inner.span).toBe("foo()\n");
+    const block = asRecord(body[0]);
+    expect(block.span).toBeDefined();
+    expect(typeof block.span).toBe("string");
   });
 
   it("renders blockquotes", () => {

@@ -1,131 +1,74 @@
 import type { DomphyElement } from "@domphy/core";
-import MarkdownIt from "markdown-it";
-import anchor from "markdown-it-anchor";
+import type { Root } from "mdast";
+import { remark } from "remark";
+import remarkGfm from "remark-gfm";
 import { splitFrontmatter } from "./frontmatter.js";
-import { mathPlugin } from "./math.js";
+import { walkMdast } from "./mdast.js";
 import { createUniqueSlugger, defaultSlugify } from "./slug.js";
-import { taskListPlugin } from "./tasklist.js";
 import type {
   AnchorSlugify,
   CreateMarkdownOptions,
   Highlight,
   MarkdownInstance,
-  MarkdownPlugin,
   ParseOptions,
   ParseResult,
+  RemarkPlugin,
   TocEntry,
 } from "./types.js";
-import { walkTokens } from "./walker.js";
 
 export type { FrontmatterSplit } from "./frontmatter.js";
 export { splitFrontmatter } from "./frontmatter.js";
-export { mathPlugin } from "./math.js";
 export { createUniqueSlugger, defaultSlugify } from "./slug.js";
-export { taskListPlugin } from "./tasklist.js";
+export { walkMdast } from "./mdast.js";
+export type { MdastWalkOptions, WalkHelper } from "./mdast.js";
 export type {
   AnchorSlugify,
   CreateMarkdownOptions,
   Highlight,
   MarkdownInstance,
-  MarkdownPlugin,
   ParseOptions,
   ParseResult,
+  RemarkPlugin,
   TocEntry,
 } from "./types.js";
-// Lower-level building blocks so an integrator (for example a documentation
-// site generator) can run its OWN markdown-it instance — configured with extra
-// plugins such as containers, includes, or custom inline rules — and still reuse
-// the single canonical token-to-Domphy walker instead of reimplementing it.
-export { walkTokens } from "./walker.js";
 
-/**
- * A parsed markdown-it token. Derived from the parser's own `parse` return type
- * so it serializes cleanly in the generated declarations — the
- * `import("markdown-it").Token` namespace-member form does not survive the d.ts
- * rollup when it appears in a public signature.
- */
-export type MarkdownItToken = ReturnType<
-  InstanceType<typeof MarkdownIt>["parse"]
->[number];
-
-/** Options for {@link tokensToDomphy}. */
-export interface TokensToDomphyOptions {
-  /** Optional highlighter for fenced code blocks. */
-  highlight?: Highlight;
-  /** Custom slug function for heading anchors and the table of contents. */
-  anchorSlugify?: AnchorSlugify;
+function buildProcessor(options: ParseOptions) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let proc = remark().use(remarkGfm as any);
+  for (const plugin of options.plugins ?? []) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    proc = proc.use(plugin as any);
+  }
+  return proc;
 }
 
 /**
- * Converts a pre-parsed markdown-it token stream into a Domphy element tree,
- * collecting a table of contents along the way. Use this when you supply your
- * own markdown-it instance (with custom plugins) and only need the canonical
- * token-to-Domphy conversion. The returned `body`/`toc` match `parseMarkdown`.
- */
-export function tokensToDomphy(
-  tokens: MarkdownItToken[],
-  options: TokensToDomphyOptions = {},
-): { body: DomphyElement[]; toc: TocEntry[] } {
-  const slugify = options.anchorSlugify ?? defaultSlugify;
-  const slug = createUniqueSlugger(slugify);
-  const toc: TocEntry[] = [];
-  const body = walkTokens(tokens, { highlight: options.highlight, slug, toc });
-  return { body, toc };
-}
-
-/** Creates a markdown-it instance configured for GFM-ish output and anchors. */
-function createParser(
-  options: ParseOptions,
-  slugify: (text: string) => string,
-): MarkdownIt {
-  const md = new MarkdownIt({
-    html: true, // pass raw HTML through so html_block / html_inline survive
-    linkify: true, // autolink bare URLs (GFM-ish)
-    typographer: false,
-    ...options.mdOptions,
-  });
-
-  // Enable GFM-style strikethrough (~~text~~) and tables, which markdown-it
-  // ships with but are governed by these rule names.
-  md.enable(["strikethrough", "table"]);
-
-  // markdown-it-anchor stamps ids on heading tokens during parsing. The walker
-  // re-derives the authoritative slug (and the table of contents) from the same
-  // base slugify function, so the anchor plugin and the walker agree on slugs.
-  // The plugin is given its own unique-slugger instance so its internal
-  // de-duplication counter does not interfere with the walker's.
-  md.use(anchor, { slugify: createUniqueSlugger(slugify) });
-
-  return md;
-}
-
-/**
- * Parses a markdown string into a Domphy element tree, returning the parsed
- * frontmatter, the document body, and a collected table of contents.
+ * Parses a markdown string into a Domphy element tree, returning frontmatter,
+ * body elements, and table of contents.
  */
 export function parseMarkdown(
   markdown: string,
   options: ParseOptions = {},
 ): ParseResult {
   const { frontmatter, content } = splitFrontmatter(markdown);
-
   const slugify = options.anchorSlugify ?? defaultSlugify;
-  // The walker owns the authoritative slugger so anchors and toc stay aligned.
   const slug = createUniqueSlugger(slugify);
-  const md = createParser(options, slugify);
-
-  const tokens = md.parse(content, {});
   const toc: TocEntry[] = [];
-  const body = walkTokens(tokens, {
+
+  const processor = buildProcessor(options);
+  const tree = processor.parse(content) as Root;
+  processor.runSync(tree, content);
+
+  const body = walkMdast(tree, {
     highlight: options.highlight,
     slug,
     toc,
+    onCustom: options.onCustom,
   });
-
   return { frontmatter, body, toc };
 }
 
-/** Convenience wrapper that returns only the document body element array. */
+/** Parse markdown and return only the body element array. */
 export function markdownToDomphy(
   markdown: string,
   options: ParseOptions = {},
@@ -134,35 +77,27 @@ export function markdownToDomphy(
 }
 
 /**
- * Creates a reusable markdown parser with a pre-configured markdown-it
- * instance. The instance is created once and reused across calls to `.parse()`
- * and `.toDomphy()`, so plugins are applied once rather than per document.
- *
- * Use `createMarkdown` instead of `parseMarkdown` when you need:
- * - Custom markdown-it **plugins** (`plugins` option)
- * - Built-in **math** support (`math: true`)
- * - GFM **task lists** (`tasklists: true`)
+ * Creates a reusable markdown parser with a pre-configured remark processor.
+ * The processor is built once and reused across calls, so plugins are applied
+ * once rather than per document.
  *
  * @example
  * ```ts
  * import { createMarkdown } from "@domphy/markdown"
- *
- * const parser = createMarkdown({
- *   math: true,
- *   tasklists: true,
- *   highlight: (code, lang) => myHighlighter(code, lang),
- * })
- *
+ * const parser = createMarkdown({ highlight: (code, info) => myHighlighter(code, info) })
  * const { frontmatter, body, toc } = parser.parse(source)
  * ```
  *
- * @example With custom plugins
+ * @example With remark-math
  * ```ts
- * import container from "markdown-it-container"
- * import { createMarkdown } from "@domphy/markdown"
- *
+ * import remarkMath from "remark-math"
  * const parser = createMarkdown({
- *   plugins: [(md) => md.use(container, "tip")],
+ *   plugins: [remarkMath],
+ *   onCustom: (node) => {
+ *     if (node.type === "math") return { div: node.value, class: "math math-display" }
+ *     if (node.type === "inlineMath") return { span: node.value, class: "math math-inline" }
+ *     return null
+ *   },
  * })
  * ```
  */
@@ -170,43 +105,40 @@ export function createMarkdown(
   options: CreateMarkdownOptions = {},
 ): MarkdownInstance {
   const slugify = options.anchorSlugify ?? defaultSlugify;
-  const md = createParser(options, slugify);
+  let opts = { ...options };
 
-  // Built-in math support ($...$ and $$...$$)
   if (options.math) {
-    md.use(mathPlugin);
-  }
-
-  // GFM task lists (- [x] / - [ ])
-  if (options.tasklists) {
-    md.use(taskListPlugin);
-  }
-
-  // User-supplied plugins applied last so they can extend or override anything
-  // the built-in options configured above.
-  if (options.plugins) {
-    for (const plugin of options.plugins) {
-      md.use(plugin as Parameters<typeof md.use>[0]);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const remarkMath = require("remark-math");
+      const mathPlugin = (remarkMath.default ?? remarkMath) as RemarkPlugin;
+      opts = { ...opts, plugins: [mathPlugin, ...(opts.plugins ?? [])] };
+    } catch {
+      throw new Error(
+        "[@domphy/markdown] math:true requires remark-math. Run: pnpm add remark-math",
+      );
     }
   }
+
+  const processor = buildProcessor(opts);
 
   function parse(markdown: string): ParseResult {
     const { frontmatter, content } = splitFrontmatter(markdown);
     const slug = createUniqueSlugger(slugify);
-    const tokens = md.parse(content, {});
     const toc: TocEntry[] = [];
-    const body = walkTokens(tokens, {
-      highlight: options.highlight,
+    const tree = processor.parse(content) as Root;
+    processor.runSync(tree, content);
+    const body = walkMdast(tree, {
+      highlight: opts.highlight,
       slug,
       toc,
+      onCustom: opts.onCustom,
     });
     return { frontmatter, body, toc };
   }
 
   return {
     parse,
-    toDomphy(markdown: string): DomphyElement[] {
-      return parse(markdown).body;
-    },
+    toDomphy: (markdown) => parse(markdown).body,
   };
 }

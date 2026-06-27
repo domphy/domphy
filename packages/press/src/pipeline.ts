@@ -1,92 +1,51 @@
 // Markdown pipeline: VitePress-baseline markdown → Domphy element tree.
-// Containers, <<< imports, frontmatter, TOC, line highlights, external links.
+// Containers (remark-directive), <<< imports, TOC, heading anchors.
 
 import { readFileSync } from "node:fs";
 import { dirname, extname, isAbsolute, resolve } from "node:path";
 import type { DomphyElement } from "@domphy/core";
 import {
-  type MarkdownItToken,
   splitFrontmatter,
-  tokensToDomphy,
+  walkMdast,
+  createUniqueSlugger,
+  defaultSlugify,
 } from "@domphy/markdown";
-import MarkdownIt from "markdown-it";
-import container from "markdown-it-container";
-// markdown-it-emoji@3.x has no default export — import named 'full' directly
-// @ts-expect-error -- no bundled types
-import { full as emojiPlugin } from "markdown-it-emoji";
-// @ts-expect-error -- no bundled types
-import includeUntyped from "markdown-it-include";
-// @ts-expect-error -- no bundled types
-import markUntyped from "markdown-it-mark";
-// @ts-expect-error -- no bundled types
-import subUntyped from "markdown-it-sub";
-// @ts-expect-error -- no bundled types
-import supUntyped from "markdown-it-sup";
+import type { WalkHelper } from "@domphy/markdown";
+import type { Code, Html, Nodes, Root, Parent } from "mdast";
+import { remark } from "remark";
+import remarkGfm from "remark-gfm";
+import remarkDirective from "remark-directive";
+import { visit } from "unist-util-visit";
 import { escapeHtml, renderFence } from "./highlight.js";
 import type { RenderDocOptions, RenderedDoc, TocEntry } from "./types.js";
-
-type CoreState = { tokens: MarkdownItToken[] };
-type MdPlugin = (md: MarkdownIt) => void;
-const include = includeUntyped as (
-  md: MarkdownIt,
-  options: { root: string },
-) => void;
-const markPlugin = markUntyped as MdPlugin;
-const subPlugin = subUntyped as MdPlugin;
-const supPlugin = supUntyped as MdPlugin;
 
 // --- <<< code imports --------------------------------------------------------
 
 const CODE_IMPORT_PATTERN = /^<<<\s+(\S+?)(?:\s+\[([^\]]*)\])?\s*$/gm;
 
 const EXT_LANG: Record<string, string> = {
-  ".ts": "ts",
-  ".tsx": "tsx",
-  ".js": "js",
-  ".jsx": "jsx",
-  ".mjs": "js",
-  ".cjs": "js",
-  ".json": "json",
-  ".css": "css",
-  ".html": "html",
-  ".vue": "vue",
-  ".md": "markdown",
-  ".sh": "bash",
-  ".bash": "bash",
-  ".yml": "yaml",
-  ".yaml": "yaml",
-  ".rb": "ruby",
-  ".py": "python",
-  ".go": "go",
-  ".rs": "rust",
+  ".ts": "ts", ".tsx": "tsx", ".js": "js", ".jsx": "jsx",
+  ".mjs": "js", ".cjs": "js", ".json": "json", ".css": "css",
+  ".html": "html", ".vue": "vue", ".md": "markdown", ".sh": "bash",
+  ".bash": "bash", ".yml": "yaml", ".yaml": "yaml", ".rb": "ruby",
+  ".py": "python", ".go": "go", ".rs": "rust",
 };
 
-function resolveSpecifier(
-  spec: string,
-  fileDir: string,
-  docsDir: string,
-): string {
+function resolveSpecifier(spec: string, fileDir: string, docsDir: string): string {
   if (spec.startsWith("@/")) return resolve(dirname(docsDir), spec.slice(2));
   if (isAbsolute(spec)) return spec;
   return resolve(fileDir, spec);
 }
 
-function expandCodeImports(
-  body: string,
-  fileDir: string,
-  docsDir: string,
-): string {
+function expandCodeImports(body: string, fileDir: string, docsDir: string): string {
   return body.replace(
     CODE_IMPORT_PATTERN,
     (_whole, rawPath: string, label?: string) => {
       const absolute = resolveSpecifier(rawPath, fileDir, docsDir);
       const fence = "```";
       let contents: string;
-      try {
-        contents = readFileSync(absolute, "utf8");
-      } catch {
-        return [fence, `Could not import: ${rawPath}`, fence].join("\n");
-      }
+      try { contents = readFileSync(absolute, "utf8"); }
+      catch { return [fence, `Could not import: ${rawPath}`, fence].join("\n"); }
       const language = EXT_LANG[extname(absolute).toLowerCase()] ?? "";
       const info = label ? `${language} [${label}]` : language;
       return [fence + info, contents.trimEnd(), fence].join("\n");
@@ -94,305 +53,7 @@ function expandCodeImports(
   );
 }
 
-// --- Strip <script> blocks ---------------------------------------------------
-
-function stripScriptBlocks(source: string): string {
-  return source
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/^\s*\n/, "");
-}
-
-// --- Container token shaping -------------------------------------------------
-
-const ADMONITION_TITLES: Record<string, string> = {
-  tip: "TIP",
-  warning: "WARNING",
-  info: "INFO",
-  danger: "DANGER",
-  note: "NOTE",
-  abstract: "ABSTRACT",
-  success: "SUCCESS",
-  question: "QUESTION",
-  failure: "FAILURE",
-  bug: "BUG",
-  example: "EXAMPLE",
-  quote: "QUOTE",
-};
-
-function containerTitle(info: string, type: string): string {
-  return info.slice(info.indexOf(type) + type.length).trim();
-}
-
-function buildTitleTokens(
-  Token: new (type: string, tag: string, nesting: number) => MarkdownItToken,
-  tag: string,
-  openType: string,
-  closeType: string,
-  className: string | null,
-  title: string,
-): MarkdownItToken[] {
-  const open = new Token(openType, tag, 1);
-  open.block = true;
-  if (className) open.attrSet("class", className);
-  const inline = new Token("inline", "", 0);
-  inline.content = title;
-  inline.children = [];
-  const text = new Token("text", "", 0);
-  text.content = title;
-  inline.children.push(text);
-  const close = new Token(closeType, tag, -1);
-  close.block = true;
-  return [open, inline, close];
-}
-
-function buildHtmlBlock(
-  Token: new (type: string, tag: string, nesting: number) => MarkdownItToken,
-  content: string,
-): MarkdownItToken {
-  const token = new Token("html_block", "", 0);
-  token.content = content;
-  token.block = true;
-  return token;
-}
-
-function buildCodeGroupTokens(
-  Token: new (type: string, tag: string, nesting: number) => MarkdownItToken,
-  tokens: MarkdownItToken[],
-  openIndex: number,
-  closeIndex: number,
-  groupId: number,
-  highlight: (code: string, lang: string) => string,
-): MarkdownItToken[] {
-  const open = tokens[openIndex];
-  open.tag = "div";
-  open.attrSet("class", "code-group");
-  const close = tokens[closeIndex];
-  close.tag = "div";
-
-  const fences: Array<{ token: MarkdownItToken; label: string }> = [];
-  for (let i = openIndex + 1; i < closeIndex; i++) {
-    const token = tokens[i];
-    if (token.type !== "fence") continue;
-    const info = (token.info ?? "").trim();
-    const labelMatch = info.match(/\[([^\]]+)\]/);
-    const language = info.split(/\s+/, 1)[0] ?? "";
-    fences.push({
-      token,
-      label: labelMatch ? labelMatch[1] : language || "Code",
-    });
-  }
-
-  if (fences.length === 0) return tokens.slice(openIndex, closeIndex + 1);
-
-  const labelsHtml = fences
-    .map(
-      (fence, i) =>
-        `<label for="cgt-${groupId}-${i}">${escapeHtml(fence.label)}</label>`,
-    )
-    .join("");
-
-  // Bundle inputs + tabs into one html_block. The combined string contains
-  // <div class="tabs">...</div> so isHTML() returns true and SSR emits the full
-  // string. Each element becomes a direct child of .code-group (CSS :checked ~
-  // .blocks selector requires inputs as siblings of .blocks at the same level).
-  const inputsHtml = fences
-    .map(
-      (_, i) =>
-        `<input type="radio" name="cg-${groupId}" id="cgt-${groupId}-${i}"${i === 0 ? " checked" : ""}>`,
-    )
-    .join("");
-
-  const blocksHtml = fences
-    .map((fence) => {
-      const rawInfo = (fence.token.info ?? "").replace(/\[[^\]]*\]/, "").trim();
-      return renderFence(fence.token.content, rawInfo, highlight);
-    })
-    .join("");
-
-  const inner: MarkdownItToken[] = [
-    buildHtmlBlock(Token, `${inputsHtml}<div class="tabs">${labelsHtml}</div>`),
-    buildHtmlBlock(Token, `<div class="blocks">${blocksHtml}</div>`),
-  ];
-  return [open, ...inner, close];
-}
-
-function shapeContainers(
-  tokens: MarkdownItToken[],
-  highlight: (code: string, lang: string) => string,
-): MarkdownItToken[] {
-  if (tokens.length === 0) return tokens;
-  const Token = tokens[0].constructor as new (
-    type: string,
-    tag: string,
-    nesting: number,
-  ) => MarkdownItToken;
-  const output: MarkdownItToken[] = [];
-  let groupCounter = 0;
-
-  const ALL_ADMONITIONS = Object.keys(ADMONITION_TITLES).join("|");
-  const admonitionRe = new RegExp(`^container_(${ALL_ADMONITIONS})_open$`);
-  const admonitionCloseRe = new RegExp(
-    `^container_(${ALL_ADMONITIONS})_close$`,
-  );
-
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i];
-    const admonition = token.type.match(admonitionRe);
-    if (admonition) {
-      const type = admonition[1];
-      token.tag = "div";
-      token.attrSet("class", `custom-block ${type}`);
-      const custom = containerTitle(token.info.trim(), type);
-      output.push(token);
-      output.push(
-        ...buildTitleTokens(
-          Token,
-          "p",
-          "paragraph_open",
-          "paragraph_close",
-          "custom-block-title",
-          custom || ADMONITION_TITLES[type] || type.toUpperCase(),
-        ),
-      );
-      continue;
-    }
-    if (admonitionCloseRe.test(token.type)) {
-      token.tag = "div";
-      output.push(token);
-      continue;
-    }
-    if (token.type === "container_details_open") {
-      token.tag = "details";
-      token.attrSet("class", "custom-block details");
-      output.push(token);
-      output.push(
-        ...buildTitleTokens(
-          Token,
-          "summary",
-          "summary_open",
-          "summary_close",
-          null,
-          containerTitle(token.info.trim(), "details") || "Details",
-        ),
-      );
-      continue;
-    }
-    if (token.type === "container_details_close") {
-      token.tag = "details";
-      output.push(token);
-      continue;
-    }
-    if (token.type === "container_steps_open") {
-      token.tag = "div";
-      token.attrSet("class", "custom-block steps");
-      output.push(token);
-      continue;
-    }
-    if (token.type === "container_steps_close") {
-      token.tag = "div";
-      output.push(token);
-      continue;
-    }
-    if (token.type === "container_card-grid_open") {
-      token.tag = "div";
-      token.attrSet("class", "custom-block card-grid");
-      output.push(token);
-      continue;
-    }
-    if (token.type === "container_card-grid_close") {
-      token.tag = "div";
-      output.push(token);
-      continue;
-    }
-    if (token.type === "container_card_open") {
-      token.tag = "div";
-      token.attrSet("class", "custom-block card");
-      const title = containerTitle(token.info.trim(), "card");
-      output.push(token);
-      if (title)
-        output.push(
-          ...buildTitleTokens(
-            Token,
-            "p",
-            "paragraph_open",
-            "paragraph_close",
-            "card-title",
-            title,
-          ),
-        );
-      continue;
-    }
-    if (token.type === "container_card_close") {
-      token.tag = "div";
-      output.push(token);
-      continue;
-    }
-    if (token.type === "container_link-card_open") {
-      const info = token.info.trim().slice("link-card".length).trim();
-      const linkMatch = info.match(/^\[([^\]]+)\]\(([^)]+)\)/);
-      const href = linkMatch ? linkMatch[2] : "#";
-      const title = linkMatch ? linkMatch[1] : info;
-      token.tag = "a";
-      token.attrSet("class", "custom-block link-card");
-      token.attrSet("href", href);
-      output.push(token);
-      if (title)
-        output.push(
-          ...buildTitleTokens(
-            Token,
-            "p",
-            "paragraph_open",
-            "paragraph_close",
-            "link-card-title",
-            title,
-          ),
-        );
-      continue;
-    }
-    if (token.type === "container_link-card_close") {
-      token.tag = "a";
-      output.push(token);
-      continue;
-    }
-    if (token.type === "container_code-group_open") {
-      let depth = 0,
-        closeIndex = -1;
-      for (let j = i; j < tokens.length; j++) {
-        if (tokens[j].type === "container_code-group_open") depth++;
-        else if (tokens[j].type === "container_code-group_close") {
-          depth--;
-          if (depth === 0) {
-            closeIndex = j;
-            break;
-          }
-        }
-      }
-      if (closeIndex === -1) {
-        output.push(token);
-        continue;
-      }
-      output.push(
-        ...buildCodeGroupTokens(
-          Token,
-          tokens,
-          i,
-          closeIndex,
-          groupCounter++,
-          highlight,
-        ),
-      );
-      i = closeIndex;
-      continue;
-    }
-    output.push(token);
-  }
-  return output;
-}
-
 // --- <Badge> component -------------------------------------------------------
-// Converts <Badge type="tip" text="New" /> to a styled dp-badge span.
-// Supports type = "tip" | "info" | "warning" | "danger" (default: "tip").
-// CSS lives in pressCSS() in theme.ts.
 
 function transformBadgeContent(content: string): string {
   return content.replace(
@@ -402,131 +63,153 @@ function transformBadgeContent(content: string): string {
   );
 }
 
-// --- Task list detection (GFM-style) -----------------------------------------
+// --- ::: container normalisation --------------------------------------------
+// VitePress "::: tip My Title" → remark-directive ":::tip[My Title]"
 
-function shapeTaskLists(tokens: MarkdownItToken[]): MarkdownItToken[] {
-  if (tokens.length === 0) return tokens;
-  const Token = tokens[0].constructor as new (
-    type: string,
-    tag: string,
-    nesting: number,
-  ) => MarkdownItToken;
-  for (let i = 1; i < tokens.length; i++) {
-    const token = tokens[i];
-    if (token.type !== "inline" || !token.children?.length) continue;
-    const prev = tokens[i - 1];
-    if (prev?.type !== "list_item_open") continue;
-    const firstChild = token.children[0];
-    if (firstChild.type !== "text") continue;
-    const text = firstChild.content;
-    const isTask =
-      text.startsWith("[ ] ") ||
-      text.startsWith("[x] ") ||
-      text.startsWith("[X] ");
-    if (!isTask) continue;
-    const checked = text[1].toLowerCase() === "x";
-    firstChild.content = text.slice(4);
-    token.content = token.content.replace(/^\[[ xX]\] /, "");
-    prev.attrSet(
-      "class",
-      `${prev.attrGet("class") ?? ""} task-list-item`.trim(),
-    );
-    const checkToken = new Token("html_inline", "", 0);
-    checkToken.content = `<input type="checkbox"${checked ? " checked" : ""} disabled class="task-list-check" aria-label="${checked ? "done" : "todo"}">`;
-    token.children.unshift(checkToken);
-  }
-  return tokens;
+function normalizeContainerSyntax(content: string): string {
+  return content.replace(/^::: (\S+)(.*?)$/gm, (_, name: string, rest: string) => {
+    const label = rest.trim();
+    return label ? `:::${name}[${label}]` : `:::${name}`;
+  });
 }
 
-// --- Parser ------------------------------------------------------------------
+// --- Strip <script> blocks ---------------------------------------------------
 
-function createParser(
-  docsDir: string,
+function stripScriptBlocks(source: string): string {
+  return source.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "").replace(/^\s*\n/, "");
+}
+
+// --- Code-group remark plugin ------------------------------------------------
+// Runs BEFORE pressCodePlugin so code children are still MDAST Code nodes.
+
+let groupCounter = 0;
+
+function pressCodeGroupPlugin(
   highlight: (code: string, lang: string) => string,
-  markdownConfig?: (md: unknown) => void,
-): MarkdownIt {
-  const md = new MarkdownIt({ html: true, linkify: true, typographer: false });
-  md.enable(["strikethrough", "table"]);
-  md.use(include, { root: docsDir });
-  md.use(markPlugin);
-  md.use(subPlugin);
-  md.use(supPlugin);
-  md.use(emojiPlugin);
-  const noopRender = () => "";
-  const ADMONITION_NAMES = Object.keys(ADMONITION_TITLES);
-  for (const name of [
-    ...ADMONITION_NAMES,
-    "details",
-    "code-group",
-    "steps",
-    "card",
-    "card-grid",
-    "link-card",
-  ]) {
-    md.use(container as any, name, { render: noopRender });
+): () => (tree: Root) => void {
+  return () => (tree: Root) => {
+    visit(tree, "containerDirective", (node: Nodes, index, parent) => {
+      const dir = node as unknown as Record<string, unknown>;
+      if (dir.name !== "code-group") return;
+      if (parent === undefined || index === undefined) return;
+
+      const children = dir.children as Nodes[];
+      const fences: Array<{ html: string; label: string }> = [];
+
+      for (const child of children) {
+        if (child.type !== "code") continue;
+        const codeNode = child as Code;
+        const info = (codeNode.lang ?? "") + (codeNode.meta ? ` ${codeNode.meta}` : "");
+        const labelMatch = info.match(/\[([^\]]+)\]/);
+        const rawLang = info.split(/\s+/, 1)[0] ?? "";
+        const label = labelMatch ? labelMatch[1] : rawLang || "Code";
+        const cleanInfo = info.replace(/\[[^\]]*\]/, "").trim();
+        fences.push({ html: renderFence(codeNode.value, cleanInfo, highlight), label });
+      }
+
+      if (fences.length === 0) return;
+
+      const id = groupCounter++;
+      const inputsHtml = fences
+        .map((_, i) => `<input type="radio" name="cg-${id}" id="cgt-${id}-${i}"${i === 0 ? " checked" : ""}>`)
+        .join("");
+      const tabsHtml = fences
+        .map((f, i) => `<label for="cgt-${id}-${i}">${escapeHtml(f.label)}</label>`)
+        .join("");
+      const blocksHtml = fences.map((f) => f.html).join("");
+
+      const html = `<div class="code-group">${inputsHtml}<div class="tabs">${tabsHtml}</div><div class="blocks">${blocksHtml}</div></div>`;
+      (parent as Parent).children.splice(index, 1, { type: "html", value: html } as Html);
+    });
+  };
+}
+
+// --- Remark plugin: render remaining code blocks via renderFence -------------
+
+function pressCodePlugin(
+  highlight: (code: string, lang: string) => string,
+): () => (tree: Root) => void {
+  return () => (tree: Root) => {
+    visit(tree, "code", (node: Code, index, parent) => {
+      if (parent === undefined || index === undefined) return;
+      const info = (node.lang ?? "") + (node.meta ? ` ${node.meta}` : "");
+      const html = renderFence(node.value, info, highlight);
+      (parent as Parent).children.splice(index, 1, { type: "html", value: html } as Html);
+    });
+  };
+}
+
+// --- Directive → Domphy converter -------------------------------------------
+
+const ADMONITION_TITLES: Record<string, string> = {
+  tip: "TIP", warning: "WARNING", info: "INFO", danger: "DANGER",
+  note: "NOTE", abstract: "ABSTRACT", success: "SUCCESS",
+  question: "QUESTION", failure: "FAILURE", bug: "BUG",
+  example: "EXAMPLE", quote: "QUOTE",
+};
+
+function getDirectiveLabel(directive: Record<string, unknown>): string {
+  // remark-directive puts the label in node.label (as a string)
+  return (directive.label as string | undefined) ?? "";
+}
+
+function pressDirectiveHandler(
+  node: Nodes,
+  helper: WalkHelper,
+): DomphyElement | string | null {
+  const dir = node as unknown as Record<string, unknown>;
+  if (dir.type !== "containerDirective") return null;
+
+  const name = dir.name as string;
+  const label = getDirectiveLabel(dir);
+  const children = dir.children as Nodes[];
+
+  if (ADMONITION_TITLES[name]) {
+    const title = label || ADMONITION_TITLES[name];
+    const titleEl = { p: [title], class: "custom-block-title" } as DomphyElement;
+    const content = helper.walkChildren({ children });
+    return { div: [titleEl, ...content], class: `custom-block ${name}` } as DomphyElement;
   }
-  md.core.ruler.push("press_containers", (state: CoreState) => {
-    state.tokens = shapeContainers(state.tokens, highlight);
-    return true;
-  });
-  md.core.ruler.push("press_task_lists", (state: CoreState) => {
-    state.tokens = shapeTaskLists(state.tokens);
-    return true;
-  });
-  // Transform <Badge type="..." text="..." /> in html_inline and html_block tokens
-  md.core.ruler.push("press_badge", (state: CoreState) => {
-    for (const token of state.tokens) {
-      if (token.type === "html_block") {
-        token.content = transformBadgeContent(token.content);
-        continue;
-      }
-      if (token.type !== "inline" || !token.children) continue;
-      for (const child of token.children) {
-        if (child.type === "html_inline") {
-          child.content = transformBadgeContent(child.content);
-        }
-      }
-    }
-    return true;
-  });
-  // Convert fence tokens → html_block with full rendering (line highlights, copy button)
-  md.core.ruler.push("press_fences", (state: CoreState) => {
-    for (const token of state.tokens) {
-      if (token.type !== "fence") continue;
-      const html = renderFence(token.content, token.info ?? "", highlight);
-      token.type = "html_block";
-      token.content = html;
-      token.tag = "";
-    }
-    return true;
-  });
-  // External links: add target=_blank + rel=noopener
-  md.core.ruler.push("press_external_links", (state: CoreState) => {
-    for (const token of state.tokens) {
-      if (token.type !== "inline" || !token.children) continue;
-      for (const child of token.children) {
-        if (child.type !== "link_open") continue;
-        const href = child.attrGet("href") ?? "";
-        if (href.startsWith("http://") || href.startsWith("https://")) {
-          child.attrSet("target", "_blank");
-          child.attrSet("rel", "noopener noreferrer");
-        }
-      }
-    }
-    return true;
-  });
-  // Images: add loading=lazy
-  md.core.ruler.push("press_image_lazy", (state: CoreState) => {
-    for (const token of state.tokens) {
-      if (token.type !== "inline" || !token.children) continue;
-      for (const child of token.children) {
-        if (child.type === "image") child.attrSet("loading", "lazy");
-      }
-    }
-    return true;
-  });
-  markdownConfig?.(md);
-  return md;
+
+  if (name === "details") {
+    const summary = label || "Details";
+    const content = helper.walkChildren({ children });
+    return {
+      details: [{ summary: [summary] } as DomphyElement, ...content],
+      class: "custom-block details",
+    } as DomphyElement;
+  }
+
+  if (name === "steps") {
+    const content = helper.walkChildren({ children });
+    return { div: content, class: "custom-block steps" } as DomphyElement;
+  }
+
+  if (name === "card-grid") {
+    const content = helper.walkChildren({ children });
+    return { div: content, class: "custom-block card-grid" } as DomphyElement;
+  }
+
+  if (name === "card") {
+    const content = helper.walkChildren({ children });
+    const inner: (string | DomphyElement)[] = label
+      ? [{ p: [label], class: "card-title" } as DomphyElement, ...content]
+      : content;
+    return { div: inner, class: "custom-block card" } as DomphyElement;
+  }
+
+  if (name === "link-card") {
+    const linkMatch = label.match(/^\[([^\]]+)\]\(([^)]+)\)/);
+    const href = linkMatch ? linkMatch[2] : "#";
+    const title = linkMatch ? linkMatch[1] : label;
+    const content = helper.walkChildren({ children });
+    const inner: (string | DomphyElement)[] = title
+      ? [{ p: [title], class: "link-card-title" } as DomphyElement, ...content]
+      : content;
+    return { a: inner, href, class: "custom-block link-card" } as DomphyElement;
+  }
+
+  return null;
 }
 
 // --- Title resolution --------------------------------------------------------
@@ -547,68 +230,42 @@ function firstH1(toc: TocEntry[]): string | undefined {
 
 // --- Public API --------------------------------------------------------------
 
-// Inject visual anchor link into heading elements after tokensToDomphy.
-function injectHeadingAnchors(elements: DomphyElement[]): DomphyElement[] {
-  return elements.map((el) => {
-    if (!el || typeof el !== "object" || Array.isArray(el)) return el;
-    const rec = el as Record<string, unknown>;
-    const tag = Object.keys(rec).find((k) => /^h[1-6]$/.test(k));
-    if (tag && typeof rec.id === "string") {
-      const id = rec.id;
-      const children = Array.isArray(rec[tag])
-        ? [...(rec[tag] as DomphyElement[])]
-        : rec[tag] != null
-          ? [rec[tag] as DomphyElement]
-          : [];
-      children.push({
-        a: "#",
-        href: `#${id}`,
-        class: "header-anchor",
-        ariaHidden: "true",
-      } as DomphyElement);
-      return { ...rec, [tag]: children } as DomphyElement;
-    }
-    const tag2 = Object.keys(rec).find(
-      (k) =>
-        /^[a-z][a-z0-9]*$/.test(k) &&
-        k !== "style" &&
-        k !== "class" &&
-        !k.startsWith("data") &&
-        !k.startsWith("on") &&
-        !k.startsWith("aria") &&
-        !k.startsWith("_") &&
-        k !== "$" &&
-        k !== "href" &&
-        k !== "src" &&
-        k !== "id" &&
-        k !== "type" &&
-        k !== "name",
-    );
-    if (tag2 && Array.isArray(rec[tag2])) {
-      return {
-        ...rec,
-        [tag2]: injectHeadingAnchors(rec[tag2] as DomphyElement[]),
-      } as DomphyElement;
-    }
-    return el;
-  });
-}
-
 export async function renderDoc(
   source: string,
   options: RenderDocOptions,
 ): Promise<RenderedDoc> {
-  const { filePath, docsDir, highlight, markdownConfig } = options;
+  const { filePath, docsDir, highlight } = options;
   const fileDir = dirname(filePath);
   const { frontmatter, content } = splitFrontmatter(source);
+
+  // Text-level preprocessing
   const stripped = stripScriptBlocks(content);
-  const expanded = expandCodeImports(stripped, fileDir, docsDir);
-  const md = createParser(docsDir, highlight, markdownConfig);
-  const tokens = md.parse(expanded, {}) as MarkdownItToken[];
-  const { body, toc } = tokensToDomphy(tokens, { highlight });
-  const withAnchors = injectHeadingAnchors(body as DomphyElement[]);
+  const imported = expandCodeImports(stripped, fileDir, docsDir);
+  const badged = transformBadgeContent(imported);
+  const normalized = normalizeContainerSyntax(badged);
+
+  // Build remark processor with press-specific plugins.
+  // Order matters: code-group must run before pressCodePlugin so it can
+  // access the MDAST Code nodes before they become html strings.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const proc = remark().use(remarkGfm as any).use(remarkDirective as any)
+    .use(pressCodeGroupPlugin(highlight)).use(pressCodePlugin(highlight));
+
+  const tree = proc.parse(normalized) as Root;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (proc as any).runSync(tree, normalized);
+
+  const slug = createUniqueSlugger(defaultSlugify);
+  const toc: TocEntry[] = [];
+
+  const body = walkMdast(tree, {
+    slug,
+    toc,
+    onCustom: pressDirectiveHandler,
+  });
+
   const frontmatterTitle =
     typeof frontmatter.title === "string" ? frontmatter.title : undefined;
   const title = frontmatterTitle ?? firstH1(toc) ?? titleFromFilePath(filePath);
-  return { frontmatter, body: withAnchors, toc, islands: [], title };
+  return { frontmatter, body, toc, islands: [], title };
 }

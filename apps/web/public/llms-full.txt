@@ -70,7 +70,7 @@ const App = {
 | `@domphy/palette` | color-palette engine: `Ramp`/`Palette`/`Swatch` — 5 CIELAB quality metrics (design-time companion to theme) |
 | `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `tokensToDomphy`); powers this docs site |
 | `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
-| `@domphy/chart` | ECharts-grade chart engine — `chart(option)` patch; `ChartEngine` for headless use. **WebGL series** (luma.gl): `line`/`bar`/`scatter`/`pie`/`radar`/`heatmap`/`candlestick`/`gauge`. **SVG series**: `boxplot`/`funnel`/`treemap`/`sankey`/`graph`/`parallel`/`themeRiver`/`map`(choropleth, `registerMap(name,geoJSON)`)/`custom`. **Calendar coord**: `calendar` + `heatmap[coordinateSystem:"calendar"]`. **Geo coord**: `geo` + `scatter[coordinateSystem:"geo"]`. **3D** (SVG perspective, no extra pkg): `scatter3D`/`bar3D`/`line3D`/`surface3D[shapeW,shapeH]`. Color = theme family names → cascade from `dataTone` (WCAG guaranteed). Spacing → cascade from `dataDensity`. Scale creators: `createLinearScale`/`createOrdinalScale`/`createTimeScale`/`createLogScale`. Dataset transforms: `applyTransforms`/`resolveDataset`. Color utils: `hexToRgba`/`seriesHex`/`familyHex`/`colorFromVisualMap`. |
+| `@domphy/chart` | canvas chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`hexToRgba`, `seriesHex`, `seriesPaletteFamily`, `colorFromVisualMap`); ECharts-compatible type surface |
 | `@domphy/audit` | two audit modes: (1) **static element-tree a11y** (zero-dep, no browser) — `auditA11y(element)` checks a Domphy element tree for `missing-alt`, `missing-label`, `heading-hierarchy`, `missing-lang`; returns `{ ok, issues }` synchronously; works in Node/Vitest/build time; (2) **runtime layout checks via Playwright** — `scanInteractive(page)` (interactive, auto-hovers triggers) and `checkLayout(page, options?)` (static-only aggregator); issue types: `theme`, `overlay`, `overlap`, `geometry`, `contrast`; CLI: `npx @domphy/audit <url>`; returns `{ ok, issues, svg }`. Complements `@domphy/doctor` (Domphy-specific rules) with a11y + layout runtime checks. |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
 | `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component |
@@ -21349,12 +21349,12 @@ These are lower-level utilities used internally by the chart engine, exposed for
 
 ---
 title: "@domphy/chart"
-description: "ECharts-grade charting for Domphy — WebGL line/bar/scatter/pie/radar/heatmap/candlestick/gauge and SVG boxplot/funnel/treemap/sankey/graph. Zero React dependency."
+description: "ECharts-grade charting for Domphy — WebGL line/bar/scatter/pie/radar/heatmap/candlestick/gauge, SVG boxplot/funnel/treemap/sankey/graph/parallel/themeRiver/map, calendar, 3D surface. Tone/density cascade."
 ---
 
 # @domphy/chart
 
-ECharts-grade charting for Domphy. WebGL-accelerated series for performance-critical data, SVG series for complex layouts. No React dependency.
+ECharts-grade charting for Domphy. WebGL-accelerated series for performance-critical data, SVG series for complex layouts. Full parity with ECharts including geo maps, calendar, parallel coordinates, ThemeRiver, and 3D charts. No React dependency.
 
 ## Install
 
@@ -21415,11 +21415,11 @@ The chart re-renders whenever the state changes.
 | `scatter` | `symbolSize` (number or `(val) => number`) |
 | `pie` | `radius` (number or `[inner, outer]`), `roseType`, `center` |
 | `radar` | `areaStyle`, paired with `radar.indicator[]` |
-| `heatmap` | paired with `xAxis`/`yAxis` category + `visualMap` |
+| `heatmap` | cartesian or `coordinateSystem: "calendar"` with `visualMap` |
 | `candlestick` | `data: [open,close,low,high][]`, `itemStyle.color`/`color0` |
 | `gauge` | `min`/`max`, `splitNumber`, `detail.formatter` |
 
-**SVG:**
+**SVG (layout & flow):**
 | Series | Key options |
 |---|---|
 | `boxplot` | `data: [min,Q1,median,Q3,max][]` |
@@ -21427,6 +21427,18 @@ The chart re-renders whenever the state changes.
 | `treemap` | `data` with nested `children`, squarified layout |
 | `sankey` | `nodes: [{name}]`, `links: [{source,target,value}]` |
 | `graph` | `nodes`, `links`, `categories`, `layout: "force"\|"circular"\|"none"` |
+| `parallel` | multi-dim polylines across `parallelAxis[]` |
+| `themeRiver` | stream graph; `data: [[time, value, name], ...]` |
+| `map` | choropleth; `geo` + `registerMap(name, geoJSON)` |
+| `custom` | `renderItem(params, api)` returns SVG element descriptor |
+
+**3D (SVG perspective projection):**
+| Series | Key options |
+|---|---|
+| `scatter3D` | `data: [x,y,z][]`, `symbolSize` |
+| `bar3D` | `data: [x,y,z][]`, `barSize` |
+| `line3D` | `data: [x,y,z][]`, `lineWidth` |
+| `surface3D` | structured grid `data: [x,y,z][]`, `shapeW`, `shapeH`, `wireframe` |
 
 ## Next steps
 
@@ -21434,12 +21446,13 @@ The chart re-renders whenever the state changes.
 - [Axes & Grid](/docs/chart/axes) — axes types, formatting, dataZoom, visualMap
 - [Colors & Theme](/docs/chart/colors) — theme families, gradient fills
 - [ChartEngine API](/docs/chart/engine) — advanced embedding, resize, destroy
+- [vs ECharts](/docs/chart/vs-echarts) — feature comparison
 
 ### series.md
 
 ---
 title: "Series Reference"
-description: "All @domphy/chart series types — line, bar, scatter, pie, radar, heatmap, candlestick, gauge, boxplot, funnel, treemap, sankey, graph."
+description: "All @domphy/chart series types — line, bar, scatter, pie, radar, heatmap, candlestick, gauge, boxplot, funnel, treemap, sankey, graph, parallel, themeRiver, map, calendar, scatter3D, bar3D, line3D, surface3D."
 ---
 
 # Series Reference
@@ -21790,6 +21803,323 @@ interface LabelOption {
 ```
 
 Labels are supported on: `bar`, `line`, `scatter`, `pie` (with leader lines and percentage).
+
+---
+
+## Calendar (coordinate system)
+
+Requires `calendar` in the option. Use with `heatmap` (set `coordinateSystem: "calendar"`).
+
+```ts
+{
+  calendar: {
+    range: "2024",                        // full year, or ["2024-01-01", "2024-06-30"]
+    cellSize?: number | [w, h],           // default 20
+    dayLabel?: { firstDay?: 0|1, show?: boolean },
+    monthLabel?: { show?: boolean },
+    yearLabel?: { show?: boolean },
+  },
+  series: [{
+    type: "heatmap",
+    coordinateSystem: "calendar",
+    data: [
+      ["2024-01-15", 42],
+      ["2024-03-22", 87],
+      // ...
+    ],
+  }],
+  visualMap: { type: "continuous", min: 0, max: 100 },
+}
+```
+
+---
+
+## Parallel Coordinates
+
+```ts
+{
+  parallel: { left: "10%", right: "5%", top: "10%", bottom: "10%" },
+  parallelAxis: [
+    { dim: 0, name: "Income",    type: "value" },
+    { dim: 1, name: "Age",       type: "value" },
+    { dim: 2, name: "Education", type: "category", data: ["High School","BSc","MSc","PhD"] },
+  ],
+  series: [{
+    type: "parallel",
+    data: [
+      [45000, 32, "BSc"],
+      [72000, 45, "MSc"],
+      [28000, 24, "High School"],
+    ],
+    lineStyle: { opacity: 0.5 },
+  }],
+}
+```
+
+Each row becomes a polyline crossing each axis at its value position.
+
+---
+
+## ThemeRiver
+
+Stream/river chart showing changes in topic proportions over time.
+
+```ts
+{
+  series: [{
+    type: "themeRiver",
+    data: [
+      // [time, value, topic-name]
+      ["2024-01", 20, "Topic A"],
+      ["2024-02", 35, "Topic A"],
+      ["2024-01", 15, "Topic B"],
+      ["2024-02", 25, "Topic B"],
+    ],
+  }],
+}
+```
+
+Multiple series names in the same dataset are stacked as separate streams. The baseline is silhouette-centered (zero-centered sum), giving the characteristic river shape.
+
+---
+
+## Map (choropleth)
+
+Requires calling `registerMap` before use.
+
+```ts
+import { registerMap } from "@domphy/chart"
+
+// Register a GeoJSON (e.g. world countries from naturalearth)
+registerMap("world", worldGeoJSON)
+
+// Option:
+{
+  geo: {
+    map: "world",
+    roam: true,   // enable pan/zoom (not yet interactive — reserved for future)
+    zoom: 1.2,
+    center: [0, 20],
+  },
+  series: [{
+    type: "map",
+    map: "world",
+    data: [
+      { name: "China",         value: 89 },
+      { name: "United States", value: 73 },
+      { name: "Germany",       value: 61 },
+    ],
+  }],
+  visualMap: { type: "continuous", min: 0, max: 100 },
+}
+```
+
+`scatter` series with `coordinateSystem: "geo"` render as circles at `[lng, lat]` coordinates.
+
+---
+
+## scatter3D / bar3D / line3D / surface3D
+
+All 3D series require `grid3D`. Projection is perspective SVG (no WebGL needed).
+
+```ts
+{
+  grid3D: {
+    viewControl: { alpha: 35, beta: 45, distance: 180 },
+  },
+  xAxis3D: { name: "X", type: "value" },
+  yAxis3D: { name: "Y", type: "value" },
+  zAxis3D: { name: "Z", type: "value" },
+  series: [
+    {
+      type: "scatter3D",
+      symbolSize: 10,
+      color: "primary",
+      data: [[1,2,3], [4,5,6], [7,8,9]],
+    },
+    {
+      type: "line3D",
+      lineWidth: 2,
+      color: "secondary",
+      data: [[0,0,0], [1,2,4], [2,4,8]],
+    },
+    {
+      type: "bar3D",
+      barSize: 0.05,
+      color: "success",
+      data: [[0,1,5], [1,1,8], [2,1,3]],
+    },
+  ],
+}
+```
+
+### surface3D
+
+Renders a 3D surface from a structured grid of `[x, y, z]` points. Z-value is mapped to a blue→green→red color gradient.
+
+```ts
+{
+  grid3D: { viewControl: { alpha: 30, beta: 50 } },
+  xAxis3D: { type: "value" },
+  yAxis3D: { type: "value" },
+  zAxis3D: { type: "value" },
+  series: [{
+    type: "surface3D",
+    shapeW: 20,   // grid columns
+    shapeH: 20,   // grid rows
+    wireframe: { show: true },
+    data: (() => {
+      const points = []
+      for (let i = 0; i < 20; i++) {
+        for (let j = 0; j < 20; j++) {
+          const x = (i / 19) * 4 - 2
+          const y = (j / 19) * 4 - 2
+          const z = Math.sin(Math.sqrt(x * x + y * y))
+          points.push([x, y, z])
+        }
+      }
+      return points
+    })(),
+  }],
+}
+```
+
+### vs-echarts.md
+
+---
+title: "@domphy/chart vs ECharts"
+description: "Detailed feature comparison between @domphy/chart and Apache ECharts — series types, rendering, color system, theme integration, bundle size."
+---
+
+# @domphy/chart vs ECharts
+
+## Series coverage
+
+| Series | @domphy/chart | ECharts |
+|---|:---:|:---:|
+| Line / Area | ✓ | ✓ |
+| Bar (grouped, stacked, horizontal) | ✓ | ✓ |
+| Scatter / Bubble | ✓ | ✓ |
+| Pie / Donut / Rose | ✓ | ✓ |
+| Radar / Spider | ✓ | ✓ |
+| Heatmap (cartesian) | ✓ | ✓ |
+| Heatmap (calendar) | ✓ | ✓ |
+| Candlestick / OHLC | ✓ | ✓ |
+| Boxplot / Whisker | ✓ | ✓ |
+| Gauge | ✓ | ✓ |
+| Treemap | ✓ | ✓ |
+| Funnel | ✓ | ✓ |
+| Sankey | ✓ | ✓ |
+| Graph / Network | ✓ | ✓ |
+| Parallel coordinates | ✓ | ✓ |
+| ThemeRiver / Stream | ✓ | ✓ |
+| Map / Choropleth | ✓ | ✓ |
+| Custom render | ✓ | ✓ |
+| scatter3D / bar3D / line3D | ✓ | ECharts GL |
+| surface3D | ✓ (SVG) | ECharts GL (WebGL mesh) |
+| Calendar coordinate | ✓ | ✓ |
+| Geo coordinate | ✓ | ✓ |
+| Polar coordinate | ✓ | ✓ |
+| ThemeRiver (multi-series) | ✓ | ✓ |
+| Lines (flow map) | — | ✓ |
+| EffectScatter | — | ✓ |
+| PictorialBar | — | ✓ |
+
+## Architecture
+
+| | @domphy/chart | ECharts |
+|---|---|---|
+| **Renderer** | WebGL (luma.gl) for hot series + SVG overlay for everything else | Canvas (default) or SVG mode — no mixed mode |
+| **3D** | SVG perspective projection (built-in, no extra package) | ECharts GL (separate npm package, WebGL) |
+| **Framework** | Domphy patch — integrates into element tree | Standalone (`echarts.init(dom)`) |
+| **Reactivity** | Pass `State<ChartOption>` — auto re-renders on change | Call `setOption()` manually |
+| **SSR** | Works with `@domphy/app renderToString` | Partial (SVG mode only) |
+| **Shadow DOM** | ✓ (SVG output, no canvas clipping issues) | Canvas has shadow DOM issues |
+
+## Color system
+
+This is the biggest architectural difference.
+
+**ECharts** hardcodes palette hex values:
+```ts
+// ECharts default — breaks in dark mode, no contrast guarantee
+color: ['#5470c6', '#91cc75', '#fac858', '#ee6666', ...]
+```
+
+**@domphy/chart** uses theme families that resolve at render time:
+```ts
+// Adapts to any dataTone context, WCAG 4.5:1 guaranteed
+series: [
+  { type: "line", color: "primary" },    // resolves via themeColor()
+  { type: "bar",  color: "secondary" },  // follows dataTone cascade of parent
+]
+```
+
+Set `dataTone="shift-11"` on the chart container → all series colors invert automatically. Zero manual dark-mode config.
+
+## Spacing / density cascade
+
+| | @domphy/chart | ECharts |
+|---|---|---|
+| Axis label padding | `themeSpacing(density * n)` | Fixed px |
+| Tick density | cascade from `dataDensity` | Fixed |
+| Legend gap | cascade | Fixed |
+| Compact mode | `dataDensity="decrease-1"` on parent | No built-in |
+
+## Components
+
+| Component | @domphy/chart | ECharts |
+|---|:---:|:---:|
+| Title | ✓ | ✓ |
+| Legend (plain/scroll) | ✓ | ✓ |
+| Tooltip (axis/item) | ✓ (Domphy element or string) | ✓ (HTML or richText) |
+| DataZoom (slider/inside) | ✓ | ✓ |
+| VisualMap (continuous/piecewise) | ✓ | ✓ |
+| Brush | ✓ (option type) | ✓ |
+| Toolbox | ✓ (option type) | ✓ |
+| Mark point/line/area | ✓ | ✓ |
+| Dataset + transforms | ✓ | ✓ |
+| Axis pointer | ✓ | ✓ |
+| Geo roam (interactive pan/zoom) | reserved | ✓ |
+
+## Bundle size
+
+| | @domphy/chart | ECharts (tree-shaken) | ECharts (full) |
+|---|---|---|---|
+| Core | ~120 KB | ~400 KB | ~1 MB |
+| 3D | built-in (SVG, 0 extra) | +ECharts GL ~800 KB | — |
+| Peer deps | @domphy/core, @domphy/theme | none | none |
+
+## Migration from ECharts
+
+The `ChartOption` interface is intentionally ECharts-compatible. Most options migrate without changes:
+
+```ts
+// ECharts
+echarts.init(document.getElementById("chart")).setOption({
+  xAxis: { type: "category", data: ["Mon","Tue","Wed"] },
+  yAxis: { type: "value" },
+  series: [{ type: "bar", data: [120, 200, 150] }],
+})
+
+// @domphy/chart — same option object, different mount
+import { chart } from "@domphy/chart"
+const App = {
+  div: null,
+  style: { width: "600px", height: "300px" },
+  $: [chart({
+    xAxis: { type: "category", data: ["Mon","Tue","Wed"] },
+    yAxis: { type: "value" },
+    series: [{ type: "bar", data: [120, 200, 150] }],
+  })],
+}
+```
+
+**Key differences when migrating:**
+- `color` in series takes a `ThemeFamily` string (`"primary"`) not a hex — drop hex colors and let the theme system assign them, or keep hex in `itemStyle.color`
+- No `echarts.init()` — use the `chart()` patch directly
+- No `setOption()` — pass a `State<ChartOption>` for reactive updates
+- `tooltip.formatter` can return a `DomphyElement` (plain object) in addition to a string
 
 
 
@@ -33380,6 +33710,23 @@ VS Code MCP support uses `.vscode/mcp.json`:
 }
 ```
 
+## Other MCP clients
+
+Any MCP-compatible client that supports stdio servers can connect with this config shape:
+
+```json
+{
+  "mcpServers": {
+    "domphy": {
+      "command": "npx",
+      "args": ["-y", "@domphy/mcp"]
+    }
+  }
+}
+```
+
+Consult your client's documentation for the exact config file location.
+
 ## Skipping the network on first run
 
 `npx` downloads the package on first use. To avoid this delay, install globally first:
@@ -33730,7 +34077,7 @@ npx @domphy/mcp
 
 ## Connect your MCP client
 
-Add to your MCP client's config (see Client Setup for per-editor paths):
+Add to your MCP client's config (see [Client Setup](./client-setup.md) for per-editor paths):
 
 ```json
 {
