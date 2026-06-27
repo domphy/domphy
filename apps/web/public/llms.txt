@@ -260,9 +260,13 @@ Color-palette quality engine (design-time companion to `@domphy/theme`): measure
 
 ## Audit (`@domphy/audit`)
 
-Baseline-free layout verification via Playwright. `scanInteractive(page)` runs static + interactive checks — auto-discovers nav/dropdown triggers, hovers each, checks for overlay bugs. Returns `{ ok, issues, svg }`.
+Two complementary audit modes:
 
-Issue types:
+**Static element-tree a11y** (zero-dep, no browser): `auditA11y(element)` checks a Domphy element tree for WCAG-aligned a11y violations and returns `{ ok, issues }` synchronously. Rules: `missing-alt` (img without alt), `missing-label` (input/textarea/select without accessible name via aria-label / aria-labelledby / label[for] / nesting / title), `heading-hierarchy` (skipped heading level, e.g. h1→h3), `missing-lang` (html without lang attribute). `A11yIssue` has `{ rule, message, path }` (no rect — no browser coords). Works in Node, Vitest, at build time.
+
+**Runtime layout checks via Playwright**: `scanInteractive(page)` runs static + interactive checks — auto-discovers nav/dropdown triggers, hovers each, checks for overlay bugs. Returns `{ ok, issues, svg }`.
+
+Playwright issue types:
 - **theme** — `checkTheme(page)`: missing `data-theme` on `<html>`, unresolved `--neutral-0` CSS var (transparent backgrounds)
 - **overlay** — `checkOverlays(page)`: visible positioned overlays with transparent backgrounds or hover gap >4px from offset parent
 - **overlap** — `detectOverlaps(page)`: sibling elements whose bounding boxes intersect
@@ -273,11 +277,11 @@ CLI: `npx @domphy/audit <url> [--static]` — runs full `scanInteractive` and ex
 
 `AuditPageFull` extends `AuditPage` with `hover(selector)` + `waitForTimeout(ms)` — compatible with `playwright.Page` directly.
 
-`svg` output: lightweight SVG skeleton annotated with issue positions (red=overlap, orange=geometry, gold=contrast, purple=theme/overlay). Individual checkers importable separately. No dep on `@domphy/core`.
+`svg` output: lightweight SVG skeleton annotated with issue positions (red=overlap/theme/overlay, orange=geometry, gold=contrast). Individual checkers importable separately. No dep on `@domphy/core`.
 
 `checkLayout(page, options?)` — static-only aggregator (no hover discovery): runs all five checkers concurrently via `Promise.all` and returns `{ ok, issues, svg }`. `options.checks` selects which checkers run (default: all five); `options.tolerance` tunes geometry tolerance (default 1px); `options.minContrast` tunes contrast threshold (default 4.5). Faster than `scanInteractive` when interactive hover discovery is not needed. Also exported: `snapshot(page)` (captures element layout rects into a `LayoutSnapshot`), `toSVG(layout, issues)` (produces the annotated SVG skeleton), `LayoutSnapshot` type.
 
-- [Overview](https://domphy.com/docs/audit/) · [Interpreting Audit Results](https://domphy.com/docs/audit/interpreting-results) · [CI Integration](https://domphy.com/docs/audit/ci-integration) · [checkLayout API](https://domphy.com/docs/audit/check-layout)
+- [Overview](https://domphy.com/docs/audit/) · [Static a11y](https://domphy.com/docs/audit/a11y) · [Interpreting Audit Results](https://domphy.com/docs/audit/interpreting-results) · [CI Integration](https://domphy.com/docs/audit/ci-integration) · [checkLayout API](https://domphy.com/docs/audit/check-layout)
 
 ## Doctor (`@domphy/doctor`)
 

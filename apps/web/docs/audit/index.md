@@ -58,6 +58,22 @@ test("no layout violations", async ({ page }) => {
 
 ## What it checks
 
+### Static a11y (`auditA11y`)
+
+Checks a **Domphy element tree** (plain object) for accessibility violations — no browser or Playwright required. Runs in Node, at build time, or in Vitest.
+
+```ts
+import { auditA11y } from "@domphy/audit"
+
+const result = auditA11y(App)
+console.log(result.ok)      // boolean
+console.log(result.issues)  // A11yIssue[]
+```
+
+Rules: `missing-alt` (img without alt), `missing-label` (input/textarea/select without label), `heading-hierarchy` (skipped heading level), `missing-lang` (html without lang).
+
+See the [Static a11y reference](./a11y) for the full rule documentation.
+
 ### Theme (`checkTheme`)
 
 Detects missing Domphy theme setup — the most common cause of transparent backgrounds and invisible text:
@@ -147,10 +163,9 @@ console.log(result.svg)       // annotated SVG string
 
 Every result includes an `svg` string — a lightweight text skeleton of the rendered layout with issues annotated by color:
 
-- **Red** — overlap areas
+- **Red** — overlap, theme, and overlay issues
 - **Orange** — geometry violations
 - **Gold** — contrast failures
-- **Purple** — theme/overlay issues
 
 The SVG is pure text (not a screenshot): fast, tiny, and diffable in CI.
 
@@ -162,6 +177,8 @@ const svg = toSVG(layout, issues)       // render annotated SVG
 ```
 
 ## Types
+
+### Playwright-based types
 
 ```ts
 type IssueType = "overlap" | "geometry" | "contrast" | "theme" | "overlay"
@@ -186,5 +203,26 @@ interface AuditPage {
 interface AuditPageFull extends AuditPage {
   hover(selector: string, options?: { force?: boolean }): Promise<void>
   waitForTimeout(ms: number): Promise<void>
+}
+```
+
+### Static a11y types
+
+```ts
+type A11yRule =
+  | "missing-alt"
+  | "missing-label"
+  | "heading-hierarchy"
+  | "missing-lang"
+
+interface A11yIssue {
+  rule: A11yRule
+  message: string
+  path: string        // dot-path through the element tree, e.g. "root[0]>div>img"
+}
+
+interface A11yResult {
+  ok: boolean
+  issues: A11yIssue[]
 }
 ```

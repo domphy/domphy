@@ -1,9 +1,18 @@
-// @domphy/audit — baseline-free layout verification for Domphy UIs via Playwright.
-// Detects overlap (sibling elements intersecting), geometry violations (Domphy
-// button height formula), color contrast failures, missing theme setup, and
-// overlay issues (transparent backgrounds + hover dead zones).
-// Uses getBoundingClientRect() + getComputedStyle() in the browser.
+// @domphy/audit — baseline-free layout verification for Domphy UIs via Playwright,
+// plus static a11y checks for Domphy element trees (no browser required).
+//
+// Playwright-based checks (require a live page):
+//   checkTheme, detectOverlaps, verifyGeometry, checkContrast, checkOverlays
+//   checkLayout (aggregator), scanInteractive (interactive with hover discovery)
+//
+// Static element-tree checks (zero-dep, works in Node / at build time):
+//   auditA11y — missing-alt, missing-label, heading-hierarchy, missing-lang
 
+// Static a11y — element-tree rules (no Playwright)
+export { auditA11y } from "./a11y.js";
+export type { A11yIssue, A11yResult, A11yRule } from "./a11y.js";
+
+// Playwright-based runtime checks
 export { checkContrast } from "./contrast.js";
 export type { AuditPageFull } from "./discover.js";
 export { scanInteractive } from "./discover.js";

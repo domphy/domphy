@@ -71,7 +71,7 @@ const App = {
 | `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `tokensToDomphy`); powers this docs site |
 | `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
 | `@domphy/chart` | canvas chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`hexToRgba`, `seriesHex`, `seriesPaletteFamily`, `colorFromVisualMap`); ECharts-compatible type surface |
-| `@domphy/audit` | baseline-free layout + theme verification via Playwright — `scanInteractive(page)` runs static + interactive checks (auto-hovers triggers, checks newly-visible overlays); `checkLayout(page, options?)` is the static-only aggregator (no hover discovery, all checkers run concurrently). Issue types: `theme` (missing `data-theme`, unresolved CSS vars), `overlay` (transparent bg, hover gap), `overlap`, `geometry`, `contrast`. CLI: `npx @domphy/audit <url>`. Returns `{ ok, issues, svg }`. Complements `@domphy/doctor` (static pre-render) with runtime post-render checks. |
+| `@domphy/audit` | two audit modes: (1) **static element-tree a11y** (zero-dep, no browser) — `auditA11y(element)` checks a Domphy element tree for `missing-alt`, `missing-label`, `heading-hierarchy`, `missing-lang`; returns `{ ok, issues }` synchronously; works in Node/Vitest/build time; (2) **runtime layout checks via Playwright** — `scanInteractive(page)` (interactive, auto-hovers triggers) and `checkLayout(page, options?)` (static-only aggregator); issue types: `theme`, `overlay`, `overlap`, `geometry`, `contrast`; CLI: `npx @domphy/audit <url>`; returns `{ ok, issues, svg }`. Complements `@domphy/doctor` (Domphy-specific rules) with a11y + layout runtime checks. |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
 | `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component |
 | `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
@@ -28643,6 +28643,249 @@ Unlike `missing-key` and `unstable-key`, `duplicate-key` is decidable for any si
 
 ## Audit docs (`@domphy/audit`)
 
+### a11y.md
+
+---
+title: "Static a11y — auditA11y"
+description: "Run WCAG-aligned a11y rules against Domphy element trees at build time, without Playwright."
+---
+
+# Static a11y (`auditA11y`)
+
+`auditA11y` checks Domphy element trees (plain objects) for common accessibility violations **without a browser or Playwright**. It runs in Node, at build time, or in Vitest — anywhere you have access to the element tree before it is rendered.
+
+```ts
+import { auditA11y } from "@domphy/audit"
+
+const App = {
+  div: [
+    { img: null, src: "logo.png" },        // missing alt → flagged
+    { input: null, type: "text" },          // no label → flagged
+    { h1: "Dashboard" },
+    { h3: "Overview" },                     // skipped h2 → flagged
+  ],
+}
+
+const result = auditA11y(App)
+console.log(result.ok)      // false
+console.log(result.issues)  // A11yIssue[]
+```
+
+This is the static pre-render complement to `checkContrast` / `checkLayout` (which run on live pages via Playwright).
+
+| | `auditA11y` | `checkLayout` |
+|---|---|---|
+| When | Before render (static) | After render (Playwright) |
+| Input | Domphy element tree | Live page |
+| Playwright needed | No | Yes |
+| Checks | alt, label, heading, lang | contrast, overlap, geometry, theme, overlay |
+
+## Signature
+
+```ts
+function auditA11y(element: unknown): A11yResult
+```
+
+Pass any Domphy element, array of elements, or a full document tree. Returns an `A11yResult` synchronously.
+
+```ts
+interface A11yResult {
+  ok: boolean        // false if issues.length > 0
+  issues: A11yIssue[]
+}
+
+interface A11yIssue {
+  rule: A11yRule     // which rule fired
+  message: string    // human-readable description
+  path: string       // dot-path through the element tree
+}
+
+type A11yRule =
+  | "missing-alt"
+  | "missing-label"
+  | "heading-hierarchy"
+  | "missing-lang"
+```
+
+## Rules
+
+### `missing-alt` — images must have `alt`
+
+Every `{ img: ... }` must have an `alt` attribute. Screen readers read the filename aloud when `alt` is absent, which is never useful.
+
+```ts
+// Bad — no alt
+{ img: null, src: "/hero.jpg" }
+
+// OK — decorative image (alt="" tells screen readers to skip it)
+{ img: null, src: "/hero.jpg", alt: "" }
+
+// OK — meaningful image
+{ img: null, src: "/avatar.jpg", alt: "Profile photo of Jane Smith" }
+```
+
+### `missing-label` — form controls need accessible names
+
+Every `<input>` (except `type="hidden"`, `type="submit"`, `type="reset"`, `type="button"`, `type="image"`), `<textarea>`, and `<select>` must have an accessible name. Accepted sources (any one is sufficient):
+
+| Source | Example |
+|---|---|
+| Wrapped in `<label>` | `{ label: [{ input: null }] }` |
+| `<label for="id">` elsewhere in tree | `{ label: "Name", for: "name-field" }` + `{ input: null, id: "name-field" }` |
+| `aria-label` attribute | `{ input: null, "aria-label": "Search" }` |
+| `aria-labelledby` attribute | `{ input: null, "aria-labelledby": "heading-id" }` |
+| `title` attribute (WCAG fallback) | `{ input: null, title: "Search" }` |
+
+`placeholder` is **not** an accessible name — screen readers do not expose it reliably and it disappears on focus.
+
+```ts
+// Bad — no label
+{ input: null, type: "text", placeholder: "Search..." }
+
+// OK — aria-label
+{ input: null, type: "text", "aria-label": "Search" }
+
+// OK — nested in label
+{ label: [
+  { span: "Email" },
+  { input: null, type: "email" },
+]}
+
+// OK — label[for]
+[
+  { label: "Email", for: "email-field" },
+  { input: null, type: "email", id: "email-field" },
+]
+```
+
+### `heading-hierarchy` — no level skips
+
+Heading levels must increase by at most one step at a time. Screen reader users navigate by headings; a skip (h1 → h3) creates a hole in the outline that implies content is missing.
+
+```ts
+// Bad — skips h2
+[
+  { h1: "Dashboard" },
+  { h3: "Overview" },    // flagged: missing h2
+]
+
+// OK — sequential levels
+[
+  { h1: "Dashboard" },
+  { h2: "Overview" },
+  { h3: "Details" },
+]
+
+// OK — jumping back up is always valid
+[
+  { h1: "Dashboard" },
+  { h2: "Section A" },
+  { h3: "Subsection" },
+  { h2: "Section B" },  // fine: h3 → h2 is going up, not down
+]
+```
+
+### `missing-lang` — `<html>` needs a `lang` attribute
+
+Only fires when the element tree includes an `{ html: ... }` element (full-document SSR trees). Screen readers use `lang` to select the correct speech-synthesis language.
+
+```ts
+// Bad
+{ html: [{ head: null }, { body: [...] }] }
+
+// OK
+{ html: [{ head: null }, { body: [...] }], lang: "en" }
+```
+
+## Usage in Vitest
+
+```ts
+// src/components/header.test.ts
+import { describe, it, expect } from "vitest"
+import { auditA11y } from "@domphy/audit"
+
+const Header = {
+  header: [
+    { img: null, src: "/logo.svg", alt: "Acme logo" },
+    { nav: [
+      { h2: "Navigation" },
+      { ul: [
+        { li: { a: "Home", href: "/" } },
+        { li: { a: "About", href: "/about" } },
+      ]},
+    ]},
+  ],
+}
+
+describe("Header a11y", () => {
+  it("has no a11y violations", () => {
+    const result = auditA11y(Header)
+    expect(result.issues).toHaveLength(0)
+  })
+})
+```
+
+## Combining with `@domphy/doctor`
+
+`auditA11y` and `@domphy/doctor`'s `diagnose` cover different rules — run both for thorough static analysis before rendering:
+
+```ts
+import { diagnose, format } from "@domphy/doctor"
+import { auditA11y } from "@domphy/audit"
+
+function checkElement(element: unknown) {
+  // Doctor: Domphy-specific rules (inline typography, raw theme values, tone grammar, etc.)
+  const doctorIssues = diagnose(element)
+  if (doctorIssues.length > 0) {
+    console.warn("Doctor issues:\n" + format(doctorIssues))
+  }
+
+  // Audit: WCAG-aligned a11y rules (alt, labels, heading order, lang)
+  const a11yResult = auditA11y(element)
+  if (!a11yResult.ok) {
+    console.warn("A11y issues:")
+    for (const issue of a11yResult.issues) {
+      console.warn(`  [${issue.rule}] ${issue.path}: ${issue.message}`)
+    }
+  }
+
+  return doctorIssues.length === 0 && a11yResult.ok
+}
+```
+
+## Limitations
+
+- **Reactive content is not traversable.** Any child tree returned by a `(listener) => ...` function is skipped. The element's own props (`alt`, `aria-label`, etc.) are still checked — only the reactive *children* are invisible to the static walker.
+
+- **Dynamic label associations.** If a `<label for="...">` is built with a reactive `for` value — `{ label: "Name", for: (l) => state.get(l) }` — the association cannot be resolved statically. Use a literal string for the `for` / `id` pair.
+
+- **Only four rules.** Compared to axe-core's 90+ rules, `auditA11y` covers the highest-impact structural a11y patterns: alt text, accessible labels, heading order, and document language. For contrast checking, use `checkContrast(page)` (Playwright-based, checks computed colors at runtime).
+
+- **No ARIA role or attribute validation.** `aria-*` attribute correctness (valid roles, required owned elements, allowed states) is not currently checked.
+
+## Types
+
+```ts
+import type { A11yIssue, A11yResult, A11yRule } from "@domphy/audit"
+
+type A11yRule =
+  | "missing-alt"
+  | "missing-label"
+  | "heading-hierarchy"
+  | "missing-lang"
+
+interface A11yIssue {
+  rule: A11yRule
+  message: string
+  path: string        // e.g. "root[0]>div>img" or "root>form[2]>input"
+}
+
+interface A11yResult {
+  ok: boolean
+  issues: A11yIssue[]
+}
+```
+
 ### check-layout.md
 
 ---
@@ -29187,6 +29430,22 @@ test("no layout violations", async ({ page }) => {
 
 ## What it checks
 
+### Static a11y (`auditA11y`)
+
+Checks a **Domphy element tree** (plain object) for accessibility violations — no browser or Playwright required. Runs in Node, at build time, or in Vitest.
+
+```ts
+import { auditA11y } from "@domphy/audit"
+
+const result = auditA11y(App)
+console.log(result.ok)      // boolean
+console.log(result.issues)  // A11yIssue[]
+```
+
+Rules: `missing-alt` (img without alt), `missing-label` (input/textarea/select without label), `heading-hierarchy` (skipped heading level), `missing-lang` (html without lang).
+
+See the [Static a11y reference](./a11y) for the full rule documentation.
+
 ### Theme (`checkTheme`)
 
 Detects missing Domphy theme setup — the most common cause of transparent backgrounds and invisible text:
@@ -29276,10 +29535,9 @@ console.log(result.svg)       // annotated SVG string
 
 Every result includes an `svg` string — a lightweight text skeleton of the rendered layout with issues annotated by color:
 
-- **Red** — overlap areas
+- **Red** — overlap, theme, and overlay issues
 - **Orange** — geometry violations
 - **Gold** — contrast failures
-- **Purple** — theme/overlay issues
 
 The SVG is pure text (not a screenshot): fast, tiny, and diffable in CI.
 
@@ -29291,6 +29549,8 @@ const svg = toSVG(layout, issues)       // render annotated SVG
 ```
 
 ## Types
+
+### Playwright-based types
 
 ```ts
 type IssueType = "overlap" | "geometry" | "contrast" | "theme" | "overlay"
@@ -29315,6 +29575,27 @@ interface AuditPage {
 interface AuditPageFull extends AuditPage {
   hover(selector: string, options?: { force?: boolean }): Promise<void>
   waitForTimeout(ms: number): Promise<void>
+}
+```
+
+### Static a11y types
+
+```ts
+type A11yRule =
+  | "missing-alt"
+  | "missing-label"
+  | "heading-hierarchy"
+  | "missing-lang"
+
+interface A11yIssue {
+  rule: A11yRule
+  message: string
+  path: string        // dot-path through the element tree, e.g. "root[0]>div>img"
+}
+
+interface A11yResult {
+  ok: boolean
+  issues: A11yIssue[]
 }
 ```
 
