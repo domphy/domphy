@@ -73,7 +73,7 @@ const App = {
 | `@domphy/chart` | canvas chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`hexToRgba`, `seriesHex`, `seriesPaletteFamily`, `colorFromVisualMap`); ECharts-compatible type surface |
 | `@domphy/audit` | baseline-free layout + theme verification via Playwright — `scanInteractive(page)` runs static + interactive checks (auto-hovers triggers, checks newly-visible overlays); `checkLayout(page, options?)` is the static-only aggregator (no hover discovery, all checkers run concurrently). Issue types: `theme` (missing `data-theme`, unresolved CSS vars), `overlay` (transparent bg, hover gap), `overlap`, `geometry`, `contrast`. CLI: `npx @domphy/audit <url>`. Returns `{ ok, issues, svg }`. Complements `@domphy/doctor` (static pre-render) with runtime post-render checks. |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
-| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading |
+| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component |
 | `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
 | `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
@@ -31545,6 +31545,64 @@ const a = 1  // [!code --]
 const b = 2  // [!code ++]
 ```
 ~~~
+
+## Code Annotations
+
+Use `[!code ...]` comments to annotate individual lines. They are stripped from the rendered output.
+
+~~~md
+```ts
+function highlight() {} // [!code highlight]
+function focused() {}   // [!code focus]
+throw new Error()       // [!code error]
+console.warn()          // [!code warning]
+```
+~~~
+
+## Line Numbers
+
+Add `:line-numbers` to the fence info string:
+
+~~~md
+```ts:line-numbers
+const a = 1
+const b = 2
+```
+~~~
+
+## `<Badge>` Component
+
+Render an inline badge label in prose. Works anywhere in a paragraph or heading.
+
+```md
+Available since <Badge type="tip" text="v2.0" />
+
+Breaking change: <Badge type="danger" text="Breaking" />
+```
+
+Available types: `tip` (default), `info`, `warning`, `danger`.
+
+Self-closing with `text` attribute is the supported form. The badge is rendered as a styled `<span class="dp-badge dp-badge-{type}">` — no JavaScript required.
+
+## Card Containers
+
+```md
+
+Card body content.
+
+Content A.
+
+Content B.
+
+```
+
+For clickable cards with a link:
+
+```md
+
+Learn more about the project.
+
+```
 
 ## File Imports
 

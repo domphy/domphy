@@ -389,6 +389,19 @@ function shapeContainers(
   return output;
 }
 
+// --- <Badge> component -------------------------------------------------------
+// Converts <Badge type="tip" text="New" /> to a styled dp-badge span.
+// Supports type = "tip" | "info" | "warning" | "danger" (default: "tip").
+// CSS lives in pressCSS() in theme.ts.
+
+function transformBadgeContent(content: string): string {
+  return content.replace(
+    /<Badge(?:\s+type="([^"]*?)")?\s+text="([^"]*?)"\s*\/?>/gi,
+    (_, type: string | undefined, text: string) =>
+      `<span class="dp-badge dp-badge-${(type ?? "tip").toLowerCase()}">${escapeHtml(text)}</span>`,
+  );
+}
+
 // --- Task list detection (GFM-style) -----------------------------------------
 
 function shapeTaskLists(tokens: MarkdownItToken[]): MarkdownItToken[] {
@@ -457,6 +470,22 @@ function createParser(
   });
   md.core.ruler.push("press_task_lists", (state: CoreState) => {
     state.tokens = shapeTaskLists(state.tokens);
+    return true;
+  });
+  // Transform <Badge type="..." text="..." /> in html_inline and html_block tokens
+  md.core.ruler.push("press_badge", (state: CoreState) => {
+    for (const token of state.tokens) {
+      if (token.type === "html_block") {
+        token.content = transformBadgeContent(token.content);
+        continue;
+      }
+      if (token.type !== "inline" || !token.children) continue;
+      for (const child of token.children) {
+        if (child.type === "html_inline") {
+          child.content = transformBadgeContent(child.content);
+        }
+      }
+    }
     return true;
   });
   // Convert fence tokens → html_block with full rendering (line highlights, copy button)

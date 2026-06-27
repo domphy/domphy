@@ -60,6 +60,23 @@ describe("renderDoc", () => {
     expect((heading as any).id).toBeDefined();
   });
 
+  it("transforms <Badge> inline component to dp-badge span", async () => {
+    const source =
+      "A label <Badge type=\"tip\" text=\"New\" /> in prose.\n\n" +
+      "Warning badge: <Badge type=\"warning\" text=\"Beta\" />\n\n" +
+      "Default type: <Badge text=\"v1\" />\n";
+    const { body } = await renderDoc(source, opts);
+    const allHtml = JSON.stringify(body);
+    expect(allHtml).toContain('dp-badge dp-badge-tip');
+    expect(allHtml).toContain('dp-badge dp-badge-warning');
+    expect(allHtml).toContain('dp-badge dp-badge-tip');
+    expect(allHtml).toContain('>New<');
+    expect(allHtml).toContain('>Beta<');
+    expect(allHtml).toContain('>v1<');
+    // Must NOT contain raw <Badge tags
+    expect(allHtml).not.toContain('<Badge');
+  });
+
   it("code-group: inputs and blocks are direct children, no extra wrapper divs", async () => {
     const md = [
       "::: code-group",

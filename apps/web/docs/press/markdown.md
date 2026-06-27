@@ -66,6 +66,69 @@ const b = 2  // [!code ++]
 ```
 ~~~
 
+## Code Annotations
+
+Use `[!code ...]` comments to annotate individual lines. They are stripped from the rendered output.
+
+~~~md
+```ts
+function highlight() {} // [!code highlight]
+function focused() {}   // [!code focus]
+throw new Error()       // [!code error]
+console.warn()          // [!code warning]
+```
+~~~
+
+## Line Numbers
+
+Add `:line-numbers` to the fence info string:
+
+~~~md
+```ts:line-numbers
+const a = 1
+const b = 2
+```
+~~~
+
+## `<Badge>` Component
+
+Render an inline badge label in prose. Works anywhere in a paragraph or heading.
+
+```md
+Available since <Badge type="tip" text="v2.0" />
+
+Breaking change: <Badge type="danger" text="Breaking" />
+```
+
+Available types: `tip` (default), `info`, `warning`, `danger`.
+
+Self-closing with `text` attribute is the supported form. The badge is rendered as a styled `<span class="dp-badge dp-badge-{type}">` — no JavaScript required.
+
+## Card Containers
+
+```md
+::: card My Card Title
+Card body content.
+:::
+
+::: card-grid
+::: card First
+Content A.
+:::
+::: card Second
+Content B.
+:::
+:::
+```
+
+For clickable cards with a link:
+
+```md
+::: link-card [Visit Docs](https://example.com)
+Learn more about the project.
+:::
+```
+
 ## File Imports
 
 ```md

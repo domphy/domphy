@@ -42,14 +42,6 @@
   {
     "name": "App",
     "kind": "block",
-    "file": "apps/web/docs/demos/integrations/i18next.ts",
-    "signature": "App: DomphyElement<\"div\">",
-    "jsdoc": "",
-    "exportKind": "default"
-  },
-  {
-    "name": "App",
-    "kind": "block",
     "file": "apps/web/docs/demos/integrations/pagejs.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
@@ -378,6 +370,14 @@
   {
     "name": "App",
     "kind": "block",
+    "file": "apps/web/docs/demos/patches/InputPassword.ts",
+    "signature": "App: DomphyElement<\"form\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
     "file": "apps/web/docs/demos/patches/InputRadio.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
@@ -539,6 +539,22 @@
     "name": "App",
     "kind": "block",
     "file": "apps/web/docs/demos/patches/Rating.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/patches/RingProgress.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/patches/ScrollArea.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
     "exportKind": "default"
