@@ -34,6 +34,7 @@ export const config = defineConfig({
           { text: "Virtual", link: "/docs/virtual/" },
           { text: "Form", link: "/docs/form/" },
           { text: "DnD", link: "/docs/dnd/" },
+          { text: "Chart", link: "/docs/chart/" },
           { text: "Press", link: "/docs/press/" },
           { text: "Doctor", link: "/docs/doctor/" },
           { text: "MCP", link: "/docs/mcp/" },
@@ -404,6 +405,13 @@ export const config = defineConfig({
           text: "autoUpdate, hide & Virtual Elements",
           link: "/docs/floating/auto-update",
         },
+      ],
+      "/docs/chart/": [
+        { text: "Overview", link: "/docs/chart/" },
+        { text: "Series Reference", link: "/docs/chart/series" },
+        { text: "Axes & Grid", link: "/docs/chart/axes" },
+        { text: "Colors & Theme", link: "/docs/chart/colors" },
+        { text: "ChartEngine API", link: "/docs/chart/engine" },
       ],
       "/docs/i18n/": [
         { text: "Overview", link: "/docs/i18n/" },
