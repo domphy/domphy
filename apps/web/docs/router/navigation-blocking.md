@@ -33,23 +33,23 @@ Note: modern browsers show their own generic message in `beforeunload` — you c
 
 ## Blocking router navigation with a confirmation dialog
 
-For in-app navigation (router.navigate, Link clicks, back button), intercept via `router.subscribe("onBeforeNavigate", ...)` and show a custom dialog:
+For in-app navigation (router.navigate, Link clicks, back button), register a blocker via `router.history.block`. The `blockerFn` returns `true` to allow or `false` to cancel, or shows a custom dialog asynchronously:
 
 ```ts
-import { createRouter } from "@domphy/router"
 import { toState } from "@domphy/core"
 
 const formDirty = toState(false)
-const pendingNavigation = toState<(() => void) | null>(null)
+const showConfirm = toState(false)
 
-const router = createRouter({ routeTree })
-
-router.subscribe("onBeforeNavigate", ({ event }) => {
-  if (formDirty.get()) {
-    // Store the navigation intent so we can resume it after confirmation
-    pendingNavigation.set(() => event.preventDefault = false)
-    event.preventDefault()   // block for now
-  }
+// Block navigation when the form is dirty
+const unblock = router.history.block({
+  blockerFn: ({ nextLocation }) => {
+    if (!formDirty.get()) return true    // allow
+    // Show a custom dialog and wait for the user's choice
+    showConfirm.set(true)
+    return false                          // block for now
+  },
+  enableBeforeUnload: () => formDirty.get(),
 })
 
 const ConfirmDialog = {
@@ -60,21 +60,21 @@ const ConfirmDialog = {
       div: [
         {
           button: "Stay",
-          onClick: () => pendingNavigation.set(null),
+          onClick: () => showConfirm.set(false),
         },
         {
           button: "Leave",
           onClick: () => {
-            formDirty.set(false)                 // clear dirty state
-            const resume = pendingNavigation.get()
-            pendingNavigation.set(null)
-            if (resume) resume()                 // retry the navigation
+            formDirty.set(false)     // clear dirty state so the blocker passes
+            showConfirm.set(false)
+            unblock()                // remove the blocker
+            router.history.back()   // or router.navigate({ to: pendingPath })
           },
         },
       ],
     },
   ],
-  hidden: (l) => pendingNavigation.get(l) === null,
+  hidden: (l) => !showConfirm.get(l),
   style: {
     position: "fixed",
     inset: 0,
@@ -84,6 +84,11 @@ const ConfirmDialog = {
     justifyContent: "center",
     zIndex: 100,
   },
+}
+
+// Remove the blocker when the form is saved
+function onFormSaved() {
+  unblock()
 }
 ```
 

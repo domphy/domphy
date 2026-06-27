@@ -102,27 +102,23 @@ const postRoute = createRoute({
 
 ```ts
 import { createRouter } from "@domphy/router"
-import { link } from "@domphy/router/domphy"
+import type { DomphyElement } from "@domphy/core"
 
 const router = createRouter({
   routeTree: rootRoute,
 })
 
-// TypeScript error if "to" path is not in the route tree
-const NavLink = {
+// TypeScript checks the destination against the route tree
+const NavLink: DomphyElement<"a"> = {
   a: "Blog",
-  $: [link({ to: "/blog" })],                          // OK
+  href: router.buildLocation({ to: "/blog" }).href,
+  onClick: (e) => { e.preventDefault(); router.navigate({ to: "/blog" }) },
 }
 
-const WrongLink = {
-  a: "Nope",
-  $: [link({ to: "/nope-does-not-exist" })],           // ✗ TypeScript error
-}
-
-// Navigate with typed params
+// Navigate with typed params — TypeScript requires postId: string
 router.navigate({
   to: "/posts/$postId",
-  params: { postId: "42" },   // TypeScript requires postId: string
+  params: { postId: "42" },
 })
 ```
 

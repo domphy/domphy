@@ -48,17 +48,15 @@ export const DashboardRoute = createRoute({
 Preload a route's chunk before the user clicks — reduces perceived latency:
 
 ```ts
-import { createRoute, preloadRoute } from "@domphy/router"
-
 const NavLink = (to: string, label: string) => ({
   a: label,
-  href: to,
-  onMouseenter: () => preloadRoute({ to }),   // fires on hover
-  onClick: (e) => { e.preventDefault(); router.navigate({ to }) },
+  href: router.buildLocation({ to }).href,
+  onMouseenter: () => router.preloadRoute({ to }),   // fires on hover
+  onClick: (e: MouseEvent) => { e.preventDefault(); router.navigate({ to }) },
 })
 ```
 
-`preloadRoute` resolves the component and loader concurrently. Subsequent navigation uses the cached result instantly.
+`router.preloadRoute` resolves the component and loader concurrently. Subsequent navigation uses the cached result instantly.
 
 ## Lazy loader
 

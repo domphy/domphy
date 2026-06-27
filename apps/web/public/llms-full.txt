@@ -10139,17 +10139,15 @@ export const DashboardRoute = createRoute({
 Preload a route's chunk before the user clicks — reduces perceived latency:
 
 ```ts
-import { createRoute, preloadRoute } from "@domphy/router"
-
 const NavLink = (to: string, label: string) => ({
   a: label,
-  href: to,
-  onMouseenter: () => preloadRoute({ to }),   // fires on hover
-  onClick: (e) => { e.preventDefault(); router.navigate({ to }) },
+  href: router.buildLocation({ to }).href,
+  onMouseenter: () => router.preloadRoute({ to }),   // fires on hover
+  onClick: (e: MouseEvent) => { e.preventDefault(); router.navigate({ to }) },
 })
 ```
 
-`preloadRoute` resolves the component and loader concurrently. Subsequent navigation uses the cached result instantly.
+`router.preloadRoute` resolves the component and loader concurrently. Subsequent navigation uses the cached result instantly.
 
 ## Lazy loader
 
@@ -10307,23 +10305,23 @@ Note: modern browsers show their own generic message in `beforeunload` — you c
 
 ## Blocking router navigation with a confirmation dialog
 
-For in-app navigation (router.navigate, Link clicks, back button), intercept via `router.subscribe("onBeforeNavigate", ...)` and show a custom dialog:
+For in-app navigation (router.navigate, Link clicks, back button), register a blocker via `router.history.block`. The `blockerFn` returns `true` to allow or `false` to cancel, or shows a custom dialog asynchronously:
 
 ```ts
-import { createRouter } from "@domphy/router"
 import { toState } from "@domphy/core"
 
 const formDirty = toState(false)
-const pendingNavigation = toState<(() => void) | null>(null)
+const showConfirm = toState(false)
 
-const router = createRouter({ routeTree })
-
-router.subscribe("onBeforeNavigate", ({ event }) => {
-  if (formDirty.get()) {
-    // Store the navigation intent so we can resume it after confirmation
-    pendingNavigation.set(() => event.preventDefault = false)
-    event.preventDefault()   // block for now
-  }
+// Block navigation when the form is dirty
+const unblock = router.history.block({
+  blockerFn: ({ nextLocation }) => {
+    if (!formDirty.get()) return true    // allow
+    // Show a custom dialog and wait for the user's choice
+    showConfirm.set(true)
+    return false                          // block for now
+  },
+  enableBeforeUnload: () => formDirty.get(),
 })
 
 const ConfirmDialog = {
@@ -10334,21 +10332,21 @@ const ConfirmDialog = {
       div: [
         {
           button: "Stay",
-          onClick: () => pendingNavigation.set(null),
+          onClick: () => showConfirm.set(false),
         },
         {
           button: "Leave",
           onClick: () => {
-            formDirty.set(false)                 // clear dirty state
-            const resume = pendingNavigation.get()
-            pendingNavigation.set(null)
-            if (resume) resume()                 // retry the navigation
+            formDirty.set(false)     // clear dirty state so the blocker passes
+            showConfirm.set(false)
+            unblock()                // remove the blocker
+            router.history.back()   // or router.navigate({ to: pendingPath })
           },
         },
       ],
     },
   ],
-  hidden: (l) => pendingNavigation.get(l) === null,
+  hidden: (l) => !showConfirm.get(l),
   style: {
     position: "fixed",
     inset: 0,
@@ -10358,6 +10356,11 @@ const ConfirmDialog = {
     justifyContent: "center",
     zIndex: 100,
   },
+}
+
+// Remove the blocker when the form is saved
+function onFormSaved() {
+  unblock()
 }
 ```
 
@@ -10977,12 +10980,14 @@ function saveScroll(key: string) {
   sessionStorage.setItem(SCROLL_KEY, JSON.stringify(positions))
 }
 
-function restoreScroll(key: string) {
+function restoreScroll(key: string): boolean {
   const positions = JSON.parse(sessionStorage.getItem(SCROLL_KEY) ?? "{}")
   const saved = positions[key]
   if (saved != null) {
     requestAnimationFrame(() => window.scrollTo({ top: saved, behavior: "instant" }))
+    return true
   }
+  return false
 }
 
 router.subscribe("onBeforeNavigate", ({ toLocation, fromLocation }) => {
@@ -10991,14 +10996,10 @@ router.subscribe("onBeforeNavigate", ({ toLocation, fromLocation }) => {
   }
 })
 
-router.subscribe("onNavigated", ({ toLocation, historyAction }) => {
-  if (historyAction === "pop") {
-    // Back/forward — restore
-    restoreScroll(toLocation.pathname)
-  } else {
-    // New navigation — scroll to top
-    window.scrollTo({ top: 0, behavior: "instant" })
-  }
+router.subscribe("onResolved", ({ toLocation }) => {
+  // If a position was saved for this path, restore it (back/forward).
+  // Otherwise this is a fresh push — scroll to top.
+  restoreScroll(toLocation.pathname) || window.scrollTo({ top: 0, behavior: "instant" })
 })
 ```
 
@@ -11030,7 +11031,7 @@ const commentsRoute = createRoute({
 Scroll to an element when the URL has a `#anchor`:
 
 ```ts
-router.subscribe("onNavigated", ({ toLocation }) => {
+router.subscribe("onResolved", ({ toLocation }) => {
   const hash = toLocation.hash
   if (hash) {
     // Wait for DOM to render before scrolling
@@ -11044,15 +11045,18 @@ router.subscribe("onNavigated", ({ toLocation }) => {
 })
 ```
 
-Link to a specific section:
+Link to a specific section using the standard link pattern:
 
 ```ts
-import { link } from "@domphy/router/domphy"
+import type { DomphyElement } from "@domphy/core"
 
-const ApiLink = {
+const ApiLink: DomphyElement<"a"> = {
   a: "API Reference",
-  href: "/docs/core/#api-reference",
-  $: [link({ to: "/docs/core/", hash: "#api-reference" })],
+  href: router.buildLocation({ to: "/docs/core/", hash: "#api-reference" }).href,
+  onClick: (e) => {
+    e.preventDefault()
+    router.navigate({ to: "/docs/core/", hash: "#api-reference" })
+  },
 }
 ```
 
@@ -11097,7 +11101,7 @@ router.subscribe("onBeforeNavigate", () => {
   document.body.style.overflow = "hidden"
 })
 
-router.subscribe("onNavigated", () => {
+router.subscribe("onResolved", () => {
   setTimeout(() => {
     isTransitioning.set(false)
     document.body.style.overflow = ""
@@ -11111,9 +11115,9 @@ router.subscribe("onNavigated", () => {
 | Method | Description |
 |--------|-------------|
 | `router.subscribe("onBeforeNavigate", fn)` | Fires before navigation starts |
-| `router.subscribe("onNavigated", fn)` | Fires after navigation completes |
+| `router.subscribe("onResolved", fn)` | Fires after navigation and loaders settle |
 | `toLocation.hash` | URL hash (`"#section"` or `""`) |
-| `historyAction` | `"push"` / `"pop"` / `"replace"` |
+| `fromLocation?.pathname` | Previous pathname (available in `onBeforeNavigate`) |
 
 ### search-params.md
 
@@ -11458,27 +11462,23 @@ const postRoute = createRoute({
 
 ```ts
 import { createRouter } from "@domphy/router"
-import { link } from "@domphy/router/domphy"
+import type { DomphyElement } from "@domphy/core"
 
 const router = createRouter({
   routeTree: rootRoute,
 })
 
-// TypeScript error if "to" path is not in the route tree
-const NavLink = {
+// TypeScript checks the destination against the route tree
+const NavLink: DomphyElement<"a"> = {
   a: "Blog",
-  $: [link({ to: "/blog" })],                          // OK
+  href: router.buildLocation({ to: "/blog" }).href,
+  onClick: (e) => { e.preventDefault(); router.navigate({ to: "/blog" }) },
 }
 
-const WrongLink = {
-  a: "Nope",
-  $: [link({ to: "/nope-does-not-exist" })],           // ✗ TypeScript error
-}
-
-// Navigate with typed params
+// Navigate with typed params — TypeScript requires postId: string
 router.navigate({
   to: "/posts/$postId",
-  params: { postId: "42" },   // TypeScript requires postId: string
+  params: { postId: "42" },
 })
 ```
 

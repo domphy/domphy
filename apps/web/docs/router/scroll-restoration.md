@@ -36,12 +36,14 @@ function saveScroll(key: string) {
   sessionStorage.setItem(SCROLL_KEY, JSON.stringify(positions))
 }
 
-function restoreScroll(key: string) {
+function restoreScroll(key: string): boolean {
   const positions = JSON.parse(sessionStorage.getItem(SCROLL_KEY) ?? "{}")
   const saved = positions[key]
   if (saved != null) {
     requestAnimationFrame(() => window.scrollTo({ top: saved, behavior: "instant" }))
+    return true
   }
+  return false
 }
 
 router.subscribe("onBeforeNavigate", ({ toLocation, fromLocation }) => {
@@ -50,14 +52,10 @@ router.subscribe("onBeforeNavigate", ({ toLocation, fromLocation }) => {
   }
 })
 
-router.subscribe("onNavigated", ({ toLocation, historyAction }) => {
-  if (historyAction === "pop") {
-    // Back/forward — restore
-    restoreScroll(toLocation.pathname)
-  } else {
-    // New navigation — scroll to top
-    window.scrollTo({ top: 0, behavior: "instant" })
-  }
+router.subscribe("onResolved", ({ toLocation }) => {
+  // If a position was saved for this path, restore it (back/forward).
+  // Otherwise this is a fresh push — scroll to top.
+  restoreScroll(toLocation.pathname) || window.scrollTo({ top: 0, behavior: "instant" })
 })
 ```
 
@@ -89,7 +87,7 @@ const commentsRoute = createRoute({
 Scroll to an element when the URL has a `#anchor`:
 
 ```ts
-router.subscribe("onNavigated", ({ toLocation }) => {
+router.subscribe("onResolved", ({ toLocation }) => {
   const hash = toLocation.hash
   if (hash) {
     // Wait for DOM to render before scrolling
@@ -103,15 +101,18 @@ router.subscribe("onNavigated", ({ toLocation }) => {
 })
 ```
 
-Link to a specific section:
+Link to a specific section using the standard link pattern:
 
 ```ts
-import { link } from "@domphy/router/domphy"
+import type { DomphyElement } from "@domphy/core"
 
-const ApiLink = {
+const ApiLink: DomphyElement<"a"> = {
   a: "API Reference",
-  href: "/docs/core/#api-reference",
-  $: [link({ to: "/docs/core/", hash: "#api-reference" })],
+  href: router.buildLocation({ to: "/docs/core/", hash: "#api-reference" }).href,
+  onClick: (e) => {
+    e.preventDefault()
+    router.navigate({ to: "/docs/core/", hash: "#api-reference" })
+  },
 }
 ```
 
@@ -156,7 +157,7 @@ router.subscribe("onBeforeNavigate", () => {
   document.body.style.overflow = "hidden"
 })
 
-router.subscribe("onNavigated", () => {
+router.subscribe("onResolved", () => {
   setTimeout(() => {
     isTransitioning.set(false)
     document.body.style.overflow = ""
@@ -170,6 +171,6 @@ router.subscribe("onNavigated", () => {
 | Method | Description |
 |--------|-------------|
 | `router.subscribe("onBeforeNavigate", fn)` | Fires before navigation starts |
-| `router.subscribe("onNavigated", fn)` | Fires after navigation completes |
+| `router.subscribe("onResolved", fn)` | Fires after navigation and loaders settle |
 | `toLocation.hash` | URL hash (`"#section"` or `""`) |
-| `historyAction` | `"push"` / `"pop"` / `"replace"` |
+| `fromLocation?.pathname` | Previous pathname (available in `onBeforeNavigate`) |
