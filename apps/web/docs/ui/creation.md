@@ -85,4 +85,4 @@ Some patterns should stay outside `@domphy/ui`.
 | Form Validation | Validation belongs to the data layer, not the UI patch layer. | [Zod integration](/docs/integrations/zod) |
 | Data Fetching / Async State | Loading and caching belong to data tools. | [`@domphy/query`](/docs/query/) |
 | Routing | Routing is application-level, not element-level. | [page.js integration](/docs/integrations/pagejs) |
-| i18n | Locale and translation state belong to a dedicated i18n system. | [i18next integration](/docs/integrations/i18next) |
+| i18n | Locale and translation state belong to a dedicated i18n system. | [`@domphy/i18n`](/docs/i18n/) |

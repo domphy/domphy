@@ -1,94 +1,47 @@
 ---
 title: "Integration Guide"
-description: "Wire @domphy/i18n into a full app — router integration, lazy namespace loading, and locale detection."
+description: "Wire @domphy/i18n into a full app — router integration, locale detection, and locale switcher."
 ---
 
 # Integration Guide
 
 ## App setup
 
-A complete `@domphy/i18n` setup involves three pieces: the i18n instance, a router hook that loads the right namespace for each route, and a locale switcher.
+Create the i18n instance once, then import `t`, `setLocale`, `getLocale`, and `initI18n` wherever needed:
 
 ```ts
-import i18next from "i18next"
+// i18n.ts
+import { createI18n } from "@domphy/i18n"
+import en from "./locales/en.json"
+import vi from "./locales/vi.json"
 
-await i18next.init({
-  lng: detectLocale(),          // see detectLocale() below
-  fallbackLng: "en",
-  ns: ["common"],               // always-loaded namespaces
-  defaultNS: "common",
-  resources: {
-    en: {
-      common: {
-        "nav.home": "Home",
-        "nav.about": "About",
-        "actions.save": "Save",
-        "actions.cancel": "Cancel",
-      },
-    },
-    vi: {
-      common: {
-        "nav.home": "Trang chủ",
-        "nav.about": "Về chúng tôi",
-        "actions.save": "Lưu",
-        "actions.cancel": "Hủy",
-      },
-    },
-  },
+export type Locale = "en" | "vi"
+
+export const i18n = createI18n<Locale, typeof en>({
+  globalKey: "__myapp_i18n__",
+  namespace: "app",
+  locales: { en, vi },
+  defaultLocale: "en",
 })
 ```
 
-## Locale detection
-
-Auto-detect the user's preferred locale:
+In your app entry point:
 
 ```ts
-function detectLocale(): string {
-  // 1. URL param (?lng=vi)
-  const url = new URLSearchParams(window.location.search)
-  const urlLng = url.get("lng")
-  if (urlLng) return urlLng
+import { i18n } from "./i18n"
 
-  // 2. localStorage
-  const stored = localStorage.getItem("lng")
-  if (stored) return stored
-
-  // 3. Browser preference
-  const [browserLng] = navigator.language.split("-")
-  return browserLng
-
-  // 4. Fallback handled by i18next.init fallbackLng
-}
-```
-
-## Reactive locale state
-
-Expose the current locale as Domphy state so the UI updates when it changes:
-
-```ts
-import { toState } from "@domphy/core"
-import i18next from "i18next"
-
-export const currentLocale = toState(i18next.language)
-
-// Keep in sync when i18next changes locale
-i18next.on("languageChanged", (lng) => {
-  currentLocale.set(lng)
-  localStorage.setItem("lng", lng)
-})
-
-export function t(key: string, options?: object): string {
-  return i18next.t(key, options)
-}
+await i18n.initI18n(i18n.detectLocale({ pathSegment: true, storageKey: "locale" }))
 ```
 
 ## Locale switcher component
 
 ```ts
-const LOCALES = [
+import { i18n } from "./i18n"
+import type { Locale } from "./i18n"
+
+const LOCALES: { code: Locale; label: string }[] = [
   { code: "en", label: "English" },
   { code: "vi", label: "Tiếng Việt" },
-  { code: "ja", label: "日本語" },
 ]
 
 const LocaleSwitcher = {
@@ -98,10 +51,11 @@ const LocaleSwitcher = {
         option: label,
         value: code,
       })),
-      value: (l) => currentLocale.get(l),
-      onChange: (e: Event) => {
-        const lng = (e.target as HTMLSelectElement).value
-        i18next.changeLanguage(lng)
+      value: (l) => i18n.locale.get(l),
+      onChange: async (e: Event) => {
+        const lng = (e.target as HTMLSelectElement).value as Locale
+        await i18n.setLocale(lng)
+        localStorage.setItem("locale", lng)
       },
       "aria-label": "Select language",
     },
@@ -109,40 +63,36 @@ const LocaleSwitcher = {
 }
 ```
 
-## Router integration — load namespaces per route
+## Router integration — locale from URL
 
-Load only the translations needed for the current route:
+Use `detectLocale` with `pathSegment: true` to read the locale from `/vi/...` URL prefixes:
 
 ```ts
-import { createRoute } from "@domphy/router"
+import { i18n } from "./i18n"
+import { createRouter } from "@domphy/router"
 
-const adminRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/admin",
-  beforeLoad: async () => {
-    // Load "admin" namespace before the route renders
-    await i18next.loadNamespaces(["admin"])
+const router = createRouter({
+  beforeLoad: async ({ pathname }) => {
+    // Detect locale from /vi/... prefix
+    const detected = i18n.detectLocale({ pathSegment: true, storageKey: "locale" })
+    await i18n.initI18n(detected)
   },
-  component: () => ({
-    div: [
-      { h1: i18next.t("admin:dashboard.title") },
-    ],
-  }),
 })
 ```
 
 ## Using translations in elements
 
 ```ts
-import { computed } from "@domphy/core"
+import { i18n } from "./i18n"
 
-// Reactive translation — updates on locale change
+const { t } = i18n
+
 const Header = {
   header: [
     {
       nav: [
-        { a: (l) => i18next.t("nav.home"), href: "/" },
-        { a: (l) => i18next.t("nav.about"), href: "/about" },
+        { a: (l) => t(l, "nav.home"), href: "/" },
+        { a: (l) => t(l, "nav.about"), href: "/about" },
       ],
     },
     LocaleSwitcher,
@@ -150,56 +100,23 @@ const Header = {
 }
 ```
 
-Note: `i18next.t()` is synchronous but not reactive — wrap in a listener function `(l) => i18next.t(key)` and subscribe to `currentLocale` for auto-updates:
-
-```ts
-import { effect } from "@domphy/core"
-
-// Force re-render on locale change by reading currentLocale in each listener
-const PageTitle = {
-  h1: (l) => {
-    currentLocale.get(l)    // subscribe to locale changes
-    return i18next.t("page.title")
-  },
-}
-```
-
-## TypeScript: typed translation keys
-
-Use `i18next-typescript` plugin for typed keys:
-
-```ts
-// i18n.d.ts
-import "i18next"
-
-declare module "i18next" {
-  interface CustomTypeOptions {
-    defaultNS: "common"
-    resources: {
-      common: typeof import("./locales/en/common.json")
-      admin: typeof import("./locales/en/admin.json")
-    }
-  }
-}
-
-// Now t() is typed:
-i18next.t("nav.home")              // OK
-i18next.t("nav.nonexistent")       // ✗ TypeScript error
-i18next.t("admin:dashboard.title") // OK (with ns prefix)
-```
+`t(listener, key)` subscribes to locale changes — the element re-renders automatically when `setLocale()` is called.
 
 ## RTL support
 
 Handle right-to-left languages (Arabic, Hebrew, Persian):
 
 ```ts
+import { effect } from "@domphy/core"
+import { i18n } from "./i18n"
+
 const RTL_LANGUAGES = new Set(["ar", "he", "fa", "ur"])
 
 effect(() => {
-  const lng = currentLocale.get()
+  const lng = i18n.locale.get()
   document.documentElement.setAttribute("dir", RTL_LANGUAGES.has(lng) ? "rtl" : "ltr")
   document.documentElement.setAttribute("lang", lng)
 })
 ```
 
-Domphy respects `dir` on the root element — CSS logical properties (`margin-inline-start`, `padding-inline`) automatically flip for RTL.
+Domphy respects `dir` on the root element — CSS logical properties (`margin-inline-start`, `padding-inline`) flip automatically for RTL.

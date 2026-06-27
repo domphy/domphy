@@ -437,8 +437,7 @@ export const config = defineConfig({
         {
           text: "Example",
           items: [
-            { text: "i18next", link: "/docs/integrations/i18next" },
-  { text: "Chart.js", link: "/docs/integrations/chartjs" },
+            { text: "Chart.js", link: "/docs/integrations/chartjs" },
             { text: "SortableJS", link: "/docs/integrations/sortablejs" },
             { text: "Zod", link: "/docs/integrations/zod" },
             { text: "page.js", link: "/docs/integrations/pagejs" },

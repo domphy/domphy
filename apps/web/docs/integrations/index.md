@@ -37,8 +37,6 @@ Why:
 - It blurs the boundary between data flow and presentation.
 - It makes long-term maintenance harder, especially across teams.
 
-The author previously built plugin-style integrations (including query/router wrappers), then removed them for this reason: the wrappers added abstraction but reduced clarity around ownership of data vs UI.
-
 ## Recommended Integration Pattern
 
 1. Keep data/state in the external library (query client, router, store, stream, etc.).
@@ -47,17 +45,17 @@ The author previously built plugin-style integrations (including query/router wr
 
 ## Domphy package, or vanilla?
 
-Domphy ships first-party packages only for the cores that benefit from a tight Domphy-reactivity adapter. **Everything else you use vanilla, directly** — there is intentionally no `@domphy/chart`, `@domphy/i18n`, `@domphy/editor`, etc. Domphy is *better* at this than React: lifecycle hooks (`_onMount`/`_onRemove`) integrate imperative DOM libraries cleanly, with no virtual DOM fighting them.
+Domphy ships first-party packages for capabilities that benefit from tight Domphy-reactivity adapters. Everything else you use vanilla, directly — Domphy's lifecycle hooks (`_onMount`/`_onRemove`) integrate imperative DOM libraries cleanly, with no virtual DOM fighting them.
 
 | Need | Use |
 | --- | --- |
 | async data / tables / routing / virtualization / forms | `@domphy/query` · `@domphy/table` · `@domphy/router` · `@domphy/virtual` · `@domphy/form` |
+| i18n | [`@domphy/i18n`](/docs/i18n/) — reactive i18next wrapper with typed keys |
 | drag & drop | `@domphy/dnd` |
 | animation | the `motion()` patch (`@domphy/ui`) |
 | charts | **vanilla** Chart.js / ECharts / D3 |
 | rich text | **vanilla** TipTap / ProseMirror / Lexical (framework-agnostic cores) |
 | carousel | **vanilla** embla-carousel (its core is framework-agnostic) |
-| i18n | **vanilla** i18next (core) — [recipe](/docs/integrations/i18next) |
 | dates | **vanilla** dayjs / date-fns / flatpickr |
 | schema validation | **vanilla** zod (works with `@domphy/form` via Standard Schema) — [recipe](/docs/integrations/zod) |
 | maps / 3D | **vanilla** leaflet/maplibre · three.js |
@@ -86,9 +84,7 @@ When the library mutates the DOM itself (e.g. a drag-sort plugin reorders nodes)
 
 ## Examples
 
-- [i18next](/docs/integrations/i18next) — internationalization
 - [Chart.js](/docs/integrations/chartjs) — charts via `_onMount`
 - [SortableJS](/docs/integrations/sortablejs) — drag-and-drop list reordering
 - [Zod](/docs/integrations/zod) — form validation
 - [page.js](/docs/integrations/pagejs) — client-side routing
-
