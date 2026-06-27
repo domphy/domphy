@@ -34,6 +34,7 @@ export class CandlestickRenderer {
         {
           name: "instanceData",
           stepMode: "instance",
+          byteStride: 36,
           attributes: [
             { attribute: "instanceRect", format: "float32x4", byteOffset: 0 },
             { attribute: "instanceColor", format: "float32x4", byteOffset: 16 },

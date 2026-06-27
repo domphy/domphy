@@ -28,6 +28,7 @@ export class ScatterRenderer {
         {
           name: "instanceData",
           stepMode: "instance",
+          byteStride: 28,
           attributes: [
             { attribute: "aPosition", format: "float32x2", byteOffset: 0 },
             { attribute: "aRadius", format: "float32", byteOffset: 8 },
