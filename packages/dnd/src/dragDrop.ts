@@ -49,12 +49,18 @@ export function dragDrop<T>(
       const plugins = animated
         ? [animations(), ...(rest.plugins ?? [])]
         : (rest.plugins ?? []);
-      dragAndDrop<T>({
-        parent,
-        getValues: () => values.get(),
-        setValues: (next) => values.set(next),
-        config: { ...rest, plugins },
-      });
+      // Domphy renders children AFTER firing _onMount, so dragAndDrop() would see
+      // 0 DOM children at init time. Double-rAF defers until after paint.
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          dragAndDrop<T>({
+            parent,
+            getValues: () => values.get(),
+            setValues: (next) => values.set(next),
+            config: { ...rest, plugins },
+          });
+        }),
+      );
     },
     _onRemove: (node) => {
       const parent = node.domElement as HTMLElement | null;
