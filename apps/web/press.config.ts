@@ -415,6 +415,7 @@ export const config = defineConfig({
       ],
       "/docs/chart/": [
         { text: "Overview", link: "/docs/chart/" },
+        { text: "Examples", link: "/docs/chart/examples" },
         { text: "Series Reference", link: "/docs/chart/series" },
         { text: "Axes & Grid", link: "/docs/chart/axes" },
         { text: "Colors & Theme", link: "/docs/chart/colors" },

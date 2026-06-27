@@ -21631,6 +21631,37 @@ const option = computed((l) => ({
 rawData.set([300, 150, 400, 100])
 ```
 
+### examples.md
+
+---
+title: "Examples"
+description: "Live editable @domphy/chart examples — line/bar combo, scatter bubble, pie/donut, calendar heatmap, candlestick, radar, ThemeRiver, parallel coordinates, network graph, and 3D surface."
+---
+
+# Examples
+
+All examples are live — edit the code to see changes instantly.
+
+## Line + Bar combo
+
+## Scatter / Bubble
+
+## Pie / Donut
+
+## Calendar Heatmap
+
+## Candlestick / OHLC
+
+## Radar / Spider
+
+## ThemeRiver / Stream
+
+## Parallel Coordinates
+
+## Network Graph
+
+## 3D Surface
+
 ### index.md
 
 ---
