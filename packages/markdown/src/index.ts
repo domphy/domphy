@@ -2,10 +2,15 @@ import type { DomphyElement } from "@domphy/core";
 import MarkdownIt from "markdown-it";
 import anchor from "markdown-it-anchor";
 import { splitFrontmatter } from "./frontmatter.js";
+import { mathPlugin } from "./math.js";
 import { createUniqueSlugger, defaultSlugify } from "./slug.js";
+import { taskListPlugin } from "./tasklist.js";
 import type {
   AnchorSlugify,
+  CreateMarkdownOptions,
   Highlight,
+  MarkdownInstance,
+  MarkdownPlugin,
   ParseOptions,
   ParseResult,
   TocEntry,
@@ -14,10 +19,15 @@ import { walkTokens } from "./walker.js";
 
 export type { FrontmatterSplit } from "./frontmatter.js";
 export { splitFrontmatter } from "./frontmatter.js";
+export { mathPlugin } from "./math.js";
 export { createUniqueSlugger, defaultSlugify } from "./slug.js";
+export { taskListPlugin } from "./tasklist.js";
 export type {
   AnchorSlugify,
+  CreateMarkdownOptions,
   Highlight,
+  MarkdownInstance,
+  MarkdownPlugin,
   ParseOptions,
   ParseResult,
   TocEntry,
@@ -121,4 +131,82 @@ export function markdownToDomphy(
   options: ParseOptions = {},
 ): DomphyElement[] {
   return parseMarkdown(markdown, options).body;
+}
+
+/**
+ * Creates a reusable markdown parser with a pre-configured markdown-it
+ * instance. The instance is created once and reused across calls to `.parse()`
+ * and `.toDomphy()`, so plugins are applied once rather than per document.
+ *
+ * Use `createMarkdown` instead of `parseMarkdown` when you need:
+ * - Custom markdown-it **plugins** (`plugins` option)
+ * - Built-in **math** support (`math: true`)
+ * - GFM **task lists** (`tasklists: true`)
+ *
+ * @example
+ * ```ts
+ * import { createMarkdown } from "@domphy/markdown"
+ *
+ * const parser = createMarkdown({
+ *   math: true,
+ *   tasklists: true,
+ *   highlight: (code, lang) => myHighlighter(code, lang),
+ * })
+ *
+ * const { frontmatter, body, toc } = parser.parse(source)
+ * ```
+ *
+ * @example With custom plugins
+ * ```ts
+ * import container from "markdown-it-container"
+ * import { createMarkdown } from "@domphy/markdown"
+ *
+ * const parser = createMarkdown({
+ *   plugins: [(md) => md.use(container, "tip")],
+ * })
+ * ```
+ */
+export function createMarkdown(
+  options: CreateMarkdownOptions = {},
+): MarkdownInstance {
+  const slugify = options.anchorSlugify ?? defaultSlugify;
+  const md = createParser(options, slugify);
+
+  // Built-in math support ($...$ and $$...$$)
+  if (options.math) {
+    md.use(mathPlugin);
+  }
+
+  // GFM task lists (- [x] / - [ ])
+  if (options.tasklists) {
+    md.use(taskListPlugin);
+  }
+
+  // User-supplied plugins applied last so they can extend or override anything
+  // the built-in options configured above.
+  if (options.plugins) {
+    for (const plugin of options.plugins) {
+      md.use(plugin as Parameters<typeof md.use>[0]);
+    }
+  }
+
+  function parse(markdown: string): ParseResult {
+    const { frontmatter, content } = splitFrontmatter(markdown);
+    const slug = createUniqueSlugger(slugify);
+    const tokens = md.parse(content, {});
+    const toc: TocEntry[] = [];
+    const body = walkTokens(tokens, {
+      highlight: options.highlight,
+      slug,
+      toc,
+    });
+    return { frontmatter, body, toc };
+  }
+
+  return {
+    parse,
+    toDomphy(markdown: string): DomphyElement[] {
+      return parse(markdown).body;
+    },
+  };
 }

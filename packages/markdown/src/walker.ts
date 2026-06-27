@@ -106,6 +106,27 @@ function walkInline(tokens: Token[]): Child[] {
         top().push({ code: token.content } as DomphyElement);
         break;
       }
+      case "math_inline": {
+        // Inline LaTeX: $...$  →  <span class="math math-inline">raw LaTeX</span>
+        // Raw LaTeX is preserved; a CDN-loaded KaTeX auto-render extension or
+        // MathJax processes .math elements at runtime.
+        top().push({
+          span: token.content,
+          class: "math math-inline",
+        } as DomphyElement);
+        break;
+      }
+      case "task_checkbox": {
+        // GFM task list checkbox — disabled, never interactive form input.
+        const input: MutableElement = { input: null };
+        input.type = "checkbox";
+        input.disabled = true;
+        if (token.attrGet("checked") !== null) {
+          input.checked = true;
+        }
+        top().push(input as DomphyElement);
+        break;
+      }
       case "strong_open":
       case "em_open":
       case "s_open": {
@@ -332,6 +353,16 @@ export function walkTokens(
       case "fence":
       case "code_block": {
         top().children.push(buildCodeBlock(token, context));
+        break;
+      }
+      case "math_block": {
+        // Display LaTeX: $$...$$ block  →  <div class="math math-display">raw LaTeX</div>
+        // Raw LaTeX is preserved; a CDN-loaded KaTeX auto-render extension or
+        // MathJax processes .math elements at runtime.
+        top().children.push({
+          div: token.content,
+          class: "math math-display",
+        } as DomphyElement);
         break;
       }
       case "hr": {

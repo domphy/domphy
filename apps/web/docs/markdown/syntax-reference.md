@@ -309,6 +309,72 @@ line two
 { p: ["line one", { br: null }, "line two"] }
 ```
 
+## Task lists
+
+Requires `createMarkdown({ tasklists: true })`. List items beginning with `[ ]` (unchecked) or `[x]` / `[X]` (checked) get a disabled `<input type="checkbox">` prepended:
+
+```markdown
+- [x] Completed item
+- [ ] Pending item
+```
+
+```ts
+{
+  ul: [
+    {
+      li: [
+        { input: null, type: "checkbox", disabled: true, checked: true },
+        "Completed item",
+      ],
+      _key: 0,
+    },
+    {
+      li: [
+        { input: null, type: "checkbox", disabled: true },
+        "Pending item",
+      ],
+      _key: 1,
+    },
+  ],
+}
+```
+
+The `checked` property is present only on checked items; it is absent (not `false`) on unchecked ones.
+
+## Math
+
+Requires `createMarkdown({ math: true })`. See [overview](/docs/markdown/#math-support) for CDN setup.
+
+### Inline math
+
+```markdown
+The formula $E = mc^2$ is famous.
+```
+
+```ts
+{
+  p: [
+    "The formula ",
+    { span: "E = mc^2", class: "math math-inline" },
+    " is famous.",
+  ],
+}
+```
+
+### Display math
+
+````markdown
+$$
+\int_0^\infty e^{-x}\,dx = 1
+$$
+````
+
+```ts
+{ div: "\\int_0^\\infty e^{-x}\\,dx = 1\n", class: "math math-display" }
+```
+
+The raw LaTeX is stored verbatim. KaTeX (or MathJax) processes `.math` elements at runtime.
+
 ## Raw HTML
 
 ### Block HTML
