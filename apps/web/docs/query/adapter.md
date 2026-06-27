@@ -5,13 +5,13 @@ import Mutation from "../demos/query/mutation.ts?raw"
 
 # Domphy Adapter
 
-The [bridge pattern](./) — `observer.subscribe(...)` pushing into `toState` — works everywhere, but it is the same boilerplate in every component. `@domphy/query/domphy` packages it once: a thin adapter that binds the TanStack observers to Domphy reactivity and hands you reactive accessors.
+The [bridge pattern](./) — `observer.subscribe(...)` pushing into `toState` — works everywhere, but it is the same boilerplate in every component. `@domphy/query/domphy` packages it once: a thin adapter that binds the observers to Domphy reactivity and hands you reactive accessors.
 
 ```bash
 npm install @domphy/query @domphy/core
 ```
 
-`@domphy/core` is a **peer dependency** of the adapter — it is the only part of `@domphy/query` that touches Domphy, so the main `@domphy/query` entry stays a dependency-free, byte-identical port. Import the adapter from the `/domphy` subpath:
+`@domphy/core` is a **peer dependency** of the adapter — it is the only part of `@domphy/query` that touches Domphy, so the main `@domphy/query` entry stays dependency-free. Import the adapter from the `/domphy` subpath:
 
 ```ts
 import { createQuery, createInfiniteQuery, createMutation } from "@domphy/query/domphy"

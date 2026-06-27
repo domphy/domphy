@@ -59,7 +59,7 @@ No virtual DOM, no diffing. Changing state updates only the properties that read
 
 ## 4. Forms
 
-Form state, validation, and submission live in [`@domphy/form`](/docs/form/) (`createForm`) — a 1-1 port of `@tanstack/form-core`. `@domphy/ui` provides the presentation: native inputs with the input patches, `label`, and `formGroup` for layout. Bind each field with `value: (l) => field.value(l)` and forward events to `field.handleChange(...)`.
+Form state, validation, and submission live in [`@domphy/form`](/docs/form/) (`createForm`). `@domphy/ui` provides the presentation: native inputs with the input patches, `label`, and `formGroup` for layout. Bind each field with `value: (l) => field.value(l)` and forward events to `field.handleChange(...)`.
 
 <DomphyPreview :element="WithForm"/>
 

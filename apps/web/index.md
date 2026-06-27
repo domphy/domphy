@@ -25,8 +25,8 @@ features:
     details: themeColor, themeSpacing, themeSize — dark mode, density, size scales are native. No Tailwind configuration, no CSS-in-CSS variable plumbing. Write once, adapts everywhere.
   - title: AI generates it correctly
     details: Plain objects are what LLMs produce naturally. @domphy/doctor catches mistakes and tells the model exactly what to fix — self-corrects without you debugging. No other framework ships this loop.
-  - title: Full TanStack-compatible stack
-    details: "1-1 ports of TanStack Query, Table, Router, Virtual, Form — identical APIs. The Domphy adapter is the only difference."
+  - title: Complete data layer included
+    details: "Query, Table, Router, Virtual, Form — all built in. Framework-agnostic APIs, Domphy adapter at /domphy subpath. No stitching third-party libraries together."
   - title: Right size for tool apps
     details: "Building a SketchUp plugin, Figma panel, or VS Code extension? Domphy brings reactivity and a design system — the right fit for plugin ecosystems."
 ---

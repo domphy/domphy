@@ -4,7 +4,7 @@
 
 Drag & drop and sortable lists for Domphy: reorder, transfer between lists, multi-drag, keyboard accessibility, and drop animations.
 
-Unlike the other `@domphy/*` data packages (which are byte-identical TanStack core ports), drag-and-drop has no portable framework-agnostic core to copy — so this package **depends on** [`@formkit/drag-and-drop`](https://drag-and-drop.formkit.com) (MIT, zero-dependency, framework-agnostic) and adds a thin Domphy adapter. That is exactly how FormKit's own React/Vue/Solid adapters work; `@domphy/dnd` is the Domphy adapter. The full FormKit API is re-exported.
+This package **depends on** [`@formkit/drag-and-drop`](https://drag-and-drop.formkit.com) (MIT, zero-dependency, framework-agnostic) and adds a thin Domphy adapter — the same way FormKit's own React/Vue/Solid adapters wrap the engine. `@domphy/dnd` is the Domphy adapter. The full FormKit API is re-exported.
 
 ## Install
 

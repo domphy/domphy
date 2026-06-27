@@ -124,8 +124,8 @@ Replace pagination with scroll-to-load by combining `isAtEnd()` with a data-fetc
 
 ```ts
 import { createQuery } from "@domphy/query/domphy"
+import { QueryClient } from "@domphy/query"
 import { toState, effect } from "@domphy/core"
-import { QueryClient } from "@tanstack/query-core"
 
 const queryClient = new QueryClient()
 const page = toState(0)

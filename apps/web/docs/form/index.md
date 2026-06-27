@@ -6,8 +6,6 @@ import Basic from "../demos/form/basic.ts?raw"
 
 `@domphy/form` provides headless form state for Domphy apps: typed values, per-field and form-level validators (sync + async), touched/blurred/dirty tracking, arrays, and Standard Schema support.
 
-It is a **1-1 port of [`@tanstack/form-core`](https://github.com/TanStack/form/tree/main/packages/form-core) v1.33.0** (MIT, © Tanner Linsley and the TanStack team). The `src/` is byte-identical to upstream, so the entire [TanStack Form reference](https://tanstack.com/form/latest) applies as-is. The only addition is the Domphy adapter in `src/domphy/`.
-
 It replaces the ad-hoc `FormState` / `FieldState` that used to live in `@domphy/ui`, so form logic lives in exactly one place.
 
 ## Install
@@ -92,4 +90,4 @@ const Field = {
 | `setValue(value \| updater)` | Set the value programmatically. Accepts a direct value or an `(prev) => next` updater function. |
 | `api` | The underlying `FieldApi`. |
 
-Field and form `options` (validators, async debouncing, listeners, arrays, Standard Schema) are the upstream form-core options — see the [TanStack Form docs](https://tanstack.com/form/latest).
+Field and form `options` (validators, async debouncing, listeners, arrays, Standard Schema) are documented in the [Form docs](/docs/form/).

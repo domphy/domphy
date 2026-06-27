@@ -1,6 +1,6 @@
 # API Reference
 
-`@domphy/query` is a 1-1 port of `@tanstack/query-core` v5.90.20 — every export below has identical behavior to upstream, so the [TanStack Query reference](https://tanstack.com/query/latest/docs/reference/QueryClient) documents each item in full detail.
+Complete list of exports from `@domphy/query`.
 
 ## Client And Caches
 

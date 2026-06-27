@@ -8,9 +8,7 @@ import Loader from "../demos/router/loader.ts?raw"
 
 `@domphy/router` provides type-safe routing for Domphy apps: nested route trees, path params, validated search params, loaders with caching, redirects, navigation blocking, scroll restoration, and SSR.
 
-It is a **1-1 port of [`@tanstack/router-core`](https://github.com/TanStack/router/tree/main/packages/router-core) v1.171.13** (MIT, © Tanner Linsley and the TanStack team). The source is kept byte-identical to upstream, so the entire [TanStack Router reference](https://tanstack.com/router/latest) applies as-is, and future upstream versions can be diffed and merged directly. A thin adapter adds `createRouter`, `createRoute`, `createRootRoute`, and `createRootRouteWithContext`, and the `@tanstack/history` layer is re-exported so no separate install is needed.
-
-Like the rest of Domphy, it is framework-agnostic — the bridge to the UI is plain `toState`.
+Like the rest of Domphy, it is framework-agnostic — the bridge to the UI is plain `toState`. The history layer is included, so no separate install is needed.
 
 ## Install
 

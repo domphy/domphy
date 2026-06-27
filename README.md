@@ -29,13 +29,13 @@ Core runtime + design system:
 - `@domphy/theme` — context-aware color, size, and spacing tokens
 - `@domphy/ui` — 87 ready-made patches (`button`, `card`, `dialog`, `motion`, `errorBoundary`, …) built on core + theme
 
-Data & logic — **1-1 ports of the TanStack cores** (byte-identical upstream API) + a thin Domphy adapter at the `/domphy` subpath:
+Data & logic — framework-agnostic API at the main entry + a thin Domphy adapter at the `/domphy` subpath:
 
-- `@domphy/query` — async state — port of `@tanstack/query-core` (`createQuery`/`createMutation`/`createInfiniteQuery`)
-- `@domphy/table` — headless tables — port of `@tanstack/table-core` (`createDomphyTable`)
-- `@domphy/router` — type-safe routing — port of `@tanstack/router-core` (`createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext`)
-- `@domphy/virtual` — virtualization — port of `@tanstack/virtual-core` (`createVirtualizer`)
-- `@domphy/form` — forms — port of `@tanstack/form-core` (`createForm`)
+- `@domphy/query` — async state (`createQuery`/`createMutation`/`createInfiniteQuery`)
+- `@domphy/table` — headless tables (`createDomphyTable`)
+- `@domphy/router` — type-safe routing (`createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext`)
+- `@domphy/virtual` — virtualization (`createVirtualizer`)
+- `@domphy/form` — forms (`createForm`)
 
 App layer & tools:
 

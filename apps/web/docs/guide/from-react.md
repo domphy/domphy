@@ -289,13 +289,8 @@ const route = {
 
 ## Data fetching
 
-```tsx
-// React Query
-const { data, isLoading } = useQuery({ queryKey: ["user"], queryFn: fetchUser })
-```
-
 ```ts
-// @domphy/query — same API, Domphy adapter
+// @domphy/query
 import { createQuery } from "@domphy/query/domphy"
 
 const query = createQuery(() => ({
@@ -305,17 +300,12 @@ const query = createQuery(() => ({
 // read: (l) => query.get(l).data
 ```
 
-The adapter `createQuery` wraps TanStack query-core with Domphy's listener-based reactivity. The `queryKey`, `queryFn`, `staleTime`, and all other options are identical.
+`createQuery` returns reactive accessors — read with a listener to subscribe. Options: `queryKey`, `queryFn`, `staleTime`, `gcTime`, and all standard query options.
 
 ## Routing
 
-```tsx
-// React Router
-<Route path="/users/:id" element={<UserPage />} />
-```
-
 ```ts
-// @domphy/router — TanStack Router port
+// @domphy/router
 import { createRoute } from "@domphy/router"
 
 const route = createRoute({
@@ -324,18 +314,12 @@ const route = createRoute({
 })
 ```
 
-The API is the TanStack Router API. If you know TanStack Router, you know `@domphy/router`.
+`@domphy/router` provides type-safe nested routes, path params, loaders, and search params. See [Router docs](/docs/router/).
 
 ## Forms
 
-```tsx
-// React Hook Form
-const { register, handleSubmit } = useForm()
-<input {...register("email")} />
-```
-
 ```ts
-// @domphy/form — TanStack Form port
+// @domphy/form
 import { createForm } from "@domphy/form/domphy"
 
 const form = createForm({

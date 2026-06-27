@@ -85,7 +85,7 @@ For prefix matching (e.g. `/posts` active on `/posts/42`), use `pathname.get(l).
 
 ## History Types
 
-The history decides how locations map to the address bar. All three are re-exported from `@tanstack/history`:
+The history decides how locations map to the address bar. All three are available from `@domphy/router`:
 
 ```ts
 import { createBrowserHistory, createHashHistory, createMemoryHistory } from "@domphy/router"

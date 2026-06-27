@@ -7,7 +7,7 @@ import Basic from "../demos/dnd/basic.ts?raw"
 
 `@domphy/dnd` adds sortable lists and drag & drop to Domphy: reorder, transfer between lists, multi-drag, keyboard accessibility, and drop animations.
 
-Unlike the TanStack ports (`query`/`table`/`router`/`virtual`/`form`), drag-and-drop has no portable framework-agnostic core to copy byte-for-byte. So this package **depends on** [`@formkit/drag-and-drop`](https://drag-and-drop.formkit.com) (MIT, zero-dependency, framework-agnostic) and adds a thin Domphy adapter — the same way FormKit's own React/Vue/Solid adapters wrap the engine. The full FormKit API is re-exported.
+This package **depends on** [`@formkit/drag-and-drop`](https://drag-and-drop.formkit.com) (MIT, zero-dependency, framework-agnostic) and adds a thin Domphy adapter — the same way FormKit's own React/Vue/Solid adapters wrap the engine. The full FormKit API is re-exported.
 
 ## Install
 

@@ -1,6 +1,6 @@
 # API Reference
 
-`@domphy/table` is a 1-1 port of `@tanstack/table-core` v8.21.3 — every export below has identical behavior to upstream, so the [TanStack Table v8 reference](https://tanstack.com/table/v8/docs) documents each item in full detail.
+Complete list of exports from `@domphy/table`.
 
 ## Core
 

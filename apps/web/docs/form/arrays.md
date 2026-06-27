@@ -226,11 +226,11 @@ form.reset({ contacts: [{ name: "Alice", email: "alice@example.com" }] })
 
 ## Reading raw FormApi
 
-For advanced use cases (custom validation runners, field state inspection), access the underlying TanStack `FormApi`:
+For advanced use cases (custom validation runners, field state inspection), access the underlying `FormApi`:
 
 ```ts
 const rawForm = form.form    // FormApi<TData>
 const fieldApi = field.api   // FieldApi<TData, string>
 ```
 
-The full TanStack Form v1 API applies to both — see [TanStack Form docs](https://tanstack.com/form/latest) for `FormApi` methods (`setFieldValue`, `getFieldValue`, `setFieldMeta`, `validateField`, etc.).
+See the [Form concepts](/docs/form/concepts) page for the full `FormApi` API (`setFieldValue`, `getFieldValue`, `setFieldMeta`, `validateField`, etc.).

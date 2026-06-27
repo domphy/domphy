@@ -1,17 +1,17 @@
 ---
 title: "Devtools"
-description: "Debug @domphy/form with the TanStack Form devtools browser extension: inspect form state, force submission, reset, and identify forms by formId."
+description: "Debug @domphy/form with the form devtools browser extension: inspect form state, force submission, reset, and identify forms by formId."
 ---
 
 # Devtools
 
-`@domphy/form` broadcasts form state to the **TanStack Form browser devtools** automatically. Every form mounts an event listener and emits its state on every change — no extra configuration required.
+`@domphy/form` broadcasts form state to the form debugger browser extension automatically. Every form mounts an event listener and emits its state on every change — no extra configuration required.
 
 ## Install the browser extension
 
-Install the [TanStack Form Devtools browser extension](https://chromewebstore.google.com/detail/tanstack-form-devtools/kjndbikglildmjfnohejdahdhoiggahf) from the Chrome Web Store (also available for Firefox via the add-ons site).
+Install the [Form Devtools browser extension](https://chromewebstore.google.com/detail/tanstack-form-devtools/kjndbikglildmjfnohejdahdhoiggahf) from the Chrome Web Store (also available for Firefox via the add-ons site).
 
-Once installed, a **TanStack Form** panel appears in the browser DevTools. Open it to see all mounted forms on the current page.
+Once installed, a **Form Devtools** panel appears in the browser DevTools. Open it to see all mounted forms on the current page.
 
 ## What the devtools show
 
@@ -50,7 +50,7 @@ Without `formId`, each form gets a random UUID that changes on page reload.
 
 ## How the integration works
 
-`createForm()` internally calls `form.mount()`, which wires up an `EventClient` (from `@tanstack/devtools-event-client`) that:
+`createForm()` internally calls `form.mount()`, which wires up an `EventClient` that:
 
 1. **Emits `form-api`** on mount and on every store change — sends current state + options to the devtools panel.
 2. **Listens for `request-form-state`** — responds with the current state when the panel requests it.
@@ -106,7 +106,7 @@ Remove the `effect` call before shipping to production.
 
 ## Subscribing to the raw store
 
-For custom diagnostics, subscribe directly to the underlying TanStack store:
+For custom diagnostics, subscribe directly to the underlying form store:
 
 ```ts
 const unsubscribe = form.form.store.subscribe(() => {

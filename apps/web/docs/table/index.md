@@ -7,8 +7,6 @@ import Basic from "../demos/table/basic.ts?raw"
 
 `@domphy/table` provides headless table logic for Domphy apps: sorting, filtering, pagination, row selection, grouping, expanding, pinning, column sizing, and faceting.
 
-It is a **1-1 port of [`@tanstack/table-core`](https://github.com/TanStack/table/tree/main/packages/table-core) v8.21.3** (MIT, © Tanner Linsley and the TanStack team). The source is kept byte-identical to upstream, so the entire [TanStack Table v8 reference](https://tanstack.com/table/v8/docs) applies as-is, and future upstream versions can be diffed and merged directly.
-
 Like the rest of Domphy, it is framework-agnostic and has zero dependencies — the bridge to the UI is plain `toState`.
 
 ## Install

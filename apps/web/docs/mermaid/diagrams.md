@@ -153,7 +153,7 @@ timeline
   title History of Domphy
   2023 : Initial concept
   2024 : First public release
-       : TanStack Query adapter
+       : Query adapter
   2025 : VitePress-grade docs site
        : MCP server
 ```

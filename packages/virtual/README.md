@@ -4,9 +4,7 @@
 
 Headless list, grid, and window virtualization for Domphy apps: render only the rows/columns in view, with dynamic measurement, sticky ranges, and smooth scroll-to.
 
-This package is a **1-1 port of [`@tanstack/virtual-core`](https://github.com/TanStack/virtual/tree/main/packages/virtual-core) v3.17.0** (MIT, © Tanner Linsley and the TanStack team). The `src/` is kept byte-identical to upstream, so the entire [TanStack Virtual reference](https://tanstack.com/virtual/latest) applies as-is and future versions can be diffed and merged directly. The only addition is the Domphy adapter in `src/domphy/`.
-
-Like the rest of Domphy, the core is framework-agnostic with zero dependencies.
+Like the rest of Domphy, the core is framework-agnostic with zero dependencies. The Domphy adapter lives in `src/domphy/`.
 
 ## Install
 

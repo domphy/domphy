@@ -4,7 +4,6 @@
 
 Framework-agnostic, fully type-safe routing for Domphy apps: nested routes, path params, validated search params, loaders with caching, redirects, scroll restoration, and SSR streaming.
 
-This package is a 1-1 port of [`@tanstack/router-core`](https://github.com/TanStack/router/tree/main/packages/router-core) v1.171.13 (MIT, © Tanner Linsley). The upstream `src/` is kept byte-identical so future versions can be diffed and merged directly — the only edits to ported files are the self-referencing import `@tanstack/router-core/isServer` → `@domphy/router/isServer` (5 files) and, in `index.ts`, re-exporting `@tanstack/history` (mirroring `@tanstack/react-router`) plus the Domphy adapter. The adapter itself lives in the separate, non-upstream `src/domphy/` directory (`createRouter`/`createRoute` — framework-agnostic ports of `@tanstack/react-router`'s wrappers, no hooks or components). All credit for the design and implementation goes to the TanStack Router team.
 
 ## Install
 
@@ -69,11 +68,10 @@ const App = {
 - Validated search params with middleware (`retainSearchParams`, `stripSearchParams`)
 - Loaders with built-in stale-while-revalidate caching, preloading, and deferred data
 - `redirect` / `notFound` — control-flow primitives for loaders and navigation
-- History layer re-exported from `@tanstack/history` (browser, hash, and memory)
+- History layer included (browser, hash, and memory)
 - Scroll restoration, view transitions, navigation blocking
 - SSR entries (`@domphy/router/ssr/server`, `@domphy/router/ssr/client`) with streaming and hydration
 
 ## Documentation
 
 - [Router docs](https://domphy.com/docs/router/)
-- The API is identical to [TanStack Router core](https://tanstack.com/router/latest) — its reference applies as-is.

@@ -7,10 +7,10 @@ description: "How @domphy/form manages state, validation lifecycle, field state,
 
 ## Architecture
 
-`@domphy/form` is a **1-1 port of `@tanstack/form-core`** — the same `FormApi`, `FieldApi`, and `ValidationLogic` classes, byte-identical. The Domphy adapter (`@domphy/form/domphy`) wraps them with reactive handles that plug into Domphy's listener system.
+`@domphy/form` provides `FormApi`, `FieldApi`, and `ValidationLogic`. The Domphy adapter (`@domphy/form/domphy`) wraps them with reactive handles that plug into Domphy's listener system.
 
 ```
-FormApi (TanStack core)
+FormApi
    ↓ wrapped by
 createForm() adapter        ← you call this
    ↓ returns

@@ -51,7 +51,7 @@ Domphy ships first-party packages only for the cores that benefit from a tight D
 
 | Need | Use |
 | --- | --- |
-| async data / tables / routing / virtualization / forms | `@domphy/query` · `@domphy/table` · `@domphy/router` · `@domphy/virtual` · `@domphy/form` (1-1 TanStack ports + adapter) |
+| async data / tables / routing / virtualization / forms | `@domphy/query` · `@domphy/table` · `@domphy/router` · `@domphy/virtual` · `@domphy/form` |
 | drag & drop | `@domphy/dnd` |
 | animation | the `motion()` patch (`@domphy/ui`) |
 | charts | **vanilla** Chart.js / ECharts / D3 |
@@ -87,7 +87,6 @@ When the library mutates the DOM itself (e.g. a drag-sort plugin reorders nodes)
 ## Examples
 
 - [i18next](/docs/integrations/i18next) — internationalization
-- [TanStack Query](/docs/integrations/tanstack-query) — async data fetching and caching
 - [Chart.js](/docs/integrations/chartjs) — charts via `_onMount`
 - [SortableJS](/docs/integrations/sortablejs) — drag-and-drop list reordering
 - [Zod](/docs/integrations/zod) — form validation

@@ -7,8 +7,6 @@ import Basic from "../demos/query/basic.ts?raw"
 
 `@domphy/query` provides async state management for Domphy apps: fetching, caching, deduplication, background refetching, mutations, infinite queries, and SSR hydration.
 
-It is a **1-1 port of [`@tanstack/query-core`](https://github.com/TanStack/query/tree/main/packages/query-core) v5.90.20** (MIT, © Tanner Linsley and the TanStack team). The source is kept byte-identical to upstream, so the entire [TanStack Query core reference](https://tanstack.com/query/latest/docs/reference/QueryClient) applies as-is, and future upstream versions can be diffed and merged directly.
-
 Like the rest of Domphy, it is framework-agnostic and has zero dependencies — the bridge to the UI is plain `toState`.
 
 ## Install

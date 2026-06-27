@@ -38,6 +38,6 @@ function translate(listener, key, options?) {
 { h1: (l) => translate(l, "greeting", { name: "Dev" }) }
 ```
 
-This same pattern works for any library that can notify changes — Zustand, RxJS, TanStack Query, etc.
+This same pattern works for any library that can notify changes — Zustand, RxJS, event emitters, etc.
 
 

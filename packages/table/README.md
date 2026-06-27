@@ -4,7 +4,6 @@
 
 Headless table logic for Domphy apps: sorting, filtering, pagination, row selection, grouping, expanding, column pinning, sizing, visibility, and faceting. Domphy owns the rendering — this package owns the table state.
 
-This package is a 1-1 port of [`@tanstack/table-core`](https://github.com/TanStack/table/tree/main/packages/table-core) v8.21.3 (MIT, © Tanner Linsley). The source is kept byte-identical to upstream so future versions can be diffed and merged directly. All credit for the design and implementation goes to the TanStack Table team.
 
 ## Install
 
@@ -69,8 +68,7 @@ const App = {
 ## Documentation
 
 - [Table docs](https://domphy.com/docs/table/)
-- The API is identical to [TanStack Table v8](https://tanstack.com/table/v8/docs) — its reference applies as-is.
 
 ## License
 
-MIT — see [LICENSE](./LICENSE). Contains code from TanStack Table, also MIT.
+MIT — see [LICENSE](./LICENSE).

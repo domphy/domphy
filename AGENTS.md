@@ -47,11 +47,11 @@ const App = {
 | `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code) |
 | `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`) |
 | `@domphy/ui` | 87 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, …) |
-| `@domphy/query` | async state — TanStack query-core port; adapter `createQuery`/`createMutation`/`createInfiniteQuery` at `@domphy/query/domphy` |
-| `@domphy/table` | headless tables — table-core port; adapter `createDomphyTable` at `@domphy/table/domphy` |
-| `@domphy/router` | type-safe routing — router-core port; `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
-| `@domphy/virtual` | virtualization — virtual-core port; adapter `createVirtualizer` at `@domphy/virtual/domphy` |
-| `@domphy/form` | forms — form-core port; adapter `createForm` at `@domphy/form/domphy` |
+| `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery` at `@domphy/query/domphy` |
+| `@domphy/table` | headless tables — adapter `createDomphyTable` at `@domphy/table/domphy` |
+| `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
+| `@domphy/virtual` | virtualization — adapter `createVirtualizer` at `@domphy/virtual/domphy` |
+| `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy` |
 | `@domphy/dnd` | drag & drop — `dragDrop(state, config?)` (wraps `@formkit/drag-and-drop`) |
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes |
 | `@domphy/doctor` | static analyzer — `diagnose(element)` / `validate(element)` flag non-idiomatic trees; `fix(element)` applies lossless autofixes. **Run it on your output and fix the report.** |
@@ -67,7 +67,7 @@ const App = {
 | `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
 | `bench` | benchmarks (internal, not published) |
 
-Data/logic packages are **1-1 TanStack core ports** (byte-identical upstream API) + a thin Domphy adapter at the `/domphy` subpath; `@domphy/core` is their peer dependency.
+Data/logic packages each expose a framework-agnostic API at the main entry and a thin Domphy adapter at the `/domphy` subpath; `@domphy/core` is their peer dependency.
 
 ## Removed / do NOT use
 

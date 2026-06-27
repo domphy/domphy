@@ -86,19 +86,19 @@ Feed the report back to the model and it self-corrects. The loop works because t
 
 No other framework ships this kind of AI feedback loop out of the box.
 
-### 5. A complete stack — ports of what you already know
+### 5. A complete stack for any app
 
-Domphy doesn't reinvent the wheel. The data/logic layer is **1-1 TanStack ports**:
+Domphy ships a full data/logic layer alongside the UI layer:
 
-| What you need | Domphy equivalent |
+| Need | Package |
 |---|---|
-| React Query | `@domphy/query` (port of `@tanstack/query-core`) |
-| TanStack Table | `@domphy/table` (port of `@tanstack/table-core`) |
-| TanStack Router | `@domphy/router` (port of `@tanstack/router-core`) |
-| TanStack Virtual | `@domphy/virtual` (port of `@tanstack/virtual-core`) |
-| TanStack Form | `@domphy/form` (port of `@tanstack/form-core`) |
+| Async data (fetching, caching, mutations) | `@domphy/query` |
+| Headless tables | `@domphy/table` |
+| Type-safe routing | `@domphy/router` |
+| Virtualization | `@domphy/virtual` |
+| Form state & validation | `@domphy/form` |
 
-The APIs are **byte-identical** to the TanStack originals. If you know TanStack Query, you know `@domphy/query`. The only difference is the adapter at the `/domphy` subpath.
+Each package exposes a framework-agnostic API at the main entry and a thin Domphy adapter at the `/domphy` subpath.
 
 ## When to use Domphy
 
@@ -124,7 +124,7 @@ The APIs are **byte-identical** to the TanStack originals. If you know TanStack 
 | Patch model (no wrappers) | ✓ | ✗ | ✗ | ✗ | ✗ |
 | Built-in theme system | ✓ | ✗ | partial | ✗ | ✗ |
 | AI self-correction loop | ✓ | ✗ | ✗ | ✗ | ✗ |
-| TanStack-compatible data layer | ✓ | ✓ | partial | partial | partial |
+| Complete data layer (query/table/router/form) | ✓ | partial | partial | partial | partial |
 | No build step (script tag) | ✓ | limited | ✗ | ✗ | ✓ |
 | SSR / streaming | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Component-level code splitting | ✓ | ✓ | ✓ | ✓ | ✓ |

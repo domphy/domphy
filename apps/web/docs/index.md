@@ -14,13 +14,13 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 - `@domphy/theme` — context-aware color/size/spacing tokens
 - `@domphy/ui` — 87 patches for native HTML (≈ MUI)
 
-**Data & logic** — 1-1 ports of the TanStack cores (identical API) + a Domphy adapter at the `/domphy` subpath:
+**Data & logic** — framework-agnostic API + a Domphy adapter at the `/domphy` subpath:
 
-- `@domphy/query` — async state (TanStack Query core)
-- `@domphy/table` — headless tables (TanStack Table core)
-- `@domphy/router` — type-safe routing (TanStack Router core)
-- `@domphy/virtual` — virtualization (TanStack Virtual core)
-- `@domphy/form` — forms (TanStack Form core)
+- `@domphy/query` — async state (fetching, caching, mutations, infinite queries)
+- `@domphy/table` — headless tables (sorting, filtering, pagination, grouping)
+- `@domphy/router` — type-safe routing (nested routes, loaders, search params, SSR)
+- `@domphy/virtual` — virtualization (rows, columns, dynamic sizes)
+- `@domphy/form` — forms (typed values, validators, arrays, Standard Schema)
 
 **App layer & tools:**
 

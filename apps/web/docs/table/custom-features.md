@@ -5,7 +5,7 @@ description: "Extend @domphy/table with custom table features, plugin factories,
 
 # Custom Features & Plugins
 
-`@domphy/table` (a port of `@tanstack/table-core`) supports custom features — extend the table with your own state, reducers, and methods following the same plugin architecture as built-in features (sorting, filtering, etc.).
+`@domphy/table` supports custom features — extend the table with your own state, reducers, and methods following the same plugin architecture as built-in features (sorting, filtering, etc.).
 
 ## Custom feature structure
 
@@ -143,7 +143,7 @@ const HeaderCell = (header: Header<any, unknown>) => ({
 
 ## TypeScript: augmenting table types
 
-Extend the TanStack table type declarations to get full IntelliSense for custom features:
+Extend the `@domphy/table` type declarations to get full IntelliSense for custom features:
 
 ```ts
 // types/table-extensions.d.ts

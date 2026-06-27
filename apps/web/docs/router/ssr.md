@@ -82,9 +82,9 @@ Create the router **per request** on the server — a module-level router would 
 
 ## Dehydrate / Hydrate Concept
 
-The ported upstream layer can do this serialization for you: on the server, `attachRouterServerSsrUtils(router, ...)` collects matches, loader data, and deferred promises into a dehydrated payload (serialized with `seroval`, so it handles promises and streaming); on the client, `hydrate(router)` from `@domphy/router/ssr/client` restores it before the first `router.load()`, so loaders do not re-run for data the server already fetched. `createRequestHandler` wraps the whole request lifecycle (including redirect responses).
+The full SSR layer can do this serialization for you: on the server, `attachRouterServerSsrUtils(router, ...)` collects matches, loader data, and deferred promises into a dehydrated payload (serialized with `seroval`, so it handles promises and streaming); on the client, `hydrate(router)` from `@domphy/router/ssr/client` restores it before the first `router.load()`, so loaders do not re-run for data the server already fetched. `createRequestHandler` wraps the whole request lifecycle (including redirect responses).
 
-These utilities work, but they assume a streaming HTML render to interleave with — Domphy's `generateHTML` is synchronous, so until a dedicated integration exists, the manual pattern above is the recommended route. The full upstream behavior is documented in the [TanStack Router SSR guide](https://tanstack.com/router/latest/docs/framework/react/guide/ssr).
+These utilities work, but they assume a streaming HTML render to interleave with — Domphy's `generateHTML` is synchronous, so until a dedicated integration exists, the manual pattern above is the recommended route. See the [API reference](./api) for the full SSR entry point exports.
 
 ## Scroll Restoration
 

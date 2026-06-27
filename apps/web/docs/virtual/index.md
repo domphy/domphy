@@ -6,7 +6,7 @@ import Basic from "../demos/virtual/basic.ts?raw"
 
 `@domphy/virtual` renders only the rows/columns currently in view — essential for long lists, grids, and tables — with dynamic measurement, overscan, sticky ranges, and smooth scroll-to.
 
-It is **based on [`@tanstack/virtual-core`](https://github.com/TanStack/virtual/tree/main/packages/virtual-core) v3.17.0** (MIT, © Tanner Linsley and the TanStack team) with additional features: iOS WebKit scroll deferral, `scrollBy`/`scrollToEnd`/`takeSnapshot` methods, lazy typed-array fast-path, and `laneAssignmentMode`/`useCachedMeasurements` options. The entire [TanStack Virtual reference](https://tanstack.com/virtual/latest) applies for the base API; Domphy-specific additions are documented here. The Domphy adapter lives in `src/domphy/`.
+Additional features beyond a standard virtualizer: iOS WebKit scroll deferral, `scrollBy`/`scrollToEnd`/`takeSnapshot` methods, lazy typed-array fast-path, and `laneAssignmentMode`/`useCachedMeasurements` options. Domphy-specific additions are documented here; the Domphy adapter lives in `src/domphy/`.
 
 The core is framework-agnostic with zero dependencies.
 

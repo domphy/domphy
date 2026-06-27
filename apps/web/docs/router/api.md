@@ -1,6 +1,6 @@
 # API Reference
 
-`@domphy/router` is a 1-1 port of `@tanstack/router-core` v1.171.13 — every export below has identical behavior to upstream, so the [TanStack Router reference](https://tanstack.com/router/latest) documents each item in full detail. The only additions are the `create*` adapter functions and the re-exported `@tanstack/history`.
+Complete list of exports from `@domphy/router`.
 
 ## Creating Routers And Routes
 
@@ -35,7 +35,7 @@ The main members of the router returned by `createRouter`:
 
 ## History
 
-Re-exported from `@tanstack/history`:
+Available from `@domphy/router`:
 
 - `createBrowserHistory()`, `createHashHistory()`, `createMemoryHistory({ initialEntries })`, `createHistory()`
 - `parseHref(href, state)`
