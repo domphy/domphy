@@ -1,7 +1,7 @@
 {
   "name": "@domphy/chart",
   "version": "0.2.0",
-  "description": "ECharts-grade chart library for Domphy. SVG-native, tone/density cascade, shapemetry geometry, chromametry color quality.",
+  "description": "ECharts-grade chart library for Domphy. SVG-native, tone/density cascade.",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -40,8 +40,7 @@
   },
   "dependencies": {
     "@domphy/floating": "workspace:^",
-    "@huukhanhnguyen/shapemetry": "^0.6.2",
-    "@luma.gl/core": "^9.1.4",
+"@luma.gl/core": "^9.1.4",
     "@luma.gl/webgl": "^9.1.4",
     "@luma.gl/engine": "^9.1.4",
     "@luma.gl/shadertools": "^9.1.4"

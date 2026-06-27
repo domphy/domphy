@@ -5,7 +5,22 @@ import type { LineSeriesOption, ChartRect } from "../types.js";
 import type { AnyScale } from "../scale/index.js";
 import { seriesRgba, familyRgba } from "./color.js";
 import type { Rgba } from "./color.js";
-import { Spline2d, type Point2d } from "@huukhanhnguyen/shapemetry";
+type Point2d = { x: number; y: number };
+
+function splinePointAt(points: Point2d[], t: number): Point2d {
+  const n = points.length;
+  const seg = Math.min(Math.floor(t * (n - 1)), n - 2);
+  const u = t * (n - 1) - seg;
+  const p0 = points[Math.max(seg - 1, 0)];
+  const p1 = points[seg];
+  const p2 = points[Math.min(seg + 1, n - 1)];
+  const p3 = points[Math.min(seg + 2, n - 1)];
+  const u2 = u * u;
+  const u3 = u2 * u;
+  const x = 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * u + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * u2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * u3);
+  const y = 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * u + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * u2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * u3);
+  return { x, y };
+}
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
   (model as any).props.uniforms = uniforms;
@@ -94,11 +109,11 @@ export class LineRenderer {
     if ((smooth === true || (typeof smooth === "number" && smooth > 0)) && points.length >= 4) {
       const valid = points.filter(([x]) => !isNaN(x));
       try {
-        const sp = new Spline2d(valid.map(([x, y]) => ({ x, y } as Point2d)));
+        const pts = valid.map(([x, y]) => ({ x, y } as Point2d));
         const smoothed: [number, number][] = [];
         const steps = valid.length * 8;
         for (let step = 0; step <= steps; step++) {
-          const p = sp.pointAt(step / steps);
+          const p = splinePointAt(pts, step / steps);
           smoothed.push([p.x, p.y]);
         }
         return smoothed;
