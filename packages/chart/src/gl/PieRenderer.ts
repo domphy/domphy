@@ -58,15 +58,16 @@ export class PieRenderer {
       const cx = typeof center[0] === "number" ? center[0] : (parseFloat(center[0]) / 100) * width;
       const cy = typeof center[1] === "number" ? center[1] : (parseFloat(center[1]) / 100) * height;
 
+      const halfMin = minSize / 2;
       let innerR = 0;
-      let outerR = minSize * 0.35;
+      let outerR = halfMin * 0.7;
       if (s.radius) {
         const r = s.radius;
         if (Array.isArray(r)) {
-          innerR = typeof r[0] === "number" ? r[0] : (parseFloat(r[0]) / 100) * minSize;
-          outerR = typeof r[1] === "number" ? r[1] : (parseFloat(r[1]) / 100) * minSize;
+          innerR = typeof r[0] === "number" ? r[0] : (parseFloat(r[0]) / 100) * halfMin;
+          outerR = typeof r[1] === "number" ? r[1] : (parseFloat(r[1]) / 100) * halfMin;
         } else {
-          outerR = typeof r === "number" ? r : (parseFloat(r) / 100) * minSize;
+          outerR = typeof r === "number" ? r : (parseFloat(r) / 100) * halfMin;
         }
       }
 

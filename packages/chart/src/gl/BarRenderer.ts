@@ -3,7 +3,7 @@ import { Model } from "@luma.gl/engine";
 import { BAR_VS, BAR_FS } from "./shaders/bar.glsl.js";
 import type { BarSeriesOption, ChartRect } from "../types.js";
 import type { AnyScale } from "../scale/index.js";
-import { seriesRgba, familyRgba, hexToRgba } from "./color.js";
+import { seriesRgba, hexToRgba, resolveColorSrc } from "./color.js";
 import type { Buffer } from "@luma.gl/core";
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
@@ -87,8 +87,12 @@ export class BarRenderer {
     if (!xScale || !yScale) return;
 
     const bandwidth = xScale.bandwidth();
-    const groupCount = grouped.length;
-    const groupBarWidth = groupCount > 0 ? bandwidth / groupCount * 0.85 : bandwidth * 0.6;
+    const groupCount = Math.max(1, grouped.length);
+    const gap = 2; // px gap between bars in a group
+    const groupBarWidth = groupCount > 1
+      ? (bandwidth * 0.85 - (groupCount - 1) * gap) / groupCount
+      : bandwidth * 0.65;
+    const totalGroupWidth = groupCount * groupBarWidth + (groupCount - 1) * gap;
     const barRadius = 2;
     const baselineY = yScale.map(0);
 
@@ -96,7 +100,7 @@ export class BarRenderer {
     let barCount = 0;
 
     grouped.forEach((s, groupIndex) => {
-      const color = s.color ? familyRgba(s.color as any, "shift-9") : seriesRgba(seriesOffset + series.indexOf(s));
+      const color = resolveColorSrc(s.color, seriesRgba(seriesOffset + series.indexOf(s)));
       const data = s.data ?? [];
       data.forEach((item, dataIndex) => {
         const rawValue = typeof item === "number" ? item
@@ -107,7 +111,7 @@ export class BarRenderer {
         const xArg = typeof item === "number" ? dataIndex : Array.isArray(item) ? item[0] : dataIndex;
         const xCenter = xScale.map(xArg as number);
         const yTop = yScale.map(rawValue);
-        const xLeft = xCenter - bandwidth / 2 + groupIndex * groupBarWidth;
+        const xLeft = xCenter - totalGroupWidth / 2 + groupIndex * (groupBarWidth + gap);
         const rectY = Math.min(yTop, baselineY);
         const rectH = Math.abs(baselineY - yTop);
         const c = (item as any)?.itemStyle?.color ? hexToRgba((item as any).itemStyle.color) : color;
@@ -119,7 +123,7 @@ export class BarRenderer {
     for (const [, stackSeries] of stacked) {
       const stackTops = new Map<number, number>();
       stackSeries.forEach((s) => {
-        const color = s.color ? familyRgba(s.color as any, "shift-9") : seriesRgba(seriesOffset + series.indexOf(s));
+        const color = resolveColorSrc(s.color, seriesRgba(seriesOffset + series.indexOf(s)));
         const data = s.data ?? [];
         data.forEach((item, dataIndex) => {
           const rawValue = typeof item === "number" ? item

@@ -73,7 +73,15 @@ export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions): void {
 
     // Grid lines (vertical)
     const ticks = scale.ticks(6);
-    for (const tick of ticks) {
+
+    // Compute label skip interval to avoid crowding on dense ordinal axes
+    const estLabelPx = 40;
+    const labelInterval = (scale.type === "ordinal" && axis.axisLabel?.interval === undefined)
+      ? Math.max(1, Math.ceil(ticks.length * estLabelPx / (gridRect.width || 1)))
+      : 1;
+
+    for (let ti = 0; ti < ticks.length; ti++) {
+      const tick = ticks[ti];
       const tickX = scale.map(tick as any);
       if (tickX < gridRect.x || tickX > gridRect.x + gridRect.width) continue;
 
@@ -94,7 +102,7 @@ export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions): void {
         ));
       }
 
-      if (axis.axisLabel?.show !== false) {
+      if (axis.axisLabel?.show !== false && ti % labelInterval === 0) {
         const labelY = finalY + (isBottom ? 18 : -8);
         const label = scale.format(tick as any);
         const textEl = svgText(label, tickX, labelY, {

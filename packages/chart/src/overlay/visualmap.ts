@@ -66,8 +66,13 @@ export function renderVisualMap(
 
     // Position
     const right = vm.right !== undefined ? (typeof vm.right === "number" ? vm.right : parseFloat(String(vm.right))) : 20;
-    const top = vm.top !== undefined ? (typeof vm.top === "number" ? vm.top : parseFloat(String(vm.top))) : (height - itemH) / 2;
-    const x = typeof vm.left === "number" ? vm.left : width - right - itemW;
+    const top = (vm.top === "center" || vm.top === undefined)
+      ? (height - itemH) / 2
+      : (typeof vm.top === "number" ? vm.top : parseFloat(String(vm.top)));
+    const vmLeft = vm.left;
+    const x = (vmLeft === "center")
+      ? (width - itemW) / 2
+      : (typeof vmLeft === "number" ? vmLeft : (vmLeft !== undefined ? parseFloat(String(vmLeft)) : width - right - itemW));
     const y = top;
 
     if (vm.type === "piecewise") {

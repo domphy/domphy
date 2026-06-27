@@ -46,7 +46,9 @@ in float vSide;
 out vec4 fragColor;
 
 void main() {
-  fragColor = vColor;
+  // vSide interpolates -1 → +1 across the line width; fade outer ~0.5px for AA
+  float edge = 1.0 - smoothstep(0.85, 1.0, abs(vSide));
+  fragColor = vec4(vColor.rgb, vColor.a * edge);
 }
 `;
 

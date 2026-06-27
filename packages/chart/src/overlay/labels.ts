@@ -32,11 +32,16 @@ function renderBarLabels(
   series: BarSeriesOption[],
   xScales: AnyScale[],
   yScales: AnyScale[],
-  seriesOffset: number,
+  _seriesOffset: number,
   hiddenSeries: Set<string>,
 ): void {
   const labelColor = themeColorToken(null, "shift-10", "neutral");
   const labelColorInside = "#fff";
+  const gap = 2;
+
+  // Build group layout info (mirrors BarRenderer grouping)
+  const grouped = series.filter((s) => !s.stack);
+  const groupCount = Math.max(1, grouped.length);
 
   for (let si = 0; si < series.length; si++) {
     const s = series[si];
@@ -48,6 +53,11 @@ function renderBarLabels(
 
     const position = s.label?.position ?? "top";
     const bandwidth = xScale.bandwidth();
+    const groupBarWidth = groupCount > 1
+      ? (bandwidth * 0.85 - (groupCount - 1) * gap) / groupCount
+      : bandwidth * 0.65;
+    const totalGroupWidth = groupCount * groupBarWidth + (groupCount - 1) * gap;
+    const groupIndex = grouped.indexOf(s);
     const data = s.data ?? [];
     const baselineY = yScale.map(0);
 
@@ -60,18 +70,23 @@ function renderBarLabels(
       const xArg = typeof item === "number" ? index : Array.isArray(item) ? item[0] : index;
       const xCenter = xScale.map(xArg as number);
       const yTop = yScale.map(rawValue);
+      if (!Number.isFinite(xCenter) || !Number.isFinite(yTop)) return;
+
+      // For grouped bars, label above the specific bar; stacked bars use category center
+      const lx = groupIndex >= 0
+        ? xCenter - totalGroupWidth / 2 + groupIndex * (groupBarWidth + gap) + groupBarWidth / 2
+        : xCenter;
+
       const barHeight = Math.abs(baselineY - yTop);
       const labelStr = s.label?.formatter
         ? (typeof s.label.formatter === "function" ? s.label.formatter({ value: rawValue, name: String(xArg), dataIndex: index, seriesIndex: si, seriesName: s.name ?? "" }) : String(s.label.formatter))
         : formatValue(rawValue);
 
-      let lx = xCenter;
       let ly: number;
-      let anchor = "middle";
+      const anchor = "middle";
       let color = labelColor;
 
       if (position === "inside" || (position === "top" && barHeight < 20)) {
-        // If bar too small for inside label, skip or show outside
         if (barHeight < 14 && position === "inside") return;
         ly = yTop + (baselineY - yTop) / 2;
         color = labelColorInside;
@@ -161,11 +176,12 @@ function renderPieLabels(
     const center = s.center ?? ["50%", "50%"];
     const cx = typeof center[0] === "number" ? center[0] : (parseFloat(center[0]) / 100) * width;
     const cy = typeof center[1] === "number" ? center[1] : (parseFloat(center[1]) / 100) * height;
-    let outerR = minSize * 0.35;
+    const halfMin = minSize / 2;
+    let outerR = halfMin * 0.7;
     if (s.radius) {
       const r = s.radius;
-      if (Array.isArray(r)) outerR = typeof r[1] === "number" ? r[1] : (parseFloat(r[1]) / 100) * minSize;
-      else outerR = typeof r === "number" ? r : (parseFloat(r) / 100) * minSize;
+      if (Array.isArray(r)) outerR = typeof r[1] === "number" ? r[1] : (parseFloat(r[1]) / 100) * halfMin;
+      else outerR = typeof r === "number" ? r : (parseFloat(r) / 100) * halfMin;
     }
 
     const data = (s.data ?? []) as Array<{ value?: number; name?: string }>;

@@ -17,7 +17,7 @@ export class GaugeRenderer {
       const minSize = Math.min(width, height);
       const cx = typeof s.center?.[0] === "number" ? s.center[0] : (parseFloat(String(s.center?.[0] ?? "50%")) / 100) * width;
       const cy = typeof s.center?.[1] === "number" ? s.center[1] : (parseFloat(String(s.center?.[1] ?? "50%")) / 100) * height;
-      const radius = typeof s.radius === "number" ? s.radius : (parseFloat(String(s.radius ?? "75%")) / 100) * minSize;
+      const radius = typeof s.radius === "number" ? s.radius : (parseFloat(String(s.radius ?? "75%")) / 100) * (minSize / 2);
       const innerRadius = radius - (s.progress?.width ?? 18);
 
       const minVal = s.min ?? 0;
@@ -122,7 +122,9 @@ export class GaugeRenderer {
 function describeArc(cx: number, cy: number, outerR: number, innerR: number, startRad: number, endRad: number): string {
   const clampedEnd = startRad === endRad ? endRad + 0.0001 : endRad;
   const isLargeArc = Math.abs(clampedEnd - startRad) > Math.PI ? 1 : 0;
-  const sweep = clampedEnd > startRad ? 1 : 0;
+  // The renderer uses cy - r*sin(angle) so standard-math CCW = SVG CW (y-axis flip).
+  // Gauge goes startRad→endRad decreasing (CW on screen) → SVG sweep=1 when end < start.
+  const sweep = clampedEnd < startRad ? 1 : 0;
 
   const ox1 = cx + outerR * Math.cos(startRad);
   const oy1 = cy - outerR * Math.sin(startRad);

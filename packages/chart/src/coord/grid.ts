@@ -49,13 +49,27 @@ function dataExtentFromSeries(
     if ((s[axisKey] ?? 0) !== axisIndex) continue;
     const data: any[] = s.data ?? [];
     for (const item of data) {
+      if (Array.isArray(item)) {
+        if (s.type === "boxplot") {
+          // boxplot: [min, Q1, median, Q3, max] — capture full range on y dim
+          if (dim === "y") {
+            for (const v of item) {
+              if (typeof v === "number" && !Number.isNaN(v)) { min = Math.min(min, v); max = Math.max(max, v); }
+            }
+          } else {
+            // x is the category index (handled by OrdinalScale)
+          }
+          continue;
+        }
+        const value = dim === "x" ? item[0] : item[1];
+        if (typeof value === "number" && !Number.isNaN(value)) { min = Math.min(min, value); max = Math.max(max, value); }
+        continue;
+      }
       let value: number | null = null;
       if (typeof item === "number") {
         value = dim === "y" ? item : null;
-      } else if (Array.isArray(item)) {
-        value = dim === "x" ? item[0] : item[1];
       } else if (item && typeof item === "object") {
-        const raw = item.value;
+        const raw = (item as any).value;
         if (typeof raw === "number") value = raw;
         else if (Array.isArray(raw)) value = dim === "x" ? raw[0] : raw[1];
       }

@@ -4,7 +4,7 @@ import { BAR_VS, BAR_FS } from "./shaders/bar.glsl.js";
 import { AREA_VS, AREA_FS } from "./shaders/line.glsl.js";
 import type { CandlestickSeriesOption } from "../types.js";
 import type { AnyScale } from "../scale/index.js";
-import { seriesRgba, familyRgba } from "./color.js";
+import { seriesRgba, resolveColorSrc } from "./color.js";
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
   (model as any).props.uniforms = uniforms;
@@ -88,14 +88,18 @@ export class CandlestickRenderer {
     for (const b of this.buffers) b.destroy();
     this.buffers = [];
 
-    const upColor = seriesRgba(1);
-    const downColor = seriesRgba(4);
+    const defaultUp = seriesRgba(1);
+    const defaultDown = seriesRgba(4);
 
     for (let si = 0; si < series.length; si++) {
       const s = series[si];
       const xScale = xScales[s.xAxisIndex ?? 0];
       const yScale = yScales[s.yAxisIndex ?? 0];
       if (!xScale || !yScale) continue;
+
+      // itemStyle.color = bullish (close >= open), itemStyle.color0 = bearish
+      const upColor = resolveColorSrc(s.itemStyle?.color ?? s.upColor, defaultUp);
+      const downColor = resolveColorSrc(s.itemStyle?.color0 ?? s.downColor, defaultDown);
 
       const bandwidth = xScale.bandwidth() * 0.7;
       const data = s.data ?? [];
@@ -109,9 +113,7 @@ export class CandlestickRenderer {
         if (!raw || raw.length < 4) return;
         const [open, close, low, high] = raw as [number, number, number, number];
         const isUp = close >= open;
-        const color = isUp
-          ? (s.upColor ? familyRgba(s.upColor as any, "shift-9") : upColor)
-          : (s.downColor ? familyRgba(s.downColor as any, "shift-9") : downColor);
+        const color = isUp ? upColor : downColor;
 
         const xCenter = xScale.map(index);
         const yOpen = yScale.map(open);

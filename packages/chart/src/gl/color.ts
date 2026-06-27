@@ -50,3 +50,10 @@ export function familyHex(family: ThemeFamily, tone = SERIES_TONE): string {
 export function familyRgba(family: ThemeFamily, tone = SERIES_TONE, alpha = 1): Rgba {
   return hexToRgba(familyHex(family, tone), alpha);
 }
+
+// Resolve any color value (hex string, ThemeFamily name, or undefined) to Rgba
+export function resolveColorSrc(src: unknown, fallback: Rgba): Rgba {
+  if (!src) return fallback;
+  const s = String(src);
+  return s.startsWith("#") || s.startsWith("rgb") ? hexToRgba(s) : familyRgba(src as ThemeFamily);
+}

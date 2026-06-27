@@ -10,7 +10,7 @@ export async function getDevice(canvas: HTMLCanvasElement): Promise<Device> {
   if (!promise) {
     promise = luma.createDevice({
       type: "webgl",
-      createCanvasContext: { canvas },
+      createCanvasContext: { canvas, antialias: true },
     });
     deviceCache.set(canvas, promise);
   }

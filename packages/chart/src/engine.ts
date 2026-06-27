@@ -149,8 +149,12 @@ export class ChartEngine {
 
     const grid = resolveGrid(grids, xAxes, yAxes, series, width, height, this.xZoomMap, this.yZoomMap);
 
+    // Only render Cartesian axes when there are series that use them
+    const cartesianTypes = new Set(["line","bar","scatter","heatmap","candlestick","boxplot","effectScatter","lines"]);
+    const hasCartesian = series.some((s) => cartesianTypes.has(s.type ?? ""));
+
     // ─── SVG Overlay ──────────────────────────────────────────────────────────
-    renderAxes(this.overlaysvg, {
+    if (hasCartesian) renderAxes(this.overlaysvg, {
       gridRect: grid.gridRect,
       xAxes,
       yAxes,
