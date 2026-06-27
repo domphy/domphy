@@ -63,7 +63,7 @@ const App = {
 | `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
 | `@domphy/virtual` | virtualization — adapter `createVirtualizer` at `@domphy/virtual/domphy` |
 | `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy` |
-| `@domphy/dnd` | drag & drop — `dragDrop(state, config?)` (wraps `@formkit/drag-and-drop`) |
+| `@domphy/dnd` | drag & drop — `dragDrop(state, config?)`, `multiList(options)`, `multiListGroup(group, states, config?)` (wraps `@formkit/drag-and-drop`) |
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes |
 | `@domphy/doctor` | static analyzer — `diagnose(element)` / `validate(element)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]` into a human-readable string; `fix(element)` applies lossless autofixes. **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — internal to `@domphy/ui` overlays |
@@ -19249,7 +19249,7 @@ interface ParentConfig<T> {
 
   // Handles
   draggable?: (el: HTMLElement) => boolean   // filter which children are draggable
-  handleClass?: string                       // CSS class of drag handles inside items
+  dragHandle?: string                        // CSS selector for drag handles inside items
 
   // Drop zone
   accepts?: (data: DragState<T>, parent: HTMLElement, currentParent: HTMLElement) => boolean
@@ -19301,9 +19301,9 @@ interface AnimationsConfig {
 }
 ```
 
-### Drag handles via `handleClass`
+### Drag handles via `dragHandle`
 
-`handleClass` is a config string key — not a plugin. Scope dragging to a handle element inside each item:
+`dragHandle` is a CSS selector config key — not a plugin. Scope dragging to a handle element inside each item:
 
 ```ts
 { ul: (l) => items.get(l).map((item) => ({
@@ -19313,7 +19313,7 @@ interface AnimationsConfig {
     { span: item.label },
   ],
 })),
-$: [dragDrop(items, { handleClass: "handle" })] }
+$: [dragDrop(items, { dragHandle: ".handle" })] }
 ```
 
 Items without a matching `.handle` element are not draggable by direct drag.

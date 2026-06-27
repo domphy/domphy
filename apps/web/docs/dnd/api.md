@@ -53,7 +53,7 @@ interface ParentConfig<T> {
 
   // Handles
   draggable?: (el: HTMLElement) => boolean   // filter which children are draggable
-  handleClass?: string                       // CSS class of drag handles inside items
+  dragHandle?: string                        // CSS selector for drag handles inside items
 
   // Drop zone
   accepts?: (data: DragState<T>, parent: HTMLElement, currentParent: HTMLElement) => boolean
@@ -105,9 +105,9 @@ interface AnimationsConfig {
 }
 ```
 
-### Drag handles via `handleClass`
+### Drag handles via `dragHandle`
 
-`handleClass` is a config string key — not a plugin. Scope dragging to a handle element inside each item:
+`dragHandle` is a CSS selector config key — not a plugin. Scope dragging to a handle element inside each item:
 
 ```ts
 { ul: (l) => items.get(l).map((item) => ({
@@ -117,7 +117,7 @@ interface AnimationsConfig {
     { span: item.label },
   ],
 })),
-$: [dragDrop(items, { handleClass: "handle" })] }
+$: [dragDrop(items, { dragHandle: ".handle" })] }
 ```
 
 Items without a matching `.handle` element are not draggable by direct drag.
