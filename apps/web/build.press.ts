@@ -297,7 +297,13 @@ async function run(): Promise<void> {
   const highlight = await createHighlighter();
   const editorCSS =
     `.dp-editor-grid{grid-template-columns:1fr 1fr}` +
-    `@media(max-width:768px){.dp-editor-grid{grid-template-columns:1fr}}`;
+    `.dp-tab-buttons{display:none}` +
+    `@media(max-width:768px){` +
+      `.dp-editor-grid{grid-template-columns:1fr}` +
+      `.dp-tab-buttons{display:flex;align-items:stretch}` +
+      `.dp-tab-preview .dp-editor-panel{display:none}` +
+      `.dp-tab-code .dp-preview-panel{display:none}` +
+    `}`;
   const generatedCss = themeCSS() + pressCSS() + editorCSS;
 
   const built: BuiltPage[] = [];

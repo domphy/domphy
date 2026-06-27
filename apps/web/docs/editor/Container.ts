@@ -26,6 +26,7 @@ export function Container(
   const isDark = toState(false);
   const isFull = toState(false);
   const hasGrid = toState(false);
+  const activeTab = toState<"code" | "preview">("code");
 
   const update = (val: string) => {
     error.set("");
@@ -56,41 +57,28 @@ export function Container(
 
   const workspace: DomphyElement<"div"> = {
     div: [
+      Toolbar({ activeTab, isDark, isFull, hasGrid }),
       {
         div: [
-          Editor(code),
+          {
+            div: [Editor(code)],
+            class: "dp-editor-panel",
+            style: { display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" },
+          },
           {
             div: [
-              Toolbar({ isDark, isFull, hasGrid }),
-              Preview(
-                code,
-                isDark,
-                hasGrid,
-                error,
-                shadowHost,
-                previewContainer,
-              ),
+              Preview(code, isDark, hasGrid, error, shadowHost, previewContainer),
               ErrorOverlay(error),
             ],
-
-            style: {
-              position: "relative",
-              display: "flex",
-              flexDirection: "column",
-            },
+            class: "dp-preview-panel",
+            style: { position: "relative", display: "flex", flexDirection: "column" },
           },
         ],
-        // Layout (incl. the mobile 2-row stack) is in the docs theme stylesheet
-        // via this class — a global stylesheet's @media is reliable, whereas an
-        // @media inside a Domphy inline style object is not emitted on client render.
         class: "dp-editor-grid",
-        style: {
-          display: "grid",
-          flex: 1,
-          minHeight: 0,
-        },
+        style: { display: "grid", flex: 1, minHeight: 0 },
       },
     ],
+    class: (listener) => `dp-playground dp-tab-${activeTab.get(listener)}`,
     style: {
       display: "flex",
       flexDirection: "column",
@@ -103,11 +91,9 @@ export function Container(
       backgroundColor: (listener) => themeColor(listener, "inherit"),
     },
   };
+
   return {
     div: [workspace, TipBar, Console(logs, copied)],
-    style: {
-      display: "flex",
-      flexDirection: "column",
-    },
+    style: { display: "flex", flexDirection: "column" },
   };
 }
