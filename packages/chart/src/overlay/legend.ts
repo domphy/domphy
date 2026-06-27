@@ -25,9 +25,9 @@ export function renderLegend(
   const itemHeight = legend.itemHeight ?? 10;
   const orient = legend.orient ?? "horizontal";
 
-  const names = legend.data
+  const names = (legend.data
     ? legend.data.map((d) => (typeof d === "string" ? d : d.name))
-    : series.map((s) => s.name ?? "");
+    : series.map((s) => s.name ?? "")).filter((n) => n !== "");
 
   const textColor = themeColorToken(null, "shift-8", "neutral");
   const disabledColor = themeColorToken(null, "shift-4", "neutral");

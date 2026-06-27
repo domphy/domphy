@@ -56654,7 +56654,7 @@ function renderLegend(svg, legend, series, hiddenSeries, onToggle) {
   const itemWidth = legend.itemWidth ?? 14;
   const itemHeight = legend.itemHeight ?? 10;
   const orient = legend.orient ?? "horizontal";
-  const names = legend.data ? legend.data.map((d) => typeof d === "string" ? d : d.name) : series.map((s) => s.name ?? "");
+  const names = (legend.data ? legend.data.map((d) => typeof d === "string" ? d : d.name) : series.map((s) => s.name ?? "")).filter((n) => n !== "");
   const textColor = themeColorToken(null, "shift-8", "neutral");
   const disabledColor = themeColorToken(null, "shift-4", "neutral");
   const fontSize = 12;
@@ -57227,7 +57227,7 @@ function renderNodes(group, nodes, rect, depth, seriesIndex) {
       }
     }
     if (node.children && node.children.length > 0 && padded.w > 20 && padded.h > 20) {
-      renderNodes(group, node.children, padded, depth + 1, seriesIndex);
+      renderNodes(group, node.children, padded, depth + 1, depth === 0 ? index : seriesIndex);
     }
   });
 }
@@ -57878,6 +57878,7 @@ var ChartEngine = class {
     this.yZoomMap = /* @__PURE__ */ new Map();
     const dataZooms = Array.isArray(option.dataZoom) ? option.dataZoom : option.dataZoom ? [option.dataZoom] : [];
     for (const dz of dataZooms) {
+      if (dz.type === "inside") continue;
       const xIndex = typeof dz.xAxisIndex === "number" ? dz.xAxisIndex : 0;
       this.xZoomMap.set(xIndex, { start: dz.start ?? 0, end: dz.end ?? 100 });
     }

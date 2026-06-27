@@ -147,9 +147,9 @@ function renderNodes(
       }
     }
 
-    // Recurse into children
+    // Recurse into children — pass parent's color index so gap between siblings matches
     if (node.children && node.children.length > 0 && padded.w > 20 && padded.h > 20) {
-      renderNodes(group, node.children, padded, depth + 1, seriesIndex);
+      renderNodes(group, node.children, padded, depth + 1, depth === 0 ? index : seriesIndex);
     }
   });
 }

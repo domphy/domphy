@@ -89,10 +89,14 @@ export class ChartEngine {
     this.width = width;
     this.height = height;
     const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = Math.round(width * dpr);
-    this.canvas.height = Math.round(height * dpr);
+    const physW = Math.round(width * dpr);
+    const physH = Math.round(height * dpr);
+    this.canvas.width = physW;
+    this.canvas.height = physH;
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
+    // Sync luma.gl's drawingBufferWidth/Height so beginRenderPass doesn't reset canvas dims
+    (this.device as any)?.canvasContext?.setDrawingBufferSize?.(physW, physH);
     this.overlaysvg.setAttribute("width", String(width));
     this.overlaysvg.setAttribute("height", String(height));
   }
@@ -105,9 +109,10 @@ export class ChartEngine {
     this.xZoomMap = new Map();
     this.yZoomMap = new Map();
 
-    // Initialize DataZoom state from option
+    // Initialize DataZoom state from option (skip "inside" — it has no initial range)
     const dataZooms = Array.isArray(option.dataZoom) ? option.dataZoom : option.dataZoom ? [option.dataZoom] : [];
     for (const dz of dataZooms) {
+      if (dz.type === "inside") continue;
       const xIndex = typeof dz.xAxisIndex === "number" ? dz.xAxisIndex : 0;
       this.xZoomMap.set(xIndex, { start: dz.start ?? 0, end: dz.end ?? 100 });
     }
