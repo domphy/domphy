@@ -121,3 +121,47 @@ const vm: VisualMapOption = {
 
 const color = colorFromVisualMap(vm, 75)  // → interpolated hex string
 ```
+
+## Per-item colors
+
+Override the color of individual data points using `itemStyle.color`:
+
+```ts
+series: [{
+  type: "bar",
+  data: [
+    120,
+    { value: 200, itemStyle: { color: "#ff4444" } },   // highlight one bar
+    150,
+    { value: 80,  itemStyle: { color: "#44bb44" } },
+  ],
+}]
+```
+
+For pie charts, each slice gets its own color automatically from the series palette. Override per slice:
+
+```ts
+series: [{
+  type: "pie",
+  data: [
+    { value: 40, name: "A" },
+    { value: 30, name: "B", itemStyle: { color: "#e65" } },
+    { value: 30, name: "C" },
+  ],
+}]
+```
+
+## Dark mode
+
+All theme family colors (`"primary"`, `"secondary"`, etc.) resolve to concrete hex at render time using the current theme tone. When `data-theme="dark"` is set on a parent element, the colors automatically shift to their dark-mode equivalents — no extra config.
+
+Setting `dataTone` on the chart container shifts the entire chart's color family:
+
+```ts
+const App = {
+  div: null,
+  dataTone: "shift-11",   // inverts lightness — all chart colors adapt
+  style: { width: "600px", height: "300px", position: "relative" },
+  $: [chart(option)],
+}
+```

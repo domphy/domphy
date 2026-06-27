@@ -33,6 +33,72 @@ interface AxisOption {
 - `"time"` — time-based axis (data as timestamps)
 - `"log"` — logarithmic scale
 
+**BoundaryGap:**
+
+For category axes, `boundaryGap` (default `true`) adds half-category padding on each side so bars don't touch the axis edges. Set to `false` for line charts that should start at the first point:
+
+```ts
+xAxis: { type: "category", data: [...], boundaryGap: false }
+```
+
+**Time axis:**
+
+Pass timestamps as data and configure `axisLabel.formatter` to control how ticks display:
+
+```ts
+xAxis: {
+  type: "time",
+  axisLabel: {
+    formatter: (value: number) => {
+      const d = new Date(value)
+      return `${d.getMonth() + 1}/${d.getDate()}`
+    },
+  },
+}
+```
+
+Series data for a time axis uses `[timestamp, value]` pairs:
+
+```ts
+series: [{
+  type: "line",
+  data: [
+    [new Date("2024-01-01").getTime(), 120],
+    [new Date("2024-02-01").getTime(), 200],
+    [new Date("2024-03-01").getTime(), 150],
+  ],
+}]
+```
+
+**Log axis:**
+
+```ts
+yAxis: { type: "log", min: 1 }
+```
+
+Useful for data spanning multiple orders of magnitude (e.g. network traffic, financial data).
+
+**Multiple axes:**
+
+Pass an array to use multiple x or y axes. Series reference them by index:
+
+```ts
+{
+  xAxis: [
+    { type: "category", data: ["Jan", "Feb", "Mar"] },
+    { type: "value", position: "top" },
+  ],
+  yAxis: [
+    { type: "value" },
+    { type: "value", position: "right" },
+  ],
+  series: [
+    { type: "bar", data: [120, 200, 150], xAxisIndex: 0, yAxisIndex: 0 },
+    { type: "line", data: [1.2, 0.8, 1.5], xAxisIndex: 0, yAxisIndex: 1 },
+  ],
+}
+```
+
 ## Grid
 
 ```ts

@@ -20956,6 +20956,72 @@ interface AxisOption {
 - `"time"` — time-based axis (data as timestamps)
 - `"log"` — logarithmic scale
 
+**BoundaryGap:**
+
+For category axes, `boundaryGap` (default `true`) adds half-category padding on each side so bars don't touch the axis edges. Set to `false` for line charts that should start at the first point:
+
+```ts
+xAxis: { type: "category", data: [...], boundaryGap: false }
+```
+
+**Time axis:**
+
+Pass timestamps as data and configure `axisLabel.formatter` to control how ticks display:
+
+```ts
+xAxis: {
+  type: "time",
+  axisLabel: {
+    formatter: (value: number) => {
+      const d = new Date(value)
+      return `${d.getMonth() + 1}/${d.getDate()}`
+    },
+  },
+}
+```
+
+Series data for a time axis uses `[timestamp, value]` pairs:
+
+```ts
+series: [{
+  type: "line",
+  data: [
+    [new Date("2024-01-01").getTime(), 120],
+    [new Date("2024-02-01").getTime(), 200],
+    [new Date("2024-03-01").getTime(), 150],
+  ],
+}]
+```
+
+**Log axis:**
+
+```ts
+yAxis: { type: "log", min: 1 }
+```
+
+Useful for data spanning multiple orders of magnitude (e.g. network traffic, financial data).
+
+**Multiple axes:**
+
+Pass an array to use multiple x or y axes. Series reference them by index:
+
+```ts
+{
+  xAxis: [
+    { type: "category", data: ["Jan", "Feb", "Mar"] },
+    { type: "value", position: "top" },
+  ],
+  yAxis: [
+    { type: "value" },
+    { type: "value", position: "right" },
+  ],
+  series: [
+    { type: "bar", data: [120, 200, 150], xAxisIndex: 0, yAxisIndex: 0 },
+    { type: "line", data: [1.2, 0.8, 1.5], xAxisIndex: 0, yAxisIndex: 1 },
+  ],
+}
+```
+
 ## Grid
 
 ```ts
@@ -21202,6 +21268,50 @@ const vm: VisualMapOption = {
 const color = colorFromVisualMap(vm, 75)  // → interpolated hex string
 ```
 
+## Per-item colors
+
+Override the color of individual data points using `itemStyle.color`:
+
+```ts
+series: [{
+  type: "bar",
+  data: [
+    120,
+    { value: 200, itemStyle: { color: "#ff4444" } },   // highlight one bar
+    150,
+    { value: 80,  itemStyle: { color: "#44bb44" } },
+  ],
+}]
+```
+
+For pie charts, each slice gets its own color automatically from the series palette. Override per slice:
+
+```ts
+series: [{
+  type: "pie",
+  data: [
+    { value: 40, name: "A" },
+    { value: 30, name: "B", itemStyle: { color: "#e65" } },
+    { value: 30, name: "C" },
+  ],
+}]
+```
+
+## Dark mode
+
+All theme family colors (`"primary"`, `"secondary"`, etc.) resolve to concrete hex at render time using the current theme tone. When `data-theme="dark"` is set on a parent element, the colors automatically shift to their dark-mode equivalents — no extra config.
+
+Setting `dataTone` on the chart container shifts the entire chart's color family:
+
+```ts
+const App = {
+  div: null,
+  dataTone: "shift-11",   // inverts lightness — all chart colors adapt
+  style: { width: "600px", height: "300px", position: "relative" },
+  $: [chart(option)],
+}
+```
+
 ### engine.md
 
 ---
@@ -21345,6 +21455,182 @@ ordinal("B")  // → 150
 
 These are lower-level utilities used internally by the chart engine, exposed for custom rendering or annotation overlays.
 
+### events.md
+
+---
+title: "Interaction & Events"
+description: "How to handle user interaction in @domphy/chart — tooltip formatters, click handlers, legend toggles, and reactive option updates."
+---
+
+# Interaction & Events
+
+`@domphy/chart` handles interaction through Domphy's reactive system rather than an event emitter API. The chart re-renders automatically when its option state changes; user events surface through tooltip formatters and direct DOM handlers on series symbols.
+
+## Tooltip
+
+### Axis trigger (line / bar)
+
+```ts
+{
+  tooltip: {
+    trigger: "axis",
+    formatter: (params) => {
+      // params is an array when trigger: "axis"
+      const list = Array.isArray(params) ? params : [params]
+      return list.map(p => `${p.seriesName}: ${p.value}`).join("<br>")
+    },
+  },
+}
+```
+
+### Item trigger (scatter / pie)
+
+```ts
+{
+  tooltip: {
+    trigger: "item",
+    formatter: (params) => {
+      // params is a single object when trigger: "item"
+      const p = Array.isArray(params) ? params[0] : params
+      return `${p.name}: ${p.value} (${p.percent}%)`
+    },
+  },
+}
+```
+
+### Axis pointer style
+
+```ts
+tooltip: {
+  trigger: "axis",
+  axisPointer: { type: "shadow" },   // "line" | "shadow" | "cross"
+}
+```
+
+`"shadow"` draws a shaded band across the category. `"cross"` draws crosshair lines on both axes.
+
+## Reactive updates
+
+The most common interaction pattern: bind a `State<ChartOption>` and update it from UI controls.
+
+```ts
+import { toState } from "@domphy/core"
+import { chart } from "@domphy/chart"
+import { button } from "@domphy/ui"
+
+const option = toState({
+  xAxis: { type: "category", data: ["Mon", "Tue", "Wed"] },
+  yAxis: { type: "value" },
+  series: [{ type: "bar", data: [120, 200, 150] }],
+})
+
+const App = {
+  div: null,
+  $: [],
+  _: [
+    {
+      div: null,
+      style: { width: "600px", height: "300px", position: "relative" },
+      $: [chart(option)],
+    },
+    {
+      button: "Refresh data",
+      $: [button()],
+      onClick: () => option.set({
+        ...option.get(),
+        series: [{ type: "bar", data: [Math.random() * 300, Math.random() * 300, Math.random() * 300] }],
+      }),
+    },
+  ],
+}
+```
+
+The chart re-renders whenever `option.set()` is called — no `setOption()` required.
+
+## Legend interaction
+
+Legend items are interactive out of the box — clicking a legend item toggles the corresponding series. No extra config needed.
+
+To detect which series are currently hidden, read `hiddenSeries` from `ChartEngine` directly:
+
+```ts
+import { ChartEngine } from "@domphy/chart"
+
+const engine = new ChartEngine(container)
+await engine.init()
+engine.setOption(option)
+
+// After user toggles legend:
+// engine.hiddenSeries is a Set<string> of hidden series names
+```
+
+## DataZoom interaction
+
+Slider datazoom responds to drag and mouse events automatically:
+
+```ts
+{
+  dataZoom: [
+    { type: "slider", xAxisIndex: 0, start: 0, end: 50 },
+    { type: "inside", xAxisIndex: 0 },  // scroll-to-zoom without UI
+  ],
+}
+```
+
+`type: "inside"` enables mouse wheel zoom and drag pan on the axis directly — no visible handle.
+
+## Click on data points
+
+Use `tooltip.formatter` to react to hover. For click, wire an `onClick` on the chart container:
+
+```ts
+import { ChartEngine } from "@domphy/chart"
+
+const engine = new ChartEngine(container)
+await engine.init()
+engine.setOption(option)
+
+container.addEventListener("click", (e) => {
+  // Use tooltip params if you need the hovered data point
+  // engine.lastTooltipParams holds the last hovered params
+})
+```
+
+For more targeted interaction, use the `chart()` patch with a container `onClick` in your element tree:
+
+```ts
+const selected = toState<string | null>(null)
+
+const App = {
+  div: null,
+  style: { width: "600px", height: "300px", position: "relative", cursor: "pointer" },
+  $: [chart(option)],
+  onClick: (e: MouseEvent) => {
+    // handle selection at the application level
+    selected.set("clicked")
+  },
+}
+```
+
+## Watching state from outside
+
+Since the chart is driven by a `State<ChartOption>`, you can derive computed values from the same state using `computed()`:
+
+```ts
+import { toState, computed } from "@domphy/core"
+
+const rawData = toState([120, 200, 150, 80])
+
+const option = computed((l) => ({
+  xAxis: { type: "category", data: ["A", "B", "C", "D"] },
+  yAxis: { type: "value" },
+  series: [{ type: "bar", data: rawData.get(l) }],
+}))
+
+// Chart auto-updates when rawData changes:
+rawData.set([300, 150, 400, 100])
+```
+
 ### index.md
 
 ---
@@ -21450,6 +21736,225 @@ The chart re-renders whenever the state changes.
 - [Colors & Theme](/docs/chart/colors) — theme families, gradient fills
 - [ChartEngine API](/docs/chart/engine) — advanced embedding, resize, destroy
 - [vs ECharts](/docs/chart/vs-echarts) — feature comparison
+
+### marks.md
+
+---
+title: "Marks"
+description: "markPoint, markLine, and markArea annotations in @domphy/chart — highlight min/max/average or custom coordinates on any series."
+---
+
+# Marks
+
+Marks are annotations attached directly to a series. They overlay the chart without being part of the series data itself.
+
+All three mark types are fields on any series object:
+
+```ts
+series: [{
+  type: "line",
+  data: [...],
+  markPoint: { data: [...] },
+  markLine: { data: [...] },
+  markArea: { data: [...] },
+}]
+```
+
+---
+
+## markPoint
+
+Renders a pin dot with a label at a specific data point.
+
+```ts
+interface MarkPointData {
+  type?: "max" | "min" | "average",
+  name?: string,
+  coord?: [number | string, number],  // [xValue, yValue]
+  symbol?: string,
+  symbolSize?: number,
+}
+
+markPoint: {
+  data: MarkPointData[],
+}
+```
+
+**`type`-based points** — the chart resolves the position automatically from series data:
+
+- `"max"` — finds the data point with the highest y-value
+- `"min"` — finds the data point with the lowest y-value
+- `"average"` — computes the mean y-value; placed at the midpoint x position
+
+**`coord`-based points** — pin at an explicit `[x, y]` coordinate. For category axes, `x` is the category string or its index.
+
+**Example — max, min, and a custom coordinate:**
+
+```ts
+{
+  type: "line",
+  data: [820, 932, 901, 934, 1290, 1330, 1320],
+  markPoint: {
+    data: [
+      { type: "max", name: "Peak" },
+      { type: "min", name: "Trough" },
+      { name: "Target", coord: [3, 1000], symbolSize: 30 },
+    ],
+  },
+}
+```
+
+**Custom symbol:**
+
+```ts
+markPoint: {
+  data: [
+    { type: "max", symbol: "pin", symbolSize: 40 },
+    { type: "min", symbol: "circle", symbolSize: 20 },
+  ],
+}
+```
+
+---
+
+## markLine
+
+Renders a horizontal or vertical reference line across the chart area.
+
+```ts
+interface MarkLineData {
+  type?: "max" | "min" | "average",
+  xAxis?: number | string,
+  yAxis?: number | string,
+  name?: string,
+}
+
+markLine: {
+  data: MarkLineData[],
+}
+```
+
+- `type: "max"` — horizontal line at the series maximum
+- `type: "min"` — horizontal line at the series minimum
+- `type: "average"` — horizontal dashed line at the series mean
+- `yAxis` — horizontal line at a specific y-value
+- `xAxis` — vertical line at a specific x-value (category string or index)
+
+All mark lines render as dashed lines.
+
+**Example — average line and a fixed threshold:**
+
+```ts
+{
+  type: "bar",
+  data: [120, 200, 150, 80, 70, 110, 130],
+  markLine: {
+    data: [
+      { type: "average", name: "Avg" },
+      { yAxis: 100, name: "Threshold" },
+    ],
+  },
+}
+```
+
+**Vertical line at a category:**
+
+```ts
+{
+  type: "line",
+  data: [820, 932, 901, 934, 1290, 1330, 1320],
+  markLine: {
+    data: [
+      { xAxis: 4, name: "Inflection" },
+    ],
+  },
+}
+```
+
+---
+
+## markArea
+
+Renders a shaded rectangle between two boundary points.
+
+```ts
+type MarkAreaPoint = {
+  xAxis?: number | string,
+  yAxis?: number | string,
+}
+
+markArea: {
+  data: [[MarkAreaPoint, MarkAreaPoint], ...],
+}
+```
+
+Each entry is a pair `[startPoint, endPoint]`. Use `xAxis` to shade a range of x-values, or `yAxis` to shade a horizontal band.
+
+**Example — shade a range of categories:**
+
+```ts
+{
+  type: "line",
+  data: [820, 932, 901, 934, 1290, 1330, 1320],
+  markArea: {
+    data: [
+      [{ xAxis: 1 }, { xAxis: 3 }],
+    ],
+  },
+}
+```
+
+**Horizontal band between two y-values:**
+
+```ts
+markArea: {
+  data: [
+    [{ yAxis: 800 }, { yAxis: 1000 }],
+  ],
+}
+```
+
+**Multiple shaded regions:**
+
+```ts
+markArea: {
+  data: [
+    [{ xAxis: 0 }, { xAxis: 2 }],
+    [{ xAxis: 5 }, { xAxis: 6 }],
+  ],
+}
+```
+
+---
+
+## Combining marks
+
+All three mark types can coexist on the same series.
+
+```ts
+{
+  type: "line",
+  name: "Revenue",
+  data: [820, 932, 901, 934, 1290, 1330, 1320],
+  markPoint: {
+    data: [
+      { type: "max", name: "Max" },
+      { type: "min", name: "Min" },
+    ],
+  },
+  markLine: {
+    data: [
+      { type: "average", name: "Avg" },
+      { yAxis: 1000, name: "Target" },
+    ],
+  },
+  markArea: {
+    data: [
+      [{ xAxis: 4 }, { xAxis: 6 }],
+    ],
+  },
+}
+```
 
 ### series.md
 
