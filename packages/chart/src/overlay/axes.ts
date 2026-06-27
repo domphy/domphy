@@ -40,12 +40,16 @@ function svgLine(x1: number, y1: number, x2: number, y2: number, attrs: Record<s
 
 // ─── Axis rendering ───────────────────────────────────────────────────────────
 
-export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions): void {
+export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions, gridSvg?: SVGSVGElement): void {
   // Remove any existing axes group
   const old = svg.querySelector(".dc-axes");
   if (old) old.remove();
+  const oldGrid = (gridSvg ?? svg).querySelector(".dc-axes-grid");
+  if (oldGrid) oldGrid.remove();
 
   const group = svgEl("g", { class: "dc-axes" });
+  // Grid lines go into gridSvg (behind canvas) to avoid covering WebGL data
+  const gridGroup = svgEl("g", { class: "dc-axes-grid" });
 
   const { gridRect, xAxes, yAxes, xScales, yScales, width, height } = options;
   const gridColor = colorGrid();
@@ -86,7 +90,7 @@ export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions): void {
       if (tickX < gridRect.x || tickX > gridRect.x + gridRect.width) continue;
 
       if (axis.splitLine?.show !== false) {
-        group.appendChild(svgLine(
+        gridGroup.appendChild(svgLine(
           tickX, gridRect.y,
           tickX, gridRect.y + gridRect.height,
           { stroke: gridColor, "stroke-width": 1, "stroke-dasharray": "none" },
@@ -157,7 +161,7 @@ export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions): void {
       if (tickY < gridRect.y || tickY > gridRect.y + gridRect.height) continue;
 
       if (axis.splitLine?.show !== false) {
-        group.appendChild(svgLine(
+        gridGroup.appendChild(svgLine(
           gridRect.x, tickY,
           gridRect.x + gridRect.width, tickY,
           { stroke: gridColor, "stroke-width": 1 },
@@ -200,6 +204,7 @@ export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions): void {
   });
 
   svg.appendChild(group);
+  (gridSvg ?? svg).appendChild(gridGroup);
 }
 
 export function renderAxisPointer(

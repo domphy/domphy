@@ -31,6 +31,7 @@ import { seriesHex } from "./gl/color.js";
 export class ChartEngine {
   private container: HTMLElement;
   private canvas: HTMLCanvasElement;
+  private backsvg: SVGSVGElement;
   private overlaysvg: SVGSVGElement;
   private device: Device | null = null;
   private option: ChartOption | null = null;
@@ -60,6 +61,12 @@ export class ChartEngine {
 
   constructor(container: HTMLElement) {
     this.container = container;
+
+    // Background SVG (behind WebGL canvas) — for grid lines only
+    const backsvg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
+    backsvg.style.cssText = "position:absolute;top:0;left:0;pointer-events:none;overflow:visible;";
+    container.appendChild(backsvg);
+    this.backsvg = backsvg;
 
     const canvas = document.createElement("canvas");
     canvas.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
@@ -98,6 +105,8 @@ export class ChartEngine {
     this.canvas.style.height = `${height}px`;
     // Sync luma.gl's drawingBufferWidth/Height so beginRenderPass doesn't reset canvas dims
     (this.device as any)?.canvasContext?.setDrawingBufferSize?.(physW, physH);
+    this.backsvg.setAttribute("width", String(width));
+    this.backsvg.setAttribute("height", String(height));
     this.overlaysvg.setAttribute("width", String(width));
     this.overlaysvg.setAttribute("height", String(height));
   }
@@ -168,7 +177,7 @@ export class ChartEngine {
       yScales: grid.yScales,
       width,
       height,
-    });
+    }, this.backsvg);
 
     const titles = Array.isArray(option.title) ? option.title : option.title ? [option.title] : [];
     for (const title of titles) renderTitle(this.overlaysvg, title);

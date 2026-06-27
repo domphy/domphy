@@ -16608,8 +16608,10 @@ in float vSide;
 out vec4 fragColor;
 
 void main() {
-  // vSide interpolates -1 \u2192 +1 across the line width; fade outer ~0.5px for AA
-  float edge = 1.0 - smoothstep(0.85, 1.0, abs(vSide));
+  float d = abs(vSide);
+  // fwidth gives derivative per pixel \u2192 exactly 1px AA regardless of line width
+  float aa = fwidth(d);
+  float edge = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, d);
   fragColor = vec4(vColor.rgb, vColor.a * edge);
 }
 `
@@ -18326,10 +18328,13 @@ function svgText(content, x, y, attrs = {}) {
 function svgLine(x1, y1, x2, y2, attrs = {}) {
   return svgEl("line", { x1, y1, x2, y2, ...attrs });
 }
-function renderAxes(svg, options) {
+function renderAxes(svg, options, gridSvg) {
   const old = svg.querySelector(".dc-axes");
   if (old) old.remove();
+  const oldGrid = (gridSvg ?? svg).querySelector(".dc-axes-grid");
+  if (oldGrid) oldGrid.remove();
   const group = svgEl("g", { class: "dc-axes" });
+  const gridGroup = svgEl("g", { class: "dc-axes-grid" });
   const { gridRect, xAxes, yAxes, xScales, yScales, width, height } = options;
   const gridColor = colorGrid();
   const axisColor = colorAxis();
@@ -18359,7 +18364,7 @@ function renderAxes(svg, options) {
       const tickX = scale.map(tick);
       if (tickX < gridRect.x || tickX > gridRect.x + gridRect.width) continue;
       if (axis.splitLine?.show !== false) {
-        group.appendChild(svgLine(
+        gridGroup.appendChild(svgLine(
           tickX,
           gridRect.y,
           tickX,
@@ -18425,7 +18430,7 @@ function renderAxes(svg, options) {
       const tickY = scale.map(tick);
       if (tickY < gridRect.y || tickY > gridRect.y + gridRect.height) continue;
       if (axis.splitLine?.show !== false) {
-        group.appendChild(svgLine(
+        gridGroup.appendChild(svgLine(
           gridRect.x,
           tickY,
           gridRect.x + gridRect.width,
@@ -18468,6 +18473,7 @@ function renderAxes(svg, options) {
     }
   });
   svg.appendChild(group);
+  (gridSvg ?? svg).appendChild(gridGroup);
 }
 function renderAxisPointer(svg, pixelX, pixelY, gridRect, type = "line") {
   const old = svg.querySelector(".dc-pointer");
@@ -19989,6 +19995,10 @@ var ChartEngine = class {
     this.dataZoomCleanup = null;
     this.insideZoomCleanup = null;
     this.container = container;
+    const backsvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    backsvg.style.cssText = "position:absolute;top:0;left:0;pointer-events:none;overflow:visible;";
+    container.appendChild(backsvg);
+    this.backsvg = backsvg;
     const canvas = document.createElement("canvas");
     canvas.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
     canvas.setAttribute("aria-hidden", "true");
@@ -20021,6 +20031,8 @@ var ChartEngine = class {
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
     this.device?.canvasContext?.setDrawingBufferSize?.(physW, physH);
+    this.backsvg.setAttribute("width", String(width));
+    this.backsvg.setAttribute("height", String(height));
     this.overlaysvg.setAttribute("width", String(width));
     this.overlaysvg.setAttribute("height", String(height));
   }
@@ -20072,7 +20084,7 @@ var ChartEngine = class {
       yScales: grid2.yScales,
       width,
       height
-    });
+    }, this.backsvg);
     const titles = Array.isArray(option.title) ? option.title : option.title ? [option.title] : [];
     for (const title of titles) renderTitle(this.overlaysvg, title);
     const legends = Array.isArray(option.legend) ? option.legend : option.legend ? [option.legend] : [];
