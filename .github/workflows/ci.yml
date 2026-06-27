@@ -33,6 +33,14 @@ jobs:
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-pnpm-
 
+      - name: Configure GitHub Package Registry auth
+        run: |
+          echo "@huukhanhnguyen:registry=https://npm.pkg.github.com/" >> .npmrc
+          echo "@khanhnhkts:registry=https://npm.pkg.github.com/" >> .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}" >> .npmrc
+        env:
+          GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
