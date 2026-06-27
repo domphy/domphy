@@ -152,6 +152,7 @@ interface LineSeriesOption {
   
   // Area
   areaStyle?: {
+    color?: ThemeFamily | GradientObject  // solid theme family or gradient (see Gradient section)
     opacity?: number               // default 0.2
     origin?: "auto" | "start" | "end" | number
   }
@@ -774,6 +775,48 @@ const AUTO_SERIES_COLOR: ThemeFamily[] = [
 
 ---
 
+## Gradient fills
+
+Area series support gradient fills via `AreaStyleOption.color`:
+
+```ts
+interface ColorStop {
+  offset: number    // 0–1
+  color: string     // any CSS color string
+}
+
+interface LinearGradient {
+  type: "linear"
+  x: number; y: number; x2: number; y2: number  // 0–1, bounding-box fractions
+  colorStops: ColorStop[]
+  global?: boolean  // interpret coords in global SVG space instead of element bbox
+}
+
+interface RadialGradient {
+  type: "radial"
+  x: number; y: number; r: number  // center + radius, 0–1 fractions
+  colorStops: ColorStop[]
+  global?: boolean
+}
+
+type GradientObject = LinearGradient | RadialGradient
+
+// Usage:
+areaStyle: {
+  color: {
+    type: "linear", x: 0, y: 0, x2: 0, y2: 1,
+    colorStops: [
+      { offset: 0, color: "rgba(99,102,241,0.8)" },
+      { offset: 1, color: "rgba(99,102,241,0.05)" },
+    ],
+  },
+}
+```
+
+All four types are exported from `@domphy/chart`.
+
+---
+
 ## Marks
 
 ```ts
@@ -894,9 +937,10 @@ Axes: `value`, `category`, `time`
 Color: full cascade system  
 Animation: enter/update for all 5 series  
 
-## Phase 2
+## Phase 2 (shipped)
 
-Series: `heatmap`, `candlestick`, `boxplot`, `gauge`, `treemap`, `funnel`  
+Series: `heatmap`, `candlestick`, `boxplot`, `gauge`, `treemap`, `funnel`, `sankey`, `graph`  
+Gradient area fills (`GradientObject` — linear + radial)  
 Components: `dataZoom`, `visualMap`, `toolbox`, `brush`  
 Axes: `log`  
 Dataset + transforms  
@@ -904,6 +948,6 @@ Mark point/line/area
 
 ## Phase 3
 
-Series: `sankey`, `graph`, `custom`  
+Series: `custom`  
 Calendar coordinate system  
 Geo/map (if needed)  

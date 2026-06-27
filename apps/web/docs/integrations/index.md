@@ -53,7 +53,7 @@ Domphy ships first-party packages for capabilities that benefit from tight Domph
 | i18n | [`@domphy/i18n`](/docs/i18n/) — reactive i18next wrapper with typed keys |
 | drag & drop | `@domphy/dnd` |
 | animation | the `motion()` patch (`@domphy/ui`) |
-| charts | **vanilla** Chart.js / ECharts / D3 |
+| charts | [`@domphy/chart`](/docs/chart/) — line, bar, pie, scatter, radar, heatmap, candlestick, boxplot, gauge, treemap, funnel, sankey, graph; or **vanilla** Chart.js / ECharts / D3 via lifecycle hooks |
 | rich text | **vanilla** TipTap / ProseMirror / Lexical (framework-agnostic cores) |
 | carousel | **vanilla** embla-carousel (its core is framework-agnostic) |
 | dates | **vanilla** dayjs / date-fns / flatpickr |

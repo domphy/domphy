@@ -1,6 +1,8 @@
 # Chart.js
 
-There is no `@domphy/chart` — charts are a solved vanilla problem. Use [Chart.js](https://www.chartjs.org/) (or ECharts / D3) directly through Domphy's lifecycle hooks. The same pattern applies to any canvas/SVG visualization library.
+> **Note:** Domphy now ships [`@domphy/chart`](/docs/chart/) — a built-in chart package (ECharts-grade: line, bar, pie, scatter, radar, heatmap, candlestick, boxplot, gauge, treemap, funnel, sankey, graph). Use it for new projects. This page covers integrating Chart.js directly via lifecycle hooks — useful when you need Chart.js-specific features or are migrating an existing Chart.js codebase.
+
+Use [Chart.js](https://www.chartjs.org/) directly through Domphy's lifecycle hooks. The same pattern applies to any canvas/SVG visualization library.
 
 ```bash
 npm install chart.js
