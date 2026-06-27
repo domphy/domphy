@@ -1935,6 +1935,85 @@ export interface Surface3DSeriesOption {
   silent?: boolean;
 }
 
+// ─── Lines (flow map) ────────────────────────────────────────────────────────
+export interface LinesDataItem {
+  coords: [[number, number], [number, number]]; // [[fromLng, fromLat], [toLng, toLat]]
+  name?: string;
+  lineStyle?: LineStyleOption;
+  effect?: { show?: boolean };
+}
+
+export interface LinesSeriesOption {
+  type: "lines";
+  id?: string;
+  name?: string;
+  coordinateSystem?: "geo" | "cartesian2d";
+  geoIndex?: number;
+  data?: LinesDataItem[];
+  lineStyle?: LineStyleOption;
+  effect?: {
+    show?: boolean;
+    period?: number;
+    symbol?: SymbolType;
+    symbolSize?: number;
+    color?: string;
+    trailLength?: number;
+  };
+  color?: ThemeFamily;
+  large?: boolean;
+  z?: number;
+  zlevel?: number;
+  silent?: boolean;
+}
+
+// ─── EffectScatter ────────────────────────────────────────────────────────────
+export interface EffectScatterSeriesOption {
+  type: "effectScatter";
+  id?: string;
+  name?: string;
+  coordinateSystem?: "cartesian2d" | "geo";
+  xAxisIndex?: number;
+  yAxisIndex?: number;
+  geoIndex?: number;
+  data?: [number, number][] | [number, number, number][];
+  symbolSize?: number | ((val: number[]) => number);
+  rippleEffect?: {
+    period?: number;
+    scale?: number;
+    brushType?: "fill" | "stroke";
+  };
+  showEffectOn?: "render" | "emphasis";
+  color?: ThemeFamily;
+  z?: number;
+  zlevel?: number;
+  silent?: boolean;
+}
+
+// ─── PictorialBar ────────────────────────────────────────────────────────────
+export interface PictorialBarSeriesOption {
+  type: "pictorialBar";
+  id?: string;
+  name?: string;
+  xAxisIndex?: number;
+  yAxisIndex?: number;
+  data?: (number | { value: number; name?: string; itemStyle?: ItemStyleOption })[];
+  symbol?: SymbolType | `path://${string}`;
+  symbolSize?: number | [number, number];
+  symbolRepeat?: boolean | number;
+  symbolOffset?: [string | number, string | number];
+  symbolRotate?: number;
+  symbolClip?: boolean;
+  barWidth?: number | string;
+  barGap?: string;
+  barCategoryGap?: string;
+  color?: ThemeFamily;
+  label?: LabelOption;
+  itemStyle?: ItemStyleOption;
+  z?: number;
+  zlevel?: number;
+  silent?: boolean;
+}
+
 export type SeriesOption =
   | LineSeriesOption
   | BarSeriesOption
@@ -1953,6 +2032,9 @@ export type SeriesOption =
   | ParallelSeriesOption
   | ThemeRiverSeriesOption
   | MapSeriesOption
+  | LinesSeriesOption
+  | EffectScatterSeriesOption
+  | PictorialBarSeriesOption
   | Scatter3DSeriesOption
   | Bar3DSeriesOption
   | Line3DSeriesOption

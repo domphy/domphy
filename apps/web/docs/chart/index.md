@@ -81,6 +81,9 @@ The chart re-renders whenever the state changes.
 | `parallel` | multi-dim polylines across `parallelAxis[]` |
 | `themeRiver` | stream graph; `data: [[time, value, name], ...]` |
 | `map` | choropleth; `geo` + `registerMap(name, geoJSON)` |
+| `lines` | flow map arcs; `data: [{coords: [[lng,lat],[lng,lat]]}]`, optional `effect` dot animation |
+| `effectScatter` | scatter with SVG ripple animation; `rippleEffect: {period, scale, brushType}` |
+| `pictorialBar` | bar with symbol shapes; `symbol`, `symbolRepeat`, `symbolClip` |
 | `custom` | `renderItem(params, api)` returns SVG element descriptor |
 
 **3D (SVG perspective projection):**

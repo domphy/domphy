@@ -33,9 +33,9 @@ description: "Detailed feature comparison between @domphy/chart and Apache EChar
 | Geo coordinate | ✓ | ✓ |
 | Polar coordinate | ✓ | ✓ |
 | ThemeRiver (multi-series) | ✓ | ✓ |
-| Lines (flow map) | — | ✓ |
-| EffectScatter | — | ✓ |
-| PictorialBar | — | ✓ |
+| Lines (flow map) | ✓ (SVG + animateMotion) | ✓ |
+| EffectScatter | ✓ (SVG ripple animation) | ✓ |
+| PictorialBar | ✓ (SVG symbol repeat/clip) | ✓ |
 
 ## Architecture
 

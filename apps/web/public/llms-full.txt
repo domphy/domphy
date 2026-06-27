@@ -21430,6 +21430,9 @@ The chart re-renders whenever the state changes.
 | `parallel` | multi-dim polylines across `parallelAxis[]` |
 | `themeRiver` | stream graph; `data: [[time, value, name], ...]` |
 | `map` | choropleth; `geo` + `registerMap(name, geoJSON)` |
+| `lines` | flow map arcs; `data: [{coords: [[lng,lat],[lng,lat]]}]`, optional `effect` dot animation |
+| `effectScatter` | scatter with SVG ripple animation; `rippleEffect: {period, scale, brushType}` |
+| `pictorialBar` | bar with symbol shapes; `symbol`, `symbolRepeat`, `symbolClip` |
 | `custom` | `renderItem(params, api)` returns SVG element descriptor |
 
 **3D (SVG perspective projection):**
@@ -21984,6 +21987,116 @@ Renders a 3D surface from a structured grid of `[x, y, z]` points. Z-value is ma
 }
 ```
 
+---
+
+## Lines (flow map)
+
+Draws curved arcs between coordinate pairs on a geo map. Useful for migration flows, flight routes, or any directed relationship between locations.
+
+Requires `geo` in the option and a registered map (see [Map / choropleth](#map-choropleth)).
+
+```ts
+import { registerMap } from "@domphy/chart"
+
+registerMap("world", worldGeoJSON)
+
+{
+  geo: { map: "world" },
+  series: [{
+    type: "lines",
+    coordinateSystem: "geo",
+    data: [
+      { coords: [[-87.6, 41.8], [-118.2, 34.0]], name: "Chicago → LA" },
+      { coords: [[-74.0, 40.7], [-122.4, 37.8]], name: "NYC → SF" },
+    ],
+    lineStyle: { width: 1.5, opacity: 0.7 },
+    // Animated dot moving along each line:
+    effect: {
+      show: true,
+      period: 3,      // seconds per traversal
+      symbolSize: 6,
+    },
+    color: "primary",
+  }],
+}
+```
+
+Without `effect.show`, lines render as static bezier curves. With it, a dot animates along each arc using SVG `animateMotion`.
+
+---
+
+## EffectScatter
+
+Scatter chart where each point has a ripple pulse animation. Good for highlighting locations on a geo map or drawing attention to specific data points.
+
+```ts
+// On a geo map:
+{
+  geo: { map: "world" },
+  series: [{
+    type: "effectScatter",
+    coordinateSystem: "geo",
+    data: [
+      [116.4, 39.9],   // [lng, lat] — Beijing
+      [-74.0, 40.7],   // New York
+      [2.3, 48.9],     // Paris
+    ],
+    symbolSize: 12,
+    rippleEffect: {
+      period: 2,       // seconds per ripple cycle
+      scale: 4,        // ripple expands to 4× symbol size
+      brushType: "fill",
+    },
+    color: "primary",
+  }],
+}
+
+// On cartesian axes:
+{
+  xAxis: { type: "value" },
+  yAxis: { type: "value" },
+  series: [{
+    type: "effectScatter",
+    data: [[10, 80], [20, 60], [30, 90]],
+    symbolSize: (val) => val[1] / 5,
+    rippleEffect: { scale: 3 },
+  }],
+}
+```
+
+---
+
+## PictorialBar
+
+Bar chart where each bar is replaced by a repeating or scaled SVG symbol.
+
+```ts
+{
+  xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu"] },
+  yAxis: { type: "value" },
+  series: [{
+    type: "pictorialBar",
+    symbol: "circle",      // "circle" | "rect" | "triangle" | "diamond" | "arrow" | "pin" | "path://..."
+    symbolSize: [18, 18],  // [width, height]
+    symbolRepeat: true,    // stack symbols to fill bar height
+    symbolClip: true,      // clip last symbol to exact value
+    data: [4, 7, 3, 9],
+    color: "primary",
+  }],
+}
+```
+
+**Custom SVG path:**
+```ts
+{
+  type: "pictorialBar",
+  symbol: "path://M0,-10 L3,-3 L10,-3 L4,2 L6,10 L0,5 L-6,10 L-4,2 L-10,-3 L-3,-3 Z",  // star
+  symbolSize: [20, 20],
+  symbolRepeat: 5,    // show exactly 5 symbols per bar, scale to bar height
+  data: [3, 5, 2, 4],
+}
+```
+
 ### vs-echarts.md
 
 ---
@@ -22021,9 +22134,9 @@ description: "Detailed feature comparison between @domphy/chart and Apache EChar
 | Geo coordinate | ✓ | ✓ |
 | Polar coordinate | ✓ | ✓ |
 | ThemeRiver (multi-series) | ✓ | ✓ |
-| Lines (flow map) | — | ✓ |
-| EffectScatter | — | ✓ |
-| PictorialBar | — | ✓ |
+| Lines (flow map) | ✓ (SVG + animateMotion) | ✓ |
+| EffectScatter | ✓ (SVG ripple animation) | ✓ |
+| PictorialBar | ✓ (SVG symbol repeat/clip) | ✓ |
 
 ## Architecture
 

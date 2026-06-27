@@ -30,6 +30,7 @@ import type {
   CalendarOption, ParallelOption, ParallelAxisOption, ParallelSeriesOption,
   ThemeRiverSeriesOption, GeoOption, MapSeriesOption,
   Grid3DOption, Axis3DOption, Scatter3DSeriesOption, Bar3DSeriesOption, Line3DSeriesOption, Surface3DSeriesOption,
+  LinesSeriesOption, EffectScatterSeriesOption, PictorialBarSeriesOption,
 } from "./types.js";
 import { seriesHex } from "./gl/color.js";
 import { renderCalendar } from "./overlay/calendar.js";
@@ -37,6 +38,9 @@ import { renderParallel } from "./overlay/parallel.js";
 import { renderThemeRiver } from "./overlay/themeriver.js";
 import { renderGeoMap } from "./overlay/geomap.js";
 import { renderGrid3D } from "./gl/Renderer3D.js";
+import { renderLines } from "./overlay/lines.js";
+import { renderEffectScatter } from "./overlay/effectscatter.js";
+import { renderPictorialBar } from "./overlay/pictorialbar.js";
 
 // Accumulate y-values for line series sharing the same stack name.
 // Each stacked series receives the sum of all previous series at the same data index.
@@ -408,6 +412,24 @@ export class ChartEngine {
     const geoScatter = series.filter((s): s is any => s.type === "scatter" && (s as any).coordinateSystem === "geo");
     if (geos.length > 0 || mapSeries.length > 0) {
       renderGeoMap(this.overlaysvg, geos, mapSeries, geoScatter, visualMaps, width, height);
+    }
+
+    // Lines (flow map)
+    const linesSeries = series.filter((s): s is LinesSeriesOption => s.type === "lines");
+    if (linesSeries.length > 0) {
+      renderLines(this.overlaysvg, geos, linesSeries, width, height);
+    }
+
+    // EffectScatter
+    const effectScatterSeries = series.filter((s): s is EffectScatterSeriesOption => s.type === "effectScatter");
+    if (effectScatterSeries.length > 0) {
+      renderEffectScatter(this.overlaysvg, effectScatterSeries, grid.xScales, grid.yScales, geos, width, height, this.hiddenSeries);
+    }
+
+    // PictorialBar
+    const pictorialBarSeries = series.filter((s): s is PictorialBarSeriesOption => s.type === "pictorialBar");
+    if (pictorialBarSeries.length > 0) {
+      renderPictorialBar(this.overlaysvg, pictorialBarSeries, grid.xScales, grid.yScales, this.hiddenSeries);
     }
 
     // 3D charts
