@@ -3,15 +3,73 @@ import { findTag, isPlainObject, VOID } from "./shared.js";
 
 export type Severity = "error" | "warning" | "info";
 
+/**
+ * Broad structural category for a rule. Mirrors Biome's lint category model.
+ * Built-in rules always set this; custom rules may omit it.
+ */
+export type RuleCategory =
+  | "structure" // void-content, unknown-tag
+  | "key" // missing-key, duplicate-key, unstable-key
+  | "theme" // raw-theme-value, raw-spacing-value
+  | "typography" // inline-typography
+  | "data-attr"; // unknown-tone, middle-surface-anchor, unknown-density, unknown-size
+
 export interface Diagnostic {
   /** Rule id, e.g. "inline-typography". */
   rule: string;
   severity: Severity;
+  /**
+   * Broad structural category. Built-in rules always set this.
+   * Custom rules may omit it.
+   */
+  category?: RuleCategory;
   /** Human path to the offending node, e.g. "div > ul > li". */
   path: string;
   message: string;
   /** How to fix it. */
   hint?: string;
+}
+
+/**
+ * A custom rule that extends the doctor with project-specific checks.
+ * Custom rules run alongside the 12 built-in rules; their ids must not
+ * clash with any built-in id.
+ *
+ * @example
+ * ```ts
+ * const noEmptyContent: CustomRule = {
+ *   id: "no-empty-content",
+ *   severity: "warning",
+ *   category: "structure",
+ *   check: (element, path, tag) => {
+ *     if (element[tag] === "") {
+ *       return [{ message: `Empty string on <${tag}> — use null or text.` }]
+ *     }
+ *     return []
+ *   },
+ * }
+ *
+ * diagnose(tree, { rules: [noEmptyContent] })
+ * ```
+ */
+export interface CustomRule {
+  /** Unique id shown in diagnostics. Must not clash with any built-in rule id. */
+  id: string;
+  /** Default severity for violations produced by this rule. */
+  severity: Severity;
+  /** Category for display and filtering. Optional. */
+  category?: RuleCategory;
+  /**
+   * Called once per element node (nodes that have a valid HTML/SVG tag).
+   * Return an array of violation descriptors. The engine fills in `rule`,
+   * `severity`, `category`, and `path`; provide `message` and optionally
+   * `hint`. Pass `severity` in the descriptor to override the rule default.
+   */
+  check: (
+    element: Record<string, unknown>,
+    path: string,
+    tag: string,
+  ) => Array<{ message: string; hint?: string; severity?: Severity }>;
 }
 
 export interface DiagnoseOptions {
@@ -21,6 +79,23 @@ export interface DiagnoseOptions {
    * Set false if your reactive functions have side effects.
    */
   runReactive?: boolean;
+  /**
+   * If set, only emit diagnostics whose rule id is in this list.
+   * Takes precedence over `exclude`.
+   * Applies to both built-in and custom rules.
+   */
+  only?: string[];
+  /**
+   * Rule ids to skip entirely.
+   * Ignored when `only` is also set.
+   * Applies to both built-in and custom rules.
+   */
+  exclude?: string[];
+  /**
+   * Additional custom rules to run alongside the 12 built-in rules.
+   * Custom rule ids are also subject to `only`/`exclude` filtering.
+   */
+  rules?: CustomRule[];
 }
 
 const RESERVED = new Set([
@@ -30,6 +105,7 @@ const RESERVED = new Set([
   "_portal",
   "_context",
   "_metadata",
+  "_doctorDisable", // suppress annotation — treated as metadata, not a tag candidate
 ]);
 
 // Typography style properties that must not be set inline — use patches instead.
@@ -57,6 +133,38 @@ const COLOR_STYLE = new Set([
   "outline",
   "fill",
   "stroke",
+]);
+
+// Direct (non-shorthand) color-only style properties. For these, ANY plain
+// string value that is not a CSS function or semantic keyword is treated as a
+// raw color — not just hex/rgb, but also named CSS colors like "red" or "white"
+// that agents frequently write instead of themeColor().
+const DIRECT_COLOR_PROPS = new Set([
+  "color",
+  "fill",
+  "stroke",
+  "backgroundColor",
+  "outlineColor",
+  "borderColor",
+  "caretColor",
+  "accentColor",
+  "columnRuleColor",
+  "textDecorationColor",
+]);
+
+// CSS keyword values that carry no color meaning. These must never be flagged
+// even though they appear on color properties.
+const CSS_SEMANTIC_VALUES = new Set([
+  "transparent",
+  "currentcolor",
+  "inherit",
+  "initial",
+  "unset",
+  "none",
+  "auto",
+  "revert",
+  "revert-layer",
+  "",
 ]);
 
 // A literal color value: hex (#rgb … #rrggbbaa) or an rgb()/rgba()/hsl()/hsla()
@@ -229,6 +337,49 @@ function buildSpacingHint(prop: string, value: string): string | null {
   return `${prop}: themeSpacing(${n})  — themeSpacing(n)=n/4em, so ${n}/4=${n / 4}em ≈ ${value} at default density`;
 }
 
+// ─── Suppress helper ─────────────────────────────────────────────────────────
+
+/**
+ * Applies `_doctorDisable` filtering. `elementDiags` are diagnostics produced
+ * directly by this element's checks (always subject to suppression). `contentDiags`
+ * are diagnostics produced by walking the element's reactive content (array-level
+ * rules like missing-key fire at the element's path, so they are also suppressed
+ * when they match `here`; deeper-nested diagnostics pass through unconditionally).
+ */
+function applyDisable(
+  disable: unknown,
+  elementDiags: Diagnostic[],
+  contentDiags: Diagnostic[],
+  here: string,
+  out: Diagnostic[],
+): void {
+  if (disable === true) {
+    // Suppress all diagnostics at this path (element-level + array-level).
+    // Let diagnostics from deeper nodes through unconditionally.
+    for (const d of contentDiags) {
+      if (d.path !== here) out.push(d);
+    }
+    return;
+  }
+  if (disable !== undefined && disable !== null && disable !== false) {
+    const disabled = new Set(
+      Array.isArray(disable) ? (disable as string[]) : [String(disable)],
+    );
+    for (const d of elementDiags) {
+      if (!disabled.has(d.rule)) out.push(d);
+    }
+    for (const d of contentDiags) {
+      // Only suppress at THIS element's path; deeper diagnostics pass through.
+      if (d.path === here && disabled.has(d.rule)) continue;
+      out.push(d);
+    }
+    return;
+  }
+  // No disable — pass everything through.
+  out.push(...elementDiags);
+  out.push(...contentDiags);
+}
+
 // ─── Tree walkers ─────────────────────────────────────────────────────────────
 
 /** Statically analyzes a Domphy element tree and returns idiomatic-usage diagnostics. */
@@ -237,7 +388,19 @@ export function diagnose(
   options: DiagnoseOptions = {},
 ): Diagnostic[] {
   const out: Diagnostic[] = [];
-  walk(root, "", out, false, options.runReactive !== false);
+  walk(root, "", out, false, options);
+
+  // Apply only/exclude post-filter (covers both built-in and custom rule ids).
+  // `only` being set (even empty) activates whitelist mode: only listed rule ids pass.
+  if (options.only !== undefined) {
+    if (options.only.length === 0) return [];
+    const only = new Set(options.only);
+    return out.filter((d) => only.has(d.rule));
+  }
+  if (options.exclude && options.exclude.length > 0) {
+    const exclude = new Set(options.exclude);
+    return out.filter((d) => !exclude.has(d.rule));
+  }
   return out;
 }
 
@@ -246,8 +409,10 @@ function walk(
   path: string,
   out: Diagnostic[],
   dynamic: boolean,
-  runReactive: boolean,
+  options: DiagnoseOptions,
 ): void {
+  const runReactive = options.runReactive !== false;
+
   if (typeof node === "function") {
     if (!runReactive) return;
     let result: unknown;
@@ -256,7 +421,7 @@ function walk(
     } catch {
       return; // reactive fn threw without a real runtime — skip
     }
-    walk(result, path, out, true, runReactive);
+    walk(result, path, out, true, options);
     return;
   }
 
@@ -273,6 +438,7 @@ function walk(
         out.push({
           rule: "missing-key",
           severity: "warning",
+          category: "key",
           path: path || "(list)",
           message:
             "Dynamic list child without `_key` — reordered/keyed lists need a stable `_key` for correct reconcile.",
@@ -291,6 +457,7 @@ function walk(
         out.push({
           rule: "unstable-key",
           severity: "warning",
+          category: "key",
           path: path || "(list)",
           message:
             "Dynamic list `_key` values are the array index (0, 1, 2, …) — index keys are unstable across reorders/inserts.",
@@ -313,6 +480,7 @@ function walk(
         out.push({
           rule: "duplicate-key",
           severity: "error",
+          category: "key",
           path: path || "(list)",
           message: `Duplicate \`_key\` "${value}" among ${count} siblings — keys must be unique within a list.`,
           hint: "Give each sibling a distinct stable `_key` (e.g. a record id, not a constant).",
@@ -321,7 +489,7 @@ function walk(
     }
 
     node.forEach((child, index) => {
-      walk(child, `${path}[${index}]`, out, false, runReactive);
+      walk(child, `${path}[${index}]`, out, false, options);
     });
     return;
   }
@@ -331,6 +499,10 @@ function walk(
   const element = node;
   const tag = findTag(element);
   const here = tag ? (path ? `${path} > ${tag}` : tag) : path || "(root)";
+
+  // Collect element-level diagnostics in a local buffer so `_doctorDisable`
+  // can filter them before they reach `out`.
+  const elementDiags: Diagnostic[] = [];
 
   if (!tag) {
     const contentKeys = Object.keys(element).filter(
@@ -342,23 +514,26 @@ function walk(
         !key.startsWith("aria"),
     );
     if (contentKeys.length === 1) {
-      out.push({
+      elementDiags.push({
         rule: "unknown-tag",
         severity: "warning",
+        category: "structure",
         path: here,
         message: `"${contentKeys[0]}" is not a known HTML/SVG tag — likely a typo.`,
         hint: "An element's first key must be a valid tag (div, button, span, …).",
       });
     }
+    applyDisable(element._doctorDisable, elementDiags, [], here, out);
     return;
   }
 
   const content = element[tag];
 
   if (VOID.has(tag) && content !== null && content !== undefined) {
-    out.push({
+    elementDiags.push({
       rule: "void-content",
       severity: "error",
+      category: "structure",
       path: here,
       message: `Void tag "${tag}" must have null content (got ${Array.isArray(content) ? "array" : typeof content}).`,
       hint: `Write { ${tag}: null, … } and put attributes as sibling keys.`,
@@ -374,9 +549,10 @@ function walk(
       // inline style. fontFamily and textDecoration were missing from the original
       // set and are added here based on bench data showing persistent violations.
       if (TYPOGRAPHY_STYLE.has(prop) && typeof value !== "function") {
-        out.push({
+        elementDiags.push({
           rule: "inline-typography",
           severity: "warning",
+          category: "typography",
           path: here,
           message: `Inline \`${prop}\` — avoid inline typography styles.`,
           hint: "Use a typography patch (paragraph()/heading()/small()/strong()/…) via $ so the theme owns the type scale.",
@@ -400,12 +576,36 @@ function walk(
           ? buildColorHint(lch)
           : "(l) => themeColor(l, tone, colorName)";
 
-        out.push({
+        elementDiags.push({
           rule: "raw-theme-value",
           severity: "info",
+          category: "theme",
           path: here,
           message: `Inline \`${prop}\` uses a literal color (${value}).`,
           hint: `Prefer a theme token — ${colorHint} — so theming and dark mode apply.`,
+        });
+      }
+
+      // raw-theme-value (named colors): for direct color-only properties, also
+      // flag CSS named colors like "red" or "white" that bypass the theme system.
+      // The hex/rgb check above misses these because LITERAL_COLOR only matches
+      // hex and function-style values. Shorthands (border, background, outline)
+      // are excluded — color extraction from shorthands is already handled above.
+      if (
+        DIRECT_COLOR_PROPS.has(prop) &&
+        typeof value === "string" &&
+        !LITERAL_COLOR.test(value) && // not already caught by the hex/rgb check
+        !value.includes("(") && // not a CSS function (var, calc, rgb, gradient…)
+        !value.startsWith("--") && // not a custom property reference
+        !CSS_SEMANTIC_VALUES.has(value.trim().toLowerCase())
+      ) {
+        elementDiags.push({
+          rule: "raw-theme-value",
+          severity: "info",
+          category: "theme",
+          path: here,
+          message: `Inline \`${prop}\` uses a CSS named color ("${value}").`,
+          hint: `CSS named colors like "${value}" bypass theming and dark mode. Prefer (l) => themeColor(l, tone, colorName) — so the theme context applies.`,
         });
       }
 
@@ -414,9 +614,10 @@ function walk(
       if (SPACING_STYLE.has(prop) && typeof value === "string") {
         const spacingHint = buildSpacingHint(prop, value);
         if (spacingHint) {
-          out.push({
+          elementDiags.push({
             rule: "raw-spacing-value",
             severity: "info",
+            category: "theme",
             path: here,
             message: `Inline \`${prop}: "${value}"\` uses a literal spacing value.`,
             hint: `Prefer themeSpacing() for theme density: ${spacingHint}`,
@@ -431,9 +632,10 @@ function walk(
   const dataTone = element.dataTone;
   if (typeof dataTone === "string") {
     if (!isValidTone(dataTone)) {
-      out.push({
+      elementDiags.push({
         rule: "unknown-tone",
         severity: "warning",
+        category: "data-attr",
         path: here,
         message: `\`dataTone\` "${dataTone}" is not a valid tone.`,
         hint: 'Use "inherit", "base", a number, or "shift-N"/"increase-N"/"decrease-N" with N ≤ 17 (the ramp has 18 steps). Words like "surface"/"text" are not tones.',
@@ -444,9 +646,10 @@ function walk(
       // between background and text. Edge anchors (0–3 light, 14–17 dark) are safe.
       const parsed = parseOffset(dataTone);
       if (parsed?.family === "shift" && parsed.n >= 4 && parsed.n <= 13) {
-        out.push({
+        elementDiags.push({
           rule: "middle-surface-anchor",
           severity: "warning",
+          category: "data-attr",
           path: here,
           message: `\`dataTone: "${dataTone}"\` uses a mid-ramp surface anchor (steps 4–13). Child tones derived from this surface may clamp and collapse contrast.`,
           hint: "Prefer edge anchors: shift-0–3 for light surfaces, shift-14–17 for dark. Mid anchors are only correct for intentionally inverted/highlighted regions.",
@@ -461,17 +664,19 @@ function walk(
   if (typeof dataDensity === "string" && dataDensity !== "inherit") {
     const parsed = parseOffset(dataDensity);
     if (!parsed || parsed.family === "shift") {
-      out.push({
+      elementDiags.push({
         rule: "unknown-density",
         severity: "warning",
+        category: "data-attr",
         path: here,
         message: `\`dataDensity\` "${dataDensity}" is not a valid density offset.`,
         hint: 'Use "inherit", "increase-N", or "decrease-N" where N is 0–4. "shift-" is not valid for density.',
       });
     } else if (parsed.n > 4) {
-      out.push({
+      elementDiags.push({
         rule: "unknown-density",
         severity: "error",
+        category: "data-attr",
         path: here,
         message: `\`dataDensity\` "${dataDensity}" N=${parsed.n} is out of range — the density scale has 5 steps (max offset: 4).`,
         hint: 'Use "increase-N" or "decrease-N" where N ≤ 4. Density factors: [0.75, 1, 1.5, 2, 2.5].',
@@ -485,17 +690,19 @@ function walk(
   if (typeof dataSize === "string" && dataSize !== "inherit") {
     const parsed = parseOffset(dataSize);
     if (!parsed || parsed.family === "shift") {
-      out.push({
+      elementDiags.push({
         rule: "unknown-size",
         severity: "warning",
+        category: "data-attr",
         path: here,
         message: `\`dataSize\` "${dataSize}" is not a valid size offset.`,
         hint: 'Use "inherit", "increase-N", or "decrease-N" where N is 0–7. "shift-" is not valid for size.',
       });
     } else if (parsed.n > 7) {
-      out.push({
+      elementDiags.push({
         rule: "unknown-size",
         severity: "error",
+        category: "data-attr",
         path: here,
         message: `\`dataSize\` "${dataSize}" N=${parsed.n} is out of range — the size scale has 8 steps (max offset: 7).`,
         hint: 'Use "increase-N" or "decrease-N" where N ≤ 7.',
@@ -503,7 +710,36 @@ function walk(
     }
   }
 
-  walk(content, here, out, false, runReactive);
+  // Custom rules: run each user-provided rule against this element.
+  if (options.rules && options.rules.length > 0) {
+    for (const rule of options.rules) {
+      let violations: ReturnType<CustomRule["check"]>;
+      try {
+        violations = rule.check(element, here, tag);
+      } catch {
+        continue; // custom rule threw — skip silently
+      }
+      for (const v of violations) {
+        elementDiags.push({
+          rule: rule.id,
+          severity: v.severity ?? rule.severity,
+          category: rule.category,
+          path: here,
+          message: v.message,
+          hint: v.hint,
+        });
+      }
+    }
+  }
+
+  // Walk the element's content into a separate buffer so _doctorDisable can
+  // filter array-level diagnostics (missing-key / duplicate-key / etc.) that
+  // fire at THIS element's path when the content is a reactive function.
+  const contentDiags: Diagnostic[] = [];
+  walk(content, here, contentDiags, false, options);
+
+  // Apply _doctorDisable and flush into the shared output.
+  applyDisable(element._doctorDisable, elementDiags, contentDiags, here, out);
 }
 
 /** Issue counts by severity, plus the grand total. */

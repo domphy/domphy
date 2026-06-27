@@ -27853,6 +27853,26 @@ interface DiagnoseOptions {
    * Set to false if your reactive functions have side effects.
    */
   runReactive?: boolean
+
+  /**
+   * If set, only emit diagnostics whose rule id is in this list.
+   * Takes precedence over `exclude`. An empty array returns no diagnostics.
+   * Applies to both built-in and custom rules.
+   */
+  only?: string[]
+
+  /**
+   * Rule ids to skip entirely. Ignored when `only` is also set.
+   * Applies to both built-in and custom rules.
+   */
+  exclude?: string[]
+
+  /**
+   * Additional custom rules to run alongside the 12 built-in rules.
+   * Custom rule ids are also subject to `only`/`exclude` filtering.
+   * See "Custom Rules" section below.
+   */
+  rules?: CustomRule[]
 }
 ```
 
@@ -27884,6 +27904,125 @@ const issues = diagnose(MyApp, { runReactive: false })
 // duplicate-key and all structural rules still run on static content.
 ```
 
+#### `only` and `exclude`
+
+Run only a subset of rules (mirrors ESLint's `--rule` flag) or skip rules you don't care about:
+
+```ts
+// Only check for literal theme values:
+const colorIssues = diagnose(MyApp, { only: ["raw-theme-value", "raw-spacing-value"] })
+
+// Skip soft recommendations, fail only on structural errors:
+const strictIssues = diagnose(MyApp, {
+  exclude: ["raw-theme-value", "raw-spacing-value", "inline-typography"]
+})
+```
+
+`only` takes precedence over `exclude`. An empty `only: []` returns zero diagnostics (whitelist mode, nothing allowed through).
+
+---
+
+## Inline suppression: `_doctorDisable`
+
+Add `_doctorDisable` to any element to suppress diagnostics for that element (not its children). This is the equivalent of `// eslint-disable-next-line` for Domphy trees.
+
+```ts
+// Suppress all rules on this element
+{ div: "x", dataTone: "shift-6", _doctorDisable: true }
+
+// Suppress specific rules only
+{ div: "x", dataTone: "shift-6", _doctorDisable: ["middle-surface-anchor"] }
+
+// Suppress a single rule as a string
+{ div: "x", dataTone: "shift-6", _doctorDisable: "middle-surface-anchor" }
+```
+
+The annotation suppresses diagnostics at **this element's path** — both element-level rules (inline-typography, unknown-tone, etc.) and array-level rules that fire at the same path (missing-key when the element's content is a reactive function):
+
+```ts
+// Suppress missing-key warning on the reactive list container
+{
+  ul: (l) => items.get(l).map(item => ({ li: item.label })),
+  _doctorDisable: ["missing-key"],
+}
+```
+
+Diagnostics from **child elements** are never suppressed — only diagnostics at the annotated element's own path.
+
+---
+
+## Custom Rules
+
+Extend the doctor with project-specific rules using `options.rules`. A `CustomRule` has an `id`, a default `severity`, an optional `category`, and a `check` function called for every element node in the tree.
+
+```ts
+import { type CustomRule, diagnose } from "@domphy/doctor"
+
+// Disallow bare <div> with no patches — enforce using a layout wrapper
+const noBareDiv: CustomRule = {
+  id: "no-bare-div",
+  severity: "warning",
+  category: "structure",
+  check: (element, _path, tag) => {
+    if (tag === "div" && (!element.$ || (element.$ as unknown[]).length === 0)) {
+      return [{ message: "Bare <div> without patches — add a layout patch or use a semantic tag." }]
+    }
+    return []
+  },
+}
+
+const issues = diagnose(MyApp, { rules: [noBareDiv] })
+```
+
+Custom rule violations appear in `format()` output and `ValidationReport.issues` alongside built-in violations. They are subject to `only` / `exclude` filtering.
+
+### `CustomRule` type
+
+```ts
+interface CustomRule {
+  /** Unique id shown in diagnostics. Must not clash with any built-in rule id. */
+  id: string
+  /** Default severity for violations from this rule. */
+  severity: Severity
+  /** Category for display and filtering. Optional. */
+  category?: RuleCategory
+  /**
+   * Called for each element node (nodes with a valid HTML/SVG tag).
+   * Return violation descriptors; the engine fills in rule, severity, category, path.
+   * Pass severity in the descriptor to override the rule default per violation.
+   */
+  check: (
+    element: Record<string, unknown>,
+    path: string,
+    tag: string,
+  ) => Array<{ message: string; hint?: string; severity?: Severity }>
+}
+```
+
+### Per-violation severity override
+
+A custom rule can emit different severities per violation:
+
+```ts
+const strictTypography: CustomRule = {
+  id: "strict-typography",
+  severity: "warning",
+  check: (element) => {
+    const style = element.style as Record<string, unknown> | undefined
+    if (style?.fontSize) {
+      // Escalate to error for heading elements
+      const tag = Object.keys(element).find(k => /^h[1-6]$/.test(k))
+      return [{ message: "Inline font-size on heading.", severity: tag ? "error" : "warning" }]
+    }
+    return []
+  },
+}
+```
+
+### Throwing rules
+
+If a custom rule's `check` function throws, the error is caught silently and that rule is skipped for that element. Built-in rules are unaffected. Design `check` to be as defensive as possible.
+
 ---
 
 ## Output Structures
@@ -27893,12 +28032,15 @@ const issues = diagnose(MyApp, { runReactive: false })
 ```ts
 type Severity = "error" | "warning" | "info"
 
+type RuleCategory = "structure" | "key" | "theme" | "typography" | "data-attr"
+
 interface Diagnostic {
-  rule: string     // e.g. "inline-typography"
+  rule: string          // e.g. "inline-typography"
   severity: Severity
-  path: string     // human path to the node, e.g. "div > ul > li"
-  message: string  // one-line description of the problem
-  hint?: string    // how to fix it
+  category?: RuleCategory // always set by built-in rules; optional for custom rules
+  path: string          // human path to the node, e.g. "div > ul > li"
+  message: string       // one-line description of the problem
+  hint?: string         // how to fix it
 }
 ```
 
@@ -28164,7 +28306,7 @@ interface Diagnostic {
 | Rule | Severity | Catches |
 | --- | --- | --- |
 | `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` / `fontFamily` / `textDecoration` literals in `style` — use a typography patch |
-| `raw-theme-value` | info | a literal hex/rgb/hsl color in a color style prop (`color`, `background`, `border`, `fill`, …). The hint uses **`@domphy/palette` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
+| `raw-theme-value` | info | a literal hex/rgb/hsl color **or a CSS named color** (`"red"`, `"white"`, `"black"`, …) in a color style prop (`color`, `background`, `border`, `fill`, …). For hex/rgb values the hint uses **`@domphy/palette` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
 | `raw-spacing-value` | info | a literal `rem`/`em`/`px` value in a layout spacing prop (`padding`, `paddingBlock`, `paddingInline`, `margin`, `marginBlock`, `marginInline`, `gap`, …) — suggests `themeSpacing(n)` for consistent theme density |
 | `unknown-tone` | warning | a `dataTone` value that isn't valid tone grammar (`inherit` / `base` / a number / `shift-N` / `increase-N` / `decrease-N` with N ≤ 17) — catches invented words like `surface` / `text`, and out-of-range offsets like `shift-25` |
 | `middle-surface-anchor` | warning | a `dataTone: "shift-N"` where N is 4–13 — a mid-ramp surface anchor causes child tones to clamp and collapse contrast; prefer edge anchors (0–3 light, 14–17 dark) |
@@ -28179,6 +28321,49 @@ interface Diagnostic {
 By default the doctor invokes reactive content functions with a no-op listener to inspect their output (this is how the dynamic-list rules are found). Pass `{ runReactive: false }` if your reactive functions have side effects.
 
 `duplicate-key` is decidable on any sibling array — static or dynamic — so it is checked everywhere. `missing-key` and `unstable-key` are specific to **dynamic** lists, since only those go through keyed reconciliation.
+
+### Rule filtering
+
+Run only a subset of rules with `only`, or skip rules with `exclude`:
+
+```ts
+// Only check theming
+diagnose(App, { only: ["raw-theme-value", "raw-spacing-value"] })
+
+// Skip soft info-level recommendations
+diagnose(App, { exclude: ["raw-theme-value", "raw-spacing-value"] })
+```
+
+### Inline suppression
+
+Add `_doctorDisable` to an element to suppress rules at that node (not its children):
+
+```ts
+// Suppress all rules on this element
+{ div: "x", dataTone: "shift-6", _doctorDisable: true }
+
+// Suppress specific rules
+{ div: "x", dataTone: "shift-6", _doctorDisable: ["middle-surface-anchor"] }
+```
+
+### Custom rules
+
+Provide project-specific rules alongside the built-in 12:
+
+```ts
+import { type CustomRule, diagnose } from "@domphy/doctor"
+
+const noBareDivRule: CustomRule = {
+  id: "no-bare-div",
+  severity: "warning",
+  check: (_el, _path, tag) =>
+    tag === "div" ? [{ message: "Use a semantic element or add a patch." }] : [],
+}
+
+diagnose(App, { rules: [noBareDivRule] })
+```
+
+See [Configuration & API](/docs/doctor/configuration) for full details.
 
 ## validate
 
@@ -28359,13 +28544,23 @@ Literal color values in color-bearing style properties bypass theming and dark m
 
 **Flagged properties:** `color`, `backgroundColor`, `background`, `borderColor`, `border`, `outlineColor`, `outline`, `fill`, `stroke`.
 
-**Flagged values:** `#hex`, `rgb()`, `rgba()`, `hsl()`, `hsla()`. Keywords like `transparent`, `currentColor`, and `inherit` are intentionally allowed.
+**Flagged values (two cases):**
+
+1. **Hex/function literals** — `#hex`, `rgb()`, `rgba()`, `hsl()`, `hsla()` — on all color-bearing properties, including shorthands like `border` and `background`.
+2. **CSS named colors** — any plain string like `"red"`, `"white"`, `"black"`, `"cornflowerblue"` on direct color properties (`color`, `fill`, `stroke`, `backgroundColor`, `outlineColor`, `borderColor`, `caretColor`, `accentColor`, `columnRuleColor`, `textDecorationColor`). These bypass theming just as much as a hex literal but are easier to miss.
+
+Keywords like `transparent`, `currentColor`, `inherit`, `none`, and `auto` are intentionally allowed — they carry no color meaning.
 
 ```ts
-// Bad — literal colors
+// Bad — literal hex colors
 { div: "Panel", style: { backgroundColor: "#f5f5f5" } }
 { span: "Note", style: { color: "rgb(80, 80, 80)" } }
 { div: "Card", style: { border: "1px solid #ccc" } }
+
+// Bad — CSS named colors (also flagged as raw-theme-value)
+{ span: "Error", style: { color: "red" } }
+{ div: "Panel", style: { backgroundColor: "white" } }
+{ svg: null, style: { fill: "black" } }
 ```
 
 ```ts
@@ -28375,20 +28570,21 @@ import { themeColor } from "@domphy/theme"
 { div: "Panel", style: { backgroundColor: (l) => themeColor(l, "shift-1", "neutral") } }
 { span: "Note", style: { color: (l) => themeColor(l, "base", "neutral") } }
 { div: "Card", style: { borderColor: (l) => themeColor(l, "shift-3", "neutral") } }
+{ span: "Error", style: { color: (l) => themeColor(l, "shift-9", "error") } }
 
 // Keywords are fine
 { div: "Overlay", style: { backgroundColor: "transparent" } }
 { svg: null, style: { fill: "currentColor" } }
 ```
 
-The diagnostic hint includes a perceptual suggestion using CIELAB/LCH chromametry (via `@domphy/palette`). For example, a diagnostic on `color: "#0070f3"` produces a hint like:
+**Hint quality:** For hex/rgb values the diagnostic hint includes a perceptual suggestion using CIELAB/LCH chromametry (via `@domphy/palette`). For example, a diagnostic on `color: "#0070f3"` produces:
 
 ```
 → Prefer a theme token — (l) => themeColor(l, "base", "primary")
   [perceptual LCH L=44 C=59 h=264°] — so theming and dark mode apply.
 ```
 
-The suggestion is an approximation to orient you toward the right color family and tone; adjust to match your design.
+For CSS named colors the hint explains why they are flagged and points to `themeColor()`. The suggestion is an approximation to orient you toward the right color family and tone; adjust to match your design.
 
 ---
 

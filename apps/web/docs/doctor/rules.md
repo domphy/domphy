@@ -95,13 +95,23 @@ Literal color values in color-bearing style properties bypass theming and dark m
 
 **Flagged properties:** `color`, `backgroundColor`, `background`, `borderColor`, `border`, `outlineColor`, `outline`, `fill`, `stroke`.
 
-**Flagged values:** `#hex`, `rgb()`, `rgba()`, `hsl()`, `hsla()`. Keywords like `transparent`, `currentColor`, and `inherit` are intentionally allowed.
+**Flagged values (two cases):**
+
+1. **Hex/function literals** — `#hex`, `rgb()`, `rgba()`, `hsl()`, `hsla()` — on all color-bearing properties, including shorthands like `border` and `background`.
+2. **CSS named colors** — any plain string like `"red"`, `"white"`, `"black"`, `"cornflowerblue"` on direct color properties (`color`, `fill`, `stroke`, `backgroundColor`, `outlineColor`, `borderColor`, `caretColor`, `accentColor`, `columnRuleColor`, `textDecorationColor`). These bypass theming just as much as a hex literal but are easier to miss.
+
+Keywords like `transparent`, `currentColor`, `inherit`, `none`, and `auto` are intentionally allowed — they carry no color meaning.
 
 ```ts
-// Bad — literal colors
+// Bad — literal hex colors
 { div: "Panel", style: { backgroundColor: "#f5f5f5" } }
 { span: "Note", style: { color: "rgb(80, 80, 80)" } }
 { div: "Card", style: { border: "1px solid #ccc" } }
+
+// Bad — CSS named colors (also flagged as raw-theme-value)
+{ span: "Error", style: { color: "red" } }
+{ div: "Panel", style: { backgroundColor: "white" } }
+{ svg: null, style: { fill: "black" } }
 ```
 
 ```ts
@@ -111,20 +121,21 @@ import { themeColor } from "@domphy/theme"
 { div: "Panel", style: { backgroundColor: (l) => themeColor(l, "shift-1", "neutral") } }
 { span: "Note", style: { color: (l) => themeColor(l, "base", "neutral") } }
 { div: "Card", style: { borderColor: (l) => themeColor(l, "shift-3", "neutral") } }
+{ span: "Error", style: { color: (l) => themeColor(l, "shift-9", "error") } }
 
 // Keywords are fine
 { div: "Overlay", style: { backgroundColor: "transparent" } }
 { svg: null, style: { fill: "currentColor" } }
 ```
 
-The diagnostic hint includes a perceptual suggestion using CIELAB/LCH chromametry (via `@domphy/palette`). For example, a diagnostic on `color: "#0070f3"` produces a hint like:
+**Hint quality:** For hex/rgb values the diagnostic hint includes a perceptual suggestion using CIELAB/LCH chromametry (via `@domphy/palette`). For example, a diagnostic on `color: "#0070f3"` produces:
 
 ```
 → Prefer a theme token — (l) => themeColor(l, "base", "primary")
   [perceptual LCH L=44 C=59 h=264°] — so theming and dark mode apply.
 ```
 
-The suggestion is an approximation to orient you toward the right color family and tone; adjust to match your design.
+For CSS named colors the hint explains why they are flagged and points to `themeColor()`. The suggestion is an approximation to orient you toward the right color family and tone; adjust to match your design.
 
 ---
 

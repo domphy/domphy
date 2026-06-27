@@ -78,6 +78,26 @@ interface DiagnoseOptions {
    * Set to false if your reactive functions have side effects.
    */
   runReactive?: boolean
+
+  /**
+   * If set, only emit diagnostics whose rule id is in this list.
+   * Takes precedence over `exclude`. An empty array returns no diagnostics.
+   * Applies to both built-in and custom rules.
+   */
+  only?: string[]
+
+  /**
+   * Rule ids to skip entirely. Ignored when `only` is also set.
+   * Applies to both built-in and custom rules.
+   */
+  exclude?: string[]
+
+  /**
+   * Additional custom rules to run alongside the 12 built-in rules.
+   * Custom rule ids are also subject to `only`/`exclude` filtering.
+   * See "Custom Rules" section below.
+   */
+  rules?: CustomRule[]
 }
 ```
 
@@ -109,6 +129,125 @@ const issues = diagnose(MyApp, { runReactive: false })
 // duplicate-key and all structural rules still run on static content.
 ```
 
+#### `only` and `exclude`
+
+Run only a subset of rules (mirrors ESLint's `--rule` flag) or skip rules you don't care about:
+
+```ts
+// Only check for literal theme values:
+const colorIssues = diagnose(MyApp, { only: ["raw-theme-value", "raw-spacing-value"] })
+
+// Skip soft recommendations, fail only on structural errors:
+const strictIssues = diagnose(MyApp, {
+  exclude: ["raw-theme-value", "raw-spacing-value", "inline-typography"]
+})
+```
+
+`only` takes precedence over `exclude`. An empty `only: []` returns zero diagnostics (whitelist mode, nothing allowed through).
+
+---
+
+## Inline suppression: `_doctorDisable`
+
+Add `_doctorDisable` to any element to suppress diagnostics for that element (not its children). This is the equivalent of `// eslint-disable-next-line` for Domphy trees.
+
+```ts
+// Suppress all rules on this element
+{ div: "x", dataTone: "shift-6", _doctorDisable: true }
+
+// Suppress specific rules only
+{ div: "x", dataTone: "shift-6", _doctorDisable: ["middle-surface-anchor"] }
+
+// Suppress a single rule as a string
+{ div: "x", dataTone: "shift-6", _doctorDisable: "middle-surface-anchor" }
+```
+
+The annotation suppresses diagnostics at **this element's path** — both element-level rules (inline-typography, unknown-tone, etc.) and array-level rules that fire at the same path (missing-key when the element's content is a reactive function):
+
+```ts
+// Suppress missing-key warning on the reactive list container
+{
+  ul: (l) => items.get(l).map(item => ({ li: item.label })),
+  _doctorDisable: ["missing-key"],
+}
+```
+
+Diagnostics from **child elements** are never suppressed — only diagnostics at the annotated element's own path.
+
+---
+
+## Custom Rules
+
+Extend the doctor with project-specific rules using `options.rules`. A `CustomRule` has an `id`, a default `severity`, an optional `category`, and a `check` function called for every element node in the tree.
+
+```ts
+import { type CustomRule, diagnose } from "@domphy/doctor"
+
+// Disallow bare <div> with no patches — enforce using a layout wrapper
+const noBareDiv: CustomRule = {
+  id: "no-bare-div",
+  severity: "warning",
+  category: "structure",
+  check: (element, _path, tag) => {
+    if (tag === "div" && (!element.$ || (element.$ as unknown[]).length === 0)) {
+      return [{ message: "Bare <div> without patches — add a layout patch or use a semantic tag." }]
+    }
+    return []
+  },
+}
+
+const issues = diagnose(MyApp, { rules: [noBareDiv] })
+```
+
+Custom rule violations appear in `format()` output and `ValidationReport.issues` alongside built-in violations. They are subject to `only` / `exclude` filtering.
+
+### `CustomRule` type
+
+```ts
+interface CustomRule {
+  /** Unique id shown in diagnostics. Must not clash with any built-in rule id. */
+  id: string
+  /** Default severity for violations from this rule. */
+  severity: Severity
+  /** Category for display and filtering. Optional. */
+  category?: RuleCategory
+  /**
+   * Called for each element node (nodes with a valid HTML/SVG tag).
+   * Return violation descriptors; the engine fills in rule, severity, category, path.
+   * Pass severity in the descriptor to override the rule default per violation.
+   */
+  check: (
+    element: Record<string, unknown>,
+    path: string,
+    tag: string,
+  ) => Array<{ message: string; hint?: string; severity?: Severity }>
+}
+```
+
+### Per-violation severity override
+
+A custom rule can emit different severities per violation:
+
+```ts
+const strictTypography: CustomRule = {
+  id: "strict-typography",
+  severity: "warning",
+  check: (element) => {
+    const style = element.style as Record<string, unknown> | undefined
+    if (style?.fontSize) {
+      // Escalate to error for heading elements
+      const tag = Object.keys(element).find(k => /^h[1-6]$/.test(k))
+      return [{ message: "Inline font-size on heading.", severity: tag ? "error" : "warning" }]
+    }
+    return []
+  },
+}
+```
+
+### Throwing rules
+
+If a custom rule's `check` function throws, the error is caught silently and that rule is skipped for that element. Built-in rules are unaffected. Design `check` to be as defensive as possible.
+
 ---
 
 ## Output Structures
@@ -118,12 +257,15 @@ const issues = diagnose(MyApp, { runReactive: false })
 ```ts
 type Severity = "error" | "warning" | "info"
 
+type RuleCategory = "structure" | "key" | "theme" | "typography" | "data-attr"
+
 interface Diagnostic {
-  rule: string     // e.g. "inline-typography"
+  rule: string          // e.g. "inline-typography"
   severity: Severity
-  path: string     // human path to the node, e.g. "div > ul > li"
-  message: string  // one-line description of the problem
-  hint?: string    // how to fix it
+  category?: RuleCategory // always set by built-in rules; optional for custom rules
+  path: string          // human path to the node, e.g. "div > ul > li"
+  message: string       // one-line description of the problem
+  hint?: string         // how to fix it
 }
 ```
 

@@ -59,7 +59,7 @@ interface Diagnostic {
 | Rule | Severity | Catches |
 | --- | --- | --- |
 | `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` / `fontFamily` / `textDecoration` literals in `style` — use a typography patch |
-| `raw-theme-value` | info | a literal hex/rgb/hsl color in a color style prop (`color`, `background`, `border`, `fill`, …). The hint uses **`@domphy/palette` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
+| `raw-theme-value` | info | a literal hex/rgb/hsl color **or a CSS named color** (`"red"`, `"white"`, `"black"`, …) in a color style prop (`color`, `background`, `border`, `fill`, …). For hex/rgb values the hint uses **`@domphy/palette` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
 | `raw-spacing-value` | info | a literal `rem`/`em`/`px` value in a layout spacing prop (`padding`, `paddingBlock`, `paddingInline`, `margin`, `marginBlock`, `marginInline`, `gap`, …) — suggests `themeSpacing(n)` for consistent theme density |
 | `unknown-tone` | warning | a `dataTone` value that isn't valid tone grammar (`inherit` / `base` / a number / `shift-N` / `increase-N` / `decrease-N` with N ≤ 17) — catches invented words like `surface` / `text`, and out-of-range offsets like `shift-25` |
 | `middle-surface-anchor` | warning | a `dataTone: "shift-N"` where N is 4–13 — a mid-ramp surface anchor causes child tones to clamp and collapse contrast; prefer edge anchors (0–3 light, 14–17 dark) |
@@ -74,6 +74,49 @@ interface Diagnostic {
 By default the doctor invokes reactive content functions with a no-op listener to inspect their output (this is how the dynamic-list rules are found). Pass `{ runReactive: false }` if your reactive functions have side effects.
 
 `duplicate-key` is decidable on any sibling array — static or dynamic — so it is checked everywhere. `missing-key` and `unstable-key` are specific to **dynamic** lists, since only those go through keyed reconciliation.
+
+### Rule filtering
+
+Run only a subset of rules with `only`, or skip rules with `exclude`:
+
+```ts
+// Only check theming
+diagnose(App, { only: ["raw-theme-value", "raw-spacing-value"] })
+
+// Skip soft info-level recommendations
+diagnose(App, { exclude: ["raw-theme-value", "raw-spacing-value"] })
+```
+
+### Inline suppression
+
+Add `_doctorDisable` to an element to suppress rules at that node (not its children):
+
+```ts
+// Suppress all rules on this element
+{ div: "x", dataTone: "shift-6", _doctorDisable: true }
+
+// Suppress specific rules
+{ div: "x", dataTone: "shift-6", _doctorDisable: ["middle-surface-anchor"] }
+```
+
+### Custom rules
+
+Provide project-specific rules alongside the built-in 12:
+
+```ts
+import { type CustomRule, diagnose } from "@domphy/doctor"
+
+const noBareDivRule: CustomRule = {
+  id: "no-bare-div",
+  severity: "warning",
+  check: (_el, _path, tag) =>
+    tag === "div" ? [{ message: "Use a semantic element or add a patch." }] : [],
+}
+
+diagnose(App, { rules: [noBareDivRule] })
+```
+
+See [Configuration & API](/docs/doctor/configuration) for full details.
 
 ## validate
 

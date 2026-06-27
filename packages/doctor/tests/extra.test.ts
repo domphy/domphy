@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diagnose, fix, format } from "../src/index";
+import { type CustomRule, diagnose, fix, format } from "../src/index";
 
 const rules = (tree: unknown, opts?: Parameters<typeof diagnose>[1]) =>
   diagnose(tree, opts).map((d) => d.rule);
@@ -105,6 +105,361 @@ describe("raw-theme-value shorthand hint quality", () => {
     expect(issue?.hint).toContain("LCH");
     // a saturated blue should map to the primary family
     expect(issue?.hint).toContain("primary");
+  });
+});
+
+describe("raw-theme-value: CSS named color detection on direct color props", () => {
+  it("flags color: 'red'", () => {
+    expect(rules({ div: "x", style: { color: "red" } })).toContain(
+      "raw-theme-value",
+    );
+  });
+
+  it("flags backgroundColor: 'white'", () => {
+    expect(
+      rules({ div: "x", style: { backgroundColor: "white" } }),
+    ).toContain("raw-theme-value");
+  });
+
+  it("flags fill: 'black' on svg elements", () => {
+    expect(rules({ svg: null, style: { fill: "black" } })).toContain(
+      "raw-theme-value",
+    );
+  });
+
+  it("flags stroke: 'blue'", () => {
+    expect(rules({ path: null, style: { stroke: "blue" } })).toContain(
+      "raw-theme-value",
+    );
+  });
+
+  it("does not flag semantic keywords: transparent, currentColor, inherit", () => {
+    expect(
+      rules({ div: "x", style: { color: "transparent" } }),
+    ).not.toContain("raw-theme-value");
+    expect(
+      rules({ div: "x", style: { color: "currentColor" } }),
+    ).not.toContain("raw-theme-value");
+    expect(rules({ div: "x", style: { color: "inherit" } })).not.toContain(
+      "raw-theme-value",
+    );
+    expect(
+      rules({ div: "x", style: { backgroundColor: "none" } }),
+    ).not.toContain("raw-theme-value");
+  });
+
+  it("does not flag reactive named colors", () => {
+    expect(
+      rules({ div: "x", style: { color: () => "red" } }),
+    ).not.toContain("raw-theme-value");
+  });
+
+  it("does not double-flag: hex is caught by hex check, not named-color check", () => {
+    // '#ff0000' is already caught by LITERAL_COLOR; it must appear only once.
+    const d = diagnose({ div: "x", style: { color: "#ff0000" } }).filter(
+      (i) => i.rule === "raw-theme-value",
+    );
+    expect(d).toHaveLength(1);
+  });
+
+  it("does not flag CSS functions like var() or calc()", () => {
+    expect(
+      rules({ div: "x", style: { color: "var(--my-color)" } }),
+    ).not.toContain("raw-theme-value");
+  });
+
+  it("named color hint mentions themeColor and bypass warning", () => {
+    const d = diagnose({ div: "x", style: { color: "red" } });
+    const issue = d.find((i) => i.rule === "raw-theme-value");
+    expect(issue?.hint).toContain("themeColor(");
+    expect(issue?.hint).toContain("bypass");
+  });
+});
+
+describe("rule filtering: only / exclude options", () => {
+  const mixed = {
+    p: "x",
+    style: { fontSize: "20px", color: "#ff0000" },
+    dataTone: "surface",
+  };
+
+  it("only: emits just the listed rules", () => {
+    const d = diagnose(mixed, { only: ["inline-typography"] });
+    expect(d.map((i) => i.rule)).toContain("inline-typography");
+    expect(d.map((i) => i.rule)).not.toContain("raw-theme-value");
+    expect(d.map((i) => i.rule)).not.toContain("unknown-tone");
+  });
+
+  it("only: empty list returns no diagnostics", () => {
+    expect(diagnose(mixed, { only: [] })).toEqual([]);
+  });
+
+  it("exclude: removes the listed rules, keeps the rest", () => {
+    const d = diagnose(mixed, { exclude: ["raw-theme-value"] });
+    expect(d.map((i) => i.rule)).toContain("inline-typography");
+    expect(d.map((i) => i.rule)).toContain("unknown-tone");
+    expect(d.map((i) => i.rule)).not.toContain("raw-theme-value");
+  });
+
+  it("only takes precedence over exclude", () => {
+    // both set: only wins
+    const d = diagnose(mixed, {
+      only: ["inline-typography"],
+      exclude: ["inline-typography"],
+    });
+    expect(d.map((i) => i.rule)).toContain("inline-typography");
+    expect(d.map((i) => i.rule)).not.toContain("raw-theme-value");
+  });
+
+  it("only + exclude work with custom rules too", () => {
+    const customRule: CustomRule = {
+      id: "my-rule",
+      severity: "warning",
+      check: (_el, _path, tag) =>
+        tag === "p" ? [{ message: "p tag found" }] : [],
+    };
+    // Custom rule fires normally
+    const d1 = diagnose(mixed, { rules: [customRule] });
+    expect(d1.map((i) => i.rule)).toContain("my-rule");
+    // Only built-in rule — custom rule suppressed
+    const d2 = diagnose(mixed, {
+      rules: [customRule],
+      only: ["inline-typography"],
+    });
+    expect(d2.map((i) => i.rule)).not.toContain("my-rule");
+    // Exclude custom rule
+    const d3 = diagnose(mixed, {
+      rules: [customRule],
+      exclude: ["my-rule"],
+    });
+    expect(d3.map((i) => i.rule)).not.toContain("my-rule");
+    expect(d3.map((i) => i.rule)).toContain("inline-typography");
+  });
+});
+
+describe("_doctorDisable suppress annotation", () => {
+  it("_doctorDisable: true suppresses ALL element-level diagnostics", () => {
+    // unknown-tone would normally fire
+    expect(
+      rules({ div: "x", dataTone: "surface", _doctorDisable: true }),
+    ).not.toContain("unknown-tone");
+    // inline-typography would normally fire
+    expect(
+      rules({
+        p: "x",
+        style: { fontSize: "20px" },
+        _doctorDisable: true,
+      }),
+    ).not.toContain("inline-typography");
+  });
+
+  it("_doctorDisable: ['rule-id'] suppresses only the listed rule", () => {
+    const d = diagnose({
+      p: "x",
+      style: { fontSize: "20px" },
+      dataTone: "surface",
+      _doctorDisable: ["unknown-tone"],
+    });
+    // unknown-tone suppressed
+    expect(d.map((i) => i.rule)).not.toContain("unknown-tone");
+    // inline-typography still fires
+    expect(d.map((i) => i.rule)).toContain("inline-typography");
+  });
+
+  it("_doctorDisable: 'rule-id' (string) works like single-element array", () => {
+    expect(
+      rules({ div: "x", dataTone: "surface", _doctorDisable: "unknown-tone" }),
+    ).not.toContain("unknown-tone");
+  });
+
+  it("does not suppress diagnostics on child elements", () => {
+    // The disable is only on the outer div, not the inner p
+    const d = diagnose({
+      div: [{ p: "x", style: { fontSize: "20px" } }],
+      _doctorDisable: true,
+    });
+    expect(d.map((i) => i.rule)).toContain("inline-typography");
+  });
+
+  it("suppresses missing-key when annotated on the reactive-list container", () => {
+    // missing-key fires at the container (ul) path, so _doctorDisable on ul should suppress it
+    expect(
+      rules({
+        ul: () => [{ li: "a" }, { li: "b" }],
+        _doctorDisable: ["missing-key"],
+      }),
+    ).not.toContain("missing-key");
+  });
+
+  it("_doctorDisable: false / null / undefined is a no-op", () => {
+    // Should still fire normally
+    expect(
+      rules({ div: "x", dataTone: "surface", _doctorDisable: false }),
+    ).toContain("unknown-tone");
+    expect(
+      rules({ div: "x", dataTone: "surface", _doctorDisable: null }),
+    ).toContain("unknown-tone");
+    expect(
+      rules({ div: "x", dataTone: "surface", _doctorDisable: undefined }),
+    ).toContain("unknown-tone");
+  });
+});
+
+describe("custom rules via options.rules", () => {
+  const noEmptyContent: CustomRule = {
+    id: "no-empty-content",
+    severity: "warning",
+    category: "structure",
+    check: (element, _path, tag) => {
+      if (element[tag] === "") {
+        return [
+          {
+            message: `Empty string content on <${tag}> — use null or provide text.`,
+            hint: `Write { ${tag}: null, … } or provide a non-empty string.`,
+          },
+        ];
+      }
+      return [];
+    },
+  };
+
+  const noSpanTag: CustomRule = {
+    id: "no-span",
+    severity: "error",
+    check: (_element, _path, tag) => {
+      if (tag === "span") {
+        return [{ message: "Avoid bare <span> — use a semantic patch." }];
+      }
+      return [];
+    },
+  };
+
+  it("fires the custom rule for matching elements", () => {
+    expect(rules({ p: "" }, { rules: [noEmptyContent] })).toContain(
+      "no-empty-content",
+    );
+  });
+
+  it("does not fire for non-matching elements", () => {
+    expect(rules({ p: "hello" }, { rules: [noEmptyContent] })).not.toContain(
+      "no-empty-content",
+    );
+  });
+
+  it("carries the custom rule's severity and category", () => {
+    const d = diagnose({ p: "" }, { rules: [noEmptyContent] });
+    const issue = d.find((i) => i.rule === "no-empty-content");
+    expect(issue?.severity).toBe("warning");
+    expect(issue?.category).toBe("structure");
+  });
+
+  it("custom rule can override severity per violation", () => {
+    const conditional: CustomRule = {
+      id: "conditional",
+      severity: "warning",
+      check: (_element, _path, tag) => {
+        if (tag === "span") {
+          return [{ message: "span found", severity: "error" }];
+        }
+        return [];
+      },
+    };
+    const d = diagnose({ span: "x" }, { rules: [conditional] });
+    const issue = d.find((i) => i.rule === "conditional");
+    expect(issue?.severity).toBe("error"); // overridden
+  });
+
+  it("runs multiple custom rules in order", () => {
+    const d = diagnose({ span: "" }, { rules: [noEmptyContent, noSpanTag] });
+    const ruleIds = d.map((i) => i.rule);
+    expect(ruleIds).toContain("no-empty-content");
+    expect(ruleIds).toContain("no-span");
+  });
+
+  it("custom rules are subject to only/exclude filtering", () => {
+    // exclude custom rule
+    const d1 = diagnose(
+      { p: "" },
+      { rules: [noEmptyContent], exclude: ["no-empty-content"] },
+    );
+    expect(d1.map((i) => i.rule)).not.toContain("no-empty-content");
+
+    // only a built-in rule — custom rule suppressed
+    const d2 = diagnose(
+      { p: "", style: { fontSize: "20px" } },
+      { rules: [noEmptyContent], only: ["inline-typography"] },
+    );
+    expect(d2.map((i) => i.rule)).toContain("inline-typography");
+    expect(d2.map((i) => i.rule)).not.toContain("no-empty-content");
+  });
+
+  it("custom rule error does not crash the doctor (skipped silently)", () => {
+    const throwing: CustomRule = {
+      id: "throws",
+      severity: "warning",
+      check: () => {
+        throw new Error("boom");
+      },
+    };
+    // Should not throw; built-in rules still run
+    expect(() =>
+      diagnose(
+        { p: "x", style: { fontSize: "20px" } },
+        { rules: [throwing] },
+      ),
+    ).not.toThrow();
+    const d = diagnose(
+      { p: "x", style: { fontSize: "20px" } },
+      { rules: [throwing] },
+    );
+    expect(d.map((i) => i.rule)).toContain("inline-typography");
+  });
+});
+
+describe("Diagnostic.category field", () => {
+  it("void-content has category 'structure'", () => {
+    const d = diagnose({ input: "oops" });
+    expect(d[0].category).toBe("structure");
+  });
+
+  it("unknown-tag has category 'structure'", () => {
+    const d = diagnose({ dvi: "typo" });
+    expect(d[0].category).toBe("structure");
+  });
+
+  it("inline-typography has category 'typography'", () => {
+    const d = diagnose({ p: "x", style: { fontSize: "20px" } });
+    expect(d[0].category).toBe("typography");
+  });
+
+  it("raw-theme-value has category 'theme'", () => {
+    const d = diagnose({ div: "x", style: { color: "#ff0000" } });
+    expect(d[0].category).toBe("theme");
+  });
+
+  it("raw-spacing-value has category 'theme'", () => {
+    const d = diagnose({ div: "x", style: { padding: "16px" } });
+    expect(d[0].category).toBe("theme");
+  });
+
+  it("unknown-tone has category 'data-attr'", () => {
+    const d = diagnose({ div: "x", dataTone: "surface" });
+    expect(d[0].category).toBe("data-attr");
+  });
+
+  it("missing-key has category 'key'", () => {
+    const d = diagnose({ ul: () => [{ li: "a" }, { li: "b" }] });
+    expect(d[0].category).toBe("key");
+  });
+
+  it("duplicate-key has category 'key'", () => {
+    const d = diagnose({
+      div: [
+        { li: "a", _key: "x" },
+        { li: "b", _key: "x" },
+      ],
+    });
+    expect(d[0].category).toBe("key");
   });
 });
 

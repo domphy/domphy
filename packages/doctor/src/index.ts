@@ -5,8 +5,10 @@
 // code. `validate()` is the aggregate entry point.
 
 export type {
+  CustomRule,
   DiagnoseOptions,
   Diagnostic,
+  RuleCategory,
   Severity,
   ValidationReport,
   ValidationSummary,
