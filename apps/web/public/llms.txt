@@ -40,7 +40,7 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 - Scaffold a project: `npm create domphy@latest <dir>` — a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md).
 - [5-minute quickstart](https://domphy.com/docs/quickstart): install, hello world, patches, reactive state, forms
 - [Full docs index](https://domphy.com/docs/): every package
-- [Building with AI](https://domphy.com/docs/ai): per-tool setup (Claude Code, Cursor, Copilot, …)
+- [Building with AI](https://domphy.com/docs/ai): per-tool setup (Cursor, Copilot, and any AI editor)
 - [Why Domphy](https://domphy.com/docs/guide/why-domphy): comparison vs React/Svelte/Solid/Vue, bundle sizes, when to use
 - [Coming from React](https://domphy.com/docs/guide/from-react): React concepts → Domphy equivalents (useState→toState, hooks→lifecycle, components→patches, React Query→@domphy/query, etc.)
 

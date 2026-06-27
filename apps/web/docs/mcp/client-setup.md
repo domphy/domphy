@@ -1,71 +1,11 @@
 ---
 title: "Client Setup"
-description: "Connect @domphy/mcp to Claude Desktop, Claude Code, Cursor, and VS Code. Covers project vs global scope and the DOMPHY_ORIGIN env var."
+description: "Connect @domphy/mcp to Cursor, VS Code, and any MCP-compatible client. Covers project vs global scope and the DOMPHY_ORIGIN env var."
 ---
 
 # Client Setup
 
 `@domphy/mcp` is a stdio MCP server. Any MCP-capable editor or agent host can connect to it by adding an entry to its MCP config file.
-
-## Claude Desktop
-
-Config file location:
-
-| OS | Path |
-|---|---|
-| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
-
-```json
-{
-  "mcpServers": {
-    "domphy": {
-      "command": "npx",
-      "args": ["-y", "@domphy/mcp"]
-    }
-  }
-}
-```
-
-Restart Claude Desktop after saving. The tools appear in the tool picker under "domphy".
-
-## Claude Code
-
-Claude Code supports MCP servers at two scopes.
-
-### Project scope
-
-Create or edit `.claude/settings.json` at the repo root:
-
-```json
-{
-  "mcpServers": {
-    "domphy": {
-      "command": "npx",
-      "args": ["-y", "@domphy/mcp"]
-    }
-  }
-}
-```
-
-This config is committed to the repo, so every contributor gets the same Domphy context automatically.
-
-### Global scope
-
-Edit `~/.claude/settings.json` (macOS/Linux) or `%USERPROFILE%\.claude\settings.json` (Windows):
-
-```json
-{
-  "mcpServers": {
-    "domphy": {
-      "command": "npx",
-      "args": ["-y", "@domphy/mcp"]
-    }
-  }
-}
-```
-
-Use global scope when you want the server available in every project without committing the config.
 
 ## Cursor
 
@@ -99,6 +39,23 @@ VS Code MCP support uses `.vscode/mcp.json`:
   }
 }
 ```
+
+## Other MCP clients
+
+Any MCP-compatible client that supports stdio servers can connect with this config shape:
+
+```json
+{
+  "mcpServers": {
+    "domphy": {
+      "command": "npx",
+      "args": ["-y", "@domphy/mcp"]
+    }
+  }
+}
+```
+
+Consult your client's documentation for the exact config file location.
 
 ## Skipping the network on first run
 

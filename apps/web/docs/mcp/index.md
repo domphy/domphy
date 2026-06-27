@@ -5,7 +5,7 @@ description: "MCP server exposing Domphy knowledge to AI assistants — patches,
 
 # @domphy/mcp
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that exposes Domphy's knowledge base to AI assistants. Connect it to Claude, Cursor, or any MCP-compatible tool to get accurate Domphy context without hallucination.
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that exposes Domphy's knowledge base to AI assistants. Connect it to Cursor, VS Code, or any MCP-compatible tool to get accurate Domphy context without hallucination.
 
 ## What it gives AI assistants
 
@@ -23,9 +23,9 @@ npm install -g @domphy/mcp
 npx @domphy/mcp
 ```
 
-## Connect to Claude Code
+## Connect your MCP client
 
-Add to your Claude settings (`.claude/settings.json`):
+Add to your MCP client's config (see [Client Setup](./client-setup.md) for per-editor paths):
 
 ```json
 {

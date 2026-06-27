@@ -2,11 +2,11 @@
  * Domphy AI Correctness Benchmark
  *
  * Usage:
- *   pnpm bench              # run full benchmark (requires ANTHROPIC_API_KEY)
+ *   pnpm bench              # run full benchmark (requires OPENAI_API_KEY)
  *   pnpm bench:dry          # dry-run with mock LLM (no API key needed)
  *   pnpm bench -- --task counter          # single task
  *   pnpm bench -- --condition B           # single condition (A/B/C/D)
- *   pnpm bench -- --model claude-haiku-4-5-20251001
+ *   pnpm bench -- --model gpt-4o-mini
  */
 
 import type { Condition, EvalResult } from "./evaluator.js";
@@ -50,9 +50,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  if (!dryRun && !process.env.ANTHROPIC_API_KEY) {
+  if (!dryRun && !process.env.OPENAI_API_KEY) {
     console.error(
-      "ANTHROPIC_API_KEY is not set. Run with --dry-run to test without an API key.",
+      "OPENAI_API_KEY is not set. Run with --dry-run to test without an API key.",
     );
     process.exit(1);
   }

@@ -5,7 +5,7 @@ description: "Full reference for all 10 @domphy/mcp tools."
 
 # Tools Reference
 
-All tools communicate via the [MCP protocol](https://modelcontextprotocol.io/). In Claude Code, they are automatically discovered after configuring the server.
+All tools communicate via the [MCP protocol](https://modelcontextprotocol.io/). They are automatically discovered after configuring the server in any MCP-compatible client.
 
 ## domphy_list_patches
 

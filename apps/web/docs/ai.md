@@ -18,26 +18,6 @@ Both files are auto-generated from the canonical docs and patch source on every 
 
 ## Setup per tool
 
-### Claude Code
-
-Add Domphy as a project skill. Inside your project root:
-
-```bash
-mkdir -p .claude/skills/domphy
-curl -fsSL https://domphy.com/llms-full.txt -o .claude/skills/domphy/SKILL.md
-```
-
-Then prepend this frontmatter to `SKILL.md`:
-
-```markdown
----
-name: domphy
-description: Domphy UI framework — patch-based UI for native HTML. Use when code imports @domphy/*, uses ElementNode/toState/themeColor or patches like button()/card()/inputNumber(). Skip when using React/Vue/Solid/JSX.
----
-```
-
-Claude Code auto-loads the skill when it detects Domphy code in your project.
-
 ### Cursor
 
 Save the file as a project rule:
@@ -56,7 +36,7 @@ These tools read `AGENTS.md` at project root:
 curl -fsSL https://domphy.com/llms-full.txt -o AGENTS.md
 ```
 
-### ChatGPT / Gemini / claude.ai (web)
+### Web chat tools (ChatGPT, Gemini, etc.)
 
 For a one-off question, paste the URL `https://domphy.com/llms-full.txt` into the chat — most chat UIs will fetch it. If the tool cannot fetch URLs, open the URL in a browser and paste the contents into the conversation as a system message.
 
@@ -96,7 +76,7 @@ It flags the exact mistakes LLMs make — inline typography, void-tag content, m
 
 ## MCP server (`@domphy/mcp`)
 
-For MCP-capable agents (Claude Desktop, Cursor, …), the [`@domphy/mcp`](https://www.npmjs.com/package/@domphy/mcp) server exposes Domphy as tools — no pasting required:
+For MCP-capable agents (Cursor, VS Code, and any MCP-compatible client), the [`@domphy/mcp`](https://www.npmjs.com/package/@domphy/mcp) server exposes Domphy as tools — no pasting required:
 
 ```json
 { "mcpServers": { "domphy": { "command": "npx", "args": ["-y", "@domphy/mcp"] } } }

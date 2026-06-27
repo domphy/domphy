@@ -9,7 +9,7 @@
     "bench:dry": "tsx src/index.ts --dry-run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.37.0",
+    "openai": "^4.0.0",
     "@domphy/core": "workspace:*",
     "@domphy/doctor": "workspace:*",
     "esbuild": "^0.25.0"

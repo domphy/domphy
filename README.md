@@ -57,7 +57,7 @@ Plain objects are what LLMs generate naturally. JSX is not. That's the core reas
 
 When an agent generates Domphy code → run `diagnose(app)` → feed the report back → the model fixes its own output. No manual debugging. Domphy is built to make this loop work:
 
-- **[`AGENTS.md`](./AGENTS.md)** — the canonical cross-tool agent spec (Cursor, Claude Code, Copilot, Codex, Aider all read it).
+- **[`AGENTS.md`](./AGENTS.md)** — the canonical cross-tool agent spec (Cursor, Copilot, Codex, Aider, and any AI editor that reads `AGENTS.md`).
 - **[`llms.txt`](https://domphy.com/llms.txt)** — curated index: rules + links to every doc page and patch.
 - **[`llms-full.txt`](https://domphy.com/llms-full.txt)** — one-shot dump: rules + quickstart + every core/theme/package doc + every patch source. Auto-generated, never drifts.
 - **[`@domphy/doctor`](https://domphy.com/docs/doctor/)** — run `diagnose(app)` on generated code and feed the report back to the model; it fixes the issues itself. The feedback loop that lets agents write correct Domphy despite thin training data.

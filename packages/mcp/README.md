@@ -2,7 +2,7 @@
 
 **[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/mcp/) · [npm](https://www.npmjs.com/package/@domphy/mcp)
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that gives MCP-capable AI agents (Claude Desktop, Cursor, …) first-class access to Domphy — so they can look up the real API and validate their own output instead of guessing.
+A [Model Context Protocol](https://modelcontextprotocol.io) server that gives MCP-capable AI agents (Cursor, VS Code, and any MCP-compatible client) first-class access to Domphy — so they can look up the real API and validate their own output instead of guessing.
 
 ## Tools
 
@@ -22,16 +22,6 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server that gives MC
 Patch/package/rules/tones data is fetched live from `domphy.com` (always current with the latest release); `domphy_diagnose`/`domphy_validate`/`domphy_fix` run locally, and the app-block tools read the local `app-manifest.json`.
 
 ## Use
-
-### Claude Desktop / Claude Code
-
-```json
-{
-  "mcpServers": {
-    "domphy": { "command": "npx", "args": ["-y", "@domphy/mcp"] }
-  }
-}
-```
 
 ### Cursor
 

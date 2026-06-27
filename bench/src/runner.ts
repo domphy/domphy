@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import type { Condition } from "./evaluator.js";
 import {
   buildDoctorFeedback,
@@ -221,20 +221,21 @@ export interface RunnerOptions {
 }
 
 async function callLLM(
-  client: Anthropic,
+  client: OpenAI,
   systemPrompt: string,
   userMessage: string,
   model: string,
   maxTokens: number,
 ): Promise<string> {
-  const response = await client.messages.create({
+  const response = await client.chat.completions.create({
     model,
     max_tokens: maxTokens,
-    system: systemPrompt,
-    messages: [{ role: "user", content: userMessage }],
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userMessage },
+    ],
   });
-  const block = response.content[0];
-  return block.type === "text" ? block.text : "";
+  return response.choices[0]?.message?.content ?? "";
 }
 
 export async function runCondition(
@@ -244,7 +245,7 @@ export async function runCondition(
 ): Promise<RunResult> {
   const {
     dryRun,
-    model = "claude-haiku-4-5-20251001",
+    model = "gpt-4o-mini",
     maxTokens = 2048,
   } = options;
 
@@ -258,7 +259,7 @@ export async function runCondition(
     };
   }
 
-  const client = new Anthropic();
+  const client = new OpenAI();
   const started = Date.now();
 
   if (condition === "A") {
@@ -299,20 +300,19 @@ export async function runCondition(
         "Please fix all issues and return the corrected TypeScript code only (```ts ... ```).",
       ].join("\n");
 
-      const messages: Anthropic.MessageParam[] = [
+      const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+        { role: "system", content: sys },
         { role: "user", content: task.prompt },
         { role: "assistant", content: reply },
         { role: "user", content: fixPrompt },
       ];
 
-      const response = await client.messages.create({
+      const response = await client.chat.completions.create({
         model,
         max_tokens: maxTokens,
-        system: sys,
         messages,
       });
-      const block = response.content[0];
-      reply = block.type === "text" ? block.text : reply;
+      reply = response.choices[0]?.message?.content ?? reply;
       iterations++;
     }
 

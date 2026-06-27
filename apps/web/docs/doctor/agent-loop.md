@@ -201,7 +201,7 @@ if (doctorReport !== "✓ No issues found.") {
 
 ## MCP tools (remote agents)
 
-[`@domphy/mcp`](/docs/ai) exposes the doctor as MCP tools so agents running over the wire (Claude, Cursor, Copilot Chat, custom tool-calling loops) can validate and fix trees without bundling `@domphy/doctor` locally.
+[`@domphy/mcp`](/docs/ai) exposes the doctor as MCP tools so agents running over the wire (Cursor, Copilot Chat, custom tool-calling loops) can validate and fix trees without bundling `@domphy/doctor` locally.
 
 | Tool | Returns |
 | --- | --- |

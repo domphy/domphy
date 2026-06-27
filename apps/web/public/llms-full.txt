@@ -11,7 +11,7 @@
 
 # AGENTS.md — Domphy
 
-Instructions for AI agents writing/editing Domphy code. (Human contributors: same rules apply.) This is the canonical short spec. More machine context: `apps/web/public/llms.txt` (index), `apps/web/public/llms-full.txt` (one-shot dump), `apps/web/public/manifest.json` (structured patch/package index), the `@domphy/mcp` server (tools for MCP agents), and the Claude Code skill `domphy`.
+Instructions for AI agents writing/editing Domphy code. (Human contributors: same rules apply.) This is the canonical short spec. More machine context: `apps/web/public/llms.txt` (index), `apps/web/public/llms-full.txt` (one-shot dump), `apps/web/public/manifest.json` (structured patch/package index), the `@domphy/mcp` server (tools for MCP agents).
 
 ## What Domphy is
 
@@ -27802,7 +27802,7 @@ if (doctorReport !== "✓ No issues found.") {
 
 ## MCP tools (remote agents)
 
-[`@domphy/mcp`](/docs/ai) exposes the doctor as MCP tools so agents running over the wire (Claude, Cursor, Copilot Chat, custom tool-calling loops) can validate and fix trees without bundling `@domphy/doctor` locally.
+[`@domphy/mcp`](/docs/ai) exposes the doctor as MCP tools so agents running over the wire (Cursor, Copilot Chat, custom tool-calling loops) can validate and fix trees without bundling `@domphy/doctor` locally.
 
 | Tool | Returns |
 | --- | --- |
@@ -33340,72 +33340,12 @@ This means the server can read sources correctly whether the manifest is in `app
 
 ---
 title: "Client Setup"
-description: "Connect @domphy/mcp to Claude Desktop, Claude Code, Cursor, and VS Code. Covers project vs global scope and the DOMPHY_ORIGIN env var."
+description: "Connect @domphy/mcp to Cursor, VS Code, and any MCP-compatible client. Covers project vs global scope and the DOMPHY_ORIGIN env var."
 ---
 
 # Client Setup
 
 `@domphy/mcp` is a stdio MCP server. Any MCP-capable editor or agent host can connect to it by adding an entry to its MCP config file.
-
-## Claude Desktop
-
-Config file location:
-
-| OS | Path |
-|---|---|
-| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
-
-```json
-{
-  "mcpServers": {
-    "domphy": {
-      "command": "npx",
-      "args": ["-y", "@domphy/mcp"]
-    }
-  }
-}
-```
-
-Restart Claude Desktop after saving. The tools appear in the tool picker under "domphy".
-
-## Claude Code
-
-Claude Code supports MCP servers at two scopes.
-
-### Project scope
-
-Create or edit `.claude/settings.json` at the repo root:
-
-```json
-{
-  "mcpServers": {
-    "domphy": {
-      "command": "npx",
-      "args": ["-y", "@domphy/mcp"]
-    }
-  }
-}
-```
-
-This config is committed to the repo, so every contributor gets the same Domphy context automatically.
-
-### Global scope
-
-Edit `~/.claude/settings.json` (macOS/Linux) or `%USERPROFILE%\.claude\settings.json` (Windows):
-
-```json
-{
-  "mcpServers": {
-    "domphy": {
-      "command": "npx",
-      "args": ["-y", "@domphy/mcp"]
-    }
-  }
-}
-```
-
-Use global scope when you want the server available in every project without committing the config.
 
 ## Cursor
 
@@ -33770,7 +33710,7 @@ description: "MCP server exposing Domphy knowledge to AI assistants — patches,
 
 # @domphy/mcp
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that exposes Domphy's knowledge base to AI assistants. Connect it to Claude, Cursor, or any MCP-compatible tool to get accurate Domphy context without hallucination.
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that exposes Domphy's knowledge base to AI assistants. Connect it to Cursor, VS Code, or any MCP-compatible tool to get accurate Domphy context without hallucination.
 
 ## What it gives AI assistants
 
@@ -33788,9 +33728,9 @@ npm install -g @domphy/mcp
 npx @domphy/mcp
 ```
 
-## Connect to Claude Code
+## Connect your MCP client
 
-Add to your Claude settings (`.claude/settings.json`):
+Add to your MCP client's config (see Client Setup for per-editor paths):
 
 ```json
 {
@@ -33816,7 +33756,7 @@ description: "Full reference for all 10 @domphy/mcp tools."
 
 # Tools Reference
 
-All tools communicate via the [MCP protocol](https://modelcontextprotocol.io/). In Claude Code, they are automatically discovered after configuring the server.
+All tools communicate via the [MCP protocol](https://modelcontextprotocol.io/). They are automatically discovered after configuring the server in any MCP-compatible client.
 
 ## domphy_list_patches
 
