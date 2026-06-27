@@ -4,7 +4,7 @@ import {
   createMutation,
   createQuery,
 } from "../src/domphy/index";
-import { QueryClient } from "../src/index";
+import { QueryClient, keepPreviousData } from "../src/index";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -143,6 +143,38 @@ describe("createMutation.reset", () => {
     expect(statusCalls).toBeGreaterThan(0);
     expect(mutation.status()).toBe("idle");
     mutation.destroy();
+  });
+});
+
+describe("createQuery.isPlaceholderData", () => {
+  it("is true while showing keepPreviousData across key changes", async () => {
+    // Start with key "a"
+    const query = createQuery<string>(client, {
+      queryKey: ["placeholder", "a"],
+      queryFn: async () => "page-a",
+      placeholderData: keepPreviousData,
+    });
+
+    await sleep(20);
+    expect(query.data()).toBe("page-a");
+    expect(query.isPlaceholderData()).toBe(false);
+
+    // Switch to key "b" — data for "b" is not yet cached, so the observer
+    // shows the previous page-a data as placeholder while fetching.
+    query.setOptions({
+      queryKey: ["placeholder", "b"],
+      queryFn: async () => "page-b",
+      placeholderData: keepPreviousData,
+    });
+
+    // Immediately after key change the old data is shown as placeholder
+    expect(query.isPlaceholderData()).toBe(true);
+
+    await sleep(20);
+    // After the new fetch resolves, placeholder flag clears
+    expect(query.data()).toBe("page-b");
+    expect(query.isPlaceholderData()).toBe(false);
+    query.destroy();
   });
 });
 

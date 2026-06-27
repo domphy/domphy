@@ -58,6 +58,7 @@ Every accessor takes an optional listener and returns the live value:
 | `isFetching(l)` / `isRefetching(l)` | `boolean` |
 | `isSuccess(l)` / `isError(l)` | `boolean` |
 | `isStale(l)` | `boolean` |
+| `isPlaceholderData(l)` | `boolean` — `true` when showing placeholder data (e.g. `keepPreviousData` across key changes) |
 
 Plus the imperative members: `refetch(options?)`, `setOptions(options)`, the raw `observer`, the underlying `state` (a `RecordState`), and `destroy()`.
 

@@ -29,6 +29,8 @@ export interface QueryHandle<TData = unknown, TError = DefaultError> {
   isError(listener?: Listener): boolean
   isRefetching(listener?: Listener): boolean
   isStale(listener?: Listener): boolean
+  /** True when the data shown is placeholder data (e.g. `placeholderData: keepPreviousData`). */
+  isPlaceholderData(listener?: Listener): boolean
   refetch(options?: RefetchOptions): Promise<QueryObserverResult<TData, TError>>
   setOptions(options: QueryObserverOptions<any, TError, TData, any, any>): void
   destroy(): void
@@ -77,6 +79,7 @@ export function createQuery<
     isError: (l) => field("isError", l),
     isRefetching: (l) => field("isRefetching", l),
     isStale: (l) => field("isStale", l),
+    isPlaceholderData: (l) => field("isPlaceholderData", l),
     refetch: (refetchOptions) => observer.refetch(refetchOptions),
     setOptions: (next) => observer.setOptions(next),
     destroy: () => {
