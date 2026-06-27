@@ -8,7 +8,7 @@ export class GaugeRenderer {
   renderToSvg(svg: SVGSVGElement, series: GaugeSeriesOption[], width: number, height: number): void {
     const old = svg.querySelector(".dc-gauge");
     if (old) old.remove();
-    if (series.length === 0) return;
+    if (series.length === 0 || width <= 0 || height <= 0) return;
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
     group.setAttribute("class", "dc-gauge");
 
@@ -90,18 +90,21 @@ export class GaugeRenderer {
         }
       });
 
-      // Ticks
+      // Ticks + labels
       const splitNum = s.splitNumber ?? 10;
-      const tickLen = s.splitLine?.length ?? 10;
+      const majorLen = s.splitLine?.length ?? 10;
+      const minorLen = s.axisTick?.length ?? 5;
+      const minorCount = s.axisTick?.splitNumber ?? 5;
       const tickColor = themeColorToken(null, "shift-5", "neutral");
+      const tickLabelColor = themeColorToken(null, "shift-8", "neutral");
 
       for (let tick = 0; tick <= splitNum; tick++) {
         const fraction = tick / splitNum;
         const tickRad = startRad + totalAngle * fraction;
         const outerX = cx + radius * Math.cos(tickRad);
         const outerY = cy - radius * Math.sin(tickRad);
-        const innerX = cx + (radius - tickLen) * Math.cos(tickRad);
-        const innerY = cy - (radius - tickLen) * Math.sin(tickRad);
+        const innerX = cx + (radius - majorLen) * Math.cos(tickRad);
+        const innerY = cy - (radius - majorLen) * Math.sin(tickRad);
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
         line.setAttribute("x1", String(outerX));
         line.setAttribute("y1", String(outerY));
@@ -110,6 +113,82 @@ export class GaugeRenderer {
         line.setAttribute("stroke", tickColor);
         line.setAttribute("stroke-width", "2");
         group.appendChild(line);
+
+        // Minor ticks between major ticks
+        if (tick < splitNum) {
+          for (let m = 1; m < minorCount; m++) {
+            const mFrac = fraction + (m / minorCount) / splitNum;
+            const mRad = startRad + totalAngle * mFrac;
+            const mox = cx + radius * Math.cos(mRad);
+            const moy = cy - radius * Math.sin(mRad);
+            const mix = cx + (radius - minorLen) * Math.cos(mRad);
+            const miy = cy - (radius - minorLen) * Math.sin(mRad);
+            const ml = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            ml.setAttribute("x1", String(mox)); ml.setAttribute("y1", String(moy));
+            ml.setAttribute("x2", String(mix)); ml.setAttribute("y2", String(miy));
+            ml.setAttribute("stroke", tickColor); ml.setAttribute("stroke-width", "1");
+            group.appendChild(ml);
+          }
+        }
+
+        // Tick label
+        if (s.axisLabel?.show !== false) {
+          const labelVal = minVal + fraction * (maxVal - minVal);
+          const labelR = radius + (s.axisLabel?.distance ?? 15);
+          const lx = cx + labelR * Math.cos(tickRad);
+          const ly = cy - labelR * Math.sin(tickRad);
+          if (!Number.isFinite(lx) || !Number.isFinite(ly)) continue;
+          const labelText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          labelText.textContent = Number.isInteger(labelVal) ? String(labelVal) : labelVal.toFixed(1);
+          labelText.setAttribute("x", String(lx));
+          labelText.setAttribute("y", String(ly));
+          labelText.setAttribute("text-anchor", "middle");
+          labelText.setAttribute("dominant-baseline", "middle");
+          labelText.setAttribute("font-size", String(s.axisLabel?.fontSize ?? 11));
+          labelText.setAttribute("fill", tickLabelColor);
+          group.appendChild(labelText);
+        }
+      }
+
+      // Needle
+      if (s.pointer?.show !== false) {
+        const dataItem = (s.data ?? [{ value: 0 }])[0];
+        const needleVal = typeof dataItem === "object" ? (dataItem as any).value ?? 0 : (dataItem as number);
+        const needleFraction = Math.max(0, Math.min(1, (needleVal - minVal) / (maxVal - minVal)));
+        const needleRad = startRad + totalAngle * needleFraction;
+
+        const needleLen = (s.pointer?.length != null)
+          ? (typeof s.pointer.length === "string"
+            ? parseFloat(s.pointer.length) / 100 * radius
+            : s.pointer.length)
+          : radius * 0.8;
+        const needleWidth = s.pointer?.width ?? 6;
+        const perpRad = needleRad + Math.PI / 2;
+
+        // Needle: triangle from base to tip
+        const tipX = cx + needleLen * Math.cos(needleRad);
+        const tipY = cy - needleLen * Math.sin(needleRad);
+        const base1X = cx + (needleWidth / 2) * Math.cos(perpRad);
+        const base1Y = cy - (needleWidth / 2) * Math.sin(perpRad);
+        const base2X = cx - (needleWidth / 2) * Math.cos(perpRad);
+        const base2Y = cy + (needleWidth / 2) * Math.sin(perpRad);
+
+        const needleRgba = s.color ? familyRgba(s.color as any, "shift-9") : seriesRgba(si);
+        const needleColor = (s.pointer as any)?.itemStyle?.color
+          ?? `rgba(${needleRgba.map((v, i) => i < 3 ? Math.round(v * 255) : v).join(",")})`;
+
+        const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        polygon.setAttribute("points", `${tipX},${tipY} ${base1X},${base1Y} ${base2X},${base2Y}`);
+        polygon.setAttribute("fill", needleColor);
+        group.appendChild(polygon);
+
+        // Center circle
+        const pivot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        pivot.setAttribute("cx", String(cx));
+        pivot.setAttribute("cy", String(cy));
+        pivot.setAttribute("r", "6");
+        pivot.setAttribute("fill", needleColor);
+        group.appendChild(pivot);
       }
     }
 

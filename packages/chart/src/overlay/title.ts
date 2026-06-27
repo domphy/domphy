@@ -11,21 +11,27 @@ export function renderTitle(svg: SVGSVGElement, title: TitleOption): void {
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
   group.setAttribute("class", "dc-title");
 
-  const left = title.left !== undefined
-    ? (typeof title.left === "number" ? title.left : parseFloat(String(title.left)))
-    : 8;
+  function resolveH(val: string | number | undefined, fallback: number): [number, "start" | "middle" | "end"] {
+    if (val === undefined) return [fallback, "start"];
+    if (typeof val === "number") return [val, "start"];
+    if (val === "center") return [svgWidth / 2, "middle"];
+    if (val === "right") return [svgWidth - 8, "end"];
+    if (val === "left") return [8, "start"];
+    if (String(val).endsWith("%")) return [parseFloat(val) / 100 * svgWidth, "start"];
+    return [parseFloat(String(val)) || fallback, "start"];
+  }
 
+  const [leftPx, autoAnchor] = resolveH(title.left, 8);
   const top = title.top !== undefined
-    ? (typeof title.top === "number" ? title.top : parseFloat(String(title.top)))
+    ? (typeof title.top === "number" ? title.top : parseFloat(String(title.top)) || 10)
     : 10;
 
-  const align = title.textAlign === "center" ? svgWidth / 2
-    : title.textAlign === "right" ? svgWidth - left
-    : left;
-
-  const anchor = title.textAlign === "center" ? "middle"
+  const explicitAnchor = title.textAlign === "center" ? "middle"
     : title.textAlign === "right" ? "end"
-    : "start";
+    : title.textAlign === "left" ? "start"
+    : null;
+  const anchor = explicitAnchor ?? autoAnchor;
+  const align = anchor === "middle" ? svgWidth / 2 : anchor === "end" ? svgWidth - 8 : leftPx;
 
   if (title.text) {
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
