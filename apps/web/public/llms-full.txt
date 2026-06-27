@@ -39318,3 +39318,169 @@ function unorderedList(
 
 export { unorderedList };
 ```
+
+---
+
+# @domphy/chart
+
+ECharts-grade data visualization patch for Domphy. Renders series geometry with **luma.gl v9 WebGL** and overlays axes, labels, legend, title, tooltip and marks with **SVG**.
+
+## Install
+
+```
+pnpm add @domphy/chart
+```
+
+## Patch: `chart(option)`
+
+```ts
+import { chart } from "@domphy/chart";
+import { toState } from "@domphy/core";
+
+// Static option
+{ div: null, $: [chart({ series: [{ type: "bar", data: [1, 2, 3] }], xAxis: {}, yAxis: {} })],
+  style: { width: "600px", height: "400px" } }
+
+// Reactive option
+const optionState = toState<ChartOption>({ series: [...] });
+{ div: null, $: [chart(optionState)], style: { width: "100%", height: "400px" } }
+```
+
+Automatically re-renders when the option state changes or the container resizes. Cleans up WebGL resources on remove.
+
+## ChartEngine (advanced)
+
+```ts
+import { ChartEngine } from "@domphy/chart";
+const engine = new ChartEngine(document.getElementById("chart")!);
+await engine.init();          // async: creates WebGL Device + all renderers
+engine.setSize(800, 400);
+engine.setOption(option);     // renders immediately
+engine.destroy();
+```
+
+## ChartOption — full type surface
+
+```ts
+interface ChartOption {
+  title?: TitleOption | TitleOption[];
+  legend?: LegendOption | LegendOption[];
+  grid?: GridOption | GridOption[];
+  xAxis?: AxisOption | AxisOption[];
+  yAxis?: AxisOption | AxisOption[];
+  polar?: PolarOption;
+  radar?: RadarOption | RadarOption[];
+  series?: SeriesOption[];
+  tooltip?: TooltipOption;
+  toolbox?: ToolboxOption;
+  dataZoom?: DataZoomOption | DataZoomOption[];
+  visualMap?: VisualMapOption | VisualMapOption[];
+  brush?: BrushOption;
+  dataset?: DatasetOption | DatasetOption[];
+  color?: ThemeFamily[];
+  backgroundColor?: ThemeFamily;
+}
+```
+
+## Series types
+
+All series share: `type`, `name`, `data`, `color?: ThemeFamily`, `markPoint`, `markLine`, `markArea`, `xAxisIndex`, `yAxisIndex`.
+
+```ts
+type SeriesOption =
+  | LineSeriesOption       // smooth, step, areaStyle, connectNulls, lineStyle, symbolSize
+  | BarSeriesOption        // stack, barWidth, barGap, label, backgroundStyle
+  | PieSeriesOption        // radius, center, roseType, itemStyle, label
+  | ScatterSeriesOption    // symbolSize (number or fn), itemStyle
+  | RadarSeriesOption      // radarIndex, areaStyle, data[].value[]
+  | HeatmapSeriesOption    // xAxisIndex, yAxisIndex, coordinateSystem
+  | CandlestickSeriesOption // upColor, downColor, data: [open,close,low,high][]
+  | GaugeSeriesOption      // min, max, startAngle, endAngle, progress, splitLine, detail, title
+  | BoxplotSeriesOption    // (types only — not yet WebGL rendered)
+  | TreemapSeriesOption    // (SVG layout — not yet rendered)
+  | FunnelSeriesOption     // (not yet rendered)
+  | SankeySeriesOption     // (not yet rendered)
+  | GraphSeriesOption      // (not yet rendered)
+  | CustomSeriesOption;    // renderItem fn
+```
+
+## Color system
+
+Series palette (index → `ThemeFamily`):
+```ts
+["primary","secondary","success","warning","error","info","highlight","attention","danger"]
+// at tone "shift-9" (concrete hex via themeColorToken — no CSS var)
+```
+
+Color utilities:
+```ts
+import { seriesHex, seriesRgba, familyHex, familyRgba, hexToRgba } from "@domphy/chart";
+seriesHex(0)          // "#4a7ff4" — primary shift-9
+seriesRgba(1)         // [r,g,b,a] floats
+familyHex("error")    // error family hex
+```
+
+## Scale utilities
+
+```ts
+import { createLinearScale, createOrdinalScale, createTimeScale, createLogScale } from "@domphy/chart";
+
+const linear = createLinearScale([0, 100], [0, 400]);
+linear.map(50)    // 200
+linear.invert(200) // 50
+linear.ticks(5)   // [0, 25, 50, 75, 100]
+
+const ordinal = createOrdinalScale(["A","B","C"], [0, 600]);
+ordinal.map("B")      // center of B band
+ordinal.bandwidth()   // width of one band
+```
+
+## patch.ts source
+
+```ts
+import { toState, type PartialElement, type ReadableState } from "@domphy/core";
+import type { ChartOption } from "./types.js";
+import { ChartEngine } from "./engine.js";
+
+/**
+ * Renders an ECharts-grade chart using WebGL (luma.gl) + SVG overlay.
+ * Apply to a `div` with explicit width and height.
+ *
+ * @hostTag div
+ * @param option - Chart configuration object, or a reactive state wrapping one.
+ * @example
+ * { div: null, $: [chart({ series: [{ type: "bar", data: [1, 2, 3] }], xAxis: {}, yAxis: {} })],
+ *   style: { width: "600px", height: "400px" } }
+ */
+function chart(option: ChartOption | ReadableState<ChartOption>): PartialElement {
+  const optionState = toState(option);
+  return {
+    style: { position: "relative", overflow: "hidden" },
+    _onMount(node) {
+      const container = node.domElement as HTMLElement;
+      const engine = new ChartEngine(container);
+      let initialized = false;
+      let width = 0;
+      let height = 0;
+      const applySize = () => {
+        const rect = container.getBoundingClientRect();
+        if (rect.width !== width || rect.height !== height) {
+          width = rect.width; height = rect.height;
+          engine.setSize(width, height);
+        }
+      };
+      const applyOption = () => {
+        applySize();
+        if (width && height && initialized) engine.setOption(optionState.get());
+      };
+      engine.init().then(() => { initialized = true; applyOption(); });
+      const unsubscribe = optionState.addListener(applyOption);
+      const ro = new ResizeObserver(applyOption);
+      ro.observe(container);
+      node.addHook("Remove", () => { unsubscribe(); ro.disconnect(); engine.destroy(); });
+    },
+  };
+}
+
+export { chart };
+```

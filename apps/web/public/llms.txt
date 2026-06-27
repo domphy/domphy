@@ -234,6 +234,61 @@ Anchor positioning for tooltips, popovers, dropdowns, and menus — a 1-1 vendor
 
 - [Getting Started](https://domphy.com/docs/floating) · [Placement](https://domphy.com/docs/floating/placement) · [offset](https://domphy.com/docs/floating/offset) · [flip & autoPlacement](https://domphy.com/docs/floating/flip) · [shift & limitShift](https://domphy.com/docs/floating/shift) · [arrow](https://domphy.com/docs/floating/arrow) · [size](https://domphy.com/docs/floating/size) · [autoUpdate, hide & Virtual Elements](https://domphy.com/docs/floating/auto-update)
 
+## Chart (`@domphy/chart`)
+
+ECharts-grade data visualization for Domphy — two-layer rendering: **luma.gl v9 WebGL** for series geometry (bar, line, scatter, pie, radar, heatmap, candlestick) + **SVG overlay** for axes, grid lines, tick labels, title, legend, tooltip, mark points/lines/areas.
+
+### Usage
+
+```ts
+import { chart } from "@domphy/chart";
+
+{ div: null, $: [chart(option)] }
+// or with reactive option:
+const optionState = toState({ type: "line", ... });
+{ div: null, $: [chart(optionState)] }
+```
+
+### ChartEngine (advanced embedding)
+
+```ts
+import { ChartEngine } from "@domphy/chart";
+const engine = new ChartEngine(container);
+await engine.init();
+engine.setSize(width, height);
+engine.setOption(option);
+engine.destroy();
+```
+
+### API surface (bam ECharts parity)
+
+- **series**: `line` (smooth, step, areaStyle, connectNulls), `bar` (stack, grouped), `scatter` (symbolSize fn), `pie` (radius, roseType, center), `radar`, `heatmap`, `candlestick` (upColor/downColor), `gauge` (SVG, progress arc, ticks, labels)
+- **axes**: `xAxis`/`yAxis` — type `"value" | "category" | "time" | "log"`, `name`, `min`/`max`, `splitNumber`, `gridIndex`
+- **grid**: `left`/`top`/`right`/`bottom` (px or %)
+- **polar**: `center`, `radius`
+- **radar**: `indicator[]`, `shape`, `splitNumber`, `startAngle`
+- **title**: `text`, `subtext`, `left`/`top`
+- **legend**: `orient`, `data[]`, `left`/`top`/`right`/`bottom`
+- **tooltip**: `trigger` (`"axis"` | `"item"`), `axisPointer.type`, `formatter`
+- **dataset**: `source`, `dimensions`, `transform[]` (filter/sort)
+- **markPoint/markLine/markArea**: `max`/`min`/`average` special values, `coord`, `xAxis`/`yAxis`
+- **dataZoom**: slider + inside (type definitions only — component not yet rendered)
+- **visualMap**: continuous/piecewise color mapping (type definitions)
+- **toolbox**: save/zoom/restore (type definitions)
+- **brush**: selection brushing (type definitions)
+
+### Color system
+
+Series palette cycles through theme families (`primary → secondary → success → warning → error → info → highlight → attention → danger`) at tone `shift-9`. All WebGL uniforms use `themeColorToken(null, tone, family)` → concrete hex (no CSS var, light-theme default). Override any series color via `series[n].color: ThemeFamily`.
+
+### Scale utilities (also exported)
+
+```ts
+import { createLinearScale, createOrdinalScale, createTimeScale, createLogScale } from "@domphy/chart";
+```
+
+- [Overview](https://domphy.com/docs/chart/) · [Series Reference](https://domphy.com/docs/chart/series) · [Axes & Grid](https://domphy.com/docs/chart/axes) · [Colors & Theme](https://domphy.com/docs/chart/colors) · [ChartEngine API](https://domphy.com/docs/chart/engine)
+
 ## Scaffolder (`create-domphy`)
 
 `npm create domphy@latest <dir>` — scaffolds a runnable Vite + TypeScript starter: `themeApply`, sample patches, and an `AGENTS.md` ready for AI agents. Not scoped as `@domphy/*`; published separately.
