@@ -58,12 +58,12 @@ const App = {
 | `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code) |
 | `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`) |
 | `@domphy/ui` | 87 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, …) |
-| `@domphy/query` | async state — TanStack query-core port; adapter `createQuery`/`createMutation`/`createInfiniteQuery` at `@domphy/query/domphy` |
-| `@domphy/table` | headless tables — table-core port; adapter `createDomphyTable` at `@domphy/table/domphy` |
-| `@domphy/router` | type-safe routing — router-core port; `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
-| `@domphy/virtual` | virtualization — virtual-core port; adapter `createVirtualizer` at `@domphy/virtual/domphy` |
-| `@domphy/form` | forms — form-core port; adapter `createForm` at `@domphy/form/domphy` |
-| `@domphy/dnd` | drag & drop — `dragDrop(state, config?)` / `multiList({group,values})` / `multiListGroup(group, states[])` (wraps `@formkit/drag-and-drop`; animations enabled by default) |
+| `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery` at `@domphy/query/domphy` |
+| `@domphy/table` | headless tables — adapter `createDomphyTable` at `@domphy/table/domphy` |
+| `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
+| `@domphy/virtual` | virtualization — adapter `createVirtualizer` at `@domphy/virtual/domphy` |
+| `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy` |
+| `@domphy/dnd` | drag & drop — `dragDrop(state, config?)` (wraps `@formkit/drag-and-drop`) |
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes |
 | `@domphy/doctor` | static analyzer — `diagnose(element)` / `validate(element)` flag non-idiomatic trees; `fix(element)` applies lossless autofixes. **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — internal to `@domphy/ui` overlays |
@@ -78,7 +78,7 @@ const App = {
 | `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
 | `bench` | benchmarks (internal, not published) |
 
-Data/logic packages are **1-1 TanStack core ports** (byte-identical upstream API) + a thin Domphy adapter at the `/domphy` subpath; `@domphy/core` is their peer dependency.
+Data/logic packages each expose a framework-agnostic API at the main entry and a thin Domphy adapter at the `/domphy` subpath; `@domphy/core` is their peer dependency.
 
 ## Removed / do NOT use
 
@@ -178,13 +178,13 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 - `@domphy/theme` — context-aware color/size/spacing tokens
 - `@domphy/ui` — 87 patches for native HTML (≈ MUI)
 
-**Data & logic** — 1-1 ports of the TanStack cores (identical API) + a Domphy adapter at the `/domphy` subpath:
+**Data & logic** — framework-agnostic API + a Domphy adapter at the `/domphy` subpath:
 
-- `@domphy/query` — async state (TanStack Query core)
-- `@domphy/table` — headless tables (TanStack Table core)
-- `@domphy/router` — type-safe routing (TanStack Router core)
-- `@domphy/virtual` — virtualization (TanStack Virtual core)
-- `@domphy/form` — forms (TanStack Form core)
+- `@domphy/query` — async state (fetching, caching, mutations, infinite queries)
+- `@domphy/table` — headless tables (sorting, filtering, pagination, grouping)
+- `@domphy/router` — type-safe routing (nested routes, loaders, search params, SSR)
+- `@domphy/virtual` — virtualization (rows, columns, dynamic sizes)
+- `@domphy/form` — forms (typed values, validators, arrays, Standard Schema)
 
 **App layer & tools:**
 
@@ -196,7 +196,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 - `@domphy/doctor` — static analyzer that flags non-idiomatic code (`diagnose`/`validate`; powers AI self-correction)
 - `@domphy/mcp` — MCP server exposing patches/packages/rules + doctor + app-block registry to agents
 
-Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. Charts are first-party (`@domphy/chart`), i18n is first-party (`@domphy/i18n`). For anything outside these packages, use the vanilla library directly — see [Integrations](/docs/integrations/).
+Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. For anything outside these packages (charts, rich text, i18n…), use the vanilla library directly — see [Integrations](/docs/integrations/).
 
 ## Why Domphy
 
@@ -268,7 +268,7 @@ No virtual DOM, no diffing. Changing state updates only the properties that read
 
 ## 4. Forms
 
-Form state, validation, and submission live in [`@domphy/form`](/docs/form/) (`createForm`) — a 1-1 port of `@tanstack/form-core`. `@domphy/ui` provides the presentation: native inputs with the input patches, `label`, and `formGroup` for layout. Bind each field with `value: (l) => field.value(l)` and forward events to `field.handleChange(...)`.
+Form state, validation, and submission live in [`@domphy/form`](/docs/form/) (`createForm`). `@domphy/ui` provides the presentation: native inputs with the input patches, `label`, and `formGroup` for layout. Bind each field with `value: (l) => field.value(l)` and forward events to `field.handleChange(...)`.
 
 // source: /docs/demos/quickstart/04-form.ts
 
@@ -6336,13 +6336,13 @@ See the [Tone guide](/docs/theme/tone) for the full color-role model.
 
 # Domphy Adapter
 
-The [bridge pattern](./) — `observer.subscribe(...)` pushing into `toState` — works everywhere, but it is the same boilerplate in every component. `@domphy/query/domphy` packages it once: a thin adapter that binds the TanStack observers to Domphy reactivity and hands you reactive accessors.
+The [bridge pattern](./) — `observer.subscribe(...)` pushing into `toState` — works everywhere, but it is the same boilerplate in every component. `@domphy/query/domphy` packages it once: a thin adapter that binds the observers to Domphy reactivity and hands you reactive accessors.
 
 ```bash
 npm install @domphy/query @domphy/core
 ```
 
-`@domphy/core` is a **peer dependency** of the adapter — it is the only part of `@domphy/query` that touches Domphy, so the main `@domphy/query` entry stays a dependency-free, byte-identical port. Import the adapter from the `/domphy` subpath:
+`@domphy/core` is a **peer dependency** of the adapter — it is the only part of `@domphy/query` that touches Domphy, so the main `@domphy/query` entry stays dependency-free. Import the adapter from the `/domphy` subpath:
 
 ```ts
 import { createQuery, createInfiniteQuery, createMutation } from "@domphy/query/domphy"
@@ -6732,7 +6732,7 @@ const constants = createQuery(queryClient, {
 
 # API Reference
 
-`@domphy/query` is a 1-1 port of `@tanstack/query-core` v5.90.20 — every export below has identical behavior to upstream, so the [TanStack Query reference](https://tanstack.com/query/latest/docs/reference/QueryClient) documents each item in full detail.
+Complete list of exports from `@domphy/query`.
 
 ## Client And Caches
 
@@ -7084,8 +7084,6 @@ if (import.meta.env.DEV) {
 # Query
 
 `@domphy/query` provides async state management for Domphy apps: fetching, caching, deduplication, background refetching, mutations, infinite queries, and SSR hydration.
-
-It is a **1-1 port of [`@tanstack/query-core`](https://github.com/TanStack/query/tree/main/packages/query-core) v5.90.20** (MIT, © Tanner Linsley and the TanStack team). The source is kept byte-identical to upstream, so the entire [TanStack Query core reference](https://tanstack.com/query/latest/docs/reference/QueryClient) applies as-is, and future upstream versions can be diffed and merged directly.
 
 Like the rest of Domphy, it is framework-agnostic and has zero dependencies — the bridge to the UI is plain `toState`.
 
@@ -8946,7 +8944,7 @@ const loginForm = createForm<LoginInput>({
 
 # API Reference
 
-`@domphy/router` is a 1-1 port of `@tanstack/router-core` v1.171.13 — every export below has identical behavior to upstream, so the [TanStack Router reference](https://tanstack.com/router/latest) documents each item in full detail. The only additions are the `create*` adapter functions and the re-exported `@tanstack/history`.
+Complete list of exports from `@domphy/router`.
 
 ## Creating Routers And Routes
 
@@ -8981,7 +8979,7 @@ The main members of the router returned by `createRouter`:
 
 ## History
 
-Re-exported from `@tanstack/history`:
+Available from `@domphy/router`:
 
 - `createBrowserHistory()`, `createHashHistory()`, `createMemoryHistory({ initialEntries })`, `createHistory()`
 - `parseHref(href, state)`
@@ -9887,9 +9885,7 @@ const route = createRoute({
 
 `@domphy/router` provides type-safe routing for Domphy apps: nested route trees, path params, validated search params, loaders with caching, redirects, navigation blocking, scroll restoration, and SSR.
 
-It is a **1-1 port of [`@tanstack/router-core`](https://github.com/TanStack/router/tree/main/packages/router-core) v1.171.13** (MIT, © Tanner Linsley and the TanStack team). The source is kept byte-identical to upstream, so the entire [TanStack Router reference](https://tanstack.com/router/latest) applies as-is, and future upstream versions can be diffed and merged directly. A thin adapter adds `createRouter`, `createRoute`, `createRootRoute`, and `createRootRouteWithContext`, and the `@tanstack/history` layer is re-exported so no separate install is needed.
-
-Like the rest of Domphy, it is framework-agnostic — the bridge to the UI is plain `toState`.
+Like the rest of Domphy, it is framework-agnostic — the bridge to the UI is plain `toState`. The history layer is included, so no separate install is needed.
 
 ## Install
 
@@ -10433,7 +10429,7 @@ For prefix matching (e.g. `/posts` active on `/posts/42`), use `pathname.get(l).
 
 ## History Types
 
-The history decides how locations map to the address bar. All three are re-exported from `@tanstack/history`:
+The history decides how locations map to the address bar. All three are available from `@domphy/router`:
 
 ```ts
 import { createBrowserHistory, createHashHistory, createMemoryHistory } from "@domphy/router"
@@ -11229,9 +11225,9 @@ Create the router **per request** on the server — a module-level router would 
 
 ## Dehydrate / Hydrate Concept
 
-The ported upstream layer can do this serialization for you: on the server, `attachRouterServerSsrUtils(router, ...)` collects matches, loader data, and deferred promises into a dehydrated payload (serialized with `seroval`, so it handles promises and streaming); on the client, `hydrate(router)` from `@domphy/router/ssr/client` restores it before the first `router.load()`, so loaders do not re-run for data the server already fetched. `createRequestHandler` wraps the whole request lifecycle (including redirect responses).
+The full SSR layer can do this serialization for you: on the server, `attachRouterServerSsrUtils(router, ...)` collects matches, loader data, and deferred promises into a dehydrated payload (serialized with `seroval`, so it handles promises and streaming); on the client, `hydrate(router)` from `@domphy/router/ssr/client` restores it before the first `router.load()`, so loaders do not re-run for data the server already fetched. `createRequestHandler` wraps the whole request lifecycle (including redirect responses).
 
-These utilities work, but they assume a streaming HTML render to interleave with — Domphy's `generateHTML` is synchronous, so until a dedicated integration exists, the manual pattern above is the recommended route. The full upstream behavior is documented in the [TanStack Router SSR guide](https://tanstack.com/router/latest/docs/framework/react/guide/ssr).
+These utilities work, but they assume a streaming HTML render to interleave with — Domphy's `generateHTML` is synchronous, so until a dedicated integration exists, the manual pattern above is the recommended route. See the [API reference](./api) for the full SSR entry point exports.
 
 ## Scroll Restoration
 
@@ -11714,7 +11710,7 @@ Facets are computed from rows filtered by *every other* column, so the option li
 
 # API Reference
 
-`@domphy/table` is a 1-1 port of `@tanstack/table-core` v8.21.3 — every export below has identical behavior to upstream, so the [TanStack Table v8 reference](https://tanstack.com/table/v8/docs) documents each item in full detail.
+Complete list of exports from `@domphy/table`.
 
 ## Core
 
@@ -12361,7 +12357,7 @@ description: "Extend @domphy/table with custom table features, plugin factories,
 
 # Custom Features & Plugins
 
-`@domphy/table` (a port of `@tanstack/table-core`) supports custom features — extend the table with your own state, reducers, and methods following the same plugin architecture as built-in features (sorting, filtering, etc.).
+`@domphy/table` supports custom features — extend the table with your own state, reducers, and methods following the same plugin architecture as built-in features (sorting, filtering, etc.).
 
 ## Custom feature structure
 
@@ -12499,7 +12495,7 @@ const HeaderCell = (header: Header<any, unknown>) => ({
 
 ## TypeScript: augmenting table types
 
-Extend the TanStack table type declarations to get full IntelliSense for custom features:
+Extend the `@domphy/table` type declarations to get full IntelliSense for custom features:
 
 ```ts
 // types/table-extensions.d.ts
@@ -12948,8 +12944,6 @@ const ExpandAll = {
 # Table
 
 `@domphy/table` provides headless table logic for Domphy apps: sorting, filtering, pagination, row selection, grouping, expanding, pinning, column sizing, and faceting.
-
-It is a **1-1 port of [`@tanstack/table-core`](https://github.com/TanStack/table/tree/main/packages/table-core) v8.21.3** (MIT, © Tanner Linsley and the TanStack team). The source is kept byte-identical to upstream, so the entire [TanStack Table v8 reference](https://tanstack.com/table/v8/docs) applies as-is, and future upstream versions can be diffed and merged directly.
 
 Like the rest of Domphy, it is framework-agnostic and has zero dependencies — the bridge to the UI is plain `toState`.
 
@@ -13613,8 +13607,8 @@ Replace pagination with scroll-to-load by combining `isAtEnd()` with a data-fetc
 
 ```ts
 import { createQuery } from "@domphy/query/domphy"
+import { QueryClient } from "@domphy/query"
 import { toState, effect } from "@domphy/core"
-import { QueryClient } from "@tanstack/query-core"
 
 const queryClient = new QueryClient()
 const page = toState(0)
@@ -14393,7 +14387,7 @@ const GoToButton = {
 
 `@domphy/virtual` renders only the rows/columns currently in view — essential for long lists, grids, and tables — with dynamic measurement, overscan, sticky ranges, and smooth scroll-to.
 
-It is **based on [`@tanstack/virtual-core`](https://github.com/TanStack/virtual/tree/main/packages/virtual-core) v3.17.0** (MIT, © Tanner Linsley and the TanStack team) with additional features: iOS WebKit scroll deferral, `scrollBy`/`scrollToEnd`/`takeSnapshot` methods, lazy typed-array fast-path, and `laneAssignmentMode`/`useCachedMeasurements` options. The entire [TanStack Virtual reference](https://tanstack.com/virtual/latest) applies for the base API; Domphy-specific additions are documented here. The Domphy adapter lives in `src/domphy/`.
+Additional features beyond a standard virtualizer: iOS WebKit scroll deferral, `scrollBy`/`scrollToEnd`/`takeSnapshot` methods, lazy typed-array fast-path, and `laneAssignmentMode`/`useCachedMeasurements` options. Domphy-specific additions are documented here; the Domphy adapter lives in `src/domphy/`.
 
 The core is framework-agnostic with zero dependencies.
 
@@ -15867,14 +15861,14 @@ form.reset({ contacts: [{ name: "Alice", email: "alice@example.com" }] })
 
 ## Reading raw FormApi
 
-For advanced use cases (custom validation runners, field state inspection), access the underlying TanStack `FormApi`:
+For advanced use cases (custom validation runners, field state inspection), access the underlying `FormApi`:
 
 ```ts
 const rawForm = form.form    // FormApi<TData>
 const fieldApi = field.api   // FieldApi<TData, string>
 ```
 
-The full TanStack Form v1 API applies to both — see [TanStack Form docs](https://tanstack.com/form/latest) for `FormApi` methods (`setFieldValue`, `getFieldValue`, `setFieldMeta`, `validateField`, etc.).
+See the [Form concepts](/docs/form/concepts) page for the full `FormApi` API (`setFieldValue`, `getFieldValue`, `setFieldMeta`, `validateField`, etc.).
 
 ### async-values.md
 
@@ -16363,10 +16357,10 @@ description: "How @domphy/form manages state, validation lifecycle, field state,
 
 ## Architecture
 
-`@domphy/form` is a **1-1 port of `@tanstack/form-core`** — the same `FormApi`, `FieldApi`, and `ValidationLogic` classes, byte-identical. The Domphy adapter (`@domphy/form/domphy`) wraps them with reactive handles that plug into Domphy's listener system.
+`@domphy/form` provides `FormApi`, `FieldApi`, and `ValidationLogic`. The Domphy adapter (`@domphy/form/domphy`) wraps them with reactive handles that plug into Domphy's listener system.
 
 ```
-FormApi (TanStack core)
+FormApi
    ↓ wrapped by
 createForm() adapter        ← you call this
    ↓ returns
@@ -16536,18 +16530,18 @@ field.api                             // underlying FieldApi
 
 ---
 title: "Devtools"
-description: "Debug @domphy/form with the TanStack Form devtools browser extension: inspect form state, force submission, reset, and identify forms by formId."
+description: "Debug @domphy/form with the form devtools browser extension: inspect form state, force submission, reset, and identify forms by formId."
 ---
 
 # Devtools
 
-`@domphy/form` broadcasts form state to the **TanStack Form browser devtools** automatically. Every form mounts an event listener and emits its state on every change — no extra configuration required.
+`@domphy/form` broadcasts form state to the form debugger browser extension automatically. Every form mounts an event listener and emits its state on every change — no extra configuration required.
 
 ## Install the browser extension
 
-Install the [TanStack Form Devtools browser extension](https://chromewebstore.google.com/detail/tanstack-form-devtools/kjndbikglildmjfnohejdahdhoiggahf) from the Chrome Web Store (also available for Firefox via the add-ons site).
+Install the [Form Devtools browser extension](https://chromewebstore.google.com/detail/tanstack-form-devtools/kjndbikglildmjfnohejdahdhoiggahf) from the Chrome Web Store (also available for Firefox via the add-ons site).
 
-Once installed, a **TanStack Form** panel appears in the browser DevTools. Open it to see all mounted forms on the current page.
+Once installed, a **Form Devtools** panel appears in the browser DevTools. Open it to see all mounted forms on the current page.
 
 ## What the devtools show
 
@@ -16586,7 +16580,7 @@ Without `formId`, each form gets a random UUID that changes on page reload.
 
 ## How the integration works
 
-`createForm()` internally calls `form.mount()`, which wires up an `EventClient` (from `@tanstack/devtools-event-client`) that:
+`createForm()` internally calls `form.mount()`, which wires up an `EventClient` that:
 
 1. **Emits `form-api`** on mount and on every store change — sends current state + options to the devtools panel.
 2. **Listens for `request-form-state`** — responds with the current state when the panel requests it.
@@ -16642,7 +16636,7 @@ Remove the `effect` call before shipping to production.
 
 ## Subscribing to the raw store
 
-For custom diagnostics, subscribe directly to the underlying TanStack store:
+For custom diagnostics, subscribe directly to the underlying form store:
 
 ```ts
 const unsubscribe = form.form.store.subscribe(() => {
@@ -16672,8 +16666,6 @@ If `destroy()` is not called, the devtools will still show the form as mounted a
 # Form
 
 `@domphy/form` provides headless form state for Domphy apps: typed values, per-field and form-level validators (sync + async), touched/blurred/dirty tracking, arrays, and Standard Schema support.
-
-It is a **1-1 port of [`@tanstack/form-core`](https://github.com/TanStack/form/tree/main/packages/form-core) v1.33.0** (MIT, © Tanner Linsley and the TanStack team). The `src/` is byte-identical to upstream, so the entire [TanStack Form reference](https://tanstack.com/form/latest) applies as-is. The only addition is the Domphy adapter in `src/domphy/`.
 
 It replaces the ad-hoc `FormState` / `FieldState` that used to live in `@domphy/ui`, so form logic lives in exactly one place.
 
@@ -16754,7 +16746,7 @@ const Field = {
 | `setValue(value \| updater)` | Set the value programmatically. Accepts a direct value or an `(prev) => next` updater function. |
 | `api` | The underlying `FieldApi`. |
 
-Field and form `options` (validators, async debouncing, listeners, arrays, Standard Schema) are the upstream form-core options — see the [TanStack Form docs](https://tanstack.com/form/latest).
+Field and form `options` (validators, async debouncing, listeners, arrays, Standard Schema) are documented in the [Form docs](/docs/form/).
 
 ### linked-fields.md
 
@@ -18993,15 +18985,13 @@ A normal tap (less than `longPressDuration` ms) fires click events as usual; a s
 
 ## Reduced Motion
 
-Respect `prefers-reduced-motion` when using the `animations()` plugin:
+`dragDrop()` enables animations by default. Disable them for users who prefer reduced motion:
 
 ```ts
-import { animations } from "@domphy/dnd"
-
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
 dragDrop(tasks, {
-  plugins: reducedMotion ? [] : [animations({ duration: 150 })],
+  animated: !reducedMotion,
 })
 ```
 
@@ -19036,9 +19026,11 @@ description: "Smooth drop animations with the animations() plugin and drag feedb
 
 The `animations()` plugin adds CSS transition animations to sort and transfer operations. Items slide into their new positions after a drop rather than snapping instantly.
 
+**`dragDrop()` includes animations by default** — no configuration needed.
+
 ## Basic Setup
 
-Animations are **enabled by default** in `dragDrop()` — no extra setup needed:
+Animations are on automatically:
 
 ```ts
 import { dragDrop } from "@domphy/dnd"
@@ -19065,21 +19057,25 @@ const SortableList = {
         userSelect: "none",
       },
     })),
-  $: [dragDrop(items)],  // animated by default
+  $: [dragDrop(items)],
   style: { listStyle: "none", padding: "0" },
 }
 ```
 
-To disable animations: `dragDrop(items, { animated: false })`.
+To disable: `dragDrop(items, { animated: false })`.
 
 `animations()` uses the Web Animations API internally and cleans up after itself.
 
 ## Configuration
 
+To customize animation duration or easing, disable the default and pass the plugin explicitly:
+
 ```ts
-animations({
-  duration: 200,           // ms — animation length (default: 150)
-  easing: "ease-in-out",   // any WAAPI easing string (default: "ease-in-out")
+import { dragDrop, animations } from "@domphy/dnd"
+
+dragDrop(items, {
+  animated: false,  // disable default
+  plugins: [animations({ duration: 200, easing: "ease-in-out" })],
 })
 ```
 
@@ -19113,19 +19109,24 @@ Pass `animated: false` on any individual list to opt it out of animations.
 
 ## Combining Plugins
 
-`animations()` is included by default. To add other plugins alongside it, they are merged automatically — or pass `plugins` directly if you need custom animation config:
+`animations()` is included by default. To add other plugins alongside it, append them to `plugins` — `animations()` prepends automatically:
+
+```ts
+import { dragDrop, dropOrSwap } from "@domphy/dnd"
+
+// Other plugins alongside default animation:
+dragDrop(items, {
+  plugins: [dropOrSwap()],
+})
+```
+
+To use a custom animation config alongside other plugins, disable the default first:
 
 ```ts
 import { dragDrop, animations, dropOrSwap } from "@domphy/dnd"
 
-// Other plugins alongside default animation:
 dragDrop(items, {
-  plugins: [dropOrSwap()],  // animations() still runs; extra plugins append
-})
-
-// Custom animation config requires explicit plugin:
-dragDrop(items, {
-  animated: false,  // disable default
+  animated: false,
   plugins: [
     animations({ duration: 180 }),
     dropOrSwap(),
@@ -19180,7 +19181,7 @@ dragDrop(items, {
 
 ## Respecting Reduced Motion
 
-Use `animated: false` to disable animations (e.g. when the user prefers reduced motion):
+Use `animated: false` to disable animations for users who prefer reduced motion:
 
 ```ts
 const prefersReducedMotion =
@@ -19207,6 +19208,7 @@ import { dragDrop } from "@domphy/dnd"
 ```
 
 A Domphy patch applied via `$`. Wires the FormKit drag-and-drop engine to a reactive state array.
+Animations are **enabled by default** — pass `animated: false` to disable.
 
 ```ts
 const list = createVirtualizer(...)   // or just toState([...])
@@ -19217,12 +19219,22 @@ const App = {
 ```
 
 `dragDrop` calls `dragAndDrop()` from `@formkit/drag-and-drop` under the hood and patches:
-- `_onMount(node)` — registers the container
+- `_onMount(node)` — registers the container with animations plugin included
 - `_onRemove()` — tears down listeners automatically
 
 ### `state` argument
 
 Any object with `.get()` and `.set(updater)` methods (Domphy `State<T[]>` or custom). On reorder, FormKit calls `state.set(newArray)` so the reactive list re-renders.
+
+### `config` (DragDropConfig)
+
+`DragDropConfig<T>` extends `ParentConfig<T>` with one extra field:
+
+```ts
+interface DragDropConfig<T> extends Partial<ParentConfig<T>> {
+  animated?: boolean   // default: true — enable sort animations
+}
+```
 
 ### `config` (ParentConfig)
 
@@ -19268,13 +19280,16 @@ import { animations } from "@domphy/dnd"
 
 ### `animations(config?)`
 
-Smooth CSS transitions for dragging and drop. **Included by default** in `dragDrop()` — you only need this if you want a custom config:
+Smooth CSS transitions for dragging and drop. **Included by default** in `dragDrop()` — you only need this if you use `dragAndDrop()` directly or set `animated: false`:
 
 ```ts
-// Default (animated automatically):
+// Already animated — no extra step needed:
 { ul: ..., $: [dragDrop(items)] }
 
-// Custom config — disable default, pass explicit plugin:
+// Opt out of animations:
+{ ul: ..., $: [dragDrop(items, { animated: false })] }
+
+// Custom animation config — disable default, pass explicit plugin:
 { ul: ..., $: [dragDrop(items, { animated: false, plugins: [animations({ duration: 200 })] })] }
 ```
 
@@ -19305,9 +19320,54 @@ Items without a matching `.handle` element are not draggable by direct drag.
 
 ---
 
-## Transfer between lists
+## Multi-list helpers
 
-Two lists with the same `group` exchange items when an item is dragged from one to the other. Both lists must use `group`:
+### `multiList(options)`
+
+Convenience adapter for a single list participating in a named drag group.
+All lists with the same `group` string accept transfers from each other.
+
+```ts
+import { multiList } from "@domphy/dnd"
+
+const todo = toState<Task[]>([...])
+const done = toState<Task[]>([...])
+
+const TodoList = {
+  ul: (l) => todo.get(l).map((t) => ({ li: t.text, _key: t.id })),
+  $: [multiList({ group: "kanban", values: todo })],
+}
+
+const DoneList = {
+  ul: (l) => done.get(l).map((t) => ({ li: t.text, _key: t.id })),
+  $: [multiList({ group: "kanban", values: done })],
+}
+```
+
+### `multiListGroup(group, states, config?)`
+
+Shorthand when you have an array of lists — returns one patch per list:
+
+```ts
+import { multiListGroup } from "@domphy/dnd"
+
+const [dropTodo, dropInProgress, dropDone] = multiListGroup("kanban", [todo, inProgress, done])
+
+const Board = {
+  div: [
+    { ul: (l) => todo.get(l).map(...), $: [dropTodo] },
+    { ul: (l) => inProgress.get(l).map(...), $: [dropInProgress] },
+    { ul: (l) => done.get(l).map(...), $: [dropDone] },
+  ],
+}
+```
+
+---
+
+## Transfer between lists (manual)
+
+Two lists with the same `group` exchange items when an item is dragged from one to the other.
+The `multiList`/`multiListGroup` helpers above do this automatically. Manual equivalent:
 
 ```ts
 const todo = toState<Task[]>([...])
@@ -19634,7 +19694,7 @@ A tap shorter than `longPressDuration` passes through as a normal click event on
 
 `@domphy/dnd` adds sortable lists and drag & drop to Domphy: reorder, transfer between lists, multi-drag, keyboard accessibility, and drop animations.
 
-Unlike the TanStack ports (`query`/`table`/`router`/`virtual`/`form`), drag-and-drop has no portable framework-agnostic core to copy byte-for-byte. So this package **depends on** [`@formkit/drag-and-drop`](https://drag-and-drop.formkit.com) (MIT, zero-dependency, framework-agnostic) and adds a thin Domphy adapter — the same way FormKit's own React/Vue/Solid adapters wrap the engine. The full FormKit API is re-exported.
+This package **depends on** [`@formkit/drag-and-drop`](https://drag-and-drop.formkit.com) (MIT, zero-dependency, framework-agnostic) and adds a thin Domphy adapter — the same way FormKit's own React/Vue/Solid adapters wrap the engine. The full FormKit API is re-exported.
 
 ## Install
 
@@ -19671,16 +19731,16 @@ Dragging reorders the DOM, FormKit calls `setValues` → the `items` state updat
 
 ## Config & plugins
 
-`dragDrop(state, config)` forwards `config` to FormKit's `ParentConfig`, and the whole FormKit API (plugins, sensors, group transfer) is re-exported:
+`dragDrop(state, config)` forwards `config` to FormKit's `ParentConfig`, and the whole FormKit API (plugins, sensors, group transfer) is re-exported. Animations are **on by default**:
 
 ```ts
-import { dragDrop, animations } from "@domphy/dnd"
+import { dragDrop } from "@domphy/dnd"
 
-// drop animations + transfer items between any lists sharing a group
-{ ul: (l) => ..., $: [dragDrop(items, { plugins: [animations()], group: "todos" })] }
+// animated by default; transfer items between any lists sharing a group
+{ ul: (l) => ..., $: [dragDrop(items, { group: "todos" })] }
 ```
 
-Give two lists the same `group` to transfer items between them. Accessibility, touch and synthetic-drag handling come from FormKit — see the [FormKit DnD docs](https://drag-and-drop.formkit.com) for the full config.
+Give two lists the same `group` to transfer items between them. Use `animated: false` to opt out of animations. Accessibility, touch and synthetic-drag handling come from FormKit — see the [FormKit DnD docs](https://drag-and-drop.formkit.com) for the full config.
 
 ## Cleanup
 
@@ -20321,6 +20381,873 @@ dragDrop(tasks, {
   draggableValue: (task) => !(task as { pinned?: boolean }).pinned,
 })
 ```
+
+
+
+---
+
+
+## Chart docs (`@domphy/chart`)
+
+### axes.md
+
+---
+title: "Axes & Grid"
+description: "xAxis, yAxis, grid, polar, dataZoom, and visualMap configuration in @domphy/chart."
+---
+
+# Axes & Grid
+
+## xAxis / yAxis
+
+```ts
+interface AxisOption {
+  type?: "value" | "category" | "time" | "log",
+  data?: (string | number)[],          // required for "category" type
+  name?: string,
+  min?: number | "dataMin",
+  max?: number | "dataMax",
+  splitNumber?: number,
+  gridIndex?: number,
+  inverse?: boolean,
+  axisLabel?: {
+    rotate?: number,
+    formatter?: string | ((val: any) => string),
+  },
+  axisLine?: { show?: boolean },
+  axisTick?: { show?: boolean },
+  splitLine?: { show?: boolean, lineStyle?: LineStyleOption },
+}
+```
+
+**Axis types:**
+- `"value"` — continuous numeric axis
+- `"category"` — categorical (requires `data: string[]`)
+- `"time"` — time-based axis (data as timestamps)
+- `"log"` — logarithmic scale
+
+## Grid
+
+```ts
+interface GridOption {
+  top?: number | string,     // px or "%"
+  bottom?: number | string,
+  left?: number | string,
+  right?: number | string,
+  containLabel?: boolean,
+}
+```
+
+Controls the inner chart area. Defaults: `top: 60, bottom: 60, left: 60, right: 20`.
+
+```ts
+// Make room for legend and axis labels:
+grid: { top: 60, bottom: 50, left: 70, right: 20 }
+```
+
+## Polar
+
+```ts
+interface PolarOption {
+  center?: [string | number, string | number],
+  radius?: string | number | [string | number, string | number],
+}
+```
+
+Used with radar and radial series.
+
+## DataZoom
+
+Enables range selection / scrolling on axes.
+
+```ts
+dataZoom: [
+  {
+    type: "slider",          // visual scrollbar below chart
+    xAxisIndex: 0,
+    start: 0,                // 0–100 (%)
+    end: 40,
+    bottom: 10,
+  },
+  {
+    type: "inside",          // mouse wheel zoom on the axis
+    xAxisIndex: 0,
+  },
+]
+```
+
+Both types can coexist. `inside` enables scroll-to-zoom without any visual element.
+
+## VisualMap
+
+Maps data values to colors. Two modes:
+
+**Continuous** — gradient color bar:
+```ts
+visualMap: {
+  type: "continuous",
+  min: 0,
+  max: 10,
+  right: 0,
+  top: "center",
+  orient: "vertical",
+}
+```
+
+**Piecewise** — discrete color steps:
+```ts
+visualMap: {
+  type: "piecewise",
+  pieces: [
+    { min: 0, max: 3, color: "#ccc" },
+    { min: 3, max: 7, color: "#f80" },
+    { min: 7, max: 10, color: "#f00" },
+  ],
+}
+```
+
+Use `colorFromVisualMap(vm, value)` exported from `@domphy/chart` to resolve a value to its mapped color at runtime.
+
+## Tooltip
+
+```ts
+tooltip: {
+  trigger?: "axis" | "item",
+  axisPointer?: { type?: "line" | "shadow" | "cross" },
+  formatter?: string | ((params: TooltipParams | TooltipParams[]) => string),
+}
+```
+
+`trigger: "axis"` shows tooltip for all series at the hovered x value (use with line/bar). `trigger: "item"` shows tooltip for the individual data point (use with pie/scatter).
+
+## Legend
+
+```ts
+legend: {
+  data?: string[],                  // series names; omit to auto-detect
+  orient?: "horizontal" | "vertical",
+  left?: number | string,
+  top?: number | string,
+  right?: number | string,
+  bottom?: number | string,
+}
+```
+
+Legend items are **interactive** — click to show/hide the corresponding series.
+
+## Title
+
+```ts
+title: {
+  text?: string,
+  subtext?: string,
+  left?: "left" | "center" | "right" | number | string,
+  top?: number | string,
+}
+```
+
+### colors.md
+
+---
+title: "Colors & Theme"
+description: "Series color palette, theme families, gradient fills, and the visual map color utility in @domphy/chart."
+---
+
+# Colors & Theme
+
+## Series palette
+
+Series are colored by cycling through Domphy theme families in order:
+
+```
+primary → secondary → success → warning → error → info → highlight → attention → danger
+```
+
+Each family is resolved at tone `shift-9` — a concrete hex color (no CSS variable). This means charts render correctly in both light and dark theme without any configuration.
+
+Override a specific series color:
+
+```ts
+series: [
+  { type: "bar", data: [...], color: "success" },      // ThemeFamily string
+  { type: "bar", data: [...], color: "error" },
+]
+```
+
+`color` accepts any `ThemeFamily` value: `"primary" | "secondary" | "success" | "warning" | "error" | "info" | "highlight" | "attention" | "danger"`.
+
+## Gradient fills
+
+`areaStyle.color` on line series supports gradient fills:
+
+```ts
+import type { GradientObject } from "@domphy/chart"
+
+areaStyle: {
+  color: {
+    type: "linear",
+    x: 0, y: 0,      // start point (0,0 = top-left)
+    x2: 0, y2: 1,    // end point (0,1 = bottom of element)
+    colorStops: [
+      { offset: 0, color: "rgba(58, 77, 233, 0.8)" },
+      { offset: 1, color: "rgba(58, 77, 233, 0.05)" },
+    ],
+  },
+}
+```
+
+**Types:**
+
+```ts
+interface ColorStop {
+  offset: number    // 0–1 along the gradient
+  color: string     // any CSS color string
+}
+
+interface LinearGradient {
+  type: "linear"
+  x: number; y: number; x2: number; y2: number  // 0–1, fraction of element bounding box
+  colorStops: ColorStop[]
+  global?: boolean  // interpret coords in global SVG space
+}
+
+interface RadialGradient {
+  type: "radial"
+  x: number; y: number   // center, 0–1 fractions
+  r: number              // radius, 0–1 fraction
+  colorStops: ColorStop[]
+  global?: boolean
+}
+
+type GradientObject = LinearGradient | RadialGradient
+```
+
+All four types are exported from `@domphy/chart`.
+
+**Common gradient patterns:**
+
+```ts
+// Top-to-bottom fade (most common for area charts):
+{ type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [...] }
+
+// Left-to-right:
+{ type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [...] }
+
+// Radial glow:
+{ type: "radial", x: 0.5, y: 0.5, r: 0.5, colorStops: [...] }
+```
+
+## Color utilities
+
+```ts
+import { hexToRgba, seriesHex, seriesRgba, familyHex, familyRgba, seriesPaletteFamily } from "@domphy/chart"
+
+// Get hex for series index n (0-based):
+const color = seriesHex(0)  // → hex string for "primary" at shift-9
+
+// Get hex for a theme family:
+const red = familyHex("error")
+
+// Build a palette:
+const palette = [0, 1, 2, 3].map(seriesHex)
+
+// Parse rgba string (from themeColor) to hex:
+const hex = hexToRgba("#3a4de9")   // → { r, g, b, a }
+```
+
+## VisualMap colors
+
+When using `visualMap`, use `colorFromVisualMap` to resolve a data value to its mapped color:
+
+```ts
+import { colorFromVisualMap } from "@domphy/chart"
+import type { VisualMapOption } from "@domphy/chart"
+
+const vm: VisualMapOption = {
+  type: "continuous",
+  min: 0,
+  max: 100,
+}
+
+const color = colorFromVisualMap(vm, 75)  // → interpolated hex string
+```
+
+### engine.md
+
+---
+title: "ChartEngine API"
+description: "Advanced chart embedding with ChartEngine — manual init, resize, option updates, and destroy in @domphy/chart."
+---
+
+# ChartEngine API
+
+`ChartEngine` is the low-level class that `chart()` patch wraps. Use it directly when you need manual lifecycle control, resize observers, or multi-chart orchestration.
+
+## Basic usage
+
+```ts
+import { ChartEngine } from "@domphy/chart"
+import type { ChartOption } from "@domphy/chart"
+
+const container = document.getElementById("chart")!
+container.style.position = "relative"
+
+const engine = new ChartEngine(container)
+await engine.init()
+
+engine.setSize(600, 300)
+engine.setOption({
+  xAxis: { type: "category", data: ["A", "B", "C"] },
+  yAxis: { type: "value" },
+  series: [{ type: "bar", data: [10, 20, 15] }],
+})
+```
+
+## API reference
+
+### `new ChartEngine(container)`
+
+Creates a chart engine bound to `container`. Does not start WebGL until `init()` is called.
+
+```ts
+const engine = new ChartEngine(container: HTMLElement)
+```
+
+### `engine.init()`
+
+Initializes the WebGL context, creates the canvas and SVG overlay layers. Returns a `Promise<void>`.
+
+```ts
+await engine.init()
+```
+
+Must be called before `setSize()` or `setOption()`.
+
+### `engine.setSize(width, height)`
+
+Sets the chart dimensions in pixels and resizes all internal layers.
+
+```ts
+engine.setSize(width: number, height: number): void
+```
+
+Call this after `init()` and whenever the container size changes.
+
+### `engine.setOption(option)`
+
+Updates the chart with a new option object. Performs a full re-render.
+
+```ts
+engine.setOption(option: ChartOption): void
+```
+
+Subsequent calls replace the previous option entirely.
+
+### `engine.destroy()`
+
+Tears down the WebGL context, removes all DOM elements, and releases memory.
+
+```ts
+engine.destroy(): void
+```
+
+Always call this when the chart is removed from the DOM.
+
+## With ResizeObserver
+
+```ts
+const engine = new ChartEngine(container)
+await engine.init()
+
+const observer = new ResizeObserver(([entry]) => {
+  const { width, height } = entry.contentRect
+  engine.setSize(width, height)
+})
+observer.observe(container)
+
+engine.setOption(option)
+
+// Cleanup:
+observer.disconnect()
+engine.destroy()
+```
+
+## With Domphy lifecycle
+
+Manual embedding inside `_onMount` / `_onRemove`:
+
+```ts
+import { ChartEngine } from "@domphy/chart"
+
+const MyChart: DomphyElement<"div"> = {
+  div: null,
+  style: { width: "100%", height: "300px", position: "relative" },
+  _onMount: async (node) => {
+    const engine = new ChartEngine(node.domElement as HTMLElement)
+    await engine.init()
+    const { width, height } = node.domElement!.getBoundingClientRect()
+    engine.setSize(width || 600, height || 300)
+    engine.setOption({ series: [{ type: "line", data: [1, 2, 3] }] })
+    node.setMetadata("engine", engine)
+  },
+  _onRemove: (node) => {
+    (node.getMetadata("engine") as ChartEngine | undefined)?.destroy()
+  },
+}
+```
+
+## Scale utilities
+
+```ts
+import {
+  createLinearScale,
+  createOrdinalScale,
+  createTimeScale,
+  createLogScale,
+} from "@domphy/chart"
+
+const scale = createLinearScale([0, 100], [0, 400])
+scale(50)  // → 200
+
+const ordinal = createOrdinalScale(["A", "B", "C"], [0, 300])
+ordinal("B")  // → 150
+```
+
+These are lower-level utilities used internally by the chart engine, exposed for custom rendering or annotation overlays.
+
+### index.md
+
+---
+title: "@domphy/chart"
+description: "ECharts-grade charting for Domphy — WebGL line/bar/scatter/pie/radar/heatmap/candlestick/gauge and SVG boxplot/funnel/treemap/sankey/graph. Zero React dependency."
+---
+
+# @domphy/chart
+
+ECharts-grade charting for Domphy. WebGL-accelerated series for performance-critical data, SVG series for complex layouts. No React dependency.
+
+## Install
+
+```bash
+npm install @domphy/chart
+```
+
+## Quick start — `chart()` patch
+
+The easiest way: apply the `chart()` patch to any `div`. It creates and manages a `ChartEngine` internally.
+
+```ts
+import { chart } from "@domphy/chart"
+import type { ChartOption } from "@domphy/chart"
+
+const option: ChartOption = {
+  xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
+  yAxis: { type: "value" },
+  series: [{ type: "bar", data: [120, 200, 150, 80, 70] }],
+}
+
+const App = {
+  div: null,
+  style: { width: "600px", height: "300px", position: "relative" },
+  $: [chart(option)],
+}
+```
+
+To update the chart reactively, pass a `State<ChartOption>`:
+
+```ts
+import { toState } from "@domphy/core"
+import { chart } from "@domphy/chart"
+
+const option = toState<ChartOption>({
+  series: [{ type: "line", data: [1, 2, 3] }],
+})
+
+const App = {
+  div: null,
+  style: { width: "600px", height: "300px", position: "relative" },
+  $: [chart(option)],
+}
+
+// Update later:
+option.set({ series: [{ type: "line", data: [4, 5, 6] }] })
+```
+
+The chart re-renders whenever the state changes.
+
+## Supported series
+
+**WebGL (hardware-accelerated):**
+| Series | Key options |
+|---|---|
+| `line` | `smooth`, `step`, `areaStyle`, `connectNulls`, `stack` |
+| `bar` | `stack`, `label`, grouped via multiple series |
+| `scatter` | `symbolSize` (number or `(val) => number`) |
+| `pie` | `radius` (number or `[inner, outer]`), `roseType`, `center` |
+| `radar` | `areaStyle`, paired with `radar.indicator[]` |
+| `heatmap` | paired with `xAxis`/`yAxis` category + `visualMap` |
+| `candlestick` | `data: [open,close,low,high][]`, `itemStyle.color`/`color0` |
+| `gauge` | `min`/`max`, `splitNumber`, `detail.formatter` |
+
+**SVG:**
+| Series | Key options |
+|---|---|
+| `boxplot` | `data: [min,Q1,median,Q3,max][]` |
+| `funnel` | `data: [{value,name}]` sorted descending |
+| `treemap` | `data` with nested `children`, squarified layout |
+| `sankey` | `nodes: [{name}]`, `links: [{source,target,value}]` |
+| `graph` | `nodes`, `links`, `categories`, `layout: "force"\|"circular"\|"none"` |
+
+## Next steps
+
+- [Series Reference](/docs/chart/series) — all series options with examples
+- [Axes & Grid](/docs/chart/axes) — axes types, formatting, dataZoom, visualMap
+- [Colors & Theme](/docs/chart/colors) — theme families, gradient fills
+- [ChartEngine API](/docs/chart/engine) — advanced embedding, resize, destroy
+
+### series.md
+
+---
+title: "Series Reference"
+description: "All @domphy/chart series types — line, bar, scatter, pie, radar, heatmap, candlestick, gauge, boxplot, funnel, treemap, sankey, graph."
+---
+
+# Series Reference
+
+## Line
+
+```ts
+{
+  type: "line",
+  name?: string,
+  data: number[] | [number, number][],
+  smooth?: boolean,                  // bezier smoothing
+  step?: "start" | "end" | "middle", // step line
+  connectNulls?: boolean,
+  stack?: string,                    // stack group name
+  symbol?: "circle" | "rect" | "diamond" | "triangle" | "none",
+  symbolSize?: number | [number, number],
+  lineStyle?: { color?: ThemeFamily, width?: number, type?: "solid" | "dashed" | "dotted" },
+  areaStyle?: {
+    color?: ThemeFamily | GradientObject,
+    opacity?: number,                // default 0.2
+    origin?: "auto" | "start" | "end" | number,
+  },
+  label?: LabelOption,
+  color?: ThemeFamily,
+}
+```
+
+**Gradient area fill:**
+```ts
+{
+  type: "line",
+  data: [820, 932, 901, 934, 1290],
+  areaStyle: {
+    color: {
+      type: "linear", x: 0, y: 0, x2: 0, y2: 1,
+      colorStops: [
+        { offset: 0, color: "rgba(58,77,233,0.8)" },
+        { offset: 1, color: "rgba(58,77,233,0.05)" },
+      ],
+    },
+  },
+}
+```
+
+---
+
+## Bar
+
+```ts
+{
+  type: "bar",
+  name?: string,
+  data: number[],
+  stack?: string,
+  barWidth?: number | string,        // px or "%"
+  barMaxWidth?: number | string,
+  barGap?: string,                   // gap between bars in same category (default "30%")
+  barCategoryGap?: string,           // gap between category groups (default "20%")
+  label?: LabelOption,
+  itemStyle?: ItemStyleOption,
+  color?: ThemeFamily,
+}
+```
+
+**Grouped bars** — two series on same axis:
+```ts
+series: [
+  { type: "bar", name: "2023", data: [120, 200, 150] },
+  { type: "bar", name: "2024", data: [150, 230, 180] },
+]
+```
+
+**Stacked bars:**
+```ts
+series: [
+  { type: "bar", name: "A", stack: "total", data: [120, 200] },
+  { type: "bar", name: "B", stack: "total", data: [80, 100] },
+]
+```
+
+---
+
+## Scatter
+
+```ts
+{
+  type: "scatter",
+  name?: string,
+  data: [number, number][] | [number, number, number][],  // [x, y] or [x, y, size]
+  symbolSize?: number | ((val: number[]) => number),
+  label?: LabelOption,
+  color?: ThemeFamily,
+}
+```
+
+**Variable bubble size:**
+```ts
+{
+  type: "scatter",
+  symbolSize: (val) => Math.sqrt(val[2]) * 4,
+  data: [[10, 8.04, 40], [8, 6.95, 20], [13, 7.58, 15]],
+}
+```
+
+---
+
+## Pie
+
+```ts
+{
+  type: "pie",
+  name?: string,
+  data: PieDataItem[],              // { value: number, name: string }[]
+  radius?: number | string | [string | number, string | number],  // "60%" or ["35%", "60%"] for donut
+  center?: [string | number, string | number],                    // ["50%", "50%"]
+  roseType?: "radius" | "area",
+  label?: LabelOption,
+  labelLine?: LabelLineOption,
+}
+```
+
+**Donut:**
+```ts
+{ type: "pie", radius: ["35%", "60%"], data: [...] }
+```
+
+---
+
+## Radar
+
+```ts
+{
+  type: "radar",
+  name?: string,
+  data: Array<{ value: number[], name: string }>,
+  areaStyle?: { opacity?: number },
+  lineStyle?: LineStyleOption,
+}
+```
+
+Requires a `radar` component in the option:
+```ts
+radar: {
+  indicator: [
+    { name: "Sales", max: 6500 },
+    { name: "Admin", max: 16000 },
+    { name: "IT", max: 30000 },
+  ],
+  shape?: "polygon" | "circle",
+  splitNumber?: number,
+  startAngle?: number,
+}
+```
+
+---
+
+## Heatmap
+
+```ts
+{
+  type: "heatmap",
+  name?: string,
+  data: [number, number, number][],  // [xIndex, yIndex, value]
+}
+```
+
+Requires `xAxis`/`yAxis` category axes and a `visualMap` component.
+
+---
+
+## Candlestick
+
+```ts
+{
+  type: "candlestick",
+  name?: string,
+  data: [number, number, number, number][],  // [open, close, low, high]
+  itemStyle?: {
+    color?: string,                  // bullish candle color (close > open)
+    color0?: string,                 // bearish candle color
+    borderColor?: string,
+    borderColor0?: string,
+  },
+}
+```
+
+---
+
+## Gauge
+
+```ts
+{
+  type: "gauge",
+  name?: string,
+  data: Array<{ value: number, name: string }>,
+  min?: number,
+  max?: number,
+  startAngle?: number,
+  endAngle?: number,
+  splitNumber?: number,
+  detail?: { formatter?: string },   // "{value}%" etc.
+  progress?: { show?: boolean },
+}
+```
+
+---
+
+## Boxplot
+
+```ts
+{
+  type: "boxplot",
+  name?: string,
+  data: [number, number, number, number, number][],  // [min, Q1, median, Q3, max]
+}
+```
+
+Renders whisker box diagrams via SVG.
+
+---
+
+## Funnel
+
+```ts
+{
+  type: "funnel",
+  name?: string,
+  data: FunnelDataItem[],            // { value: number, name: string }[]
+  left?: number | string,
+  top?: number | string,
+  width?: number | string,
+  height?: number | string,
+  label?: LabelOption,
+}
+```
+
+Data is sorted descending by value automatically.
+
+---
+
+## Treemap
+
+```ts
+{
+  type: "treemap",
+  name?: string,
+  data: TreemapDataItem[],           // { name, value, children? }[]
+  top?: number | string,
+  left?: number | string,
+  width?: number | string,
+  height?: number | string,
+}
+```
+
+Squarified layout. Nested `children` arrays are supported.
+
+---
+
+## Sankey
+
+```ts
+{
+  type: "sankey",
+  nodes: SankeyNode[],               // { name: string }[]
+  links: SankeyLink[],               // { source: string, target: string, value: number }[]
+  left?: number | string,
+  top?: number | string,
+  width?: number | string,
+  height?: number | string,
+  nodeWidth?: number,
+  nodeGap?: number,
+  layoutIterations?: number,         // relaxation iterations (default 32)
+}
+```
+
+Layout uses BFS depth assignment + iterative relaxation. Links are bezier curves.
+
+---
+
+## Graph
+
+```ts
+{
+  type: "graph",
+  nodes: GraphNode[],
+  links: GraphLink[],
+  categories?: GraphCategory[],
+  layout?: "force" | "circular" | "none",
+  symbolSize?: number,
+  edgeSymbol?: [string, string],     // e.g. ["none", "arrow"]
+  edgeSymbolSize?: [number, number],
+  label?: { show?: boolean },
+  force?: {
+    repulsion?: number,
+    gravity?: number,
+    edgeLength?: number,
+    layoutAnimation?: boolean,
+  },
+}
+
+interface GraphNode {
+  id?: string,
+  name?: string,
+  x?: number,
+  y?: number,
+  symbolSize?: number,
+  category?: number,                 // index into categories[]
+}
+
+interface GraphLink {
+  source: string,                    // node id or name
+  target: string,
+}
+
+interface GraphCategory {
+  name?: string,
+}
+```
+
+Force layout uses Fruchterman-Reingold (150 iterations, repulsion + spring + gravity).
+
+---
+
+## Labels
+
+```ts
+interface LabelOption {
+  show?: boolean,
+  position?: "top" | "bottom" | "inside" | "left" | "right",
+  formatter?: string | ((params: LabelParams) => string),
+  fontSize?: number,
+  color?: string,
+  fontWeight?: string | number,
+}
+```
+
+Labels are supported on: `bar`, `line`, `scatter`, `pie` (with leader lines and percentage).
 
 
 
@@ -24543,7 +25470,7 @@ timeline
   title History of Domphy
   2023 : Initial concept
   2024 : First public release
-       : TanStack Query adapter
+       : Query adapter
   2025 : VitePress-grade docs site
        : MCP server
 ```
@@ -28322,95 +29249,48 @@ See the [Setup guide](./setup.md) for full options reference.
 
 ---
 title: "Integration Guide"
-description: "Wire @domphy/i18n into a full app — router integration, lazy namespace loading, and locale detection."
+description: "Wire @domphy/i18n into a full app — router integration, locale detection, and locale switcher."
 ---
 
 # Integration Guide
 
 ## App setup
 
-A complete `@domphy/i18n` setup involves three pieces: the i18n instance, a router hook that loads the right namespace for each route, and a locale switcher.
+Create the i18n instance once, then import `t`, `setLocale`, `getLocale`, and `initI18n` wherever needed:
 
 ```ts
-import i18next from "i18next"
+// i18n.ts
+import { createI18n } from "@domphy/i18n"
+import en from "./locales/en.json"
+import vi from "./locales/vi.json"
 
-await i18next.init({
-  lng: detectLocale(),          // see detectLocale() below
-  fallbackLng: "en",
-  ns: ["common"],               // always-loaded namespaces
-  defaultNS: "common",
-  resources: {
-    en: {
-      common: {
-        "nav.home": "Home",
-        "nav.about": "About",
-        "actions.save": "Save",
-        "actions.cancel": "Cancel",
-      },
-    },
-    vi: {
-      common: {
-        "nav.home": "Trang chủ",
-        "nav.about": "Về chúng tôi",
-        "actions.save": "Lưu",
-        "actions.cancel": "Hủy",
-      },
-    },
-  },
+export type Locale = "en" | "vi"
+
+export const i18n = createI18n<Locale, typeof en>({
+  globalKey: "__myapp_i18n__",
+  namespace: "app",
+  locales: { en, vi },
+  defaultLocale: "en",
 })
 ```
 
-## Locale detection
-
-Auto-detect the user's preferred locale:
+In your app entry point:
 
 ```ts
-function detectLocale(): string {
-  // 1. URL param (?lng=vi)
-  const url = new URLSearchParams(window.location.search)
-  const urlLng = url.get("lng")
-  if (urlLng) return urlLng
+import { i18n } from "./i18n"
 
-  // 2. localStorage
-  const stored = localStorage.getItem("lng")
-  if (stored) return stored
-
-  // 3. Browser preference
-  const [browserLng] = navigator.language.split("-")
-  return browserLng
-
-  // 4. Fallback handled by i18next.init fallbackLng
-}
-```
-
-## Reactive locale state
-
-Expose the current locale as Domphy state so the UI updates when it changes:
-
-```ts
-import { toState } from "@domphy/core"
-import i18next from "i18next"
-
-export const currentLocale = toState(i18next.language)
-
-// Keep in sync when i18next changes locale
-i18next.on("languageChanged", (lng) => {
-  currentLocale.set(lng)
-  localStorage.setItem("lng", lng)
-})
-
-export function t(key: string, options?: object): string {
-  return i18next.t(key, options)
-}
+await i18n.initI18n(i18n.detectLocale({ pathSegment: true, storageKey: "locale" }))
 ```
 
 ## Locale switcher component
 
 ```ts
-const LOCALES = [
+import { i18n } from "./i18n"
+import type { Locale } from "./i18n"
+
+const LOCALES: { code: Locale; label: string }[] = [
   { code: "en", label: "English" },
   { code: "vi", label: "Tiếng Việt" },
-  { code: "ja", label: "日本語" },
 ]
 
 const LocaleSwitcher = {
@@ -28420,10 +29300,11 @@ const LocaleSwitcher = {
         option: label,
         value: code,
       })),
-      value: (l) => currentLocale.get(l),
-      onChange: (e: Event) => {
-        const lng = (e.target as HTMLSelectElement).value
-        i18next.changeLanguage(lng)
+      value: (l) => i18n.locale.get(l),
+      onChange: async (e: Event) => {
+        const lng = (e.target as HTMLSelectElement).value as Locale
+        await i18n.setLocale(lng)
+        localStorage.setItem("locale", lng)
       },
       "aria-label": "Select language",
     },
@@ -28431,40 +29312,36 @@ const LocaleSwitcher = {
 }
 ```
 
-## Router integration — load namespaces per route
+## Router integration — locale from URL
 
-Load only the translations needed for the current route:
+Use `detectLocale` with `pathSegment: true` to read the locale from `/vi/...` URL prefixes:
 
 ```ts
-import { createRoute } from "@domphy/router"
+import { i18n } from "./i18n"
+import { createRouter } from "@domphy/router"
 
-const adminRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/admin",
-  beforeLoad: async () => {
-    // Load "admin" namespace before the route renders
-    await i18next.loadNamespaces(["admin"])
+const router = createRouter({
+  beforeLoad: async ({ pathname }) => {
+    // Detect locale from /vi/... prefix
+    const detected = i18n.detectLocale({ pathSegment: true, storageKey: "locale" })
+    await i18n.initI18n(detected)
   },
-  component: () => ({
-    div: [
-      { h1: i18next.t("admin:dashboard.title") },
-    ],
-  }),
 })
 ```
 
 ## Using translations in elements
 
 ```ts
-import { computed } from "@domphy/core"
+import { i18n } from "./i18n"
 
-// Reactive translation — updates on locale change
+const { t } = i18n
+
 const Header = {
   header: [
     {
       nav: [
-        { a: (l) => i18next.t("nav.home"), href: "/" },
-        { a: (l) => i18next.t("nav.about"), href: "/about" },
+        { a: (l) => t(l, "nav.home"), href: "/" },
+        { a: (l) => t(l, "nav.about"), href: "/about" },
       ],
     },
     LocaleSwitcher,
@@ -28472,59 +29349,26 @@ const Header = {
 }
 ```
 
-Note: `i18next.t()` is synchronous but not reactive — wrap in a listener function `(l) => i18next.t(key)` and subscribe to `currentLocale` for auto-updates:
-
-```ts
-import { effect } from "@domphy/core"
-
-// Force re-render on locale change by reading currentLocale in each listener
-const PageTitle = {
-  h1: (l) => {
-    currentLocale.get(l)    // subscribe to locale changes
-    return i18next.t("page.title")
-  },
-}
-```
-
-## TypeScript: typed translation keys
-
-Use `i18next-typescript` plugin for typed keys:
-
-```ts
-// i18n.d.ts
-import "i18next"
-
-declare module "i18next" {
-  interface CustomTypeOptions {
-    defaultNS: "common"
-    resources: {
-      common: typeof import("./locales/en/common.json")
-      admin: typeof import("./locales/en/admin.json")
-    }
-  }
-}
-
-// Now t() is typed:
-i18next.t("nav.home")              // OK
-i18next.t("nav.nonexistent")       // ✗ TypeScript error
-i18next.t("admin:dashboard.title") // OK (with ns prefix)
-```
+`t(listener, key)` subscribes to locale changes — the element re-renders automatically when `setLocale()` is called.
 
 ## RTL support
 
 Handle right-to-left languages (Arabic, Hebrew, Persian):
 
 ```ts
+import { effect } from "@domphy/core"
+import { i18n } from "./i18n"
+
 const RTL_LANGUAGES = new Set(["ar", "he", "fa", "ur"])
 
 effect(() => {
-  const lng = currentLocale.get()
+  const lng = i18n.locale.get()
   document.documentElement.setAttribute("dir", RTL_LANGUAGES.has(lng) ? "rtl" : "ltr")
   document.documentElement.setAttribute("lang", lng)
 })
 ```
 
-Domphy respects `dir` on the root element — CSS logical properties (`margin-inline-start`, `padding-inline`) automatically flip for RTL.
+Domphy respects `dir` on the root element — CSS logical properties (`margin-inline-start`, `padding-inline`) flip automatically for RTL.
 
 ### namespaces.md
 
@@ -39327,170 +40171,4 @@ function unorderedList(
 }
 
 export { unorderedList };
-```
-
----
-
-# @domphy/chart
-
-ECharts-grade data visualization patch for Domphy. Renders series geometry with **luma.gl v9 WebGL** and overlays axes, labels, legend, title, tooltip and marks with **SVG**.
-
-## Install
-
-```
-pnpm add @domphy/chart
-```
-
-## Patch: `chart(option)`
-
-```ts
-import { chart } from "@domphy/chart";
-import { toState } from "@domphy/core";
-
-// Static option
-{ div: null, $: [chart({ series: [{ type: "bar", data: [1, 2, 3] }], xAxis: {}, yAxis: {} })],
-  style: { width: "600px", height: "400px" } }
-
-// Reactive option
-const optionState = toState<ChartOption>({ series: [...] });
-{ div: null, $: [chart(optionState)], style: { width: "100%", height: "400px" } }
-```
-
-Automatically re-renders when the option state changes or the container resizes. Cleans up WebGL resources on remove.
-
-## ChartEngine (advanced)
-
-```ts
-import { ChartEngine } from "@domphy/chart";
-const engine = new ChartEngine(document.getElementById("chart")!);
-await engine.init();          // async: creates WebGL Device + all renderers
-engine.setSize(800, 400);
-engine.setOption(option);     // renders immediately
-engine.destroy();
-```
-
-## ChartOption — full type surface
-
-```ts
-interface ChartOption {
-  title?: TitleOption | TitleOption[];
-  legend?: LegendOption | LegendOption[];
-  grid?: GridOption | GridOption[];
-  xAxis?: AxisOption | AxisOption[];
-  yAxis?: AxisOption | AxisOption[];
-  polar?: PolarOption;
-  radar?: RadarOption | RadarOption[];
-  series?: SeriesOption[];
-  tooltip?: TooltipOption;
-  toolbox?: ToolboxOption;
-  dataZoom?: DataZoomOption | DataZoomOption[];
-  visualMap?: VisualMapOption | VisualMapOption[];
-  brush?: BrushOption;
-  dataset?: DatasetOption | DatasetOption[];
-  color?: ThemeFamily[];
-  backgroundColor?: ThemeFamily;
-}
-```
-
-## Series types
-
-All series share: `type`, `name`, `data`, `color?: ThemeFamily`, `markPoint`, `markLine`, `markArea`, `xAxisIndex`, `yAxisIndex`.
-
-```ts
-type SeriesOption =
-  | LineSeriesOption       // smooth, step, areaStyle, connectNulls, lineStyle, symbolSize
-  | BarSeriesOption        // stack, barWidth, barGap, label, backgroundStyle
-  | PieSeriesOption        // radius, center, roseType, itemStyle, label
-  | ScatterSeriesOption    // symbolSize (number or fn), itemStyle
-  | RadarSeriesOption      // radarIndex, areaStyle, data[].value[]
-  | HeatmapSeriesOption    // xAxisIndex, yAxisIndex, coordinateSystem
-  | CandlestickSeriesOption // upColor, downColor, data: [open,close,low,high][]
-  | GaugeSeriesOption      // min, max, startAngle, endAngle, progress, splitLine, detail, title
-  | BoxplotSeriesOption    // SVG — min/Q1/median/Q3/max with whiskers
-  | TreemapSeriesOption    // SVG — squarified layout, recursive children
-  | FunnelSeriesOption     // SVG — sorted trapezoids with labels
-  | SankeySeriesOption     // SVG — BFS depth + flow relaxation layout, bezier links
-  | GraphSeriesOption      // SVG — Fruchterman-Reingold force-directed, arrows, categories
-  | CustomSeriesOption;    // renderItem fn
-```
-
-## Color system
-
-Series palette (index → `ThemeFamily`):
-```ts
-["primary","secondary","success","warning","error","info","highlight","attention","danger"]
-// at tone "shift-9" (concrete hex via themeColorToken — no CSS var)
-```
-
-Color utilities:
-```ts
-import { seriesHex, seriesRgba, familyHex, familyRgba, hexToRgba } from "@domphy/chart";
-seriesHex(0)          // "#4a7ff4" — primary shift-9
-seriesRgba(1)         // [r,g,b,a] floats
-familyHex("error")    // error family hex
-```
-
-## Scale utilities
-
-```ts
-import { createLinearScale, createOrdinalScale, createTimeScale, createLogScale } from "@domphy/chart";
-
-const linear = createLinearScale([0, 100], [0, 400]);
-linear.map(50)    // 200
-linear.invert(200) // 50
-linear.ticks(5)   // [0, 25, 50, 75, 100]
-
-const ordinal = createOrdinalScale(["A","B","C"], [0, 600]);
-ordinal.map("B")      // center of B band
-ordinal.bandwidth()   // width of one band
-```
-
-## patch.ts source
-
-```ts
-import { toState, type PartialElement, type ReadableState } from "@domphy/core";
-import type { ChartOption } from "./types.js";
-import { ChartEngine } from "./engine.js";
-
-/**
- * Renders an ECharts-grade chart using WebGL (luma.gl) + SVG overlay.
- * Apply to a `div` with explicit width and height.
- *
- * @hostTag div
- * @param option - Chart configuration object, or a reactive state wrapping one.
- * @example
- * { div: null, $: [chart({ series: [{ type: "bar", data: [1, 2, 3] }], xAxis: {}, yAxis: {} })],
- *   style: { width: "600px", height: "400px" } }
- */
-function chart(option: ChartOption | ReadableState<ChartOption>): PartialElement {
-  const optionState = toState(option);
-  return {
-    style: { position: "relative", overflow: "hidden" },
-    _onMount(node) {
-      const container = node.domElement as HTMLElement;
-      const engine = new ChartEngine(container);
-      let initialized = false;
-      let width = 0;
-      let height = 0;
-      const applySize = () => {
-        const rect = container.getBoundingClientRect();
-        if (rect.width !== width || rect.height !== height) {
-          width = rect.width; height = rect.height;
-          engine.setSize(width, height);
-        }
-      };
-      const applyOption = () => {
-        applySize();
-        if (width && height && initialized) engine.setOption(optionState.get());
-      };
-      engine.init().then(() => { initialized = true; applyOption(); });
-      const unsubscribe = optionState.addListener(applyOption);
-      const ro = new ResizeObserver(applyOption);
-      ro.observe(container);
-      node.addHook("Remove", () => { unsubscribe(); ro.disconnect(); engine.destroy(); });
-    },
-  };
-}
-
-export { chart };
 ```

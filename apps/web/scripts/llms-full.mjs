@@ -102,6 +102,10 @@ await includeDir(
 await includeDir(resolve(ROOT, "docs/form"), "Form docs (`@domphy/form`)");
 await includeDir(resolve(ROOT, "docs/dnd"), "DnD docs (`@domphy/dnd`)");
 await includeDir(
+  resolve(ROOT, "docs/chart"),
+  "Chart docs (`@domphy/chart`)",
+);
+await includeDir(
   resolve(ROOT, "docs/palette"),
   "Palette docs (`@domphy/palette`)",
 );
