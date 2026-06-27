@@ -1,11 +1,11 @@
 ---
 title: "@domphy/chart"
-description: "ECharts-grade charting for Domphy — WebGL line/bar/scatter/pie/radar/heatmap/candlestick/gauge and SVG boxplot/funnel/treemap/sankey/graph. Zero React dependency."
+description: "ECharts-grade charting for Domphy — WebGL line/bar/scatter/pie/radar/heatmap/candlestick/gauge, SVG boxplot/funnel/treemap/sankey/graph/parallel/themeRiver/map, calendar, 3D surface. Tone/density cascade."
 ---
 
 # @domphy/chart
 
-ECharts-grade charting for Domphy. WebGL-accelerated series for performance-critical data, SVG series for complex layouts. No React dependency.
+ECharts-grade charting for Domphy. WebGL-accelerated series for performance-critical data, SVG series for complex layouts. Full parity with ECharts including geo maps, calendar, parallel coordinates, ThemeRiver, and 3D charts. No React dependency.
 
 ## Install
 
@@ -66,11 +66,11 @@ The chart re-renders whenever the state changes.
 | `scatter` | `symbolSize` (number or `(val) => number`) |
 | `pie` | `radius` (number or `[inner, outer]`), `roseType`, `center` |
 | `radar` | `areaStyle`, paired with `radar.indicator[]` |
-| `heatmap` | paired with `xAxis`/`yAxis` category + `visualMap` |
+| `heatmap` | cartesian or `coordinateSystem: "calendar"` with `visualMap` |
 | `candlestick` | `data: [open,close,low,high][]`, `itemStyle.color`/`color0` |
 | `gauge` | `min`/`max`, `splitNumber`, `detail.formatter` |
 
-**SVG:**
+**SVG (layout & flow):**
 | Series | Key options |
 |---|---|
 | `boxplot` | `data: [min,Q1,median,Q3,max][]` |
@@ -78,6 +78,18 @@ The chart re-renders whenever the state changes.
 | `treemap` | `data` with nested `children`, squarified layout |
 | `sankey` | `nodes: [{name}]`, `links: [{source,target,value}]` |
 | `graph` | `nodes`, `links`, `categories`, `layout: "force"\|"circular"\|"none"` |
+| `parallel` | multi-dim polylines across `parallelAxis[]` |
+| `themeRiver` | stream graph; `data: [[time, value, name], ...]` |
+| `map` | choropleth; `geo` + `registerMap(name, geoJSON)` |
+| `custom` | `renderItem(params, api)` returns SVG element descriptor |
+
+**3D (SVG perspective projection):**
+| Series | Key options |
+|---|---|
+| `scatter3D` | `data: [x,y,z][]`, `symbolSize` |
+| `bar3D` | `data: [x,y,z][]`, `barSize` |
+| `line3D` | `data: [x,y,z][]`, `lineWidth` |
+| `surface3D` | structured grid `data: [x,y,z][]`, `shapeW`, `shapeH`, `wireframe` |
 
 ## Next steps
 
@@ -85,3 +97,4 @@ The chart re-renders whenever the state changes.
 - [Axes & Grid](/docs/chart/axes) — axes types, formatting, dataZoom, visualMap
 - [Colors & Theme](/docs/chart/colors) — theme families, gradient fills
 - [ChartEngine API](/docs/chart/engine) — advanced embedding, resize, destroy
+- [vs ECharts](/docs/chart/vs-echarts) — feature comparison

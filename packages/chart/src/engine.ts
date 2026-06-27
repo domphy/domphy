@@ -29,7 +29,7 @@ import type {
   LineSeriesOption,
   CalendarOption, ParallelOption, ParallelAxisOption, ParallelSeriesOption,
   ThemeRiverSeriesOption, GeoOption, MapSeriesOption,
-  Grid3DOption, Axis3DOption, Scatter3DSeriesOption, Bar3DSeriesOption, Line3DSeriesOption,
+  Grid3DOption, Axis3DOption, Scatter3DSeriesOption, Bar3DSeriesOption, Line3DSeriesOption, Surface3DSeriesOption,
 } from "./types.js";
 import { seriesHex } from "./gl/color.js";
 import { renderCalendar } from "./overlay/calendar.js";
@@ -418,8 +418,9 @@ export class ChartEngine {
     const scatter3DSeries = series.filter((s): s is Scatter3DSeriesOption => s.type === "scatter3D");
     const bar3DSeries = series.filter((s): s is Bar3DSeriesOption => s.type === "bar3D");
     const line3DSeries = series.filter((s): s is Line3DSeriesOption => s.type === "line3D");
-    if (grid3Ds.length > 0 || scatter3DSeries.length > 0 || bar3DSeries.length > 0 || line3DSeries.length > 0) {
-      renderGrid3D(this.overlaysvg, grid3Ds, xAxes3D, yAxes3D, zAxes3D, scatter3DSeries, bar3DSeries, line3DSeries, width, height);
+    const surface3DSeries = series.filter((s): s is Surface3DSeriesOption => s.type === "surface3D");
+    if (grid3Ds.length > 0 || scatter3DSeries.length > 0 || bar3DSeries.length > 0 || line3DSeries.length > 0 || surface3DSeries.length > 0) {
+      renderGrid3D(this.overlaysvg, grid3Ds, xAxes3D, yAxes3D, zAxes3D, scatter3DSeries, bar3DSeries, line3DSeries, surface3DSeries, width, height);
     }
 
     // VisualMap legend

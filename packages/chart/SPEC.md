@@ -948,10 +948,10 @@ Mark point/line/area
 
 ## Phase 3 (shipped)
 
-Series: `custom`, `parallel`, `themeRiver`, `map`, `scatter3D`, `bar3D`, `line3D`  
+Series: `custom`, `parallel`, `themeRiver`, `map`, `scatter3D`, `bar3D`, `line3D`, `surface3D`  
 Calendar coordinate system (`calendar` + `heatmap[coordinateSystem:"calendar"]`)  
 Geo/map (`geo` + `map` series, GeoJSON via `registerMap`)  
-3D charts (`grid3D`, `xAxis3D`, `yAxis3D`, `zAxis3D`)  
+3D charts (`grid3D`, `xAxis3D`, `yAxis3D`, `zAxis3D`) — SVG perspective projection, no extra package required  
 
 ### New series types (Phase 3)
 
@@ -1032,3 +1032,33 @@ registerMap("world", worldGeoJSON);
   }],
 }
 ```
+
+#### surface3D
+
+```ts
+{
+  grid3D: { viewControl: { alpha: 30, beta: 50, distance: 180 } },
+  xAxis3D: { type: "value" },
+  yAxis3D: { type: "value" },
+  zAxis3D: { type: "value" },
+  series: [{
+    type: "surface3D",
+    shapeW: 20,
+    shapeH: 20,
+    wireframe: { show: true },
+    data: (() => {
+      const pts = [];
+      for (let i = 0; i < 20; i++)
+        for (let j = 0; j < 20; j++) {
+          const x = (i / 19) * 4 - 2;
+          const y = (j / 19) * 4 - 2;
+          pts.push([x, y, Math.sin(Math.sqrt(x*x + y*y))]);
+        }
+      return pts;
+    })(),
+  }],
+}
+```
+
+Data must be a flat row-major grid of `[x, y, z]` points. `shapeW × shapeH` must equal `data.length`.
+Z-value is mapped to a blue→green→red color gradient. No external 3D library required.

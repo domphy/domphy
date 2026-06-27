@@ -1916,6 +1916,25 @@ export interface Line3DSeriesOption {
   silent?: boolean;
 }
 
+export interface Surface3DSeriesOption {
+  type: "surface3D";
+  id?: string;
+  name?: string;
+  // Structured grid data: provide shapeW * shapeH points in row-major order
+  // Each point: [x, y, z]
+  data?: ([number, number, number] | { value: [number, number, number] })[];
+  // Grid dimensions — if omitted, assumes sqrt(data.length) × sqrt(data.length)
+  shapeW?: number;
+  shapeH?: number;
+  // Color mapped by z-value. Uses visualMap if present, otherwise theme gradient.
+  color?: ThemeFamily;
+  wireframe?: { show?: boolean; lineStyle?: LineStyleOption };
+  grid3DIndex?: number;
+  z?: number;
+  zlevel?: number;
+  silent?: boolean;
+}
+
 export type SeriesOption =
   | LineSeriesOption
   | BarSeriesOption
@@ -1936,7 +1955,8 @@ export type SeriesOption =
   | MapSeriesOption
   | Scatter3DSeriesOption
   | Bar3DSeriesOption
-  | Line3DSeriesOption;
+  | Line3DSeriesOption
+  | Surface3DSeriesOption;
 
 // ─── Main chart option ────────────────────────────────────────────────────────
 export interface ChartOption {

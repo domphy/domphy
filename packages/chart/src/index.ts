@@ -136,4 +136,5 @@ export type {
   Scatter3DSeriesOption,
   Bar3DSeriesOption,
   Line3DSeriesOption,
+  Surface3DSeriesOption,
 } from "./types.js";

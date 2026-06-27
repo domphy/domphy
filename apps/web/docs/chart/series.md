@@ -1,6 +1,6 @@
 ---
 title: "Series Reference"
-description: "All @domphy/chart series types — line, bar, scatter, pie, radar, heatmap, candlestick, gauge, boxplot, funnel, treemap, sankey, graph."
+description: "All @domphy/chart series types — line, bar, scatter, pie, radar, heatmap, candlestick, gauge, boxplot, funnel, treemap, sankey, graph, parallel, themeRiver, map, calendar, scatter3D, bar3D, line3D, surface3D."
 ---
 
 # Series Reference
@@ -351,3 +351,183 @@ interface LabelOption {
 ```
 
 Labels are supported on: `bar`, `line`, `scatter`, `pie` (with leader lines and percentage).
+
+---
+
+## Calendar (coordinate system)
+
+Requires `calendar` in the option. Use with `heatmap` (set `coordinateSystem: "calendar"`).
+
+```ts
+{
+  calendar: {
+    range: "2024",                        // full year, or ["2024-01-01", "2024-06-30"]
+    cellSize?: number | [w, h],           // default 20
+    dayLabel?: { firstDay?: 0|1, show?: boolean },
+    monthLabel?: { show?: boolean },
+    yearLabel?: { show?: boolean },
+  },
+  series: [{
+    type: "heatmap",
+    coordinateSystem: "calendar",
+    data: [
+      ["2024-01-15", 42],
+      ["2024-03-22", 87],
+      // ...
+    ],
+  }],
+  visualMap: { type: "continuous", min: 0, max: 100 },
+}
+```
+
+---
+
+## Parallel Coordinates
+
+```ts
+{
+  parallel: { left: "10%", right: "5%", top: "10%", bottom: "10%" },
+  parallelAxis: [
+    { dim: 0, name: "Income",    type: "value" },
+    { dim: 1, name: "Age",       type: "value" },
+    { dim: 2, name: "Education", type: "category", data: ["High School","BSc","MSc","PhD"] },
+  ],
+  series: [{
+    type: "parallel",
+    data: [
+      [45000, 32, "BSc"],
+      [72000, 45, "MSc"],
+      [28000, 24, "High School"],
+    ],
+    lineStyle: { opacity: 0.5 },
+  }],
+}
+```
+
+Each row becomes a polyline crossing each axis at its value position.
+
+---
+
+## ThemeRiver
+
+Stream/river chart showing changes in topic proportions over time.
+
+```ts
+{
+  series: [{
+    type: "themeRiver",
+    data: [
+      // [time, value, topic-name]
+      ["2024-01", 20, "Topic A"],
+      ["2024-02", 35, "Topic A"],
+      ["2024-01", 15, "Topic B"],
+      ["2024-02", 25, "Topic B"],
+    ],
+  }],
+}
+```
+
+Multiple series names in the same dataset are stacked as separate streams. The baseline is silhouette-centered (zero-centered sum), giving the characteristic river shape.
+
+---
+
+## Map (choropleth)
+
+Requires calling `registerMap` before use.
+
+```ts
+import { registerMap } from "@domphy/chart"
+
+// Register a GeoJSON (e.g. world countries from naturalearth)
+registerMap("world", worldGeoJSON)
+
+// Option:
+{
+  geo: {
+    map: "world",
+    roam: true,   // enable pan/zoom (not yet interactive — reserved for future)
+    zoom: 1.2,
+    center: [0, 20],
+  },
+  series: [{
+    type: "map",
+    map: "world",
+    data: [
+      { name: "China",         value: 89 },
+      { name: "United States", value: 73 },
+      { name: "Germany",       value: 61 },
+    ],
+  }],
+  visualMap: { type: "continuous", min: 0, max: 100 },
+}
+```
+
+`scatter` series with `coordinateSystem: "geo"` render as circles at `[lng, lat]` coordinates.
+
+---
+
+## scatter3D / bar3D / line3D / surface3D
+
+All 3D series require `grid3D`. Projection is perspective SVG (no WebGL needed).
+
+```ts
+{
+  grid3D: {
+    viewControl: { alpha: 35, beta: 45, distance: 180 },
+  },
+  xAxis3D: { name: "X", type: "value" },
+  yAxis3D: { name: "Y", type: "value" },
+  zAxis3D: { name: "Z", type: "value" },
+  series: [
+    {
+      type: "scatter3D",
+      symbolSize: 10,
+      color: "primary",
+      data: [[1,2,3], [4,5,6], [7,8,9]],
+    },
+    {
+      type: "line3D",
+      lineWidth: 2,
+      color: "secondary",
+      data: [[0,0,0], [1,2,4], [2,4,8]],
+    },
+    {
+      type: "bar3D",
+      barSize: 0.05,
+      color: "success",
+      data: [[0,1,5], [1,1,8], [2,1,3]],
+    },
+  ],
+}
+```
+
+### surface3D
+
+Renders a 3D surface from a structured grid of `[x, y, z]` points. Z-value is mapped to a blue→green→red color gradient.
+
+```ts
+{
+  grid3D: { viewControl: { alpha: 30, beta: 50 } },
+  xAxis3D: { type: "value" },
+  yAxis3D: { type: "value" },
+  zAxis3D: { type: "value" },
+  series: [{
+    type: "surface3D",
+    shapeW: 20,   // grid columns
+    shapeH: 20,   // grid rows
+    wireframe: { show: true },
+    data: (() => {
+      const points = []
+      for (let i = 0; i < 20; i++) {
+        for (let j = 0; j < 20; j++) {
+          const x = (i / 19) * 4 - 2
+          const y = (j / 19) * 4 - 2
+          const z = Math.sin(Math.sqrt(x * x + y * y))
+          points.push([x, y, z])
+        }
+      }
+      return points
+    })(),
+  }],
+}
+```

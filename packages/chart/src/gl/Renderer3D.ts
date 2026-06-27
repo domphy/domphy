@@ -1,5 +1,5 @@
 import type {
-  Grid3DOption, Axis3DOption, Scatter3DSeriesOption, Bar3DSeriesOption, Line3DSeriesOption,
+  Grid3DOption, Axis3DOption, Scatter3DSeriesOption, Bar3DSeriesOption, Line3DSeriesOption, Surface3DSeriesOption,
 } from "../types.js";
 import { seriesHex } from "./color.js";
 
@@ -68,6 +68,14 @@ function computeBoxRect(grid: Grid3DOption, width: number, height: number): BoxR
   };
 }
 
+// Map a 0-1 value to a hex color along a blue→green→red gradient
+function zToColor(t: number): string {
+  const r = Math.round(Math.max(0, (t * 2 - 1)) * 200 + 55);
+  const g = Math.round(Math.max(0, 1 - Math.abs(t * 2 - 1)) * 200 + 55);
+  const b = Math.round(Math.max(0, 1 - t * 2) * 200 + 55);
+  return `rgb(${r},${g},${b})`;
+}
+
 export function renderGrid3D(
   svg: SVGSVGElement,
   grid3Ds: Grid3DOption[],
@@ -77,13 +85,14 @@ export function renderGrid3D(
   scatter3D: Scatter3DSeriesOption[],
   bar3D: Bar3DSeriesOption[],
   line3D: Line3DSeriesOption[],
+  surface3D: Surface3DSeriesOption[],
   width: number,
   height: number,
 ): void {
   const old = svg.querySelector(".dc-3d");
   if (old) old.remove();
 
-  const allSeries = [...scatter3D, ...bar3D, ...line3D];
+  const allSeries = [...scatter3D, ...bar3D, ...line3D, ...surface3D];
   if (allSeries.length === 0 && grid3Ds.length === 0) return;
 
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -298,6 +307,79 @@ export function renderGrid3D(
       });
       group.appendChild(line);
     }
+  }
+
+  // Draw surface3D as colored quad mesh using perspective projection
+  for (let si = 0; si < surface3D.length; si++) {
+    const s = surface3D[si];
+    const rawData = s.data ?? [];
+    const points: [number, number, number][] = rawData.map((item) => {
+      const v = Array.isArray(item) ? item : (item as any).value;
+      return [Number(v[0]), Number(v[1]), Number(v[2])];
+    });
+
+    if (points.length === 0) continue;
+
+    const shapeW = s.shapeW ?? Math.round(Math.sqrt(points.length));
+    const shapeH = s.shapeH ?? Math.ceil(points.length / shapeW);
+
+    // Compute z range for color mapping
+    const zValues = points.map((p) => p[2]);
+    const zMin = Math.min(...zValues);
+    const zMax = Math.max(...zValues, zMin + 1);
+
+    const showWireframe = s.wireframe?.show !== false;
+
+    // Draw quads back-to-front (painter's algorithm — approximate, good enough for SVG)
+    const quads: { avgZ: number; path: string; fill: string }[] = [];
+
+    for (let row = 0; row < shapeH - 1; row++) {
+      for (let col = 0; col < shapeW - 1; col++) {
+        const i00 = row * shapeW + col;
+        const i10 = row * shapeW + col + 1;
+        const i01 = (row + 1) * shapeW + col;
+        const i11 = (row + 1) * shapeW + col + 1;
+
+        if (i00 >= points.length || i10 >= points.length ||
+            i01 >= points.length || i11 >= points.length) continue;
+
+        const p00 = points[i00];
+        const p10 = points[i10];
+        const p01 = points[i01];
+        const p11 = points[i11];
+
+        const [x00, y00] = toPixel(normalize(p00[0], xRange), normalize(p00[2], zRange), normalize(p00[1], yRange));
+        const [x10, y10] = toPixel(normalize(p10[0], xRange), normalize(p10[2], zRange), normalize(p10[1], yRange));
+        const [x11, y11] = toPixel(normalize(p11[0], xRange), normalize(p11[2], zRange), normalize(p11[1], yRange));
+        const [x01, y01] = toPixel(normalize(p01[0], xRange), normalize(p01[2], zRange), normalize(p01[1], yRange));
+
+        const avgZ = (p00[2] + p10[2] + p11[2] + p01[2]) / 4;
+        const t = (avgZ - zMin) / (zMax - zMin);
+        const fill = zToColor(t);
+
+        const path = `M${x00.toFixed(1)},${y00.toFixed(1)} L${x10.toFixed(1)},${y10.toFixed(1)} L${x11.toFixed(1)},${y11.toFixed(1)} L${x01.toFixed(1)},${y01.toFixed(1)} Z`;
+        quads.push({ avgZ, path, fill });
+      }
+    }
+
+    // Sort by avgZ descending (paint far quads first)
+    quads.sort((a, b) => b.avgZ - a.avgZ);
+
+    const surfaceGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    for (const q of quads) {
+      const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      pathEl.setAttribute("d", q.path);
+      pathEl.setAttribute("fill", q.fill);
+      pathEl.setAttribute("fill-opacity", "0.85");
+      if (showWireframe) {
+        pathEl.setAttribute("stroke", "rgba(0,0,0,0.15)");
+        pathEl.setAttribute("stroke-width", "0.5");
+      } else {
+        pathEl.setAttribute("stroke", "none");
+      }
+      surfaceGroup.appendChild(pathEl);
+    }
+    group.appendChild(surfaceGroup);
   }
 
   svg.appendChild(group);
