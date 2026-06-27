@@ -104,14 +104,16 @@ borderRadius: (l) => themeSpacing(themeDensity(l) * 1),
 // Use outline not border — border adds 2px to height, deviating from canonical sizes.
 ```
 
-**Theme mount & palette API** (`themeApply` / `themeCSS` / `setTheme` / `getTheme` / `themeTokens` / `themeVars` / `themeName`):
+**Theme mount & palette API** (`themeApply` / `themeCSS` / `setTheme` / `getTheme` / `themeTokens` / `themeVars` / `themeName` / `applySystemTheme` / `themeFluidSpacing`):
 - `themeApply(el?)` — writes all registered palette CSS into `<style id="domphy-themes">` (or into `el` if supplied). Call once before mounting.
 - `themeCSS()` — returns the full palette CSS string without touching the DOM (useful for SSR `<style>` injection).
-- `setTheme(name, input)` — registers or deep-merges a named color palette into the theme registry; clears var/token caches.
+- `setTheme(name, input)` — registers or deep-merges a named color palette into the theme registry; clears var/token caches. `colors` may include brand-new family names alongside built-in ones — new families auto-generate CSS vars and work with `themeColor()` immediately.
 - `getTheme(name)` — returns the raw `ThemeInput` record for a named theme.
 - `themeTokens(name)` — returns resolved concrete values (hex strings, font sizes) for a named theme — useful for programmatic inspection or passing to third-party APIs.
 - `themeVars()` — returns `ThemeVars`: a parallel structure of `var(--…)` references (used internally by `themeColor`).
 - `themeName(listenerOrNode)` — walks the element tree from a listener/`ElementNode` to find the nearest `data-theme` ancestor; subscribes the listener to changes. Returns `"light"` if none found.
+- `applySystemTheme(targetEl?, options?)` — reads `localStorage` preference first, falls back to `prefers-color-scheme`, sets `data-theme` on `targetEl` (default: `document.documentElement`), and listens for OS changes. Returns a cleanup fn. Options: `persist` (boolean, default `true`), `storageKey` (string, default `"dp-theme"`). **Call once on client startup instead of writing the matchMedia boilerplate manually.** SSR-safe: guard with `typeof window !== "undefined"`.
+- `themeFluidSpacing(min, max, viewportMin?, viewportMax?)` — returns a CSS `clamp()` that scales between `themeSpacing(min)` and `themeSpacing(max)` across the viewport range (default 320 px → 1280 px). Use for page padding and section gaps; **not** for bounded-control padding (use density there).
 
 ## Patches (`@domphy/ui`)
 

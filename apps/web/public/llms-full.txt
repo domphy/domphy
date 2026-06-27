@@ -117,13 +117,15 @@ Common role mappings from an edge surface (`shift-0`):
 | Hover bg | `"increase-1"` | button:hover |
 | Active/pressed bg | `"increase-2"` | button:active |
 
-### Spacing (`themeSpacing`, `themeDensity`)
+### Spacing (`themeSpacing`, `themeDensity`, `themeFluidSpacing`)
 ```ts
-themeSpacing(n)         // returns `${n/4}em`; n = number of U units (U = fontSize/4)
-themeDensity(listener)  // returns density factor: 0.75 | 1 | 1.5 | 2 | 2.5
+themeSpacing(n)                        // returns `${n/4}em`; n = number of U units (U = fontSize/4)
+themeDensity(listener)                 // returns density factor: 0.75 | 1 | 1.5 | 2 | 2.5
+themeFluidSpacing(min, max, vpMin?, vpMax?)  // returns clamp() that scales between themeSpacing(min) and themeSpacing(max) across viewport width
 ```
 - **Always** call `themeSpacing(themeDensity(l) * n)` for padding/gap on bounded controls (buttons, inputs) — not `themeSpacing(n)` alone.
 - Use bare `themeSpacing(n)` for structural spacing (between sections) where density shouldn't multiply.
+- Use `themeFluidSpacing(min, max)` for page/section padding that should grow with viewport (structural, never for controls).
 - Never hardcode `"6px"` / `"1.5em"` — use `themeSpacing(n)`.
 - `dataDensity`: `"inherit"` | `"increase-N"` | `"decrease-N"` where N ≤ 4 (5-step scale: 0.75, 1, 1.5, 2, 2.5).
 
@@ -4327,6 +4329,42 @@ minWidth: themeSpacing(32)
 height: themeSpacing(6)
 ```
 
+### `themeFluidSpacing(min, max, viewportMin?, viewportMax?)`
+
+Return a CSS `clamp()` that scales between `themeSpacing(min)` and `themeSpacing(max)` across a viewport width range (default 320 px → 1280 px). Use for structural spacing — page padding, section gaps — that should grow with the viewport.
+
+```ts
+import { themeFluidSpacing } from "@domphy/theme"
+
+padding: themeFluidSpacing(4, 16)    // 1em at 320px → 4em at 1280px
+gap: themeFluidSpacing(4, 8)         // 1em at 320px → 2em at 1280px
+```
+
+Do not use fluid spacing for bounded-control padding (buttons, inputs) — use `themeSpacing(themeDensity(l) * n)` instead.
+
+### `applySystemTheme(targetEl?, options?)`
+
+Detect the OS color-scheme preference, apply `data-theme` to `targetEl` (default: `document.documentElement`), and set up a listener for OS-level changes. Returns a cleanup function that removes the listener.
+
+```ts
+import { applySystemTheme } from "@domphy/theme"
+
+// One-liner: reads localStorage first, falls back to OS preference
+const cleanup = applySystemTheme()
+
+// Custom target or storage key
+const cleanup = applySystemTheme(document.getElementById("app")!, {
+  storageKey: "my-theme",
+})
+```
+
+Options:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `persist` | `boolean` | `true` | Save resolved theme in `localStorage` |
+| `storageKey` | `string` | `"dp-theme"` | `localStorage` key |
+
 ## Setup Helpers
 
 ### `themeApply(el?)`
@@ -4645,7 +4683,53 @@ const ThemeToggle = {
 
 ## System preference detection
 
-Follow the OS preference on first visit, then remember the user's choice:
+### `applySystemTheme()` helper
+
+The fastest way to wire up system preference detection: one call that reads `localStorage`, falls back to the OS preference, sets `data-theme`, and listens for OS changes at runtime:
+
+```ts
+import { applySystemTheme } from "@domphy/theme"
+
+// Call once before mounting. Reads localStorage → falls back to OS preference.
+const cleanup = applySystemTheme()
+
+// Optional: custom target element or storage key
+const cleanup = applySystemTheme(document.getElementById("app")!, {
+  storageKey: "my-theme",
+})
+```
+
+When the user manually toggles the theme, persist their choice so `applySystemTheme()` honours it on reload:
+
+```ts
+import { toState } from "@domphy/core"
+import { applySystemTheme } from "@domphy/theme"
+
+const STORAGE_KEY = "dp-theme"
+const cleanup = applySystemTheme(document.documentElement, { storageKey: STORAGE_KEY })
+
+const theme = toState<"light" | "dark">(
+  document.documentElement.getAttribute("data-theme") as "light" | "dark" ?? "light"
+)
+
+function toggleTheme() {
+  const next = theme.get() === "dark" ? "light" : "dark"
+  document.documentElement.setAttribute("data-theme", next)
+  localStorage.setItem(STORAGE_KEY, next)
+  theme.set(next)
+}
+```
+
+`applySystemTheme()` returns a cleanup function — call it if you ever tear down the app:
+
+```ts
+// On SPA unmount
+cleanup()
+```
+
+### Manual implementation (no helper)
+
+If you need full control, build the same pattern by hand:
 
 ```ts
 function initTheme(): "light" | "dark" {
@@ -5463,7 +5547,11 @@ Set `dataTheme` on any root element.
 
 ## Register A Custom Theme
 
-Use `setTheme()` to register or override a theme.
+Use `setTheme()` to register or override a theme. All fields are optional — unspecified ones inherit from `light`.
+
+### Replace a built-in color family
+
+Override an existing family (e.g. swap `primary` to a violet ramp):
 
 ```ts
 import { setTheme, themeApply } from "@domphy/theme"
@@ -5480,12 +5568,79 @@ setTheme("brand", {
 themeApply()
 ```
 
-Custom color ramps should follow the current 18-step model.
+### Add a brand-new color family
 
-Then use it:
+Register a completely new color name alongside the built-in ones. The `colors` key can hold any name — Domphy generates CSS variables and exposes the family to `themeColor()` automatically:
+
+```ts
+import { setTheme, themeApply, themeColor } from "@domphy/theme"
+
+setTheme("brand", {
+  colors: {
+    // New "brand-gold" family — 18-step ramp from light (#fffef0) to dark (#1a1500)
+    "brand-gold": [
+      "#fffef0",   // 0 — near-white
+      "#fffbd0",   // 1
+      "#fff6a0",   // 2
+      "#ffee65",   // 3
+      "#ffe030",   // 4
+      "#f5cc00",   // 5
+      "#d9b200",   // 6
+      "#bf9a00",   // 7
+      "#a58200",   // 8
+      "#8a6b00",   // 9  ← good accent zone
+      "#705600",   // 10
+      "#574200",   // 11
+      "#3f2f00",   // 12
+      "#2d1f00",   // 13
+      "#1f1500",   // 14
+      "#130d00",   // 15
+      "#070400",   // 16
+      "#000000",   // 17 — black
+    ],
+  },
+  baseTones: {
+    "brand-gold": 9,   // base accent at step 9
+  },
+})
+
+themeApply()
+
+// Use the new family exactly like built-in ones:
+const GoldBadge = {
+  span: "New",
+  style: {
+    background: (l) => themeColor(l, "shift-2", "brand-gold"),
+    color: (l) => themeColor(l, "shift-11", "brand-gold"),
+  },
+}
+```
+
+Custom color ramps must follow the 18-step model (index 0 = lightest, 17 = darkest). The dark theme is auto-generated by reversing the ramp — you do not need a separate dark variant.
+
+Then activate the theme:
 
 ```ts
 { div: [App], dataTheme: "brand" }
+```
+
+### Custom design tokens
+
+Arbitrary key-value tokens can be stored under `custom`. They appear as `--custom-{key}` CSS variables:
+
+```ts
+setTheme("brand", {
+  custom: {
+    "border-radius-pill": "9999px",
+    "sidebar-width": "240px",
+    "topbar-height": "56px",
+  },
+})
+
+// Access via CSS or themeVars():
+import { themeVars } from "@domphy/theme"
+const vars = themeVars()
+// vars.custom["border-radius-pill"] === "var(--custom-border-radius-pill)"
 ```
 
 ## SSR
@@ -5849,6 +6004,40 @@ The reason: density should affect UI chrome (button size, input height) but NOT 
 | `themeSpacing(6)` | 24px | Section padding, between cards |
 | `themeSpacing(8)` | 32px | Between sections |
 | `themeSpacing(12)` | 48px | Large section breaks |
+
+## Fluid spacing with `themeFluidSpacing`
+
+For structural spacing — page padding, section gaps — that should grow with the viewport, use `themeFluidSpacing(min, max)`. It returns a CSS `clamp()` that scales linearly between `themeSpacing(min)` and `themeSpacing(max)` across the standard 320 px → 1280 px viewport range:
+
+```ts
+import { themeFluidSpacing } from "@domphy/theme"
+
+const Section = {
+  section: Content,
+  style: {
+    padding: themeFluidSpacing(4, 16),    // 1em at 320px → 4em at 1280px
+    gap: themeFluidSpacing(4, 8),         // 1em at 320px → 2em at 1280px
+  },
+}
+```
+
+Custom viewport range:
+
+```ts
+// Scale between themeSpacing(2) and themeSpacing(12) from 480px to 1440px
+padding: themeFluidSpacing(2, 12, 480, 1440)
+```
+
+**When to use fluid vs fixed spacing:**
+
+| Situation | Use |
+|-----------|-----|
+| Page/section padding | `themeFluidSpacing(min, max)` — grows with viewport |
+| Gap between layout sections | `themeFluidSpacing(min, max)` |
+| Component internal padding (button, input) | `themeSpacing(density * n)` — density-aware, not fluid |
+| Icon-to-label gap, tight list gap | `themeSpacing(n)` — fixed, no density or fluid |
+
+Do **not** use `themeFluidSpacing` for bounded-control padding — density already handles responsive sizing for controls.
 
 ## Using spacing in grid/flex layouts
 

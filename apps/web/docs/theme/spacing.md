@@ -85,6 +85,40 @@ The reason: density should affect UI chrome (button size, input height) but NOT 
 | `themeSpacing(8)` | 32px | Between sections |
 | `themeSpacing(12)` | 48px | Large section breaks |
 
+## Fluid spacing with `themeFluidSpacing`
+
+For structural spacing — page padding, section gaps — that should grow with the viewport, use `themeFluidSpacing(min, max)`. It returns a CSS `clamp()` that scales linearly between `themeSpacing(min)` and `themeSpacing(max)` across the standard 320 px → 1280 px viewport range:
+
+```ts
+import { themeFluidSpacing } from "@domphy/theme"
+
+const Section = {
+  section: Content,
+  style: {
+    padding: themeFluidSpacing(4, 16),    // 1em at 320px → 4em at 1280px
+    gap: themeFluidSpacing(4, 8),         // 1em at 320px → 2em at 1280px
+  },
+}
+```
+
+Custom viewport range:
+
+```ts
+// Scale between themeSpacing(2) and themeSpacing(12) from 480px to 1440px
+padding: themeFluidSpacing(2, 12, 480, 1440)
+```
+
+**When to use fluid vs fixed spacing:**
+
+| Situation | Use |
+|-----------|-----|
+| Page/section padding | `themeFluidSpacing(min, max)` — grows with viewport |
+| Gap between layout sections | `themeFluidSpacing(min, max)` |
+| Component internal padding (button, input) | `themeSpacing(density * n)` — density-aware, not fluid |
+| Icon-to-label gap, tight list gap | `themeSpacing(n)` — fixed, no density or fluid |
+
+Do **not** use `themeFluidSpacing` for bounded-control padding — density already handles responsive sizing for controls.
+
 ## Using spacing in grid/flex layouts
 
 ```ts

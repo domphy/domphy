@@ -234,6 +234,79 @@ export function themeSpacing(n: number) {
   return `${n / 4}em`;
 }
 
+// Fluid spacing using CSS clamp(). Returns a value that scales linearly
+// between themeSpacing(min) and themeSpacing(max) across a viewport width
+// range (default 320px → 1280px). Use for structural spacing that should
+// grow with the viewport — not for bounded-control padding (use density for that).
+//
+// Example: themeFluidSpacing(4, 16) → "clamp(1em, 0.3125vw, 4em)"
+// (1em at 320px viewport, 4em at 1280px, scales linearly between)
+export function themeFluidSpacing(
+  min: number,
+  max: number,
+  viewportMin = 320,
+  viewportMax = 1280,
+): string {
+  const minEm = min / 4;
+  const maxEm = max / 4;
+  const slope = ((maxEm - minEm) / (viewportMax - viewportMin)) * 100;
+  const intercept = minEm - (slope * viewportMin) / 100;
+  const interceptRounded = parseFloat(intercept.toFixed(4));
+  const preferred =
+    interceptRounded === 0
+      ? `${slope.toFixed(4)}vw`
+      : `${intercept.toFixed(4)}em + ${slope.toFixed(4)}vw`;
+  return `clamp(${minEm}em, ${preferred}, ${maxEm}em)`;
+}
+
+// System theme detection helper. Reads window.matchMedia and/or a saved
+// localStorage preference, sets data-theme on targetEl (default: <html>),
+// then listens for OS-level changes. Returns a cleanup function.
+//
+// Usage:
+//   const cleanup = applySystemTheme()          // one-liner on client startup
+//   const cleanup = applySystemTheme(document.documentElement, { storageKey: "my-theme" })
+//
+// When the user manually changes the theme, call:
+//   localStorage.setItem(storageKey, "dark")    // applySystemTheme will honour it on reload
+//   element.setAttribute("data-theme", "dark")  // update DOM immediately
+//
+// For SSR: call only on the client (typeof window !== "undefined").
+export function applySystemTheme(
+  targetEl: Element = document.documentElement,
+  options: {
+    /** Persist the resolved theme in localStorage so it survives reloads. Default: true. */
+    persist?: boolean;
+    /** localStorage key. Default: "dp-theme". */
+    storageKey?: string;
+  } = {},
+): () => void {
+  const { persist = true, storageKey = "dp-theme" } = options;
+
+  const resolve = (): "light" | "dark" => {
+    if (persist) {
+      const saved = localStorage.getItem(storageKey);
+      if (saved === "light" || saved === "dark") return saved;
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  };
+
+  targetEl.setAttribute("data-theme", resolve());
+
+  const mql = window.matchMedia("(prefers-color-scheme: dark)");
+  const handler = (event: MediaQueryListEvent) => {
+    // Only follow the OS change when there is no user-saved preference.
+    if (!persist || !localStorage.getItem(storageKey)) {
+      targetEl.setAttribute("data-theme", event.matches ? "dark" : "light");
+    }
+  };
+  mql.addEventListener("change", handler);
+
+  return () => mql.removeEventListener("change", handler);
+}
+
 export function themeName(object: ElementNode | Listener) {
   const elementNode = (
     typeof object === "function" ? object.elementNode : object

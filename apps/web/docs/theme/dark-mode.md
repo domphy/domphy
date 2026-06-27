@@ -44,7 +44,53 @@ const ThemeToggle = {
 
 ## System preference detection
 
-Follow the OS preference on first visit, then remember the user's choice:
+### `applySystemTheme()` helper
+
+The fastest way to wire up system preference detection: one call that reads `localStorage`, falls back to the OS preference, sets `data-theme`, and listens for OS changes at runtime:
+
+```ts
+import { applySystemTheme } from "@domphy/theme"
+
+// Call once before mounting. Reads localStorage → falls back to OS preference.
+const cleanup = applySystemTheme()
+
+// Optional: custom target element or storage key
+const cleanup = applySystemTheme(document.getElementById("app")!, {
+  storageKey: "my-theme",
+})
+```
+
+When the user manually toggles the theme, persist their choice so `applySystemTheme()` honours it on reload:
+
+```ts
+import { toState } from "@domphy/core"
+import { applySystemTheme } from "@domphy/theme"
+
+const STORAGE_KEY = "dp-theme"
+const cleanup = applySystemTheme(document.documentElement, { storageKey: STORAGE_KEY })
+
+const theme = toState<"light" | "dark">(
+  document.documentElement.getAttribute("data-theme") as "light" | "dark" ?? "light"
+)
+
+function toggleTheme() {
+  const next = theme.get() === "dark" ? "light" : "dark"
+  document.documentElement.setAttribute("data-theme", next)
+  localStorage.setItem(STORAGE_KEY, next)
+  theme.set(next)
+}
+```
+
+`applySystemTheme()` returns a cleanup function — call it if you ever tear down the app:
+
+```ts
+// On SPA unmount
+cleanup()
+```
+
+### Manual implementation (no helper)
+
+If you need full control, build the same pattern by hand:
 
 ```ts
 function initTheme(): "light" | "dark" {

@@ -59,6 +59,42 @@ minWidth: themeSpacing(32)
 height: themeSpacing(6)
 ```
 
+### `themeFluidSpacing(min, max, viewportMin?, viewportMax?)`
+
+Return a CSS `clamp()` that scales between `themeSpacing(min)` and `themeSpacing(max)` across a viewport width range (default 320 px → 1280 px). Use for structural spacing — page padding, section gaps — that should grow with the viewport.
+
+```ts
+import { themeFluidSpacing } from "@domphy/theme"
+
+padding: themeFluidSpacing(4, 16)    // 1em at 320px → 4em at 1280px
+gap: themeFluidSpacing(4, 8)         // 1em at 320px → 2em at 1280px
+```
+
+Do not use fluid spacing for bounded-control padding (buttons, inputs) — use `themeSpacing(themeDensity(l) * n)` instead.
+
+### `applySystemTheme(targetEl?, options?)`
+
+Detect the OS color-scheme preference, apply `data-theme` to `targetEl` (default: `document.documentElement`), and set up a listener for OS-level changes. Returns a cleanup function that removes the listener.
+
+```ts
+import { applySystemTheme } from "@domphy/theme"
+
+// One-liner: reads localStorage first, falls back to OS preference
+const cleanup = applySystemTheme()
+
+// Custom target or storage key
+const cleanup = applySystemTheme(document.getElementById("app")!, {
+  storageKey: "my-theme",
+})
+```
+
+Options:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `persist` | `boolean` | `true` | Save resolved theme in `localStorage` |
+| `storageKey` | `string` | `"dp-theme"` | `localStorage` key |
+
 ## Setup Helpers
 
 ### `themeApply(el?)`

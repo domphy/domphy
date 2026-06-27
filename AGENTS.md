@@ -106,13 +106,15 @@ Common role mappings from an edge surface (`shift-0`):
 | Hover bg | `"increase-1"` | button:hover |
 | Active/pressed bg | `"increase-2"` | button:active |
 
-### Spacing (`themeSpacing`, `themeDensity`)
+### Spacing (`themeSpacing`, `themeDensity`, `themeFluidSpacing`)
 ```ts
-themeSpacing(n)         // returns `${n/4}em`; n = number of U units (U = fontSize/4)
-themeDensity(listener)  // returns density factor: 0.75 | 1 | 1.5 | 2 | 2.5
+themeSpacing(n)                        // returns `${n/4}em`; n = number of U units (U = fontSize/4)
+themeDensity(listener)                 // returns density factor: 0.75 | 1 | 1.5 | 2 | 2.5
+themeFluidSpacing(min, max, vpMin?, vpMax?)  // returns clamp() that scales between themeSpacing(min) and themeSpacing(max) across viewport width
 ```
 - **Always** call `themeSpacing(themeDensity(l) * n)` for padding/gap on bounded controls (buttons, inputs) — not `themeSpacing(n)` alone.
 - Use bare `themeSpacing(n)` for structural spacing (between sections) where density shouldn't multiply.
+- Use `themeFluidSpacing(min, max)` for page/section padding that should grow with viewport (structural, never for controls).
 - Never hardcode `"6px"` / `"1.5em"` — use `themeSpacing(n)`.
 - `dataDensity`: `"inherit"` | `"increase-N"` | `"decrease-N"` where N ≤ 4 (5-step scale: 0.75, 1, 1.5, 2, 2.5).
 
