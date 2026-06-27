@@ -21635,32 +21635,70 @@ rawData.set([300, 150, 400, 100])
 
 ---
 title: "Examples"
-description: "Live editable @domphy/chart examples — line/bar combo, scatter bubble, pie/donut, calendar heatmap, candlestick, radar, ThemeRiver, parallel coordinates, network graph, and 3D surface."
+description: "Live editable @domphy/chart examples covering all 24 series types — line, bar, scatter, pie, radar, heatmap, candlestick, boxplot, gauge, treemap, funnel, sankey, graph, themeRiver, parallel, map, lines, effectScatter, pictorialBar, custom, surface3D, bar3D, line3D, scatter3D."
 ---
 
 # Examples
 
-All examples are live — edit the code to see changes instantly.
+All examples are live — edit the code and see changes instantly.
 
-## Line + Bar combo
+## Line + Bar
+
+## Line Area + Gradient
+
+## Bar Stacked
+
+## Bar Horizontal
 
 ## Scatter / Bubble
 
 ## Pie / Donut
 
+## Radar / Spider
+
+## Heatmap (Cartesian)
+
 ## Calendar Heatmap
 
 ## Candlestick / OHLC
 
-## Radar / Spider
+## Boxplot
+
+## Gauge
+
+## Treemap
+
+## Funnel
+
+## Sankey
+
+## Network Graph
 
 ## ThemeRiver / Stream
 
 ## Parallel Coordinates
 
-## Network Graph
+## Choropleth Map
+
+## Lines (Flow Map)
+
+## EffectScatter (Ripple)
+
+## PictorialBar
+
+## Custom Series (Gantt)
+
+## Marks (markPoint / markLine / markArea)
+
+## DataZoom
 
 ## 3D Surface
+
+## 3D Bar
+
+## 3D Line
+
+## 3D Scatter
 
 ### index.md
 
