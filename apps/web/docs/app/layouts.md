@@ -41,7 +41,7 @@ Without a loading block anywhere in the matched chain, the previous page stays v
 
 ## Error Boundaries
 
-`error` is the `error.tsx` equivalent. When a segment's loader throws, the nearest error block at or above that segment renders, wrapped in the ancestor layouts. It receives the error and a `retry` function (which calls `router.refresh()`):
+`error` is the `error.tsx` equivalent. When a segment's loader throws — or when its lazy import rejects — the nearest error block at or above that segment renders, wrapped in the ancestor layouts. It receives the error and a `retry` function (which calls `router.refresh()`):
 
 ```ts
 {

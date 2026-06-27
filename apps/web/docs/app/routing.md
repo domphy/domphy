@@ -176,6 +176,21 @@ How it behaves:
 }
 ```
 
+## Building URLs from Patterns
+
+`buildHref(pattern, params)` is the inverse of the matcher: it fills a route pattern with concrete params and returns the URL string. This is useful for generating typed, param-safe links without string concatenation:
+
+```ts
+import { buildHref } from "@domphy/app"
+
+buildHref("/blog/[slug]", { slug: "hello-world" })        // "/blog/hello-world"
+buildHref("/docs/[...parts]", { parts: ["a", "b"] })      // "/docs/a/b"
+buildHref("/(shop)/products", {})                          // "/products" (groups excluded)
+buildHref("/[[...slug]]", { slug: [] })                    // "/"  (optional catch-all, empty)
+```
+
+Route groups are stripped (they don't affect the URL). Missing required params throw; missing optional catch-all params produce the root `/`.
+
 ## Reading the Current Route
 
 `router.state` is a `RecordState` — every key is reactive:

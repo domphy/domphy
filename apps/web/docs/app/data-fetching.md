@@ -18,7 +18,22 @@ Each segment may declare a `loader` — the equivalent of server-side data fetch
 
 The `LoaderContext` carries `pathname`, `url`, `params`, `searchParams` and (on the server) `headers`.
 
-A page can also read ancestor data through `context.segmentData`, keyed by segment id (e.g. `"/"`, `"/blog/[slug]"`).
+### Reading ancestor data (SvelteKit `parent()` equivalent)
+
+`context.segmentData` holds the resolved loader result of every matched segment, keyed by segment id (the full pattern path, e.g. `"/"`, `"/blog/[slug]"`). A nested page can reach its parent's data without passing it down manually:
+
+```ts
+// Root layout loader provides the session
+const rootLoader: Loader<Session> = () => getSession()
+
+// Nested page reads root data via segmentData
+function DashboardPage(context: RouteContext<Dashboard>) {
+  const session = context.segmentData["/"] as Session
+  return { h1: `Hello ${session.user.name}` }
+}
+```
+
+The segment id for a route group is the pattern including the group prefix, e.g. `"/(admin)"`. Use `router.getMatch()?.route.chainIds` to inspect the ids for a live match.
 
 ## Caching with revalidate
 

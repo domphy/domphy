@@ -40,6 +40,9 @@ One `Route` object equals one folder in a Next.js `app/` directory:
 | server data fetching | `loader` (+ `revalidate`) |
 | `metadata` / `generateMetadata` | `metadata` |
 | nested folders | `children` |
+| `@slot` folders | `slots` |
+| `(.)intercept` pattern | `intercept: true` |
+| dynamic `import()` | `lazy` |
 
 ```ts
 import { createApp, defineRoutes } from "@domphy/app"
@@ -67,12 +70,15 @@ await app.render(document.getElementById("app")!)
 ## What Is Ported
 
 - **Routing** — static, dynamic `[slug]`, catch-all `[...parts]`, optional catch-all `[[...parts]]`, route groups `(group)`, route-level redirects. [Routing](./routing)
+- **Parallel routes** — `slots` on any segment renders independent subtrees alongside the main tree; each slot is matched and passed to the layout's third argument. [Parallel & Intercepting Routes](./routing#parallel-routes)
+- **Intercepting routes** — `intercept: true` on a slot route renders only during client-side navigation (modal-over-feed pattern), letting the real page handle hard loads. [Intercepting Routes](./routing#intercepting-routes)
+- **Lazy / code-split routes** — `lazy: () => import("./page.js")` defers the bundle for a route; resolved once and cached. Works with prefetch and SSR. [Lazy Routes](./routing#lazy--code-split-routes)
 - **Layouts and boundaries** — nested layouts that persist across navigation, `loading`, `error` and `notFound` boundaries per segment. [Layouts](./layouts)
 - **Navigation** — `navLink()` patch (the `next/link` equivalent with prefetching and active state), `router.push/replace/back/forward/refresh/prefetch`, navigation events. [Navigation](./navigation)
-- **Data loading** — per-segment `loader` with `revalidate` caching, `redirect()` and `notFound()` from loaders. [Data Fetching](./data-fetching)
+- **Data loading** — per-segment `loader` with `revalidate` caching and stale-while-revalidate, `redirect()` and `notFound()` from loaders. [Data Fetching](./data-fetching)
 - **Metadata** — title templates, Open Graph, Twitter, icons, robots, canonical. [Metadata](./metadata)
-- **Middleware** — global and per-route, with `redirect()` and `rewrite()`. [Middleware](./middleware)
-- **SSR** — `renderToString()` plus `hydrate()` with embedded loader data. [SSR](./ssr)
+- **Middleware** — global and per-route, with `redirect()`, `rewrite()` and auth-guard patterns. [Middleware](./middleware)
+- **SSR** — `renderToString()` plus `renderToStream()` (shell-first streaming) and `hydrate()` with embedded loader data. [SSR](./ssr)
 - **API routes** — `createApiHandler()` on web-standard Request/Response. [API Routes](./api-routes)
 - **Image and Script** — `optimizedImage()` and `script()` helpers. [Image & Script](./assets)
 
