@@ -8,6 +8,11 @@ export interface GridCoord {
   yScales: AnyScale[];
 }
 
+export interface ZoomWindow {
+  start: number; // 0–100 percentage
+  end: number;   // 0–100 percentage
+}
+
 function resolvePercent(value: number | string | undefined, total: number, fallback: number): number {
   if (value === undefined) return fallback;
   if (typeof value === "number") return value;
@@ -66,12 +71,25 @@ function dataExtentFromSeries(
   ];
 }
 
-function buildScale(axis: AxisOption, pixelRange: [number, number], extent: [number, number], categories: string[]): AnyScale {
+function buildScale(
+  axis: AxisOption,
+  pixelRange: [number, number],
+  extent: [number, number],
+  categories: string[],
+  zoom?: ZoomWindow,
+): AnyScale {
   const type = axis.type ?? "value";
   const [pMin, pMax] = pixelRange;
 
   if (type === "category") {
     const domain = (axis.data as string[] | undefined) ?? categories;
+    // Apply zoom to category axis by slicing visible domain
+    if (zoom && (zoom.start !== 0 || zoom.end !== 100)) {
+      const startIdx = Math.floor((zoom.start / 100) * domain.length);
+      const endIdx = Math.ceil((zoom.end / 100) * domain.length);
+      const visible = domain.slice(startIdx, endIdx);
+      return createOrdinalScale(visible.length > 0 ? visible : domain, [pMin, pMax]);
+    }
     return createOrdinalScale(domain, [pMin, pMax]);
   }
   if (type === "time") {
@@ -89,10 +107,18 @@ function buildScale(axis: AxisOption, pixelRange: [number, number], extent: [num
     return createLogScale([min, max], [pMin, pMax], axis.logBase ?? 10);
   }
   // Default: value (linear)
-  const [rawMin, rawMax] = [
+  let [rawMin, rawMax] = [
     typeof axis.min === "number" ? axis.min : extent[0],
     typeof axis.max === "number" ? axis.max : extent[1],
   ];
+  // Apply zoom window for linear/time/log axes
+  if (zoom && (zoom.start !== 0 || zoom.end !== 100)) {
+    const span = rawMax - rawMin;
+    const zoomMin = rawMin + (zoom.start / 100) * span;
+    const zoomMax = rawMin + (zoom.end / 100) * span;
+    rawMin = zoomMin;
+    rawMax = zoomMax;
+  }
   // Expand by 5% for aesthetics if no explicit bounds set and range is not zero
   const span = rawMax - rawMin;
   const padMin = axis.min !== undefined ? rawMin : rawMin - span * 0.02;
@@ -107,6 +133,8 @@ export function resolveGrid(
   series: any[],
   containerWidth: number,
   containerHeight: number,
+  xZoom?: Map<number, ZoomWindow>,
+  yZoom?: Map<number, ZoomWindow>,
 ): GridCoord {
   const grid = grids[0] ?? {};
   const rect = computeGridRect(grid, containerWidth, containerHeight);
@@ -114,15 +142,14 @@ export function resolveGrid(
   const xScales: AnyScale[] = xAxes.map((axis, index) => {
     const [min, max] = dataExtentFromSeries(series, "x", index, "xAxisIndex");
     const categories: string[] = (axis.data as string[] | undefined) ?? [];
-    // x runs left to right
-    return buildScale(axis, [rect.x, rect.x + rect.width], [min, max], categories);
+    return buildScale(axis, [rect.x, rect.x + rect.width], [min, max], categories, xZoom?.get(index));
   });
 
   const yScales: AnyScale[] = yAxes.map((axis, index) => {
     const [min, max] = dataExtentFromSeries(series, "y", index, "yAxisIndex");
     const categories: string[] = (axis.data as string[] | undefined) ?? [];
     // y runs bottom to top in data, but SVG/canvas is top-down, so flip
-    return buildScale(axis, [rect.y + rect.height, rect.y], [min, max], categories);
+    return buildScale(axis, [rect.y + rect.height, rect.y], [min, max], categories, yZoom?.get(index));
   });
 
   return { gridRect: rect, xScales, yScales };

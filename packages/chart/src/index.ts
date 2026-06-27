@@ -103,5 +103,11 @@ export { applyTransforms, resolveDataset } from "./dataset/transform.js";
 export { hexToRgba, seriesHex, seriesRgba, familyHex, familyRgba, seriesPaletteFamily } from "./gl/color.js";
 export type { Rgba } from "./gl/color.js";
 
+// VisualMap color utility (map a value to a color from a VisualMap option)
+export { colorFromVisualMap } from "./overlay/visualmap.js";
+
+// Grid coord utilities
+export type { ZoomWindow } from "./coord/grid.js";
+
 // Engine (for advanced embedding without the Domphy patch)
 export { ChartEngine } from "./engine.js";

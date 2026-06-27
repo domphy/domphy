@@ -260,22 +260,24 @@ engine.setOption(option);
 engine.destroy();
 ```
 
-### API surface (bam ECharts parity)
+### API surface (ECharts grade)
 
-- **series**: `line` (smooth, step, areaStyle, connectNulls), `bar` (stack, grouped), `scatter` (symbolSize fn), `pie` (radius, roseType, center), `radar`, `heatmap`, `candlestick` (upColor/downColor), `gauge` (SVG, progress arc, ticks, labels)
-- **axes**: `xAxis`/`yAxis` — type `"value" | "category" | "time" | "log"`, `name`, `min`/`max`, `splitNumber`, `gridIndex`
+- **series (WebGL)**: `line` (smooth, step, areaStyle, connectNulls), `bar` (stack, grouped), `scatter` (symbolSize fn), `pie` (radius, roseType, center), `radar`, `heatmap`, `candlestick` (upColor/downColor), `gauge` (SVG, progress arc, ticks, labels)
+- **series (SVG)**: `boxplot` (min/Q1/median/Q3/max with whiskers), `funnel` (sorted trapezoids with labels), `treemap` (squarified layout, recursive children, auto labels)
+- **series labels**: `label: { show: true, position: "top"|"inside"|"bottom", formatter, fontSize }` on bar, line, scatter, pie (with leader lines + percentage)
+- **axes**: `xAxis`/`yAxis` — type `"value" | "category" | "time" | "log"`, `name`, `min`/`max`, `splitNumber`, `gridIndex`, `axisLabel.rotate`
 - **grid**: `left`/`top`/`right`/`bottom` (px or %)
 - **polar**: `center`, `radius`
 - **radar**: `indicator[]`, `shape`, `splitNumber`, `startAngle`
 - **title**: `text`, `subtext`, `left`/`top`
-- **legend**: `orient`, `data[]`, `left`/`top`/`right`/`bottom`
+- **legend**: `orient`, `data[]`, `left`/`top`/`right`/`bottom` — **click to show/hide series** (interactive)
 - **tooltip**: `trigger` (`"axis"` | `"item"`), `axisPointer.type`, `formatter`
 - **dataset**: `source`, `dimensions`, `transform[]` (filter/sort)
 - **markPoint/markLine/markArea**: `max`/`min`/`average` special values, `coord`, `xAxis`/`yAxis`
-- **dataZoom**: slider + inside (type definitions only — component not yet rendered)
-- **visualMap**: continuous/piecewise color mapping (type definitions)
-- **toolbox**: save/zoom/restore (type definitions)
-- **brush**: selection brushing (type definitions)
+- **dataZoom**: slider (drag handles + center pan) + inside (mouse wheel); clips domain on xAxis; `start`/`end` (0–100%)
+- **visualMap**: continuous (gradient bar, min/max labels) + piecewise (color + label per piece); `colorFromVisualMap(vm, value)` utility
+- **toolbox**: type definitions (not yet rendered)
+- **brush**: type definitions (not yet rendered)
 
 ### Color system
 

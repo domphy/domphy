@@ -9,12 +9,22 @@ import { HeatmapRenderer } from "./gl/HeatmapRenderer.js";
 import { CandlestickRenderer } from "./gl/CandlestickRenderer.js";
 import { GaugeRenderer } from "./gl/GaugeRenderer.js";
 import { resolveGrid } from "./coord/grid.js";
+import type { ZoomWindow } from "./coord/grid.js";
 import { renderAxes, renderAxisPointer } from "./overlay/axes.js";
 import { renderTitle } from "./overlay/title.js";
 import { renderLegend } from "./overlay/legend.js";
+import { renderSeriesLabels } from "./overlay/labels.js";
+import { renderBoxplot } from "./overlay/boxplot.js";
+import { renderFunnel } from "./overlay/funnel.js";
+import { renderTreemap } from "./overlay/treemap.js";
+import { renderVisualMap } from "./overlay/visualmap.js";
+import { setupDataZoom, setupInsideZoom } from "./overlay/datazoom.js";
 import { createTooltip } from "./overlay/tooltip.js";
 import { renderMarksToSvg } from "./marks/index.js";
-import type { ChartOption, SeriesOption, TooltipParams } from "./types.js";
+import type {
+  ChartOption, SeriesOption, TooltipParams,
+  BoxplotSeriesOption, FunnelSeriesOption, TreemapSeriesOption,
+} from "./types.js";
 import { seriesHex } from "./gl/color.js";
 
 export class ChartEngine {
@@ -40,18 +50,24 @@ export class ChartEngine {
   private animationFrame = 0;
   private destroyed = false;
 
+  // Interactive state
+  private hiddenSeries: Set<string> = new Set();
+  private xZoomMap: Map<number, ZoomWindow> = new Map();
+  private yZoomMap: Map<number, ZoomWindow> = new Map();
+  private dataZoomCleanup: (() => void) | null = null;
+  private insideZoomCleanup: (() => void) | null = null;
+
   constructor(container: HTMLElement) {
     this.container = container;
 
-    // Shared canvas (WebGL)
     const canvas = document.createElement("canvas");
     canvas.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
     canvas.setAttribute("aria-hidden", "true");
     container.appendChild(canvas);
     this.canvas = canvas;
 
-    // SVG overlay (axes, labels, legend, etc.)
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
+    // pointer-events:none on SVG itself, but legend/datazoom groups override to all
     svg.style.cssText = "position:absolute;top:0;left:0;pointer-events:none;overflow:visible;";
     container.appendChild(svg);
     this.overlaysvg = svg;
@@ -84,6 +100,18 @@ export class ChartEngine {
   setOption(option: ChartOption): void {
     this.option = option;
 
+    // Reset interactive state when option changes
+    this.hiddenSeries = new Set();
+    this.xZoomMap = new Map();
+    this.yZoomMap = new Map();
+
+    // Initialize DataZoom state from option
+    const dataZooms = Array.isArray(option.dataZoom) ? option.dataZoom : option.dataZoom ? [option.dataZoom] : [];
+    for (const dz of dataZooms) {
+      const xIndex = typeof dz.xAxisIndex === "number" ? dz.xAxisIndex : 0;
+      this.xZoomMap.set(xIndex, { start: dz.start ?? 0, end: dz.end ?? 100 });
+    }
+
     // Tooltip
     if (this.tooltipCtrl) {
       this.tooltipCtrl.destroy();
@@ -102,15 +130,26 @@ export class ChartEngine {
     const { option, width, height } = this;
     if (!width || !height) return;
 
-    const series = option.series ?? [];
+    // Clean up old DataZoom handlers before re-rendering
+    this.dataZoomCleanup?.();
+    this.insideZoomCleanup?.();
+    this.dataZoomCleanup = null;
+    this.insideZoomCleanup = null;
+
+    const allSeries = option.series ?? [];
+    // Filter out hidden series for WebGL renderers
+    const series = allSeries.filter((s) => !s.name || !this.hiddenSeries.has(s.name));
+
     const xAxes = Array.isArray(option.xAxis) ? option.xAxis : option.xAxis ? [option.xAxis] : [{ type: "category" as const }];
     const yAxes = Array.isArray(option.yAxis) ? option.yAxis : option.yAxis ? [option.yAxis] : [{ type: "value" as const }];
     const grids = Array.isArray(option.grid) ? option.grid : option.grid ? [option.grid] : [{}];
     const radars = Array.isArray(option.radar) ? option.radar : option.radar ? [option.radar] : [];
+    const dataZooms = Array.isArray(option.dataZoom) ? option.dataZoom : option.dataZoom ? [option.dataZoom] : [];
+    const visualMaps = Array.isArray(option.visualMap) ? option.visualMap : option.visualMap ? [option.visualMap] : [];
 
-    const grid = resolveGrid(grids, xAxes, yAxes, series, width, height);
+    const grid = resolveGrid(grids, xAxes, yAxes, series, width, height, this.xZoomMap, this.yZoomMap);
 
-    // ─── SVG Overlay: grid lines, axes ────────────────────────────────────────
+    // ─── SVG Overlay ──────────────────────────────────────────────────────────
     renderAxes(this.overlaysvg, {
       gridRect: grid.gridRect,
       xAxes,
@@ -121,32 +160,54 @@ export class ChartEngine {
       height,
     });
 
-    // Title
     const titles = Array.isArray(option.title) ? option.title : option.title ? [option.title] : [];
     for (const title of titles) renderTitle(this.overlaysvg, title);
 
-    // Legend
     const legends = Array.isArray(option.legend) ? option.legend : option.legend ? [option.legend] : [];
-    for (const legend of legends) renderLegend(this.overlaysvg, legend, series);
+    const self = this;
+    for (const legend of legends) {
+      renderLegend(this.overlaysvg, legend, allSeries, this.hiddenSeries, (name) => {
+        if (self.hiddenSeries.has(name)) self.hiddenSeries.delete(name);
+        else self.hiddenSeries.add(name);
+        self.render();
+      });
+    }
 
-    // Radar grids
     for (const radarDef of radars) {
       this.radarRenderer?.renderGridToSvg(this.overlaysvg, radarDef, width, height);
     }
 
-    // Gauge labels & track
     const gaugeSeries = series.filter((s): s is any => s.type === "gauge");
     if (gaugeSeries.length > 0) {
       this.gaugeRenderer?.renderToSvg(this.overlaysvg, gaugeSeries, width, height);
     }
 
+    // SVG-only series
+    const boxplotSeries = series.filter((s): s is BoxplotSeriesOption => s.type === "boxplot");
+    if (boxplotSeries.length > 0) {
+      renderBoxplot(this.overlaysvg, boxplotSeries, grid.xScales, grid.yScales, this.hiddenSeries);
+    }
+
+    const funnelSeries = series.filter((s): s is FunnelSeriesOption => s.type === "funnel");
+    if (funnelSeries.length > 0) {
+      renderFunnel(this.overlaysvg, funnelSeries, width, height, this.hiddenSeries);
+    }
+
+    const treemapSeries = series.filter((s): s is TreemapSeriesOption => s.type === "treemap");
+    if (treemapSeries.length > 0) {
+      renderTreemap(this.overlaysvg, treemapSeries, width, height, this.hiddenSeries);
+    }
+
+    // VisualMap legend
+    if (visualMaps.length > 0) {
+      renderVisualMap(this.overlaysvg, visualMaps, width, height);
+    }
+
     // ─── WebGL Rendering ──────────────────────────────────────────────────────
-    const dpr = window.devicePixelRatio || 1;
     const renderPass = this.device.beginRenderPass({
       clearColor: [0, 0, 0, 0],
     });
 
-    // Draw order: area → bar → line → scatter → pie → radar → heatmap → candlestick
     let seriesOffset = 0;
 
     const barSeries = series.filter((s): s is any => s.type === "bar");
@@ -195,7 +256,18 @@ export class ChartEngine {
     renderPass.end();
     this.device.submit();
 
-    // ─── SVG Marks ────────────────────────────────────────────────────────────
+    // ─── SVG post-WebGL ───────────────────────────────────────────────────────
+    // Series labels (rendered after WebGL so they appear on top)
+    renderSeriesLabels(this.overlaysvg, {
+      series: allSeries,
+      xScales: grid.xScales,
+      yScales: grid.yScales,
+      width,
+      height,
+      hiddenSeries: this.hiddenSeries,
+    });
+
+    // Marks
     const marksData = series
       .filter((s): s is any => (s as any).markPoint || (s as any).markLine || (s as any).markArea)
       .map((s: any) => {
@@ -221,10 +293,38 @@ export class ChartEngine {
       .filter((m) => m.xScale && m.yScale);
 
     if (marksData.length > 0) renderMarksToSvg(this.overlaysvg, marksData as any);
+
+    // DataZoom sliders
+    if (dataZooms.length > 0) {
+      this.dataZoomCleanup = setupDataZoom(
+        this.overlaysvg,
+        dataZooms,
+        grid.gridRect,
+        width,
+        height,
+        (xAxisIndex, state) => {
+          this.xZoomMap.set(xAxisIndex, state);
+          this.render();
+        },
+      );
+
+      this.insideZoomCleanup = setupInsideZoom(
+        this.container,
+        dataZooms,
+        (xAxisIndex, state) => {
+          this.xZoomMap.set(xAxisIndex, state);
+          this.render();
+        },
+        (xAxisIndex) => this.xZoomMap.get(xAxisIndex) ?? { start: 0, end: 100 },
+      );
+
+      // Enable pointer events on SVG for drag interactivity
+      this.overlaysvg.style.pointerEvents = "none";
+    }
   }
 
   private bindTooltipEvents(option: ChartOption): void {
-    const series = option.series ?? [];
+    const allSeries = option.series ?? [];
     const xAxes = Array.isArray(option.xAxis) ? option.xAxis : option.xAxis ? [option.xAxis] : [{}];
     const yAxes = Array.isArray(option.yAxis) ? option.yAxis : option.yAxis ? [option.yAxis] : [{}];
     const grids = Array.isArray(option.grid) ? option.grid : option.grid ? [option.grid] : [{}];
@@ -235,7 +335,8 @@ export class ChartEngine {
       const mx = event.clientX - rect.left;
       const my = event.clientY - rect.top;
 
-      const grid = resolveGrid(grids as any, xAxes as any, yAxes as any, series, this.width, this.height);
+      const series = allSeries.filter((s) => !s.name || !this.hiddenSeries.has(s.name));
+      const grid = resolveGrid(grids as any, xAxes as any, yAxes as any, series, this.width, this.height, this.xZoomMap, this.yZoomMap);
       const { gridRect, xScales, yScales } = grid;
 
       if (mx < gridRect.x || mx > gridRect.x + gridRect.width ||
@@ -250,12 +351,11 @@ export class ChartEngine {
 
       if (trigger === "axis") {
         const xScale = xScales[0];
-        const yScale = yScales[0];
-        const xValue = xScale?.invert(mx);
 
         for (let si = 0; si < series.length; si++) {
           const s = series[si];
-          if (s.type === "pie" || s.type === "radar") continue;
+          if (s.type === "pie" || s.type === "radar" || s.type === "gauge") continue;
+          if (s.type === "funnel" || s.type === "treemap" || s.type === "boxplot") continue;
           const data = (s as any).data ?? [];
 
           let closestIndex = 0;
@@ -278,16 +378,19 @@ export class ChartEngine {
           else if (Array.isArray(item)) { xVal = item[0]; value = item[1]; }
           else if (item && typeof item === "object") { value = item.value; xVal = closestIndex; }
 
+          // Find actual series index in allSeries for correct color
+          const globalIdx = allSeries.findIndex((as_) => as_ === s);
+
           params.push({
             componentType: "series",
             seriesType: s.type ?? "",
-            seriesIndex: si,
+            seriesIndex: globalIdx,
             seriesName: s.name ?? "",
             name: String(xVal ?? ""),
             dataIndex: closestIndex,
             data: item,
             value,
-            color: seriesHex(si),
+            color: seriesHex(globalIdx),
             percent: undefined,
           });
         }
@@ -306,8 +409,8 @@ export class ChartEngine {
 
     const onLeave = () => {
       this.tooltipCtrl?.update({ visible: false, x: 0, y: 0, params: [] });
-      const gridsArr = Array.isArray(option.grid) ? option.grid : option.grid ? [option.grid] : [{}];
-      const grid = resolveGrid(gridsArr as any, xAxes as any, yAxes as any, series, this.width, this.height);
+      const series = allSeries.filter((s) => !s.name || !this.hiddenSeries.has(s.name));
+      const grid = resolveGrid(grids as any, xAxes as any, yAxes as any, series, this.width, this.height, this.xZoomMap, this.yZoomMap);
       renderAxisPointer(this.overlaysvg, null, null, grid.gridRect);
     };
 
@@ -316,7 +419,6 @@ export class ChartEngine {
     this.container.addEventListener("mousemove", onMove);
     this.container.addEventListener("mouseleave", onLeave);
 
-    // Store cleanup
     (this as any).__tooltipCleanup = () => {
       this.container.removeEventListener("mousemove", onMove);
       this.container.removeEventListener("mouseleave", onLeave);
@@ -327,6 +429,8 @@ export class ChartEngine {
     this.destroyed = true;
     cancelAnimationFrame(this.animationFrame);
     (this as any).__tooltipCleanup?.();
+    this.dataZoomCleanup?.();
+    this.insideZoomCleanup?.();
     this.tooltipCtrl?.destroy();
     this.barRenderer?.destroy();
     this.lineRenderer?.destroy();
