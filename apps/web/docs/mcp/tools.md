@@ -13,7 +13,12 @@ List every `@domphy/ui` patch with its host tag and signature.
 
 **Input:** none
 
-**Output:** Array of `{ name, tag, signature }` — one entry per patch.
+**Output:** Newline-separated text — one entry per patch:
+```
+button <button> — button(props?: ButtonOptions)
+card <article> — card(props?: CardOptions)
+…
+```
 
 ---
 
@@ -27,7 +32,7 @@ Get one patch's full contract: host tag, signature, props, example, jsdoc, and s
 |---|---|---|
 | `name` | `string` | Patch name, e.g. `"button"` |
 
-**Output:** `{ name, tag, signature, props, example, doc, source }`
+**Output:** JSON string with fields `{ name, hostTag, signature, props, doc, example, source }`.
 
 ---
 
@@ -37,7 +42,12 @@ List all `@domphy/*` packages with versions and descriptions.
 
 **Input:** none
 
-**Output:** Array of `{ name, version, description }`.
+**Output:** Newline-separated text — one entry per package:
+```
+@domphy/core@0.19.0 — reactive core
+@domphy/ui@0.19.0 — patches
+…
+```
 
 ---
 
@@ -113,7 +123,11 @@ Run `scripts/app-manifest.mjs` first if `app-manifest.json` is absent.
 
 **Input:** none
 
-**Output:** Array of `{ name, kind, signature, file }`.
+**Output:** Newline-separated text — one entry per block:
+```
+Hero [block] — Hero: DomphyElement<"section">  (src/blocks/hero.ts)
+Card [patch] — Card(props: { title: string }): DomphyElement<"article">  (src/blocks/card.ts)
+```
 
 ---
 
@@ -127,4 +141,4 @@ Get one app block's full source, signature, and jsdoc by name.
 |---|---|---|
 | `name` | `string` | App block name, e.g. `"App"` |
 
-**Output:** `{ name, kind, signature, doc, source }`
+**Output:** JSON string with fields `{ name, kind, file, signature, jsdoc, exportKind, source }`.

@@ -29,6 +29,8 @@ export const computePosition = (
 };
 
 export {autoUpdate} from './autoUpdate';
+export {createFloating} from './createFloating';
+export type {FloatingHandle, FloatingPosition} from './createFloating';
 export {
   arrow,
   autoPlacement,

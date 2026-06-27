@@ -1,5 +1,5 @@
 /** Built-in Mermaid color themes. */
-export type MermaidTheme = "default" | "dark" | "neutral" | "forest";
+export type MermaidTheme = "default" | "dark" | "neutral" | "forest" | "base";
 
 /**
  * Options for the build-time renderer. These map onto the headless Mermaid

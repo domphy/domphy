@@ -336,3 +336,98 @@ const hideConfig: HideOptions = {
   padding: 4,
 }
 ```
+
+---
+
+# createFloating
+
+`createFloating()` is a stateful manager that combines `computePosition` + `autoUpdate` into a [Popper.js](https://popper.js.org/)-like imperative handle. Use it when you need a reusable positioning object rather than writing the cleanup boilerplate by hand.
+
+```ts
+import { createFloating, offset, flip, shift } from "@domphy/floating"
+
+const handle = createFloating({
+  placement: "bottom",
+  middleware: [offset(8), flip(), shift({ padding: 4 })],
+  strategy: "fixed",
+})
+
+// Wire DOM elements once both are available:
+handle.connect(referenceEl, floatingEl)
+handle.onUpdate(({ x, y }) => {
+  Object.assign(floatingEl.style, { left: `${x}px`, top: `${y}px` })
+})
+
+// When the floating element leaves the DOM:
+handle.disconnect()
+```
+
+## Domphy Lifecycle Pattern
+
+```ts
+import { toState } from "@domphy/core"
+import { createFloating, offset, flip, shift } from "@domphy/floating"
+
+const open = toState(false)
+
+let reference: HTMLElement | null = null
+
+const handle = createFloating({
+  placement: "bottom",
+  middleware: [offset(8), flip(), shift({ padding: 4 })],
+  strategy: "fixed",
+})
+
+const FloatingEl = {
+  div: "Content",
+  style: {
+    position: "fixed",
+    visibility: (l) => open.get(l) ? "visible" : "hidden",
+  },
+  _onMount: (node) => {
+    const floating = node.domElement as HTMLElement
+    handle.onUpdate(({ x, y }) => {
+      Object.assign(floating.style, { left: `${x}px`, top: `${y}px` })
+    })
+    if (reference) handle.connect(reference, floating)
+  },
+  _onBeforeRemove: () => handle.disconnect(),
+}
+
+const Trigger = {
+  button: "Toggle",
+  onClick: () => open.set(!open.get()),
+  _onMount: (node) => {
+    reference = node.domElement as HTMLElement
+  },
+}
+```
+
+## Signature
+
+```ts
+function createFloating(config?: Partial<ComputePositionConfig>): FloatingHandle
+
+interface FloatingHandle {
+  connect(reference: ReferenceElement, floating: HTMLElement, options?: AutoUpdateOptions): void
+  disconnect(): void
+  readonly position: FloatingPosition | null
+  onUpdate(callback: (position: FloatingPosition) => void): () => void
+}
+
+interface FloatingPosition {
+  x: number
+  y: number
+  placement: Placement
+  strategy: Strategy
+  middlewareData: MiddlewareData
+}
+```
+
+## `handle.position`
+
+After the first `connect()` call resolves, `handle.position` holds the last computed result. It is `null` before the first update completes. Use `onUpdate` for reactive updates; read `position` for a synchronous snapshot after-the-fact.
+
+## Reconfiguring
+
+`createFloating` does not support changing `config` after creation. To switch placement or middleware at runtime, `disconnect()`, create a new handle, and `connect()` again — or keep separate handles for each configuration.

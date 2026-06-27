@@ -74,7 +74,6 @@ const Tooltip = {
     backgroundColor: (l) => themeColor(l, "shift-11", "neutral"),
     color: (l) => themeColor(l, "shift-1", "neutral"),
     borderRadius: themeSpacing(1),
-    fontSize: "0.875rem",
     pointerEvents: "none",
     visibility: (l) => open.get(l) ? "visible" : "hidden",
   },
