@@ -293,6 +293,115 @@ flushSync()
 
 If a diverging reactive loop prevents settling, `flushSync` breaks after 10 000 iterations and logs a `console.error`.
 
+### watch
+
+`watch(source, callback, options?)` tracks a reactive source and calls `callback(newValue, oldValue)` whenever the source produces a new value. Unlike `effect`, it gives you both the **new** and the **previous** value.
+
+`source` can be:
+- A `State<T>` or `Computed<T>` (anything with `.get()`)
+- A getter function `() => T` — compose multiple reads into one expression
+
+Returns a `dispose()` that stops watching and releases all subscriptions.
+
+```ts
+import { toState, watch } from "@domphy/core"
+
+const count = toState(0)
+
+const stop = watch(count, (newVal, oldVal) => {
+  console.log(`changed from ${oldVal} to ${newVal}`)
+})
+
+count.set(1) // logs: "changed from 0 to 1"
+count.set(2) // logs: "changed from 1 to 2"
+
+stop() // unsubscribe
+```
+
+Watch a derived expression (getter function):
+
+```ts
+const a = toState(1)
+const b = toState(2)
+
+const stop = watch(
+  () => a.get() + b.get(),
+  (sum, prev) => console.log(`sum: ${prev} → ${sum}`)
+)
+
+a.set(10) // logs: "sum: 3 → 12"
+```
+
+Pass `{ immediate: true }` to invoke the callback immediately on setup (the initial `oldValue` will be `undefined`):
+
+```ts
+watch(count, (n, prev) => console.log(n, prev), { immediate: true })
+// called immediately: logs current count, undefined
+```
+
+### nextTick
+
+`nextTick(fn?)` returns a `Promise<void>` that resolves on the next microtask — after scheduled reactive effects have processed. Use it when you need to read updated state or the DOM immediately after a write, without calling the synchronous `flushSync()`.
+
+```ts
+import { toState, nextTick } from "@domphy/core"
+
+const count = toState(0)
+count.set(1)
+
+await nextTick()
+// reactive effects triggered by count.set(1) have run by now
+```
+
+Or pass a callback:
+
+```ts
+count.set(42)
+nextTick(() => {
+  console.log("after flush:", count.get()) // 42
+})
+```
+
+## State utilities
+
+### isState
+
+`isState(value)` is a type guard that returns `true` when `value` is a `State<T>` or any `ReadableState<T>` (including `Computed<T>`). Use it when writing utilities that accept either a raw value or a reactive source.
+
+```ts
+import { isState, toState } from "@domphy/core"
+
+const count = toState(0)
+
+isState(count)   // true
+isState(42)      // false
+isState("hello") // false
+```
+
+Typed usage:
+
+```ts
+function getValue<T>(src: T | ReadableState<T>): T {
+  return isState(src) ? src.get() : src
+}
+```
+
+### readonly
+
+`readonly(source)` wraps a `State<T>` or `ReadableState<T>` in a read-only view. The returned object exposes only `.get()` — callers cannot call `.set()`. Use it to expose state from a module without granting external write access.
+
+```ts
+import { toState, readonly } from "@domphy/core"
+
+const _count = toState(0)
+
+// Expose read-only; consumers can subscribe but not mutate
+export const count = readonly(_count)
+export const increment = () => _count.set(_count.get() + 1)
+```
+
+The returned `ReadableState<T>` is compatible everywhere a state is accepted as a reactive source — including `(l) => count.get(l)` bindings in elements, `computed(fn)`, `watch(source, ...)`, etc.
+
 ## External State Systems
 
 Domphy does not enforce a state architecture. Any system that can call a function works:

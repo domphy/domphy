@@ -11,7 +11,7 @@ import {
   Notifier,
   runBatched,
 } from "./Notifier.js";
-import type { ValueListener } from "./State.js";
+import type { ReadableState, ValueListener } from "./State.js";
 
 // Derived-reactivity layer built ON TOP of State/RecordState + Notifier. Nothing
 // here forks a parallel reactivity system: every dependency is tracked by
@@ -309,4 +309,74 @@ export function batch<T>(fn: () => T): T {
 // making it a dependency.
 export function untrack<T>(fn: () => T): T {
   return runUntracked(fn);
+}
+
+// ----------------------------------------------------------------------------
+// watch
+// ----------------------------------------------------------------------------
+
+// A reactive source for `watch`: a State/Computed (anything with `.get()`) or a
+// getter function. The latter composes multiple reads — `() => a.get() + b.get()`
+// — into a single watched expression.
+export type WatchSource<T> = ReadableState<T> | (() => T);
+
+export interface WatchOptions {
+  // If true, invoke the callback immediately with the initial value (oldValue
+  // will be `undefined` on that first call). Default: false.
+  immediate?: boolean;
+}
+
+// Imperative watcher: tracks `source`, and whenever it produces a new value
+// (by `===` change) calls `callback(newValue, oldValue)`. The callback receives
+// both the new value and the previous one — which plain `effect` cannot provide.
+//
+// Returns a `dispose()` that stops watching and releases subscriptions.
+//
+// Examples:
+//   const count = toState(0)
+//   const stop = watch(count, (n, prev) => console.log(n, prev))
+//   const stop2 = watch(() => a.get() + b.get(), (sum) => console.log(sum))
+export function watch<T>(
+  source: WatchSource<T>,
+  callback: (newValue: T, oldValue: T | undefined) => void,
+  options?: WatchOptions,
+): () => void {
+  let oldValue: T | undefined = undefined;
+  let firstRun = true;
+
+  // `effect` runs synchronously on setup (initial collection), then re-runs
+  // whenever a tracked dependency changes. We suppress the callback on the
+  // first (setup) run unless `immediate` is set.
+  return effect(() => {
+    const newValue =
+      typeof source === "function" ? source() : source.get();
+
+    if (!firstRun || options?.immediate) {
+      callback(newValue, oldValue);
+    }
+
+    oldValue = newValue;
+    firstRun = false;
+  });
+}
+
+// ----------------------------------------------------------------------------
+// nextTick
+// ----------------------------------------------------------------------------
+
+// Returns a Promise that resolves on the next microtask — after all currently
+// scheduled reactive effects/computed re-runs have been processed. Useful when
+// you need to read state or the DOM immediately AFTER a reactive update settles
+// without calling the synchronous (and potentially expensive) `flushSync()`.
+//
+// Optionally pass a callback to be invoked when the microtask fires:
+//   await nextTick()               // wait for reactive flush
+//   nextTick(() => doSomething())  // callback style
+export function nextTick(): Promise<void>;
+export function nextTick(fn: () => void): Promise<void>;
+export function nextTick(fn?: () => void): Promise<void> {
+  // A resolved Promise's `.then` schedules a microtask via the same checkpoint
+  // that `_microtask` uses internally, so it runs in the same microtask queue
+  // position as scheduled effect re-runs — after them when called synchronously.
+  return fn ? Promise.resolve().then(fn) : Promise.resolve();
 }

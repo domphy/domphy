@@ -1,4 +1,4 @@
-import { type ReadableState, State } from "./classes/State.js";
+import { type ReadableState, State, type ValueListener } from "./classes/State.js";
 import { addEvent, addHook, deepClone } from "./helpers.js";
 import type { DomphyElement, EventName, Handler, HookMap } from "./types.js";
 
@@ -98,4 +98,36 @@ export function toState<T>(
   return val instanceof State || (val as any)?._isState
     ? (val as State<T>)
     : new State<T>(val as T, name);
+}
+
+// Returns true when `value` is a State or any ReadableState (including
+// Computed<T>). Use this as a type guard when writing utilities that accept
+// either a raw value or a reactive source.
+//
+//   function bindOrUse<T>(src: T | ReadableState<T>) {
+//     if (isState(src)) return src.get()
+//     return src
+//   }
+export function isState<T = unknown>(value: unknown): value is ReadableState<T> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as any)._isState === true
+  );
+}
+
+// Wraps a State or ReadableState in a read-only view. The returned object exposes
+// only `.get()` — callers cannot call `.set()`. Useful for exposing internal
+// state from a module or factory without granting write access.
+//
+//   const _count = toState(0)
+//   export const count = readonly(_count)  // consumers can read, not write
+//   export const increment = () => _count.set(_count.get() + 1)
+export function readonly<T>(source: ReadableState<T>): ReadableState<T> {
+  return {
+    _isState: true as const,
+    get(listener?: ValueListener<T>): T {
+      return source.get(listener);
+    },
+  };
 }
