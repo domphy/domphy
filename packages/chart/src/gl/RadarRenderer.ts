@@ -149,9 +149,11 @@ export class RadarRenderer {
       const startAngle = ((radar.startAngle ?? 90) * Math.PI) / 180;
       const indicators = radar.indicator;
       const count = indicators.length;
-      const color = s.color ? familyRgba(s.color as any, "shift-9") : seriesRgba(seriesOffset + si);
-
-      for (const dataItem of (s.data ?? [])) {
+      for (let di = 0; di < (s.data ?? []).length; di++) {
+        const dataItem = (s.data ?? [])[di];
+        const color = (dataItem as any).lineStyle?.color
+          ? familyRgba((dataItem as any).lineStyle.color, "shift-9")
+          : (s.color ? familyRgba(s.color as any, "shift-9") : seriesRgba(seriesOffset + si + di));
         const values = dataItem.value ?? [];
         const polygon: [number, number][] = [];
 
