@@ -87,10 +87,6 @@ function formatDate(value: Date): string {
 // "Last seen Jun 26, 2025"
 ```
 
-// { "lastSeen": "Last seen {{date, date}}" }
-t("lastSeen", { date: "2025-06-26" })   // "Last seen Jun 26, 2025"
-```
-
 ## Relative time
 
 Use `Intl.RelativeTimeFormat` for "2 hours ago", "in 3 days":

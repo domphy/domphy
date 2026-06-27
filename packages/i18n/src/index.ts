@@ -47,6 +47,10 @@ export interface I18nInstance<TKey extends string, TLocale extends string> {
   t(listener: Listener, key: TKey, options?: Record<string, unknown>): string;
   /** Reactive locale state — subscribe in Domphy render functions. */
   locale: ReturnType<typeof toState<TLocale>>;
+  /** Reactive read of the current locale code. Sugar for locale.get(listener). */
+  currentLocale(listener: Listener): TLocale;
+  /** Returns true if the key exists in the active locale's translations. */
+  exists(key: TKey): boolean;
   initI18n(locale?: TLocale): Promise<void>;
   setLocale(locale: TLocale): Promise<void>;
   getLocale(): TLocale;
@@ -167,11 +171,21 @@ export function createI18n<
     ) as string;
   }
 
+  function currentLocale(listener: Listener): TLocale {
+    return getStore().localeState.get(listener) as TLocale;
+  }
+
+  function exists(key: string): boolean {
+    return getStore().instance.exists(key);
+  }
+
   return {
     t,
     get locale() {
       return getStore().localeState;
     },
+    currentLocale,
+    exists,
     initI18n,
     setLocale,
     getLocale,

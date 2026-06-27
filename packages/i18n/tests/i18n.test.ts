@@ -103,6 +103,37 @@ describe("singleton behavior", () => {
   });
 });
 
+describe("exists()", () => {
+  it("returns true for an existing key", async () => {
+    const i18n = makeI18n();
+    await i18n.initI18n("en");
+    expect(i18n.exists("hello")).toBe(true);
+  });
+
+  it("returns false for a missing key", async () => {
+    const i18n = makeI18n();
+    await i18n.initI18n("en");
+    expect(i18n.exists("nonexistent.key" as any)).toBe(false);
+  });
+});
+
+describe("currentLocale()", () => {
+  it("returns the active locale", async () => {
+    const i18n = makeI18n();
+    await i18n.initI18n("en");
+    const locale = i18n.currentLocale(() => {});
+    expect(locale).toBe("en");
+  });
+
+  it("reflects locale after setLocale()", async () => {
+    const i18n = makeI18n();
+    await i18n.initI18n("en");
+    await i18n.setLocale("vi");
+    const locale = i18n.currentLocale(() => {});
+    expect(locale).toBe("vi");
+  });
+});
+
 describe("detectLocale()", () => {
   beforeEach(() => {
     localStorage.clear();
