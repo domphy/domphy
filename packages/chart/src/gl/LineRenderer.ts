@@ -1,9 +1,9 @@
 import type { Device, Buffer, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
-import { LINE_VS, LINE_FS, AREA_VS, AREA_FS } from "./shaders/line.glsl.js";
+import { LINE_VS, LINE_FS, AREA_VS, AREA_FS, GRADIENT_AREA_VS, GRADIENT_AREA_FS } from "./shaders/line.glsl.js";
 import type { LineSeriesOption, ChartRect } from "../types.js";
 import type { AnyScale } from "../scale/index.js";
-import { seriesRgba, familyRgba } from "./color.js";
+import { seriesRgba, familyRgba, isGradient, gradientEndpoints } from "./color.js";
 import type { Rgba } from "./color.js";
 type Point2d = { x: number; y: number };
 
@@ -30,6 +30,7 @@ export class LineRenderer {
   private device: Device;
   private lineModel: Model | null = null;
   private areaModel: Model | null = null;
+  private gradientAreaModel: Model | null = null;
   private buffers: Buffer[] = [];
 
   constructor(device: Device) {
@@ -60,9 +61,29 @@ export class LineRenderer {
 
   private ensureAreaModel(): Model {
     if (this.areaModel) return this.areaModel;
+    const blendParams = {
+      depthWriteEnabled: false,
+      blend: true,
+      blendColorSrcFactor: "src-alpha",
+      blendColorDstFactor: "one-minus-src-alpha",
+      blendAlphaSrcFactor: "one",
+      blendAlphaDstFactor: "one-minus-src-alpha",
+    } as const;
     this.areaModel = new Model(this.device, {
       vs: AREA_VS,
       fs: AREA_FS,
+      topology: "triangle-list",
+      bufferLayout: [{ name: "aPosition", format: "float32x2" }],
+      parameters: blendParams,
+    });
+    return this.areaModel;
+  }
+
+  private ensureGradientAreaModel(): Model {
+    if (this.gradientAreaModel) return this.gradientAreaModel;
+    this.gradientAreaModel = new Model(this.device, {
+      vs: GRADIENT_AREA_VS,
+      fs: GRADIENT_AREA_FS,
       topology: "triangle-list",
       bufferLayout: [{ name: "aPosition", format: "float32x2" }],
       parameters: {
@@ -74,7 +95,7 @@ export class LineRenderer {
         blendAlphaDstFactor: "one-minus-src-alpha",
       },
     });
-    return this.areaModel;
+    return this.gradientAreaModel;
   }
 
   private buildPixelPoints(series: LineSeriesOption, xScale: AnyScale, yScale: AnyScale): [number, number][] {
@@ -213,7 +234,6 @@ export class LineRenderer {
       // Area fill
       if (s.areaStyle) {
         const areaAlpha = ((s.areaStyle.opacity as number) ?? 0.3);
-        const areaColor: Rgba = [color[0], color[1], color[2], color[3] * areaAlpha];
         const baselineY = yScale.map(0);
         const areaVerts: number[] = [];
 
@@ -236,10 +256,34 @@ export class LineRenderer {
         if (areaVerts.length > 0) {
           const areaBuffer = this.device.createBuffer({ data: new Float32Array(areaVerts), id: "line-area" });
           this.buffers.push(areaBuffer);
-          areaModel.setAttributes({ aPosition: areaBuffer });
-          areaModel.setVertexCount(areaVerts.length / 2);
-          setUniforms(areaModel, { uResolution: [width, height], uColor: areaColor });
-          areaModel.draw(renderPass);
+
+          const colorSrc = s.areaStyle.color;
+          if (isGradient(colorSrc)) {
+            const gradModel = this.ensureGradientAreaModel();
+            const { top, bottom } = gradientEndpoints(colorSrc, color);
+            const topWithAlpha: Rgba = [top[0], top[1], top[2], top[3] * areaAlpha];
+            const bottomWithAlpha: Rgba = [bottom[0], bottom[1], bottom[2], bottom[3] * areaAlpha];
+            // Compute y range from vertices
+            const ys = areaVerts.filter((_, i) => i % 2 === 1);
+            const yTop = Math.min(...ys);
+            const yBottom = Math.max(...ys);
+            gradModel.setAttributes({ aPosition: areaBuffer });
+            gradModel.setVertexCount(areaVerts.length / 2);
+            setUniforms(gradModel, {
+              uResolution: [width, height],
+              uYTop: yTop,
+              uYBottom: yBottom,
+              uColorTop: topWithAlpha,
+              uColorBottom: bottomWithAlpha,
+            });
+            gradModel.draw(renderPass);
+          } else {
+            const areaColor: Rgba = [color[0], color[1], color[2], color[3] * areaAlpha];
+            areaModel.setAttributes({ aPosition: areaBuffer });
+            areaModel.setVertexCount(areaVerts.length / 2);
+            setUniforms(areaModel, { uResolution: [width, height], uColor: areaColor });
+            areaModel.draw(renderPass);
+          }
         }
       }
 
@@ -263,6 +307,7 @@ export class LineRenderer {
   destroy(): void {
     this.lineModel?.destroy();
     this.areaModel?.destroy();
+    this.gradientAreaModel?.destroy();
     for (const b of this.buffers) b.destroy();
   }
 }

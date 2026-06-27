@@ -1,5 +1,5 @@
 import { themeColorToken } from "@domphy/theme";
-import type { ThemeFamily } from "../types.js";
+import type { ThemeFamily, GradientObject } from "../types.js";
 
 export type Rgba = [number, number, number, number];
 
@@ -56,4 +56,46 @@ export function resolveColorSrc(src: unknown, fallback: Rgba): Rgba {
   if (!src) return fallback;
   const s = String(src);
   return s.startsWith("#") || s.startsWith("rgb") ? hexToRgba(s) : familyRgba(src as ThemeFamily);
+}
+
+// Parse "rgba(r,g,b,a)" or "rgb(r,g,b)" string to Rgba
+function parseRgbaString(color: string): Rgba {
+  const m = color.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
+  if (!m) return hexToRgba(color);
+  return [
+    parseFloat(m[1]) / 255,
+    parseFloat(m[2]) / 255,
+    parseFloat(m[3]) / 255,
+    m[4] !== undefined ? parseFloat(m[4]) : 1,
+  ];
+}
+
+function colorStopToRgba(color: string): Rgba {
+  if (color.startsWith("#")) return hexToRgba(color);
+  if (color.startsWith("rgb")) return parseRgbaString(color);
+  return familyRgba(color as ThemeFamily);
+}
+
+export function isGradient(src: unknown): src is GradientObject {
+  return typeof src === "object" && src !== null && "type" in src &&
+    ((src as any).type === "linear" || (src as any).type === "radial");
+}
+
+// Extract top/bottom Rgba from a gradient object (2-stop simplification for WebGL)
+export function gradientEndpoints(grad: GradientObject, fallback: Rgba): { top: Rgba; bottom: Rgba } {
+  const stops = grad.colorStops ?? [];
+  if (stops.length === 0) return { top: fallback, bottom: fallback };
+  if (stops.length === 1) {
+    const c = colorStopToRgba(stops[0].color);
+    return { top: c, bottom: c };
+  }
+  // Use first and last stop for top/bottom
+  const top = colorStopToRgba(stops[0].color);
+  const bottom = colorStopToRgba(stops[stops.length - 1].color);
+  // Respect gradient direction: x2/y2 — if y2=0 and y=1, gradient is bottom-to-top
+  if (grad.type === "linear") {
+    const g = grad as import("../types.js").LinearGradient;
+    if (g.y > g.y2) return { top: bottom, bottom: top };
+  }
+  return { top, bottom };
 }

@@ -221,4 +221,65 @@ await mount(card("DataZoom — slider + wheel", true), {
   series: [{ type: "line", smooth: true, data: dzData, name: "Signal" }],
 });
 
+// ─── Sankey ───────────────────────────────────────────────────────────────────
+await mount(card("Sankey — flow diagram", true), {
+  series: [{
+    type: "sankey",
+    left: "5%",
+    top: "5%",
+    width: "90%",
+    height: "85%",
+    nodeWidth: 20,
+    nodeGap: 8,
+    layoutIterations: 32,
+    nodes: [
+      { name: "Coal" }, { name: "Natural Gas" }, { name: "Oil" }, { name: "Nuclear" }, { name: "Solar" },
+      { name: "Electricity" }, { name: "Heat" }, { name: "Fuel" },
+      { name: "Industry" }, { name: "Transport" }, { name: "Residential" },
+    ],
+    links: [
+      { source: "Coal", target: "Electricity", value: 40 },
+      { source: "Coal", target: "Heat", value: 10 },
+      { source: "Natural Gas", target: "Electricity", value: 20 },
+      { source: "Natural Gas", target: "Heat", value: 15 },
+      { source: "Oil", target: "Fuel", value: 50 },
+      { source: "Nuclear", target: "Electricity", value: 30 },
+      { source: "Solar", target: "Electricity", value: 15 },
+      { source: "Electricity", target: "Industry", value: 45 },
+      { source: "Electricity", target: "Residential", value: 30 },
+      { source: "Electricity", target: "Transport", value: 10 },
+      { source: "Heat", target: "Industry", value: 15 },
+      { source: "Heat", target: "Residential", value: 10 },
+      { source: "Fuel", target: "Transport", value: 40 },
+      { source: "Fuel", target: "Industry", value: 10 },
+    ],
+  }],
+});
+
+// ─── Gradient line area ───────────────────────────────────────────────────────
+await mount(card("Line — gradient area fill"), {
+  title: { text: "Sales Trend", left: "center" },
+  xAxis: { type: "category", data: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"] },
+  yAxis: { type: "value", name: "Revenue" },
+  grid: { top: 50, bottom: 40, left: 60, right: 20 },
+  tooltip: { trigger: "axis" },
+  series: [{
+    type: "line",
+    name: "Revenue",
+    smooth: true,
+    data: [820, 932, 901, 934, 1290, 1330, 1320, 900, 1100, 1200, 880, 950],
+    areaStyle: {
+      opacity: 1,
+      color: {
+        type: "linear",
+        x: 0, y: 0, x2: 0, y2: 1,
+        colorStops: [
+          { offset: 0, color: "rgba(58, 77, 233, 0.8)" },
+          { offset: 1, color: "rgba(58, 77, 233, 0.05)" },
+        ],
+      },
+    },
+  }],
+});
+
 console.log("All charts mounted");

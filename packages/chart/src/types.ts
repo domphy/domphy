@@ -83,9 +83,36 @@ export interface ItemStyleOption {
   opacity?: number;
 }
 
+// ─── Gradient (ECharts-compatible) ───────────────────────────────────────────
+export interface ColorStop {
+  offset: number;
+  color: string;
+}
+
+export interface LinearGradient {
+  type: "linear";
+  x: number;
+  y: number;
+  x2: number;
+  y2: number;
+  colorStops: ColorStop[];
+  global?: boolean;
+}
+
+export interface RadialGradient {
+  type: "radial";
+  x: number;
+  y: number;
+  r: number;
+  colorStops: ColorStop[];
+  global?: boolean;
+}
+
+export type GradientObject = LinearGradient | RadialGradient;
+
 // ─── Area style ──────────────────────────────────────────────────────────────
 export interface AreaStyleOption {
-  color?: ThemeFamily;
+  color?: ThemeFamily | GradientObject;
   opacity?: number;
   origin?: "auto" | "start" | "end" | number;
 }

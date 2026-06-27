@@ -81,3 +81,38 @@ void main() {
   fragColor = vColor;
 }
 `;
+
+// Gradient area variant — interpolates between two colors along the Y axis
+export const GRADIENT_AREA_VS = /* glsl */ `\
+#version 300 es
+${CLIP_FROM_PIXEL}
+
+in vec2 aPosition;
+uniform vec2 uResolution;
+
+// yTop/yBottom define the gradient extent in pixel space
+uniform float uYTop;
+uniform float uYBottom;
+
+out float vT; // 0 at top, 1 at bottom
+
+void main() {
+  gl_Position = vec4(clipFromPixel(aPosition, uResolution), 0.0, 1.0);
+  float range = uYBottom - uYTop;
+  vT = range == 0.0 ? 0.0 : clamp((aPosition.y - uYTop) / range, 0.0, 1.0);
+}
+`;
+
+export const GRADIENT_AREA_FS = /* glsl */ `\
+#version 300 es
+precision highp float;
+
+in float vT;
+uniform vec4 uColorTop;
+uniform vec4 uColorBottom;
+out vec4 fragColor;
+
+void main() {
+  fragColor = mix(uColorTop, uColorBottom, vT);
+}
+`;
