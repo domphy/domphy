@@ -2,6 +2,7 @@
 // Pipeline: discover pages → renderDoc → layout → renderToString → HTML.
 // Extras: islands bundle, search index, sitemap, git last-updated, locales.
 
+import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
 import {
   cpSync,
@@ -116,6 +117,36 @@ function getLastUpdated(filePath: string): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+// --- Incremental build cache -------------------------------------------------
+
+interface CacheEntry {
+  hash: string;
+  searchDoc: import("./types.js").SearchDocument;
+}
+
+interface PressCache {
+  configHash: string;
+  pages: Record<string, CacheEntry>;
+}
+
+function hashContent(content: string): string {
+  return createHash("sha256").update(content).digest("hex").slice(0, 16);
+}
+
+function hashConfig(config: SiteConfig): string {
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        title: config.title,
+        hostname: config.hostname,
+        base: config.base,
+        themeConfig: config.themeConfig,
+      }),
+    )
+    .digest("hex")
+    .slice(0, 16);
 }
 
 // --- Islands bundle ----------------------------------------------------------
@@ -252,7 +283,7 @@ function mermaidHeadScript(mermaid: boolean | { cdn?: string }): string {
     typeof mermaid === "object" && mermaid.cdn
       ? mermaid.cdn
       : "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-  return `<script type="module">import mermaid from '${cdn}';mermaid.initialize({startOnLoad:false,theme:document.documentElement.getAttribute('data-theme')==='dark'?'dark':'default'});document.addEventListener('DOMContentLoaded',()=>mermaid.run({querySelector:'.dp-mermaid'}));</script>`;
+  return `<script type="module">(async()=>{const blocks=[...document.querySelectorAll('.dp-mermaid')];if(!blocks.length)return;let m=null,i=0;const load=async()=>{if(m)return;const mod=await import('${cdn}');m=mod.default;m.initialize({startOnLoad:false,theme:document.documentElement.getAttribute('data-theme')==='dark'?'dark':'default'});};const obs=new IntersectionObserver(async(entries)=>{for(const e of entries){if(!e.isIntersecting)continue;obs.unobserve(e.target);await load();try{const{svg}=await m.render('dp-m-'+(i++),e.target.textContent||'');const w=document.createElement('div');w.className='mermaid';w.innerHTML=svg;e.target.replaceWith(w);}catch(_){}}},{rootMargin:'200px 0px'});blocks.forEach(b=>obs.observe(b));})();</script>`;
 }
 
 function htmlDocument(
@@ -295,12 +326,32 @@ export interface BuildOptions {
   srcDir: string;
   outDir: string;
   publicDir?: string;
+  incremental?: boolean;
 }
 
 export async function buildSite(options: BuildOptions): Promise<void> {
-  const { config, srcDir, outDir, publicDir } = options;
+  const { config, srcDir, outDir, publicDir, incremental = false } = options;
   const searchEnabled = config.themeConfig.search !== false;
   const showLastUpdated = !!config.lastUpdated;
+
+  // --- Load incremental cache ------------------------------------------------
+  const cacheFile = join(outDir, ".press-cache.json");
+  let cache: PressCache = { configHash: "", pages: {} };
+  const configHash = hashConfig(config);
+
+  if (incremental) {
+    mkdirSync(outDir, { recursive: true });
+    if (existsSync(cacheFile)) {
+      try {
+        const loaded = JSON.parse(readFileSync(cacheFile, "utf8")) as PressCache;
+        if (loaded.configHash === configHash) cache = loaded;
+        else console.log("Config changed — full rebuild.");
+      } catch { /* corrupt cache */ }
+    }
+  } else {
+    rmSync(outDir, { recursive: true, force: true });
+    mkdirSync(outDir, { recursive: true });
+  }
 
   // Discover pages: root + locales
   const pages = discoverPages(srcDir);
@@ -337,7 +388,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
   const highlight = await createHighlighter();
   const generatedCss = themeCSS() + pressCSS();
 
-  // 1. Render markdown → Domphy docs
+  // 1. Render markdown → Domphy docs (skip unchanged pages in incremental mode)
   const built: Array<{
     route: string;
     outFile: string;
@@ -349,10 +400,29 @@ export async function buildSite(options: BuildOptions): Promise<void> {
     filePath: string;
     relPath: string;
   }> = [];
-  const searchDocs = [];
+
+  const cachedRoutes: string[] = [];
+  const searchDocs: import("./types.js").SearchDocument[] = [];
+  const updatedCache: PressCache["pages"] = {};
+  let cachedCount = 0;
 
   for (const page of localePages) {
     const source = readFileSync(page.filePath, "utf8");
+    const contentHash = hashContent(source);
+    const cached = cache.pages[page.filePath];
+
+    if (
+      incremental &&
+      cached?.hash === contentHash &&
+      existsSync(join(outDir, page.outFile))
+    ) {
+      searchDocs.push(cached.searchDoc);
+      cachedRoutes.push(page.route);
+      updatedCache[page.filePath] = cached;
+      cachedCount++;
+      continue;
+    }
+
     const doc = await renderDoc(source, {
       filePath: page.filePath,
       docsDir: srcDir,
@@ -372,6 +442,12 @@ export async function buildSite(options: BuildOptions): Promise<void> {
       ? getLastUpdated(page.filePath)
       : undefined;
     const relPath = relative(srcDir, page.filePath).replace(/\\/g, "/");
+    const searchDoc: import("./types.js").SearchDocument = {
+      route: page.route,
+      title: doc.title,
+      text: textContent.slice(0, 20000),
+      toc: doc.toc,
+    };
 
     built.push({
       route: page.route,
@@ -384,19 +460,18 @@ export async function buildSite(options: BuildOptions): Promise<void> {
       filePath: page.filePath,
       relPath,
     });
-    searchDocs.push({
-      route: page.route,
-      title: doc.title,
-      text: textContent.slice(0, 20000),
-      toc: doc.toc,
-    });
+    searchDocs.push(searchDoc);
+    updatedCache[page.filePath] = { hash: contentHash, searchDoc };
   }
+
+  if (incremental && cachedCount > 0)
+    console.log(`  ${cachedCount} cached, ${built.length} to render.`);
 
   // Per-page metadata maps (route → head strings / lang code)
   const pageHeadMap = new Map<string, string[]>();
   const pageLangMap = new Map<string, string>();
 
-  // 2. Define @domphy/app routes
+  // 2. Define @domphy/app routes (only changed pages need SSR)
   const appRoutes = defineRoutes(
     built.map((page) => {
       const localeConfig = config.locales?.[page.localeKey];
@@ -430,7 +505,6 @@ export async function buildSite(options: BuildOptions): Promise<void> {
         page.route === "/"
           ? `${config.hostname}/`
           : `${config.hostname}${page.route}/`;
-      // Store per-page head and lang for use during HTML serialization
       const pageHead = Array.isArray(page.doc.frontmatter.head)
         ? (page.doc.frontmatter.head as string[]).filter(
             (s) => typeof s === "string",
@@ -460,10 +534,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
   );
   const app = createApp(appRoutes);
 
-  // 3. Render each route to static HTML
-  rmSync(outDir, { recursive: true, force: true });
-  mkdirSync(outDir, { recursive: true });
-
+  // 3. Render each changed route to static HTML
   const failures: Array<{ route: string; error: string }> = [];
   let totalBytes = 0;
   for (const page of built) {
@@ -501,7 +572,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
   // 4. Islands bundle
   await buildIslandsBundle(outDir, searchEnabled);
 
-  // 5. Search index
+  // 5. Search index (all docs: cached + newly rendered)
   writeFileSync(
     join(outDir, "search-index.json"),
     buildSearchIndex(searchDocs),
@@ -512,12 +583,12 @@ export async function buildSite(options: BuildOptions): Promise<void> {
   if (publicDir && existsSync(publicDir))
     cpSync(publicDir, outDir, { recursive: true });
 
-  // 7. Sitemap
+  // 7. Sitemap (all routes: cached + rendered)
   if (config.hostname) {
     writeFileSync(
       join(outDir, "sitemap.xml"),
       buildSitemap(
-        built.map((p) => p.route),
+        [...cachedRoutes, ...built.map((p) => p.route)],
         config.hostname,
         config.locales,
       ),
@@ -525,7 +596,18 @@ export async function buildSite(options: BuildOptions): Promise<void> {
     );
   }
 
+  // 8. Save incremental cache
+  if (incremental) {
+    writeFileSync(
+      cacheFile,
+      JSON.stringify({ configHash, pages: updatedCache } satisfies PressCache),
+      "utf8",
+    );
+  }
+
   console.log(
-    `Built ${built.length} pages (${(totalBytes / 1024).toFixed(0)} KB) → ${outDir}`,
+    incremental
+      ? `Rendered ${built.length} page(s) (${cachedCount} cached) → ${outDir}`
+      : `Built ${built.length} pages (${(totalBytes / 1024).toFixed(0)} KB) → ${outDir}`,
   );
 }

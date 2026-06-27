@@ -69,10 +69,9 @@ export type PreviewRegistry = Record<
 >;
 
 /**
- * Renders any ```mermaid fenced code blocks on the page client-side. Done in the
- * browser (not at build time) so it works on any host without a headless browser
- * and renders identically in dev and production. The `mermaid` library is
- * dynamically imported only when a diagram is actually present on the page.
+ * Renders any ```mermaid fenced code blocks on the page client-side using
+ * IntersectionObserver so the ~2MB mermaid library is only loaded when a diagram
+ * is actually scrolled into view (200px lookahead).
  */
 async function renderMermaidBlocks(): Promise<void> {
   const blocks = Array.from(
@@ -81,11 +80,11 @@ async function renderMermaidBlocks(): Promise<void> {
     ),
   );
   if (blocks.length === 0) return;
-  const mermaid = (await import("mermaid")).default;
-  const dark = document.documentElement.getAttribute("data-theme") === "dark";
-  mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "default" });
-  // The fenced source is delivered HTML-escaped (e.g. `-->` as `--&gt;`); decode
-  // entities back to the raw diagram text mermaid's parser expects.
+
+  let mermaidLib: (typeof import("mermaid"))["default"] | null = null;
+  let renderIndex = 0;
+  const rendered = new WeakSet<HTMLElement>();
+
   const decode = (text: string): string =>
     text
       .replace(/&lt;/g, "<")
@@ -93,12 +92,26 @@ async function renderMermaidBlocks(): Promise<void> {
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
       .replace(/&amp;/g, "&");
-  let index = 0;
-  for (const code of blocks) {
+
+  const renderBlock = async (code: HTMLElement) => {
+    if (rendered.has(code)) return;
+    rendered.add(code);
+    if (!mermaidLib) {
+      mermaidLib = (await import("mermaid")).default;
+      const dark =
+        document.documentElement.getAttribute("data-theme") === "dark";
+      mermaidLib.initialize({
+        startOnLoad: false,
+        theme: dark ? "dark" : "default",
+      });
+    }
     const source = decode(code.textContent ?? "");
     const target = code.closest("pre") ?? code;
     try {
-      const { svg } = await mermaid.render(`dp-mermaid-${index++}`, source);
+      const { svg } = await mermaidLib.render(
+        `dp-mermaid-${renderIndex++}`,
+        source,
+      );
       const wrapper = document.createElement("div");
       wrapper.className = "mermaid";
       wrapper.innerHTML = svg;
@@ -106,7 +119,20 @@ async function renderMermaidBlocks(): Promise<void> {
     } catch (error) {
       console.error("mermaid render failed", error);
     }
-  }
+  };
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        observer.unobserve(entry.target);
+        void renderBlock(entry.target as HTMLElement);
+      }
+    },
+    { rootMargin: "200px 0px" },
+  );
+
+  for (const block of blocks) observer.observe(block);
 }
 
 /** Reads the page's island specs and hydrates each placeholder. */

@@ -109,6 +109,27 @@ export function buildSearchIndex(docs: SearchDocument[]): string {
 
 // --- Query -------------------------------------------------------------------
 
+function editDistance1(a: string, b: string): boolean {
+  const diff = a.length - b.length;
+  if (diff < -1 || diff > 1) return false;
+  if (diff === 0) {
+    let mismatches = 0;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i] && ++mismatches > 1) return false;
+    }
+    return mismatches === 1;
+  }
+  const longer = diff > 0 ? a : b;
+  const shorter = diff > 0 ? b : a;
+  let i = 0, j = 0, skipped = false;
+  while (i < longer.length) {
+    if (j < shorter.length && longer[i] === shorter[j]) { i++; j++; }
+    else if (!skipped) { skipped = true; i++; }
+    else return false;
+  }
+  return true;
+}
+
 export function queryIndex(
   serializedIndex: string,
   query: string,
@@ -124,10 +145,18 @@ export function queryIndex(
   for (const term of terms) {
     const seen = new Set<number>();
     for (const indexedTerm in index.postings) {
-      if (indexedTerm !== term && !indexedTerm.startsWith(term)) continue;
-      const exact = indexedTerm === term;
+      let weight: number;
+      if (indexedTerm === term) {
+        weight = 1.0;
+      } else if (indexedTerm.startsWith(term)) {
+        weight = 0.5;
+      } else if (term.length >= 4 && editDistance1(term, indexedTerm)) {
+        weight = 0.3;
+      } else {
+        continue;
+      }
       for (const [entryIndex, fieldWeight] of index.postings[indexedTerm]) {
-        const contribution = exact ? fieldWeight : fieldWeight * 0.5;
+        const contribution = fieldWeight * weight;
         scoreByEntry.set(
           entryIndex,
           (scoreByEntry.get(entryIndex) ?? 0) + contribution,

@@ -67,6 +67,7 @@ if (command === "build") {
         srcDir,
         outDir,
         publicDir: existsSync(publicDir) ? publicDir : undefined,
+        incremental: true,
       });
       console.log(`Rebuilt in ${Date.now() - start}ms`);
     } catch (error) {
