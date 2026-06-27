@@ -256,6 +256,48 @@ await mount(card("Sankey — flow diagram", true), {
   }],
 });
 
+// ─── Graph — force-directed network ──────────────────────────────────────────
+await mount(card("Graph — force-directed", true), {
+  series: [{
+    type: "graph",
+    layout: "force",
+    symbolSize: 20,
+    edgeSymbol: ["none", "arrow"],
+    edgeSymbolSize: [4, 10],
+    force: { repulsion: 120, gravity: 0.05, edgeLength: 100, layoutAnimation: false },
+    label: { show: true },
+    categories: [
+      { name: "Frontend" },
+      { name: "Backend" },
+      { name: "Database" },
+      { name: "DevOps" },
+    ],
+    nodes: [
+      { id: "0", name: "Browser", category: 0, symbolSize: 28 },
+      { id: "1", name: "React", category: 0 },
+      { id: "2", name: "Vue", category: 0 },
+      { id: "3", name: "Node.js", category: 1, symbolSize: 24 },
+      { id: "4", name: "Express", category: 1 },
+      { id: "5", name: "Fastify", category: 1 },
+      { id: "6", name: "PostgreSQL", category: 2, symbolSize: 22 },
+      { id: "7", name: "Redis", category: 2 },
+      { id: "8", name: "MongoDB", category: 2 },
+      { id: "9", name: "Docker", category: 3, symbolSize: 22 },
+      { id: "10", name: "Nginx", category: 3 },
+      { id: "11", name: "K8s", category: 3 },
+    ],
+    links: [
+      { source: "0", target: "1" }, { source: "0", target: "2" },
+      { source: "1", target: "3" }, { source: "2", target: "3" },
+      { source: "3", target: "4" }, { source: "3", target: "5" },
+      { source: "4", target: "6" }, { source: "4", target: "7" },
+      { source: "5", target: "6" }, { source: "5", target: "8" },
+      { source: "3", target: "9" }, { source: "9", target: "10" },
+      { source: "9", target: "11" }, { source: "10", target: "0" },
+    ],
+  }],
+});
+
 // ─── Gradient line area ───────────────────────────────────────────────────────
 await mount(card("Line — gradient area fill"), {
   title: { text: "Sales Trend", left: "center" },

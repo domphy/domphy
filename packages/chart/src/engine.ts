@@ -18,13 +18,14 @@ import { renderBoxplot } from "./overlay/boxplot.js";
 import { renderFunnel } from "./overlay/funnel.js";
 import { renderTreemap } from "./overlay/treemap.js";
 import { renderSankey } from "./overlay/sankey.js";
+import { renderGraph } from "./overlay/graph.js";
 import { renderVisualMap } from "./overlay/visualmap.js";
 import { setupDataZoom, setupInsideZoom } from "./overlay/datazoom.js";
 import { createTooltip } from "./overlay/tooltip.js";
 import { renderMarksToSvg } from "./marks/index.js";
 import type {
   ChartOption, SeriesOption, TooltipParams,
-  BoxplotSeriesOption, FunnelSeriesOption, TreemapSeriesOption, SankeySeriesOption,
+  BoxplotSeriesOption, FunnelSeriesOption, TreemapSeriesOption, SankeySeriesOption, GraphSeriesOption,
 } from "./types.js";
 import { seriesHex } from "./gl/color.js";
 
@@ -220,6 +221,11 @@ export class ChartEngine {
     const sankeySeries = series.filter((s): s is SankeySeriesOption => s.type === "sankey");
     if (sankeySeries.length > 0) {
       renderSankey(this.overlaysvg, sankeySeries, width, height, this.hiddenSeries);
+    }
+
+    const graphSeries = series.filter((s): s is GraphSeriesOption => s.type === "graph");
+    if (graphSeries.length > 0) {
+      renderGraph(this.overlaysvg, graphSeries, width, height, this.hiddenSeries);
     }
 
     // VisualMap legend
