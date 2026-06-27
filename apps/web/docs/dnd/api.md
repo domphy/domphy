@@ -12,6 +12,7 @@ import { dragDrop } from "@domphy/dnd"
 ```
 
 A Domphy patch applied via `$`. Wires the FormKit drag-and-drop engine to a reactive state array.
+Animations are **enabled by default** — pass `animated: false` to disable.
 
 ```ts
 const list = createVirtualizer(...)   // or just toState([...])
@@ -22,12 +23,22 @@ const App = {
 ```
 
 `dragDrop` calls `dragAndDrop()` from `@formkit/drag-and-drop` under the hood and patches:
-- `_onMount(node)` — registers the container
+- `_onMount(node)` — registers the container with animations plugin included
 - `_onRemove()` — tears down listeners automatically
 
 ### `state` argument
 
 Any object with `.get()` and `.set(updater)` methods (Domphy `State<T[]>` or custom). On reorder, FormKit calls `state.set(newArray)` so the reactive list re-renders.
+
+### `config` (DragDropConfig)
+
+`DragDropConfig<T>` extends `ParentConfig<T>` with one extra field:
+
+```ts
+interface DragDropConfig<T> extends Partial<ParentConfig<T>> {
+  animated?: boolean   // default: true — enable sort animations
+}
+```
 
 ### `config` (ParentConfig)
 
@@ -73,9 +84,16 @@ import { animations } from "@domphy/dnd"
 
 ### `animations(config?)`
 
-Smooth CSS transitions for dragging and drop. No extra setup required:
+Smooth CSS transitions for dragging and drop. **Included by default** in `dragDrop()` — you only need this if you use `dragAndDrop()` directly or set `animated: false`:
 
 ```ts
+// Already animated — no extra step needed:
+{ ul: ..., $: [dragDrop(items)] }
+
+// Opt out of animations:
+{ ul: ..., $: [dragDrop(items, { animated: false })] }
+
+// Manual (if using dragAndDrop() directly):
 { ul: ..., $: [dragDrop(items, { plugins: [animations()] })] }
 ```
 
@@ -106,9 +124,54 @@ Items without a matching `.handle` element are not draggable by direct drag.
 
 ---
 
-## Transfer between lists
+## Multi-list helpers
 
-Two lists with the same `group` exchange items when an item is dragged from one to the other. Both lists must use `group`:
+### `multiList(options)`
+
+Convenience adapter for a single list participating in a named drag group.
+All lists with the same `group` string accept transfers from each other.
+
+```ts
+import { multiList } from "@domphy/dnd"
+
+const todo = toState<Task[]>([...])
+const done = toState<Task[]>([...])
+
+const TodoList = {
+  ul: (l) => todo.get(l).map((t) => ({ li: t.text, _key: t.id })),
+  $: [multiList({ group: "kanban", values: todo })],
+}
+
+const DoneList = {
+  ul: (l) => done.get(l).map((t) => ({ li: t.text, _key: t.id })),
+  $: [multiList({ group: "kanban", values: done })],
+}
+```
+
+### `multiListGroup(group, states, config?)`
+
+Shorthand when you have an array of lists — returns one patch per list:
+
+```ts
+import { multiListGroup } from "@domphy/dnd"
+
+const [dropTodo, dropInProgress, dropDone] = multiListGroup("kanban", [todo, inProgress, done])
+
+const Board = {
+  div: [
+    { ul: (l) => todo.get(l).map(...), $: [dropTodo] },
+    { ul: (l) => inProgress.get(l).map(...), $: [dropInProgress] },
+    { ul: (l) => done.get(l).map(...), $: [dropDone] },
+  ],
+}
+```
+
+---
+
+## Transfer between lists (manual)
+
+Two lists with the same `group` exchange items when an item is dragged from one to the other.
+The `multiList`/`multiListGroup` helpers above do this automatically. Manual equivalent:
 
 ```ts
 const todo = toState<Task[]>([...])
