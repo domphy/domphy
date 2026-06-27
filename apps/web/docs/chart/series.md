@@ -82,6 +82,18 @@ series: [
 ]
 ```
 
+### Horizontal bar
+
+Swap axis types to orient bars horizontally:
+
+```ts
+xAxis: { type: "value" },
+yAxis: { type: "category", data: ["Mon", "Tue", "Wed"] },
+series: [{ type: "bar", data: [120, 200, 150] }]
+```
+
+All bar options (stack, grouped, itemStyle, label) work the same way.
+
 ---
 
 ## Scatter

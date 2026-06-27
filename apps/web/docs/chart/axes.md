@@ -125,7 +125,7 @@ tooltip: {
 }
 ```
 
-`trigger: "axis"` shows tooltip for all series at the hovered x value (use with line/bar). `trigger: "item"` shows tooltip for the individual data point (use with pie/scatter).
+`trigger: "axis"` shows tooltip for all series at the hovered x value (use with line/bar). `trigger: "item"` shows tooltip for the individual data point closest to the cursor. Works for `scatter` and `pie` series.
 
 ## Legend
 

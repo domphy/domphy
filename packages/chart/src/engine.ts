@@ -26,8 +26,153 @@ import { renderMarksToSvg } from "./marks/index.js";
 import type {
   ChartOption, SeriesOption, TooltipParams,
   BoxplotSeriesOption, FunnelSeriesOption, TreemapSeriesOption, SankeySeriesOption, GraphSeriesOption,
+  LineSeriesOption,
 } from "./types.js";
 import { seriesHex } from "./gl/color.js";
+
+// Accumulate y-values for line series sharing the same stack name.
+// Each stacked series receives the sum of all previous series at the same data index.
+function accumStackedLines(series: LineSeriesOption[]): LineSeriesOption[] {
+  const sums = new Map<string, number[]>(); // stackName → accumulated y per dataIndex
+  return series.map((s) => {
+    if (!s.stack) return s;
+    if (!sums.has(s.stack)) sums.set(s.stack, []);
+    const acc = sums.get(s.stack)!;
+    const newData = (s.data ?? []).map((item: any, di: number) => {
+      let yRaw: number;
+      if (typeof item === "number") yRaw = item;
+      else if (Array.isArray(item)) yRaw = (item[1] as number) ?? 0;
+      else yRaw = typeof item?.value === "number" ? item.value : 0;
+      const prev = acc[di] ?? 0;
+      const next = prev + (yRaw ?? 0);
+      acc[di] = next;
+      if (typeof item === "number") return next;
+      if (Array.isArray(item)) return [item[0], next];
+      return { ...item, value: next };
+    });
+    return { ...s, data: newData as any };
+  });
+}
+
+// Hit-test cursor position against all pie sectors. Returns params for the hit sector or null.
+function hitTestPie(
+  series: any[],
+  mx: number,
+  my: number,
+  width: number,
+  height: number,
+  allSeries: SeriesOption[],
+): TooltipParams | null {
+  const PI2 = Math.PI * 2;
+  const startOffset = -Math.PI / 2;
+  const minSize = Math.min(width, height);
+
+  for (const s of series) {
+    if (s.type !== "pie") continue;
+
+    const center = s.center ?? ["50%", "50%"];
+    const cx = typeof center[0] === "number" ? center[0] : (parseFloat(center[0]) / 100) * width;
+    const cy = typeof center[1] === "number" ? center[1] : (parseFloat(center[1]) / 100) * height;
+
+    const halfMin = minSize / 2;
+    let innerR = 0;
+    let outerR = halfMin * 0.7;
+    if (s.radius) {
+      const r = s.radius;
+      if (Array.isArray(r)) {
+        innerR = typeof r[0] === "number" ? r[0] : (parseFloat(r[0]) / 100) * halfMin;
+        outerR = typeof r[1] === "number" ? r[1] : (parseFloat(r[1]) / 100) * halfMin;
+      } else {
+        outerR = typeof r === "number" ? r : (parseFloat(r) / 100) * halfMin;
+      }
+    }
+
+    const dist = Math.hypot(mx - cx, my - cy);
+    if (dist < innerR || dist > outerR) continue;
+
+    let cursorAngle = Math.atan2(my - cy, mx - cx);
+    if (cursorAngle < startOffset) cursorAngle += PI2;
+
+    const data: any[] = s.data ?? [];
+    const total = data.reduce((sum: number, item: any) => sum + (item.value ?? 0), 0) || 1;
+    const globalIdx = allSeries.findIndex((as_) => as_ === s);
+
+    let currentAngle = startOffset;
+    for (let di = 0; di < data.length; di++) {
+      const item = data[di];
+      const fraction = (item.value ?? 0) / total;
+      const endAngle = currentAngle + fraction * PI2;
+
+      let a = cursorAngle;
+      if (a < currentAngle) a += PI2;
+      if (a >= currentAngle && a < endAngle) {
+        return {
+          componentType: "series",
+          seriesType: "pie",
+          seriesIndex: globalIdx,
+          seriesName: s.name ?? "",
+          name: item.name ?? String(di),
+          dataIndex: di,
+          data: item,
+          value: item.value,
+          color: seriesHex(di),
+          percent: Math.round(fraction * 1000) / 10,
+        };
+      }
+      currentAngle = endAngle;
+    }
+  }
+  return null;
+}
+
+// Hit-test cursor position against scatter data points. Returns params for nearest point within 20px or null.
+function hitTestScatter(
+  series: any[],
+  mx: number,
+  my: number,
+  xScales: any[],
+  yScales: any[],
+  allSeries: SeriesOption[],
+): TooltipParams | null {
+  let nearest: TooltipParams | null = null;
+  let nearestDist = 20; // px radius threshold
+
+  for (const s of series) {
+    if (s.type !== "scatter") continue;
+    const xScale = xScales[s.xAxisIndex ?? 0];
+    const yScale = yScales[s.yAxisIndex ?? 0];
+    if (!xScale || !yScale) continue;
+
+    const data: any[] = s.data ?? [];
+    const globalIdx = allSeries.findIndex((as_) => as_ === s);
+
+    for (let di = 0; di < data.length; di++) {
+      const item = data[di];
+      if (!Array.isArray(item)) continue;
+      const xVal = item[0] as number;
+      const yVal = item[1] as number;
+      const px = xScale.map(xVal);
+      const py = yScale.map(yVal);
+      const d = Math.hypot(mx - px, my - py);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearest = {
+          componentType: "series",
+          seriesType: "scatter",
+          seriesIndex: globalIdx,
+          seriesName: s.name ?? "",
+          name: String(xVal),
+          dataIndex: di,
+          data: item,
+          value: [xVal, yVal],
+          color: seriesHex(globalIdx),
+          percent: undefined,
+        };
+      }
+    }
+  }
+  return nearest;
+}
 
 export class ChartEngine {
   private container: HTMLElement;
@@ -248,7 +393,8 @@ export class ChartEngine {
 
     const lineSeries = series.filter((s): s is any => s.type === "line");
     if (lineSeries.length > 0 && this.lineRenderer) {
-      this.lineRenderer.render(renderPass, lineSeries, grid.xScales, grid.yScales, grid.gridRect, width, height, seriesOffset);
+      const stackedLineSeries = accumStackedLines(lineSeries);
+      this.lineRenderer.render(renderPass, stackedLineSeries, grid.xScales, grid.yScales, grid.gridRect, width, height, seriesOffset);
       seriesOffset += lineSeries.length;
     }
 
@@ -437,6 +583,14 @@ export class ChartEngine {
           gridRect,
           option.tooltip?.axisPointer?.type ?? "line",
         );
+      } else if (trigger === "item") {
+        // Item trigger: hit-test pie sectors and scatter points
+        renderAxisPointer(this.overlaysvg, null, null, gridRect);
+
+        const hit =
+          hitTestPie(series, mx, my, this.width, this.height, allSeries) ??
+          hitTestScatter(series, mx, my, xScales, yScales, allSeries);
+        if (hit) params.push(hit);
       }
 
       this.tooltipCtrl.update({ visible: params.length > 0, x: mx, y: my, params });

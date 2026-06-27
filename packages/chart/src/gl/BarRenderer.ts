@@ -87,43 +87,25 @@ export class BarRenderer {
     const yScale = yScales[firstSeries?.yAxisIndex ?? 0];
     if (!xScale || !yScale) return;
 
-    const bandwidth = xScale.bandwidth();
-    const groupCount = Math.max(1, grouped.length);
-    const gap = 2; // px gap between bars in a group
-    const groupBarWidth = groupCount > 1
-      ? (bandwidth * 0.85 - (groupCount - 1) * gap) / groupCount
-      : bandwidth * 0.65;
-    const totalGroupWidth = groupCount * groupBarWidth + (groupCount - 1) * gap;
-    const barRadius = 2;
-    const baselineY = yScale.map(0);
-
     const allInstances: number[] = [];
     let barCount = 0;
+    const barRadius = 2;
+    const gap = 2; // px gap between bars in a group
 
-    grouped.forEach((s, groupIndex) => {
-      const color = resolveColorSrc(s.color, seriesRgba(seriesOffset + series.indexOf(s)));
-      const data = s.data ?? [];
-      data.forEach((item, dataIndex) => {
-        const rawValue = typeof item === "number" ? item
-          : Array.isArray(item) ? (item[1] as number)
-          : (typeof (item as any)?.value === "number" ? (item as any).value : null);
-        if (rawValue === null) return;
+    // Detect orientation: y-axis has bandwidth → horizontal bars (y=category, x=value)
+    const isHorizontal = yScale.bandwidth() > 0;
 
-        const xArg = typeof item === "number" ? dataIndex : Array.isArray(item) ? item[0] : dataIndex;
-        const xCenter = xScale.map(xArg as number);
-        const yTop = yScale.map(rawValue);
-        const xLeft = xCenter - totalGroupWidth / 2 + groupIndex * (groupBarWidth + gap);
-        const rectY = Math.min(yTop, baselineY);
-        const rectH = Math.abs(baselineY - yTop);
-        const c = (item as any)?.itemStyle?.color ? hexToRgba((item as any).itemStyle.color) : color;
-        allInstances.push(xLeft, rectY, groupBarWidth, rectH, c[0], c[1], c[2], c[3], barRadius);
-        barCount++;
-      });
-    });
+    if (isHorizontal) {
+      // Horizontal grouped bars
+      const bandH = yScale.bandwidth();
+      const groupCount = Math.max(1, grouped.length);
+      const groupBarH = groupCount > 1
+        ? (bandH * 0.85 - (groupCount - 1) * gap) / groupCount
+        : bandH * 0.65;
+      const totalGroupH = groupCount * groupBarH + (groupCount - 1) * gap;
+      const baselineX = xScale.map(0);
 
-    for (const [, stackSeries] of stacked) {
-      const stackTops = new Map<number, number>();
-      stackSeries.forEach((s) => {
+      grouped.forEach((s, groupIndex) => {
         const color = resolveColorSrc(s.color, seriesRgba(seriesOffset + series.indexOf(s)));
         const data = s.data ?? [];
         data.forEach((item, dataIndex) => {
@@ -132,20 +114,102 @@ export class BarRenderer {
             : (typeof (item as any)?.value === "number" ? (item as any).value : null);
           if (rawValue === null) return;
 
-          const prevTop = stackTops.get(dataIndex) ?? 0;
-          const newTop = prevTop + rawValue;
-          stackTops.set(dataIndex, newTop);
-          const xArg = typeof item === "number" ? dataIndex : Array.isArray(item) ? item[0] : dataIndex;
-          const xCenter = xScale.map(xArg as number);
-          const xLeft = xCenter - bandwidth * 0.85 / 2;
-          const yTop = yScale.map(newTop);
-          const yBottom = yScale.map(prevTop);
-          const rectY = Math.min(yTop, yBottom);
-          const rectH = Math.abs(yBottom - yTop);
-          allInstances.push(xLeft, rectY, bandwidth * 0.85, rectH, color[0], color[1], color[2], color[3], barRadius);
+          const yCenter = yScale.map(dataIndex);
+          const xRight = xScale.map(rawValue);
+          const rectX = Math.min(baselineX, xRight);
+          const rectW = Math.abs(xRight - baselineX);
+          const rectY = yCenter - totalGroupH / 2 + groupIndex * (groupBarH + gap);
+          const c = (item as any)?.itemStyle?.color ? hexToRgba((item as any).itemStyle.color) : color;
+          allInstances.push(rectX, rectY, rectW, groupBarH, c[0], c[1], c[2], c[3], barRadius);
           barCount++;
         });
       });
+
+      // Horizontal stacked bars
+      for (const [, stackSeries] of stacked) {
+        const stackRights = new Map<number, number>();
+        stackSeries.forEach((s) => {
+          const color = resolveColorSrc(s.color, seriesRgba(seriesOffset + series.indexOf(s)));
+          const data = s.data ?? [];
+          data.forEach((item, dataIndex) => {
+            const rawValue = typeof item === "number" ? item
+              : Array.isArray(item) ? (item[1] as number)
+              : (typeof (item as any)?.value === "number" ? (item as any).value : null);
+            if (rawValue === null) return;
+
+            const prevRight = stackRights.get(dataIndex) ?? 0;
+            const newRight = prevRight + rawValue;
+            stackRights.set(dataIndex, newRight);
+
+            const yCenter = yScale.map(dataIndex);
+            const barH = bandH * 0.85;
+            const xLeft = xScale.map(prevRight);
+            const xRight = xScale.map(newRight);
+            const rectX = Math.min(xLeft, xRight);
+            const rectW = Math.abs(xRight - xLeft);
+            const rectY = yCenter - barH / 2;
+            allInstances.push(rectX, rectY, rectW, barH, color[0], color[1], color[2], color[3], barRadius);
+            barCount++;
+          });
+        });
+      }
+    } else {
+      // Vertical bars (original behavior)
+      const bandwidth = xScale.bandwidth();
+      const groupCount = Math.max(1, grouped.length);
+      const groupBarWidth = groupCount > 1
+        ? (bandwidth * 0.85 - (groupCount - 1) * gap) / groupCount
+        : bandwidth * 0.65;
+      const totalGroupWidth = groupCount * groupBarWidth + (groupCount - 1) * gap;
+      const baselineY = yScale.map(0);
+
+      grouped.forEach((s, groupIndex) => {
+        const color = resolveColorSrc(s.color, seriesRgba(seriesOffset + series.indexOf(s)));
+        const data = s.data ?? [];
+        data.forEach((item, dataIndex) => {
+          const rawValue = typeof item === "number" ? item
+            : Array.isArray(item) ? (item[1] as number)
+            : (typeof (item as any)?.value === "number" ? (item as any).value : null);
+          if (rawValue === null) return;
+
+          const xArg = typeof item === "number" ? dataIndex : Array.isArray(item) ? item[0] : dataIndex;
+          const xCenter = xScale.map(xArg as number);
+          const yTop = yScale.map(rawValue);
+          const xLeft = xCenter - totalGroupWidth / 2 + groupIndex * (groupBarWidth + gap);
+          const rectY = Math.min(yTop, baselineY);
+          const rectH = Math.abs(baselineY - yTop);
+          const c = (item as any)?.itemStyle?.color ? hexToRgba((item as any).itemStyle.color) : color;
+          allInstances.push(xLeft, rectY, groupBarWidth, rectH, c[0], c[1], c[2], c[3], barRadius);
+          barCount++;
+        });
+      });
+
+      for (const [, stackSeries] of stacked) {
+        const stackTops = new Map<number, number>();
+        stackSeries.forEach((s) => {
+          const color = resolveColorSrc(s.color, seriesRgba(seriesOffset + series.indexOf(s)));
+          const data = s.data ?? [];
+          data.forEach((item, dataIndex) => {
+            const rawValue = typeof item === "number" ? item
+              : Array.isArray(item) ? (item[1] as number)
+              : (typeof (item as any)?.value === "number" ? (item as any).value : null);
+            if (rawValue === null) return;
+
+            const prevTop = stackTops.get(dataIndex) ?? 0;
+            const newTop = prevTop + rawValue;
+            stackTops.set(dataIndex, newTop);
+            const xArg = typeof item === "number" ? dataIndex : Array.isArray(item) ? item[0] : dataIndex;
+            const xCenter = xScale.map(xArg as number);
+            const xLeft = xCenter - bandwidth * 0.85 / 2;
+            const yTop = yScale.map(newTop);
+            const yBottom = yScale.map(prevTop);
+            const rectY = Math.min(yTop, yBottom);
+            const rectH = Math.abs(yBottom - yTop);
+            allInstances.push(xLeft, rectY, bandwidth * 0.85, rectH, color[0], color[1], color[2], color[3], barRadius);
+            barCount++;
+          });
+        });
+      }
     }
 
     if (barCount === 0) return;
