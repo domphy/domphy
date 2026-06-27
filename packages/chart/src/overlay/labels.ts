@@ -4,6 +4,7 @@ import type {
   ScatterSeriesOption,
 } from "../types.js";
 import type { AnyScale } from "../scale/index.js";
+import { seriesHex } from "../gl/color.js";
 
 function svgNS(tag: string): Element {
   return document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -279,6 +280,61 @@ export interface SeriesLabelOptions {
   width: number;
   height: number;
   hiddenSeries: Set<string>;
+}
+
+export function renderSeriesSymbols(svg: SVGSVGElement, opts: SeriesLabelOptions, seriesOffset = 0): void {
+  const old = svg.querySelector(".dc-symbols");
+  if (old) old.remove();
+
+  const lines = opts.series.filter((s): s is LineSeriesOption => s.type === "line");
+  // Auto-hide symbols for dense series (>30 points) unless explicitly enabled
+  const visible = lines.filter((s) => {
+    if (s.name && opts.hiddenSeries.has(s.name)) return false;
+    if (s.showSymbol === false) return false;
+    if (s.showSymbol === true) return true;
+    return (s.data ?? []).length <= 30;
+  });
+  if (visible.length === 0) return;
+
+  const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  group.setAttribute("class", "dc-symbols");
+
+  visible.forEach((s, si) => {
+    const xScale = opts.xScales[s.xAxisIndex ?? 0];
+    const yScale = opts.yScales[s.yAxisIndex ?? 0];
+    if (!xScale || !yScale) return;
+
+    const color = s.color ? String(s.color) : seriesHex(seriesOffset + lines.indexOf(s));
+    const r = typeof s.symbolSize === "number" ? s.symbolSize / 2 : 4;
+
+    (s.data ?? []).forEach((item, index) => {
+      let xVal: any;
+      let yVal: number | null = null;
+      if (typeof item === "number") { xVal = index; yVal = item; }
+      else if (Array.isArray(item)) { xVal = item[0]; yVal = item[1] as number; }
+      else if (item && typeof item === "object") {
+        const raw = (item as any).value;
+        if (Array.isArray(raw)) { xVal = raw[0]; yVal = raw[1]; }
+        else { xVal = index; yVal = raw; }
+      }
+      if (yVal === null || !Number.isFinite(yVal)) return;
+      const px = xScale.map(xVal);
+      const py = yScale.map(yVal);
+      if (!Number.isFinite(px) || !Number.isFinite(py)) return;
+
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("cx", String(px));
+      circle.setAttribute("cy", String(py));
+      circle.setAttribute("r", String(r));
+      circle.setAttribute("fill", "#fff");
+      circle.setAttribute("stroke", color);
+      circle.setAttribute("stroke-width", "2");
+      circle.setAttribute("pointer-events", "none");
+      group.appendChild(circle);
+    });
+  });
+
+  svg.appendChild(group);
 }
 
 export function renderSeriesLabels(svg: SVGSVGElement, opts: SeriesLabelOptions): void {

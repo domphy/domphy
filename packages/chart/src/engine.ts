@@ -13,7 +13,7 @@ import type { ZoomWindow } from "./coord/grid.js";
 import { renderAxes, renderAxisPointer } from "./overlay/axes.js";
 import { renderTitle } from "./overlay/title.js";
 import { renderLegend } from "./overlay/legend.js";
-import { renderSeriesLabels } from "./overlay/labels.js";
+import { renderSeriesLabels, renderSeriesSymbols } from "./overlay/labels.js";
 import { renderBoxplot } from "./overlay/boxplot.js";
 import { renderFunnel } from "./overlay/funnel.js";
 import { renderTreemap } from "./overlay/treemap.js";
@@ -261,15 +261,20 @@ export class ChartEngine {
     this.device.submit();
 
     // ─── SVG post-WebGL ───────────────────────────────────────────────────────
-    // Series labels (rendered after WebGL so they appear on top)
-    renderSeriesLabels(this.overlaysvg, {
+    const svgOpts = {
       series: allSeries,
       xScales: grid.xScales,
       yScales: grid.yScales,
       width,
       height,
       hiddenSeries: this.hiddenSeries,
-    });
+    };
+
+    // Line data-point symbols (below labels so labels render on top)
+    renderSeriesSymbols(this.overlaysvg, svgOpts);
+
+    // Series labels (rendered after WebGL so they appear on top)
+    renderSeriesLabels(this.overlaysvg, svgOpts);
 
     // Marks
     const marksData = series
