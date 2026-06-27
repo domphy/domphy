@@ -295,7 +295,10 @@ async function run(): Promise<void> {
   console.log(`Discovered ${startedPages.length} pages.`);
 
   const highlight = await createHighlighter();
-  const generatedCss = themeCSS() + pressCSS();
+  const editorCSS =
+    `.dp-editor-grid{grid-template-columns:1fr 1fr}` +
+    `@media(max-width:768px){.dp-editor-grid{grid-template-columns:1fr}}`;
+  const generatedCss = themeCSS() + pressCSS() + editorCSS;
 
   const built: BuiltPage[] = [];
   const searchDocs: SearchDocument[] = [];
