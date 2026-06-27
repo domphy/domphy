@@ -151,15 +151,74 @@ async function buildIslandsBundle(
 
 // --- Sitemap -----------------------------------------------------------------
 
-function buildSitemap(routes: string[], hostname: string): string {
+function toAbsUrl(hostname: string, route: string): string {
+  return route === "/" ? `${hostname}/` : `${hostname}${route}`.replace(/\/+$/, "") + "/";
+}
+
+function buildSitemap(
+  routes: string[],
+  hostname: string,
+  locales?: Record<string, import("./types.js").LocaleConfig>,
+): string {
+  const routeSet = new Set(routes);
+  const localePairs = locales ? Object.entries(locales) : [];
+  // Only emit xhtml alternates when there are 2+ locales
+  const hasAlternates = localePairs.length >= 2;
+
+  const xmlns = hasAlternates
+    ? ' xmlns:xhtml="http://www.w3.org/1999/xhtml"'
+    : "";
+
+  // Determine the default locale prefix (key "/" if present, else first key)
+  const defaultPrefix =
+    localePairs.find(([k]) => k === "/") != null
+      ? "/"
+      : (localePairs[0]?.[0] ?? "/");
+
   const urls = routes.map((route) => {
-    const loc =
-      route === "/"
-        ? `${hostname}/`
-        : `${`${hostname}${route}`.replace(/\/+$/, "")}/`;
-    return `  <url><loc>${loc}</loc></url>`;
+    const loc = toAbsUrl(hostname, route);
+
+    if (!hasAlternates) return `  <url><loc>${loc}</loc></url>`;
+
+    // Identify which locale prefix this route belongs to
+    let ownPrefix = "/";
+    for (const [prefix] of localePairs) {
+      if (prefix !== "/" && route.startsWith(prefix)) {
+        ownPrefix = prefix;
+        break;
+      }
+    }
+
+    // Canonical slug = route with locale prefix stripped
+    const slug =
+      ownPrefix === "/"
+        ? route
+        : "/" + route.slice(ownPrefix.length);
+
+    // Build alternate links for each locale that has this page
+    const alternates: string[] = [];
+    for (const [prefix, locale] of localePairs) {
+      const altRoute = prefix === "/" ? slug : prefix + slug.slice(1);
+      if (!routeSet.has(altRoute)) continue;
+      alternates.push(
+        `    <xhtml:link rel="alternate" hreflang="${locale.lang}" href="${toAbsUrl(hostname, altRoute)}"/>`,
+      );
+    }
+
+    // x-default points to the default locale's version
+    const xDefaultRoute =
+      defaultPrefix === "/" ? slug : defaultPrefix + slug.slice(1);
+    if (routeSet.has(xDefaultRoute)) {
+      alternates.push(
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${toAbsUrl(hostname, xDefaultRoute)}"/>`,
+      );
+    }
+
+    if (alternates.length === 0) return `  <url><loc>${loc}</loc></url>`;
+    return `  <url>\n    <loc>${loc}</loc>\n${alternates.join("\n")}\n  </url>`;
   });
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${xmlns}>\n${urls.join("\n")}\n</urlset>`;
 }
 
 // --- HTML document -----------------------------------------------------------
@@ -455,6 +514,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
       buildSitemap(
         built.map((p) => p.route),
         config.hostname,
+        config.locales,
       ),
       "utf8",
     );
