@@ -1,4 +1,5 @@
 import * as domphyApp from "@domphy/app";
+import * as domphyChart from "@domphy/chart";
 import * as domphyCore from "@domphy/core";
 import * as domphyDnd from "@domphy/dnd";
 import * as domphyForm from "@domphy/form/domphy";
@@ -17,6 +18,7 @@ import Sortable from "sortablejs";
 import * as zod from "zod";
 
 const moduleMap: Record<string, unknown> = {
+  "@domphy/chart": domphyChart,
   "@domphy/core": domphyCore,
   "@domphy/ui": domphyUI,
   "@domphy/theme": domphyTheme,
