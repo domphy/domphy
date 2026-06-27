@@ -143,17 +143,24 @@ const form = createForm<T>({
 
 ```ts
 // Reactive reads (pass listener l)
-form.values(l)         // T — current values
-form.state(l)          // FormState<T> — full state including meta
-form.canSubmit(l)      // boolean
-form.isSubmitting(l)   // boolean
-form.isValid(l)        // boolean
-form.isSubmitted(l)    // boolean
-form.state(l).isDirty  // boolean
+form.values(l)       // T — current values
+form.state(l)        // FormState<T> — full state including meta
+form.canSubmit(l)    // boolean
+form.isSubmitting(l) // boolean
+form.isValid(l)      // boolean
+form.isSubmitted(l)  // boolean
+form.isDirty(l)      // boolean — any field differs from defaultValues
+form.isPristine(l)   // boolean — no field has changed
+form.isTouched(l)    // boolean — any field has been touched
+form.isBlurred(l)    // boolean — any field has been blurred
 
-// Non-reactive (no listener) — snapshot
-form.form.state.values
-form.form.getFieldValue("email")
+// Imperative (no listener)
+form.getFieldValue("email")                 // read a field value
+form.setFieldValue("email", "new@x.com")    // set a field value
+form.validateField("email")                 // trigger validation (returns errors[])
+form.validateField("email", "blur")         // trigger with specific cause
+form.reset()                                // reset to defaultValues
+form.reset({ email: "a@b.com" })            // reset to given values
 ```
 
 ## Field handle API
@@ -162,16 +169,25 @@ form.form.getFieldValue("email")
 const field = form.field<string>("name", options)
 
 // Reactive
-field.value(l)     // string — current value
-field.errors(l)    // unknown[] — current errors
-field.meta(l)      // FieldMeta — full field state
+field.value(l)   // string — current value
+field.errors(l)  // unknown[] — current errors
+field.meta(l)    // FieldMeta — full field state
 
 // Imperative
-field.handleChange(newValue)          // update + run onChange validators
-field.handleBlur()                    // mark touched + run onBlur validators
-field.setValue(newValue)              // update without running validators
-field.pushValue(item)                 // for array fields — push
-field.removeValue(index)              // for array fields — remove
-field.swapValues(indexA, indexB)      // for array fields — swap
-field.api                             // underlying FieldApi
+field.handleChange(newValue)        // update + run onChange validators
+field.handleBlur()                  // mark touched + run onBlur validators
+field.setValue(newValue)            // update without running validators
+field.validate()                    // manually trigger validation (cause: "change")
+field.validate("blur")              // trigger with specific cause
+
+// Array field helpers (when TData extends any[])
+field.pushValue(item)               // append to array
+field.insertValue(index, item)      // insert at index
+field.replaceValue(index, item)     // replace at index
+field.removeValue(index)            // remove at index
+field.swapValues(a, b)              // swap two indices
+field.moveValue(a, b)               // move item from a to b
+field.clearValues()                 // empty the array
+
+field.api                           // underlying FieldApi (full form-core surface)
 ```

@@ -1,5 +1,6 @@
 import { type Listener, State } from "@domphy/core"
 import { FieldApi, FormApi } from "../index.js"
+import type { ValidationCause, ValidationError } from "../types.js"
 
 // FieldApi carries 23 generics; erase them at the adapter boundary.
 type AnyFieldApi = InstanceType<typeof FieldApi>
@@ -29,6 +30,16 @@ export interface FieldHandle<TData = unknown> {
   handleChange(updater: Updater<TData>): void
   handleBlur(): void
   setValue(updater: Updater<TData>): void
+  /** Manually trigger validation. Cause defaults to "change". */
+  validate(cause?: ValidationCause): ValidationError[] | Promise<ValidationError[]>
+  // Array field helpers (only meaningful when TData extends any[])
+  pushValue(value: TData extends any[] ? TData[number] : never): void
+  insertValue(index: number, value: TData extends any[] ? TData[number] : never): void
+  replaceValue(index: number, value: TData extends any[] ? TData[number] : never): void
+  removeValue(index: number): void
+  swapValues(a: number, b: number): void
+  moveValue(a: number, b: number): void
+  clearValues(): void
 }
 
 export interface FormHandle<TFormData> {
@@ -53,6 +64,10 @@ export interface FormHandle<TFormData> {
   isSubmitting(listener?: Listener): boolean
   isValid(listener?: Listener): boolean
   isSubmitted(listener?: Listener): boolean
+  isDirty(listener?: Listener): boolean
+  isPristine(listener?: Listener): boolean
+  isTouched(listener?: Listener): boolean
+  isBlurred(listener?: Listener): boolean
   /** Raw reactive change counter. */
   version(listener?: Listener): number
   /** Creates (and mounts) a reactive handle for one field. */
@@ -62,6 +77,15 @@ export interface FormHandle<TFormData> {
   ): FieldHandle<TData>
   handleSubmit(): Promise<void>
   reset(values?: TFormData): void
+  /** Read the current value of a field imperatively (no listener). */
+  getFieldValue(field: string): unknown
+  /** Programmatically set a field value (triggers onChange validation by default). */
+  setFieldValue(field: string, updater: Updater<unknown>): void
+  /** Manually trigger validation for a single field. Cause defaults to "change". */
+  validateField(
+    field: string,
+    cause?: ValidationCause,
+  ): ValidationError[] | Promise<ValidationError[]>
   destroy(): void
 }
 
@@ -101,6 +125,10 @@ export function createForm<TFormData>(
     isSubmitting: (listener) => state(listener).isSubmitting,
     isValid: (listener) => state(listener).isValid,
     isSubmitted: (listener) => state(listener).isSubmitted,
+    isDirty: (listener) => state(listener).isDirty,
+    isPristine: (listener) => state(listener).isPristine,
+    isTouched: (listener) => state(listener).isTouched,
+    isBlurred: (listener) => state(listener).isBlurred,
     version: (listener) => version.get(listener),
     field: <TData = unknown>(
       name: string,
@@ -125,10 +153,21 @@ export function createForm<TFormData>(
         handleChange: (updater) => api.handleChange(updater),
         handleBlur: () => api.handleBlur(),
         setValue: (updater) => api.setValue(updater),
+        validate: (cause = "change") => api.validate(cause),
+        pushValue: (value) => api.pushValue(value as never),
+        insertValue: (index, value) => api.insertValue(index, value as never),
+        replaceValue: (index, value) => api.replaceValue(index, value as never),
+        removeValue: (index) => api.removeValue(index),
+        swapValues: (a, b) => api.swapValues(a, b),
+        moveValue: (a, b) => api.moveValue(a, b),
+        clearValues: () => api.clearValues(),
       }
     },
     handleSubmit: () => form.handleSubmit(),
     reset: (values) => form.reset(values),
+    getFieldValue: (field) => form.getFieldValue(field as any),
+    setFieldValue: (field, updater) => form.setFieldValue(field as any, updater as any),
+    validateField: (field, cause = "change") => form.validateField(field as any, cause),
     destroy: () => {
       subscription.unsubscribe()
       for (const cleanup of fieldCleanups) cleanup()

@@ -168,6 +168,10 @@ List/grid virtualization — a 1-1 port of `@tanstack/virtual-core` (identical A
 
 Headless form state/validation — a 1-1 port of `@tanstack/form-core` (identical API). Adapter `createForm` (`@domphy/form/domphy`); `form.field(name, opts)` returns a reactive field handle.
 
+**`FormHandle` reactive reads** (pass listener `l`): `form.values(l)`, `form.state(l)`, `form.canSubmit(l)`, `form.isSubmitting(l)`, `form.isValid(l)`, `form.isSubmitted(l)`, `form.isDirty(l)`, `form.isPristine(l)`, `form.isTouched(l)`, `form.isBlurred(l)`.
+**`FormHandle` imperative**: `form.getFieldValue(field)`, `form.setFieldValue(field, updater)`, `form.validateField(field, cause?)`, `form.reset(values?)`, `form.handleSubmit()`, `form.destroy()`. Raw core: `form.form` (FormApi).
+**`FieldHandle` reactive**: `field.value(l)`, `field.errors(l)`, `field.meta(l)`. **Imperative**: `field.handleChange(v)`, `field.handleBlur()`, `field.setValue(v)`, `field.validate(cause?)`. **Array helpers**: `field.pushValue(item)`, `field.insertValue(index, item)`, `field.replaceValue(index, item)`, `field.removeValue(index)`, `field.swapValues(a, b)`, `field.moveValue(a, b)`, `field.clearValues()`. Raw core: `field.api` (FieldApi).
+
 - [Overview](https://domphy.com/docs/form/) · [Core Concepts](https://domphy.com/docs/form/concepts) · [Validation](https://domphy.com/docs/form/validation) · [Field Arrays](https://domphy.com/docs/form/arrays) · [Submission & Async](https://domphy.com/docs/form/submission) · [Listeners & Side Effects](https://domphy.com/docs/form/listeners) · [Async Initial Values](https://domphy.com/docs/form/async-values) · [TypeScript](https://domphy.com/docs/form/typescript) · [UI Patches & Form Fields](https://domphy.com/docs/form/ui-integration) · [Devtools](https://domphy.com/docs/form/devtools) · [Form Composition](https://domphy.com/docs/form/composition) · [Testing Forms](https://domphy.com/docs/form/testing) · [SSR & Hydration](https://domphy.com/docs/form/ssr) · [Linked Fields](https://domphy.com/docs/form/linked-fields)
 
 ## DnD (`@domphy/dnd`)

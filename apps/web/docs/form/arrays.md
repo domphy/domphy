@@ -7,11 +7,10 @@ description: "Dynamic field arrays, nested object fields, array of objects, and 
 
 ## Basic array field
 
-Use dot-bracket notation for array indexes. Manage array items with `form.form.pushFieldValue`, `form.form.removeFieldValue`, and `form.form.swapFieldValues`:
+Use dot-bracket notation for array indexes. Create an array-field handle and use its built-in array helpers (`pushValue`, `removeValue`, `swapValues`, etc.):
 
 ```ts
 import { createForm } from "@domphy/form/domphy"
-import { toState } from "@domphy/core"
 import { button } from "@domphy/ui"
 
 const form = createForm<{ tags: string[] }>({
@@ -19,11 +18,14 @@ const form = createForm<{ tags: string[] }>({
   onSubmit: ({ value }) => save(value.tags),
 })
 
+// Array-level field handle gives access to push/remove helpers
+const tags = form.field<string[]>("tags")
+
 const App = {
   form: [
     {
       div: (l) => form.values(l).tags.map((_, i) => {
-        const field = form.field<string>(`tags[${i}]`, {})
+        const field = form.field<string>(`tags[${i}]`)
         return {
           _key: i,
           div: [
@@ -37,7 +39,7 @@ const App = {
               button: "Remove",
               type: "button",
               $: [button()],
-              onClick: () => form.form.removeFieldValue("tags", i),
+              onClick: () => tags.removeValue(i),
             },
           ],
         }
@@ -47,7 +49,7 @@ const App = {
       button: "Add Tag",
       type: "button",
       $: [button()],
-      onClick: () => form.form.pushFieldValue("tags", ""),
+      onClick: () => tags.pushValue(""),
     },
     {
       button: "Save",
@@ -58,6 +60,20 @@ const App = {
   onSubmit: (e) => { e.preventDefault(); form.handleSubmit() },
 }
 ```
+
+## Field-level array helpers
+
+| Method | Description |
+|--------|-------------|
+| `field.pushValue(item)` | Append an item to the array |
+| `field.insertValue(index, item)` | Insert at a specific index |
+| `field.replaceValue(index, item)` | Replace item at an index |
+| `field.removeValue(index)` | Remove item at an index |
+| `field.swapValues(a, b)` | Swap two items (preserves field meta) |
+| `field.moveValue(a, b)` | Move item from index `a` to index `b` |
+| `field.clearValues()` | Remove all items |
+
+These methods live on a `FieldHandle<T[]>` — create the handle for the array field itself, then call helpers on it. Per-item fields are separate handles with the `[i]` path suffix.
 
 ## Array of objects
 
@@ -70,6 +86,8 @@ const form = createForm<{
   defaultValues: { contacts: [{ name: "", email: "" }] },
   onSubmit: ({ value }) => save(value.contacts),
 })
+
+const contacts = form.field<Array<{ name: string; email: string }>>("contacts")
 
 const ContactRow = (i: number) => {
   const nameField = form.field<string>(`contacts[${i}].name`, {
@@ -97,7 +115,7 @@ const ContactRow = (i: number) => {
       {
         button: "✕",
         type: "button",
-        onClick: () => form.form.removeFieldValue("contacts", i),
+        onClick: () => contacts.removeValue(i),
       },
     ],
   }
@@ -109,27 +127,31 @@ const App = {
     {
       button: "Add Contact",
       type: "button",
-      onClick: () => form.form.pushFieldValue("contacts", { name: "", email: "" }),
+      onClick: () => contacts.pushValue({ name: "", email: "" }),
     },
   ],
   onSubmit: (e) => { e.preventDefault(); form.handleSubmit() },
 }
 ```
 
-## Reordering with swapFieldValues
+## Reordering with swapValues / moveValue
 
-Implement drag-to-reorder or up/down buttons:
+Implement up/down buttons or drag-to-reorder:
 
 ```ts
+// Swap with the item above
 {
   button: "↑",
   type: "button",
   disabled: i === 0,
-  onClick: () => form.form.swapFieldValues("contacts", i, i - 1),
+  onClick: () => contacts.swapValues(i, i - 1),
 }
+
+// Move item from index 2 to index 0
+contacts.moveValue(2, 0)
 ```
 
-`swapFieldValues(fieldName, indexA, indexB)` — swaps two elements and preserves per-field state (touched, dirty, errors).
+`swapValues(a, b)` — swaps two elements and preserves per-field state (touched, dirty, errors). `moveValue(a, b)` shifts intermediate items to fill the gap.
 
 ## Nested object fields
 
@@ -224,13 +246,26 @@ Reset to specific values:
 form.reset({ contacts: [{ name: "Alice", email: "alice@example.com" }] })
 ```
 
-## Reading raw FormApi
+## Programmatic field control
 
-For advanced use cases (custom validation runners, field state inspection), access the underlying `FormApi`:
+`FormHandle` exposes imperative getters and setters without needing to reach into `form.form`:
 
 ```ts
-const rawForm = form.form    // FormApi<TData>
-const fieldApi = field.api   // FieldApi<TData, string>
+// Read a value without a listener
+const current = form.getFieldValue("contacts")
+
+// Set a value programmatically (triggers onChange validation)
+form.setFieldValue("contacts[0].name", "Alice")
+
+// Trigger validation manually
+await form.validateField("contacts[0].email", "change")
 ```
 
-See the [Form concepts](/docs/form/concepts) page for the full `FormApi` API (`setFieldValue`, `getFieldValue`, `setFieldMeta`, `validateField`, etc.).
+## Advanced: underlying FormApi / FieldApi
+
+For lower-level control (custom validation runners, direct store access), use the escape hatch:
+
+```ts
+const rawForm = form.form    // FormApi<TData> — full TanStack form-core API
+const fieldApi = field.api   // FieldApi — full form-core field surface
+```
