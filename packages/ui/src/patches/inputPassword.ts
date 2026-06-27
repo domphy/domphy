@@ -1,0 +1,119 @@
+import type { PartialElement, StyleObject } from "@domphy/core";
+import { toState, type ValueOrState } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
+
+// Tabler Icons (MIT) — eye and eye-off outlines.
+const EYE_SVG =
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" ` +
+  `stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ` +
+  `width="1em" height="1em">` +
+  `<path stroke="none" d="M0 0h24v24H0z" fill="none"/>` +
+  `<path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>` +
+  `<path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>` +
+  `</svg>`;
+
+const EYE_OFF_SVG =
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" ` +
+  `stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ` +
+  `width="1em" height="1em">` +
+  `<path stroke="none" d="M0 0h24v24H0z" fill="none"/>` +
+  `<path d="M10.585 10.587a2 2 0 0 0 2.829 2.828"/>` +
+  `<path d="M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6` +
+  `c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18` +
+  `c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87"/>` +
+  `<path d="M3 3l18 18"/>` +
+  `</svg>`;
+
+/**
+ * Password input wrapper: a styled `<div>` that inserts an `<input type="password">`
+ * and a show/hide toggle button. The outer div carries the focus-ring outline via
+ * `:focus-within`. Apply to an empty `<div>`.
+ *
+ * @hostTag div
+ * @param props.color - Base color tone for border/background/text. Defaults to `"neutral"`.
+ * @param props.accentColor - Accent outline color on focus-within. Defaults to `"primary"`.
+ * @example { div: null, $: [inputPassword()] }
+ */
+function inputPassword(
+  props: {
+    color?: ValueOrState<ThemeColor>;
+    accentColor?: ValueOrState<ThemeColor>;
+  } = {},
+): PartialElement {
+  const colorState = toState(props.color ?? "neutral", "color");
+  const accentState = toState(props.accentColor ?? "primary", "accentColor");
+
+  return {
+    _onInsert: (node) => {
+      if (node.tagName !== "div") {
+        console.warn('"inputPassword" patch must use div tag');
+      }
+    },
+    _onMount: (node) => {
+      const wrapper = node.domElement as HTMLElement;
+      let visible = false;
+
+      const input = document.createElement("input");
+      input.type = "password";
+      // Reset native input styles; inherit font/color from the wrapper.
+      input.style.cssText =
+        "flex:1;min-width:0;border:none;outline:none;background:transparent;" +
+        "padding:0;margin:0;font:inherit;color:inherit;";
+
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.setAttribute("aria-label", "Show password");
+      // Reset button styles; color inherits from wrapper.
+      toggle.style.cssText =
+        "background:none;border:none;padding:0;margin:0;cursor:pointer;" +
+        "color:inherit;display:flex;align-items:center;flex-shrink:0;opacity:0.6;";
+      toggle.innerHTML = EYE_SVG;
+
+      const onToggle = () => {
+        visible = !visible;
+        input.type = visible ? "text" : "password";
+        toggle.innerHTML = visible ? EYE_OFF_SVG : EYE_SVG;
+        toggle.setAttribute(
+          "aria-label",
+          visible ? "Hide password" : "Show password",
+        );
+      };
+      toggle.addEventListener("click", onToggle);
+
+      wrapper.appendChild(input);
+      wrapper.appendChild(toggle);
+
+      node.addHook("Remove", () => {
+        toggle.removeEventListener("click", onToggle);
+      });
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: (l) => themeSpacing(themeDensity(l) * 1),
+      paddingBlock: (l) => themeSpacing(themeDensity(l) * 1),
+      paddingInline: (l) => themeSpacing(themeDensity(l) * 3),
+      borderRadius: (l) => themeSpacing(themeDensity(l) * 1),
+      border: "none",
+      outlineOffset: "-1px",
+      outline: (l) =>
+        `1px solid ${themeColor(l, "shift-4", colorState.get(l))}`,
+      color: (l) => themeColor(l, "shift-9", colorState.get(l)),
+      backgroundColor: (l) =>
+        themeColor(l, "inherit", colorState.get(l)),
+      fontSize: (l) => themeSize(l, "inherit"),
+      "&:focus-within": {
+        outline: (l) =>
+          `${themeSpacing(0.5)} solid ${themeColor(l, "shift-6", accentState.get(l))}`,
+      },
+    } as StyleObject,
+  };
+}
+
+export { inputPassword };
