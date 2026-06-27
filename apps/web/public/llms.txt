@@ -311,7 +311,7 @@ engine.destroy();
 
 ### API surface (ECharts grade)
 
-- **series (WebGL)**: `line` (smooth, step, areaStyle, connectNulls, gradient area via `GradientObject`), `bar` (stack, grouped), `scatter` (symbolSize fn), `pie` (radius, roseType, center), `radar`, `heatmap`, `candlestick` (upColor/downColor), `gauge` (SVG, progress arc, ticks, labels)
+- **series (WebGL)**: `line` (smooth, step, areaStyle, connectNulls, stack, gradient area via `GradientObject`), `bar` (stack, grouped, horizontal — swap to `yAxis: "category"` + `xAxis: "value"`), `scatter` (symbolSize fn), `pie` (radius, roseType, center), `radar`, `heatmap`, `candlestick` (upColor/downColor), `gauge` (SVG, progress arc, ticks, labels)
 - **series (SVG)**: `boxplot` (min/Q1/median/Q3/max with whiskers), `funnel` (sorted trapezoids with labels), `treemap` (squarified layout, recursive children, auto labels), `sankey` (BFS depth + flow relaxation, bezier links), `graph` (Fruchterman-Reingold force-directed, arrows, categories)
 - **series labels**: `label: { show: true, position: "top"|"inside"|"bottom", formatter, fontSize }` on bar, line, scatter, pie (with leader lines + percentage)
 - **axes**: `xAxis`/`yAxis` — type `"value" | "category" | "time" | "log"`, `name`, `min`/`max`, `splitNumber`, `gridIndex`, `axisLabel.rotate`
@@ -320,7 +320,7 @@ engine.destroy();
 - **radar**: `indicator[]`, `shape`, `splitNumber`, `startAngle`
 - **title**: `text`, `subtext`, `left`/`top`
 - **legend**: `orient`, `data[]`, `left`/`top`/`right`/`bottom` — **click to show/hide series** (interactive)
-- **tooltip**: `trigger` (`"axis"` | `"item"`), `axisPointer.type`, `formatter`
+- **tooltip**: `trigger` (`"axis"` for line/bar — all series at x; `"item"` for pie/scatter — hit-test nearest sector/point), `axisPointer.type`, `formatter`
 - **dataset**: `source`, `dimensions`, `transform[]` (filter/sort)
 - **markPoint/markLine/markArea**: `max`/`min`/`average` special values, `coord`, `xAxis`/`yAxis`
 - **dataZoom**: slider (drag handles + center pan) + inside (mouse wheel); clips domain on xAxis; `start`/`end` (0–100%)

@@ -20859,7 +20859,7 @@ tooltip: {
 }
 ```
 
-`trigger: "axis"` shows tooltip for all series at the hovered x value (use with line/bar). `trigger: "item"` shows tooltip for the individual data point (use with pie/scatter).
+`trigger: "axis"` shows tooltip for all series at the hovered x value (use with line/bar). `trigger: "item"` shows tooltip for the individual data point closest to the cursor. Works for `scatter` and `pie` series.
 
 ## Legend
 
@@ -21222,7 +21222,7 @@ The chart re-renders whenever the state changes.
 | Series | Key options |
 |---|---|
 | `line` | `smooth`, `step`, `areaStyle`, `connectNulls`, `stack` |
-| `bar` | `stack`, `label`, grouped via multiple series |
+| `bar` | `stack`, `label`, grouped; **horizontal** when `yAxis: "category"` + `xAxis: "value"` |
 | `scatter` | `symbolSize` (number or `(val) => number`) |
 | `pie` | `radius` (number or `[inner, outer]`), `roseType`, `center` |
 | `radar` | `areaStyle`, paired with `radar.indicator[]` |
@@ -21331,6 +21331,18 @@ series: [
   { type: "bar", name: "B", stack: "total", data: [80, 100] },
 ]
 ```
+
+### Horizontal bar
+
+Swap axis types to orient bars horizontally:
+
+```ts
+xAxis: { type: "value" },
+yAxis: { type: "category", data: ["Mon", "Tue", "Wed"] },
+series: [{ type: "bar", data: [120, 200, 150] }]
+```
+
+All bar options (stack, grouped, itemStyle, label) work the same way.
 
 ---
 

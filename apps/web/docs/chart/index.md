@@ -62,7 +62,7 @@ The chart re-renders whenever the state changes.
 | Series | Key options |
 |---|---|
 | `line` | `smooth`, `step`, `areaStyle`, `connectNulls`, `stack` |
-| `bar` | `stack`, `label`, grouped via multiple series |
+| `bar` | `stack`, `label`, grouped; **horizontal** when `yAxis: "category"` + `xAxis: "value"` |
 | `scatter` | `symbolSize` (number or `(val) => number`) |
 | `pie` | `radius` (number or `[inner, outer]`), `roseType`, `center` |
 | `radar` | `areaStyle`, paired with `radar.indicator[]` |
