@@ -23,6 +23,9 @@ importers:
       '@domphy/app':
         specifier: workspace:*
         version: link:../../packages/app
+      '@domphy/chart':
+        specifier: workspace:*
+        version: link:../../packages/chart
       '@domphy/core':
         specifier: workspace:*
         version: link:../../packages/core
