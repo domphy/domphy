@@ -49,16 +49,16 @@ Dragging reorders the DOM, FormKit calls `setValues` → the `items` state updat
 
 ## Config & plugins
 
-`dragDrop(state, config)` forwards `config` to FormKit's `ParentConfig`, and the whole FormKit API (plugins, sensors, group transfer) is re-exported:
+`dragDrop(state, config)` forwards `config` to FormKit's `ParentConfig`, and the whole FormKit API (plugins, sensors, group transfer) is re-exported. Animations are **on by default**:
 
 ```ts
-import { dragDrop, animations } from "@domphy/dnd"
+import { dragDrop } from "@domphy/dnd"
 
-// drop animations + transfer items between any lists sharing a group
-{ ul: (l) => ..., $: [dragDrop(items, { plugins: [animations()], group: "todos" })] }
+// animated by default; transfer items between any lists sharing a group
+{ ul: (l) => ..., $: [dragDrop(items, { group: "todos" })] }
 ```
 
-Give two lists the same `group` to transfer items between them. Accessibility, touch and synthetic-drag handling come from FormKit — see the [FormKit DnD docs](https://drag-and-drop.formkit.com) for the full config.
+Give two lists the same `group` to transfer items between them. Use `animated: false` to opt out of animations. Accessibility, touch and synthetic-drag handling come from FormKit — see the [FormKit DnD docs](https://drag-and-drop.formkit.com) for the full config.
 
 ## Cleanup
 

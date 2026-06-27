@@ -169,15 +169,13 @@ A normal tap (less than `longPressDuration` ms) fires click events as usual; a s
 
 ## Reduced Motion
 
-Respect `prefers-reduced-motion` when using the `animations()` plugin:
+`dragDrop()` enables animations by default. Disable them for users who prefer reduced motion:
 
 ```ts
-import { animations } from "@domphy/dnd"
-
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
 dragDrop(tasks, {
-  plugins: reducedMotion ? [] : [animations({ duration: 150 })],
+  animated: !reducedMotion,
 })
 ```
 

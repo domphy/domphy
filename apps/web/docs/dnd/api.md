@@ -93,8 +93,8 @@ Smooth CSS transitions for dragging and drop. **Included by default** in `dragDr
 // Opt out of animations:
 { ul: ..., $: [dragDrop(items, { animated: false })] }
 
-// Manual (if using dragAndDrop() directly):
-{ ul: ..., $: [dragDrop(items, { plugins: [animations()] })] }
+// Custom animation config — disable default, pass explicit plugin:
+{ ul: ..., $: [dragDrop(items, { animated: false, plugins: [animations({ duration: 200 })] })] }
 ```
 
 ```ts

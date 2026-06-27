@@ -7,12 +7,14 @@ description: "Smooth drop animations with the animations() plugin and drag feedb
 
 The `animations()` plugin adds CSS transition animations to sort and transfer operations. Items slide into their new positions after a drop rather than snapping instantly.
 
+**`dragDrop()` includes animations by default** — no configuration needed.
+
 ## Basic Setup
 
-Import `animations` and add it to `plugins`:
+Animations are on automatically:
 
 ```ts
-import { dragDrop, animations } from "@domphy/dnd"
+import { dragDrop } from "@domphy/dnd"
 import { toState } from "@domphy/core"
 import { themeColor, themeSpacing } from "@domphy/theme"
 
@@ -36,19 +38,25 @@ const SortableList = {
         userSelect: "none",
       },
     })),
-  $: [dragDrop(items, { plugins: [animations()] })],
+  $: [dragDrop(items)],
   style: { listStyle: "none", padding: "0" },
 }
 ```
 
-No extra CSS is required. `animations()` uses the Web Animations API internally and cleans up after itself.
+To disable: `dragDrop(items, { animated: false })`.
+
+`animations()` uses the Web Animations API internally and cleans up after itself.
 
 ## Configuration
 
+To customize animation duration or easing, disable the default and pass the plugin explicitly:
+
 ```ts
-animations({
-  duration: 200,           // ms — animation length (default: 150)
-  easing: "ease-in-out",   // any WAAPI easing string (default: "ease-in-out")
+import { dragDrop, animations } from "@domphy/dnd"
+
+dragDrop(items, {
+  animated: false,  // disable default
+  plugins: [animations({ duration: 200, easing: "ease-in-out" })],
 })
 ```
 
@@ -62,32 +70,44 @@ animations({ duration: 50, easing: "linear" })
 
 ## Animations in Multi-Container
 
-Apply `animations()` to each list independently — each container manages its own animation:
+Animations are on by default in all `dragDrop()` calls — including multi-container setups:
 
 ```ts
 const GROUP = "board"
 
 const ListA = {
   ul: (l) => stateA.get(l).map((item) => ({ li: item.label, _key: item.id })),
-  $: [dragDrop(stateA, { group: GROUP, plugins: [animations()] })],
+  $: [dragDrop(stateA, { group: GROUP })],
 }
 
 const ListB = {
   ul: (l) => stateB.get(l).map((item) => ({ li: item.label, _key: item.id })),
-  $: [dragDrop(stateB, { group: GROUP, plugins: [animations()] })],
+  $: [dragDrop(stateB, { group: GROUP })],
 }
 ```
 
-Lists without `animations()` snap instantly; lists with it animate.
+Pass `animated: false` on any individual list to opt it out of animations.
 
 ## Combining Plugins
 
-`plugins` is an array — pass multiple plugins in any order:
+`animations()` is included by default. To add other plugins alongside it, append them to `plugins` — `animations()` prepends automatically:
+
+```ts
+import { dragDrop, dropOrSwap } from "@domphy/dnd"
+
+// Other plugins alongside default animation:
+dragDrop(items, {
+  plugins: [dropOrSwap()],
+})
+```
+
+To use a custom animation config alongside other plugins, disable the default first:
 
 ```ts
 import { dragDrop, animations, dropOrSwap } from "@domphy/dnd"
 
 dragDrop(items, {
+  animated: false,
   plugins: [
     animations({ duration: 180 }),
     dropOrSwap(),
@@ -97,14 +117,13 @@ dragDrop(items, {
 
 ## Visual Feedback with CSS Classes
 
-`animations()` handles the reorder transition. For immediate visual feedback _during_ the drag, use the class config options. These are applied directly to DOM elements by FormKit, so they must live in a stylesheet:
+`animations()` handles the reorder transition (enabled by default). For immediate visual feedback _during_ the drag, use the class config options. These are applied directly to DOM elements by FormKit, so they must live in a stylesheet:
 
 ```ts
 dragDrop(items, {
   draggingClass: "item-dragging",          // the item being dragged
   dropZoneClass: "item-drop-target",       // item currently hovered over
   dropZoneParentClass: "list-drop-active", // parent list being hovered over
-  plugins: [animations()],
 })
 ```
 
@@ -127,7 +146,6 @@ dragDrop(items, {
   synthDraggingClass: "synth-dragging",
   synthDropZoneClass: "synth-drop-target",
   synthDropZoneParentClass: "synth-list-active",
-  plugins: [animations()],
 })
 ```
 
@@ -139,19 +157,18 @@ const CLS = "item-dragging"
 dragDrop(items, {
   draggingClass: CLS,
   synthDraggingClass: CLS,
-  plugins: [animations()],
 })
 ```
 
 ## Respecting Reduced Motion
 
-Check `prefers-reduced-motion` and skip the plugin when the user has requested it:
+Use `animated: false` to disable animations for users who prefer reduced motion:
 
 ```ts
 const prefersReducedMotion =
   window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
 dragDrop(items, {
-  plugins: prefersReducedMotion ? [] : [animations({ duration: 150 })],
+  animated: !prefersReducedMotion,
 })
 ```

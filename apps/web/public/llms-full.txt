@@ -19268,10 +19268,14 @@ import { animations } from "@domphy/dnd"
 
 ### `animations(config?)`
 
-Smooth CSS transitions for dragging and drop. No extra setup required:
+Smooth CSS transitions for dragging and drop. **Included by default** in `dragDrop()` — you only need this if you want a custom config:
 
 ```ts
-{ ul: ..., $: [dragDrop(items, { plugins: [animations()] })] }
+// Default (animated automatically):
+{ ul: ..., $: [dragDrop(items)] }
+
+// Custom config — disable default, pass explicit plugin:
+{ ul: ..., $: [dragDrop(items, { animated: false, plugins: [animations({ duration: 200 })] })] }
 ```
 
 ```ts
