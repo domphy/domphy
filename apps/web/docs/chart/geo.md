@@ -159,3 +159,19 @@ const option: ChartOption = {
 - `geo.center` uses `[longitude, latitude]` — **longitude first**, same as GeoJSON.
 - `geo.zoom` is a plain multiplier: `1` = fit entire map to container, `2` = 2× zoom in, `0.5` = 2× zoom out.
 - Data coordinates for `effectScatter`/`scatter` on geo: `value: [longitude, latitude, optionalSize]`.
+
+## getRegisteredMap
+
+After registering a custom map, retrieve the GeoJSON back with `getRegisteredMap`:
+
+```ts
+import { registerMap, getRegisteredMap } from "@domphy/chart"
+
+registerMap("vietnam", geoJSON)
+
+const stored = getRegisteredMap("vietnam")
+// → the same GeoJSON FeatureCollection you passed in
+// Returns undefined if the name was never registered
+```
+
+Useful for verifying a map was registered, or for reusing the GeoJSON in other parts of your app (e.g. custom SVG overlays) without keeping a separate reference.

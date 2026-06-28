@@ -21043,6 +21043,8 @@ grid: { top: 60, bottom: 50, left: 70, right: 20 }
 
 ## Polar
 
+> **Note:** `polar`, `radiusAxis`, and `angleAxis` options are typed in `ChartOption` but the polar coordinate system is not yet rendered by the engine. Bar and scatter series with `coordinateSystem: "polar"` will not display. Use `radar` series for spider/radial charts — it uses its own `radar` option, not the polar coordinate system.
+
 ```ts
 interface PolarOption {
   center?: [string | number, string | number],
@@ -21050,7 +21052,7 @@ interface PolarOption {
 }
 ```
 
-Used with radar and radial series.
+When polar rendering is available, `radiusAxis` and `angleAxis` configure the two axes of the polar coordinate system.
 
 ## DataZoom
 
@@ -21664,6 +21666,32 @@ const App: DomphyElement<"div"> = {
 
 When `option` is a `State<ChartOption>`, the `chart()` patch re-renders the chart on every state change. Assign a new `option.v` to trigger an update.
 
+## Low-level utilities
+
+```ts
+import { resolveDataset, applyTransforms } from "@domphy/chart"
+import type { DatasetOption, DatasetRef } from "@domphy/chart"
+```
+
+These are the internal functions the engine uses to process datasets before rendering. Useful for custom series or pre-processing data outside the chart.
+
+**`resolveDataset(datasets, ref)`** — resolves a `DatasetRef` (series `datasetIndex`/`datasetId`) to the corresponding raw dataset after applying its transforms.
+
+**`applyTransforms(dataset, allDatasets)`** — runs the `transform` pipeline on a dataset, returning the derived rows as a 2D array.
+
+```ts
+const datasets: DatasetOption[] = [
+  { source: [["x", "y"], [1, 10], [2, 20], [3, 15]] },
+  {
+    fromDatasetIndex: 0,
+    transform: { type: "sort", config: { dimension: "y", order: "desc" } },
+  },
+]
+
+const rows = applyTransforms(datasets[1], datasets)
+// → [["x","y"],[2,20],[3,15],[1,10]]
+```
+
 ### engine.md
 
 ---
@@ -21798,14 +21826,27 @@ import {
   createLogScale,
 } from "@domphy/chart"
 
+// Linear: maps numeric domain to pixel range
 const scale = createLinearScale([0, 100], [0, 400])
-scale(50)  // → 200
+scale(50)   // → 200
+scale(0)    // → 0
+scale(100)  // → 400
 
+// Ordinal: maps category labels to pixel range (center of each band)
 const ordinal = createOrdinalScale(["A", "B", "C"], [0, 300])
 ordinal("B")  // → 150
+
+// Time: like linear but domain values are timestamps
+const time = createTimeScale([Date.UTC(2024, 0, 1), Date.UTC(2024, 11, 31)], [0, 600])
+time(Date.UTC(2024, 5, 15))  // → ~300 (mid-year ≈ half of range)
+
+// Log: logarithmic scale, domain must not cross zero
+const log = createLogScale([1, 1000], [0, 300])
+log(10)   // → 100  (log₁₀(10)/log₁₀(1000) × 300)
+log(100)  // → 200
 ```
 
-These are lower-level utilities used internally by the chart engine, exposed for custom rendering or annotation overlays.
+All four scale types are lower-level utilities used internally by the chart engine, exposed for custom rendering or annotation overlays. Each returns a function `(value) => number`.
 
 ### events.md
 
@@ -22221,6 +22262,22 @@ const option: ChartOption = {
 - `geo.center` uses `[longitude, latitude]` — **longitude first**, same as GeoJSON.
 - `geo.zoom` is a plain multiplier: `1` = fit entire map to container, `2` = 2× zoom in, `0.5` = 2× zoom out.
 - Data coordinates for `effectScatter`/`scatter` on geo: `value: [longitude, latitude, optionalSize]`.
+
+## getRegisteredMap
+
+After registering a custom map, retrieve the GeoJSON back with `getRegisteredMap`:
+
+```ts
+import { registerMap, getRegisteredMap } from "@domphy/chart"
+
+registerMap("vietnam", geoJSON)
+
+const stored = getRegisteredMap("vietnam")
+// → the same GeoJSON FeatureCollection you passed in
+// Returns undefined if the name was never registered
+```
+
+Useful for verifying a map was registered, or for reusing the GeoJSON in other parts of your app (e.g. custom SVG overlays) without keeping a separate reference.
 
 ### index.md
 
@@ -23228,7 +23285,7 @@ description: "Detailed feature comparison between @domphy/chart and Apache EChar
 | surface3D | ✓ (SVG) | ECharts GL (WebGL mesh) |
 | Calendar coordinate | ✓ | ✓ |
 | Geo coordinate | ✓ | ✓ |
-| Polar coordinate | ✓ | ✓ |
+| Polar coordinate | typed only (not rendered) | ✓ |
 | ThemeRiver (multi-series) | ✓ | ✓ |
 | Lines (flow map) | ✓ (SVG + animateMotion) | ✓ |
 | EffectScatter | ✓ (SVG ripple animation) | ✓ |

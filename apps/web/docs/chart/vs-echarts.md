@@ -31,7 +31,7 @@ description: "Detailed feature comparison between @domphy/chart and Apache EChar
 | surface3D | ✓ (SVG) | ECharts GL (WebGL mesh) |
 | Calendar coordinate | ✓ | ✓ |
 | Geo coordinate | ✓ | ✓ |
-| Polar coordinate | ✓ | ✓ |
+| Polar coordinate | typed only (not rendered) | ✓ |
 | ThemeRiver (multi-series) | ✓ | ✓ |
 | Lines (flow map) | ✓ (SVG + animateMotion) | ✓ |
 | EffectScatter | ✓ (SVG ripple animation) | ✓ |

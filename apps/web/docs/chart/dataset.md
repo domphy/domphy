@@ -285,3 +285,29 @@ const App: DomphyElement<"div"> = {
 ```
 
 When `option` is a `State<ChartOption>`, the `chart()` patch re-renders the chart on every state change. Assign a new `option.v` to trigger an update.
+
+## Low-level utilities
+
+```ts
+import { resolveDataset, applyTransforms } from "@domphy/chart"
+import type { DatasetOption, DatasetRef } from "@domphy/chart"
+```
+
+These are the internal functions the engine uses to process datasets before rendering. Useful for custom series or pre-processing data outside the chart.
+
+**`resolveDataset(datasets, ref)`** — resolves a `DatasetRef` (series `datasetIndex`/`datasetId`) to the corresponding raw dataset after applying its transforms.
+
+**`applyTransforms(dataset, allDatasets)`** — runs the `transform` pipeline on a dataset, returning the derived rows as a 2D array.
+
+```ts
+const datasets: DatasetOption[] = [
+  { source: [["x", "y"], [1, 10], [2, 20], [3, 15]] },
+  {
+    fromDatasetIndex: 0,
+    transform: { type: "sort", config: { dimension: "y", order: "desc" } },
+  },
+]
+
+const rows = applyTransforms(datasets[1], datasets)
+// → [["x","y"],[2,20],[3,15],[1,10]]
+```

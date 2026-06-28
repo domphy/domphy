@@ -120,6 +120,8 @@ grid: { top: 60, bottom: 50, left: 70, right: 20 }
 
 ## Polar
 
+> **Note:** `polar`, `radiusAxis`, and `angleAxis` options are typed in `ChartOption` but the polar coordinate system is not yet rendered by the engine. Bar and scatter series with `coordinateSystem: "polar"` will not display. Use `radar` series for spider/radial charts — it uses its own `radar` option, not the polar coordinate system.
+
 ```ts
 interface PolarOption {
   center?: [string | number, string | number],
@@ -127,7 +129,7 @@ interface PolarOption {
 }
 ```
 
-Used with radar and radial series.
+When polar rendering is available, `radiusAxis` and `angleAxis` configure the two axes of the polar coordinate system.
 
 ## DataZoom
 
