@@ -627,6 +627,39 @@ function walk(
     }
   }
 
+  // tone-background-inherit: backgroundColor should always resolve to the current
+  // surface tone via themeColor(l, "inherit"), not a fixed shifted tone.
+  // Detected by running the reactive function at context=0 (no-op listener
+  // has no elementNode → contextTone returns 0): if the result is a
+  // var(--X-N) reference with N > 0, the function uses a non-inherit tone.
+  // This catches backgroundColor: (l) => themeColor(l, "shift-N") — which
+  // double-shifts when the element itself also has dataTone set, but is also
+  // wrong in general: use dataTone to shift the surface, not backgroundColor.
+  const bgProp = isPlainObject(element.style)
+    ? (element.style as Record<string, unknown>).backgroundColor
+    : undefined;
+  if (typeof bgProp === "function" && runReactive) {
+    let bgResult: unknown;
+    try {
+      bgResult = (bgProp as (l: unknown) => unknown)(() => {});
+    } catch {
+      // reactive fn threw without a real runtime — skip
+    }
+    if (typeof bgResult === "string") {
+      const bgMatch = bgResult.match(/var\(--[\w-]+-(\d+)\)$/);
+      if (bgMatch && parseInt(bgMatch[1], 10) > 0) {
+        elementDiags.push({
+          rule: "tone-background-inherit",
+          severity: "warning",
+          category: "theme",
+          path: here,
+          message: `\`style.backgroundColor\` uses a fixed tone (resolves to "${bgResult}" at base context) instead of "inherit".`,
+          hint: 'backgroundColor should always be (l) => themeColor(l, "inherit"). To shift the surface tone, set dataTone on the container — it applies to all children uniformly.',
+        });
+      }
+    }
+  }
+
   // unknown-tone: dataTone is not valid grammar, or it's valid grammar but the
   // numeric offset is out of the 18-step ramp range (0–17).
   const dataTone = element.dataTone;

@@ -162,6 +162,32 @@ describe("diagnose", () => {
     );
   });
 
+  it("warns when backgroundColor uses a fixed tone instead of inherit (tone-background-inherit)", () => {
+    // Shifted tone → flagged: at context=0, themeColor(l, "shift-1") → var(--neutral-1), N=1
+    expect(
+      rules({ div: "x", style: { backgroundColor: () => "var(--neutral-1)" } }),
+    ).toContain("tone-background-inherit");
+    expect(
+      rules({ div: "x", style: { backgroundColor: () => "var(--neutral-3)" } }),
+    ).toContain("tone-background-inherit");
+    // inherit → not flagged: themeColor(l, "inherit") at context=0 → var(--neutral-0), N=0
+    expect(
+      rules({ div: "x", style: { backgroundColor: () => "var(--neutral-0)" } }),
+    ).not.toContain("tone-background-inherit");
+    // shift-0 → same as inherit at base context → not flagged
+    expect(
+      rules({ div: "x", style: { backgroundColor: () => "var(--primary-0)" } }),
+    ).not.toContain("tone-background-inherit");
+    // non-var returns (CSS literals caught by raw-theme-value, not this rule)
+    expect(
+      rules({ div: "x", style: { backgroundColor: () => "transparent" } }),
+    ).not.toContain("tone-background-inherit");
+    // non-function backgroundColor: not flagged by this rule (raw-theme-value handles it)
+    expect(
+      rules({ div: "x", style: { backgroundColor: "#fff" } }),
+    ).not.toContain("tone-background-inherit");
+  });
+
   it("validates dataDensity range (unknown-density)", () => {
     // invalid grammar
     expect(rules({ div: "x", dataDensity: "shift-1" })).toContain(
