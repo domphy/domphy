@@ -1,6 +1,6 @@
 {
   "name": "@domphy/mermaid",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "description": "Domphy Mermaid - build-time (SSG) and client-side Mermaid diagram rendering, with markdown tree integration for @domphy/markdown",
   "type": "module",
   "sideEffects": false,
@@ -45,7 +45,7 @@
     "@mermaid-js/mermaid-cli": "^11.12.0"
   },
   "peerDependencies": {
-    "@domphy/core": "workspace:^",
+    "@domphy/core": "^0.18.1",
     "mermaid": "^11.0.0"
   },
   "peerDependenciesMeta": {
@@ -54,7 +54,7 @@
     }
   },
   "devDependencies": {
-    "@domphy/core": "workspace:*",
+    "@domphy/core": "^0.18.1",
     "@types/node": "^25.9.2",
     "mermaid": "^11.13.0",
     "tsup": "^8.5.0",

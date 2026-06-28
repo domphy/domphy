@@ -163,8 +163,8 @@ importers:
   packages/app:
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
@@ -181,27 +181,11 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.9.2)(jiti@1.21.7)(jsdom@29.1.1)(lightningcss@1.32.0)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
 
-  packages/audit:
-    dependencies:
-      playwright:
-        specifier: '>=1.20.0'
-        version: 1.61.1
-    devDependencies:
-      '@types/node':
-        specifier: ^25.9.2
-        version: 25.9.2
-      tsup:
-        specifier: ^8.5.0
-        version: 8.5.1(@microsoft/api-extractor@7.47.7(@types/node@25.9.2))(@swc/core@1.15.3(@swc/helpers@0.5.19))(jiti@1.21.7)(postcss@8.5.15)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
-      typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
-
   packages/chart:
     dependencies:
       '@domphy/floating':
-        specifier: workspace:^
-        version: link:../floating
+        specifier: ^0.18.0
+        version: 0.18.0
       '@luma.gl/core':
         specifier: ^9.1.4
         version: 9.3.5
@@ -216,11 +200,11 @@ importers:
         version: 9.3.5(@luma.gl/core@9.3.5)
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@domphy/theme':
-        specifier: workspace:*
-        version: link:../theme
+        specifier: ^0.18.0
+        version: 0.18.0(@domphy/core@0.18.1)
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
@@ -271,8 +255,8 @@ importers:
         version: 0.6.0
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
@@ -289,12 +273,12 @@ importers:
   packages/doctor:
     dependencies:
       '@domphy/palette':
-        specifier: workspace:^
-        version: link:../palette
+        specifier: ^0.18.0
+        version: 0.18.0
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
@@ -336,8 +320,8 @@ importers:
         version: 0.11.0
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
@@ -358,8 +342,8 @@ importers:
         version: 25.8.13(typescript@5.9.3)
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
@@ -389,8 +373,8 @@ importers:
         version: 2.8.2
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@types/mdast':
         specifier: ^4.0.4
         version: 4.0.4
@@ -410,15 +394,15 @@ importers:
   packages/mcp:
     dependencies:
       '@domphy/doctor':
-        specifier: workspace:^
-        version: link:../doctor
+        specifier: ^0.18.4
+        version: 0.18.4(@domphy/core@0.18.1)
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.3.6)
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
@@ -439,8 +423,8 @@ importers:
         version: 11.12.0(puppeteer@24.37.5(typescript@5.9.3))(tsx@4.21.0)(yaml@2.8.2)
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
@@ -497,20 +481,20 @@ importers:
         version: 5.1.0
     devDependencies:
       '@domphy/app':
-        specifier: workspace:*
-        version: link:../app
+        specifier: ^0.18.0
+        version: 0.18.0(@domphy/core@0.18.1)
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@domphy/markdown':
-        specifier: workspace:*
-        version: link:../markdown
+        specifier: ^0.19.1
+        version: 0.19.1(@domphy/core@0.18.1)
       '@domphy/theme':
-        specifier: workspace:*
-        version: link:../theme
+        specifier: ^0.18.0
+        version: 0.18.0(@domphy/core@0.18.1)
       '@domphy/ui':
-        specifier: workspace:*
-        version: link:../ui
+        specifier: ^0.18.7
+        version: 0.18.7(@domphy/core@0.18.1)(@domphy/theme@0.18.0(@domphy/core@0.18.1))
       '@types/mdast':
         specifier: ^4.0.4
         version: 4.0.4
@@ -530,8 +514,8 @@ importers:
   packages/query:
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
@@ -588,8 +572,8 @@ importers:
   packages/table:
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
@@ -606,8 +590,8 @@ importers:
   packages/theme:
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(@microsoft/api-extractor@7.47.7(@types/node@25.9.2))(@swc/core@1.15.3(@swc/helpers@0.5.19))(jiti@1.21.7)(postcss@8.5.15)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
@@ -621,15 +605,15 @@ importers:
   packages/ui:
     dependencies:
       '@domphy/floating':
-        specifier: workspace:^
-        version: link:../floating
+        specifier: ^0.18.0
+        version: 0.18.0
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@domphy/theme':
-        specifier: workspace:*
-        version: link:../theme
+        specifier: ^0.18.0
+        version: 0.18.0(@domphy/core@0.18.1)
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
@@ -646,8 +630,8 @@ importers:
   packages/virtual:
     devDependencies:
       '@domphy/core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^0.18.1
+        version: 0.18.1
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
@@ -853,6 +837,41 @@ packages:
   '@csstools/css-tokenizer@4.0.0':
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
+
+  '@domphy/app@0.18.0':
+    resolution: {integrity: sha512-COT/PcZdVHsY7YHAl2yTeTkRsWHBvHC4dNumtAEdpNey6CnLpzuStwBmIgCHhj/X2CxHMdvwVXu5vWpHmoz2JA==}
+    peerDependencies:
+      '@domphy/core': ^0.18.0
+
+  '@domphy/core@0.18.1':
+    resolution: {integrity: sha512-Bl+rAAb+nc/22yiwXQjGuiAv9rdBYfGWGCJerGWHezkA7XFre8m74tc5Pmcu3GWF+sJvGjztFDoqVw6wirLqRw==}
+
+  '@domphy/doctor@0.18.4':
+    resolution: {integrity: sha512-g/onwM5atLvRQv5EyTAI6YSSDnXBU1nvbY8JpdNojLatBOKzixF+PQfG0T6YS3wtoCGFtJnKSKzUIPhdqbqKFQ==}
+    peerDependencies:
+      '@domphy/core': ^0.18.0
+
+  '@domphy/floating@0.18.0':
+    resolution: {integrity: sha512-nlxjByHcVnDc0zgn27O2FYkTSgqnztXTe9521MTzix57voznlxVue0x+4CgiDhzIFpM37gFoaD3Xo7fMWIsA0A==}
+
+  '@domphy/markdown@0.19.1':
+    resolution: {integrity: sha512-Zz785oX1fop7cE+GguUhzUOxg3hoJ2AJxzcGKdC6sDyWWKA51WJV6o43APqtNZmfZltKEYZoB/P8PQVSjIWjRQ==}
+    peerDependencies:
+      '@domphy/core': ^0.18.1
+
+  '@domphy/palette@0.18.0':
+    resolution: {integrity: sha512-wPBMt9P33TGb3eev9iuN9CSTFuLWY0A8NANYYhUww70601dFKnE8b68lO8fb49DCYyShPzZlJvprelhjVoh1wQ==}
+
+  '@domphy/theme@0.18.0':
+    resolution: {integrity: sha512-Ta/V7edpw/OreKTohWJbFPdOfoFQDue7wS7o6HwDuINx44RUnrZMVc7upQ4ALZ/B3w5pjUQwMwFNasaaDK+8hQ==}
+    peerDependencies:
+      '@domphy/core': ^0.18.0
+
+  '@domphy/ui@0.18.7':
+    resolution: {integrity: sha512-lojuz7CZW+rocG48mB77tepwuT2YogePhtkE9miaRapcGEP76wyVdIqJQOZ5u8HYFNoHvxHWwhy1yJrG5pCsTw==}
+    peerDependencies:
+      '@domphy/core': ^0.18.1
+      '@domphy/theme': ^0.18.0
 
   '@emnapi/core@1.10.0':
     resolution: {integrity: sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw==}
@@ -2955,11 +2974,6 @@ packages:
     resolution: {integrity: sha512-YJDaCJZEnBmcbw13fvdAM9AwNOJwOzrE4pqMqBq5nFiEqXUqHwlK4B+3pUw6JNvfSPtX05xFHtYy/1ni01eGCw==}
     engines: {node: '>=6 <7 || >=8'}
 
-  fsevents@2.3.2:
-    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
-    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
-    os: [darwin]
-
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -3779,16 +3793,6 @@ packages:
 
   pkg-types@1.3.1:
     resolution: {integrity: sha512-/Jm5M4RvtBFVkKWRu2BLUTNP8/M2a+UwuAX+ae4770q1qVGtfjG+WTCupoZixokjmHiry8uI+dlY8KXYV5HVVQ==}
-
-  playwright-core@1.61.1:
-    resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
-    engines: {node: '>=18'}
-    hasBin: true
-
-  playwright@1.61.1:
-    resolution: {integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==}
-    engines: {node: '>=18'}
-    hasBin: true
 
   points-on-curve@0.2.0:
     resolution: {integrity: sha512-0mYKnYYe9ZcqMCWhUjItv/oHjvgEsfKvnUTg8sAtnHr3GVy7rGkXCb6d5cSyqrWqL4k81b9CPg3urd+T7aop3A==}
@@ -4893,6 +4897,41 @@ snapshots:
       css-tree: 3.2.1
 
   '@csstools/css-tokenizer@4.0.0': {}
+
+  '@domphy/app@0.18.0(@domphy/core@0.18.1)':
+    dependencies:
+      '@domphy/core': 0.18.1
+
+  '@domphy/core@0.18.1': {}
+
+  '@domphy/doctor@0.18.4(@domphy/core@0.18.1)':
+    dependencies:
+      '@domphy/core': 0.18.1
+      '@domphy/palette': 0.18.0
+
+  '@domphy/floating@0.18.0': {}
+
+  '@domphy/markdown@0.19.1(@domphy/core@0.18.1)':
+    dependencies:
+      '@domphy/core': 0.18.1
+      remark: 15.0.1
+      remark-gfm: 4.0.1
+      unified: 11.0.5
+      yaml: 2.8.2
+    transitivePeerDependencies:
+      - supports-color
+
+  '@domphy/palette@0.18.0': {}
+
+  '@domphy/theme@0.18.0(@domphy/core@0.18.1)':
+    dependencies:
+      '@domphy/core': 0.18.1
+
+  '@domphy/ui@0.18.7(@domphy/core@0.18.1)(@domphy/theme@0.18.0(@domphy/core@0.18.1))':
+    dependencies:
+      '@domphy/core': 0.18.1
+      '@domphy/floating': 0.18.0
+      '@domphy/theme': 0.18.0(@domphy/core@0.18.1)
 
   '@emnapi/core@1.10.0':
     dependencies:
@@ -6946,9 +6985,6 @@ snapshots:
       jsonfile: 4.0.0
       universalify: 0.1.2
 
-  fsevents@2.3.2:
-    optional: true
-
   fsevents@2.3.3:
     optional: true
 
@@ -7948,14 +7984,6 @@ snapshots:
       confbox: 0.1.8
       mlly: 1.8.0
       pathe: 2.0.3
-
-  playwright-core@1.61.1: {}
-
-  playwright@1.61.1:
-    dependencies:
-      playwright-core: 1.61.1
-    optionalDependencies:
-      fsevents: 2.3.2
 
   points-on-curve@0.2.0: {}
 

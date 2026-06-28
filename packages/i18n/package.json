@@ -1,7 +1,7 @@
 {
   "name": "@domphy/i18n",
-  "version": "0.19.0",
-  "description": "Domphy i18n \u00e2\u20ac\u201d generic i18next wrapper with reactive Domphy integration (globalThis dedup, typed keys, t(listener, key) overload)",
+  "version": "0.19.1",
+  "description": "Domphy i18n â€” generic i18next wrapper with reactive Domphy integration (globalThis dedup, typed keys, t(listener, key) overload)",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -43,10 +43,10 @@
     "i18next": "^25.0.0"
   },
   "peerDependencies": {
-    "@domphy/core": "workspace:^"
+    "@domphy/core": "^0.18.1"
   },
   "devDependencies": {
-    "@domphy/core": "workspace:*",
+    "@domphy/core": "^0.18.1",
     "@types/node": "^25.9.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

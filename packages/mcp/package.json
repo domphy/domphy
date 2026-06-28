@@ -1,6 +1,6 @@
 {
   "name": "@domphy/mcp",
-  "version": "0.19.0",
+  "version": "0.19.1",
   "description": "Domphy MCP server - exposes patches, packages, rules, and the doctor to MCP-capable AI agents",
   "type": "module",
   "bin": {
@@ -44,13 +44,13 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@domphy/doctor": "workspace:^"
+    "@domphy/doctor": "^0.18.4"
   },
   "peerDependencies": {
-    "@domphy/core": "workspace:^"
+    "@domphy/core": "^0.18.1"
   },
   "devDependencies": {
-    "@domphy/core": "workspace:*",
+    "@domphy/core": "^0.18.1",
     "@types/node": "^25.9.2",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",

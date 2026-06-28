@@ -1,6 +1,6 @@
 {
   "name": "@domphy/app",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "description": "Domphy App - a port of the Next.js App Router feature set for Domphy: routing, nested layouts, navigation, data loading, metadata, middleware, SSR and API routes",
   "type": "module",
   "sideEffects": false,
@@ -41,10 +41,10 @@
     "directory": "packages/app"
   },
   "peerDependencies": {
-    "@domphy/core": "workspace:^"
+    "@domphy/core": "^0.18.1"
   },
   "devDependencies": {
-    "@domphy/core": "workspace:*",
+    "@domphy/core": "^0.18.1",
     "@types/node": "^25.9.2",
     "jsdom": "^29.1.1",
     "tsup": "^8.5.0",

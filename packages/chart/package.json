@@ -1,6 +1,6 @@
 {
   "name": "@domphy/chart",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "ECharts-grade chart library for Domphy. SVG-native, tone/density cascade.",
   "type": "module",
   "sideEffects": false,
@@ -26,7 +26,13 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["domphy", "chart", "visualization", "svg", "echarts"],
+  "keywords": [
+    "domphy",
+    "chart",
+    "visualization",
+    "svg",
+    "echarts"
+  ],
   "author": "Huu Khanh Nguyen",
   "license": "MIT",
   "repository": {
@@ -35,23 +41,26 @@
     "directory": "packages/chart"
   },
   "peerDependencies": {
-    "@domphy/core": "workspace:^",
-    "@domphy/theme": "workspace:^"
+    "@domphy/core": "^0.18.1",
+    "@domphy/theme": "^0.18.0"
   },
   "dependencies": {
-    "@domphy/floating": "workspace:^",
-"@luma.gl/core": "^9.1.4",
+    "@domphy/floating": "^0.18.0",
+    "@luma.gl/core": "^9.1.4",
     "@luma.gl/webgl": "^9.1.4",
     "@luma.gl/engine": "^9.1.4",
     "@luma.gl/shadertools": "^9.1.4"
   },
   "devDependencies": {
-    "@domphy/core": "workspace:*",
-    "@domphy/theme": "workspace:*",
+    "@domphy/core": "^0.18.1",
+    "@domphy/theme": "^0.18.0",
     "jsdom": "^29.1.1",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
-  "files": ["dist", "README.md"]
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

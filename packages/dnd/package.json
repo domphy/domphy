@@ -1,6 +1,6 @@
 {
   "name": "@domphy/dnd",
-  "version": "0.18.2",
+  "version": "0.18.3",
   "description": "Domphy Drag & Drop - reactive adapter for the framework-agnostic @formkit/drag-and-drop engine",
   "type": "module",
   "sideEffects": false,
@@ -44,10 +44,10 @@
     "@formkit/drag-and-drop": "^0.6.0"
   },
   "peerDependencies": {
-    "@domphy/core": "workspace:^"
+    "@domphy/core": "^0.18.1"
   },
   "devDependencies": {
-    "@domphy/core": "workspace:*",
+    "@domphy/core": "^0.18.1",
     "@types/node": "^25.9.2",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
