@@ -51,10 +51,15 @@ export function multiList<T>(options: MultiListOptions<T>): PartialElement {
       const plugins = animated
         ? [animations(), ...(rest.plugins ?? [])]
         : (rest.plugins ?? []);
+      const setValues = (next: T[]) => {
+        const sq = (values as { setQuiet?: (v: T[]) => void }).setQuiet;
+        if (typeof sq === "function") sq(next);
+        else values.set(next);
+      };
       dragAndDrop<T>({
         parent,
         getValues: () => values.get(),
-        setValues: (next) => values.set(next),
+        setValues,
         config: { ...rest, group, plugins },
       });
     },

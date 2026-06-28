@@ -53,10 +53,18 @@ export function dragDrop<T>(
       // 0 DOM children at init time. Double-rAF defers until after paint.
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
+          const setValues = (next: T[]) => {
+            // Use setQuiet when available (e.g. filteredNodeState) so DnD
+            // reorders update the model without firing reactive re-renders —
+            // the DnD library has already physically moved the DOM nodes.
+            const sq = (values as { setQuiet?: (v: T[]) => void }).setQuiet;
+            if (typeof sq === "function") sq(next);
+            else values.set(next);
+          };
           dragAndDrop<T>({
             parent,
             getValues: () => values.get(),
-            setValues: (next) => values.set(next),
+            setValues,
             config: { ...rest, plugins },
           });
         }),
