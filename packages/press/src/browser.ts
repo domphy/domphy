@@ -3,7 +3,7 @@
 // The main "." entrypoint includes buildSite/startServer which require Node.js.
 export type { SiteConfig, UserConfig } from "./config.js";
 export { defineConfig } from "./config.js";
-export type { LayoutContext } from "./layout.js";
+export type { FeatureConfig, LayoutContext } from "./layout.js";
 export { homeShell, pageShell } from "./layout.js";
 export {
   flattenSidebar,

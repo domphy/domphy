@@ -44,6 +44,7 @@ export * from "./patches/inputText.js";
 export * from "./patches/keyboard.js";
 export * from "./patches/label.js";
 export * from "./patches/link.js";
+export * from "./patches/linkButton.js";
 export * from "./patches/list.js";
 export * from "./patches/mark.js";
 export * from "./patches/menu.js";

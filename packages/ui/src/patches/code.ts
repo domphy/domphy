@@ -29,6 +29,7 @@ function code(
     style: {
       display: "inline-flex",
       alignItems: "center",
+      whiteSpace: "nowrap",
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
       backgroundColor: (listener) =>

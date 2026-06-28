@@ -1092,10 +1092,11 @@ interface HeroConfig {
   image?: { src: string; alt?: string } | string;
 }
 
-interface FeatureConfig {
+export interface FeatureConfig {
   title: string;
   details: string;
-  icon?: string;
+  /** Emoji string for text icons, or a DomphyElement for inline SVG icons. */
+  icon?: string | DomphyElement;
   link?: string;
 }
 
@@ -1239,11 +1240,13 @@ function featuresSection(features: FeatureConfig[]): DomphyElement {
   return {
     div: features.map((f) => {
       const inner: DomphyElement[] = [];
-      if (f.icon)
-        inner.push({
-          div: f.icon,
-          style: { fontSize: "28px", marginBottom: ts(3) },
-        } as DomphyElement);
+      if (f.icon) {
+        inner.push(
+          typeof f.icon === "string"
+            ? { div: f.icon, style: { fontSize: "28px", marginBottom: ts(3) } } as DomphyElement
+            : { div: [f.icon], style: { marginBottom: ts(3) } } as DomphyElement,
+        );
+      }
       inner.push({
         div: f.title,
         style: {
@@ -1302,10 +1305,23 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
   if (features?.length) main.push(featuresSection(features));
   main.push(contentDiv(ctx.body));
   const bar = announcementBar(ctx.config);
+  const headerEl = resolveSlot(ctx, "header", header);
+  const slots = ctx.config.themeConfig.slots;
+  const footerContent = slots?.footer
+    ? slots.footer(ctx)
+    : ({
+        footer: ctx.config.themeConfig.footerMessage ?? "",
+        style: {
+          padding: `${ts(6)} ${ts(12)}`,
+          borderTop: `1px solid ${border}`,
+          color: textSoft,
+          fontSize: "13px",
+        },
+      } as DomphyElement);
   return {
     div: [
       ...(bar ? [bar] : []),
-      header(ctx),
+      ...(headerEl ? [headerEl] : []),
       {
         main,
         style: {
@@ -1314,15 +1330,7 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
           padding: `${ts(12)} ${ts(6)} ${ts(20)}`,
         },
       },
-      {
-        footer: ctx.config.themeConfig.footerMessage ?? "",
-        style: {
-          padding: `${ts(6)} ${ts(12)}`,
-          borderTop: `1px solid ${border}`,
-          color: textSoft,
-          fontSize: "13px",
-        },
-      },
+      ...(footerContent ? [footerContent] : []),
     ],
   };
 }

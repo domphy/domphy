@@ -10,6 +10,262 @@
   {
     "name": "App",
     "kind": "block",
+    "file": "apps/web/docs/demos/chart/Bar3D.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/BarHorizontal.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/BarStacked.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Boxplot.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Brush.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Candlestick.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Custom.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Dataset.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/DataZoom.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/EffectScatter.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Funnel.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Gauge.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Graph.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Heatmap.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/HeatmapCartesian.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Line3D.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/LineArea.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/LineBar.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Lines.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Map.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Marks.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Parallel.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/PictorialBar.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/PieDonut.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Radar.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Sankey.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Scatter3D.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/ScatterBubble.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Surface3D.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/ThemeRiver.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Toolbox.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/chart/Treemap.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
     "file": "apps/web/docs/demos/core/counting.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",

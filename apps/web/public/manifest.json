@@ -70,7 +70,7 @@
     },
     {
       "name": "@domphy/doctor",
-      "version": "0.18.0",
+      "version": "0.18.1",
       "description": "Domphy Doctor - static analyzer that flags non-idiomatic Domphy element trees (AI self-correction)",
       "subpaths": [
         "."
@@ -157,7 +157,7 @@
     },
     {
       "name": "@domphy/press",
-      "version": "0.20.8",
+      "version": "0.20.9",
       "description": "Domphy Press — VitePress-baseline static doc site framework built on @domphy/app + @domphy/markdown",
       "subpaths": [
         ".",
@@ -222,7 +222,7 @@
     },
     {
       "name": "@domphy/ui",
-      "version": "0.18.3",
+      "version": "0.18.6",
       "description": "Domphy UI",
       "subpaths": [
         "."
@@ -1293,6 +1293,22 @@
       "doc": "Themed hyperlink primitive: styles text color, hover underline, visited, focus ring and a disabled state. Apply to an `<a>` element.",
       "example": "{ a: \"Home\", href: \"/\", $: [link()] }",
       "source": "packages/ui/src/patches/link.ts"
+    },
+    {
+      "name": "linkButton",
+      "hostTag": "a",
+      "signature": "linkButton(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "props": [
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Button color tone. Optional `ValueOrState<ThemeColor>`, default \"primary\"."
+        }
+      ],
+      "doc": "An `<a>` element styled to look like a button — same visual appearance as `button()` but preserves link semantics (href, middle-click, right-click). Apply to an `<a>` element.",
+      "example": "{ a: \"Open app\", href: \"/app\", $: [linkButton({ color: \"primary\" })] }",
+      "source": "packages/ui/src/patches/linkButton.ts"
     },
     {
       "name": "list",
