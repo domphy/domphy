@@ -1,6 +1,6 @@
 {
   "name": "@domphy/doctor",
-  "version": "0.18.2",
+  "version": "0.18.4",
   "description": "Domphy Doctor - static analyzer that flags non-idiomatic Domphy element trees (AI self-correction)",
   "type": "module",
   "sideEffects": false,
@@ -41,10 +41,10 @@
     "directory": "packages/doctor"
   },
   "dependencies": {
-    "@domphy/palette": "workspace:^"
+    "@domphy/palette": "^0.18.0"
   },
   "peerDependencies": {
-    "@domphy/core": "workspace:^"
+    "@domphy/core": "^0.18.0"
   },
   "devDependencies": {
     "@domphy/core": "workspace:*",
