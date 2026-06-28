@@ -135,8 +135,8 @@ borderRadius: (l) => themeSpacing(themeDensity(l) * 1),
 ```
 Use `outline` not `border` — a 1px border on both sides adds 2px to height and deviates from the formula.
 
-### Doctor rules (complete list — 13 built-in)
-`inline-typography`, `raw-theme-value` (hex/rgb + CSS named colors), `raw-spacing-value`, `unknown-tone`, `middle-surface-anchor`, `tone-background-inherit` (backgroundColor must resolve to themeColor(l, "inherit") — detected by running the reactive fn at context=0: var(--X-N) with N>0 means a fixed shifted tone; shift the surface via dataTone instead), `unknown-density`, `unknown-size`, `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. Extend with project rules via `options.rules: CustomRule[]`. Suppress on an element with `_doctorDisable`.
+### Doctor rules (complete list — 14 built-in)
+`inline-typography`, `raw-theme-value` (hex/rgb + CSS named colors), `raw-spacing-value`, `unknown-tone`, `middle-surface-anchor`, `tone-background-inherit` (backgroundColor must resolve to themeColor(l, "inherit") — detected by running the reactive fn at context=0: var(--X-N) with N>0 means a fixed shifted tone; shift the surface via dataTone instead), `low-contrast` (text `color` and `backgroundColor` are both reactive theme vars but their shift numbers differ by < 9 — insufficient contrast; extracted from the `var(--X-N)` string that `themeColor()` returns), `unknown-density`, `unknown-size`, `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. Extend with project rules via `options.rules: CustomRule[]`. Suppress on an element with `_doctorDisable`.
 
 ## Custom spinners
 

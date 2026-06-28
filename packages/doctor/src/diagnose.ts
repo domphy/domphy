@@ -660,6 +660,50 @@ function walk(
     }
   }
 
+  // low-contrast: detect insufficient contrast between `color` and `backgroundColor`
+  // by comparing their shift numbers extracted from the `var(--X-N)` strings that
+  // themeColor() returns. Both props must be reactive and resolve to theme vars for
+  // this check to fire. A shift difference < 9 violates WCAG-level legibility.
+  {
+    const styleProp = isPlainObject(element.style)
+      ? (element.style as Record<string, unknown>)
+      : null;
+    const colorFn = styleProp?.color;
+    const bgFn = styleProp?.backgroundColor;
+
+    if (runReactive && typeof colorFn === "function" && typeof bgFn === "function") {
+      let colorVar: unknown;
+      let bgVar: unknown;
+      try {
+        colorVar = (colorFn as (l: unknown) => unknown)(() => {});
+        bgVar = (bgFn as (l: unknown) => unknown)(() => {});
+      } catch { /* reactive fn threw without a runtime — skip */ }
+
+      const extractShift = (v: unknown): number | null => {
+        if (typeof v !== "string") return null;
+        const match = v.match(/var\(--[\w-]+-(\d+)\)$/);
+        return match ? parseInt(match[1], 10) : null;
+      };
+
+      const textShift = extractShift(colorVar);
+      const bgShift = extractShift(bgVar);
+
+      if (textShift !== null && bgShift !== null) {
+        const diff = Math.abs(textShift - bgShift);
+        if (diff < 9) {
+          elementDiags.push({
+            rule: "low-contrast",
+            severity: "warning",
+            category: "theme",
+            path: here,
+            message: `Text/background shift gap is ${diff} (shift-${textShift} vs shift-${bgShift}) — contrast may be insufficient.`,
+            hint: `Aim for ≥9 shift steps between text and surface. E.g. shift-0 bg + shift-9 text, or shift-11 text on a shift-0 surface. Increase the gap or rely on a parent dataTone to open it.`,
+          });
+        }
+      }
+    }
+  }
+
   // unknown-tone: dataTone is not valid grammar, or it's valid grammar but the
   // numeric offset is out of the 18-step ramp range (0–17).
   const dataTone = element.dataTone;
