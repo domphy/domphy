@@ -51,10 +51,10 @@
     "directory": "packages/query"
   },
   "peerDependencies": {
-    "@domphy/core": "^0.18.1"
+    "@domphy/core": "workspace:^"
   },
   "devDependencies": {
-    "@domphy/core": "^0.18.1",
+    "@domphy/core": "workspace:*",
     "@types/node": "^25.9.2",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",

@@ -56,18 +56,18 @@
     "unist-util-visit": "^5.0.0"
   },
   "peerDependencies": {
-    "@domphy/app": "^0.18.0",
-    "@domphy/core": "^0.18.1",
-    "@domphy/markdown": "^0.19.0",
-    "@domphy/theme": "^0.18.0",
-    "@domphy/ui": "^0.18.7"
+    "@domphy/app": "workspace:^",
+    "@domphy/core": "workspace:^",
+    "@domphy/markdown": "workspace:^",
+    "@domphy/theme": "workspace:^",
+    "@domphy/ui": "workspace:^"
   },
   "devDependencies": {
-    "@domphy/app": "^0.18.0",
-    "@domphy/core": "^0.18.1",
-    "@domphy/markdown": "^0.19.1",
-    "@domphy/theme": "^0.18.0",
-    "@domphy/ui": "^0.18.7",
+    "@domphy/app": "workspace:*",
+    "@domphy/core": "workspace:*",
+    "@domphy/markdown": "workspace:*",
+    "@domphy/theme": "workspace:*",
+    "@domphy/ui": "workspace:*",
     "@types/mdast": "^4.0.4",
     "@types/node": "^25.9.2",
     "tsup": "^8.5.1",

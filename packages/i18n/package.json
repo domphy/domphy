@@ -43,10 +43,10 @@
     "i18next": "^25.0.0"
   },
   "peerDependencies": {
-    "@domphy/core": "^0.18.1"
+    "@domphy/core": "workspace:^"
   },
   "devDependencies": {
-    "@domphy/core": "^0.18.1",
+    "@domphy/core": "workspace:*",
     "@types/node": "^25.9.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

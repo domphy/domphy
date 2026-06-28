@@ -41,19 +41,19 @@
     "directory": "packages/chart"
   },
   "peerDependencies": {
-    "@domphy/core": "^0.18.1",
-    "@domphy/theme": "^0.18.0"
+    "@domphy/core": "workspace:^",
+    "@domphy/theme": "workspace:^"
   },
   "dependencies": {
-    "@domphy/floating": "^0.18.0",
+    "@domphy/floating": "workspace:^",
     "@luma.gl/core": "^9.1.4",
     "@luma.gl/webgl": "^9.1.4",
     "@luma.gl/engine": "^9.1.4",
     "@luma.gl/shadertools": "^9.1.4"
   },
   "devDependencies": {
-    "@domphy/core": "^0.18.1",
-    "@domphy/theme": "^0.18.0",
+    "@domphy/core": "workspace:*",
+    "@domphy/theme": "workspace:*",
     "jsdom": "^29.1.1",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

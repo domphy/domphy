@@ -37,13 +37,13 @@
     "directory": "packages/theme"
   },
   "devDependencies": {
-    "@domphy/core": "^0.18.1",
+    "@domphy/core": "workspace:*",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "vitest": "^4.0.18"
   },
   "peerDependencies": {
-    "@domphy/core": "^0.18.1"
+    "@domphy/core": "workspace:^"
   },
   "files": [
     "dist",

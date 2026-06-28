@@ -40,19 +40,19 @@
     "directory": "packages/ui"
   },
   "devDependencies": {
-    "@domphy/core": "^0.18.1",
-    "@domphy/theme": "^0.18.0",
+    "@domphy/core": "workspace:*",
+    "@domphy/theme": "workspace:*",
     "jsdom": "^29.1.1",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
   "peerDependencies": {
-    "@domphy/core": "^0.18.1",
-    "@domphy/theme": "^0.18.0"
+    "@domphy/core": "workspace:^",
+    "@domphy/theme": "workspace:^"
   },
   "dependencies": {
-    "@domphy/floating": "^0.18.0"
+    "@domphy/floating": "workspace:^"
   },
   "files": [
     "dist",

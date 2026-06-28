@@ -41,14 +41,14 @@
     "directory": "packages/doctor"
   },
   "dependencies": {
-    "@domphy/palette": "^0.18.0"
+    "@domphy/palette": "workspace:^"
   },
   "peerDependencies": {
-    "@domphy/core": "^0.18.0"
+    "@domphy/core": "workspace:^"
   },
   "devDependencies": {
-    "@domphy/core": "^0.18.1",
-    "@domphy/palette": "^0.18.0",
+    "@domphy/core": "workspace:*",
+    "@domphy/palette": "workspace:*",
     "@types/node": "^25.9.2",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
