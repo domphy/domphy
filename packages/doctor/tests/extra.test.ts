@@ -4,7 +4,7 @@ import { type CustomRule, diagnose, fix, format } from "../src/index";
 const rules = (tree: unknown, opts?: Parameters<typeof diagnose>[1]) =>
   diagnose(tree, opts).map((d) => d.rule);
 
-// The 12 rules the doctor is contracted to implement. A crafted input below
+// The 13 rules the doctor is contracted to implement. A crafted input below
 // produces each one; the test asserts the SET of producible rule ids equals
 // this list, so a renamed or dropped rule (or a sneaked-in new one) fails CI.
 const EXPECTED_RULES = [
@@ -20,9 +20,10 @@ const EXPECTED_RULES = [
   "middle-surface-anchor",
   "unknown-density",
   "unknown-size",
+  "low-opacity",
 ] as const;
 
-describe("rule coverage (all 12 rules fire and no extras exist)", () => {
+describe("rule coverage (all 13 rules fire and no extras exist)", () => {
   // One input per rule. Each is the minimal tree that triggers exactly that
   // rule (plus possibly itself only). The set produced by all of them combined
   // must equal EXPECTED_RULES.
@@ -49,6 +50,7 @@ describe("rule coverage (all 12 rules fire and no extras exist)", () => {
     "middle-surface-anchor": { div: "x", dataTone: "shift-9" },
     "unknown-density": { div: "x", dataDensity: "compact" },
     "unknown-size": { div: "x", dataSize: "large" },
+    "low-opacity": { span: "x", style: { opacity: "0.3" } },
   };
 
   it("each of the 12 rule ids is produced by its crafted input", () => {
@@ -483,6 +485,54 @@ describe("fix() is a no-op for non-void-content issues", () => {
     expect(remaining).toContain("unknown-tone");
     // none of these are void-content (nothing was auto-fixed)
     expect(remaining).not.toContain("void-content");
+  });
+});
+
+describe("low-opacity rule", () => {
+  it("warns on static opacity below 0.6", () => {
+    const d = diagnose({ span: "x", style: { opacity: "0.3" } });
+    const issue = d.find((i) => i.rule === "low-opacity");
+    expect(issue).toBeDefined();
+    expect(issue?.severity).toBe("warning");
+    expect(issue?.category).toBe("visual");
+  });
+
+  it("downgrades to info when &:hover restores to 1 (hover-reveal pattern)", () => {
+    const d = diagnose({
+      span: "x",
+      style: { opacity: "0.4", "&:hover": { opacity: "1" } },
+    });
+    const issue = d.find((i) => i.rule === "low-opacity");
+    expect(issue).toBeDefined();
+    expect(issue?.severity).toBe("info");
+  });
+
+  it("does not fire on opacity 0 (intentionally hidden)", () => {
+    expect(
+      rules({ span: "x", style: { opacity: "0" } }),
+    ).not.toContain("low-opacity");
+  });
+
+  it("does not fire on opacity >= 0.6", () => {
+    expect(
+      rules({ span: "x", style: { opacity: "0.6" } }),
+    ).not.toContain("low-opacity");
+    expect(
+      rules({ span: "x", style: { opacity: "1" } }),
+    ).not.toContain("low-opacity");
+  });
+
+  it("does not fire on reactive opacity function", () => {
+    expect(
+      rules({ span: "x", style: { opacity: () => "0.3" } }),
+    ).not.toContain("low-opacity");
+  });
+
+  it("does not fire on opacity inside pseudo-class (&:hover)", () => {
+    // opacity in hover state is the enhanced UX — not a violation
+    expect(
+      rules({ span: "x", style: { "&:hover": { opacity: "0.3" } } }),
+    ).not.toContain("low-opacity");
   });
 });
 

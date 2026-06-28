@@ -12,7 +12,8 @@ export type RuleCategory =
   | "key" // missing-key, duplicate-key, unstable-key
   | "theme" // raw-theme-value, raw-spacing-value
   | "typography" // inline-typography
-  | "data-attr"; // unknown-tone, middle-surface-anchor, unknown-density, unknown-size
+  | "data-attr" // unknown-tone, middle-surface-anchor, unknown-density, unknown-size
+  | "visual"; // low-opacity
 
 export interface Diagnostic {
   /** Rule id, e.g. "inline-typography". */
@@ -540,77 +541,59 @@ function walk(
     });
   }
 
-  if (isPlainObject(element.style)) {
-    const style = element.style;
+  // walkStyleProps: checks a flat style object (or pseudo-class nested style
+  // like "&:hover") for theme/visual violations. Called for the element's own
+  // style AND for any nested pseudo-class objects found inside it.
+  const walkStyleProps = (style: Record<string, unknown>, stylePath: string) => {
     for (const prop in style) {
+      // Skip nested pseudo-class objects at this level — they are walked
+      // separately after the outer loop so their rules fire at the right path.
+      if (prop.startsWith("&") || prop.startsWith(":")) continue;
       const value = style[prop];
 
-      // inline-typography: typography properties must come from patches, not
-      // inline style. fontFamily and textDecoration were missing from the original
-      // set and are added here based on bench data showing persistent violations.
       if (TYPOGRAPHY_STYLE.has(prop) && typeof value !== "function") {
         elementDiags.push({
           rule: "inline-typography",
           severity: "warning",
           category: "typography",
-          path: here,
+          path: stylePath,
           message: `Inline \`${prop}\` — avoid inline typography styles.`,
           hint: "Use a typography patch (paragraph()/heading()/small()/strong()/…) via $ so the theme owns the type scale.",
         });
       }
 
-      // raw-theme-value: literal color values bypass theming/dark mode.
-      // Enhanced with @domphy/palette chromametry: converts the literal color to
-      // LCH and suggests the nearest themeColor() call with perceptual coordinates.
-      if (
-        COLOR_STYLE.has(prop) &&
-        typeof value === "string" &&
-        LITERAL_COLOR.test(value)
-      ) {
-        // For shorthands (border/outline/background) the color is embedded in a
-        // larger string, so extract the color token first; fall back to the
-        // whole value (covers the simple `color: "#fff"` case).
+      if (COLOR_STYLE.has(prop) && typeof value === "string" && LITERAL_COLOR.test(value)) {
         const colorLiteral = extractColorLiteral(value) ?? value;
         const lch = parseLiteralToLch(colorLiteral);
-        const colorHint = lch
-          ? buildColorHint(lch)
-          : "(l) => themeColor(l, tone, colorName)";
-
+        const colorHint = lch ? buildColorHint(lch) : "(l) => themeColor(l, tone, colorName)";
         elementDiags.push({
           rule: "raw-theme-value",
           severity: "info",
           category: "theme",
-          path: here,
+          path: stylePath,
           message: `Inline \`${prop}\` uses a literal color (${value}).`,
           hint: `Prefer a theme token — ${colorHint} — so theming and dark mode apply.`,
         });
       }
 
-      // raw-theme-value (named colors): for direct color-only properties, also
-      // flag CSS named colors like "red" or "white" that bypass the theme system.
-      // The hex/rgb check above misses these because LITERAL_COLOR only matches
-      // hex and function-style values. Shorthands (border, background, outline)
-      // are excluded — color extraction from shorthands is already handled above.
       if (
         DIRECT_COLOR_PROPS.has(prop) &&
         typeof value === "string" &&
-        !LITERAL_COLOR.test(value) && // not already caught by the hex/rgb check
-        !value.includes("(") && // not a CSS function (var, calc, rgb, gradient…)
-        !value.startsWith("--") && // not a custom property reference
+        !LITERAL_COLOR.test(value) &&
+        !value.includes("(") &&
+        !value.startsWith("--") &&
         !CSS_SEMANTIC_VALUES.has(value.trim().toLowerCase())
       ) {
         elementDiags.push({
           rule: "raw-theme-value",
           severity: "info",
           category: "theme",
-          path: here,
+          path: stylePath,
           message: `Inline \`${prop}\` uses a CSS named color ("${value}").`,
-          hint: `CSS named colors like "${value}" bypass theming and dark mode. Prefer (l) => themeColor(l, tone, colorName) — so the theme context applies.`,
+          hint: `CSS named colors like "${value}" bypass theming and dark mode. Prefer (l) => themeColor(l, tone, colorName).`,
         });
       }
 
-      // raw-spacing-value: literal rem/em/px spacing values should use themeSpacing()
-      // to respect the theme's density system. info-severity (soft recommendation).
       if (SPACING_STYLE.has(prop) && typeof value === "string") {
         const spacingHint = buildSpacingHint(prop, value);
         if (spacingHint) {
@@ -618,11 +601,47 @@ function walk(
             rule: "raw-spacing-value",
             severity: "info",
             category: "theme",
-            path: here,
+            path: stylePath,
             message: `Inline \`${prop}: "${value}"\` uses a literal spacing value.`,
             hint: `Prefer themeSpacing() for theme density: ${spacingHint}`,
           });
         }
+      }
+
+    }
+  };
+
+  if (isPlainObject(element.style)) {
+    const style = element.style as Record<string, unknown>;
+    walkStyleProps(style, here);
+    // Walk pseudo-class nested objects (&:hover, &:focus, &:active, etc.)
+    for (const prop in style) {
+      if ((prop.startsWith("&") || prop.startsWith(":")) && isPlainObject(style[prop])) {
+        walkStyleProps(style[prop] as Record<string, unknown>, `${here}[${prop}]`);
+      }
+    }
+
+    // low-opacity: only checked on the MAIN style (not pseudo-classes), because
+    // hover/focus states intentionally enhance or reveal — opacity inside &:hover
+    // is the UX response, not the resting UX. Reactive opacity functions are
+    // skipped (can't evaluate without a real runtime).
+    const opacityValue = style.opacity;
+    if (typeof opacityValue === "string") {
+      const opacity = parseFloat(opacityValue);
+      if (!Number.isNaN(opacity) && opacity > 0 && opacity < 0.6) {
+        const hoverStyle = style["&:hover"] as Record<string, unknown> | undefined;
+        const hoverOpacity = hoverStyle?.opacity;
+        const hasFullHoverRestore = hoverOpacity === "1" || hoverOpacity === 1;
+        elementDiags.push({
+          rule: "low-opacity",
+          severity: hasFullHoverRestore ? "info" : "warning",
+          category: "visual",
+          path: here,
+          message: `\`style.opacity: "${opacityValue}"\` — ${opacity < 0.5 ? "very dim" : "dim"} (${Math.round(opacity * 100)}%); interactive controls below 60% opacity are hard to see.`,
+          hint: hasFullHoverRestore
+            ? "Hover-reveal pattern detected (&:hover restores opacity:1). Consider raising the resting opacity to ≥ 0.6 so the control is discoverable without hovering."
+            : "Use opacity ≥ 0.6 for always-visible controls and icons. For hover-reveal patterns set opacity:0 as the base and add &:hover: { opacity: '1' }.",
+        });
       }
     }
   }
