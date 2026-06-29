@@ -45,9 +45,13 @@ Exit codes:
   2  CLI usage error or file not found
 `.trimStart();
 
-if (values.help || positionals.length === 0) {
+if (values.help) {
   process.stdout.write(USAGE);
-  process.exit(positionals.length === 0 ? 2 : 0);
+  process.exit(0);
+}
+if (positionals.length === 0) {
+  process.stdout.write(USAGE);
+  process.exit(2);
 }
 
 // ─── File collection ─────────────────────────────────────────────────────────
@@ -188,7 +192,15 @@ async function main(): Promise<void> {
       if (values.output !== false) {
         try {
           const node = new ElementNode(el as any);
-          const outputDiags = await auditOutput(node, { path: file });
+          let outputDiags = await auditOutput(node, { path: file });
+          // Apply same only/exclude filters as Layer 1–3
+          if (options.only !== undefined) {
+            const only = new Set(options.only);
+            outputDiags = outputDiags.filter((d) => only.has(d.rule));
+          } else if (options.exclude !== undefined) {
+            const exclude = new Set(options.exclude);
+            outputDiags = outputDiags.filter((d) => !exclude.has(d.rule));
+          }
           fileDiags.push(...outputDiags);
         } catch {
           // ElementNode construction failed — skip layer 4 for this element

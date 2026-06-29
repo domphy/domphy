@@ -1,6 +1,6 @@
 {
   "name": "@domphy/doctor",
-  "version": "0.18.12",
+  "version": "0.18.13",
   "description": "Domphy Doctor - static analyzer that flags non-idiomatic Domphy element trees (AI self-correction)",
   "type": "module",
   "sideEffects": false,
