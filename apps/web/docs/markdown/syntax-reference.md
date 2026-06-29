@@ -84,7 +84,7 @@ Emphasis elements can be nested: `**_bold italic_**` becomes `{ strong: [{ em: [
 { a: ["Domphy"], href: "https://domphy.dev", title: "Homepage" }
 ```
 
-All attributes that markdown-it emits are copied as element properties. Auto-linked bare URLs (enabled by default via `linkify: true`) produce the same shape.
+All attributes emitted by the mdast walker are copied as element properties. Auto-linked bare URLs (enabled by default via GFM) produce the same shape.
 
 ## Images
 

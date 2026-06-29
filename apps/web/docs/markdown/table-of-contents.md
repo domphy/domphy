@@ -220,19 +220,21 @@ const pages = sources.map((source) => {
 const manifest = JSON.stringify(pages, null, 2)
 ```
 
-## toc with tokensToDomphy
+## toc with walkMdast
 
-The toc array is returned by `tokensToDomphy` as well when you supply your own markdown-it instance:
+When using `walkMdast` in a custom pipeline, pass an empty array as `toc` — the walker populates it in-place:
 
 ```ts
-import MarkdownIt from "markdown-it"
-import { splitFrontmatter, tokensToDomphy } from "@domphy/markdown"
+import { remark } from "remark"
+import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
 
-const md = new MarkdownIt({ html: true })
-
+const processor = remark()
 const { content } = splitFrontmatter(source)
-const tokens = md.parse(content, {})
-const { body, toc } = tokensToDomphy(tokens)
+const tree = processor.parse(content)
+processor.runSync(tree, content)
+
+const toc: TocEntry[] = []
+const body = walkMdast(tree, { slug: createUniqueSlugger(defaultSlugify), toc })
 
 // toc is populated the same way as with parseMarkdown.
 console.log(toc.map((entry) => `${entry.level}: ${entry.text} -> #${entry.slug}`))

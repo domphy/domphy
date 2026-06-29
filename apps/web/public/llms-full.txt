@@ -25702,18 +25702,21 @@ function renderPage(slug: string): string {
 
 ## Using splitFrontmatter in a custom pipeline
 
-When you bring your own markdown-it instance (via `tokensToDomphy`), call `splitFrontmatter` manually to separate the frontmatter before parsing the tokens:
+When you build your own remark pipeline (via `walkMdast`), call `splitFrontmatter` first to extract the frontmatter before passing the content to remark:
 
 ```ts
-import MarkdownIt from "markdown-it"
-import { splitFrontmatter, tokensToDomphy } from "@domphy/markdown"
+import { remark } from "remark"
+import remarkGfm from "remark-gfm"
+import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
 
-const md = new MarkdownIt({ html: true, linkify: true })
+const processor = remark().use(remarkGfm)
 
 function parse(source: string) {
   const { frontmatter, content } = splitFrontmatter(source)
-  const tokens = md.parse(content, {})
-  const { body, toc } = tokensToDomphy(tokens)
+  const tree = processor.parse(content)
+  processor.runSync(tree, content)
+  const toc: TocEntry[] = []
+  const body = walkMdast(tree, { slug: createUniqueSlugger(defaultSlugify), toc })
   return { frontmatter, body, toc }
 }
 ```
@@ -25950,45 +25953,52 @@ Load a CSS theme on the page and the `language-*` class provides the hook:
 <script>hljs.highlightAll()</script>
 ```
 
-## Using highlight with tokensToDomphy
+## Using highlight with walkMdast
 
-The `highlight` option is also accepted by `tokensToDomphy` when you supply your own markdown-it instance:
+The `highlight` option is also accepted by `walkMdast` when you build your own remark pipeline:
 
 ```ts
-import MarkdownIt from "markdown-it"
-import { splitFrontmatter, tokensToDomphy } from "@domphy/markdown"
+import { remark } from "remark"
+import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
 
-const md = new MarkdownIt({ html: true })
-
+const processor = remark()
 const { content } = splitFrontmatter(source)
-const tokens = md.parse(content, {})
+const tree = processor.parse(content)
+processor.runSync(tree, content)
 
-const { body } = tokensToDomphy(tokens, {
-  highlight(code, language) {
-    return myHighlighter(code, language)
+const body = walkMdast(tree, {
+  highlight(code, info) {
+    return myHighlighter(code, info)
   },
+  slug: createUniqueSlugger(defaultSlugify),
+  toc: [],
 })
 ```
 
 ### index.md
 
+---
+title: "@domphy/markdown"
+description: "Parse Markdown into Domphy element trees for SSR/SSG."
+---
+
 # Markdown
 
 `@domphy/markdown` parses Markdown into **Domphy element trees** — plain objects like `{ h1: ... }`, `{ ul: [...] }`, `{ pre: [{ code: ... }] }` — so the result can be server-rendered by `@domphy/core` / `@domphy/app` with no client runtime.
 
-It walks [markdown-it](https://github.com/markdown-it/markdown-it)'s token stream and emits **semantic tags only** — no inline typography styles. Styling stays the consumer's job, applied through patches and theme, exactly like hand-written Domphy.
+It uses [remark](https://github.com/remarkjs/remark) (unified) to parse Markdown into an mdast AST, then walks the tree and emits **semantic tags only** — no inline typography styles. Styling stays the consumer's job, applied through patches and theme, exactly like hand-written Domphy.
 
 ## What you get
 
 - Headings with a slug `id` for anchors, plus a collected table of contents
 - Paragraphs, bold / italic / strikethrough, inline code
-- Fenced code blocks (language preserved as `class="language-..."` and `data-language`, with a pluggable highlighter)
+- Fenced code blocks (with a pluggable highlighter)
 - Links, images, blockquotes, ordered / unordered / nested lists (`_key` on list items)
-- GFM tables, GFM task lists (`- [x]` / `- [ ]`), horizontal rules, raw inline / block HTML pass-through
+- GFM tables, horizontal rules, raw inline / block HTML pass-through
 - YAML frontmatter splitting
-- LaTeX math (`$...$` inline, `$$...$$` display) via optional built-in plugin
-- `markdown-it-anchor` wired for heading anchors
-- Plugin API via `createMarkdown({ plugins: [...] })` for custom markdown-it extensions
+- Optional LaTeX math (`$...$` / `$$...$$`) via `remark-math`
+- Custom remark/unified plugin support
+- `onCustom` hook for non-standard mdast node types
 
 ## Install
 
@@ -26048,186 +26058,129 @@ It is exactly `parseMarkdown(md, options).body`.
 
 ## Options
 
+All options are accepted by both `parseMarkdown` and `createMarkdown`:
+
 ```ts
 parseMarkdown(md, {
-  // Highlight fenced code. Return inner HTML for the <code>, or a DomphyElement.
-  // A falsy return falls back to plain escaped text.
-  highlight: (code, language) => `<span class="tok">${code}</span>`,
+  // Highlight fenced code. `info` is the full info string ("ts :line-numbers").
+  // Return inner HTML for the <code>, or a DomphyElement to wrap the block.
+  highlight: (code, info) => `<span class="tok">${code}</span>`,
 
   // Custom heading slug function (used for anchors and the toc).
   anchorSlugify: (text) => text.toLowerCase().replace(/\s+/g, "-"),
 
-  // Forwarded to the markdown-it constructor.
-  mdOptions: { breaks: true },
+  // Additional remark/unified plugins.
+  plugins: [remarkDirective],
+
+  // Handle mdast node types the core walker doesn't recognise.
+  onCustom: (node, helper) => {
+    if (node.type === "containerDirective") return { div: helper.walkChildren(node) }
+    return null
+  },
 })
 ```
 
 | Option | Type | Description |
 | --- | --- | --- |
-| `highlight` | `(code, language) => string \| DomphyElement \| null \| undefined` | Highlighter for fenced code blocks. A returned string is used as the `<code>` inner HTML; a `DomphyElement` becomes its single child. |
-| `anchorSlugify` | `(text) => string` | Slug function for heading `id`s and toc entries. |
-| `mdOptions` | `markdown-it` options | Merged into the markdown-it constructor (e.g. `{ breaks: true }`). |
+| `highlight` | `(code: string, info: string) => string \| DomphyElement \| null \| undefined` | Highlighter for fenced code blocks. A returned string is used as `<code>` inner HTML; a `DomphyElement` replaces the entire block. |
+| `anchorSlugify` | `(text: string) => string` | Slug function for heading `id`s and toc entries. Defaults to `defaultSlugify`. |
+| `plugins` | `RemarkPlugin[]` | Additional remark/unified plugins to apply to the processor. |
+| `onCustom` | `(node, helper) => DomphyElement \| string \| null` | Handle mdast nodes the walker doesn't know (e.g. directives from `remark-directive`). The `helper` arg provides `walkChildren(node)` for recursive conversion. |
 
-## createMarkdown — plugin API
+## createMarkdown — reusable parser
 
-`createMarkdown(options?)` builds a reusable parser from a pre-configured markdown-it instance. Use it when you need:
-
-- Custom **plugins** for markdown-it
-- Built-in **math** support (`$...$` / `$$...$$`)
-- GFM **task lists** (`- [x]` / `- [ ]`)
-
-The returned object exposes `.parse(md)` (same shape as `ParseResult`) and `.toDomphy(md)` (body array only).
+`createMarkdown(options?)` builds a reusable `MarkdownInstance` with a shared remark processor. Use it when you parse many documents (saves processor setup cost per document) or need to pass it to a pipeline:
 
 ```ts
 import { createMarkdown } from "@domphy/markdown"
 
 const parser = createMarkdown({
-  math: true,
-  tasklists: true,
-  highlight: (code, lang) => myHighlighter(code, lang),
+  highlight: (code, info) => myHighlighter(code, info),
 })
 
 const { frontmatter, body, toc } = parser.parse(source)
 // or
-const body = parser.toDomphy(source)
+const elements = parser.toDomphy(source)
 ```
 
-### Options
+`MarkdownInstance` interface:
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `plugins` | `MarkdownPlugin[]` | `[]` | Array of `(md) => void` functions applied to the internal markdown-it instance. |
-| `math` | `boolean` | `false` | Enable built-in LaTeX math support (`$...$` and `$$...$$`). |
-| `tasklists` | `boolean` | `false` | Enable GFM task list items (`- [x]` / `- [ ]`). |
-| `highlight` | `Highlight` | — | Same as `parseMarkdown` highlight option. |
-| `anchorSlugify` | `AnchorSlugify` | — | Same as `parseMarkdown` anchorSlugify option. |
-| `mdOptions` | `markdown-it` options | — | Same as `parseMarkdown` mdOptions option. |
-
-### Custom plugins
-
-Each entry in `plugins` receives the markdown-it instance and can call `md.use(...)`, `md.block.ruler.before(...)`, etc.:
-
-```ts
-import container from "markdown-it-container"
-import { createMarkdown } from "@domphy/markdown"
-
-const parser = createMarkdown({
-  plugins: [
-    (md) => md.use(container, "tip"),
-    (md) => md.use(container, "warning"),
-  ],
-})
-```
-
-User-supplied plugins run last — after `math` and `tasklists` — so they can extend or override built-in behavior.
+| Method | Description |
+| --- | --- |
+| `parse(md)` | Same as `parseMarkdown(md, options)`. |
+| `toDomphy(md)` | Same as `markdownToDomphy(md, options)`. |
 
 ### Math support
 
-When `math: true`, the built-in math plugin adds:
+Pass `math: true` to enable LaTeX math parsing. Requires `remark-math`:
 
-- **Inline math** `$E = mc^2$` → `{ span: "E = mc^2", class: "math math-inline" }`
-- **Display math** (block):
-  ````
-  $$
-  \int_0^\infty e^{-x}\,dx = 1
-  $$
-  ````
-  → `{ div: "\\int_0^\\infty e^{-x}\\,dx = 1\n", class: "math math-display" }`
-
-The raw LaTeX is preserved in the element content. To render it, load KaTeX's auto-render extension from CDN:
-
-```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.js"></script>
-<script defer
-  src="https://cdn.jsdelivr.net/npm/katex/dist/contrib/auto-render.min.js"
-  onload="renderMathInElement(document.body)"></script>
-```
-
-KaTeX's `auto-render` finds all `.math` elements and renders them in-place. No bundled KaTeX dependency is required.
-
-### Task lists
-
-When `tasklists: true`, list items beginning with `[ ]` or `[x]` get a disabled checkbox element prepended:
-
-```markdown
-- [x] Deploy release
-- [x] Write release notes
-- [ ] Announce on forum
+```bash
+pnpm add remark-math
 ```
 
 ```ts
-// body[0] (the ul)
-{
-  ul: [
-    {
-      li: [{ input: null, type: "checkbox", disabled: true, checked: true }, "Deploy release"],
-      _key: 0,
-    },
-    {
-      li: [{ input: null, type: "checkbox", disabled: true, checked: true }, "Write release notes"],
-      _key: 1,
-    },
-    {
-      li: [{ input: null, type: "checkbox", disabled: true }, "Announce on forum"],
-      _key: 2,
-    },
-  ],
-}
+const parser = createMarkdown({ math: true })
+const { body } = parser.parse("Inline $E = mc^2$ and block:\n\n$$\\int_0^\\infty e^{-x}dx = 1$$")
 ```
 
-The checkboxes are `disabled` — task lists in markdown are visual, not interactive form controls.
+The raw LaTeX is preserved in the element content as plain text — so a CDN-loaded KaTeX/MathJax auto-render extension can process it client-side. No bundled renderer is included.
 
-## Custom pipelines
+### Custom remark plugins
 
-For a documentation generator that needs **extra** markdown-it plugins — containers (``), file includes, custom inline rules — you have two options:
-
-**Option A:** Use `createMarkdown({ plugins })` — simpler, recommended for most cases:
+`plugins` accepts any unified-compatible remark plugin:
 
 ```ts
-import container from "markdown-it-container"
+import remarkDirective from "remark-directive"
 import { createMarkdown } from "@domphy/markdown"
 
 const parser = createMarkdown({
-  plugins: [(md) => md.use(container, "tip")],
+  plugins: [remarkDirective],
+  onCustom: (node, helper) => {
+    if (node.type === "containerDirective" && node.name === "tip") {
+      return { div: helper.walkChildren(node), class: "callout callout-tip" }
+    }
+    return null
+  },
 })
-const { body } = parser.parse("\nUse the plugin API.\n:::")
+
+const { body } = parser.parse("\nPro tip here.\n:::")
 ```
 
-**Option B:** Run your own markdown-it instance and feed tokens to the walker — maximum control, needed when `@domphy/press` integrates at a lower level:
+## Custom pipelines (advanced)
+
+For maximum control — running your own remark instance and converting the mdast tree yourself — use the lower-level `walkMdast`:
 
 ```ts
-import MarkdownIt from "markdown-it"
-import container from "markdown-it-container"
-import { splitFrontmatter, tokensToDomphy } from "@domphy/markdown"
+import { remark } from "remark"
+import remarkGfm from "remark-gfm"
+import remarkMath from "remark-math"
+import { splitFrontmatter, walkMdast } from "@domphy/markdown"
+import { createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
 
-const md = new MarkdownIt({ html: true, linkify: true })
-md.use(container, "tip")
-
-const source = "\nUse the walker directly.\n:::"
 const { frontmatter, content } = splitFrontmatter(source)
-const tokens = md.parse(content, {})
 
-const { body, toc } = tokensToDomphy(tokens, {
-  // Same highlight / anchorSlugify options as parseMarkdown.
-  highlight: (code) => code,
-})
+const processor = remark().use(remarkGfm).use(remarkMath)
+const tree = processor.parse(content)
+processor.runSync(tree, content)
+
+const toc = []
+const slug = createUniqueSlugger(defaultSlugify)
+const body = walkMdast(tree, { highlight: myHighlighter, slug, toc })
 ```
 
-The lower-level building blocks are all exported:
+This is how `@domphy/press` works: it wires its own remark pipeline (custom containers, file includes) and then calls `walkMdast` to produce the Domphy tree.
+
+## API reference
 
 | Export | Description |
 | --- | --- |
-| `createMarkdown(options?)` | Create a reusable parser with plugins, math, and task list support. |
-| `tokensToDomphy(tokens, options?)` | Convert a pre-parsed markdown-it token stream into `{ body, toc }`. Use with your own markdown-it instance. |
-| `walkTokens(tokens, context)` | The raw walker `tokensToDomphy` is built on, for the most control. |
-| `splitFrontmatter(md)` | Split a document into `{ frontmatter, content }` before parsing. |
-| `createUniqueSlugger(slugify)` | A stateful slugger that de-duplicates repeated heading slugs. |
-| `defaultSlugify(text)` | The built-in slug function. |
-| `mathPlugin` | The built-in math markdown-it plugin (can be applied to your own instance). |
-| `taskListPlugin` | The built-in task list markdown-it plugin (can be applied to your own instance). |
-
-This is exactly how DomphyPress (this site) works: its markdown-it instance adds containers and includes, then hands the tokens to `tokensToDomphy`.
+| `parseMarkdown(md, options?)` | Parse markdown string → `{ frontmatter, body, toc }` |
+| `markdownToDomphy(md, options?)` | Parse markdown string → `DomphyElement[]` (body only) |
+| `createMarkdown(options?)` | Create a reusable `MarkdownInstance` `{ parse, toDomphy }` |
+| `walkMdast(root, options?)` | Walk an mdast Root node → `DomphyElement[]` (low-level) |
+| `splitFrontmatter(md)` | Extract YAML frontmatter → `{ frontmatter, content }` |
+| `createUniqueSlugger(slugify?)` | Stateful slugger that de-duplicates repeated heading slugs |
+| `defaultSlugify` | Default slug: lowercase + replace whitespace with `-` |
 
 ### syntax-reference.md
 
@@ -26317,7 +26270,7 @@ Emphasis elements can be nested: `**_bold italic_**` becomes `{ strong: [{ em: [
 { a: ["Domphy"], href: "https://domphy.dev", title: "Homepage" }
 ```
 
-All attributes that markdown-it emits are copied as element properties. Auto-linked bare URLs (enabled by default via `linkify: true`) produce the same shape.
+All attributes emitted by the mdast walker are copied as element properties. Auto-linked bare URLs (enabled by default via GFM) produce the same shape.
 
 ## Images
 
@@ -26873,19 +26826,21 @@ const pages = sources.map((source) => {
 const manifest = JSON.stringify(pages, null, 2)
 ```
 
-## toc with tokensToDomphy
+## toc with walkMdast
 
-The toc array is returned by `tokensToDomphy` as well when you supply your own markdown-it instance:
+When using `walkMdast` in a custom pipeline, pass an empty array as `toc` — the walker populates it in-place:
 
 ```ts
-import MarkdownIt from "markdown-it"
-import { splitFrontmatter, tokensToDomphy } from "@domphy/markdown"
+import { remark } from "remark"
+import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
 
-const md = new MarkdownIt({ html: true })
-
+const processor = remark()
 const { content } = splitFrontmatter(source)
-const tokens = md.parse(content, {})
-const { body, toc } = tokensToDomphy(tokens)
+const tree = processor.parse(content)
+processor.runSync(tree, content)
+
+const toc: TocEntry[] = []
+const body = walkMdast(tree, { slug: createUniqueSlugger(defaultSlugify), toc })
 
 // toc is populated the same way as with parseMarkdown.
 console.log(toc.map((entry) => `${entry.level}: ${entry.text} -> #${entry.slug}`))

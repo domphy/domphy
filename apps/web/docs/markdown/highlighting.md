@@ -195,22 +195,24 @@ Load a CSS theme on the page and the `language-*` class provides the hook:
 <script>hljs.highlightAll()</script>
 ```
 
-## Using highlight with tokensToDomphy
+## Using highlight with walkMdast
 
-The `highlight` option is also accepted by `tokensToDomphy` when you supply your own markdown-it instance:
+The `highlight` option is also accepted by `walkMdast` when you build your own remark pipeline:
 
 ```ts
-import MarkdownIt from "markdown-it"
-import { splitFrontmatter, tokensToDomphy } from "@domphy/markdown"
+import { remark } from "remark"
+import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
 
-const md = new MarkdownIt({ html: true })
-
+const processor = remark()
 const { content } = splitFrontmatter(source)
-const tokens = md.parse(content, {})
+const tree = processor.parse(content)
+processor.runSync(tree, content)
 
-const { body } = tokensToDomphy(tokens, {
-  highlight(code, language) {
-    return myHighlighter(code, language)
+const body = walkMdast(tree, {
+  highlight(code, info) {
+    return myHighlighter(code, info)
   },
+  slug: createUniqueSlugger(defaultSlugify),
+  toc: [],
 })
 ```

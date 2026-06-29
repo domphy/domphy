@@ -160,18 +160,21 @@ function renderPage(slug: string): string {
 
 ## Using splitFrontmatter in a custom pipeline
 
-When you bring your own markdown-it instance (via `tokensToDomphy`), call `splitFrontmatter` manually to separate the frontmatter before parsing the tokens:
+When you build your own remark pipeline (via `walkMdast`), call `splitFrontmatter` first to extract the frontmatter before passing the content to remark:
 
 ```ts
-import MarkdownIt from "markdown-it"
-import { splitFrontmatter, tokensToDomphy } from "@domphy/markdown"
+import { remark } from "remark"
+import remarkGfm from "remark-gfm"
+import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
 
-const md = new MarkdownIt({ html: true, linkify: true })
+const processor = remark().use(remarkGfm)
 
 function parse(source: string) {
   const { frontmatter, content } = splitFrontmatter(source)
-  const tokens = md.parse(content, {})
-  const { body, toc } = tokensToDomphy(tokens)
+  const tree = processor.parse(content)
+  processor.runSync(tree, content)
+  const toc: TocEntry[] = []
+  const body = walkMdast(tree, { slug: createUniqueSlugger(defaultSlugify), toc })
   return { frontmatter, body, toc }
 }
 ```
