@@ -29,6 +29,7 @@ export default defineConfig({ /* SiteConfig */ })
 | `themeConfig` | `ThemeConfig` | Navigation, sidebar, footer, social links, etc. |
 | `lastUpdated` | `boolean?` | Show last-updated date from `git log`. Default: `false` |
 | `locales` | `Record<string, LocaleConfig>?` | i18n locale routing |
+| `markdown` | `Record<string, never>?` | Reserved for future markdown plugin configuration. Currently a no-op. |
 
 ## ThemeConfig
 

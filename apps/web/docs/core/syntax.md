@@ -200,7 +200,7 @@ These keys are reserved for Domphy runtime behavior:
   _key: "user-1",
   _context: { role: "admin" },
   _metadata: { id: 123 },
-  _portal: () => document.body,
+  _portal: (root) => document.body,
 }
 ```
 

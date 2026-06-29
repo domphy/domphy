@@ -9,17 +9,17 @@
 }
 ```
 
-`rootNode` is the app root `ElementNode`. Use it to query or insert overlay containers:
+`root` is the app root `ElementNode`. Use it to query or insert overlay containers:
 
 ```ts
 {
   div: "...",
-  _portal: (rootNode) => {
-    let overlay = rootNode.domElement!.querySelector("#my-overlay")
+  _portal: (root) => {
+    let overlay = root.domElement!.querySelector("#my-overlay")
     if (!overlay) {
       overlay = document.createElement("div")
       overlay.id = "my-overlay"
-      rootNode.domElement!.appendChild(overlay)
+      root.domElement!.appendChild(overlay)
     }
     return overlay
   },
