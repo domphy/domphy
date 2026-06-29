@@ -33,7 +33,7 @@ function menuItem(
 
       const context = node.getContext("menu");
       if (!context) {
-        console.warn(`"menuItem" patch must be used inside a "menu"`);
+        console.warn(`"menuItem" patch requires a parent with $: [menu()] — no menu context found`);
         return;
       }
       let children = (node.parent?.children.items ?? []) as ElementNode[];
