@@ -828,6 +828,14 @@ Calls all listeners registered for an event.
 notifier.notify("change", newValue)
 ```
 
+### `listenerCount(event)`
+
+Returns the number of listeners subscribed to an event. Used internally by `computed` to stay lazy — an unobserved computed only marks itself dirty on a dependency change and defers recomputation until the next read.
+
+```ts
+const count = notifier.listenerCount("change") // e.g. 3
+```
+
 ## `Handler` type
 
 ```ts
