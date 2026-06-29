@@ -29,7 +29,7 @@ const hex = themeColorToken(null, "shift-9", "primary") // e.g. "#4a7ff4"
 
 ### `themeSize(object, size?)`
 
-Resolve a font size from the nearest `dataSize` context.
+Resolve a font size from the nearest `dataSize` context. `object` must be an `ElementNode` or a `Listener` — unlike `themeColor`, it does **not** accept `null`.
 
 ```ts
 fontSize: (listener) => themeSize(listener, "inherit")
@@ -38,7 +38,7 @@ fontSize: (listener) => themeSize(listener, "increase-1")
 
 ### `themeDensity(object)`
 
-Resolve the current density factor from the nearest `dataDensity` context.
+Resolve the current density factor from the nearest `dataDensity` context. `object` accepts an `ElementNode`, a `Listener`, or `null`. Pass `null` to resolve against the default density with no context.
 
 ```ts
 const d = themeDensity(listener)

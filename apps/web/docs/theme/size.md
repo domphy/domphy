@@ -10,7 +10,7 @@ At `fontSize: 16px`, `U = 4px`.
 
 Use:
 
-- `themeSize(listener, key)` to resolve font size from `dataSize`
+- `themeSize(listener, size)` to resolve font size from `dataSize`
 - `themeDensity(listener)` to resolve the current density factor from `dataDensity`
 - `themeSpacing(n)` to convert the final numeric result into CSS units
 
