@@ -61,9 +61,8 @@ interface FieldMeta {
   isPristine: boolean
   isBlurred: boolean
   isValidating: boolean   // async validator in-flight
-  touchedAt: number | null
   errors: unknown[]
-  errorMap: Partial<Record<"onChange"|"onBlur"|"onSubmit"|"onMount", unknown>>
+  errorMap: Partial<Record<"onChange"|"onBlur"|"onSubmit"|"onMount"|"onServer"|"onDynamic", unknown>>
 }
 ```
 
@@ -135,7 +134,7 @@ const form = createForm<T>({
     onSubmit: ({ value }) => string | undefined,
   },
   asyncDebounceMs: 200,                  // global debounce for all async validators
-  defaultState: Partial<FormState>,      // override initial state flags
+  defaultState: Partial<Record<string, unknown>>,  // override initial state flags
 })
 ```
 
@@ -144,7 +143,7 @@ const form = createForm<T>({
 ```ts
 // Reactive reads (pass listener l)
 form.values(l)       // T — current values
-form.state(l)        // FormState<T> — full state including meta
+form.state(l)        // full form store state including meta (FormApi["store"]["state"])
 form.canSubmit(l)    // boolean
 form.isSubmitting(l) // boolean
 form.isValid(l)      // boolean

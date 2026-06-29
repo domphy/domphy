@@ -160,13 +160,12 @@ For multiple errors (e.g. cross-field schema errors):
 
 ```ts
 interface FieldMeta {
-  touchedAt: number | null    // timestamp of first blur
   isTouched: boolean
   isDirty: boolean
   isPristine: boolean
   isBlurred: boolean
   errors: unknown[]
-  errorMap: Partial<Record<ValidationSource, unknown>>
+  errorMap: Partial<Record<"onChange"|"onBlur"|"onSubmit"|"onMount"|"onServer"|"onDynamic", unknown>>
   isValidating: boolean
 }
 ```
