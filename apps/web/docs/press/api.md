@@ -30,9 +30,10 @@ await buildSite({
 ```ts
 interface BuildOptions {
   config: SiteConfig
-  srcDir: string       // absolute path to Markdown source directory
-  outDir: string       // absolute path to output directory
-  publicDir?: string   // optional: absolute path to static assets folder
+  srcDir: string         // absolute path to Markdown source directory
+  outDir: string         // absolute path to output directory
+  publicDir?: string     // optional: absolute path to static assets folder
+  incremental?: boolean  // skip unchanged pages (used by dev mode for fast rebuilds)
 }
 ```
 
@@ -138,14 +139,16 @@ const server = startServer("/path/to/dist", 4173)
 // server is a Node.js http.Server
 ```
 
-### `startDevServer(options)`
+### `startDevServer(root, port)`
 
 Starts a development server with live rebuild on Markdown changes. Used by the `domphy-press dev` CLI command:
 
 ```ts
 import { startDevServer } from "@domphy/press"
 
-await startDevServer({ config, srcDir, outDir })
+const { server, notify } = startDevServer("/path/to/dist", 3000)
+// server — Node.js http.Server
+// notify() — broadcast a reload event to all connected browser tabs (SSE)
 ```
 
 ## TocEntry

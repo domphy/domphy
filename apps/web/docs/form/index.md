@@ -72,7 +72,12 @@ const Field = {
 | --- | --- |
 | `values(l)` / `state(l)` | Reactive form values / full form state. |
 | `canSubmit(l)` / `isSubmitting(l)` / `isValid(l)` / `isSubmitted(l)` | Reactive flags. |
+| `isDirty(l)` / `isPristine(l)` | Reactive: any field differs from defaultValues / no field changed. |
+| `isTouched(l)` / `isBlurred(l)` | Reactive: any field touched / any field blurred. |
 | `field<TData>(name, options?)` | Create and mount a reactive field handle. |
+| `getFieldValue(field)` | Read a field value imperatively (no listener). |
+| `setFieldValue(field, updater)` | Set a field value programmatically (triggers onChange validation). |
+| `validateField(field, cause?)` | Manually trigger validation for one field. Cause defaults to `"change"`. |
 | `handleSubmit()` | Run validation and submission. Returns `Promise<void>`. |
 | `reset(values?)` | Reset to defaults (or given values). |
 | `version(l)` | Reactive change counter — increments on every store flush. |
@@ -88,6 +93,14 @@ const Field = {
 | `handleChange(value \| updater)` | Update the value (from `onInput`/`onChange`). Accepts a direct value or an `(prev) => next` updater function. |
 | `handleBlur()` | Mark blurred and run blur validators. |
 | `setValue(value \| updater)` | Set the value programmatically. Accepts a direct value or an `(prev) => next` updater function. |
+| `validate(cause?)` | Manually trigger validation. Cause defaults to `"change"`. |
+| `pushValue(value)` | Append to array field. |
+| `insertValue(index, value)` | Insert into array field at index. |
+| `replaceValue(index, value)` | Replace array field item at index. |
+| `removeValue(index)` | Remove array field item at index. |
+| `swapValues(a, b)` | Swap two array field items. |
+| `moveValue(a, b)` | Move array field item from index `a` to `b`. |
+| `clearValues()` | Empty the array field. |
 | `api` | The underlying `FieldApi`. |
 
 Field and form `options` (validators, async debouncing, listeners, arrays, Standard Schema) are documented in the [Form docs](/docs/form/).

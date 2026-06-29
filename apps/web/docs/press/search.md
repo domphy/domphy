@@ -73,7 +73,9 @@ interface SearchResult {
   pageTitle: string  // title of the page
   heading: string    // matched heading (page title for page-level hits, section heading for section hits)
   slug: string       // heading slug (empty string for page-level hits)
+  isPage: boolean    // true for page-level hits, false for section-level hits
   score: number      // relevance score — higher is better
+  href: string       // full navigation target: route + "#" + slug (or just route for page hits)
 }
 ```
 
@@ -94,6 +96,7 @@ const widget = searchWidget({
 
 ```ts
 interface SearchWidgetOptions {
+  indexUrl?: string       // URL to the search index JSON (default: "/search-index.json")
   placeholder?: string    // input placeholder text
   limit?: number          // max results (default: 10)
 }

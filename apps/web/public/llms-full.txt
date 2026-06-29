@@ -17229,7 +17229,12 @@ const Field = {
 | --- | --- |
 | `values(l)` / `state(l)` | Reactive form values / full form state. |
 | `canSubmit(l)` / `isSubmitting(l)` / `isValid(l)` / `isSubmitted(l)` | Reactive flags. |
+| `isDirty(l)` / `isPristine(l)` | Reactive: any field differs from defaultValues / no field changed. |
+| `isTouched(l)` / `isBlurred(l)` | Reactive: any field touched / any field blurred. |
 | `field<TData>(name, options?)` | Create and mount a reactive field handle. |
+| `getFieldValue(field)` | Read a field value imperatively (no listener). |
+| `setFieldValue(field, updater)` | Set a field value programmatically (triggers onChange validation). |
+| `validateField(field, cause?)` | Manually trigger validation for one field. Cause defaults to `"change"`. |
 | `handleSubmit()` | Run validation and submission. Returns `Promise<void>`. |
 | `reset(values?)` | Reset to defaults (or given values). |
 | `version(l)` | Reactive change counter — increments on every store flush. |
@@ -17245,6 +17250,14 @@ const Field = {
 | `handleChange(value \| updater)` | Update the value (from `onInput`/`onChange`). Accepts a direct value or an `(prev) => next` updater function. |
 | `handleBlur()` | Mark blurred and run blur validators. |
 | `setValue(value \| updater)` | Set the value programmatically. Accepts a direct value or an `(prev) => next` updater function. |
+| `validate(cause?)` | Manually trigger validation. Cause defaults to `"change"`. |
+| `pushValue(value)` | Append to array field. |
+| `insertValue(index, value)` | Insert into array field at index. |
+| `replaceValue(index, value)` | Replace array field item at index. |
+| `removeValue(index)` | Remove array field item at index. |
+| `swapValues(a, b)` | Swap two array field items. |
+| `moveValue(a, b)` | Move array field item from index `a` to `b`. |
+| `clearValues()` | Empty the array field. |
 | `api` | The underlying `FieldApi`. |
 
 Field and form `options` (validators, async debouncing, listeners, arrays, Standard Schema) are documented in the [Form docs](/docs/form/).
@@ -33063,9 +33076,10 @@ await buildSite({
 ```ts
 interface BuildOptions {
   config: SiteConfig
-  srcDir: string       // absolute path to Markdown source directory
-  outDir: string       // absolute path to output directory
-  publicDir?: string   // optional: absolute path to static assets folder
+  srcDir: string         // absolute path to Markdown source directory
+  outDir: string         // absolute path to output directory
+  publicDir?: string     // optional: absolute path to static assets folder
+  incremental?: boolean  // skip unchanged pages (used by dev mode for fast rebuilds)
 }
 ```
 
@@ -33171,14 +33185,16 @@ const server = startServer("/path/to/dist", 4173)
 // server is a Node.js http.Server
 ```
 
-### `startDevServer(options)`
+### `startDevServer(root, port)`
 
 Starts a development server with live rebuild on Markdown changes. Used by the `domphy-press dev` CLI command:
 
 ```ts
 import { startDevServer } from "@domphy/press"
 
-await startDevServer({ config, srcDir, outDir })
+const { server, notify } = startDevServer("/path/to/dist", 3000)
+// server — Node.js http.Server
+// notify() — broadcast a reload event to all connected browser tabs (SSE)
 ```
 
 ## TocEntry
@@ -34560,7 +34576,9 @@ interface SearchResult {
   pageTitle: string  // title of the page
   heading: string    // matched heading (page title for page-level hits, section heading for section hits)
   slug: string       // heading slug (empty string for page-level hits)
+  isPage: boolean    // true for page-level hits, false for section-level hits
   score: number      // relevance score — higher is better
+  href: string       // full navigation target: route + "#" + slug (or just route for page hits)
 }
 ```
 
@@ -34581,6 +34599,7 @@ const widget = searchWidget({
 
 ```ts
 interface SearchWidgetOptions {
+  indexUrl?: string       // URL to the search index JSON (default: "/search-index.json")
   placeholder?: string    // input placeholder text
   limit?: number          // max results (default: 10)
 }
