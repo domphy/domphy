@@ -121,9 +121,9 @@ Points the server at your app's block registry file. See [App Blocks](./app-bloc
 Once connected, ask the agent: "List the Domphy packages." It should call `domphy_list_packages` and return a list like:
 
 ```
-@domphy/core@0.17.0 — reactive core
-@domphy/ui@0.17.0 — patches
-@domphy/theme@0.17.0 — theme tokens
+@domphy/core@0.18.2 — reactive core
+@domphy/ui@0.18.14 — patches
+@domphy/theme@0.18.2 — theme tokens
 …
 ```
 
