@@ -25,9 +25,7 @@ interface RouterContext {
   }
 }
 
-const rootRoute = createRootRouteWithContext<RouterContext>()({
-  component: () => RootLayout,
-})
+const rootRoute = createRootRouteWithContext<RouterContext>()({})
 ```
 
 ## Providing context when creating the router
@@ -78,7 +76,6 @@ const postsRoute = createRoute({
       queryFn: fetchPosts,
     })
   },
-  component: () => PostsList,
 })
 ```
 
@@ -95,17 +92,20 @@ const ProfilePage = {
 }
 ```
 
-Or pass it through loaderData:
+Or pass it through loaderData and read in your UI element:
 
 ```ts
 const userRoute = createRoute({
   loader: ({ context }) => ({ user: context.auth.user() }),
-  component: () => {
-    const match = router.state.matches.find(m => m.routeId === userRoute.id)
-    const user = match?.loaderData?.user
-    return { h1: `Welcome, ${user?.name ?? "Guest"}` }
-  },
 })
+
+const UserView = {
+  h1: (l) => {
+    const match = matches.get(l).find(m => m.routeId === userRoute.id)
+    const user = match?.loaderData?.user
+    return `Welcome, ${user?.name ?? "Guest"}`
+  },
+}
 ```
 
 ## Dynamic context (reactive values)
