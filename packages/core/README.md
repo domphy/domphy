@@ -37,7 +37,8 @@ new ElementNode(App).render(document.body)
 ## What It Includes
 
 - plain-object element syntax
-- fine-grained listener-based reactivity
+- fine-grained listener-based reactivity (`toState`, `computed`, `effect`, `watch`, `batch`, `untrack`, `effectScope`, `nextTick`)
+- `RecordState<T>` — per-key reactive record
 - DOM rendering
 - SSR with `generateHTML()` and `generateCSS()`
 - `mount()` for attaching to existing SSR output

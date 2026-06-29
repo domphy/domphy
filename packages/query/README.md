@@ -11,45 +11,41 @@ Framework-agnostic async state management for Domphy apps: fetching, caching, ba
 npm install @domphy/query
 ```
 
-## Quick Example
+## Quick Example (Domphy adapter)
+
+The recommended way to use `@domphy/query` in Domphy apps is through the Domphy adapter at `@domphy/query/domphy`:
 
 ```ts
-import { QueryClient, QueryObserver } from "@domphy/query"
-import { toState } from "@domphy/core"
+import { QueryClient } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
 
-const queryClient = new QueryClient()
-queryClient.mount()
+const client = new QueryClient()
+client.mount()
 
-const users = toState<{ id: number; name: string }[] | undefined>(undefined)
-const loading = toState(true)
-
-const observer = new QueryObserver(queryClient, {
+const usersQuery = createQuery(client, {
     queryKey: ["users"],
-    queryFn: () => fetch("/api/users").then((response) => response.json()),
+    queryFn: () => fetch("/api/users").then((r) => r.json()),
 })
 
-observer.subscribe((result) => {
-    users.set(result.data)
-    loading.set(result.isPending)
-})
-```
-
-States drive Domphy reactivity automatically:
-
-```ts
 const App = {
-    ul: (listener) => (users.get(listener) ?? []).map((user) => ({
+    ul: (l) => (usersQuery.data(l) ?? []).map((user) => ({
         li: user.name,
         _key: user.id,
     })),
-    hidden: (listener) => loading.get(listener),
+    hidden: (l) => usersQuery.isPending(l),
 }
 ```
 
+`createQuery` returns a handle with reactive accessors: `data(l)`, `isPending(l)`, `isError(l)`, `error(l)`, `status(l)`, `isFetching(l)`, etc. — each accepts a listener for fine-grained subscriptions.
+
 ## What It Includes
 
+- `createQuery(client, options)` — reactive query handle (adapter at `@domphy/query/domphy`)
+- `createMutation(client, options)` — reactive mutation handle
+- `createInfiniteQuery(client, options)` — paginated / cursor-based query handle
+- `bindResult(initial, subscribe)` — wire any observer to Domphy reactivity
 - `QueryClient` / `QueryCache` — fetch, cache, deduplicate, invalidate
-- `QueryObserver` / `QueriesObserver` — subscribe to query results
+- `QueryObserver` / `QueriesObserver` — low-level observer API
 - `MutationObserver` / `MutationCache` — create/update/delete with retry
 - `InfiniteQueryObserver` — paginated and cursor-based data
 - `focusManager` / `onlineManager` — refetch on window focus and reconnect
