@@ -1,24 +1,16 @@
 import type { DomphyElement } from "@domphy/core";
-import { tab, tabPanel, tabs } from "@domphy/ui";
+import { tabs } from "@domphy/ui";
 
-const labels = ["Overview", "Usage", "API", "Examples"];
-
-// tabs(), tab(), and tabPanel() must all share the same direct parent so that
-// the ARIA id/aria-controls/aria-labelledby wiring resolves correctly.
 const App: DomphyElement<"div"> = {
-  div: [
-    ...labels.map((label, i) => ({
-      button: label,
-      _key: i,
-      $: [tab()],
-    })),
-    ...labels.map((label, i) => ({
-      div: `Content for ${label}`,
-      _key: i,
-      $: [tabPanel()],
-    })),
-  ],
-  $: [tabs()],
+  div: null,
+  $: [tabs({
+    items: [
+      { label: "Overview", content: { p: "Overview content" } as DomphyElement<"p"> },
+      { label: "Usage",    content: { p: "Usage content"    } as DomphyElement<"p"> },
+      { label: "API",      content: { p: "API content"      } as DomphyElement<"p"> },
+      { label: "Examples", content: { p: "Examples content" } as DomphyElement<"p"> },
+    ],
+  })],
 };
 
 export default App;

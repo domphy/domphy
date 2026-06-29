@@ -8,15 +8,17 @@ import {
 } from "@domphy/theme";
 
 /**
- * Styles a single tab trigger inside a `tabs` tablist on the host `<button>` element.
- * Wires up the tab's id/aria-controls/aria-selected, click selection, and
- * arrow/Home/End keyboard navigation via the surrounding `tabs` context.
- * Must be used inside a `tabs` patch.
+ * Low-level tab trigger patch. Prefer the all-in-one `tabs({ items })` patch for
+ * typical use — it generates buttons and panels automatically with correct ARIA wiring.
+ *
+ * Use `tab()` only when you need full control over the button element (custom markup,
+ * extra patches). Must be a **direct child** of the `tabs()` container element,
+ * alongside all `tabPanel()` panels. The `_key` prop must match the corresponding panel.
  *
  * @hostTag button
- * @param props.accentColor - Theme color for the active/focus underline. Optional. Defaults to `"primary"`.
- * @param props.color - Theme color for the resting/hover underline and text. Optional. Defaults to `"neutral"`.
- * @example { button: "Tab 1", $: [tab()] }
+ * @param props.accentColor - Theme color for the active/focus underline. Defaults to `"primary"`.
+ * @param props.color - Theme color for the resting/hover underline and text. Defaults to `"neutral"`.
+ * @example { button: "Tab 1", $: [tab()], _key: "tab1" }
  */
 function tab(
   props: { accentColor?: ThemeColor; color?: ThemeColor } = {},

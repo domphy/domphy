@@ -2,12 +2,15 @@ import type { ElementNode, PartialElement } from "@domphy/core";
 import { themeDensity, themeSpacing } from "@domphy/theme";
 
 /**
- * Styles a tab panel inside a `tabs` tablist. Wires up the panel's
- * id/aria-labelledby and toggles `hidden` based on the surrounding `tabs`
- * context's active key. Must be used inside a `tabs` patch. Takes no props.
+ * Low-level tab panel patch. Prefer the all-in-one `tabs({ items })` patch for
+ * typical use — it generates buttons and panels automatically with correct ARIA wiring.
+ *
+ * Use `tabPanel()` only when you need full control over the panel element. Must be a
+ * **direct child** of the `tabs()` container element, alongside all `tab()` buttons.
+ * The `_key` prop must match the corresponding tab button.
  *
  * @hostTag div
- * @example { div: "Panel content", $: [tabPanel()] }
+ * @example { div: "Panel content", $: [tabPanel()], _key: "tab1" }
  */
 function tabPanel(): PartialElement {
   const partial: PartialElement = {
