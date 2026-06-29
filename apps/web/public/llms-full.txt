@@ -1957,7 +1957,7 @@ const App: DomphyElement<"div"> = {
       .onfinish = done
   },
 
-  _onRemove: () => {
+  _onRemove: (node) => {
     console.log("removed")
   },
 }
@@ -3640,7 +3640,7 @@ This naming boundary is important:
 - `onClick` is a DOM event
 - `_onMount` is a Domphy lifecycle hook
 
-Available hooks include `Schedule`, `Init`, `Insert`, `Mount`, `BeforeUpdate`, `Update`, `BeforeRemove`, `Remove`, and `Error` (`_onError` — error boundary for reactive children).
+Available hooks include `_onSchedule`, `_onInit`, `_onInsert`, `_onMount`, `_onBeforeUpdate`, `_onUpdate`, `_onBeforeRemove`, `_onRemove`, and `_onError` (error boundary for reactive children).
 
 ```ts
 {

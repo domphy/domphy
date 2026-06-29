@@ -47,7 +47,7 @@ const App: DomphyElement<"div"> = {
       .onfinish = done
   },
 
-  _onRemove: () => {
+  _onRemove: (node) => {
     console.log("removed")
   },
 }
