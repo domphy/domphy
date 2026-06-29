@@ -5,9 +5,9 @@ description: "Route-level error components, not-found errors, error recovery, an
 
 # Error Handling & Not Found
 
-## Route error component
+## Handling loader errors
 
-Each route can define its own `errorComponent` — rendered when the route's loader throws:
+`@domphy/router` is headless — it does not render components automatically. When a loader throws, the match transitions to `status: "error"` and the error is available on the match. Check this in your UI:
 
 ```ts
 import { createRoute } from "@domphy/router"
@@ -20,42 +20,30 @@ const postRoute = createRoute({
     if (!post) throw new Error("Post not found")
     return post
   },
-  component: () => PostPage,
-  errorComponent: ({ error }) => ({
-    div: [
-      { h2: "Something went wrong" },
-      { p: (error as Error).message },
-      { button: "Go back", onClick: () => history.back() },
-    ],
-  }),
 })
 ```
 
-`errorComponent` receives `{ error: unknown; reset: () => void }`.
-
-## Global error boundary
-
-Set a global `defaultErrorComponent` on the router to catch all unhandled errors:
+In your UI layer, read `match.status` and `match.error`:
 
 ```ts
-const router = createRouter({
-  routeTree,
-  defaultErrorComponent: ({ error, reset }) => ({
-    div: [
-      { h1: "Unexpected error" },
-      { pre: (error as Error).message, style: { fontSize: "0.875rem" } },
-      { button: "Try again", onClick: reset },
-    ],
-    style: { padding: "2rem", textAlign: "center" },
-  }),
-})
+const PostView = {
+  div: (l) => {
+    const match = matches.get(l).find((m) => m.routeId === postRoute.id)
+    if (!match) return []
+    if (match.status === "error") return [
+      { h2: "Something went wrong" },
+      { p: (match.error as Error).message },
+      { button: "Go back", onClick: () => history.back() },
+    ]
+    if (match.status === "pending") return [{ p: "Loading…" }]
+    return [PostPage(match.loaderData)]
+  },
+}
 ```
-
-`reset` re-runs the failed route transition — useful after fixing a transient error.
 
 ## Not-found errors
 
-When a resource doesn't exist (404-equivalent), throw `notFound()` from a loader instead of returning `null`:
+When a resource doesn't exist (404-equivalent), throw `notFound()` from a loader. The match transitions to `status: "notFound"`:
 
 ```ts
 import { createRoute, notFound } from "@domphy/router"
@@ -65,18 +53,13 @@ const userRoute = createRoute({
   path: "/users/$id",
   loader: async ({ params }) => {
     const user = await fetchUser(params.id)
-    if (!user) throw notFound()   // ← renders notFoundComponent, not errorComponent
+    if (!user) throw notFound()
     return user
   },
-  component: () => UserProfile,
-  notFoundComponent: () => ({
-    div: [
-      { h1: "User not found" },
-      { a: "Browse users", href: "/users" },
-    ],
-  }),
 })
 ```
+
+In your UI, check `match.status === "notFound"` to render the not-found state.
 
 ## Global not-found route
 

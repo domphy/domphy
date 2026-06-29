@@ -19,9 +19,7 @@ interface AuthContext {
 }
 
 // Root route typed with context
-const rootRoute = createRootRouteWithContext<AuthContext>()({
-  component: () => ({ div: "..." }),
-})
+const rootRoute = createRootRouteWithContext<AuthContext>()({})
 
 // Provide context when creating the router
 const auth = {

@@ -175,8 +175,8 @@ import { toState, computed } from "@domphy/core"
 const items = toState<{ price: number; qty: number }[]>([])
 const discount = toState(0)
 
-const subtotal = computed((l) => items.get(l).reduce((s, i) => s + i.price * i.qty, 0))
-const total = computed((l) => subtotal.get(l) * (1 - discount.get(l) / 100))
+const subtotal = computed(() => items.get().reduce((s, i) => s + i.price * i.qty, 0))
+const total = computed(() => subtotal.get() * (1 - discount.get() / 100))
 
 export const OrderSummary = {
   div: [

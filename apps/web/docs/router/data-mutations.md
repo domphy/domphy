@@ -25,9 +25,9 @@ const createPost = createMutation(queryClient, {
 })
 ```
 
-## Route action pattern
+## Form submission with navigation
 
-For form submissions that navigate after success, use a route-level action:
+Since the router is headless, form logic lives in your UI module — not inside a route option. Create the form at module scope and navigate in `onSubmit`:
 
 ```ts
 import { createRoute } from "@domphy/router"
@@ -36,29 +36,28 @@ import { createForm } from "@domphy/form/domphy"
 const newPostRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/posts/new",
-  component: () => {
-    const form = createForm<PostInput>({
-      defaultValues: { title: "", body: "" },
-      onSubmit: async ({ value }) => {
-        const post = await api.post("/posts", value)
-        // Navigate after successful creation
-        router.navigate({ to: `/posts/${post.id}` })
-      },
-    })
+})
 
-    return {
-      form: [
-        // form fields...
-        {
-          button: (l) => form.isSubmitting(l) ? "Creating…" : "Create post",
-          type: "submit",
-          disabled: (l) => !form.canSubmit(l),
-        },
-      ],
-      onSubmit: (e: Event) => { e.preventDefault(); form.handleSubmit() },
-    }
+// Form lives outside the route — created once, shared by the UI element
+const form = createForm<PostInput>({
+  defaultValues: { title: "", body: "" },
+  onSubmit: async ({ value }) => {
+    const post = await api.post("/posts", value)
+    router.navigate({ to: `/posts/${post.id}` })
   },
 })
+
+export const NewPostView = {
+  form: [
+    // form fields...
+    {
+      button: (l) => form.isSubmitting(l) ? "Creating…" : "Create post",
+      type: "submit",
+      disabled: (l) => !form.canSubmit(l),
+    },
+  ],
+  onSubmit: (e: Event) => { e.preventDefault(); form.handleSubmit() },
+}
 ```
 
 ## Optimistic mutations
