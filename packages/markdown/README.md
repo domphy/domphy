@@ -1,18 +1,19 @@
-﻿# @domphy/markdown
+# @domphy/markdown
 
 Parse Markdown into [Domphy](https://domphy.com) element trees so it can be server-rendered by `@domphy/core` / `@domphy/app`.
 
-It walks [markdown-it](https://github.com/markdown-it/markdown-it)'s token stream and builds plain Domphy element objects (`{ h1: ... }`, `{ ul: [...] }`, `{ pre: [{ code: ... }] }`, ...) — semantic tags only, no inline typography styles. Styling stays the consumer's job via patches and theme.
+It uses [remark](https://github.com/remarkjs/remark) (unified) to parse Markdown into an mdast AST, then walks the tree and builds plain Domphy element objects (`{ h1: ... }`, `{ ul: [...] }`, `{ pre: [{ code: ... }] }`, ...) — semantic tags only, no inline typography styles. Styling stays the consumer's job via patches and theme.
 
 Features:
 
 - Headings with slug `id` for anchors, plus a collected table of contents
 - Paragraphs, bold / italic / strikethrough, inline code
-- Fenced code blocks (language preserved as `data-language` and `class="language-..."`, with a pluggable highlighter)
+- Fenced code blocks with a pluggable highlighter
 - Links, images, blockquotes, ordered / unordered / nested lists (`_key` on list items)
 - GFM tables, horizontal rules, raw inline / block HTML pass-through
 - YAML frontmatter splitting
-- `markdown-it-anchor` wired for heading anchors
+- Custom remark plugin support
+- Optional LaTeX math (requires `remark-math`)
 
 ## Install
 
@@ -60,21 +61,56 @@ const body = markdownToDomphy("# Title\n\nText.")
 
 ```ts
 parseMarkdown(md, {
-  // Highlight fenced code. Return inner HTML for <code>, or a DomphyElement.
-  highlight: (code, language) => `<span class="tok">${code}</span>`,
+  // Highlight fenced code. `info` is the full info string ("ts :line-numbers").
+  // Return inner HTML for <code>, or a full DomphyElement to wrap the block.
+  highlight: (code, info) => `<span class="tok">${code}</span>`,
 
   // Custom heading slug function (used for anchors and the toc).
   anchorSlugify: (text) => text.toLowerCase().replace(/\s+/g, "-"),
 
-  // Forwarded to the markdown-it constructor.
-  mdOptions: { breaks: true },
+  // Additional remark/unified plugins.
+  plugins: [remarkGfmFootnotes],
+
+  // Handle mdast node types the core walker doesn't recognise (e.g. directives).
+  // The `helper` arg provides a `walkChildren` helper for recursive conversion.
+  onCustom: (node, helper) => {
+    if (node.type === "math") return { div: node.value, class: "math math-display" }
+    return null
+  },
 })
 ```
 
+## Plugin API — `createMarkdown`
+
+For reusable parsers with a shared remark processor (e.g. `@domphy/press`):
+
+```ts
+import { createMarkdown } from "@domphy/markdown"
+import remarkMath from "remark-math"
+
+const md = createMarkdown({
+  highlight: (code, info) => `<code>${code}</code>`,
+  plugins: [remarkMath],
+  math: true,   // shorthand: auto-adds remark-math (must install it: pnpm add remark-math)
+})
+
+const { frontmatter, body, toc } = md.parse("# Hello\n\nText.")
+const elements = md.toDomphy("# Hello")  // body only
+```
+
+`math: true` preserves raw LaTeX (`$...$`, `$$...$$`) as plain text for client-side KaTeX/MathJax auto-rendering. It does NOT render math server-side.
+
 ## API
 
-- `parseMarkdown(md, options?) => { frontmatter, body, toc }`
-- `markdownToDomphy(md, options?) => DomphyElement[]`
+| Export | Description |
+|---|---|
+| `parseMarkdown(md, options?)` | Parse markdown string → `{ frontmatter, body, toc }` |
+| `markdownToDomphy(md, options?)` | Parse markdown string → `DomphyElement[]` (body only) |
+| `createMarkdown(options?)` | Create a reusable `MarkdownInstance` (`{ parse, toDomphy }`) sharing a single remark processor |
+| `splitFrontmatter(md)` | Split YAML frontmatter → `{ frontmatter: Record<string, unknown>, content: string }` |
+| `walkMdast(root, options?)` | Walk an mdast Root node → `DomphyElement[]` (low-level, used internally) |
+| `createUniqueSlugger(slugify?)` | Create a slugger that guarantees unique anchor IDs across a document |
+| `defaultSlugify` | Default slug function: lowercase + replace whitespace with `-` |
 
 ## License
 

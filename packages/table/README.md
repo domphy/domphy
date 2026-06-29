@@ -11,54 +11,91 @@ Headless table logic for Domphy apps: sorting, filtering, pagination, row select
 npm install @domphy/table
 ```
 
-## Quick Example
+`@domphy/core` is a peer dependency.
+
+## Quick start — `createDomphyTable`
+
+Import from the `/domphy` subpath to get a reactive handle that Domphy elements subscribe to:
 
 ```ts
-import { createTable, getCoreRowModel, getSortedRowModel, createColumnHelper } from "@domphy/table"
-import { toState } from "@domphy/core"
+import { createDomphyTable } from "@domphy/table/domphy"
+import { createColumnHelper, getCoreRowModel, getSortedRowModel } from "@domphy/table"
 
 const columnHelper = createColumnHelper<Person>()
 const columns = [
-    columnHelper.accessor("name", { header: "Name" }),
-    columnHelper.accessor("age", { header: "Age" }),
+  columnHelper.accessor("name", { header: "Name" }),
+  columnHelper.accessor("age", { header: "Age" }),
 ]
 
-const tableVersion = toState(0)
-
-const table = createTable({
-    data: people,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    state: {},
-    onStateChange: (updater) => {
-        const next = typeof updater === "function" ? updater(table.getState()) : updater
-        table.setOptions((prev) => ({ ...prev, state: next }))
-        tableVersion.set(tableVersion.get() + 1)
-    },
-    renderFallbackValue: null,
+const dTable = createDomphyTable({
+  data: people,
+  columns,
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
 })
-table.setOptions((prev) => ({ ...prev, state: table.initialState }))
 ```
 
-Render with plain Domphy elements — touch `tableVersion` to re-render on any table state change:
+Render with `version(l)` for coarse re-renders (whole table) or pass `l` directly to fine-grained reads:
 
 ```ts
+// Coarse — re-render tbody when any table state changes
 const App = {
-    tbody: (l) => {
-        tableVersion.get(l)
-        return table.getRowModel().rows.map((row) => ({
-            tr: row.getVisibleCells().map((cell) => ({
-                td: String(cell.getValue() ?? ""),
-                _key: cell.id,
-            })),
-            _key: row.id,
-        }))
-    },
+  tbody: (l) => {
+    dTable.version(l)
+    return dTable.table.getRowModel().rows.map((row) => ({
+      tr: row.getVisibleCells().map((cell) => ({
+        td: String(cell.getValue() ?? ""),
+        _key: cell.id,
+      })),
+      _key: row.id,
+    }))
+  },
+}
+
+// Fine-grained — only this button re-renders when page changes
+const PrevButton = {
+  button: "Previous",
+  disabled: (l) => !dTable.getCanPreviousPage(l),
+  onClick: () => dTable.table.previousPage(),
 }
 ```
 
-## What It Includes
+## DomphyTable handle
+
+`createDomphyTable(options)` returns a `DomphyTable<TData>` handle:
+
+| Method | Description |
+|---|---|
+| `table` | Raw table-core `Table` instance — all feature methods (setSorting, setColumnFilters, nextPage, …) |
+| `version(l?)` | Reactive change counter — bumps on any state change |
+| `state(l?)` | Full `TableState`, reactive with listener |
+| `setState(updater)` | Direct state update |
+| `destroy()` | Releases reactive state |
+| `getRowModel(l?)` | Reactive row model |
+| `getHeaderGroups(l?)` | Reactive header groups |
+| `getAllLeafColumns(l?)` | All leaf columns, reactive |
+| `getVisibleLeafColumns(l?)` | Visible leaf columns, reactive |
+| `getIsAllColumnsVisible(l?)` | Reactive |
+| `getIsSomeColumnsVisible(l?)` | Reactive |
+| `getSelectedRowModel(l?)` | Reactive selected rows |
+| `getIsAllRowsSelected(l?)` | Reactive |
+| `getIsSomeRowsSelected(l?)` | Reactive |
+| `getIsAllRowsExpanded(l?)` | Reactive |
+| `getCanNextPage(l?)` | Reactive |
+| `getCanPreviousPage(l?)` | Reactive |
+| `getPageCount(l?)` | Reactive |
+
+## Raw table-core (advanced)
+
+Import directly from `@domphy/table` for the raw TanStack table-core API:
+
+```ts
+import { createTable, getCoreRowModel, createColumnHelper } from "@domphy/table"
+```
+
+All TanStack Table v8 APIs are available unchanged.
+
+## What's included
 
 - `createTable` / `createColumnHelper` — table instance and typed column defs
 - Row models (opt-in, tree-shakeable): core, sorted, filtered, grouped, expanded, paginated, faceted
