@@ -49,7 +49,7 @@ const App = {
 - **Error boundaries:** use the `errorBoundary()` patch (`@domphy/ui`) to catch errors thrown in reactive children. It invokes `_onError` on the nearest ancestor; call `reset()` to swap in a fallback element.
 - **Lifecycle hooks** (`_onSchedule`, `_onInit`, `_onInsert`, `_onMount`, `_onBeforeUpdate`, `_onUpdate`, `_onBeforeRemove(node, done)` — must call `done()`, `_onRemove`, `_onError(node, error, reset)` — error boundary; call `reset()` to clear children and render fallback) for imperative/3rd-party integration; events stay flat (`onClick`, `onInput`).
 - **Comments in code: English only.** Names: descriptive, no abbreviations (`index` not `i` except loops; `listener` `l`, event `e`, node `node`).
-- **Self-check:** run `@domphy/doctor` `diagnose(element)` (or `validate(element)`) on what you produce and fix every reported issue before finishing. Rules: `inline-typography` (fontSize/lineHeight/fontWeight/letterSpacing/fontFamily/textDecoration literals — use patches), `raw-theme-value` (literal hex/rgb colors AND CSS named colors like "red"/"white" on direct color props — hint gives nearest `themeColor()` via CIELAB/LCH perceptual match), `raw-spacing-value` (literal rem/em/px/logical spacing props — use `themeSpacing(n)`), `unknown-tone` (invalid dataTone — valid: inherit/base/shift-N/increase-N/decrease-N, N ≤ 17), `middle-surface-anchor` (dataTone shift-4–13 mid-ramp — use edge anchors 0–3 or 14–17), `unknown-density` (dataDensity invalid or N > 4), `unknown-size` (dataSize invalid or N > 7), `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. `fix(element)` auto-applies the lossless ones. `DiagnoseOptions`: `only` (whitelist rule ids), `exclude` (blacklist rule ids), `rules` (custom rule array). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on an element silences its diagnostics.
+- **Self-check:** run `@domphy/doctor` `diagnose(element)` (or `validate(element)`) on what you produce and fix every reported issue before finishing. Rules: `inline-typography` (fontSize/lineHeight/fontWeight/letterSpacing/fontFamily/textDecoration literals — use patches), `raw-theme-value` (literal hex/rgb colors AND CSS named colors like "red"/"white" on direct color props — hint gives nearest `themeColor()` via CIELAB/LCH perceptual match), `raw-spacing-value` (literal rem/em/px/logical spacing props — use `themeSpacing(n)`), `low-opacity` (style.opacity < 0.6 on interactive elements — too dim to be discoverable), `tone-background-inherit` (backgroundColor must use themeColor(l, "inherit") — shift the surface via dataTone instead), `missing-color` (element uses themeColor but no style.color — text won't follow tone context shifts), `low-contrast` (text/bg shift gap < 9 — insufficient contrast), `dataTone-surface-contract` (dataTone set but missing backgroundColor and/or color), `color-shift-minimum` (style.color resolves to tone step < 9 on a dataTone surface), `unknown-tone` (invalid dataTone — valid: inherit/base/shift-N/increase-N/decrease-N, N ≤ 17), `middle-surface-anchor` (dataTone shift-4–13 mid-ramp — use edge anchors 0–3 or 14–17), `unknown-density` (dataDensity invalid or N > 4), `unknown-size` (dataSize invalid or N > 7), `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. `fix(element)` auto-applies the lossless ones. `DiagnoseOptions`: `only` (whitelist rule ids), `exclude` (blacklist rule ids), `rules` (custom rule array). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on an element silences its diagnostics.
 
 ## Package map (current)
 
@@ -146,8 +146,8 @@ borderRadius: (l) => themeSpacing(themeDensity(l) * 1),
 ```
 Use `outline` not `border` — a 1px border on both sides adds 2px to height and deviates from the formula.
 
-### Doctor rules (complete list — 14 built-in)
-`inline-typography`, `raw-theme-value` (hex/rgb + CSS named colors), `raw-spacing-value`, `unknown-tone`, `middle-surface-anchor`, `tone-background-inherit` (backgroundColor must resolve to themeColor(l, "inherit") — detected by running the reactive fn at context=0: var(--X-N) with N>0 means a fixed shifted tone; shift the surface via dataTone instead), `low-contrast` (text `color` and `backgroundColor` are both reactive theme vars but their shift numbers differ by < 9 — insufficient contrast; extracted from the `var(--X-N)` string that `themeColor()` returns), `unknown-density`, `unknown-size`, `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. Extend with project rules via `options.rules: CustomRule[]`. Suppress on an element with `_doctorDisable`.
+### Doctor rules (complete list — 18 built-in)
+`inline-typography`, `raw-theme-value` (hex/rgb + CSS named colors), `raw-spacing-value`, `low-opacity` (style.opacity < 0.6 on interactive controls — too dim to be discoverable; info if hover-restore pattern detected), `tone-background-inherit` (backgroundColor must resolve to themeColor(l, "inherit") — detected by running the reactive fn at context=0: var(--X-N) with N>0 means a fixed shifted tone; shift the surface via dataTone instead), `missing-color` (element uses themeColor for bg/border but has no style.color — text won't re-evaluate on tone shift), `low-contrast` (text `color` and `backgroundColor` are both reactive theme vars but their shift numbers differ by < 9 — insufficient contrast; extracted from the `var(--X-N)` string that `themeColor()` returns), `dataTone-surface-contract` (dataTone set but missing backgroundColor and/or color — a tone context surface must declare both so children can guarantee readable contrast), `color-shift-minimum` (style.color on a dataTone element resolves to tone step < 9 — below the minimum for legible body text), `unknown-tone`, `middle-surface-anchor`, `unknown-density`, `unknown-size`, `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. Extend with project rules via `options.rules: CustomRule[]`. Suppress on an element with `_doctorDisable`.
 
 ## Custom spinners
 
@@ -30033,9 +30033,10 @@ console.log(format(diagnose(App)))
 type Severity = "error" | "warning" | "info"
 
 interface Diagnostic {
-  rule: string // "inline-typography" | "void-content" | "missing-key" | …
+  rule: string     // "inline-typography" | "void-content" | "missing-key" | …
   severity: Severity
-  path: string // "div > ul > li"
+  category?: string // "structure" | "key" | "theme" | "typography" | "data-attr" | "visual"
+  path: string     // "div > ul > li"
   message: string
   hint?: string
 }
@@ -30050,6 +30051,12 @@ interface Diagnostic {
 | `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` / `fontFamily` / `textDecoration` literals in `style` — use a typography patch |
 | `raw-theme-value` | info | a literal hex/rgb/hsl color **or a CSS named color** (`"red"`, `"white"`, `"black"`, …) in a color style prop (`color`, `background`, `border`, `fill`, …). For hex/rgb values the hint uses **`@domphy/palette` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
 | `raw-spacing-value` | info | a literal `rem`/`em`/`px` value in a layout spacing prop (`padding`, `paddingBlock`, `paddingInline`, `margin`, `marginBlock`, `marginInline`, `gap`, …) — suggests `themeSpacing(n)` for consistent theme density |
+| `low-opacity` | warning / info | `style.opacity` < 0.6 on a control is too dim for interactive elements to be discoverable; downgraded to info if a hover-restore pattern (`&:hover: { opacity: '1' }`) is detected |
+| `tone-background-inherit` | warning | `style.backgroundColor` resolves to a fixed shifted tone instead of `"inherit"` — use `dataTone` to shift the surface context, not `backgroundColor` directly |
+| `missing-color` | warning | element uses `themeColor()` for at least one styled prop but has no `style.color` — text color won't re-evaluate when the tone context shifts (CSS `color` inheritance carries the computed value, not a live theme var) |
+| `low-contrast` | warning | `style.color` and `style.backgroundColor` both resolve to theme vars but their shift-step gap is < 9 — insufficient contrast for legible text |
+| `dataTone-surface-contract` | warning | element sets `dataTone` but is missing `backgroundColor` and/or `color` — a tone context surface must declare both so children can guarantee readable contrast |
+| `color-shift-minimum` | warning | `style.color` on an element with `dataTone` resolves to tone step < 9 — below the minimum for legible body text |
 | `unknown-tone` | warning | a `dataTone` value that isn't valid tone grammar (`inherit` / `base` / a number / `shift-N` / `increase-N` / `decrease-N` with N ≤ 17) — catches invented words like `surface` / `text`, and out-of-range offsets like `shift-25` |
 | `middle-surface-anchor` | warning | a `dataTone: "shift-N"` where N is 4–13 — a mid-ramp surface anchor causes child tones to clamp and collapse contrast; prefer edge anchors (0–3 light, 14–17 dark) |
 | `unknown-density` | warning / error | a `dataDensity` value that isn't `"inherit"` / `"increase-N"` / `"decrease-N"` (N ≤ 4), or uses `shift-` (invalid for density). Error when N > 4 (out of the 5-step scale). |
@@ -30090,7 +30097,7 @@ Add `_doctorDisable` to an element to suppress rules at that node (not its child
 
 ### Custom rules
 
-Provide project-specific rules alongside the built-in 12:
+Provide project-specific rules alongside the built-in 18:
 
 ```ts
 import { type CustomRule, diagnose } from "@domphy/doctor"
@@ -30191,12 +30198,12 @@ The loop becomes: list the app's blocks → reuse them → generate → `domphy_
 
 ---
 title: "Rules Reference"
-description: "Complete reference for all 12 @domphy/doctor rules — what each one catches, why it matters, and how to fix the violation."
+description: "Complete reference for all 18 @domphy/doctor rules — what each one catches, why it matters, and how to fix the violation."
 ---
 
 # Rules Reference
 
-`@domphy/doctor` runs 12 rules against a Domphy element tree. This page covers each rule in full: what triggers it, why the pattern is non-idiomatic, and how to write the correct version.
+`@domphy/doctor` runs 18 rules against a Domphy element tree. This page covers each rule in full: what triggers it, why the pattern is non-idiomatic, and how to write the correct version.
 
 Severity levels:
 - **error** — structurally invalid; the tree will not render correctly. `validate().ok` is `false` when any error is present.
@@ -30573,6 +30580,184 @@ Two siblings sharing the same `_key` value make it impossible for the reconciler
 ```
 
 Unlike `missing-key` and `unstable-key`, `duplicate-key` is decidable for any sibling array — static or dynamic — because the keys are visible at the time the rule runs. Static arrays with duplicate keys are therefore also flagged.
+
+---
+
+## `tone-background-inherit` — warning
+
+`style.backgroundColor` should always use `themeColor(l, "inherit")` — the tone that resolves to the current surface context. When you set `backgroundColor` to a fixed shifted tone (e.g. `themeColor(l, "shift-3")`), the background double-shifts when the element also has a `dataTone` set, producing incorrect surfaces.
+
+Use `dataTone` to shift the surface context. Let `backgroundColor` always paint the surface in the current context:
+
+```ts
+// Bad — fixed shifted tone on backgroundColor
+{ div: "Card", style: { backgroundColor: (l) => themeColor(l, "shift-3") } }
+
+// Also bad — with dataTone too, this double-shifts
+{ div: "Card", dataTone: "shift-2", style: { backgroundColor: (l) => themeColor(l, "shift-3") } }
+```
+
+```ts
+// Good — shift the context via dataTone; paint surface as "inherit"
+{
+  div: "Card",
+  dataTone: "shift-2",
+  style: { backgroundColor: (l) => themeColor(l, "inherit") }
+}
+```
+
+---
+
+## `missing-color` — warning
+
+An element that uses `themeColor()` for at least one styled property (e.g. `backgroundColor`, `borderColor`) but has no `style.color` will have text color that doesn't re-evaluate when the tone context shifts. CSS `color` inheritance carries the computed value from the parent — not a live theme var — so the text can mismatch its surface after a tone shift.
+
+```ts
+// Bad — themed background, inherited color
+{
+  div: "Card",
+  dataTone: "shift-1",
+  style: {
+    backgroundColor: (l) => themeColor(l, "inherit"),
+    // no color: ... here
+  }
+}
+```
+
+```ts
+// Good — both background and text color are reactive
+{
+  div: "Card",
+  dataTone: "shift-1",
+  style: {
+    backgroundColor: (l) => themeColor(l, "inherit"),
+    color: (l) => themeColor(l, "shift-9"),
+  }
+}
+```
+
+---
+
+## `low-contrast` — warning
+
+When `style.color` and `style.backgroundColor` are both reactive theme vars (returning a `var(--X-N)` CSS var), the rule compares their shift-step numbers. A gap < 9 steps fails WCAG-level legibility requirements.
+
+```ts
+// Bad — shift-3 text on shift-1 bg = gap of only 2
+{
+  div: "Card",
+  style: {
+    backgroundColor: (l) => themeColor(l, "shift-1"),
+    color: (l) => themeColor(l, "shift-3"),
+  }
+}
+```
+
+```ts
+// Good — shift-11 text on shift-1 bg = gap of 10
+{
+  div: "Card",
+  style: {
+    backgroundColor: (l) => themeColor(l, "shift-1"),
+    color: (l) => themeColor(l, "shift-11"),
+  }
+}
+```
+
+The rule only fires when both values are detected as theme vars from the same family (extracted from the CSS var string that `themeColor()` returns). If either prop is a literal or from a different family, the rule is skipped.
+
+---
+
+## `low-opacity` — warning / info
+
+Interactive controls with `style.opacity` below 0.6 are difficult to see. The rule fires a **warning** when the opacity is below 0.6 with no hover-restore pattern detected, and an **info** when a `&:hover: { opacity: '1' }` style is present (hover-reveal is valid but the resting state should be at least 0.6 so the control is discoverable without hovering).
+
+```ts
+// Bad — 30% opacity with no hover restore
+{ button: "Delete", style: { opacity: "0.3" } }
+```
+
+```ts
+// Info-level — hover-reveal is acceptable but resting opacity should be ≥ 0.6
+{
+  button: "Delete",
+  style: {
+    opacity: "0.3",
+    "&:hover": { opacity: "1" },  // detected as hover-reveal → info, not warning
+  }
+}
+```
+
+```ts
+// Good
+{ button: "Delete", style: { opacity: "0.7" } }
+// Or full hover-reveal with a reasonable resting opacity
+{ button: "Delete", style: { opacity: "0.6", "&:hover": { opacity: "1" } } }
+```
+
+Only string values are checked. Reactive opacity functions `(l) => ...` are skipped (they can't be evaluated without a real runtime).
+
+---
+
+## `dataTone-surface-contract` — warning
+
+An element that sets `dataTone` (to any value other than `"inherit"`) creates a new tone context for its children. For that surface to be self-contained it must declare **both** `backgroundColor` (to paint the surface at the new tone) and `color` (to set the baseline text color, guaranteeing minimum legibility). If either is missing, child elements cannot rely on inherited contrast.
+
+```ts
+// Bad — sets dataTone but has no backgroundColor or color
+{ div: "Card", dataTone: "shift-1" }
+
+// Bad — sets dataTone + backgroundColor but no color
+{
+  div: "Card",
+  dataTone: "shift-1",
+  style: { backgroundColor: (l) => themeColor(l, "inherit") }
+}
+```
+
+```ts
+// Good — full surface contract
+{
+  div: "Card",
+  dataTone: "shift-1",
+  style: {
+    backgroundColor: (l) => themeColor(l, "inherit"),
+    color: (l) => themeColor(l, "shift-9"),
+  }
+}
+```
+
+---
+
+## `color-shift-minimum` — warning
+
+When an element with `dataTone` sets `style.color` to a theme var whose shift step is below 9, the text is too close to the light end of the ramp to guarantee legibility on a standard surface. Minimum recommended shift for body text is `shift-9`; secondary/muted text may use `shift-7` or `shift-8` with explicit justification.
+
+```ts
+// Bad — shift-5 text is too light for body text
+{
+  div: "Card",
+  dataTone: "shift-1",
+  style: {
+    backgroundColor: (l) => themeColor(l, "inherit"),
+    color: (l) => themeColor(l, "shift-5"),  // < 9, too light
+  }
+}
+```
+
+```ts
+// Good
+{
+  div: "Card",
+  dataTone: "shift-1",
+  style: {
+    backgroundColor: (l) => themeColor(l, "inherit"),
+    color: (l) => themeColor(l, "shift-9"),  // minimum for body text
+  }
+}
+```
+
+This rule only fires when `dataTone` is also set and `style.color` resolves to a recognizable theme CSS var. It is a companion to `dataTone-surface-contract` — once the surface contract is satisfied, this rule verifies the color step is high enough.
 
 
 
@@ -40160,7 +40345,7 @@ function menuItem(
 
       const context = node.getContext("menu");
       if (!context) {
-        console.warn(`"menuItem" patch must be used inside a "menu"`);
+        console.warn(`"menuItem" patch requires a parent with $: [menu()] — no menu context found`);
         return;
       }
       let children = (node.parent?.children.items ?? []) as ElementNode[];
@@ -40630,11 +40815,13 @@ export { paragraph };
 import {
   type DomphyElement,
   merge,
+  type Listener,
   type PartialElement,
   toState,
   type ValueOrState,
 } from "@domphy/core";
 import type { Placement } from "@domphy/floating";
+import { themeColor } from "@domphy/theme";
 import { createFloating } from "../utils/floating.js";
 
 /**
@@ -40671,7 +40858,10 @@ function popover(props: {
 
   const popoverPartial: PartialElement = {
     role: "dialog",
-    dataTone: "shift-11",
+    dataTone: "shift-14",
+    style: {
+      backgroundColor: (l: Listener) => themeColor(l, "inherit"),
+    },
     onMouseEnter: () => openOn === "hover" && show(),
     onMouseLeave: () => openOn === "hover" && hide(),
     _onInsert: (node) => {
