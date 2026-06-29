@@ -38,10 +38,11 @@ React to any value change at the form level:
 const form = createForm<PriceInput>({
   defaultValues: { quantity: 1, unitPrice: 10, total: 10 },
   onSubmit: ({ value }) => checkout(value),
-  onChange: ({ value }) => {
+  onChange: ({ formApi }) => {
     // Compute derived fields
-    const total = value.quantity * value.unitPrice
-    form.form.setFieldValue("total", total, { touch: false })
+    const quantity = formApi.getFieldValue("quantity")
+    const unitPrice = formApi.getFieldValue("unitPrice")
+    formApi.setFieldValue("total", quantity * unitPrice, { touch: false })
   },
 })
 ```

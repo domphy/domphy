@@ -181,24 +181,25 @@ const WizardForm = {
 }
 ```
 
-## Submit with external data (context)
+## Submit with external data
 
-Pass extra data to `handleSubmit` that isn't in the form values:
+`handleSubmit()` takes no parameters in the Domphy adapter. Pass external data via a closure or state:
 
 ```ts
+import { toState } from "@domphy/core"
+
+const threadId = toState<string>("")
+
 const form = createForm<MessageInput>({
   defaultValues: { body: "" },
-  onSubmit: async ({ value, context }) => {
-    await sendMessage(value.body, context.threadId, context.csrfToken)
+  onSubmit: async ({ value }) => {
+    await sendMessage(value.body, threadId.get(), getToken())
   },
 })
 
 const SendButton = {
   button: "Send",
-  onClick: () => form.handleSubmit(
-    {},
-    { threadId: currentThread, csrfToken: getToken() }
-  ),
+  onClick: () => form.handleSubmit(),
 }
 ```
 

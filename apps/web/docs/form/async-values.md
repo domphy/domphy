@@ -77,26 +77,33 @@ effect(() => {
 
 ## Pattern 3: async defaultValues
 
-Pass a function as `defaultValues` — called once at mount:
+`defaultValues` accepts only a static value (`TFormData`), not a function. To load data asynchronously and populate the form, use Pattern 2 (reset on data change) combined with an external loading state:
 
 ```ts
+import { toState } from "@domphy/core"
+
+const data = toState<PostInput | null>(null)
+const loading = toState(true)
+
+fetchPost(postId).then((post) => {
+  data.set({ title: post.title, body: post.body })
+  loading.set(false)
+})
+
 const form = createForm<PostInput>({
-  defaultValues: async () => {
-    const post = await fetchPost(postId)
-    return { title: post.title, body: post.body }
-  },
+  defaultValues: { title: "", body: "" },
   onSubmit: async ({ value }) => api.patch(`/posts/${postId}`, value),
 })
 
-// form.state.isLoading is true while defaultValues is resolving
+effect(() => {
+  const post = data.get()
+  if (post) form.form.reset(post)
+})
+
 const FormOrLoader = {
-  div: (l) => form.isLoading(l)
-    ? { div: "Loading…" }
-    : FormElement,
+  div: (l) => loading.get(l) ? { div: "Loading…" } : FormElement,
 }
 ```
-
-This keeps loading logic inside the form itself — no external query needed for this pattern.
 
 ## Reset on route change
 

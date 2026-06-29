@@ -16624,26 +16624,33 @@ effect(() => {
 
 ## Pattern 3: async defaultValues
 
-Pass a function as `defaultValues` — called once at mount:
+`defaultValues` accepts only a static value (`TFormData`), not a function. To load data asynchronously and populate the form, use Pattern 2 (reset on data change) combined with an external loading state:
 
 ```ts
+import { toState } from "@domphy/core"
+
+const data = toState<PostInput | null>(null)
+const loading = toState(true)
+
+fetchPost(postId).then((post) => {
+  data.set({ title: post.title, body: post.body })
+  loading.set(false)
+})
+
 const form = createForm<PostInput>({
-  defaultValues: async () => {
-    const post = await fetchPost(postId)
-    return { title: post.title, body: post.body }
-  },
+  defaultValues: { title: "", body: "" },
   onSubmit: async ({ value }) => api.patch(`/posts/${postId}`, value),
 })
 
-// form.state.isLoading is true while defaultValues is resolving
+effect(() => {
+  const post = data.get()
+  if (post) form.form.reset(post)
+})
+
 const FormOrLoader = {
-  div: (l) => form.isLoading(l)
-    ? { div: "Loading…" }
-    : FormElement,
+  div: (l) => loading.get(l) ? { div: "Loading…" } : FormElement,
 }
 ```
-
-This keeps loading logic inside the form itself — no external query needed for this pattern.
 
 ## Reset on route change
 
@@ -17706,10 +17713,11 @@ React to any value change at the form level:
 const form = createForm<PriceInput>({
   defaultValues: { quantity: 1, unitPrice: 10, total: 10 },
   onSubmit: ({ value }) => checkout(value),
-  onChange: ({ value }) => {
+  onChange: ({ formApi }) => {
     // Compute derived fields
-    const total = value.quantity * value.unitPrice
-    form.form.setFieldValue("total", total, { touch: false })
+    const quantity = formApi.getFieldValue("quantity")
+    const unitPrice = formApi.getFieldValue("unitPrice")
+    formApi.setFieldValue("total", quantity * unitPrice, { touch: false })
   },
 })
 ```
@@ -18281,24 +18289,25 @@ const WizardForm = {
 }
 ```
 
-## Submit with external data (context)
+## Submit with external data
 
-Pass extra data to `handleSubmit` that isn't in the form values:
+`handleSubmit()` takes no parameters in the Domphy adapter. Pass external data via a closure or state:
 
 ```ts
+import { toState } from "@domphy/core"
+
+const threadId = toState<string>("")
+
 const form = createForm<MessageInput>({
   defaultValues: { body: "" },
-  onSubmit: async ({ value, context }) => {
-    await sendMessage(value.body, context.threadId, context.csrfToken)
+  onSubmit: async ({ value }) => {
+    await sendMessage(value.body, threadId.get(), getToken())
   },
 })
 
 const SendButton = {
   button: "Send",
-  onClick: () => form.handleSubmit(
-    {},
-    { threadId: currentThread, csrfToken: getToken() }
-  ),
+  onClick: () => form.handleSubmit(),
 }
 ```
 
