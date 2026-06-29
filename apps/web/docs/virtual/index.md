@@ -51,7 +51,7 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 | `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount` for variable sizes. |
 | `scrollToIndex(i, opts?)` / `scrollToOffset(px, opts?)` | Imperative scrolling. |
 | `setOptions(opts)` | Update `count`/options, then re-measure. |
-| `virtualizer` | The underlying `Virtualizer` — the full virtual-core API. Includes Domphy additions not in upstream: `scrollBy(delta, opts?)`, `scrollToEnd(opts?)`, `takeSnapshot()`, `getDistanceFromEnd()`, `isAtEnd(threshold?)`. |
+| `virtualizer` | The underlying `Virtualizer` — the full virtual-core API including `scrollBy(delta, opts?)`, `scrollToEnd(opts?)`, `takeSnapshot()`, `getDistanceFromEnd()`, `isAtEnd(threshold?)`. |
 | `version(l)` | Raw reactive change counter. |
 | `destroy()` | Detach observers; call from `_onRemove`. |
 
