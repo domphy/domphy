@@ -90,7 +90,7 @@ const outer = new RecordState({ value: inner })   // ✗ removed
 **After:**
 ```ts
 const inner = toState(0)
-const doubled = computed((l) => inner.get(l) * 2)
+const doubled = computed(() => inner.get() * 2)
 const outer = new RecordState({ doubled })   // ✓ computed
 ```
 

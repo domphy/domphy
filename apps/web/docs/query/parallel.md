@@ -102,12 +102,12 @@ const users   = createQuery(queryClient, { queryKey: () => ["users"],   queryFn:
 const groups  = createQuery(queryClient, { queryKey: () => ["groups"],  queryFn: fetchGroups })
 const settings = createQuery(queryClient, { queryKey: () => ["settings"], queryFn: fetchSettings })
 
-const isAllLoaded = computed((l) =>
-  !users.isPending(l) && !groups.isPending(l) && !settings.isPending(l)
+const isAllLoaded = computed(() =>
+  !users.isPending() && !groups.isPending() && !settings.isPending()
 )
 
-const hasAnyError = computed((l) =>
-  users.isError(l) || groups.isError(l) || settings.isError(l)
+const hasAnyError = computed(() =>
+  users.isError() || groups.isError() || settings.isError()
 )
 
 const Page = {

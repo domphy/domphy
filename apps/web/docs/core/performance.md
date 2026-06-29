@@ -43,9 +43,9 @@ const items = toState<Item[]>([])
 const filter = toState<"all" | "active" | "done">("all")
 
 // Only re-runs when items OR filter changes
-const filteredItems = computed((l) => {
-  const f = filter.get(l)
-  const all = items.get(l)
+const filteredItems = computed(() => {
+  const f = filter.get()
+  const all = items.get()
   return f === "all" ? all : all.filter((i) => i.status === f)
 })
 

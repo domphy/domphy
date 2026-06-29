@@ -29,12 +29,12 @@ const feed = createInfiniteQuery<Page>(queryClient, {
 })
 
 // Flatten pages into a single list
-const allPosts = computed((l): Post[] =>
-  feed.data(l)?.pages.flatMap(p => p.posts) ?? []
+const allPosts = computed((): Post[] =>
+  feed.data()?.pages.flatMap(p => p.posts) ?? []
 )
 
-const isFetchingMore = computed((l) => feed.isFetchingNextPage(l))
-const hasMore = computed((l) => feed.hasNextPage(l))
+const isFetchingMore = computed(() => feed.isFetchingNextPage())
+const hasMore = computed(() => feed.hasNextPage())
 
 // Virtualizer — count starts at 0 and is updated reactively via setOptions
 const virtualizer = createVirtualizer({
@@ -159,7 +159,6 @@ import { createRoute } from "@domphy/router"
 
 const feedRoute = createRoute({
   path: "/feed",
-  component: () => FeedList,
   // Save scroll position before leaving
   onLeave: () => {
     sessionStorage.setItem("feed-scroll", String(virtualizer.virtualizer.getScrollOffset()))

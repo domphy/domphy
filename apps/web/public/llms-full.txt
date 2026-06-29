@@ -2077,7 +2077,7 @@ const outer = new RecordState({ value: inner })   // ✗ removed
 **After:**
 ```ts
 const inner = toState(0)
-const doubled = computed((l) => inner.get(l) * 2)
+const doubled = computed(() => inner.get() * 2)
 const outer = new RecordState({ doubled })   // ✓ computed
 ```
 
@@ -2455,14 +2455,14 @@ function createAsyncState<T>() {
     }
   }
 
-  const data = computed((l): T | undefined => {
-    const s = state.get(l)
+  const data = computed((): T | undefined => {
+    const s = state.get()
     return s.status === "success" ? s.data : undefined
   })
 
-  const isLoading = computed((l) => state.get(l).status === "loading")
-  const error = computed((l) => {
-    const s = state.get(l)
+  const isLoading = computed(() => state.get().status === "loading")
+  const error = computed(() => {
+    const s = state.get()
     return s.status === "error" ? s.error : null
   })
 
@@ -2490,8 +2490,8 @@ import type { Post } from "./api"
 
 export const posts = toState<Post[]>([])
 export const selectedId = toState<string | null>(null)
-export const selectedPost = computed((l) =>
-  posts.get(l).find(p => p.id === selectedId.get(l)) ?? null
+export const selectedPost = computed(() =>
+  posts.get().find(p => p.id === selectedId.get()) ?? null
 )
 ```
 
@@ -2565,9 +2565,9 @@ const items = toState<Item[]>([])
 const filter = toState<"all" | "active" | "done">("all")
 
 // Only re-runs when items OR filter changes
-const filteredItems = computed((l) => {
-  const f = filter.get(l)
-  const all = items.get(l)
+const filteredItems = computed(() => {
+  const f = filter.get()
+  const all = items.get()
   return f === "all" ? all : all.filter((i) => i.status === f)
 })
 
@@ -7957,12 +7957,12 @@ const users   = createQuery(queryClient, { queryKey: () => ["users"],   queryFn:
 const groups  = createQuery(queryClient, { queryKey: () => ["groups"],  queryFn: fetchGroups })
 const settings = createQuery(queryClient, { queryKey: () => ["settings"], queryFn: fetchSettings })
 
-const isAllLoaded = computed((l) =>
-  !users.isPending(l) && !groups.isPending(l) && !settings.isPending(l)
+const isAllLoaded = computed(() =>
+  !users.isPending() && !groups.isPending() && !settings.isPending()
 )
 
-const hasAnyError = computed((l) =>
-  users.isError(l) || groups.isError(l) || settings.isError(l)
+const hasAnyError = computed(() =>
+  users.isError() || groups.isError() || settings.isError()
 )
 
 const Page = {
@@ -14891,12 +14891,12 @@ const feed = createInfiniteQuery<Page>(queryClient, {
 })
 
 // Flatten pages into a single list
-const allPosts = computed((l): Post[] =>
-  feed.data(l)?.pages.flatMap(p => p.posts) ?? []
+const allPosts = computed((): Post[] =>
+  feed.data()?.pages.flatMap(p => p.posts) ?? []
 )
 
-const isFetchingMore = computed((l) => feed.isFetchingNextPage(l))
-const hasMore = computed((l) => feed.hasNextPage(l))
+const isFetchingMore = computed(() => feed.isFetchingNextPage())
+const hasMore = computed(() => feed.hasNextPage())
 
 // Virtualizer — count starts at 0 and is updated reactively via setOptions
 const virtualizer = createVirtualizer({
@@ -15021,7 +15021,6 @@ import { createRoute } from "@domphy/router"
 
 const feedRoute = createRoute({
   path: "/feed",
-  component: () => FeedList,
   // Save scroll position before leaving
   onLeave: () => {
     sessionStorage.setItem("feed-scroll", String(virtualizer.virtualizer.getScrollOffset()))
@@ -17390,9 +17389,9 @@ import { computed } from "@domphy/core"
 const quantityField = form.field<number>("quantity", {})
 const priceField = form.field<number>("unitPrice", {})
 
-const total = computed((l) => {
-  const qty = quantityField.value(l) ?? 0
-  const price = priceField.value(l) ?? 0
+const total = computed(() => {
+  const qty = quantityField.value() ?? 0
+  const price = priceField.value() ?? 0
   return qty * price
 })
 
@@ -17592,9 +17591,9 @@ import { computed } from "@domphy/core"
 const quantityField = form.field<number>("quantity", {})
 const priceField = form.field<number>("price", {})
 
-const total = computed((l) => {
-  const qty = quantityField.value(l) ?? 0
-  const price = priceField.value(l) ?? 0
+const total = computed(() => {
+  const qty = quantityField.value() ?? 0
+  const price = priceField.value() ?? 0
   return qty * price
 })
 
@@ -22012,10 +22011,10 @@ import { toState, computed } from "@domphy/core"
 
 const rawData = toState([120, 200, 150, 80])
 
-const option = computed((l) => ({
+const option = computed(() => ({
   xAxis: { type: "category", data: ["A", "B", "C", "D"] },
   yAxis: { type: "value" },
-  series: [{ type: "bar", data: rawData.get(l) }],
+  series: [{ type: "bar", data: rawData.get() }],
 }))
 
 // Chart auto-updates when rawData changes:

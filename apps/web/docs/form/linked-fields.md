@@ -151,9 +151,9 @@ import { computed } from "@domphy/core"
 const quantityField = form.field<number>("quantity", {})
 const priceField = form.field<number>("unitPrice", {})
 
-const total = computed((l) => {
-  const qty = quantityField.value(l) ?? 0
-  const price = priceField.value(l) ?? 0
+const total = computed(() => {
+  const qty = quantityField.value() ?? 0
+  const price = priceField.value() ?? 0
   return qty * price
 })
 

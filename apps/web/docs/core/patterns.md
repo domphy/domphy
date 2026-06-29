@@ -220,14 +220,14 @@ function createAsyncState<T>() {
     }
   }
 
-  const data = computed((l): T | undefined => {
-    const s = state.get(l)
+  const data = computed((): T | undefined => {
+    const s = state.get()
     return s.status === "success" ? s.data : undefined
   })
 
-  const isLoading = computed((l) => state.get(l).status === "loading")
-  const error = computed((l) => {
-    const s = state.get(l)
+  const isLoading = computed(() => state.get().status === "loading")
+  const error = computed(() => {
+    const s = state.get()
     return s.status === "error" ? s.error : null
   })
 
@@ -255,8 +255,8 @@ import type { Post } from "./api"
 
 export const posts = toState<Post[]>([])
 export const selectedId = toState<string | null>(null)
-export const selectedPost = computed((l) =>
-  posts.get(l).find(p => p.id === selectedId.get(l)) ?? null
+export const selectedPost = computed(() =>
+  posts.get().find(p => p.id === selectedId.get()) ?? null
 )
 ```
 

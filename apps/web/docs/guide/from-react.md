@@ -310,7 +310,6 @@ import { createRoute } from "@domphy/router"
 
 const route = createRoute({
   path: "/users/$id",
-  component: () => ({ div: "User page" }),
 })
 ```
 

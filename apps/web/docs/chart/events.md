@@ -162,10 +162,10 @@ import { toState, computed } from "@domphy/core"
 
 const rawData = toState([120, 200, 150, 80])
 
-const option = computed((l) => ({
+const option = computed(() => ({
   xAxis: { type: "category", data: ["A", "B", "C", "D"] },
   yAxis: { type: "value" },
-  series: [{ type: "bar", data: rawData.get(l) }],
+  series: [{ type: "bar", data: rawData.get() }],
 }))
 
 // Chart auto-updates when rawData changes:
