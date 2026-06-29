@@ -9,6 +9,8 @@ import {
   type Diagnostic,
 } from "./diagnose.js";
 import { findTag, isPlainObject } from "./shared.js";
+import { auditOutput } from "./layer4.js";
+import { ElementNode } from "@domphy/core";
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
@@ -16,6 +18,7 @@ const { values, positionals } = parseArgs({
     only: { type: "string" },
     exclude: { type: "string" },
     reactive: { type: "boolean", default: true },
+    output: { type: "boolean", default: true },
     format: { type: "string", default: "text" },
     help: { type: "boolean", short: "h", default: false },
   },
@@ -32,6 +35,7 @@ Options:
   --only <rules>       Only run these rule IDs (comma-separated)
   --exclude <rules>    Skip these rule IDs (comma-separated)
   --no-reactive        Skip reactive function evaluation
+  --no-output          Skip Layer 4 HTML+CSS linting (htmlhint + stylelint)
   --format text|json   Output format (default: text)
   -h, --help           Show this help
 
@@ -177,7 +181,19 @@ async function main(): Promise<void> {
 
     const fileDiags: Diagnostic[] = [];
     for (const el of elements) {
+      // Layer 1–3: static analysis on element object + ElementNode
       fileDiags.push(...diagnose(el, options));
+
+      // Layer 4: HTML + CSS output analysis via htmlhint + stylelint
+      if (values.output !== false) {
+        try {
+          const node = new ElementNode(el as any);
+          const outputDiags = await auditOutput(node, { path: file });
+          fileDiags.push(...outputDiags);
+        } catch {
+          // ElementNode construction failed — skip layer 4 for this element
+        }
+      }
     }
 
     if (fileDiags.length > 0) {

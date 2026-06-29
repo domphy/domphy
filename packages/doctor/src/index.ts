@@ -16,3 +16,5 @@ export type {
 export { diagnose, format, validate } from "./diagnose.js";
 export type { AppliedFix, FixResult } from "./fix.js";
 export { fix } from "./fix.js";
+export type { Layer4Options } from "./layer4.js";
+export { auditOutput } from "./layer4.js";
