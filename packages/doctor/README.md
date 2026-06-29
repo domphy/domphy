@@ -42,8 +42,9 @@ console.log(format(issues))
 
 ```ts
 interface Diagnostic {
-  rule: string          // one of the 12 rule ids below, e.g. "inline-typography"
+  rule: string          // one of the 18 rule ids below, e.g. "inline-typography"
   severity: "error" | "warning" | "info"
+  category?: string     // "structure" | "key" | "theme" | "typography" | "data-attr" | "visual"
   path: string          // "div > ul > li"
   message: string
   hint?: string
@@ -52,7 +53,7 @@ interface Diagnostic {
 
 ## Rules
 
-The doctor implements 12 rules:
+The doctor implements 18 rules:
 
 | Rule | Severity | Catches |
 | --- | --- | --- |
@@ -62,8 +63,14 @@ The doctor implements 12 rules:
 | `unknown-tag` | warning | an element whose first key isn't a valid HTML/SVG tag (typo) |
 | `void-content` | error | a void tag (`input`, `img`, `br`, …) with non-null content |
 | `inline-typography` | warning | `fontSize`/`lineHeight`/`fontWeight`/`letterSpacing`/`fontFamily`/`textDecoration` literals in `style` — use a typography patch |
-| `raw-theme-value` | info | a literal color (`#hex`, `rgb()`/`rgba()`) in a color `style` prop — use `themeColor()` (the hint includes an LCH-derived suggestion) |
+| `raw-theme-value` | info | a literal color (`#hex`, `rgb()`/`rgba()`, CSS named colors like `"red"`) in a color `style` prop — use `themeColor()` |
 | `raw-spacing-value` | info | a literal `rem`/`em`/`px` spacing value in a spacing `style` prop — use `themeSpacing()` |
+| `low-opacity` | warning/info | `style.opacity` < 0.6 on a control; info if hover-restore pattern (`&:hover: { opacity: '1' }`) is detected |
+| `tone-background-inherit` | warning | `style.backgroundColor` resolves to a fixed shifted tone var instead of the inherit tone — use `dataTone` to shift the surface, not `backgroundColor` |
+| `missing-color` | warning | element uses `themeColor()` for at least one styled prop but has no `style.color` — text color won't re-evaluate when the tone context shifts |
+| `low-contrast` | warning | `style.color` and `style.backgroundColor` are both reactive theme vars but their shift-step gap is < 9 (insufficient contrast) |
+| `dataTone-surface-contract` | warning | element sets `dataTone` but is missing `backgroundColor` and/or `color` — a tone context surface must declare both so children can guarantee readable contrast |
+| `color-shift-minimum` | warning | element with `dataTone` sets `style.color` to a tone step < 9 — below the minimum for legible body text |
 | `unknown-tone` | warning | a `dataTone` that isn't valid tone grammar, or whose offset is out of the 18-step ramp (0–17) |
 | `middle-surface-anchor` | warning | a `dataTone` of `shift-4`…`shift-13` (mid-ramp surface anchor) that may collapse child contrast |
 | `unknown-density` | warning/error | a `dataDensity` that isn't valid grammar, or whose offset is out of the 5-step range (0–4) |

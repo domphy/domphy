@@ -44,9 +44,10 @@ console.log(format(diagnose(App)))
 type Severity = "error" | "warning" | "info"
 
 interface Diagnostic {
-  rule: string // "inline-typography" | "void-content" | "missing-key" | …
+  rule: string     // "inline-typography" | "void-content" | "missing-key" | …
   severity: Severity
-  path: string // "div > ul > li"
+  category?: string // "structure" | "key" | "theme" | "typography" | "data-attr" | "visual"
+  path: string     // "div > ul > li"
   message: string
   hint?: string
 }
@@ -61,6 +62,12 @@ interface Diagnostic {
 | `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` / `fontFamily` / `textDecoration` literals in `style` — use a typography patch |
 | `raw-theme-value` | info | a literal hex/rgb/hsl color **or a CSS named color** (`"red"`, `"white"`, `"black"`, …) in a color style prop (`color`, `background`, `border`, `fill`, …). For hex/rgb values the hint uses **`@domphy/palette` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
 | `raw-spacing-value` | info | a literal `rem`/`em`/`px` value in a layout spacing prop (`padding`, `paddingBlock`, `paddingInline`, `margin`, `marginBlock`, `marginInline`, `gap`, …) — suggests `themeSpacing(n)` for consistent theme density |
+| `low-opacity` | warning / info | `style.opacity` < 0.6 on a control is too dim for interactive elements to be discoverable; downgraded to info if a hover-restore pattern (`&:hover: { opacity: '1' }`) is detected |
+| `tone-background-inherit` | warning | `style.backgroundColor` resolves to a fixed shifted tone instead of `"inherit"` — use `dataTone` to shift the surface context, not `backgroundColor` directly |
+| `missing-color` | warning | element uses `themeColor()` for at least one styled prop but has no `style.color` — text color won't re-evaluate when the tone context shifts (CSS `color` inheritance carries the computed value, not a live theme var) |
+| `low-contrast` | warning | `style.color` and `style.backgroundColor` both resolve to theme vars but their shift-step gap is < 9 — insufficient contrast for legible text |
+| `dataTone-surface-contract` | warning | element sets `dataTone` but is missing `backgroundColor` and/or `color` — a tone context surface must declare both so children can guarantee readable contrast |
+| `color-shift-minimum` | warning | `style.color` on an element with `dataTone` resolves to tone step < 9 — below the minimum for legible body text |
 | `unknown-tone` | warning | a `dataTone` value that isn't valid tone grammar (`inherit` / `base` / a number / `shift-N` / `increase-N` / `decrease-N` with N ≤ 17) — catches invented words like `surface` / `text`, and out-of-range offsets like `shift-25` |
 | `middle-surface-anchor` | warning | a `dataTone: "shift-N"` where N is 4–13 — a mid-ramp surface anchor causes child tones to clamp and collapse contrast; prefer edge anchors (0–3 light, 14–17 dark) |
 | `unknown-density` | warning / error | a `dataDensity` value that isn't `"inherit"` / `"increase-N"` / `"decrease-N"` (N ≤ 4), or uses `shift-` (invalid for density). Error when N > 4 (out of the 5-step scale). |
@@ -101,7 +108,7 @@ Add `_doctorDisable` to an element to suppress rules at that node (not its child
 
 ### Custom rules
 
-Provide project-specific rules alongside the built-in 12:
+Provide project-specific rules alongside the built-in 18:
 
 ```ts
 import { type CustomRule, diagnose } from "@domphy/doctor"

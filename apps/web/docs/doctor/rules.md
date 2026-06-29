@@ -1,11 +1,11 @@
 ---
 title: "Rules Reference"
-description: "Complete reference for all 12 @domphy/doctor rules — what each one catches, why it matters, and how to fix the violation."
+description: "Complete reference for all 18 @domphy/doctor rules — what each one catches, why it matters, and how to fix the violation."
 ---
 
 # Rules Reference
 
-`@domphy/doctor` runs 12 rules against a Domphy element tree. This page covers each rule in full: what triggers it, why the pattern is non-idiomatic, and how to write the correct version.
+`@domphy/doctor` runs 18 rules against a Domphy element tree. This page covers each rule in full: what triggers it, why the pattern is non-idiomatic, and how to write the correct version.
 
 Severity levels:
 - **error** — structurally invalid; the tree will not render correctly. `validate().ok` is `false` when any error is present.
@@ -382,3 +382,181 @@ Two siblings sharing the same `_key` value make it impossible for the reconciler
 ```
 
 Unlike `missing-key` and `unstable-key`, `duplicate-key` is decidable for any sibling array — static or dynamic — because the keys are visible at the time the rule runs. Static arrays with duplicate keys are therefore also flagged.
+
+---
+
+## `tone-background-inherit` — warning
+
+`style.backgroundColor` should always use `themeColor(l, "inherit")` — the tone that resolves to the current surface context. When you set `backgroundColor` to a fixed shifted tone (e.g. `themeColor(l, "shift-3")`), the background double-shifts when the element also has a `dataTone` set, producing incorrect surfaces.
+
+Use `dataTone` to shift the surface context. Let `backgroundColor` always paint the surface in the current context:
+
+```ts
+// Bad — fixed shifted tone on backgroundColor
+{ div: "Card", style: { backgroundColor: (l) => themeColor(l, "shift-3") } }
+
+// Also bad — with dataTone too, this double-shifts
+{ div: "Card", dataTone: "shift-2", style: { backgroundColor: (l) => themeColor(l, "shift-3") } }
+```
+
+```ts
+// Good — shift the context via dataTone; paint surface as "inherit"
+{
+  div: "Card",
+  dataTone: "shift-2",
+  style: { backgroundColor: (l) => themeColor(l, "inherit") }
+}
+```
+
+---
+
+## `missing-color` — warning
+
+An element that uses `themeColor()` for at least one styled property (e.g. `backgroundColor`, `borderColor`) but has no `style.color` will have text color that doesn't re-evaluate when the tone context shifts. CSS `color` inheritance carries the computed value from the parent — not a live theme var — so the text can mismatch its surface after a tone shift.
+
+```ts
+// Bad — themed background, inherited color
+{
+  div: "Card",
+  dataTone: "shift-1",
+  style: {
+    backgroundColor: (l) => themeColor(l, "inherit"),
+    // no color: ... here
+  }
+}
+```
+
+```ts
+// Good — both background and text color are reactive
+{
+  div: "Card",
+  dataTone: "shift-1",
+  style: {
+    backgroundColor: (l) => themeColor(l, "inherit"),
+    color: (l) => themeColor(l, "shift-9"),
+  }
+}
+```
+
+---
+
+## `low-contrast` — warning
+
+When `style.color` and `style.backgroundColor` are both reactive theme vars (returning a `var(--X-N)` CSS var), the rule compares their shift-step numbers. A gap < 9 steps fails WCAG-level legibility requirements.
+
+```ts
+// Bad — shift-3 text on shift-1 bg = gap of only 2
+{
+  div: "Card",
+  style: {
+    backgroundColor: (l) => themeColor(l, "shift-1"),
+    color: (l) => themeColor(l, "shift-3"),
+  }
+}
+```
+
+```ts
+// Good — shift-11 text on shift-1 bg = gap of 10
+{
+  div: "Card",
+  style: {
+    backgroundColor: (l) => themeColor(l, "shift-1"),
+    color: (l) => themeColor(l, "shift-11"),
+  }
+}
+```
+
+The rule only fires when both values are detected as theme vars from the same family (extracted from the CSS var string that `themeColor()` returns). If either prop is a literal or from a different family, the rule is skipped.
+
+---
+
+## `low-opacity` — warning / info
+
+Interactive controls with `style.opacity` below 0.6 are difficult to see. The rule fires a **warning** when the opacity is below 0.6 with no hover-restore pattern detected, and an **info** when a `&:hover: { opacity: '1' }` style is present (hover-reveal is valid but the resting state should be at least 0.6 so the control is discoverable without hovering).
+
+```ts
+// Bad — 30% opacity with no hover restore
+{ button: "Delete", style: { opacity: "0.3" } }
+```
+
+```ts
+// Info-level — hover-reveal is acceptable but resting opacity should be ≥ 0.6
+{
+  button: "Delete",
+  style: {
+    opacity: "0.3",
+    "&:hover": { opacity: "1" },  // detected as hover-reveal → info, not warning
+  }
+}
+```
+
+```ts
+// Good
+{ button: "Delete", style: { opacity: "0.7" } }
+// Or full hover-reveal with a reasonable resting opacity
+{ button: "Delete", style: { opacity: "0.6", "&:hover": { opacity: "1" } } }
+```
+
+Only string values are checked. Reactive opacity functions `(l) => ...` are skipped (they can't be evaluated without a real runtime).
+
+---
+
+## `dataTone-surface-contract` — warning
+
+An element that sets `dataTone` (to any value other than `"inherit"`) creates a new tone context for its children. For that surface to be self-contained it must declare **both** `backgroundColor` (to paint the surface at the new tone) and `color` (to set the baseline text color, guaranteeing minimum legibility). If either is missing, child elements cannot rely on inherited contrast.
+
+```ts
+// Bad — sets dataTone but has no backgroundColor or color
+{ div: "Card", dataTone: "shift-1" }
+
+// Bad — sets dataTone + backgroundColor but no color
+{
+  div: "Card",
+  dataTone: "shift-1",
+  style: { backgroundColor: (l) => themeColor(l, "inherit") }
+}
+```
+
+```ts
+// Good — full surface contract
+{
+  div: "Card",
+  dataTone: "shift-1",
+  style: {
+    backgroundColor: (l) => themeColor(l, "inherit"),
+    color: (l) => themeColor(l, "shift-9"),
+  }
+}
+```
+
+---
+
+## `color-shift-minimum` — warning
+
+When an element with `dataTone` sets `style.color` to a theme var whose shift step is below 9, the text is too close to the light end of the ramp to guarantee legibility on a standard surface. Minimum recommended shift for body text is `shift-9`; secondary/muted text may use `shift-7` or `shift-8` with explicit justification.
+
+```ts
+// Bad — shift-5 text is too light for body text
+{
+  div: "Card",
+  dataTone: "shift-1",
+  style: {
+    backgroundColor: (l) => themeColor(l, "inherit"),
+    color: (l) => themeColor(l, "shift-5"),  // < 9, too light
+  }
+}
+```
+
+```ts
+// Good
+{
+  div: "Card",
+  dataTone: "shift-1",
+  style: {
+    backgroundColor: (l) => themeColor(l, "inherit"),
+    color: (l) => themeColor(l, "shift-9"),  // minimum for body text
+  }
+}
+```
+
+This rule only fires when `dataTone` is also set and `style.color` resolves to a recognizable theme CSS var. It is a companion to `dataTone-surface-contract` — once the surface contract is satisfied, this rule verifies the color step is high enough.
