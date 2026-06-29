@@ -1,11 +1,13 @@
 import {
   type DomphyElement,
   merge,
+  type Listener,
   type PartialElement,
   toState,
   type ValueOrState,
 } from "@domphy/core";
 import type { Placement } from "@domphy/floating";
+import { themeColor } from "@domphy/theme";
 import { createFloating } from "../utils/floating.js";
 
 /**
@@ -42,7 +44,10 @@ function popover(props: {
 
   const popoverPartial: PartialElement = {
     role: "dialog",
-    dataTone: "shift-11",
+    dataTone: "shift-14",
+    style: {
+      backgroundColor: (l: Listener) => themeColor(l, "inherit"),
+    },
     onMouseEnter: () => openOn === "hover" && show(),
     onMouseLeave: () => openOn === "hover" && hide(),
     _onInsert: (node) => {
