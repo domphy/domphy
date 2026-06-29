@@ -66,11 +66,12 @@ import { createVirtualizer } from "@domphy/virtual/domphy"
 const list = createVirtualizer({
   count: 5000,
   estimateSize: () => 50,
-  getScrollElement: () => typeof window !== "undefined" ? window : null,
-  observeElementRect: observeWindowRect,
-  observeElementOffset: observeWindowOffset,
-  scrollToFn: windowScroll,
+  observeElementRect: observeWindowRect as any,
+  observeElementOffset: observeWindowOffset as any,
+  scrollToFn: windowScroll as any,
 })
+// Wire window as the scroll element from _onMount (getScrollElement is not an option in the Domphy adapter):
+// _onMount: () => list.setScrollElement(window as any)
 
 const App = {
   div: {

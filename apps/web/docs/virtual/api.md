@@ -47,13 +47,17 @@ The `virtualizer` property exposes the underlying `Virtualizer` instance with ad
 
 ## `VirtualizerOptions`
 
+:::info Domphy adapter vs raw Virtualizer
+`createVirtualizer` (from `@domphy/virtual/domphy`) **omits `getScrollElement`** — use `list.setScrollElement(el)` from `_onMount` instead. The table below documents the full raw `Virtualizer` class options; the adapter accepts all of them except `getScrollElement`.
+:::
+
 ```ts
 interface VirtualizerOptions<TScrollElement, TItemElement> {
   // Required
   count: number                          // total item count
   estimateSize: (index: number) => number  // item height/width estimate in px
 
-  // Scroll element
+  // Scroll element (raw Virtualizer only — Domphy adapter uses setScrollElement() instead)
   getScrollElement?: () => TScrollElement | null
   observeElementRect?: (instance, callback) => () => void
   observeElementOffset?: (instance, callback) => () => void
@@ -77,6 +81,7 @@ interface VirtualizerOptions<TScrollElement, TItemElement> {
   // Dynamic measurement
   measureElement?: (el: TItemElement, entry: ResizeObserverEntry | undefined, instance: Virtualizer<TScrollElement, TItemElement>) => number
   scrollMargin?: number
+  initialMeasurementsCache?: VirtualItem[]  // pre-seed size cache from a prior session (e.g. localStorage)
 
   // Scroll anchoring
   anchorTo?: "start" | "end"            // which end to anchor when items prepend/append
