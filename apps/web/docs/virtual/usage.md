@@ -32,7 +32,7 @@ const App = {
       {
         // spacer — holds the total scroll height
         div: null,
-        style: { height: () => `${list.getTotalSize()}px`, position: "relative" },
+        style: { height: (l) => `${list.getTotalSize(l)}px`, position: "relative" },
         div: (l) => list.getVirtualItems(l).map((item) => ({
           div: data.get()[item.index].text,
           _key: item.key,
@@ -86,7 +86,7 @@ const App = {
           height: `${item.size}px`,
         },
       })),
-      style: { position: "relative", height: () => `${list.getTotalSize()}px` },
+      style: { position: "relative", height: (l) => `${list.getTotalSize(l)}px` },
     },
     _onMount: () => list.setScrollElement(window as any),
     _onRemove: () => list.destroy(),
@@ -122,7 +122,7 @@ const App = {
       })),
       style: {
         position: "relative",
-        width: () => `${list.getTotalSize()}px`,
+        width: (l) => `${list.getTotalSize(l)}px`,
         height: "100%",
       },
     },
@@ -233,13 +233,13 @@ const App = {
           top: `${row.start}px`,
           left: 0,
           height: `${row.size}px`,
-          width: () => `${colList.getTotalSize()}px`,
+          width: (l) => `${colList.getTotalSize(l)}px`,
         },
       })),
       style: {
         position: "relative",
-        height: () => `${rowList.getTotalSize()}px`,
-        width: () => `${colList.getTotalSize()}px`,
+        height: (l) => `${rowList.getTotalSize(l)}px`,
+        width: (l) => `${colList.getTotalSize(l)}px`,
       },
     },
     _onMount: (node) => {

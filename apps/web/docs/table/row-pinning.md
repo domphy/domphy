@@ -13,7 +13,7 @@ Pin specific rows to the top or bottom using `setRowPinning`:
 import { createDomphyTable } from "@domphy/table/domphy"
 
 const table = createDomphyTable({
-  data: () => rows,
+  data: rows,
   columns,
   enableRowPinning: true,
   keepPinnedRows: true,   // keep pinned rows visible even when filtered out
@@ -97,7 +97,7 @@ const data = toState<SalesRow[]>([
 ])
 
 const table = createDomphyTable({
-  data: () => data.get(),
+  data: data.get(),
   columns: [
     columnHelper.accessor("product", { header: "Product" }),
     columnHelper.accessor("qty",     { header: "Qty",     footer: (info) => {
@@ -135,7 +135,7 @@ Pin all selected rows to the top — useful for batch-action tables:
 
 ```ts
 const table = createDomphyTable({
-  data: () => rows,
+  data: rows,
   columns,
   enableRowPinning: true,
   enableRowSelection: true,

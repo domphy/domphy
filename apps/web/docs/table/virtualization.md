@@ -17,7 +17,7 @@ import { toState, effect } from "@domphy/core"
 const data = toState<Row[]>(largeDataset)
 
 const table = createDomphyTable({
-  data: () => data.get(),
+  data: data.get(),
   columns: [
     columnHelper.accessor("name", { header: "Name" }),
     columnHelper.accessor("status", { header: "Status" }),
@@ -191,7 +191,7 @@ const totalCount = toState(0)
 const pagination = toState({ pageIndex: 0, pageSize: 50 })
 
 const table = createDomphyTable({
-  data: () => serverData.get(),
+  data: serverData.get(),
   columns,
   manualPagination: true,
   rowCount: () => totalCount.get(),

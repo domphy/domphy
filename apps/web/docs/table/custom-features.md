@@ -69,7 +69,7 @@ const highlighted = toState<Set<string>>(new Set())
 
 const table = createDomphyTable({
   _features: [HighlightFeature],
-  data: () => rows,
+  data: rows,
   columns,
   state: {
     highlightedRows: highlighted.get(),
@@ -198,7 +198,7 @@ const tableData = toState(initialRows)
 
 const table = createDomphyTable({
   _features: [EditableCellFeature],
-  data: () => tableData.get(),
+  data: tableData.get(),
   columns: [
     columnHelper.accessor("name", {
       header: "Name",

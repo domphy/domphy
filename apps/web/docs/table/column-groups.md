@@ -44,7 +44,7 @@ const columns = [
   }),
 ]
 
-const table = createDomphyTable({ data: () => employees, columns })
+const table = createDomphyTable({ data: employees, columns })
 ```
 
 ## Rendering multi-level headers

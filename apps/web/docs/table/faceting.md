@@ -15,7 +15,7 @@ Enable `getFacetedUniqueValues()` for a column to get a `Map<value, count>`:
 import { createDomphyTable } from "@domphy/table/domphy"
 
 const table = createDomphyTable({
-  data: () => products,
+  data: products,
   columns: [
     columnHelper.accessor("category", {
       header: "Category",
@@ -119,7 +119,7 @@ const PriceRangeFilter = {
 import { getFacetedRowModel, getFacetedUniqueValues } from "@domphy/table"
 
 const table = createDomphyTable({
-  data: () => products,
+  data: products,
   columns,
   getFacetedRowModel: getFacetedRowModel(),
   getFacetedUniqueValues: getFacetedUniqueValues(),
