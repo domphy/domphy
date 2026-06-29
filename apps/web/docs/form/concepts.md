@@ -143,7 +143,7 @@ const form = createForm<T>({
 ```ts
 // Reactive reads (pass listener l)
 form.values(l)       // T — current values
-form.state(l)        // full form store state including meta (FormApi["store"]["state"])
+form.state(l)        // FormState<T> — full state including meta
 form.canSubmit(l)    // boolean
 form.isSubmitting(l) // boolean
 form.isValid(l)      // boolean
