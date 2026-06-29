@@ -29,7 +29,8 @@ const HTMLHINT_RULES: Record<string, boolean | string | number> = {
 
 const STYLELINT_CONFIG = {
   rules: {
-    "color-named": "never" as const,
+    // color-named intentionally omitted — Layer 2 raw-theme-value already catches literal colors
+    // at the source level with better context (which property, which element).
     "color-no-invalid-hex": true,
     "declaration-no-important": true,
     "no-duplicate-selectors": true,
@@ -69,15 +70,18 @@ export async function auditOutput(
 
 async function checkHtml(html: string, path: string): Promise<Diagnostic[]> {
   if (!html) return [];
-  let HTMLHint: { verify: (html: string, rules: Record<string, unknown>) => HintMessage[] };
+  type HtmlHintInstance = { verify: (html: string, rules: Record<string, unknown>) => HintMessage[] };
+  let htmlhint: HtmlHintInstance | null = null;
   try {
-    const mod = await import("htmlhint" as string) as { default?: { HTMLHint: typeof HTMLHint }; HTMLHint?: typeof HTMLHint };
-    HTMLHint = mod.default?.HTMLHint ?? mod.HTMLHint!;
+    type HtmlHintMod = { default?: { HTMLHint?: HtmlHintInstance }; HTMLHint?: HtmlHintInstance };
+    const mod = await import("htmlhint" as string) as HtmlHintMod;
+    htmlhint = mod.default?.HTMLHint ?? mod.HTMLHint ?? null;
   } catch {
     return [];
   }
+  if (!htmlhint) return [];
 
-  const messages = HTMLHint.verify(html, HTMLHINT_RULES);
+  const messages = htmlhint.verify(html, HTMLHINT_RULES);
   return messages.map((m) => ({
     rule: `html/${m.rule.id}`,
     severity: m.type === "error" ? ("error" as const) : ("warning" as const),
