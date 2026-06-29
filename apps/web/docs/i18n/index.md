@@ -59,7 +59,7 @@ console.log(getLocale()) // "vi"
 ```ts
 const { detectLocale } = i18n
 
-// Auto-detect from URL prefix (/vi/...) or Accept-Language header
+// Auto-detect from URL prefix (/vi/...) or localStorage (storageKey option)
 const detected = detectLocale({ pathSegment: true })
 await initI18n(detected)
 ```
