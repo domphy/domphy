@@ -74,6 +74,23 @@ interface ParentConfig<T> {
   ) => boolean
   dropZone?: boolean                         // treat the parent element itself as a drop zone
 
+  // CSS classes applied during drag phases
+  draggingClass?: string           // added to the element being dragged
+  dropZoneClass?: string           // added to a valid drop zone parent
+  dropZoneParentClass?: string     // added to the parent of the active drop zone
+  selectedClass?: string           // added to items in a multi-drag selection
+  synthDraggingClass?: string      // synthesized drag indicator (non-native drag)
+  synthDropZoneClass?: string
+  synthDropZoneParentClass?: string
+  longPressClass?: string          // added while long press is pending
+
+  // Long press (touch devices)
+  longPress?: boolean              // enable long-press-to-drag (default: false)
+  longPressDuration?: number       // ms before drag starts (default: 200)
+
+  // Custom drag image
+  dragImage?: (data: NodeDragEventData<T>, draggedNodes: NodeRecord<T>[]) => void
+
   // Thresholds
   threshold?: { horizontal: number; vertical: number }   // fraction 0–1 (default 0.5)
 
