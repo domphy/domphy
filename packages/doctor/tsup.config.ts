@@ -23,4 +23,17 @@ export default defineConfig([
     minify: true,
     target: "es6",
   },
+  {
+    entry: { cli: "src/cli.ts" },
+    format: ["esm"],
+    banner: { js: "#!/usr/bin/env node" },
+    dts: false,
+    sourcemap: false,
+    clean: false,
+    outDir: "dist",
+    minify: false,
+    target: "node18",
+    external: ["tsx", "tsx/esm"],
+    noExternal: [],
+  },
 ]);

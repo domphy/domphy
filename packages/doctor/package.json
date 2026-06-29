@@ -1,11 +1,14 @@
 {
   "name": "@domphy/doctor",
-  "version": "0.18.9",
+  "version": "0.18.10",
   "description": "Domphy Doctor - static analyzer that flags non-idiomatic Domphy element trees (AI self-correction)",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "domphy-doctor": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "import": {
@@ -44,13 +47,20 @@
     "@domphy/palette": "workspace:^"
   },
   "peerDependencies": {
-    "@domphy/core": "workspace:^"
+    "@domphy/core": "workspace:^",
+    "tsx": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "tsx": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@domphy/core": "workspace:*",
     "@domphy/palette": "workspace:*",
     "@types/node": "^25.9.2",
     "tsup": "^8.5.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.8.3",
     "vitest": "^4.0.18"
   },
@@ -58,6 +68,7 @@
     "dist",
     "README.md"
   ],
+  "preferGlobal": false,
   "unpkg": "dist/doctor.global.js",
   "jsdelivr": "dist/doctor.global.js"
 }
