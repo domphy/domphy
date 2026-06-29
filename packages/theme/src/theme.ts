@@ -231,7 +231,7 @@ export function themeApply(el?: HTMLStyleElement): void {
 }
 
 export function themeSpacing(n: number) {
-  return `${n / 4}em`;
+  return `calc(${n / 4}em)`;
 }
 
 // Fluid spacing using CSS clamp(). Returns a value that scales linearly
