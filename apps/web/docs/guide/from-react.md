@@ -408,5 +408,5 @@ Domphy: **plain objects describe DOM; patches inject behavior; state values upda
 
 - [Core syntax](/docs/core/syntax) — the full element object format
 - [Reactivity](/docs/core/reactivity) — toState, computed, effect, batch
-- [Patches overview](/docs/ui/) — the 86 built-in patches
+- [Patches overview](/docs/ui/) — the 91 built-in patches
 - [Quickstart](/docs/quickstart) — hands-on 5-minute intro
