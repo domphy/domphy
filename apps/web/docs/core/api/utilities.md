@@ -181,3 +181,140 @@ flushPendingNotifiers()
 ```
 
 Prefer `flushSync()` when you need a fully settled reactive graph. Use `flushPendingNotifiers()` when you only need one notification pass (e.g. inside a scheduler that will call it in a loop).
+
+---
+
+## `computed(fn)`
+
+Creates a derived reactive value. `fn` is called without arguments — read states with `.get()` (no listener needed; dependencies are auto-tracked).
+
+```ts
+import { toState, computed } from "@domphy/core"
+
+const count = toState(0)
+const doubled = computed(() => count.get() * 2)
+// doubled.get() === 0 initially; updates when count changes
+```
+
+Returns `Computed<T>`. Read the value with `.get(listener?)` — the optional listener makes the call reactive in UI elements.
+
+---
+
+## `effect(fn)`
+
+Runs `fn` immediately and re-runs it whenever its tracked dependencies change.
+
+```ts
+import { toState, effect } from "@domphy/core"
+
+const count = toState(0)
+const stop = effect(() => {
+  console.log("count:", count.get())
+})
+// Logs on every count change. Call stop() to clean up.
+```
+
+Returns a cleanup function `() => void`. Always call it in `_onBeforeRemove` or `_onRemove` to avoid memory leaks.
+
+---
+
+## `batch(fn)`
+
+Runs `fn` inside a batch, coalescing all state writes into a single downstream notification. Same as `runBatched(fn)`.
+
+```ts
+import { toState, batch } from "@domphy/core"
+
+const a = toState(0)
+const b = toState(0)
+
+batch(() => {
+  a.set(1)
+  b.set(2)
+})
+// effects/computeds depending on a or b re-run once
+```
+
+Returns the value returned by `fn`.
+
+---
+
+## `untrack(fn)`
+
+Runs `fn` without tracking any reactive reads. Dependencies accessed inside `fn` are not registered.
+
+```ts
+import { toState, effect, untrack } from "@domphy/core"
+
+const source = toState(0)
+const other = toState(0)
+
+effect(() => {
+  const s = source.get()           // tracked — effect re-runs when source changes
+  const o = untrack(() => other.get()) // NOT tracked — effect ignores other changes
+  console.log(s, o)
+})
+```
+
+---
+
+## `watch(source, callback, options?)`
+
+Explicit watcher: runs `callback` whenever `source` changes.
+
+```ts
+import { toState, watch } from "@domphy/core"
+
+const count = toState(0)
+const stop = watch(count, (newVal, oldVal) => {
+  console.log("changed from", oldVal, "to", newVal)
+})
+// Call stop() to unsubscribe
+```
+
+`source` can be a `State`, a getter function `() => T`, or an array of either. `callback` receives `(newValue, oldValue)`. Options: `{ immediate?: boolean }` — if `true`, runs callback immediately with the current value.
+
+---
+
+## `effectScope()`
+
+Creates a scope that collects all `effect()` calls made inside it. Calling `scope.stop()` cleans up all of them at once.
+
+```ts
+import { effectScope, effect, toState } from "@domphy/core"
+
+const scope = effectScope()
+const count = toState(0)
+
+scope.run(() => {
+  effect(() => console.log("a:", count.get()))
+  effect(() => console.log("b:", count.get()))
+})
+
+scope.stop() // both effects cleaned up
+```
+
+Returns `EffectScopeHandle` with `.run(fn)` and `.stop()` methods.
+
+---
+
+## `nextTick(fn?)`
+
+Defers `fn` to the next reactive flush microtask — after all pending state changes and effects settle.
+
+```ts
+import { toState, nextTick } from "@domphy/core"
+
+const count = toState(0)
+count.set(1)
+
+await nextTick()
+// all effects/computeds dependent on count have now re-run
+
+// Or pass a callback:
+nextTick(() => {
+  console.log("settled")
+})
+```
+
+Returns `Promise<void>`. Useful in tests and for reading DOM state after a reactive update.

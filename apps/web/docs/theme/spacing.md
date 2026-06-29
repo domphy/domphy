@@ -12,15 +12,15 @@ description: "The themeSpacing scale, density multiplier, layout vs component sp
 ```ts
 import { themeSpacing } from "@domphy/theme"
 
-themeSpacing(1)   // "0.25em" = 4px at 16px base
-themeSpacing(2)   // "0.5em"  = 8px
-themeSpacing(3)   // "0.75em" = 12px
-themeSpacing(4)   // "1em"    = 16px
-themeSpacing(5)   // "1.25em" = 20px
-themeSpacing(6)   // "1.5em"  = 24px
-themeSpacing(8)   // "2em"    = 32px
-themeSpacing(12)  // "3em"    = 48px
-themeSpacing(16)  // "4em"    = 64px
+themeSpacing(1)   // "calc(0.25em)" = 4px at 16px base
+themeSpacing(2)   // "calc(0.5em)"  = 8px
+themeSpacing(3)   // "calc(0.75em)" = 12px
+themeSpacing(4)   // "calc(1em)"    = 16px
+themeSpacing(5)   // "calc(1.25em)" = 20px
+themeSpacing(6)   // "calc(1.5em)"  = 24px
+themeSpacing(8)   // "calc(2em)"    = 32px
+themeSpacing(12)  // "calc(3em)"    = 48px
+themeSpacing(16)  // "calc(4em)"    = 64px
 ```
 
 Never hardcode spacing literals (`"16px"`, `"1.5rem"`) — `@domphy/doctor` flags those as `raw-spacing-value`.
@@ -74,16 +74,16 @@ The reason: density should affect UI chrome (button size, input height) but NOT 
 
 ## Common spacing values
 
-| Spacing | Value | Use |
-|---------|-------|-----|
-| `themeSpacing(0.5)` | 2px | Hairline gap between tightly stacked items |
-| `themeSpacing(1)` | 4px | Icon-to-label gap, tight list gap |
-| `themeSpacing(2)` | 8px | Internal button padding, small component gap |
-| `themeSpacing(3)` | 12px | Medium gap, form label-to-input |
-| `themeSpacing(4)` | 16px | Default content padding, card padding |
-| `themeSpacing(6)` | 24px | Section padding, between cards |
-| `themeSpacing(8)` | 32px | Between sections |
-| `themeSpacing(12)` | 48px | Large section breaks |
+| Spacing | Return value | px at 16px base | Use |
+|---------|-------------|-----------------|-----|
+| `themeSpacing(0.5)` | `"calc(0.125em)"` | 2px | Hairline gap between tightly stacked items |
+| `themeSpacing(1)` | `"calc(0.25em)"` | 4px | Icon-to-label gap, tight list gap |
+| `themeSpacing(2)` | `"calc(0.5em)"` | 8px | Internal button padding, small component gap |
+| `themeSpacing(3)` | `"calc(0.75em)"` | 12px | Medium gap, form label-to-input |
+| `themeSpacing(4)` | `"calc(1em)"` | 16px | Default content padding, card padding |
+| `themeSpacing(6)` | `"calc(1.5em)"` | 24px | Section padding, between cards |
+| `themeSpacing(8)` | `"calc(2em)"` | 32px | Between sections |
+| `themeSpacing(12)` | `"calc(3em)"` | 48px | Large section breaks |
 
 ## Fluid spacing with `themeFluidSpacing`
 

@@ -65,6 +65,20 @@ Removes this node from its parent.
 node.remove()
 ```
 
+### `patch(rawElement)`
+
+Replaces the node's element descriptor in-place. Triggers a reconciliation pass to apply the new props/children/style to the DOM without unmounting.
+
+```ts
+node.patch({ div: "updated content", class: "active" })
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `rawElement` | `DomphyElement` | New element descriptor to apply |
+
+Unlike `merge()` which deep-merges, `patch()` replaces the full descriptor. Used internally by `SSR` hydration and explicit update flows.
+
 ### `merge(partial)`
 
 Updates this node from a partial element descriptor.
