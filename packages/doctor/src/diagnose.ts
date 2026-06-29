@@ -1,4 +1,5 @@
 import { cssRgbToRgb, hexToRgb, labToLch, rgbToLab } from "@domphy/palette";
+import { ElementNode } from "@domphy/core";
 import { findTag, isPlainObject, VOID } from "./shared.js";
 
 export type Severity = "error" | "warning" | "info";
@@ -338,6 +339,42 @@ function buildSpacingHint(prop: string, value: string): string | null {
   return `${prop}: themeSpacing(${n})  — themeSpacing(n)=n/4em, so ${n}/4=${n / 4}em ≈ ${value} at default density`;
 }
 
+// ─── ElementNode helpers ──────────────────────────────────────────────────────
+
+/**
+ * Attempt to construct an ElementNode from a plain Domphy element.
+ * Returns null on failure (hooks that touch DOM, reactive fns that throw, etc.).
+ * The node is constructed without a DOM parent — safe for static analysis.
+ */
+function tryBuildNode(element: Record<string, unknown>): ElementNode | null {
+  try {
+    return new ElementNode(element as any);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Detect whether any style property on the element's main StyleRule resolves
+ * to a CSS custom property (i.e., was produced by themeColor/themeSize).
+ * Returns the property names that use theme vars, excluding `color` itself.
+ */
+function themedPropsExcludingColor(node: ElementNode): string[] {
+  const ownSelector = `.${node.tagName}_${node.nodeId}`;
+  const mainRule = node.styles.items.find((r) => r.selectorText === ownSelector);
+  if (!mainRule?.styleBlock) return [];
+  return Object.entries(mainRule.styleBlock)
+    .filter(([name, prop]) => name !== "color" && typeof prop.value === "string" && prop.value.includes("var("))
+    .map(([name]) => name);
+}
+
+/** True if the element's main rule has an explicit `color` property. */
+function hasColorProp(node: ElementNode): boolean {
+  const ownSelector = `.${node.tagName}_${node.nodeId}`;
+  const mainRule = node.styles.items.find((r) => r.selectorText === ownSelector);
+  return !!mainRule?.styleBlock?.["color"];
+}
+
 // ─── Suppress helper ─────────────────────────────────────────────────────────
 
 /**
@@ -674,6 +711,29 @@ function walk(
           path: here,
           message: `\`style.backgroundColor\` uses a fixed tone (resolves to "${bgResult}" at base context) instead of "inherit".`,
           hint: 'backgroundColor should always be (l) => themeColor(l, "inherit"). To shift the surface tone, set dataTone on the container — it applies to all children uniformly.',
+        });
+      }
+    }
+  }
+
+  // missing-color: element uses themeColor for at least one style property
+  // (detected by CSS custom-property var() in the resolved value) but does NOT
+  // set `color`. Theme token usage signals an intentional visual surface — text
+  // color must also be reactive so it follows the same tone context. CSS `color`
+  // inheritance carries the COMPUTED value from the parent; it does not re-run
+  // themeColor() when the tone context shifts, so the text can mismatch its surface.
+  {
+    const node = tryBuildNode(element);
+    if (node) {
+      const themedProps = themedPropsExcludingColor(node);
+      if (themedProps.length > 0 && !hasColorProp(node)) {
+        elementDiags.push({
+          rule: "missing-color",
+          severity: "warning",
+          category: "theme",
+          path: here,
+          message: `Element uses themeColor for \`${themedProps.join(", ")}\` but \`style.color\` is missing — text color won't re-evaluate when the tone context shifts.`,
+          hint: "Add `color: (l) => themeColor(l, 'shift-9')` so text always contrasts the themed surface.",
         });
       }
     }

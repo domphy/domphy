@@ -436,3 +436,44 @@ describe("validate (aggregate report)", () => {
     expect(report.issues).toEqual([]);
   });
 });
+
+describe("missing-color rule", () => {
+  it("fires when element uses themeColor for non-color props but has no color", () => {
+    // Simulate themeColor: returns var(--...) CSS custom property
+    const themeColorFn = (_l: unknown) => "var(--test-neutral-5)";
+    const element = {
+      div: "text",
+      style: { backgroundColor: themeColorFn },
+    };
+    expect(rules(element)).toContain("missing-color");
+  });
+
+  it("does not fire when color is also set", () => {
+    const themeColorFn = (_l: unknown) => "var(--test-neutral-5)";
+    const element = {
+      div: "text",
+      style: {
+        backgroundColor: themeColorFn,
+        color: themeColorFn,
+      },
+    };
+    expect(rules(element)).not.toContain("missing-color");
+  });
+
+  it("does not fire on layout-only elements (no CSS vars)", () => {
+    const element = {
+      div: "text",
+      style: { display: "flex", gap: "0.5em", padding: "1em" },
+    };
+    expect(rules(element)).not.toContain("missing-color");
+  });
+
+  it("fires for border or other color props using theme", () => {
+    const themeColorFn = (_l: unknown) => "var(--test-neutral-3)";
+    const element = {
+      div: "text",
+      style: { border: (_l: unknown) => `1px solid ${themeColorFn(_l)}` },
+    };
+    expect(rules(element)).toContain("missing-color");
+  });
+});
