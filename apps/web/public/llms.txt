@@ -85,7 +85,7 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 - **dataTone**: edge anchors `shift-0`–`shift-3` (light) or `shift-14`–`shift-17` (dark). Mid-ramp `shift-4`–`shift-13` → `middle-surface-anchor` warning (collapses contrast).
 - `themeColorToken(object, tone?, color?)` — same signature as `themeColor` but returns the resolved token value (e.g. `"#4a7ff4"`) instead of a `var(--…)` CSS reference. Use at design-time or when a third-party API requires a concrete hex/rgb string.
 
-**Spacing** — `themeSpacing(n)` = `n/4 em`:
+**Spacing** — `themeSpacing(n)` returns `"calc(n/4 em)"` as a CSS string (e.g. `themeSpacing(4)` → `"calc(1em)"`). Always wrapped in `calc()` for composability:
 - For bounded controls: `themeSpacing(themeDensity(l) * n)` — density scales padding/gap.
 - For structural layout: bare `themeSpacing(n)` (no density multiplier).
 - Never hardcode `"6px"` / `"1.5em"` — doctor flags as `raw-spacing-value`.
