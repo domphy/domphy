@@ -5,9 +5,13 @@ description: "Lazy-load route components, preload on hover, split vendor chunks,
 
 # Code Splitting & Lazy Loading
 
+:::info Headless rendering
+`@domphy/router` is headless — `component` on a route is NOT auto-rendered. The examples below show the TanStack router-core `component` option which pre-fetches and stores the module. To actually render, read `router.state.matches` and call the resolved module yourself. See the [Bridge Pattern](/docs/router/) for the rendering contract.
+:::
+
 ## Lazy route component
 
-Split each route's component into its own chunk with a dynamic `import()`. Pass `component` as an async factory:
+Split each route's UI into its own chunk with a dynamic `import()`. The router pre-fetches the chunk when navigating to the route:
 
 ```ts
 import { createRoute } from "@domphy/router"
@@ -22,7 +26,7 @@ export const DashboardRoute = createRoute({
 })
 ```
 
-The router resolves the component before rendering — users see the pending UI while the chunk loads.
+The router resolves the async factory before the route settles — the match transitions from `"pending"` to `"success"` only after the chunk loads.
 
 ## Pending UI during load
 

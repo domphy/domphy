@@ -9402,7 +9402,6 @@ const dashboardRoute = createRoute({
       throw redirect({ to: "/login", search: { returnTo: "/dashboard" } })
     }
   },
-  component: () => Dashboard,
 })
 ```
 
@@ -9419,7 +9418,6 @@ const loginRoute = createRoute({
   validateSearch: (search) => ({
     returnTo: typeof search.returnTo === "string" ? search.returnTo : "/",
   }),
-  component: () => LoginPage,
 })
 
 // In LoginPage:
@@ -9483,7 +9481,6 @@ const adminRoute = createRoute({
       throw redirect({ to: "/", search: { error: "forbidden" } })
     }
   },
-  component: () => AdminPanel,
 })
 ```
 
@@ -9503,7 +9500,6 @@ const editorRoute = createRoute({
   getParentRoute: () => authLayout,
   path: "/editor",
   beforeLoad: requireRole("editor", "admin"),
-  component: () => EditorPage,
 })
 ```
 
@@ -10080,7 +10076,6 @@ Or use `createRoute` with path `*`:
 const catchAll = createRoute({
   getParentRoute: () => rootRoute,
   path: "*",
-  component: () => NotFoundPage,
 })
 ```
 
@@ -10277,9 +10272,11 @@ description: "Lazy-load route components, preload on hover, split vendor chunks,
 
 # Code Splitting & Lazy Loading
 
+`@domphy/router` is headless — `component` on a route is NOT auto-rendered. The examples below show the TanStack router-core `component` option which pre-fetches and stores the module. To actually render, read `router.state.matches` and call the resolved module yourself. See the [Bridge Pattern](/docs/router/) for the rendering contract.
+
 ## Lazy route component
 
-Split each route's component into its own chunk with a dynamic `import()`. Pass `component` as an async factory:
+Split each route's UI into its own chunk with a dynamic `import()`. The router pre-fetches the chunk when navigating to the route:
 
 ```ts
 import { createRoute } from "@domphy/router"
@@ -10294,7 +10291,7 @@ export const DashboardRoute = createRoute({
 })
 ```
 
-The router resolves the component before rendering — users see the pending UI while the chunk loads.
+The router resolves the async factory before the route settles — the match transitions from `"pending"` to `"success"` only after the chunk loads.
 
 ## Pending UI during load
 
@@ -11192,7 +11189,6 @@ Override scroll for specific routes:
 const postRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/posts/$postId",
-  component: () => PostPage,
   // Scroll to top when entering any post
   onEnter: () => window.scrollTo({ top: 0 }),
 })
@@ -11253,7 +11249,6 @@ const feedContainer = toState<HTMLElement | null>(null)
 
 const feedRoute = createRoute({
   path: "/feed",
-  component: () => FeedPage,
   onLeave: () => {
     const el = feedContainer.get()
     if (el) sessionStorage.setItem("feed-scroll", String(el.scrollTop))
@@ -11593,23 +11588,26 @@ const searchRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/search",
   validateSearch: SearchSchema.parse,
-  component: (l) => {
-    const match = matches.get(l).find((m) => m.routeId === searchRoute.id)
-    const { query, page, sort } = match?.search as SearchParams
-    // query: string, page: number, sort: "name"|"date"|"price"
-    return {
-      div: [
-        { h1: (l) => `Results for "${query}"` },
-        { p: `Page ${page}` },
-      ],
-    }
-  },
 })
+
+// Access typed search params in the UI element (headless bridge pattern)
+const SearchView = {
+  div: (l) => {
+    const match = matches.get(l).find((m) => m.routeId === searchRoute.id)
+    if (!match) return []
+    const { query, page, sort } = match.search as SearchParams
+    // query: string, page: number, sort: "name"|"date"|"price"
+    return [
+      { h1: `Results for "${query}"` },
+      { p: `Page ${page}` },
+    ]
+  },
+}
 ```
 
 ## Typed loader data
 
-Loader return type flows automatically into the component:
+Loader return type flows automatically into the match's `loaderData`:
 
 ```ts
 interface Post { id: number; title: string; body: string }
@@ -11618,23 +11616,23 @@ const postRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/posts/$postId",
   loader: async ({ params }) => {
-    // TypeScript infers the return type
     const post: Post = await fetchPost(Number(params.postId))
     return { post }
   },
-  component: (l) => {
-    const match = matches.get(l).find((m) => m.routeId === postRoute.id)
-    const { post } = match?.loaderData as { post: Post }
-    // post: Post — typed via loader return type
-
-    return {
-      article: [
-        { h1: post.title },
-        { p: post.body },
-      ],
-    }
-  },
 })
+
+// In your UI element — loaderData type is inferred from the loader return type
+const PostView = {
+  article: (l) => {
+    const match = matches.get(l).find((m) => m.routeId === postRoute.id)
+    if (!match || match.status !== "success") return []
+    const { post } = match.loaderData   // post: Post — typed via loader
+    return [
+      { h1: post.title },
+      { p: post.body },
+    ]
+  },
+}
 ```
 
 ## `Link` type safety
@@ -11675,9 +11673,7 @@ interface RouterContext {
   currentUser: User | null
 }
 
-const rootRoute = createRootRouteWithContext<RouterContext>()({
-  component: () => ({ div: null }),
-})
+const rootRoute = createRootRouteWithContext<RouterContext>()({})
 
 const router = createRouter({
   routeTree: rootRoute,

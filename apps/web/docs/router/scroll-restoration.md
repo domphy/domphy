@@ -67,7 +67,6 @@ Override scroll for specific routes:
 const postRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/posts/$postId",
-  component: () => PostPage,
   // Scroll to top when entering any post
   onEnter: () => window.scrollTo({ top: 0 }),
 })
@@ -128,7 +127,6 @@ const feedContainer = toState<HTMLElement | null>(null)
 
 const feedRoute = createRoute({
   path: "/feed",
-  component: () => FeedPage,
   onLeave: () => {
     const el = feedContainer.get()
     if (el) sessionStorage.setItem("feed-scroll", String(el.scrollTop))

@@ -52,23 +52,26 @@ const searchRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/search",
   validateSearch: SearchSchema.parse,
-  component: (l) => {
-    const match = matches.get(l).find((m) => m.routeId === searchRoute.id)
-    const { query, page, sort } = match?.search as SearchParams
-    // query: string, page: number, sort: "name"|"date"|"price"
-    return {
-      div: [
-        { h1: (l) => `Results for "${query}"` },
-        { p: `Page ${page}` },
-      ],
-    }
-  },
 })
+
+// Access typed search params in the UI element (headless bridge pattern)
+const SearchView = {
+  div: (l) => {
+    const match = matches.get(l).find((m) => m.routeId === searchRoute.id)
+    if (!match) return []
+    const { query, page, sort } = match.search as SearchParams
+    // query: string, page: number, sort: "name"|"date"|"price"
+    return [
+      { h1: `Results for "${query}"` },
+      { p: `Page ${page}` },
+    ]
+  },
+}
 ```
 
 ## Typed loader data
 
-Loader return type flows automatically into the component:
+Loader return type flows automatically into the match's `loaderData`:
 
 ```ts
 interface Post { id: number; title: string; body: string }
@@ -77,23 +80,23 @@ const postRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/posts/$postId",
   loader: async ({ params }) => {
-    // TypeScript infers the return type
     const post: Post = await fetchPost(Number(params.postId))
     return { post }
   },
-  component: (l) => {
-    const match = matches.get(l).find((m) => m.routeId === postRoute.id)
-    const { post } = match?.loaderData as { post: Post }
-    // post: Post — typed via loader return type
-
-    return {
-      article: [
-        { h1: post.title },
-        { p: post.body },
-      ],
-    }
-  },
 })
+
+// In your UI element — loaderData type is inferred from the loader return type
+const PostView = {
+  article: (l) => {
+    const match = matches.get(l).find((m) => m.routeId === postRoute.id)
+    if (!match || match.status !== "success") return []
+    const { post } = match.loaderData   // post: Post — typed via loader
+    return [
+      { h1: post.title },
+      { p: post.body },
+    ]
+  },
+}
 ```
 
 ## `Link` type safety
@@ -134,9 +137,7 @@ interface RouterContext {
   currentUser: User | null
 }
 
-const rootRoute = createRootRouteWithContext<RouterContext>()({
-  component: () => ({ div: null }),
-})
+const rootRoute = createRootRouteWithContext<RouterContext>()({})
 
 const router = createRouter({
   routeTree: rootRoute,

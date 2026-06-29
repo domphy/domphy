@@ -84,7 +84,6 @@ Or use `createRoute` with path `*`:
 const catchAll = createRoute({
   getParentRoute: () => rootRoute,
   path: "*",
-  component: () => NotFoundPage,
 })
 ```
 

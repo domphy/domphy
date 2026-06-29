@@ -48,7 +48,6 @@ const dashboardRoute = createRoute({
       throw redirect({ to: "/login", search: { returnTo: "/dashboard" } })
     }
   },
-  component: () => Dashboard,
 })
 ```
 
@@ -65,7 +64,6 @@ const loginRoute = createRoute({
   validateSearch: (search) => ({
     returnTo: typeof search.returnTo === "string" ? search.returnTo : "/",
   }),
-  component: () => LoginPage,
 })
 
 // In LoginPage:
@@ -129,7 +127,6 @@ const adminRoute = createRoute({
       throw redirect({ to: "/", search: { error: "forbidden" } })
     }
   },
-  component: () => AdminPanel,
 })
 ```
 
@@ -149,7 +146,6 @@ const editorRoute = createRoute({
   getParentRoute: () => authLayout,
   path: "/editor",
   beforeLoad: requireRole("editor", "admin"),
-  component: () => EditorPage,
 })
 ```
 
