@@ -12,13 +12,16 @@ import {
 } from "@domphy/theme";
 
 /**
- * Styles and wires a single option inside a `segmented` control on the host `<button>`.
- * Sets `aria-checked` and handles click-to-select against the parent `segmented` context.
+ * Low-level segmented control item patch. Prefer the all-in-one `segmented({ items })` patch
+ * for typical use — it generates buttons automatically.
+ *
+ * Use `segmentedItem()` only when you need full control over the button element. Must be a
+ * direct child of a `segmented()` container element.
  *
  * @hostTag button
  * @param props.color - Theme color for resting state. Defaults to `"neutral"`.
  * @param props.accentColor - Theme color for selected state. Defaults to `"primary"`.
- * @example { button: "Month", $: [segmentedItem()] }
+ * @example { button: "Month", $: [segmentedItem()], _key: "month" }
  */
 function segmentedItem(
   props: {

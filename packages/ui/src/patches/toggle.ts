@@ -12,15 +12,16 @@ import {
 } from "@domphy/theme";
 
 /**
- * Styles a single toggle button inside a `toggleGroup` on the host `<button>`
- * element. Wires up `aria-pressed` and click-to-toggle against the surrounding
- * `toggleGroup` context (single- or multi-select). Must be used inside a
- * `toggleGroup` patch.
+ * Low-level toggle button patch. Prefer the all-in-one `toggleGroup({ items })` patch
+ * for typical use — it generates buttons automatically.
+ *
+ * Use `toggle()` only when you need full control over the button element. Must be a
+ * direct child of a `toggleGroup()` container element.
  *
  * @hostTag button
- * @param props.color - Theme color for the resting/hover background and text. Optional, accepts a value or state. Defaults to `"neutral"`.
- * @param props.accentColor - Theme color for the pressed/focus state. Optional, accepts a value or state. Defaults to `"primary"`.
- * @example { button: "Bold", $: [toggle()] }
+ * @param props.color - Theme color for the resting/hover background and text. Accepts a value or state. Defaults to `"neutral"`.
+ * @param props.accentColor - Theme color for the pressed/focus state. Accepts a value or state. Defaults to `"primary"`.
+ * @example { button: "Bold", $: [toggle()], _key: "bold" }
  */
 function toggle(
   props: {

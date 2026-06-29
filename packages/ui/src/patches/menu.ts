@@ -1,5 +1,6 @@
 import {
-  merge,
+  type DomphyElement,
+  type Listener,
   type PartialElement,
   toState,
   type ValueOrState,
@@ -12,51 +13,145 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/** One item inside a menu. */
+type MenuItem = {
+  /** Button label — plain string (auto-wrapped) or any DomphyElement (e.g. icon + text). */
+  label: string | DomphyElement;
+  /** Stable key. Defaults to the item's zero-based index. */
+  key?: string | number;
+  /** Called when the item is clicked. */
+  onClick?: () => void;
+};
+
 /**
- * Themed menu container that provides selection context (`activeKey`,
- * `selectable`) to child `menuItem` patches and lays them out vertically.
- * Sets `role="menu"`. Typically applied to a container element such as a
- * `<div>` or `<ul>`.
+ * All-in-one vertical menu. Generates `<button>` `[role=menuitem]` elements
+ * from the `items` array with keyboard navigation (Arrow/Home/End/Enter/Space).
+ * Apply to any wrapper element (`div`, `ul`, …).
  *
- * @param props - Optional configuration.
- * @param props.activeKey - Currently selected item key, accepts a value or `State`. Defaults to `null`.
+ * @param props.items - Item definitions `{ label, key?, onClick? }`.
+ * @param props.activeKey - Currently selected key (value or State). Defaults to `null`.
  * @param props.selectable - Whether items track and update the active selection. Defaults to `true`.
  * @param props.color - Background color tone for the menu. Defaults to `"neutral"`.
- * @example { div: "", $: [menu({ activeKey: 0 })] }
+ * @param props.accentColor - Accent color for the active/focus item. Defaults to `"primary"`.
+ * @example
+ * { div: null, $: [menu({ items: [
+ *   { label: "Profile",  key: "profile",  onClick: () => navigate("/profile")  },
+ *   { label: "Settings", key: "settings", onClick: () => navigate("/settings") },
+ * ] })] }
  */
 function menu(
   props: {
-    activeKey?: ValueOrState<number | string>;
+    items: MenuItem[];
+    activeKey?: ValueOrState<number | string | null>;
     selectable?: boolean;
     color?: ThemeColor;
-  } = {},
+    accentColor?: ThemeColor;
+  } = { items: [] },
 ): PartialElement {
-  const { color = "neutral", selectable = true } = props;
+  const {
+    items,
+    selectable = true,
+    color = "neutral",
+    accentColor = "primary",
+  } = props;
+  const activeKey = toState(props.activeKey ?? null);
 
-  const partial: PartialElement = {
+  return {
     role: "menu",
     dataTone: "shift-17",
-    _onSchedule: (_node, element) => {
-      const partial = {
-        _context: {
-          menu: {
-            activeKey: toState(props.activeKey ?? null),
-            selectable,
+    // Expose activeKey + selectable in context so menuItem() escape-hatch still works.
+    _context: { menu: { activeKey, selectable } },
+    _onSchedule: (node, element) => {
+      const id = node.nodeId;
+
+      const buttons: DomphyElement<"button">[] = items.map((item, index) => {
+        const key = item.key ?? index;
+
+        return {
+          button:
+            typeof item.label === "string"
+              ? [{ span: item.label } as DomphyElement<"span">]
+              : [item.label],
+          _key: key,
+          id: `menuitem${id}${key}`,
+          role: "menuitem",
+          ...(selectable
+            ? {
+                ariaCurrent: (l: Listener) =>
+                  activeKey.get(l) === key || undefined,
+              }
+            : {}),
+          onClick: () => {
+            if (selectable) activeKey.set(key);
+            item.onClick?.();
           },
-        },
-      };
-      merge(element, partial);
+          onKeyDown: (e: Event) => {
+            const k = (e as KeyboardEvent).key;
+            if (k === "Enter" || k === " ") {
+              e.preventDefault();
+              (e.target as HTMLElement).click();
+              return;
+            }
+            if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
+            e.preventDefault();
+            const keys = items.map((it, i) => it.key ?? i);
+            const idx = keys.findIndex((ki) => ki === key);
+            let next = idx;
+            if (k === "ArrowDown") next = (idx + 1) % keys.length;
+            else if (k === "ArrowUp")
+              next = (idx - 1 + keys.length) % keys.length;
+            else if (k === "Home") next = 0;
+            else if (k === "End") next = keys.length - 1;
+            (
+              document.getElementById(
+                `menuitem${id}${keys[next]}`,
+              ) as HTMLElement
+            )?.focus();
+          },
+          style: {
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: themeSpacing(2),
+            width: "100%",
+            fontSize: (l: Listener) => themeSize(l, "inherit"),
+            height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
+            paddingInline: (l: Listener) =>
+              themeSpacing(themeDensity(l) * 3),
+            border: "none",
+            outline: "none",
+            color: (l: Listener) => themeColor(l, "shift-9", color),
+            backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
+            "&:hover:not([disabled]):not([aria-current=true])": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-2", color),
+            },
+            "&[aria-current=true]": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-3", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-10"),
+            },
+            "&:focus-visible": {
+              outline: (l: Listener) =>
+                `${themeSpacing(0.5)} solid ${themeColor(l, "shift-6", accentColor)}`,
+              outlineOffset: `-${themeSpacing(0.5)}`,
+            },
+          },
+        } as DomphyElement<"button">;
+      });
+
+      (element as any)[node.tagName] = buttons;
     },
     style: {
       display: "flex",
       flexDirection: "column",
-      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
-      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
-      fontSize: (listener) => themeSize(listener, "inherit"),
-      backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      fontSize: (l: Listener) => themeSize(l, "inherit"),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
     },
   };
-  return partial;
 }
 
 export { menu };
+export type { MenuItem };

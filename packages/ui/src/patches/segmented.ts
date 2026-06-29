@@ -1,22 +1,102 @@
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import {
+  type DomphyElement,
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
+
+/** One item inside a segmented control. */
+type SegmentedItem = {
+  /** Button label — plain string (auto-wrapped) or any DomphyElement. */
+  label: string | DomphyElement;
+  /** Stable key. Defaults to the item's zero-based index as a string. */
+  key?: string;
+};
 
 /**
- * Container patch that establishes a `segmented` context for single-select navigation.
- * Style: inline pill-shaped control with muted background. Use with `segmentedItem` patches on child `<button>` elements.
+ * All-in-one single-select segmented control. Generates `<button>` option
+ * elements from the `items` array. Apply to any wrapper element.
  *
- * @param props.value - Initially selected item key. Accepts a value or state. Defaults to `""`.
+ * @param props.items - Item definitions `{ label, key? }`.
+ * @param props.value - Initially selected key (value or State). Defaults to the first item's key.
  * @param props.color - Theme color for the control background. Defaults to `"neutral"`.
- * @example { div: null, $: [segmented({ value: "month" })] }
+ * @param props.accentColor - Theme color for the selected item. Defaults to `"primary"`.
+ * @example
+ * { div: null, $: [segmented({ items: [
+ *   { label: "Day",   key: "day"   },
+ *   { label: "Month", key: "month" },
+ *   { label: "Year",  key: "year"  },
+ * ] })] }
  */
 function segmented(
-  props: { value?: ValueOrState<string>; color?: ThemeColor } = {},
+  props: {
+    items: SegmentedItem[];
+    value?: ValueOrState<string>;
+    color?: ThemeColor;
+    accentColor?: ThemeColor;
+  } = { items: [] },
 ): PartialElement {
-  const { color = "neutral" } = props;
+  const { items, color = "neutral", accentColor = "primary" } = props;
+  const value = toState(props.value ?? (items[0]?.key ?? ""));
+
   return {
     role: "radiogroup",
-    _context: {
-      segmented: { value: toState(props.value ?? "") },
+    // Expose value in context so segmentedItem() escape-hatch still works.
+    _context: { segmented: { value } },
+    _onSchedule: (node, element) => {
+      const buttons: DomphyElement<"button">[] = items.map((item, index) => {
+        const key = item.key ?? String(index);
+        const labelEl: DomphyElement =
+          typeof item.label === "string"
+            ? ({ span: item.label } as DomphyElement<"span">)
+            : item.label;
+
+        return {
+          button: [labelEl],
+          _key: key,
+          role: "radio",
+          ariaChecked: (l: Listener) => value.get(l) === key,
+          onClick: () => value.set(key),
+          style: {
+            cursor: "pointer",
+            fontSize: (l: Listener) => themeSize(l, "inherit"),
+            height: themeSpacing(6),
+            paddingBlock: themeSpacing(1),
+            paddingInline: themeSpacing(3),
+            border: "none",
+            borderRadius: themeSpacing(10),
+            color: (l: Listener) => themeColor(l, "shift-9", color),
+            backgroundColor: "transparent",
+            transition: "background-color 300ms ease",
+            "&:hover:not([disabled]):not([aria-checked=true])": {
+              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
+            },
+            "&[aria-checked=true]": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-0", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-10", accentColor),
+            },
+            "&:focus-visible": {
+              outline: (l: Listener) =>
+                `${themeSpacing(0.5)} solid ${themeColor(l, "shift-6", accentColor)}`,
+              outlineOffset: `-${themeSpacing(0.5)}`,
+            },
+            "&[disabled]": {
+              opacity: 0.7,
+              cursor: "not-allowed",
+            },
+          },
+        } as DomphyElement<"button">;
+      });
+
+      (element as any)[node.tagName] = buttons;
     },
     style: {
       display: "inline-flex",
@@ -24,9 +104,10 @@ function segmented(
       paddingInline: themeSpacing(1),
       gap: themeSpacing(0.5),
       borderRadius: themeSpacing(10),
-      backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+      backgroundColor: (l: Listener) => themeColor(l, "shift-2", color),
     },
   };
 }
 
 export { segmented };
+export type { SegmentedItem };

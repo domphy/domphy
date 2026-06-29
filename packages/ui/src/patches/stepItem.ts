@@ -7,11 +7,13 @@ import {
 } from "@domphy/theme";
 
 /**
- * Styles a single step inside a `steps` container. Sets `data-status`
- * (`"pending"` | `"active"` | `"done"`) and `aria-current="step"` on the host element
- * based on the parent `steps` context. The element's content is the step label.
+ * Low-level step item patch. Prefer the all-in-one `steps({ items })` patch for
+ * typical use — it generates `<li>` elements with correct status/ARIA wiring automatically.
  *
- * @example { li: "Shipping", $: [stepItem()] }
+ * Use `stepItem()` only when you need full control over the `<li>` element. Must be a
+ * direct child of a `steps()` container element.
+ *
+ * @example { li: "Shipping", $: [stepItem()], _key: 1 }
  */
 function stepItem(): PartialElement {
   // Mutable slots populated from context in _onInsert; defaults match steps defaults.
