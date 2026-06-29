@@ -5,6 +5,10 @@ description: "Baseline-free layout and theme verification for Domphy UIs via Pla
 
 # @domphy/audit
 
+:::warning In Development
+`@domphy/audit` is not yet published to npm. This page documents the planned API. Track progress at [github.com/domphy/domphy](https://github.com/domphy/domphy).
+:::
+
 `@domphy/audit` is a **baseline-free layout and theme verifier** for Domphy UIs. It runs after the browser renders the page and checks actual layout, theme setup, and overlay behavior — no screenshots, no baselines.
 
 It is the runtime complement to `@domphy/doctor` (which checks the source tree before render):

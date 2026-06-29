@@ -30752,6 +30752,8 @@ description: "Run WCAG-aligned a11y rules against Domphy element trees at build 
 
 # Static a11y (`auditA11y`)
 
+`@domphy/audit` is not yet published to npm. This page documents the planned API.
+
 `auditA11y` checks Domphy element trees (plain objects) for common accessibility violations **without a browser or Playwright**. It runs in Node, at build time, or in Vitest — anywhere you have access to the element tree before it is rendered.
 
 ```ts
@@ -30994,6 +30996,10 @@ description: "The checkLayout() function: selective checks, AuditOptions tuning,
 ---
 
 # `checkLayout`
+
+
+`@domphy/audit` is not yet published to npm. This page documents the planned API.
+
 
 `checkLayout` is the main orchestration entry point for `@domphy/audit`. It runs all five audit checks in parallel on the current page state and returns a combined `AuditResult`.
 
@@ -31249,6 +31255,10 @@ description: "Running @domphy/audit in GitHub Actions, saving SVG artifacts, and
 
 # CI Integration
 
+
+`@domphy/audit` is not yet published to npm. This page documents the planned API.
+
+
 `@domphy/audit` integrates with any CI that can run Playwright. The typical setup is a dedicated audit job that starts a local dev server, runs checks via `@playwright/test`, and uploads the SVG as an artifact when violations are found.
 
 ## Install
@@ -31476,6 +31486,8 @@ description: "Baseline-free layout and theme verification for Domphy UIs via Pla
 ---
 
 # @domphy/audit
+
+`@domphy/audit` is not yet published to npm. This page documents the planned API. Track progress at [github.com/domphy/domphy](https://github.com/domphy/domphy).
 
 `@domphy/audit` is a **baseline-free layout and theme verifier** for Domphy UIs. It runs after the browser renders the page and checks actual layout, theme setup, and overlay behavior — no screenshots, no baselines.
 
@@ -31707,6 +31719,10 @@ description: "How to read AuditIssue messages, understand each issue type, and f
 ---
 
 # Interpreting Audit Results
+
+
+`@domphy/audit` is not yet published to npm. This page documents the planned API.
+
 
 Every audit function returns `AuditResult`:
 

@@ -5,6 +5,10 @@ description: "Running @domphy/audit in GitHub Actions, saving SVG artifacts, and
 
 # CI Integration
 
+:::warning In Development
+`@domphy/audit` is not yet published to npm. This page documents the planned API.
+:::
+
 `@domphy/audit` integrates with any CI that can run Playwright. The typical setup is a dedicated audit job that starts a local dev server, runs checks via `@playwright/test`, and uploads the SVG as an artifact when violations are found.
 
 ## Install

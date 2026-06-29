@@ -5,6 +5,10 @@ description: "The checkLayout() function: selective checks, AuditOptions tuning,
 
 # `checkLayout`
 
+:::warning In Development
+`@domphy/audit` is not yet published to npm. This page documents the planned API.
+:::
+
 `checkLayout` is the main orchestration entry point for `@domphy/audit`. It runs all five audit checks in parallel on the current page state and returns a combined `AuditResult`.
 
 ```ts

@@ -5,6 +5,10 @@ description: "How to read AuditIssue messages, understand each issue type, and f
 
 # Interpreting Audit Results
 
+:::warning In Development
+`@domphy/audit` is not yet published to npm. This page documents the planned API.
+:::
+
 Every audit function returns `AuditResult`:
 
 ```ts
