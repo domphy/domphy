@@ -19289,7 +19289,8 @@ Each field accepts a `validators` object. Keys control **when** validation runs:
 | `onSubmit` | Only when the form is submitted |
 | `onSubmitAsync` | Async submit-time validator |
 | `onMount` | Once, when the field is first created |
-| `onMountAsync` | Async on-mount validator |
+| `onDynamic` | Programmatic dynamic validation trigger |
+| `onDynamicAsync` | Async dynamic validator (supports `onDynamicAsyncDebounceMs`) |
 
 Validators return `undefined` (valid) or a string error message:
 
