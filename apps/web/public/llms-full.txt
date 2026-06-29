@@ -21534,18 +21534,38 @@ All four types are exported from `@domphy/chart`.
 
 ```ts
 import { hexToRgba, seriesHex, seriesRgba, familyHex, familyRgba, seriesPaletteFamily } from "@domphy/chart"
+```
 
+| Function | Signature | Description |
+|---|---|---|
+| `seriesHex(index)` | `(index: number) => string` | Hex color for series `index` (0-based, cycles through theme palette) |
+| `seriesRgba(index, alpha?)` | `(index: number, alpha?: number) => Rgba` | RGBA object for series `index`. `alpha` defaults to `1`. |
+| `familyHex(family)` | `(family: ThemeFamily) => string` | Hex color for a named theme family (e.g. `"error"`, `"success"`) |
+| `familyRgba(family, tone?, alpha?)` | `(family: ThemeFamily, tone?: number, alpha?: number) => Rgba` | RGBA for a theme family at an optional tone level |
+| `seriesPaletteFamily(index)` | `(index: number) => ThemeFamily` | Maps a series index to its backing `ThemeFamily` (cycles: primary → info → success → warning → error → …) |
+| `hexToRgba(hex)` | `(hex: string) => Rgba` | Parse a hex/rgb string to `{ r, g, b, a }` |
+
+```ts
 // Get hex for series index n (0-based):
-const color = seriesHex(0)  // → hex string for "primary" at shift-9
+const color = seriesHex(0)  // hex string (primary at default tone)
+
+// Get RGBA with custom alpha (e.g. for fill opacity in area charts):
+const fill = seriesRgba(0, 0.15)  // { r, g, b, a: 0.15 }
 
 // Get hex for a theme family:
 const red = familyHex("error")
 
+// Get RGBA for a theme family:
+const rgba = familyRgba("error", 9, 1)  // { r, g, b, a: 1 }
+
+// Which ThemeFamily backs series index 2?
+const family = seriesPaletteFamily(2)  // e.g. "success"
+
 // Build a palette:
 const palette = [0, 1, 2, 3].map(seriesHex)
 
-// Parse rgba string (from themeColor) to hex:
-const hex = hexToRgba("#3a4de9")   // → { r, g, b, a }
+// Parse a hex string to RGBA object:
+const rgba2 = hexToRgba("#3a4de9")  // { r: 58, g: 77, b: 233, a: 1 }
 ```
 
 ## VisualMap colors

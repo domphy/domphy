@@ -166,3 +166,39 @@ computePosition(reference, floating, { strategy: "fixed" })
 ```
 
 For most portal-based UIs (popovers, dropdowns), `"fixed"` is the right choice.
+
+## Additional middleware
+
+### `inline`
+
+For reference elements that span multiple lines (hyperlinks, text selections, range selections), `inline` improves position accuracy by basing placement on the hovered/selected line boundary instead of the full bounding rect.
+
+```ts
+import { computePosition, inline, offset } from "@domphy/floating"
+
+computePosition(reference, floating, {
+  middleware: [inline(), offset(8)],
+})
+```
+
+Useful when the reference is a `<span>` inside a paragraph that wraps.
+
+### `detectOverflow`
+
+Low-level utility used internally by `flip`, `shift`, and `hide`. Returns a `SideObject` with the overflow amount (in px) on each side relative to the boundary. Positive = outside boundary, negative = inside.
+
+```ts
+import { detectOverflow } from "@domphy/floating"
+import type { MiddlewareState } from "@domphy/floating"
+
+const myMiddleware = {
+  name: "myMiddleware",
+  async fn(state: MiddlewareState) {
+    const overflow = await detectOverflow(state)
+    // overflow.top, overflow.right, overflow.bottom, overflow.left
+    return {}
+  },
+}
+```
+
+Use `detectOverflow` inside a custom middleware when you need raw overflow data before applying your own transform.
