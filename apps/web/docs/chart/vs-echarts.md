@@ -67,7 +67,7 @@ series: [
 ]
 ```
 
-Set `dataTone="shift-11"` on the chart container → all series colors invert automatically. Zero manual dark-mode config.
+Set `dataTone="shift-14"` on the chart container → all series colors adapt to the dark tone automatically. Zero manual dark-mode config.
 
 ## Spacing / density cascade
 

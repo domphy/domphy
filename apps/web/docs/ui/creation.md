@@ -34,7 +34,7 @@ Apply styles in this order of preference:
 
 Use an existing patch first. If no patch fits, use `themeSpacing()`, `themeSize()`, and `themeColor()`. Only fall back to raw fixed values when the system cannot express the value.
 
-Overlay elements should use tone `shift-11`.
+Overlay elements should use a dark edge anchor tone (`shift-14` through `shift-17`).
 
 ## Not To Do
 

@@ -160,7 +160,7 @@ Setting `dataTone` on the chart container shifts the entire chart's color family
 ```ts
 const App = {
   div: null,
-  dataTone: "shift-11",   // inverts lightness — all chart colors adapt
+  dataTone: "shift-14",   // dark edge anchor — all chart colors adapt
   style: { width: "600px", height: "300px", position: "relative" },
   $: [chart(option)],
 }
