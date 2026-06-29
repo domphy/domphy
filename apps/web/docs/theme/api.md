@@ -51,7 +51,7 @@ paddingInline: themeSpacing(d * 3)
 
 ### `themeSpacing(n)`
 
-Return a spacing value in `em`.
+Return a CSS `calc(n/4 em)` string. The result is wrapped in `calc()` to preserve composability.
 
 ```ts
 gap: themeSpacing(3)

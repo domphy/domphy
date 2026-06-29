@@ -130,3 +130,60 @@ function myPatch(open: ValueOrState<boolean>): PartialElement {
 ```
 
 In practice most patch props accept `ValueOrState<T>` so callers can pass `true` / `false` or a `toState(false)` interchangeably.
+
+---
+
+## `RecordState<T>`
+
+Per-key reactive record. Unlike `State<Record<...>>` which notifies all listeners on every change, `RecordState` notifies only listeners for the specific key that changed.
+
+```ts
+import { RecordState } from "@domphy/core"
+
+const form = new RecordState({ name: "", age: 0 })
+```
+
+### Methods
+
+#### `get(key, listener?)`
+
+Read a field value. Registers `listener` (or the active `computed`/`effect` collector) for the given key only.
+
+```ts
+const name = form.get("name")              // untracked read
+const nameEl = { span: (l) => form.get("name", l) }  // reactive — updates when name changes
+```
+
+#### `set(key, value)`
+
+Write a field. Notifies only listeners subscribed to that key.
+
+```ts
+form.set("name", "Alice")
+form.set("age", 30)
+```
+
+#### `addListener(key, fn)` / `removeListener(key, fn)`
+
+Manually subscribe/unsubscribe a callback for a specific key. `addListener` returns an unsubscribe function.
+
+#### `reset(key)`
+
+Restores a field to its `initialRecord` value.
+
+```ts
+form.reset("name")   // back to ""
+```
+
+#### `initialRecord`
+
+The original record passed to the constructor. Read-only reference, used by `reset()`.
+
+#### `_dispose()`
+
+Removes all listeners from all notifiers. Call in `_onRemove` if you create a `RecordState` inside a component.
+
+### When to use
+
+Prefer `RecordState` over a single `State<Record<...>>` when the record has multiple frequently-changing fields and different UI elements subscribe to different fields. Each setter triggers only the relevant listeners instead of all of them.
+
