@@ -1,19 +1,17 @@
 import type { DomphyElement } from "@domphy/core";
-import { segmented, segmentedItem } from "@domphy/ui";
-
-const periods = ["Day", "Week", "Month", "Year"];
+import { segmented } from "@domphy/ui";
 
 const App: DomphyElement<"div"> = {
-  div: [
-    {
-      div: periods.map((label) => ({
-        button: label,
-        _key: label.toLowerCase(),
-        $: [segmentedItem()],
-      })),
-      $: [segmented({ value: "month" })],
-    },
-  ],
+  div: null,
+  $: [segmented({
+    value: "month",
+    items: [
+      { label: "Day", key: "day" },
+      { label: "Week", key: "week" },
+      { label: "Month", key: "month" },
+      { label: "Year", key: "year" },
+    ],
+  })],
 };
 
 export default App;

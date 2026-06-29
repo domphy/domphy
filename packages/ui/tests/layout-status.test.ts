@@ -17,7 +17,6 @@ import {
   splitter,
   splitterHandle,
   splitterPanel,
-  stepItem,
   steps,
   tag,
   timeline,
@@ -600,44 +599,10 @@ describe("rating", () => {
 // ---------------------------------------------------------------------------
 
 describe("steps + stepItem", () => {
-  it("warns when stepItem is used outside a steps container", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    render({
-      div: [{ li: "Step 1", $: [stepItem()] }],
-    } as DomphyElement);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("stepItem"));
-    warn.mockRestore();
-  });
-
-  it("does not warn when stepItem is properly nested in steps", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    render({
-      div: [
-        {
-          ol: [
-            { li: "Step 1", $: [stepItem()] },
-            { li: "Step 2", $: [stepItem()] },
-          ],
-          $: [steps()],
-        },
-      ],
-    } as DomphyElement);
-    expect(warn).not.toHaveBeenCalled();
-    warn.mockRestore();
-  });
-
   it("active step has aria-current=step", () => {
     const { host } = render({
-      div: [
-        {
-          ol: [
-            { li: "Step 1", $: [stepItem()] },
-            { li: "Step 2", $: [stepItem()] },
-            { li: "Step 3", $: [stepItem()] },
-          ],
-          $: [steps({ current: 1 })],
-        },
-      ],
+      ol: null,
+      $: [steps({ current: 1, items: [{ label: "Step 1" }, { label: "Step 2" }, { label: "Step 3" }] })],
     } as DomphyElement);
 
     const items = host.querySelectorAll("li");
@@ -648,16 +613,8 @@ describe("steps + stepItem", () => {
 
   it("sets data-status correctly for pending/active/done", () => {
     const { host } = render({
-      div: [
-        {
-          ol: [
-            { li: "Step 1", $: [stepItem()] },
-            { li: "Step 2", $: [stepItem()] },
-            { li: "Step 3", $: [stepItem()] },
-          ],
-          $: [steps({ current: 1 })],
-        },
-      ],
+      ol: null,
+      $: [steps({ current: 1, items: [{ label: "Step 1" }, { label: "Step 2" }, { label: "Step 3" }] })],
     } as DomphyElement);
 
     const items = host.querySelectorAll("li");
@@ -669,15 +626,8 @@ describe("steps + stepItem", () => {
   it("reactive current updates aria-current and data-status", () => {
     const current = toState(0);
     const { host } = render({
-      div: [
-        {
-          ol: [
-            { li: "Step 1", $: [stepItem()] },
-            { li: "Step 2", $: [stepItem()] },
-          ],
-          $: [steps({ current })],
-        },
-      ],
+      ol: null,
+      $: [steps({ current, items: [{ label: "Step 1" }, { label: "Step 2" }] })],
     } as DomphyElement);
 
     const items = host.querySelectorAll("li");

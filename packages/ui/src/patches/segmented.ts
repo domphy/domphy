@@ -43,7 +43,7 @@ function segmented(
     accentColor?: ThemeColor;
   } = { items: [] },
 ): PartialElement {
-  const { items, color = "neutral", accentColor = "primary" } = props;
+  const { items = [], color = "neutral", accentColor = "primary" } = props;
   const value = toState(props.value ?? (items[0]?.key ?? ""));
 
   return {

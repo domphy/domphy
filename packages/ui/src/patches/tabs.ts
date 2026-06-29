@@ -49,7 +49,7 @@ function tabs(
     color?: ThemeColor;
   } = { items: [] },
 ): PartialElement {
-  const { items, accentColor = "primary", color = "neutral" } = props;
+  const { items = [], accentColor = "primary", color = "neutral" } = props;
   const activeKey = toState(props.activeKey ?? (items[0]?.key ?? 0));
 
   return {

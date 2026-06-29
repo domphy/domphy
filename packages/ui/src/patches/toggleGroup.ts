@@ -44,7 +44,7 @@ function toggleGroup(
     accentColor?: ThemeColor;
   } = { items: [] },
 ): PartialElement {
-  const { items, multiple = false, color = "neutral", accentColor = "primary" } =
+  const { items = [], multiple = false, color = "neutral", accentColor = "primary" } =
     props;
   const value = toState(props.value ?? (multiple ? [] : ""));
 

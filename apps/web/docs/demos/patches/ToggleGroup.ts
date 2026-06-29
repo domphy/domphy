@@ -1,34 +1,45 @@
 import { type DomphyElement, toState } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
-import { toggle, toggleGroup } from "@domphy/ui";
+import { toggleGroup } from "@domphy/ui";
 
 const selected = toState<string[]>([], "selected");
 
 const App: DomphyElement<"div"> = {
   div: [
     {
-      div: ["Bold", "Italic", "Underline"].map((label) => ({
-        button: label,
-        _key: label.toLowerCase(),
-        $: [toggle()],
-      })),
-      $: [toggleGroup({ value: "bold" })],
+      div: null,
+      $: [toggleGroup({
+        value: "bold",
+        items: [
+          { label: "Bold", key: "bold" },
+          { label: "Italic", key: "italic" },
+          { label: "Underline", key: "underline" },
+        ],
+      })],
     },
     {
-      div: ["B", "I", "U", "S"].map((label) => ({
-        button: label,
-        _key: label.toLowerCase(),
-        $: [toggle()],
-      })),
-      $: [toggleGroup({ value: selected, multiple: true })],
+      div: null,
+      $: [toggleGroup({
+        value: selected,
+        multiple: true,
+        items: [
+          { label: "B", key: "b" },
+          { label: "I", key: "i" },
+          { label: "U", key: "u" },
+          { label: "S", key: "s" },
+        ],
+      })],
     },
     {
-      div: ["Left", "Center", "Right"].map((label) => ({
-        button: label,
-        _key: label.toLowerCase(),
-        $: [toggle({ accentColor: "success" })],
-      })),
-      $: [toggleGroup({ color: "neutral" })],
+      div: null,
+      $: [toggleGroup({
+        color: "neutral",
+        items: [
+          { label: "Left", key: "left" },
+          { label: "Center", key: "center" },
+          { label: "Right", key: "right" },
+        ],
+      })],
     },
   ],
   style: {

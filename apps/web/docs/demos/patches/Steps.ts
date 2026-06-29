@@ -1,19 +1,22 @@
 import { type DomphyElement, toState } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
-import { stepItem, steps } from "@domphy/ui";
+import { steps } from "@domphy/ui";
 
 const current = toState(1);
 
 const App: DomphyElement<"div"> = {
   div: [
     {
-      ol: [
-        { li: "Account", $: [stepItem()] },
-        { li: "Details", $: [stepItem()] },
-        { li: "Payment", $: [stepItem()] },
-        { li: "Confirm", $: [stepItem()] },
-      ],
-      $: [steps({ current })],
+      ol: null,
+      $: [steps({
+        current,
+        items: [
+          { label: "Account" },
+          { label: "Details" },
+          { label: "Payment" },
+          { label: "Confirm" },
+        ],
+      })],
     },
     {
       div: [

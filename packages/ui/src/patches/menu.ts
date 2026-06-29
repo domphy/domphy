@@ -49,7 +49,7 @@ function menu(
   } = { items: [] },
 ): PartialElement {
   const {
-    items,
+    items = [],
     selectable = true,
     color = "neutral",
     accentColor = "primary",

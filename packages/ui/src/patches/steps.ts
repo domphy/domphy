@@ -41,7 +41,7 @@ function steps(
   } = { items: [] },
 ): PartialElement {
   const {
-    items,
+    items = [],
     direction = "horizontal",
     color = "neutral",
     accentColor = "primary",

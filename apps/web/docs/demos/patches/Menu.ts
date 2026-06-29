@@ -1,14 +1,17 @@
 import type { DomphyElement } from "@domphy/core";
-import { menu, menuItem } from "@domphy/ui";
-
-const items = ["Home", "About", "Services", "Portfolio", "Contact"];
+import { menu } from "@domphy/ui";
 
 const App: DomphyElement<"div"> = {
-  div: items.map((label) => ({
-    button: label,
-    $: [menuItem()],
-  })),
-  $: [menu()],
+  div: null,
+  $: [menu({
+    items: [
+      { label: "Home" },
+      { label: "About" },
+      { label: "Services" },
+      { label: "Portfolio" },
+      { label: "Contact" },
+    ],
+  })],
 };
 
 export default App;

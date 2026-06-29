@@ -7,14 +7,10 @@ import {
   breadcrumb,
   breadcrumbEllipsis,
   menu,
-  menuItem,
   pagination,
   segmented,
-  segmentedItem,
   select,
   selectItem,
-  tab,
-  tabPanel,
   tabs,
 } from "../src/index.ts";
 
@@ -43,35 +39,29 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("tabs", () => {
-  it("sets role=tablist and aria-orientation=horizontal on the host element", () => {
+  it("generates [role=tablist] div inside host", () => {
     const { host } = render({ div: null, $: [tabs()] } as DomphyElement);
-    const el = host.firstElementChild as HTMLElement;
-    expect(el.getAttribute("role")).toBe("tablist");
-    expect(el.getAttribute("aria-orientation")).toBe("horizontal");
+    const tablist = host.querySelector("[role=tablist]");
+    expect(tablist).not.toBeNull();
+    expect(tablist!.getAttribute("aria-orientation")).toBe("horizontal");
   });
 
   it("accepts an initial activeKey and passes it through context", () => {
     const { host } = render({
-      div: [
-        { button: "A", $: [tab()], _key: "a" },
-        { button: "B", $: [tab()], _key: "b" },
-      ],
-      $: [tabs({ activeKey: "b" })],
+      div: null,
+      $: [tabs({ activeKey: "b", items: [{ label: "A", key: "a" }, { label: "B", key: "b" }] })],
     } as DomphyElement);
-    const buttons = host.querySelectorAll("button");
+    const buttons = host.querySelectorAll("[role=tab]");
     expect(buttons[0].getAttribute("aria-selected")).toBe("false");
     expect(buttons[1].getAttribute("aria-selected")).toBe("true");
   });
 
   it("clicking a tab updates activeKey so the right tab becomes selected", async () => {
     const { host } = render({
-      div: [
-        { button: "A", $: [tab()], _key: 0 },
-        { button: "B", $: [tab()], _key: 1 },
-      ],
-      $: [tabs({ activeKey: 0 })],
+      div: null,
+      $: [tabs({ activeKey: 0, items: [{ label: "A", key: 0 }, { label: "B", key: 1 }] })],
     } as DomphyElement);
-    const buttons = host.querySelectorAll("button");
+    const buttons = host.querySelectorAll<HTMLButtonElement>("[role=tab]");
     buttons[1].click();
     await new Promise((r) => setTimeout(r, 0));
     expect(buttons[1].getAttribute("aria-selected")).toBe("true");
@@ -80,13 +70,11 @@ describe("tabs", () => {
 
   it("tabPanel is hidden when its key does not match activeKey", () => {
     const { host } = render({
-      div: [
-        { button: "A", $: [tab()], _key: 0 },
-        { button: "B", $: [tab()], _key: 1 },
-        { div: "Panel A", $: [tabPanel()], _key: 0 },
-        { div: "Panel B", $: [tabPanel()], _key: 1 },
-      ],
-      $: [tabs({ activeKey: 0 })],
+      div: null,
+      $: [tabs({ activeKey: 0, items: [
+        { label: "A", key: 0, content: { div: "Panel A" } as any },
+        { label: "B", key: 1, content: { div: "Panel B" } as any },
+      ] })],
     } as DomphyElement);
     const panels = host.querySelectorAll("[role=tabpanel]");
     expect((panels[0] as HTMLElement).hidden).toBe(false);
@@ -95,51 +83,24 @@ describe("tabs", () => {
 
   it("clicking a tab shows the matching panel and hides the others", async () => {
     const { host } = render({
-      div: [
-        { button: "A", $: [tab()], _key: 0 },
-        { button: "B", $: [tab()], _key: 1 },
-        { div: "Panel A", $: [tabPanel()], _key: 0 },
-        { div: "Panel B", $: [tabPanel()], _key: 1 },
-      ],
-      $: [tabs({ activeKey: 0 })],
+      div: null,
+      $: [tabs({ activeKey: 0, items: [
+        { label: "A", key: 0, content: { div: "Panel A" } as any },
+        { label: "B", key: 1, content: { div: "Panel B" } as any },
+      ] })],
     } as DomphyElement);
-    host.querySelectorAll<HTMLButtonElement>("button")[1].click();
+    host.querySelectorAll<HTMLButtonElement>("[role=tab]")[1].click();
     await new Promise((r) => setTimeout(r, 0));
     const panels = host.querySelectorAll("[role=tabpanel]");
     expect((panels[0] as HTMLElement).hidden).toBe(true);
     expect((panels[1] as HTMLElement).hidden).toBe(false);
   });
 
-  it("tab warns and does not throw when used outside a tabs context", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(() =>
-      render({ div: [{ button: "Tab", $: [tab()] }] } as DomphyElement),
-    ).not.toThrow();
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('"tab" patch must be used inside a "tabs"'),
-    );
-    warn.mockRestore();
-  });
-
-  it("tabPanel warns when used outside a tabs context", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(() =>
-      render({ div: [{ div: "Panel", $: [tabPanel()] }] } as DomphyElement),
-    ).not.toThrow();
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('"tabPanel" patch must be used inside a "tabs"'),
-    );
-    warn.mockRestore();
-  });
-
   it("releases activeKey listeners when the tree is removed", () => {
     const active = toState(0, "activeKey");
     const { node } = render({
-      div: [
-        { button: "A", $: [tab()], _key: 0 },
-        { div: "Panel A", $: [tabPanel()], _key: 0 },
-      ],
-      $: [tabs({ activeKey: active })],
+      div: null,
+      $: [tabs({ activeKey: active, items: [{ label: "A", key: 0, content: { div: "Panel A" } as any }] })],
     } as DomphyElement);
     expect(listenerCount(active)).toBeGreaterThanOrEqual(1);
     node.remove();
@@ -159,14 +120,11 @@ describe("menu", () => {
 
   it("clicking a menuItem sets it as the active key via aria-current", async () => {
     const { host } = render({
-      div: [
-        { button: "Home", $: [menuItem()], _key: 0 },
-        { button: "Settings", $: [menuItem()], _key: 1 },
-      ],
-      $: [menu({ activeKey: 0 })],
+      div: null,
+      $: [menu({ activeKey: 0, items: [{ label: "Home", key: 0 }, { label: "Settings", key: 1 }] })],
     } as DomphyElement);
     const buttons = host.querySelectorAll<HTMLButtonElement>("button");
-    // menu uses _onSchedule so context is set async; wait for initial render
+    // wait for initial render
     await new Promise((r) => setTimeout(r, 0));
     expect(buttons[0].getAttribute("aria-current")).toBe("true");
     expect(buttons[1].getAttribute("aria-current")).toBeNull();
@@ -178,11 +136,8 @@ describe("menu", () => {
 
   it("does not update activeKey when selectable is false", () => {
     const { host } = render({
-      div: [
-        { button: "A", $: [menuItem()], _key: 0 },
-        { button: "B", $: [menuItem()], _key: 1 },
-      ],
-      $: [menu({ activeKey: null, selectable: false })],
+      div: null,
+      $: [menu({ activeKey: null, selectable: false, items: [{ label: "A", key: 0 }, { label: "B", key: 1 }] })],
     } as DomphyElement);
     const buttons = host.querySelectorAll<HTMLButtonElement>("button");
     buttons[0].click();
@@ -190,36 +145,11 @@ describe("menu", () => {
     expect(buttons[0].getAttribute("aria-current")).toBeNull();
   });
 
-  it("menuItem warns when used outside a menu context", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(() =>
-      render({
-        div: [{ button: "Item", $: [menuItem()] }],
-      } as DomphyElement),
-    ).not.toThrow();
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('"menuItem" patch must be used inside a "menu"'),
-    );
-    warn.mockRestore();
-  });
-
-  it("menuItem warns when applied to a non-button tag", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    render({
-      div: [{ div: "Item", $: [menuItem()] }],
-      $: [menu()],
-    } as DomphyElement);
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('"menuItem" patch must use button tag'),
-    );
-    warn.mockRestore();
-  });
-
   it("releases activeKey listeners when the menu tree is removed", () => {
     const active = toState(0, "menuActive");
     const { node } = render({
-      div: [{ button: "A", $: [menuItem()], _key: 0 }],
-      $: [menu({ activeKey: active })],
+      div: null,
+      $: [menu({ activeKey: active, items: [{ label: "A", key: 0 }] })],
     } as DomphyElement);
     expect(listenerCount(active)).toBeGreaterThanOrEqual(1);
     node.remove();
@@ -351,11 +281,8 @@ describe("segmented + segmentedItem", () => {
 
   it("segmentedItem reflects aria-checked from context value", () => {
     const { host } = render({
-      div: [
-        { button: "Day", $: [segmentedItem()], _key: "day" },
-        { button: "Month", $: [segmentedItem()], _key: "month" },
-      ],
-      $: [segmented({ value: "month" })],
+      div: null,
+      $: [segmented({ value: "month", items: [{ label: "Day", key: "day" }, { label: "Month", key: "month" }] })],
     } as DomphyElement);
     const buttons = host.querySelectorAll<HTMLButtonElement>("button");
     expect(buttons[0].getAttribute("aria-checked")).toBe("false");
@@ -365,11 +292,8 @@ describe("segmented + segmentedItem", () => {
   it("clicking a segmentedItem updates the context value", async () => {
     const value = toState("day", "seg");
     const { host } = render({
-      div: [
-        { button: "Day", $: [segmentedItem()], _key: "day" },
-        { button: "Week", $: [segmentedItem()], _key: "week" },
-      ],
-      $: [segmented({ value })],
+      div: null,
+      $: [segmented({ value, items: [{ label: "Day", key: "day" }, { label: "Week", key: "week" }] })],
     } as DomphyElement);
     const buttons = host.querySelectorAll<HTMLButtonElement>("button");
     buttons[1].click();
@@ -379,41 +303,11 @@ describe("segmented + segmentedItem", () => {
     expect(buttons[0].getAttribute("aria-checked")).toBe("false");
   });
 
-  it("segmentedItem warns when used outside a segmented context", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(() =>
-      render({
-        div: [{ button: "X", $: [segmentedItem()] }],
-      } as DomphyElement),
-    ).not.toThrow();
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining(
-        '"segmentedItem" patch must be used inside a "segmented"',
-      ),
-    );
-    warn.mockRestore();
-  });
-
-  it("segmentedItem warns when applied to non-button tag", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    render({
-      div: [{ div: "X", $: [segmentedItem()] }],
-      $: [segmented()],
-    } as DomphyElement);
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('"segmentedItem" patch must use button tag'),
-    );
-    warn.mockRestore();
-  });
-
-  it("uses index as key when no explicit _key is provided", async () => {
+  it("uses index as key when no explicit key is provided", async () => {
     const value = toState("", "seg2");
     const { host } = render({
-      div: [
-        { button: "First", $: [segmentedItem()] },
-        { button: "Second", $: [segmentedItem()] },
-      ],
-      $: [segmented({ value })],
+      div: null,
+      $: [segmented({ value, items: [{ label: "First" }, { label: "Second" }] })],
     } as DomphyElement);
     const buttons = host.querySelectorAll<HTMLButtonElement>("button");
     buttons[0].click();
@@ -427,8 +321,8 @@ describe("segmented + segmentedItem", () => {
   it("releases listeners when the segmented tree is removed", () => {
     const value = toState("a", "segClean");
     const { node } = render({
-      div: [{ button: "A", $: [segmentedItem()], _key: "a" }],
-      $: [segmented({ value })],
+      div: null,
+      $: [segmented({ value, items: [{ label: "A", key: "a" }] })],
     } as DomphyElement);
     expect(listenerCount(value)).toBeGreaterThanOrEqual(1);
     node.remove();

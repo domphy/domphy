@@ -8,7 +8,6 @@ import {
   buttonGhost,
   buttonSwitch,
   fab,
-  toggle,
   toggleGroup,
 } from "../src/index.ts";
 
@@ -285,29 +284,18 @@ describe("fab", () => {
 // ---------------------------------------------------------------------------
 
 describe("toggle", () => {
-  it("warns when used outside a toggleGroup", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    render({
-      div: [{ button: "Bold", $: [toggle()] }],
-    } as DomphyElement);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("toggleGroup"));
-    warn.mockRestore();
-  });
-
   it("generates CSS with cursor:pointer inside a group", () => {
-    // Render the group as root; generateCSS() on the root node is recursive
-    // and includes the child toggle button's styles.
     const { node } = render({
-      div: [{ button: "B", $: [toggle()] }],
-      $: [toggleGroup()],
+      div: null,
+      $: [toggleGroup({ items: [{ label: "B" }] })],
     } as DomphyElement);
     expect(node.generateCSS()).toContain("cursor: pointer");
   });
 
   it("aria-pressed starts false and becomes true after click", async () => {
     const { host } = render({
-      div: [{ button: "Bold", $: [toggle()] }],
-      $: [toggleGroup()],
+      div: null,
+      $: [toggleGroup({ items: [{ label: "Bold" }] })],
     } as DomphyElement);
     const el = host.querySelector("button")!;
     expect(el.getAttribute("aria-pressed")).toBe("false");
@@ -318,8 +306,8 @@ describe("toggle", () => {
 
   it("clicking a pressed toggle in single-select deselects it", async () => {
     const { host } = render({
-      div: [{ button: "Bold", $: [toggle()] }],
-      $: [toggleGroup()],
+      div: null,
+      $: [toggleGroup({ items: [{ label: "Bold" }] })],
     } as DomphyElement);
     const el = host.querySelector("button")!;
     el.click();
@@ -331,8 +319,8 @@ describe("toggle", () => {
 
   it("role attribute is set to button", () => {
     const { host } = render({
-      div: [{ button: "B", $: [toggle()] }],
-      $: [toggleGroup()],
+      div: null,
+      $: [toggleGroup({ items: [{ label: "B" }] })],
     } as DomphyElement);
     const el = host.querySelector("button")!;
     expect(el.getAttribute("role")).toBe("button");
@@ -362,11 +350,8 @@ describe("toggleGroup", () => {
 
   it("single-select: clicking one toggle selects it and deselects another", async () => {
     const { host } = render({
-      div: [
-        { button: "A", $: [toggle()] },
-        { button: "B", $: [toggle()] },
-      ],
-      $: [toggleGroup()],
+      div: null,
+      $: [toggleGroup({ items: [{ label: "A" }, { label: "B" }] })],
     } as DomphyElement);
     const [btnA, btnB] = Array.from(host.querySelectorAll("button"));
     btnA.click();
@@ -381,11 +366,8 @@ describe("toggleGroup", () => {
 
   it("multiple mode: clicking two toggles selects both simultaneously", async () => {
     const { host } = render({
-      div: [
-        { button: "A", $: [toggle()] },
-        { button: "B", $: [toggle()] },
-      ],
-      $: [toggleGroup({ multiple: true })],
+      div: null,
+      $: [toggleGroup({ multiple: true, items: [{ label: "A" }, { label: "B" }] })],
     } as DomphyElement);
     const [btnA, btnB] = Array.from(host.querySelectorAll("button"));
     btnA.click();
@@ -399,11 +381,8 @@ describe("toggleGroup", () => {
   it("external value state drives initial selection", () => {
     const value = toState("0");
     const { host } = render({
-      div: [
-        { button: "A", $: [toggle()] },
-        { button: "B", $: [toggle()] },
-      ],
-      $: [toggleGroup({ value })],
+      div: null,
+      $: [toggleGroup({ value, items: [{ label: "A" }, { label: "B" }] })],
     } as DomphyElement);
     const [btnA, btnB] = Array.from(host.querySelectorAll("button"));
     expect(btnA.getAttribute("aria-pressed")).toBe("true");
@@ -413,8 +392,8 @@ describe("toggleGroup", () => {
   it("clicking a toggle updates the external value state", async () => {
     const value = toState("");
     const { host } = render({
-      div: [{ button: "X", $: [toggle()] }],
-      $: [toggleGroup({ value })],
+      div: null,
+      $: [toggleGroup({ value, items: [{ label: "X" }] })],
     } as DomphyElement);
     const btn = host.querySelector("button")!;
     btn.click();
