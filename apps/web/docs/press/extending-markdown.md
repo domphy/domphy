@@ -1,155 +1,166 @@
 ---
 title: "Extending Markdown"
-description: "Add custom remark/rehype plugins, custom code block renderers, and Domphy component embeds."
+description: "Built-in Markdown containers, code-group tabs, file imports, and badges."
 ---
 
 # Extending Markdown
 
-## Remark and rehype plugins
+`@domphy/press` ships a VitePress-compatible Markdown pipeline built on remark + GFM. There is no config API for adding custom plugins yet (`markdown` in `press.config.ts` is reserved for a future release). The built-in feature set covers the most common documentation patterns.
 
-`@domphy/press` processes Markdown through `remark` and `rehype`. Add plugins in `press.config.ts`:
+## Containers (admonitions)
 
-```ts
-// press.config.ts
-import { defineConfig } from "@domphy/press"
-import remarkGfm from "remark-gfm"
-import remarkMath from "remark-math"
-import rehypeKatex from "rehype-katex"
-import rehypeAutolinkHeadings from "rehype-autolink-headings"
-
-export default defineConfig({
-  markdown: {
-    remarkPlugins: [
-      remarkGfm,
-      remarkMath,
-    ],
-    rehypePlugins: [
-      rehypeKatex,
-      [rehypeAutolinkHeadings, { behavior: "wrap" }],
-    ],
-  },
-})
-```
-
-## Math rendering
-
-With `remark-math` + `rehype-katex`, inline and block math works out of the box:
+Use `:::type` to create styled callout blocks. The type becomes a CSS class `custom-block <type>`:
 
 ```markdown
-Inline math: $E = mc^2$
+::: tip
+A helpful tip.
+:::
 
-Block math:
-$$
-\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}
-$$
+::: tip My custom title
+Tip with a custom title.
+:::
+
+::: warning
+Something to watch out for.
+:::
+
+::: danger
+Dangerous action — use with care.
+:::
+
+::: info
+Informational note.
+:::
 ```
 
-Add the KaTeX CSS to your HTML:
+All supported container types:
 
-```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
-```
+| Type | Default title |
+|---|---|
+| `tip` | TIP |
+| `warning` | WARNING |
+| `info` | INFO |
+| `danger` | DANGER |
+| `note` | NOTE |
+| `abstract` | ABSTRACT |
+| `success` | SUCCESS |
+| `question` | QUESTION |
+| `failure` | FAILURE |
+| `bug` | BUG |
+| `example` | EXAMPLE |
+| `quote` | QUOTE |
 
-## Custom code block renderer
-
-Replace the default code block with a custom component — e.g., add a copy button:
-
-```ts
-// press.config.ts
-import { defineConfig } from "@domphy/press"
-import { CodeBlock } from "./src/CodeBlock"
-
-export default defineConfig({
-  markdown: {
-    components: {
-      // Replace <pre><code> with custom component
-      pre: CodeBlock,
-    },
-  },
-})
-```
-
-```ts
-// src/CodeBlock.ts
-import { button, tooltip } from "@domphy/ui"
-import { toState } from "@domphy/core"
-
-export function CodeBlock({ code, lang }: { code: string; lang: string }) {
-  const copied = toState(false)
-
-  function copy() {
-    navigator.clipboard.writeText(code)
-    copied.set(true)
-    setTimeout(() => copied.set(false), 2000)
-  }
-
-  return {
-    div: [
-      {
-        pre: { code },
-        class: `language-${lang}`,
-      },
-      {
-        button: (l) => copied.get(l) ? "✓ Copied" : "Copy",
-        onClick: copy,
-        $: [button({ variant: "ghost" }), tooltip({ content: "Copy code" })],
-        style: { position: "absolute", top: "8px", right: "8px" },
-      },
-    ],
-    style: { position: "relative" },
-  }
-}
-```
-
-## Custom directive syntax
-
-Install `remark-directive` to add custom block/inline directives:
-
-```ts
-// press.config.ts
-import remarkDirective from "remark-directive"
-import { remarkDomphyDirectives } from "./src/directives"
-
-export default defineConfig({
-  markdown: {
-    remarkPlugins: [remarkDirective, remarkDomphyDirectives],
-  },
-})
-```
+## Details (collapsible)
 
 ```markdown
-:::tip
-This is a tip callout.
+::: details Click to expand
+Hidden content revealed on click.
 :::
 
-:::warning
-Watch out for this edge case.
+::: details Custom summary text
+Content here.
 :::
-
-::badge[New]{type="success"}
 ```
 
-Implement the directive handler:
+Renders as a native `<details>`/`<summary>` element.
+
+## Steps
+
+```markdown
+::: steps
+**Install the package:**
+
+```bash
+pnpm add @domphy/press
+```
+
+**Create `press.config.ts`:**
 
 ```ts
-// src/directives.ts
-import type { Plugin } from "unified"
-import { visit } from "unist-util-visit"
-
-export const remarkDomphyDirectives: Plugin = () => (tree) => {
-  visit(tree, (node: any) => {
-    if (node.type === "containerDirective") {
-      const type = node.name  // "tip", "warning", "danger", "info"
-      node.type = "html"
-      node.value = `<div class="callout callout-${type}">${nodeToHtml(node)}</div>`
-    }
-  })
-}
+import { defineConfig } from "@domphy/press"
+export default defineConfig({ title: "My Docs", ... })
 ```
+
+**Run the dev server:**
+
+```bash
+npx domphy-press dev
+```
+:::
+```
+
+Renders as a numbered step sequence (CSS counter via `.custom-block.steps`).
+
+## Card grid
+
+```markdown
+::: card-grid
+
+::: card Features
+- Fast static output
+- Reactive Domphy theming
+:::
+
+::: link-card [Getting Started](/guide/)
+Everything you need to get up and running.
+:::
+
+:::
+```
+
+`card` = styled content card; `link-card [Label](href)` = clickable card that links to a page.
+
+## Code-group tabs
+
+Group multiple code blocks into a tabbed panel:
+
+````markdown
+::: code-group
+```bash [npm]
+npm install @domphy/press
+```
+```bash [pnpm]
+pnpm add @domphy/press
+```
+```bash [yarn]
+yarn add @domphy/press
+```
+:::
+````
+
+The label in `[brackets]` after the language becomes the tab name.
+
+## File imports (`<<<`)
+
+Embed a file from the repo directly into a code block:
+
+```markdown
+<<< ./src/example.ts
+
+<<< ./src/example.ts [Custom Label]
+```
+
+The file extension determines the language automatically. The `@/` prefix resolves from the docs root:
+
+```markdown
+<<< @/snippets/config.ts
+```
+
+## `<Badge>` inline
+
+```markdown
+Feature <Badge type="tip" text="New" /> is available.
+
+<Badge type="warning" text="Beta" />
+<Badge type="danger" text="Deprecated" />
+<Badge type="info" text="Experimental" />
+```
+
+Renders as a small inline label styled by the press theme. Available types: `tip`, `info`, `warning`, `danger`.
 
 ## Frontmatter
 
-Every Markdown file can have YAML frontmatter — access it in layouts:
+Every Markdown file supports YAML frontmatter — available in the layout as `frontmatter`:
 
 ```markdown
 ---
@@ -162,47 +173,18 @@ tags: [guide, advanced]
 # Content starts here
 ```
 
-Access in custom layout:
+Access in a custom layout slot:
 
 ```ts
 // press.config.ts
 export default defineConfig({
-  theme: {
-    layout: ({ frontmatter, content }) => ({
-      article: [
-        {
-          header: [
-            { h1: frontmatter.title },
-            { p: frontmatter.description },
-          ],
-        },
-        { div: content },
-        frontmatter.tags?.length
-          ? { div: frontmatter.tags.map((tag: string) => ({ span: tag, class: "tag" })) }
+  themeConfig: {
+    slots: {
+      docFooter: ({ frontmatter }) =>
+        frontmatter.date
+          ? { p: `Last updated: ${frontmatter.date}`, class: "doc-date" }
           : null,
-      ].filter(Boolean),
-    }),
-  },
-})
-```
-
-## Syntax highlighting themes
-
-Switch the Shiki syntax highlighting theme:
-
-```ts
-export default defineConfig({
-  markdown: {
-    highlight: {
-      theme: {
-        light: "github-light",
-        dark: "github-dark",
-      },
-      // Or a single theme:
-      // theme: "nord"
     },
   },
 })
 ```
-
-Available themes: `github-light`, `github-dark`, `monokai`, `one-dark-pro`, `dracula`, `solarized-light`, `material-theme`, `catppuccin-latte`, etc. Full list at the Shiki docs.
