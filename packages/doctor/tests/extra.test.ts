@@ -4,7 +4,7 @@ import { type CustomRule, diagnose, fix, format } from "../src/index";
 const rules = (tree: unknown, opts?: Parameters<typeof diagnose>[1]) =>
   diagnose(tree, opts).map((d) => d.rule);
 
-// The 13 rules the doctor is contracted to implement. A crafted input below
+// The 18 rules the doctor is contracted to implement. A crafted input below
 // produces each one; the test asserts the SET of producible rule ids equals
 // this list, so a renamed or dropped rule (or a sneaked-in new one) fails CI.
 const EXPECTED_RULES = [
@@ -21,6 +21,11 @@ const EXPECTED_RULES = [
   "unknown-density",
   "unknown-size",
   "low-opacity",
+  "tone-background-inherit",
+  "low-contrast",
+  "missing-color",
+  "dataTone-surface-contract",
+  "color-shift-minimum",
 ] as const;
 
 describe("rule coverage (all 13 rules fire and no extras exist)", () => {
@@ -51,15 +56,43 @@ describe("rule coverage (all 13 rules fire and no extras exist)", () => {
     "unknown-density": { div: "x", dataDensity: "compact" },
     "unknown-size": { div: "x", dataSize: "large" },
     "low-opacity": { span: "x", style: { opacity: "0.3" } },
+    "tone-background-inherit": {
+      div: "x",
+      style: { backgroundColor: (_l: unknown) => "var(--test-neutral-5)" },
+    },
+    "low-contrast": {
+      div: "x",
+      style: {
+        backgroundColor: (_l: unknown) => "var(--test-neutral-0)",
+        color: (_l: unknown) => "var(--test-neutral-3)",
+      },
+    },
+    "missing-color": {
+      div: "x",
+      style: { backgroundColor: (_l: unknown) => "var(--test-neutral-0)" },
+    },
+    "dataTone-surface-contract": {
+      div: "x",
+      dataTone: "shift-0",
+      // no backgroundColor, no color
+    },
+    "color-shift-minimum": {
+      div: "x",
+      dataTone: "shift-0",
+      style: {
+        backgroundColor: (_l: unknown) => "var(--test-neutral-0)",
+        color: (_l: unknown) => "var(--test-neutral-4)",
+      },
+    },
   };
 
-  it("each of the 12 rule ids is produced by its crafted input", () => {
+  it("each of the 18 rule ids is produced by its crafted input", () => {
     for (const rule of EXPECTED_RULES) {
       expect(rules(samplesByRule[rule])).toContain(rule);
     }
   });
 
-  it("the union of all produced rule ids equals exactly the 12 expected rules", () => {
+  it("the union of all produced rule ids equals exactly the 16 expected rules", () => {
     const produced = new Set<string>();
     for (const sample of Object.values(samplesByRule)) {
       for (const rule of rules(sample)) produced.add(rule);

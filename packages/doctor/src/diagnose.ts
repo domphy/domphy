@@ -360,19 +360,36 @@ function tryBuildNode(element: Record<string, unknown>): ElementNode | null {
  * Returns the property names that use theme vars, excluding `color` itself.
  */
 function themedPropsExcludingColor(node: ElementNode): string[] {
-  const ownSelector = `.${node.tagName}_${node.nodeId}`;
-  const mainRule = node.styles.items.find((r) => r.selectorText === ownSelector);
-  if (!mainRule?.styleBlock) return [];
-  return Object.entries(mainRule.styleBlock)
+  const rule = mainStyleRule(node);
+  if (!rule?.styleBlock) return [];
+  return Object.entries(rule.styleBlock)
     .filter(([name, prop]) => name !== "color" && typeof prop.value === "string" && prop.value.includes("var("))
     .map(([name]) => name);
 }
 
+/** Returns the main StyleRule for this element (its own scoped selector). */
+function mainStyleRule(node: ElementNode) {
+  const ownSelector = `.${node.tagName}_${node.nodeId}`;
+  return node.styles.items.find((r) => r.selectorText === ownSelector) ?? null;
+}
+
 /** True if the element's main rule has an explicit `color` property. */
 function hasColorProp(node: ElementNode): boolean {
-  const ownSelector = `.${node.tagName}_${node.nodeId}`;
-  const mainRule = node.styles.items.find((r) => r.selectorText === ownSelector);
-  return !!mainRule?.styleBlock?.["color"];
+  return !!mainStyleRule(node)?.styleBlock?.["color"];
+}
+
+/** True if the element's main rule has an explicit `backgroundColor` property. */
+function hasBgProp(node: ElementNode): boolean {
+  return !!mainStyleRule(node)?.styleBlock?.["backgroundColor"];
+}
+
+/**
+ * Extract the numeric tone step from a resolved CSS var string like `var(--neutral-9)`.
+ * Returns null when the pattern doesn't match.
+ */
+function extractToneStep(value: string): number | null {
+  const match = value.match(/var\(--[\w-]+-(\d+)\)$/);
+  return match ? parseInt(match[1], 10) : null;
 }
 
 // ─── Suppress helper ─────────────────────────────────────────────────────────
@@ -810,6 +827,52 @@ function walk(
           message: `\`dataTone: "${dataTone}"\` uses a mid-ramp surface anchor (steps 4–13). Child tones derived from this surface may clamp and collapse contrast.`,
           hint: "Prefer edge anchors: shift-0–3 for light surfaces, shift-14–17 for dark. Mid anchors are only correct for intentionally inverted/highlighted regions.",
         });
+      }
+    }
+  }
+
+  // dataTone-surface-contract: an element that sets dataTone creates a new tone
+  // context for all its children. For that surface to be self-contained it MUST
+  // declare both backgroundColor (to paint the surface at the new tone) and color
+  // (to set the baseline text color, guaranteeing minimum legibility without
+  // relying on CSS inheritance from a different context). "inherit" is exempt —
+  // it passes the parent context through without creating a new surface.
+  if (typeof dataTone === "string" && dataTone !== "inherit" && isValidTone(dataTone)) {
+    const node = tryBuildNode(element);
+    if (node) {
+      const missingBg = !hasBgProp(node);
+      const missingColor = !hasColorProp(node);
+      if (missingBg || missingColor) {
+        const missing = [
+          missingBg ? "backgroundColor" : null,
+          missingColor ? "color" : null,
+        ].filter(Boolean).join(" and ");
+        elementDiags.push({
+          rule: "dataTone-surface-contract",
+          severity: "warning",
+          category: "theme",
+          path: here,
+          message: `\`dataTone: "${dataTone}"\` creates a new tone surface but \`style.${missing}\` is missing — children cannot guarantee readable contrast.`,
+          hint: `Surface contract: set \`backgroundColor: (l) => themeColor(l, "inherit")\`${missingColor ? ` and \`color: (l) => themeColor(l, "shift-9")\`` : ""} so the surface is fully defined at the new tone.`,
+        });
+      }
+
+      // color-shift-minimum: when color IS set, verify its resolved tone step is ≥ 9
+      // (minimum legibility against any standard surface). Extracted from the CSS var
+      // that themeColor() emits; skipped if the value isn't a recognizable theme var.
+      if (!missingColor) {
+        const colorValue = mainStyleRule(node)?.styleBlock?.["color"]?.value;
+        const step = typeof colorValue === "string" ? extractToneStep(colorValue) : null;
+        if (step !== null && step < 9) {
+          elementDiags.push({
+            rule: "color-shift-minimum",
+            severity: "warning",
+            category: "theme",
+            path: here,
+            message: `\`style.color\` resolves to tone step ${step} — below the minimum shift-9 required for legible text on a standard surface.`,
+            hint: "Use at least `themeColor(l, \"shift-9\")` for body text. Decorative / secondary text may use shift-7 or shift-8 with explicit justification.",
+          });
+        }
       }
     }
   }
