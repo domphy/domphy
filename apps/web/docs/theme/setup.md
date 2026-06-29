@@ -3,16 +3,14 @@
 ## Install
 
 ```bash
-npm install @domphy/ui
+npm install @domphy/core @domphy/theme @domphy/ui
 ```
 
-Or install the package directly:
+`@domphy/core` and `@domphy/theme` are peer dependencies of `@domphy/ui` — all three must be installed. If you only need theme tokens without the UI patches:
 
 ```bash
-npm install @domphy/theme
+npm install @domphy/core @domphy/theme
 ```
-
-`@domphy/ui` already includes `@domphy/theme`.
 
 ## Apply Theme CSS
 

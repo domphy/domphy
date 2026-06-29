@@ -5502,16 +5502,14 @@ With `@domphy/app` SSR, breakpoints should be resolved client-side via hydration
 ## Install
 
 ```bash
-npm install @domphy/ui
+npm install @domphy/core @domphy/theme @domphy/ui
 ```
 
-Or install the package directly:
+`@domphy/core` and `@domphy/theme` are peer dependencies of `@domphy/ui` — all three must be installed. If you only need theme tokens without the UI patches:
 
 ```bash
-npm install @domphy/theme
+npm install @domphy/core @domphy/theme
 ```
-
-`@domphy/ui` already includes `@domphy/theme`.
 
 ## Apply Theme CSS
 
@@ -6120,7 +6118,7 @@ const Overlay = {
 
 # Tone
 
-Use `themeColor(listener, tone, color?)` from `@domphy/theme` to resolve colors from theme context.
+Use `themeColor(object, tone?, color?)` from `@domphy/theme` to resolve colors from theme context. The first argument accepts a `Listener`, an `ElementNode`, or `null` (static read).
 
 <img alt="Tone Model" src="/figures/tone.png" width="500" style="display:block;margin:auto" />
 
@@ -29591,7 +29589,7 @@ interface DiagnoseOptions {
   exclude?: string[]
 
   /**
-   * Additional custom rules to run alongside the 12 built-in rules.
+   * Additional custom rules to run alongside the 18 built-in rules.
    * Custom rule ids are also subject to `only`/`exclude` filtering.
    * See "Custom Rules" section below.
    */

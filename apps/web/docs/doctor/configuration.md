@@ -93,7 +93,7 @@ interface DiagnoseOptions {
   exclude?: string[]
 
   /**
-   * Additional custom rules to run alongside the 12 built-in rules.
+   * Additional custom rules to run alongside the 18 built-in rules.
    * Custom rule ids are also subject to `only`/`exclude` filtering.
    * See "Custom Rules" section below.
    */

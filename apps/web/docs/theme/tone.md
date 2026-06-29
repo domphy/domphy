@@ -1,6 +1,6 @@
 # Tone
 
-Use `themeColor(listener, tone, color?)` from `@domphy/theme` to resolve colors from theme context.
+Use `themeColor(object, tone?, color?)` from `@domphy/theme` to resolve colors from theme context. The first argument accepts a `Listener`, an `ElementNode`, or `null` (static read).
 
 <img alt="Tone Model" src="/figures/tone.png" width="500" style="display:block;margin:auto" />
 
