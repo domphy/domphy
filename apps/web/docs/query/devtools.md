@@ -5,6 +5,10 @@ description: "Inspect query cache, monitor requests, and debug stale/fetching st
 
 # Devtools
 
+:::warning In Development
+`@domphy/query-devtools` and the `@domphy/query/devtools` subpath do not exist yet. The `QueryDevtools` component and `devtools()` patch shown below are planned but not yet published. Use `client.getQueryState()`/`client.getQueryCache().getAll()` for programmatic inspection in the meantime (see [Debugging stale data](#debugging-stale-data) below).
+:::
+
 The `@domphy/query` devtools panel lets you inspect every query and mutation in your app: their keys, state (`pending`/`success`/`error`), staleness, `dataUpdatedAt`, and the cached data.
 
 ## Installation

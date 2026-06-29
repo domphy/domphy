@@ -63,9 +63,9 @@ import { createQuery, createMutation, createInfiniteQuery, bindResult } from "@d
 ```
 
 - `createQuery(client, options)` → `QueryHandle` — reactive wrapper; subscribe by passing `l` to `.data(l)`, `.status(l)`, `.error(l)`, `.isPending(l)`, `.isFetching(l)`, `.isSuccess(l)`, `.isError(l)`, etc. Call `.refetch()` to refresh, `.destroy()` from `_onRemove`.
-- `createMutation(client, options)` → `MutationHandle` — call `.mutate(vars)`, subscribe via `.status(l)`, `.isPending(l)`, `.data(l)`, `.error(l)`. Call `.reset()` to clear state, `.destroy()` from `_onRemove`.
-- `createInfiniteQuery(client, options)` → `InfiniteQueryHandle` — like `createQuery` plus `.fetchNextPage()` / `.fetchPreviousPage()`, `.hasNextPage(l)`, `.isFetchingNextPage(l)`, `.isFetchingPreviousPage(l)`.
-- `bindResult(initial, observer?)` — low-level: wrap a TanStack observer result in `RecordState` for per-field reactivity; returns `{ state, field(key, l?), release() }`
+- `createMutation(client, options)` → `MutationHandle` — call `.mutate(vars)` (fire-and-forget) or `.mutateAsync(vars)` (returns Promise). Subscribe via `.status(l)`, `.isPending(l)`, `.isSuccess(l)`, `.isError(l)`, `.isIdle(l)`, `.data(l)`, `.error(l)`, `.variables(l)`. Call `.reset()` to clear state, `.destroy()` from `_onRemove`.
+- `createInfiniteQuery(client, options)` → `InfiniteQueryHandle` — like `createQuery` plus `.fetchNextPage()` / `.fetchPreviousPage()`, `.hasNextPage(l)`, `.hasPreviousPage(l)`, `.isFetchingNextPage(l)`, `.isFetchingPreviousPage(l)`.
+- `bindResult(initial, subscribe)` — low-level: wrap a TanStack observer result in `RecordState` for per-field reactivity; `subscribe` is `(cb: (result) => void) => () => void`; returns `{ state, field(key, l?), release() }`
 
 ## CDN Global
 
