@@ -1030,12 +1030,13 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
         "@media (max-width: 860px)": { padding: `${ts(6)} ${ts(5)} ${ts(16)}` },
       };
 
+  const asideEl = layout !== "page" ? resolveSlot(ctx, "aside", tocAside) : null;
+  const showAside = asideEl !== null && showSidebar;
   const shellChildren: DomphyElement[] = [
     ...(sidebarEl ? [sidebarEl] : []),
     { main, style: mainStyle },
   ];
-  const asideEl = layout !== "page" ? resolveSlot(ctx, "aside", tocAside) : null;
-  if (asideEl && showSidebar) shellChildren.push(asideEl);
+  if (showAside) shellChildren.push(asideEl!);
 
   const headerEl = resolveSlot(ctx, "header", header);
   const bar = announcementBar(ctx.config);
@@ -1068,7 +1069,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
         style: {
           display: "grid",
           gridTemplateColumns: showSidebar
-            ? `${sidebarW} minmax(0,1fr) ${asideW}`
+            ? showAside ? `${sidebarW} minmax(0,1fr) ${asideW}` : `${sidebarW} minmax(0,1fr)`
             : "1fr",
           alignItems: "start",
           maxWidth: "1440px",
