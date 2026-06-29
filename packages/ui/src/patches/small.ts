@@ -16,6 +16,11 @@ function small(
   const color = toState(props.color ?? "neutral", "color");
 
   return {
+    _onInsert: (node) => {
+      if (node.tagName !== "small") {
+        console.warn('"small" patch must use small tag');
+      }
+    },
     dataSize: "decrease-1",
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),

@@ -255,7 +255,7 @@ describe("fab", () => {
     // All three sizes must be distinct
     expect(new Set(cssValues).size).toBe(3);
     // And must be strictly ordered: small < medium < large
-    const nums = cssValues.map((v) => parseFloat(v));
+    const nums = cssValues.map((v) => parseFloat(v.match(/[\d.]+/)?.[0] ?? ""));
     expect(nums[0]).toBeLessThan(nums[1]);
     expect(nums[1]).toBeLessThan(nums[2]);
   });
