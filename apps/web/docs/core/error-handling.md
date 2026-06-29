@@ -40,7 +40,7 @@ const SafeWidget = {
       div: `Something went wrong: ${error.message}`,
       style: { color: "red" },
     }),
-    onError: (error, info) => console.error("Widget error:", error, info),
+    onError: (error) => console.error("Widget error:", error),
   })],
 }
 ```

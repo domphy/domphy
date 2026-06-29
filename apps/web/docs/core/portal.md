@@ -5,7 +5,7 @@
 ```ts
 {
   div: "Tooltip content",
-  _portal: () => document.body,
+  _portal: (root) => document.body,
 }
 ```
 
