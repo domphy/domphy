@@ -19,7 +19,7 @@ export interface SidebarItem {
 }
 
 export interface SocialLink {
-  /** Built-in names: "github" | "twitter" | "discord" | "youtube" | "linkedin" | "mastodon".
+  /** Built-in names: "github" | "twitter" | "discord" | "youtube" | "linkedin" | "mastodon" | "npm" | "bluesky".
    *  Or an absolute URL to a custom SVG/image. */
   icon: string;
   link: string;
