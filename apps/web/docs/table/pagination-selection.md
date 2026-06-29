@@ -34,22 +34,24 @@ initialState: { pagination: { pageIndex: 0, pageSize: 25 } },
 | `table.getCanNextPage()` / `table.getCanPreviousPage()` | Boundary checks for disabling buttons. |
 
 ```ts
+const dTable = createDomphyTable({ data: rows, columns, getPaginationRowModel: getPaginationRowModel() })
+
 const Pager: DomphyElement<"div"> = {
     div: (l) => {
-        tableVersion.get(l)
-        const { pageIndex } = table.getState().pagination
+        dTable.version(l)   // subscribe to table state changes
+        const { pageIndex } = dTable.state(l).pagination
         return [
             {
                 button: "Previous",
-                onclick: () => table.previousPage(),
-                disabled: !table.getCanPreviousPage(),
+                onClick: () => dTable.table.previousPage(),
+                disabled: !dTable.table.getCanPreviousPage(),
                 $: [button()],
             },
-            { span: `Page ${pageIndex + 1} of ${table.getPageCount()}` },
+            { span: `Page ${pageIndex + 1} of ${dTable.table.getPageCount()}` },
             {
                 button: "Next",
-                onclick: () => table.nextPage(),
-                disabled: !table.getCanNextPage(),
+                onClick: () => dTable.table.nextPage(),
+                disabled: !dTable.table.getCanNextPage(),
                 $: [button()],
             },
         ]

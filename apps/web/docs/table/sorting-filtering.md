@@ -25,7 +25,7 @@ thead: table.getHeaderGroups().map((headerGroup) => ({
             String(header.column.columnDef.header),
             { asc: " ▲", desc: " ▼", false: "" }[String(header.column.getIsSorted())],
         ],
-        onclick: () => header.column.toggleSorting(),
+        onClick: () => header.column.toggleSorting(),
         _key: header.id,
     })),
     _key: headerGroup.id,
@@ -50,7 +50,7 @@ table.resetSorting()
 Sorting state is an array, so multi-sort works out of the box — hold a modifier and pass `multi: true` (the default `getToggleSortingHandler()` reads `event.shiftKey` for you):
 
 ```ts
-onclick: (e: MouseEvent) => header.column.toggleSorting(undefined, e.shiftKey),
+onClick: (e: MouseEvent) => header.column.toggleSorting(undefined, e.shiftKey),
 ```
 
 Control it with the `enableMultiSort`, `maxMultiSortColCount`, and `isMultiSortEvent` table options.

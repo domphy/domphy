@@ -63,7 +63,7 @@ td: cell.column.id === "name"
     ? {
         div: [
             row.getCanExpand()
-                ? { button: row.getIsExpanded() ? "▼" : "▶", onclick: row.getToggleExpandedHandler(), $: [button()] }
+                ? { button: row.getIsExpanded() ? "▼" : "▶", onClick: row.getToggleExpandedHandler(), $: [button()] }
                 : null,
             String(cell.getValue()),
         ],

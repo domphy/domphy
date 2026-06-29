@@ -12163,7 +12163,7 @@ td: cell.column.id === "name"
     ? {
         div: [
             row.getCanExpand()
-                ? { button: row.getIsExpanded() ? "▼" : "▶", onclick: row.getToggleExpandedHandler(), $: [button()] }
+                ? { button: row.getIsExpanded() ? "▼" : "▶", onClick: row.getToggleExpandedHandler(), $: [button()] }
                 : null,
             String(cell.getValue()),
         ],
@@ -13627,22 +13627,24 @@ initialState: { pagination: { pageIndex: 0, pageSize: 25 } },
 | `table.getCanNextPage()` / `table.getCanPreviousPage()` | Boundary checks for disabling buttons. |
 
 ```ts
+const dTable = createDomphyTable({ data: rows, columns, getPaginationRowModel: getPaginationRowModel() })
+
 const Pager: DomphyElement<"div"> = {
     div: (l) => {
-        tableVersion.get(l)
-        const { pageIndex } = table.getState().pagination
+        dTable.version(l)   // subscribe to table state changes
+        const { pageIndex } = dTable.state(l).pagination
         return [
             {
                 button: "Previous",
-                onclick: () => table.previousPage(),
-                disabled: !table.getCanPreviousPage(),
+                onClick: () => dTable.table.previousPage(),
+                disabled: !dTable.table.getCanPreviousPage(),
                 $: [button()],
             },
-            { span: `Page ${pageIndex + 1} of ${table.getPageCount()}` },
+            { span: `Page ${pageIndex + 1} of ${dTable.table.getPageCount()}` },
             {
                 button: "Next",
-                onclick: () => table.nextPage(),
-                disabled: !table.getCanNextPage(),
+                onClick: () => dTable.table.nextPage(),
+                disabled: !dTable.table.getCanNextPage(),
                 $: [button()],
             },
         ]
@@ -13919,7 +13921,7 @@ thead: table.getHeaderGroups().map((headerGroup) => ({
             String(header.column.columnDef.header),
             { asc: " ▲", desc: " ▼", false: "" }[String(header.column.getIsSorted())],
         ],
-        onclick: () => header.column.toggleSorting(),
+        onClick: () => header.column.toggleSorting(),
         _key: header.id,
     })),
     _key: headerGroup.id,
@@ -13944,7 +13946,7 @@ table.resetSorting()
 Sorting state is an array, so multi-sort works out of the box — hold a modifier and pass `multi: true` (the default `getToggleSortingHandler()` reads `event.shiftKey` for you):
 
 ```ts
-onclick: (e: MouseEvent) => header.column.toggleSorting(undefined, e.shiftKey),
+onClick: (e: MouseEvent) => header.column.toggleSorting(undefined, e.shiftKey),
 ```
 
 Control it with the `enableMultiSort`, `maxMultiSortColCount`, and `isMultiSortEvent` table options.
