@@ -233,9 +233,14 @@ export class ElementNode {
   // its DOM element (and thus focus/scroll/selection/uncontrolled value) and its
   // children's identity. Used by list reconciliation to reuse a node by key
   // (keyed) or position (unkeyed) while reflecting new data, instead of
-  // destroying and recreating the DOM. Styles and lifecycle hooks are NOT
-  // re-applied (reused items share structure; hooks already ran). Reactive
-  // content (a function child) keeps its own listener and is left untouched.
+  // destroying and recreating the DOM. Flat style properties ARE reconciled (see
+  // styles.patchCSS below) — a reused node's newly-computed static style must
+  // reach the DOM, e.g. a factory function like `FilterButton(label, active,
+  // onClick)` called again with new args from a reactive parent. Nested selector
+  // blocks (&:hover, @media, …) are NOT reconciled — set once at construction,
+  // assumed stable across reuse. Lifecycle hooks are NOT re-run (reused items
+  // share structure; hooks already ran). Reactive content (a function child)
+  // keeps its own listener and is left untouched.
   patch(rawElement: DomphyElement): void {
     let element: any = deepClone(rawElement);
     element.style = element.style || {};
@@ -257,6 +262,8 @@ export class ElementNode {
 
     if (element._context) merge(this._context, element._context);
     if (element._metadata) merge(this._metadata, element._metadata);
+
+    this.styles.patchCSS(element.style || {}, `.${this.tagName}_${this.nodeId}`);
 
     // Rebuild attributes and events. Events are replaced (live dispatch in
     // _bindEvent reads this._events, so swapping the map is enough); attributes

@@ -90,6 +90,51 @@ export class StyleList {
     return this.items.map((rule) => rule.cssText()).join("");
   }
 
+  // Reconcile this node's own FLAT (non-selector, non-at-rule) style properties
+  // in place: update/add properties present in `obj`, remove properties that
+  // were present before and are gone now. Used by ElementNode.patch() when list
+  // reconciliation reuses a live node, so a freshly-computed static style object
+  // (e.g. from a factory function like `FilterButton(...)` called again with new
+  // args) actually reaches the DOM instead of being silently dropped — `addCSS`
+  // itself is append-only and would duplicate CSSOM rules if called again.
+  //
+  // Nested selector blocks (&:hover, @media/@supports/@container/@layer,
+  // @keyframes, @font-face) are NOT reconciled here — they are set once at
+  // construction and assumed stable across reuse. A value that must change
+  // after construction under a nested selector needs its own reactive function
+  // (`color: (l) => …`), same as it already did before this method existed.
+  patchCSS(obj: Record<string, any>, parentSelector: string = ""): void {
+    if (!this.items || !this.parent) return;
+
+    const basic: Record<string, any> = {};
+    for (const key in obj) {
+      const value = obj[key];
+      if (typeof value === "object" && value != null) continue; // nested/@rule block
+      basic[key] = value;
+    }
+
+    let rule = this.items.find((r) => r.selectorText === parentSelector);
+    if (!rule) {
+      rule = new StyleRule(parentSelector, this.parent);
+      this.items.push(rule);
+    }
+
+    const seen = new Set(Object.keys(basic));
+    for (const key in basic) rule.insertStyle(key, basic[key]);
+
+    if (rule.styleBlock) {
+      for (const existingKey of Object.keys(rule.styleBlock)) {
+        if (!seen.has(existingKey)) rule.removeStyle(existingKey);
+      }
+    }
+
+    // A brand-new rule has no live CSSOM binding yet — insert it now if this
+    // node is already mounted (addCSS's construction-time path relies on a
+    // single later styles.render() call that already ran for a reused node).
+    const sheet = this.domStyle?.sheet;
+    if (!rule.domRule && sheet) rule.render(sheet);
+  }
+
   insertRule(selector: string): StyleRule {
     if (!this.items || !this.parent) return null as any;
     let rule = this.items.find((rule) => rule.selectorText === selector);

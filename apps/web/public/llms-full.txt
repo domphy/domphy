@@ -692,7 +692,9 @@ node.patch({ div: "updated content", class: "active" })
 |---|---|---|
 | `rawElement` | `DomphyElement` | New element descriptor to apply |
 
-Unlike `merge()` which deep-merges, `patch()` replaces the full descriptor. Used internally by `SSR` hydration and explicit update flows.
+Unlike `merge()` which deep-merges, `patch()` replaces the full descriptor. Used internally by list reconciliation (a reactive list/content function reusing a node by key or position) and explicit update flows.
+
+`patch()` reconciles the node's own **flat** style properties (e.g. `color`, `padding`) — properties present before but absent from the new descriptor are removed, matching how attributes are reconciled. **Nested selector blocks are not reconciled** (`&:hover`, `@media`, `@keyframes`, `@font-face`): they are set once at construction and assumed stable across reuse. A value that must change after construction under a nested selector needs its own reactive function (`color: (l) => …`) rather than a plain value recomputed by the caller.
 
 ### `merge(partial)`
 
@@ -40451,7 +40453,8 @@ export { mark };
 
 ```ts
 import {
-  merge,
+  type DomphyElement,
+  type Listener,
   type PartialElement,
   toState,
   type ValueOrState,
@@ -40464,171 +40467,148 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/** One item inside a menu. */
+type MenuItem = {
+  /** Button label — plain string (auto-wrapped) or any DomphyElement (e.g. icon + text). */
+  label: string | DomphyElement;
+  /** Stable key. Defaults to the item's zero-based index. */
+  key?: string | number;
+  /** Called when the item is clicked. */
+  onClick?: () => void;
+};
+
 /**
- * Themed menu container that provides selection context (`activeKey`,
- * `selectable`) to child `menuItem` patches and lays them out vertically.
- * Sets `role="menu"`. Typically applied to a container element such as a
- * `<div>` or `<ul>`.
+ * All-in-one vertical menu. Generates `<button>` `[role=menuitem]` elements
+ * from the `items` array with keyboard navigation (Arrow/Home/End/Enter/Space).
+ * Apply to any wrapper element (`div`, `ul`, …).
  *
- * @param props - Optional configuration.
- * @param props.activeKey - Currently selected item key, accepts a value or `State`. Defaults to `null`.
+ * @param props.items - Item definitions `{ label, key?, onClick? }`.
+ * @param props.activeKey - Currently selected key (value or State). Defaults to `null`.
  * @param props.selectable - Whether items track and update the active selection. Defaults to `true`.
  * @param props.color - Background color tone for the menu. Defaults to `"neutral"`.
- * @example { div: "", $: [menu({ activeKey: 0 })] }
+ * @param props.accentColor - Accent color for the active/focus item. Defaults to `"primary"`.
+ * @example
+ * { div: null, $: [menu({ items: [
+ *   { label: "Profile",  key: "profile",  onClick: () => navigate("/profile")  },
+ *   { label: "Settings", key: "settings", onClick: () => navigate("/settings") },
+ * ] })] }
  */
 function menu(
   props: {
-    activeKey?: ValueOrState<number | string>;
+    items: MenuItem[];
+    activeKey?: ValueOrState<number | string | null>;
     selectable?: boolean;
     color?: ThemeColor;
-  } = {},
+    accentColor?: ThemeColor;
+  } = { items: [] },
 ): PartialElement {
-  const { color = "neutral", selectable = true } = props;
+  const {
+    items = [],
+    selectable = true,
+    color = "neutral",
+    accentColor = "primary",
+  } = props;
+  const activeKey = toState(props.activeKey ?? null);
 
-  const partial: PartialElement = {
+  return {
     role: "menu",
     dataTone: "shift-17",
-    _onSchedule: (_node, element) => {
-      const partial = {
-        _context: {
-          menu: {
-            activeKey: toState(props.activeKey ?? null),
-            selectable,
+    // Expose activeKey + selectable in context so menuItem() escape-hatch still works.
+    _context: { menu: { activeKey, selectable } },
+    _onSchedule: (node, element) => {
+      const id = node.nodeId;
+
+      const buttons: DomphyElement<"button">[] = items.map((item, index) => {
+        const key = item.key ?? index;
+
+        return {
+          button:
+            typeof item.label === "string"
+              ? [{ span: item.label } as DomphyElement<"span">]
+              : [item.label],
+          _key: key,
+          id: `menuitem${id}${key}`,
+          role: "menuitem",
+          ...(selectable
+            ? {
+                ariaCurrent: (l: Listener) =>
+                  activeKey.get(l) === key || undefined,
+              }
+            : {}),
+          onClick: () => {
+            if (selectable) activeKey.set(key);
+            item.onClick?.();
           },
-        },
-      };
-      merge(element, partial);
+          onKeyDown: (e: Event) => {
+            const k = (e as KeyboardEvent).key;
+            if (k === "Enter" || k === " ") {
+              e.preventDefault();
+              (e.target as HTMLElement).click();
+              return;
+            }
+            if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
+            e.preventDefault();
+            const keys = items.map((it, i) => it.key ?? i);
+            const idx = keys.findIndex((ki) => ki === key);
+            let next = idx;
+            if (k === "ArrowDown") next = (idx + 1) % keys.length;
+            else if (k === "ArrowUp")
+              next = (idx - 1 + keys.length) % keys.length;
+            else if (k === "Home") next = 0;
+            else if (k === "End") next = keys.length - 1;
+            (
+              document.getElementById(
+                `menuitem${id}${keys[next]}`,
+              ) as HTMLElement
+            )?.focus();
+          },
+          style: {
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: themeSpacing(2),
+            width: "100%",
+            fontSize: (l: Listener) => themeSize(l, "inherit"),
+            height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
+            paddingInline: (l: Listener) =>
+              themeSpacing(themeDensity(l) * 3),
+            border: "none",
+            outline: "none",
+            color: (l: Listener) => themeColor(l, "shift-9", color),
+            backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
+            "&:hover:not([disabled]):not([aria-current=true])": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-2", color),
+            },
+            "&[aria-current=true]": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-3", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-10"),
+            },
+            "&:focus-visible": {
+              outline: (l: Listener) =>
+                `${themeSpacing(0.5)} solid ${themeColor(l, "shift-6", accentColor)}`,
+              outlineOffset: `-${themeSpacing(0.5)}`,
+            },
+          },
+        } as DomphyElement<"button">;
+      });
+
+      (element as any)[node.tagName] = buttons;
     },
     style: {
       display: "flex",
       flexDirection: "column",
-      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
-      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
-      fontSize: (listener) => themeSize(listener, "inherit"),
-      backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      fontSize: (l: Listener) => themeSize(l, "inherit"),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
     },
   };
-  return partial;
 }
 
 export { menu };
-```
-
-### menuItem
-
-```ts
-import type { ElementNode, PartialElement } from "@domphy/core";
-import {
-  type ThemeColor,
-  themeColor,
-  themeDensity,
-  themeSize,
-  themeSpacing,
-} from "@domphy/theme";
-
-/**
- * Themed menu entry for use inside a `menu`. Sets `role="menuitem"`, wires
- * click/keyboard selection (Enter/Space activate; Arrow/Home/End move focus),
- * and reflects the active item via `aria-current`. Apply to a `<button>`
- * element placed within a `menu`.
- *
- * @hostTag button
- * @param props - Optional configuration.
- * @param props.accentColor - Accent color tone for the active/focus indicator. Defaults to `"primary"`.
- * @param props.color - Base color tone for the item. Defaults to `"neutral"`.
- * @example { button: "Profile", $: [menuItem()] }
- */
-function menuItem(
-  props: { accentColor?: ThemeColor; color?: ThemeColor } = {},
-): PartialElement {
-  const { accentColor = "primary", color = "neutral" } = props;
-
-  const partial: PartialElement = {
-    role: "menuitem",
-    _onInsert: (node) => {
-      if (node.tagName !== "button") {
-        console.warn(`"menuItem" patch must use button tag`);
-      }
-
-      const context = node.getContext("menu");
-      if (!context) {
-        console.warn(`"menuItem" patch requires a parent with $: [menu()] — no menu context found`);
-        return;
-      }
-      let children = (node.parent?.children.items ?? []) as ElementNode[];
-      children = children.filter(
-        (n) =>
-          n.type === "ElementNode" && n.attributes.get("role") === "menuitem",
-      );
-      // Strict key check: an explicit _key of 0 or "" must not fall back to index.
-      const key =
-        node.key !== null && node.key !== undefined
-          ? node.key
-          : children.indexOf(node);
-      if (context.selectable) {
-        node.attributes.set(
-          "ariaCurrent",
-          (listener) => context.activeKey.get(listener) === key || undefined,
-        );
-        node.addEvent("click", () => context.activeKey.set(key));
-      }
-    },
-    onKeyDown: (e: KeyboardEvent, node) => {
-      const k = (e as KeyboardEvent).key;
-      if (k === "Enter" || k === " ") {
-        e.preventDefault();
-        (node.domElement as HTMLElement)?.click();
-        return;
-      }
-      if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
-      e.preventDefault();
-      const items = (node.parent?.children.items ?? []).filter(
-        (n) =>
-          n.type === "ElementNode" &&
-          (n as ElementNode).attributes.get("role") === "menuitem",
-      ) as ElementNode[];
-      if (!items.length) return;
-      const idx = items.indexOf(node);
-      let next = idx;
-      if (k === "ArrowDown") next = (idx + 1) % items.length;
-      else if (k === "ArrowUp") next = (idx - 1 + items.length) % items.length;
-      else if (k === "Home") next = 0;
-      else if (k === "End") next = items.length - 1;
-      (items[next].domElement as HTMLElement)?.focus();
-    },
-    style: {
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      gap: (_listener) => themeSpacing(2),
-      width: "100%",
-      fontSize: (listener) => themeSize(listener, "inherit"),
-      height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
-      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
-      border: "none",
-      outline: "none",
-      color: (listener) => themeColor(listener, "shift-9", color),
-      backgroundColor: (listener) => themeColor(listener, "inherit", color),
-      "&:hover:not([disabled]):not([aria-current=true])": {
-        backgroundColor: (listener) => themeColor(listener, "shift-2", color),
-      },
-      // Menu uses the current/indicator band instead of the selected fill band.
-      "&[aria-current=true]": {
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", accentColor),
-        color: (listener) => themeColor(listener, "shift-10"),
-      },
-      "&:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
-        outlineOffset: `-${themeSpacing(0.5)}`,
-      },
-    },
-  };
-  return partial;
-}
-
-export { menuItem };
+export type { MenuItem };
 ```
 
 ### motion
@@ -41638,45 +41618,9 @@ export { scrollArea };
 ### segmented
 
 ```ts
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
-
-/**
- * Container patch that establishes a `segmented` context for single-select navigation.
- * Style: inline pill-shaped control with muted background. Use with `segmentedItem` patches on child `<button>` elements.
- *
- * @param props.value - Initially selected item key. Accepts a value or state. Defaults to `""`.
- * @param props.color - Theme color for the control background. Defaults to `"neutral"`.
- * @example { div: null, $: [segmented({ value: "month" })] }
- */
-function segmented(
-  props: { value?: ValueOrState<string>; color?: ThemeColor } = {},
-): PartialElement {
-  const { color = "neutral" } = props;
-  return {
-    role: "radiogroup",
-    _context: {
-      segmented: { value: toState(props.value ?? "") },
-    },
-    style: {
-      display: "inline-flex",
-      paddingBlock: themeSpacing(1),
-      paddingInline: themeSpacing(1),
-      gap: themeSpacing(0.5),
-      borderRadius: themeSpacing(10),
-      backgroundColor: (listener) => themeColor(listener, "shift-2", color),
-    },
-  };
-}
-
-export { segmented };
-```
-
-### segmentedItem
-
-```ts
 import {
-  type ElementNode,
+  type DomphyElement,
+  type Listener,
   type PartialElement,
   toState,
   type ValueOrState,
@@ -41688,89 +41632,105 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
+/** One item inside a segmented control. */
+type SegmentedItem = {
+  /** Button label — plain string (auto-wrapped) or any DomphyElement. */
+  label: string | DomphyElement;
+  /** Stable key. Defaults to the item's zero-based index as a string. */
+  key?: string;
+};
+
 /**
- * Styles and wires a single option inside a `segmented` control on the host `<button>`.
- * Sets `aria-checked` and handles click-to-select against the parent `segmented` context.
+ * All-in-one single-select segmented control. Generates `<button>` option
+ * elements from the `items` array. Apply to any wrapper element.
  *
- * @hostTag button
- * @param props.color - Theme color for resting state. Defaults to `"neutral"`.
- * @param props.accentColor - Theme color for selected state. Defaults to `"primary"`.
- * @example { button: "Month", $: [segmentedItem()] }
+ * @param props.items - Item definitions `{ label, key? }`.
+ * @param props.value - Initially selected key (value or State). Defaults to the first item's key.
+ * @param props.color - Theme color for the control background. Defaults to `"neutral"`.
+ * @param props.accentColor - Theme color for the selected item. Defaults to `"primary"`.
+ * @example
+ * { div: null, $: [segmented({ items: [
+ *   { label: "Day",   key: "day"   },
+ *   { label: "Month", key: "month" },
+ *   { label: "Year",  key: "year"  },
+ * ] })] }
  */
-function segmentedItem(
+function segmented(
   props: {
-    color?: ValueOrState<ThemeColor>;
-    accentColor?: ValueOrState<ThemeColor>;
-  } = {},
+    items: SegmentedItem[];
+    value?: ValueOrState<string>;
+    color?: ThemeColor;
+    accentColor?: ThemeColor;
+  } = { items: [] },
 ): PartialElement {
-  const color = toState(props.color ?? "neutral", "color");
-  const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+  const { items = [], color = "neutral", accentColor = "primary" } = props;
+  const value = toState(props.value ?? (items[0]?.key ?? ""));
+
   return {
-    role: "radio",
-    _onInsert: (node) => {
-      if (node.tagName !== "button") {
-        console.warn(`"segmentedItem" patch must use button tag`);
-      }
-      const ctx = node.getContext("segmented");
-      if (!ctx) {
-        console.warn(`"segmentedItem" patch must be used inside a "segmented"`);
-        return;
-      }
-      const siblings = (node.parent?.children.items ?? []) as ElementNode[];
-      const items = siblings.filter(
-        (sibling) =>
-          sibling.type === "ElementNode" &&
-          sibling.attributes.get("role") === "radio",
-      );
-      // node.key is null (not undefined) when absent — check both so an
-      // explicit _key of 0 or "" keeps its real key instead of "null"/index.
-      const key =
-        node.key !== null && node.key !== undefined
-          ? String(node.key)
-          : String(items.indexOf(node));
+    role: "radiogroup",
+    // Expose value in context so segmentedItem() escape-hatch still works.
+    _context: { segmented: { value } },
+    _onSchedule: (node, element) => {
+      const buttons: DomphyElement<"button">[] = items.map((item, index) => {
+        const key = item.key ?? String(index);
+        const labelEl: DomphyElement =
+          typeof item.label === "string"
+            ? ({ span: item.label } as DomphyElement<"span">)
+            : item.label;
 
-      node.attributes.set(
-        "ariaChecked",
-        (listener) => ctx.value.get(listener) === key,
-      );
+        return {
+          button: [labelEl],
+          _key: key,
+          role: "radio",
+          ariaChecked: (l: Listener) => value.get(l) === key,
+          onClick: () => value.set(key),
+          style: {
+            cursor: "pointer",
+            fontSize: (l: Listener) => themeSize(l, "inherit"),
+            height: themeSpacing(6),
+            paddingBlock: themeSpacing(1),
+            paddingInline: themeSpacing(3),
+            border: "none",
+            borderRadius: themeSpacing(10),
+            color: (l: Listener) => themeColor(l, "shift-9", color),
+            backgroundColor: "transparent",
+            transition: "background-color 300ms ease",
+            "&:hover:not([disabled]):not([aria-checked=true])": {
+              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
+            },
+            "&[aria-checked=true]": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-0", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-10", accentColor),
+            },
+            "&:focus-visible": {
+              outline: (l: Listener) =>
+                `${themeSpacing(0.5)} solid ${themeColor(l, "shift-6", accentColor)}`,
+              outlineOffset: `-${themeSpacing(0.5)}`,
+            },
+            "&[disabled]": {
+              opacity: 0.7,
+              cursor: "not-allowed",
+            },
+          },
+        } as DomphyElement<"button">;
+      });
 
-      node.addEvent("click", () => ctx.value.set(key));
+      (element as any)[node.tagName] = buttons;
     },
     style: {
-      cursor: "pointer",
-      fontSize: (listener) => themeSize(listener, "inherit"),
-      height: themeSpacing(6),
+      display: "inline-flex",
       paddingBlock: themeSpacing(1),
-      paddingInline: themeSpacing(3),
-      border: "none",
+      paddingInline: themeSpacing(1),
+      gap: themeSpacing(0.5),
       borderRadius: themeSpacing(10),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
-      backgroundColor: "transparent",
-      transition: "background-color 300ms ease",
-      "&:hover:not([disabled]):not([aria-checked=true])": {
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", color.get(listener)),
-      },
-      "&[aria-checked=true]": {
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-0", accentColor.get(listener)),
-        color: (listener) =>
-          themeColor(listener, "shift-10", accentColor.get(listener)),
-      },
-      "&:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
-        outlineOffset: `-${themeSpacing(0.5)}`,
-      },
-      "&[disabled]": {
-        opacity: 0.7,
-        cursor: "not-allowed",
-      },
+      backgroundColor: (l: Listener) => themeColor(l, "shift-2", color),
     },
   };
 }
 
-export { segmentedItem };
+export { segmented };
+export type { SegmentedItem };
 ```
 
 ### select
@@ -42253,6 +42213,11 @@ function small(
   const color = toState(props.color ?? "neutral", "color");
 
   return {
+    _onInsert: (node) => {
+      if (node.tagName !== "small") {
+        console.warn('"small" patch must use small tag');
+      }
+    },
     dataSize: "decrease-1",
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
@@ -42534,195 +42499,157 @@ function splitterHandle(): PartialElement {
 export { splitter, splitterPanel, splitterHandle };
 ```
 
-### stepItem
-
-```ts
-import type { ElementNode, PartialElement, State } from "@domphy/core";
-import {
-  type ThemeColor,
-  themeColor,
-  themeSize,
-  themeSpacing,
-} from "@domphy/theme";
-
-/**
- * Styles a single step inside a `steps` container. Sets `data-status`
- * (`"pending"` | `"active"` | `"done"`) and `aria-current="step"` on the host element
- * based on the parent `steps` context. The element's content is the step label.
- *
- * @example { li: "Shipping", $: [stepItem()] }
- */
-function stepItem(): PartialElement {
-  // Mutable slots populated from context in _onInsert; defaults match steps defaults.
-  let color: ThemeColor = "neutral";
-  let accentColor: ThemeColor = "primary";
-
-  return {
-    _onInsert: (node) => {
-      const context = node.getContext("steps") as
-        | {
-            current: State<number>;
-            direction: "horizontal" | "vertical";
-            color: ThemeColor;
-            accentColor: ThemeColor;
-          }
-        | undefined;
-
-      if (!context) {
-        console.warn(`"stepItem" patch must be used inside a "steps"`);
-        return;
-      }
-
-      // Read color values from context so steps() props take effect.
-      color = context.color;
-      accentColor = context.accentColor;
-
-      const siblings = (node.parent?.children.items ?? []) as ElementNode[];
-      const items = siblings.filter((n) => n.type === "ElementNode");
-      const index = items.indexOf(node);
-
-      if (node.domElement) node.domElement.dataset.step = String(index + 1);
-
-      node.attributes.set("dataStatus", (listener) => {
-        const current = context.current.get(listener);
-        if (index < current) return "done";
-        if (index === current) return "active";
-        return "pending";
-      });
-
-      node.attributes.set("ariaCurrent", (listener) => {
-        return context.current.get(listener) === index ? "step" : undefined;
-      });
-    },
-    style: {
-      position: "relative",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: themeSpacing(1),
-      flex: "1",
-      fontSize: (listener) => themeSize(listener, "decrease-1"),
-      textAlign: "center",
-      // Circle indicator via ::before using data-step content
-      "&::before": {
-        content: "attr(data-step)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: themeSpacing(6),
-        height: themeSpacing(6),
-        borderRadius: themeSpacing(999),
-        fontSize: (listener) => themeSize(listener, "decrease-1"),
-        fontWeight: "600",
-        flexShrink: "0",
-        border: (listener) =>
-          `2px solid ${themeColor(listener, "shift-4", color)}`,
-        backgroundColor: (listener) => themeColor(listener, "inherit"),
-        color: (listener) => themeColor(listener, "shift-8"),
-        transition:
-          "background-color 200ms ease, color 200ms ease, border-color 200ms ease",
-        zIndex: "1",
-      },
-      // Connector line to the previous sibling — shown on non-first items
-      "&:not(:first-child)::after": {
-        content: '""',
-        position: "absolute",
-        top: themeSpacing(3),
-        right: `calc(50% + ${themeSpacing(3)})`,
-        left: `calc(-50% + ${themeSpacing(3)})`,
-        height: "2px",
-        backgroundColor: (listener) => themeColor(listener, "shift-3", color),
-        zIndex: "0",
-      },
-      // Active step — accent colored filled circle
-      "&[data-status=active]::before": {
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-6", accentColor),
-        borderColor: (listener) => themeColor(listener, "shift-6", accentColor),
-        color: (listener) => themeColor(listener, "shift-15", accentColor),
-      },
-      // Done step — muted filled circle with checkmark
-      "&[data-status=done]::before": {
-        content: '"✓"',
-        backgroundColor: (listener) => themeColor(listener, "shift-3", color),
-        borderColor: (listener) => themeColor(listener, "shift-3", color),
-        color: (listener) => themeColor(listener, "shift-9", color),
-      },
-      // Done step connector — filled track
-      "&[data-status=done]:not(:first-child)::after": {
-        backgroundColor: (listener) => themeColor(listener, "shift-3", color),
-      },
-      // Active step connector — accent track up to the active item
-      "&[data-status=active]:not(:first-child)::after": {
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-6", accentColor),
-      },
-      // Pending text — muted
-      "&[data-status=pending]": {
-        color: (listener) => themeColor(listener, "shift-7"),
-      },
-      // Active text — default emphasis
-      "&[data-status=active]": {
-        color: (listener) => themeColor(listener, "shift-10"),
-        fontWeight: "600",
-      },
-      // Done text — secondary
-      "&[data-status=done]": {
-        color: (listener) => themeColor(listener, "shift-8"),
-      },
-    },
-  };
-}
-
-export { stepItem };
-```
-
 ### steps
 
 ```ts
 import {
-  merge,
+  type DomphyElement,
+  type Listener,
   type PartialElement,
   toState,
   type ValueOrState,
 } from "@domphy/core";
-import { type ThemeColor, themeSpacing } from "@domphy/theme";
+import { type ThemeColor, themeColor, themeSize, themeSpacing } from "@domphy/theme";
+
+/** One step entry. */
+type StepItem = {
+  /** Step label — plain string (auto-wrapped) or any DomphyElement. */
+  label: string | DomphyElement;
+  /** Stable key. Defaults to the item's zero-based index. */
+  key?: string | number;
+};
 
 /**
- * Container patch for a step-progress indicator. Establishes `steps` context
- * with a reactive `current` index. Use with `stepItem` patches on child elements.
+ * All-in-one step-progress indicator. Generates `<li>` step elements from the
+ * `items` array. Apply to an `<ol>` or `<ul>` element.
  *
- * @param props.current - Zero-based index of the active step. Accepts a value or state. Defaults to `0`.
+ * @param props.items - Step definitions `{ label, key? }`.
+ * @param props.current - Zero-based index of the active step (value or State). Defaults to `0`.
  * @param props.direction - `"horizontal"` (default) or `"vertical"` layout.
  * @param props.color - Theme color for pending/track elements. Defaults to `"neutral"`.
  * @param props.accentColor - Theme color for active/completed elements. Defaults to `"primary"`.
- * @example { ol: null, $: [steps({ current: 1 })] }
+ * @example
+ * { ol: null, $: [steps({ current: 1, items: [
+ *   { label: "Cart" },
+ *   { label: "Shipping" },
+ *   { label: "Payment" },
+ * ] })] }
  */
 function steps(
   props: {
+    items: StepItem[];
     current?: ValueOrState<number>;
     direction?: "horizontal" | "vertical";
     color?: ThemeColor;
     accentColor?: ThemeColor;
-  } = {},
+  } = { items: [] },
 ): PartialElement {
-  const direction = props.direction ?? "horizontal";
-  const color = props.color ?? "neutral";
-  const accentColor = props.accentColor ?? "primary";
+  const {
+    items = [],
+    direction = "horizontal",
+    color = "neutral",
+    accentColor = "primary",
+  } = props;
+  const current = toState(props.current ?? 0);
 
-  const partial: PartialElement = {
-    _onSchedule: (_node, element) => {
-      const contextPartial = {
-        _context: {
-          steps: {
-            current: toState(props.current ?? 0),
-            direction,
-            color,
-            accentColor,
+  return {
+    // Expose state in context so stepItem() escape-hatch still works.
+    _context: { steps: { current, direction, color, accentColor } },
+    _onSchedule: (node, element) => {
+      const stepEls: DomphyElement<"li">[] = items.map((item, index) => {
+        const labelEl: DomphyElement =
+          typeof item.label === "string"
+            ? ({ span: item.label } as DomphyElement<"span">)
+            : item.label;
+
+        return {
+          li: [labelEl],
+          _key: item.key ?? index,
+          dataStep: String(index + 1),
+          dataStatus: (l: Listener) => {
+            const cur = current.get(l);
+            if (index < cur) return "done";
+            if (index === cur) return "active";
+            return "pending";
           },
-        },
-      };
-      merge(element, contextPartial);
+          ariaCurrent: (l: Listener) =>
+            current.get(l) === index ? "step" : undefined,
+          style: {
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: themeSpacing(1),
+            flex: "1",
+            fontSize: (l: Listener) => themeSize(l, "decrease-1"),
+            textAlign: "center",
+            "&::before": {
+              content: "attr(data-step)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: themeSpacing(6),
+              height: themeSpacing(6),
+              borderRadius: themeSpacing(999),
+              fontSize: (l: Listener) => themeSize(l, "decrease-1"),
+              fontWeight: "600",
+              flexShrink: "0",
+              border: (l: Listener) =>
+                `2px solid ${themeColor(l, "shift-4", color)}`,
+              backgroundColor: (l: Listener) => themeColor(l, "inherit"),
+              color: (l: Listener) => themeColor(l, "shift-8"),
+              transition:
+                "background-color 200ms ease, color 200ms ease, border-color 200ms ease",
+              zIndex: "1",
+            },
+            "&:not(:first-child)::after": {
+              content: '""',
+              position: "absolute",
+              top: themeSpacing(3),
+              right: `calc(50% + ${themeSpacing(3)})`,
+              left: `calc(-50% + ${themeSpacing(3)})`,
+              height: "2px",
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-3", color),
+              zIndex: "0",
+            },
+            "&[data-status=active]::before": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-6", accentColor),
+              borderColor: (l: Listener) =>
+                themeColor(l, "shift-6", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-15", accentColor),
+            },
+            "&[data-status=done]::before": {
+              content: '"✓"',
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-3", color),
+              borderColor: (l: Listener) => themeColor(l, "shift-3", color),
+              color: (l: Listener) => themeColor(l, "shift-9", color),
+            },
+            "&[data-status=done]:not(:first-child)::after": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-3", color),
+            },
+            "&[data-status=active]:not(:first-child)::after": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-6", accentColor),
+            },
+            "&[data-status=pending]": {
+              color: (l: Listener) => themeColor(l, "shift-7"),
+            },
+            "&[data-status=active]": {
+              color: (l: Listener) => themeColor(l, "shift-10"),
+              fontWeight: "600",
+            },
+            "&[data-status=done]": {
+              color: (l: Listener) => themeColor(l, "shift-8"),
+            },
+          },
+        } as DomphyElement<"li">;
+      });
+
+      (element as any)[node.tagName] = stepEls;
     },
     style: {
       display: "flex",
@@ -42734,10 +42661,10 @@ function steps(
       padding: "0",
     },
   };
-  return partial;
 }
 
 export { steps };
+export type { StepItem };
 ```
 
 ### strong
@@ -42851,164 +42778,6 @@ function superscript(
 export { superscript };
 ```
 
-### tab
-
-```ts
-import type { ElementNode, PartialElement } from "@domphy/core";
-import {
-  type ThemeColor,
-  themeColor,
-  themeDensity,
-  themeSize,
-  themeSpacing,
-} from "@domphy/theme";
-
-/**
- * Styles a single tab trigger inside a `tabs` tablist on the host `<button>` element.
- * Wires up the tab's id/aria-controls/aria-selected, click selection, and
- * arrow/Home/End keyboard navigation via the surrounding `tabs` context.
- * Must be used inside a `tabs` patch.
- *
- * @hostTag button
- * @param props.accentColor - Theme color for the active/focus underline. Optional. Defaults to `"primary"`.
- * @param props.color - Theme color for the resting/hover underline and text. Optional. Defaults to `"neutral"`.
- * @example { button: "Tab 1", $: [tab()] }
- */
-function tab(
-  props: { accentColor?: ThemeColor; color?: ThemeColor } = {},
-): PartialElement {
-  const { accentColor = "primary", color = "neutral" } = props;
-  const partial: PartialElement = {
-    role: "tab",
-    _onInsert: (node) => {
-      if (node.tagName !== "button") {
-        console.warn(`"tab" patch must use button tag`);
-      }
-
-      const context = node.getContext("tabs");
-      if (!context) {
-        console.warn(`"tab" patch must be used inside a "tabs"`);
-        return;
-      }
-      let children = (node.parent?.children.items ?? []) as ElementNode[];
-      children = children.filter(
-        (n) => n.type === "ElementNode" && n.attributes.get("role") === "tab",
-      );
-      const key =
-        node.key !== null && node.key !== undefined
-          ? node.key
-          : children.indexOf(node);
-
-      const part: PartialElement = {
-        id: `tab${node.parent!.nodeId}${key}`,
-        ariaControls: `tabpanel${node.parent!.nodeId}${key}`,
-        ariaSelected: (listener) => context.activeKey.get(listener) === key,
-        onClick: () => context.activeKey.set(key),
-        onKeyDown: (e: Event) => {
-          const k = (e as KeyboardEvent).key;
-          if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(k)) return;
-          e.preventDefault();
-          const tabs = (node.parent?.children.items ?? []).filter(
-            (n) =>
-              n.type === "ElementNode" &&
-              (n as ElementNode).attributes.get("role") === "tab",
-          ) as ElementNode[];
-          if (!tabs.length) return;
-          const idx = tabs.indexOf(node);
-          let next = idx;
-          if (k === "ArrowRight") next = (idx + 1) % tabs.length;
-          else if (k === "ArrowLeft")
-            next = (idx - 1 + tabs.length) % tabs.length;
-          else if (k === "Home") next = 0;
-          else if (k === "End") next = tabs.length - 1;
-          const target = tabs[next];
-          context.activeKey.set(target.key ?? next);
-          (target.domElement as HTMLElement)?.focus();
-        },
-      };
-      node.merge(part);
-    },
-    style: {
-      cursor: "pointer",
-      fontSize: (listener) => themeSize(listener, "inherit"),
-      height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
-      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
-      border: "none",
-      outline: "none",
-      color: (listener) => themeColor(listener, "shift-9"),
-      backgroundColor: (listener) => themeColor(listener, "inherit"),
-      boxShadow: (listener) =>
-        `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(listener, "shift-1", color)}`,
-      "&:hover:not([disabled])": {
-        boxShadow: (listener) =>
-          `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(listener, "shift-2", color)}`,
-      },
-      "&[aria-selected=true]:not([disabled])": {
-        boxShadow: (listener) =>
-          `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(listener, "shift-6", accentColor)}`,
-      },
-      "&:focus-visible": {
-        boxShadow: (listener) =>
-          `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(listener, "shift-6", accentColor)}`,
-      },
-    },
-  };
-  return partial;
-}
-
-export { tab };
-```
-
-### tabPanel
-
-```ts
-import type { ElementNode, PartialElement } from "@domphy/core";
-import { themeDensity, themeSpacing } from "@domphy/theme";
-
-/**
- * Styles a tab panel inside a `tabs` tablist. Wires up the panel's
- * id/aria-labelledby and toggles `hidden` based on the surrounding `tabs`
- * context's active key. Must be used inside a `tabs` patch. Takes no props.
- *
- * @hostTag div
- * @example { div: "Panel content", $: [tabPanel()] }
- */
-function tabPanel(): PartialElement {
-  const partial: PartialElement = {
-    role: "tabpanel",
-    style: {
-      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
-      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
-    },
-    _onInsert: (node) => {
-      const context = node.getContext("tabs");
-      if (!context) {
-        console.warn(`"tabPanel" patch must be used inside a "tabs"`);
-        return;
-      }
-      let children = (node.parent?.children.items ?? []) as ElementNode[];
-      children = children.filter(
-        (n) =>
-          n.type === "ElementNode" && n.attributes.get("role") === "tabpanel",
-      );
-      const key =
-        node.key !== null && node.key !== undefined
-          ? node.key
-          : children.indexOf(node);
-      const part: PartialElement = {
-        id: `tabpanel${node.parent!.nodeId}${key}`,
-        ariaLabelledby: `tab${node.parent!.nodeId}${key}`,
-        hidden: (listener) => context.activeKey.get(listener) !== key,
-      };
-      node.merge(part);
-    },
-  };
-  return partial;
-}
-
-export { tabPanel };
-```
-
 ### table
 
 ```ts
@@ -43096,41 +42865,150 @@ export { table };
 
 ```ts
 import {
-  merge,
+  type DomphyElement,
+  type Listener,
   type PartialElement,
   toState,
   type ValueOrState,
 } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
+
+/** One tab entry: a trigger label and its panel content. */
+type TabItem = {
+  /** Tab button label — a plain string (auto-wrapped in span) or any DomphyElement. */
+  label: string | DomphyElement;
+  /** Panel content rendered when this tab is active. */
+  content: DomphyElement;
+  /** Stable identity key. Defaults to the item's zero-based index. */
+  key?: string | number;
+};
 
 /**
- * Container patch that establishes a `tabs` context (with a shared `activeKey`
- * state) and the `tablist` role for child `tab`/`tabPanel` patches. No host tag
- * check; typically applied to a wrapper element.
+ * All-in-one tabs patch. Generates a `[role=tablist]` button row and
+ * `[role=tabpanel]` panels from the `items` array. Apply to any wrapper
+ * element (`div`, `section`, …). No companion `tab()` / `tabPanel()` needed.
  *
- * @param props.activeKey - Initially active tab key. Optional, accepts a value or state of `number | string`. Defaults to `0`.
- * @example { div: null, $: [tabs({ activeKey: 0 })] }
+ * To control the active tab programmatically, pass an external `State` as
+ * `activeKey` and call `.set()` on it from outside.
+ *
+ * @param props.items - Tab definitions `{ label, content, key? }`.
+ * @param props.activeKey - Initially active key (value or State). Defaults to the first item's key.
+ * @param props.accentColor - Theme color for the active underline indicator. Defaults to `"primary"`.
+ * @param props.color - Theme color for the resting underline. Defaults to `"neutral"`.
+ * @example
+ * { div: null, $: [tabs({ items: [
+ *   { label: "Overview", content: { p: "Overview content" } },
+ *   { label: "API",      content: { p: "API content"      } },
+ * ] })] }
  */
 function tabs(
-  props: { activeKey?: ValueOrState<number | string> } = {},
+  props: {
+    items: TabItem[];
+    activeKey?: ValueOrState<string | number>;
+    accentColor?: ThemeColor;
+    color?: ThemeColor;
+  } = { items: [] },
 ): PartialElement {
-  const partial: PartialElement = {
-    role: "tablist",
-    ariaOrientation: "horizontal",
-    _onSchedule: (_node, element) => {
-      const partial = {
-        _context: {
-          tabs: {
-            activeKey: toState(props.activeKey ?? 0),
+  const { items = [], accentColor = "primary", color = "neutral" } = props;
+  const activeKey = toState(props.activeKey ?? (items[0]?.key ?? 0));
+
+  return {
+    _onSchedule: (node, element) => {
+      const id = node.nodeId;
+
+      const buttons: DomphyElement<"button">[] = items.map((item, index) => {
+        const key = item.key ?? index;
+        const labelEl: DomphyElement =
+          typeof item.label === "string"
+            ? ({ span: item.label } as DomphyElement<"span">)
+            : item.label;
+
+        return {
+          button: [labelEl],
+          _key: key,
+          role: "tab",
+          id: `tab${id}${key}`,
+          ariaControls: `panel${id}${key}`,
+          ariaSelected: (l: Listener) => activeKey.get(l) === key,
+          onClick: () => activeKey.set(key),
+          onKeyDown: (e: Event) => {
+            const k = (e as KeyboardEvent).key;
+            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(k)) return;
+            e.preventDefault();
+            const keys = items.map((it, i) => it.key ?? i);
+            const idx = keys.findIndex((ki) => ki === key);
+            let next = idx;
+            if (k === "ArrowRight") next = (idx + 1) % keys.length;
+            else if (k === "ArrowLeft")
+              next = (idx - 1 + keys.length) % keys.length;
+            else if (k === "Home") next = 0;
+            else if (k === "End") next = keys.length - 1;
+            activeKey.set(keys[next]);
           },
-        },
-      };
-      merge(element, partial);
+          style: {
+            cursor: "pointer",
+            fontSize: (l: Listener) => themeSize(l, "inherit"),
+            height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
+            paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
+            border: "none",
+            outline: "none",
+            color: (l: Listener) => themeColor(l, "shift-9"),
+            backgroundColor: (l: Listener) => themeColor(l, "inherit"),
+            boxShadow: (l: Listener) =>
+              `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-1", color)}`,
+            "&:hover:not([disabled])": {
+              boxShadow: (l: Listener) =>
+                `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-2", color)}`,
+            },
+            "&[aria-selected=true]:not([disabled])": {
+              boxShadow: (l: Listener) =>
+                `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
+            },
+            "&:focus-visible": {
+              boxShadow: (l: Listener) =>
+                `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
+            },
+          },
+        } as DomphyElement<"button">;
+      });
+
+      const tablist: DomphyElement<"div"> = {
+        div: buttons,
+        role: "tablist",
+        ariaOrientation: "horizontal",
+        style: { display: "flex" },
+      } as DomphyElement<"div">;
+
+      const panels: DomphyElement<"div">[] = items.map((item, index) => {
+        const key = item.key ?? index;
+        return {
+          div: [item.content],
+          _key: key,
+          role: "tabpanel",
+          id: `panel${id}${key}`,
+          ariaLabelledby: `tab${id}${key}`,
+          hidden: (l: Listener) => activeKey.get(l) !== key,
+          style: {
+            paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+            paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+          },
+        } as DomphyElement<"div">;
+      });
+
+      // Inject generated structure into the host element's children slot.
+      (element as any)[node.tagName] = [tablist, ...panels];
     },
   };
-  return partial;
 }
 
 export { tabs };
+export type { TabItem };
 ```
 
 ### tag
@@ -43548,11 +43426,12 @@ function toast(
 export { toast };
 ```
 
-### toggle
+### toggleGroup
 
 ```ts
 import {
-  type ElementNode,
+  type DomphyElement,
+  type Listener,
   type PartialElement,
   toState,
   type ValueOrState,
@@ -43564,141 +43443,108 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 
-/**
- * Styles a single toggle button inside a `toggleGroup` on the host `<button>`
- * element. Wires up `aria-pressed` and click-to-toggle against the surrounding
- * `toggleGroup` context (single- or multi-select). Must be used inside a
- * `toggleGroup` patch.
- *
- * @hostTag button
- * @param props.color - Theme color for the resting/hover background and text. Optional, accepts a value or state. Defaults to `"neutral"`.
- * @param props.accentColor - Theme color for the pressed/focus state. Optional, accepts a value or state. Defaults to `"primary"`.
- * @example { button: "Bold", $: [toggle()] }
- */
-function toggle(
-  props: {
-    color?: ValueOrState<ThemeColor>;
-    accentColor?: ValueOrState<ThemeColor>;
-  } = {},
-): PartialElement {
-  const color = toState(props.color ?? "neutral", "color");
-  const accentColor = toState(props.accentColor ?? "primary", "accentColor");
-  return {
-    role: "button",
-    _onInsert: (node) => {
-      if (node.tagName !== "button") {
-        console.warn(`"toggle" patch must use button tag`);
-      }
-      const ctx = node.getContext("toggleGroup");
-      if (!ctx) {
-        console.warn(`"toggle" patch must be used inside a "toggleGroup"`);
-        return;
-      }
-      const children = (node.parent?.children.items ?? []) as ElementNode[];
-
-      const items = children.filter(
-        (n) =>
-          n.type === "ElementNode" && n.attributes.get("role") === "button",
-      );
-      // node.key is null (not undefined) when absent — check both so an
-      // explicit _key of 0 or "" keeps its real key instead of "null"/index.
-      const key =
-        node.key !== null && node.key !== undefined
-          ? String(node.key)
-          : String(items.indexOf(node));
-
-      node.attributes.set("ariaPressed", (listener) => {
-        const val = ctx.value.get(listener);
-        return Array.isArray(val) ? val.includes(key) : val === key;
-      });
-
-      node.addEvent("click", () => {
-        const val = ctx.value.get();
-        if (ctx.multiple) {
-          const arr = Array.isArray(val) ? [...val] : [];
-          ctx.value.set(
-            arr.includes(key) ? arr.filter((v) => v !== key) : [...arr, key],
-          );
-        } else {
-          ctx.value.set(val === key ? "" : key);
-        }
-      });
-    },
-    style: {
-      cursor: "pointer",
-      fontSize: (listener) => themeSize(listener, "inherit"),
-      height: themeSpacing(6),
-      paddingBlock: themeSpacing(1),
-      paddingInline: themeSpacing(2),
-      border: "none",
-      borderRadius: themeSpacing(1),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
-      backgroundColor: (listener) =>
-        themeColor(listener, "inherit", color.get(listener)),
-      transition: "background-color 300ms ease",
-      "&:hover:not([disabled])": {
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-2", color.get(listener)),
-      },
-      "&[aria-pressed=true]": {
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", accentColor.get(listener)),
-        color: (listener) =>
-          themeColor(listener, "shift-12", accentColor.get(listener)),
-      },
-      "&:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
-        outlineOffset: `-${themeSpacing(0.5)}`,
-      },
-      "&[disabled]": {
-        opacity: 0.7,
-        cursor: "not-allowed",
-      },
-    },
-  };
-}
-
-export { toggle };
-```
-
-### toggleGroup
-
-```ts
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
-import {
-  type ThemeColor,
-  themeColor,
-  themeSize,
-  themeSpacing,
-} from "@domphy/theme";
+/** One item inside a toggle group. */
+type ToggleItem = {
+  /** Button label — plain string (auto-wrapped) or any DomphyElement. */
+  label: string | DomphyElement;
+  /** Stable key. Defaults to the item's zero-based index as a string. */
+  key?: string;
+};
 
 /**
- * Container patch that establishes a `toggleGroup` context (shared selection
- * `value` + `multiple` flag) and `group` role for child `toggle` patches, with
- * a bordered segmented-control style. No host tag check; typically applied to a
- * wrapper element.
+ * All-in-one toggle group — single or multi-select button group. Generates
+ * `<button>` toggle elements from the `items` array. Apply to any wrapper element.
  *
- * @param props.value - Selected toggle key(s). Optional, accepts a value or state of `string | string[]`. Defaults to `[]` when `multiple`, otherwise `""`.
- * @param props.multiple - When true, allows multiple toggles selected at once. Optional. Defaults to `false`.
- * @param props.color - Theme color for the group background/border. Optional. Defaults to `"neutral"`.
- * @example { div: null, $: [toggleGroup({ multiple: true })] }
+ * @param props.items - Item definitions `{ label, key? }`.
+ * @param props.value - Selected key(s) (value or State). Defaults to `[]` (multiple) or `""` (single).
+ * @param props.multiple - Allow multiple items selected at once. Defaults to `false`.
+ * @param props.color - Theme color for the group background/border. Defaults to `"neutral"`.
+ * @param props.accentColor - Theme color for the pressed state. Defaults to `"primary"`.
+ * @example
+ * { div: null, $: [toggleGroup({ multiple: true, items: [
+ *   { label: "Bold",   key: "bold"   },
+ *   { label: "Italic", key: "italic" },
+ * ] })] }
  */
 function toggleGroup(
   props: {
+    items: ToggleItem[];
     value?: ValueOrState<string | string[]>;
     multiple?: boolean;
     color?: ThemeColor;
-  } = {},
+    accentColor?: ThemeColor;
+  } = { items: [] },
 ): PartialElement {
-  const { multiple = false, color = "neutral" } = props;
+  const { items = [], multiple = false, color = "neutral", accentColor = "primary" } =
+    props;
+  const value = toState(props.value ?? (multiple ? [] : ""));
+
   return {
     role: "group",
-    _context: {
-      toggleGroup: {
-        value: toState(props.value ?? (multiple ? [] : "")),
-        multiple,
-      },
+    // Expose value + multiple in context so toggle() escape-hatch still works.
+    _context: { toggleGroup: { value, multiple } },
+    _onSchedule: (node, element) => {
+      const buttons: DomphyElement<"button">[] = items.map((item, index) => {
+        const key = item.key ?? String(index);
+        const labelEl: DomphyElement =
+          typeof item.label === "string"
+            ? ({ span: item.label } as DomphyElement<"span">)
+            : item.label;
+
+        return {
+          button: [labelEl],
+          _key: key,
+          role: "button",
+          ariaPressed: (l: Listener) => {
+            const val = value.get(l);
+            return Array.isArray(val) ? val.includes(key) : val === key;
+          },
+          onClick: () => {
+            const val = value.get();
+            if (multiple) {
+              const arr = Array.isArray(val) ? [...val] : [];
+              value.set(
+                arr.includes(key)
+                  ? arr.filter((v) => v !== key)
+                  : [...arr, key],
+              );
+            } else {
+              value.set(val === key ? "" : key);
+            }
+          },
+          style: {
+            cursor: "pointer",
+            fontSize: (l: Listener) => themeSize(l, "inherit"),
+            height: themeSpacing(6),
+            paddingBlock: themeSpacing(1),
+            paddingInline: themeSpacing(2),
+            border: "none",
+            borderRadius: themeSpacing(1),
+            color: (l: Listener) => themeColor(l, "shift-9", color),
+            backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
+            transition: "background-color 300ms ease",
+            "&:hover:not([disabled])": {
+              backgroundColor: (l: Listener) => themeColor(l, "shift-2", color),
+            },
+            "&[aria-pressed=true]": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-3", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-12", accentColor),
+            },
+            "&:focus-visible": {
+              outline: (l: Listener) =>
+                `${themeSpacing(0.5)} solid ${themeColor(l, "shift-6", accentColor)}`,
+              outlineOffset: `-${themeSpacing(0.5)}`,
+            },
+            "&[disabled]": {
+              opacity: 0.7,
+              cursor: "not-allowed",
+            },
+          },
+        } as DomphyElement<"button">;
+      });
+
+      (element as any)[node.tagName] = buttons;
     },
     style: {
       display: "flex",
@@ -43706,16 +43552,16 @@ function toggleGroup(
       paddingInline: themeSpacing(1),
       gap: themeSpacing(1),
       borderRadius: themeSpacing(2),
-      fontSize: (listener) => themeSize(listener, "inherit"),
-      backgroundColor: (listener) => themeColor(listener, "inherit", color),
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-3", color)}`,
+      fontSize: (l: Listener) => themeSize(l, "inherit"),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
+      outline: (l: Listener) => `1px solid ${themeColor(l, "shift-3", color)}`,
       outlineOffset: "-1px",
     },
   };
 }
 
 export { toggleGroup };
+export type { ToggleItem };
 ```
 
 ### toolbar

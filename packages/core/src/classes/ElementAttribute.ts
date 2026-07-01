@@ -120,9 +120,14 @@ export class ElementAttribute {
     const { name, value } = this;
     if (this.isBoolean) {
       return value ? `${name}` : "";
-    } else {
-      const val = Array.isArray(value) ? JSON.stringify(value) : value;
-      return `${name}="${escapeHTML(String(val))}"`;
     }
+    // Match render()'s live-DOM behavior (removeAttribute on null/undefined):
+    // an attribute whose reactive value resolves to null/undefined is OMITTED,
+    // not stringified as the literal text "null"/"undefined" — that literal
+    // text is a real value to a screen reader (e.g. any non-token
+    // aria-current is read as "true"), so it must never be emitted.
+    if (value == null) return "";
+    const val = Array.isArray(value) ? JSON.stringify(value) : value;
+    return `${name}="${escapeHTML(String(val))}"`;
   }
 }

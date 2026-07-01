@@ -77,7 +77,9 @@ node.patch({ div: "updated content", class: "active" })
 |---|---|---|
 | `rawElement` | `DomphyElement` | New element descriptor to apply |
 
-Unlike `merge()` which deep-merges, `patch()` replaces the full descriptor. Used internally by `SSR` hydration and explicit update flows.
+Unlike `merge()` which deep-merges, `patch()` replaces the full descriptor. Used internally by list reconciliation (a reactive list/content function reusing a node by key or position) and explicit update flows.
+
+`patch()` reconciles the node's own **flat** style properties (e.g. `color`, `padding`) — properties present before but absent from the new descriptor are removed, matching how attributes are reconciled. **Nested selector blocks are not reconciled** (`&:hover`, `@media`, `@keyframes`, `@font-face`): they are set once at construction and assumed stable across reuse. A value that must change after construction under a nested selector needs its own reactive function (`color: (l) => …`) rather than a plain value recomputed by the caller.
 
 ### `merge(partial)`
 

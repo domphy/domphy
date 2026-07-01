@@ -8,6 +8,11 @@ export class StyleProperty {
   cssName: string;
   value: StyleValue = "";
   parentRule: StyleRule;
+  // Release handle for the reactive listener's state subscription, so a re-set
+  // (e.g. StyleList.patchCSS() replacing a reactive value on a reused node) can
+  // drop the old listener instead of leaking it on the long-lived State until
+  // node removal. Mirrors ElementAttribute's `_releases` pattern.
+  private _release: (() => void) | null = null;
 
   constructor(name: string, value: StyleValue, parentRule: StyleRule) {
     this.name = name;
@@ -32,11 +37,17 @@ export class StyleProperty {
     }
   }
   _dispose(): void {
+    this._release?.();
+    this._release = null;
     this.value = "";
     this.parentRule = null as any;
   }
 
   set(value: StyleValue): void {
+    // Drop any previous reactive subscription before (re)binding.
+    this._release?.();
+    this._release = null;
+
     if (typeof value === "function") {
       let listener = (() => {
         if (!this.parentRule || this.parentRule.parentNode?._disposed) return;
@@ -45,10 +56,7 @@ export class StyleProperty {
       }) as unknown as Listener;
 
       listener.onSubscribe = (release: () => void) => {
-        this.parentRule.parentNode?.addHook("BeforeRemove", () => {
-          release();
-          listener = null!;
-        });
+        this._release = release;
       };
 
       listener.elementNode = this.parentRule!.root!;

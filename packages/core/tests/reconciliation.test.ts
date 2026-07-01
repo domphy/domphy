@@ -27,6 +27,10 @@ function listenerCount(state: any): number {
 
 afterEach(() => {
   document.body.innerHTML = "";
+  // Drop the shared #domphy-style tag so a leftover CSSOM rule from a previous
+  // test cannot be found first by a later test whose (tag + style shape)
+  // happens to hash to the same nodeId/class token.
+  document.head.querySelectorAll("style").forEach((s) => s.remove());
   _resetKeylessWarnings();
   vi.restoreAllMocks();
 });
@@ -359,6 +363,122 @@ describe("reconciliation does not leak listeners across patches", () => {
     items.set([{ id: 1 }]);
     await flush();
     expect(listenerCount(color)).toBe(1); // not accumulating one per patch
+
+    node.remove();
+    expect(listenerCount(color)).toBe(0); // fully released on removal
+  });
+});
+
+// Regression for a real footgun found in production (parashape commits 09751d5
+// / 5648955): a reactive content function that returns a freshly-computed
+// element (e.g. a factory like `FilterButton(label, active, onClick)` called
+// again with new args) was reused by patch() — but patch() silently skipped
+// re-applying `style`, so the new style values never reached the DOM even
+// though the node's content/attributes updated correctly.
+describe("#N patch() reconciles flat style properties on a reused node", () => {
+  function ruleFor(el: Element): CSSStyleRule | undefined {
+    const styleEl =
+      document.head.querySelector<HTMLStyleElement>("#domphy-style")!;
+    const token = Array.from(el.classList).find((c) => /_[a-z0-9]+$/i.test(c));
+    return Array.from(styleEl.sheet?.cssRules ?? []).find(
+      (r) => (r as CSSStyleRule).selectorText === `.${token}`,
+    ) as CSSStyleRule | undefined;
+  }
+
+  function FilterButton(active: boolean): DomphyElement {
+    return {
+      button: "x",
+      style: {
+        color: active ? "green" : "red",
+        fontWeight: active ? "bold" : "normal",
+      },
+    } as DomphyElement;
+  }
+
+  it("updates style on an unkeyed positionally-reused node", async () => {
+    const active = toState(false, "unkeyedStyleActive");
+    const { host } = mountApp({
+      span: (l: any) => {
+        const isActive = active.get(l);
+        return [FilterButton(isActive)];
+      },
+    } as DomphyElement);
+
+    const button = host.querySelector("button")!;
+    expect(ruleFor(button)?.style.color).toBe("red");
+    expect(ruleFor(button)?.style.fontWeight).toBe("normal");
+
+    active.set(true);
+    await flush();
+
+    expect(host.querySelector("button")).toBe(button); // same node reused
+    expect(ruleFor(button)?.style.color).toBe("green"); // style actually patched
+    expect(ruleFor(button)?.style.fontWeight).toBe("bold");
+  });
+
+  it("updates style on a keyed-reused node", async () => {
+    const items = toState([{ id: 1, active: false }], "keyedStyleItems");
+    const { host } = mountApp({
+      div: (l: any) =>
+        items.get(l).map((it: any) => ({
+          ...FilterButton(it.active),
+          _key: it.id,
+        })),
+    } as DomphyElement);
+
+    const button = host.querySelector("button")!;
+    expect(ruleFor(button)?.style.color).toBe("red");
+
+    items.set([{ id: 1, active: true }]);
+    await flush();
+
+    expect(host.querySelector("button")).toBe(button);
+    expect(ruleFor(button)?.style.color).toBe("green");
+  });
+
+  it("removes a style property that is no longer present on the new element", async () => {
+    const items = toState([{ id: 1, big: true }], "removedStyleItems");
+    const { host } = mountApp({
+      div: (l: any) =>
+        items.get(l).map((it: any) => ({
+          span: "x",
+          _key: it.id,
+          style: it.big ? { fontSize: "20px" } : {},
+        })),
+    } as DomphyElement);
+
+    const span = host.querySelector("span")!;
+    expect(ruleFor(span)?.style.fontSize).toBe("20px");
+
+    items.set([{ id: 1, big: false }]);
+    await flush();
+
+    expect(ruleFor(span)?.style.fontSize).toBeFalsy(); // property cleared, not stale
+  });
+
+  it("does not leak style listeners across repeated patches", async () => {
+    const color = toState("red", "styleLeakColor");
+    const items = toState([{ id: 1 }], "styleLeakItems");
+    const { host, node } = mountApp({
+      div: (l: any) =>
+        items.get(l).map((it: any) => ({
+          span: "x",
+          _key: it.id,
+          style: { color: (l2: any) => color.get(l2) },
+        })),
+    } as DomphyElement);
+
+    expect(listenerCount(color)).toBe(1);
+
+    items.set([{ id: 1 }]); // patch same key several times
+    await flush();
+    items.set([{ id: 1 }]);
+    await flush();
+    expect(listenerCount(color)).toBe(1); // not accumulating one per patch
+
+    color.set("blue");
+    await flush();
+    expect(ruleFor(host.querySelector("span")!)?.style.color).toBe("blue");
 
     node.remove();
     expect(listenerCount(color)).toBe(0); // fully released on removal

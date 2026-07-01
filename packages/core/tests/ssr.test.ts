@@ -149,6 +149,50 @@ describe("SSR: generateHTML", () => {
     expect(html).toContain(">hello</div>");
     expect(html).toContain('title="hello"');
   });
+
+  it("omits (does not stringify) a non-boolean attribute whose value is null or undefined", () => {
+    // Regression: previously serialized as the literal text aria-current="undefined"
+    // (or "null"), which a screen reader reads as a truthy aria-current value.
+    const htmlUndefined = new ElementNode({
+      a: "x",
+      ariaCurrent: undefined,
+    } as DomphyElement).generateHTML();
+    expect(htmlUndefined).not.toContain("undefined");
+    expect(htmlUndefined).not.toContain("aria-current");
+
+    const htmlNull = new ElementNode({
+      a: "x",
+      ariaCurrent: null,
+    } as DomphyElement).generateHTML();
+    expect(htmlNull).not.toContain("null");
+    expect(htmlNull).not.toContain("aria-current");
+  });
+
+  it("omits a reactive non-boolean attribute that resolves to undefined, keeps it when it resolves to a value", () => {
+    const active = toState(false);
+    const inactiveHTML = new ElementNode({
+      a: "x",
+      ariaCurrent: (l: any) => (active.get(l) ? "page" : undefined),
+    } as DomphyElement).generateHTML();
+    expect(inactiveHTML).not.toContain("aria-current");
+    expect(inactiveHTML).not.toContain("undefined");
+
+    const activeHTML = new ElementNode({
+      a: "x",
+      ariaCurrent: (l: any) => "page",
+    } as DomphyElement).generateHTML();
+    expect(activeHTML).toContain('aria-current="page"');
+  });
+
+  it("does not leave a double space where an omitted attribute used to sit", () => {
+    const html = new ElementNode({
+      div: "x",
+      id: "root",
+      title: undefined,
+      class: "kept",
+    } as DomphyElement).generateHTML();
+    expect(html).not.toContain("  ");
+  });
 });
 
 describe("SSR: generateCSS", () => {

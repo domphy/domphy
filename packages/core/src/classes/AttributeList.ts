@@ -15,6 +15,7 @@ export class AttributeList {
     if (!this.items) return "";
     const str = Object.values(this.items)
       .map((attr) => attr.generateHTML())
+      .filter(Boolean) // an omitted (null/undefined-valued) attribute emits ""
       .join(" ");
     return str ? ` ${str}` : "";
   }
