@@ -202,6 +202,63 @@ function extractEditorIslands(
   return { source: processed, islands };
 }
 
+// --- Preview island extraction ------------------------------------------------
+
+interface PreviewIslandRef {
+  kind: "preview";
+  id: string;
+  source: string;
+}
+
+/**
+ * Extracts <DomphyPreview :element="Var" /> tags, replacing them with
+ * `<div data-island="preview-N">` placeholders. `Var` must be
+ * `import Var from "./path.js"` in the script block (the compiled-output
+ * path — NOT `?raw`, which extractEditorIslands already owns); resolves to
+ * the demo module's source file for esbuild to bundle as a dynamic import,
+ * consumed client-side by islands-runtime.ts's mountPreview().
+ */
+function extractPreviewIslands(
+  source: string,
+  filePath: string,
+): { source: string; islands: PreviewIslandRef[] } {
+  const fileDir = dirname(filePath);
+  const islands: PreviewIslandRef[] = [];
+
+  const scriptMatch = source.match(/<script\b[^>]*>([\s\S]*?)<\/script>/i);
+  const script = scriptMatch ? scriptMatch[1] : "";
+
+  const importMap: Record<string, string> = {};
+  for (const m of script.matchAll(
+    /import\s+(\w+)\s+from\s+["']([^"']+)["']/g,
+  )) {
+    const [, varName, importPath] = m;
+    if (importPath.endsWith("?raw")) continue; // extractEditorIslands' territory
+    importMap[varName] = importPath;
+  }
+
+  let counter = 0;
+  const processed = source.replace(
+    /<DomphyPreview\b([^>]*?)(?:\/>|><\/DomphyPreview>)/g,
+    (_match, attrs: string) => {
+      const id = `preview-${counter++}`;
+      const elementAttr = attrs.match(/:element=["'](\w+)["']/);
+      const importPath = elementAttr ? importMap[elementAttr[1]] : undefined;
+      if (importPath) {
+        let absPath = resolve(fileDir, importPath);
+        if (!existsSync(absPath) && absPath.endsWith(".js")) {
+          const tsPath = `${absPath.slice(0, -3)}.ts`;
+          if (existsSync(tsPath)) absPath = tsPath;
+        }
+        islands.push({ kind: "preview", id, source: absPath });
+      }
+      return `<div data-island="${id}"></div>`;
+    },
+  );
+
+  return { source: processed, islands };
+}
+
 // --- Island helpers ----------------------------------------------------------
 
 interface BuiltPage {
@@ -311,8 +368,10 @@ async function run(): Promise<void> {
 
   for (const page of startedPages) {
     const rawSource = readFileSync(page.filePath, "utf8");
-    const { source, islands: editorIslands } = extractEditorIslands(
-      rawSource,
+    const { source: afterEditors, islands: editorIslands } =
+      extractEditorIslands(rawSource, page.filePath);
+    const { source, islands: previewIslands } = extractPreviewIslands(
+      afterEditors,
       page.filePath,
     );
     const doc = await renderDoc(source, {
@@ -329,7 +388,11 @@ async function run(): Promise<void> {
       outFile: page.outFile,
       title: doc.title,
       doc,
-      islands: [...doc.islands, ...(editorIslands as unknown as IslandRef[])],
+      islands: [
+        ...doc.islands,
+        ...(editorIslands as unknown as IslandRef[]),
+        ...(previewIslands as unknown as IslandRef[]),
+      ],
     });
     searchDocs.push({
       route: page.route,

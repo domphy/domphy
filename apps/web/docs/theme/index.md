@@ -55,3 +55,4 @@ Main mental model:
 2. [Tone](./tone) for the color and contrast model
 3. [Size](./size) for sizing and density rules
 4. [API](./api) for the full function reference
+5. [Theme Builder](./builder) — generate a full accessible theme from your brand color, live

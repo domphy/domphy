@@ -21,6 +21,7 @@ export default {
       "tests/pipeline.test.ts",
       "tests/search.test.ts",
       "tests/routes.test.ts",
+      "tests/theme-builder.test.ts",
     ],
     environment: "node",
   },

@@ -138,7 +138,7 @@
     },
     {
       "name": "@domphy/palette",
-      "version": "0.18.1",
+      "version": "0.19.0",
       "description": "Domphy Palette - color-science toolkit: measure and validate palette quality with CIELAB metrics, a port of chromametry",
       "subpaths": [
         "."
@@ -201,7 +201,7 @@
     },
     {
       "name": "@domphy/theme",
-      "version": "0.18.2",
+      "version": "0.19.0",
       "description": "Domphy Design System",
       "subpaths": [
         "."

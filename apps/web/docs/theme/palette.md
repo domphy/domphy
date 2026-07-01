@@ -63,6 +63,24 @@ For custom themes and the full setup, see [Setup](./setup).
 
 Register a theme with `setTheme()` to replace any color family or add entirely new ramps. Custom ramps should follow the 18-step model.
 
+You don't have to hand-pick the 16 intermediate steps yourself — `generateTheme` builds the whole `ThemeInput` from one base hex per role, using `@domphy/palette`'s WCAG-optimized `generateRamp` (see [`generateRamp`](../palette/generator)):
+
+```ts
+import { generateTheme, setTheme, themeApply } from "@domphy/theme"
+
+setTheme("brand", generateTheme({
+  primary: "#4a7ff4",
+  secondary: "#d8597d",
+  neutral: "#8d8d8d",
+}))
+
+themeApply()
+```
+
+`baseTones` is filled in automatically — the step closest (CIEDE2000) to the hex you passed in.
+
+To assemble a ramp by hand instead, pass the 18 hex strings directly:
+
 ```ts
 import { setTheme, themeApply } from "@domphy/theme"
 

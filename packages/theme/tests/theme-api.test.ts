@@ -33,6 +33,14 @@ function createNode(
 }
 
 describe("theme core APIs", () => {
+  it("every color family has a baseTones entry (regression: attention was missing)", () => {
+    const light = getTheme("light");
+    for (const name of Object.keys(light.colors)) {
+      expect(light.baseTones[name], `baseTones.${name}`).toBeTypeOf("number");
+      expect(light.colors[name][light.baseTones[name]]).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+
   it("dark theme has reversed palettes and base tones", () => {
     const light = getTheme("light");
     const dark = getTheme("dark");

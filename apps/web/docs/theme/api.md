@@ -134,6 +134,26 @@ Return the full theme object.
 const brand = getTheme("brand")
 ```
 
+### `generateTheme(baseColors, options?)`
+
+Build a full `PartialThemeInput` from one base hex color per semantic role,
+using `@domphy/palette`'s `generateRamp` for every family — see
+[Theme Builder](./builder) for a live demo and [`DESIGN.md`](https://github.com/domphy/domphy/blob/main/DESIGN.md)
+for the math.
+
+```ts
+setTheme("brand", generateTheme({
+  primary: "#4a7ff4",
+  secondary: "#d8597d",
+  neutral: "#8d8d8d",
+}))
+```
+
+Each role's `baseTones` entry is picked automatically (nearest CIEDE2000
+match to the input color). Roles you don't pass are simply absent from the
+result — `setTheme()` deep-merges the rest from whatever theme `name`
+already had (or `light`, if `name` is new).
+
 ## Token Helpers
 
 ### `themeVars()`

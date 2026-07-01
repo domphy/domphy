@@ -22,6 +22,12 @@ hr();
 push("## Critical rules (AGENTS.md — canonical source)\n");
 push((await readFile(resolve(REPO, "AGENTS.md"), "utf8")).trim());
 
+hr();
+// Design-system math (color ramp generation/evaluation, spacing/size/tone
+// formulas) is owned by DESIGN.md at the repo root — same reasoning as above.
+push("## Design system math (DESIGN.md — canonical source)\n");
+push((await readFile(resolve(REPO, "DESIGN.md"), "utf8")).trim());
+
 const stripVitepress = (md) =>
   md
     .replace(/<script setup[\s\S]*?<\/script>\s*/g, "")

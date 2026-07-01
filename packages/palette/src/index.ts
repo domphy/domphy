@@ -8,3 +8,6 @@ export type { ContrastValue, WcagContrasts, ApcaContrasts } from "./Ramp";
 export { Palette } from "./Palette";
 export type { PaletteColors } from "./Palette";
 
+// Generation: build a WCAG-optimized ramp from one or more anchor colors.
+export { generateRamp } from "./Generator";
+

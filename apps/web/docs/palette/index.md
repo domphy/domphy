@@ -29,6 +29,18 @@ const palette = new Palette({ blue, red, green })
 palette.score // aggregate score across all ramps
 ```
 
+## Generate
+
+`generateRamp` builds a WCAG-optimized ramp from a base color, so you don't have to hand-pick steps to get a good score:
+
+```ts
+import { generateRamp } from "@domphy/palette"
+
+const primary = generateRamp("#4a7ff4", 18)   // 18 hex strings, ready to use
+```
+
+See [**generateRamp**](./generator) for the full API and how it composes into `@domphy/theme`'s `generateTheme`.
+
 ## Why this matters
 
 Most design systems hand-pick color steps; few can *prove* their palettes are perceptually even and accessible. `@domphy/palette` makes palette quality a measurable property — and `@domphy/theme` is built on top of it.
@@ -36,3 +48,5 @@ Most design systems hand-pick color steps; few can *prove* their palettes are pe
 ## Paper
 
 [**Measuring palette quality**](./measuring) — the five metrics, how they're computed, and a benchmark of popular design systems.
+
+[**DESIGN.md**](https://github.com/domphy/domphy/blob/main/DESIGN.md) — the full design-system reference: how `generateRamp`'s warp curve is derived, and how it ties into `@domphy/theme`'s context-aware tone/spacing/size model.

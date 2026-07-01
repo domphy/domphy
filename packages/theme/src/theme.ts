@@ -1,6 +1,6 @@
 import type { ElementNode, Listener } from "@domphy/core";
 import light from "./light.js";
-import type { ThemeInput, ThemeVars } from "./types.js";
+import type { PartialThemeInput, ThemeInput, ThemeVars } from "./types.js";
 
 // JSON clone (not structuredClone) so the build runs in older embedded
 // browsers like SketchUp 2022's CEF, which predates Chromium 98.
@@ -33,7 +33,7 @@ function colorSteps(input: ThemeInput): number {
 
 // --- Validation ---
 
-function validateTheme(partial: Partial<ThemeInput>): void {
+function validateTheme(partial: PartialThemeInput): void {
   for (const key in partial) {
     if (!Object.keys(light).includes(key as keyof ThemeInput)) {
       throw new Error(`Invalid key: ${key}`);
@@ -120,7 +120,7 @@ export function getTheme(name: string): ThemeInput {
   return themes[name];
 }
 
-export function setTheme(name: string, input: Partial<ThemeInput>): void {
+export function setTheme(name: string, input: PartialThemeInput): void {
   validateTheme(input);
   if (!themes[name]) themes[name] = clone(light);
   deepMerge(themes[name], input);

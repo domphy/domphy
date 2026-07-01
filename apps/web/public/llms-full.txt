@@ -11,7 +11,7 @@
 
 # AGENTS.md — Domphy
 
-Instructions for AI agents writing/editing Domphy code. (Human contributors: same rules apply.) This is the canonical short spec. More machine context: `apps/web/public/llms.txt` (index), `apps/web/public/llms-full.txt` (one-shot dump), `apps/web/public/manifest.json` (structured patch/package index), the `@domphy/mcp` server (tools for MCP agents).
+Instructions for AI agents writing/editing Domphy code. (Human contributors: same rules apply.) This is the canonical short spec. More machine context: `apps/web/public/llms.txt` (index), `apps/web/public/llms-full.txt` (one-shot dump), `apps/web/public/manifest.json` (structured patch/package index), the `@domphy/mcp` server (tools for MCP agents). For the math behind the theme (why the color ramps and spacing/size formulas are shaped the way they are — the CIELAB/Oklab evaluation + generation framework, the context-aware tone/density/size resolution model), see **`DESIGN.md`**.
 
 ## What Domphy is
 
@@ -36,11 +36,11 @@ const App = {
 - **Patches via `$`**, never wrapper components. Compose multiple: `$: [button(), tooltip({ content: "..." })]`. The native element always wins over patch defaults.
 - **Reactivity:** read with `(listener) => state.get(listener)`; write in events with `state.set(...)`. One-way data flow. Prefer `RecordState` for per-key reactivity. A controlled input (`value: (l) => s.get(l)` + `onInput: (e) => s.set(e.target.value)`) is safe. Types: `ReadableState<T>` (the read-only State contract), `ValueOrState<T>` (accepts a plain value, a `State<T>`, or a `ReadableState<T>`), `Computed<T>` (returned by `computed()`, satisfies `ReadableState<T>` — pass a computed wherever `ValueOrState<T>` is expected). `toState(val)` accepts `T | State<T> | ReadableState<T>`.
 - **Never inline typography styles** — `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, `fontFamily`, `textDecoration`, `color` in `style:` are ALL forbidden. Quick reference:
-  - Small / secondary / caption / label text → `{ span: "...", $: [small()] }`
+  - Small / secondary / caption / label text → `{ small: "...", $: [small()] }`
   - Body text → `{ p: "...", $: [paragraph()] }`
   - Heading → `{ h2: "...", $: [heading()] }`
   - Bold → `{ strong: "...", $: [strong()] }`
-  - Error / colored text → `{ span: "...", $: [small({ color: "error" })] }`
+  - Error / colored text → `{ small: "...", $: [small({ color: "error" })] }`
   - Literal color → `color: (l) => themeColor(l, "base", "colorName")`
   - `fontFamily` → remove entirely (theme owns the font stack)
 - **Theme, not hard-coded values:** `themeColor()`, `themeSpacing()`, `themeSize()`, `themeDensity()`; tones are `inherit`/`base`/`shift-N` (not `surface`/`text`).
@@ -56,7 +56,7 @@ const App = {
 | Package | Use |
 | --- | --- |
 | `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code) |
-| `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`) |
+| `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`); `generateTheme(baseColors, opts?)` builds a full `ThemeInput` from one base hex per semantic role via `@domphy/palette`'s ramp generator (see `DESIGN.md`) |
 | `@domphy/ui` | 91 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, …) |
 | `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery`/`bindResult` at `@domphy/query/domphy`; `bindResult` connects an observer to Domphy reactivity so result fields are readable with a listener |
 | `@domphy/table` | headless tables — adapter `createDomphyTable` at `@domphy/table/domphy` |
@@ -67,7 +67,7 @@ const App = {
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`) |
 | `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — internal to `@domphy/ui` overlays |
-| `@domphy/palette` | color-palette engine: `Ramp`/`Palette`/`Swatch` — 5 CIELAB quality metrics (design-time companion to theme) |
+| `@domphy/palette` | color-palette engine — `Ramp`/`Palette`/`Swatch`: 5 CIELAB quality metrics (design-time companion to theme); `generateRamp(baseColors, steps)`: builds a WCAG-span-optimized 18-step ramp from one or more anchor colors via a warped Oklab interpolation (see `DESIGN.md` §3) |
 | `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `createMarkdown`, `walkMdast`, `splitFrontmatter`; remark/unified under the hood); powers this docs site |
 | `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
 | `@domphy/chart` | canvas chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`hexToRgba`, `seriesHex`, `seriesPaletteFamily`, `colorFromVisualMap`); ECharts-compatible type surface |
@@ -162,6 +162,364 @@ Use the `motion()` patch (`@domphy/ui`): declarative `initial`/`animate`/`exit` 
 - Build: tsup (packages), custom press build script (docs — `apps/web/build.press.ts`, built on `@domphy/press`). Tests: Vitest (+ jsdom for DOM) — CI runs both `pnpm --filter "@domphy/*" test` and `pnpm --filter "domphy-web" test`.
 - Before editing UI code, read the relevant patch doc (`apps/web/docs/ui/patches/*.md`) or use the `domphy` skill — each patch has its own prop contract.
 - Keep this file, `apps/web/public/llms.txt`, and `apps/web/scripts/llms-full.mjs` in sync when the public API changes.
+
+
+---
+
+
+## Design system math (DESIGN.md — canonical source)
+
+# DESIGN.md — Domphy Design System
+
+Domphy's theme is not a hand-picked palette plus a spacing scale. Every color
+step, every spacing value, and every size step is the output of a formula —
+derived from published perceptual color science and validated against an
+open, reproducible quality framework. This document is the mathematical
+reference: what each formula is, why it's shaped that way, and how the
+constraint system makes an element **context-aware** (it adapts to its
+surface, density, and size context instead of carrying a fixed style).
+
+Read `AGENTS.md` first for the *API* (`themeColor`, `themeSpacing`,
+`themeSize`, tone semantics). This document is the *why* behind that API —
+useful when generating a new palette, tuning a component's geometry, or
+explaining to a reviewer (human or AI) that a token was not invented.
+
+## 1. Two axes, one system
+
+Domphy's design tokens split into two independent, formula-driven axes:
+
+| Axis | Package | Governs | Section |
+|---|---|---|---|
+| **Color** | `@domphy/palette` | 18-step tone ramps per semantic color | §2–§4 |
+| **Space** | `@domphy/theme` | spacing, density, size (typography + control geometry) | §5 |
+
+Both axes share the same design philosophy: pick a small number of
+free parameters, derive everything else from a closed-form relationship, and
+validate the result against a measurable target rather than eyeballing it.
+
+## 2. Color axis: the evaluation framework
+
+Domphy's color science lives in `@domphy/palette`, a port of
+[chromametry](https://github.com/chromametry/chromametry) — a published,
+open-source, peer-citable framework:
+
+> Nguyen, H. K. *A Quantitative Framework for Evaluating Sequential Color
+> Palette Quality in Design Systems.* Independent Researcher, 2026.
+> [`paper.pdf`](https://chromametry.github.io/chromametry/paper.pdf) ·
+> [benchmark](https://chromametry.github.io/chromametry/benchmark)
+
+The framework scores an 18-step monochromatic ramp — the shape every
+`ThemeInput.colors[name]` array must have — along five independent
+dimensions, all computed in CIELAB and combined by geometric mean so no
+single strong metric can hide a structurally broken one:
+
+```
+SCORE = 100 · (η · 𝓛 · S_C · 𝓗 · U + ε)^(1/5)     (ε = 1e-6, numerical floor)
+```
+
+### 2.1 Contrast Efficiency (η) — the load-bearing metric
+
+This is the metric the rest of Domphy's tone system is built around.
+
+For a ramp of `N` steps, the **contrast span** `K` is the minimum index
+distance `k` such that *every* pair of steps `k` apart clears WCAG 4.5:1:
+
+```
+K = min { k ∈ ℕ : CR(cᵢ, cᵢ₊ₖ) ≥ 4.5,  ∀i ∈ [0, N-k-1] }
+```
+
+If `K` is known, a consumer never has to runtime-check a contrast pair — pick
+any background step `i`, and step `i ± K` is guaranteed to pass 4.5:1 as
+text. This is *why* Domphy's tone-anchoring rule works
+(`themeColor(l, "shift-9")` reliably reads as body text against a
+`shift-0` surface): the ramp was built so a fixed index offset is
+accessibility-safe everywhere on the ramp, not just at the two ends.
+
+The **ideal** span is derived analytically, not benchmarked. For a neutral
+(achromatic) ramp, CIELAB lightness `L*` maps to relative luminance `Y` by
+the CIE 1976 transform. Solving the WCAG 4.5:1 boundary condition from both
+ends (black background and white background) and taking the conservative
+(larger) case gives:
+
+```
+λ = max(λ_black, λ_white) ≈ 0.501
+K_ideal = ⌈ λ · (N-1) ⌉
+```
+
+For `N = 18` (Domphy's tone scale): `K_ideal = ⌈0.501 × 17⌉ = 9`. This is why
+Domphy's 18-step ramp and the `shift-N` tone system are the sizes they are —
+9 is the number of tone steps you can reliably jump for guaranteed contrast,
+almost exactly half the ramp.
+
+Efficiency is then the gap between the *observed* density `D = K/(N-1)` and
+this ideal:
+
+```
+η = 1                              if D ≤ λ
+η = 0                              if D ≥ 1
+η = 1 - (D - λ)/(1 - λ)            otherwise
+```
+
+A palette that "wastes" lightness range (needs a wider index gap than
+necessary to reach 4.5:1) scores low here even if every individual pair is
+technically compliant — η measures *economy*, not just pass/fail.
+
+### 2.2 Lightness Linearity (𝓛) — corrected for chroma-driven brightness
+
+Raw CIELAB `L*` is not what a viewer perceives as "how light" a color is: the
+Helmholtz–Kohlrausch effect means a high-chroma color looks brighter than an
+achromatic color at the *same* `L*`. Domphy corrects for this using
+**Equivalent Achromatic Lightness (EAL)**, from:
+
+> High, R., Green, P., & Nussbaum, P. *The Helmholtz–Kohlrausch effect on
+> display-based light colors and simulated substrate colors.* Color Research
+> & Application, 48(3):341–354, 2023.
+
+```
+L_EAL = L* + (f_BY(h) + f_R(h)) · C*
+
+f_BY(h) = 0.1644 |sin((h - 90°)/2)| + 0.0603
+f_R(h)  = 0.1307 |cos(h)| + 0.0060    if h ∈ [0°,90°] ∪ [270°,360°], else 0
+```
+
+`toLightnessEAL`/`fromLightnessEAL` in `packages/palette/src/utils.ts`
+implement this exactly. A ramp is scored by fitting `L_EAL` against step
+index with ordinary least squares and normalizing the RMS residual by the
+fitted line's own range — 1.0 means perfectly linear perceived lightness,
+independent of direction (light-to-dark or dark-to-light) or absolute
+magnitude.
+
+### 2.3 Chroma Smoothness (S_C) — monotone spline, not a raw power curve
+
+A naive lightness/chroma parameterization (Zeileis et al. 2009's power-curve
+model, `C(t) = C_max - t^p(C_max - C_min)`) needs a piecewise definition when
+peak chroma sits mid-ramp, and the two pieces' derivatives don't generally
+agree at the seam — a `C¹` discontinuity that shows up as a visible chroma
+"kink" (a Mach-band artifact). Domphy avoids the seam entirely: chroma is
+fit with a single **monotone cubic Hermite spline**
+(Fritsch & Carlson, 1980) through three anchors — start, peak, end — which
+guarantees `C¹` continuity and no overshoot (Runge's phenomenon) by
+construction. `createMonotone` in `packages/palette/src/utils.ts` is this
+spline; it's also the same interpolator the generator (§3) uses for the `a`,
+`b` Oklab channels.
+
+### 2.4 Hue Stability (𝓗) and 2.5 Spacing Uniformity (U)
+
+Hue stability measures angular drift (unwrapped, endpoint-excluded since
+white/black have undefined hue) from the ramp's peak-chroma reference hue,
+normalized against a worst-case linear-drift envelope. Spacing uniformity
+measures the coefficient of variation of consecutive **CIEDE2000** steps
+(`ΔE₀₀`, the perceptually-calibrated color-difference metric — plain
+Euclidean CIELAB distance is not perceptually uniform, especially in blues),
+mapped to `(0,1]` via `U = 1/(1+CV)`.
+
+Both are implemented as getters on `Ramp` in `packages/palette/src/Ramp.ts` —
+`ramp.metrics` returns all five, `ramp.score` the composite.
+
+## 3. Color axis: the generator (`generateRamp`)
+
+The evaluation framework (§2) answers "is this ramp good?" — `generateRamp`
+(`packages/palette/src/Generator.ts`) answers "build one that scores well,
+from a single brand color, with no manual tuning."
+
+### 3.1 Why a rational warp
+
+Sampling a straight line between two Oklab anchors at evenly-spaced
+parameter values does **not** put the WCAG 4.5:1 contrast pair at the
+analytically ideal span `K_ideal` from §2.1 — lightness does not vary
+linearly with index in a way that respects the CIE 1976 `L*↔Y` transform,
+and pure linear-in-`t` sampling over-allocates steps to whichever half of the
+ramp (light or dark) happens to have more perceptual "room." The generator
+instead **bends** the sampling parameter before it hits the Oklab anchors,
+using a two-parameter rational warp:
+
+```
+warp(t)   = t^P / (1 + Q(1 - t^P))
+unwarp(y) = ((y(1+Q)) / (1+yQ))^(1/P)
+```
+
+`warp` is applied to the *output* sampling grid (evenly-spaced step indices);
+`unwarp` is applied once, up front, to place each anchor's own position
+along the curve in the same warped space, so the anchor still lands exactly
+where it should after warping. The net effect: more output steps get spent
+where the WCAG boundary actually is, fewer where it isn't — pulling the
+generated ramp's observed span `K` toward `K_ideal` without hand-tuning.
+
+### 3.2 Fitting P and Q
+
+`P` and `Q` are not arbitrary — they were found by grid search + local hill
+climbing (step-halving refinement) over 600 synthetic base colors sampled
+disproportionately from the color-science-hard regions (green and
+blue-green/cyan hues, where CIELAB/Oklab perceptual uniformity is weakest),
+jointly maximizing:
+
+- the mean of the §2 composite `SCORE` across all generated ramps,
+- the fraction of ramps whose observed span `K` is `≤ K_ideal` ("coverage"),
+- the fraction with `K` *exactly equal* to `K_ideal` ("exact match"),
+
+while penalizing the average `|K - K_ideal|` span error. The search
+converged at:
+
+```
+P = 0.605
+Q = 0.685
+```
+
+achieving ≈90.6 average `SCORE` (of 100), ≈95.9% coverage, and ≈88.5% exact
+`K = K_ideal` match across the 600-color validation set — i.e. for the vast
+majority of arbitrary brand colors, the generated 18-step ramp needs no
+manual accessibility pass at all. `packages/palette/tests/generator.test.ts`
+re-validates this end-to-end (generate → score with `Ramp` → assert `score >
+75` and `contrastEfficiency > 0.7`) for five colors spanning the hard hue
+regions, so a future change to either the generator or the evaluator that
+breaks this relationship fails CI, not a design review.
+
+### 3.3 The full pipeline
+
+1. Convert the base color(s) plus implicit pure-black and pure-white anchors
+   to **Oklab** (Björn Ottosson, 2020) — chosen over CIELAB for the
+   generation step specifically because Oklab's hue lines stay closer to
+   perceptually constant hue under lightness changes, which matters when
+   interpolating rather than just measuring.
+2. Sort anchors by Oklab lightness; walk the resulting polyline and compute
+   **cumulative Euclidean arc length** — this is the *unwarped* parameter
+   space, proportional to how much the color actually changes, not to index.
+3. `unwarp` each anchor's normalized cumulative distance into warped
+   parameter space (§3.1) — this is where the anchor sits once the output
+   grid is built by `warp`.
+4. For each of the `N` output steps, compute its position in the anchor
+   polyline (linear between neighboring anchor indices), then `warp` that
+   position and map it back into the arc-length parameter range.
+5. Interpolate: `L` linearly per Oklab segment; `a`/`b` (the two chroma
+   channels) through the same **monotone cubic spline** as §2.3, evaluated
+   across *all* anchors at once — a smooth single-peak chroma trajectory,
+   avoiding the derivative discontinuity that motivated §2.3 in the first
+   place.
+6. Convert back Oklab → linear sRGB → hex.
+
+Passing more than one anchor color pins each as a fixed waypoint the ramp
+must pass through (e.g. a specific existing brand color at a specific
+position), still connected by the same warped interpolation — the ramp is
+not required to be generated from a single color.
+
+Output is ordered light-to-dark (`ramp[0]` ≈ white, `ramp[N-1]` ≈ black),
+matching `ThemeInput.colors[name]`'s convention directly:
+
+```ts
+import { generateRamp } from "@domphy/palette"
+const primary = generateRamp("#4a7ff4", 18)   // 18 hex strings, ready to assign
+```
+
+### 3.4 `generateTheme` — a full theme in one call
+
+`@domphy/theme` composes `generateRamp` per semantic role into a complete
+`ThemeInput`:
+
+```ts
+import { generateTheme } from "@domphy/theme"
+
+const theme = generateTheme({
+  primary: "#4a7ff4",
+  secondary: "#d8597d",
+  neutral: "#8d8d8d",
+})
+setTheme("brand", theme)
+```
+
+Each role's `baseTones` entry is chosen as the ramp step nearest (by
+CIEDE2000) to the caller's original input hex — so `themeColor(l, "base",
+"primary")` still resolves to (approximately) the exact color that was
+passed in, not just "some point on the generated ramp."
+
+## 4. Why this is a sell point, not just an implementation detail
+
+Every other token system in wide use (Material, Fluent, Carbon, Spectrum)
+either hand-authors its ramps or validates them post-hoc against WCAG
+pairwise. Domphy is, to the authors' knowledge, the first to make the
+generation step itself *target* the accessibility structure analytically —
+the contrast span isn't checked after the fact, it's the thing the warp
+curve is shaped to hit. §2's evaluation framework and §3's generator are two
+halves of one falsifiable claim: give it any brand color, and the resulting
+18-step ramp will — with high, measured probability, not by convention —
+already satisfy WCAG 4.5:1 at index distance 9. That claim is testable
+(`generator.test.ts` tests it) and re-derivable from first principles (§2.1's
+`λ ≈ 0.501` is arithmetic, not a magic number).
+
+## 5. Space axis: spacing, density, size
+
+The spatial half of the system (documented informally in `AGENTS.md` today;
+a formal companion paper is planned) follows the same philosophy — few free
+parameters, one derived formula, applied uniformly:
+
+```
+themeSpacing(n) = calc(n/4 em)      // n = number of U units, U = fontSize/4
+themeDensity(l) ∈ { 0.75, 1, 1.5, 2, 2.5 }   // 5-step density scale
+themeSize(l, size)                  // 8-step size scale (increase/decrease-N, N ≤ 7)
+```
+
+**Component geometry formula** — every bounded control (button, input) at
+density `d`, width `w = 1`, line count `n = 1` derives its box from the same
+three lines, never a hard-coded pixel value:
+
+```
+paddingBlock  = themeSpacing(themeDensity(l) · 1)
+paddingInline = themeSpacing(themeDensity(l) · 3)
+borderRadius  = themeSpacing(themeDensity(l) · 1)
+// height = (6 + 2d) · U — at d = 1.5, that's 9U = 36px, Domphy's canonical button height
+```
+
+This is why increasing density on a container (`dataDensity="increase-1"`)
+uniformly grows every descendant control's padding, radius, *and* height in
+lockstep — they are all functions of the same `d`, not independently tuned
+per component.
+
+## 6. Context-aware = adaptive element
+
+The payoff of §2–§5 being formulas instead of fixed values: a Domphy element
+does not carry an absolute style. It carries a **position relative to
+context**, resolved at read time:
+
+- **Color** — `themeColor(l, tone, color)` resolves `tone` (`"shift-N"`,
+  `"increase-N"`, `"base"`, …) against the nearest ancestor's `dataTone`
+  (the *surface anchor*). The same `shift-9` element renders a different hex
+  depending on whether its container is anchored `shift-0` (light surface)
+  or `shift-14` (dark surface) — because it's not asking for a color, it's
+  asking for a **relationship** to its surface (§2.1's contrast-span
+  guarantee is what makes that relationship safe to assume, not just
+  convenient).
+- **Density** — `themeDensity(l)` walks up for the nearest `dataDensity`,
+  so an entire toolbar can go compact by setting one attribute on its
+  container; no descendant control needs to know it happened.
+- **Size** — `themeSize(l, size)` composes the same way for typography/icon
+  scale.
+
+This is the concrete meaning of "adaptive element": the math in §2–§5 is
+what makes context-relative resolution *safe* (accessible, perceptually
+uniform) rather than merely convenient. A design token system that is
+adaptive but not grounded in this kind of derivation degrades to "it looks
+fine to me" the moment the base color or density context changes — Domphy's
+does not, because the guarantee (contrast span, geometry ratio) is
+structural, not observed.
+
+## References
+
+1. Nguyen, H. K. *A Quantitative Framework for Evaluating Sequential Color
+   Palette Quality in Design Systems.* 2026.
+   [chromametry/chromametry](https://github.com/chromametry/chromametry),
+   [paper.pdf](https://chromametry.github.io/chromametry/paper.pdf).
+2. High, R., Green, P., & Nussbaum, P. *The Helmholtz–Kohlrausch effect on
+   display-based light colors and simulated substrate colors.* Color
+   Research & Application, 48(3):341–354, 2023.
+3. Zeileis, A. et al. *Escaping RGBland: Selecting colors for statistical
+   graphics.* 2009. (Power-curve palette parameterization, monotone-spline
+   motivation.)
+4. Fritsch, F. N., & Carlson, R. E. *Monotone piecewise cubic
+   interpolation.* SIAM J. Numer. Anal. 17(2), 1980. (The spline in §2.3/§3.3.)
+5. Luo, M. R. et al. *The development of the CIE 2000 colour-difference
+   formula: CIEDE2000.* 2001. (§2.5's `ΔE₀₀`.)
+6. Ottosson, B. *A perceptual color space for image processing (Oklab).*
+   2020. (§3.1's interpolation space.)
+7. WCAG 2.1, W3C, 2018. (§2.1's 4.5:1 threshold and contrast-ratio formula.)
 
 
 ---
@@ -4621,6 +4979,26 @@ Return the full theme object.
 const brand = getTheme("brand")
 ```
 
+### `generateTheme(baseColors, options?)`
+
+Build a full `PartialThemeInput` from one base hex color per semantic role,
+using `@domphy/palette`'s `generateRamp` for every family — see
+[Theme Builder](./builder) for a live demo and [`DESIGN.md`](https://github.com/domphy/domphy/blob/main/DESIGN.md)
+for the math.
+
+```ts
+setTheme("brand", generateTheme({
+  primary: "#4a7ff4",
+  secondary: "#d8597d",
+  neutral: "#8d8d8d",
+}))
+```
+
+Each role's `baseTones` entry is picked automatically (nearest CIEDE2000
+match to the input color). Roles you don't pass are simply absent from the
+result — `setTheme()` deep-merges the rest from whatever theme `name`
+already had (or `light`, if `name` is new).
+
 ## Token Helpers
 
 ### `themeVars()`
@@ -4665,6 +5043,61 @@ For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
 | `ElementTones` | Runtime array of all valid tone strings (exported as a value for validation tooling). |
 | `ElementSize` | Valid size descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–7). |
 | `ElementDensity` | Valid density descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–4). |
+
+### builder.md
+
+# Theme Builder
+
+A sidebar configurator + a live gallery of real `@domphy/ui` patches — judge
+a generated theme against actual components, not just color swatches.
+
+- **Colors tab** — one base color per semantic role. The 18-step ramp for
+  each role, its WCAG-checked contrast span, and the `baseTones` index are
+  all generated live by [`generateTheme`](../palette/generator)
+  (`@domphy/theme` + `@domphy/palette`). No manual tuning, no separate
+  accessibility pass.
+- **Size & Density tab** — the 8-step `fontSizes` scale and the 5-step
+  `densities` scale, the same arrays `themeSize()`/`themeDensity()` read.
+- **Preview theme switcher** — flip the gallery between your generated theme
+  and the built-in `light` theme instantly, via the same `dataTheme`
+  mechanism any Domphy app uses for light/dark switching.
+- **Export panel** — the exact `ThemeInput` JSON, ready for
+  `setTheme(name, json)`.
+
+## How it works
+
+Every keystroke in the sidebar runs the exact pipeline described in
+[**`DESIGN.md`**](https://github.com/domphy/domphy/blob/main/DESIGN.md):
+
+1. `generateRamp(hex, 18)` interpolates from black through your color to
+   white in Oklab space, sampled through a rational warp curve tuned so the
+   WCAG 4.5:1 contrast pair lands at index distance 9 (`K_ideal = ⌈0.501 ×
+   17⌉`) — not by convention, by construction.
+2. `generateTheme` repeats this per role and finds each `baseTones` index by
+   nearest CIEDE2000 match to your original input, so `themeColor(l, "base",
+   role)` still resolves to (approximately) the color you actually picked.
+   Font sizes and densities pass through as-is — they're already the values
+   `themeSize()`/`themeDensity()` consume directly.
+3. `setTheme(name, theme)` + `themeApply()` register it as a live theme,
+   scoped to its own theme name so it never touches the page's own
+   light/dark theme — the swatches and the entire component gallery below
+   update through real CSS custom properties.
+
+The **Export** panel is the exact `ThemeInput` object as JSON —
+copy-pasteable straight into `setTheme("brand", <paste>)`.
+
+## Source
+
+// source: /docs/demos/theme/ThemeBuilder.ts
+
+## What to read next
+
+1. [`generateRamp`](../palette/generator) — the generator API on its own
+2. [Palette](./palette) — the built-in `light` theme's ramps, and how to
+   register a custom one by hand
+3. [`DESIGN.md`](https://github.com/domphy/domphy/blob/main/DESIGN.md) — the
+   full math: the five quality metrics, the warp/unwarp derivation, and how
+   it all ties into the context-aware tone/spacing/size model
 
 ### color-roles.md
 
@@ -5128,6 +5561,7 @@ Main mental model:
 2. [Tone](./tone) for the color and contrast model
 3. [Size](./size) for sizing and density rules
 4. [API](./api) for the full function reference
+5. [Theme Builder](./builder) — generate a full accessible theme from your brand color, live
 
 ### motion.md
 
@@ -5457,6 +5891,24 @@ For custom themes and the full setup, see [Setup](./setup).
 ## Custom Palette
 
 Register a theme with `setTheme()` to replace any color family or add entirely new ramps. Custom ramps should follow the 18-step model.
+
+You don't have to hand-pick the 16 intermediate steps yourself — `generateTheme` builds the whole `ThemeInput` from one base hex per role, using `@domphy/palette`'s WCAG-optimized `generateRamp` (see [`generateRamp`](../palette/generator)):
+
+```ts
+import { generateTheme, setTheme, themeApply } from "@domphy/theme"
+
+setTheme("brand", generateTheme({
+  primary: "#4a7ff4",
+  secondary: "#d8597d",
+  neutral: "#8d8d8d",
+}))
+
+themeApply()
+```
+
+`baseTones` is filled in automatically — the step closest (CIEDE2000) to the hex you passed in.
+
+To assemble a ramp by hand instead, pass the 18 hex strings directly:
 
 ```ts
 import { setTheme, themeApply } from "@domphy/theme"
@@ -23910,6 +24362,79 @@ The quality metric (`ramp.contrastEfficiency`) uses a penalized formula: any `wc
 
 Use `ramp.score` and the quality metrics for design-system grading; use `wcag[*].span` and `apca[*].span` for concrete pairing decisions.
 
+### generator.md
+
+---
+title: "generateRamp"
+description: "Generate a WCAG-optimized sequential color ramp from a base color, or several."
+---
+
+# generateRamp
+
+`generateRamp` builds an 18-step (or any `N`-step) monochromatic ramp from one
+or more anchor colors — the counterpart to `Ramp`/`Palette` (which *measure*
+quality). Where those classes answer "is this ramp good?", `generateRamp`
+answers "build one that scores well, from a single brand color, with no
+manual tuning."
+
+```ts
+import { generateRamp } from "@domphy/palette"
+
+const primary = generateRamp("#4a7ff4", 18)
+// 18 hex strings, lightest first: ["#ffffff", …, "#000000"]
+```
+
+## Signature
+
+```ts
+generateRamp(hexs: string | string[], stepsCount: number): string[]
+```
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `hexs` | `string \| string[]` | One base color, or several ordered anchors the ramp must pass through. |
+| `stepsCount` | `number` | Output length. `18` matches `@domphy/theme`'s tone scale (`shift-0`..`shift-17`). |
+
+Output is ordered **light-to-dark** (`ramp[0]` ≈ white, `ramp[N-1]` ≈ black) —
+this is `@domphy/theme`'s `ThemeInput.colors[name]` convention, so the result
+can be assigned there directly.
+
+Passing more than one color pins each as a fixed waypoint (e.g. an existing
+brand color that must land at a specific position), still connected by the
+same interpolation.
+
+## What "optimized" means
+
+The generator does not sample the anchor colors' Oklab path at even
+intervals — it bends the sampling curve so that, once sliced into `N`
+discrete steps, the WCAG 4.5:1 contrast span lands as close as possible to
+the analytically-derived ideal span (`K_ideal = ⌈0.501 × (N-1)⌉` — 9 for an
+18-step ramp). Validated against 600 synthetic base colors (weighted toward
+green/cyan hues, where perceptual uniformity is hardest): ~95.9% of
+generated ramps need zero manual accessibility correction, ~88.5% hit the
+ideal span exactly.
+
+For the full derivation — the warp/unwarp rational function, why Oklab
+instead of CIELAB for this step, and how it connects to the five quality
+metrics `Ramp` measures — see **[`DESIGN.md`](https://github.com/domphy/domphy/blob/main/DESIGN.md)**
+at the repo root.
+
+## Building a full theme
+
+`@domphy/theme`'s `generateTheme` composes `generateRamp` per semantic color
+role into a complete `ThemeInput` — see
+[Theme → Palette → Custom Palette](../theme/palette.md#custom-palette).
+
+```ts
+import { generateTheme } from "@domphy/theme"
+
+const theme = generateTheme({
+  primary: "#4a7ff4",
+  secondary: "#d8597d",
+  neutral: "#8d8d8d",
+})
+```
+
 ### index.md
 
 # Palette
@@ -23943,6 +24468,18 @@ const palette = new Palette({ blue, red, green })
 palette.score // aggregate score across all ramps
 ```
 
+## Generate
+
+`generateRamp` builds a WCAG-optimized ramp from a base color, so you don't have to hand-pick steps to get a good score:
+
+```ts
+import { generateRamp } from "@domphy/palette"
+
+const primary = generateRamp("#4a7ff4", 18)   // 18 hex strings, ready to use
+```
+
+See [**generateRamp**](./generator) for the full API and how it composes into `@domphy/theme`'s `generateTheme`.
+
 ## Why this matters
 
 Most design systems hand-pick color steps; few can *prove* their palettes are perceptually even and accessible. `@domphy/palette` makes palette quality a measurable property — and `@domphy/theme` is built on top of it.
@@ -23950,6 +24487,8 @@ Most design systems hand-pick color steps; few can *prove* their palettes are pe
 ## Paper
 
 [**Measuring palette quality**](./measuring) — the five metrics, how they're computed, and a benchmark of popular design systems.
+
+[**DESIGN.md**](https://github.com/domphy/domphy/blob/main/DESIGN.md) — the full design-system reference: how `generateRamp`'s warp curve is derived, and how it ties into `@domphy/theme`'s context-aware tone/spacing/size model.
 
 ### measuring.md
 

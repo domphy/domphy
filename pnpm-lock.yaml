@@ -597,6 +597,10 @@ importers:
         version: 4.0.18(@types/node@25.9.2)(jiti@1.21.7)(jsdom@29.1.1)(lightningcss@1.32.0)(sass@1.97.3)(terser@5.44.1)(tsx@4.22.4)(yaml@2.8.2)
 
   packages/theme:
+    dependencies:
+      '@domphy/palette':
+        specifier: workspace:^
+        version: link:../palette
     devDependencies:
       '@domphy/core':
         specifier: workspace:*

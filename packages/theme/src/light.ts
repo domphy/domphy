@@ -207,6 +207,7 @@ const light: ThemeInput = {
   baseTones: {
     highlight: 5,
     warning: 6,
+    attention: 6,
     error: 8,
     danger: 8,
     secondary: 8,
