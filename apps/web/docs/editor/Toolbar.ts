@@ -68,8 +68,14 @@ export const Toolbar = (props: {
           makeTabButton(activeTab, "Code", "code"),
           makeTabButton(activeTab, "Preview", "preview"),
         ],
+        // display/align-items come ONLY from the .dp-tab-buttons rule in
+        // build.press.ts's editorCSS (hidden by default, flex only inside the
+        // <=768px media query). An inline style here would generate its own
+        // same-specificity CSS-in-JS class that lands AFTER editorCSS in the
+        // page <style> order and always wins the cascade — showing these
+        // Code/Preview tabs on desktop too, where clicking them does nothing
+        // (the panel-hiding rules are also mobile-only).
         class: "dp-tab-buttons",
-        style: { display: "flex", alignItems: "stretch" },
       }
     : null;
 

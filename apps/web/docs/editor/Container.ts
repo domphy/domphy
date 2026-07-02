@@ -86,7 +86,10 @@ export function Container(
       overflow: "hidden",
       position: (listener) => (isFull.get(listener) ? "fixed" : "relative"),
       inset: 0,
-      height: (listener) => (isFull.get(listener) ? "100vh" : "600px"),
+      // Code and preview stack in two rows (not side-by-side columns), so
+      // each needs its own comfortable scroll height — taller than the old
+      // side-by-side default.
+      height: (listener) => (isFull.get(listener) ? "100vh" : "760px"),
       zIndex: 10,
       backgroundColor: (listener) => themeColor(listener, "inherit"),
     },

@@ -361,11 +361,16 @@ async function run(): Promise<void> {
   console.log(`Discovered ${startedPages.length} pages.`);
 
   const highlight = await createHighlighter();
+  // Code panel above, preview panel below (grid-template-rows, not
+  // -columns) — both stay visible on desktop. On narrow screens only one
+  // panel is shown at a time via the Code/Preview tabs, so the grid there
+  // collapses to a single row — otherwise the hidden panel's "1fr 1fr" row
+  // would still reserve empty space for it.
   const editorCSS =
-    `.dp-editor-grid{grid-template-columns:1fr 1fr}` +
+    `.dp-editor-grid{grid-template-columns:1fr;grid-template-rows:1fr 1fr}` +
     `.dp-tab-buttons{display:none}` +
     `@media(max-width:768px){` +
-    `.dp-editor-grid{grid-template-columns:1fr}` +
+    `.dp-editor-grid{grid-template-rows:1fr}` +
     `.dp-tab-buttons{display:flex;align-items:stretch}` +
     `.dp-tab-preview .dp-editor-panel{display:none}` +
     `.dp-tab-code .dp-preview-panel{display:none}` +
