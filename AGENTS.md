@@ -46,7 +46,7 @@ const App = {
 | --- | --- |
 | `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code) |
 | `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`); `generateTheme(baseColors, opts?)` builds a full `ThemeInput` from one base hex per semantic role via `@domphy/palette`'s ramp generator (see `DESIGN.md`) |
-| `@domphy/ui` | 85 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, …) |
+| `@domphy/ui` | 93 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, …) |
 | `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery`/`bindResult` at `@domphy/query/domphy`; `bindResult` connects an observer to Domphy reactivity so result fields are readable with a listener |
 | `@domphy/table` | headless tables — adapter `createDomphyTable` at `@domphy/table/domphy` |
 | `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
@@ -54,7 +54,7 @@ const App = {
 | `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy` |
 | `@domphy/dnd` | drag & drop — `dragDrop(state, config?)`, `multiList(options)`, `multiListGroup(group, states, config?)` (wraps `@formkit/drag-and-drop`) |
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`) |
-| `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. **Run it on your output and fix the report.** |
+| `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. CLI `domphy-doctor <path...>` scans files on disk (flags: `--only`/`--exclude`/`--no-reactive`/`--no-output`/`--format text\|json`); `auditOutput(node, opts?)` is an optional Layer 4 that lints the real generated HTML/CSS via `htmlhint`/`stylelint` (optional peer deps). **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — internal to `@domphy/ui` overlays |
 | `@domphy/palette` | color-palette engine — `Ramp`/`Palette`/`Swatch`: 5 CIELAB quality metrics (design-time companion to theme); `generateRamp(baseColors, steps)`: builds a WCAG-span-optimized 18-step ramp from one or more anchor colors via a warped Oklab interpolation (see `DESIGN.md` §3) |
 | `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `createMarkdown`, `walkMdast`, `splitFrontmatter`; remark/unified under the hood); powers this docs site |
@@ -63,12 +63,12 @@ const App = {
 | `@domphy/audit` | **In development — not yet published.** Planned: a11y + layout runtime audit for Domphy element trees. Do NOT import or use; the package directory does not exist yet. |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
 | `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component |
-| `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
+| `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, currentLocale, exists, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
 | `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
 | `bench` | benchmarks (internal, not published) |
 
-Data/logic packages each expose a framework-agnostic API at the main entry and a thin Domphy adapter at the `/domphy` subpath; `@domphy/core` is their peer dependency.
+`@domphy/query`/`table`/`virtual`/`form` each expose a framework-agnostic API at the main entry and a thin Domphy adapter at the `/domphy` subpath, with `@domphy/core` as a peer dependency. `@domphy/router` is the exception: its Domphy adapter (`createRouter`/`createRoute`/...) ships directly from the main entry, with no `/domphy` subpath and no `@domphy/core` dependency.
 
 ## Removed / do NOT use
 

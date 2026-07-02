@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), details, [tabindex]:not([tabindex="-1"])';
@@ -28,6 +29,18 @@ function dialog(
   const state = toState(open);
   let previousFocus: HTMLElement | null = null;
   let closing = false;
+  let scrollLocked = false;
+
+  const finalizeClose = (dlg: HTMLDialogElement) => {
+    closing = false;
+    dlg.close();
+    if (scrollLocked) {
+      unlockScroll();
+      scrollLocked = false;
+    }
+    previousFocus?.focus();
+    previousFocus = null;
+  };
 
   return {
     _onInsert: (node) => {
@@ -45,14 +58,14 @@ function dialog(
         e.clientY <= r.bottom;
       if (!inside) state.set(false);
     },
-    onTransitionEnd: (_e, node) => {
+    onTransitionEnd: (e, node) => {
       if (!closing) return;
-      closing = false;
-      const dlg = node.domElement as HTMLDialogElement;
-      dlg.close();
-      document.body.style.overflow = "";
-      previousFocus?.focus();
-      previousFocus = null;
+      // Guard against bubbled transitionend from nested content (e.g. an
+      // accordion/details transition inside the dialog) prematurely
+      // triggering close-finalization.
+      if (e.target !== node.domElement) return;
+      if (e.propertyName !== "opacity") return;
+      finalizeClose(node.domElement as HTMLDialogElement);
     },
     _onMount: (node) => {
       const dlg = node.domElement as HTMLDialogElement;
@@ -99,7 +112,10 @@ function dialog(
         if (val) {
           previousFocus = document.activeElement as HTMLElement;
           dlg.showModal();
-          document.body.style.overflow = "hidden";
+          if (!scrollLocked) {
+            lockScroll();
+            scrollLocked = true;
+          }
           dlg.addEventListener("keydown", trapFocus);
           requestAnimationFrame(() => {
             dlg.style.opacity = "1";
@@ -115,11 +131,7 @@ function dialog(
           closeTimer = setTimeout(() => {
             closeTimer = null;
             if (!closing) return;
-            closing = false;
-            dlg.close();
-            document.body.style.overflow = "";
-            previousFocus?.focus();
-            previousFocus = null;
+            finalizeClose(dlg);
           }, 350);
         }
       };
@@ -132,7 +144,10 @@ function dialog(
         }
         release();
         dlg.removeEventListener("cancel", onCancel);
-        document.body.style.overflow = "";
+        if (scrollLocked) {
+          unlockScroll();
+          scrollLocked = false;
+        }
         dlg.removeEventListener("keydown", trapFocus);
         previousFocus?.focus();
         previousFocus = null;

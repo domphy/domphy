@@ -98,6 +98,7 @@ function pagination(props: {
           // Prev button
           items.push({
             button: "‹",
+            _key: "prev",
             type: "button",
             ariaLabel: "Previous page",
             disabled: page <= 1,
@@ -105,11 +106,15 @@ function pagination(props: {
             style: btnBase,
           });
 
-          // Page buttons
+          // Page buttons. Keyed by page number (or a running ellipsis index —
+          // there can be up to two "..." spans) so the list survives length
+          // changes across pages without the unkeyed-reuse footgun.
+          let ellipsisIndex = 0;
           for (const p of getPages(page, total)) {
             if (p === "...") {
               items.push({
                 span: "…",
+                _key: `ellipsis-${ellipsisIndex++}`,
                 ariaHidden: "true",
                 style: {
                   display: "inline-flex",
@@ -124,6 +129,7 @@ function pagination(props: {
               const isActive = p === page;
               items.push({
                 button: String(p),
+                _key: `page-${p}`,
                 type: "button",
                 ariaLabel: `Page ${p}`,
                 ariaCurrent: isActive ? "page" : undefined,
@@ -137,6 +143,7 @@ function pagination(props: {
           // Next button
           items.push({
             button: "›",
+            _key: "next",
             type: "button",
             ariaLabel: "Next page",
             disabled: page >= total,

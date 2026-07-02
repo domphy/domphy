@@ -11,6 +11,7 @@ import {
   toast,
   tooltip,
 } from "../src/index.ts";
+import { _resetScrollLock } from "../src/utils/scrollLock.ts";
 
 // ResizeObserver is used by @domphy/floating (tooltip/popover).
 if (!("ResizeObserver" in globalThis)) {
@@ -55,6 +56,9 @@ beforeEach(() => {
 afterEach(() => {
   document.body.innerHTML = "";
   document.body.style.overflow = "";
+  // Tests that don't call node.remove() skip the Remove hook (unlockScroll),
+  // which would otherwise leak the module-level lock count into later tests.
+  _resetScrollLock();
   vi.restoreAllMocks();
   vi.useRealTimers();
 });

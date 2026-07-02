@@ -1,4 +1,10 @@
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type DomphyElement,
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 
 const STAR_FILLED =
@@ -35,6 +41,13 @@ function rating(
   const { max = 5, readOnly = false, onChange } = props;
   const color = props.color ?? "warning";
   const valueState = toState(props.value ?? 0);
+  // Hover preview only — never reported via onChange, only affects display.
+  const hoveredState = toState(0);
+
+  const activeCount = (listener: Listener) => {
+    const hovered = hoveredState.get(listener);
+    return hovered > 0 ? hovered : valueState.get(listener);
+  };
 
   return {
     role: "group",
@@ -46,73 +59,61 @@ function rating(
       cursor: readOnly ? "default" : "pointer",
       color: (listener) => themeColor(listener, "shift-8", color),
     },
-    _onMount: (node) => {
-      const container = node.domElement as HTMLElement;
-      let current = valueState.get();
-      let hovered = 0;
-
-      const render = () => {
-        const active = hovered > 0 ? hovered : current;
-        Array.from(container.children).forEach((star, i) => {
-          (star as HTMLElement).innerHTML =
-            i < active ? STAR_FILLED : STAR_EMPTY;
-        });
-      };
-
-      container.innerHTML = "";
+    // Build stars as real child elements (not imperative DOM mutation in
+    // _onMount) so generateHTML()/SSR emits the actual star markup.
+    _onInit: (node) => {
       for (let i = 1; i <= max; i++) {
-        const star = document.createElement("button");
-        star.type = "button";
-        star.setAttribute("aria-label", `${i} star${i > 1 ? "s" : ""}`);
-        star.style.cssText =
-          "background:none;border:none;padding:0;cursor:inherit;color:inherit;font-size:inherit;display:flex;align-items:center;";
+        const index = i;
+        const interactive = readOnly
+          ? {}
+          : {
+              onClick: () => {
+                const next = index === valueState.get() ? 0 : index;
+                valueState.set(next);
+                onChange?.(next);
+                hoveredState.set(0);
+              },
+              onMouseEnter: () => hoveredState.set(index),
+              onMouseLeave: () => hoveredState.set(0),
+              onKeyDown: (e: KeyboardEvent) => {
+                const current = valueState.get();
+                let next = current;
+                if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+                  next = Math.min(max, current + 1);
+                  e.preventDefault();
+                } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+                  next = Math.max(0, current - 1);
+                  e.preventDefault();
+                } else {
+                  return;
+                }
+                valueState.set(next);
+                onChange?.(next);
+                const target = next > 0 ? next - 1 : 0;
+                (node.domElement?.children[target] as HTMLElement)?.focus();
+              },
+            };
 
-        if (!readOnly) {
-          const index = i;
-          star.addEventListener("click", () => {
-            const next = index === current ? 0 : index;
-            current = next;
-            valueState.set(next);
-            onChange?.(next);
-            hovered = 0;
-            render();
-          });
-          star.addEventListener("mouseenter", () => {
-            hovered = index;
-            render();
-          });
-          star.addEventListener("mouseleave", () => {
-            hovered = 0;
-            render();
-          });
-          star.addEventListener("keydown", (e: KeyboardEvent) => {
-            let next = current;
-            if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-              next = Math.min(max, current + 1);
-              e.preventDefault();
-            } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-              next = Math.max(0, current - 1);
-              e.preventDefault();
-            } else {
-              return;
-            }
-            current = next;
-            valueState.set(next);
-            onChange?.(next);
-            render();
-            const target = next > 0 ? next - 1 : 0;
-            (container.children[target] as HTMLElement)?.focus();
-          });
-        }
-        container.appendChild(star);
+        const star: DomphyElement<"button"> = {
+          button: (listener) =>
+            index <= activeCount(listener) ? STAR_FILLED : STAR_EMPTY,
+          _key: index,
+          type: "button",
+          ariaLabel: `${index} star${index > 1 ? "s" : ""}`,
+          ...interactive,
+          style: {
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "inherit",
+            color: "inherit",
+            fontSize: "inherit",
+            display: "flex",
+            alignItems: "center",
+          },
+        };
+        node.children.insert(star);
       }
-      render();
-
-      const release = valueState.addListener((v) => {
-        current = v;
-        if (hovered === 0) render();
-      });
-      node.addHook("Remove", release);
     },
   };
 }

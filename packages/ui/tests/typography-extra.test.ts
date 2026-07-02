@@ -154,14 +154,13 @@ describe("listItemButton", () => {
       button: "Action",
       $: [listItemButton()],
     } as DomphyElement);
-    // cursor is applied as an element attribute (sibling of style), not CSS.
-    expect(host.querySelector("button")?.getAttribute("cursor")).toBe(
-      "pointer",
-    );
+    // cursor is a real CSS property (nested inside style), not an HTML attribute.
+    expect(host.querySelector("button")?.getAttribute("cursor")).toBeNull();
     const css = cssOf({
       button: "Action",
       $: [listItemButton()],
     } as DomphyElement);
+    expect(css).toContain("cursor: pointer");
     // The hover selector is emitted (with the native :not([disabled]) guard).
     expect(css).toContain(":hover");
   });

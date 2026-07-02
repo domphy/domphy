@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { DomphyElement } from "@domphy/core";
-import { ElementNode, toState } from "@domphy/core";
+import { ElementNode, flushSync, toState } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -10,6 +10,7 @@ import {
   card,
   code,
   heading,
+  inputPassword,
   link,
   paragraph,
 } from "../src/index.ts";
@@ -144,6 +145,31 @@ describe("UI patches: SSR generate + hydrate", () => {
     expect(ruleFor(styleEl, token)?.style.backgroundColor).toContain(
       "var(--danger-",
     );
+  });
+
+  it("inputPassword renders its input/toggle markup in generateHTML() (not only via imperative _onMount DOM mutation)", () => {
+    const html = new ElementNode({
+      div: null,
+      $: [inputPassword()],
+    } as DomphyElement).generateHTML();
+    expect(html).toContain('type="password"');
+    expect(html.match(/<button/g)?.length).toBe(1);
+  });
+
+  it("inputPassword toggle button flips the input type after hydration", () => {
+    const { rootEl } = hydrate({
+      div: null,
+      $: [inputPassword()],
+    } as DomphyElement);
+    const field = rootEl.querySelector("input")!;
+    const toggle = rootEl.querySelector("button")!;
+    expect(field.type).toBe("password");
+    toggle.click();
+    flushSync();
+    expect(field.type).toBe("text");
+    toggle.click();
+    flushSync();
+    expect(field.type).toBe("password");
   });
 
   it("card composes a slot subtree that hydrates with intact children", () => {

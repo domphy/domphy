@@ -1,4 +1,4 @@
-import type { PartialElement, StyleObject } from "@domphy/core";
+import type { DomphyElement, PartialElement, StyleObject } from "@domphy/core";
 import { toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
@@ -48,6 +48,7 @@ function inputPassword(
 ): PartialElement {
   const colorState = toState(props.color ?? "neutral", "color");
   const accentState = toState(props.accentColor ?? "primary", "accentColor");
+  const visibleState = toState(false);
 
   return {
     _onInsert: (node) => {
@@ -55,43 +56,47 @@ function inputPassword(
         console.warn('"inputPassword" patch must use div tag');
       }
     },
-    _onMount: (node) => {
-      const wrapper = node.domElement as HTMLElement;
-      let visible = false;
-
-      const input = document.createElement("input");
-      input.type = "password";
-      // Reset native input styles; inherit font/color from the wrapper.
-      input.style.cssText =
-        "flex:1;min-width:0;border:none;outline:none;background:transparent;" +
-        "padding:0;margin:0;font:inherit;color:inherit;";
-
-      const toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.setAttribute("aria-label", "Show password");
-      // Reset button styles; color inherits from wrapper.
-      toggle.style.cssText =
-        "background:none;border:none;padding:0;margin:0;cursor:pointer;" +
-        "color:inherit;display:flex;align-items:center;flex-shrink:0;opacity:0.6;";
-      toggle.innerHTML = EYE_SVG;
-
-      const onToggle = () => {
-        visible = !visible;
-        input.type = visible ? "text" : "password";
-        toggle.innerHTML = visible ? EYE_OFF_SVG : EYE_SVG;
-        toggle.setAttribute(
-          "aria-label",
-          visible ? "Hide password" : "Show password",
-        );
+    // Build the input/toggle as real child elements (not imperative DOM
+    // mutation in _onMount) so generateHTML()/SSR emits the actual markup.
+    _onInit: (node) => {
+      const field: DomphyElement<"input"> = {
+        input: null,
+        type: (l) => (visibleState.get(l) ? "text" : "password"),
+        style: {
+          flex: 1,
+          minWidth: 0,
+          border: "none",
+          outline: "none",
+          backgroundColor: "transparent",
+          padding: 0,
+          margin: 0,
+          font: "inherit",
+          color: "inherit",
+        },
       };
-      toggle.addEventListener("click", onToggle);
 
-      wrapper.appendChild(input);
-      wrapper.appendChild(toggle);
+      const toggle: DomphyElement<"button"> = {
+        button: (l) => (visibleState.get(l) ? EYE_OFF_SVG : EYE_SVG),
+        type: "button",
+        ariaLabel: (l) =>
+          visibleState.get(l) ? "Hide password" : "Show password",
+        onClick: () => visibleState.set(!visibleState.get()),
+        style: {
+          background: "none",
+          border: "none",
+          padding: 0,
+          margin: 0,
+          cursor: "pointer",
+          color: "inherit",
+          display: "flex",
+          alignItems: "center",
+          flexShrink: 0,
+          opacity: 0.6,
+        },
+      };
 
-      node.addHook("Remove", () => {
-        toggle.removeEventListener("click", onToggle);
-      });
+      node.children.insert(field);
+      node.children.insert(toggle);
     },
     style: {
       display: "flex",

@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 type PhysicalPlacement = "left" | "right" | "top" | "bottom";
 type Placement = PhysicalPlacement | "start" | "end";
@@ -114,13 +115,17 @@ function drawer(
       }
 
       let closing = false;
+      let scrollLocked = false;
       let closeTimer: ReturnType<typeof setTimeout> | null = null;
       const finishClose = () => {
         closeTimer = null;
         if (!closing) return;
         closing = false;
         dlg.close();
-        document.body.style.overflow = "";
+        if (scrollLocked) {
+          unlockScroll();
+          scrollLocked = false;
+        }
       };
 
       const onTransitionEnd = (e: Event) => {
@@ -134,7 +139,10 @@ function drawer(
         if (val) {
           closing = false;
           dlg.showModal();
-          document.body.style.overflow = "hidden";
+          if (!scrollLocked) {
+            lockScroll();
+            scrollLocked = true;
+          }
           requestAnimationFrame(() => {
             dlg.style.transform = "translate(0, 0)";
           });
@@ -154,7 +162,10 @@ function drawer(
         release();
         dlg.removeEventListener("cancel", onCancel);
         dlg.removeEventListener("transitionend", onTransitionEnd);
-        document.body.style.overflow = "";
+        if (scrollLocked) {
+          unlockScroll();
+          scrollLocked = false;
+        }
       });
     },
     style: {

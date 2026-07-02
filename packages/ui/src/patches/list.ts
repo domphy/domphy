@@ -70,8 +70,8 @@ function listItemButton(
   const { dense = false } = props;
 
   return {
-    cursor: "pointer",
     style: {
+      cursor: "pointer",
       appearance: "none",
       border: "none",
       background: "transparent",

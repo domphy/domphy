@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 
 import type { DomphyElement } from "@domphy/core";
-import { ElementNode, toState } from "@domphy/core";
+import { ElementNode, flushSync, toState } from "@domphy/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dialog } from "../src/index.ts";
+import { _resetScrollLock } from "../src/utils/scrollLock.ts";
 
 function render(App: DomphyElement) {
   const host = document.createElement("div");
@@ -34,6 +35,7 @@ beforeEach(() => {
 afterEach(() => {
   document.body.innerHTML = "";
   document.body.style.overflow = "";
+  _resetScrollLock();
 });
 
 describe("dialog cleanup on removal", () => {
@@ -50,6 +52,38 @@ describe("dialog cleanup on removal", () => {
     node.remove();
     expect(document.body.style.overflow).toBe(""); // restored on removal
     expect(listenerCount(open)).toBe(0); // listener released, no leak
+  });
+});
+
+describe("dialog transitionend bubble guard", () => {
+  it("ignores a transitionend bubbled from nested content while closing, but finalizes on its own", () => {
+    const open = toState(true, "dlgOpenGuard");
+    const App = {
+      div: [{ dialog: [{ span: "nested" }], $: [dialog({ open })] }],
+    } as DomphyElement;
+    const { host, node } = render(App);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+    const nested = host.querySelector("span")!;
+
+    open.set(false); // starts closing: opacity -> 0, closing = true
+    flushSync();
+
+    // A transitionend bubbling up from nested content (e.g. an accordion/
+    // details transition inside the dialog) must not finalize the close.
+    const bubbled = new Event("transitionend", { bubbles: true }) as any;
+    bubbled.propertyName = "opacity";
+    nested.dispatchEvent(bubbled);
+    expect(dlg.open).toBe(true);
+    expect(document.body.style.overflow).toBe("hidden");
+
+    // The dialog's own opacity transitionend still finalizes the close.
+    const own = new Event("transitionend") as any;
+    own.propertyName = "opacity";
+    dlg.dispatchEvent(own);
+    expect(dlg.open).toBe(false);
+    expect(document.body.style.overflow).toBe("");
+
+    node.remove();
   });
 });
 

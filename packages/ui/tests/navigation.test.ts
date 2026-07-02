@@ -403,6 +403,28 @@ describe("pagination", () => {
     expect(page.get()).toBe(3);
   });
 
+  it("navigating between pages with total > 7 (item count changes) does not warn about unkeyed list length changes", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const page = toState(1, "pageManyTotal");
+    const { host } = render({
+      div: null,
+      $: [pagination({ total: 10, value: page })],
+    } as DomphyElement);
+    // page 1 renders fewer items (getPages(1,10) = [1,2,...,10], 4 page items)
+    // than page 5 (getPages(5,10) = [1,...,4,5,6,...,10], 7 page items) — the
+    // reactive item array's length genuinely changes across this navigation.
+    page.set(5);
+    const next = host.querySelector<HTMLButtonElement>(
+      "button[aria-label='Next page']",
+    )!;
+    next.click();
+    expect(
+      warn.mock.calls.some((call) =>
+        String(call[0]).includes("unkeyed list length changed"),
+      ),
+    ).toBe(false);
+  });
+
   it("warns when applied to non-div tag", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     // _onInsert fires only on children (not the render root), so wrap in a parent
