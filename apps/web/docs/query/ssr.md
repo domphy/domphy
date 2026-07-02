@@ -35,12 +35,19 @@ async function renderPage() {
 <head><style id="domphy-style">${css}</style></head>
 <body>
     <div id="app">${html}</div>
-    <script>window.__QUERY_STATE__ = ${JSON.stringify(dehydratedState)}</script>
+    <script>window.__QUERY_STATE__ = ${serializeData(dehydratedState)}</script>
     <script type="module" src="/client.js"></script>
 </body>
 </html>`
 }
+
+/** JSON with `</script>`-safe escaping so the payload can be inlined. */
+function serializeData(data: unknown): string {
+    return JSON.stringify(data).replace(/</g, "\\u003c")
+}
 ```
+
+Never interpolate `JSON.stringify(...)` directly into an inline `<script>` block — if any cached string contains the literal substring `</script>`, it closes the tag early and whatever follows is parsed as HTML, not JavaScript. Escaping every `<` to the literal six-character sequence backslash-u-0-0-3-c (as above) neutralizes `</script>` and `<!--` alike, because the browser's JS parser decodes that escape back to `<` inside the string literal, while the HTML tokenizer never sees a raw `<` to break the tag on.
 
 Create one `QueryClient` **per request**. A module-level client on the server would leak data between users.
 

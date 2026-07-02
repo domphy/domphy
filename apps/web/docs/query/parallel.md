@@ -16,8 +16,8 @@ import { createQuery } from "@domphy/query/domphy"
 const queryClient = new QueryClient()
 
 // These two queries fire in parallel
-const user    = createQuery(queryClient, { queryKey: () => ["user", userId],  queryFn: () => fetchUser(userId) })
-const profile = createQuery(queryClient, { queryKey: () => ["profile", userId], queryFn: () => fetchProfile(userId) })
+const user    = createQuery(queryClient, { queryKey: ["user", userId],  queryFn: () => fetchUser(userId) })
+const profile = createQuery(queryClient, { queryKey: ["profile", userId], queryFn: () => fetchProfile(userId) })
 
 const Dashboard = {
   div: (l) => {
@@ -42,9 +42,9 @@ Run multiple queries in parallel by creating each independently — they all sta
 const queryClient = new QueryClient()
 
 // Run multiple queries in parallel — each is independent
-const user   = createQuery(queryClient, { queryKey: () => ["user", userId], queryFn: () => fetchUser(userId) })
-const posts  = createQuery(queryClient, { queryKey: () => ["posts", userId], queryFn: () => fetchPosts(userId) })
-const friends = createQuery(queryClient, { queryKey: () => ["friends", userId], queryFn: () => fetchFriends(userId) })
+const user   = createQuery(queryClient, { queryKey: ["user", userId], queryFn: () => fetchUser(userId) })
+const posts  = createQuery(queryClient, { queryKey: ["posts", userId], queryFn: () => fetchPosts(userId) })
+const friends = createQuery(queryClient, { queryKey: ["friends", userId], queryFn: () => fetchFriends(userId) })
 ```
 
 ## Dependent queries
@@ -55,14 +55,21 @@ A query that depends on another query's result. Use `enabled` to prevent firing 
 const queryClient = new QueryClient()
 
 const user = createQuery(queryClient, {
-  queryKey: () => ["user"],
+  queryKey: ["user"],
   queryFn: fetchCurrentUser,
 })
 
 const permissions = createQuery(queryClient, {
-  queryKey: () => ["permissions", user.data()?.id],
+  queryKey: ["permissions", user.data()?.id],
   queryFn: () => fetchPermissions(user.data()!.id),
   enabled: () => !!user.data()?.id,   // only runs when user.data().id exists
+})
+
+// `queryKey` is only read once, at creation time — re-key `permissions`
+// once the user id becomes available.
+user.state.addListener("data", () => {
+  const id = user.data()?.id
+  if (id) permissions.setOptions({ queryKey: ["permissions", id], queryFn: () => fetchPermissions(id), enabled: true })
 })
 ```
 
@@ -76,18 +83,28 @@ Chain three or more queries:
 ```ts
 const queryClient = new QueryClient()
 
-const org = createQuery(queryClient, { queryKey: () => ["org"], queryFn: fetchOrg })
+const org = createQuery(queryClient, { queryKey: ["org"], queryFn: fetchOrg })
 
 const teams = createQuery(queryClient, {
-  queryKey: () => ["teams", org.data()?.id],
+  queryKey: ["teams", org.data()?.id],
   queryFn: () => fetchTeams(org.data()!.id),
   enabled: () => !!org.data()?.id,
 })
 
+org.state.addListener("data", () => {
+  const id = org.data()?.id
+  if (id) teams.setOptions({ queryKey: ["teams", id], queryFn: () => fetchTeams(id), enabled: true })
+})
+
 const members = createQuery(queryClient, {
-  queryKey: () => ["members", teams.data()?.[0]?.id],
+  queryKey: ["members", teams.data()?.[0]?.id],
   queryFn: () => fetchMembers(teams.data()![0].id),
   enabled: () => !!teams.data()?.[0]?.id,
+})
+
+teams.state.addListener("data", () => {
+  const id = teams.data()?.[0]?.id
+  if (id) members.setOptions({ queryKey: ["members", id], queryFn: () => fetchMembers(id), enabled: true })
 })
 ```
 
@@ -98,9 +115,9 @@ Aggregate results from multiple queries:
 ```ts
 const queryClient = new QueryClient()
 
-const users   = createQuery(queryClient, { queryKey: () => ["users"],   queryFn: fetchUsers })
-const groups  = createQuery(queryClient, { queryKey: () => ["groups"],  queryFn: fetchGroups })
-const settings = createQuery(queryClient, { queryKey: () => ["settings"], queryFn: fetchSettings })
+const users   = createQuery(queryClient, { queryKey: ["users"],   queryFn: fetchUsers })
+const groups  = createQuery(queryClient, { queryKey: ["groups"],  queryFn: fetchGroups })
+const settings = createQuery(queryClient, { queryKey: ["settings"], queryFn: fetchSettings })
 
 const isAllLoaded = computed(() =>
   !users.isPending() && !groups.isPending() && !settings.isPending()
@@ -152,7 +169,7 @@ Show a subtle indicator when data is being refreshed in the background (stale-wh
 const queryClient = new QueryClient()
 
 const posts = createQuery(queryClient, {
-  queryKey: () => ["posts"],
+  queryKey: ["posts"],
   queryFn: fetchPosts,
   staleTime: 30_000,   // fresh for 30 seconds
 })
@@ -186,7 +203,7 @@ Seed a query's cache before it mounts — useful for data from SSR or a previous
 const queryClient = new QueryClient()
 
 const post = createQuery(queryClient, {
-  queryKey: () => ["post", postId],
+  queryKey: ["post", postId],
   queryFn: () => fetchPost(postId),
   initialData: () => queryClient.getQueryData(["post", postId]),   // from cache if available
   initialDataUpdatedAt: () => queryClient.getQueryState(["post", postId])?.dataUpdatedAt,
@@ -199,7 +216,7 @@ Or inject static data (marks as stale immediately so it refetches):
 const queryClient = new QueryClient()
 
 const config = createQuery(queryClient, {
-  queryKey: () => ["config"],
+  queryKey: ["config"],
   queryFn: fetchConfig,
   initialData: window.__INITIAL_CONFIG__,   // injected by server
   staleTime: 10_000,
@@ -214,7 +231,7 @@ Show placeholder content while the real data loads (no loading spinner needed):
 const queryClient = new QueryClient()
 
 const post = createQuery(queryClient, {
-  queryKey: () => ["post", postId],
+  queryKey: ["post", postId],
   queryFn: () => fetchPost(postId),
   placeholderData: {
     id: postId,
@@ -244,9 +261,18 @@ const queryClient = new QueryClient()
 const page = toState(1)
 
 const posts = createQuery(queryClient, {
-  queryKey: () => ["posts", page.get()],
+  queryKey: ["posts", page.get()],
   queryFn: () => fetchPage(page.get()),
   placeholderData: keepPreviousData,   // shows page N while page N+1 loads
+})
+
+// Re-key `posts` whenever `page` changes
+page.addListener(() => {
+  posts.setOptions({
+    queryKey: ["posts", page.get()],
+    queryFn: () => fetchPage(page.get()),
+    placeholderData: keepPreviousData,
+  })
 })
 ```
 

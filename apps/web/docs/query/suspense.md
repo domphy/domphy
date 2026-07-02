@@ -18,7 +18,7 @@ import { createQuery } from "@domphy/query/domphy"
 const queryClient = new QueryClient()
 
 const user = createQuery(queryClient, {
-  queryKey: () => ["user"],
+  queryKey: ["user"],
   queryFn: fetchUser,
 })
 
@@ -39,7 +39,7 @@ When `throwOnError: true`, a query error is thrown into the Domphy element tree.
 const queryClient = new QueryClient()
 
 const user = createQuery(queryClient, {
-  queryKey: () => ["user"],
+  queryKey: ["user"],
   queryFn: fetchUser,
   throwOnError: true,   // throw errors into the element tree
 })
@@ -65,7 +65,7 @@ Use `suspense: true` to make the query participate in a Domphy-managed pending s
 const queryClient = new QueryClient()
 
 const post = createQuery(queryClient, {
-  queryKey: () => ["post", postId],
+  queryKey: ["post", postId],
   queryFn: () => fetchPost(postId),
   suspense: true,
 })
@@ -99,12 +99,12 @@ Separate critical data from non-critical data — render the page with placehold
 const queryClient = new QueryClient()
 
 const criticalData = createQuery(queryClient, {
-  queryKey: () => ["page", id],
+  queryKey: ["page", id],
   queryFn: () => fetchPage(id),
 })
 
 const slowStats = createQuery(queryClient, {
-  queryKey: () => ["stats", id],
+  queryKey: ["stats", id],
   queryFn: () => fetchStats(id),
   // Stats can be deferred — render a placeholder and update when ready
 })

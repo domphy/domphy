@@ -22,7 +22,7 @@ async function fetchUser(id: string): Promise<User> {
 const queryClient = new QueryClient()
 
 const user = createQuery(queryClient, {
-  queryKey: () => ["user", userId],
+  queryKey: ["user", userId],
   queryFn: () => fetchUser(userId),
   // No type annotation needed — data is inferred as User
 })
@@ -92,7 +92,7 @@ interface ApiError {
 const queryClient = new QueryClient()
 
 const user = createQuery<User, ApiError>(queryClient, {
-  queryKey: () => ["user"],
+  queryKey: ["user"],
   queryFn: async () => {
     const res = await fetch("/api/user")
     if (!res.ok) throw await res.json() as ApiError
@@ -146,7 +146,7 @@ interface PostPage { posts: Post[]; nextCursor: string | null }
 const queryClient = new QueryClient()
 
 const feed = createInfiniteQuery<PostPage, ApiError, PostPage, string[], string>(queryClient, {
-  queryKey: () => ["feed"],
+  queryKey: ["feed"],
   queryFn: ({ pageParam }) => fetchFeedPage(pageParam),
   initialPageParam: "",
   getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,

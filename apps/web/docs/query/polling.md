@@ -16,7 +16,7 @@ import { createQuery } from "@domphy/query/domphy"
 const queryClient = new QueryClient()
 
 const stats = createQuery(queryClient, {
-  queryKey: () => ["stats"],
+  queryKey: ["stats"],
   queryFn: fetchStats,
   refetchInterval: 5_000,   // refetch every 5 seconds
 })
@@ -32,7 +32,7 @@ Pause polling when the data has reached a terminal state:
 const queryClient = new QueryClient()
 
 const jobStatus = createQuery(queryClient, {
-  queryKey: () => ["job", jobId],
+  queryKey: ["job", jobId],
   queryFn: () => fetchJobStatus(jobId),
   refetchInterval: (query) => {
     // Stop polling when job is done or failed
@@ -51,7 +51,7 @@ By default, polling pauses when the browser tab is hidden. Enable background pol
 const queryClient = new QueryClient()
 
 const alerts = createQuery(queryClient, {
-  queryKey: () => ["alerts"],
+  queryKey: ["alerts"],
   queryFn: fetchAlerts,
   refetchInterval: 30_000,
   refetchIntervalInBackground: true,   // keep polling even when tab is hidden
@@ -66,7 +66,7 @@ When the user returns to your app (tab focus, `Alt+Tab`), stale queries automati
 const queryClient = new QueryClient()
 
 const data = createQuery(queryClient, {
-  queryKey: () => ["dashboard"],
+  queryKey: ["dashboard"],
   queryFn: fetchDashboard,
   staleTime: 60_000,           // data is fresh for 1 minute
   refetchOnWindowFocus: true,  // refetch when window regains focus (default: true)
@@ -83,7 +83,7 @@ Disable for data that shouldn't silently refresh:
 const queryClient = new QueryClient()
 
 const draftContent = createQuery(queryClient, {
-  queryKey: () => ["draft", id],
+  queryKey: ["draft", id],
   queryFn: () => fetchDraft(id),
   refetchOnWindowFocus: false,   // don't overwrite user edits on tab switch
 })
@@ -118,7 +118,7 @@ When the device goes offline and comes back online, stale queries automatically 
 const queryClient = new QueryClient()
 
 const userProfile = createQuery(queryClient, {
-  queryKey: () => ["user", userId],
+  queryKey: ["user", userId],
   queryFn: () => fetchUser(userId),
   refetchOnReconnect: true,   // default: true
 })
@@ -134,7 +134,7 @@ For data that only refreshes on explicit user action:
 const queryClient = new QueryClient()
 
 const config = createQuery(queryClient, {
-  queryKey: () => ["config"],
+  queryKey: ["config"],
   queryFn: fetchConfig,
   staleTime: Infinity,            // never goes stale
   refetchOnWindowFocus: false,    // no focus refetch
@@ -157,7 +157,7 @@ Trigger a refetch manually without invalidating the cache:
 const queryClient = new QueryClient()
 
 const feed = createQuery(queryClient, {
-  queryKey: () => ["feed"],
+  queryKey: ["feed"],
   queryFn: fetchFeed,
 })
 

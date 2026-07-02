@@ -16,7 +16,7 @@ import { createQuery } from "@domphy/query/domphy"
 const queryClient = new QueryClient()
 
 const prices = createQuery(queryClient, {
-  queryKey: () => ["prices"],
+  queryKey: ["prices"],
   queryFn: fetchPrices,
   refetchInterval: 5000,           // ms — refetch every 5 seconds
   refetchIntervalInBackground: true, // keep polling even when tab is hidden
@@ -29,7 +29,7 @@ Stop polling conditionally:
 const queryClient = new QueryClient()
 
 const job = createQuery(queryClient, {
-  queryKey: () => ["job", jobId],
+  queryKey: ["job", jobId],
   queryFn: () => fetchJob(jobId),
   refetchInterval: (query) =>
     query.state.data?.status === "done" ? false : 2000,  // stop when complete
@@ -44,14 +44,21 @@ Wait for one query's result before starting another using `enabled`:
 const queryClient = new QueryClient()
 
 const user = createQuery(queryClient, {
-  queryKey: () => ["user", userId],
+  queryKey: ["user", userId],
   queryFn: () => fetchUser(userId),
 })
 
 const posts = createQuery(queryClient, {
-  queryKey: () => ["posts", user.data()?.id],
+  queryKey: ["posts", user.data()?.id],
   queryFn: () => fetchPosts(user.data()!.id),
   enabled: () => !!user.data()?.id,    // only run when user is loaded
+})
+
+// `queryKey` above is only read once, at creation time — it does not
+// auto-track `user.data()`. Re-key `posts` once the id becomes available.
+user.state.addListener("data", () => {
+  const id = user.data()?.id
+  if (id) posts.setOptions({ queryKey: ["posts", id], queryFn: () => fetchPosts(id), enabled: true })
 })
 ```
 
@@ -68,7 +75,7 @@ import { createQuery } from "@domphy/query/domphy"
 const queryClient = new QueryClient()
 
 const profile = createQuery(queryClient, {
-  queryKey: () => ["profile", selectedId ?? skipToken],
+  queryKey: ["profile", selectedId ?? skipToken],
   queryFn: selectedId ? () => fetchProfile(selectedId) : skipToken,
 })
 ```
@@ -83,7 +90,7 @@ Transform query data in the observer without changing the cache:
 const queryClient = new QueryClient()
 
 const users = createQuery(queryClient, {
-  queryKey: () => ["users"],
+  queryKey: ["users"],
   queryFn: fetchUsers,
   select: (data) => data.filter((u) => u.active).map((u) => u.name),
 })
@@ -101,7 +108,7 @@ Override the default 3 retries:
 const queryClient = new QueryClient()
 
 const payment = createQuery(queryClient, {
-  queryKey: () => ["payment", id],
+  queryKey: ["payment", id],
   queryFn: () => processPayment(id),
   retry: (failCount, error) => {
     if ((error as any).status === 401) return false     // don't retry auth failures
@@ -159,8 +166,8 @@ When multiple observers subscribe to the same `queryKey` simultaneously, only **
 const queryClient = new QueryClient()
 
 // Both createQuery calls below share a single fetch for ["config"]
-const configA = createQuery(queryClient, { queryKey: () => ["config"], queryFn: fetchConfig })
-const configB = createQuery(queryClient, { queryKey: () => ["config"], queryFn: fetchConfig })
+const configA = createQuery(queryClient, { queryKey: ["config"], queryFn: fetchConfig })
+const configB = createQuery(queryClient, { queryKey: ["config"], queryFn: fetchConfig })
 // fetchConfig() is called once; configA and configB both resolve to the same data
 ```
 
@@ -222,9 +229,9 @@ Or create each query independently — they all run in parallel:
 const queryClient = new QueryClient()
 
 // Run multiple queries in parallel — each is independent
-const user          = createQuery(queryClient, { queryKey: () => ["user"],          queryFn: fetchUser })
-const settings      = createQuery(queryClient, { queryKey: () => ["settings"],      queryFn: fetchSettings })
-const notifications = createQuery(queryClient, { queryKey: () => ["notifications"], queryFn: fetchNotifications })
+const user          = createQuery(queryClient, { queryKey: ["user"],          queryFn: fetchUser })
+const settings      = createQuery(queryClient, { queryKey: ["settings"],      queryFn: fetchSettings })
+const notifications = createQuery(queryClient, { queryKey: ["notifications"], queryFn: fetchNotifications })
 ```
 
 ## Background refetch behavior
@@ -244,7 +251,7 @@ Disable focus refetch for static data:
 const queryClient = new QueryClient()
 
 const constants = createQuery(queryClient, {
-  queryKey: () => ["constants"],
+  queryKey: ["constants"],
   queryFn: fetchConstants,
   staleTime: Infinity,       // never stale
   refetchOnWindowFocus: false,

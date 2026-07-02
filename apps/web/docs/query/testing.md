@@ -66,7 +66,7 @@ describe("createQuery", () => {
     const mockFetchUser = vi.fn().mockResolvedValue({ id: 1, name: "Alice" })
 
     const user = createQuery(queryClient, {
-      queryKey: () => ["user", 1],
+      queryKey: ["user", 1],
       queryFn: mockFetchUser,
     })
 
@@ -90,7 +90,7 @@ it("handles fetch errors", async () => {
   const mockFetch = vi.fn().mockRejectedValue(error)
 
   const query = createQuery(queryClient, {
-    queryKey: () => ["fail"],
+    queryKey: ["fail"],
     queryFn: mockFetch,
     retry: false,
   })
@@ -137,7 +137,7 @@ it("renders user data from cache", () => {
   queryClient.setQueryData(["user", 1], { id: 1, name: "Alice" })
 
   const user = createQuery(queryClient, {
-    queryKey: () => ["user", 1],
+    queryKey: ["user", 1],
     queryFn: () => fetch("/api/users/1"),
     staleTime: Infinity,   // won't refetch — use cached value
   })
@@ -156,7 +156,7 @@ it("invalidates and refetches after mutation", async () => {
     .mockResolvedValueOnce([{ id: 1, text: "Todo 1" }, { id: 2, text: "Todo 2" }])   // after create
 
   const todos = createQuery(queryClient, {
-    queryKey: () => ["todos"],
+    queryKey: ["todos"],
     queryFn: mockFetch,
   })
 
@@ -189,7 +189,7 @@ it("refetches every 5 seconds", async () => {
   const mockFetch = vi.fn().mockResolvedValue("data")
 
   const query = createQuery(queryClient, {
-    queryKey: () => ["polling"],
+    queryKey: ["polling"],
     queryFn: mockFetch,
     refetchInterval: 5_000,
   })
@@ -227,7 +227,7 @@ afterAll(() => server.close())
 
 it("fetches user from API", async () => {
   const user = createQuery(queryClient, {
-    queryKey: () => ["user", "1"],
+    queryKey: ["user", "1"],
     queryFn: () => fetch("/api/users/1").then(r => r.json()),
   })
 
