@@ -28,7 +28,7 @@ const EXPECTED_RULES = [
   "color-shift-minimum",
 ] as const;
 
-describe("rule coverage (all 13 rules fire and no extras exist)", () => {
+describe("rule coverage (all 18 rules fire and no extras exist)", () => {
   // One input per rule. Each is the minimal tree that triggers exactly that
   // rule (plus possibly itself only). The set produced by all of them combined
   // must equal EXPECTED_RULES.
@@ -92,7 +92,7 @@ describe("rule coverage (all 13 rules fire and no extras exist)", () => {
     }
   });
 
-  it("the union of all produced rule ids equals exactly the 16 expected rules", () => {
+  it("the union of all produced rule ids equals exactly the 18 expected rules", () => {
     const produced = new Set<string>();
     for (const sample of Object.values(samplesByRule)) {
       for (const rule of rules(sample)) produced.add(rule);
@@ -566,6 +566,84 @@ describe("low-opacity rule", () => {
     expect(
       rules({ span: "x", style: { "&:hover": { opacity: "0.3" } } }),
     ).not.toContain("low-opacity");
+  });
+});
+
+describe("regression: missing-color/dataTone-surface-contract do not build a live ElementNode", () => {
+  // Regression for a bug where these two checks constructed a real, recursive
+  // ElementNode (via `new ElementNode(element)`) just to inspect a resolved
+  // style string — firing lifecycle hooks and recursing into children on a
+  // throwaway, detached subtree. Presence of `_onInit`/child hooks firing is
+  // observable proof that a live node was built.
+  it("missing-color: does not fire the element's own _onInit hook", () => {
+    let inited = false;
+    const element = {
+      div: "x",
+      style: { backgroundColor: (_l: unknown) => "var(--test-neutral-5)" },
+      _onInit: () => {
+        inited = true;
+      },
+    };
+    expect(rules(element)).toContain("missing-color");
+    expect(inited).toBe(false);
+  });
+
+  it("dataTone-surface-contract: does not fire the element's own _onInit hook", () => {
+    let inited = false;
+    const element = {
+      div: "x",
+      dataTone: "shift-0",
+      _onInit: () => {
+        inited = true;
+      },
+    };
+    expect(rules(element)).toContain("dataTone-surface-contract");
+    expect(inited).toBe(false);
+  });
+
+  it("missing-color: does not recurse into children and fire their _onInit hook", () => {
+    let childInited = false;
+    const element = {
+      div: [
+        {
+          span: "child",
+          _onInit: () => {
+            childInited = true;
+          },
+        },
+      ],
+      style: { backgroundColor: (_l: unknown) => "var(--test-neutral-5)" },
+    };
+    diagnose(element);
+    expect(childInited).toBe(false);
+  });
+});
+
+describe("regression: low-contrast only compares shift steps within the same CSS-var family", () => {
+  // Regression for a bug where extractShift() discarded the family segment of
+  // `var(--<family>-<N>)`, so two vars from unrelated families (e.g.
+  // var(--error-3) vs var(--success-9)) were compared purely on their numeric
+  // suffix — contradicting the documented "same family" requirement.
+  it("does not fire when color/backgroundColor resolve to different families", () => {
+    const element = {
+      div: "x",
+      style: {
+        color: (_l: unknown) => "var(--error-3)",
+        backgroundColor: (_l: unknown) => "var(--success-9)",
+      },
+    };
+    expect(rules(element)).not.toContain("low-contrast");
+  });
+
+  it("still fires when color/backgroundColor share a family and the shift gap is < 9", () => {
+    const element = {
+      div: "x",
+      style: {
+        color: (_l: unknown) => "var(--neutral-3)",
+        backgroundColor: (_l: unknown) => "var(--neutral-9)",
+      },
+    };
+    expect(rules(element)).toContain("low-contrast");
   });
 });
 

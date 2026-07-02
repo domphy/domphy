@@ -257,7 +257,7 @@ If a custom rule's `check` function throws, the error is caught silently and tha
 ```ts
 type Severity = "error" | "warning" | "info"
 
-type RuleCategory = "structure" | "key" | "theme" | "typography" | "data-attr"
+type RuleCategory = "structure" | "key" | "theme" | "typography" | "data-attr" | "visual"
 
 interface Diagnostic {
   rule: string          // e.g. "inline-typography"
@@ -406,6 +406,76 @@ const structural = errors.filter(d =>
   d.rule === "void-content" || d.rule === "duplicate-key"
 )
 ```
+
+---
+
+## CLI: `domphy-doctor`
+
+`@domphy/doctor` ships a `domphy-doctor` binary that scans files on disk instead of trees you import yourself — useful for a one-line CI step or a pre-commit hook.
+
+```bash
+npx domphy-doctor src/
+npx domphy-doctor src/app.ts src/pages/
+```
+
+It walks the given files/directories (skipping `node_modules`, `dist`, `.git`, `.next`, `.nuxt`, and dotfiles), imports each `.ts`/`.tsx`/`.js`/`.mjs` file, collects every exported Domphy element (including zero-arg exported factory functions, called once to get their return value), and runs `diagnose()` on each one. `.ts`/`.tsx` files require `tsx` in your `devDependencies` — without it they're skipped with a warning.
+
+```
+Usage: domphy-doctor [options] <path...>
+
+Arguments:
+  path    TS/JS file or directory to analyze (skips node_modules, dist)
+
+Options:
+  --only <rules>       Only run these rule IDs (comma-separated)
+  --exclude <rules>    Skip these rule IDs (comma-separated)
+  --no-reactive        Skip reactive function evaluation
+  --no-output          Skip Layer 4 HTML+CSS linting (htmlhint + stylelint)
+  --format text|json   Output format (default: text)
+  -h, --help           Show this help
+
+Exit codes:
+  0  No errors (warnings/info are fine)
+  1  One or more error-severity diagnostics
+  2  CLI usage error or file not found
+```
+
+```json
+// package.json
+{
+  "scripts": {
+    "lint:ui": "domphy-doctor src/"
+  }
+}
+```
+
+---
+
+## Layer 4: HTML/CSS output linting
+
+`diagnose()`/`validate()` (Layers 1–3) analyze the plain-object tree itself. `auditOutput()` is a separate, optional Layer 4: it builds an `ElementNode`, generates the actual HTML/CSS it would render, and runs it through `htmlhint` and `stylelint`. The `domphy-doctor` CLI calls it automatically for every element it collects (disable with `--no-output`); call it yourself if you're not using the CLI.
+
+```ts
+import { ElementNode } from "@domphy/core"
+import { auditOutput, format, type Layer4Options } from "@domphy/doctor"
+
+const node = new ElementNode(MyApp)
+const outputDiags = await auditOutput(node, { path: "MyApp" })
+console.log(format(outputDiags))
+```
+
+```ts
+interface Layer4Options {
+  path?: string // label prefixed to each diagnostic's path; defaults to node.tagName
+}
+
+function auditOutput(node: ElementNode, options?: Layer4Options): Promise<Diagnostic[]>
+```
+
+- **HTML** — `htmlhint` checks `node.generateHTML()` for structural/a11y issues: `alt-require`, `attr-no-duplication`, `button-type-require`, `id-unique`, `input-requires-label`, `src-not-empty`, `spec-char-escape`, `tag-no-obsolete`, `tag-pair`, `tagname-lowercase`. Diagnostics use `rule: "html/<rule-id>"`.
+- **CSS** — `stylelint` checks `node.generateCSS()` for `color-no-invalid-hex`, `declaration-no-important`, `no-duplicate-selectors`, `no-empty-source`, `length-zero-no-unit` (named colors are intentionally excluded — `raw-theme-value` already catches those at the source with better context). Diagnostics use `rule: "css/<rule-name>"`.
+- Both diagnostic kinds carry `category: "output"` and a `path` suffixed with `[html:line:col]`/`[css:line:col]`.
+- `htmlhint` and `stylelint` are optional peer dependencies, not bundled. If either isn't installed, `auditOutput()` silently returns `[]` for that linter — install what you need: `npm install --save-dev htmlhint stylelint`.
 
 ---
 

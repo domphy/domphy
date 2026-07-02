@@ -1,5 +1,4 @@
 import { cssRgbToRgb, hexToRgb, labToLch, rgbToLab } from "@domphy/palette";
-import { ElementNode } from "@domphy/core";
 import { findTag, isPlainObject, VOID } from "./shared.js";
 
 export type Severity = "error" | "warning" | "info";
@@ -34,7 +33,7 @@ export interface Diagnostic {
 
 /**
  * A custom rule that extends the doctor with project-specific checks.
- * Custom rules run alongside the 12 built-in rules; their ids must not
+ * Custom rules run alongside the built-in rules; their ids must not
  * clash with any built-in id.
  *
  * @example
@@ -94,7 +93,7 @@ export interface DiagnoseOptions {
    */
   exclude?: string[];
   /**
-   * Additional custom rules to run alongside the 12 built-in rules.
+   * Additional custom rules to run alongside the built-in rules.
    * Custom rule ids are also subject to `only`/`exclude` filtering.
    */
   rules?: CustomRule[];
@@ -339,48 +338,37 @@ function buildSpacingHint(prop: string, value: string): string | null {
   return `${prop}: themeSpacing(${n})  — themeSpacing(n)=n/4em, so ${n}/4=${n / 4}em ≈ ${value} at default density`;
 }
 
-// ─── ElementNode helpers ──────────────────────────────────────────────────────
+// ─── Style resolution helpers ─────────────────────────────────────────────────
 
 /**
- * Attempt to construct an ElementNode from a plain Domphy element.
- * Returns null on failure (hooks that touch DOM, reactive fns that throw, etc.).
- * The node is constructed without a DOM parent — safe for static analysis.
+ * Resolves a style property's value without building any live UI object: a
+ * literal string passes through; a reactive `(listener) => value` function is
+ * invoked with a bare no-op listener (the same pattern the tone-background-inherit
+ * and low-contrast checks below already use), never by constructing a real
+ * ElementNode. An earlier version built a full recursive ElementNode per element
+ * just to read one resolved string — that recurses into every descendant and
+ * fires Init/Insert lifecycle hooks on a detached subtree, and leaks a State
+ * listener per reactive prop per element visited. Returns null for non-string
+ * results, or when `runReactive` is false and the value is a function.
  */
-function tryBuildNode(element: Record<string, unknown>): ElementNode | null {
+function resolveStyleValue(value: unknown, runReactive: boolean): string | null {
+  if (typeof value === "string") return value;
+  if (typeof value !== "function" || !runReactive) return null;
   try {
-    return new ElementNode(element as any);
+    const result = (value as (l: unknown) => unknown)(() => {});
+    return typeof result === "string" ? result : null;
   } catch {
-    return null;
+    return null; // reactive fn threw without a real runtime — skip
   }
 }
 
 /**
- * Detect whether any style property on the element's main StyleRule resolves
- * to a CSS custom property (i.e., was produced by themeColor/themeSize).
- * Returns the property names that use theme vars, excluding `color` itself.
+ * True when `style` declares `prop` as an own, non-nested value — mirrors
+ * StyleList.addCSS's own split: a plain-object value under a style key is a
+ * nested selector block (e.g. `&:hover`), not a literal/reactive style value.
  */
-function themedPropsExcludingColor(node: ElementNode): string[] {
-  const rule = mainStyleRule(node);
-  if (!rule?.styleBlock) return [];
-  return Object.entries(rule.styleBlock)
-    .filter(([name, prop]) => name !== "color" && typeof prop.value === "string" && prop.value.includes("var("))
-    .map(([name]) => name);
-}
-
-/** Returns the main StyleRule for this element (its own scoped selector). */
-function mainStyleRule(node: ElementNode) {
-  const ownSelector = `.${node.tagName}_${node.nodeId}`;
-  return node.styles.items.find((r) => r.selectorText === ownSelector) ?? null;
-}
-
-/** True if the element's main rule has an explicit `color` property. */
-function hasColorProp(node: ElementNode): boolean {
-  return !!mainStyleRule(node)?.styleBlock?.["color"];
-}
-
-/** True if the element's main rule has an explicit `backgroundColor` property. */
-function hasBgProp(node: ElementNode): boolean {
-  return !!mainStyleRule(node)?.styleBlock?.["backgroundColor"];
+function hasStyleProp(style: Record<string, unknown>, prop: string): boolean {
+  return prop in style && !isPlainObject(style[prop]);
 }
 
 /**
@@ -740,10 +728,17 @@ function walk(
   // inheritance carries the COMPUTED value from the parent; it does not re-run
   // themeColor() when the tone context shifts, so the text can mismatch its surface.
   {
-    const node = tryBuildNode(element);
-    if (node) {
-      const themedProps = themedPropsExcludingColor(node);
-      if (themedProps.length > 0 && !hasColorProp(node)) {
+    const styleForColorCheck = isPlainObject(element.style)
+      ? (element.style as Record<string, unknown>)
+      : null;
+    if (styleForColorCheck) {
+      const themedProps: string[] = [];
+      for (const prop in styleForColorCheck) {
+        if (prop === "color" || prop.startsWith("&") || prop.startsWith(":")) continue;
+        const resolved = resolveStyleValue(styleForColorCheck[prop], runReactive);
+        if (resolved && resolved.includes("var(")) themedProps.push(prop);
+      }
+      if (themedProps.length > 0 && !hasStyleProp(styleForColorCheck, "color")) {
         elementDiags.push({
           rule: "missing-color",
           severity: "warning",
@@ -775,24 +770,27 @@ function walk(
         bgVar = (bgFn as (l: unknown) => unknown)(() => {});
       } catch { /* reactive fn threw without a runtime — skip */ }
 
-      const extractShift = (v: unknown): number | null => {
+      // Captures both the CSS-var family (e.g. "neutral") and the numeric shift,
+      // so two vars from different families (var(--error-3) vs var(--success-9))
+      // are never compared — only same-family shifts are a real contrast signal.
+      const extractShift = (v: unknown): { family: string; shift: number } | null => {
         if (typeof v !== "string") return null;
-        const match = v.match(/var\(--[\w-]+-(\d+)\)$/);
-        return match ? parseInt(match[1], 10) : null;
+        const match = v.match(/var\(--([\w-]+)-(\d+)\)$/);
+        return match ? { family: match[1], shift: parseInt(match[2], 10) } : null;
       };
 
       const textShift = extractShift(colorVar);
       const bgShift = extractShift(bgVar);
 
-      if (textShift !== null && bgShift !== null) {
-        const diff = Math.abs(textShift - bgShift);
+      if (textShift && bgShift && textShift.family === bgShift.family) {
+        const diff = Math.abs(textShift.shift - bgShift.shift);
         if (diff < 9) {
           elementDiags.push({
             rule: "low-contrast",
             severity: "warning",
             category: "theme",
             path: here,
-            message: `Text/background shift gap is ${diff} (shift-${textShift} vs shift-${bgShift}) — contrast may be insufficient.`,
+            message: `Text/background shift gap is ${diff} (shift-${textShift.shift} vs shift-${bgShift.shift}) — contrast may be insufficient.`,
             hint: `Aim for ≥9 shift steps between text and surface. E.g. shift-0 bg + shift-9 text, or shift-11 text on a shift-0 surface. Increase the gap or rely on a parent dataTone to open it.`,
           });
         }
@@ -838,41 +836,42 @@ function walk(
   // relying on CSS inheritance from a different context). "inherit" is exempt —
   // it passes the parent context through without creating a new surface.
   if (typeof dataTone === "string" && dataTone !== "inherit" && isValidTone(dataTone)) {
-    const node = tryBuildNode(element);
-    if (node) {
-      const missingBg = !hasBgProp(node);
-      const missingColor = !hasColorProp(node);
-      if (missingBg || missingColor) {
-        const missing = [
-          missingBg ? "backgroundColor" : null,
-          missingColor ? "color" : null,
-        ].filter(Boolean).join(" and ");
+    const styleForToneCheck = isPlainObject(element.style)
+      ? (element.style as Record<string, unknown>)
+      : null;
+    const missingBg = !styleForToneCheck || !hasStyleProp(styleForToneCheck, "backgroundColor");
+    const missingColor = !styleForToneCheck || !hasStyleProp(styleForToneCheck, "color");
+    if (missingBg || missingColor) {
+      const missing = [
+        missingBg ? "backgroundColor" : null,
+        missingColor ? "color" : null,
+      ].filter(Boolean).join(" and ");
+      elementDiags.push({
+        rule: "dataTone-surface-contract",
+        severity: "warning",
+        category: "theme",
+        path: here,
+        message: `\`dataTone: "${dataTone}"\` creates a new tone surface but \`style.${missing}\` is missing — children cannot guarantee readable contrast.`,
+        hint: `Surface contract: set \`backgroundColor: (l) => themeColor(l, "inherit")\`${missingColor ? ` and \`color: (l) => themeColor(l, "shift-9")\`` : ""} so the surface is fully defined at the new tone.`,
+      });
+    }
+
+    // color-shift-minimum: when color IS set, verify its resolved tone step is ≥ 9
+    // (minimum legibility against any standard surface). Extracted from the CSS var
+    // that themeColor() emits; skipped if the value isn't a recognizable theme var,
+    // or if `runReactive` is false and color is a reactive function.
+    if (!missingColor && styleForToneCheck) {
+      const colorValue = resolveStyleValue(styleForToneCheck.color, runReactive);
+      const step = colorValue !== null ? extractToneStep(colorValue) : null;
+      if (step !== null && step < 9) {
         elementDiags.push({
-          rule: "dataTone-surface-contract",
+          rule: "color-shift-minimum",
           severity: "warning",
           category: "theme",
           path: here,
-          message: `\`dataTone: "${dataTone}"\` creates a new tone surface but \`style.${missing}\` is missing — children cannot guarantee readable contrast.`,
-          hint: `Surface contract: set \`backgroundColor: (l) => themeColor(l, "inherit")\`${missingColor ? ` and \`color: (l) => themeColor(l, "shift-9")\`` : ""} so the surface is fully defined at the new tone.`,
+          message: `\`style.color\` resolves to tone step ${step} — below the minimum shift-9 required for legible text on a standard surface.`,
+          hint: "Use at least `themeColor(l, \"shift-9\")` for body text. Decorative / secondary text may use shift-7 or shift-8 with explicit justification.",
         });
-      }
-
-      // color-shift-minimum: when color IS set, verify its resolved tone step is ≥ 9
-      // (minimum legibility against any standard surface). Extracted from the CSS var
-      // that themeColor() emits; skipped if the value isn't a recognizable theme var.
-      if (!missingColor) {
-        const colorValue = mainStyleRule(node)?.styleBlock?.["color"]?.value;
-        const step = typeof colorValue === "string" ? extractToneStep(colorValue) : null;
-        if (step !== null && step < 9) {
-          elementDiags.push({
-            rule: "color-shift-minimum",
-            severity: "warning",
-            category: "theme",
-            path: here,
-            message: `\`style.color\` resolves to tone step ${step} — below the minimum shift-9 required for legible text on a standard surface.`,
-            hint: "Use at least `themeColor(l, \"shift-9\")` for body text. Decorative / secondary text may use shift-7 or shift-8 with explicit justification.",
-          });
-        }
       }
     }
   }

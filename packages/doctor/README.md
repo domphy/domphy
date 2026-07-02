@@ -78,6 +78,27 @@ The doctor implements 18 rules:
 
 By default the doctor **invokes reactive content functions** with a no-op listener to inspect their output (this is how `missing-key` is detected). Pass `{ runReactive: false }` if your reactive functions have side effects.
 
+## CLI
+
+`@domphy/doctor` ships a `domphy-doctor` binary that scans `.ts`/`.tsx`/`.js`/`.mjs` files or directories, extracts every exported Domphy element, and runs `diagnose()` on each:
+
+```bash
+npx domphy-doctor src/
+```
+
+Flags: `--only <rules>`, `--exclude <rules>`, `--no-reactive`, `--no-output` (skip Layer 4, see below), `--format text|json`. Exit code `1` when any error-severity diagnostic is found, `2` on a CLI/usage error. See the [configuration docs](https://domphy.com/docs/doctor/configuration) for the full flag reference.
+
+## Layer 4: HTML/CSS output linting
+
+`auditOutput(node, options?)` is an optional fourth layer: it builds the real HTML/CSS a Domphy `ElementNode` would render and runs it through `htmlhint` (structural/a11y) and `stylelint` (CSS quality). Both linters are optional peer deps — `npm install --save-dev htmlhint stylelint` to enable them; `auditOutput()` silently skips a linter that isn't installed. The `domphy-doctor` CLI calls this automatically (disable with `--no-output`).
+
+```ts
+import { ElementNode } from "@domphy/core"
+import { auditOutput, type Layer4Options } from "@domphy/doctor"
+
+const diags = await auditOutput(new ElementNode(MyApp), { path: "MyApp" })
+```
+
 ## For AI agents
 
 Run `diagnose()` on generated Domphy code and feed `format()` back to the model — it will fix the issues itself. This is the self-correction loop that lets agents write correct Domphy despite having little training data for it. See the repo `AGENTS.md` and [`llms.txt`](https://domphy.com/llms.txt) for the rules the doctor enforces.
