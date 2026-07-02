@@ -89,4 +89,6 @@ t("nav.missing")  // ✗ TypeScript error
 | `getLocale` | `() → TLocale` | Current locale (non-reactive) |
 | `detectLocale` | `(opts?) → TLocale` | Detect locale from URL/localStorage |
 
+`createI18n` also accepts an optional `interpolation: { escapeValue?: boolean }` — defaults to `true` (i18next's own safe default, HTML-escapes interpolated values); pass `false` to disable escaping globally.
+
 See the [full API reference](https://domphy.com/docs/i18n/api) for details.

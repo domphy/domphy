@@ -125,6 +125,8 @@ t("linkText", { url: "https://domphy.com", interpolation: { escapeValue: false }
 
 > Only disable escaping for translations you control — never for user-supplied content.
 
+Escaping is on by default globally too — `createI18n`'s `interpolation` option lets you flip the default for the whole instance (`interpolation: { escapeValue: false }`), but per-call overrides via `t(key, { interpolation: { escapeValue } })` are almost always the safer, more targeted choice.
+
 ## Context (gender / form variants)
 
 Use `context` to select a translation variant based on gender or other categorical data:

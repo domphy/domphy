@@ -167,4 +167,50 @@ describe("detectLocale()", () => {
     });
     expect(locale).toBe("en");
   });
+
+  it("ignores inherited Object.prototype keys (e.g. 'constructor') as locale matches", () => {
+    localStorage.setItem("lang", "constructor");
+    const i18n = makeI18n();
+    const locale = i18n.detectLocale({
+      storageKey: "lang",
+      pathSegment: false,
+    });
+    expect(locale).toBe("en");
+  });
+});
+
+describe("interpolation escaping", () => {
+  it("escapes HTML in interpolated values by default (i18next's own safe default)", async () => {
+    const i18n = makeI18n();
+    await i18n.initI18n("en");
+    expect(i18n.t("greeting", { name: "<b>Alice</b>" })).toBe(
+      "Hello, &lt;b&gt;Alice&lt;&#x2F;b&gt;!",
+    );
+  });
+
+  it("honors an explicit interpolation.escapeValue:false override", async () => {
+    counter++;
+    const i18n = createI18n<"en" | "vi", typeof en>({
+      globalKey: `__test_i18n_${counter}__`,
+      namespace: "app",
+      locales: { en, vi },
+      defaultLocale: "en",
+      interpolation: { escapeValue: false },
+    });
+    await i18n.initI18n("en");
+    expect(i18n.t("greeting", { name: "<b>Alice</b>" })).toBe(
+      "Hello, <b>Alice</b>!",
+    );
+  });
+});
+
+describe("concurrent initI18n() / setLocale()", () => {
+  it("does not let a racing setLocale() get clobbered by the original initI18n()'s locale", async () => {
+    const i18n = makeI18n();
+    await Promise.all([i18n.initI18n("en"), i18n.setLocale("vi")]);
+    // getLocale() (reads instance.language) and currentLocale() (reads the
+    // reactive store) must agree — the race used to leave them inconsistent.
+    expect(i18n.getLocale()).toBe("vi");
+    expect(i18n.currentLocale(() => {})).toBe("vi");
+  });
 });

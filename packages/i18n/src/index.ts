@@ -38,6 +38,8 @@ export interface CreateI18nOptions<TLocale extends string> {
   locales: Record<TLocale, Record<string, unknown>>;
   /** Locale used before initI18n / detectLocale is called. */
   defaultLocale: TLocale;
+  /** i18next interpolation options. `escapeValue` defaults to `true` (i18next's own safe default); pass `false` to opt out globally. */
+  interpolation?: { escapeValue?: boolean };
 }
 
 export interface I18nInstance<TKey extends string, TLocale extends string> {
@@ -61,6 +63,9 @@ interface Store<TLocale extends string> {
   instance: i18n;
   localeState: ReturnType<typeof toState<TLocale>>;
   initialized: boolean;
+  // In-flight init() promise — lets concurrent initI18n()/setLocale() calls
+  // await the same init instead of racing store.initialized.
+  initPromise?: Promise<void>;
 }
 
 function getOrCreateStore<TLocale extends string>(
@@ -86,7 +91,9 @@ export function createI18n<
 >(
   options: CreateI18nOptions<TLocale>,
 ): I18nInstance<Extract<keyof FlattenKeys<TMessages>, string>, TLocale> {
-  const { globalKey, namespace, locales, defaultLocale } = options;
+  const { globalKey, namespace, locales, defaultLocale, interpolation } =
+    options;
+  const localeKeys = new Set(Object.keys(locales));
 
   const resources = Object.fromEntries(
     Object.entries(locales).map(([locale, messages]) => [
@@ -105,17 +112,31 @@ export function createI18n<
       await setLocale(locale);
       return;
     }
-    store.initialized = true;
-    await store.instance.init({
-      lng: locale,
-      fallbackLng: defaultLocale,
-      defaultNS: namespace,
-      ns: [namespace],
-      interpolation: { escapeValue: false },
-      resources,
-      initImmediate: false,
-    });
-    store.localeState.set(locale);
+    // Await the in-flight init instead of starting a second one — otherwise a
+    // concurrent call could flip store.initialized early and clobber locale.
+    if (store.initPromise) {
+      await store.initPromise;
+      return setLocale(locale);
+    }
+    store.initPromise = store.instance
+      .init({
+        lng: locale,
+        fallbackLng: defaultLocale,
+        defaultNS: namespace,
+        ns: [namespace],
+        interpolation: { escapeValue: true, ...interpolation },
+        resources,
+        initImmediate: false,
+      })
+      .then(() => {
+        store.initialized = true;
+        store.localeState.set(locale);
+      })
+      .catch((error) => {
+        store.initPromise = undefined;
+        throw error;
+      });
+    await store.initPromise;
   }
 
   async function setLocale(locale: TLocale): Promise<void> {
@@ -131,7 +152,7 @@ export function createI18n<
 
   function getLocale(): TLocale {
     const lang = getStore().instance.language;
-    return (lang in locales ? lang : defaultLocale) as TLocale;
+    return (localeKeys.has(lang) ? lang : defaultLocale) as TLocale;
   }
 
   function detectLocale(opts: DetectOptions = {}): TLocale {
@@ -139,7 +160,7 @@ export function createI18n<
     if (pathSegment) {
       try {
         const seg = location.pathname.split("/")[1];
-        if (seg && seg in locales) return seg as TLocale;
+        if (seg && localeKeys.has(seg)) return seg as TLocale;
       } catch {
         /* SSR */
       }
@@ -147,7 +168,7 @@ export function createI18n<
     if (storageKey) {
       try {
         const stored = localStorage.getItem(storageKey);
-        if (stored && stored in locales) return stored as TLocale;
+        if (stored && localeKeys.has(stored)) return stored as TLocale;
       } catch {
         /* SSR / private mode */
       }

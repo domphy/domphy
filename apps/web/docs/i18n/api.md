@@ -17,8 +17,11 @@ createI18n<TLocale extends string, TMessages>(options): I18nInstance
 |---|---|---|
 | `globalKey` | `string` | Unique key on `globalThis` — deduplicates instance across Vite chunks |
 | `namespace` | `string` | i18next resource namespace |
-| `locales` | `Record<TLocale, TMessages>` | Translation objects keyed by locale code |
+| `locales` | `Record<TLocale, Record<string, unknown>>` | Translation objects keyed by locale code |
 | `defaultLocale` | `TLocale` | Fallback locale |
+| `interpolation` | `{ escapeValue?: boolean }` (optional) | i18next interpolation options — `escapeValue` defaults to `true` (i18next's safe default); pass `false` to disable HTML escaping globally |
+
+`TMessages` is a separately-supplied generic used only to type `t()`'s key argument (via `FlattenKeys<TMessages>`) — it isn't structurally checked against `locales`, so passing a `TMessages` shape that doesn't match your `locales` values won't be caught by TypeScript.
 
 ### Returns: I18nInstance
 
