@@ -12,6 +12,7 @@ import type {
   DomphyElement,
   EventName,
   HookMap,
+  Listener,
   PartialElement,
   TagName,
 } from "../types.js";
@@ -215,7 +216,14 @@ export class ElementNode {
         );
       } else if (originalKey === "_portal") {
         this._portal = value;
-      } else if (originalKey === "class" && typeof value === "string") {
+      } else if (
+        originalKey === "class" &&
+        (typeof value === "string" || typeof value === "function")
+      ) {
+        // A reactive `class` must MERGE with (not replace) the auto-generated
+        // per-node style class set at construction (line ~67) — replacing it
+        // outright orphans this element's own `style: {}` object, since the
+        // CSS rule is scoped to that auto class name.
         this.attributes!.addClass(value);
       } else {
         this.attributes!.set(originalKey, value);
@@ -289,7 +297,7 @@ export class ElementNode {
       "_onError",
     ];
     const keep = new Set<string>(["class"]);
-    let userClass: string | null = null;
+    let userClass: string | ((listener: Listener) => string) | null = null;
 
     this._events = {};
     for (const key of Object.keys(element)) {
@@ -298,7 +306,10 @@ export class ElementNode {
       const value = element[key];
       if (key.startsWith("on") && typeof value === "function") {
         this.addEvent(key.substring(2).toLowerCase() as EventName, value);
-      } else if (key === "class" && typeof value === "string") {
+      } else if (
+        key === "class" &&
+        (typeof value === "string" || typeof value === "function")
+      ) {
         userClass = value;
       } else {
         this.attributes!.set(key, value);
@@ -306,10 +317,22 @@ export class ElementNode {
       }
     }
 
-    this.attributes!.set(
-      "class",
-      userClass ? `${autoClass} ${userClass}` : autoClass,
-    );
+    // A reactive userClass must stay reactive here too — a plain string
+    // combine (as if it were static) would freeze it at whatever the
+    // function happened to return on this one patch call, and never update
+    // again since patch() doesn't re-run per listener tick.
+    if (typeof userClass === "function") {
+      const userClassFn = userClass;
+      this.attributes!.set(
+        "class",
+        (listener: Listener) => `${autoClass} ${userClassFn(listener)}`,
+      );
+    } else {
+      this.attributes!.set(
+        "class",
+        userClass ? `${autoClass} ${userClass}` : autoClass,
+      );
+    }
 
     if (this.attributes!.items) {
       for (const name of Object.keys(this.attributes!.items)) {

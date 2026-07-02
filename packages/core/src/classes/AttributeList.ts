@@ -1,5 +1,5 @@
 import { BooleanAttributes } from "../constants.js";
-import type { AttributeValue } from "../types.js";
+import type { AttributeValue, Listener } from "../types.js";
 import { ElementAttribute } from "./ElementAttribute.js";
 import type { ElementNode } from "./ElementNode.js";
 
@@ -87,8 +87,9 @@ export class AttributeList {
     }
   }
 
-  addClass(className: string): void {
-    if (!className || typeof className !== "string") return;
+  addClass(className: string | ((listener: Listener) => string)): void {
+    if (!className) return;
+    if (typeof className !== "string" && typeof className !== "function") return;
 
     const add = (classes: string, newClass: string) => {
       const list = (classes || "").split(" ").filter((e: string) => e);
@@ -97,12 +98,30 @@ export class AttributeList {
     };
 
     const current = this.get("class");
+    const currentIsFn = typeof current === "function";
+    const nextIsFn = typeof className === "function";
 
-    if (typeof current === "function") {
-      this.set("class", () => add(current(), className));
-    } else {
-      this.set("class", add(current, className));
+    // Neither side is reactive — merge as a plain string, same as before.
+    if (!currentIsFn && !nextIsFn) {
+      this.set("class", add(current, className as string));
+      return;
     }
+
+    // Either side is reactive: the merged class must itself be a function so
+    // it re-resolves on every listener tick, threading the SAME listener
+    // through both sides so each one's own state dependencies (if any) are
+    // tracked. Calling a reactive side with no listener (the previous bug
+    // here) both breaks its dependency tracking and, at the ElementNode.merge
+    // call site, silently drops the auto-generated per-node style class —
+    // the element's own `style: {}` object then never reaches the DOM.
+    this.set("class", (listener: Listener) =>
+      add(
+        currentIsFn ? (current as (l: Listener) => string)(listener) : current,
+        nextIsFn
+          ? (className as (l: Listener) => string)(listener)
+          : (className as string),
+      ),
+    );
   }
 
   hasClass(className: string): boolean {
