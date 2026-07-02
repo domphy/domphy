@@ -71,6 +71,8 @@ const App: DomphyElement<"div"> = {
 | `setScrollElement(el)` | Wire the scroll container DOM node; call from its `_onMount`. |
 | `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount`. |
 | `scrollToIndex(index, opts?)` / `scrollToOffset(offset, opts?)` | Imperative scrolling. |
+| `scrollBy(delta, opts?)` | Relative scroll by a pixel delta. |
+| `scrollToEnd(opts?)` | Scroll to the last item. |
 | `setOptions(opts)` | Update `count` and other options, then re-measure. |
 | `virtualizer` | The underlying `Virtualizer` — the full virtual-core API. |
 | `version(l)` | Raw reactive change counter. |

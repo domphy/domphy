@@ -585,12 +585,25 @@ export class Virtualizer<
             prevOptions.getItemKey(prevCount - 1))
           : null
       const didCountChange = nextCount !== prevCount
+
+      // A pure append (every existing item keeps its old key at its old
+      // index; only new items land past the old end) never shifts any
+      // existing item's start offset, so the current scrollOffset is
+      // already correct — skip the O(n) anchor-key resolution below and
+      // just check whether follow-on-append should kick in.
+      const isPureAppend =
+        prevCount > 0 &&
+        nextCount > prevCount &&
+        merged.getItemKey(0) === prevFirstKey &&
+        merged.getItemKey(prevCount - 1) === prevLastKey
+
       const didEdgeKeysChange =
-        didCountChange ||
-        (prevCount > 0 &&
-          nextCount > 0 &&
-          (merged.getItemKey(0) !== prevFirstKey ||
-            merged.getItemKey(nextCount - 1) !== prevLastKey))
+        !isPureAppend &&
+        (didCountChange ||
+          (prevCount > 0 &&
+            nextCount > 0 &&
+            (merged.getItemKey(0) !== prevFirstKey ||
+              merged.getItemKey(nextCount - 1) !== prevLastKey)))
 
       if (didEdgeKeysChange) {
         edgeKeysChanged = true
@@ -615,6 +628,15 @@ export class Virtualizer<
           this.isAtEnd(prevOptions.scrollEndThreshold) &&
           (prevCount === 0 || merged.getItemKey(nextCount - 1) !== prevLastKey)
         ) {
+          followOnAppend = behavior
+        }
+      } else if (isPureAppend) {
+        const behavior =
+          merged.followOnAppend === true
+            ? 'auto'
+            : merged.followOnAppend || null
+
+        if (behavior && this.isAtEnd(prevOptions.scrollEndThreshold)) {
           followOnAppend = behavior
         }
       }

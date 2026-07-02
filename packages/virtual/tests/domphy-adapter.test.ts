@@ -87,6 +87,41 @@ describe("createVirtualizer reactivity", () => {
   });
 });
 
+describe("createVirtualizer anchorTo: 'end' pure-append fast path", () => {
+  it("skips anchor-key resolution for a plain append but still resolves it on a real edge-key change", () => {
+    const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+      count: 1000,
+      estimateSize: () => 32,
+      observeElementRect: fixedRect,
+      anchorTo: "end",
+    });
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    list.setScrollElement(el);
+
+    const spy = vi.spyOn(list.virtualizer, "getVirtualItemForOffset");
+
+    // A plain append: every existing item keeps its key/order, only the
+    // count grows past the old end. No anchor recomputation is needed.
+    list.setOptions({ count: 1001 });
+    expect(spy).not.toHaveBeenCalled();
+
+    // A genuine edge-key change (here: the item at index 0 gets a new key,
+    // simulating a prepend) still needs anchor resolution.
+    const originalGetItemKey = list.virtualizer.options.getItemKey;
+    list.setOptions({
+      count: 1002,
+      getItemKey: (index) =>
+        index === 0 ? "prepended" : originalGetItemKey(index - 1),
+    });
+    expect(spy).toHaveBeenCalled();
+
+    spy.mockRestore();
+    list.destroy();
+    el.remove();
+  });
+});
+
 describe("createVirtualizer cleanup", () => {
   it("setScrollElement(null) runs the previous mount cleanup (detaches scroll listener)", () => {
     const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({

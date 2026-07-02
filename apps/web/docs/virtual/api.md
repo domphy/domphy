@@ -39,7 +39,7 @@ The `virtualizer` property exposes the underlying `Virtualizer` instance with ad
 |--------|-------------|
 | `takeSnapshot()` | Capture current offsets for later restore. |
 | `getDistanceFromEnd()` | Pixels from current scroll position to the end. |
-| `isAtEnd(threshold?)` | `true` if within `threshold` (default `0`) px of the end. |
+| `isAtEnd(threshold?)` | `true` if within `threshold` (default `1`) px of the end. |
 | `resizeItem(index, size)` | Programmatically override a single item's size. |
 | `measure()` | Clear all cached sizes and force full re-measurement. |
 
@@ -179,13 +179,9 @@ cleanup()
 
 | Method | Description |
 |--------|-------------|
-| `getMeasurements()` | All measurements (index → Rect). |
 | `calculateRange()` | Recalculate the current visible range. |
 | `getVirtualIndexes()` | Just the indexes (lighter than full VirtualItems). |
 | `getVirtualItemForOffset(px)` | Find the item at a given scroll offset. |
-| `getSize()` | Container viewport size. |
-| `getScrollOffset()` | Current scroll offset. |
-| `getMaxScrollOffset()` | Maximum scrollable offset. |
 | `resizeItem(index, size)` | Programmatically override an item's measured size. |
 | `scrollToIndex(i, opts?)` | Scroll to item. |
 | `scrollToOffset(px, opts?)` | Scroll to absolute offset. |
@@ -194,10 +190,12 @@ cleanup()
 | `getDistanceFromEnd()` | Distance from current position to end. |
 | `isAtEnd(threshold?)` | True if at/near the end. |
 | `getOffsetForIndex(i, align?)` | Compute target scroll offset for an item. |
-| `getOffsetForAlignment(align, size)` | Offset for a given alignment + size. |
+| `getOffsetForAlignment(toOffset, align, itemSize?)` | Offset needed to bring `toOffset` into alignment, given an item size. |
 | `takeSnapshot()` | Capture current item offsets. |
 | `measure()` | Force re-measurement of all items. |
 | `indexFromElement(el)` | Get item index from a DOM element. |
+
+`getMeasurements()`, `getSize()`, `getScrollOffset()`, and `getMaxScrollOffset()` are internal — not part of the public API.
 
 ---
 
