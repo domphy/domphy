@@ -9,7 +9,7 @@ const App: DomphyElement<"div"> = {
     { a: "Success action", href: "#", $: [linkButton({ color: "success" })] },
     {
       a: "Disabled link",
-      "aria-disabled": "true",
+      ariaDisabled: "true",
       href: "#",
       $: [linkButton({ color: "primary" })],
     },
