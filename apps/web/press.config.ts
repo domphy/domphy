@@ -97,6 +97,7 @@ export const config = defineConfig({
         { text: "Typography", link: "/docs/theme/typography" },
         { text: "Motion & Animation", link: "/docs/theme/motion" },
         { text: "Responsive Design", link: "/docs/theme/responsive" },
+        { text: "Theme Builder", link: "/docs/theme/builder" },
         { text: "API", link: "/docs/theme/api" },
         {
           text: "Theory",
@@ -353,6 +354,7 @@ export const config = defineConfig({
         { text: "Overview", link: "/docs/palette/" },
         { text: "Paper — Measuring Quality", link: "/docs/palette/measuring" },
         { text: "Ramp", link: "/docs/palette/ramp" },
+        { text: "Generator", link: "/docs/palette/generator" },
         {
           text: "Accessibility & Contrast",
           link: "/docs/palette/accessibility",

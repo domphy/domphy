@@ -321,6 +321,15 @@ bootstrap(previewRegistry);
     bundle: true,
     splitting: true,
     format: "esm",
+    // Ignore apps/web/tsconfig.json "paths" (which alias @domphy/core|theme|ui
+    // to packages/*/src for editor type-checking). With paths active, demo TS
+    // files bundle the SRC copy of those packages while @domphy/press/browser
+    // and every other @domphy dist pull in the DIST copy — two module
+    // instances, two theme registries/notifier chains. A demo's setTheme()
+    // then lands in a registry the ui patches never read ("Theme not found"
+    // at hydration). Resolving everything through node_modules keeps each
+    // singleton single; the packages are always built before this script runs.
+    tsconfigRaw: "{}",
     outdir: join(outDir, "assets"),
     entryNames: "[name]",
     chunkNames: "chunks/[name]-[hash]",
@@ -356,10 +365,10 @@ async function run(): Promise<void> {
     `.dp-editor-grid{grid-template-columns:1fr 1fr}` +
     `.dp-tab-buttons{display:none}` +
     `@media(max-width:768px){` +
-      `.dp-editor-grid{grid-template-columns:1fr}` +
-      `.dp-tab-buttons{display:flex;align-items:stretch}` +
-      `.dp-tab-preview .dp-editor-panel{display:none}` +
-      `.dp-tab-code .dp-preview-panel{display:none}` +
+    `.dp-editor-grid{grid-template-columns:1fr}` +
+    `.dp-tab-buttons{display:flex;align-items:stretch}` +
+    `.dp-tab-preview .dp-editor-panel{display:none}` +
+    `.dp-tab-code .dp-preview-panel{display:none}` +
     `}`;
   const generatedCss = themeCSS() + pressCSS() + editorCSS;
 

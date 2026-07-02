@@ -1,3 +1,9 @@
+---
+title: "Theme Builder"
+description: "Generate a complete accessible Domphy theme from one base color per role — live, with a real component gallery."
+aside: false
+---
+
 <script setup lang="ts">
 
 import ThemeBuilder from "../demos/theme/ThemeBuilder.js"

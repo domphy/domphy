@@ -205,9 +205,14 @@ describe("renderDoc — index.md", () => {
 
   it("renders ::: code-group with NPM/CDN tabs", async () => {
     const doc = await renderDoc(source, optionsFor(filePath));
-    const group = find(doc.body, (element) => hasClass(element, "code-group"));
+    // pressCodeGroupPlugin emits the whole group as ONE self-contained raw
+    // HTML string (radio/label tab switcher), not a structured element tree.
+    const group = doc.body.find(
+      (element) =>
+        typeof element === "string" && element.includes('class="code-group"'),
+    ) as string | undefined;
     expect(group).toBeDefined();
-    const groupText = codeText(contentOf(group as AnyElement));
+    const groupText = codeText(group);
     // Tab labels come from the fence `[NPM]` / `[CDN]` markers.
     expect(groupText).toContain("NPM");
     expect(groupText).toContain("CDN");
