@@ -7,8 +7,10 @@
     "create-domphy": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "generate:versions": "node scripts/generate-versions.mjs",
+    "build": "npm run generate:versions && tsup",
+    "dev": "npm run generate:versions && tsup --watch",
+    "test": "vitest run",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -28,7 +30,8 @@
   "devDependencies": {
     "@types/node": "^25.9.2",
     "tsup": "^8.5.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.0.18"
   },
   "files": [
     "dist",

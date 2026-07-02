@@ -2,14 +2,18 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
-  readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { stdin, stdout } from "node:process";
 import { createInterface } from "node:readline/promises";
-import { fileURLToPath } from "node:url";
 import { templateFiles } from "./templates.js";
+import {
+  CORE_VERSION,
+  THEME_VERSION,
+  UI_VERSION,
+} from "./versions.generated.js";
 
 const KNOWN_TEMPLATES = ["spa"] as const;
 type TemplateName = (typeof KNOWN_TEMPLATES)[number];
@@ -54,21 +58,6 @@ function parseArguments(argv: string[]): ParsedArguments {
   }
 
   return result;
-}
-
-// The lockstep version of this CLI matches the published @domphy/* packages,
-// so it is the safe pin for the scaffolded project's dependency.
-function readCliVersion(): string {
-  try {
-    const here = dirname(fileURLToPath(import.meta.url));
-    const packagePath = join(here, "..", "package.json");
-    const parsed = JSON.parse(readFileSync(packagePath, "utf8")) as {
-      version?: string;
-    };
-    return parsed.version ?? "latest";
-  } catch {
-    return "latest";
-  }
 }
 
 function printHelp(): void {
@@ -150,15 +139,34 @@ async function main(): Promise<void> {
   }
 
   const projectName = toProjectName(targetArgument);
-  const domphyVersion = `^${readCliVersion()}`;
-  const files = templateFiles(projectName, domphyVersion);
+  const files = templateFiles(projectName, {
+    core: `^${CORE_VERSION}`,
+    theme: `^${THEME_VERSION}`,
+    ui: `^${UI_VERSION}`,
+  });
 
+  const targetDirExisted = existsSync(targetDir);
   mkdirSync(targetDir, { recursive: true });
 
-  for (const file of files) {
-    const fullPath = join(targetDir, file.path);
-    mkdirSync(dirname(fullPath), { recursive: true });
-    writeFileSync(fullPath, file.contents, "utf8");
+  const writtenPaths: string[] = [];
+  try {
+    for (const file of files) {
+      const fullPath = join(targetDir, file.path);
+      mkdirSync(dirname(fullPath), { recursive: true });
+      writeFileSync(fullPath, file.contents, "utf8");
+      writtenPaths.push(fullPath);
+    }
+  } catch (error) {
+    // Leave the target directory in the state it was in before this run so a
+    // retry is not blocked by isDirectoryUsable's "not empty" check.
+    if (targetDirExisted) {
+      for (const writtenPath of writtenPaths) {
+        rmSync(writtenPath, { force: true });
+      }
+    } else {
+      rmSync(targetDir, { recursive: true, force: true });
+    }
+    throw error;
   }
 
   const relativeTarget = targetArgument === "." ? "." : targetArgument;

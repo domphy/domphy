@@ -1,11 +1,18 @@
 // Template file contents for the "spa" starter (Vite + TypeScript + Domphy).
-// `__DOMPHY_VERSION__` is replaced at scaffold time with the lockstep version
-// of this CLI (which always matches the published @domphy/* packages).
+// `__DOMPHY_CORE_VERSION__` / `__DOMPHY_THEME_VERSION__` / `__DOMPHY_UI_VERSION__`
+// are replaced at scaffold time with each package's own current published
+// version (core/theme/ui bump independently, not in lockstep).
 
 export interface TemplateFile {
   // Path relative to the target project directory (POSIX separators).
   path: string;
   contents: string;
+}
+
+export interface DomphyVersions {
+  core: string;
+  theme: string;
+  ui: string;
 }
 
 const packageJson = `{
@@ -19,9 +26,9 @@ const packageJson = `{
     "preview": "vite preview"
   },
   "dependencies": {
-    "@domphy/core": "__DOMPHY_VERSION__",
-    "@domphy/theme": "__DOMPHY_VERSION__",
-    "@domphy/ui": "__DOMPHY_VERSION__"
+    "@domphy/core": "__DOMPHY_CORE_VERSION__",
+    "@domphy/theme": "__DOMPHY_THEME_VERSION__",
+    "@domphy/ui": "__DOMPHY_UI_VERSION__"
   },
   "devDependencies": {
     "typescript": "^5.8.3",
@@ -199,9 +206,10 @@ const App = {
   reactivity. A controlled input
   (\`value: (listener) => state.get(listener)\` + \`onInput: (event) => state.set(event.target.value)\`)
   is safe.
-- **Never inline typography styles** (fontSize, color, margin, lineHeight…). Use
-  typography patches: \`small()\`, \`paragraph()\`, \`heading()\`, \`link()\`,
-  \`strong()\`, \`emphasis()\`, \`code()\`, \`keyboard()\`.
+- **Never inline typography styles** (fontSize, fontWeight, lineHeight,
+  letterSpacing, fontFamily, textDecoration, color). Use typography patches:
+  \`small()\`, \`paragraph()\`, \`heading()\`, \`link()\`, \`strong()\`,
+  \`emphasis()\`, \`code()\`, \`keyboard()\`.
 - **Theme, not hard-coded values:** \`themeColor()\`, \`themeSpacing()\`,
   \`themeSize()\`, \`themeDensity()\`; tones are \`inherit\`/\`base\`/\`shift-N\`.
 - **\`_key\`** on dynamic/reordered child lists (identity for reconcile).
@@ -232,12 +240,14 @@ new ElementNode(App).render(document.getElementById("app")!);
 
 export function templateFiles(
   projectName: string,
-  domphyVersion: string,
+  versions: DomphyVersions,
 ): TemplateFile[] {
   const replace = (contents: string): string =>
     contents
       .replaceAll("__PROJECT_NAME__", projectName)
-      .replaceAll("__DOMPHY_VERSION__", domphyVersion);
+      .replaceAll("__DOMPHY_CORE_VERSION__", versions.core)
+      .replaceAll("__DOMPHY_THEME_VERSION__", versions.theme)
+      .replaceAll("__DOMPHY_UI_VERSION__", versions.ui);
 
   return [
     { path: "package.json", contents: replace(packageJson) },
