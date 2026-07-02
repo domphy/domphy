@@ -42,7 +42,7 @@ const svg = await renderMermaidToSvg("graph TD; A-->B;", {
 
 | Option          | Type                                          | Default         |
 | --------------- | --------------------------------------------- | --------------- |
-| `theme`         | `"default" \| "dark" \| "neutral" \| "forest"` | `"default"`     |
+| `theme`         | `"default" \| "dark" \| "neutral" \| "forest" \| "base"` | `"default"`     |
 | `background`    | `string` (`"transparent"` for none)           | `"transparent"` |
 | `mermaidConfig` | `Record<string, unknown>`                     | —               |
 | `css`           | `string` (injected into the render page)       | —               |

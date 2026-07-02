@@ -16,8 +16,15 @@ export type MermaidLoader = () =>
   | MermaidBrowserModule
   | Promise<MermaidBrowserModule>;
 
-/** Options for the client-side patch. */
-export interface MermaidClientOptions extends MermaidOptions {
+/**
+ * Options for the client-side patch. Only `theme` and `mermaidConfig` from
+ * `MermaidOptions` apply here — `background`/`css`/`puppeteer` are build-time-only
+ * (they configure `@mermaid-js/mermaid-cli`'s headless page render, which the
+ * browser `mermaid.render()` call has no equivalent for), so they are
+ * intentionally omitted rather than silently ignored.
+ */
+export interface MermaidClientOptions
+  extends Pick<MermaidOptions, "theme" | "mermaidConfig"> {
   /**
    * Override how the `mermaid` library is obtained. Defaults to a dynamic
    * `import("mermaid")`. Supply a resolver to use a globally loaded copy, e.g.
@@ -28,6 +35,31 @@ export interface MermaidClientOptions extends MermaidOptions {
 
 /** Monotonic id source so each rendered diagram gets a unique SVG id. */
 let renderCounter = 0;
+
+// Strips `on*` event-handler attributes and `javascript:` URLs from the
+// rendered SVG before it is written via `innerHTML`. The build-time path
+// (`renderMermaidInTree`) gets equivalent stripping for free from
+// `@domphy/core`'s `TextNode` (which sanitizes inline HTML content on mount);
+// this path writes to the DOM directly, bypassing that, so the same stripping
+// is duplicated here. Not exported from `@domphy/core`'s public API, so it is
+// inlined rather than imported.
+function sanitizeSvgString(html: string): string {
+  let result = html.replace(
+    /\s+on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi,
+    "",
+  );
+  // Also strip on* when preceded by "/" (e.g. <svg/onload=…>)
+  result = result.replace(
+    /\/on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi,
+    "/",
+  );
+  // Neutralise javascript: scheme in URL attributes
+  result = result.replace(
+    /((?:href|src|action|formaction)\s*=\s*)(["']?)[\s]*javascript:[^"'\s>]*/gi,
+    "$1$2#",
+  );
+  return result;
+}
 
 /** Loads the `mermaid` browser library via dynamic import (the default path). */
 async function importMermaid(): Promise<MermaidBrowserModule> {
@@ -92,7 +124,7 @@ export function makeMermaidClient(
           if (disposed) return;
           // Replace the source code block with the rendered SVG, mirroring the
           // build-time wrapper so styling is consistent across paths.
-          host.innerHTML = svg;
+          host.innerHTML = sanitizeSvgString(svg);
           host.classList.add("mermaid");
           if (!host.getAttribute("aria-label")) {
             host.setAttribute("aria-label", "diagram");

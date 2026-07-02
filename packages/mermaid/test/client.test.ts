@@ -142,6 +142,22 @@ describe("makeMermaidClient", () => {
     expect(logged).toContain("graph TD; A-->B;");
   });
 
+  it("strips on* handlers and javascript: URLs from the rendered SVG before writing innerHTML", async () => {
+    const malicious =
+      '<svg onload="alert(1)"><a href="javascript:alert(2)">x</a></svg>';
+    const render = vi.fn(async () => ({ svg: malicious }));
+    const { module } = fakeMermaid(render);
+
+    const host = makeHost("graph TD; A-->B;");
+    const patch = makeMermaidClient(() => module, {});
+
+    patch._onMount?.(nodeFor(host));
+    await vi.waitFor(() => expect(host.innerHTML).not.toBe(""));
+
+    expect(host.innerHTML).not.toContain("onload");
+    expect(host.innerHTML).not.toContain("javascript:");
+  });
+
   it("does NOT write the SVG when the node is removed before the render resolves", async () => {
     // Render resolves on the next microtask; the disposed guard must stop the
     // late `.then` from writing into a torn-down host.

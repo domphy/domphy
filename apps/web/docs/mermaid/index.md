@@ -5,7 +5,7 @@
 - **Build-time / SSG** — render each diagram to inline SVG with a headless browser, with an on-disk cache and a tree integration for [`@domphy/markdown`](/docs/markdown/). The browser ships **no Mermaid runtime** — diagrams are just SVG in your HTML.
 - **Client-side** — the `mermaidClient()` patch renders a diagram in the browser at mount time, using the `mermaid` library (an optional peer dependency).
 
-This page is built by DomphyPress, so the diagram below was rendered to SVG at build time by the markdown integration:
+Like the rest of this docs site (see the tip below), the diagram below is rendered client-side by a small islands-runtime script rather than through `@domphy/mermaid`'s build-time path — it illustrates that pipeline without being produced by it:
 
 ```mermaid
 graph TD
@@ -48,7 +48,7 @@ Mermaid syntax errors are thrown as an `Error` that includes the diagram source 
 
 | Option | Type | Default |
 | --- | --- | --- |
-| `theme` | `"default" \| "dark" \| "neutral" \| "forest"` | `"default"` |
+| `theme` | `"default" \| "dark" \| "neutral" \| "forest" \| "base"` | `"default"` |
 | `background` | `string` (`"transparent"` for none) | `"transparent"` |
 | `mermaidConfig` | `Record<string, unknown>` | — |
 | `css` | `string` (injected into the render page) | — |

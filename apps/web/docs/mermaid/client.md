@@ -43,7 +43,6 @@ const DiagramView = {
   pre: [{ code: "graph TD; A-->B;" }],
   $: [mermaidClient({
     theme: "dark",
-    background: "transparent",
     mermaidConfig: {
       fontFamily: "monospace",
       fontSize: 14,
@@ -55,12 +54,13 @@ const DiagramView = {
 
 | Option | Type | Default |
 |--------|------|---------|
-| `theme` | `"default" \| "dark" \| "neutral" \| "forest"` | `"default"` |
-| `background` | `string` | `"transparent"` |
+| `theme` | `"default" \| "dark" \| "neutral" \| "forest" \| "base"` | `"default"` |
 | `mermaidConfig` | `Record<string, unknown>` | — |
 | `loadMermaid` | `() => MermaidBrowserModule \| Promise<MermaidBrowserModule>` | dynamic `import("mermaid")` |
 
 `mermaidConfig` is passed directly to `mermaid.initialize()`, so any option the Mermaid library accepts works here.
+
+`background`, `css`, and `puppeteer` are build-time-only options (see [Build-time integration](/docs/mermaid/build)) — `mermaidClient()` does not accept them, since the browser `mermaid.render()` call has no equivalent for a baked-in SVG background, injected page CSS, or a headless-browser launch config.
 
 ## Reactive theme switching
 
@@ -191,11 +191,11 @@ If you load Domphy from a CDN script tag without a bundler, use the `@domphy/mer
 <!-- Load Mermaid from CDN first -->
 <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
 <!-- Then load the Domphy mermaid global build -->
-<script src="https://cdn.jsdelivr.net/npm/@domphy/mermaid/dist/global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@domphy/mermaid/dist/mermaid.global.js"></script>
 
 <script>
-  // mermaidClient is available on window.DomphyMermaid
-  const { mermaidClient } = window.DomphyMermaid
+  // mermaidClient is available on window.Domphy
+  const { mermaidClient } = window.Domphy
 
   const App = {
     pre: [{ code: "graph TD; A-->B;" }],
