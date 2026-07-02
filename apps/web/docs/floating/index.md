@@ -13,14 +13,14 @@ The package is a direct vendor of [Floating UI DOM](https://floating-ui.com) wit
 
 ::: code-group
 ```bash [NPM]
-npm install @domphy/floating @domphy/core
+npm install @domphy/floating
 ```
 ```html [CDN]
 <script src="https://unpkg.com/@domphy/floating/dist/floating.global.js"></script>
 ```
 :::
 
-`@domphy/core` is a peer dependency.
+`@domphy/floating` is framework-agnostic and has zero dependencies — it does not depend on `@domphy/core`. The tooltip example below also uses `@domphy/core` (`ElementNode`, `toState`) and `@domphy/theme`; install those separately if you want to follow along, but they are not required to use `@domphy/floating` on its own.
 
 ## Core Concepts
 

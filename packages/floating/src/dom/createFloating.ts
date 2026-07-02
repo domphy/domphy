@@ -134,14 +134,28 @@ export function createFloating(
     computePositionCore(reference, floating, {
       ...mergedOptions,
       platform: platformWithCache,
-    }).then((result) => {
-      // Guard against a late-resolving promise after disconnect() was called.
-      if (!currentReference) return;
-      position = result as FloatingPosition;
-      for (const listener of listeners) {
-        listener(position);
-      }
-    });
+    })
+      .then((result) => {
+        // Guard against a late-resolving promise after disconnect() — or a
+        // connect() to a different pair — happened while this call was in
+        // flight. Identity (not just nullity) check avoids a stale
+        // computation for an old reference/floating pair overwriting a
+        // newer one.
+        if (currentReference !== reference || currentFloating !== floating) {
+          return;
+        }
+        position = result as FloatingPosition;
+        for (const listener of listeners) {
+          try {
+            listener(position);
+          } catch (error) {
+            console.error(error);
+          }
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
   }
 
   return {

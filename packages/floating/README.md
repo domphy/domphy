@@ -29,4 +29,29 @@ const cleanup = autoUpdate(referenceEl, floatingEl, async () => {
 // later: cleanup()
 ```
 
+## Stateful manager — `createFloating`
+
+`createFloating` wraps `computePosition` + `autoUpdate` into a stateful handle so callers don't have to manage the cleanup function or re-implement the update loop themselves — the Popper.js `createPopper()` equivalent:
+
+```ts
+import { createFloating, offset, flip, shift } from "@domphy/floating"
+
+const handle = createFloating({
+  placement: "bottom",
+  middleware: [offset(8), flip(), shift()],
+  strategy: "fixed",
+})
+
+// Once both elements are in the DOM (e.g. from a Domphy `_onMount` hook):
+handle.connect(referenceEl, floatingEl)
+handle.onUpdate(({ x, y }) => {
+  Object.assign(floatingEl.style, { left: `${x}px`, top: `${y}px` })
+})
+
+// When the floating element is removed (e.g. `_onBeforeRemove`):
+handle.disconnect()
+```
+
+See [docs/floating/auto-update](https://domphy.com/docs/floating/auto-update) for the full `createFloating` API.
+
 See [floating-ui.com](https://floating-ui.com) for the full middleware and platform API — it is identical.
