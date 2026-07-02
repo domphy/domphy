@@ -6,13 +6,15 @@ import ToggleGroup from "../../demos/patches/ToggleGroup.ts?raw"
 
 # Toggle Group
 
-Use `toggleGroup` on a wrapper element to build a segmented toggle control. It establishes a `toggleGroup` context that child `toggle` buttons use to sync selection. Supports single-select and multi-select modes via the `multiple` prop.
+All-in-one toggle group — a single- or multi-select button group. Apply `toggleGroup({ items })` to a wrapper element — it sets `role="group"` on the wrapper and generates `<button>` toggles with `aria-pressed` from the `items` array. In single-select mode, clicking the selected item again deselects it; set `multiple: true` to allow several items at once.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `value` | `string \| string[] \| State<...>` | `""` (single) or `[]` (multiple) | Selected key(s). Pass a `State` to control selection externally. |
+| `items` | `ToggleItem[]` | `[]` | Item definitions `{ label, key? }`. `label` is a plain string (auto-wrapped) or any `DomphyElement`; `key` defaults to the item's zero-based index as a string. |
+| `value` | `ValueOrState<string \| string[]>` | `""` (single) or `[]` (multiple) | Selected key(s). Pass a `State` to control selection externally. |
 | `multiple` | `boolean` | `false` | Allow multiple toggles selected at once. |
 | `color` | `ThemeColor` | `"neutral"` | Background and border tone for the group. |
+| `accentColor` | `ThemeColor` | `"primary"` | Color tone for the pressed state. |
 
 <CodeEditor :code="ToggleGroup" />
 
@@ -26,7 +28,6 @@ Use `toggleGroup` on a wrapper element to build a segmented toggle control. It e
 
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/toggleGroup.ts [toggleGroup]
-<<< ../../../../../packages/ui/src/patches/toggle.ts [toggle]
 :::
 
 

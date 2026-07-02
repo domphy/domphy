@@ -10,11 +10,11 @@ import { themeSpacing } from "@domphy/theme";
 import {
   alert,
   heading,
+  type MenuItem,
+  menu,
   paragraph,
   small,
   spinner,
-  tab,
-  tabs,
 } from "@domphy/ui";
 
 type Post = { id: number; title: string; body: string };
@@ -112,17 +112,18 @@ function PostPage(match: AnyRouteMatch): DomphyElement<"div"> {
 }
 
 // --- Navigation ---
-function navTab(label: string, postId?: string): DomphyElement<"button"> {
+// Item keys mirror route pathnames, so passing the pathname state as
+// `activeKey` keeps the highlighted item in sync with the router.
+function navigationItem(label: string, postId?: string): MenuItem {
   return {
-    button: label,
-    $: [tab()],
+    label,
+    key: postId ? `/posts/${postId}` : "/",
     onClick: () => {
       const navigation = postId
         ? router.navigate({ to: "/posts/$postId", params: { postId } })
         : router.navigate({ to: "/" });
       navigation.then(syncRouterState);
     },
-    _key: postId ? `/posts/${postId}` : "/",
   };
 }
 
@@ -130,14 +131,20 @@ function navTab(label: string, postId?: string): DomphyElement<"button"> {
 const App: DomphyElement<"div"> = {
   div: [
     {
-      nav: [
-        navTab("Home"),
-        navTab("Post 1", "1"),
-        navTab("Post 2", "2"),
-        navTab("Post 3", "3"),
+      nav: null,
+      $: [
+        menu({
+          items: [
+            navigationItem("Home"),
+            navigationItem("Post 1", "1"),
+            navigationItem("Post 2", "2"),
+            navigationItem("Post 3", "3"),
+          ],
+          activeKey: pathname,
+        }),
       ],
-      $: [tabs({ activeKey: pathname })],
-      style: { display: "flex" },
+      // menu() stacks items in a column by default; a row reads as a nav bar.
+      style: { flexDirection: "row" },
     },
     {
       div: (l) => {

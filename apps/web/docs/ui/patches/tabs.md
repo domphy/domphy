@@ -6,10 +6,16 @@ import Tabs from "../../demos/patches/Tabs.ts?raw"
 
 # Tabs
 
-Container patch that establishes a `tabs` context (with a shared `activeKey`
-state) and the `tablist` role for child `tab`/`tabPanel` patches. Typically
-applied to a wrapper element. Accepts an optional `activeKey` prop (initial
-active tab key, defaults to `0`).
+All-in-one tabs patch. Apply `tabs({ items })` to any wrapper element (`div`, `section`, …) — it generates a `role="tablist"` button row and one `role="tabpanel"` panel per item from the `items` array. Tab buttons support keyboard navigation (ArrowLeft&nbsp;/ ArrowRight&nbsp;/ Home&nbsp;/ End). To control the active tab programmatically, pass an external `State` as `activeKey` and call `.set()` on it from outside.
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `items` | `TabItem[]` | `[]` | Tab definitions `{ label, content, key? }`. `label` is a plain string (auto-wrapped) or any `DomphyElement`; `content` is the panel element rendered when the tab is active; `key` defaults to the item's zero-based index. |
+| `activeKey` | `ValueOrState<string \| number>` | first item's key | Initially active key. Accepts a plain value or a reactive `State`. |
+| `accentColor` | `ThemeColor` | `"primary"` | Theme color for the active underline indicator. |
+| `color` | `ThemeColor` | `"neutral"` | Theme color for the resting underline. |
 
 <CodeEditor :code="Tabs" />
 
@@ -23,8 +29,6 @@ active tab key, defaults to `0`).
 
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/tabs.ts [tabs]
-<<< ../../../../../packages/ui/src/patches/tab.ts [tab]
-<<< ../../../../../packages/ui/src/patches/tabPanel.ts [tabPanel]
 :::
 
 

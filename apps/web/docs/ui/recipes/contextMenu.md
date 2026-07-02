@@ -5,7 +5,7 @@ import ContextMenu from "../../demos/recipes/ContextMenu.ts?raw"
 
 # Context Menu
 
-A context menu is not a patch — it is a composition of existing patches and Domphy patterns. No new behavior is introduced; the recipe shows how to combine `menu`, `menuItem`, and state to produce a right-click menu positioned at the cursor.
+A context menu is not a patch — it is a composition of existing patches and Domphy patterns. No new behavior is introduced; the recipe shows how to combine `menu({ items })` and state to produce a right-click menu positioned at the cursor.
 
 <CodeEditor :code="ContextMenu" />
 
@@ -28,5 +28,5 @@ A context menu is not a patch — it is a composition of existing patches and Do
 | Declare in tree + hide | `open` state controls `display` and `pointerEvents` |
 | Reactive style | `left`/`top` update without re-render |
 | `_onMount` + `addHook` | Register and clean up document click listener |
-| `menu` + `menuItem` | Styled menu list out of the box |
+| `menu({ items })` | Styled menu list out of the box |
 

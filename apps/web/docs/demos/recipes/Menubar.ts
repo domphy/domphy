@@ -1,35 +1,46 @@
 import type { DomphyElement } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
-import { button, menu, menuItem, popover } from "@domphy/ui";
+import { button, menu, popover } from "@domphy/ui";
 
 const fileMenu: DomphyElement<"div"> = {
-  div: [
-    { button: "New File", $: [menuItem()] },
-    { button: "Open...", $: [menuItem()] },
-    { button: "Save", $: [menuItem()] },
-    { button: "Save As...", $: [menuItem()] },
+  div: null,
+  $: [
+    menu({
+      selectable: false,
+      items: [
+        { label: "New File" },
+        { label: "Open..." },
+        { label: "Save" },
+        { label: "Save As..." },
+      ],
+    }),
   ],
-  $: [menu()],
 };
 
 const editMenu: DomphyElement<"div"> = {
-  div: [
-    { button: "Undo", $: [menuItem()] },
-    { button: "Redo", $: [menuItem()] },
-    { button: "Cut", $: [menuItem()] },
-    { button: "Copy", $: [menuItem()] },
-    { button: "Paste", $: [menuItem()] },
+  div: null,
+  $: [
+    menu({
+      selectable: false,
+      items: [
+        { label: "Undo" },
+        { label: "Redo" },
+        { label: "Cut" },
+        { label: "Copy" },
+        { label: "Paste" },
+      ],
+    }),
   ],
-  $: [menu()],
 };
 
 const viewMenu: DomphyElement<"div"> = {
-  div: [
-    { button: "Zoom In", $: [menuItem()] },
-    { button: "Zoom Out", $: [menuItem()] },
-    { button: "Reset", $: [menuItem()] },
+  div: null,
+  $: [
+    menu({
+      selectable: false,
+      items: [{ label: "Zoom In" }, { label: "Zoom Out" }, { label: "Reset" }],
+    }),
   ],
-  $: [menu()],
 };
 
 const App: DomphyElement<"nav"> = {

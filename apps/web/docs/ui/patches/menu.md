@@ -6,15 +6,17 @@ import Menu from "../../demos/patches/Menu.ts?raw"
 
 # Menu
 
-Apply the `menu()` patch to a container (typically a `<div>`) to create a vertical navigation menu with `role="menu"`. Pair it with `menuItem()` on each `<button>` child — `menuItem` wires keyboard navigation (Arrow&nbsp;/ Home&nbsp;/ End) and tracks the active selection via `activeKey`. `menu()` itself only establishes the shared context and layout. Use `selectable: false` to disable selection tracking when you only need keyboard navigation.
+All-in-one vertical menu. Apply `menu({ items })` to a wrapper element (typically a `<div>`) — it sets `role="menu"` on the wrapper and generates `<button>` `role="menuitem"` children from the `items` array, each wired with keyboard navigation (Arrow&nbsp;/ Home&nbsp;/ End move focus, Enter&nbsp;/ Space activate). Selection is tracked via `activeKey` unless `selectable: false`. Escape hatch: pass `items: []` to keep the wrapper's own children — only the container styling and `role="menu"` semantics apply then.
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `activeKey` | `ValueOrState<number \| string>` | `null` | Currently selected item key. Accepts a plain value or a reactive `State`. |
+| `items` | `MenuItem[]` | `[]` | Item definitions `{ label, key?, onClick? }`. `label` is a plain string (auto-wrapped) or any `DomphyElement` (e.g. icon + text); `key` defaults to the item's zero-based index; `onClick` runs when the item is clicked. `[]` keeps the wrapper's own children. |
+| `activeKey` | `ValueOrState<number \| string \| null>` | `null` | Currently selected item key. Accepts a plain value or a reactive `State`. |
 | `selectable` | `boolean` | `true` | Whether items track and update the active selection on click. |
-| `color` | `ThemeColor` | `"neutral"` | Background color tone for the menu container. |
+| `color` | `ThemeColor` | `"neutral"` | Background color tone for the menu. |
+| `accentColor` | `ThemeColor` | `"primary"` | Accent color for the active/focus item. |
 
 <CodeEditor :code="Menu" />
 
@@ -28,7 +30,6 @@ Apply the `menu()` patch to a container (typically a `<div>`) to create a vertic
 
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/menu.ts [menu]
-<<< ../../../../../packages/ui/src/patches/menuItem.ts [menuItem]
 :::
 
 

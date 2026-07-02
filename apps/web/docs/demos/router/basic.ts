@@ -7,7 +7,14 @@ import {
   createRouter,
 } from "@domphy/router";
 import { themeSpacing } from "@domphy/theme";
-import { heading, link, paragraph, small, tab, tabs } from "@domphy/ui";
+import {
+  heading,
+  link,
+  type MenuItem,
+  menu,
+  paragraph,
+  small,
+} from "@domphy/ui";
 
 // --- Routes ---
 const rootRoute = createRootRoute();
@@ -113,14 +120,15 @@ function PostPage(match: AnyRouteMatch): DomphyElement<"div"> {
 }
 
 // --- Navigation ---
-function navTab(label: string, to: "/" | "/about"): DomphyElement<"button"> {
+// Item keys mirror route pathnames, so passing the pathname state as
+// `activeKey` keeps the highlighted item in sync with the router.
+function navigationItem(label: string, to: "/" | "/about"): MenuItem {
   return {
-    button: label,
-    $: [tab()],
+    label,
+    key: to,
     onClick: () => {
       router.navigate({ to }).then(syncRouterState);
     },
-    _key: to,
   };
 }
 
@@ -128,9 +136,18 @@ function navTab(label: string, to: "/" | "/about"): DomphyElement<"button"> {
 const App: DomphyElement<"div"> = {
   div: [
     {
-      nav: [navTab("Home", "/"), navTab("About", "/about")],
-      $: [tabs({ activeKey: pathname })],
-      style: { display: "flex" },
+      nav: null,
+      $: [
+        menu({
+          items: [
+            navigationItem("Home", "/"),
+            navigationItem("About", "/about"),
+          ],
+          activeKey: pathname,
+        }),
+      ],
+      // menu() stacks items in a column by default; a row reads as a nav bar.
+      style: { flexDirection: "row" },
     },
     {
       div: (l) => {

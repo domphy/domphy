@@ -162,9 +162,10 @@ This table groups patches by the `dataTone` they set themselves.
 
 | dataTone | Patches |
 | --- | --- |
-| `inherit` | `breadcrumb`, `button`, `card`, `combobox`, `commandSearch`, `commandItem`, `details`, `dialog`, `drawer`, `formGroup`, `inputDateTime`, `inputFile`, `inputNumber`, `inputSearch`, `inputText`, `keyboard`, `menuItem`, `pagination`, `select`, `selectBox`, `selectItem`, `tab`, `textarea`, `toggle` |
-| `shift-2` | `alert`, `avatar`, `blockquote`, `buttonSwitch`, `code`, `image`, `inputSwitch`, `mark`, `preformated`, `skeleton`, `tag`, `toggleGroup` |
-| `shift-17` | `menu`, `popover`, `selectList`, `toast`, `tooltip` |
+| `inherit` | `breadcrumb`, `button`, `card`, `combobox`, `commandSearch`, `commandItem`, `details`, `dialog`, `drawer`, `formGroup`, `inputDateTime`, `inputFile`, `inputNumber`, `inputSearch`, `inputText`, `keyboard`, `pagination`, `select`, `selectBox`, `selectItem`, `tabs`, `textarea`, `toggleGroup` |
+| `shift-2` | `alert`, `avatar`, `blockquote`, `buttonSwitch`, `code`, `image`, `inputSwitch`, `mark`, `preformated`, `skeleton`, `tag` |
+| `shift-14` | `popover` |
+| `shift-17` | `menu`, `selectList`, `toast`, `tooltip` |
 
 ## Core Pattern
 

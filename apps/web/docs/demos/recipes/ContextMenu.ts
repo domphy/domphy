@@ -1,17 +1,22 @@
 import { type DomphyElement, toState } from "@domphy/core";
-import { menu, menuItem } from "@domphy/ui";
+import { menu } from "@domphy/ui";
 
 const open = toState(false);
 const x = toState(0);
 const y = toState(0);
 
 const contextMenu: DomphyElement<"div"> = {
-  div: [
-    { button: "Cut", $: [menuItem()], onClick: () => open.set(false) },
-    { button: "Copy", $: [menuItem()], onClick: () => open.set(false) },
-    { button: "Paste", $: [menuItem()], onClick: () => open.set(false) },
+  div: null,
+  $: [
+    menu({
+      selectable: false,
+      items: [
+        { label: "Cut", onClick: () => open.set(false) },
+        { label: "Copy", onClick: () => open.set(false) },
+        { label: "Paste", onClick: () => open.set(false) },
+      ],
+    }),
   ],
-  $: [menu()],
   style: {
     position: "fixed",
     left: (listener) => `${x.get(listener)}px`,
