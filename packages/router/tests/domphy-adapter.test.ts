@@ -66,7 +66,7 @@ describe("setupTransitioner cleanup", () => {
       };
     };
 
-    const cleanup = setupTransitioner(router as unknown as AnyRouter);
+    const { cleanup } = setupTransitioner(router as unknown as AnyRouter);
 
     // Exactly one subscription per store and one for history were created.
     expect(isLoadingUnsubs.length).toBe(1);
@@ -104,7 +104,7 @@ describe("setupTransitioner cleanup", () => {
       };
     };
 
-    const cleanup = setupTransitioner(router as unknown as AnyRouter);
+    const { cleanup } = setupTransitioner(router as unknown as AnyRouter);
     expect(typeof registeredUpdate).toBe("function");
     expect(unsubscribed).toBe(false);
 
@@ -113,6 +113,80 @@ describe("setupTransitioner cleanup", () => {
 
     // Calling cleanup twice must be safe.
     expect(() => cleanup()).not.toThrow();
+  });
+
+  it("rebindHistory re-targets the history subscription to the current router.history", async () => {
+    const { router, postRoute } = createTestSetup();
+    await router.load();
+
+    const { rebindHistory } = setupTransitioner(router as unknown as AnyRouter);
+
+    const oldHistory = router.history;
+    const newHistory = createMemoryHistory({ initialEntries: ["/"] });
+    (router as unknown as { history: typeof newHistory }).history = newHistory;
+    rebindHistory();
+
+    // The stale history's navigation no longer reaches router.load.
+    oldHistory.push("/posts/1");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(
+      router.state.matches.find(
+        (routeMatch) => routeMatch.routeId === postRoute.id,
+      ),
+    ).toBeUndefined();
+
+    // The new history's navigation now drives the router.
+    newHistory.push("/posts/2");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(
+      router.state.matches.find(
+        (routeMatch) => routeMatch.routeId === postRoute.id,
+      )?.loaderData,
+    ).toEqual({ title: "Post 2" });
+  });
+});
+
+describe("Router.update() rebinds the transitioner to a replaced history", () => {
+  it("reacts to the new history's navigation and stops reacting to the old one", async () => {
+    const { router, postRoute } = createTestSetup();
+    await router.load();
+
+    const oldHistory = router.history;
+    const newHistory = createMemoryHistory({ initialEntries: ["/"] });
+    router.update({ ...router.options, history: newHistory });
+
+    oldHistory.push("/posts/1");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(
+      router.state.matches.find(
+        (routeMatch) => routeMatch.routeId === postRoute.id,
+      ),
+    ).toBeUndefined();
+
+    newHistory.push("/posts/2");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(
+      router.state.matches.find(
+        (routeMatch) => routeMatch.routeId === postRoute.id,
+      )?.loaderData,
+    ).toEqual({ title: "Post 2" });
+  });
+});
+
+describe("Router.destroy()", () => {
+  it("stops reacting to history changes after destroy", async () => {
+    const { router, postRoute } = createTestSetup();
+    await router.load();
+
+    (router as unknown as { destroy: () => void }).destroy();
+
+    router.history.push("/posts/1");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(
+      router.state.matches.find(
+        (routeMatch) => routeMatch.routeId === postRoute.id,
+      ),
+    ).toBeUndefined();
   });
 });
 

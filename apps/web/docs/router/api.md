@@ -31,7 +31,8 @@ The main members of the router returned by `createRouter`:
 - `matchRoute(location, options?)` — test a location against the tree (`{ fuzzy, includeSearch }`)
 - `getMatch(matchId)` / `clearCache(options?)` — cache access (advanced)
 - `history` — the underlying `RouterHistory` (`back`, `forward`, `go`, `block`)
-- `update(options)` — update router options after creation
+- `update(options)` — update router options after creation; replacing `history` re-targets the client's history subscription automatically
+- `destroy()` — release the client transitioner's history/store subscriptions (call when discarding a router instance, e.g. HMR or locale-switch patterns)
 
 ## History
 

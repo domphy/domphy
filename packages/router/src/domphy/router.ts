@@ -8,6 +8,7 @@ import { setupTransitioner } from './transitioner'
 import type { AnyRouter } from '../router'
 import type { RouterHistory } from '@tanstack/history'
 import type { AnyRoute } from '../route'
+import type { TransitionerHandle } from './transitioner'
 import type {
   CreateRouterFn,
   RouterConstructorOptions,
@@ -38,6 +39,8 @@ export class Router<
   TRouterHistory,
   TDehydrated
 > {
+  private transitioner?: TransitionerHandle
+
   constructor(
     options: RouterConstructorOptions<
       TRouteTree,
@@ -48,8 +51,32 @@ export class Router<
     >,
   ) {
     super(options, getStoreFactory)
-    if (!this.isServer) {
-      setupTransitioner(this as unknown as AnyRouter)
+
+    // RouterCore.update is an instance field (not a prototype method), so
+    // it can't be reached through `super.update` from an override. Capture
+    // the base implementation this instance already got from super() and
+    // wrap it instead.
+    const baseUpdate = this.update
+    this.update = (newOptions) => {
+      const previousHistory = this.history
+      baseUpdate(newOptions)
+      if (this.transitioner && this.history !== previousHistory) {
+        this.transitioner.rebindHistory()
+      }
     }
+
+    if (!this.isServer) {
+      this.transitioner = setupTransitioner(this as unknown as AnyRouter)
+    }
+  }
+
+  /**
+   * Releases the transitioner's history/store subscriptions. Call this when
+   * discarding a Router instance (HMR, locale-switch patterns) so it stops
+   * reacting to history and store changes.
+   */
+  destroy(): void {
+    this.transitioner?.cleanup()
+    this.transitioner = undefined
   }
 }

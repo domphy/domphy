@@ -15,7 +15,14 @@ function asReadable<TValue>(store: { get: () => TValue }): Readable<TValue> {
   return store as Readable<TValue>
 }
 
-export function setupTransitioner(router: AnyRouter): () => void {
+export interface TransitionerHandle {
+  cleanup: () => void
+  // Router.update() re-runs this when router.history is replaced (the
+  // history subscription otherwise stays bound to the stale instance).
+  rebindHistory: () => void
+}
+
+export function setupTransitioner(router: AnyRouter): TransitionerHandle {
   let isTransitioning = false
 
   let previousIsLoading = router.stores.isLoading.get()
@@ -96,7 +103,7 @@ export function setupTransitioner(router: AnyRouter): () => void {
 
   // Reload the route matches whenever the history changes (back/forward,
   // pushes from navigate, external history.push calls).
-  const unsubscribeHistory = router.history.subscribe(router.load)
+  let unsubscribeHistory = router.history.subscribe(router.load)
 
   // Check if the current URL matches the canonical form and correct it
   // (e.g. missing default search params).
@@ -115,10 +122,16 @@ export function setupTransitioner(router: AnyRouter): () => void {
     router.commitLocation({ ...nextLocation, replace: true })
   }
 
-  return () => {
-    for (const subscription of subscriptions) {
-      subscription.unsubscribe()
-    }
-    unsubscribeHistory()
+  return {
+    cleanup: () => {
+      for (const subscription of subscriptions) {
+        subscription.unsubscribe()
+      }
+      unsubscribeHistory()
+    },
+    rebindHistory: () => {
+      unsubscribeHistory()
+      unsubscribeHistory = router.history.subscribe(router.load)
+    },
   }
 }
