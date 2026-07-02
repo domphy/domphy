@@ -36,7 +36,6 @@ export default defineConfig([
     minify: false,
     target: "node18",
     external: ["esbuild"],
-    banner: { js: "#!/usr/bin/env node" },
   },
   {
     // Islands client: Node-resolvable ESM (esbuild re-bundles this for browser)
