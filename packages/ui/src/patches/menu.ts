@@ -28,7 +28,9 @@ type MenuItem = {
  * from the `items` array with keyboard navigation (Arrow/Home/End/Enter/Space).
  * Apply to any wrapper element (`div`, `ul`, …).
  *
- * @param props.items - Item definitions `{ label, key?, onClick? }`.
+ * @param props.items - Item definitions `{ label, key?, onClick? }`. Pass `[]`
+ * to keep the wrapper's own children (escape hatch for fully custom rows —
+ * only the menu container styling and `role="menu"` semantics apply then).
  * @param props.activeKey - Currently selected key (value or State). Defaults to `null`.
  * @param props.selectable - Whether items track and update the active selection. Defaults to `true`.
  * @param props.color - Background color tone for the menu. Defaults to `"neutral"`.
@@ -59,9 +61,9 @@ function menu(
   return {
     role: "menu",
     dataTone: "shift-17",
-    // Expose activeKey + selectable in context so menuItem() escape-hatch still works.
-    _context: { menu: { activeKey, selectable } },
     _onSchedule: (node, element) => {
+      // Empty items = the caller renders its own rows; leave children alone.
+      if (items.length === 0) return;
       const id = node.nodeId;
 
       const buttons: DomphyElement<"button">[] = items.map((item, index) => {
@@ -116,15 +118,13 @@ function menu(
             width: "100%",
             fontSize: (l: Listener) => themeSize(l, "inherit"),
             height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
-            paddingInline: (l: Listener) =>
-              themeSpacing(themeDensity(l) * 3),
+            paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
             border: "none",
             outline: "none",
             color: (l: Listener) => themeColor(l, "shift-9", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
             "&:hover:not([disabled]):not([aria-current=true])": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-2", color),
+              backgroundColor: (l: Listener) => themeColor(l, "shift-2", color),
             },
             "&[aria-current=true]": {
               backgroundColor: (l: Listener) =>
