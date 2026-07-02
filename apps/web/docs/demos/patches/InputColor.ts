@@ -11,6 +11,9 @@ const App: DomphyElement<"div"> = {
           input: null,
           value: "#4f7cff",
           $: [inputColor()],
+          // Decorative color swatch, no text content — "missing-color" would
+          // otherwise ask for a color that has nothing to apply to.
+          _doctorDisable: "missing-color",
         },
       ],
       $: [label()],
@@ -22,6 +25,9 @@ const App: DomphyElement<"div"> = {
           input: null,
           value: "#2bc5a1",
           $: [inputColor({ accentColor: "secondary" })],
+          // Decorative color swatch, no text content — "missing-color" would
+          // otherwise ask for a color that has nothing to apply to.
+          _doctorDisable: "missing-color",
         },
       ],
       $: [label()],

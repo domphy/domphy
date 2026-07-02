@@ -1,5 +1,5 @@
 import type { DomphyElement } from "@domphy/core";
-import { themeSpacing } from "@domphy/theme";
+import { themeColor, themeSpacing } from "@domphy/theme";
 import {
   abbreviation,
   blockquote,
@@ -61,6 +61,7 @@ const App: DomphyElement<"div"> = {
     {
       blockquote: "The best way to predict the future is to invent it.",
       $: [blockquote()],
+      style: { color: (l) => themeColor(l, "shift-9") },
     },
     { pre: "const x = 1\nconsole.log(x)", $: [preformated()] },
     {

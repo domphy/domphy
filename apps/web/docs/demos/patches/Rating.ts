@@ -1,5 +1,6 @@
 import type { DomphyElement } from "@domphy/core";
 import { toState } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { heading, paragraph, rating } from "@domphy/ui";
 
 const ratingState = toState(3);
@@ -18,7 +19,7 @@ const App: DomphyElement<"div"> = {
     { h3: "Read-only (4 stars)", $: [heading()] },
     { div: null, $: [rating({ value: 4, readOnly: true })] },
   ],
-  style: { display: "flex", flexDirection: "column", gap: "1rem" },
+  style: { display: "flex", flexDirection: "column", gap: themeSpacing(4) },
 };
 
 export default App;

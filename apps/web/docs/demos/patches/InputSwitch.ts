@@ -6,22 +6,34 @@ const App: DomphyElement<"div"> = {
   div: [
     {
       input: null,
+      // Decorative switch track/knob, no text content — "missing-color" would
+      // otherwise ask for a color that has nothing to apply to.
+      _doctorDisable: "missing-color",
       $: [inputSwitch()],
     },
     {
       input: null,
       disabled: true,
+      // Decorative switch track/knob, no text content — "missing-color" would
+      // otherwise ask for a color that has nothing to apply to.
+      _doctorDisable: "missing-color",
       $: [inputSwitch()],
     },
     {
       input: null,
       checked: true,
+      // Decorative switch track/knob, no text content — "missing-color" would
+      // otherwise ask for a color that has nothing to apply to.
+      _doctorDisable: "missing-color",
       $: [inputSwitch()],
     },
     {
       input: null,
       checked: true,
       disabled: true,
+      // Decorative switch track/knob, no text content — "missing-color" would
+      // otherwise ask for a color that has nothing to apply to.
+      _doctorDisable: "missing-color",
       $: [inputSwitch()],
     },
   ],

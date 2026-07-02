@@ -17,6 +17,9 @@ const App: DomphyElement<"div"> = {
     $: [selectItem({ value: fruit.value })],
   })),
   $: [selectList({ value: selected })],
+  // Text color is set by the selectItem children the selectList renders —
+  // the outer list container itself carries no text.
+  _doctorDisable: "missing-color",
 };
 
 export default App;

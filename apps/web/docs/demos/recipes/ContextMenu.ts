@@ -1,4 +1,5 @@
 import { type DomphyElement, toState } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { menu } from "@domphy/ui";
 
 const open = toState(false);
@@ -26,6 +27,9 @@ const contextMenu: DomphyElement<"div"> = {
     display: (listener) => (open.get(listener) ? "flex" : "none"),
     pointerEvents: (listener) => (open.get(listener) ? "auto" : "none"),
   },
+  // Text color is set by the menuitem buttons the menu() patch renders —
+  // the outer container itself carries no text.
+  _doctorDisable: "missing-color",
   _onMount: (node) => {
     const close = (e: MouseEvent) => {
       if (!node.domElement!.contains(e.target as Node)) open.set(false);
@@ -38,7 +42,7 @@ const contextMenu: DomphyElement<"div"> = {
 const App: DomphyElement<"div"> = {
   div: [{ p: "Right-click anywhere in this area" }, contextMenu],
   style: {
-    padding: "2rem",
+    padding: themeSpacing(8),
     userSelect: "none",
     minHeight: "8rem",
     border: "2px dashed currentColor",

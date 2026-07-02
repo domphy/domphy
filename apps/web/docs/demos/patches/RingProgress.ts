@@ -9,11 +9,25 @@ const App: DomphyElement<"div"> = {
   div: [
     {
       div: [
-        { div: null, $: [ringProgress({ value, color: "primary" })] },
-        { div: null, $: [ringProgress({ value, color: "success", size: 20 })] },
         {
           div: null,
-          $: [ringProgress({ value, color: "warning", size: 12, thickness: 0.4 })],
+          $: [ringProgress({ value, color: "primary" })],
+          // Decorative progress ring (conic-gradient background), no text content — "missing-color" would otherwise ask for a color that has nothing to apply to.
+          _doctorDisable: "missing-color",
+        },
+        {
+          div: null,
+          $: [ringProgress({ value, color: "success", size: 20 })],
+          // Decorative progress ring (conic-gradient background), no text content — "missing-color" would otherwise ask for a color that has nothing to apply to.
+          _doctorDisable: "missing-color",
+        },
+        {
+          div: null,
+          $: [
+            ringProgress({ value, color: "warning", size: 12, thickness: 0.4 }),
+          ],
+          // Decorative progress ring (conic-gradient background), no text content — "missing-color" would otherwise ask for a color that has nothing to apply to.
+          _doctorDisable: "missing-color",
         },
       ],
       style: {
@@ -30,7 +44,7 @@ const App: DomphyElement<"div"> = {
           $: [button({ color: "neutral" })],
           onClick: () => value.set(Math.max(0, value.get() - 10)),
         },
-        { span: (l) => `${value.get(l)}%`, $: [small()] },
+        { small: (l) => `${value.get(l)}%`, $: [small()] },
         {
           button: "+",
           $: [button({ color: "primary" })],

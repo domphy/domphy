@@ -148,6 +148,9 @@ const App: DomphyElement<"div"> = {
       ],
       // menu() stacks items in a column by default; a row reads as a nav bar.
       style: { flexDirection: "row" },
+      // Text color is set by the menuitem buttons the menu() patch renders —
+      // the outer container itself carries no text.
+      _doctorDisable: "missing-color",
     },
     {
       div: (l) => {

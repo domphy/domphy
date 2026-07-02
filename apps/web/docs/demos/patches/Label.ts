@@ -20,6 +20,9 @@ const App: DomphyElement<"div"> = {
         {
           input: null,
           checked: true,
+          // Decorative checkbox control, no text content — "missing-color"
+          // would otherwise ask for a color that has nothing to apply to.
+          _doctorDisable: "missing-color",
           $: [inputCheckbox()],
         },
         "Subscribe newsletter",

@@ -13,6 +13,7 @@ const App: DomphyElement<"div"> = {
       style: {
         marginBlock: `0 ${themeSpacing(3)}`,
         fontSize: (listener) => themeSize(listener, "increase-1"),
+        color: (listener) => themeColor(listener, "shift-11"),
       },
     },
     {
@@ -31,6 +32,10 @@ const App: DomphyElement<"div"> = {
   ],
   dataTheme: "light",
   dataTone: "shift-1",
+  style: {
+    backgroundColor: (listener) => themeColor(listener, "inherit"),
+    color: (listener) => themeColor(listener, "shift-9"),
+  },
 };
 
 export default App;

@@ -1,4 +1,5 @@
 import { type DomphyElement, toState } from "@domphy/core";
+import { themeColor } from "@domphy/theme";
 import { alert, button, formGroup, inputText, label } from "@domphy/ui";
 import { z } from "zod";
 
@@ -55,6 +56,7 @@ const App: DomphyElement<"form"> = {
           hidden: (listener) => !errors.get(listener)?.email?._errors.length,
         },
       ],
+      style: { color: (listener) => themeColor(listener, "shift-9") },
       $: [formGroup()],
     },
     {

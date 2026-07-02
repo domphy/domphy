@@ -1,5 +1,6 @@
 import type { DomphyElement } from "@domphy/core";
 import { createForm } from "@domphy/form/domphy";
+import { themeColor } from "@domphy/theme";
 import { button, formGroup, inputText, label } from "@domphy/ui";
 
 const myForm = createForm<{ name: string; email: string }>({
@@ -13,7 +14,7 @@ const email = myForm.field<string>("email");
 const App: DomphyElement<"form"> = {
   form: [
     {
-      div: [
+      fieldset: [
         { label: "Name", $: [label()] },
         {
           input: null,
@@ -26,9 +27,10 @@ const App: DomphyElement<"form"> = {
         },
       ],
       $: [formGroup()],
+      style: { color: (l) => themeColor(l, "shift-9") },
     },
     {
-      div: [
+      fieldset: [
         { label: "Email", $: [label()] },
         {
           input: null,
@@ -41,6 +43,7 @@ const App: DomphyElement<"form"> = {
         },
       ],
       $: [formGroup()],
+      style: { color: (l) => themeColor(l, "shift-9") },
     },
     {
       button: "Submit",

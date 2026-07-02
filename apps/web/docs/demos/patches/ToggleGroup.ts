@@ -8,38 +8,53 @@ const App: DomphyElement<"div"> = {
   div: [
     {
       div: null,
-      $: [toggleGroup({
-        value: "bold",
-        items: [
-          { label: "Bold", key: "bold" },
-          { label: "Italic", key: "italic" },
-          { label: "Underline", key: "underline" },
-        ],
-      })],
+      $: [
+        toggleGroup({
+          value: "bold",
+          items: [
+            { label: "Bold", key: "bold" },
+            { label: "Italic", key: "italic" },
+            { label: "Underline", key: "underline" },
+          ],
+        }),
+      ],
+      // Text color is set by the toggle buttons the toggleGroup() patch
+      // renders — the outer group container itself carries no text.
+      _doctorDisable: "missing-color",
     },
     {
       div: null,
-      $: [toggleGroup({
-        value: selected,
-        multiple: true,
-        items: [
-          { label: "B", key: "b" },
-          { label: "I", key: "i" },
-          { label: "U", key: "u" },
-          { label: "S", key: "s" },
-        ],
-      })],
+      $: [
+        toggleGroup({
+          value: selected,
+          multiple: true,
+          items: [
+            { label: "B", key: "b" },
+            { label: "I", key: "i" },
+            { label: "U", key: "u" },
+            { label: "S", key: "s" },
+          ],
+        }),
+      ],
+      // Text color is set by the toggle buttons the toggleGroup() patch
+      // renders — the outer group container itself carries no text.
+      _doctorDisable: "missing-color",
     },
     {
       div: null,
-      $: [toggleGroup({
-        color: "neutral",
-        items: [
-          { label: "Left", key: "left" },
-          { label: "Center", key: "center" },
-          { label: "Right", key: "right" },
-        ],
-      })],
+      $: [
+        toggleGroup({
+          color: "neutral",
+          items: [
+            { label: "Left", key: "left" },
+            { label: "Center", key: "center" },
+            { label: "Right", key: "right" },
+          ],
+        }),
+      ],
+      // Text color is set by the toggle buttons the toggleGroup() patch
+      // renders — the outer group container itself carries no text.
+      _doctorDisable: "missing-color",
     },
   ],
   style: {

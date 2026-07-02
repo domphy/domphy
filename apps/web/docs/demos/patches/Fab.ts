@@ -1,4 +1,5 @@
 import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { fab } from "@domphy/ui";
 
 const App: DomphyElement<"div"> = {
@@ -9,7 +10,7 @@ const App: DomphyElement<"div"> = {
     { button: "✏️", $: [fab({ color: "neutral" })] },
     { button: "🗑", $: [fab({ color: "danger" })] },
   ],
-  style: { display: "flex", alignItems: "center", gap: "1rem" },
+  style: { display: "flex", alignItems: "center", gap: themeSpacing(4) },
 };
 
 export default App;

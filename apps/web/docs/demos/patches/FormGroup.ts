@@ -1,5 +1,5 @@
 import type { DomphyElement } from "@domphy/core";
-import { themeSpacing } from "@domphy/theme";
+import { themeColor, themeSpacing } from "@domphy/theme";
 import { formGroup, inputText, label } from "@domphy/ui";
 
 const App: DomphyElement<"div"> = {
@@ -17,7 +17,11 @@ const App: DomphyElement<"div"> = {
         { p: "Optional for some addresses" },
       ],
       $: [formGroup()],
-      style: { width: "100%", maxWidth: themeSpacing(176) },
+      style: {
+        width: "100%",
+        maxWidth: themeSpacing(176),
+        color: (listener) => themeColor(listener, "shift-9"),
+      },
     },
     {
       fieldset: [
@@ -32,7 +36,11 @@ const App: DomphyElement<"div"> = {
         { p: "Optional for some addresses" },
       ],
       $: [formGroup({ layout: "vertical" })],
-      style: { width: "100%", maxWidth: themeSpacing(176) },
+      style: {
+        width: "100%",
+        maxWidth: themeSpacing(176),
+        color: (listener) => themeColor(listener, "shift-9"),
+      },
     },
   ],
   style: { display: "flex", flexDirection: "column", gap: themeSpacing(9) },

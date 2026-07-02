@@ -12,6 +12,9 @@ const basic: DomphyElement<"div"> = {
     $: [selectItem({ value: fruit.toLowerCase() })],
   })),
   $: [selectList({ value, name: "fruit" })],
+  // Text color is set by the selectItem() children each item renders —
+  // this outer selectList container itself carries no text.
+  _doctorDisable: "missing-color",
 };
 
 const multiValue = toState<string[]>([]);
@@ -22,6 +25,9 @@ const multiple: DomphyElement<"div"> = {
     $: [selectItem({ value: fruit.toLowerCase() })],
   })),
   $: [selectList({ value: multiValue, multiple: true, name: "fruits" })],
+  // Text color is set by the selectItem() children each item renders —
+  // this outer selectList container itself carries no text.
+  _doctorDisable: "missing-color",
 };
 
 const App: DomphyElement<"div"> = {

@@ -16,7 +16,13 @@ const App: DomphyElement<"div"> = {
         { h4: "h4·title", $: [heading()], style: dashed },
         { p: "p · description", $: [paragraph()], style: dashed },
         { aside: "aside · extra" },
-        { div: "div · content", style: dashed },
+        {
+          div: "div · content",
+          style: {
+            ...dashed,
+            color: (l: Listener) => themeColor(l, "shift-9"),
+          },
+        },
         { footer: ["footer · footer"] },
       ],
       $: [card()],

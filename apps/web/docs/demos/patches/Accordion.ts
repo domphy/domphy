@@ -32,6 +32,9 @@ const App: DomphyElement<"div"> = {
     },
   ],
   $: [accordion()],
+  // Text color is set by the summary/p children the accordion() patch
+  // renders — the outer group container itself carries no text.
+  _doctorDisable: "missing-color",
 };
 
 export default App;

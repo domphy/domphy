@@ -6,22 +6,30 @@ const App: DomphyElement<"div"> = {
   div: [
     {
       input: null,
+      // Radio control has no text content — color doesn't apply.
+      _doctorDisable: "missing-color",
       $: [inputRadio()],
     },
     {
       input: null,
       disabled: true,
+      // Radio control has no text content — color doesn't apply.
+      _doctorDisable: "missing-color",
       $: [inputRadio()],
     },
     {
       input: null,
       checked: true,
+      // Radio control has no text content — color doesn't apply.
+      _doctorDisable: "missing-color",
       $: [inputRadio()],
     },
     {
       input: null,
       checked: true,
       disabled: true,
+      // Radio control has no text content — color doesn't apply.
+      _doctorDisable: "missing-color",
       $: [inputRadio()],
     },
   ],

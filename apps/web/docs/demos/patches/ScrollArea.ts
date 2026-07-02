@@ -10,11 +10,14 @@ const App: DomphyElement<"div"> = {
         _key: i,
         style: {
           padding: themeSpacing(3),
-          borderBottom: (l) =>
-            `1px solid ${themeColor(l, "shift-3")}`,
+          borderBottom: (l) => `1px solid ${themeColor(l, "shift-3")}`,
+          color: (l) => themeColor(l, "shift-9"),
         },
       })),
       $: [scrollArea()],
+      // Text color is set by the item divs the map above renders —
+      // this outer scroll container itself carries no text.
+      _doctorDisable: "missing-color",
       style: {
         maxHeight: themeSpacing(48),
         outline: (l) => `1px solid ${themeColor(l, "shift-3")}`,

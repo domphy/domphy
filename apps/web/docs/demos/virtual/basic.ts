@@ -46,6 +46,9 @@ const App: DomphyElement<"div"> = {
     outline: (l) => `1px solid ${themeColor(l, "shift-4")}`,
     borderRadius: themeSpacing(2),
   },
+  // Row text color is set on each virtualized row div — the outer scroll
+  // container itself carries no text.
+  _doctorDisable: "missing-color",
   _onMount: (node) => list.setScrollElement(node.domElement as HTMLDivElement),
   _onRemove: () => list.destroy(),
 };

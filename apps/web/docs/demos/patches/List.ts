@@ -1,5 +1,6 @@
 import type { DomphyElement } from "@domphy/core";
 import { toState } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { list, listItem, listItemButton, paragraph } from "@domphy/ui";
 
 const selected = toState<string | null>(null);
@@ -18,6 +19,9 @@ const App: DomphyElement<"div"> = {
           } as any,
           ariaSelected: (l) => (selected.get(l) === label ? "true" : undefined),
           $: [listItem()],
+          // Text color is set by the button child (listItemButton()) — the
+          // li itself carries no text.
+          _doctorDisable: "missing-color",
         }),
       ),
       $: [list()],
@@ -28,7 +32,7 @@ const App: DomphyElement<"div"> = {
       $: [paragraph()],
     },
   ],
-  style: { display: "flex", gap: "2rem", alignItems: "flex-start" },
+  style: { display: "flex", gap: themeSpacing(8), alignItems: "flex-start" },
 };
 
 export default App;

@@ -22,6 +22,9 @@ const App: DomphyElement<"div"> = {
       src: chart,
       alt: "Sales trend chart",
       $: [image()],
+      // Decorative image placeholder background, no text content — "missing-color"
+      // would otherwise ask for a color that has nothing to apply to.
+      _doctorDisable: "missing-color",
     },
     {
       img: null,
@@ -31,6 +34,9 @@ const App: DomphyElement<"div"> = {
       style: {
         maxWidth: themeSpacing(56),
       },
+      // Decorative image placeholder background, no text content — "missing-color"
+      // would otherwise ask for a color that has nothing to apply to.
+      _doctorDisable: "missing-color",
     },
   ],
   style: {

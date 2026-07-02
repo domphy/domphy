@@ -1,4 +1,6 @@
 import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
+import { small } from "@domphy/ui";
 
 const families = [
   "neutral",
@@ -16,22 +18,20 @@ const families = [
 const row = (family: string): DomphyElement<"div"> => ({
   div: [
     {
-      span: family,
-      style: {
-        fontFamily: "monospace",
-        fontSize: "0.75rem",
-        display: "inline-block",
-        minWidth: "84px",
-        paddingTop: "4px",
-      },
-    },
+      small: family,
+      $: [small()],
+      style: { display: "inline-block", minWidth: themeSpacing(21) },
+    } as DomphyElement<"small">,
     {
       div: Array.from({ length: 18 }, (_, i) => ({
         div: "",
+        // Decorative color swatch, no text content — "missing-color" would
+        // otherwise ask for a color that has nothing to apply to.
+        _doctorDisable: "missing-color",
         style: {
           backgroundColor: `var(--${family}-${i})`,
-          width: "32px",
-          height: "32px",
+          width: themeSpacing(8),
+          height: themeSpacing(8),
           flexShrink: "0",
         },
         title: `--${family}-${i}`,
@@ -44,8 +44,8 @@ const row = (family: string): DomphyElement<"div"> => ({
   style: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
-    marginBottom: "4px",
+    gap: themeSpacing(2),
+    marginBottom: themeSpacing(1),
   },
 });
 
@@ -53,8 +53,7 @@ const App: DomphyElement<"div"> = {
   div: families.map(row),
   dataTheme: "light",
   style: {
-    padding: "16px",
-    fontFamily: "system-ui, sans-serif",
+    padding: themeSpacing(4),
   },
 };
 

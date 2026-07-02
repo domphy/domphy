@@ -22,19 +22,27 @@ const App: DomphyElement<"div"> = {
   div: [
     row("Wi-Fi", {
       button: [{ span: null }],
+      // Toggle thumb has no text content — buttonSwitch's own tones convey state.
+      _doctorDisable: "missing-color",
       $: [buttonSwitch({ checked: wifi })],
     }),
     row("Notifications", {
       button: [{ span: null }],
+      // Toggle thumb has no text content — buttonSwitch's own tones convey state.
+      _doctorDisable: "missing-color",
       $: [buttonSwitch({ checked: notifications, accentColor: "secondary" })],
     }),
     row("Dark mode", {
       button: [{ span: null }],
+      // Toggle thumb has no text content — buttonSwitch's own tones convey state.
+      _doctorDisable: "missing-color",
       $: [buttonSwitch({ checked: darkMode, accentColor: "primary" })],
     }),
     row("Disabled on", {
       button: [{ span: null }],
       disabled: true,
+      // Toggle thumb has no text content — buttonSwitch's own tones convey state.
+      _doctorDisable: "missing-color",
       $: [buttonSwitch({ checked: true })],
     }),
   ],

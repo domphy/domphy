@@ -1,23 +1,24 @@
 import type { DomphyElement } from "@domphy/core";
-import { toState } from "@domphy/core";
-import { themeSpacing } from "@domphy/theme";
+import { themeColor, themeSpacing } from "@domphy/theme";
 import { button, formGroup, inputPassword, label } from "@domphy/ui";
 
 const App: DomphyElement<"form"> = {
   form: [
     {
-      div: [
+      fieldset: [
         { label: "Password", $: [label()] },
         { div: null, $: [inputPassword()] },
       ],
       $: [formGroup()],
+      style: { color: (listener) => themeColor(listener, "shift-9") },
     },
     {
-      div: [
+      fieldset: [
         { label: "Confirm", $: [label()] },
         { div: null, $: [inputPassword({ accentColor: "success" })] },
       ],
       $: [formGroup()],
+      style: { color: (listener) => themeColor(listener, "shift-9") },
     },
     {
       button: "Submit",

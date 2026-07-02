@@ -4,7 +4,7 @@ import { popoverArrow } from "@domphy/ui";
 
 const App: DomphyElement<"div"> = {
   div: "Arrow Target",
-  dataTone: "shift-6",
+  dataTone: "shift-0",
   style: {
     display: "inline-flex",
     alignItems: "center",

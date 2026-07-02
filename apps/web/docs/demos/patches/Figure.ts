@@ -16,6 +16,9 @@ const App: DomphyElement<"figure"> = {
           style: {
             stroke: (listener) => themeColor(listener, "shift-3", "neutral"),
           },
+          // Decorative chart track stroke, no text content — "missing-color" would
+          // otherwise ask for a color that has nothing to apply to.
+          _doctorDisable: "missing-color",
         },
         {
           circle: null,
@@ -30,6 +33,9 @@ const App: DomphyElement<"figure"> = {
           style: {
             stroke: (listener) => themeColor(listener, "shift-6", "primary"),
           },
+          // Decorative chart progress stroke, no text content — "missing-color" would
+          // otherwise ask for a color that has nothing to apply to.
+          _doctorDisable: "missing-color",
         },
       ],
       viewBox: "0 0 100 100",
@@ -43,6 +49,10 @@ const App: DomphyElement<"figure"> = {
         padding: themeSpacing(3),
         borderRadius: themeSpacing(2),
       },
+      // Decorative chart canvas (svg circles carry the visible content), no
+      // text content — "missing-color" would otherwise ask for a color that
+      // has nothing to apply to.
+      _doctorDisable: "missing-color",
     },
     {
       figcaption:
