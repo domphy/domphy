@@ -102,7 +102,7 @@ function LoginPage(): DomphyElement<"div"> {
       },
       {
         button: "Log in",
-        $: [button({ color: "accent" })],
+        $: [button({ color: "primary" })],
         onClick: () => {
           const name = usernameInput.get().trim();
           if (name) applyAuth(name, "/dashboard");

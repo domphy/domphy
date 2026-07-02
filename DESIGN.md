@@ -34,7 +34,7 @@ open-source, peer-citable framework:
 
 > Nguyen, H. K. *A Quantitative Framework for Evaluating Sequential Color
 > Palette Quality in Design Systems.* Independent Researcher, 2026.
-> [`paper.pdf`](https://chromametry.github.io/chromametry/paper.pdf) ·
+> [`paper.pdf`](https://chromametry.github.io/chromametry/paper/paper.pdf) ·
 > [benchmark](https://chromametry.github.io/chromametry/benchmark)
 
 The framework scores an 18-step monochromatic ramp — the shape every
@@ -43,8 +43,14 @@ dimensions, all computed in CIELAB and combined by geometric mean so no
 single strong metric can hide a structurally broken one:
 
 ```
-SCORE = 100 · (η · 𝓛 · S_C · 𝓗 · U + ε)^(1/5)     (ε = 1e-6, numerical floor)
+SCORE = 100 · [(η+ε)(𝓛+ε)(S_C+ε)(𝓗+ε)(U+ε)]^(1/5)     (ε = 1e-6, numerical floor)
 ```
+
+(ε is added to *each* metric before the product — not once after — matching both
+`calcScore` in `packages/palette/src/utils.ts` and the chromametry paper's own
+`SCORE = 100·[∏ₖ(Mₖ+ε)]^(1/5)`. For the tiny ε=1e-6 used here the two forms are
+numerically indistinguishable in practice, but only the per-term form is what the
+code and paper actually compute.)
 
 ### 2.1 Contrast Efficiency (η) — the load-bearing metric
 
@@ -100,9 +106,9 @@ Helmholtz–Kohlrausch effect means a high-chroma color looks brighter than an
 achromatic color at the *same* `L*`. Domphy corrects for this using
 **Equivalent Achromatic Lightness (EAL)**, from:
 
-> High, R., Green, P., & Nussbaum, P. *The Helmholtz–Kohlrausch effect on
+> High, G., Green, P., & Nussbaum, P. *The Helmholtz–Kohlrausch effect on
 > display-based light colors and simulated substrate colors.* Color Research
-> & Application, 48(3):341–354, 2023.
+> & Application, 48(2):167–177, 2023.
 
 ```
 L_EAL = L* + (f_BY(h) + f_R(h)) · C*
@@ -335,10 +341,10 @@ structural, not observed.
 1. Nguyen, H. K. *A Quantitative Framework for Evaluating Sequential Color
    Palette Quality in Design Systems.* 2026.
    [chromametry/chromametry](https://github.com/chromametry/chromametry),
-   [paper.pdf](https://chromametry.github.io/chromametry/paper.pdf).
-2. High, R., Green, P., & Nussbaum, P. *The Helmholtz–Kohlrausch effect on
+   [paper.pdf](https://chromametry.github.io/chromametry/paper/paper.pdf).
+2. High, G., Green, P., & Nussbaum, P. *The Helmholtz–Kohlrausch effect on
    display-based light colors and simulated substrate colors.* Color
-   Research & Application, 48(3):341–354, 2023.
+   Research & Application, 48(2):167–177, 2023.
 3. Zeileis, A. et al. *Escaping RGBland: Selecting colors for statistical
    graphics.* 2009. (Power-curve palette parameterization, monotone-spline
    motivation.)

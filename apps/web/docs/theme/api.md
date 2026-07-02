@@ -193,8 +193,11 @@ For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
 | `ThemeInput` | Full theme shape accepted by `setTheme()`. All fields are optional when passing a partial. |
 | `PartialThemeInput` | Deep-partial version of `ThemeInput` — what `setTheme()` actually accepts at runtime. |
 | `ThemeVars` | Object of `var(--…)` CSS variable references returned by `themeVars()`. |
-| `ThemeColor` | Union of valid color family names (`"neutral" \| "primary" \| …`) derived from `ThemeInput["colors"]`. |
+| `ThemeColor` | `ColorRole \| (string & {})` — the 10 built-in role names rank first in editor autocomplete/hover, but any string still type-checks (custom themes may register their own role names via `setTheme`/`generateTheme`). This is intentionally NOT a strict union — see `ColorRole` below for the exhaustive list. |
+| `ColorRole` | Strict union of the 10 built-in semantic role names: `"neutral" \| "primary" \| "secondary" \| "info" \| "success" \| "warning" \| "attention" \| "error" \| "danger" \| "highlight"`. Derived from `COLOR_ROLES` below. |
 | `ElementTone` | Valid tone descriptor strings: `"inherit"`, `"base"`, `"shift-N"`, `"increase-N"`, `"decrease-N"`. |
 | `ElementTones` | Runtime array of all valid tone strings (exported as a value for validation tooling). |
 | `ElementSize` | Valid size descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–7). |
 | `ElementDensity` | Valid density descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–4). |
+
+`COLOR_ROLES` — runtime `readonly` array of the same 10 names (`ColorRole`'s source of truth: `type ColorRole = (typeof COLOR_ROLES)[number]`). Use this instead of hand-listing the 10 roles when you need them as a real iterable (e.g. rendering one control per role).

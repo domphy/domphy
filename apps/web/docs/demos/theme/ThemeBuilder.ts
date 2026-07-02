@@ -52,6 +52,8 @@ import {
   toggleGroup,
 } from "@domphy/ui";
 import {
+  COLOR_ROLES,
+  type ColorRole,
   type GenerateThemeOptions,
   type PartialThemeInput,
   generateTheme,
@@ -72,19 +74,8 @@ import {
 
 const THEME_NAME = "theme-builder-preview";
 
-const ROLES = [
-  "primary",
-  "secondary",
-  "info",
-  "success",
-  "warning",
-  "attention",
-  "error",
-  "danger",
-  "highlight",
-  "neutral",
-] as const;
-type Role = (typeof ROLES)[number];
+const ROLES = COLOR_ROLES;
+type Role = ColorRole;
 
 const DEFAULT_FONT_SIZES = [
   "0.75rem",

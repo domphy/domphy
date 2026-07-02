@@ -326,4 +326,36 @@ export function themeName(object: ElementNode | Listener) {
   return themeName;
 }
 
-export type ThemeColor = keyof ThemeInput["colors"];
+// The 10 semantic roles every built-in theme (light/dark) ships — single source
+// of truth for both the runtime list (icons, docs demos, e.g. ThemeBuilder's
+// color-picker sidebar) and the ColorRole type below. `ThemeInput.colors` stays
+// a plain string-indexed record (custom themes may register their own role
+// names via setTheme/generateTheme), so this is deliberately NOT presented as
+// an exhaustive runtime constraint anywhere it's consumed.
+export const COLOR_ROLES = [
+  "neutral",
+  "primary",
+  "secondary",
+  "info",
+  "success",
+  "warning",
+  "attention",
+  "error",
+  "danger",
+  "highlight",
+] as const;
+
+export type ColorRole = (typeof COLOR_ROLES)[number];
+
+// `ColorRole | (string & {})` — NOT plain `string` and NOT a strict `ColorRole`
+// union. `ThemeInput.colors` being a generic Record (see above) means a strict
+// union would reject valid custom-role code. But every prior version of this
+// type (`keyof ThemeInput["colors"]`, which TS widens to plain `string` for a
+// generic Record) gave editors/AI codegen ZERO signal about the 10 built-in
+// role names — a typo'd role (e.g. "accent", not a real role) type-checked fine
+// and only surfaced as an unhandled runtime throw from themeColor(). The
+// `string & {}` branch preserves full acceptance of arbitrary custom-role
+// strings while `ColorRole` still ranks first in autocomplete/hover — this is
+// the standard "loose autocomplete" pattern (TS does not support "reject unknown
+// literals but allow an explicit escape hatch" any more precisely than this).
+export type ThemeColor = ColorRole | (string & {});

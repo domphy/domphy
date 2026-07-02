@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { themeDensity } from "../src/density.ts";
 import { themeSize } from "../src/size.ts";
 import {
+  COLOR_ROLES,
   getTheme,
   setTheme,
   themeCSS,
@@ -178,5 +179,22 @@ describe("theme CSS generation hygiene", () => {
     expect(vars.darkBias).toBeUndefined();
     expect(vars.primary).toBeDefined();
     expect(vars.fontSizes).toBeDefined();
+  });
+});
+
+// COLOR_ROLES is the single source of truth for the 10 built-in semantic role
+// names — both the ColorRole type (theme.ts, gives ThemeColor its autocomplete)
+// and every consumer that needs a runtime list (e.g. the Theme Builder demo's
+// color-picker sidebar) derive from this ONE array. A drift between this array
+// and the actual `light` theme's registered colors would silently break that
+// autocomplete guarantee without failing any other test.
+describe("COLOR_ROLES", () => {
+  it("matches the light theme's registered color keys exactly (order-independent)", () => {
+    const registered = Object.keys(getTheme("light").colors).sort();
+    expect([...COLOR_ROLES].sort()).toEqual(registered);
+  });
+
+  it("has no duplicate entries", () => {
+    expect(new Set(COLOR_ROLES).size).toBe(COLOR_ROLES.length);
   });
 });
