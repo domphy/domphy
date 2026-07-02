@@ -121,11 +121,17 @@ function editDistance1(a: string, b: string): boolean {
   }
   const longer = diff > 0 ? a : b;
   const shorter = diff > 0 ? b : a;
-  let i = 0, j = 0, skipped = false;
+  let i = 0,
+    j = 0,
+    skipped = false;
   while (i < longer.length) {
-    if (j < shorter.length && longer[i] === shorter[j]) { i++; j++; }
-    else if (!skipped) { skipped = true; i++; }
-    else return false;
+    if (j < shorter.length && longer[i] === shorter[j]) {
+      i++;
+      j++;
+    } else if (!skipped) {
+      skipped = true;
+      i++;
+    } else return false;
   }
   return true;
 }
@@ -355,7 +361,7 @@ export function searchWidget(options: SearchWidgetOptions = {}): DomphyElement {
     id: listboxId,
     role: "listbox",
     $: [
-      menu({ selectable: false, color: "neutral" }),
+      menu({ items: [], selectable: false, color: "neutral" }),
       card({ color: "neutral" }),
     ],
     style: {

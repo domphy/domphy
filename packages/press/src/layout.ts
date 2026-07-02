@@ -884,11 +884,11 @@ function resolveSlot(
 
 // --- Content div with prose styles -------------------------------------
 
-function contentDiv(body: DomphyElement[]): DomphyElement {
+function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
   return {
     div: body,
     style: {
-      maxWidth: contentMax,
+      maxWidth: maxWidth ?? contentMax,
       "& h1": {
         fontSize: "30px",
         fontWeight: "700",
@@ -997,10 +997,12 @@ function contentDiv(body: DomphyElement[]): DomphyElement {
 export function pageShell(ctx: LayoutContext): DomphyElement {
   // layout: 'page' = no sidebar, no TOC, full-width content (same as VitePress)
   const layout =
-    typeof ctx.frontmatter.layout === "string"
-      ? ctx.frontmatter.layout
-      : "doc";
+    typeof ctx.frontmatter.layout === "string" ? ctx.frontmatter.layout : "doc";
   const showSidebar = layout === "doc" && ctx.frontmatter.sidebar !== false;
+
+  const asideEl =
+    layout !== "page" ? resolveSlot(ctx, "aside", tocAside) : null;
+  const showAside = asideEl !== null && showSidebar;
 
   const main: DomphyElement[] = [];
   const badge = pageBadge(ctx.frontmatter);
@@ -1009,7 +1011,11 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
       div: [badge],
       style: { marginBottom: ts(-2) },
     } as DomphyElement);
-  main.push(contentDiv(ctx.body));
+  // With the aside column hidden (frontmatter `aside: false` or no TOC), let
+  // the content span the freed-up grid space instead of capping at prose width.
+  main.push(
+    contentDiv(ctx.body, !showAside && showSidebar ? "none" : undefined),
+  );
   const pn = resolveSlot(ctx, "prevNext", prevNext);
   if (pn) main.push(pn);
   const docFooterEl = resolveSlot(ctx, "docFooter", docFooter);
@@ -1029,9 +1035,6 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
         margin: "0 auto",
         "@media (max-width: 860px)": { padding: `${ts(6)} ${ts(5)} ${ts(16)}` },
       };
-
-  const asideEl = layout !== "page" ? resolveSlot(ctx, "aside", tocAside) : null;
-  const showAside = asideEl !== null && showSidebar;
   const shellChildren: DomphyElement[] = [
     ...(sidebarEl ? [sidebarEl] : []),
     { main, style: mainStyle },
@@ -1069,7 +1072,9 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
         style: {
           display: "grid",
           gridTemplateColumns: showSidebar
-            ? showAside ? `${sidebarW} minmax(0,1fr) ${asideW}` : `${sidebarW} minmax(0,1fr)`
+            ? showAside
+              ? `${sidebarW} minmax(0,1fr) ${asideW}`
+              : `${sidebarW} minmax(0,1fr)`
             : "1fr",
           alignItems: "start",
           maxWidth: "1440px",
@@ -1220,7 +1225,11 @@ function heroSection(hero: HeroConfig): DomphyElement {
         div: [
           {
             div: textChildren,
-            style: { display: "flex", flexDirection: "column", justifyContent: "center" },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+            },
           } as DomphyElement,
           imageEl,
         ],
@@ -1244,8 +1253,14 @@ function featuresSection(features: FeatureConfig[]): DomphyElement {
       if (f.icon) {
         inner.push(
           typeof f.icon === "string"
-            ? { div: f.icon, style: { fontSize: "28px", marginBottom: ts(3) } } as DomphyElement
-            : { div: [f.icon], style: { marginBottom: ts(3) } } as DomphyElement,
+            ? ({
+                div: f.icon,
+                style: { fontSize: "28px", marginBottom: ts(3) },
+              } as DomphyElement)
+            : ({
+                div: [f.icon],
+                style: { marginBottom: ts(3) },
+              } as DomphyElement),
         );
       }
       inner.push({

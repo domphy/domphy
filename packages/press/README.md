@@ -6,7 +6,7 @@ A VitePress-baseline static documentation site framework built on `@domphy/app` 
 
 ## Features
 
-- **VitePress-compatible Markdown** — containers (tip/warning/danger/info), code-group tabs, `<<<` file imports, GFM task lists, mark/sub/sup
+- **VitePress-compatible Markdown** — containers (tip/warning/danger/info), code-group tabs, `<<<` file imports, `!!!include(path)!!!` file includes, GFM task lists, mark/sub/sup
 - **Shiki syntax highlighting** — line highlighting, diff annotations, focus groups, copy button
 - **Automatic dark mode** — via `themeCSS()` + `pressCSS()` CSS vars; no flash of unstyled content
 - **Built-in local search** — client-side JSON index, no server required

@@ -77,7 +77,7 @@ describe("renderDoc", () => {
     expect(allHtml).not.toContain('<Badge');
   });
 
-  it("code-group: inputs and blocks are direct children, no extra wrapper divs", async () => {
+  it("code-group: renders as one self-contained html block, no extra wrapper divs", async () => {
     const md = [
       "::: code-group",
       "",
@@ -92,22 +92,17 @@ describe("renderDoc", () => {
       ":::",
     ].join("\n");
     const { body } = await renderDoc(md, opts);
+    // pressCodeGroupPlugin replaces the whole containerDirective with a
+    // single MDAST html node — walkMdast emits that as one raw string, not
+    // a structured DomphyElement (there is nothing left for Domphy's own
+    // ElementNode wrapper to add — the CSS-in-JS scoping/lifecycle it would
+    // provide isn't needed for a plain-CSS radio/label tab switcher).
     const cg = body.find(
-      (el) =>
-        typeof el === "object" &&
-        el !== null &&
-        "div" in el &&
-        (el as any).class === "code-group",
-    ) as Record<string, unknown> | undefined;
-    expect(cg, "code-group div not found").toBeDefined();
-    const children = cg!.div as unknown[];
-    // Children must be strings (raw HTML) — NOT objects with a .div key
-    for (const child of children) {
-      expect(typeof child).toBe("string");
-    }
-    const allHtml = children.join("");
-    expect(allHtml).toContain('<input type="radio"');
-    expect(allHtml).toContain('class="tabs"');
-    expect(allHtml).toContain('class="blocks"');
+      (el) => typeof el === "string" && el.includes('class="code-group"'),
+    ) as string | undefined;
+    expect(cg, "code-group html block not found").toBeDefined();
+    expect(cg).toContain('<input type="radio"');
+    expect(cg).toContain('class="tabs"');
+    expect(cg).toContain('class="blocks"');
   });
 });

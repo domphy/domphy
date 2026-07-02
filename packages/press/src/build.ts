@@ -2,8 +2,8 @@
 // Pipeline: discover pages → renderDoc → layout → renderToString → HTML.
 // Extras: islands bundle, search index, sitemap, git last-updated, locales.
 
-import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   cpSync,
   existsSync,
@@ -183,7 +183,9 @@ async function buildIslandsBundle(
 // --- Sitemap -----------------------------------------------------------------
 
 function toAbsUrl(hostname: string, route: string): string {
-  return route === "/" ? `${hostname}/` : `${hostname}${route}`.replace(/\/+$/, "") + "/";
+  return route === "/"
+    ? `${hostname}/`
+    : `${hostname}${route}`.replace(/\/+$/, "") + "/";
 }
 
 function buildSitemap(
@@ -222,9 +224,7 @@ function buildSitemap(
 
     // Canonical slug = route with locale prefix stripped
     const slug =
-      ownPrefix === "/"
-        ? route
-        : "/" + route.slice(ownPrefix.length);
+      ownPrefix === "/" ? route : "/" + route.slice(ownPrefix.length);
 
     // Build alternate links for each locale that has this page
     const alternates: string[] = [];
@@ -343,10 +343,14 @@ export async function buildSite(options: BuildOptions): Promise<void> {
     mkdirSync(outDir, { recursive: true });
     if (existsSync(cacheFile)) {
       try {
-        const loaded = JSON.parse(readFileSync(cacheFile, "utf8")) as PressCache;
+        const loaded = JSON.parse(
+          readFileSync(cacheFile, "utf8"),
+        ) as PressCache;
         if (loaded.configHash === configHash) cache = loaded;
         else console.log("Config changed — full rebuild.");
-      } catch { /* corrupt cache */ }
+      } catch {
+        /* corrupt cache */
+      }
     }
   } else {
     rmSync(outDir, { recursive: true, force: true });

@@ -142,7 +142,7 @@ html[data-theme="dark"] .shiki{color:var(--shiki-dark,inherit) !important;backgr
 /* ------------------------------------------------------------------ badges */
 .dp-badge{display:inline-block;padding:2px ${ts(2)};font-size:12px;font-weight:600;border-radius:${ts(1.5)};line-height:1.7;vertical-align:middle;white-space:nowrap}
 .dp-badge-tip,.dp-badge-info{background:color-mix(in srgb,${brand} 15%,transparent);color:${brand}}
-.dp-badge-warning{background:color-mix(in srgb,${tc("shift-6","warning")} 15%,transparent);color:${tc("shift-7","warning")}}
-.dp-badge-danger,.dp-badge-error{background:color-mix(in srgb,${tc("shift-7","danger")} 15%,transparent);color:${tc("shift-8","danger")}}
+.dp-badge-warning{background:color-mix(in srgb,${tc("shift-6", "warning")} 15%,transparent);color:${tc("shift-7", "warning")}}
+.dp-badge-danger,.dp-badge-error{background:color-mix(in srgb,${tc("shift-7", "danger")} 15%,transparent);color:${tc("shift-8", "danger")}}
 `;
 }

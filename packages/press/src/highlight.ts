@@ -155,7 +155,10 @@ export async function createHighlighter(): Promise<
   (code: string, lang: string) => string
 > {
   if (!pending)
-    pending = createShiki({ themes: [LIGHT_THEME, DARK_THEME], langs: LANGUAGES });
+    pending = createShiki({
+      themes: [LIGHT_THEME, DARK_THEME],
+      langs: LANGUAGES,
+    });
   const highlighter = await pending;
   const loaded = new Set(highlighter.getLoadedLanguages());
   return (code: string, lang: string): string => {
