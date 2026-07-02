@@ -192,6 +192,23 @@ describe("deepMerge via setTheme", () => {
     setTheme(name, { densities: [1, 1, 1, 1, 1] });
     expect(getTheme(name).densities).toEqual([1, 1, 1, 1, 1]);
   });
+
+  it("does not pollute Object.prototype via a JSON.parse'd __proto__ key (security regression)", () => {
+    const name = `vitest-merge-proto-${Math.random().toString(36).slice(2)}`;
+    // JSON.parse produces an own enumerable "__proto__" key, unlike
+    // object-literal syntax, so this reproduces the real attack vector.
+    const payload = JSON.parse('{"custom": {"__proto__": {"polluted": "yes"}}}');
+    setTheme(name, payload);
+    expect(({} as any).polluted).toBeUndefined();
+    expect(Object.prototype).not.toHaveProperty("polluted");
+  });
+
+  it("does not let constructor/prototype keys escape the merge target", () => {
+    const name = `vitest-merge-ctor-${Math.random().toString(36).slice(2)}`;
+    const payload = JSON.parse('{"custom": {"constructor": {"polluted": "yes"}}}');
+    setTheme(name, payload);
+    expect(({} as any).polluted).toBeUndefined();
+  });
 });
 
 describe("validateTheme errors", () => {
@@ -221,6 +238,49 @@ describe("validateTheme errors", () => {
     expect(() => setTheme("light", { custom: null } as any)).toThrow(
       /custom property: must be an object/,
     );
+  });
+
+  it("rejects a colors value that is not an object of string[]", () => {
+    expect(() => setTheme("light", { colors: null } as any)).toThrow(
+      /colors must be an object/,
+    );
+    expect(() => setTheme("light", { colors: "x" } as any)).toThrow(
+      /colors must be an object/,
+    );
+    expect(() =>
+      setTheme("light", { colors: { primary: "not-an-array" } } as any),
+    ).toThrow(/colors must be an object/);
+    expect(() =>
+      setTheme("light", { colors: { primary: [1, 2, 3] } } as any),
+    ).toThrow(/colors must be an object/);
+  });
+
+  it("rejects a baseTones value that is not an object of number", () => {
+    expect(() => setTheme("light", { baseTones: null } as any)).toThrow(
+      /baseTones must be an object of number/,
+    );
+    expect(() =>
+      setTheme("light", { baseTones: { primary: "9" } } as any),
+    ).toThrow(/baseTones must be an object of number/);
+  });
+
+  it("rejects a direction value other than 'lighten'/'darken'", () => {
+    expect(() =>
+      setTheme("light", { direction: "sideways" } as any),
+    ).toThrow(/direction must be "lighten" or "darken"/);
+  });
+
+  it("accepts a well-formed colors/baseTones/direction partial without throwing", () => {
+    // Uses a fresh theme name (not "light"/"dark") — those are module-level
+    // singletons shared across the whole test file.
+    const name = `vitest-validate-ok-${Math.random().toString(36).slice(2)}`;
+    expect(() =>
+      setTheme(name, {
+        colors: { primary: ["#000000", "#ffffff"] },
+        baseTones: { primary: 0 },
+        direction: "lighten",
+      } as any),
+    ).not.toThrow();
   });
 });
 

@@ -11,7 +11,7 @@ import {
   themeTokens,
   themeVars,
 } from "../src/theme.ts";
-import { themeColor } from "../src/tone.ts";
+import { themeColor, themeColorToken } from "../src/tone.ts";
 
 function createAttributes(values: Record<string, string> = {}) {
   return {
@@ -140,6 +140,22 @@ describe("theme size/tone helpers", () => {
   it("resolves 'base' tone without a node context (light theme base tone)", () => {
     expect(themeColor(null, "base", "primary")).toBe("var(--primary-9)");
     expect(themeColor(null, "base", "neutral")).toBe("var(--neutral-8)");
+  });
+
+  it("throws a domain Error (not a raw TypeError) for an unknown color name, with or without node context", () => {
+    expect(() => themeColor(null, "inherit", "totally-bogus-color")).toThrow(
+      /color "totally-bogus-color" not found on theme "light"/,
+    );
+    const node = createNode({});
+    expect(() => themeColor(node as any, "inherit", "totally-bogus-color")).toThrow(
+      /color "totally-bogus-color" not found on theme "light"/,
+    );
+    expect(() =>
+      themeColorToken(null, "inherit", "totally-bogus-color"),
+    ).toThrow(/color "totally-bogus-color" not found on theme "light"/);
+    expect(() =>
+      themeColorToken(node as any, "inherit", "totally-bogus-color"),
+    ).toThrow(/color "totally-bogus-color" not found on theme "light"/);
   });
 
   it("clamps shift overshoot to the far boundary instead of flipping to the opposite extreme", () => {

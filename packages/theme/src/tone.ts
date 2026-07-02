@@ -101,9 +101,12 @@ export function themeColor(
 
   if (!object) {
     // No node context implies the light theme (themeVars reads getTheme("light")).
-    if (tone === "base")
-      return themeVars()[themeColor][getTheme("light").baseTones[themeColor]];
-    return themeVars()[themeColor][offsetTone(0, tone)];
+    const colors = themeVars()[themeColor];
+    if (!colors) {
+      throw Error(`color "${themeColor}" not found on theme "light"`);
+    }
+    if (tone === "base") return colors[getTheme("light").baseTones[themeColor]];
+    return colors[offsetTone(0, tone)];
   }
 
   const name = themeName(object);
@@ -136,11 +139,15 @@ export function themeColorToken(
   const colorName = color === "inherit" ? "neutral" : color;
   const name = object ? themeName(object as ElementNode | Listener) : "light";
   const tokens = themeTokens(name);
+  const colorTokens = tokens[colorName];
+  if (!colorTokens) {
+    throw Error(`color "${colorName}" not found on theme "${name}"`);
+  }
 
   if (!object) {
     if (tone === "base")
-      return tokens[colorName][getTheme("light").baseTones[colorName]];
-    return tokens[colorName][offsetTone(0, tone)];
+      return colorTokens[getTheme("light").baseTones[colorName]];
+    return colorTokens[offsetTone(0, tone)];
   }
 
   let resultTone: number;
@@ -156,5 +163,5 @@ export function themeColorToken(
     resultTone = offsetTone(context, tone);
   }
 
-  return tokens[colorName][resultTone];
+  return colorTokens[resultTone];
 }

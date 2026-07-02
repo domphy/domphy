@@ -42,16 +42,15 @@ const Button = {
 }
 ```
 
-**Density scale** (`dataDensity`):
+**Density scale** (`dataDensity`, clamped into 5 steps `[0.75, 1, 1.5, 2, 2.5]`):
 
 | Density | Multiplier | Typical use |
 |---------|-----------|-------------|
-| `decrease-4` | 0.75 | Ultra-compact (data grids) |
-| `decrease-2` | 1.0 | Compact |
-| `inherit` / `decrease-1` | 1.25 | Default |
-| `increase-1` | 1.5 | Comfortable |
-| `increase-2` | 2.0 | Touch targets |
-| `increase-4` | 2.5 | Accessible large |
+| `decrease-4` / `decrease-3` / `decrease-2` | 0.75 | Ultra-compact (data grids) — clamps to the same floor |
+| `decrease-1` | 1 | Compact |
+| `inherit` (also `decrease-0` / `increase-0`) | 1.5 | Default |
+| `increase-1` | 2 | Comfortable / touch targets |
+| `increase-2` / `increase-3` / `increase-4` | 2.5 | Accessible large — clamps to the same ceiling |
 
 ```ts
 const CompactTable = {

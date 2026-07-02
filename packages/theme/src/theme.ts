@@ -56,12 +56,47 @@ function validateTheme(partial: PartialThemeInput): void {
       throw new Error(`Invalid custom property: must be an object`);
     }
   }
+  if ("colors" in partial) {
+    const colors = partial.colors!;
+    const valid =
+      typeof colors === "object" &&
+      colors !== null &&
+      Object.values(colors).every(
+        (v) => Array.isArray(v) && v.every((c) => typeof c === "string"),
+      );
+    if (!valid) {
+      throw new Error(`colors must be an object of string[]`);
+    }
+  }
+  if ("baseTones" in partial) {
+    const baseTones = partial.baseTones!;
+    const valid =
+      typeof baseTones === "object" &&
+      baseTones !== null &&
+      Object.values(baseTones).every((v) => typeof v === "number");
+    if (!valid) {
+      throw new Error(`baseTones must be an object of number`);
+    }
+  }
+  if ("direction" in partial) {
+    if (partial.direction !== "lighten" && partial.direction !== "darken") {
+      throw new Error(`direction must be "lighten" or "darken"`);
+    }
+  }
 }
 
 // --- Deep Merge ---
 
 function deepMerge(target: any, source: any): void {
-  for (const key in source) {
+  // Guard against prototype pollution: a JSON.parse'd payload (e.g. a custom
+  // theme loaded from an API response) can carry an own enumerable
+  // "__proto__" key, which `for...in` picks up unlike object-literal syntax.
+  // Must run at every recursion depth — the key can appear inside any
+  // nested Record-typed field (custom, colors, baseTones), not just the top.
+  for (const key of Object.keys(source)) {
+    if (key === "__proto__" || key === "constructor" || key === "prototype") {
+      continue;
+    }
     if (
       source[key] &&
       typeof source[key] === "object" &&
