@@ -1,4 +1,4 @@
-export { buildSite } from "./build.js";
+export { buildSite, RUNTIME_SCRIPT } from "./build.js";
 export type { SiteConfig, UserConfig } from "./config.js";
 export { defineConfig } from "./config.js";
 export type { FenceMeta } from "./highlight.js";

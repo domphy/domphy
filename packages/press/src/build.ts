@@ -262,7 +262,7 @@ function buildSitemap(
 
 // --- HTML document -----------------------------------------------------------
 
-const RUNTIME_SCRIPT = `(function(){
+export const RUNTIME_SCRIPT = `(function(){
 try{var t=localStorage.getItem('dp-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(_){}
 function closeSidebar(){document.documentElement.setAttribute('data-sidebar','');}
 addEventListener('click',function(e){

@@ -1,5 +1,7 @@
 // Pure HTML document template — no module-level side effects, fully testable.
 
+import { RUNTIME_SCRIPT } from "@domphy/press";
+
 export interface PageIslandSpec {
   kind: "search" | "preview" | "editor";
   id: string;
@@ -14,19 +16,6 @@ export interface RenderResult {
   head: string;
   status: number;
 }
-
-// Inline runtime: restores data-theme from localStorage on first paint;
-// handles theme-toggle and sidebar-toggle clicks.
-export const RUNTIME_SCRIPT = `
-(function(){
-  try{var t=localStorage.getItem('dp-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}
-  addEventListener('click',function(e){
-    var el=e.target.closest&&e.target.closest('[data-theme-toggle]');
-    if(el){var d=document.documentElement;var n=d.getAttribute('data-theme')==='dark'?'':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('dp-theme',n);}catch(_){}return;}
-    var m=e.target.closest&&e.target.closest('[data-menu-toggle]');
-    if(m){var d2=document.documentElement;d2.setAttribute('data-sidebar',d2.getAttribute('data-sidebar')==='open'?'':'open');}
-  });
-})();`;
 
 export function htmlDocument(
   result: RenderResult,

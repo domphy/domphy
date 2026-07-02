@@ -126,6 +126,16 @@ import { pressCSS } from "@domphy/press"
 const css = pressCSS()  // string
 ```
 
+### `RUNTIME_SCRIPT`
+
+A string constant containing the client-side runtime `buildSite()` inlines into every page: restores `data-theme` from `localStorage` before first paint, and wires up dark-mode toggle, the mobile nav drawer (`[data-menu-toggle]`, `.dp-sidebar-backdrop`, <kbd>Escape</kbd> to close), copy-code buttons (`[data-copy]`), collapsible sidebar groups (`[data-sidebar-toggle]`), and dismissible announcement bars (`[data-dismiss-announcement]`). If you write a custom `htmlDocument()` (as `apps/web` does for its production build), import this instead of hand-rolling your own — a hand-rolled copy will drift out of sync as these handlers evolve:
+
+```ts
+import { RUNTIME_SCRIPT } from "@domphy/press"
+
+const html = `<script>${RUNTIME_SCRIPT}</script>`
+```
+
 ## Server
 
 ### `startServer(root, port)`

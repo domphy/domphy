@@ -1,5 +1,6 @@
+import { RUNTIME_SCRIPT } from "@domphy/press";
 import { describe, expect, it } from "vitest";
-import { htmlDocument, RUNTIME_SCRIPT } from "../html-template.ts";
+import { htmlDocument } from "../html-template.ts";
 
 const emptyResult = { html: "<p>Hello</p>", css: "", head: "", status: 200 };
 
@@ -66,5 +67,17 @@ describe("RUNTIME_SCRIPT", () => {
   it("contains the theme toggle logic", () => {
     expect(RUNTIME_SCRIPT).toContain("data-theme-toggle");
     expect(RUNTIME_SCRIPT).toContain("data-theme");
+  });
+
+  it("contains the mobile nav drawer close handlers", () => {
+    expect(RUNTIME_SCRIPT).toContain("data-menu-toggle");
+    expect(RUNTIME_SCRIPT).toContain("dp-sidebar-backdrop");
+    expect(RUNTIME_SCRIPT).toContain("Escape");
+  });
+
+  it("contains the copy-code and collapsible-sidebar-group handlers", () => {
+    expect(RUNTIME_SCRIPT).toContain("data-copy");
+    expect(RUNTIME_SCRIPT).toContain("data-sidebar-toggle");
+    expect(RUNTIME_SCRIPT).toContain("data-dismiss-announcement");
   });
 });
