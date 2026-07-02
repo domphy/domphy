@@ -228,6 +228,12 @@ The tree's `input` is now `null`; the `p`'s inline `fontSize` is reported but no
 | `missing-key` | warning | A dynamic list (reactive function returning multiple elements) has children without `_key` |
 | `unstable-key` | warning | Every `_key` in a dynamic list equals its array index — index keys break on reorder |
 | `duplicate-key` | error | Two siblings in a list share the same `_key` value |
+| `low-opacity` | warning / info | `style.opacity` below 0.6 with no hover-restore (warning), or with a `&:hover: { opacity: '1' }` hover-reveal pattern (info) |
+| `tone-background-inherit` | warning | `style.backgroundColor` resolves to a fixed shifted tone instead of `themeColor(l, "inherit")` |
+| `missing-color` | warning | An element uses `themeColor()` for another style prop but has no `style.color` |
+| `low-contrast` | warning | `style.color` and `style.backgroundColor` are same-family theme vars with a shift-step gap < 9 |
+| `dataTone-surface-contract` | warning | `dataTone` (not `"inherit"`) is set but `style.backgroundColor` and/or `style.color` is missing |
+| `color-shift-minimum` | warning | `dataTone` is set and `style.color` resolves to a theme var with shift step < 9 |
 
 ## Tips
 

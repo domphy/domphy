@@ -1,5 +1,5 @@
 ﻿import { readFile } from "node:fs/promises";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { diagnose, fix, format, validate } from "@domphy/doctor";
 
 /**
@@ -64,9 +64,12 @@ export async function getPatch(name: string): Promise<string> {
   const m = await loadManifest();
   const patch = m.patches.find((p) => p.name === name);
   if (!patch) {
-    const near = m.patches
-      .filter((p) => p.name.includes(name) || name.includes(p.name))
-      .map((p) => p.name);
+    // name.includes("") is always true — an empty name must not match everything.
+    const near = name
+      ? m.patches
+          .filter((p) => p.name.includes(name) || name.includes(p.name))
+          .map((p) => p.name)
+      : [];
     return `No patch named "${name}".${near.length ? ` Did you mean: ${near.join(", ")}?` : ""}`;
   }
   return JSON.stringify(patch, null, 2);
@@ -192,9 +195,12 @@ export async function getAppBlock(name: string): Promise<string> {
   }
   const block = blocks.find((b) => b.name === name);
   if (!block) {
-    const near = blocks
-      .filter((b) => b.name.includes(name) || name.includes(b.name))
-      .map((b) => b.name);
+    // name.includes("") is always true — an empty name must not match everything.
+    const near = name
+      ? blocks
+          .filter((b) => b.name.includes(name) || name.includes(b.name))
+          .map((b) => b.name)
+      : [];
     return `No app block named "${name}".${near.length ? ` Did you mean: ${near.join(", ")}?` : ""}`;
   }
   // The manifest stores repo-relative paths; resolve them against the repo root,
@@ -221,18 +227,30 @@ export async function getAppBlock(name: string): Promise<string> {
   );
 }
 
+/** True when `candidate` is `root` itself or nested under it (no `..` escape). */
+function isWithinRoot(candidate: string, root: string): boolean {
+  const rel = relative(root, candidate);
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+
 /** Reads a block's source file, resolving its repo-relative `file` path. */
 async function readBlockSource(repoRelativeFile: string): Promise<string> {
   // The app-manifest lives at <repo>/apps/web/public/app-manifest.json by
   // default, so the repo root is three levels up from the manifest directory.
+  // Each base is also its own containment root: block.file comes from a
+  // (possibly untrusted) app-manifest.json, so `..` segments must never let a
+  // candidate escape the base it was resolved against, whichever app/repo
+  // that base belongs to (DOMPHY_APP_MANIFEST can point at any app's own
+  // manifest, not just this monorepo's).
   const manifestDir = dirname(appManifestPath());
-  const candidates = [
-    resolve(manifestDir, "../../..", repoRelativeFile),
-    resolve(process.cwd(), repoRelativeFile),
-    resolve(manifestDir, repoRelativeFile),
-  ];
+  const bases = [resolve(manifestDir, "../../.."), process.cwd(), manifestDir];
   let lastError: unknown;
-  for (const candidate of candidates) {
+  for (const base of bases) {
+    const candidate = resolve(base, repoRelativeFile);
+    if (!isWithinRoot(candidate, base)) {
+      lastError = new Error(`refusing to read outside "${base}": ${repoRelativeFile}`);
+      continue;
+    }
     try {
       return await readFile(candidate, "utf8");
     } catch (error) {

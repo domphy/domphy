@@ -67,7 +67,7 @@ Get the valid tone names and theme color names for `themeColor()` and `dataTone`
 
 **Input:** none
 
-**Output:** `{ tones: string[], families: string[] }`
+**Output:** `{ generated: string, note: string, tones: string[], colors: string[] }`
 
 ---
 
@@ -83,7 +83,7 @@ Detected issues include: `inline-typography`, `void-content`, `unknown-tag`, mis
 |---|---|---|
 | `element` | `string` | JSON of the Domphy element tree |
 
-**Output:** Array of `{ rule, path, message, severity }`.
+**Output:** Formatted text (human-readable) — one line per issue (e.g. `✗ [void-content] input\n  message\n  → hint`), or the literal string `✓ No issues found.` when the tree is clean.
 
 ---
 
@@ -111,7 +111,7 @@ Apply `@domphy/doctor`'s lossless autofix to a JSON element tree. Only provably-
 |---|---|---|
 | `element` | `string` | JSON of the Domphy element tree |
 
-**Output:** `{ tree: AnyElement, applied: string[], report: Issue[] }`
+**Output:** `{ tree: unknown, applied: Array<{ rule: string, path: string, message: string }>, report: { ok: boolean, issues: Array<{ rule, severity, path, message, hint? }>, summary: { error, warning, info, total } } }`
 
 ---
 

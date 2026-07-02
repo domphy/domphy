@@ -1,6 +1,6 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   diagnoseTree,
@@ -57,6 +57,18 @@ describe("manifest-backed tools", () => {
     expect(await listPatches()).toContain("button <button>");
     expect(await getPatch("button")).toContain('"hostTag": "button"');
     expect(await getPatch("nope")).toContain("No patch named");
+  });
+
+  it("does not treat an empty name as a match for every patch", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => manifest,
+      })),
+    );
+    // "".includes("") is always true — an empty name must not suggest every patch.
+    expect(await getPatch("")).not.toContain("Did you mean");
   });
 });
 
@@ -122,6 +134,45 @@ describe("app-block tools", () => {
     expect(typeof found.source).toBe("string");
     expect(await getAppBlock("Her")).toContain("Did you mean");
     expect(await getAppBlock("Xyz")).toContain("No app block named");
+  });
+
+  it("does not treat an empty name as a match for every block", async () => {
+    const manifestPath = join(
+      mkdtempSync(join(tmpdir(), "domphy-app-")),
+      "app-manifest.json",
+    );
+    writeFileSync(manifestPath, JSON.stringify(blocks));
+    process.env.DOMPHY_APP_MANIFEST = manifestPath;
+    // "".includes("") is always true — an empty name must not suggest every block.
+    expect(await getAppBlock("")).not.toContain("Did you mean");
+  });
+
+  it("refuses to read a block file that escapes the manifest directory via ..", async () => {
+    const manifestDir = mkdtempSync(join(tmpdir(), "domphy-app-"));
+    const manifestPath = join(manifestDir, "app-manifest.json");
+    // Placed as a sibling of manifestDir so only the (now-guarded)
+    // manifestDir-relative candidate can reach it via "../<file>".
+    const secretPath = join(tmpdir(), `domphy-secret-${Date.now()}.txt`);
+    writeFileSync(secretPath, "TOP SECRET");
+    try {
+      const evilBlocks = [
+        {
+          name: "Evil",
+          kind: "block",
+          file: `../${basename(secretPath)}`,
+          signature: 'Evil: DomphyElement<"div">',
+          jsdoc: "",
+          exportKind: "named",
+        },
+      ];
+      writeFileSync(manifestPath, JSON.stringify(evilBlocks));
+      process.env.DOMPHY_APP_MANIFEST = manifestPath;
+      const found = JSON.parse(await getAppBlock("Evil"));
+      expect(found.source).not.toContain("TOP SECRET");
+      expect(found.source).toContain("Could not read source");
+    } finally {
+      rmSync(secretPath, { force: true });
+    }
   });
 });
 
