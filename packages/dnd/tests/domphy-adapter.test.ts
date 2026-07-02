@@ -6,6 +6,13 @@ import { describe, expect, it } from "vitest";
 import { dragDrop, parents, setParentValues } from "../src/index";
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+// dragDrop()'s _onMount defers dragAndDrop() registration by two chained
+// requestAnimationFrame calls (Domphy fires _onMount before rendering
+// children, so the adapter waits for post-paint DOM to exist — see
+// dragDrop.ts). A single setTimeout(0) macrotask resolves before either rAF
+// callback runs in jsdom; wait for both frames before touching FormKit's
+// internal `parents` registry.
+const waitFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 function mount(App: DomphyElement) {
   const host = document.createElement("div");
@@ -35,6 +42,10 @@ describe("dragDrop reorder -> bound State", () => {
     expect(
       Array.from(ul.querySelectorAll("li")).map((li) => li.textContent),
     ).toEqual(["A", "B", "C"]);
+
+    // dragAndDrop() registration is deferred by two rAF calls (see dragDrop.ts).
+    await waitFrame();
+    await waitFrame();
 
     // The adapter passes `setValues: (next) => values.set(next)` into FormKit.
     // FormKit stores that callback as `parentData.setValues`. Driving a reorder

@@ -81,8 +81,8 @@ describe("theme core APIs", () => {
   });
 
   it("computes spacing in em units", () => {
-    expect(themeSpacing(6)).toBe("1.5em");
-    expect(themeSpacing(1)).toBe("0.25em");
+    expect(themeSpacing(6)).toBe("calc(1.5em)");
+    expect(themeSpacing(1)).toBe("calc(0.25em)");
   });
 });
 
@@ -116,7 +116,7 @@ describe("theme size/tone helpers", () => {
     const child = createNode({}, root);
 
     expect(themeDensity(child as any)).toBe(2.5);
-    expect(themeSpacing(themeDensity(child as any) * 3)).toBe("1.875em");
+    expect(themeSpacing(themeDensity(child as any) * 3)).toBe("calc(1.875em)");
   });
 
   it("resolves tone/color via inherit and base", () => {
