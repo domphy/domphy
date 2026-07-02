@@ -1385,7 +1385,7 @@
           "name": "items",
           "type": "MenuItem[]",
           "optional": false,
-          "doc": "Item definitions `{ label, key?, onClick? }`."
+          "doc": "Item definitions `{ label, key?, onClick? }`. Pass `[]` to keep the wrapper's own children (escape hatch for fully custom rows — only the menu container styling and `role=\"menu\"` semantics apply then)."
         },
         {
           "name": "activeKey",

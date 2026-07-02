@@ -698,6 +698,14 @@
   {
     "name": "App",
     "kind": "block",
+    "file": "apps/web/docs/demos/patches/LinkButton.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
     "file": "apps/web/docs/demos/patches/List.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
@@ -715,14 +723,6 @@
     "name": "App",
     "kind": "block",
     "file": "apps/web/docs/demos/patches/Menu.ts",
-    "signature": "App: DomphyElement<\"div\">",
-    "jsdoc": "",
-    "exportKind": "default"
-  },
-  {
-    "name": "App",
-    "kind": "block",
-    "file": "apps/web/docs/demos/patches/MenuItem.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
     "exportKind": "default"
@@ -826,14 +826,6 @@
   {
     "name": "App",
     "kind": "block",
-    "file": "apps/web/docs/demos/patches/SegmentedItem.ts",
-    "signature": "App: DomphyElement<\"div\">",
-    "jsdoc": "",
-    "exportKind": "default"
-  },
-  {
-    "name": "App",
-    "kind": "block",
     "file": "apps/web/docs/demos/patches/Select.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
@@ -892,14 +884,6 @@
     "kind": "block",
     "file": "apps/web/docs/demos/patches/Splitter.ts",
     "signature": "App: DomphyElement<\"div\">",
-    "jsdoc": "",
-    "exportKind": "default"
-  },
-  {
-    "name": "App",
-    "kind": "block",
-    "file": "apps/web/docs/demos/patches/StepItem.ts",
-    "signature": "App: DomphyElement<\"ol\">",
     "jsdoc": "",
     "exportKind": "default"
   },
@@ -979,14 +963,6 @@
     "name": "App",
     "kind": "block",
     "file": "apps/web/docs/demos/patches/Toast.ts",
-    "signature": "App: DomphyElement<\"div\">",
-    "jsdoc": "",
-    "exportKind": "default"
-  },
-  {
-    "name": "App",
-    "kind": "block",
-    "file": "apps/web/docs/demos/patches/Toggle.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
     "exportKind": "default"
@@ -1171,6 +1147,14 @@
     "name": "App",
     "kind": "block",
     "file": "apps/web/docs/demos/theme/Palette.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/theme/ThemeBuilder.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
     "exportKind": "default"

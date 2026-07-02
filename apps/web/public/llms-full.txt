@@ -57,7 +57,7 @@ const App = {
 | --- | --- |
 | `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code) |
 | `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`); `generateTheme(baseColors, opts?)` builds a full `ThemeInput` from one base hex per semantic role via `@domphy/palette`'s ramp generator (see `DESIGN.md`) |
-| `@domphy/ui` | 91 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, …) |
+| `@domphy/ui` | 85 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, …) |
 | `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery`/`bindResult` at `@domphy/query/domphy`; `bindResult` connects an observer to Domphy reactivity so result fields are readable with a listener |
 | `@domphy/table` | headless tables — adapter `createDomphyTable` at `@domphy/table/domphy` |
 | `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
@@ -5045,6 +5045,12 @@ For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
 | `ElementDensity` | Valid density descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–4). |
 
 ### builder.md
+
+---
+title: "Theme Builder"
+description: "Generate a complete accessible Domphy theme from one base color per role — live, with a real component gallery."
+aside: false
+---
 
 # Theme Builder
 
@@ -41021,7 +41027,9 @@ type MenuItem = {
  * from the `items` array with keyboard navigation (Arrow/Home/End/Enter/Space).
  * Apply to any wrapper element (`div`, `ul`, …).
  *
- * @param props.items - Item definitions `{ label, key?, onClick? }`.
+ * @param props.items - Item definitions `{ label, key?, onClick? }`. Pass `[]`
+ * to keep the wrapper's own children (escape hatch for fully custom rows —
+ * only the menu container styling and `role="menu"` semantics apply then).
  * @param props.activeKey - Currently selected key (value or State). Defaults to `null`.
  * @param props.selectable - Whether items track and update the active selection. Defaults to `true`.
  * @param props.color - Background color tone for the menu. Defaults to `"neutral"`.
@@ -41052,9 +41060,9 @@ function menu(
   return {
     role: "menu",
     dataTone: "shift-17",
-    // Expose activeKey + selectable in context so menuItem() escape-hatch still works.
-    _context: { menu: { activeKey, selectable } },
     _onSchedule: (node, element) => {
+      // Empty items = the caller renders its own rows; leave children alone.
+      if (items.length === 0) return;
       const id = node.nodeId;
 
       const buttons: DomphyElement<"button">[] = items.map((item, index) => {
@@ -41109,15 +41117,13 @@ function menu(
             width: "100%",
             fontSize: (l: Listener) => themeSize(l, "inherit"),
             height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
-            paddingInline: (l: Listener) =>
-              themeSpacing(themeDensity(l) * 3),
+            paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
             border: "none",
             outline: "none",
             color: (l: Listener) => themeColor(l, "shift-9", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
             "&:hover:not([disabled]):not([aria-current=true])": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-2", color),
+              backgroundColor: (l: Listener) => themeColor(l, "shift-2", color),
             },
             "&[aria-current=true]": {
               backgroundColor: (l: Listener) =>
