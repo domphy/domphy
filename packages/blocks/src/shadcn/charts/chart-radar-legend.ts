@@ -1,0 +1,72 @@
+// shadcn/ui "charts/radar-legend" recipe — clean-room reimplementation.
+//
+// The two-series radar chart (chartRadarMultiple) with a static swatch+label
+// legend row added just beneath the plot. The plot itself is nudged upward
+// (extra negative bottom margin) so the legend can sit close underneath it
+// instead of at the default gap distance.
+//
+// Implemented purely from the block's public functional/visual spec — no
+// upstream shadcn/ui source was viewed or copied.
+
+import type { DomphyElement } from "@domphy/core";
+import { chartTrendFooter, type ChartLegendEntry, type ChartTrendDirection } from "./chart-area-shared.js";
+import {
+  RADAR_MULTI_SERIES,
+  RADAR_MONTHLY_MULTI_DATA,
+  createRadarTooltip,
+  radarCardShell,
+  renderRadarChart,
+  type RadarPoint,
+  type RadarSeriesConfig,
+} from "./chart-radar-shared.js";
+
+export interface ChartRadarLegendProps {
+  data?: RadarPoint[];
+  series?: RadarSeriesConfig[];
+  title?: string;
+  description?: string;
+  trendText?: string;
+  trendDirection?: ChartTrendDirection;
+  captionText?: string;
+  showLegend?: boolean;
+}
+
+/**
+ * shadcn/ui "charts/radar-legend" recipe — the multi-series radar chart with
+ * a swatch legend row underneath. Call with no arguments for a working demo.
+ */
+function chartRadarLegend(props: ChartRadarLegendProps = {}): DomphyElement<"div"> {
+  const {
+    data = RADAR_MONTHLY_MULTI_DATA,
+    series = RADAR_MULTI_SERIES,
+    title = "Radar Chart - Legend",
+    description = "January - June 2026",
+    trendText = "Trending up by 5.2% this month",
+    trendDirection = "up",
+    captionText = "Showing total visitors for the last 6 months",
+    showLegend = true,
+  } = props;
+
+  const tooltip = createRadarTooltip();
+  const legendEntries: ChartLegendEntry[] = series.map((entry) => ({ label: entry.label, color: entry.color }));
+
+  return radarCardShell({
+    title,
+    description,
+    content: {
+      div: [
+        renderRadarChart({
+          data,
+          series,
+          tooltip,
+          tooltipShowLabel: false,
+          tooltipIndicator: "line",
+          legend: showLegend ? legendEntries : null,
+        }),
+      ],
+    },
+    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+  });
+}
+
+export { chartRadarLegend };

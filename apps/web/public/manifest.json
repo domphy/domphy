@@ -17,6 +17,22 @@
       ]
     },
     {
+      "name": "@domphy/blocks",
+      "version": "0.1.0",
+      "description": "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, independently reimplemented (clean-room) from the public behavior of shadcn/ui, Magic UI, and Aceternity UI.",
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core",
+        "@domphy/theme",
+        "@domphy/ui",
+        "@domphy/chart",
+        "@domphy/form",
+        "@domphy/table"
+      ]
+    },
+    {
       "name": "@domphy/chart",
       "version": "0.2.1",
       "description": "ECharts-grade chart library for Domphy. SVG-native, tone/density cascade.",

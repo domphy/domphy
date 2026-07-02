@@ -1,0 +1,39 @@
+// @vitest-environment jsdom
+
+import type { DomphyElement } from "@domphy/core";
+import { ElementNode } from "@domphy/core";
+import { afterEach, describe, expect, it } from "vitest";
+import { chartTooltipLabelCustom } from "../../../src/shadcn/charts/chart-tooltip-label-custom.ts";
+
+if (!("ResizeObserver" in globalThis)) {
+  (globalThis as any).ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
+function render(app: DomphyElement) {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const node = new ElementNode(app);
+  node.render(host);
+  return { host, node };
+}
+
+afterEach(() => {
+  document.body.innerHTML = "";
+});
+
+describe("chartTooltipLabelCustom", () => {
+  it("renders a working demo tree with zero args: card shell + chart canvas", () => {
+    const { host } = render(chartTooltipLabelCustom() as DomphyElement);
+    expect(host.querySelector("h3")?.textContent).toBe("Bar Chart - Tooltip Label Custom");
+    expect(host.querySelector("canvas")).toBeTruthy();
+  });
+
+  it("accepts a custom group label without throwing", () => {
+    const { host } = render(chartTooltipLabelCustom({ groupLabel: "Workouts" }) as DomphyElement);
+    expect(host.querySelector("canvas")).toBeTruthy();
+  });
+});

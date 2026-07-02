@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@domphy/blocks Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8f9fa; font-family: system-ui, sans-serif; padding: 24px; }
+    h1 { font-size: 20px; margin: 0 0 20px; color: #333; }
+    .list { display: flex; flex-direction: column; gap: 20px; }
+    .card { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .card h2 { font-size: 13px; color: #666; margin: 0 0 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; font-family: monospace; }
+    .block-box { position: relative; overflow: auto; }
+    .error { color: #c00; font-size: 12px; font-family: monospace; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>@domphy/blocks — Demo (every export, default props)</h1>
+  <div class="list" id="list"></div>
+  <script type="module" src="./demo-main.ts"></script>
+</body>
+</html>
