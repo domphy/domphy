@@ -1,23 +1,28 @@
 ---
 title: "Geo & Maps"
-description: "Geo coordinate system, registerMap, and built-in world map in @domphy/chart."
+description: "Geo coordinate system and registerMap in @domphy/chart."
 ---
 
 # Geo & Maps
 
-## Built-in world map
+## No built-in map — always call registerMap
 
-`map: "world"` is available out of the box — no `registerMap` call needed.
+`@domphy/chart` ships no GeoJSON data. There is no built-in `"world"` map — `map: "world"` (or any other name) silently no-ops until you call `registerMap` with that exact name first. The map registry starts empty.
 
-Use it in:
+Use a registered map in:
 - `map` series (choropleth) — fill regions by value
 - `geo` option — base layer for overlaying other series
 - `lines` series with `coordinateSystem: "geo"` — draw flight paths / connections
 - `effectScatter` with `coordinateSystem: "geo"` — animated point scatter on map
 
 ```ts
-import { chart } from "@domphy/chart"
+import { chart, registerMap } from "@domphy/chart"
 import type { ChartOption } from "@domphy/chart"
+
+// Register a GeoJSON FeatureCollection first — e.g. world countries from naturalearth
+const response = await fetch("/maps/world.geojson")
+const worldGeoJSON = await response.json()
+registerMap("world", worldGeoJSON)
 
 const option: ChartOption = {
   series: [
@@ -42,7 +47,7 @@ const option: ChartOption = {
 
 ## Custom GeoJSON (registerMap)
 
-Import `registerMap` from `@domphy/chart` and call it **before** rendering the chart. The `geoJSON` argument must be a standard GeoJSON `FeatureCollection`.
+Import `registerMap` from `@domphy/chart` and call it **before** rendering the chart, for any map name — including `"world"`. The `geoJSON` argument must be a standard GeoJSON `FeatureCollection`.
 
 ```ts
 import { registerMap } from "@domphy/chart"
@@ -59,9 +64,11 @@ Register as many maps as needed — each name is an independent key in the regis
 
 ## Geo coordinate option
 
-The `geo` option creates a standalone coordinate system that other series can reference with `coordinateSystem: "geo"`. This is the standard way to overlay `lines`, `effectScatter`, or `scatter` on top of a map.
+The `geo` option creates a standalone coordinate system that other series can reference with `coordinateSystem: "geo"`. This is the standard way to overlay `lines`, `effectScatter`, or `scatter` on top of a map. `geo.map` must already be registered via `registerMap`.
 
 ```ts
+registerMap("world", worldGeoJSON) // must run before this option is applied
+
 const option: ChartOption = {
   geo: {
     map: "world",
@@ -106,7 +113,7 @@ const option: ChartOption = {
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `map` | `string` | Map name — `"world"` or a name registered via `registerMap` |
+| `map` | `string` | Map name — must be registered first via `registerMap` |
 | `center` | `[number, number]` | `[longitude, latitude]` of the center point |
 | `zoom` | `number` | Zoom multiplier — `1` fits the map to the container |
 | `roam` | `boolean` | Interactive pan/zoom — not yet supported, keep `false` |
@@ -115,9 +122,11 @@ const option: ChartOption = {
 
 ## Map series (choropleth)
 
-The `map` series fills regions by value — classic choropleth.
+The `map` series fills regions by value — classic choropleth. `map` must already be registered via `registerMap`.
 
 ```ts
+registerMap("world", worldGeoJSON) // must run before this option is applied
+
 const option: ChartOption = {
   series: [
     {

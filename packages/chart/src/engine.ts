@@ -207,6 +207,7 @@ export class ChartEngine {
   private gaugeRenderer: GaugeRenderer | null = null;
 
   private tooltipCtrl: ReturnType<typeof createTooltip> | null = null;
+  private tooltipCleanup: (() => void) | null = null;
   private animationFrame = 0;
   private destroyed = false;
 
@@ -286,6 +287,8 @@ export class ChartEngine {
     }
 
     // Tooltip
+    this.tooltipCleanup?.();
+    this.tooltipCleanup = null;
     if (this.tooltipCtrl) {
       this.tooltipCtrl.destroy();
       this.tooltipCtrl = null;
@@ -322,9 +325,13 @@ export class ChartEngine {
 
     const grid = resolveGrid(grids, xAxes, yAxes, series, width, height, this.xZoomMap, this.yZoomMap);
 
-    // Only render Cartesian axes when there are series that use them
-    const cartesianTypes = new Set(["line","bar","scatter","heatmap","candlestick","boxplot","effectScatter","lines"]);
-    const hasCartesian = series.some((s) => cartesianTypes.has(s.type ?? ""));
+    // Only render Cartesian axes when there are series that use them.
+    // "lines" defaults to geo coordinates (see lines.ts) — only count it when explicitly cartesian2d,
+    // otherwise a geo-only flow map gets spurious default axes drawn over it.
+    const cartesianTypes = new Set(["line","bar","scatter","heatmap","candlestick","boxplot","effectScatter","pictorialBar","lines"]);
+    const hasCartesian = series.some((s) =>
+      cartesianTypes.has(s.type ?? "") && !(s.type === "lines" && (s as any).coordinateSystem !== "cartesian2d"),
+    );
 
     // ─── SVG Overlay ──────────────────────────────────────────────────────────
     if (hasCartesian) renderAxes(this.overlaysvg, {
@@ -680,7 +687,7 @@ export class ChartEngine {
     this.container.addEventListener("mousemove", onMove);
     this.container.addEventListener("mouseleave", onLeave);
 
-    (this as any).__tooltipCleanup = () => {
+    this.tooltipCleanup = () => {
       this.container.removeEventListener("mousemove", onMove);
       this.container.removeEventListener("mouseleave", onLeave);
     };
@@ -689,7 +696,8 @@ export class ChartEngine {
   destroy(): void {
     this.destroyed = true;
     cancelAnimationFrame(this.animationFrame);
-    (this as any).__tooltipCleanup?.();
+    this.tooltipCleanup?.();
+    this.tooltipCleanup = null;
     this.dataZoomCleanup?.();
     this.insideZoomCleanup?.();
     this.tooltipCtrl?.destroy();

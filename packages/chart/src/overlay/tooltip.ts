@@ -38,12 +38,23 @@ export function createTooltip(
 
   container.appendChild(el);
 
+  function escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function formatDefault(params: TooltipParams[]): string {
     return params
       .map((p) => {
         const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
+        // p.seriesName/p.name/p.value come from caller-controlled ChartOption data — must escape before innerHTML.
         const val = option.valueFormatter ? option.valueFormatter(p.value, p.dataIndex) : String(p.value ?? "");
-        return `${dot}<strong>${p.seriesName ?? p.name}</strong>: ${val}`;
+        const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
+        return `${dot}<strong>${label}</strong>: ${escapeHtml(val)}`;
       })
       .join("<br>");
   }

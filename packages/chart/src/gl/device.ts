@@ -18,5 +18,7 @@ export async function getDevice(canvas: HTMLCanvasElement): Promise<Device> {
 }
 
 export function releaseDevice(canvas: HTMLCanvasElement): void {
+  const promise = deviceCache.get(canvas);
   deviceCache.delete(canvas);
+  promise?.then((device) => device.destroy()).catch(() => {});
 }
