@@ -272,11 +272,16 @@ export class ElementList {
             done();
           }
         };
+        // Capture the hook reference (and thus its arity) before calling it — a
+        // synchronous 2-arg hook (e.g. `motion()` with no `exit` frame) may call
+        // `onceDone()` inline, which runs `done()` -> `item._dispose()` -> clears
+        // `item._hooks` to `{}` before this line would otherwise re-read it.
+        const beforeRemoveHook = item._hooks.BeforeRemove;
         item._beforeRemoveFired = true; // prevent _dispose from re-firing BeforeRemove
-        item._hooks.BeforeRemove(item, onceDone);
+        beforeRemoveHook(item, onceDone);
         // Auto-complete only for sync cleanup hooks. A hook that declares `done`
         // (arity >= 2, e.g. an exit animation) owns completion and defers removal.
-        if ((item._hooks.BeforeRemove as Function).length < 2 && !doneCalled)
+        if ((beforeRemoveHook as Function).length < 2 && !doneCalled)
           onceDone();
         else if (__DEV__ && !doneCalled) {
           setTimeout(() => {

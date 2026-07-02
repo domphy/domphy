@@ -79,6 +79,32 @@ describe("lifecycle: async removal (_onBeforeRemove done)", () => {
     expect(host.querySelectorAll("li").length).toBe(1);
   });
 
+  it("does not throw when a 2-arg _onBeforeRemove hook calls done() synchronously (list item)", async () => {
+    // Regression: `remove()` used to re-read `item._hooks.BeforeRemove` AFTER
+    // invoking it, to inspect its arity. A hook that declares a `done` param
+    // but calls it synchronously (e.g. `motion()` with no `exit` frame) makes
+    // that inline call run `_dispose()`, which clears `_hooks` to `{}` before
+    // the re-read — throwing "Cannot read properties of undefined (reading
+    // 'length')" instead of completing the removal.
+    const items = toState([1, 2], "syncDoneItems");
+    const App = {
+      ul: (l: any) =>
+        items.get(l).map((n: number) => ({
+          li: String(n),
+          _key: n,
+          _onBeforeRemove: (_node: any, done: () => void) => {
+            done();
+          },
+        })),
+    } as DomphyElement;
+
+    const { host } = mountApp(App);
+    items.set([1]);
+    await flush();
+    expect(host.querySelectorAll("li").length).toBe(1);
+    expect(host.querySelector("li")!.textContent).toBe("1");
+  });
+
   it("removes the correct item when a deferred removal completes after a concurrent insert", async () => {
     const items = toState(["a", "b", "c"], "staleItems");
     const dones: Record<string, () => void> = {};
@@ -107,6 +133,29 @@ describe("lifecycle: async removal (_onBeforeRemove done)", () => {
     );
     expect(texts).not.toContain("b");
     expect(texts).toEqual(expect.arrayContaining(["a", "c", "d"]));
+  });
+});
+
+describe("lifecycle: node.remove() with a synchronous 2-arg _onBeforeRemove hook", () => {
+  it("does not throw when node.remove() is called directly on the root and the hook completes synchronously", () => {
+    // Same regression as the list-item case above, but through
+    // `ElementNode.remove()`'s root-removal branch (no `parent`), which has
+    // its own copy of the same arity re-read.
+    let removeFired = false;
+    const App = {
+      div: "content",
+      _onBeforeRemove: (_node: any, done: () => void) => {
+        done();
+      },
+      _onRemove: () => {
+        removeFired = true;
+      },
+    } as DomphyElement;
+
+    const { host, node } = mountApp(App);
+    expect(() => node.remove()).not.toThrow();
+    expect(removeFired).toBe(true);
+    expect(host.querySelector("div")).toBeNull();
   });
 });
 

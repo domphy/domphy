@@ -21,4 +21,11 @@ export const CamelAttributes: string[] = [
   "clipPathUnits",
   "maskContentUnits",
   "maskUnits",
+  "baseFrequency",
+  "numOctaves",
+  "xChannelSelector",
+  "yChannelSelector",
+  "stdDeviation",
+  "colorInterpolationFilters",
+  "pathLength",
 ] as const;

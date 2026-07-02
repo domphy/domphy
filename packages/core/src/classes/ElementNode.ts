@@ -554,10 +554,14 @@ export class ElementNode {
             done();
           }
         };
+        // Capture the hook reference (and thus its arity) before calling it — a
+        // synchronous 2-arg hook (e.g. `motion()` with no `exit` frame) may call
+        // `once()` inline, which runs `done()` -> `_dispose()` -> clears
+        // `this._hooks` to `{}` before this line would otherwise re-read it.
+        const beforeRemoveHook = this._hooks.BeforeRemove;
         this._beforeRemoveFired = true;
-        this._hooks.BeforeRemove(this, once);
-        if ((this._hooks.BeforeRemove as Function).length < 2 && !called)
-          once();
+        beforeRemoveHook(this, once);
+        if ((beforeRemoveHook as Function).length < 2 && !called) once();
         else if (__DEV__ && !called) {
           setTimeout(() => {
             if (!called)

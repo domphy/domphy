@@ -34,5 +34,12 @@ export const SvgTags = [
   "feOffset",
   "feFlood",
   "feBlend",
+  "feTurbulence",
+  "feDisplacementMap",
+  "feComponentTransfer",
+  "feFuncR",
+  "feFuncG",
+  "feFuncB",
+  "feFuncA",
   "foreignObject",
 ];
