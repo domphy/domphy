@@ -57,7 +57,7 @@ const App = {
 | --- | --- |
 | `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code) |
 | `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`); `generateTheme(baseColors, opts?)` builds a full `ThemeInput` from one base hex per semantic role via `@domphy/palette`'s ramp generator (see `DESIGN.md`) |
-| `@domphy/ui` | 85 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, …) |
+| `@domphy/ui` | 93 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, …) |
 | `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery`/`bindResult` at `@domphy/query/domphy`; `bindResult` connects an observer to Domphy reactivity so result fields are readable with a listener |
 | `@domphy/table` | headless tables — adapter `createDomphyTable` at `@domphy/table/domphy` |
 | `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
@@ -65,7 +65,7 @@ const App = {
 | `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy` |
 | `@domphy/dnd` | drag & drop — `dragDrop(state, config?)`, `multiList(options)`, `multiListGroup(group, states, config?)` (wraps `@formkit/drag-and-drop`) |
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`) |
-| `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. **Run it on your output and fix the report.** |
+| `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. CLI `domphy-doctor <path...>` scans files on disk (flags: `--only`/`--exclude`/`--no-reactive`/`--no-output`/`--format text\|json`); `auditOutput(node, opts?)` is an optional Layer 4 that lints the real generated HTML/CSS via `htmlhint`/`stylelint` (optional peer deps). **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — internal to `@domphy/ui` overlays |
 | `@domphy/palette` | color-palette engine — `Ramp`/`Palette`/`Swatch`: 5 CIELAB quality metrics (design-time companion to theme); `generateRamp(baseColors, steps)`: builds a WCAG-span-optimized 18-step ramp from one or more anchor colors via a warped Oklab interpolation (see `DESIGN.md` §3) |
 | `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `createMarkdown`, `walkMdast`, `splitFrontmatter`; remark/unified under the hood); powers this docs site |
@@ -74,12 +74,12 @@ const App = {
 | `@domphy/audit` | **In development — not yet published.** Planned: a11y + layout runtime audit for Domphy element trees. Do NOT import or use; the package directory does not exist yet. |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
 | `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component |
-| `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
+| `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, currentLocale, exists, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
 | `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
 | `bench` | benchmarks (internal, not published) |
 
-Data/logic packages each expose a framework-agnostic API at the main entry and a thin Domphy adapter at the `/domphy` subpath; `@domphy/core` is their peer dependency.
+`@domphy/query`/`table`/`virtual`/`form` each expose a framework-agnostic API at the main entry and a thin Domphy adapter at the `/domphy` subpath, with `@domphy/core` as a peer dependency. `@domphy/router` is the exception: its Domphy adapter (`createRouter`/`createRoute`/...) ships directly from the main entry, with no `/domphy` subpath and no `@domphy/core` dependency.
 
 ## Removed / do NOT use
 
@@ -205,7 +205,7 @@ open-source, peer-citable framework:
 
 > Nguyen, H. K. *A Quantitative Framework for Evaluating Sequential Color
 > Palette Quality in Design Systems.* Independent Researcher, 2026.
-> [`paper.pdf`](https://chromametry.github.io/chromametry/paper.pdf) ·
+> [`paper.pdf`](https://chromametry.github.io/chromametry/paper/paper.pdf) ·
 > [benchmark](https://chromametry.github.io/chromametry/benchmark)
 
 The framework scores an 18-step monochromatic ramp — the shape every
@@ -214,8 +214,14 @@ dimensions, all computed in CIELAB and combined by geometric mean so no
 single strong metric can hide a structurally broken one:
 
 ```
-SCORE = 100 · (η · 𝓛 · S_C · 𝓗 · U + ε)^(1/5)     (ε = 1e-6, numerical floor)
+SCORE = 100 · [(η+ε)(𝓛+ε)(S_C+ε)(𝓗+ε)(U+ε)]^(1/5)     (ε = 1e-6, numerical floor)
 ```
+
+(ε is added to *each* metric before the product — not once after — matching both
+`calcScore` in `packages/palette/src/utils.ts` and the chromametry paper's own
+`SCORE = 100·[∏ₖ(Mₖ+ε)]^(1/5)`. For the tiny ε=1e-6 used here the two forms are
+numerically indistinguishable in practice, but only the per-term form is what the
+code and paper actually compute.)
 
 ### 2.1 Contrast Efficiency (η) — the load-bearing metric
 
@@ -271,9 +277,9 @@ Helmholtz–Kohlrausch effect means a high-chroma color looks brighter than an
 achromatic color at the *same* `L*`. Domphy corrects for this using
 **Equivalent Achromatic Lightness (EAL)**, from:
 
-> High, R., Green, P., & Nussbaum, P. *The Helmholtz–Kohlrausch effect on
+> High, G., Green, P., & Nussbaum, P. *The Helmholtz–Kohlrausch effect on
 > display-based light colors and simulated substrate colors.* Color Research
-> & Application, 48(3):341–354, 2023.
+> & Application, 48(2):167–177, 2023.
 
 ```
 L_EAL = L* + (f_BY(h) + f_R(h)) · C*
@@ -506,10 +512,10 @@ structural, not observed.
 1. Nguyen, H. K. *A Quantitative Framework for Evaluating Sequential Color
    Palette Quality in Design Systems.* 2026.
    [chromametry/chromametry](https://github.com/chromametry/chromametry),
-   [paper.pdf](https://chromametry.github.io/chromametry/paper.pdf).
-2. High, R., Green, P., & Nussbaum, P. *The Helmholtz–Kohlrausch effect on
+   [paper.pdf](https://chromametry.github.io/chromametry/paper/paper.pdf).
+2. High, G., Green, P., & Nussbaum, P. *The Helmholtz–Kohlrausch effect on
    display-based light colors and simulated substrate colors.* Color
-   Research & Application, 48(3):341–354, 2023.
+   Research & Application, 48(2):167–177, 2023.
 3. Zeileis, A. et al. *Escaping RGBland: Selecting colors for statistical
    graphics.* 2009. (Power-curve palette parameterization, monotone-spline
    motivation.)
@@ -1730,7 +1736,18 @@ const stop = watch(count, (newVal, oldVal) => {
 // Call stop() to unsubscribe
 ```
 
-`source` can be a `State`, a getter function `() => T`, or an array of either. `callback` receives `(newValue, oldValue)`. Options: `{ immediate?: boolean }` — if `true`, runs callback immediately with the current value.
+`source` can be a `State` or a getter function `() => T`. `callback` receives `(newValue, oldValue)`. Options: `{ immediate?: boolean }` — if `true`, runs callback immediately with the current value.
+
+To watch multiple sources at once, compose them into a single getter — `watch` re-runs whenever any state read inside it changes:
+
+```ts
+const stop = watch(
+  () => [a.get(), b.get()] as const,
+  ([newA, newB], prev) => {
+    console.log("a:", newA, "b:", newB)
+  },
+)
+```
 
 ---
 
@@ -1998,11 +2015,26 @@ description: "Pass data deeply without prop drilling — module-level state, sco
 
 # Context & Shared State
 
-Domphy has no built-in "context" API (no `createContext` / `useContext`). Instead:
+Domphy has no `createContext` / `useContext` hook pair, but `ElementNode` does have a built-in tree-scoped context mechanism: `getContext(name)` / `setContext(name, value)`. It's not reactive (setting a value doesn't re-render descendants), so most apps reach for one of these patterns instead:
 
+- **Tree-scoped context** — `node.setContext(name, value)` / `node.getContext(name)`, inherited by walking up to the nearest ancestor that set it. See below.
 - **Module-level state** — a `State` defined at module scope is automatically shared across all components that import it.
 - **Scoped context objects** — pass a plain object down through `_mount` props or function arguments.
 - **Event bus / pub-sub** — coordinate loosely-coupled components.
+
+## Built-in tree-scoped context
+
+Every `ElementNode` has a `getContext(name)` / `setContext(name, value)` pair (see [ElementNode API](/docs/core/api/element-node)). `setContext` writes to the node's own `_context` object; `getContext` walks up `node.parent` until it finds an ancestor whose `_context` owns that key:
+
+```ts
+// Parent
+node.setContext("theme", "dark")
+
+// Any descendant
+const theme = node.getContext("theme") // "dark"
+```
+
+`_context` can also be seeded declaratively on an element (`{ div: ..., _context: { theme: "dark" } }`). This is the closest built-in equivalent to React's `Context.Provider` + `useContext`, but reads are plain method calls, not reactive — a descendant only sees the value at the time it calls `getContext()`, so it won't automatically re-render when an ancestor calls `setContext()` again. For reactive sharing, use module-level state below.
 
 ## Module-level state (most common)
 
@@ -2185,8 +2217,8 @@ export const OrderSummary = {
 
 | React | Domphy |
 |-------|--------|
-| `createContext` + `useContext` | Module-level `toState` export |
-| `Context.Provider` with value | Close over a local `createXxxContext()` object |
+| `createContext` + `useContext` | Module-level `toState` export (reactive), or `node.getContext`/`setContext` (non-reactive, tree-scoped) |
+| `Context.Provider` with value | Close over a local `createXxxContext()` object, or `node.setContext(name, value)` |
 | `useReducer` + `Context` | `toState` + updater functions in the same module |
 | `Redux` / `Zustand` store | Module-level `RecordState` or `toState` |
 | `useId()` | `crypto.randomUUID()` or a counter in module scope |
@@ -5038,11 +5070,14 @@ For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
 | `ThemeInput` | Full theme shape accepted by `setTheme()`. All fields are optional when passing a partial. |
 | `PartialThemeInput` | Deep-partial version of `ThemeInput` — what `setTheme()` actually accepts at runtime. |
 | `ThemeVars` | Object of `var(--…)` CSS variable references returned by `themeVars()`. |
-| `ThemeColor` | Union of valid color family names (`"neutral" \| "primary" \| …`) derived from `ThemeInput["colors"]`. |
+| `ThemeColor` | `ColorRole \| (string & {})` — the 10 built-in role names rank first in editor autocomplete/hover, but any string still type-checks (custom themes may register their own role names via `setTheme`/`generateTheme`). This is intentionally NOT a strict union — see `ColorRole` below for the exhaustive list. |
+| `ColorRole` | Strict union of the 10 built-in semantic role names: `"neutral" \| "primary" \| "secondary" \| "info" \| "success" \| "warning" \| "attention" \| "error" \| "danger" \| "highlight"`. Derived from `COLOR_ROLES` below. |
 | `ElementTone` | Valid tone descriptor strings: `"inherit"`, `"base"`, `"shift-N"`, `"increase-N"`, `"decrease-N"`. |
 | `ElementTones` | Runtime array of all valid tone strings (exported as a value for validation tooling). |
 | `ElementSize` | Valid size descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–7). |
 | `ElementDensity` | Valid density descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–4). |
+
+`COLOR_ROLES` — runtime `readonly` array of the same 10 names (`ColorRole`'s source of truth: `type ColorRole = (typeof COLOR_ROLES)[number]`). Use this instead of hand-listing the 10 roles when you need them as a real iterable (e.g. rendering one control per role).
 
 ### builder.md
 
@@ -6635,16 +6670,15 @@ const Button = {
 }
 ```
 
-**Density scale** (`dataDensity`):
+**Density scale** (`dataDensity`, clamped into 5 steps `[0.75, 1, 1.5, 2, 2.5]`):
 
 | Density | Multiplier | Typical use |
 |---------|-----------|-------------|
-| `decrease-4` | 0.75 | Ultra-compact (data grids) |
-| `decrease-2` | 1.0 | Compact |
-| `inherit` / `decrease-1` | 1.25 | Default |
-| `increase-1` | 1.5 | Comfortable |
-| `increase-2` | 2.0 | Touch targets |
-| `increase-4` | 2.5 | Accessible large |
+| `decrease-4` / `decrease-3` / `decrease-2` | 0.75 | Ultra-compact (data grids) — clamps to the same floor |
+| `decrease-1` | 1 | Compact |
+| `inherit` (also `decrease-0` / `increase-0`) | 1.5 | Default |
+| `increase-1` | 2 | Comfortable / touch targets |
+| `increase-2` / `increase-3` / `increase-4` | 2.5 | Accessible large — clamps to the same ceiling |
 
 ```ts
 const CompactTable = {
@@ -7466,7 +7500,7 @@ import { createQuery } from "@domphy/query/domphy"
 const queryClient = new QueryClient()
 
 const prices = createQuery(queryClient, {
-  queryKey: () => ["prices"],
+  queryKey: ["prices"],
   queryFn: fetchPrices,
   refetchInterval: 5000,           // ms — refetch every 5 seconds
   refetchIntervalInBackground: true, // keep polling even when tab is hidden
@@ -7479,7 +7513,7 @@ Stop polling conditionally:
 const queryClient = new QueryClient()
 
 const job = createQuery(queryClient, {
-  queryKey: () => ["job", jobId],
+  queryKey: ["job", jobId],
   queryFn: () => fetchJob(jobId),
   refetchInterval: (query) =>
     query.state.data?.status === "done" ? false : 2000,  // stop when complete
@@ -7494,14 +7528,21 @@ Wait for one query's result before starting another using `enabled`:
 const queryClient = new QueryClient()
 
 const user = createQuery(queryClient, {
-  queryKey: () => ["user", userId],
+  queryKey: ["user", userId],
   queryFn: () => fetchUser(userId),
 })
 
 const posts = createQuery(queryClient, {
-  queryKey: () => ["posts", user.data()?.id],
+  queryKey: ["posts", user.data()?.id],
   queryFn: () => fetchPosts(user.data()!.id),
   enabled: () => !!user.data()?.id,    // only run when user is loaded
+})
+
+// `queryKey` above is only read once, at creation time — it does not
+// auto-track `user.data()`. Re-key `posts` once the id becomes available.
+user.state.addListener("data", () => {
+  const id = user.data()?.id
+  if (id) posts.setOptions({ queryKey: ["posts", id], queryFn: () => fetchPosts(id), enabled: true })
 })
 ```
 
@@ -7518,7 +7559,7 @@ import { createQuery } from "@domphy/query/domphy"
 const queryClient = new QueryClient()
 
 const profile = createQuery(queryClient, {
-  queryKey: () => ["profile", selectedId ?? skipToken],
+  queryKey: ["profile", selectedId ?? skipToken],
   queryFn: selectedId ? () => fetchProfile(selectedId) : skipToken,
 })
 ```
@@ -7533,7 +7574,7 @@ Transform query data in the observer without changing the cache:
 const queryClient = new QueryClient()
 
 const users = createQuery(queryClient, {
-  queryKey: () => ["users"],
+  queryKey: ["users"],
   queryFn: fetchUsers,
   select: (data) => data.filter((u) => u.active).map((u) => u.name),
 })
@@ -7551,7 +7592,7 @@ Override the default 3 retries:
 const queryClient = new QueryClient()
 
 const payment = createQuery(queryClient, {
-  queryKey: () => ["payment", id],
+  queryKey: ["payment", id],
   queryFn: () => processPayment(id),
   retry: (failCount, error) => {
     if ((error as any).status === 401) return false     // don't retry auth failures
@@ -7609,8 +7650,8 @@ When multiple observers subscribe to the same `queryKey` simultaneously, only **
 const queryClient = new QueryClient()
 
 // Both createQuery calls below share a single fetch for ["config"]
-const configA = createQuery(queryClient, { queryKey: () => ["config"], queryFn: fetchConfig })
-const configB = createQuery(queryClient, { queryKey: () => ["config"], queryFn: fetchConfig })
+const configA = createQuery(queryClient, { queryKey: ["config"], queryFn: fetchConfig })
+const configB = createQuery(queryClient, { queryKey: ["config"], queryFn: fetchConfig })
 // fetchConfig() is called once; configA and configB both resolve to the same data
 ```
 
@@ -7672,9 +7713,9 @@ Or create each query independently — they all run in parallel:
 const queryClient = new QueryClient()
 
 // Run multiple queries in parallel — each is independent
-const user          = createQuery(queryClient, { queryKey: () => ["user"],          queryFn: fetchUser })
-const settings      = createQuery(queryClient, { queryKey: () => ["settings"],      queryFn: fetchSettings })
-const notifications = createQuery(queryClient, { queryKey: () => ["notifications"], queryFn: fetchNotifications })
+const user          = createQuery(queryClient, { queryKey: ["user"],          queryFn: fetchUser })
+const settings      = createQuery(queryClient, { queryKey: ["settings"],      queryFn: fetchSettings })
+const notifications = createQuery(queryClient, { queryKey: ["notifications"], queryFn: fetchNotifications })
 ```
 
 ## Background refetch behavior
@@ -7694,7 +7735,7 @@ Disable focus refetch for static data:
 const queryClient = new QueryClient()
 
 const constants = createQuery(queryClient, {
-  queryKey: () => ["constants"],
+  queryKey: ["constants"],
   queryFn: fetchConstants,
   staleTime: Infinity,       // never stale
   refetchOnWindowFocus: false,
@@ -7918,105 +7959,14 @@ onlineManager.setOnline(false)  // simulate offline
 
 ---
 title: "Devtools"
-description: "Inspect query cache, monitor requests, and debug stale/fetching state with the @domphy/query devtools panel."
+description: "Inspect query cache, monitor requests, and debug stale/fetching state with @domphy/query's programmatic introspection methods (no visual panel yet)."
 ---
 
 # Devtools
 
-`@domphy/query-devtools` and the `@domphy/query/devtools` subpath do not exist yet. The `QueryDevtools` component and `devtools()` patch shown below are planned but not yet published. Use `client.getQueryState()`/`client.getQueryCache().getAll()` for programmatic inspection in the meantime (see [Debugging stale data](#debugging-stale-data) below).
+`@domphy/query-devtools` and the `@domphy/query/devtools` subpath do not exist yet. There is no `QueryDevtools` component or `devtools()` patch to import — do NOT use them. Use `client.getQueryState()`/`client.getQueryCache().getAll()` for programmatic inspection in the meantime, as shown below.
 
-The `@domphy/query` devtools panel lets you inspect every query and mutation in your app: their keys, state (`pending`/`success`/`error`), staleness, `dataUpdatedAt`, and the cached data.
-
-## Installation
-
-The devtools panel is separate from `@domphy/query` — install it independently:
-
-```bash
-pnpm add @domphy/query-devtools
-```
-
-Or use the peer-installed version via `@domphy/query`:
-
-```ts
-import { QueryDevtools } from "@domphy/query/devtools"
-```
-
-## Mounting the devtools
-
-Attach the devtools to your app as a Domphy element — it appears as a floating panel:
-
-```ts
-import { QueryClient } from "@domphy/query"
-import { QueryDevtools } from "@domphy/query/devtools"
-
-const client = new QueryClient()
-
-const App = {
-  div: [
-    MainContent,
-    // Floating devtools panel — only in development
-    ...(import.meta.env.DEV ? [{ div: null, $: [QueryDevtools({ client })] }] : []),
-  ],
-}
-```
-
-Or using the `devtools()` patch which handles the dev/prod toggle automatically:
-
-```ts
-import { devtools } from "@domphy/query/devtools"
-
-const App = {
-  div: [
-    MainContent,
-    {
-      div: null,
-      $: [devtools({ client, initialIsOpen: false })],
-    },
-  ],
-}
-```
-
-## Configuration
-
-```ts
-QueryDevtools({
-  client,              // required — QueryClient instance
-  initialIsOpen: false,   // start collapsed (default: false)
-  position: "bottom-right",  // "top-left" | "top-right" | "bottom-left" | "bottom-right"
-  panelProps: {        // props for the panel container
-    style: { height: "500px" },
-  },
-  closeButtonProps: {  // props for the close button
-    "aria-label": "Close query devtools",
-  },
-  toggleButtonProps: { // props for the toggle (floating) button
-    style: { marginBottom: "40px" },
-  },
-  errorTypes: [
-    // Register custom error types for better display
-    { name: "ApiError", initializer: (q) => new Error(`${q.queryKey} failed`) },
-  ],
-})
-```
-
-## What the devtools show
-
-The panel has two sections:
-
-**Query list** — all active queries sorted by most recently updated:
-- Query key (nested JSON)
-- Status badge: `fresh` (green), `stale` (yellow), `fetching` (blue), `paused` (gray), `inactive` (dim)
-- Observer count — how many components are subscribed
-- Click any query to expand its details
-
-**Query detail pane** (when a query is selected):
-- Full query key
-- Status + `dataUpdatedAt`
-- Stale time config
-- Refetch count
-- Raw `data` (JSON tree viewer)
-- Raw `error` (if errored)
-- Action buttons: **Refetch**, **Invalidate**, **Reset**, **Remove**
+There is no visual devtools panel yet. Until one ships, use `QueryClient`'s own introspection methods to inspect every query in your app: keys, state (`pending`/`success`/`error`), staleness, `dataUpdatedAt`, and the cached data.
 
 ## Using devtools in tests
 
@@ -8044,27 +7994,15 @@ queries.forEach(q => {
 
 If a query shows data but it's not refreshing, check:
 
-1. **`staleTime`** — set to `Infinity`? Check with devtools: `Status: fresh`
+1. **`staleTime`** — set to `Infinity`? Check with `client.getQueryState(key)?.isStale`
 2. **`enabled: false`** — query is disabled, won't refetch
 3. **No observers** — no component is subscribed; GC may have cleared it
 4. **Network tab** — is the request being made but returning cached data?
 
-Force a refetch from devtools by clicking **Invalidate** on the query in the panel, or programmatically:
+Force a refetch programmatically:
 
 ```ts
 await client.invalidateQueries({ queryKey: ["user"] })
-```
-
-## Bundle size
-
-The devtools add ~60kb to your bundle. Always conditionally import:
-
-```ts
-// Vite tree-shakes this correctly
-if (import.meta.env.DEV) {
-  const { QueryDevtools } = await import("@domphy/query/devtools")
-  mountDevtools(QueryDevtools({ client }))
-}
 ```
 
 ### index.md
@@ -8548,8 +8486,8 @@ import { createQuery } from "@domphy/query/domphy"
 const queryClient = new QueryClient()
 
 // These two queries fire in parallel
-const user    = createQuery(queryClient, { queryKey: () => ["user", userId],  queryFn: () => fetchUser(userId) })
-const profile = createQuery(queryClient, { queryKey: () => ["profile", userId], queryFn: () => fetchProfile(userId) })
+const user    = createQuery(queryClient, { queryKey: ["user", userId],  queryFn: () => fetchUser(userId) })
+const profile = createQuery(queryClient, { queryKey: ["profile", userId], queryFn: () => fetchProfile(userId) })
 
 const Dashboard = {
   div: (l) => {
@@ -8574,9 +8512,9 @@ Run multiple queries in parallel by creating each independently — they all sta
 const queryClient = new QueryClient()
 
 // Run multiple queries in parallel — each is independent
-const user   = createQuery(queryClient, { queryKey: () => ["user", userId], queryFn: () => fetchUser(userId) })
-const posts  = createQuery(queryClient, { queryKey: () => ["posts", userId], queryFn: () => fetchPosts(userId) })
-const friends = createQuery(queryClient, { queryKey: () => ["friends", userId], queryFn: () => fetchFriends(userId) })
+const user   = createQuery(queryClient, { queryKey: ["user", userId], queryFn: () => fetchUser(userId) })
+const posts  = createQuery(queryClient, { queryKey: ["posts", userId], queryFn: () => fetchPosts(userId) })
+const friends = createQuery(queryClient, { queryKey: ["friends", userId], queryFn: () => fetchFriends(userId) })
 ```
 
 ## Dependent queries
@@ -8587,14 +8525,21 @@ A query that depends on another query's result. Use `enabled` to prevent firing 
 const queryClient = new QueryClient()
 
 const user = createQuery(queryClient, {
-  queryKey: () => ["user"],
+  queryKey: ["user"],
   queryFn: fetchCurrentUser,
 })
 
 const permissions = createQuery(queryClient, {
-  queryKey: () => ["permissions", user.data()?.id],
+  queryKey: ["permissions", user.data()?.id],
   queryFn: () => fetchPermissions(user.data()!.id),
   enabled: () => !!user.data()?.id,   // only runs when user.data().id exists
+})
+
+// `queryKey` is only read once, at creation time — re-key `permissions`
+// once the user id becomes available.
+user.state.addListener("data", () => {
+  const id = user.data()?.id
+  if (id) permissions.setOptions({ queryKey: ["permissions", id], queryFn: () => fetchPermissions(id), enabled: true })
 })
 ```
 
@@ -8608,18 +8553,28 @@ Chain three or more queries:
 ```ts
 const queryClient = new QueryClient()
 
-const org = createQuery(queryClient, { queryKey: () => ["org"], queryFn: fetchOrg })
+const org = createQuery(queryClient, { queryKey: ["org"], queryFn: fetchOrg })
 
 const teams = createQuery(queryClient, {
-  queryKey: () => ["teams", org.data()?.id],
+  queryKey: ["teams", org.data()?.id],
   queryFn: () => fetchTeams(org.data()!.id),
   enabled: () => !!org.data()?.id,
 })
 
+org.state.addListener("data", () => {
+  const id = org.data()?.id
+  if (id) teams.setOptions({ queryKey: ["teams", id], queryFn: () => fetchTeams(id), enabled: true })
+})
+
 const members = createQuery(queryClient, {
-  queryKey: () => ["members", teams.data()?.[0]?.id],
+  queryKey: ["members", teams.data()?.[0]?.id],
   queryFn: () => fetchMembers(teams.data()![0].id),
   enabled: () => !!teams.data()?.[0]?.id,
+})
+
+teams.state.addListener("data", () => {
+  const id = teams.data()?.[0]?.id
+  if (id) members.setOptions({ queryKey: ["members", id], queryFn: () => fetchMembers(id), enabled: true })
 })
 ```
 
@@ -8630,9 +8585,9 @@ Aggregate results from multiple queries:
 ```ts
 const queryClient = new QueryClient()
 
-const users   = createQuery(queryClient, { queryKey: () => ["users"],   queryFn: fetchUsers })
-const groups  = createQuery(queryClient, { queryKey: () => ["groups"],  queryFn: fetchGroups })
-const settings = createQuery(queryClient, { queryKey: () => ["settings"], queryFn: fetchSettings })
+const users   = createQuery(queryClient, { queryKey: ["users"],   queryFn: fetchUsers })
+const groups  = createQuery(queryClient, { queryKey: ["groups"],  queryFn: fetchGroups })
+const settings = createQuery(queryClient, { queryKey: ["settings"], queryFn: fetchSettings })
 
 const isAllLoaded = computed(() =>
   !users.isPending() && !groups.isPending() && !settings.isPending()
@@ -8684,7 +8639,7 @@ Show a subtle indicator when data is being refreshed in the background (stale-wh
 const queryClient = new QueryClient()
 
 const posts = createQuery(queryClient, {
-  queryKey: () => ["posts"],
+  queryKey: ["posts"],
   queryFn: fetchPosts,
   staleTime: 30_000,   // fresh for 30 seconds
 })
@@ -8718,7 +8673,7 @@ Seed a query's cache before it mounts — useful for data from SSR or a previous
 const queryClient = new QueryClient()
 
 const post = createQuery(queryClient, {
-  queryKey: () => ["post", postId],
+  queryKey: ["post", postId],
   queryFn: () => fetchPost(postId),
   initialData: () => queryClient.getQueryData(["post", postId]),   // from cache if available
   initialDataUpdatedAt: () => queryClient.getQueryState(["post", postId])?.dataUpdatedAt,
@@ -8731,7 +8686,7 @@ Or inject static data (marks as stale immediately so it refetches):
 const queryClient = new QueryClient()
 
 const config = createQuery(queryClient, {
-  queryKey: () => ["config"],
+  queryKey: ["config"],
   queryFn: fetchConfig,
   initialData: window.__INITIAL_CONFIG__,   // injected by server
   staleTime: 10_000,
@@ -8746,7 +8701,7 @@ Show placeholder content while the real data loads (no loading spinner needed):
 const queryClient = new QueryClient()
 
 const post = createQuery(queryClient, {
-  queryKey: () => ["post", postId],
+  queryKey: ["post", postId],
   queryFn: () => fetchPost(postId),
   placeholderData: {
     id: postId,
@@ -8776,9 +8731,18 @@ const queryClient = new QueryClient()
 const page = toState(1)
 
 const posts = createQuery(queryClient, {
-  queryKey: () => ["posts", page.get()],
+  queryKey: ["posts", page.get()],
   queryFn: () => fetchPage(page.get()),
   placeholderData: keepPreviousData,   // shows page N while page N+1 loads
+})
+
+// Re-key `posts` whenever `page` changes
+page.addListener(() => {
+  posts.setOptions({
+    queryKey: ["posts", page.get()],
+    queryFn: () => fetchPage(page.get()),
+    placeholderData: keepPreviousData,
+  })
 })
 ```
 
@@ -8804,7 +8768,7 @@ import { createQuery } from "@domphy/query/domphy"
 const queryClient = new QueryClient()
 
 const stats = createQuery(queryClient, {
-  queryKey: () => ["stats"],
+  queryKey: ["stats"],
   queryFn: fetchStats,
   refetchInterval: 5_000,   // refetch every 5 seconds
 })
@@ -8820,7 +8784,7 @@ Pause polling when the data has reached a terminal state:
 const queryClient = new QueryClient()
 
 const jobStatus = createQuery(queryClient, {
-  queryKey: () => ["job", jobId],
+  queryKey: ["job", jobId],
   queryFn: () => fetchJobStatus(jobId),
   refetchInterval: (query) => {
     // Stop polling when job is done or failed
@@ -8839,7 +8803,7 @@ By default, polling pauses when the browser tab is hidden. Enable background pol
 const queryClient = new QueryClient()
 
 const alerts = createQuery(queryClient, {
-  queryKey: () => ["alerts"],
+  queryKey: ["alerts"],
   queryFn: fetchAlerts,
   refetchInterval: 30_000,
   refetchIntervalInBackground: true,   // keep polling even when tab is hidden
@@ -8854,7 +8818,7 @@ When the user returns to your app (tab focus, `Alt+Tab`), stale queries automati
 const queryClient = new QueryClient()
 
 const data = createQuery(queryClient, {
-  queryKey: () => ["dashboard"],
+  queryKey: ["dashboard"],
   queryFn: fetchDashboard,
   staleTime: 60_000,           // data is fresh for 1 minute
   refetchOnWindowFocus: true,  // refetch when window regains focus (default: true)
@@ -8871,7 +8835,7 @@ Disable for data that shouldn't silently refresh:
 const queryClient = new QueryClient()
 
 const draftContent = createQuery(queryClient, {
-  queryKey: () => ["draft", id],
+  queryKey: ["draft", id],
   queryFn: () => fetchDraft(id),
   refetchOnWindowFocus: false,   // don't overwrite user edits on tab switch
 })
@@ -8906,7 +8870,7 @@ When the device goes offline and comes back online, stale queries automatically 
 const queryClient = new QueryClient()
 
 const userProfile = createQuery(queryClient, {
-  queryKey: () => ["user", userId],
+  queryKey: ["user", userId],
   queryFn: () => fetchUser(userId),
   refetchOnReconnect: true,   // default: true
 })
@@ -8922,7 +8886,7 @@ For data that only refreshes on explicit user action:
 const queryClient = new QueryClient()
 
 const config = createQuery(queryClient, {
-  queryKey: () => ["config"],
+  queryKey: ["config"],
   queryFn: fetchConfig,
   staleTime: Infinity,            // never goes stale
   refetchOnWindowFocus: false,    // no focus refetch
@@ -8945,7 +8909,7 @@ Trigger a refetch manually without invalidating the cache:
 const queryClient = new QueryClient()
 
 const feed = createQuery(queryClient, {
-  queryKey: () => ["feed"],
+  queryKey: ["feed"],
   queryFn: fetchFeed,
 })
 
@@ -9195,12 +9159,19 @@ async function renderPage() {
 <head><style id="domphy-style">${css}</style></head>
 <body>
     <div id="app">${html}</div>
-    <script>window.__QUERY_STATE__ = ${JSON.stringify(dehydratedState)}</script>
+    <script>window.__QUERY_STATE__ = ${serializeData(dehydratedState)}</script>
     <script type="module" src="/client.js"></script>
 </body>
 </html>`
 }
+
+/** JSON with `</script>`-safe escaping so the payload can be inlined. */
+function serializeData(data: unknown): string {
+    return JSON.stringify(data).replace(/</g, "\\u003c")
+}
 ```
+
+Never interpolate `JSON.stringify(...)` directly into an inline `<script>` block — if any cached string contains the literal substring `</script>`, it closes the tag early and whatever follows is parsed as HTML, not JavaScript. Escaping every `<` to the literal six-character sequence backslash-u-0-0-3-c (as above) neutralizes `</script>` and `<!--` alike, because the browser's JS parser decodes that escape back to `<` inside the string literal, while the HTML tokenizer never sees a raw `<` to break the tag on.
 
 Create one `QueryClient` **per request**. A module-level client on the server would leak data between users.
 
@@ -9268,7 +9239,7 @@ import { createQuery } from "@domphy/query/domphy"
 const queryClient = new QueryClient()
 
 const user = createQuery(queryClient, {
-  queryKey: () => ["user"],
+  queryKey: ["user"],
   queryFn: fetchUser,
 })
 
@@ -9289,7 +9260,7 @@ When `throwOnError: true`, a query error is thrown into the Domphy element tree.
 const queryClient = new QueryClient()
 
 const user = createQuery(queryClient, {
-  queryKey: () => ["user"],
+  queryKey: ["user"],
   queryFn: fetchUser,
   throwOnError: true,   // throw errors into the element tree
 })
@@ -9315,7 +9286,7 @@ Use `suspense: true` to make the query participate in a Domphy-managed pending s
 const queryClient = new QueryClient()
 
 const post = createQuery(queryClient, {
-  queryKey: () => ["post", postId],
+  queryKey: ["post", postId],
   queryFn: () => fetchPost(postId),
   suspense: true,
 })
@@ -9349,12 +9320,12 @@ Separate critical data from non-critical data — render the page with placehold
 const queryClient = new QueryClient()
 
 const criticalData = createQuery(queryClient, {
-  queryKey: () => ["page", id],
+  queryKey: ["page", id],
   queryFn: () => fetchPage(id),
 })
 
 const slowStats = createQuery(queryClient, {
-  queryKey: () => ["stats", id],
+  queryKey: ["stats", id],
   queryFn: () => fetchStats(id),
   // Stats can be deferred — render a placeholder and update when ready
 })
@@ -9532,7 +9503,7 @@ describe("createQuery", () => {
     const mockFetchUser = vi.fn().mockResolvedValue({ id: 1, name: "Alice" })
 
     const user = createQuery(queryClient, {
-      queryKey: () => ["user", 1],
+      queryKey: ["user", 1],
       queryFn: mockFetchUser,
     })
 
@@ -9556,7 +9527,7 @@ it("handles fetch errors", async () => {
   const mockFetch = vi.fn().mockRejectedValue(error)
 
   const query = createQuery(queryClient, {
-    queryKey: () => ["fail"],
+    queryKey: ["fail"],
     queryFn: mockFetch,
     retry: false,
   })
@@ -9603,7 +9574,7 @@ it("renders user data from cache", () => {
   queryClient.setQueryData(["user", 1], { id: 1, name: "Alice" })
 
   const user = createQuery(queryClient, {
-    queryKey: () => ["user", 1],
+    queryKey: ["user", 1],
     queryFn: () => fetch("/api/users/1"),
     staleTime: Infinity,   // won't refetch — use cached value
   })
@@ -9622,7 +9593,7 @@ it("invalidates and refetches after mutation", async () => {
     .mockResolvedValueOnce([{ id: 1, text: "Todo 1" }, { id: 2, text: "Todo 2" }])   // after create
 
   const todos = createQuery(queryClient, {
-    queryKey: () => ["todos"],
+    queryKey: ["todos"],
     queryFn: mockFetch,
   })
 
@@ -9655,7 +9626,7 @@ it("refetches every 5 seconds", async () => {
   const mockFetch = vi.fn().mockResolvedValue("data")
 
   const query = createQuery(queryClient, {
-    queryKey: () => ["polling"],
+    queryKey: ["polling"],
     queryFn: mockFetch,
     refetchInterval: 5_000,
   })
@@ -9693,7 +9664,7 @@ afterAll(() => server.close())
 
 it("fetches user from API", async () => {
   const user = createQuery(queryClient, {
-    queryKey: () => ["user", "1"],
+    queryKey: ["user", "1"],
     queryFn: () => fetch("/api/users/1").then(r => r.json()),
   })
 
@@ -9728,7 +9699,7 @@ async function fetchUser(id: string): Promise<User> {
 const queryClient = new QueryClient()
 
 const user = createQuery(queryClient, {
-  queryKey: () => ["user", userId],
+  queryKey: ["user", userId],
   queryFn: () => fetchUser(userId),
   // No type annotation needed — data is inferred as User
 })
@@ -9798,7 +9769,7 @@ interface ApiError {
 const queryClient = new QueryClient()
 
 const user = createQuery<User, ApiError>(queryClient, {
-  queryKey: () => ["user"],
+  queryKey: ["user"],
   queryFn: async () => {
     const res = await fetch("/api/user")
     if (!res.ok) throw await res.json() as ApiError
@@ -9852,7 +9823,7 @@ interface PostPage { posts: Post[]; nextCursor: string | null }
 const queryClient = new QueryClient()
 
 const feed = createInfiniteQuery<PostPage, ApiError, PostPage, string[], string>(queryClient, {
-  queryKey: () => ["feed"],
+  queryKey: ["feed"],
   queryFn: ({ pageParam }) => fetchFeedPage(pageParam),
   initialPageParam: "",
   getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -9963,7 +9934,8 @@ The main members of the router returned by `createRouter`:
 - `matchRoute(location, options?)` — test a location against the tree (`{ fuzzy, includeSearch }`)
 - `getMatch(matchId)` / `clearCache(options?)` — cache access (advanced)
 - `history` — the underlying `RouterHistory` (`back`, `forward`, `go`, `block`)
-- `update(options)` — update router options after creation
+- `update(options)` — update router options after creation; replacing `history` re-targets the client's history subscription automatically
+- `destroy()` — release the client transitioner's history/store subscriptions (call when discarding a router instance, e.g. HMR or locale-switch patterns)
 
 ## History
 
@@ -12534,22 +12506,6 @@ Because all these methods subscribe to the same version counter, the granularity
 
 ## Cleanup
 
-Release the version state when the table's subtree unmounts:
-
-```ts
-{
-    table: (l) => { version(l); return [...] },
-    $: [tableUI()],
-    _onRemove: () => destroy(),
-}
-```
-
-## When to use the bridge directly
-
-Use the raw [bridge pattern](./) when you need fully-controlled state living in your own model, or per-slice signals instead of one counter. The adapter is built on that exact pattern.
-
-## Cleanup
-
 `version` is a Domphy state; release it when the table's subtree unmounts:
 
 ```ts
@@ -14781,7 +14737,7 @@ The `virtualizer` property exposes the underlying `Virtualizer` instance with ad
 |--------|-------------|
 | `takeSnapshot()` | Capture current offsets for later restore. |
 | `getDistanceFromEnd()` | Pixels from current scroll position to the end. |
-| `isAtEnd(threshold?)` | `true` if within `threshold` (default `0`) px of the end. |
+| `isAtEnd(threshold?)` | `true` if within `threshold` (default `1`) px of the end. |
 | `resizeItem(index, size)` | Programmatically override a single item's size. |
 | `measure()` | Clear all cached sizes and force full re-measurement. |
 
@@ -14919,13 +14875,9 @@ cleanup()
 
 | Method | Description |
 |--------|-------------|
-| `getMeasurements()` | All measurements (index → Rect). |
 | `calculateRange()` | Recalculate the current visible range. |
 | `getVirtualIndexes()` | Just the indexes (lighter than full VirtualItems). |
 | `getVirtualItemForOffset(px)` | Find the item at a given scroll offset. |
-| `getSize()` | Container viewport size. |
-| `getScrollOffset()` | Current scroll offset. |
-| `getMaxScrollOffset()` | Maximum scrollable offset. |
 | `resizeItem(index, size)` | Programmatically override an item's measured size. |
 | `scrollToIndex(i, opts?)` | Scroll to item. |
 | `scrollToOffset(px, opts?)` | Scroll to absolute offset. |
@@ -14934,10 +14886,12 @@ cleanup()
 | `getDistanceFromEnd()` | Distance from current position to end. |
 | `isAtEnd(threshold?)` | True if at/near the end. |
 | `getOffsetForIndex(i, align?)` | Compute target scroll offset for an item. |
-| `getOffsetForAlignment(align, size)` | Offset for a given alignment + size. |
+| `getOffsetForAlignment(toOffset, align, itemSize?)` | Offset needed to bring `toOffset` into alignment, given an item size. |
 | `takeSnapshot()` | Capture current item offsets. |
 | `measure()` | Force re-measurement of all items. |
 | `indexFromElement(el)` | Get item index from a DOM element. |
+
+`getMeasurements()`, `getSize()`, `getScrollOffset()`, and `getMaxScrollOffset()` are internal — not part of the public API.
 
 ---
 
@@ -16748,7 +16702,7 @@ description: "Dynamic field arrays, nested object fields, array of objects, and 
 
 ## Basic array field
 
-Use dot-bracket notation for array indexes. Create an array-field handle and use its built-in array helpers (`pushValue`, `removeValue`, `swapValues`, etc.):
+Use dot-bracket notation for array indexes. Create an array-field handle and use its built-in array helpers (`pushValue`, `removeValue`, `swapValues`, etc.). `form.field(name)` is cached by name, so calling it again for the same index inside a reactive render callback (as below) reuses the existing field handle instead of mounting a new one:
 
 ```ts
 import { createForm } from "@domphy/form/domphy"
@@ -17230,7 +17184,7 @@ description: "Share form options with formOptions(), pre-populate forms using me
 import { formOptions } from "@domphy/form"
 import { createForm } from "@domphy/form/domphy"
 
-const baseContactOptions = formOptions<{ email: string; phone: string }>({
+const baseContactOptions = formOptions({
   defaultValues: { email: "", phone: "" },
   validators: {
     onSubmit: ({ value }) => {
@@ -17893,7 +17847,7 @@ const Field = {
 | `canSubmit(l)` / `isSubmitting(l)` / `isValid(l)` / `isSubmitted(l)` | Reactive flags. |
 | `isDirty(l)` / `isPristine(l)` | Reactive: any field differs from defaultValues / no field changed. |
 | `isTouched(l)` / `isBlurred(l)` | Reactive: any field touched / any field blurred. |
-| `field<TData>(name, options?)` | Create and mount a reactive field handle. |
+| `field<TData>(name, options?)` | Create and mount a reactive field handle, cached by `name` — repeat calls for the same name return the same handle. |
 | `getFieldValue(field)` | Read a field value imperatively (no listener). |
 | `setFieldValue(field, updater)` | Set a field value programmatically (triggers onChange validation). |
 | `validateField(field, cause?)` | Manually trigger validation for one field. Cause defaults to `"change"`. |
@@ -18052,7 +18006,7 @@ const form = createForm<{ quantity: number; unitPrice: number; total: number }>(
   listeners: {
     onChange: ({ formApi }) => {
       const { quantity, unitPrice } = formApi.state.values
-      formApi.setFieldValue("total", quantity * unitPrice, { touch: false })
+      formApi.setFieldValue("total", quantity * unitPrice, { dontUpdateMeta: true })
     },
   },
   onSubmit: ({ value }) => checkout(value),
@@ -18067,7 +18021,7 @@ const TotalDisplay = {
 }
 ```
 
-`{ touch: false }` prevents the programmatically-set `total` from being marked as dirty by the user.
+`{ dontUpdateMeta: true }` prevents the programmatically-set `total` from being marked as dirty by the user.
 
 ## Using `computed` for derived display values
 
@@ -18166,8 +18120,8 @@ const confirmField = form.field<string>("confirmPassword", {
       const password = fieldApi.form.getFieldValue("password")
       return value === password ? undefined : "Passwords do not match"
     },
+    onChangeListenTo: ["password"],   // re-validate when "password" changes
   },
-  onChangeListenTo: ["password"],   // re-validate when "password" changes
 })
 ```
 
@@ -18181,11 +18135,13 @@ React to any value change at the form level:
 const form = createForm<PriceInput>({
   defaultValues: { quantity: 1, unitPrice: 10, total: 10 },
   onSubmit: ({ value }) => checkout(value),
-  onChange: ({ formApi }) => {
-    // Compute derived fields
-    const quantity = formApi.getFieldValue("quantity")
-    const unitPrice = formApi.getFieldValue("unitPrice")
-    formApi.setFieldValue("total", quantity * unitPrice, { touch: false })
+  listeners: {
+    onChange: ({ formApi }) => {
+      // Compute derived fields
+      const quantity = formApi.getFieldValue("quantity")
+      const unitPrice = formApi.getFieldValue("unitPrice")
+      formApi.setFieldValue("total", quantity * unitPrice, { dontUpdateMeta: true })
+    },
   },
 })
 ```
@@ -18232,8 +18188,8 @@ Re-run a field's blur validators when another field blurs:
 const emailField = form.field<string>("email", {
   validators: {
     onBlur: ({ value }) => validateEmail(value),
+    onBlurListenTo: ["username"],   // also re-validate when "username" blurs
   },
-  onBlurListenTo: ["username"],   // also re-validate when "username" blurs
 })
 ```
 
@@ -18255,8 +18211,8 @@ const reasonField = form.field<string>("expediteReason", {
         return "Please provide a reason for express shipping"
       }
     },
+    onChangeListenTo: ["method"],
   },
-  onChangeListenTo: ["method"],
 })
 
 const ShippingForm = {
@@ -19925,26 +19881,25 @@ Show a spinner on async validation:
 { span: "Checking...", hidden: (l) => !username.meta(l).isValidating }
 ```
 
-## Validators with context
+## Passing request-scoped data to a validator
 
-Validators receive a `context` object — attach extra data via `form.handleSubmit(data, context)`:
+The Domphy adapter's `form.handleSubmit()` takes no parameters, and validator props don't expose a `context` field. To reach request-scoped data (like a CSRF token) from inside a validator, capture it via closure instead:
 
 ```ts
 const form = createForm<LoginForm>({
   defaultValues: { email: "", password: "" },
   validators: {
-    onSubmitAsync: async ({ value, context }) => {
-      const result = await loginApi(value.email, value.password, context?.csrfToken)
+    onSubmitAsync: async ({ value }) => {
+      const result = await loginApi(value.email, value.password, getCsrfToken())
       return result.error ? "Invalid credentials" : undefined
     },
   },
   onSubmit: ({ value }) => {},
 })
 
-// Pass context on submit
 const button = {
   button: "Log in",
-  onClick: () => form.handleSubmit({}, { csrfToken: getCsrfToken() }),
+  onClick: () => form.handleSubmit(),
 }
 ```
 
@@ -22830,24 +22785,29 @@ All examples are live — edit the code and see changes instantly.
 
 ---
 title: "Geo & Maps"
-description: "Geo coordinate system, registerMap, and built-in world map in @domphy/chart."
+description: "Geo coordinate system and registerMap in @domphy/chart."
 ---
 
 # Geo & Maps
 
-## Built-in world map
+## No built-in map — always call registerMap
 
-`map: "world"` is available out of the box — no `registerMap` call needed.
+`@domphy/chart` ships no GeoJSON data. There is no built-in `"world"` map — `map: "world"` (or any other name) silently no-ops until you call `registerMap` with that exact name first. The map registry starts empty.
 
-Use it in:
+Use a registered map in:
 - `map` series (choropleth) — fill regions by value
 - `geo` option — base layer for overlaying other series
 - `lines` series with `coordinateSystem: "geo"` — draw flight paths / connections
 - `effectScatter` with `coordinateSystem: "geo"` — animated point scatter on map
 
 ```ts
-import { chart } from "@domphy/chart"
+import { chart, registerMap } from "@domphy/chart"
 import type { ChartOption } from "@domphy/chart"
+
+// Register a GeoJSON FeatureCollection first — e.g. world countries from naturalearth
+const response = await fetch("/maps/world.geojson")
+const worldGeoJSON = await response.json()
+registerMap("world", worldGeoJSON)
 
 const option: ChartOption = {
   series: [
@@ -22872,7 +22832,7 @@ const option: ChartOption = {
 
 ## Custom GeoJSON (registerMap)
 
-Import `registerMap` from `@domphy/chart` and call it **before** rendering the chart. The `geoJSON` argument must be a standard GeoJSON `FeatureCollection`.
+Import `registerMap` from `@domphy/chart` and call it **before** rendering the chart, for any map name — including `"world"`. The `geoJSON` argument must be a standard GeoJSON `FeatureCollection`.
 
 ```ts
 import { registerMap } from "@domphy/chart"
@@ -22889,9 +22849,11 @@ Register as many maps as needed — each name is an independent key in the regis
 
 ## Geo coordinate option
 
-The `geo` option creates a standalone coordinate system that other series can reference with `coordinateSystem: "geo"`. This is the standard way to overlay `lines`, `effectScatter`, or `scatter` on top of a map.
+The `geo` option creates a standalone coordinate system that other series can reference with `coordinateSystem: "geo"`. This is the standard way to overlay `lines`, `effectScatter`, or `scatter` on top of a map. `geo.map` must already be registered via `registerMap`.
 
 ```ts
+registerMap("world", worldGeoJSON) // must run before this option is applied
+
 const option: ChartOption = {
   geo: {
     map: "world",
@@ -22936,7 +22898,7 @@ const option: ChartOption = {
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `map` | `string` | Map name — `"world"` or a name registered via `registerMap` |
+| `map` | `string` | Map name — must be registered first via `registerMap` |
 | `center` | `[number, number]` | `[longitude, latitude]` of the center point |
 | `zoom` | `number` | Zoom multiplier — `1` fits the map to the container |
 | `roam` | `boolean` | Interactive pan/zoom — not yet supported, keep `false` |
@@ -22945,9 +22907,11 @@ const option: ChartOption = {
 
 ## Map series (choropleth)
 
-The `map` series fills regions by value — classic choropleth.
+The `map` series fills regions by value — classic choropleth. `map` must already be registered via `registerMap`.
 
 ```ts
+registerMap("world", worldGeoJSON) // must run before this option is applied
+
 const option: ChartOption = {
   series: [
     {
@@ -25071,7 +25035,7 @@ Computes the **WCAG 2.1 contrast ratio** between two hex colors. Returns a value
 import { contrastRatio } from "@domphy/palette"
 
 contrastRatio("#3b82f6", "#ffffff")  // ≈ 3.68  — AA fails for normal text
-contrastRatio("#1d4ed8", "#ffffff")  // ≈ 7.05  — AAA
+contrastRatio("#1d4ed8", "#ffffff")  // ≈ 6.70  — AA (fails AAA)
 contrastRatio("#000000", "#ffffff")  // 21.0    — maximum possible contrast
 ```
 
@@ -25101,7 +25065,7 @@ mix("#ff0000", "#0000ff", 0.5, "rgb") // mix in linear RGB (naive, muddy midpoin
 
 ```ts
 // Comparing red→blue midpoints in different spaces
-mix("#ff0000", "#0000ff", 0.5, "rgb")   // "#7f007f" — dull purple
+mix("#ff0000", "#0000ff", 0.5, "rgb")   // "#bc00bc" — over-saturated magenta
 mix("#ff0000", "#0000ff", 0.5, "lab")   // brighter, more saturated
 mix("#ff0000", "#0000ff", 0.5, "oklab") // similar to lab, perceptually centered
 ```
@@ -25120,11 +25084,11 @@ import { scale } from "@domphy/palette"
 
 // 5-step gradient from white to blue
 scale(["#ffffff", "#3b82f6"], 5)
-// ["#ffffff", "#c4d7fa", "#87b0f5", "#4a88ef", "#3b82f6"]
+// ["#ffffff", "#cee1ff", "#9ec3ff", "#6ea3fb", "#3b82f6"]
 
 // 7-step gradient through 3 anchors: white → blue → black
 scale(["#ffffff", "#3b82f6", "#000000"], 7)
-// ["#ffffff", "#aec8f8", "#3b82f6", "#2a5ab1", "#1a3269", "#080f20", "#000000"]
+// ["#ffffff", "#bed7ff", "#7eaefd", "#3b82f6", "#1e498f", "#051634", "#000000"]
 
 // Use the output to construct a Ramp for quality analysis
 import { Ramp } from "@domphy/palette"
@@ -25966,6 +25930,8 @@ Props:
 | `exact` | `false` | active only on exact pathname match |
 | `router` | app router | explicit router instance |
 
+When no `router` prop is given, `navLink` resolves the app router lazily from a single module-level "default router" set by the most recently constructed `AppRouter`. A Node server that serves multiple requests concurrently (each calling `createApp(routes)` + `renderToString`/`renderToStream` per request, as in [Server Rendering](/docs/app/ssr)) can have that default router reassigned mid-render by another in-flight request, causing `navLink`'s active-state resolution to throw or read the wrong request's state. Always pass `router: app.router` explicitly to `navLink` on the server (or anywhere `renderToString`/`renderToStream` may run concurrently) to avoid this race; on the client there is only ever one app instance, so the default lookup is safe.
+
 ## The Router
 
 `app.router` is the `useRouter()` equivalent:
@@ -26283,6 +26249,8 @@ ${result.bootstrapScript}
 }).listen(3000)
 ```
 
+Node serves requests concurrently, so if your route tree renders any `navLink`, pass `router: app.router` to it explicitly here — see the [`navLink` router prop warning](/docs/app/navigation#navlink) for why.
+
 ## Hydration
 
 `client.js` builds the same app and mounts onto the server markup. `hydrate()` reads the data embedded by `bootstrapScript`, so loaders are **not** re-run and the client tree matches the HTML byte for byte:
@@ -26596,7 +26564,7 @@ type Highlight = (
 | Return value | What happens |
 | --- | --- |
 | Non-empty string | Used as the **inner HTML** of the `<code>` element. Markup is preserved verbatim. |
-| `DomphyElement` | Used as the **sole child** of the `<code>` element. Stays in the element tree. |
+| `DomphyElement` | Replaces the **entire block** — no `pre > code` wrapper is added around it. |
 | Falsy (`null`, `undefined`, empty string) | Falls back to plain escaped text. |
 
 ## String return — inner HTML
@@ -26620,7 +26588,7 @@ The `dataLanguage` and `class` properties on the `<code>` element are always emi
 
 ## DomphyElement return — stay in the element tree
 
-Return a `DomphyElement` when you want the highlighted output to remain as a Domphy tree node rather than a raw HTML string:
+Return a `DomphyElement` when you want the highlighted output to remain as a Domphy tree node rather than a raw HTML string. The returned element **replaces the whole block** — there is no `pre > code` wrapper, so include your own if you need one:
 
 ```ts
 import type { DomphyElement } from "@domphy/core"
@@ -26633,13 +26601,7 @@ const { body } = parseMarkdown("```js\nfoo()\n```", {
 })
 
 // body[0] ->
-// {
-//   pre: [{
-//     code: [{ span: "foo()\n", class: "code-block" }],
-//     dataLanguage: "js",
-//     class: "language-js",
-//   }]
-// }
+// { span: "foo()\n", class: "code-block" }
 ```
 
 ## Falling back for unknown languages
@@ -26993,7 +26955,7 @@ This is how `@domphy/press` works: it wires its own remark pipeline (custom cont
 | `createMarkdown(options?)` | Create a reusable `MarkdownInstance` `{ parse, toDomphy }` |
 | `walkMdast(root, options?)` | Walk an mdast Root node → `DomphyElement[]` (low-level) |
 | `splitFrontmatter(md)` | Extract YAML frontmatter → `{ frontmatter, content }` |
-| `createUniqueSlugger(slugify?)` | Stateful slugger that de-duplicates repeated heading slugs |
+| `createUniqueSlugger(slugify)` | Stateful slugger that de-duplicates repeated heading slugs |
 | `defaultSlugify` | Default slug: lowercase + replace whitespace with `-` |
 
 ### syntax-reference.md
@@ -27081,10 +27043,16 @@ Emphasis elements can be nested: `**_bold italic_**` becomes `{ strong: [{ em: [
 ```
 
 ```ts
-{ a: ["Domphy"], href: "https://domphy.dev", title: "Homepage" }
+{
+  a: ["Domphy"],
+  href: "https://domphy.dev",
+  title: "Homepage",
+  target: "_blank",
+  rel: "noopener noreferrer",
+}
 ```
 
-All attributes emitted by the mdast walker are copied as element properties. Auto-linked bare URLs (enabled by default via GFM) produce the same shape.
+All attributes emitted by the mdast walker are copied as element properties. Absolute `http://`/`https://` links automatically get `target: "_blank"` and `rel: "noopener noreferrer"`; relative and anchor (`#...`) links do not. Auto-linked bare URLs (enabled by default via GFM) produce the same shape.
 
 ## Images
 
@@ -27200,11 +27168,11 @@ const x: number = 42
 }
 ```
 
-- `code` holds the raw source text, HTML-escaped when no highlighter is supplied.
+- `code` holds the raw, un-escaped source text when no highlighter is supplied — `@domphy/core` escapes it once at render time, so markdown does not pre-escape it.
 - `dataLanguage` is Domphy's camelCase form of the `data-language` attribute, set to the fence's language identifier.
 - `class` is set to `"language-{lang}"` so CSS-based highlighters can target it.
 
-When a [highlighter](/docs/markdown/highlighting) is provided, `code` contains the highlighted output (a string of inner HTML or a `DomphyElement`) instead of the escaped raw text.
+When a [highlighter](/docs/markdown/highlighting) is provided, `code` contains the highlighted output (a string of inner HTML or a `DomphyElement`) instead of the raw text.
 
 ## Indented code blocks
 
@@ -27311,7 +27279,7 @@ line two
 
 ## Task lists
 
-Requires `createMarkdown({ tasklists: true })`. List items beginning with `[ ]` (unchecked) or `[x]` / `[X]` (checked) get a disabled `<input type="checkbox">` prepended:
+Enabled by default (GFM task lists, via `remark-gfm`) — no option needed. List items beginning with `[ ]` (unchecked) or `[x]` / `[X]` (checked) get a disabled `<input type="checkbox">` prepended:
 
 ```markdown
 - [x] Completed item
@@ -27343,7 +27311,23 @@ The `checked` property is present only on checked items; it is absent (not `fals
 
 ## Math
 
-Requires `createMarkdown({ math: true })`. See [overview](/docs/markdown/#math-support) for CDN setup.
+`createMarkdown({ math: true })` only installs the `remark-math` plugin so `$...$` and `$$...$$` are *parsed* into `math`/`inlineMath` nodes — it does not by itself produce the class-wrapped shape below. Pair it with an `onCustom` handler to render those nodes:
+
+```ts
+import remarkMath from "remark-math"
+import { createMarkdown } from "@domphy/markdown"
+
+const parser = createMarkdown({
+  plugins: [remarkMath],
+  onCustom: (node) => {
+    if (node.type === "math") return { div: node.value, class: "math math-display" }
+    if (node.type === "inlineMath") return { span: node.value, class: "math math-inline" }
+    return null
+  },
+})
+```
+
+Without an `onCustom` handler, math/inlineMath nodes fall through the default walker branch and come out as bare, unwrapped strings. See [overview](/docs/markdown/#math-support) for CDN setup.
 
 ### Inline math
 
@@ -27373,13 +27357,13 @@ $$
 { div: "\\int_0^\\infty e^{-x}\\,dx = 1\n", class: "math math-display" }
 ```
 
-The raw LaTeX is stored verbatim. KaTeX (or MathJax) processes `.math` elements at runtime.
+The raw LaTeX is stored verbatim. KaTeX (or MathJax) processes `.math` elements at runtime. Both examples above assume the `onCustom` handler shown earlier — this is what `math: true` is meant to be paired with.
 
 ## Raw HTML
 
 ### Block HTML
 
-A block of raw HTML becomes a `div` element whose content is the raw HTML string. When Domphy renders it, the string is emitted verbatim as inner HTML:
+A block of raw HTML is passed through as a bare string in the body array — no `div` wrapper is added. When Domphy renders a body array, a raw HTML string is emitted verbatim (see `@domphy/core`'s HTML-string handling):
 
 ```markdown
 <figure>
@@ -27389,14 +27373,14 @@ A block of raw HTML becomes a `div` element whose content is the raw HTML string
 ```
 
 ```ts
-{
-  div: "<figure>\n  <img src=\"/chart.png\" alt=\"Chart\">\n  <figcaption>Monthly visits</figcaption>\n</figure>",
-}
+[
+  "<figure>\n  <img src=\"/chart.png\" alt=\"Chart\">\n  <figcaption>Monthly visits</figcaption>\n</figure>",
+]
 ```
 
 ### Inline HTML
 
-Raw HTML inline is a per-fragment operation: each open or close tag fragment is individually wrapped in a `{ span: fragment }`. The walker does not reconstruct the nested element tree from raw inline HTML:
+Raw HTML inline is a per-fragment operation: each open or close tag fragment is passed through as a bare string (no `span` wrapper). The walker does not reconstruct the nested element tree from raw inline HTML:
 
 ```markdown
 Text with <strong>bold</strong> inline.
@@ -27406,9 +27390,9 @@ Text with <strong>bold</strong> inline.
 {
   p: [
     "Text with ",
-    { span: "<strong>" },
+    "<strong>",
     "bold",
-    { span: "</strong>" },
+    "</strong>",
     " inline.",
   ],
 }
@@ -28317,7 +28301,6 @@ const DiagramView = {
   pre: [{ code: "graph TD; A-->B;" }],
   $: [mermaidClient({
     theme: "dark",
-    background: "transparent",
     mermaidConfig: {
       fontFamily: "monospace",
       fontSize: 14,
@@ -28329,12 +28312,13 @@ const DiagramView = {
 
 | Option | Type | Default |
 |--------|------|---------|
-| `theme` | `"default" \| "dark" \| "neutral" \| "forest"` | `"default"` |
-| `background` | `string` | `"transparent"` |
+| `theme` | `"default" \| "dark" \| "neutral" \| "forest" \| "base"` | `"default"` |
 | `mermaidConfig` | `Record<string, unknown>` | — |
 | `loadMermaid` | `() => MermaidBrowserModule \| Promise<MermaidBrowserModule>` | dynamic `import("mermaid")` |
 
 `mermaidConfig` is passed directly to `mermaid.initialize()`, so any option the Mermaid library accepts works here.
+
+`background`, `css`, and `puppeteer` are build-time-only options (see [Build-time integration](/docs/mermaid/build)) — `mermaidClient()` does not accept them, since the browser `mermaid.render()` call has no equivalent for a baked-in SVG background, injected page CSS, or a headless-browser launch config.
 
 ## Reactive theme switching
 
@@ -28465,11 +28449,11 @@ If you load Domphy from a CDN script tag without a bundler, use the `@domphy/mer
 <!-- Load Mermaid from CDN first -->
 <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
 <!-- Then load the Domphy mermaid global build -->
-<script src="https://cdn.jsdelivr.net/npm/@domphy/mermaid/dist/global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@domphy/mermaid/dist/mermaid.global.js"></script>
 
 <script>
-  // mermaidClient is available on window.DomphyMermaid
-  const { mermaidClient } = window.DomphyMermaid
+  // mermaidClient is available on window.Domphy
+  const { mermaidClient } = window.Domphy
 
   const App = {
     pre: [{ code: "graph TD; A-->B;" }],
@@ -29551,7 +29535,7 @@ The patch reads the `<code>` element's text at mount time and replaces the eleme
 - **Build-time / SSG** — render each diagram to inline SVG with a headless browser, with an on-disk cache and a tree integration for [`@domphy/markdown`](/docs/markdown/). The browser ships **no Mermaid runtime** — diagrams are just SVG in your HTML.
 - **Client-side** — the `mermaidClient()` patch renders a diagram in the browser at mount time, using the `mermaid` library (an optional peer dependency).
 
-This page is built by DomphyPress, so the diagram below was rendered to SVG at build time by the markdown integration:
+Like the rest of this docs site (see the tip below), the diagram below is rendered client-side by a small islands-runtime script rather than through `@domphy/mermaid`'s build-time path — it illustrates that pipeline without being produced by it:
 
 ```mermaid
 graph TD
@@ -29591,7 +29575,7 @@ Mermaid syntax errors are thrown as an `Error` that includes the diagram source 
 
 | Option | Type | Default |
 | --- | --- | --- |
-| `theme` | `"default" \| "dark" \| "neutral" \| "forest"` | `"default"` |
+| `theme` | `"default" \| "dark" \| "neutral" \| "forest" \| "base"` | `"default"` |
 | `background` | `string` (`"transparent"` for none) | `"transparent"` |
 | `mermaidConfig` | `Record<string, unknown>` | — |
 | `css` | `string` (injected into the render page) | — |
@@ -30543,7 +30527,7 @@ If a custom rule's `check` function throws, the error is caught silently and tha
 ```ts
 type Severity = "error" | "warning" | "info"
 
-type RuleCategory = "structure" | "key" | "theme" | "typography" | "data-attr"
+type RuleCategory = "structure" | "key" | "theme" | "typography" | "data-attr" | "visual"
 
 interface Diagnostic {
   rule: string          // e.g. "inline-typography"
@@ -30692,6 +30676,76 @@ const structural = errors.filter(d =>
   d.rule === "void-content" || d.rule === "duplicate-key"
 )
 ```
+
+---
+
+## CLI: `domphy-doctor`
+
+`@domphy/doctor` ships a `domphy-doctor` binary that scans files on disk instead of trees you import yourself — useful for a one-line CI step or a pre-commit hook.
+
+```bash
+npx domphy-doctor src/
+npx domphy-doctor src/app.ts src/pages/
+```
+
+It walks the given files/directories (skipping `node_modules`, `dist`, `.git`, `.next`, `.nuxt`, and dotfiles), imports each `.ts`/`.tsx`/`.js`/`.mjs` file, collects every exported Domphy element (including zero-arg exported factory functions, called once to get their return value), and runs `diagnose()` on each one. `.ts`/`.tsx` files require `tsx` in your `devDependencies` — without it they're skipped with a warning.
+
+```
+Usage: domphy-doctor [options] <path...>
+
+Arguments:
+  path    TS/JS file or directory to analyze (skips node_modules, dist)
+
+Options:
+  --only <rules>       Only run these rule IDs (comma-separated)
+  --exclude <rules>    Skip these rule IDs (comma-separated)
+  --no-reactive        Skip reactive function evaluation
+  --no-output          Skip Layer 4 HTML+CSS linting (htmlhint + stylelint)
+  --format text|json   Output format (default: text)
+  -h, --help           Show this help
+
+Exit codes:
+  0  No errors (warnings/info are fine)
+  1  One or more error-severity diagnostics
+  2  CLI usage error or file not found
+```
+
+```json
+// package.json
+{
+  "scripts": {
+    "lint:ui": "domphy-doctor src/"
+  }
+}
+```
+
+---
+
+## Layer 4: HTML/CSS output linting
+
+`diagnose()`/`validate()` (Layers 1–3) analyze the plain-object tree itself. `auditOutput()` is a separate, optional Layer 4: it builds an `ElementNode`, generates the actual HTML/CSS it would render, and runs it through `htmlhint` and `stylelint`. The `domphy-doctor` CLI calls it automatically for every element it collects (disable with `--no-output`); call it yourself if you're not using the CLI.
+
+```ts
+import { ElementNode } from "@domphy/core"
+import { auditOutput, format, type Layer4Options } from "@domphy/doctor"
+
+const node = new ElementNode(MyApp)
+const outputDiags = await auditOutput(node, { path: "MyApp" })
+console.log(format(outputDiags))
+```
+
+```ts
+interface Layer4Options {
+  path?: string // label prefixed to each diagnostic's path; defaults to node.tagName
+}
+
+function auditOutput(node: ElementNode, options?: Layer4Options): Promise<Diagnostic[]>
+```
+
+- **HTML** — `htmlhint` checks `node.generateHTML()` for structural/a11y issues: `alt-require`, `attr-no-duplication`, `button-type-require`, `id-unique`, `input-requires-label`, `src-not-empty`, `spec-char-escape`, `tag-no-obsolete`, `tag-pair`, `tagname-lowercase`. Diagnostics use `rule: "html/<rule-id>"`.
+- **CSS** — `stylelint` checks `node.generateCSS()` for `color-no-invalid-hex`, `declaration-no-important`, `no-duplicate-selectors`, `no-empty-source`, `length-zero-no-unit` (named colors are intentionally excluded — `raw-theme-value` already catches those at the source with better context). Diagnostics use `rule: "css/<rule-name>"`.
+- Both diagnostic kinds carry `category: "output"` and a `path` suffixed with `[html:line:col]`/`[css:line:col]`.
+- `htmlhint` and `stylelint` are optional peer dependencies, not bundled. If either isn't installed, `auditOutput()` silently returns `[]` for that linter — install what you need: `npm install --save-dev htmlhint stylelint`.
 
 ---
 
@@ -32823,8 +32877,11 @@ createI18n<TLocale extends string, TMessages>(options): I18nInstance
 |---|---|---|
 | `globalKey` | `string` | Unique key on `globalThis` — deduplicates instance across Vite chunks |
 | `namespace` | `string` | i18next resource namespace |
-| `locales` | `Record<TLocale, TMessages>` | Translation objects keyed by locale code |
+| `locales` | `Record<TLocale, Record<string, unknown>>` | Translation objects keyed by locale code |
 | `defaultLocale` | `TLocale` | Fallback locale |
+| `interpolation` | `{ escapeValue?: boolean }` (optional) | i18next interpolation options — `escapeValue` defaults to `true` (i18next's safe default); pass `false` to disable HTML escaping globally |
+
+`TMessages` is a separately-supplied generic used only to type `t()`'s key argument (via `FlattenKeys<TMessages>`) — it isn't structurally checked against `locales`, so passing a `TMessages` shape that doesn't match your `locales` values won't be caught by TypeScript.
 
 ### Returns: I18nInstance
 
@@ -33194,6 +33251,8 @@ t("linkText", { url: "https://domphy.com", interpolation: { escapeValue: false }
 ```
 
 > Only disable escaping for translations you control — never for user-supplied content.
+
+Escaping is on by default globally too — `createI18n`'s `interpolation` option lets you flip the default for the whole instance (`interpolation: { escapeValue: false }`), but per-call overrides via `t(key, { interpolation: { escapeValue } })` are almost always the safer, more targeted choice.
 
 ## Context (gender / form variants)
 
@@ -36240,6 +36299,12 @@ The tree's `input` is now `null`; the `p`'s inline `fontSize` is reported but no
 | `missing-key` | warning | A dynamic list (reactive function returning multiple elements) has children without `_key` |
 | `unstable-key` | warning | Every `_key` in a dynamic list equals its array index — index keys break on reorder |
 | `duplicate-key` | error | Two siblings in a list share the same `_key` value |
+| `low-opacity` | warning / info | `style.opacity` below 0.6 with no hover-restore (warning), or with a `&:hover: { opacity: '1' }` hover-reveal pattern (info) |
+| `tone-background-inherit` | warning | `style.backgroundColor` resolves to a fixed shifted tone instead of `themeColor(l, "inherit")` |
+| `missing-color` | warning | An element uses `themeColor()` for another style prop but has no `style.color` |
+| `low-contrast` | warning | `style.color` and `style.backgroundColor` are same-family theme vars with a shift-step gap < 9 |
+| `dataTone-surface-contract` | warning | `dataTone` (not `"inherit"`) is set but `style.backgroundColor` and/or `style.color` is missing |
+| `color-shift-minimum` | warning | `dataTone` is set and `style.color` resolves to a theme var with shift step < 9 |
 
 ## Tips
 
@@ -36370,7 +36435,7 @@ Get the valid tone names and theme color names for `themeColor()` and `dataTone`
 
 **Input:** none
 
-**Output:** `{ tones: string[], families: string[] }`
+**Output:** `{ generated: string, note: string, tones: string[], colors: string[] }`
 
 ---
 
@@ -36386,7 +36451,7 @@ Detected issues include: `inline-typography`, `void-content`, `unknown-tag`, mis
 |---|---|---|
 | `element` | `string` | JSON of the Domphy element tree |
 
-**Output:** Array of `{ rule, path, message, severity }`.
+**Output:** Formatted text (human-readable) — one line per issue (e.g. `✗ [void-content] input\n  message\n  → hint`), or the literal string `✓ No issues found.` when the tree is clean.
 
 ---
 
@@ -36414,7 +36479,7 @@ Apply `@domphy/doctor`'s lossless autofix to a JSON element tree. Only provably-
 |---|---|---|
 | `element` | `string` | JSON of the Domphy element tree |
 
-**Output:** `{ tree: AnyElement, applied: string[], report: Issue[] }`
+**Output:** `{ tree: unknown, applied: Array<{ rule: string, path: string, message: string }>, report: { ok: boolean, issues: Array<{ rule, severity, path, message, hint? }>, summary: { error, warning, info, total } } }`
 
 ---
 
@@ -38507,6 +38572,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), details, [tabindex]:not([tabindex="-1"])';
@@ -38529,6 +38595,18 @@ function dialog(
   const state = toState(open);
   let previousFocus: HTMLElement | null = null;
   let closing = false;
+  let scrollLocked = false;
+
+  const finalizeClose = (dlg: HTMLDialogElement) => {
+    closing = false;
+    dlg.close();
+    if (scrollLocked) {
+      unlockScroll();
+      scrollLocked = false;
+    }
+    previousFocus?.focus();
+    previousFocus = null;
+  };
 
   return {
     _onInsert: (node) => {
@@ -38546,14 +38624,14 @@ function dialog(
         e.clientY <= r.bottom;
       if (!inside) state.set(false);
     },
-    onTransitionEnd: (_e, node) => {
+    onTransitionEnd: (e, node) => {
       if (!closing) return;
-      closing = false;
-      const dlg = node.domElement as HTMLDialogElement;
-      dlg.close();
-      document.body.style.overflow = "";
-      previousFocus?.focus();
-      previousFocus = null;
+      // Guard against bubbled transitionend from nested content (e.g. an
+      // accordion/details transition inside the dialog) prematurely
+      // triggering close-finalization.
+      if (e.target !== node.domElement) return;
+      if (e.propertyName !== "opacity") return;
+      finalizeClose(node.domElement as HTMLDialogElement);
     },
     _onMount: (node) => {
       const dlg = node.domElement as HTMLDialogElement;
@@ -38600,7 +38678,10 @@ function dialog(
         if (val) {
           previousFocus = document.activeElement as HTMLElement;
           dlg.showModal();
-          document.body.style.overflow = "hidden";
+          if (!scrollLocked) {
+            lockScroll();
+            scrollLocked = true;
+          }
           dlg.addEventListener("keydown", trapFocus);
           requestAnimationFrame(() => {
             dlg.style.opacity = "1";
@@ -38616,11 +38697,7 @@ function dialog(
           closeTimer = setTimeout(() => {
             closeTimer = null;
             if (!closing) return;
-            closing = false;
-            dlg.close();
-            document.body.style.overflow = "";
-            previousFocus?.focus();
-            previousFocus = null;
+            finalizeClose(dlg);
           }, 350);
         }
       };
@@ -38633,7 +38710,10 @@ function dialog(
         }
         release();
         dlg.removeEventListener("cancel", onCancel);
-        document.body.style.overflow = "";
+        if (scrollLocked) {
+          unlockScroll();
+          scrollLocked = false;
+        }
         dlg.removeEventListener("keydown", trapFocus);
         previousFocus?.focus();
         previousFocus = null;
@@ -38736,6 +38816,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 type PhysicalPlacement = "left" | "right" | "top" | "bottom";
 type Placement = PhysicalPlacement | "start" | "end";
@@ -38844,13 +38925,17 @@ function drawer(
       }
 
       let closing = false;
+      let scrollLocked = false;
       let closeTimer: ReturnType<typeof setTimeout> | null = null;
       const finishClose = () => {
         closeTimer = null;
         if (!closing) return;
         closing = false;
         dlg.close();
-        document.body.style.overflow = "";
+        if (scrollLocked) {
+          unlockScroll();
+          scrollLocked = false;
+        }
       };
 
       const onTransitionEnd = (e: Event) => {
@@ -38864,7 +38949,10 @@ function drawer(
         if (val) {
           closing = false;
           dlg.showModal();
-          document.body.style.overflow = "hidden";
+          if (!scrollLocked) {
+            lockScroll();
+            scrollLocked = true;
+          }
           requestAnimationFrame(() => {
             dlg.style.transform = "translate(0, 0)";
           });
@@ -38884,7 +38972,10 @@ function drawer(
         release();
         dlg.removeEventListener("cancel", onCancel);
         dlg.removeEventListener("transitionend", onTransitionEnd);
-        document.body.style.overflow = "";
+        if (scrollLocked) {
+          unlockScroll();
+          scrollLocked = false;
+        }
       });
     },
     style: {
@@ -40003,7 +40094,7 @@ export { inputOTP };
 ### inputPassword
 
 ```ts
-import type { PartialElement, StyleObject } from "@domphy/core";
+import type { DomphyElement, PartialElement, StyleObject } from "@domphy/core";
 import { toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
@@ -40053,6 +40144,7 @@ function inputPassword(
 ): PartialElement {
   const colorState = toState(props.color ?? "neutral", "color");
   const accentState = toState(props.accentColor ?? "primary", "accentColor");
+  const visibleState = toState(false);
 
   return {
     _onInsert: (node) => {
@@ -40060,43 +40152,47 @@ function inputPassword(
         console.warn('"inputPassword" patch must use div tag');
       }
     },
-    _onMount: (node) => {
-      const wrapper = node.domElement as HTMLElement;
-      let visible = false;
-
-      const input = document.createElement("input");
-      input.type = "password";
-      // Reset native input styles; inherit font/color from the wrapper.
-      input.style.cssText =
-        "flex:1;min-width:0;border:none;outline:none;background:transparent;" +
-        "padding:0;margin:0;font:inherit;color:inherit;";
-
-      const toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.setAttribute("aria-label", "Show password");
-      // Reset button styles; color inherits from wrapper.
-      toggle.style.cssText =
-        "background:none;border:none;padding:0;margin:0;cursor:pointer;" +
-        "color:inherit;display:flex;align-items:center;flex-shrink:0;opacity:0.6;";
-      toggle.innerHTML = EYE_SVG;
-
-      const onToggle = () => {
-        visible = !visible;
-        input.type = visible ? "text" : "password";
-        toggle.innerHTML = visible ? EYE_OFF_SVG : EYE_SVG;
-        toggle.setAttribute(
-          "aria-label",
-          visible ? "Hide password" : "Show password",
-        );
+    // Build the input/toggle as real child elements (not imperative DOM
+    // mutation in _onMount) so generateHTML()/SSR emits the actual markup.
+    _onInit: (node) => {
+      const field: DomphyElement<"input"> = {
+        input: null,
+        type: (l) => (visibleState.get(l) ? "text" : "password"),
+        style: {
+          flex: 1,
+          minWidth: 0,
+          border: "none",
+          outline: "none",
+          backgroundColor: "transparent",
+          padding: 0,
+          margin: 0,
+          font: "inherit",
+          color: "inherit",
+        },
       };
-      toggle.addEventListener("click", onToggle);
 
-      wrapper.appendChild(input);
-      wrapper.appendChild(toggle);
+      const toggle: DomphyElement<"button"> = {
+        button: (l) => (visibleState.get(l) ? EYE_OFF_SVG : EYE_SVG),
+        type: "button",
+        ariaLabel: (l) =>
+          visibleState.get(l) ? "Hide password" : "Show password",
+        onClick: () => visibleState.set(!visibleState.get()),
+        style: {
+          background: "none",
+          border: "none",
+          padding: 0,
+          margin: 0,
+          cursor: "pointer",
+          color: "inherit",
+          display: "flex",
+          alignItems: "center",
+          flexShrink: 0,
+          opacity: 0.6,
+        },
+      };
 
-      node.addHook("Remove", () => {
-        toggle.removeEventListener("click", onToggle);
-      });
+      node.children.insert(field);
+      node.children.insert(toggle);
     },
     style: {
       display: "flex",
@@ -40904,8 +41000,8 @@ function listItemButton(
   const { dense = false } = props;
 
   return {
-    cursor: "pointer",
     style: {
+      cursor: "pointer",
       appearance: "none",
       border: "none",
       background: "transparent",
@@ -41437,6 +41533,7 @@ function pagination(props: {
           // Prev button
           items.push({
             button: "‹",
+            _key: "prev",
             type: "button",
             ariaLabel: "Previous page",
             disabled: page <= 1,
@@ -41444,11 +41541,15 @@ function pagination(props: {
             style: btnBase,
           });
 
-          // Page buttons
+          // Page buttons. Keyed by page number (or a running ellipsis index —
+          // there can be up to two "..." spans) so the list survives length
+          // changes across pages without the unkeyed-reuse footgun.
+          let ellipsisIndex = 0;
           for (const p of getPages(page, total)) {
             if (p === "...") {
               items.push({
                 span: "…",
+                _key: `ellipsis-${ellipsisIndex++}`,
                 ariaHidden: "true",
                 style: {
                   display: "inline-flex",
@@ -41463,6 +41564,7 @@ function pagination(props: {
               const isActive = p === page;
               items.push({
                 button: String(p),
+                _key: `page-${p}`,
                 type: "button",
                 ariaLabel: `Page ${p}`,
                 ariaCurrent: isActive ? "page" : undefined,
@@ -41476,6 +41578,7 @@ function pagination(props: {
           // Next button
           items.push({
             button: "›",
+            _key: "next",
             type: "button",
             ariaLabel: "Next page",
             disabled: page >= total,
@@ -41915,7 +42018,13 @@ export { progress };
 ### rating
 
 ```ts
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type DomphyElement,
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 
 const STAR_FILLED =
@@ -41952,6 +42061,13 @@ function rating(
   const { max = 5, readOnly = false, onChange } = props;
   const color = props.color ?? "warning";
   const valueState = toState(props.value ?? 0);
+  // Hover preview only — never reported via onChange, only affects display.
+  const hoveredState = toState(0);
+
+  const activeCount = (listener: Listener) => {
+    const hovered = hoveredState.get(listener);
+    return hovered > 0 ? hovered : valueState.get(listener);
+  };
 
   return {
     role: "group",
@@ -41963,73 +42079,61 @@ function rating(
       cursor: readOnly ? "default" : "pointer",
       color: (listener) => themeColor(listener, "shift-8", color),
     },
-    _onMount: (node) => {
-      const container = node.domElement as HTMLElement;
-      let current = valueState.get();
-      let hovered = 0;
-
-      const render = () => {
-        const active = hovered > 0 ? hovered : current;
-        Array.from(container.children).forEach((star, i) => {
-          (star as HTMLElement).innerHTML =
-            i < active ? STAR_FILLED : STAR_EMPTY;
-        });
-      };
-
-      container.innerHTML = "";
+    // Build stars as real child elements (not imperative DOM mutation in
+    // _onMount) so generateHTML()/SSR emits the actual star markup.
+    _onInit: (node) => {
       for (let i = 1; i <= max; i++) {
-        const star = document.createElement("button");
-        star.type = "button";
-        star.setAttribute("aria-label", `${i} star${i > 1 ? "s" : ""}`);
-        star.style.cssText =
-          "background:none;border:none;padding:0;cursor:inherit;color:inherit;font-size:inherit;display:flex;align-items:center;";
+        const index = i;
+        const interactive = readOnly
+          ? {}
+          : {
+              onClick: () => {
+                const next = index === valueState.get() ? 0 : index;
+                valueState.set(next);
+                onChange?.(next);
+                hoveredState.set(0);
+              },
+              onMouseEnter: () => hoveredState.set(index),
+              onMouseLeave: () => hoveredState.set(0),
+              onKeyDown: (e: KeyboardEvent) => {
+                const current = valueState.get();
+                let next = current;
+                if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+                  next = Math.min(max, current + 1);
+                  e.preventDefault();
+                } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+                  next = Math.max(0, current - 1);
+                  e.preventDefault();
+                } else {
+                  return;
+                }
+                valueState.set(next);
+                onChange?.(next);
+                const target = next > 0 ? next - 1 : 0;
+                (node.domElement?.children[target] as HTMLElement)?.focus();
+              },
+            };
 
-        if (!readOnly) {
-          const index = i;
-          star.addEventListener("click", () => {
-            const next = index === current ? 0 : index;
-            current = next;
-            valueState.set(next);
-            onChange?.(next);
-            hovered = 0;
-            render();
-          });
-          star.addEventListener("mouseenter", () => {
-            hovered = index;
-            render();
-          });
-          star.addEventListener("mouseleave", () => {
-            hovered = 0;
-            render();
-          });
-          star.addEventListener("keydown", (e: KeyboardEvent) => {
-            let next = current;
-            if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-              next = Math.min(max, current + 1);
-              e.preventDefault();
-            } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-              next = Math.max(0, current - 1);
-              e.preventDefault();
-            } else {
-              return;
-            }
-            current = next;
-            valueState.set(next);
-            onChange?.(next);
-            render();
-            const target = next > 0 ? next - 1 : 0;
-            (container.children[target] as HTMLElement)?.focus();
-          });
-        }
-        container.appendChild(star);
+        const star: DomphyElement<"button"> = {
+          button: (listener) =>
+            index <= activeCount(listener) ? STAR_FILLED : STAR_EMPTY,
+          _key: index,
+          type: "button",
+          ariaLabel: `${index} star${index > 1 ? "s" : ""}`,
+          ...interactive,
+          style: {
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "inherit",
+            color: "inherit",
+            fontSize: "inherit",
+            display: "flex",
+            alignItems: "center",
+          },
+        };
+        node.children.insert(star);
       }
-      render();
-
-      const release = valueState.addListener((v) => {
-        current = v;
-        if (hovered === 0) render();
-      });
-      node.addHook("Remove", release);
     },
   };
 }
