@@ -32,8 +32,6 @@ export const BooleanAttributes = [
   "trueSpeed",
   "typeMustMatch",
   "wmode",
-  "autoCapitalize",
-  "translate",
   "spellCheck",
   "inert",
   "download",

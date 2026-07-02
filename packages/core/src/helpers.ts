@@ -109,16 +109,13 @@ export function validate(
     throw Error(`typeof ${element} is invalid DomphyElement`);
   }
   const keys = Object.keys(element);
+  if (keys.length === 0 && !asPartial) {
+    throw Error("element object has no tag key");
+  }
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
     const val = element[key as keyof typeof element];
-    if (
-      i === 0 &&
-      !HtmlTags.includes(key) &&
-      !key.includes("-") &&
-      !asPartial
-    ) {
-      // web-component
+    if (i === 0 && !HtmlTags.includes(key) && !asPartial) {
       throw Error(`key ${key} is not valid HTML tag name`);
     } else if (
       key === "style" &&
@@ -166,14 +163,16 @@ export function isHTML(str: string): boolean {
 // removes the most common XSS vectors so user-generated strings passed as
 // inline HTML content can't execute arbitrary code.
 export function sanitizeHTMLString(html: string): string {
-  // Remove on* event handler attributes (onclick, onerror, onload, …)
+  // Remove on* event handler attributes (onclick, onerror, onload, …).
+  // Case-insensitive: HTML attribute names are case-insensitive, so
+  // ONERROR=/OnClick= must be stripped too, not just lowercase.
   let result = html.replace(
-    /\s+on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/g,
+    /\s+on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi,
     "",
   );
   // Also strip on* when preceded by "/" (e.g. <svg/onload=…>)
   result = result.replace(
-    /\/on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/g,
+    /\/on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi,
     "/",
   );
   // Neutralise javascript: scheme in URL attributes

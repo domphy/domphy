@@ -110,6 +110,34 @@ describe("SSR: generateHTML", () => {
     expect(off).not.toContain("disabled");
   });
 
+  it("maps translate/autoCapitalize booleans to their HTML enumerated keyword instead of dropping them", () => {
+    // translate's missing-value default is "yes" — `translate: false` must
+    // render an explicit `translate="no"`, not omit the attribute.
+    const off = new ElementNode({
+      div: "x",
+      translate: false,
+    } as DomphyElement).generateHTML();
+    expect(off).toContain('translate="no"');
+
+    const on = new ElementNode({
+      div: "x",
+      translate: true,
+    } as DomphyElement).generateHTML();
+    expect(on).toContain('translate="yes"');
+
+    const autoCapOff = new ElementNode({
+      div: "x",
+      autoCapitalize: false,
+    } as DomphyElement).generateHTML();
+    expect(autoCapOff).toContain('="off"');
+
+    const autoCapOn = new ElementNode({
+      div: "x",
+      autoCapitalize: true,
+    } as DomphyElement).generateHTML();
+    expect(autoCapOn).toContain('="on"');
+  });
+
   it("escapes attribute values", () => {
     const html = new ElementNode({
       div: "x",

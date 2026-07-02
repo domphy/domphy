@@ -272,7 +272,18 @@ const stop = watch(count, (newVal, oldVal) => {
 // Call stop() to unsubscribe
 ```
 
-`source` can be a `State`, a getter function `() => T`, or an array of either. `callback` receives `(newValue, oldValue)`. Options: `{ immediate?: boolean }` — if `true`, runs callback immediately with the current value.
+`source` can be a `State` or a getter function `() => T`. `callback` receives `(newValue, oldValue)`. Options: `{ immediate?: boolean }` — if `true`, runs callback immediately with the current value.
+
+To watch multiple sources at once, compose them into a single getter — `watch` re-runs whenever any state read inside it changes:
+
+```ts
+const stop = watch(
+  () => [a.get(), b.get()] as const,
+  ([newA, newB], prev) => {
+    console.log("a:", newA, "b:", newB)
+  },
+)
+```
 
 ---
 

@@ -131,4 +131,18 @@ describe("validate", () => {
       /must be a function/i,
     );
   });
+
+  it("rejects an element object with no tag key instead of passing silently", () => {
+    expect(() => validate({} as any)).toThrow(/no tag key/i);
+  });
+
+  it("rejects a dash-named (unsupported custom-element) first key", () => {
+    expect(() => validate({ "my-widget": "hello" } as any)).toThrow(
+      /not valid HTML tag/i,
+    );
+  });
+
+  it("allows an empty object as a partial (asPartial=true)", () => {
+    expect(validate({} as any, true)).toBe(true);
+  });
 });

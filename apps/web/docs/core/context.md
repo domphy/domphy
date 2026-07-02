@@ -5,11 +5,26 @@ description: "Pass data deeply without prop drilling — module-level state, sco
 
 # Context & Shared State
 
-Domphy has no built-in "context" API (no `createContext` / `useContext`). Instead:
+Domphy has no `createContext` / `useContext` hook pair, but `ElementNode` does have a built-in tree-scoped context mechanism: `getContext(name)` / `setContext(name, value)`. It's not reactive (setting a value doesn't re-render descendants), so most apps reach for one of these patterns instead:
 
+- **Tree-scoped context** — `node.setContext(name, value)` / `node.getContext(name)`, inherited by walking up to the nearest ancestor that set it. See below.
 - **Module-level state** — a `State` defined at module scope is automatically shared across all components that import it.
 - **Scoped context objects** — pass a plain object down through `_mount` props or function arguments.
 - **Event bus / pub-sub** — coordinate loosely-coupled components.
+
+## Built-in tree-scoped context
+
+Every `ElementNode` has a `getContext(name)` / `setContext(name, value)` pair (see [ElementNode API](/docs/core/api/element-node)). `setContext` writes to the node's own `_context` object; `getContext` walks up `node.parent` until it finds an ancestor whose `_context` owns that key:
+
+```ts
+// Parent
+node.setContext("theme", "dark")
+
+// Any descendant
+const theme = node.getContext("theme") // "dark"
+```
+
+`_context` can also be seeded declaratively on an element (`{ div: ..., _context: { theme: "dark" } }`). This is the closest built-in equivalent to React's `Context.Provider` + `useContext`, but reads are plain method calls, not reactive — a descendant only sees the value at the time it calls `getContext()`, so it won't automatically re-render when an ancestor calls `setContext()` again. For reactive sharing, use module-level state below.
 
 ## Module-level state (most common)
 
@@ -192,8 +207,8 @@ export const OrderSummary = {
 
 | React | Domphy |
 |-------|--------|
-| `createContext` + `useContext` | Module-level `toState` export |
-| `Context.Provider` with value | Close over a local `createXxxContext()` object |
+| `createContext` + `useContext` | Module-level `toState` export (reactive), or `node.getContext`/`setContext` (non-reactive, tree-scoped) |
+| `Context.Provider` with value | Close over a local `createXxxContext()` object, or `node.setContext(name, value)` |
 | `useReducer` + `Context` | `toState` + updater functions in the same module |
 | `Redux` / `Zustand` store | Module-level `RecordState` or `toState` |
 | `useId()` | `crypto.randomUUID()` or a counter in module scope |

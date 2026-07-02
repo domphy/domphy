@@ -4,9 +4,20 @@ import type { AttributeValue } from "../types.js";
 import type { ElementNode } from "./ElementNode.js";
 import { Notifier } from "./Notifier.js";
 
+// Enumerated (not boolean) HTML attributes whose missing-value default is the
+// truthy state — unlike BooleanAttributes, omitting them does NOT mean "off",
+// so a `true`/`false` input must map to the real keyword instead of being
+// dropped from the DOM.
+const EnumeratedBooleanAttributes: Record<string, readonly [string, string]> =
+  {
+    translate: ["yes", "no"],
+    autoCapitalize: ["on", "off"],
+  };
+
 export class ElementAttribute {
   readonly name: string;
   readonly isBoolean: boolean;
+  private readonly enumeratedBoolean?: readonly [string, string];
   value: any;
   parent: ElementNode;
   _notifier = new Notifier();
@@ -18,6 +29,7 @@ export class ElementAttribute {
   constructor(name: string, value: any, parent: any) {
     this.parent = parent;
     this.isBoolean = (BooleanAttributes as readonly string[]).includes(name);
+    this.enumeratedBoolean = EnumeratedBooleanAttributes[name];
     if (CamelAttributes.includes(name)) {
       this.name = name;
     } else {
@@ -25,6 +37,13 @@ export class ElementAttribute {
     }
     this.value = undefined;
     this.set(value);
+  }
+
+  private normalize(value: any): any {
+    if (this.enumeratedBoolean && typeof value === "boolean") {
+      return value ? this.enumeratedBoolean[0] : this.enumeratedBoolean[1];
+    }
+    return value;
   }
 
   render(): void {
@@ -69,7 +88,7 @@ export class ElementAttribute {
         // dependencies) get subscribed too — matching children/style paths.
         this.value = this.isBoolean
           ? Boolean((value as Function)(listener))
-          : (value as Function)(listener);
+          : this.normalize((value as Function)(listener));
         this.render();
         if (p !== this.value) this._notifier.notify(this.name, this.value);
       };
@@ -87,9 +106,11 @@ export class ElementAttribute {
         }
       };
 
-      this.value = this.isBoolean ? Boolean(value(listener)) : value(listener);
+      this.value = this.isBoolean
+        ? Boolean(value(listener))
+        : this.normalize(value(listener));
     } else {
-      this.value = this.isBoolean ? Boolean(value) : value;
+      this.value = this.isBoolean ? Boolean(value) : this.normalize(value);
     }
 
     this.render();

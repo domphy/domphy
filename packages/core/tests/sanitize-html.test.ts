@@ -22,6 +22,20 @@ describe("sanitizeHTMLString", () => {
     expect(result).not.toContain("alert(1)");
   });
 
+  it("strips uppercase/mixed-case on* handlers (case-insensitive bypass)", () => {
+    const uppercase = sanitizeHTMLString('<img src=x ONERROR=alert(1)/>');
+    expect(uppercase).not.toMatch(/onerror/i);
+    expect(uppercase).not.toContain("alert(1)");
+
+    const mixedCase = sanitizeHTMLString('<div OnClick="alert(1)">x</div>');
+    expect(mixedCase).not.toMatch(/onclick/i);
+    expect(mixedCase).not.toContain("alert(1)");
+
+    const slashForm = sanitizeHTMLString("<svg/OnLoad=alert(1)>");
+    expect(slashForm).not.toMatch(/onload/i);
+    expect(slashForm).not.toContain("alert(1)");
+  });
+
   it("neutralises javascript: URLs in href/src", () => {
     const result = sanitizeHTMLString('<a href="javascript:alert(1)">x</a>');
     expect(result).not.toContain("javascript:alert");
