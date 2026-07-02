@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { markdownToDomphy } from "../src/index";
+import { createUniqueSlugger, defaultSlugify, markdownToDomphy } from "../src/index";
 
 /** Narrows an unknown element to a record for assertion ergonomics. */
 function asRecord(value: unknown): Record<string, unknown> {
@@ -64,6 +64,16 @@ describe("line breaks", () => {
         "br" in (c as Record<string, unknown>),
     );
     expect(hasBr).toBe(true);
+  });
+});
+
+describe("createUniqueSlugger", () => {
+  it("guarantees document-wide unique slugs, even across suffix collisions", () => {
+    const slug = createUniqueSlugger(defaultSlugify);
+    expect(slug("Intro")).toBe("intro");
+    expect(slug("Intro 1")).toBe("intro-1");
+    // A second "Intro" must not reuse "intro-1", which "Intro 1" already claimed.
+    expect(slug("Intro")).toBe("intro-2");
   });
 });
 

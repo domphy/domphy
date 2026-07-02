@@ -207,5 +207,5 @@ This is how `@domphy/press` works: it wires its own remark pipeline (custom cont
 | `createMarkdown(options?)` | Create a reusable `MarkdownInstance` `{ parse, toDomphy }` |
 | `walkMdast(root, options?)` | Walk an mdast Root node → `DomphyElement[]` (low-level) |
 | `splitFrontmatter(md)` | Extract YAML frontmatter → `{ frontmatter, content }` |
-| `createUniqueSlugger(slugify?)` | Stateful slugger that de-duplicates repeated heading slugs |
+| `createUniqueSlugger(slugify)` | Stateful slugger that de-duplicates repeated heading slugs |
 | `defaultSlugify` | Default slug: lowercase + replace whitespace with `-` |

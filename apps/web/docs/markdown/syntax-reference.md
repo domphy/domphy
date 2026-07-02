@@ -81,10 +81,16 @@ Emphasis elements can be nested: `**_bold italic_**` becomes `{ strong: [{ em: [
 ```
 
 ```ts
-{ a: ["Domphy"], href: "https://domphy.dev", title: "Homepage" }
+{
+  a: ["Domphy"],
+  href: "https://domphy.dev",
+  title: "Homepage",
+  target: "_blank",
+  rel: "noopener noreferrer",
+}
 ```
 
-All attributes emitted by the mdast walker are copied as element properties. Auto-linked bare URLs (enabled by default via GFM) produce the same shape.
+All attributes emitted by the mdast walker are copied as element properties. Absolute `http://`/`https://` links automatically get `target: "_blank"` and `rel: "noopener noreferrer"`; relative and anchor (`#...`) links do not. Auto-linked bare URLs (enabled by default via GFM) produce the same shape.
 
 ## Images
 
@@ -200,11 +206,11 @@ const x: number = 42
 }
 ```
 
-- `code` holds the raw source text, HTML-escaped when no highlighter is supplied.
+- `code` holds the raw, un-escaped source text when no highlighter is supplied — `@domphy/core` escapes it once at render time, so markdown does not pre-escape it.
 - `dataLanguage` is Domphy's camelCase form of the `data-language` attribute, set to the fence's language identifier.
 - `class` is set to `"language-{lang}"` so CSS-based highlighters can target it.
 
-When a [highlighter](/docs/markdown/highlighting) is provided, `code` contains the highlighted output (a string of inner HTML or a `DomphyElement`) instead of the escaped raw text.
+When a [highlighter](/docs/markdown/highlighting) is provided, `code` contains the highlighted output (a string of inner HTML or a `DomphyElement`) instead of the raw text.
 
 ## Indented code blocks
 
@@ -311,7 +317,7 @@ line two
 
 ## Task lists
 
-Requires `createMarkdown({ tasklists: true })`. List items beginning with `[ ]` (unchecked) or `[x]` / `[X]` (checked) get a disabled `<input type="checkbox">` prepended:
+Enabled by default (GFM task lists, via `remark-gfm`) — no option needed. List items beginning with `[ ]` (unchecked) or `[x]` / `[X]` (checked) get a disabled `<input type="checkbox">` prepended:
 
 ```markdown
 - [x] Completed item
@@ -343,7 +349,23 @@ The `checked` property is present only on checked items; it is absent (not `fals
 
 ## Math
 
-Requires `createMarkdown({ math: true })`. See [overview](/docs/markdown/#math-support) for CDN setup.
+`createMarkdown({ math: true })` only installs the `remark-math` plugin so `$...$` and `$$...$$` are *parsed* into `math`/`inlineMath` nodes — it does not by itself produce the class-wrapped shape below. Pair it with an `onCustom` handler to render those nodes:
+
+```ts
+import remarkMath from "remark-math"
+import { createMarkdown } from "@domphy/markdown"
+
+const parser = createMarkdown({
+  plugins: [remarkMath],
+  onCustom: (node) => {
+    if (node.type === "math") return { div: node.value, class: "math math-display" }
+    if (node.type === "inlineMath") return { span: node.value, class: "math math-inline" }
+    return null
+  },
+})
+```
+
+Without an `onCustom` handler, math/inlineMath nodes fall through the default walker branch and come out as bare, unwrapped strings. See [overview](/docs/markdown/#math-support) for CDN setup.
 
 ### Inline math
 
@@ -373,13 +395,13 @@ $$
 { div: "\\int_0^\\infty e^{-x}\\,dx = 1\n", class: "math math-display" }
 ```
 
-The raw LaTeX is stored verbatim. KaTeX (or MathJax) processes `.math` elements at runtime.
+The raw LaTeX is stored verbatim. KaTeX (or MathJax) processes `.math` elements at runtime. Both examples above assume the `onCustom` handler shown earlier — this is what `math: true` is meant to be paired with.
 
 ## Raw HTML
 
 ### Block HTML
 
-A block of raw HTML becomes a `div` element whose content is the raw HTML string. When Domphy renders it, the string is emitted verbatim as inner HTML:
+A block of raw HTML is passed through as a bare string in the body array — no `div` wrapper is added. When Domphy renders a body array, a raw HTML string is emitted verbatim (see `@domphy/core`'s HTML-string handling):
 
 ```markdown
 <figure>
@@ -389,14 +411,14 @@ A block of raw HTML becomes a `div` element whose content is the raw HTML string
 ```
 
 ```ts
-{
-  div: "<figure>\n  <img src=\"/chart.png\" alt=\"Chart\">\n  <figcaption>Monthly visits</figcaption>\n</figure>",
-}
+[
+  "<figure>\n  <img src=\"/chart.png\" alt=\"Chart\">\n  <figcaption>Monthly visits</figcaption>\n</figure>",
+]
 ```
 
 ### Inline HTML
 
-Raw HTML inline is a per-fragment operation: each open or close tag fragment is individually wrapped in a `{ span: fragment }`. The walker does not reconstruct the nested element tree from raw inline HTML:
+Raw HTML inline is a per-fragment operation: each open or close tag fragment is passed through as a bare string (no `span` wrapper). The walker does not reconstruct the nested element tree from raw inline HTML:
 
 ```markdown
 Text with <strong>bold</strong> inline.
@@ -406,9 +428,9 @@ Text with <strong>bold</strong> inline.
 {
   p: [
     "Text with ",
-    { span: "<strong>" },
+    "<strong>",
     "bold",
-    { span: "</strong>" },
+    "</strong>",
     " inline.",
   ],
 }

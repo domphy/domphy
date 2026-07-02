@@ -24,7 +24,7 @@ type Highlight = (
 | Return value | What happens |
 | --- | --- |
 | Non-empty string | Used as the **inner HTML** of the `<code>` element. Markup is preserved verbatim. |
-| `DomphyElement` | Used as the **sole child** of the `<code>` element. Stays in the element tree. |
+| `DomphyElement` | Replaces the **entire block** — no `pre > code` wrapper is added around it. |
 | Falsy (`null`, `undefined`, empty string) | Falls back to plain escaped text. |
 
 ## String return — inner HTML
@@ -48,7 +48,7 @@ The `dataLanguage` and `class` properties on the `<code>` element are always emi
 
 ## DomphyElement return — stay in the element tree
 
-Return a `DomphyElement` when you want the highlighted output to remain as a Domphy tree node rather than a raw HTML string:
+Return a `DomphyElement` when you want the highlighted output to remain as a Domphy tree node rather than a raw HTML string. The returned element **replaces the whole block** — there is no `pre > code` wrapper, so include your own if you need one:
 
 ```ts
 import type { DomphyElement } from "@domphy/core"
@@ -61,13 +61,7 @@ const { body } = parseMarkdown("```js\nfoo()\n```", {
 })
 
 // body[0] ->
-// {
-//   pre: [{
-//     code: [{ span: "foo()\n", class: "code-block" }],
-//     dataLanguage: "js",
-//     class: "language-js",
-//   }]
-// }
+// { span: "foo()\n", class: "code-block" }
 ```
 
 ## Falling back for unknown languages

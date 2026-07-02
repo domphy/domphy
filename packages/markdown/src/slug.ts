@@ -22,11 +22,18 @@ export function defaultSlugify(text: string): string {
 export function createUniqueSlugger(
   slugify: (text: string) => string,
 ): (text: string) => string {
-  const seen = new Map<string, number>();
+  const seen = new Set<string>();
   return (text: string): string => {
     const base = slugify(text) || "section";
-    const count = seen.get(base) ?? 0;
-    seen.set(base, count + 1);
-    return count === 0 ? base : `${base}-${count}`;
+    let candidate = base;
+    let count = 0;
+    // Track issued slugs directly (not per-base counters) so a later heading
+    // can't collide with an earlier `base-N` that was itself a base slug.
+    while (seen.has(candidate)) {
+      count++;
+      candidate = `${base}-${count}`;
+    }
+    seen.add(candidate);
+    return candidate;
   };
 }

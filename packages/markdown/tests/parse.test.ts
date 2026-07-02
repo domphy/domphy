@@ -30,6 +30,15 @@ describe("@domphy/markdown parseMarkdown", () => {
     expect(toc.map((entry) => entry.slug)).toEqual(["intro", "intro-1"]);
   });
 
+  it("de-duplicates against slugs that collide with an earlier suffixed slug", () => {
+    // "Intro 1" claims the slug "intro-1" before the second "Intro" is seen;
+    // the second "Intro" must skip past it rather than reusing it.
+    const { toc } = parseMarkdown("# Intro\n\n# Intro 1\n\n# Intro");
+    const slugs = toc.map((entry) => entry.slug);
+    expect(slugs).toEqual(["intro", "intro-1", "intro-2"]);
+    expect(new Set(slugs).size).toBe(slugs.length);
+  });
+
   it("wraps paragraph text in a p element", () => {
     const body = markdownToDomphy("Just a paragraph.");
     const p = asRecord(body[0]);
@@ -114,6 +123,15 @@ describe("@domphy/markdown parseMarkdown", () => {
     expect(code.class).toBe("language-ts");
     expect(typeof code.code).toBe("string");
     expect(code.code as string).toContain("const x = 1;");
+  });
+
+  it("passes fenced code text through raw (unescaped) when no highlighter is supplied", () => {
+    // @domphy/core's TextNode escapes plain text once on render, so markdown
+    // must not pre-escape here or the output double-escapes (&amp;lt; etc).
+    const body = markdownToDomphy("```ts\nconst x: Array<string> = [];\n```");
+    const pre = asRecord(body[0]);
+    const code = asRecord((pre.pre as unknown[])[0]);
+    expect(code.code as string).toContain("const x: Array<string> = [];");
   });
 
   it("supports a string highlighter for fenced code", () => {

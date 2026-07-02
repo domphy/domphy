@@ -53,6 +53,18 @@ describe("@domphy/markdown end-to-end with @domphy/core", () => {
     expect(html).toContain('id="my-section"');
   });
 
+  it("does not double-escape special characters in fenced code blocks", () => {
+    const md = "```ts\nconst x: Array<string> = [];\nif (a < b) {}\n```";
+    const { body } = parseMarkdown(md);
+    const html = new ElementNode({ div: body }).generateHTML();
+    // @domphy/core's TextNode escapes plain text once on render; markdown must
+    // pass the raw code through rather than pre-escaping it itself.
+    expect(html).toContain("const x: Array&lt;string&gt; = [];");
+    expect(html).toContain("if (a &lt; b) {}");
+    expect(html).not.toContain("&amp;lt;");
+    expect(html).not.toContain("&amp;gt;");
+  });
+
   it("parses a real docs markdown file without throwing and yields many elements", () => {
     const docPath = resolve(here, "../../../apps/web/docs/index.md");
     const source = readFileSync(docPath, "utf8");

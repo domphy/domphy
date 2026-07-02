@@ -48,14 +48,6 @@ export interface MdastWalkOptions {
 
 type Child = string | DomphyElement;
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 /** Recursively flatten an MDAST node to plain text (for heading anchors / toc). */
 export function nodeToText(node: Nodes): string {
   if (node.type === "text" || node.type === "inlineCode") return node.value;
@@ -242,8 +234,10 @@ function buildCode(node: Code, ctx: WalkContext): DomphyElement {
     }
   }
 
-  const escaped = escapeHtml(node.value);
-  const codeEl: Record<string, unknown> = { code: escaped };
+  // Pass the raw text through: @domphy/core's TextNode.generateHTML() escapes
+  // plain text itself. Pre-escaping here would double-escape (isHTML() only
+  // recognizes literal <tag> substrings, which pre-escaping always removes).
+  const codeEl: Record<string, unknown> = { code: node.value };
   if (lang) {
     codeEl.dataLanguage = lang;
     codeEl.class = `language-${lang}`;

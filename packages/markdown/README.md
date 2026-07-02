@@ -109,7 +109,7 @@ const elements = md.toDomphy("# Hello")  // body only
 | `createMarkdown(options?)` | Create a reusable `MarkdownInstance` (`{ parse, toDomphy }`) sharing a single remark processor |
 | `splitFrontmatter(md)` | Split YAML frontmatter → `{ frontmatter: Record<string, unknown>, content: string }` |
 | `walkMdast(root, options?)` | Walk an mdast Root node → `DomphyElement[]` (low-level, used internally) |
-| `createUniqueSlugger(slugify?)` | Create a slugger that guarantees unique anchor IDs across a document |
+| `createUniqueSlugger(slugify)` | Create a slugger that guarantees unique anchor IDs across a document |
 | `defaultSlugify` | Default slug function: lowercase + replace whitespace with `-` |
 
 ## License
