@@ -36,17 +36,33 @@ export interface EditLink {
  *  and must return a DomphyElement (or null to omit the slot entirely). */
 export interface LayoutSlots {
   /** Replace the entire header bar. */
-  header?: (ctx: unknown) => DomphyElement | null;
+  header?: (ctx: LayoutContext) => DomphyElement | null;
   /** Replace the sidebar navigation. */
-  sidebar?: (ctx: unknown) => DomphyElement | null;
+  sidebar?: (ctx: LayoutContext) => DomphyElement | null;
   /** Replace the TOC aside panel. */
-  aside?: (ctx: unknown) => DomphyElement | null;
+  aside?: (ctx: LayoutContext) => DomphyElement | null;
   /** Replace the prev/next pagination row. */
-  prevNext?: (ctx: unknown) => DomphyElement | null;
+  prevNext?: (ctx: LayoutContext) => DomphyElement | null;
   /** Replace the doc footer (edit link + last updated). */
-  docFooter?: (ctx: unknown) => DomphyElement | null;
+  docFooter?: (ctx: LayoutContext) => DomphyElement | null;
   /** Replace the page footer bar. */
-  footer?: (ctx: unknown) => DomphyElement | null;
+  footer?: (ctx: LayoutContext) => DomphyElement | null;
+}
+
+/** Data passed to every layout shell/slot: the rendered page plus site config. */
+export interface LayoutContext {
+  route: string;
+  title: string;
+  body: DomphyElement[];
+  toc: TocEntry[];
+  frontmatter: Record<string, unknown>;
+  config: SiteConfig;
+  /** ISO date string from git log, if lastUpdated:true and git available. */
+  lastUpdated?: string;
+  /** Estimated reading time in minutes. */
+  readingTime?: number;
+  /** Relative path from srcDir (e.g. "guide/index.md"), used for editLink. */
+  filePath?: string;
 }
 
 export interface ThemeConfig {

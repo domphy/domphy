@@ -7,26 +7,21 @@ import type { DomphyElement, StyleObject } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { toolbar, toolbarSpacer } from "@domphy/ui";
 import { prevNextForRoute, sidebarForRoute } from "./routes-browser.js";
-import type { SidebarItem, SiteConfig, SocialLink, TocEntry } from "./types.js";
+import type {
+  LayoutContext,
+  SidebarItem,
+  SiteConfig,
+  SocialLink,
+  TocEntry,
+} from "./types.js";
+
+// types.ts is the single source of truth for LayoutContext (LayoutSlots
+// members are typed against it there too, so overrides type-check).
+export type { LayoutContext } from "./types.js";
 
 // Avoids TypeScript widening string literals to 'string' when style objects
 // are defined as standalone variables (not inlined directly on elements).
 const style = <T extends StyleObject>(obj: T): T => obj;
-
-export interface LayoutContext {
-  route: string;
-  title: string;
-  body: DomphyElement[];
-  toc: TocEntry[];
-  frontmatter: Record<string, unknown>;
-  config: SiteConfig;
-  /** ISO date string from git log, if lastUpdated:true and git available. */
-  lastUpdated?: string;
-  /** Estimated reading time in minutes. */
-  readingTime?: number;
-  /** Relative path from srcDir (e.g. "guide/index.md"), used for editLink. */
-  filePath?: string;
-}
 
 // Theme tokens — static CSS var references (no listener needed for SSR CSS)
 const tc = (tone: string, color?: string): string =>

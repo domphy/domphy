@@ -2,7 +2,7 @@
 // Pipeline: discover pages → renderDoc → layout → renderToString → HTML.
 // Extras: islands bundle, search index, sitemap, git last-updated, locales.
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   cpSync,
@@ -106,13 +106,15 @@ function estimateReadingTime(textContent: string): number {
   return Math.max(1, Math.round(textContent.split(/\s+/).length / 200));
 }
 
-function getLastUpdated(filePath: string): string | undefined {
+export function getLastUpdated(filePath: string): string | undefined {
   try {
-    const result = execSync(`git log -1 --format="%aI" -- "${filePath}"`, {
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "ignore"],
-      timeout: 5000,
-    }).trim();
+    // execFileSync bypasses shell interpretation, unlike execSync, so
+    // filePath cannot break out of the argument via shell metacharacters.
+    const result = execFileSync(
+      "git",
+      ["log", "-1", "--format=%aI", "--", filePath],
+      { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"], timeout: 5000 },
+    ).trim();
     return result || undefined;
   } catch {
     return undefined;
@@ -135,13 +137,19 @@ function hashContent(content: string): string {
   return createHash("sha256").update(content).digest("hex").slice(0, 16);
 }
 
-function hashConfig(config: SiteConfig): string {
+export function hashConfig(config: SiteConfig): string {
+  // Hash every content-affecting field so cached pages are invalidated
+  // whenever config changes, not just srcDir/outDir (build inputs, not content).
   return createHash("sha256")
     .update(
       JSON.stringify({
         title: config.title,
+        description: config.description,
         hostname: config.hostname,
         base: config.base,
+        head: config.head,
+        lastUpdated: config.lastUpdated,
+        locales: config.locales,
         themeConfig: config.themeConfig,
       }),
     )
@@ -496,8 +504,10 @@ export async function buildSite(options: BuildOptions): Promise<void> {
         filePath: page.relPath,
       };
       const isHome =
-        page.route === "/" ||
-        (page.localeKey !== "/" && page.route === page.localeKey);
+        typeof page.doc.frontmatter.layout === "string"
+          ? page.doc.frontmatter.layout === "home"
+          : page.route === "/" ||
+            (page.localeKey !== "/" && page.route === page.localeKey);
       const description =
         typeof page.doc.frontmatter.description === "string"
           ? page.doc.frontmatter.description

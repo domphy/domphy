@@ -77,9 +77,9 @@ const css = pressCSS()
 
 // Start a dev server
 import { startDevServer } from "@domphy/press"
-await startDevServer({ config, srcDir, outDir })
+const { server, notify } = startDevServer(outDir, 3000)
 ```
 
-The `./browser` subpath exports the client-side island runtime (search widget, syntax highlighting).
+The `./browser` subpath exports the client-side island runtime (search widget, layout shells) for Vite/browser bundles — no Node.js built-ins.
 
 See the [full docs](https://domphy.com/docs/press/) for configuration reference, Markdown features, routing, search, i18n, and deployment guides.

@@ -120,22 +120,6 @@ Because all these methods subscribe to the same version counter, the granularity
 
 ## Cleanup
 
-Release the version state when the table's subtree unmounts:
-
-```ts
-{
-    table: (l) => { version(l); return [...] },
-    $: [tableUI()],
-    _onRemove: () => destroy(),
-}
-```
-
-## When to use the bridge directly
-
-Use the raw [bridge pattern](./) when you need fully-controlled state living in your own model, or per-slice signals instead of one counter. The adapter is built on that exact pattern.
-
-## Cleanup
-
 `version` is a Domphy state; release it when the table's subtree unmounts:
 
 ```ts

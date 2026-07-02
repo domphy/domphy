@@ -28,6 +28,17 @@ const MIME: Record<string, string> = {
 
 const DEV_SCRIPT = `<script>(function(){var es=new EventSource('/_dev/sse');es.onmessage=function(e){if(e.data==='reload')location.reload();};es.onerror=function(){setTimeout(function(){location.reload();},2000);};})();</script>`;
 
+// Without this, an async listen failure (e.g. EADDRINUSE) emits an
+// unhandled "error" event, which Node re-throws and crashes the process.
+function reportListenErrors(server: Server, port: number): void {
+  server.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EADDRINUSE")
+      console.error(`Port ${port} is already in use.`);
+    else console.error(error);
+    process.exit(1);
+  });
+}
+
 function resolveFile(root: string, urlPath: string): string | null {
   const safe = normalize(decodeURIComponent(urlPath.split("?")[0])).replace(
     /^(\.\.[/\\])+/,
@@ -60,6 +71,7 @@ export function startServer(root: string, port: number): Server {
     );
     createReadStream(file).pipe(response);
   });
+  reportListenErrors(server, port);
   server.listen(port, () =>
     console.log(`DomphyPress preview: http://localhost:${port}/`),
   );
@@ -104,6 +116,7 @@ export function startDevServer(
       createReadStream(file).pipe(response);
     }
   });
+  reportListenErrors(server, port);
   server.listen(port, () =>
     console.log(
       `DomphyPress dev: http://localhost:${port}/  (live reload active)`,
