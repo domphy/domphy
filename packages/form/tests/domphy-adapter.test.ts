@@ -89,6 +89,43 @@ describe("createForm state accessors", () => {
   });
 });
 
+describe("createForm.field dedup", () => {
+  it("returns the same handle/FieldApi for repeated calls with the same name", () => {
+    const form = createForm<{ tags: string[] }>({
+      defaultValues: { tags: ["a", "b"] },
+    });
+
+    const first = form.field<string>("tags[0]");
+    const second = form.field<string>("tags[0]");
+
+    expect(second).toBe(first);
+    expect(second.api).toBe(first.api);
+    form.destroy();
+  });
+
+  it("destroy() tears down a deduped field exactly once without error", async () => {
+    const form = createForm<{ name: string }>({
+      defaultValues: { name: "" },
+    });
+
+    const first = form.field<string>("name");
+    form.field<string>("name");
+
+    let calls = 0;
+    first.value(() => calls++);
+    first.handleChange("x");
+    await flush();
+    const snapshot = calls;
+    expect(snapshot).toBeGreaterThan(0);
+
+    expect(() => form.destroy()).not.toThrow();
+
+    first.handleChange("y");
+    await flush();
+    expect(calls).toBe(snapshot);
+  });
+});
+
 describe("createForm field accessors", () => {
   it("meta() reflects field interaction state", () => {
     const form = createForm<{ email: string }>({

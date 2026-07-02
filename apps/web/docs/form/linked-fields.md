@@ -124,7 +124,7 @@ const form = createForm<{ quantity: number; unitPrice: number; total: number }>(
   listeners: {
     onChange: ({ formApi }) => {
       const { quantity, unitPrice } = formApi.state.values
-      formApi.setFieldValue("total", quantity * unitPrice, { touch: false })
+      formApi.setFieldValue("total", quantity * unitPrice, { dontUpdateMeta: true })
     },
   },
   onSubmit: ({ value }) => checkout(value),
@@ -139,7 +139,7 @@ const TotalDisplay = {
 }
 ```
 
-`{ touch: false }` prevents the programmatically-set `total` from being marked as dirty by the user.
+`{ dontUpdateMeta: true }` prevents the programmatically-set `total` from being marked as dirty by the user.
 
 ## Using `computed` for derived display values
 

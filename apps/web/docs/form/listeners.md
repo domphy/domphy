@@ -23,8 +23,8 @@ const confirmField = form.field<string>("confirmPassword", {
       const password = fieldApi.form.getFieldValue("password")
       return value === password ? undefined : "Passwords do not match"
     },
+    onChangeListenTo: ["password"],   // re-validate when "password" changes
   },
-  onChangeListenTo: ["password"],   // re-validate when "password" changes
 })
 ```
 
@@ -38,11 +38,13 @@ React to any value change at the form level:
 const form = createForm<PriceInput>({
   defaultValues: { quantity: 1, unitPrice: 10, total: 10 },
   onSubmit: ({ value }) => checkout(value),
-  onChange: ({ formApi }) => {
-    // Compute derived fields
-    const quantity = formApi.getFieldValue("quantity")
-    const unitPrice = formApi.getFieldValue("unitPrice")
-    formApi.setFieldValue("total", quantity * unitPrice, { touch: false })
+  listeners: {
+    onChange: ({ formApi }) => {
+      // Compute derived fields
+      const quantity = formApi.getFieldValue("quantity")
+      const unitPrice = formApi.getFieldValue("unitPrice")
+      formApi.setFieldValue("total", quantity * unitPrice, { dontUpdateMeta: true })
+    },
   },
 })
 ```
@@ -89,8 +91,8 @@ Re-run a field's blur validators when another field blurs:
 const emailField = form.field<string>("email", {
   validators: {
     onBlur: ({ value }) => validateEmail(value),
+    onBlurListenTo: ["username"],   // also re-validate when "username" blurs
   },
-  onBlurListenTo: ["username"],   // also re-validate when "username" blurs
 })
 ```
 
@@ -112,8 +114,8 @@ const reasonField = form.field<string>("expediteReason", {
         return "Please provide a reason for express shipping"
       }
     },
+    onChangeListenTo: ["method"],
   },
-  onChangeListenTo: ["method"],
 })
 
 const ShippingForm = {

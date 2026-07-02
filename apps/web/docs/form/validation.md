@@ -177,26 +177,25 @@ Show a spinner on async validation:
 { span: "Checking...", hidden: (l) => !username.meta(l).isValidating }
 ```
 
-## Validators with context
+## Passing request-scoped data to a validator
 
-Validators receive a `context` object — attach extra data via `form.handleSubmit(data, context)`:
+The Domphy adapter's `form.handleSubmit()` takes no parameters, and validator props don't expose a `context` field. To reach request-scoped data (like a CSRF token) from inside a validator, capture it via closure instead:
 
 ```ts
 const form = createForm<LoginForm>({
   defaultValues: { email: "", password: "" },
   validators: {
-    onSubmitAsync: async ({ value, context }) => {
-      const result = await loginApi(value.email, value.password, context?.csrfToken)
+    onSubmitAsync: async ({ value }) => {
+      const result = await loginApi(value.email, value.password, getCsrfToken())
       return result.error ? "Invalid credentials" : undefined
     },
   },
   onSubmit: ({ value }) => {},
 })
 
-// Pass context on submit
 const button = {
   button: "Log in",
-  onClick: () => form.handleSubmit({}, { csrfToken: getCsrfToken() }),
+  onClick: () => form.handleSubmit(),
 }
 ```
 

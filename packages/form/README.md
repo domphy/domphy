@@ -68,7 +68,7 @@ const App: DomphyElement<"form"> = {
 | --- | --- |
 | `values(l)` / `state(l)` | Reactive form values / full form state. |
 | `canSubmit(l)` / `isSubmitting(l)` / `isValid(l)` / `isSubmitted(l)` | Reactive form flags. |
-| `field<TData>(name, options?)` | Creates and mounts a reactive field handle. |
+| `field<TData>(name, options?)` | Creates and mounts a reactive field handle, cached by `name` — repeat calls for the same name return the same handle instead of mounting a new one. |
 | `handleSubmit()` | Runs validation and submission. |
 | `reset(values?)` | Resets to defaults (or given values). |
 | `form` | The underlying `FormApi` — the full form-core API. |

@@ -7,7 +7,7 @@ description: "Dynamic field arrays, nested object fields, array of objects, and 
 
 ## Basic array field
 
-Use dot-bracket notation for array indexes. Create an array-field handle and use its built-in array helpers (`pushValue`, `removeValue`, `swapValues`, etc.):
+Use dot-bracket notation for array indexes. Create an array-field handle and use its built-in array helpers (`pushValue`, `removeValue`, `swapValues`, etc.). `form.field(name)` is cached by name, so calling it again for the same index inside a reactive render callback (as below) reuses the existing field handle instead of mounting a new one:
 
 ```ts
 import { createForm } from "@domphy/form/domphy"

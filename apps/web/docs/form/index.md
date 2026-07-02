@@ -74,7 +74,7 @@ const Field = {
 | `canSubmit(l)` / `isSubmitting(l)` / `isValid(l)` / `isSubmitted(l)` | Reactive flags. |
 | `isDirty(l)` / `isPristine(l)` | Reactive: any field differs from defaultValues / no field changed. |
 | `isTouched(l)` / `isBlurred(l)` | Reactive: any field touched / any field blurred. |
-| `field<TData>(name, options?)` | Create and mount a reactive field handle. |
+| `field<TData>(name, options?)` | Create and mount a reactive field handle, cached by `name` — repeat calls for the same name return the same handle. |
 | `getFieldValue(field)` | Read a field value imperatively (no listener). |
 | `setFieldValue(field, updater)` | Set a field value programmatically (triggers onChange validation). |
 | `validateField(field, cause?)` | Manually trigger validation for one field. Cause defaults to `"change"`. |

@@ -13,7 +13,7 @@ description: "Share form options with formOptions(), pre-populate forms using me
 import { formOptions } from "@domphy/form"
 import { createForm } from "@domphy/form/domphy"
 
-const baseContactOptions = formOptions<{ email: string; phone: string }>({
+const baseContactOptions = formOptions({
   defaultValues: { email: "", phone: "" },
   validators: {
     onSubmit: ({ value }) => {

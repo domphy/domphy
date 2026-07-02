@@ -110,7 +110,10 @@ export function createForm<TFormData>(
   const subscription = form.store.subscribe(() =>
     version.set(version.get() + 1),
   )
-  const fieldCleanups: Array<() => void> = []
+  // Keyed by field name so repeated form.field(name) calls (e.g. inside a
+  // reactive render callback) reuse the same FieldApi instead of mounting a
+  // fresh one — and orphaned instances — on every re-render.
+  const fields = new Map<string, { handle: FieldHandle<any>; cleanup: () => void }>()
 
   const state = (listener?: Listener) => {
     version.get(listener)
@@ -134,9 +137,11 @@ export function createForm<TFormData>(
       name: string,
       fieldOptions: Record<string, unknown> = {},
     ): FieldHandle<TData> => {
+      const cached = fields.get(name)
+      if (cached) return cached.handle as FieldHandle<TData>
       const api = new FieldApi({ form, name, ...fieldOptions } as any) as AnyFieldApi
-      fieldCleanups.push(api.mount())
-      return {
+      const cleanup = api.mount()
+      const handle: FieldHandle<TData> = {
         api,
         value: (listener) => {
           version.get(listener)
@@ -162,6 +167,8 @@ export function createForm<TFormData>(
         moveValue: (a, b) => api.moveValue(a, b),
         clearValues: () => api.clearValues(),
       }
+      fields.set(name, { handle, cleanup })
+      return handle
     },
     handleSubmit: () => form.handleSubmit(),
     reset: (values) => form.reset(values),
@@ -170,7 +177,8 @@ export function createForm<TFormData>(
     validateField: (field, cause = "change") => form.validateField(field as any, cause),
     destroy: () => {
       subscription.unsubscribe()
-      for (const cleanup of fieldCleanups) cleanup()
+      for (const { cleanup } of fields.values()) cleanup()
+      fields.clear()
       formCleanup()
       version._dispose()
     },
