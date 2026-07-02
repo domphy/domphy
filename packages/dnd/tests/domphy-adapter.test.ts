@@ -12,7 +12,8 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 // dragDrop.ts). A single setTimeout(0) macrotask resolves before either rAF
 // callback runs in jsdom; wait for both frames before touching FormKit's
 // internal `parents` registry.
-const waitFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+const waitFrame = () =>
+  new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 function mount(App: DomphyElement) {
   const host = document.createElement("div");
@@ -71,5 +72,28 @@ describe("dragDrop reorder -> bound State", () => {
     ).toEqual(["C", "A", "B"]);
 
     node.remove();
+  });
+
+  it("mount+remove within the same paint cycle does not leak a FormKit registration", async () => {
+    const items = toState<Item[]>([{ id: 1, label: "A" }]);
+
+    const { host, node } = mount({
+      ul: (l) =>
+        items.get(l).map((item) => ({ li: item.label, _key: item.id })),
+      $: [dragDrop(items)],
+    } as DomphyElement);
+
+    const ul = host.querySelector("ul") as HTMLUListElement;
+
+    // Remove before either deferred rAF fires — this is the race the
+    // dragDrop() `disposed` guard closes: without it, the still-pending rAF
+    // callback below would register `ul` into FormKit's `parents` WeakMap
+    // (plus a MutationObserver and parent-level listeners) after teardown.
+    node.remove();
+
+    await waitFrame();
+    await waitFrame();
+
+    expect(parents.get(ul)).toBeUndefined();
   });
 });

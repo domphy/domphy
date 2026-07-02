@@ -42,6 +42,12 @@ export function dragDrop<T>(
   config: DragDropConfig<T> = {},
 ): PartialElement {
   const { animated = true, ...rest } = config;
+  // The double-rAF setup below is deferred past _onRemove if mount+remove
+  // happen inside the same paint cycle; without this flag the rAF callback
+  // would register dragAndDrop() (parents map, MutationObserver, listeners)
+  // on an already-torn-down (or never torn down, since tearDown() was a
+  // no-op) parent element, leaking them permanently.
+  let disposed = false;
   return {
     _onMount: (node) => {
       const parent = node.domElement as HTMLElement | null;
@@ -53,14 +59,8 @@ export function dragDrop<T>(
       // 0 DOM children at init time. Double-rAF defers until after paint.
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
-          const setValues = (next: T[]) => {
-            // Use setQuiet when available (e.g. filteredNodeState) so DnD
-            // reorders update the model without firing reactive re-renders —
-            // the DnD library has already physically moved the DOM nodes.
-            const sq = (values as { setQuiet?: (v: T[]) => void }).setQuiet;
-            if (typeof sq === "function") sq(next);
-            else values.set(next);
-          };
+          if (disposed) return;
+          const setValues = (next: T[]) => values.set(next);
           dragAndDrop<T>({
             parent,
             getValues: () => values.get(),
@@ -71,6 +71,7 @@ export function dragDrop<T>(
       );
     },
     _onRemove: (node) => {
+      disposed = true;
       const parent = node.domElement as HTMLElement | null;
       if (parent) tearDown(parent);
     },

@@ -1,10 +1,5 @@
 import type { PartialElement, State } from "@domphy/core";
-import {
-  animations,
-  dragAndDrop,
-  type ParentConfig,
-  tearDown,
-} from "@formkit/drag-and-drop";
+import { animations, dragAndDrop, tearDown } from "@formkit/drag-and-drop";
 import type { DragDropConfig } from "./dragDrop.js";
 
 export interface MultiListOptions<T> {
@@ -44,6 +39,11 @@ export interface MultiListOptions<T> {
 export function multiList<T>(options: MultiListOptions<T>): PartialElement {
   const { group, values, config = {} } = options;
   const { animated = true, ...rest } = config;
+  // See dragDrop.ts for why the setup below is deferred by a double rAF and
+  // guarded by this flag: Domphy fires _onMount before appending children,
+  // and an immediate remove() in the same paint cycle must cancel the
+  // deferred dragAndDrop() registration instead of leaking it.
+  let disposed = false;
   return {
     _onMount: (node) => {
       const parent = node.domElement as HTMLElement | null;
@@ -51,19 +51,21 @@ export function multiList<T>(options: MultiListOptions<T>): PartialElement {
       const plugins = animated
         ? [animations(), ...(rest.plugins ?? [])]
         : (rest.plugins ?? []);
-      const setValues = (next: T[]) => {
-        const sq = (values as { setQuiet?: (v: T[]) => void }).setQuiet;
-        if (typeof sq === "function") sq(next);
-        else values.set(next);
-      };
-      dragAndDrop<T>({
-        parent,
-        getValues: () => values.get(),
-        setValues,
-        config: { ...rest, group, plugins },
-      });
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (disposed) return;
+          const setValues = (next: T[]) => values.set(next);
+          dragAndDrop<T>({
+            parent,
+            getValues: () => values.get(),
+            setValues,
+            config: { ...rest, group, plugins },
+          });
+        }),
+      );
     },
     _onRemove: (node) => {
+      disposed = true;
       const parent = node.domElement as HTMLElement | null;
       if (parent) tearDown(parent);
     },
