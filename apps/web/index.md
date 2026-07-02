@@ -1,5 +1,6 @@
 ---
 layout: home
+title: Domphy
 
 hero:
   name: Domphy
