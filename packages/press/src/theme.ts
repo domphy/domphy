@@ -57,7 +57,8 @@ a:hover{text-decoration:underline}
 
 /* ------- sidebar open state on mobile (JS sets html[data-sidebar="open"]) ------ */
 @media(max-width:860px){
-  html[data-sidebar="open"] nav[aria-label="Documentation"]{transform:translateX(0)}
+  html[data-sidebar="open"] nav[aria-label="Documentation"],
+  html[data-sidebar="open"] nav[aria-label="Primary"]{transform:translateX(0)}
 }
 
 /* ----------------------------------------------------------------- backdrop */

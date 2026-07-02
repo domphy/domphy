@@ -1,9 +1,20 @@
 # apps/web
 
-This app is the Domphy documentation website, built with **DomphyPress** — an
-in-repo static-site generator (`apps/web/domphypress/`) that runs on `@domphy/app`
-+ `@domphy/markdown` (it replaced VitePress). `pnpm build` renders `apps/web/docs`
-to `.vitepress/dist` (the existing deploy path); `pnpm dev` serves + watches.
+This app is the Domphy documentation website, built with **DomphyPress**
+(`@domphy/press`, `packages/press/`) — a static-site generator that runs on
+`@domphy/app` + `@domphy/markdown` (it replaced VitePress).
+
+- `pnpm build` — the real production build (`build.press.ts`): rebuilds every
+  `@domphy/*` package, regenerates the manifests/llms-full.txt, then renders
+  `apps/web/index.md` + `apps/web/docs` to `.vitepress/dist` (the existing
+  deploy path) with the search index and islands bundle. `pnpm preview`
+  serves that output on `:4173`.
+- `pnpm dev` — a fast content-only preview: runs the generic `domphy-press
+  dev` CLI directly against `apps/web/docs` (port 3000, live rebuild on
+  Markdown/TS changes). It does **not** replicate `build.press.ts`'s custom
+  handling of the root `index.md` home page, search index, or islands bundle
+  — use it for iterating on docs layout/content, but verify anything
+  routing-, search-, or island-related against `pnpm build && pnpm preview`.
 
 It contains two main parts:
 

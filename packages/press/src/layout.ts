@@ -135,6 +135,19 @@ function navDropdown(item: {
       fontSize: "13px",
     },
     "& a:hover": { background: bgMute },
+    // The reveal-on-hover pattern above doesn't work on touch. When this nav
+    // becomes the mobile drawer (see header()'s Primary nav style), show the
+    // submenu expanded inline instead of gating it behind hover/focus.
+    "@media (max-width: 860px)": {
+      display: "flex",
+      position: "static",
+      boxShadow: "none",
+      border: "none",
+      background: "none",
+      padding: `0 0 0 ${ts(3)}`,
+      minWidth: "0",
+      width: "100%",
+    },
   });
   return {
     div: [
@@ -160,6 +173,11 @@ function navDropdown(item: {
       alignItems: "center",
       "&:hover > div:last-child, &:focus-within > div:last-child": {
         display: "flex",
+      },
+      "@media (max-width: 860px)": {
+        flexDirection: "column",
+        alignItems: "flex-start",
+        width: "100%",
       },
     },
   };
@@ -306,11 +324,20 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
 
 // --- Header -------------------------------------------------------------
 
+// Single source of truth for whether a route renders the docs sidebar —
+// used both to build the sidebar itself (pageShell) and to decide whether
+// the Primary nav needs to become the mobile drawer instead (header).
+function hasDocSidebar(ctx: LayoutContext): boolean {
+  const layout =
+    typeof ctx.frontmatter.layout === "string" ? ctx.frontmatter.layout : "doc";
+  return layout === "doc" && ctx.frontmatter.sidebar !== false;
+}
+
 function header(ctx: LayoutContext): DomphyElement {
   const { config } = ctx;
   const searchEnabled = config.themeConfig.search !== false;
   const logo = config.themeConfig.logo;
-
+  const showSidebar = hasDocSidebar(ctx);
   const logoInner: DomphyElement[] = logo
     ? typeof logo === "string"
       ? [
@@ -390,7 +417,30 @@ function header(ctx: LayoutContext): DomphyElement {
             color: brand,
             textDecoration: "none",
           },
-          "@media (max-width: 860px)": { display: "none" },
+          "@media (max-width: 860px)": showSidebar
+            ? { display: "none" }
+            : {
+                // Pages without a docs sidebar (home, playground) have no
+                // other mobile nav — reuse the same drawer mechanics as the
+                // docs sidebar instead of just hiding this nav outright.
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                position: "fixed",
+                top: headerH,
+                left: "0",
+                bottom: "0",
+                width: "80%",
+                maxWidth: ts(80),
+                background: bg,
+                borderRight: `1px solid ${border}`,
+                zIndex: "25",
+                padding: `${ts(6)} ${ts(3)}`,
+                gap: ts(1),
+                overflowY: "auto",
+                transform: "translateX(-100%)",
+                transition: "transform .2s ease",
+              },
         },
       },
       {
@@ -993,7 +1043,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
   // layout: 'page' = no sidebar, no TOC, full-width content (same as VitePress)
   const layout =
     typeof ctx.frontmatter.layout === "string" ? ctx.frontmatter.layout : "doc";
-  const showSidebar = layout === "doc" && ctx.frontmatter.sidebar !== false;
+  const showSidebar = hasDocSidebar(ctx);
 
   const asideEl =
     layout !== "page" ? resolveSlot(ctx, "aside", tocAside) : null;
@@ -1329,10 +1379,17 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
           fontSize: "13px",
         },
       } as DomphyElement);
+  // Backdrop: covers screen on mobile when the Primary nav drawer is open
+  // (this page has no docs sidebar of its own — see header()'s showSidebar).
+  const backdrop: DomphyElement = {
+    div: [],
+    class: "dp-sidebar-backdrop",
+  } as unknown as DomphyElement;
   return {
     div: [
       ...(bar ? [bar] : []),
       ...(headerEl ? [headerEl] : []),
+      backdrop,
       {
         main,
         style: {

@@ -9,6 +9,7 @@
     "manifest": "node scripts/manifest.mjs",
     "app-manifest": "node scripts/app-manifest.mjs",
     "test": "vitest run",
+    "dev": "tsx ../../packages/press/dist/cli.js dev --port 3000",
     "preview": "tsx serve.press.ts",
     "build": "pnpm --filter \"@domphy/*\" build && node scripts/manifest.mjs && node scripts/app-manifest.mjs && node scripts/llms-full.mjs && tsx build.press.ts",
     "postinstall": "puppeteer browsers install chrome-headless-shell"
