@@ -2,13 +2,27 @@
 
 **[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/palette/) · [npm](https://www.npmjs.com/package/@domphy/palette)
 
-Domphy's color-palette quality engine. **Validates** palette quality with five color-science metrics computed in CIELAB — framework-agnostic, zero runtime dependencies.
+Domphy's color-palette toolkit. **Generates** WCAG-optimized ramps and **validates** palette quality with five color-science metrics computed in CIELAB — framework-agnostic, zero runtime dependencies.
 
 ## Install
 
 ```bash
 npm install @domphy/palette
 ```
+
+## Generate a ramp
+
+```ts
+import { generateRamp } from "@domphy/palette"
+
+const ramp = generateRamp("#3b82f6", 18)
+// 18 hex strings, lightest first: ["#ffffff", …, "#000000"]
+```
+
+`generateRamp` accepts one base color, or several ordered anchor colors the
+ramp must pass through, and bends its Oklab sampling curve so the resulting
+WCAG contrast span lands close to the theoretical ideal — see
+[`docs/palette/generator`](https://domphy.com/docs/palette/generator).
 
 ## Validate a ramp
 

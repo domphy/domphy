@@ -115,6 +115,7 @@ function sequentialInterpolator(rgbs: number[][]) {
  */
 export function generateRamp(hexs: string | string[], stepsCount: number): string[] {
     const anchors = Array.isArray(hexs) ? hexs : [hexs];
+    if (anchors.length === 0) throw new Error("generateRamp requires at least one anchor color");
     if (stepsCount <= 0) return [];
     if (stepsCount === 1) return [anchors[0]];
 

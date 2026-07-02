@@ -268,7 +268,7 @@ Computes the **WCAG 2.1 contrast ratio** between two hex colors. Returns a value
 import { contrastRatio } from "@domphy/palette"
 
 contrastRatio("#3b82f6", "#ffffff")  // ≈ 3.68  — AA fails for normal text
-contrastRatio("#1d4ed8", "#ffffff")  // ≈ 7.05  — AAA
+contrastRatio("#1d4ed8", "#ffffff")  // ≈ 6.70  — AA (fails AAA)
 contrastRatio("#000000", "#ffffff")  // 21.0    — maximum possible contrast
 ```
 
@@ -298,7 +298,7 @@ mix("#ff0000", "#0000ff", 0.5, "rgb") // mix in linear RGB (naive, muddy midpoin
 
 ```ts
 // Comparing red→blue midpoints in different spaces
-mix("#ff0000", "#0000ff", 0.5, "rgb")   // "#7f007f" — dull purple
+mix("#ff0000", "#0000ff", 0.5, "rgb")   // "#bc00bc" — over-saturated magenta
 mix("#ff0000", "#0000ff", 0.5, "lab")   // brighter, more saturated
 mix("#ff0000", "#0000ff", 0.5, "oklab") // similar to lab, perceptually centered
 ```
@@ -317,11 +317,11 @@ import { scale } from "@domphy/palette"
 
 // 5-step gradient from white to blue
 scale(["#ffffff", "#3b82f6"], 5)
-// ["#ffffff", "#c4d7fa", "#87b0f5", "#4a88ef", "#3b82f6"]
+// ["#ffffff", "#cee1ff", "#9ec3ff", "#6ea3fb", "#3b82f6"]
 
 // 7-step gradient through 3 anchors: white → blue → black
 scale(["#ffffff", "#3b82f6", "#000000"], 7)
-// ["#ffffff", "#aec8f8", "#3b82f6", "#2a5ab1", "#1a3269", "#080f20", "#000000"]
+// ["#ffffff", "#bed7ff", "#7eaefd", "#3b82f6", "#1e498f", "#051634", "#000000"]
 
 // Use the output to construct a Ramp for quality analysis
 import { Ramp } from "@domphy/palette"

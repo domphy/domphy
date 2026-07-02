@@ -61,6 +61,13 @@ export class Ramp {
         const maxGap = total - 1;
         const contrasts = {} as WcagContrasts;
 
+        if (total <= 1) {
+            for (const level of [30, 45, 70] as const) {
+                contrasts[level] = { efficiency: 1, target: level / 10, span: 0, value: 0 };
+            }
+            return contrasts;
+        }
+
         for (const level of [30, 45, 70] as const) {
             const target = level / 10;
             let span = maxGap;
@@ -101,6 +108,13 @@ export class Ramp {
         const total = swatches.length;
         const maxGap = total - 1;
         const contrasts = {} as ApcaContrasts;
+
+        if (total <= 1) {
+            for (const level of [45, 60, 75] as const) {
+                contrasts[level] = { efficiency: 1, target: level, span: 0, value: 0 };
+            }
+            return contrasts;
+        }
 
         const apcaContrast = (yText: number, yBg: number) => {
             const Bc = 0.022, Bl = 1.414;

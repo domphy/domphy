@@ -21,6 +21,11 @@ describe("generateRamp", () => {
         expect(generateRamp("#4a7ff4", 1)).toEqual(["#4a7ff4"]);
     });
 
+    it("throws instead of producing undefined entries for an empty anchor list", () => {
+        expect(() => generateRamp([], 1)).toThrow("generateRamp requires at least one anchor color");
+        expect(() => generateRamp([], 18)).toThrow("generateRamp requires at least one anchor color");
+    });
+
     it("accepts multiple anchor colors as fixed waypoints", () => {
         const ramp = generateRamp(["#4a7ff4", "#d8597d"], 18);
         expect(ramp).toHaveLength(18);

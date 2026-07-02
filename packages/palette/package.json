@@ -1,7 +1,7 @@
 {
   "name": "@domphy/palette",
   "version": "0.19.0",
-  "description": "Domphy Palette - color-science toolkit: measure and validate palette quality with CIELAB metrics, a port of chromametry",
+  "description": "Domphy Palette - color-science toolkit: generate, measure, and validate palette quality with CIELAB metrics, a port of chromametry",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",

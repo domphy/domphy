@@ -35,6 +35,16 @@ describe("Ramp edge cases", () => {
     expect(ramp.score).toBe(100);
   });
 
+  it("wcag and apca efficiency stay finite (not NaN) for a single-color ramp", () => {
+    const ramp = new Ramp(["#3b82f6"]);
+    for (const level of [30, 45, 70] as const) {
+      expect(Number.isFinite(ramp.wcag[level].efficiency)).toBe(true);
+    }
+    for (const level of [45, 60, 75] as const) {
+      expect(Number.isFinite(ramp.apca[level].efficiency)).toBe(true);
+    }
+  });
+
   it("two-color ramp: chromaSmoothness early-returns 1 (n<3) but contrastEfficiency is 0", () => {
     const ramp = new Ramp(["#ffffff", "#000000"]);
     expect(ramp.steps).toBe(2);
