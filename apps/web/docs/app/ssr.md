@@ -56,6 +56,8 @@ ${result.bootstrapScript}
 }).listen(3000)
 ```
 
+Node serves requests concurrently, so if your route tree renders any `navLink`, pass `router: app.router` to it explicitly here — see the [`navLink` router prop warning](/docs/app/navigation#navlink) for why.
+
 ## Hydration
 
 `client.js` builds the same app and mounts onto the server markup. `hydrate()` reads the data embedded by `bootstrapScript`, so loaders are **not** re-run and the client tree matches the HTML byte for byte:

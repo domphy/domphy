@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { createApp, defineRoutes, type Route } from "../src/index";
+import { createApp, defineRoutes, type Route, redirect } from "../src/index";
 
 function streamRoutes(): Route[] {
   return defineRoutes([
@@ -84,5 +84,63 @@ describe("renderToStream", () => {
     const root = document.getElementById("domphy-app");
     expect(root?.textContent).toContain("Loaded data!");
     expect(root?.textContent).not.toContain("Loading stream...");
+  });
+
+  it("runs per-route middleware, like transition()/renderToString()", async () => {
+    let ran = false;
+    const routes = defineRoutes([
+      {
+        path: "/",
+        children: [
+          {
+            path: "admin",
+            middleware: [
+              () => {
+                ran = true;
+              },
+            ],
+            page: () => ({ h1: "Admin" }),
+          },
+        ],
+      },
+    ]);
+    const app = createApp(routes, { history: null });
+    const { stream } = await app.renderToStream("/admin");
+    await collect(stream);
+    expect(ran).toBe(true);
+  });
+
+  it("resolves gracefully (does not reject) when global middleware redirects", async () => {
+    const routes = defineRoutes([
+      {
+        path: "/",
+        children: [
+          {
+            path: "go",
+            page: () => ({ h1: "Go" }),
+          },
+          { path: "about", page: () => ({ h1: "About" }) },
+        ],
+      },
+    ]);
+    const app = createApp(routes, {
+      history: null,
+      middleware: [
+        (context) => {
+          if (context.pathname === "/go") redirect("/about");
+        },
+      ],
+    });
+
+    const {
+      stream,
+      status,
+      redirect: target,
+    } = await app.renderToStream("/go");
+    expect(status).toBe(307);
+    expect(target).toBe("/about");
+
+    const body = (await collect(stream)).join("");
+    expect(body).not.toContain("Go");
   });
 });

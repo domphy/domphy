@@ -434,12 +434,55 @@ export class AppRouter {
       searchParams: url.searchParams,
       headers: this.headers,
     };
-    for (const middleware of this.middleware) {
-      const result = await middleware(middlewareContext);
-      if (isRewrite(result)) renderPathname = result.__domphyRewrite;
+
+    // Global and route middleware may throw RedirectSignal/NotFoundSignal (the
+    // equivalents of what transition() catches around its whole pipeline); both
+    // are converted below to the same graceful {status, redirect} shape the
+    // route-level `redirect` branch already produces, instead of rejecting.
+    let match: RouteMatch | null = null;
+    try {
+      for (const middleware of this.middleware) {
+        const result = await middleware(middlewareContext);
+        if (isRewrite(result)) renderPathname = result.__domphyRewrite;
+      }
+
+      match = matchRoute(this.routes, renderPathname);
+      if (match) {
+        const leaf = match.route.chain[match.route.chain.length - 1];
+        if (leaf.redirect) {
+          return {
+            shell: { div: "" },
+            status: leaf.permanent ? 308 : 307,
+            redirect: leaf.redirect,
+            rest: Promise.resolve({ content: { div: "" }, data: {}, head: "" }),
+          };
+        }
+
+        // Route-level middleware, mirroring transition()'s loop: a rewrite
+        // restarts the whole pipeline against the new URL, since global
+        // middleware may also apply to it.
+        for (const route of match.route.chain) {
+          for (const middleware of routeMiddleware(route) ?? []) {
+            const result = await middleware(middlewareContext);
+            if (isRewrite(result)) {
+              return this.renderStream(new URL(result.__domphyRewrite, url));
+            }
+          }
+        }
+      }
+    } catch (error) {
+      if (error instanceof RedirectSignal) {
+        return {
+          shell: { div: "" },
+          status: error.permanent ? 308 : 307,
+          redirect: error.to,
+          rest: Promise.resolve({ content: { div: "" }, data: {}, head: "" }),
+        };
+      }
+      if (!(error instanceof NotFoundSignal)) throw error;
+      match = null;
     }
 
-    const match = matchRoute(this.routes, renderPathname);
     if (!match) {
       const built = buildNotFoundTree(this.notFoundBlock);
       return {
@@ -449,27 +492,20 @@ export class AppRouter {
         rest: Promise.resolve({ content: built.element, data: {}, head: "" }),
       };
     }
+    // Rebind as a non-reassigned const so it narrows to non-null inside the
+    // closures below (the `let` above is reassigned earlier in this function).
+    const resolvedMatch = match;
 
-    const leaf = match.route.chain[match.route.chain.length - 1];
-    if (leaf.redirect) {
-      return {
-        shell: { div: "" },
-        status: leaf.permanent ? 308 : 307,
-        redirect: leaf.redirect,
-        rest: Promise.resolve({ content: { div: "" }, data: {}, head: "" }),
-      };
-    }
-
-    const baseContext = this.baseContext(url, match);
+    const baseContext = this.baseContext(url, resolvedMatch);
     // Segments with a loader or an unresolved lazy import are pending in the
     // shell (their loading fallback streams first); the rest render now.
-    const pending = match.route.chain.map((route) =>
+    const pending = resolvedMatch.route.chain.map((route) =>
       routeLoader(route) || hasPendingLazy(route)
         ? ({ status: "pending" } as SegmentResult)
         : ({ status: "success", data: undefined } as SegmentResult),
     );
     const shell = buildTree({
-      match,
+      match: resolvedMatch,
       baseContext,
       results: pending,
       retry: () => {},
@@ -478,17 +514,22 @@ export class AppRouter {
     }).element;
 
     const rest = (async () => {
-      const results = await this.loadMatch(match, url);
+      const results = await this.loadMatch(resolvedMatch, url);
       const slots: Record<number, Record<string, DomphyElement>> = {};
       await Promise.all(
-        match.route.chain.map(async (route, index) => {
+        resolvedMatch.route.chain.map(async (route, index) => {
           if (this.slotCompiled.has(route)) {
-            slots[index] = await this.renderSlots(index, match, url, false);
+            slots[index] = await this.renderSlots(
+              index,
+              resolvedMatch,
+              url,
+              false,
+            );
           }
         }),
       );
       const content = buildTree({
-        match,
+        match: resolvedMatch,
         baseContext,
         results,
         retry: () => {},
@@ -498,9 +539,9 @@ export class AppRouter {
       }).element;
 
       const data: Record<string, unknown> = {};
-      match.route.chain.forEach((route, index) => {
+      resolvedMatch.route.chain.forEach((route, index) => {
         if (routeLoader(route) && results[index].status === "success") {
-          data[this.cacheKey(match.route.chainIds[index], url)] =
+          data[this.cacheKey(resolvedMatch.route.chainIds[index], url)] =
             results[index].data;
         }
       });
@@ -508,8 +549,8 @@ export class AppRouter {
       let head = "";
       try {
         const metadata = await resolveMetadata(
-          match.route.chain.map((route) => routeMetadata(route)),
-          this.loaderContext(url, match),
+          resolvedMatch.route.chain.map((route) => routeMetadata(route)),
+          this.loaderContext(url, resolvedMatch),
         );
         head = renderHeadTags(metadataToHeadTags(metadata));
       } catch {

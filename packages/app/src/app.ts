@@ -170,8 +170,24 @@ export class DomphyApp {
       headers: options.headers,
     });
 
-    const { shell, status, redirect, rest } =
-      await serverRouter.renderStream(requestUrl);
+    let shell: DomphyElement;
+    let status: number;
+    let redirect: string | null;
+    let rest: Promise<{
+      content: DomphyElement;
+      data: Record<string, unknown>;
+      head: string;
+    }>;
+    try {
+      ({ shell, status, redirect, rest } =
+        await serverRouter.renderStream(requestUrl));
+    } catch (error) {
+      // renderStream() already converts RedirectSignal/NotFoundSignal into a
+      // graceful result; only an unexpected error reaches here, so the
+      // per-request router still needs releasing before it propagates.
+      serverRouter.destroy();
+      throw error;
+    }
 
     const encoder = new TextEncoder();
     const shellNode = new ElementNode({
