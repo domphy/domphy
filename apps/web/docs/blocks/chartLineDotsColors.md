@@ -1,0 +1,26 @@
+---
+title: "@domphy/blocks — chartLineDotsColors"
+description: "@domphy/chart's line-symbol renderer only ever draws one uniform (white-fill/series-stroke) circle per series and ignores any per-item color, so true per-point..."
+---
+
+# chartLineDotsColors
+
+<script setup lang="ts">
+import ChartLineDotsColorsDemo from "../demos/blocks/chartLineDotsColors.ts?raw"
+</script>
+
+A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean-room reimplemented for Domphy (see [methodology](/docs/blocks/methodology)). Call `chartLineDotsColors()` with no arguments for a working demo, or edit the code below live.
+
+<CodeEditor :code="ChartLineDotsColorsDemo" />
+
+::: details Implementation notes
+@domphy/chart's line-symbol renderer only ever draws one uniform (white-fill/series-stroke) circle per series and ignores any per-item color, so true per-point colored dots aren't reachable through ChartOption alone. Implemented via staticPointMarkersOverlay: native symbols disabled (showSymbol:false) and a companion SVG layer draws one circle per category, each colored from the data row, positioned with the same public scale factories/explicit grid the engine itself uses. X-axis fully hidden (xAxis.show:false), horizontal gridlines only, tooltip shows a vertical-swatch + bare value via lineSwatchValueTooltipFormatter. Same minor non-reactive-theme-color caveat as chartLineDots (resolved once at mount).
+
+Status: **ported** · Reference: [shadcn/ui original](https://ui.shadcn.com/charts/line)
+:::
+
+::: code-group
+<<< ../../../../packages/blocks/src/shadcn/charts/chart-line-dots-colors.ts [chartLineDotsColors]
+:::
+
+[← Back to shadcn/ui catalog](/docs/blocks/shadcn)

@@ -1,6 +1,7 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@domphy/press";
+import { blocksSidebarGroups } from "./blocks-sidebar.generated.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -343,6 +344,7 @@ export const config = defineConfig({
         { text: "Aceternity UI", link: "/docs/blocks/aceternity" },
         { text: "Methodology", link: "/docs/blocks/methodology" },
         { text: "API", link: "/docs/blocks/api" },
+        ...blocksSidebarGroups,
       ],
       "/docs/doctor/": [
         { text: "Overview", link: "/docs/doctor/" },

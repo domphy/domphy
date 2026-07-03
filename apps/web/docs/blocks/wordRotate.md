@@ -1,0 +1,26 @@
+---
+title: "@domphy/blocks — wordRotate"
+description: "Single-item reactive keyed-array swap on a setInterval timer (reusing the same enter/exit crossfade state-machine pattern this file's morphingText.ts already..."
+---
+
+# wordRotate
+
+<script setup lang="ts">
+import WordRotateDemo from "../demos/blocks/wordRotate.ts?raw"
+</script>
+
+A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-room reimplemented for Domphy (see [methodology](/docs/blocks/methodology)). Call `wordRotate()` with no arguments for a working demo, or edit the code below live.
+
+<CodeEditor :code="WordRotateDemo" />
+
+::: details Implementation notes
+Single-item reactive keyed-array swap on a setInterval timer (reusing the same enter/exit crossfade state-machine pattern this file's morphingText.ts already established), driving motion()'s WAAPI initial/animate/exit for a vertical slide+fade rather than morphingText's goo-filter crossfade. Large/bold styling and 'reverses to white in dark mode' both come for free from themeSize(increase-4)/themeColor(shift-11) — no extra dark-mode code needed. transition{duration,easing} is the requested 'escape hatch' for the crossfade's own timing.
+
+Status: **ported** · Reference: [Magic UI original](https://magicui.design/docs/components/word-rotate)
+:::
+
+::: code-group
+<<< ../../../../packages/blocks/src/magicui/text/wordRotate.ts [wordRotate]
+:::
+
+[← Back to Magic UI catalog](/docs/blocks/magicui)

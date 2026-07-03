@@ -21580,9 +21580,356 @@ dragDrop(tasks, {
 ---
 
 
-## Blocks docs (`@domphy/blocks`)
+## Blocks overview (`@domphy/blocks`)
 
-### aceternity.md
+---
+title: "@domphy/blocks"
+description: "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, clean-room reimplemented from the public behavior of shadcn/ui, Magic UI, and Aceternity UI."
+---
+
+# @domphy/blocks
+
+252 ready-to-use composed blocks and effect components: application shells (sidebar layouts, auth pages, a dashboard), chart recipes for `@domphy/chart`, and marketing/effect components (animated backgrounds, text effects, cards, buttons). Every export is a factory function you call directly — not a `$`-patch you apply to your own tag.
+
+This package exists for two reasons: it is a genuinely useful "bigger than a button" component library, and it doubles as an integration test — building 252 real-world compositions is what surfaces gaps in the rest of the ecosystem (`@domphy/ui`, `@domphy/chart`, `@domphy/table`, `@domphy/form`) that small demos never would.
+
+## Install
+
+```bash
+npm install @domphy/blocks
+```
+
+Peer dependencies: `@domphy/core`, `@domphy/theme`, `@domphy/ui`, `@domphy/chart`, `@domphy/form`, `@domphy/table` (only the ones a given block actually imports need to be present at runtime — see each block's own imports).
+
+## Quick start
+
+```ts
+import { sidebar07, dashboard01, marquee, spotlight } from "@domphy/blocks"
+
+// Every export is a factory function with an optional props object and
+// sane defaults, so calling it with no arguments renders a working demo.
+const App = sidebar07()
+
+// Pass data/labels/colors — the genuinely variable parts — as props.
+const Dashboard = dashboard01({
+  title: "Overview",
+  navItems: [{ label: "Home", href: "/" }, { label: "Settings", href: "/settings" }],
+})
+```
+
+## What's in the box
+
+- **[shadcn/ui blocks + chart recipes](/docs/blocks/shadcn)** — 16 sidebar layouts, 10 auth pages, 1 dashboard, 70 `@domphy/chart` recipe presets.
+- **[Magic UI](/docs/blocks/magicui)** — 76 marketing/effect components (text animations, backgrounds, buttons, device mocks).
+- **[Aceternity UI](/docs/blocks/aceternity)** — 79 additional effect components, deduplicated against Magic UI so nothing is ported twice.
+- **[Methodology](/docs/blocks/methodology)** — how these were built (clean-room implementation) and how to compare a block against its public reference.
+- **[API reference](/docs/blocks/api)** — the factory-function contract every export follows, and where to find each block's own props.
+
+## Full catalog
+
+See [`SOURCES.md`](https://github.com/domphy/domphy/blob/main/packages/blocks/SOURCES.md) in the repo for the complete, generated manifest (export name, source file, reference URL, status, and fidelity notes) for all 252 components.
+
+
+---
+
+
+## Blocks — shadcn/ui catalog
+
+---
+title: "@domphy/blocks — shadcn/ui"
+description: "shadcn/ui-sourced blocks (sidebar, auth, dashboard) and chart recipes, clean-room reimplemented for Domphy."
+---
+
+# shadcn/ui blocks + chart recipes
+
+97 components clean-room reimplemented from shadcn/ui's public blocks registry (sidebar/auth/dashboard layouts) and chart-recipe gallery (small `@domphy/chart` option presets). See [Methodology](/docs/blocks/methodology) for what "clean-room" means here.
+
+```ts
+import { sidebar07, login01, dashboard01, chartBarStacked } from "@domphy/blocks"
+```
+
+### auth
+
+| Export | Status | Reference |
+|---|---|---|
+| `Login01` | ported | [source](https://ui.shadcn.com/blocks) |
+| `Login02` | ported | [source](https://ui.shadcn.com/blocks) |
+| `Login03` | ported | [source](https://ui.shadcn.com/blocks) |
+| `Login04` | ported | [source](https://ui.shadcn.com/blocks) |
+| `Login05` | ported | [source](https://ui.shadcn.com/blocks) |
+| `signup01` | ported | [source](https://ui.shadcn.com/blocks) |
+| `signup02` | ported | [source](https://ui.shadcn.com/blocks) |
+| `signup03` | ported | [source](https://ui.shadcn.com/blocks) |
+| `signup04` | ported | [source](https://ui.shadcn.com/blocks) |
+| `signup05` | ported | [source](https://ui.shadcn.com/blocks) |
+
+### chart-area
+
+| Export | Status | Reference |
+|---|---|---|
+| `chartAreaAxes` | partial | [source](https://ui.shadcn.com/charts/area) |
+| `chartAreaDefault` | partial | [source](https://ui.shadcn.com/charts/area) |
+| `chartAreaGradient` | partial | [source](https://ui.shadcn.com/charts/area) |
+| `chartAreaIcons` | partial | [source](https://ui.shadcn.com/charts/area) |
+| `chartAreaInteractive` | partial | [source](https://ui.shadcn.com/charts/area) |
+| `chartAreaLegend` | partial | [source](https://ui.shadcn.com/charts/area) |
+| `chartAreaLinear` | partial | [source](https://ui.shadcn.com/charts/area) |
+| `chartAreaStacked` | partial | [source](https://ui.shadcn.com/charts/area) |
+| `chartAreaStackedExpand` | partial | [source](https://ui.shadcn.com/charts/area) |
+| `chartAreaStep` | partial | [source](https://ui.shadcn.com/charts/area) |
+
+### chart-bar
+
+| Export | Status | Reference |
+|---|---|---|
+| `chartBarActive` | partial | [source](https://ui.shadcn.com/charts/bar) |
+| `chartBarDefault` | ported | [source](https://ui.shadcn.com/charts/bar) |
+| `chartBarHorizontal` | ported | [source](https://ui.shadcn.com/charts/bar) |
+| `chartBarInteractive` | ported | [source](https://ui.shadcn.com/charts/bar) |
+| `chartBarLabel` | ported | [source](https://ui.shadcn.com/charts/bar) |
+| `chartBarLabelCustom` | ported | [source](https://ui.shadcn.com/charts/bar) |
+| `chartBarMixed` | ported | [source](https://ui.shadcn.com/charts/bar) |
+| `chartBarMultiple` | ported | [source](https://ui.shadcn.com/charts/bar) |
+| `chartBarNegative` | ported | [source](https://ui.shadcn.com/charts/bar) |
+| `chartBarStacked` | ported | [source](https://ui.shadcn.com/charts/bar) |
+
+### chart-line
+
+| Export | Status | Reference |
+|---|---|---|
+| `chartLineDefault` | ported | [source](https://ui.shadcn.com/charts/line) |
+| `chartLineDots` | ported | [source](https://ui.shadcn.com/charts/line) |
+| `chartLineDotsColors` | ported | [source](https://ui.shadcn.com/charts/line) |
+| `chartLineDotsCustom` | ported | [source](https://ui.shadcn.com/charts/line) |
+| `chartLineInteractive` | ported | [source](https://ui.shadcn.com/charts/line) |
+| `chartLineLabel` | ported | [source](https://ui.shadcn.com/charts/line) |
+| `chartLineLabelCustom` | ported | [source](https://ui.shadcn.com/charts/line) |
+| `chartLineLinear` | ported | [source](https://ui.shadcn.com/charts/line) |
+| `chartLineMultiple` | ported | [source](https://ui.shadcn.com/charts/line) |
+| `chartLineStep` | ported | [source](https://ui.shadcn.com/charts/line) |
+
+### chart-pie
+
+| Export | Status | Reference |
+|---|---|---|
+| `chartPieDonut` | ported | [source](https://ui.shadcn.com/charts/pie) |
+| `chartPieDonutActive` | ported | [source](https://ui.shadcn.com/charts/pie) |
+| `chartPieDonutText` | ported | [source](https://ui.shadcn.com/charts/pie) |
+| `chartPieInteractive` | partial | [source](https://ui.shadcn.com/charts/pie) |
+| `chartPieLabel` | ported | [source](https://ui.shadcn.com/charts/pie) |
+| `chartPieLabelCustom` | ported | [source](https://ui.shadcn.com/charts/pie) |
+| `chartPieLabelList` | ported | [source](https://ui.shadcn.com/charts/pie) |
+| `chartPieLegend` | ported | [source](https://ui.shadcn.com/charts/pie) |
+| `chartPieSeparatorNone` | ported | [source](https://ui.shadcn.com/charts/pie) |
+| `chartPieSimple` | ported | [source](https://ui.shadcn.com/charts/pie) |
+| `chartPieStacked` | ported | [source](https://ui.shadcn.com/charts/pie) |
+
+### chart-radar
+
+| Export | Status | Reference |
+|---|---|---|
+| `chartRadarDefault` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarDots` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarGrid` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarGridCircle` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarGridCircleFill` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarGridCustom` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarGridFill` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarGridNone` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarIcons` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarLabelCustom` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarLegend` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarLinesOnly` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarMultiple` | ported | [source](https://ui.shadcn.com/charts/radar) |
+| `chartRadarRadius` | ported | [source](https://ui.shadcn.com/charts/radar) |
+
+### chart-radial
+
+| Export | Status | Reference |
+|---|---|---|
+| `chartRadialGrid` | ported | [source](https://ui.shadcn.com/charts/radial) |
+| `chartRadialLabel` | ported | [source](https://ui.shadcn.com/charts/radial) |
+| `chartRadialShape` | ported | [source](https://ui.shadcn.com/charts/radial) |
+| `chartRadialSimple` | ported | [source](https://ui.shadcn.com/charts/radial) |
+| `chartRadialStacked` | ported | [source](https://ui.shadcn.com/charts/radial) |
+| `chartRadialText` | ported | [source](https://ui.shadcn.com/charts/radial) |
+
+### chart-tooltip
+
+| Export | Status | Reference |
+|---|---|---|
+| `chartTooltipAdvanced` | partial | [source](https://ui.shadcn.com/charts/tooltip) |
+| `chartTooltipDefault` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
+| `chartTooltipFormatter` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
+| `chartTooltipIcons` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
+| `chartTooltipIndicatorLine` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
+| `chartTooltipIndicatorNone` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
+| `chartTooltipLabelCustom` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
+| `chartTooltipLabelFormatter` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
+| `chartTooltipLabelNone` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
+
+### dashboard
+
+| Export | Status | Reference |
+|---|---|---|
+| `dashboard01` | complete | [source](https://ui.shadcn.com/blocks#dashboard-01) |
+
+### sidebar
+
+| Export | Status | Reference |
+|---|---|---|
+| `sidebar01` | ported | [source](https://ui.shadcn.com/blocks) |
+| `sidebar02` | ported | [source](https://ui.shadcn.com/blocks) |
+| `sidebar03` | ported | [source](https://ui.shadcn.com/blocks) |
+| `sidebar04` | ported | [source](https://ui.shadcn.com/blocks) |
+| `sidebar05` | ported | [source](https://ui.shadcn.com/blocks) |
+| `sidebar06` | partial | [source](https://ui.shadcn.com/blocks) |
+| `sidebar07` | partial | [source](https://ui.shadcn.com/blocks) |
+| `sidebar08` | partial | [source](https://ui.shadcn.com/blocks) |
+| `sidebar09` | ported | [source](https://ui.shadcn.com/blocks) |
+| `sidebar10` | ported | [source](https://ui.shadcn.com/blocks) |
+| `sidebar11` | ported | [source](https://ui.shadcn.com/blocks) |
+| `sidebar12` | ported | [source](https://ui.shadcn.com/blocks) |
+| `sidebarInDialog` | ported | [source](https://ui.shadcn.com/blocks) |
+| `sidebarLeftRight` | ported | [source](https://ui.shadcn.com/blocks) |
+| `sidebarOnRight` | ported | [source](https://ui.shadcn.com/blocks) |
+| `sidebarStickyHeader` | ported | [source](https://ui.shadcn.com/blocks) |
+
+
+---
+
+
+## Blocks — Magic UI catalog
+
+---
+title: "@domphy/blocks — Magic UI"
+description: "Magic UI-sourced marketing/effect components, clean-room reimplemented for Domphy."
+---
+
+# Magic UI components
+
+76 components clean-room reimplemented from Magic UI's free/open-source registry (text animations, backgrounds, buttons, device mocks, and marketing-page effects). See [Methodology](/docs/blocks/methodology).
+
+```ts
+import { marquee, bentoGrid, numberTicker } from "@domphy/blocks"
+```
+
+### backgrounds
+
+| Export | Status | Reference |
+|---|---|---|
+| `animatedGridPattern` | ported | [source](https://magicui.design/docs/components/animated-grid-pattern) |
+| `dotPattern` | ported | [source](https://magicui.design/docs/components/dot-pattern) |
+| `flickeringGrid` | ported | [source](https://magicui.design/docs/components/flickering-grid) |
+| `gridPattern` | ported | [source](https://magicui.design/docs/components/grid-pattern) |
+| `hexagonPattern` | ported | [source](https://magicui.design/docs/components/hexagon-pattern) |
+| `interactiveGridPattern` | ported | [source](https://magicui.design/docs/components/interactive-grid-pattern) |
+| `lightRays` | ported | [source](https://magicui.design/docs/components/light-rays) |
+| `noiseTexture` | partial | [source](https://magicui.design/docs/components/noise-texture) |
+| `retroGrid` | ported | [source](https://magicui.design/docs/components/retro-grid) |
+| `ripple` | ported | [source](https://magicui.design/docs/components/ripple) |
+| `stripedPattern` | ported | [source](https://magicui.design/docs/components/striped-pattern) |
+
+### buttons
+
+| Export | Status | Reference |
+|---|---|---|
+| `rainbowButton` | ported | [source](https://magicui.design/docs/components/rainbow-button) |
+| `rippleButton` | ported | [source](https://magicui.design/docs/components/ripple-button) |
+| `shimmerButton` | ported | [source](https://magicui.design/docs/components/shimmer-button) |
+
+### community
+
+| Export | Status | Reference |
+|---|---|---|
+| `animatedCircularProgressBar` | ported | [source](https://magicui.design/docs/components/animated-circular-progress-bar) |
+| `backlight` | ported | [source](https://magicui.design/docs/components/backlight) |
+| `codeComparison` | partial | [source](https://magicui.design/docs/components/code-comparison) |
+| `comicText` | ported | [source](https://magicui.design/docs/components/comic-text) |
+| `coolMode` | ported | [source](https://magicui.design/docs/components/cool-mode) |
+| `fileTree` | ported | [source](https://magicui.design/docs/components/file-tree) |
+| `interactiveHoverButton` | ported | [source](https://magicui.design/docs/components/interactive-hover-button) |
+| `kineticText` | ported | [source](https://magicui.design/docs/components/kinetic-text) |
+| `neonGradientCard` | ported | [source](https://magicui.design/docs/components/neon-gradient-card) |
+| `pixelImage` | ported | [source](https://magicui.design/docs/components/pixel-image) |
+| `pulsatingButton` | ported | [source](https://magicui.design/docs/components/pulsating-button) |
+| `scrollProgress` | ported | [source](https://magicui.design/docs/components/scroll-progress) |
+| `shinyButton` | ported | [source](https://magicui.design/docs/components/shiny-button) |
+| `warpBackground` | ported | [source](https://magicui.design/docs/components/warp-background) |
+
+### core
+
+| Export | Status | Reference |
+|---|---|---|
+| `animatedList` | ported | [source](https://magicui.design/docs/components/animated-list) |
+| `avatarCircles` | ported | [source](https://magicui.design/docs/components/avatar-circles) |
+| `bentoGrid` | ported | [source](https://magicui.design/docs/components/bento-grid) |
+| `dock` | ported | [source](https://magicui.design/docs/components/dock) |
+| `dottedMap` | ported | [source](https://magicui.design/docs/components/dotted-map) |
+| `globe` | ported | [source](https://magicui.design/docs/components/globe) |
+| `heroVideoDialog` | ported | [source](https://magicui.design/docs/components/hero-video-dialog) |
+| `iconCloud` | ported | [source](https://magicui.design/docs/components/icon-cloud) |
+| `lens` | ported | [source](https://magicui.design/docs/components/lens) |
+| `marquee` | ported | [source](https://magicui.design/docs/components/marquee) |
+| `orbitingCircles` | ported | [source](https://magicui.design/docs/components/orbiting-circles) |
+| `pointer` | ported | [source](https://magicui.design/docs/components/pointer) |
+| `progressiveBlur` | ported | [source](https://magicui.design/docs/components/progressive-blur) |
+| `smoothCursor` | ported | [source](https://magicui.design/docs/components/smooth-cursor) |
+| `terminal` | ported | [source](https://magicui.design/docs/components/terminal) |
+| `tweetCard` | ported | [source](https://magicui.design/docs/components/tweet-card) |
+
+### device-mocks
+
+| Export | Status | Reference |
+|---|---|---|
+| `android` | ported | [source](https://magicui.design/docs/components/android) |
+| `iphone` | ported | [source](https://magicui.design/docs/components/iphone) |
+| `safari` | ported | [source](https://magicui.design/docs/components/safari) |
+
+### effects
+
+| Export | Status | Reference |
+|---|---|---|
+| `animatedBeam` | ported | [source](https://magicui.design/docs/components/animated-beam) |
+| `animatedThemeToggler` | ported | [source](https://magicui.design/docs/components/animated-theme-toggler) |
+| `blurFade` | ported | [source](https://magicui.design/docs/components/blur-fade) |
+| `borderBeam` | ported | [source](https://magicui.design/docs/components/border-beam) |
+| `confetti` | ported | [source](https://magicui.design/docs/components/confetti) |
+| `confettiButton` | ported | [source](https://magicui.design/docs/components/confetti) |
+| `glareHover` | ported | [source](https://magicui.design/docs/components/glare-hover) |
+| `magicCard` | ported | [source](https://magicui.design/docs/components/magic-card) |
+| `meteors` | ported | [source](https://magicui.design/docs/components/meteors) |
+| `particles` | ported | [source](https://magicui.design/docs/components/particles) |
+| `shineBorder` | ported | [source](https://magicui.design/docs/components/shine-border) |
+
+### text
+
+| Export | Status | Reference |
+|---|---|---|
+| `animatedGradientText` | ported | [source](https://magicui.design/docs/components/animated-gradient-text) |
+| `animatedShinyText` | ported | [source](https://magicui.design/docs/components/animated-shiny-text) |
+| `auroraText` | ported | [source](https://magicui.design/docs/components/aurora-text) |
+| `diaTextReveal` | partial | [source](https://magicui.design/docs/components/dia-text-reveal) |
+| `hyperText` | ported | [source](https://magicui.design/docs/components/hyper-text) |
+| `lineShadowText` | ported | [source](https://magicui.design/docs/components/line-shadow-text) |
+| `morphingText` | ported | [source](https://magicui.design/docs/components/morphing-text) |
+| `numberTicker` | ported | [source](https://magicui.design/docs/components/number-ticker) |
+| `scrollBasedVelocity` | ported | [source](https://magicui.design/docs/components/scroll-based-velocity) |
+| `sparklesText` | ported | [source](https://magicui.design/docs/components/sparkles-text) |
+| `spinningText` | ported | [source](https://magicui.design/docs/components/spinning-text) |
+| `text3dFlip` | partial | [source](https://magicui.design/docs/components/text-3d-flip) |
+| `textAnimate` | ported | [source](https://magicui.design/docs/components/text-animate) |
+| `textHighlighter` | ported | [source](https://magicui.design/docs/components/highlighter) |
+| `textReveal` | ported | [source](https://magicui.design/docs/components/text-reveal) |
+| `typingAnimation` | ported | [source](https://magicui.design/docs/components/typing-animation) |
+| `videoText` | ported | [source](https://magicui.design/docs/components/video-text) |
+| `wordRotate` | ported | [source](https://magicui.design/docs/components/word-rotate) |
+
+
+---
+
+
+## Blocks — Aceternity UI catalog
 
 ---
 title: "@domphy/blocks — Aceternity UI"
@@ -21751,215 +22098,11 @@ import { spotlight, card3D, hoverBorderGradient } from "@domphy/blocks"
 | `textHoverEffect` | ported | [source](https://ui.aceternity.com/components/text-hover-effect) |
 | `textRevealCard` | ported | [source](https://ui.aceternity.com/components/text-reveal-card) |
 
-### api.md
 
 ---
-title: "@domphy/blocks — API"
-description: "The factory-function contract every @domphy/blocks export follows."
----
 
-# API
 
-## The factory-function contract
-
-Every export in `@domphy/blocks` is a factory function, not a `$`-patch:
-
-```ts
-function name(props?: SomeProps): DomphyElement
-```
-
-- Call it directly to get a complete, mountable element tree: `const App = sidebar07()`.
-- `props` is a single optional object with sane defaults — calling `name()` with zero arguments always renders a working demo (this is also what the visual-compare script screenshots).
-- Only the genuinely variable parts are parameterized: data arrays (nav items, table rows, chart series, testimonial lists), primary text/labels, and key colors. Layout and structure stay a fixed literal tree, closer to a "copy-paste block" than a heavily configurable component — if you need something the props don't cover, copy the block's source out of `node_modules` and edit it directly, the same way you would with a shadcn block.
-
-## Finding a block's own props
-
-Each block's props type is exported alongside it (e.g. `HoverBorderGradientProps` next to `hoverBorderGradient`). The fastest way to see a block's full prop contract and inline documentation is to open its source file directly — every block lives under `packages/blocks/src/<source>/<category>/<name>.ts` in the repo, and the path is recorded in [`SOURCES.md`](https://github.com/domphy/domphy/blob/main/packages/blocks/SOURCES.md) / `registry.json`.
-
-## Composing blocks
-
-Some blocks reuse other blocks internally — `dashboard01`, for example, composes `sidebar07` (the icon-collapsible sidebar shell), a `@domphy/chart` recipe, and `@domphy/table`. There's nothing special about this: import the pieces you want and nest them like any other Domphy element tree.
-
-## Self-check
-
-Like the rest of Domphy, run `@domphy/doctor`'s `diagnose()`/`validate()` on any block you customize to catch non-idiomatic changes (raw colors, inline typography, tone/contrast issues) before shipping.
-
-### index.md
-
----
-title: "@domphy/blocks"
-description: "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, clean-room reimplemented from the public behavior of shadcn/ui, Magic UI, and Aceternity UI."
----
-
-# @domphy/blocks
-
-252 ready-to-use composed blocks and effect components: application shells (sidebar layouts, auth pages, a dashboard), chart recipes for `@domphy/chart`, and marketing/effect components (animated backgrounds, text effects, cards, buttons). Every export is a factory function you call directly — not a `$`-patch you apply to your own tag.
-
-This package exists for two reasons: it is a genuinely useful "bigger than a button" component library, and it doubles as an integration test — building 252 real-world compositions is what surfaces gaps in the rest of the ecosystem (`@domphy/ui`, `@domphy/chart`, `@domphy/table`, `@domphy/form`) that small demos never would.
-
-## Install
-
-```bash
-npm install @domphy/blocks
-```
-
-Peer dependencies: `@domphy/core`, `@domphy/theme`, `@domphy/ui`, `@domphy/chart`, `@domphy/form`, `@domphy/table` (only the ones a given block actually imports need to be present at runtime — see each block's own imports).
-
-## Quick start
-
-```ts
-import { sidebar07, dashboard01, marquee, spotlight } from "@domphy/blocks"
-
-// Every export is a factory function with an optional props object and
-// sane defaults, so calling it with no arguments renders a working demo.
-const App = sidebar07()
-
-// Pass data/labels/colors — the genuinely variable parts — as props.
-const Dashboard = dashboard01({
-  title: "Overview",
-  navItems: [{ label: "Home", href: "/" }, { label: "Settings", href: "/settings" }],
-})
-```
-
-## What's in the box
-
-- **[shadcn/ui blocks + chart recipes](/docs/blocks/shadcn)** — 16 sidebar layouts, 10 auth pages, 1 dashboard, 70 `@domphy/chart` recipe presets.
-- **[Magic UI](/docs/blocks/magicui)** — 76 marketing/effect components (text animations, backgrounds, buttons, device mocks).
-- **[Aceternity UI](/docs/blocks/aceternity)** — 79 additional effect components, deduplicated against Magic UI so nothing is ported twice.
-- **[Methodology](/docs/blocks/methodology)** — how these were built (clean-room implementation) and how to compare a block against its public reference.
-- **[API reference](/docs/blocks/api)** — the factory-function contract every export follows, and where to find each block's own props.
-
-## Full catalog
-
-See [`SOURCES.md`](https://github.com/domphy/domphy/blob/main/packages/blocks/SOURCES.md) in the repo for the complete, generated manifest (export name, source file, reference URL, status, and fidelity notes) for all 252 components.
-
-### magicui.md
-
----
-title: "@domphy/blocks — Magic UI"
-description: "Magic UI-sourced marketing/effect components, clean-room reimplemented for Domphy."
----
-
-# Magic UI components
-
-76 components clean-room reimplemented from Magic UI's free/open-source registry (text animations, backgrounds, buttons, device mocks, and marketing-page effects). See [Methodology](/docs/blocks/methodology).
-
-```ts
-import { marquee, bentoGrid, numberTicker } from "@domphy/blocks"
-```
-
-### backgrounds
-
-| Export | Status | Reference |
-|---|---|---|
-| `animatedGridPattern` | ported | [source](https://magicui.design/docs/components/animated-grid-pattern) |
-| `dotPattern` | ported | [source](https://magicui.design/docs/components/dot-pattern) |
-| `flickeringGrid` | ported | [source](https://magicui.design/docs/components/flickering-grid) |
-| `gridPattern` | ported | [source](https://magicui.design/docs/components/grid-pattern) |
-| `hexagonPattern` | ported | [source](https://magicui.design/docs/components/hexagon-pattern) |
-| `interactiveGridPattern` | ported | [source](https://magicui.design/docs/components/interactive-grid-pattern) |
-| `lightRays` | ported | [source](https://magicui.design/docs/components/light-rays) |
-| `noiseTexture` | partial | [source](https://magicui.design/docs/components/noise-texture) |
-| `retroGrid` | ported | [source](https://magicui.design/docs/components/retro-grid) |
-| `ripple` | ported | [source](https://magicui.design/docs/components/ripple) |
-| `stripedPattern` | ported | [source](https://magicui.design/docs/components/striped-pattern) |
-
-### buttons
-
-| Export | Status | Reference |
-|---|---|---|
-| `rainbowButton` | ported | [source](https://magicui.design/docs/components/rainbow-button) |
-| `rippleButton` | ported | [source](https://magicui.design/docs/components/ripple-button) |
-| `shimmerButton` | ported | [source](https://magicui.design/docs/components/shimmer-button) |
-
-### community
-
-| Export | Status | Reference |
-|---|---|---|
-| `animatedCircularProgressBar` | ported | [source](https://magicui.design/docs/components/animated-circular-progress-bar) |
-| `backlight` | ported | [source](https://magicui.design/docs/components/backlight) |
-| `codeComparison` | partial | [source](https://magicui.design/docs/components/code-comparison) |
-| `comicText` | ported | [source](https://magicui.design/docs/components/comic-text) |
-| `coolMode` | ported | [source](https://magicui.design/docs/components/cool-mode) |
-| `fileTree` | ported | [source](https://magicui.design/docs/components/file-tree) |
-| `interactiveHoverButton` | ported | [source](https://magicui.design/docs/components/interactive-hover-button) |
-| `kineticText` | ported | [source](https://magicui.design/docs/components/kinetic-text) |
-| `neonGradientCard` | ported | [source](https://magicui.design/docs/components/neon-gradient-card) |
-| `pixelImage` | ported | [source](https://magicui.design/docs/components/pixel-image) |
-| `pulsatingButton` | ported | [source](https://magicui.design/docs/components/pulsating-button) |
-| `scrollProgress` | ported | [source](https://magicui.design/docs/components/scroll-progress) |
-| `shinyButton` | ported | [source](https://magicui.design/docs/components/shiny-button) |
-| `warpBackground` | ported | [source](https://magicui.design/docs/components/warp-background) |
-
-### core
-
-| Export | Status | Reference |
-|---|---|---|
-| `animatedList` | ported | [source](https://magicui.design/docs/components/animated-list) |
-| `avatarCircles` | ported | [source](https://magicui.design/docs/components/avatar-circles) |
-| `bentoGrid` | ported | [source](https://magicui.design/docs/components/bento-grid) |
-| `dock` | ported | [source](https://magicui.design/docs/components/dock) |
-| `dottedMap` | ported | [source](https://magicui.design/docs/components/dotted-map) |
-| `globe` | ported | [source](https://magicui.design/docs/components/globe) |
-| `heroVideoDialog` | ported | [source](https://magicui.design/docs/components/hero-video-dialog) |
-| `iconCloud` | ported | [source](https://magicui.design/docs/components/icon-cloud) |
-| `lens` | ported | [source](https://magicui.design/docs/components/lens) |
-| `marquee` | ported | [source](https://magicui.design/docs/components/marquee) |
-| `orbitingCircles` | ported | [source](https://magicui.design/docs/components/orbiting-circles) |
-| `pointer` | ported | [source](https://magicui.design/docs/components/pointer) |
-| `progressiveBlur` | ported | [source](https://magicui.design/docs/components/progressive-blur) |
-| `smoothCursor` | ported | [source](https://magicui.design/docs/components/smooth-cursor) |
-| `terminal` | ported | [source](https://magicui.design/docs/components/terminal) |
-| `tweetCard` | ported | [source](https://magicui.design/docs/components/tweet-card) |
-
-### device-mocks
-
-| Export | Status | Reference |
-|---|---|---|
-| `android` | ported | [source](https://magicui.design/docs/components/android) |
-| `iphone` | ported | [source](https://magicui.design/docs/components/iphone) |
-| `safari` | ported | [source](https://magicui.design/docs/components/safari) |
-
-### effects
-
-| Export | Status | Reference |
-|---|---|---|
-| `animatedBeam` | ported | [source](https://magicui.design/docs/components/animated-beam) |
-| `animatedThemeToggler` | ported | [source](https://magicui.design/docs/components/animated-theme-toggler) |
-| `blurFade` | ported | [source](https://magicui.design/docs/components/blur-fade) |
-| `borderBeam` | ported | [source](https://magicui.design/docs/components/border-beam) |
-| `confetti` | ported | [source](https://magicui.design/docs/components/confetti) |
-| `confettiButton` | ported | [source](https://magicui.design/docs/components/confetti) |
-| `glareHover` | ported | [source](https://magicui.design/docs/components/glare-hover) |
-| `magicCard` | ported | [source](https://magicui.design/docs/components/magic-card) |
-| `meteors` | ported | [source](https://magicui.design/docs/components/meteors) |
-| `particles` | ported | [source](https://magicui.design/docs/components/particles) |
-| `shineBorder` | ported | [source](https://magicui.design/docs/components/shine-border) |
-
-### text
-
-| Export | Status | Reference |
-|---|---|---|
-| `animatedGradientText` | ported | [source](https://magicui.design/docs/components/animated-gradient-text) |
-| `animatedShinyText` | ported | [source](https://magicui.design/docs/components/animated-shiny-text) |
-| `auroraText` | ported | [source](https://magicui.design/docs/components/aurora-text) |
-| `diaTextReveal` | partial | [source](https://magicui.design/docs/components/dia-text-reveal) |
-| `hyperText` | ported | [source](https://magicui.design/docs/components/hyper-text) |
-| `lineShadowText` | ported | [source](https://magicui.design/docs/components/line-shadow-text) |
-| `morphingText` | ported | [source](https://magicui.design/docs/components/morphing-text) |
-| `numberTicker` | ported | [source](https://magicui.design/docs/components/number-ticker) |
-| `scrollBasedVelocity` | ported | [source](https://magicui.design/docs/components/scroll-based-velocity) |
-| `sparklesText` | ported | [source](https://magicui.design/docs/components/sparkles-text) |
-| `spinningText` | ported | [source](https://magicui.design/docs/components/spinning-text) |
-| `text3dFlip` | partial | [source](https://magicui.design/docs/components/text-3d-flip) |
-| `textAnimate` | ported | [source](https://magicui.design/docs/components/text-animate) |
-| `textHighlighter` | ported | [source](https://magicui.design/docs/components/highlighter) |
-| `textReveal` | ported | [source](https://magicui.design/docs/components/text-reveal) |
-| `typingAnimation` | ported | [source](https://magicui.design/docs/components/typing-animation) |
-| `videoText` | ported | [source](https://magicui.design/docs/components/video-text) |
-| `wordRotate` | ported | [source](https://magicui.design/docs/components/word-rotate) |
-
-### methodology.md
+## Blocks — methodology (clean-room)
 
 ---
 title: "@domphy/blocks — Methodology"
@@ -21997,168 +22140,42 @@ Two ways to check a block against the public pattern it's based on:
 - **Read the reference URL.** Every `SOURCES.md`/`registry.json` entry links to the live docs page it was specified from — open it side by side with the block's demo.
 - **Run the visual-compare script.** `pnpm --filter @domphy/blocks visual-compare [exportName]` boots the local demo harness, screenshots the block, screenshots the reference URL with Playwright, and writes both images to a local (gitignored) folder for side-by-side inspection. This is an on-demand developer tool, not part of CI — reference screenshots are never committed to the repository.
 
-### shadcn.md
 
 ---
-title: "@domphy/blocks — shadcn/ui"
-description: "shadcn/ui-sourced blocks (sidebar, auth, dashboard) and chart recipes, clean-room reimplemented for Domphy."
+
+
+## Blocks — API
+
+---
+title: "@domphy/blocks — API"
+description: "The factory-function contract every @domphy/blocks export follows."
 ---
 
-# shadcn/ui blocks + chart recipes
+# API
 
-97 components clean-room reimplemented from shadcn/ui's public blocks registry (sidebar/auth/dashboard layouts) and chart-recipe gallery (small `@domphy/chart` option presets). See [Methodology](/docs/blocks/methodology) for what "clean-room" means here.
+## The factory-function contract
+
+Every export in `@domphy/blocks` is a factory function, not a `$`-patch:
 
 ```ts
-import { sidebar07, login01, dashboard01, chartBarStacked } from "@domphy/blocks"
+function name(props?: SomeProps): DomphyElement
 ```
 
-### auth
+- Call it directly to get a complete, mountable element tree: `const App = sidebar07()`.
+- `props` is a single optional object with sane defaults — calling `name()` with zero arguments always renders a working demo (this is also what the visual-compare script screenshots).
+- Only the genuinely variable parts are parameterized: data arrays (nav items, table rows, chart series, testimonial lists), primary text/labels, and key colors. Layout and structure stay a fixed literal tree, closer to a "copy-paste block" than a heavily configurable component — if you need something the props don't cover, copy the block's source out of `node_modules` and edit it directly, the same way you would with a shadcn block.
 
-| Export | Status | Reference |
-|---|---|---|
-| `Login01` | ported | [source](https://ui.shadcn.com/blocks) |
-| `Login02` | ported | [source](https://ui.shadcn.com/blocks) |
-| `Login03` | ported | [source](https://ui.shadcn.com/blocks) |
-| `Login04` | ported | [source](https://ui.shadcn.com/blocks) |
-| `Login05` | ported | [source](https://ui.shadcn.com/blocks) |
-| `signup01` | ported | [source](https://ui.shadcn.com/blocks) |
-| `signup02` | ported | [source](https://ui.shadcn.com/blocks) |
-| `signup03` | ported | [source](https://ui.shadcn.com/blocks) |
-| `signup04` | ported | [source](https://ui.shadcn.com/blocks) |
-| `signup05` | ported | [source](https://ui.shadcn.com/blocks) |
+## Finding a block's own props
 
-### chart-area
+Each block's props type is exported alongside it (e.g. `HoverBorderGradientProps` next to `hoverBorderGradient`). The fastest way to see a block's full prop contract and inline documentation is to open its source file directly — every block lives under `packages/blocks/src/<source>/<category>/<name>.ts` in the repo, and the path is recorded in [`SOURCES.md`](https://github.com/domphy/domphy/blob/main/packages/blocks/SOURCES.md) / `registry.json`.
 
-| Export | Status | Reference |
-|---|---|---|
-| `chartAreaAxes` | partial | [source](https://ui.shadcn.com/charts/area) |
-| `chartAreaDefault` | partial | [source](https://ui.shadcn.com/charts/area) |
-| `chartAreaGradient` | partial | [source](https://ui.shadcn.com/charts/area) |
-| `chartAreaIcons` | partial | [source](https://ui.shadcn.com/charts/area) |
-| `chartAreaInteractive` | partial | [source](https://ui.shadcn.com/charts/area) |
-| `chartAreaLegend` | partial | [source](https://ui.shadcn.com/charts/area) |
-| `chartAreaLinear` | partial | [source](https://ui.shadcn.com/charts/area) |
-| `chartAreaStacked` | partial | [source](https://ui.shadcn.com/charts/area) |
-| `chartAreaStackedExpand` | partial | [source](https://ui.shadcn.com/charts/area) |
-| `chartAreaStep` | partial | [source](https://ui.shadcn.com/charts/area) |
+## Composing blocks
 
-### chart-bar
+Some blocks reuse other blocks internally — `dashboard01`, for example, composes `sidebar07` (the icon-collapsible sidebar shell), a `@domphy/chart` recipe, and `@domphy/table`. There's nothing special about this: import the pieces you want and nest them like any other Domphy element tree.
 
-| Export | Status | Reference |
-|---|---|---|
-| `chartBarActive` | partial | [source](https://ui.shadcn.com/charts/bar) |
-| `chartBarDefault` | ported | [source](https://ui.shadcn.com/charts/bar) |
-| `chartBarHorizontal` | ported | [source](https://ui.shadcn.com/charts/bar) |
-| `chartBarInteractive` | ported | [source](https://ui.shadcn.com/charts/bar) |
-| `chartBarLabel` | ported | [source](https://ui.shadcn.com/charts/bar) |
-| `chartBarLabelCustom` | ported | [source](https://ui.shadcn.com/charts/bar) |
-| `chartBarMixed` | ported | [source](https://ui.shadcn.com/charts/bar) |
-| `chartBarMultiple` | ported | [source](https://ui.shadcn.com/charts/bar) |
-| `chartBarNegative` | ported | [source](https://ui.shadcn.com/charts/bar) |
-| `chartBarStacked` | ported | [source](https://ui.shadcn.com/charts/bar) |
+## Self-check
 
-### chart-line
-
-| Export | Status | Reference |
-|---|---|---|
-| `chartLineDefault` | ported | [source](https://ui.shadcn.com/charts/line) |
-| `chartLineDots` | ported | [source](https://ui.shadcn.com/charts/line) |
-| `chartLineDotsColors` | ported | [source](https://ui.shadcn.com/charts/line) |
-| `chartLineDotsCustom` | ported | [source](https://ui.shadcn.com/charts/line) |
-| `chartLineInteractive` | ported | [source](https://ui.shadcn.com/charts/line) |
-| `chartLineLabel` | ported | [source](https://ui.shadcn.com/charts/line) |
-| `chartLineLabelCustom` | ported | [source](https://ui.shadcn.com/charts/line) |
-| `chartLineLinear` | ported | [source](https://ui.shadcn.com/charts/line) |
-| `chartLineMultiple` | ported | [source](https://ui.shadcn.com/charts/line) |
-| `chartLineStep` | ported | [source](https://ui.shadcn.com/charts/line) |
-
-### chart-pie
-
-| Export | Status | Reference |
-|---|---|---|
-| `chartPieDonut` | ported | [source](https://ui.shadcn.com/charts/pie) |
-| `chartPieDonutActive` | ported | [source](https://ui.shadcn.com/charts/pie) |
-| `chartPieDonutText` | ported | [source](https://ui.shadcn.com/charts/pie) |
-| `chartPieInteractive` | partial | [source](https://ui.shadcn.com/charts/pie) |
-| `chartPieLabel` | ported | [source](https://ui.shadcn.com/charts/pie) |
-| `chartPieLabelCustom` | ported | [source](https://ui.shadcn.com/charts/pie) |
-| `chartPieLabelList` | ported | [source](https://ui.shadcn.com/charts/pie) |
-| `chartPieLegend` | ported | [source](https://ui.shadcn.com/charts/pie) |
-| `chartPieSeparatorNone` | ported | [source](https://ui.shadcn.com/charts/pie) |
-| `chartPieSimple` | ported | [source](https://ui.shadcn.com/charts/pie) |
-| `chartPieStacked` | ported | [source](https://ui.shadcn.com/charts/pie) |
-
-### chart-radar
-
-| Export | Status | Reference |
-|---|---|---|
-| `chartRadarDefault` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarDots` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarGrid` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarGridCircle` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarGridCircleFill` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarGridCustom` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarGridFill` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarGridNone` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarIcons` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarLabelCustom` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarLegend` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarLinesOnly` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarMultiple` | ported | [source](https://ui.shadcn.com/charts/radar) |
-| `chartRadarRadius` | ported | [source](https://ui.shadcn.com/charts/radar) |
-
-### chart-radial
-
-| Export | Status | Reference |
-|---|---|---|
-| `chartRadialGrid` | ported | [source](https://ui.shadcn.com/charts/radial) |
-| `chartRadialLabel` | ported | [source](https://ui.shadcn.com/charts/radial) |
-| `chartRadialShape` | ported | [source](https://ui.shadcn.com/charts/radial) |
-| `chartRadialSimple` | ported | [source](https://ui.shadcn.com/charts/radial) |
-| `chartRadialStacked` | ported | [source](https://ui.shadcn.com/charts/radial) |
-| `chartRadialText` | ported | [source](https://ui.shadcn.com/charts/radial) |
-
-### chart-tooltip
-
-| Export | Status | Reference |
-|---|---|---|
-| `chartTooltipAdvanced` | partial | [source](https://ui.shadcn.com/charts/tooltip) |
-| `chartTooltipDefault` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
-| `chartTooltipFormatter` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
-| `chartTooltipIcons` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
-| `chartTooltipIndicatorLine` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
-| `chartTooltipIndicatorNone` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
-| `chartTooltipLabelCustom` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
-| `chartTooltipLabelFormatter` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
-| `chartTooltipLabelNone` | ported | [source](https://ui.shadcn.com/charts/tooltip) |
-
-### dashboard
-
-| Export | Status | Reference |
-|---|---|---|
-| `dashboard01` | complete | [source](https://ui.shadcn.com/blocks#dashboard-01) |
-
-### sidebar
-
-| Export | Status | Reference |
-|---|---|---|
-| `sidebar01` | ported | [source](https://ui.shadcn.com/blocks) |
-| `sidebar02` | ported | [source](https://ui.shadcn.com/blocks) |
-| `sidebar03` | ported | [source](https://ui.shadcn.com/blocks) |
-| `sidebar04` | ported | [source](https://ui.shadcn.com/blocks) |
-| `sidebar05` | ported | [source](https://ui.shadcn.com/blocks) |
-| `sidebar06` | partial | [source](https://ui.shadcn.com/blocks) |
-| `sidebar07` | partial | [source](https://ui.shadcn.com/blocks) |
-| `sidebar08` | partial | [source](https://ui.shadcn.com/blocks) |
-| `sidebar09` | ported | [source](https://ui.shadcn.com/blocks) |
-| `sidebar10` | ported | [source](https://ui.shadcn.com/blocks) |
-| `sidebar11` | ported | [source](https://ui.shadcn.com/blocks) |
-| `sidebar12` | ported | [source](https://ui.shadcn.com/blocks) |
-| `sidebarInDialog` | ported | [source](https://ui.shadcn.com/blocks) |
-| `sidebarLeftRight` | ported | [source](https://ui.shadcn.com/blocks) |
-| `sidebarOnRight` | ported | [source](https://ui.shadcn.com/blocks) |
-| `sidebarStickyHeader` | ported | [source](https://ui.shadcn.com/blocks) |
-
+Like the rest of Domphy, run `@domphy/doctor`'s `diagnose()`/`validate()` on any block you customize to catch non-idiomatic changes (raw colors, inline typography, tone/contrast issues) before shipping.
 
 
 ---
