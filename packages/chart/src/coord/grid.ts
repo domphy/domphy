@@ -45,10 +45,27 @@ function dataExtentFromSeries(
 ): [number, number] {
   let min = Infinity;
   let max = -Infinity;
+
+  // Series sharing a `stack` id are rendered as a cumulative running total on
+  // this dimension (see engine.ts's accumStackedLines and gl/BarRenderer.ts's
+  // stackTops/stackRights) — the axis extent must be computed from that same
+  // cumulative sum, not each series' own raw values, or the topmost stacked
+  // layer overflows past an axis that was auto-sized from individual-series
+  // maxima (each stacked series' running total is tracked in its own map
+  // entry so unrelated stack groups don't bleed into each other).
+  const stackRunningTotal = new Map<string, number[]>();
+
   for (const s of series) {
     if ((s[axisKey] ?? 0) !== axisIndex) continue;
     const data: any[] = s.data ?? [];
-    for (const item of data) {
+    const stackName: string | undefined = typeof s.stack === "string" ? s.stack : undefined;
+    let acc: number[] | undefined;
+    if (stackName) {
+      if (!stackRunningTotal.has(stackName)) stackRunningTotal.set(stackName, []);
+      acc = stackRunningTotal.get(stackName)!;
+    }
+
+    data.forEach((item, itemIndex) => {
       if (Array.isArray(item)) {
         if (s.type === "boxplot") {
           // boxplot: [min, Q1, median, Q3, max] — capture full range on y dim
@@ -59,11 +76,14 @@ function dataExtentFromSeries(
           } else {
             // x is the category index (handled by OrdinalScale)
           }
-          continue;
+          return;
         }
-        const value = dim === "x" ? item[0] : item[1];
-        if (typeof value === "number" && !Number.isNaN(value)) { min = Math.min(min, value); max = Math.max(max, value); }
-        continue;
+        let value = dim === "x" ? item[0] : item[1];
+        if (typeof value === "number" && !Number.isNaN(value)) {
+          if (acc) { value = (acc[itemIndex] ?? 0) + value; acc[itemIndex] = value; }
+          min = Math.min(min, value); max = Math.max(max, value);
+        }
+        return;
       }
       let value: number | null = null;
       if (typeof item === "number") {
@@ -74,10 +94,11 @@ function dataExtentFromSeries(
         else if (Array.isArray(raw)) value = dim === "x" ? raw[0] : raw[1];
       }
       if (value !== null && !Number.isNaN(value)) {
+        if (acc) { value = (acc[itemIndex] ?? 0) + value; acc[itemIndex] = value; }
         min = Math.min(min, value);
         max = Math.max(max, value);
       }
-    }
+    });
   }
   return [
     Number.isFinite(min) ? min : 0,

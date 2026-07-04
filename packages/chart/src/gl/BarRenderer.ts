@@ -92,12 +92,16 @@ export class BarRenderer {
     const barRadius = 2;
     const gap = 2; // px gap between bars in a group
 
-    // Detect orientation: y-axis has bandwidth → horizontal bars (y=category, x=value)
-    const isHorizontal = yScale.bandwidth() > 0;
+    // Detect orientation: y-axis has bandwidth → horizontal bars (y=category, x=value).
+    // The grid's y-scale pixel range is intentionally reversed (bottom→top, see
+    // coord/grid.ts) so an ordinal y-scale's bandwidth() comes back negative —
+    // same quirk HeatmapRenderer.ts already guards against with Math.abs(). Without
+    // it, `> 0` is always false for horizontal bars and they silently fail to render.
+    const isHorizontal = Math.abs(yScale.bandwidth()) > 0;
 
     if (isHorizontal) {
       // Horizontal grouped bars
-      const bandH = yScale.bandwidth();
+      const bandH = Math.abs(yScale.bandwidth());
       const groupCount = Math.max(1, grouped.length);
       const groupBarH = groupCount > 1
         ? (bandH * 0.85 - (groupCount - 1) * gap) / groupCount

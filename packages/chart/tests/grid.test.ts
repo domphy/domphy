@@ -62,6 +62,35 @@ describe("resolveGrid", () => {
     expect(hi).toBeGreaterThanOrEqual(20);
   });
 
+  it("sizes the y-extent from the cumulative stacked total, not each series' own raw values", () => {
+    const yAxis: AxisOption = { type: "value" };
+    // Two series sharing a stack id: rendered top is desktop+mobile per index,
+    // so the axis must be sized off that sum (30), not each series' own max
+    // (desktop=20, mobile=10) — otherwise a stacked area/bar's top layer
+    // overflows past an axis auto-sized from individual-series maxima.
+    const series = [
+      { yAxisIndex: 0, stack: "total", data: [10, 20] },
+      { yAxisIndex: 0, stack: "total", data: [5, 10] },
+    ];
+    const { yScales } = resolveGrid([{}], [], [yAxis], series, 800, 400);
+    const [, hi] = yScales[0].domain as [number, number];
+    expect(hi).toBeGreaterThanOrEqual(30);
+  });
+
+  it("keeps unrelated stack groups and non-stacked series independent when computing extent", () => {
+    const yAxis: AxisOption = { type: "value" };
+    const series = [
+      { yAxisIndex: 0, stack: "a", data: [10] },
+      { yAxisIndex: 0, stack: "a", data: [10] }, // stack "a" cumulative total: 20
+      { yAxisIndex: 0, stack: "b", data: [100] }, // separate stack, unaffected by "a"
+      { yAxisIndex: 0, data: [1] }, // non-stacked, contributes its own raw value
+    ];
+    const { yScales } = resolveGrid([{}], [], [yAxis], series, 800, 400);
+    const [lo, hi] = yScales[0].domain as [number, number];
+    expect(lo).toBeLessThanOrEqual(1);
+    expect(hi).toBeGreaterThanOrEqual(100);
+  });
+
   it("falls back to a default extent when no series data is present", () => {
     const yAxis: AxisOption = { type: "value" };
     const { yScales } = resolveGrid([{}], [], [yAxis], [], 800, 400);

@@ -44,13 +44,31 @@ import { renderPictorialBar } from "./overlay/pictorialbar.js";
 
 // Accumulate y-values for line series sharing the same stack name.
 // Each stacked series receives the sum of all previous series at the same data index.
-function accumStackedLines(series: LineSeriesOption[]): LineSeriesOption[] {
+//
+// Also returns, per series (same index alignment as the input array), the
+// "baseline" array — the running total BEFORE this series was added. This is
+// the bottom edge of this series' area-fill band (matching gl/BarRenderer.ts's
+// stacked bars, which draw each segment between the previous cumulative top
+// and the new one rather than from zero). `undefined` for non-stacked series,
+// which keep the plain zero baseline in LineRenderer.
+function accumStackedLines(
+  series: LineSeriesOption[],
+): { series: LineSeriesOption[]; baselines: (number[] | undefined)[] } {
   const sums = new Map<string, number[]>(); // stackName → accumulated y per dataIndex
-  return series.map((s) => {
-    if (!s.stack) return s;
+  const baselines: (number[] | undefined)[] = [];
+  const stackedSeries = series.map((s) => {
+    if (!s.stack) {
+      baselines.push(undefined);
+      return s;
+    }
     if (!sums.has(s.stack)) sums.set(s.stack, []);
     const acc = sums.get(s.stack)!;
-    const newData = (s.data ?? []).map((item: any, di: number) => {
+    const rawItems = s.data ?? [];
+    // Snapshot the running total for every data index up front (defaulting
+    // unseen indices to 0) so the baseline array always matches this series'
+    // own data length, even for the first series in a stack.
+    baselines.push(rawItems.map((_: any, di: number) => acc[di] ?? 0));
+    const newData = rawItems.map((item: any, di: number) => {
       let yRaw: number;
       if (typeof item === "number") yRaw = item;
       else if (Array.isArray(item)) yRaw = (item[1] as number) ?? 0;
@@ -64,6 +82,7 @@ function accumStackedLines(series: LineSeriesOption[]): LineSeriesOption[] {
     });
     return { ...s, data: newData as any };
   });
+  return { series: stackedSeries, baselines };
 }
 
 // Hit-test cursor position against all pie sectors. Returns params for the hit sector or null.
@@ -472,8 +491,8 @@ export class ChartEngine {
 
     const lineSeries = series.filter((s): s is any => s.type === "line");
     if (lineSeries.length > 0 && this.lineRenderer) {
-      const stackedLineSeries = accumStackedLines(lineSeries);
-      this.lineRenderer.render(renderPass, stackedLineSeries, grid.xScales, grid.yScales, grid.gridRect, width, height, seriesOffset);
+      const { series: stackedLineSeries, baselines: lineBaselines } = accumStackedLines(lineSeries);
+      this.lineRenderer.render(renderPass, stackedLineSeries, grid.xScales, grid.yScales, grid.gridRect, width, height, seriesOffset, lineBaselines);
       seriesOffset += lineSeries.length;
     }
 

@@ -211,6 +211,11 @@ export class LineRenderer {
     width: number,
     height: number,
     seriesOffset: number,
+    // Per-series (same index alignment as `series`) running-total-before-this-
+    // series array, in data space — the bottom edge of a stacked series' area
+    // band. `undefined` (or a missing entry) means "not stacked": fall back to
+    // the plain value-axis zero baseline.
+    baselines?: (number[] | undefined)[],
   ): void {
     const lineModel = this.ensureLineModel();
     const areaModel = this.ensureAreaModel();
@@ -234,22 +239,41 @@ export class LineRenderer {
       // Area fill
       if (s.areaStyle) {
         const areaAlpha = ((s.areaStyle.opacity as number) ?? 0.3);
-        const baselineY = yScale.map(0);
         const areaVerts: number[] = [];
 
-        const segs: [number, number][][] = [];
-        let cur: [number, number][] = [];
-        for (const p of pixelPoints) {
+        // A stacked series' area fill is a band between its own curve and the
+        // running total of every earlier series in the same stack (baselines
+        // from accumStackedLines), not the value-axis zero line — matching
+        // gl/BarRenderer.ts's stacked bars, which draw each segment between
+        // the previous cumulative top and the new one. Non-stacked series
+        // (no baseline entry) keep the plain zero baseline, run through the
+        // same buildPixelPoints pipeline so smoothing/step stay identical to
+        // the main curve.
+        const rawSeriesData = s.data ?? [];
+        const baselineValues = baselines?.[index] ?? rawSeriesData.map(() => 0);
+        const baselinePixelPoints = this.buildPixelPoints(
+          { ...s, data: baselineValues } as LineSeriesOption,
+          xScale,
+          yScale,
+        );
+        const zeroY = yScale.map(0);
+
+        const segs: { main: [number, number]; base: [number, number] }[][] = [];
+        let cur: { main: [number, number]; base: [number, number] }[] = [];
+        for (let pointIndex = 0; pointIndex < pixelPoints.length; pointIndex++) {
+          const p = pixelPoints[pointIndex];
           if (isNaN(p[0])) { if (cur.length > 1) segs.push(cur); cur = []; }
-          else cur.push(p);
+          else cur.push({ main: p, base: baselinePixelPoints[pointIndex] ?? [p[0], zeroY] });
         }
         if (cur.length > 1) segs.push(cur);
 
         for (const seg of segs) {
           for (let si = 0; si < seg.length - 1; si++) {
-            const [x0, y0] = seg[si];
-            const [x1, y1] = seg[si + 1];
-            areaVerts.push(x0, baselineY, x1, baselineY, x0, y0, x1, baselineY, x1, y1, x0, y0);
+            const [x0, y0] = seg[si].main;
+            const [x1, y1] = seg[si + 1].main;
+            const [, by0] = seg[si].base;
+            const [, by1] = seg[si + 1].base;
+            areaVerts.push(x0, by0, x1, by1, x0, y0, x1, by1, x1, y1, x0, y0);
           }
         }
 
