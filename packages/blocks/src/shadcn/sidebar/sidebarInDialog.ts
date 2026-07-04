@@ -322,6 +322,18 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
     },
     style: {
       display: "flex",
+      // The base `dialog()` patch relies on the native
+      // `dialog:not([open]) { display: none }` UA rule to hide the closed
+      // dialog — but that rule loses to this author-origin class regardless
+      // of specificity (author always beats user-agent), so forcing
+      // `display: flex` unconditionally left a closed dialog fully laid out
+      // (absolutely positioned, zero-opacity, but still `pointer-events:
+      // auto`) and able to intercept clicks meant for whatever sits behind
+      // it. Re-hiding on `:not([open])` — the same pattern sidebar05 already
+      // uses for a closed `<details>` — restores that contract without
+      // touching the flex layout while genuinely open (or mid-close, since
+      // the patch keeps `[open]` set through the fade-out transition).
+      "&:not([open])": { display: "none" },
       flexDirection: "column",
       padding: "0",
       width: "92vw",

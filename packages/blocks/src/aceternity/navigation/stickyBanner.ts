@@ -85,13 +85,26 @@ function stickyBanner(props: StickyBannerProps = {}): DomphyElement<"div"> {
     _onMount: (node: ElementNode) => {
       if (!hideOnScroll) return;
 
+      let lastScrollY = window.scrollY;
       let scheduled = false;
       const checkScrollThreshold = () => {
         scheduled = false;
+        const currentScrollY = window.scrollY;
+        const delta = Math.abs(currentScrollY - lastScrollY);
+        lastScrollY = currentScrollY;
+        // A delta this large in a single frame can only come from a
+        // *programmatic* jump (an anchor-link/`scrollIntoView` navigation,
+        // the browser restoring scroll position, …) — never an actual
+        // scroll-wheel/trackpad/touch gesture. Resync silently instead of
+        // latching hidden: a user who just landed somewhere new hasn't
+        // expressed any scroll intent, so hiding the banner out from under a
+        // jump they didn't initiate is wrong (mirrors floatingNavbar's
+        // identical guard in `applyScrollDirection`).
+        if (delta > window.innerHeight) return;
         // One-way: once past the threshold it latches hidden and never
         // re-checks (matches the documented behavior — no reappear on
         // scrolling back up).
-        if (window.scrollY > SCROLL_HIDE_THRESHOLD_PX) hidden.set(true);
+        if (currentScrollY > SCROLL_HIDE_THRESHOLD_PX) hidden.set(true);
       };
       const handleScroll = () => {
         if (scheduled || hidden.get()) return;

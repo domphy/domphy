@@ -84,85 +84,97 @@ function magneticButton(props: MagneticButtonProps = {}): DomphyElement<"div"> {
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node) => {
-      const wrapper = node.domElement as HTMLElement | null;
-      const target = wrapper?.firstElementChild as HTMLElement | null;
-      if (!wrapper || !target) return;
+      // Domphy's mount lifecycle fires a node's `Mount` hook BEFORE its children
+      // are appended to the DOM ("Parent always insert/mount before children" —
+      // see ElementList.insert()/ElementNode.render() in @domphy/core), so reading
+      // `wrapper.firstElementChild` synchronously here always finds an empty
+      // wrapper and silently no-ops forever (a real bug caught by a browser
+      // interaction test asserting the drift transform actually changes — a
+      // "doesn't throw" test dispatching synthetic events never surfaces this,
+      // since dispatching to zero listeners doesn't throw either). Deferring one
+      // microtask is enough: the synchronous `render()`/`insert()` call that fired
+      // this hook has appended every child by the time a microtask runs.
+      queueMicrotask(() => {
+        const wrapper = node.domElement as HTMLElement | null;
+        const target = wrapper?.firstElementChild as HTMLElement | null;
+        if (!wrapper || !target) return;
 
-      // Spring simulation state: current position/velocity, and the target offset
-      // the pointer is currently pulling toward (reset to origin on pointer-leave).
-      let positionX = 0;
-      let positionY = 0;
-      let velocityX = 0;
-      let velocityY = 0;
-      let targetOffsetX = 0;
-      let targetOffsetY = 0;
-      let animationFrame = 0;
+        // Spring simulation state: current position/velocity, and the target offset
+        // the pointer is currently pulling toward (reset to origin on pointer-leave).
+        let positionX = 0;
+        let positionY = 0;
+        let velocityX = 0;
+        let velocityY = 0;
+        let targetOffsetX = 0;
+        let targetOffsetY = 0;
+        let animationFrame = 0;
 
-      // Critically-underdamped spring constants tuned for a small, quick
-      // overshoot-and-settle rather than a slow wobble or an instant snap.
-      const stiffness = 0.22;
-      const damping = 0.72;
-      const restEpsilon = 0.02;
+        // Critically-underdamped spring constants tuned for a small, quick
+        // overshoot-and-settle rather than a slow wobble or an instant snap.
+        const stiffness = 0.22;
+        const damping = 0.72;
+        const restEpsilon = 0.02;
 
-      const step = () => {
-        const forceX = (targetOffsetX - positionX) * stiffness;
-        const forceY = (targetOffsetY - positionY) * stiffness;
-        velocityX = (velocityX + forceX) * damping;
-        velocityY = (velocityY + forceY) * damping;
-        positionX += velocityX;
-        positionY += velocityY;
-        target.style.transform = `translate(${positionX.toFixed(2)}px, ${positionY.toFixed(2)}px)`;
+        const step = () => {
+          const forceX = (targetOffsetX - positionX) * stiffness;
+          const forceY = (targetOffsetY - positionY) * stiffness;
+          velocityX = (velocityX + forceX) * damping;
+          velocityY = (velocityY + forceY) * damping;
+          positionX += velocityX;
+          positionY += velocityY;
+          target.style.transform = `translate(${positionX.toFixed(2)}px, ${positionY.toFixed(2)}px)`;
 
-        const settled =
-          Math.abs(velocityX) < restEpsilon &&
-          Math.abs(velocityY) < restEpsilon &&
-          Math.abs(targetOffsetX - positionX) < restEpsilon &&
-          Math.abs(targetOffsetY - positionY) < restEpsilon;
-        if (settled) {
-          positionX = targetOffsetX;
-          positionY = targetOffsetY;
-          target.style.transform = `translate(${positionX}px, ${positionY}px)`;
-          animationFrame = 0;
-          return;
-        }
-        animationFrame = requestAnimationFrame(step);
-      };
+          const settled =
+            Math.abs(velocityX) < restEpsilon &&
+            Math.abs(velocityY) < restEpsilon &&
+            Math.abs(targetOffsetX - positionX) < restEpsilon &&
+            Math.abs(targetOffsetY - positionY) < restEpsilon;
+          if (settled) {
+            positionX = targetOffsetX;
+            positionY = targetOffsetY;
+            target.style.transform = `translate(${positionX}px, ${positionY}px)`;
+            animationFrame = 0;
+            return;
+          }
+          animationFrame = requestAnimationFrame(step);
+        };
 
-      const ensureRunning = () => {
-        if (!animationFrame) animationFrame = requestAnimationFrame(step);
-      };
+        const ensureRunning = () => {
+          if (!animationFrame) animationFrame = requestAnimationFrame(step);
+        };
 
-      const onPointerMove = (event: PointerEvent) => {
-        const rect = wrapper.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        let offsetX = (event.clientX - centerX) * strength;
-        let offsetY = (event.clientY - centerY) * strength;
-        const distance = Math.hypot(offsetX, offsetY);
-        if (distance > maxDistance && distance > 0) {
-          const scale = maxDistance / distance;
-          offsetX *= scale;
-          offsetY *= scale;
-        }
-        targetOffsetX = offsetX;
-        targetOffsetY = offsetY;
-        ensureRunning();
-      };
+        const onPointerMove = (event: PointerEvent) => {
+          const rect = wrapper.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          let offsetX = (event.clientX - centerX) * strength;
+          let offsetY = (event.clientY - centerY) * strength;
+          const distance = Math.hypot(offsetX, offsetY);
+          if (distance > maxDistance && distance > 0) {
+            const scale = maxDistance / distance;
+            offsetX *= scale;
+            offsetY *= scale;
+          }
+          targetOffsetX = offsetX;
+          targetOffsetY = offsetY;
+          ensureRunning();
+        };
 
-      const onPointerLeave = () => {
-        targetOffsetX = 0;
-        targetOffsetY = 0;
-        ensureRunning();
-      };
+        const onPointerLeave = () => {
+          targetOffsetX = 0;
+          targetOffsetY = 0;
+          ensureRunning();
+        };
 
-      wrapper.addEventListener("pointermove", onPointerMove);
-      wrapper.addEventListener("pointerleave", onPointerLeave);
+        wrapper.addEventListener("pointermove", onPointerMove);
+        wrapper.addEventListener("pointerleave", onPointerLeave);
 
-      node.addHook("Remove", () => {
-        wrapper.removeEventListener("pointermove", onPointerMove);
-        wrapper.removeEventListener("pointerleave", onPointerLeave);
-        if (animationFrame) cancelAnimationFrame(animationFrame);
-        target.style.transform = "";
+        node.addHook("Remove", () => {
+          wrapper.removeEventListener("pointermove", onPointerMove);
+          wrapper.removeEventListener("pointerleave", onPointerLeave);
+          if (animationFrame) cancelAnimationFrame(animationFrame);
+          target.style.transform = "";
+        });
       });
     },
   };

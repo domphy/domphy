@@ -216,6 +216,19 @@ function gradientAnimation(props: GradientAnimationProps = {}): DomphyElement<"d
     } as DomphyElement;
   });
 
+  // `ElementNode.render()` fires a node's own `_onMount` hook *before*
+  // rendering its children into the DOM (parent-then-children, not the other
+  // way around) — so the root's own mount hook cannot `querySelector()` for
+  // the pointer blob (a not-yet-rendered descendant) and expect to find it.
+  // Instead, the root's mount hook only stashes a reference to *itself*
+  // (always safe — a node is guaranteed attached to its own parent by the
+  // time its own `_onMount` fires) into this shared closure variable, and
+  // the pointer blob's *own* `_onMount` (which fires later, once the blob
+  // itself — and by then, `containerElementRef` — are both guaranteed set)
+  // does the actual wiring. Same "register from your own onMount, read it
+  // later" idiom `backgroundRippleEffect.ts` uses for its per-cell refs.
+  let containerElementRef: HTMLElement | null = null;
+
   const pointerBlob: DomphyElement | null = interactive
     ? ({
         div: null,
@@ -236,6 +249,7 @@ function gradientAnimation(props: GradientAnimationProps = {}): DomphyElement<"d
           transform: "translate(-50%, -50%)",
           transition: "opacity 0.4s ease-out",
         } as StyleObject,
+        _onMount: pointerFollowMountHandler,
       } as DomphyElement)
     : null;
 
@@ -250,13 +264,11 @@ function gradientAnimation(props: GradientAnimationProps = {}): DomphyElement<"d
     } as StyleObject,
   } as DomphyElement<"div">;
 
-  /** Eases the pointer-follow blob toward live pointer coordinates (rAF-lerped, like `lens.ts`/`scrollProgress.ts`). */
+  /** Eases the pointer-follow blob toward live pointer coordinates (rAF-lerped, like `lens.ts`/`scrollProgress.ts`). Runs from the blob's own `_onMount` — see the note above `containerElementRef`. */
   function pointerFollowMountHandler(node: ElementNode): void {
     if (typeof window === "undefined") return;
-    const containerElement = node.domElement as HTMLElement | null;
-    const pointerElement = containerElement?.querySelector(
-      '[data-gradient-pointer-blob="true"]',
-    ) as HTMLElement | null;
+    const pointerElement = node.domElement as HTMLElement | null;
+    const containerElement = containerElementRef;
     if (!containerElement || !pointerElement) return;
 
     let currentX = 0.5;
@@ -330,8 +342,10 @@ function gradientAnimation(props: GradientAnimationProps = {}): DomphyElement<"d
     // `_onMount` is only included at all when `interactive` is on — Domphy
     // rejects an explicit `_onMount: undefined` hook value, so the key must
     // be omitted entirely (not just set to `undefined`) rather than toggled
-    // via a ternary in place.
-    ...(interactive ? { _onMount: pointerFollowMountHandler } : {}),
+    // via a ternary in place. This only stashes a reference to the root
+    // itself (see the note above `containerElementRef`) — the pointer blob's
+    // own `_onMount` (`pointerFollowMountHandler`) does the actual wiring.
+    ...(interactive ? { _onMount: (node: ElementNode) => { containerElementRef = node.domElement as HTMLElement; } } : {}),
     style: {
       position: "relative",
       overflow: "hidden",

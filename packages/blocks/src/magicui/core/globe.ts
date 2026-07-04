@@ -145,32 +145,44 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
       const markerColor = resolveColor(props.markerColor, "shift-9", "attention");
       const glowColor = resolveColor(props.glowColor, "shift-1", "neutral");
 
-      const buildOptions = (): COBEOptions => ({
-        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
-        width: width * 2,
-        height: width * 2,
-        phi,
-        theta: initialTheta,
-        dark: dark ? 1 : 0,
-        diffuse: 1.2,
-        mapSamples,
-        mapBrightness,
-        baseColor,
-        markerColor,
-        glowColor,
-        markers: markerList,
-        onRender: (state) => {
-          if (!pointerDown) {
-            if (Math.abs(velocity) > 0.0001) {
-              phi += velocity;
-              velocity *= 0.92;
-            } else {
-              phi += rotationSpeed;
+      // cobe delegates to `phenomenon`, which sizes the canvas's REAL backing
+      // store as `canvas.clientWidth * devicePixelRatio` (see phenomenon's own
+      // `resize()`) — completely independent of the `width`/`height` numbers
+      // we pass here, which only feed the fragment shader's own "logical
+      // resolution" uniform. Those two must describe the same pixel count, or
+      // the shader's aspect/projection math disagrees with the actual
+      // viewport and the sphere renders wildly mis-scaled (cropped into a
+      // corner) — so `width`/`height` MUST be multiplied by the exact same
+      // `devicePixelRatio` value passed below, not a hardcoded constant.
+      const buildOptions = (): COBEOptions => {
+        const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        return {
+          devicePixelRatio,
+          width: width * devicePixelRatio,
+          height: width * devicePixelRatio,
+          phi,
+          theta: initialTheta,
+          dark: dark ? 1 : 0,
+          diffuse: 1.2,
+          mapSamples,
+          mapBrightness,
+          baseColor,
+          markerColor,
+          glowColor,
+          markers: markerList,
+          onRender: (state) => {
+            if (!pointerDown) {
+              if (Math.abs(velocity) > 0.0001) {
+                phi += velocity;
+                velocity *= 0.92;
+              } else {
+                phi += rotationSpeed;
+              }
             }
-          }
-          state.phi = phi;
-        },
-      });
+            state.phi = phi;
+          },
+        };
+      };
 
       // cobe requires a real WebGL context; in environments without one
       // (older browsers, headless/test runtimes) initialization throws
