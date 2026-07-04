@@ -74,7 +74,7 @@ a:hover{text-decoration:underline}
 .code-block{margin:${ts(4)} 0;border:1px solid ${border};border-radius:${ts(2)};overflow:hidden}
 .code-block-title{display:flex;align-items:center;padding:${ts(1.5)} ${ts(4)};background:${bgMute};border-bottom:1px solid ${border};font-size:12px;font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;color:${textSoft}}
 .code-block-inner{position:relative}
-.code-block pre{margin:0;padding:${ts(4)} ${ts(5)};background:${bgSoft};border:none;border-radius:0;overflow-x:auto;font-size:13.5px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace}
+.code-block pre{margin:0;padding:${ts(4)} ${ts(5)};background:${bgSoft};border:none;border-radius:0;overflow-x:auto;overflow-y:auto;max-height:32em;font-size:13.5px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace}
 .code-block code{font-family:inherit;background:none;padding:0;font-size:inherit}
 .code-block .line{display:inline-block;width:100%}
 .code-block .line.highlighted{background:color-mix(in srgb,${brand} 10%,transparent)}
