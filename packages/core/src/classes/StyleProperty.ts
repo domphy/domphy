@@ -16,7 +16,12 @@ export class StyleProperty {
 
   constructor(name: string, value: StyleValue, parentRule: StyleRule) {
     this.name = name;
-    this.cssName = camelToKebab(name);
+    // CSS custom properties (`--fooBar`) are case-sensitive and never
+    // kebab-cased by the platform itself — running one through
+    // camelToKebab() would mangle it (e.g. "--siteHeaderHeight" ->
+    // "--site-header-height"), silently breaking every `var(--siteHeaderHeight)`
+    // reference elsewhere in the same style tree.
+    this.cssName = name.startsWith("--") ? name : camelToKebab(name);
     this.parentRule = parentRule;
     this.set(value);
   }

@@ -80,3 +80,36 @@ describe("StyleList.addCSS: conditional at-rule cascade order", () => {
     expect(css).toContain("font-family: MyFont");
   });
 });
+
+// Regression test for a real bug found while writing @domphy/blocks'
+// sidebarStickyHeader interaction checks: StyleProperty's constructor ran
+// every style key through camelToKebab() unconditionally, which mangled CSS
+// custom-property keys (case-sensitive by spec, never kebab-cased by the
+// platform) — e.g. `"--siteHeaderHeight"` became `"--site-header-height"` in
+// the emitted CSS, silently breaking every `var(--siteHeaderHeight)`
+// reference elsewhere in the same style tree (the property fell back to its
+// initial value instead of resolving).
+describe("StyleList.addCSS: CSS custom properties", () => {
+  it("emits a camelCase custom-property key verbatim, not kebab-cased", () => {
+    const css = new ElementNode({
+      div: "x",
+      style: {
+        "--siteHeaderHeight": "calc(4em)",
+        height: "calc(100dvh - var(--siteHeaderHeight))",
+      },
+    } as DomphyElement).generateCSS();
+
+    expect(css).toContain("--siteHeaderHeight: calc(4em)");
+    expect(css).not.toContain("--site-header-height");
+  });
+
+  it("still kebab-cases ordinary camelCase style properties", () => {
+    const css = new ElementNode({
+      div: "x",
+      style: { backgroundColor: "red" },
+    } as DomphyElement).generateCSS();
+
+    expect(css).toContain("background-color: red");
+    expect(css).not.toContain("backgroundColor:");
+  });
+});
