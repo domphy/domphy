@@ -104,7 +104,12 @@ function productCard(product: HeroParallaxProduct, rowIndex: number, cardIndex: 
       {
         img: null,
         src: product.thumbnail,
-        alt: product.title,
+        // Empty, not `product.title` — the `<small>` caption right below
+        // already names the product in visible text; a non-empty alt here
+        // duplicated that same string, so a screen reader announced the
+        // title twice back to back (axe-core `image-redundant-alt`).
+        alt: "",
+        ariaHidden: "true",
         loading: "lazy",
         _doctorDisable: "missing-color",
         style: { display: "block", width: "100%", aspectRatio: "3 / 2", objectFit: "cover" } as StyleObject,

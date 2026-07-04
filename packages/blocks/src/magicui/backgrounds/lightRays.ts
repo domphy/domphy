@@ -17,6 +17,7 @@ import type { DomphyElement, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
 
 export interface LightRaysProps {
   /** Number of rays. Defaults to `7`. */
@@ -134,10 +135,15 @@ function lightRays(props: LightRaysProps = {}): DomphyElement<"div"> {
   });
 
   const defaultChildren: DomphyElement[] = [
-    { h2: "Light Rays", $: [heading()] } as DomphyElement,
     {
-      p: "Soft, blurred beams sway and pulse behind your content.",
-      $: [paragraph()],
+      div: [
+        { h2: "Light Rays", $: [heading()] } as DomphyElement,
+        {
+          p: "Soft, blurred beams sway and pulse behind your content.",
+          $: [paragraph()],
+        } as DomphyElement,
+      ],
+      style: demoContentScrimStyle(),
     } as DomphyElement,
   ];
   const contentChildren = props.children

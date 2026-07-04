@@ -163,7 +163,16 @@ function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElemen
     const meta = seriesMeta[key];
     return {
       button: [
-        { small: meta.label, $: [small({ color: "neutral" })] } as DomphyElement<"small">,
+        // `small()`'s own muted shift-6/7 measured too little contrast
+        // against this tile's background — shift-9 (an earlier attempt)
+        // still only measured ~4.24:1 (need 4.5:1); shift-11 clears it with
+        // real margin while staying visually secondary next to the bold
+        // total below.
+        {
+          small: meta.label,
+          $: [small({ color: "neutral" })],
+          style: { color: (l: Listener) => themeColor(l, "shift-11", "neutral") },
+        } as DomphyElement<"small">,
         { h4: totals[key].toLocaleString("en-US"), $: [heading({ color: "neutral" })] } as DomphyElement<"h4">,
       ],
       type: "button",

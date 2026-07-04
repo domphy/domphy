@@ -88,6 +88,7 @@ function chartPieSeparatorNone(props: ChartPieSeparatorNoneProps = {}): DomphyEl
         } as DomphyElement<"g">,
       ],
       tooltipState,
+      `${title}: ${description}`,
     ),
     pieCardFooter({ trendValue, trendDirection, caption }),
   ]);

@@ -1,2 +1,4 @@
 dist
 .visual-compare-output
+.axe-scan-report.json
+.contrast-scan-report.json

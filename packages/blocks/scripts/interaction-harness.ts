@@ -6,7 +6,7 @@
 // resulting DOM/state actually changed as expected (not just "didn't throw").
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type Browser, type Locator, type Page, chromium } from "playwright";
+import { type Browser, type BrowserContext, type Locator, type Page, chromium } from "playwright";
 import { createServer, type ViteDevServer } from "vite";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -75,22 +75,54 @@ async function retryAcrossReload<T>(page: Page, action: () => Promise<T>): Promi
   }
 }
 
-/** Navigates a fresh page, disconnects lazy-mount (so nothing else shifts
- * around while we interact), and force-mounts the requested block. */
-export async function mountedPage(demoUrl: string, name: string): Promise<Page> {
-  const page = await browser!.newPage({ viewport: { width: 1280, height: 900 } });
-  await page.goto(demoUrl, { waitUntil: "networkidle" });
-  await retryAcrossReload(page, async () => {
-    await page.waitForFunction(() => typeof (window as unknown as { disconnectLazyMount?: unknown }).disconnectLazyMount === "function");
-    await page.evaluate(() => (window as unknown as { disconnectLazyMount: () => void }).disconnectLazyMount());
-  });
-  await retryAcrossReload(page, async () => {
-    await page.waitForFunction(() => typeof (window as unknown as { mountBlock?: unknown }).mountBlock === "function");
-    await page.evaluate((n) => (window as unknown as { mountBlock: (x: string) => void }).mountBlock(n), name);
-  });
-  await page.locator(`[data-block="${name}"]`).locator("*").first().waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
-  await page.waitForTimeout(300);
+/** Wraps `page.close()` so closing the page also closes its own context —
+ * every caller already just calls `page.close()`, so this makes context
+ * cleanup transparent instead of requiring every call site to track and
+ * close the context separately. */
+function attachContextAutoClose(page: Page, context: BrowserContext): Page {
+  const originalClose = page.close.bind(page);
+  page.close = (async (options?: Parameters<Page["close"]>[0]) => {
+    await originalClose(options);
+    await context.close().catch(() => {});
+  }) as Page["close"];
   return page;
+}
+
+/** Navigates a fresh page, disconnects lazy-mount (so nothing else shifts
+ * around while we interact), and force-mounts the requested block.
+ *
+ * Uses an explicit `browser.newContext()` + `context.newPage()` rather than
+ * the `browser.newPage()` shorthand: that shorthand marks the context as
+ * "single-owner" (Playwright throws "Please use browser.newContext()" if
+ * anything tries to open a second page in it) — which is exactly what
+ * `AxeBuilder#analyze()` does internally (it opens its own scratch page in
+ * the same context to run `axe.finishRun()`), so every axe-core scan against
+ * a `mountedPage()`-created page failed until this was an explicit context. */
+export async function mountedPage(demoUrl: string, name: string): Promise<Page> {
+  const context = await browser!.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(demoUrl, { waitUntil: "networkidle" });
+    await retryAcrossReload(page, async () => {
+      await page.waitForFunction(() => typeof (window as unknown as { disconnectLazyMount?: unknown }).disconnectLazyMount === "function");
+      await page.evaluate(() => (window as unknown as { disconnectLazyMount: () => void }).disconnectLazyMount());
+    });
+    await retryAcrossReload(page, async () => {
+      await page.waitForFunction(() => typeof (window as unknown as { mountBlock?: unknown }).mountBlock === "function");
+      await page.evaluate((n) => (window as unknown as { mountBlock: (x: string) => void }).mountBlock(n), name);
+    });
+    await page.locator(`[data-block="${name}"]`).locator("*").first().waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(300);
+    return attachContextAutoClose(page, context);
+  } catch (error) {
+    // Without this, a page that fails partway through setup (goto timeout,
+    // mountBlock never appearing) is never returned to the caller and so
+    // never gets closed by the caller's own cleanup — leaking a live
+    // renderer process for the rest of a long scan loop.
+    await page.close().catch(() => {});
+    await context.close().catch(() => {});
+    throw error;
+  }
 }
 
 /** Like `mountedPage`, but runs `beforeNavigate` (e.g. `page.addInitScript(...)`)
@@ -101,20 +133,27 @@ export async function mountedPageWithInit(
   name: string,
   beforeNavigate: (page: Page) => Promise<void>,
 ): Promise<Page> {
-  const page = await browser!.newPage({ viewport: { width: 1280, height: 900 } });
-  await beforeNavigate(page);
-  await page.goto(demoUrl, { waitUntil: "networkidle" });
-  await retryAcrossReload(page, async () => {
-    await page.waitForFunction(() => typeof (window as unknown as { disconnectLazyMount?: unknown }).disconnectLazyMount === "function");
-    await page.evaluate(() => (window as unknown as { disconnectLazyMount: () => void }).disconnectLazyMount());
-  });
-  await retryAcrossReload(page, async () => {
-    await page.waitForFunction(() => typeof (window as unknown as { mountBlock?: unknown }).mountBlock === "function");
-    await page.evaluate((n) => (window as unknown as { mountBlock: (x: string) => void }).mountBlock(n), name);
-  });
-  await page.locator(`[data-block="${name}"]`).locator("*").first().waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
-  await page.waitForTimeout(300);
-  return page;
+  const context = await browser!.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  try {
+    await beforeNavigate(page);
+    await page.goto(demoUrl, { waitUntil: "networkidle" });
+    await retryAcrossReload(page, async () => {
+      await page.waitForFunction(() => typeof (window as unknown as { disconnectLazyMount?: unknown }).disconnectLazyMount === "function");
+      await page.evaluate(() => (window as unknown as { disconnectLazyMount: () => void }).disconnectLazyMount());
+    });
+    await retryAcrossReload(page, async () => {
+      await page.waitForFunction(() => typeof (window as unknown as { mountBlock?: unknown }).mountBlock === "function");
+      await page.evaluate((n) => (window as unknown as { mountBlock: (x: string) => void }).mountBlock(n), name);
+    });
+    await page.locator(`[data-block="${name}"]`).locator("*").first().waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(300);
+    return attachContextAutoClose(page, context);
+  } catch (error) {
+    await page.close().catch(() => {});
+    await context.close().catch(() => {});
+    throw error;
+  }
 }
 
 /** Scrolls the block into view and returns its bounding box (post-scroll, so

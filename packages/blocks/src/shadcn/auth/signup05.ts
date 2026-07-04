@@ -93,9 +93,9 @@ function legalLine(termsHref: string, privacyHref: string): DomphyElement<"small
   return {
     small: [
       "By continuing, you agree to our ",
-      { a: "Terms of Service", href: termsHref, $: [link({ color: "primary" })] },
+      { a: "Terms of Service", href: termsHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
       " and ",
-      { a: "Privacy Policy", href: privacyHref, $: [link({ color: "primary" })] },
+      { a: "Privacy Policy", href: privacyHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
       ".",
     ],
     $: [small({ color: "neutral" })],
@@ -237,7 +237,7 @@ function signup05(props: Signup05Props = {}): DomphyElement<"div"> {
   const signInLine: DomphyElement<"small"> = {
     small: [
       `${signInPrompt} `,
-      { a: signInLinkText, href: signInHref, $: [link({ color: "primary" })] },
+      { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
     ],
     $: [small({ color: "neutral" })],
   };

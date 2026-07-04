@@ -82,6 +82,7 @@ function chartPieDonut(props: ChartPieDonutProps = {}): DomphyElement<"div"> {
         } as DomphyElement<"g">,
       ],
       tooltipState,
+      `${title}: ${description}`,
     ),
     pieCardFooter({ trendValue, trendDirection, caption }),
   ]);

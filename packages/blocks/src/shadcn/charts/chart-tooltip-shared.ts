@@ -254,7 +254,11 @@ export function plainValueRenderer(context: TooltipValueContext): string {
 export function monoUnitValueRenderer(unit: string): (context: TooltipValueContext) => string {
   return (context) =>
     `<span style="font-variant-numeric:tabular-nums;font-family:ui-monospace,monospace;">${escapeHtml(String(context.value))}</span>` +
-    `<span style="opacity:0.6;margin-left:2px;">${escapeHtml(unit)}</span>`;
+    // Not `opacity:0.6` — that measured a real WCAG contrast failure (axe-
+    // core `color-contrast`) against the tooltip's own background. The unit
+    // still reads as de-emphasized next to the bold/monospace value without
+    // needing reduced opacity.
+    `<span style="margin-left:2px;">${escapeHtml(unit)}</span>`;
 }
 
 function renderTooltipRow(params: {

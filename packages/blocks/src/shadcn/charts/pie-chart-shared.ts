@@ -598,6 +598,10 @@ export function pieChartContainer(
   containerRef: ChartContainerRef,
   svgChildren: DomphyElement[],
   tooltipState: State<PieTooltipInfo>,
+  // `role="img"` with no accessible name failed axe-core's `svg-img-alt`
+  // check (a real WCAG violation, not demo-harness noise) — every caller
+  // already has a `title`/`description` to build one from.
+  ariaLabel: string,
 ): DomphyElement<"div"> {
   return {
     div: [
@@ -605,6 +609,7 @@ export function pieChartContainer(
         svg: svgChildren,
         viewBox: `0 0 ${PIE_VIEWBOX_SIZE} ${PIE_VIEWBOX_SIZE}`,
         role: "img",
+        ariaLabel,
         style: { width: "100%", height: "100%", overflow: "visible" },
       } as DomphyElement<"svg">,
       pieTooltipLayer(tooltipState),

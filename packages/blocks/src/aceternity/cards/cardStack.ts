@@ -125,7 +125,7 @@ function cardStack(props: CardStackProps = {}): DomphyElement<"div"> {
     return { depthState, motionState };
   });
 
-  const cardElements: DomphyElement<"div">[] = items.map((item, index) => {
+  const cardElements: DomphyElement<"article">[] = items.map((item, index) => {
     const runtime = runtimes[index]!;
     const avatarElement: DomphyElement<"span"> = item.avatarSrc
       ? ({
@@ -135,7 +135,16 @@ function cardStack(props: CardStackProps = {}): DomphyElement<"div"> {
       : ({ span: initialsFromName(item.name), $: [avatar({ color })] } as DomphyElement<"span">);
 
     return {
-      div: [
+      // Each stacked testimonial is self-contained, independently
+      // distributable content — the textbook `<article>` case. It also
+      // matters for a11y here specifically: nested inside a plain `<div>`,
+      // this card's own `<footer>` (the avatar/name/role attribution row)
+      // computed as a page-level "contentinfo" landmark, and with 4 stacked
+      // cards all having one, that's 4 duplicate unlabeled "contentinfo"
+      // landmarks (`landmark-no-duplicate-contentinfo` + `landmark-unique`).
+      // `<footer>` nested in sectioning content (`<article>`/`<section>`)
+      // loses that implicit landmark role, same as native HTML/ARIA intends.
+      article: [
         { p: item.quote, $: [paragraph({ color: "neutral" })] } as DomphyElement,
         {
           footer: [
@@ -175,7 +184,7 @@ function cardStack(props: CardStackProps = {}): DomphyElement<"div"> {
           `0 ${themeSpacing(3)} ${themeSpacing(8)} ${themeColor(listener, "shift-4", color)}`,
         zIndex: (listener: Listener) => totalCount - runtime.depthState.get(listener),
       } as StyleObject,
-    } as DomphyElement<"div">;
+    } as DomphyElement<"article">;
   });
 
   return {

@@ -155,7 +155,10 @@ function carousel(props: CarouselProps = {}): DomphyElement<"div"> {
               },
             } as DomphyElement<"button">,
           ],
-          ariaHidden: "true",
+          // NOT `ariaHidden` — this wrapper holds the slide's real, focusable
+          // CTA button (and its heading), not just the decorative gradient
+          // scrim behind them. Hiding it made the button focusable but
+          // invisible to assistive tech (axe-core `aria-hidden-focus`).
           _doctorDisable: "missing-color",
           style: {
             position: "absolute",

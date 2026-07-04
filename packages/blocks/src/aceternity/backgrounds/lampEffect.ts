@@ -24,6 +24,7 @@
 import type { DomphyElement, StyleObject } from "@domphy/core";
 import { heading, motion } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
 
 export interface LampEffectProps {
   /** Heading/content shown tucked under the light source. Defaults to a small demo heading. */
@@ -36,7 +37,12 @@ export interface LampEffectProps {
 const ENTRANCE_DURATION_MS = 800;
 
 function defaultLampContent(): DomphyElement[] {
-  return [{ h1: "Build faster, ship brighter", $: [heading({ color: "neutral" })] } as DomphyElement];
+  return [
+    {
+      div: [{ h1: "Build faster, ship brighter", $: [heading({ color: "neutral" })] } as DomphyElement],
+      style: demoContentScrimStyle(),
+    } as DomphyElement,
+  ];
 }
 
 /**

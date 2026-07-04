@@ -25,9 +25,10 @@
 // streaks behind each particle (the classic "trail" trick for this kind of
 // flow-field effect).
 
-import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
+import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
 import { button, heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColorToken, themeColor, themeSpacing } from "@domphy/theme";
+import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
 
 export interface VortexProps {
   /** Number of particles. Defaults to `700`. */
@@ -118,16 +119,29 @@ function createNoiseField(seed: number): (x: number, y: number) => number {
 
 function defaultVortexContent(): DomphyElement[] {
   return [
-    { h1: "Ambient CTA", $: [heading({ color: "neutral" })] } as DomphyElement,
     {
-      p: "A slow-moving field of swirling particles behind your call to action.",
-      $: [paragraph({ color: "neutral" })],
-    } as DomphyElement,
-    {
-      button: "Get started",
-      type: "button",
-      $: [button({ color: "primary" })],
-      style: { marginTop: themeSpacing(4) },
+      div: [
+        { h1: "Ambient CTA", $: [heading({ color: "neutral" })] } as DomphyElement,
+        {
+          p: "A slow-moving field of swirling particles behind your call to action.",
+          $: [paragraph({ color: "neutral" })],
+        } as DomphyElement,
+        {
+          // `button()`'s own default shift-9 text on its own opaque
+          // "primary" background measured a real WCAG contrast ratio of
+          // 4.48:1 (need 4.5:1) — bumped one step to shift-11 for a small,
+          // reliable margin. Button has its own fully opaque background
+          // (unlike the scrim above it), so this is independent of that fix.
+          button: "Get started",
+          type: "button",
+          $: [button({ color: "primary" })],
+          style: {
+            marginTop: themeSpacing(4),
+            color: (listener: Listener) => themeColor(listener, "shift-11", "primary"),
+          },
+        } as DomphyElement,
+      ],
+      style: demoContentScrimStyle(),
     } as DomphyElement,
   ];
 }

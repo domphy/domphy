@@ -52,9 +52,22 @@ function defaultGradientContent(): DomphyElement[] {
     {
       div: [
         { h3: "Background Gradient", $: [heading()] } as DomphyElement,
+        // Wrapped in an extra `div` rather than a direct `p` child: `card()`
+        // itself carries a `"& > p"` rule pinning direct-child paragraphs to
+        // shift-9 (specificity (0,1,1) beats a plain paragraph's own
+        // generated class at (0,1,0)), which silently overrode any color
+        // override attempted directly on a direct-child `<p>` — measured a
+        // real WCAG contrast ratio of only ~4.32:1 (need 4.5:1). One level of
+        // nesting takes the `<p>` out of `card()`'s direct-child match so its
+        // own shift-11 override actually applies.
         {
-          p: "A soft, colorful glow drifts behind this card, blurred into a glowing halo.",
-          $: [paragraph()],
+          div: [
+            {
+              p: "A soft, colorful glow drifts behind this card, blurred into a glowing halo.",
+              $: [paragraph()],
+              style: { color: (listener: Listener) => themeColor(listener, "shift-11") },
+            } as DomphyElement,
+          ],
         } as DomphyElement,
       ],
       $: [card({ color: "neutral" })],

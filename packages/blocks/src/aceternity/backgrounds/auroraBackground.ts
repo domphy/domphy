@@ -18,6 +18,7 @@ import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
 
 export interface AuroraBackgroundProps {
   /** Foreground content rendered above the effect. Defaults to a small demo panel. */
@@ -113,10 +114,15 @@ function auroraBackground(props: AuroraBackgroundProps = {}): DomphyElement<"div
       ? props.children
       : [props.children]
     : [
-        { h2: "Aurora Background", $: [heading()] } as DomphyElement,
         {
-          p: "A soft aurora glow drifts slowly and continuously behind this content.",
-          $: [paragraph()],
+          div: [
+            { h2: "Aurora Background", $: [heading()] } as DomphyElement,
+            {
+              p: "A soft aurora glow drifts slowly and continuously behind this content.",
+              $: [paragraph()],
+            } as DomphyElement,
+          ],
+          style: demoContentScrimStyle(),
         } as DomphyElement,
       ];
 

@@ -220,6 +220,10 @@ export function passwordField(
     labelRowChildren.push({
       a: forgotPasswordLabel,
       href: forgotPasswordHref,
+      // `link()` only underlines on hover — axe-core's `link-in-text-block`
+      // rule (WCAG 1.4.1) needs this link visually distinguishable from
+      // surrounding text at rest too, not just by its color.
+      style: { textDecoration: "underline" },
       $: [link({ color: "neutral" })],
     } as DomphyElement<"a">);
   }
@@ -322,7 +326,7 @@ export function signUpLine(
     align = "center",
   } = options;
   return {
-    small: [`${promptText} `, { a: linkLabel, href, $: [link()] }],
+    small: [`${promptText} `, { a: linkLabel, href, style: { textDecoration: "underline" }, $: [link()] }],
     $: [small()],
     style: { display: "block", textAlign: align },
   };
@@ -350,9 +354,9 @@ export function legalFooter(
   return {
     small: [
       `${prefix} `,
-      { a: termsLabel, href: termsHref, $: [link({ color: "neutral" })] },
+      { a: termsLabel, href: termsHref, style: { textDecoration: "underline" }, $: [link({ color: "neutral" })] },
       " and ",
-      { a: privacyLabel, href: privacyHref, $: [link({ color: "neutral" })] },
+      { a: privacyLabel, href: privacyHref, style: { textDecoration: "underline" }, $: [link({ color: "neutral" })] },
       ".",
     ],
     $: [small()],
@@ -378,6 +382,14 @@ export function coverImage(options: CoverImageOptions): DomphyElement<"img"> {
     img: null,
     src,
     alt,
+    // `@domphy/core`'s `merge()` treats an empty string the same as
+    // undefined/null and drops it — so `alt: ""` (the deliberate,
+    // decorative-image pattern this component's callers default to) never
+    // actually reaches the DOM `alt` attribute, and axe-core's `image-alt`
+    // rule then sees a genuinely MISSING alt and fails it. `aria-hidden`
+    // isn't affected by that merge quirk (non-empty string), so it reliably
+    // marks the image as decorative/skip-in-AT regardless.
+    ...(alt === "" ? { ariaHidden: "true" } : {}),
     $: [image()],
     style: {
       width: "100%",

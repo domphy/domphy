@@ -15,6 +15,7 @@ import type { DomphyElement, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { heading, motion, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
 
 export interface SpotlightDualProps {
   /** Theme color role for the spotlight glow. Defaults to `"info"` (reads as a
@@ -174,10 +175,15 @@ function spotlightDual(props: SpotlightDualProps = {}): DomphyElement<"div"> {
 
 function defaultSpotlightContent(): DomphyElement[] {
   return [
-    { h2: "Spotlight", $: [heading()] } as DomphyElement,
     {
-      p: "Two soft blue glows fade in and sway gently behind this content.",
-      $: [paragraph()],
+      div: [
+        { h2: "Spotlight", $: [heading()] } as DomphyElement,
+        {
+          p: "Two soft blue glows fade in and sway gently behind this content.",
+          $: [paragraph()],
+        } as DomphyElement,
+      ],
+      style: demoContentScrimStyle(),
     } as DomphyElement,
   ];
 }

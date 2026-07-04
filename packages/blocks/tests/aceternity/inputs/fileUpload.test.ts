@@ -29,14 +29,18 @@ describe("fileUpload", () => {
     const wrapper = host.firstElementChild as HTMLElement;
     const dropZone = wrapper.querySelector('[role="button"]') as HTMLElement;
     expect(dropZone).toBeTruthy();
-    expect(dropZone.querySelector("input[type=file]")).toBeTruthy();
+    // The hidden file input is a sibling of `dropZone`, not its descendant —
+    // nesting a native `<input>` inside a `role="button"` element failed
+    // axe-core's `nested-interactive` check, even aria-hidden/tabindex=-1.
+    expect(wrapper.querySelector("input[type=file]")).toBeTruthy();
     expect(dropZone.querySelector("h3")?.textContent).toBeTruthy();
   });
 
   it("clicking the drop-zone opens the native file picker", () => {
     const { host } = render(fileUpload() as DomphyElement);
+    const wrapper = host.firstElementChild as HTMLElement;
     const dropZone = host.querySelector('[role="button"]') as HTMLElement;
-    const fileInput = dropZone.querySelector("input[type=file]") as HTMLInputElement;
+    const fileInput = wrapper.querySelector("input[type=file]") as HTMLInputElement;
     const clickSpy = vi.spyOn(fileInput, "click");
 
     dropZone.click();

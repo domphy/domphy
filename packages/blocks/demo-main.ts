@@ -29,6 +29,13 @@ function card(name: string): HTMLElement {
   wrapper.innerHTML = `<h2>${name}</h2>`;
   const box = document.createElement("div");
   box.className = "block-box";
+  // `.block-box` is `overflow: auto` (demo.html) — some blocks' rendered
+  // content is taller than its `min-height`, making it a real scrollable
+  // region. Without a tabindex, keyboard users can't reach/scroll it (axe-
+  // core `scrollable-region-focusable`, caught scanning `iphone`/
+  // `stickyScrollReveal`, but the underlying gap applies to any block that
+  // happens to overflow).
+  box.tabIndex = 0;
   box.textContent = "(scroll into view to render)";
   wrapper.appendChild(box);
   list.appendChild(wrapper);

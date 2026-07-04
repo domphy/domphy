@@ -39,6 +39,7 @@ import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/
 import { hashString } from "@domphy/core";
 import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
 
 export interface GradientAnimationBlobColors {
   /** Defaults to `"info"` (blue). */
@@ -157,10 +158,15 @@ let gradientAnimationInstanceCounter = 0;
 
 function defaultHeroContent(): DomphyElement[] {
   return [
-    { h1: "An animated, ambient gradient background", $: [heading()] } as DomphyElement,
     {
-      p: "Blurred color blobs drift and orbit slowly behind this text, blending into a soft, lava-lamp-like glow.",
-      $: [paragraph()],
+      div: [
+        { h1: "An animated, ambient gradient background", $: [heading()] } as DomphyElement,
+        {
+          p: "Blurred color blobs drift and orbit slowly behind this text, blending into a soft, lava-lamp-like glow.",
+          $: [paragraph()],
+        } as DomphyElement,
+      ],
+      style: demoContentScrimStyle(),
     } as DomphyElement,
   ];
 }

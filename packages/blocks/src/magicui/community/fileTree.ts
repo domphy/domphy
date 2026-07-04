@@ -253,12 +253,16 @@ function buildFolderNode(node: FileTreeNode, depth: number, context: FileTreeCon
       {
         small: node.name,
         $: [small({ color: context.color })],
+        // `small()`'s own muted shift-6/7 sets itself directly on the tag,
+        // overriding (and measuring less contrast than) this row's own
+        // `shift-9` color set in `rowBaseStyle` — inherit that instead.
         style: {
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
           flex: "1 1 auto",
           minWidth: 0,
+          color: "currentColor",
         },
       },
     ],
@@ -320,6 +324,7 @@ function buildFileNode(node: FileTreeNode, depth: number, context: FileTreeConte
           whiteSpace: "nowrap",
           flex: "1 1 auto",
           minWidth: 0,
+          color: "currentColor",
         },
       },
     ],

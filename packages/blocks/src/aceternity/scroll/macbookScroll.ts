@@ -128,7 +128,13 @@ function keyElement(key: KeyboardKey, rowIndex: number, keyIndex: number): Domph
   // so the excess-property check the function's declared return type would
   // otherwise apply doesn't fire (mirrors `scrollProgress.ts`/`warpBackground.ts`).
   return {
-    div: key.label ? [{ small: key.label, $: [small({ color: "neutral" })] } as DomphyElement] : [],
+    // `small()`'s own muted shift-6/7 text color sets itself directly on the
+    // `<small>` tag, which wins over (and measured too little contrast
+    // against) this keycap's own carefully-chosen `shift-13` — `currentColor`
+    // makes the label inherit that instead of small()'s own color choice.
+    div: key.label
+      ? [{ small: key.label, $: [small({ color: "neutral" })], style: { color: "currentColor" } } as DomphyElement]
+      : [],
     _key: `macbook-key-${rowIndex}-${keyIndex}`,
     // A keycap is a fixed device-material color, not a surface that should
     // track the host page's ambient dataTone context — a dark-mode toggle on

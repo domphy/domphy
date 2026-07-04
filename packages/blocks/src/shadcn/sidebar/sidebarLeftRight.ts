@@ -548,6 +548,7 @@ function calendarGridRowStyle() {
  * styled with the primary accent color on the selected day. */
 function inlineMonthCalendar(viewMonth: State<Date>, selectedDate: State<Date>): DomphyElement<"div"> {
   const monthFormatter = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
+  const fullDateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "full" });
 
   const header: DomphyElement<"div"> = {
     div: [
@@ -576,6 +577,10 @@ function inlineMonthCalendar(viewMonth: State<Date>, selectedDate: State<Date>):
   } as unknown as DomphyElement<"div">;
 
   const weekdayHeader: DomphyElement<"div"> = {
+    // NOT `role="row"` — see the matching note in sidebar12.ts's
+    // `weekdayHeader`: this header is a sibling of `grid`, not nested inside
+    // its own `role="grid"` container, so `role="row"` here has no valid
+    // ancestor/children to satisfy `aria-required-parent`/`-children`.
     div: WEEKDAY_LABELS.map((label, index) => ({
       small: label,
       _key: index,
@@ -601,8 +606,10 @@ function inlineMonthCalendar(viewMonth: State<Date>, selectedDate: State<Date>):
           cells.push({
             button: String(date.getDate()),
             type: "button",
+            role: "gridcell",
             disabled: outside,
             ariaSelected: isSelected,
+            ariaLabel: fullDateFormatter.format(date),
             onClick: () => selectedDate.set(date),
             _key: isoOf(date),
             // The selected day is a fixed accent chip, not a tone-context
@@ -626,12 +633,15 @@ function inlineMonthCalendar(viewMonth: State<Date>, selectedDate: State<Date>):
         }
         weeks.push({
           div: cells,
+          role: "row",
           _key: isoOf(addDays(gridStart, week * 7)),
           style: calendarGridRowStyle(),
         } as unknown as DomphyElement);
       }
       return weeks;
     },
+    role: "grid",
+    ariaLabel: "Calendar",
     style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
   } as unknown as DomphyElement<"div">;
 
@@ -808,6 +818,10 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
         style: { position: "absolute", insetBlock: "0", insetInlineEnd: "0", width: themeSpacing(1), cursor: "col-resize" },
       } as unknown as DomphyElement,
     ],
+    // `rightAside` below is also a plain `<aside>` with no name — without a
+    // distinguishing label the two collide as duplicate "complementary"
+    // landmarks (axe-core `landmark-unique`).
+    ariaLabel: "Primary sidebar",
     dataTone: "shift-2",
     _onMount: (node: ElementNode) => {
       const onKeyDown = (event: KeyboardEvent) => {
@@ -936,6 +950,10 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
         },
       } as unknown as DomphyElement,
     ],
+    // `leftAside` above is also a plain `<aside>` with no name — without a
+    // distinguishing label the two collide as duplicate "complementary"
+    // landmarks (axe-core `landmark-unique`).
+    ariaLabel: "Calendar sidebar",
     dataTone: "shift-2",
     style: {
       display: "none",

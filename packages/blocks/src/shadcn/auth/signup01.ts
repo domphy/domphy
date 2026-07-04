@@ -270,7 +270,7 @@ function signup01(props: Signup01Props = {}): DomphyElement<"div"> {
       {
         small: [
           `${signInPrompt} `,
-          { a: signInLinkText, href: signInHref, $: [link({ color: "primary" })] },
+          { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
         ],
         $: [small({ color: "neutral" })],
       },

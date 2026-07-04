@@ -102,6 +102,7 @@ function sidebarUserHeader(user: Sidebar12User): DomphyElement<"div"> {
 /** Compact always-visible month-grid date picker (Sunday-first, no popover). */
 function monthDatePicker(viewMonth: State<Date>, selectedDate: State<Date>, onSelect: (date: Date) => void): DomphyElement<"div"> {
   const monthFormatter = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
+  const fullDateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "full" });
 
   const header: DomphyElement<"div"> = {
     div: [
@@ -129,6 +130,11 @@ function monthDatePicker(viewMonth: State<Date>, selectedDate: State<Date>, onSe
   } as unknown as DomphyElement<"div">;
 
   const weekdayHeader: DomphyElement<"div"> = {
+    // NOT `role="row"` — unlike the week rows below, this header is a
+    // sibling of `grid`, not nested inside its own `role="grid"` container,
+    // so `role="row"` here has no valid grid/table/rowgroup ancestor (and no
+    // cell-family children either) — it failed both `aria-required-parent`
+    // and `aria-required-children` once added.
     div: WEEKDAY_LABELS.map((label, index) => ({
       small: label,
       _key: index,
@@ -154,8 +160,10 @@ function monthDatePicker(viewMonth: State<Date>, selectedDate: State<Date>, onSe
           cells.push({
             button: String(date.getDate()),
             type: "button",
+            role: "gridcell",
             disabled: outside,
             ariaSelected: isSelected,
+            ariaLabel: fullDateFormatter.format(date),
             onClick: () => onSelect(date),
             _key: isoOf(date),
             style: {
@@ -173,10 +181,17 @@ function monthDatePicker(viewMonth: State<Date>, selectedDate: State<Date>, onSe
             },
           } as unknown as DomphyElement);
         }
-        weeks.push({ div: cells, _key: isoOf(addDays(gridStart, week * 7)), style: gridRowStyle() } as unknown as DomphyElement);
+        weeks.push({
+          div: cells,
+          role: "row",
+          _key: isoOf(addDays(gridStart, week * 7)),
+          style: gridRowStyle(),
+        } as unknown as DomphyElement);
       }
       return weeks;
     },
+    role: "grid",
+    ariaLabel: "Calendar",
     style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
   } as unknown as DomphyElement<"div">;
 

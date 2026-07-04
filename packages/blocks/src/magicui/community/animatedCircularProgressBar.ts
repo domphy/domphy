@@ -38,6 +38,8 @@ export interface AnimatedCircularProgressBarProps {
   strokeWidth?: number;
   /** Interval, in ms, between auto-demo steps when `value` is omitted. Defaults to `2000`. */
   autoPlayIntervalMs?: number;
+  /** Accessible name for the `role="progressbar"` element. Defaults to `"Progress"`. */
+  label?: string;
   /** Passthrough style merged onto the outer container. */
   style?: StyleObject;
 }
@@ -66,6 +68,7 @@ function animatedCircularProgressBar(
   const size = props.size ?? 32;
   const strokeWidth = props.strokeWidth ?? 10;
   const autoPlayIntervalMs = props.autoPlayIntervalMs ?? 2000;
+  const label = props.label ?? "Progress";
   const hasExternalValue = props.value !== undefined;
 
   const value = toState(props.value ?? min, "value");
@@ -152,6 +155,7 @@ function animatedCircularProgressBar(
     ariaValuenow: (listener: Listener) => String(Math.round(value.get(listener))),
     ariaValuemin: String(min),
     ariaValuemax: String(max),
+    ariaLabel: label,
     _onMount: (node) => {
       if (hasExternalValue || typeof window === "undefined") return;
       const timer = setInterval(() => {

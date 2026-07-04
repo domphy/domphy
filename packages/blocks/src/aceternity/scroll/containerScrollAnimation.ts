@@ -112,7 +112,13 @@ function containerScrollAnimation(props: ContainerScrollAnimationProps = {}): Do
               zIndex: 1,
               textAlign: "center",
               marginBlockEnd: themeSpacing(10),
-              opacity: (listener: Listener) => 0.6 + 0.4 * progress.get(listener),
+              // Floor raised from 0.6 to 0.85 — at progress=0 (the very
+              // first, pre-scroll paint, which is exactly what a static a11y
+              // scan captures) the heading/strong text measured a real WCAG
+              // contrast failure (axe-core `color-contrast`) at 0.6. 0.85
+              // keeps a subtle scroll-in fade without meaningfully dimming
+              // the headline a visitor sees before they've scrolled at all.
+              opacity: (listener: Listener) => 0.85 + 0.15 * progress.get(listener),
               transform: (listener: Listener) => `translateY(${(6 - 6 * progress.get(listener)).toFixed(1)}px)`,
             } as StyleObject,
           } as DomphyElement<"div">,

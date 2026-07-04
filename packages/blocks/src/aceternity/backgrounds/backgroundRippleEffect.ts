@@ -29,6 +29,7 @@ import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/
 import { hashString } from "@domphy/core";
 import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
 
 export interface BackgroundRippleCell {
   row: number;
@@ -131,10 +132,15 @@ function backgroundRippleEffect(props: BackgroundRippleEffectProps = {}): Domphy
   }
 
   const defaultChildren: DomphyElement[] = [
-    { h3: "Background Ripple Effect", $: [heading()] } as DomphyElement,
     {
-      p: "Click any cell — the ripple radiates outward, farther cells lighting up a beat later.",
-      $: [paragraph()],
+      div: [
+        { h3: "Background Ripple Effect", $: [heading()] } as DomphyElement,
+        {
+          p: "Click any cell — the ripple radiates outward, farther cells lighting up a beat later.",
+          $: [paragraph()],
+        } as DomphyElement,
+      ],
+      style: demoContentScrimStyle(),
     } as DomphyElement,
   ];
   const contentChildren = props.children

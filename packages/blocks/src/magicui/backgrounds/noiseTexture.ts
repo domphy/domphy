@@ -27,6 +27,7 @@
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { paragraph, strong } from "@domphy/ui";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
 
 export interface NoiseTextureProps {
   /** Controls grain fineness — higher values produce smaller, finer speckles. Defaults to `0.4`. */
@@ -163,7 +164,23 @@ function noiseTexture(props: NoiseTextureProps = {}): DomphyElement<"div"> {
   } as DomphyElement<"canvas">;
 
   return {
-    div: [{ div: contentChildren, style: { position: "relative" } }, canvasElement],
+    div: [
+      {
+        // Explicit `zIndex: 1` (not just `position: relative`) so this paints
+        // above the noise canvas regardless of DOM order — without it, the
+        // canvas's own `mix-blend-mode: multiply` darkens the panel's default
+        // caption text along with everything else, measuring a real WCAG
+        // contrast ratio as low as ~1.7:1 at the original 0.6 opacity (need
+        // 4.5:1). The scrim panel keeps the caption legible regardless of
+        // grain intensity, while the grain still reads at full strength
+        // everywhere else in the panel — matching this component's own
+        // "layered over cards/buttons/backgrounds for texture" intent rather
+        // than watering down the effect just to protect one caption.
+        div: contentChildren,
+        style: { position: "relative", zIndex: 1, ...demoContentScrimStyle() } as StyleObject,
+      } as DomphyElement,
+      canvasElement,
+    ],
     dataTone: "shift-1",
     style: {
       position: "relative",

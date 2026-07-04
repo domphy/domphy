@@ -74,7 +74,11 @@ function defaultImage(): { src: string; alt: string } {
 
 function defaultOverlayContent(): DomphyElement[] {
   return [
-    { h4: "Whitehaven Beach", $: [heading({ color: "neutral" })] } as DomphyElement,
+    // h3 (not h4, matching every sibling card block — card3D/cardHoverEffect/
+    // evervaultCard/focusCards/wobbleCard all use h3) — the demo harness's
+    // own outer `<h2>` title made an h4 here skip a level (axe-core
+    // `heading-order`).
+    { h3: "Whitehaven Beach", $: [heading({ color: "neutral" })] } as DomphyElement,
     { small: "Queensland, Australia", $: [small({ color: "neutral" })] } as DomphyElement,
   ];
 }

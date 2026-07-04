@@ -210,11 +210,22 @@ function tweetTextBody(text: string): DomphyElement<"p"> {
         target: "_blank",
         rel: "noopener noreferrer",
         _key: `entity-${index}`,
+        // `link()` only underlines on hover — these entities sit inline
+        // within the tweet body's own plain-text runs, so axe-core's
+        // `link-in-text-block` rule (WCAG 1.4.1) needs them distinguishable
+        // from surrounding text at rest too, not just by color.
+        style: { textDecoration: "underline" },
         $: [link({ color: "info" })],
       };
     }
     if (/^[@#]\w+/.test(token)) {
-      return { a: token, href: "#", _key: `entity-${index}`, $: [link({ color: "info" })] };
+      return {
+        a: token,
+        href: "#",
+        _key: `entity-${index}`,
+        style: { textDecoration: "underline" },
+        $: [link({ color: "info" })],
+      };
     }
     return token;
   });

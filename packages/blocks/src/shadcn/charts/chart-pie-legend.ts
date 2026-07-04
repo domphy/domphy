@@ -79,6 +79,7 @@ function chartPieLegend(props: ChartPieLegendProps = {}): DomphyElement<"div"> {
             } as DomphyElement<"g">,
           ],
           tooltipState,
+          `${title}: ${description}`,
         ),
         pieLegendRow(data, legendColumns),
       ],

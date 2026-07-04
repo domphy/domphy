@@ -285,7 +285,10 @@ function gooeyInput(props: GooeyInputProps = {}): DomphyElement<"div"> {
 
   const chromeGroup: DomphyElement<"div"> = {
     div: [pillBox, iconBubble],
-    ariaHidden: "true",
+    // NOT `ariaHidden` — `pillBox` (decorative) already hides itself; this
+    // wrapper also holds `iconBubble`, the real focusable toggle button.
+    // Hiding the whole group made that button focusable but invisible to
+    // assistive tech (axe-core `aria-hidden-focus`).
     style: {
       position: "relative",
       // Static baseline matching `chromeWidth`'s initial value — see the

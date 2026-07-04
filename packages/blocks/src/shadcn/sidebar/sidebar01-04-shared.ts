@@ -231,7 +231,10 @@ export function navGroupLabel(
     $: [small()],
     style: {
       textTransform: "uppercase",
-      color: (listener: Listener) => themeColor(listener, "shift-6", "neutral"),
+      // shift-6 ("muted section heading," matching the theme's own "muted
+      // text" convention) measured a real WCAG contrast failure here —
+      // bumped to shift-9.
+      color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
       paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
       overflow: "hidden",
       whiteSpace: "nowrap",
@@ -328,12 +331,22 @@ function navItemWithChildrenRow(
   const children = item.children ?? [];
   const anyChildActive = children.some((child) => child.active);
 
+  // Same `details()`-summary contrast issue (and same fix) as
+  // `navGroupSection()`'s group label above.
+  const itemLabel = collapsibleLabel(collapsed, item.label);
+
   return {
     li: [
       {
         details: [
           {
-            summary: [navIcon(item.iconName ?? "folder"), collapsibleLabel(collapsed, item.label)],
+            summary: [
+              navIcon(item.iconName ?? "folder"),
+              {
+                ...itemLabel,
+                style: { ...itemLabel.style, color: (listener: Listener) => themeColor(listener, "shift-11", "neutral") },
+              } as DomphyElement,
+            ],
           },
           {
             ul: children.map((child) => ({
@@ -376,11 +389,28 @@ function navGroupSection(
       : navItemRow(item, collapsed),
   );
 
+  // `details()`'s own `"& > summary"` rule (shift-10 text on a shift-2
+  // background, both relative to this panel's ambient tone) measured
+  // ~4.48:1 (need 4.5:1) — a same-specificity descendant rule on the
+  // `<summary>` itself couldn't be reliably beaten by overriding color
+  // directly on that element, so the override goes on the label's own
+  // `<span>` instead: an inherited value always loses to an explicit one
+  // set directly on the descendant, regardless of the ancestor rule's
+  // specificity.
+  const groupLabel = collapsibleLabel(collapsed, group.label);
+
   return {
     li: [
       {
         details: [
-          { summary: [collapsibleLabel(collapsed, group.label)] },
+          {
+            summary: [
+              {
+                ...groupLabel,
+                style: { ...groupLabel.style, color: (listener: Listener) => themeColor(listener, "shift-11", "neutral") },
+              } as DomphyElement,
+            ],
+          },
           {
             ul: itemRows,
             $: [list()],
@@ -592,10 +622,27 @@ export function contentHeader(
 ): DomphyElement<"header"> {
   const toggleButton = sidebarToggleButton(collapsed, mobileOpen);
   const breadcrumbNav: DomphyElement<"nav"> = {
+    // Each crumb is wrapped in an extra `<span>` rather than being a direct
+    // child of the nav: `breadcrumb()`'s own `"& > *"` rule (shift-8 for
+    // non-current crumbs) measured a real WCAG contrast failure here, and a
+    // same-specificity `.breadcrumbClass > *` vs. a crumb's own generated
+    // class is a cascade-order tie this couldn't reliably win by overriding
+    // color directly on the direct child. One more level of nesting takes
+    // the real crumb text out of that direct-child match.
     nav: breadcrumbItems.map((crumb) => ({
-      span: crumb.label,
-      _key: crumb.label,
+      span: [
+        {
+          span: crumb.label,
+          // Replicates breadcrumb()'s own "current crumb reads stronger"
+          // rule (now moot for this grandchild — see the note above) rather
+          // than just reusing its too-weak shift-8/shift-9 non-current step.
+          style: {
+            color: (l: Listener) => themeColor(l, crumb.current ? "shift-10" : "shift-9", "neutral"),
+          },
+        } as DomphyElement,
+      ],
       ariaCurrent: crumb.current ? ("page" as const) : undefined,
+      _key: crumb.label,
     })),
     $: [breadcrumb()],
   };
@@ -710,6 +757,11 @@ export function sidebarAside(options: SidebarShellOptions): DomphyElement<"aside
       sidebarHeaderSwitcher(header, collapsed),
       {
         nav: [navGroupList(navGroups, collapsed, collapsibleSections, supportsChildren)],
+        // The mobile drawer below renders a second, structurally-identical
+        // `<nav>` (shown off-canvas rather than removed from the DOM) —
+        // without distinct names both collide as duplicate "navigation"
+        // landmarks (axe-core `landmark-unique`).
+        ariaLabel: "Sidebar navigation",
         $: [scrollArea()],
         style: {
           flex: "1 1 auto",
@@ -762,6 +814,7 @@ export function sidebarMobileDrawer(
       sidebarHeaderSwitcher(header, alwaysExpanded),
       {
         nav: [navGroupList(navGroups, alwaysExpanded, collapsibleSections, supportsChildren)],
+        ariaLabel: "Sidebar navigation (mobile)",
         $: [scrollArea()],
         style: {
           flex: "1 1 auto",

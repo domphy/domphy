@@ -29,7 +29,9 @@ describe("directionAwareHover", () => {
     const { host } = render(directionAwareHover() as DomphyElement);
     const card = host.firstElementChild as HTMLElement;
     expect(card.querySelector("img")).toBeTruthy();
-    expect(card.querySelector("h4")?.textContent).toBe("Whitehaven Beach");
+    // h3, not h4 — matches every sibling card block and avoids skipping a
+    // heading level under the demo harness's own h2 (axe-core `heading-order`).
+    expect(card.querySelector("h3")?.textContent).toBe("Whitehaven Beach");
   });
 
   it("entering from the left pans the image and slides the overlay in from the left", () => {

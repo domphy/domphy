@@ -170,6 +170,11 @@ function sidebarStyledPopoverContent(
         style: interactiveRowStyle(true),
         _key: itemIndex,
       })) as unknown as DomphyElement[],
+      // `role="menu"` (below) requires its direct children to carry a
+      // menu-item-family role (or "group") — this plain wrapper div, with no
+      // role of its own, failed both `aria-required-children` (on the menu)
+      // and `aria-required-parent` (on each `menuitem` button one level down).
+      role: "group",
       style: {
         display: "flex",
         flexDirection: "column",

@@ -274,6 +274,10 @@ function stickyScrollReveal(props: StickyScrollRevealProps = {}): DomphyElement<
         if (animationFrameHandle !== null) window.cancelAnimationFrame(animationFrameHandle);
       });
     },
+    // Scrollable region needs keyboard access (axe-core
+    // `scrollable-region-focusable`) — without a tabindex, keyboard users
+    // can't focus this box to scroll it via arrow keys.
+    tabindex: 0,
     style: {
       display: "flex",
       flexWrap: "wrap",

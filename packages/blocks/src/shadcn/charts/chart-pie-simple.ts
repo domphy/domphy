@@ -78,6 +78,7 @@ function chartPieSimple(props: ChartPieSimpleProps = {}): DomphyElement<"div"> {
         } as DomphyElement<"g">,
       ],
       tooltipState,
+      `${title}: ${description}`,
     ),
     pieCardFooter({ trendValue, trendDirection, caption }),
   ]);

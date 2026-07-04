@@ -364,6 +364,14 @@ function messageRow(message: Sidebar09Message, selected: boolean, onSelect: (id:
         },
       } as unknown as DomphyElement,
     ],
+    // The parent `<ul>` carries `role="listbox"` (see `buildMessageList`) —
+    // `role="option"` (on the button above) requires its DIRECT parent to be
+    // a listbox/group, but this `<li>` wrapper sits in between with its own
+    // native "listitem" role, failing both `aria-required-parent` (option)
+    // and `listitem` (the ul no longer reads as a plain list once it's a
+    // listbox). `role="presentation"` strips the `<li>`'s own semantics so
+    // ARIA parent/child computation skips over it to the `<ul>` beneath.
+    role: "presentation",
     _key: message.id,
   } as DomphyElement<"li">;
 }
@@ -397,6 +405,10 @@ function buildMessageList(
         return [
           {
             li: [{ small: "No messages", $: [small({ color: "neutral" })] } as unknown as DomphyElement],
+            // Same reasoning as `messageRow`'s `<li>` — the parent `<ul>`
+            // carries `role="listbox"`, so a native listitem role here would
+            // fail axe-core's `listitem` check the same way.
+            role: "presentation",
             _key: "empty",
             style: { padding: (l: Listener) => themeSpacing(themeDensity(l) * 4), listStyle: "none" },
           } as unknown as DomphyElement,
@@ -464,6 +476,10 @@ function sidebar09(props: Sidebar09Props = {}): DomphyElement<"div"> {
       } as unknown as DomphyElement,
       railFooter(user),
     ],
+    // `listPanel` below is also a plain `<aside>` with no name — without a
+    // distinguishing label the two collide as duplicate "complementary"
+    // landmarks (axe-core `landmark-unique`).
+    ariaLabel: "Folder rail",
     style: {
       display: "flex",
       flexDirection: "column",
@@ -481,6 +497,7 @@ function sidebar09(props: Sidebar09Props = {}): DomphyElement<"div"> {
       messageListHeader("Acme Mail", searchQuery, unreadOnly, () => mobileListOpen.set(false), onSearchChange),
       buildMessageList(messages, activeFolderId, activeMessageId, searchQuery, unreadOnly, selectMessage),
     ],
+    ariaLabel: "Message list",
     style: {
       display: "flex",
       flexDirection: "column",

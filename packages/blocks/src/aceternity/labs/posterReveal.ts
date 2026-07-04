@@ -215,6 +215,11 @@ function buildLayer(
   return {
     div: [isWordmark ? wordmarkContent(layer.label) : panelMedia(layer, index)],
     _key: `${layer.id}-${version}`,
+    // A plain `<div>` (implicit "generic" role) doesn't support `aria-label`
+    // at all — axe-core's `aria-prohibited-attr` flagged it. `role="img"`
+    // treats the whole layer as one named visual unit, which is what the
+    // label is for here (announcing which poster layer this is).
+    role: "img",
     ariaLabel: layer.label,
     // The layer wrapper's own `outline` is a decorative panel-seam border, not text —
     // the panel/wordmark content inside sets its own color independently.

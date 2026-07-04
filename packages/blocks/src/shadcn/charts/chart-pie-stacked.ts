@@ -144,6 +144,7 @@ function chartPieStacked(props: ChartPieStackedProps = {}): DomphyElement<"div">
         } as DomphyElement<"g">,
       ],
       tooltipState,
+      `${title}: ${description}`,
     ),
     pieCardFooter({ trendValue, trendDirection, caption }),
   ]);

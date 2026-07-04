@@ -101,6 +101,7 @@ function chartPieLabelList(props: ChartPieLabelListProps = {}): DomphyElement<"d
         } as DomphyElement<"g">,
       ],
       tooltipState,
+      `${title}: ${description}`,
     ),
     pieCardFooter({ trendValue, trendDirection, caption }),
   ]);

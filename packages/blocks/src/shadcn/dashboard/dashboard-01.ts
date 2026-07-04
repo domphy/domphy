@@ -243,7 +243,16 @@ function metricCard(data: MetricCardData, key: string | number): DomphyElement<"
           paddingBlock: themeSpacing(1),
           borderRadius: themeSpacing(999),
           border: (l: Listener) => `1px solid ${themeColor(l, "shift-4", trendColor)}`,
-          color: (l: Listener) => themeColor(l, "shift-9", trendColor),
+          // Own background (not just text + border floating on whatever the
+          // card's gradient tint happens to be behind it) — the badge text's
+          // contrast was measuring against the card's own background before.
+          // shift-9 text on this shift-1 background still only measured
+          // ~4.23:1 for the "success" (green) family specifically — green's
+          // heavier weight in relative-luminance math makes a given shift
+          // step read lower-contrast than the same step in other hues —
+          // shift-11 clears it with real margin.
+          backgroundColor: (l: Listener) => themeColor(l, "shift-1", trendColor),
+          color: (l: Listener) => themeColor(l, "shift-11", trendColor),
         },
       } as unknown as DomphyElement,
     ],
@@ -1182,6 +1191,11 @@ function dashboardUtilityRow(): DomphyElement<"div"> {
         type: "button",
         ariaLabel: "Open project source",
         $: [buttonGhost({ color: "neutral" })],
+        // `buttonGhost()`'s own resting-state shift-6 (deliberately subtle
+        // until hovered) measured too little contrast against the page
+        // background here — bumped directly on this call site rather than
+        // touching the shared patch's own default.
+        style: { color: (l: Listener) => themeColor(l, "shift-9", "neutral") },
       } as unknown as DomphyElement,
     ],
     style: {

@@ -158,6 +158,7 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
         pieCenterText(centerValueText, centerCaption),
       ],
       tooltipState,
+      `${title}: ${description}`,
     ),
   ]);
 }

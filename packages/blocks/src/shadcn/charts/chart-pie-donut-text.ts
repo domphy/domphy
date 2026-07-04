@@ -92,6 +92,7 @@ function chartPieDonutText(props: ChartPieDonutTextProps = {}): DomphyElement<"d
         pieCenterText(valueFormatter(total), centerCaption),
       ],
       tooltipState,
+      `${title}: ${description}`,
     ),
     pieCardFooter({ trendValue, trendDirection, caption }),
   ]);

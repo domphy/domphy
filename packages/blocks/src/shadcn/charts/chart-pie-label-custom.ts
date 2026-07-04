@@ -97,6 +97,7 @@ function chartPieLabelCustom(props: ChartPieLabelCustomProps = {}): DomphyElemen
         } as DomphyElement<"g">,
       ],
       tooltipState,
+      `${title}: ${description}`,
     ),
     pieCardFooter({ trendValue, trendDirection, caption }),
   ]);

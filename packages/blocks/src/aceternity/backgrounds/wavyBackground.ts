@@ -32,6 +32,7 @@
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeColorToken, themeSpacing } from "@domphy/theme";
+import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
 
 export type WavyBackgroundSpeed = "slow" | "fast";
 
@@ -58,10 +59,15 @@ export interface WavyBackgroundProps {
 
 function defaultWavyContent(): DomphyElement[] {
   return [
-    { h1: "Wavy Background", $: [heading({ color: "neutral" })] } as DomphyElement,
     {
-      p: "A slow, glowing ribbon of color flowing behind your content.",
-      $: [paragraph({ color: "neutral" })],
+      div: [
+        { h1: "Wavy Background", $: [heading({ color: "neutral" })] } as DomphyElement,
+        {
+          p: "A slow, glowing ribbon of color flowing behind your content.",
+          $: [paragraph({ color: "neutral" })],
+        } as DomphyElement,
+      ],
+      style: demoContentScrimStyle(),
     } as DomphyElement,
   ];
 }

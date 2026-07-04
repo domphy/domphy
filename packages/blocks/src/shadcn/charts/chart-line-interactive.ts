@@ -173,7 +173,13 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
     const meta = seriesMeta[key];
     return {
       button: [
-        { small: meta.label, $: [small({ color: "neutral" })] } as DomphyElement<"small">,
+        // Same shift-11 bump as chart-bar-interactive.ts's statTile — a
+        // shift-9 attempt still measured ~4.24:1 (need 4.5:1).
+        {
+          small: meta.label,
+          $: [small({ color: "neutral" })],
+          style: { color: (l: Listener) => themeColor(l, "shift-11", "neutral") },
+        } as DomphyElement<"small">,
         { h4: String(totals[key]), $: [heading({ color: "neutral" })] } as DomphyElement<"h4">,
       ],
       type: "button",

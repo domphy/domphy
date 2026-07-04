@@ -116,7 +116,7 @@ function shimmerLoader(text: string): DomphyElement<"span"> {
     span: characters.map((character, index) => ({
       span: character,
       _key: `shimmer-char-${index}`,
-      style: { display: "inline-block", opacity: 0.35, color: (listener: Listener) => themeColor(listener, "shift-9") } as StyleObject,
+      style: { display: "inline-block", opacity: 0.6, color: (listener: Listener) => themeColor(listener, "shift-9") } as StyleObject,
     })),
     role: "status",
     ariaLabel: text,
@@ -136,7 +136,10 @@ function shimmerLoader(text: string): DomphyElement<"span"> {
         spans.forEach((span, index) => {
           const distance = Math.abs(index - wavePosition);
           const intensity = Math.max(0, 1 - distance / waveWidth);
-          span.style.opacity = String(0.35 + intensity * 0.65);
+          // Floor raised from 0.35 to 0.6 — the dim end of the wave measured
+          // a real WCAG contrast failure (axe-core `color-contrast`); 0.6
+          // still reads as a clear shimmer sweep against the bright end.
+          span.style.opacity = String(0.6 + intensity * 0.4);
         });
         animationFrame = requestAnimationFrame(tick);
       };
@@ -211,8 +214,13 @@ function glitchLoader(text: string): DomphyElement<"span"> {
     style: {
       position: "absolute",
       inset: 0,
-      color: (listener: Listener) => themeColor(listener, "shift-8", family),
-      opacity: 0.7,
+      // `aria-hidden` doesn't exempt this from WCAG contrast — it's still
+      // visually rendered (that's the whole point of the glitch effect), so
+      // a low-vision sighted user without a screen reader still needs to
+      // read it. shift-8 at 0.7 opacity measured a real failure; shift-10 at
+      // 0.85 keeps the "colorful RGB-split duplicate" look with more margin.
+      color: (listener: Listener) => themeColor(listener, "shift-10", family),
+      opacity: 0.85,
       mixBlendMode: "screen",
     } as StyleObject,
   });

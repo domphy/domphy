@@ -380,7 +380,7 @@ function fileUpload(props: FileUploadProps = {}): DomphyElement<"div"> {
   const dropZoneScale = toState<MotionKeyframe>({ scale: 1 });
 
   const dropZone: DomphyElement<"div"> = {
-    div: [srOnlyLabel, hiddenFileInput, gridPatternLayer, centeredContent, fileListContainer],
+    div: [gridPatternLayer, centeredContent, fileListContainer],
     role: "button",
     tabindex: 0,
     ariaLabel: "Upload files",
@@ -454,7 +454,13 @@ function fileUpload(props: FileUploadProps = {}): DomphyElement<"div"> {
   };
 
   return {
-    div: [ghostCard(2, ghostNudgeFar), ghostCard(1, ghostNudgeNear), dropZone],
+    // `srOnlyLabel`/`hiddenFileInput` are siblings of `dropZone`, not its
+    // children — `dropZone` carries `role="button"`, and a native `<input>`
+    // nested inside it failed axe-core's `nested-interactive` check (two
+    // interactive controls, one inside the other) even though the input is
+    // aria-hidden/tabindex=-1. `openFilePicker()` only needs the DOM
+    // reference captured in `hiddenFileInput`'s `_onMount`, not DOM nesting.
+    div: [srOnlyLabel, hiddenFileInput, ghostCard(2, ghostNudgeFar), ghostCard(1, ghostNudgeNear), dropZone],
     class: props.className,
     onPointerEnter: () => {
       ghostNudgeFar.set({ y: "-6px", rotate: "-9deg" });

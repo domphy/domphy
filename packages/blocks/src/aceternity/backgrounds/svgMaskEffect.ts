@@ -21,6 +21,7 @@
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { heading, paragraph } from "@domphy/ui";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
 
 export interface SvgMaskEffectProps {
   /** Content for the muted base layer (always fully visible). Defaults to a small demo blurb. */
@@ -38,10 +39,15 @@ export interface SvgMaskEffectProps {
 
 function defaultBaseContent(): DomphyElement[] {
   return [
-    { h2: "Move your cursor", $: [heading({ color: "neutral" })] } as DomphyElement,
     {
-      p: "A hidden, more colorful layer is revealed through a small window that follows your pointer.",
-      $: [paragraph({ color: "neutral" })],
+      div: [
+        { h2: "Move your cursor", $: [heading({ color: "neutral" })] } as DomphyElement,
+        {
+          p: "A hidden, more colorful layer is revealed through a small window that follows your pointer.",
+          $: [paragraph({ color: "neutral" })],
+        } as DomphyElement,
+      ],
+      style: demoContentScrimStyle(),
     } as DomphyElement,
   ];
 }
@@ -50,7 +56,7 @@ function defaultRevealContent(): DomphyElement[] {
   return [
     { h2: "There it is", $: [heading({ color: "primary" })] } as DomphyElement,
     {
-      p: "A hidden, more colorful layer is revealed through a small window that follows your pointer.",
+      p: "You found the hidden vivid layer — it only shows through this small window.",
       $: [paragraph({ color: "info" })],
     } as DomphyElement,
   ];
@@ -117,6 +123,12 @@ function svgMaskEffect(props: SvgMaskEffectProps = {}): DomphyElement<"div"> {
         } as StyleObject,
       } as DomphyElement,
     ],
+    // Hidden from assistive tech: this whole layer is a decorative duplicate
+    // of the base layer's message, visible only through a small pointer-
+    // following cutout (never as a full readable block) — the always-fully-
+    // visible base layer already conveys the equivalent content, so exposing
+    // this too would double-announce it to screen readers.
+    ariaHidden: "true",
     // The doctor's `missing-color` heuristic treats any style value
     // containing the substring `var(` as a themeColor() token and expects a
     // matching `color`; `maskImage`/`WebkitMaskImage` here reference plain
