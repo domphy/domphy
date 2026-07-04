@@ -106,11 +106,20 @@ function videoText(props: VideoTextProps = {}): DomphyElement<"div"> {
         maskContentUnits: "userSpaceOnUse",
       } as DomphyElement<"mask">,
     ],
-    width: "0",
-    height: "0",
+    // A `<mask>` element's children never paint on their own — but the
+    // `<text>`'s percentage `x`/`y` (userSpaceOnUse) resolve against *this*
+    // SVG's own viewport, not the masked video's box. Sizing it `0x0` (as if
+    // it were purely a hidden defs host) collapsed that viewport to nothing,
+    // so `50%`/`50%` resolved to the origin — the glyphs rendered
+    // top-left-anchored and mostly clipped instead of centered. Stretching
+    // this SVG to match the container (still invisible; mask content only
+    // ever paints through a `mask-image` reference) gives the percentages a
+    // real, non-zero coordinate space to resolve against.
+    width: "100%",
+    height: "100%",
     xmlns: "http://www.w3.org/2000/svg",
     ariaHidden: "true",
-    style: { position: "absolute" },
+    style: { position: "absolute", inset: 0, pointerEvents: "none" } as StyleObject,
   };
 
   const maskedFillStyle: StyleObject = {

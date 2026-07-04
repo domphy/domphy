@@ -238,9 +238,19 @@ function hoverSidebarDesktopAside(
   // literal (clean inference) and adding the dynamic media-query entry via
   // a separately-cast assignment sidesteps that inference limitation.
   const asideStyle: StyleObject = {
-    position: "fixed",
-    insetBlock: "0",
-    insetInlineStart: "0",
+    // `position: relative` + `height: 100%` (not `fixed` + `insetBlock: 0`):
+    // a `fixed` box is removed from flow entirely and positioned against the
+    // real page viewport, which (a) contributes zero size to whatever
+    // normal-flow container this is mounted inside — collapsing that
+    // container's layout down to nothing wherever it isn't the literal
+    // document root — and (b) renders wherever the real viewport's edge is,
+    // disconnected from this element's actual mount point. Keeping the rail
+    // in normal flow (sized by the `height: 100dvh` root wrapper below, the
+    // same pattern `sidebar07`'s full-height app-shell root uses) gives it
+    // real, capturable layout wherever it's mounted, while still visually
+    // spanning the full available height.
+    position: "relative",
+    height: "100%",
     zIndex: 30,
     display: "flex",
     flexDirection: "column",
@@ -347,7 +357,12 @@ function hoverSidebar(props: HoverSidebarProps = {}): DomphyElement<"div"> {
       hoverSidebarMobileToggle(mobileOpen, mobileBreakpoint),
       hoverSidebarMobileDrawer(links, mobileOpen, profile),
     ],
-    style: { display: "contents" },
+    // `height: 100dvh` (matching `sidebar07`'s full-height app-shell root)
+    // gives the rail's `height: 100%` a real, non-auto parent height to
+    // resolve against, instead of `display: contents` (which generates no
+    // box at all and left the fixed-positioned rail with no in-flow parent
+    // to size against).
+    style: { position: "relative", display: "flex", height: "100dvh" },
   };
 }
 

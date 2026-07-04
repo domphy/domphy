@@ -59,11 +59,32 @@ export interface ParallaxScrollProps {
 
 const DEFAULT_IMAGE_COUNT = 15;
 
-function buildDefaultImages(): ParallaxScrollImage[] {
-  return Array.from({ length: DEFAULT_IMAGE_COUNT }, (_unused, index) => ({
-    src: `https://picsum.photos/seed/domphy-parallax-${index + 1}/480/640`,
+/** Generates a self-contained (no network fetch) gradient tile so each default gallery
+ * "photo" is a distinctly colored placeholder instead of hotlinking a third-party photo
+ * service — which is fragile (network-dependent) and unavailable in offline/sandboxed
+ * environments. Real consumers should still pass their own `images`. */
+function buildPlaceholderImage(index: number): ParallaxScrollImage {
+  const hue = Math.round((index * 360) / DEFAULT_IMAGE_COUNT);
+  const accentHue = (hue + 40) % 360;
+  const blobX = 140 + (index % 3) * 60;
+  const blobY = 180 + (index % 4) * 60;
+  const markup =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640">' +
+    `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">` +
+    `<stop offset="0%" stop-color="hsl(${hue}, 70%, 62%)"/>` +
+    `<stop offset="100%" stop-color="hsl(${accentHue}, 70%, 40%)"/>` +
+    "</linearGradient></defs>" +
+    '<rect width="480" height="640" fill="url(#g)"/>' +
+    `<circle cx="${blobX}" cy="${blobY}" r="110" fill="#ffffff" opacity="0.12"/>` +
+    "</svg>";
+  return {
+    src: `data:image/svg+xml,${encodeURIComponent(markup)}`,
     alt: `Parallax gallery photo ${index + 1}`,
-  }));
+  };
+}
+
+function buildDefaultImages(): ParallaxScrollImage[] {
+  return Array.from({ length: DEFAULT_IMAGE_COUNT }, (_unused, index) => buildPlaceholderImage(index));
 }
 
 function normalizeImage(image: string | ParallaxScrollImage): ParallaxScrollImage {

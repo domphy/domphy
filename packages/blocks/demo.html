@@ -10,8 +10,25 @@
     h1 { font-size: 20px; margin: 0 0 20px; color: #333; }
     .list { display: flex; flex-direction: column; gap: 20px; }
     .card { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-    .card h2 { font-size: 13px; color: #666; margin: 0 0 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; font-family: monospace; }
-    .block-box { position: relative; overflow: auto; }
+    /* Direct-child combinator only — this styles the demo card's own name
+       label. A descendant selector (`.card h2`) would also match any real
+       <h1>-<h6> a block renders as its own root/output tag inside
+       `.block-box` (e.g. kineticText's default `tag: "h2"`), silently
+       stomping that block's own typography with this label's tiny
+       monospace styling via higher selector specificity. */
+    .card > h2 { font-size: 13px; color: #666; margin: 0 0 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; font-family: monospace; }
+    /* `contain: layout` makes this box the containing block for any
+       `position: fixed`/`absolute` descendant a block renders (e.g. a
+       viewport-pinned dock like `notch()`), the same way a real app's own
+       root layout usually doesn't sit directly under an untransformed
+       <body> either. Without it, a `position: fixed` block escapes to the
+       REAL browser viewport — anchored there regardless of where its card
+       is scrolled to — so the compare script's screenshot (clipped to the
+       card's own, unrelated bounding rect) captures nothing. `min-height`
+       guards the companion collapse: an out-of-flow-only child (nothing
+       left in normal flow) would otherwise size this box to 0, leaving the
+       now-contained fixed child with a 0-tall box to offset from too. */
+    .block-box { position: relative; overflow: auto; contain: layout; min-height: 320px; }
     .error { color: #c00; font-size: 12px; font-family: monospace; white-space: pre-wrap; }
   </style>
 </head>

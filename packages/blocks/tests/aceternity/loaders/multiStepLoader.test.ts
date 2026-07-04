@@ -29,6 +29,21 @@ describe("multiStepLoader", () => {
     expect(node.generateCSS()).toContain("opacity: 0");
   });
 
+  it("renders a 'Click to load' trigger button that reveals the overlay on click", () => {
+    const { host, node } = render(multiStepLoader() as DomphyElement);
+    flushSync();
+
+    const trigger = host.querySelector("button:not([aria-label])");
+    expect(trigger).toBeTruthy();
+    expect(trigger!.textContent).toContain("Click to load");
+    expect(node.generateCSS()).toContain("opacity: 0");
+
+    trigger!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    flushSync();
+
+    expect(node.generateCSS()).toContain("opacity: 1");
+  });
+
   it("fades in and auto-advances steps while `loading` is true (fake timers)", () => {
     vi.useFakeTimers();
     const loading = toState(false);

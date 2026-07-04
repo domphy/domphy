@@ -25,9 +25,15 @@
 // `translateY` is likewise a reactive function of the active index, giving
 // the "list scrolls upward to keep the current step anchored" effect via a
 // single CSS `transition` rather than a JS tween.
+//
+// The factory returns a small wrapper: [self-contained "Click to load"
+// trigger, the always-mounted overlay]. The trigger just flips `loadingState`
+// to `true` — harmless for callers who also drive the same (or their own
+// shared) state externally, and it's what makes the zero-arg call a genuinely
+// working demo rather than an overlay with no way to ever become visible.
 import type { DomphyElement, ElementNode, Listener, State, StyleObject, ValueOrState } from "@domphy/core";
 import { toState, watch } from "@domphy/core";
-import { strong } from "@domphy/ui";
+import { button, strong } from "@domphy/ui";
 import { themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme";
 
 export interface MultiStepLoaderStep {
@@ -175,12 +181,27 @@ function stepRow(step: MultiStepLoaderStep, index: number, activeIndex: State<nu
   };
 }
 
+/** Self-contained "Click to load" demo trigger, flipping the shared
+ * `loadingState` to `true` on click. Rendered as a normal in-flow sibling
+ * before the overlay — once the overlay is showing, it covers this button
+ * (full-viewport, higher z-index), so it never competes visually with it. */
+function loadTriggerButton(loadingState: State<boolean>): DomphyElement<"button"> {
+  return {
+    button: [{ strong: "Click to load", $: [strong({ color: "neutral" })] } as DomphyElement<"strong">],
+    type: "button",
+    onClick: () => loadingState.set(true),
+    $: [button({ color: "info" })],
+  };
+}
+
 /**
- * A full-screen frosted overlay that walks through `loadingStates` one at a
- * time, auto-advancing on a timer (or under manual `value` control) and
- * showing a dismiss button in the corner. Mounted whenever `loading` is
- * truthy. Call with no arguments for a working demo (mount it and flip
- * `loading` to `true` to see it advance through 8 placeholder steps).
+ * A "Click to load" trigger followed by a full-screen frosted overlay that
+ * walks through `loadingStates` one at a time, auto-advancing on a timer (or
+ * under manual `value` control) and showing a dismiss button in the corner.
+ * The overlay is always mounted and toggles via `loading` (which the trigger
+ * flips to `true`, or a caller-owned `State<boolean>` can drive externally).
+ * Call with no arguments for a working demo — click the button to see it
+ * advance through 8 placeholder steps.
  */
 function multiStepLoader(props: MultiStepLoaderProps = {}): DomphyElement<"div"> {
   const steps = props.loadingStates && props.loadingStates.length > 0 ? props.loadingStates : DEFAULT_STEPS;
@@ -195,7 +216,7 @@ function multiStepLoader(props: MultiStepLoaderProps = {}): DomphyElement<"div">
     props.onClose?.();
   };
 
-  return {
+  const overlay: DomphyElement<"div"> = {
     div: [
       closeButton(close),
       {
@@ -272,6 +293,11 @@ function multiStepLoader(props: MultiStepLoaderProps = {}): DomphyElement<"div">
         disposeWatch();
       });
     },
+  };
+
+  return {
+    div: [loadTriggerButton(loadingState), overlay],
+    style: { display: "inline-block" } as StyleObject,
   };
 }
 

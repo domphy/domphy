@@ -145,7 +145,18 @@ function retroGrid(props: RetroGridProps = {}): DomphyElement<"div"> {
       inset: 0,
       overflow: "hidden",
       pointerEvents: "none",
-      perspective: "200px",
+      // A 3D `perspective` distance needs to be large relative to the plane
+      // it's projecting, or points past that distance get crushed toward (or
+      // past) the vanishing point. `floorPlane` is 200% of this wrapper's own
+      // height, tilted `rotateX(angle)deg` from its top edge — at `200px`
+      // (this component's previous value) that depth vastly exceeds the
+      // perspective distance, so the whole plane collapsed into an ~60px
+      // sliver at the very top of the container instead of fanning out
+      // through it (confirmed via getBoundingClientRect: rendered height
+      // dropped from the expected several-hundred px down to ~61px). `1000px`
+      // keeps the projected floor spanning the full container at the default
+      // `angle`/size this block ships with.
+      perspective: "1000px",
     } as StyleObject,
   } as DomphyElement;
 

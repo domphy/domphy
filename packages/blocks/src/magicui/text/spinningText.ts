@@ -16,7 +16,10 @@ export interface SpinningTextProps {
   children?: string;
   /** Seconds per full rotation. Defaults to 10. */
   duration?: number;
-  /** Radius of the circular path, in `themeSpacing` units. Defaults to 5. */
+  /** Radius of the circular path, in `themeSpacing` units. Defaults to 14
+   * (`themeSpacing(14)` = 3.5em) — large enough that the ring's circumference
+   * comfortably exceeds the arc length of `TARGET_RING_LENGTH` repeated
+   * characters without them overlapping each other. */
   radius?: number;
   /** Spins counter-clockwise instead of clockwise. Defaults to false. */
   reverse?: boolean;
@@ -41,7 +44,7 @@ function spinningText(props: SpinningTextProps = {}): DomphyElement<"div"> {
   const phrase = props.children ?? "learn more";
   const separator = props.separator ?? " • ";
   const durationSeconds = props.duration ?? 10;
-  const radiusUnits = props.radius ?? 5;
+  const radiusUnits = props.radius ?? 14;
   const reverse = props.reverse ?? false;
 
   const repeatUnit = `${phrase}${separator}`;

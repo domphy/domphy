@@ -946,6 +946,12 @@ export function buildSidebarBlock(options: SidebarVariantOptions): DomphyElement
     style: {
       flex: "1 1 auto",
       minWidth: "0",
+      // Without this, a stretched flex item refuses to shrink below its own
+      // content's intrinsic height — with `manyContentRows` (40 stacked
+      // placeholder rows) that content is far taller than the viewport, so
+      // `main` (and the row it sits in) grows past `height: 100dvh` instead
+      // of scrolling internally via scrollArea()'s `overflow: auto`.
+      minHeight: "0",
       display: "flex",
       flexDirection: "column",
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
@@ -971,7 +977,13 @@ export function buildSidebarBlock(options: SidebarVariantOptions): DomphyElement
     style: {
       display: "flex",
       width: "100%",
-      minHeight: "100dvh",
+      // A fixed `height` (not `minHeight`) caps the row at the viewport —
+      // `minHeight` is only a floor, so with tall content (manyContentRows)
+      // the whole layout (and the aside stretched alongside it via
+      // align-items:stretch) grows far past the viewport instead of the
+      // content pane scrolling internally. See `mainElement`'s `minHeight: 0`
+      // above for the matching half of this fix.
+      height: "100dvh",
       position: "relative",
       overflow: "hidden",
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),

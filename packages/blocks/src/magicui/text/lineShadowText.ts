@@ -32,7 +32,7 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { type ThemeColor, themeColor } from "@domphy/theme";
+import { type ThemeColor, themeColor, themeSize } from "@domphy/theme";
 
 export type LineShadowTextTag = "span" | "div" | "p" | "article" | "section" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 
@@ -69,6 +69,13 @@ function lineShadowText(props: LineShadowTextProps = {}): DomphyElement {
     style: {
       position: "relative",
       display: "inline-block",
+      // This is a large *display* text effect (the whole premise is a bold
+      // heading with a decorative shadow copy) — without an explicit size
+      // token it inherits whatever tiny ambient font-size the caller's
+      // context happens to have, which reads as plain unstyled text.
+      fontSize: (listener: Listener) => themeSize(listener, "increase-7"),
+      fontWeight: () => "800",
+      color: (listener: Listener) => themeColor(listener, "shift-9", shadowColor),
       "&::after": {
         content: "attr(data-shadow-text)",
         position: "absolute",

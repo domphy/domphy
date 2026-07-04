@@ -54,12 +54,20 @@ function classifyEntryDirection(centeredX: number, centeredY: number, width: num
   return "right";
 }
 
+// Deliberately an abstract gradient composition rather than the familiar
+// "rectangle + sun circle + mountain silhouette" glyph most browsers/icon sets use for a
+// *missing* image — that shape would read as a broken image instead of a placeholder one.
 function defaultImage(): { src: string; alt: string } {
   const markup =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">' +
-    '<rect width="400" height="300" fill="#cfd8e3"/>' +
-    '<circle cx="320" cy="70" r="34" fill="#eef2f6"/>' +
-    '<polygon points="0,300 140,140 210,210 290,110 400,300" fill="#9aa5b1"/>' +
+    '<defs><linearGradient id="beachGradient" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0%" stop-color="#38bdf8"/>' +
+    '<stop offset="55%" stop-color="#5eead4"/>' +
+    '<stop offset="100%" stop-color="#fde68a"/>' +
+    "</linearGradient></defs>" +
+    '<rect width="400" height="300" fill="url(#beachGradient)"/>' +
+    '<circle cx="320" cy="70" r="34" fill="#ffffff" opacity="0.35"/>' +
+    '<circle cx="80" cy="230" r="120" fill="#ffffff" opacity="0.10"/>' +
     "</svg>";
   return { src: `data:image/svg+xml,${encodeURIComponent(markup)}`, alt: "Placeholder landscape photo" };
 }

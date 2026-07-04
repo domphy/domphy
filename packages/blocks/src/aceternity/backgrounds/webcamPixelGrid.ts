@@ -30,10 +30,16 @@
 // `navigator.mediaDevices.getUserMedia` is requested once both refs are
 // ready; a missing API, a rejected permission prompt, or no camera device all
 // resolve to the same graceful fallback — the sampling loop never starts and
-// the container reads as a plain dark placeholder, matching the spec's own
-// researchNote about the no-camera case in this environment.
+// the canvas stays a plain dark placeholder. That placeholder is never the
+// *only* thing on screen, though: a `children` content overlay (default: a
+// small demo heading) always renders above the canvas, camera or no camera —
+// matching the spec's own researchNote about the no-camera case in this
+// environment (headless/automated runs have no webcam to grant), and how the
+// live reference itself composes this block (a persistent hero headline over
+// the effect, not a swap-in-on-failure message).
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
+import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeColorToken, themeSpacing } from "@domphy/theme";
 
 export type WebcamPixelGridColorMode = "webcam" | "monochrome";
@@ -71,6 +77,15 @@ export interface WebcamPixelGridProps {
   onWebcamReady?: () => void;
   /** Fires when the webcam can't be accessed (no API, no device, or denied permission). */
   onWebcamError?: (error: unknown) => void;
+  /**
+   * Foreground content layered above the pixel grid (a hero headline, a CTA,
+   * an "enable camera" prompt, …) — the grid is a background effect that
+   * plays behind whatever's placed here, camera or no camera. Defaults to a
+   * small demo heading so the block reads as something even where no camera
+   * is available (this is also the ordinary case for automated/headless
+   * environments, which have no webcam to grant).
+   */
+  children?: DomphyElement | DomphyElement[];
   /** Passthrough style merged onto the outer container. */
   style?: StyleObject;
 }
@@ -412,8 +427,33 @@ function webcamPixelGrid(props: WebcamPixelGridProps = {}): DomphyElement<"div">
     },
   } as unknown as DomphyElement<"canvas">;
 
+  const contentChildren: DomphyElement[] = props.children
+    ? Array.isArray(props.children)
+      ? props.children
+      : [props.children]
+    : [
+        { h2: "Webcam Pixel Grid", $: [heading()] } as DomphyElement,
+        {
+          p: "A live camera feed rendered as a grid of colored pixel tiles.",
+          $: [paragraph()],
+        } as DomphyElement,
+      ];
+
+  const contentOverlay: DomphyElement = {
+    div: contentChildren,
+    style: {
+      position: "relative",
+      zIndex: 1,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      height: "100%",
+      padding: themeSpacing(8),
+    } as StyleObject,
+  };
+
   return {
-    div: [videoElement, canvasElement],
+    div: [videoElement, canvasElement, contentOverlay],
     dataTone: "shift-16",
     style: {
       position: "relative",

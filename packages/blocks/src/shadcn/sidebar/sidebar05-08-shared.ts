@@ -521,6 +521,7 @@ function renderExpandableNavRow(
               { span: item.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
               {
                 span: ICON_CHEVRON_RIGHT,
+                dataSlot: "nav-chevron",
                 style: { transition: "transform 150ms ease" },
                 $: [icon({ color: "neutral" })],
               } as unknown as DomphyElement,
@@ -591,7 +592,11 @@ function renderExpandableNavRow(
         open: hasActiveChild,
         style: {
           display: (l: Listener) => (collapsed.get(l) ? "none" : "block"),
-          "&[open] summary span": { transform: "rotate(90deg)" },
+          // Only the chevron glyph rotates on open — a bare "summary span"
+          // selector would also match the icon/title spans in the same
+          // summary and rotate the visible label text into unreadable
+          // vertical text.
+          "&[open] summary [data-slot=nav-chevron]": { transform: "rotate(90deg)" },
           "&[open] > ul": { maxHeight: themeSpacing(240), opacity: "1", paddingBlock: themeSpacing(1) },
         },
       } as unknown as DomphyElement,

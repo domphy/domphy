@@ -147,10 +147,21 @@ function floatingNavbar(props: FloatingNavbarProps = {}): DomphyElement<"header"
     ariaLabel: "Primary",
     dataTone: "shift-14",
     style: {
-      position: "fixed",
+      // `position: sticky` (not `fixed`): a `fixed` box's containing block is
+      // the initial containing block (the real page viewport), so it (a)
+      // contributes zero size to whatever normal-flow container this is
+      // mounted inside — collapsing that container's layout height to 0 in
+      // any host that isn't literally the document root — and (b) renders at
+      // a page-viewport-relative position entirely disconnected from wherever
+      // that container actually sits. `sticky` fixes both: it occupies its
+      // normal-flow box (real height/width, contributing to the parent's
+      // layout like any other element) until scrolled past its `top` offset
+      // within the nearest scrolling ancestor, at which point it sticks there
+      // — the exact same "floats and stays put while the page scrolls" effect
+      // as `fixed` for the common case (mounted near the top of the page/its
+      // scroll container), without the containing-block disconnect.
+      position: "sticky",
       top: themeSpacing(4),
-      insetInlineStart: "0",
-      insetInlineEnd: "0",
       marginInline: "auto",
       width: "fit-content",
       zIndex: 40,
@@ -181,6 +192,18 @@ function floatingNavbar(props: FloatingNavbarProps = {}): DomphyElement<"header"
         const currentScrollY = window.scrollY;
         const delta = currentScrollY - lastScrollY;
         if (Math.abs(delta) < sensitivity) return;
+        // A single frame can only register a delta this large from a
+        // *programmatic* jump (an anchor-link/`scrollIntoView` navigation, the
+        // browser restoring scroll position, …) — never from an actual
+        // scroll-wheel/trackpad/touch gesture. Resync silently instead of
+        // reading it as "scrolled down, hide the bar": a real user who just
+        // landed somewhere new hasn't expressed any scroll-direction intent
+        // yet, and hiding the nav out from under a jump they didn't initiate
+        // is jarring rather than helpful.
+        if (Math.abs(delta) > window.innerHeight) {
+          lastScrollY = currentScrollY;
+          return;
+        }
         if (delta > 0 && currentScrollY > 80) hidden.set(true);
         else if (delta < 0) hidden.set(false);
         lastScrollY = currentScrollY;

@@ -85,7 +85,11 @@ function buildSlideLayer(
     style: {
       position: "absolute",
       inset: 0,
-      backgroundImage: `url(${imageSource})`,
+      // Quoted `url("...")`, not `url(...)` — the SVG data URI's `rgba(...)` fill leaves
+      // literal, unescaped parentheses in the encoded string (encodeURIComponent doesn't
+      // escape `(`/`)`), and an *unquoted* CSS url() treats a bare `(`/`)` as the end of
+      // the function, silently invalidating (and dropping) the whole declaration.
+      backgroundImage: `url("${imageSource}")`,
       backgroundSize: "cover",
       backgroundPosition: "center",
     } as StyleObject,

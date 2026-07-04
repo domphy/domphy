@@ -47,11 +47,27 @@ describe("stickyScrollReveal", () => {
   });
 
   it("does not throw on scroll/resize and cleans up listeners on removal", () => {
-    const { node } = render(stickyScrollReveal() as DomphyElement);
+    const { host, node } = render(stickyScrollReveal() as DomphyElement);
+    const root = host.firstElementChild as HTMLElement;
     expect(() => {
-      window.dispatchEvent(new Event("scroll"));
+      root.dispatchEvent(new Event("scroll"));
       window.dispatchEvent(new Event("resize"));
     }).not.toThrow();
     expect(() => node.remove()).not.toThrow();
+  });
+
+  it("is its own bounded, `overflow-y: auto` scroll box — not reliant on the page/an ancestor scrolling", () => {
+    // Regression: `position: sticky` only sticks relative to its NEAREST
+    // scrolling ancestor. A prior implementation listened on `window` and
+    // relied on the whole document scrolling, which silently breaks the
+    // instant this component is mounted inside ANY ancestor that itself
+    // establishes a scroll container (e.g. `overflow: auto`) — that ancestor
+    // becomes the "nearest scrolling ancestor" instead, and since it never
+    // actually needs to scroll (it just grows to fit), the sticky panel
+    // renders at its static resting position and never appears to stick.
+    const { node } = render(stickyScrollReveal() as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toMatch(/overflow-y:\s*auto/);
+    expect(css).toMatch(/[^-]height:\s*calc\([\d.]+(rem|em|px)\)/);
   });
 });

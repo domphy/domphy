@@ -3,7 +3,20 @@
 // copied). A two-column layout: a list of long-form text sections scrolls
 // past on the left while a rounded panel on the right stays pinned
 // (`position: sticky`) and swaps its background color/content to match
-// whichever section is currently nearest the viewport's vertical center.
+// whichever section is currently nearest the scroll area's vertical center.
+//
+// The component owns its OWN bounded-height, `overflow-y: auto` scroll box
+// (the returned root element itself) rather than assuming the whole document
+// scrolls — `position: sticky` only ever sticks relative to its NEAREST
+// scrolling ancestor, so if this were dropped into an arbitrary consuming
+// layout that itself scrolls (e.g. a modal body, or a dashboard panel with
+// its own `overflow: auto`), a document-scroll-based implementation would
+// silently stop working: that outer ancestor becomes the "nearest scrolling
+// ancestor" instead, and since ITS content never actually overflows (it just
+// grows to fit), the sticky panel then just renders at its static resting
+// position and never appears to move. Being self-contained sidesteps this
+// entirely — the root's own scrollbar is guaranteed to be the relevant one,
+// matching upstream's own bounded-height (`overflow-y: auto`) container.
 //
 // "Nearest to center" is computed the same `getBoundingClientRect()` +
 // rAF-debounced scroll/resize idiom this package already uses for
@@ -12,7 +25,10 @@
 // comparison across every title block is simpler to reason about, needs no
 // observer polyfill, and (unlike an observer) still yields a sane answer in
 // jsdom where every rect defaults to zero (all distances tie at 0, so the
-// first item wins deterministically).
+// first item wins deterministically). "Center" is the root scroll box's OWN
+// vertical center (`rootRect.top + rootRect.height / 2`), not
+// `window.innerHeight / 2` — the relevant viewport for this comparison is
+// the component's own scrollport, not the browser window.
 //
 // The panel itself does NOT scrub continuously — the active index is a
 // discrete `State<number>`, and every content layer is pre-rendered
@@ -46,9 +62,12 @@ export interface StickyScrollRevealProps {
   content?: StickyScrollContentItem[];
   /** Fraction (0–1) of the row's width the sticky panel occupies. Defaults to `0.42`. */
   panelWidthFraction?: number;
+  /** Height of the component's own scroll box, in `themeSpacing` units — this
+   * is what `position: sticky` sticks within. Defaults to `130` (~32.5em). */
+  scrollHeightUnits?: number;
   /** Passthrough style merged onto the sticky panel. */
   panelStyle?: StyleObject;
-  /** Passthrough style merged onto the outer two-column wrapper. */
+  /** Passthrough style merged onto the outer scroll box. */
   style?: StyleObject;
 }
 
@@ -104,13 +123,19 @@ function defaultPanelNode(index: number): DomphyElement<"div"> {
 /**
  * A two-column scroll section: long-form text scrolls on the left while a
  * pinned panel on the right cross-fades its background/content to match
- * whichever section is nearest the viewport's vertical center. Call with no
- * arguments for a working demo — 4 sections describing Domphy's own design.
+ * whichever section is nearest the scroll box's vertical center. The
+ * component owns its own bounded-height, `overflow-y: auto` scroll box (the
+ * root element) rather than assuming the page scrolls, so `position: sticky`
+ * always has a real scrolling ancestor to stick within regardless of what
+ * layout it's dropped into. Call with no arguments for a working demo — 4
+ * sections describing Domphy's own design.
  */
 function stickyScrollReveal(props: StickyScrollRevealProps = {}): DomphyElement<"div"> {
   const instanceId = ++stickyScrollRevealInstanceCounter;
   const content = props.content && props.content.length > 0 ? props.content : DEFAULT_CONTENT;
   const panelWidthFraction = Math.min(0.7, Math.max(0.25, props.panelWidthFraction ?? 0.42));
+  const scrollHeightUnits = Math.max(60, props.scrollHeightUnits ?? 130);
+  const panelHeightUnits = Math.max(40, scrollHeightUnits - 30);
   const activeIndex = toState(0, `sticky-scroll-reveal-active-${instanceId}`);
 
   const titleElements: (HTMLElement | null)[] = content.map(() => null);
@@ -136,7 +161,17 @@ function stickyScrollReveal(props: StickyScrollRevealProps = {}): DomphyElement<
         { p: item.description, $: [paragraph()] } as DomphyElement,
       ],
       _key: `sticky-scroll-text-${instanceId}-${index}`,
-      style: { minHeight: "60vh", display: "flex", flexDirection: "column", justifyContent: "center" } as StyleObject,
+      // A fixed `themeSpacing` height (not `60vh`) — this section scrolls
+      // within the component's OWN bounded scroll box, not the browser
+      // viewport, so sizing it off `vh` would be both wrong (unrelated to
+      // this box's actual height) and, in a short box, could make every
+      // section taller than the box itself ever scrolls through.
+      style: {
+        minHeight: themeSpacing(Math.round(panelHeightUnits * 0.75)),
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+      } as StyleObject,
     };
   }
 
@@ -161,21 +196,32 @@ function stickyScrollReveal(props: StickyScrollRevealProps = {}): DomphyElement<
     };
   }
 
+  // The two columns' flex-basis percentages must leave room for the row's
+  // own `gap` (below) — `58% + 42%` summing to exactly `100%` looks right but
+  // ignores the gap's own width entirely, so the row's total hypothetical
+  // main size (basis + gap) exceeds the container's, forcing `flexWrap` to
+  // wrap the panel column onto a second row below the (much taller) text
+  // column — pushed far out of view, and never actually "sticky" since it's
+  // no longer alongside the scrolling text at all. Subtracting half the gap
+  // from each column's basis keeps their combined width (plus the gap
+  // between them) at exactly 100%.
+  const halfGap = themeSpacing(5);
+
   return {
     div: [
       {
         div: content.map((item, index) => textSection(item, index)),
-        style: { flex: `1 1 ${(1 - panelWidthFraction) * 100}%`, minWidth: 0 } as StyleObject,
+        style: { flex: `1 1 calc(${(1 - panelWidthFraction) * 100}% - ${halfGap})`, minWidth: 0 } as StyleObject,
       } as DomphyElement<"div">,
       {
         div: [
           {
             div: content.map((item, index) => panelLayer(item, index)),
-            style: { position: "relative", height: themeSpacing(120) } as StyleObject,
+            style: { position: "relative", height: themeSpacing(panelHeightUnits) } as StyleObject,
           } as DomphyElement<"div">,
         ],
         style: {
-          flex: `0 0 ${panelWidthFraction * 100}%`,
+          flex: `0 0 calc(${panelWidthFraction * 100}% - ${halfGap})`,
           position: "sticky",
           insetBlockStart: themeSpacing(8),
           alignSelf: "flex-start",
@@ -184,18 +230,23 @@ function stickyScrollReveal(props: StickyScrollRevealProps = {}): DomphyElement<
       } as DomphyElement<"div">,
     ],
     _onMount: (node: ElementNode) => {
-      if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") return;
+      const scrollElement = node.domElement as HTMLElement | null;
+      if (!scrollElement || typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") return;
 
       let animationFrameHandle: number | null = null;
 
+      // "Center" is the scroll box's OWN vertical center, not
+      // `window.innerHeight / 2` — this component sticks/scrolls within its
+      // own bounded box (see the file-level comment), which may sit anywhere
+      // on the page and be a different size than the viewport.
       function computeActiveIndex(): number {
-        const viewportCenter = window.innerHeight / 2;
+        const boxCenter = scrollElement!.getBoundingClientRect().top + scrollElement!.getBoundingClientRect().height / 2;
         let bestIndex = 0;
         let bestDistance = Number.POSITIVE_INFINITY;
         titleElements.forEach((element, index) => {
           if (!element) return;
           const rect = element.getBoundingClientRect();
-          const distance = Math.abs(rect.top + rect.height / 2 - viewportCenter);
+          const distance = Math.abs(rect.top + rect.height / 2 - boxCenter);
           if (distance < bestDistance) {
             bestDistance = distance;
             bestIndex = index;
@@ -214,11 +265,11 @@ function stickyScrollReveal(props: StickyScrollRevealProps = {}): DomphyElement<
       }
 
       scheduleUpdate();
-      window.addEventListener("scroll", scheduleUpdate, { passive: true });
+      scrollElement.addEventListener("scroll", scheduleUpdate, { passive: true });
       window.addEventListener("resize", scheduleUpdate);
 
       node.addHook("Remove", () => {
-        window.removeEventListener("scroll", scheduleUpdate);
+        scrollElement.removeEventListener("scroll", scheduleUpdate);
         window.removeEventListener("resize", scheduleUpdate);
         if (animationFrameHandle !== null) window.cancelAnimationFrame(animationFrameHandle);
       });
@@ -227,6 +278,8 @@ function stickyScrollReveal(props: StickyScrollRevealProps = {}): DomphyElement<
       display: "flex",
       flexWrap: "wrap",
       gap: themeSpacing(10),
+      height: themeSpacing(scrollHeightUnits),
+      overflowY: "auto",
       ...(props.style ?? {}),
     } as StyleObject,
   };

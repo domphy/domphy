@@ -106,12 +106,35 @@ function wordRotate(props: WordRotateProps = {}): DomphyElement<"span"> {
       {
         span: (listener: Listener) =>
           layers.get(listener).map((entry) => wordLayer(entry, color, transitionDurationMs, easing)),
-        style: { position: "relative", display: "inline-block" },
+        // `position: absolute` + `inset: 0` fills the outer wrapper exactly.
+        // This span's own children are all `position: absolute` (so the
+        // outgoing/incoming word can overlap mid-crossfade), which collapses
+        // ITS box to 0x0. A 0x0 `display: inline-block` sibling defaults to
+        // `vertical-align: baseline`, which — per the CSS spec's rule for an
+        // empty inline-block's baseline being its bottom margin edge —
+        // shoves the whole 0x0 box down near the surrounding text baseline
+        // instead of the top, dragging every absolutely-positioned word
+        // layer down with it and off the bottom of the outer wrapper's
+        // visible box. Filling the parent via `inset: 0` sidesteps inline
+        // baseline alignment entirely.
+        style: { position: "absolute", inset: 0 },
       },
     ],
     style: {
       position: "relative",
       display: "inline-block",
+      // Must match the word layer's own font-size (below). The crossfading
+      // words are positioned `absolute` (so outgoing/incoming can overlap
+      // mid-transition), which means they contribute zero natural height to
+      // this wrapper — `minHeight: 1.2em` is what actually reserves visible
+      // space for them. If this element's own font-size stayed at the
+      // inherited ambient size instead of the word's real (larger) size,
+      // that `1.2em` would resolve far too small, the wrapper would
+      // collapse to near-zero height, and the word would render entirely
+      // outside any scrollable ancestor's visible viewport.
+      fontSize: (listener: Listener) => themeSize(listener, "increase-4"),
+      fontWeight: () => "800",
+      color: (listener: Listener) => themeColor(listener, "shift-11", color),
       minHeight: "1.2em",
       minWidth: "1ch",
       ...(props.style ?? {}),

@@ -53,13 +53,21 @@ const DEFAULT_LENS_SIZE_UNITS = 42.5; // themeSpacing(42.5) = 10.625em ≈ 170px
 const DEFAULT_DURATION = 0.1;
 const DEFAULT_STATIC_POSITION: LensPosition = { x: 110, y: 90 };
 
-/** Default magnifiable content — a generic inline SVG placeholder photo (no network fetch). */
+/** Default magnifiable content — a generic inline SVG placeholder photo (no network fetch).
+ * Deliberately an abstract gradient-and-bokeh composition rather than the familiar
+ * "rectangle + sun circle + mountain silhouette" glyph most browsers/icon sets use for
+ * a *missing* image — that shape would read as a broken image instead of a placeholder one. */
 function defaultLensContent(): DomphyElement<"img"> {
   const markup =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220">' +
-    '<rect width="320" height="220" fill="#d7dbe0"/>' +
-    '<circle cx="250" cy="55" r="28" fill="#eef1f4"/>' +
-    '<polygon points="0,220 110,110 170,170 230,90 320,220" fill="#aab1ba"/>' +
+    '<defs><linearGradient id="lensGradient" x1="0" y1="0" x2="1" y2="1">' +
+    '<stop offset="0%" stop-color="#38bdf8"/>' +
+    '<stop offset="55%" stop-color="#818cf8"/>' +
+    '<stop offset="100%" stop-color="#f472b6"/>' +
+    "</linearGradient></defs>" +
+    '<rect width="320" height="220" fill="url(#lensGradient)"/>' +
+    '<circle cx="90" cy="60" r="70" fill="#ffffff" opacity="0.16"/>' +
+    '<circle cx="240" cy="150" r="95" fill="#ffffff" opacity="0.12"/>' +
     "</svg>";
   return {
     img: null,

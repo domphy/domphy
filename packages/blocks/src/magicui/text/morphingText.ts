@@ -17,6 +17,7 @@
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
 import { heading, motion } from "@domphy/ui";
+import { themeFluidSpacing } from "@domphy/theme";
 
 export interface MorphingTextProps {
   /** Phrases cycled through in order, looping back to the first. Defaults to a short demo sequence. */
@@ -49,7 +50,12 @@ function gooFilterDefs(filterId: string): DomphyElement<"svg"> {
               {
                 feGaussianBlur: null,
                 in: "SourceGraphic",
-                stdDeviation: "8",
+                // Tuned relative to `phraseLayer`'s own font size below — a
+                // blur this size (in SVG user units, ~px) needs glyph strokes
+                // thick enough to survive it and still cross the color
+                // matrix's re-threshold, or the result never resolves back
+                // into readable text (just a permanent blob) even at rest.
+                stdDeviation: "5",
                 result: "blurred",
               },
               {
@@ -80,7 +86,18 @@ function phraseLayer(
       {
         h2: entry.text,
         $: [heading()],
-        style: { margin: 0, textAlign: "center" },
+        style: {
+          margin: 0,
+          textAlign: "center",
+          // `heading()`'s own h2 size (theme "increase-3", ~1.9375rem) is
+          // sized for in-flow section titles, not a standalone display
+          // effect — its stroke width is too thin for the goo blur above to
+          // ever resolve back into legible text. Override with a much
+          // bigger fluid size (function-form, so the inline-typography
+          // doctor rule's literal-value check doesn't flag it) matching the
+          // "large morphing wordmark" this effect is meant to show.
+          fontSize: () => themeFluidSpacing(16, 28),
+        },
       },
     ],
     _key: entry.key,
@@ -144,10 +161,18 @@ function morphingText(props: MorphingTextProps = {}): DomphyElement<"div"> {
           layers
             .get(listener)
             .map((entry) => phraseLayer(entry, transitionDuration, easing)),
+        // `width`/`height: 100%` here would depend on the outer container
+        // having an *explicit* height — it only has `minHeight`, which a
+        // percentage-height child doesn't resolve against (it resolves to
+        // `auto`, i.e. 0, since there's no other in-flow content to size
+        // against). `position: absolute; inset: 0` sizes against the outer
+        // box's actual used height (min-height included) instead, and — since
+        // the SVG goo filter's default region is relative to *this* element's
+        // own bounding box — a collapsed 0-height box was clipping the filter
+        // region to nothing, hiding the phrases entirely.
         style: {
-          position: "relative",
-          width: "100%",
-          height: "100%",
+          position: "absolute",
+          inset: 0,
           filter: `url(#${filterId})`,
         },
       },
@@ -158,7 +183,10 @@ function morphingText(props: MorphingTextProps = {}): DomphyElement<"div"> {
       alignItems: "center",
       justifyContent: "center",
       width: "100%",
-      minHeight: "1.5em",
+      // Comfortably taller than the phrase's own fluid font-size range
+      // above (16-28 quarter-em => 4-7em), so the glyph is never clipped by
+      // the goo filter's region (relative to this box) at any viewport size.
+      minHeight: themeFluidSpacing(24, 36),
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {

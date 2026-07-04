@@ -198,8 +198,30 @@ interface MacbookRuntime {
  * with no arguments for a working demo (placeholder screenshot, default
  * heading and sticker).
  */
+/** Self-contained (no network fetch) mock app-screenshot placeholder — a dark browser
+ * chrome bar (traffic-light dots), a heading/text block, and 3 card tiles — used as the
+ * `image` default so the demo doesn't depend on a third-party photo service. Real
+ * consumers should still pass their own `image`. */
+function defaultScreenImage(): string {
+  const markup =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750">' +
+    '<rect width="1200" height="750" fill="#0f172a"/>' +
+    '<rect x="0" y="0" width="1200" height="64" fill="#1e293b"/>' +
+    '<circle cx="36" cy="32" r="10" fill="#f87171"/>' +
+    '<circle cx="66" cy="32" r="10" fill="#fbbf24"/>' +
+    '<circle cx="96" cy="32" r="10" fill="#34d399"/>' +
+    '<rect x="140" y="110" width="460" height="28" rx="6" fill="#e2e8f0"/>' +
+    '<rect x="140" y="160" width="700" height="16" rx="4" fill="#94a3b8"/>' +
+    '<rect x="140" y="188" width="620" height="16" rx="4" fill="#94a3b8"/>' +
+    '<rect x="140" y="240" width="220" height="180" rx="12" fill="#334155"/>' +
+    '<rect x="390" y="240" width="220" height="180" rx="12" fill="#334155"/>' +
+    '<rect x="640" y="240" width="220" height="180" rx="12" fill="#334155"/>' +
+    "</svg>";
+  return `data:image/svg+xml,${encodeURIComponent(markup)}`;
+}
+
 function macbookScroll(props: MacbookScrollProps = {}): DomphyElement<"div"> {
-  const image = props.image ?? "https://picsum.photos/seed/domphy-macbook-scroll/1200/750";
+  const image = props.image ?? defaultScreenImage();
   const imageAlt = props.imageAlt ?? "App screen preview";
   const showGradient = props.showGradient ?? true;
   const wrapperHeightVh = Math.max(160, Math.round(props.wrapperHeightVh ?? 280));

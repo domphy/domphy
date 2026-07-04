@@ -27,8 +27,8 @@
 // the real string once — the same sr-only-text + aria-hidden-decoration
 // pattern `auroraText` uses in this package.
 
-import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { type ThemeColor, themeColorToken } from "@domphy/theme";
+import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
+import { type ThemeColor, themeColorToken, themeSize } from "@domphy/theme";
 
 export type KineticTextTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "div" | "span";
 
@@ -107,7 +107,16 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
 
   return {
     [tag]: [srOnlyText, ...characterSpans],
-    style: { display: "inline-block", ...(props.style ?? {}) } as StyleObject,
+    style: {
+      display: "inline-block",
+      // Headline-scale text is the entire premise of this effect (a large
+      // hover-thickening display phrase) — without an explicit size token
+      // it inherits whatever tiny ambient font-size the caller's context
+      // happens to have, which reads as plain unstyled body text.
+      fontSize: (listener: Listener) => themeSize(listener, "increase-6"),
+      color: (listener: Listener) => themeColorToken(listener, "shift-9", accentColor),
+      ...(props.style ?? {}),
+    } as StyleObject,
     class: props.className,
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined") return;

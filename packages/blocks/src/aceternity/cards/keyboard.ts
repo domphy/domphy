@@ -36,7 +36,7 @@
 import type { DomphyElement, ElementNode, Listener, State, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
 import { keyboard as keyboardKeyPatch } from "@domphy/ui";
-import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import { themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme";
 
 export interface KeyboardShowcaseResponsiveScale {
   /** Scale factor from `640px` viewport width upward. */
@@ -85,7 +85,9 @@ function digitRow(): KeySpec[] {
 function functionKeyRow(): KeySpec[] {
   const row: KeySpec[] = [{ label: "esc", code: "Escape", width: 1.2 }];
   for (let index = 1; index <= 12; index += 1) {
-    row.push({ label: `F${index}`, code: `F${index}` });
+    // F10/F11/F12's 3-character label needs a touch more room than the
+    // single-digit F1..F9 to avoid clipping at this row's per-key width.
+    row.push({ label: `F${index}`, code: `F${index}`, width: index >= 10 ? 1.4 : 1 });
   }
   return row;
 }
@@ -97,29 +99,29 @@ const UPPER_ROWS: KeySpec[][] = [
     ...digitRow(),
     { label: "-", code: "Minus" },
     { label: "=", code: "Equal" },
-    { label: "delete", code: "Backspace", width: 1.8 },
+    { label: "delete", code: "Backspace", width: 3.4 },
   ],
   [
-    { label: "tab", code: "Tab", width: 1.5 },
+    { label: "tab", code: "Tab", width: 2 },
     ...letterRow("QWERTYUIOP"),
     { label: "[", code: "BracketLeft" },
     { label: "]", code: "BracketRight" },
     { label: "\\", code: "Backslash", width: 1.5 },
   ],
   [
-    { label: "caps lock", code: "CapsLock", width: 1.75 },
+    { label: "caps lock", code: "CapsLock", width: 5.4 },
     ...letterRow("ASDFGHJKL"),
     { label: ";", code: "Semicolon" },
     { label: "'", code: "Quote" },
-    { label: "return", code: "Enter", width: 2.25 },
+    { label: "return", code: "Enter", width: 3.5 },
   ],
   [
-    { label: "shift", code: "ShiftLeft", width: 2.25 },
+    { label: "shift", code: "ShiftLeft", width: 2.6 },
     ...letterRow("ZXCVBNM"),
     { label: ",", code: "Comma" },
     { label: ".", code: "Period" },
     { label: "/", code: "Slash" },
-    { label: "shift", code: "ShiftRight", width: 2.75 },
+    { label: "shift", code: "ShiftRight", width: 3 },
   ],
 ];
 
@@ -128,14 +130,14 @@ const BOTTOM_ROW_LEFT: KeySpec[] = [
   // never dispatch a DOM `keydown` — this cap never lights up. See
   // fidelityNotes below; it's still drawn for visual completeness.
   { label: "fn", code: "Fn" },
-  { label: "control", code: "ControlLeft" },
-  { label: "option", code: "AltLeft" },
-  { label: "command", code: "MetaLeft", width: 1.25 },
+  { label: "control", code: "ControlLeft", width: 3.7 },
+  { label: "option", code: "AltLeft", width: 3.1 },
+  { label: "command", code: "MetaLeft", width: 3.8 },
 ];
 const SPACE_KEY: KeySpec = { label: "", code: "Space", width: 6 };
 const BOTTOM_ROW_RIGHT: KeySpec[] = [
-  { label: "command", code: "MetaRight", width: 1.25 },
-  { label: "option", code: "AltRight" },
+  { label: "command", code: "MetaRight", width: 3.8 },
+  { label: "option", code: "AltRight", width: 3.1 },
 ];
 const ARROW_KEYS = {
   left: { label: "←", code: "ArrowLeft" } as KeySpec,
@@ -150,7 +152,19 @@ const RESPONSIVE_BREAKPOINTS: Array<{ minWidth: number; key: keyof KeyboardShowc
   { minWidth: 1024, key: "lg" },
 ];
 
+// Wide word labels ("delete", "control", "command", …) and the arrow glyphs
+// (single characters, but visually wide at full size) need a smaller face
+// than plain single-character keys (letters/digits/punctuation) to fit their
+// `flex`-computed key width without clipping — matching the reference's own
+// noticeably-smaller lettering on these keys, not just an arbitrary shrink.
+const ARROW_LABELS = new Set(["←", "↑", "↓", "→"]);
+
+function isCompactLabel(label: string): boolean {
+  return label.length !== 1 || ARROW_LABELS.has(label);
+}
+
 function renderKey(spec: KeySpec, pressedState: State<boolean>): DomphyElement<"kbd"> {
+  const compact = isCompactLabel(spec.label);
   return {
     kbd: spec.label,
     _key: `key-${spec.code}`,
@@ -161,12 +175,21 @@ function renderKey(spec: KeySpec, pressedState: State<boolean>): DomphyElement<"
       minWidth: 0,
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
+      // `flex-start` (not `center`) for word/glyph labels: with `overflow:
+      // hidden` on a `justify-content: center` flex box, this engine paints
+      // centered content that's wider than the box past both edges instead
+      // of clipping it (an "unsafe centering" overflow quirk) — verified by
+      // toggling justify-content on a live long-label key and watching the
+      // overflow disappear only with `flex-start`. Single-character keys
+      // never overflow their box, so they keep `center` for the balanced
+      // look the reference uses.
+      justifyContent: compact ? "flex-start" : "center",
       textAlign: "center",
       userSelect: "none",
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
+      fontSize: (listener: Listener) => themeSize(listener, compact ? "decrease-2" : "inherit"),
       paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
       paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
       backgroundColor: (listener: Listener) =>
@@ -197,14 +220,18 @@ function renderArrowCluster(pressedStates: Map<string, State<boolean>>): DomphyE
           display: "flex",
           flexDirection: "column",
           gap: themeSpacing(0.5),
-          flex: "1 0 0",
+          flex: "1.8 0 0",
           minWidth: 0,
         } as StyleObject,
       } as DomphyElement<"div">,
       renderKey(ARROW_KEYS.right, pressedStates.get(ARROW_KEYS.right.code)!),
     ],
     _key: "arrow-cluster",
-    style: { display: "flex", gap: themeSpacing(0.5), flex: "3 0 0", minWidth: 0 } as StyleObject,
+    // More than the "3.8 units" a literal sum of its 3 slots (left=1,
+    // up-down-stack=1.8, right=1) would suggest — the arrow glyphs render
+    // wider than a letter at the same font-size, so a bare 1:1 share clipped
+    // them against their neighbors.
+    style: { display: "flex", gap: themeSpacing(0.5), flex: "4.4 0 0", minWidth: 0 } as StyleObject,
   } as DomphyElement<"div">;
 }
 

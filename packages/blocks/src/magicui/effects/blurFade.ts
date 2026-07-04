@@ -15,6 +15,7 @@
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
 import { type MotionKeyframe, heading, motion, paragraph } from "@domphy/ui";
+import { themeSpacing } from "@domphy/theme";
 
 export type BlurFadeDirection = "up" | "down" | "left" | "right";
 
@@ -72,12 +73,41 @@ function offsetForDirection(direction: BlurFadeDirection, offset: number): { x: 
   }
 }
 
+/** Self-contained (no network fetch) gradient thumbnail — used so the default demo has
+ * actual image/grid content to fade in, rather than bare text. */
+function defaultThumbnail(index: number): DomphyElement {
+  const hue = 200 + index * 45;
+  const markup =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140">' +
+    `<rect width="200" height="140" rx="12" fill="hsl(${hue}, 70%, 55%)"/>` +
+    '<circle cx="150" cy="40" r="18" fill="#ffffff" opacity="0.35"/>' +
+    "</svg>";
+  return {
+    img: null,
+    src: `data:image/svg+xml,${encodeURIComponent(markup)}`,
+    alt: `Gallery thumbnail ${index + 1}`,
+    // A purely decorative gradient tile with no text of its own — exempt from the
+    // missing-color contract, same idiom as `parallaxScroll.ts`'s photo tiles.
+    _doctorDisable: "missing-color",
+    style: { display: "block", width: "100%", height: "auto", borderRadius: themeSpacing(3) },
+  } as DomphyElement;
+}
+
 function defaultChildren(): DomphyElement[] {
   return [
     { h3: "Blur Fade", $: [heading()] },
     {
       p: "Content settles into place with a blur-to-sharp, fade, and short slide as it mounts or scrolls into view.",
       $: [paragraph({ color: "neutral" })],
+    },
+    {
+      div: [0, 1, 2].map((index) => defaultThumbnail(index)),
+      style: {
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: themeSpacing(2),
+        marginBlockStart: themeSpacing(2),
+      } as StyleObject,
     },
   ];
 }

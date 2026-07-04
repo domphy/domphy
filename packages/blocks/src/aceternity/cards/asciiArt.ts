@@ -83,8 +83,13 @@ const CHARACTER_ASPECT_CORRECTION = 0.55; // monospace glyph cell width/height r
 // Generic abstract placeholder graphic — an inline SVG data URI, no network
 // fetch and no real photo (same idiom `pixelImage.ts` uses for its own
 // default demo imagery elsewhere in this package).
+// `width`/`height` on the root <svg> (not just `viewBox`) are required here —
+// without them, some canvas `drawImage()` pipelines rasterize this as
+// entirely blank even though the `<img>`'s own `naturalWidth`/`naturalHeight`
+// (derived from the viewBox as a fallback) still read correctly, so the
+// sampler silently reads all-zero pixels instead of throwing.
 const PLACEHOLDER_IMAGE_MARKUP =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">' +
+  '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">' +
   '<rect width="300" height="200" fill="#1f2937"/>' +
   '<circle cx="150" cy="80" r="55" fill="#e5e7eb"/>' +
   '<path d="M0 170 L100 100 L160 150 L220 90 L300 160 L300 200 L0 200 Z" fill="#4b5563"/>' +
@@ -217,6 +222,15 @@ function buildGridRows(
         _key: `cell-${rowIndex}-${columnIndex}`,
         style: {
           display: "inline-block",
+          // Each row is a flex container, which "blockifies" the cell's
+          // outer display (inline-block -> block) per the flexbox spec —
+          // and a block whose only content is a single space character
+          // collapses to zero height/width, since normal `white-space`
+          // processing trims whitespace that's both leading and trailing
+          // on its own line. `pre` preserves that space as a real glyph, so
+          // blank (low-brightness) cells still occupy their fixed cell size
+          // instead of vanishing and collapsing the whole row.
+          whiteSpace: "pre",
           width: "1ch",
           textAlign: "center",
           color: cellColor
@@ -392,6 +406,15 @@ function asciiArt(props: AsciiArtProps = {}): DomphyElement<"div"> {
       alignItems: "center",
       justifyContent: "center",
       overflow: "hidden",
+      // Without an explicit floor, this container has zero in-flow content
+      // until sampling finishes (the canvas is absolutely positioned/0-sized,
+      // the grid starts empty) — so it renders at 0x0, and a 0-area target
+      // never satisfies the IntersectionObserver's 0.15 threshold below,
+      // deadlocking the reveal (never "visible enough" to start loading the
+      // image that would give it real size). Matches the same
+      // IntersectionObserver-gated canvas idiom in particles.ts/
+      // dottedGlowBackground.ts.
+      minHeight: themeSpacing(64),
       borderRadius: themeSpacing(3),
       padding: themeSpacing(6),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit", backgroundColor),

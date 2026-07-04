@@ -79,13 +79,13 @@ function createConfettiHandle(
 
 /**
  * A transparent, full-viewport canvas that fires a `canvas-confetti` burst on
- * demand. Call with no arguments for a working demo — the canvas is inert
- * until told to fire (via `onReady`'s handle, or `autoFire: true`), which
- * matches the primitive's purely imperative real-world usage.
+ * demand. Call with no arguments for a working demo — a burst fires shortly
+ * after mount (`autoFire` defaults to `true`); pass `autoFire: false` for a
+ * purely imperative canvas that stays inert until `onReady`'s handle fires it.
  */
 function confetti(props: ConfettiProps = {}): DomphyElement<"canvas"> {
   const baseOptions: ConfettiFireOptions = { ...DEFAULT_FIRE_OPTIONS, ...(props.options ?? {}) };
-  const autoFire = props.autoFire ?? false;
+  const autoFire = props.autoFire ?? true;
   const autoFireDelay = props.autoFireDelay ?? 150;
 
   // `_doctorDisable` is a doctor-only annotation not present in core's strict
