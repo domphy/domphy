@@ -75,12 +75,32 @@ async function main() {
           console.warn(`  skip ${entry.exportName}: not found in demo (check src/index.ts export)`);
           continue;
         }
+        // Stop other cards from lazy-mounting as we scroll toward this one —
+        // otherwise their placeholder-to-real-content resize can shift this
+        // block's position between measuring its clip rect and screenshotting.
+        await page.evaluate(() => (window as unknown as { disconnectLazyMount: () => void }).disconnectLazyMount());
         // Cards lazy-mount on scroll (to avoid exhausting the browser's WebGL
         // context budget across all 252 demo blocks); force-mount this one
         // directly instead of relying on scroll-driven IntersectionObserver.
         await page.evaluate((name) => (window as unknown as { mountBlock: (n: string) => void }).mountBlock(name), entry.exportName);
-        await page.waitForTimeout(150); // let canvas/WebGL/rAF-driven blocks draw their first frame
-        await locator.screenshot({ path: resolve(targetDir, "local.png") });
+        await locator.locator("canvas, svg").first().waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(600);
+        // NOT locator.screenshot() — its built-in scroll-then-capture leaves
+        // WebGL canvases blank (verified: reading the canvas's own pixel data
+        // right before the call shows real content, but locator.screenshot()'s
+        // capture comes back empty regardless of preserveDrawingBuffer). A
+        // manual scroll + settle delay + clipped page.screenshot() reliably
+        // captures the same canvas correctly.
+        await page.evaluate(
+          (name) => document.querySelector(`[data-block="${name}"]`)?.scrollIntoView({ block: "center" }),
+          entry.exportName,
+        );
+        await page.waitForTimeout(300);
+        const clip = await page.evaluate((name) => {
+          const rect = document.querySelector(`[data-block="${name}"]`)!.getBoundingClientRect();
+          return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        }, entry.exportName);
+        await page.screenshot({ path: resolve(targetDir, "local.png"), clip });
       } catch (error) {
         console.warn(`  local screenshot failed for ${entry.exportName}:`, (error as Error).message);
       } finally {

@@ -626,9 +626,14 @@ function globe3D(props: Globe3DProps = {}): DomphyElement<"div"> {
 
       let gl: WebGLRenderingContext | null = null;
       try {
+        // preserveDrawingBuffer: true — without it, the default WebGL buffer
+        // swap can clear the canvas between the last draw call and any
+        // external capture (screenshot tools, html2canvas, etc.) reading it,
+        // making the canvas appear blank even though it rendered correctly.
+        const contextOptions = { preserveDrawingBuffer: true };
         gl =
-          (canvas.getContext("webgl") as WebGLRenderingContext | null) ??
-          (canvas.getContext("experimental-webgl") as WebGLRenderingContext | null);
+          (canvas.getContext("webgl", contextOptions) as WebGLRenderingContext | null) ??
+          (canvas.getContext("experimental-webgl", contextOptions) as WebGLRenderingContext | null);
       } catch {
         gl = null;
       }

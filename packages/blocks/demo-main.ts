@@ -89,4 +89,15 @@ for (const [name, factory] of entries) {
   mount(name, factory, box);
 };
 
+// Exposed for the visual-compare script: stop the IntersectionObserver from
+// mounting any other card while it scrolls toward and screenshots one
+// specific block. Without this, scrolling past dozens of earlier
+// alphabetical cards can trigger them to mount too — replacing their
+// placeholder text with real (differently-sized) content and shifting the
+// target block's position between when its clip rect is measured and when
+// the screenshot actually fires.
+(window as unknown as { disconnectLazyMount: () => void }).disconnectLazyMount = () => {
+  observer.disconnect();
+};
+
 console.log(`[demo] ${entries.length} blocks registered (lazy-mount on scroll into view)`);
