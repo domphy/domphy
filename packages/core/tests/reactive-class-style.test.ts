@@ -108,6 +108,26 @@ describe("reactive `class` merges with (not replaces) the auto style class", () 
     expect(ruleFor(li)?.style.fontWeight).toBe("bold");
   });
 
+  it("keeps the auto class token when `class` is passed through as `undefined` (e.g. an unset optional prop)", () => {
+    // Regression: `class: props.className` is a common pattern for an
+    // element that wants to accept an optional caller class — but when the
+    // caller doesn't pass one, `props.className` is `undefined`, not a
+    // string/function. merge() used to fall through to the generic
+    // `attributes.set("class", undefined)` branch for any non-string/function
+    // value, which cleared the "class" attribute entirely — dropping the
+    // auto-generated per-node token the element's own `style: {}` CSS rule is
+    // scoped to, so the element rendered completely unstyled.
+    const { host } = mount({
+      div: "x",
+      class: undefined,
+      style: { color: "green" },
+    } as DomphyElement);
+
+    const el = host.querySelector("div")!;
+    expect(autoClassToken(el)).toBeDefined();
+    expect(ruleFor(el)?.style.color).toBe("green");
+  });
+
   it("merges a reactive `class` with an already-present static class from a parent patch (`$`)", () => {
     const { host } = mount({
       div: "x",

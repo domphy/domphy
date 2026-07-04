@@ -216,15 +216,19 @@ export class ElementNode {
         );
       } else if (originalKey === "_portal") {
         this._portal = value;
-      } else if (
-        originalKey === "class" &&
-        (typeof value === "string" || typeof value === "function")
-      ) {
-        // A reactive `class` must MERGE with (not replace) the auto-generated
-        // per-node style class set at construction (line ~67) — replacing it
-        // outright orphans this element's own `style: {}` object, since the
-        // CSS rule is scoped to that auto class name.
-        this.attributes!.addClass(value);
+      } else if (originalKey === "class") {
+        // A `class` must MERGE with (not replace) the auto-generated per-node
+        // style class set at construction (line ~67) — replacing it outright
+        // orphans this element's own `style: {}` object, since the CSS rule
+        // is scoped to that auto class name. This applies to string/function
+        // values (via AttributeList.addClass) AND to a nullish value (e.g. an
+        // element passing through `class: props.className` with `className`
+        // left unset) — the latter must be a no-op, NOT fall through to the
+        // generic `attributes.set("class", undefined)` below, which clears
+        // the attribute and silently drops the auto class token.
+        if (typeof value === "string" || typeof value === "function") {
+          this.attributes!.addClass(value);
+        }
       } else {
         this.attributes!.set(originalKey, value);
       }
