@@ -1,6 +1,7 @@
 import { computed, type DomphyElement, type State } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { icon, tooltip } from "@domphy/ui";
+import { PLAYGROUND_STACK_QUERY } from "./constants.js";
 
 const svgDark = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12h1m8 -9v1m8 8h1m-15.4 -6.4l.7 .7m12.1 -.7l-.7 .7" /><path d="M11.089 7.083a5 5 0 0 1 5.826 5.84m-1.378 2.611a5.012 5.012 0 0 1 -.537 .466a3.5 3.5 0 0 0 -1 3a2 2 0 1 1 -4 0a3.5 3.5 0 0 0 -1 -3a5 5 0 0 1 -.528 -7.544" /><path d="M9.7 17h4.6" /><path d="M3 3l18 18" /></svg>`;
 const svgLight = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12h1m8 -9v1m8 8h1m-15.4 -6.4l.7 .7m12.1 -.7l-.7 .7" /><path d="M9 16a5 5 0 1 1 6 0a3.5 3.5 0 0 0 -1 3a2 2 0 0 1 -4 0a3.5 3.5 0 0 0 -1 -3" /><path d="M9.7 17l4.6 0" /></svg>`;
@@ -16,20 +17,6 @@ export const Toolbar = (props: {
   hasGrid: State<boolean>;
 }): DomphyElement<"div"> => {
   const { activeTab, isDark, isFull, hasGrid } = props;
-
-  isFull.addListener((val) => {
-    const root = document.documentElement;
-    const body = document.body;
-    if (val) {
-      root.style.overflow = "hidden";
-      body.style.overflow = "hidden";
-      body.style.height = "100%";
-    } else {
-      root.style.overflow = "";
-      body.style.overflow = "";
-      body.style.height = "";
-    }
-  });
 
   function makeTabButton(
     tab_: State<"code" | "preview">,
@@ -68,14 +55,13 @@ export const Toolbar = (props: {
           makeTabButton(activeTab, "Code", "code"),
           makeTabButton(activeTab, "Preview", "preview"),
         ],
-        // display/align-items come ONLY from the .dp-tab-buttons rule in
-        // build.press.ts's editorCSS (hidden by default, flex only inside the
-        // <=768px media query). An inline style here would generate its own
-        // same-specificity CSS-in-JS class that lands AFTER editorCSS in the
-        // page <style> order and always wins the cascade — showing these
-        // Code/Preview tabs on desktop too, where clicking them does nothing
-        // (the panel-hiding rules are also mobile-only).
-        class: "dp-tab-buttons",
+        // Hidden by default (the split view shows both panels at once); only
+        // shown once the playground's own width drops below the stack
+        // breakpoint, where a single panel is visible at a time instead.
+        style: {
+          display: "none",
+          [PLAYGROUND_STACK_QUERY]: { display: "flex", alignItems: "stretch" },
+        },
       }
     : null;
 

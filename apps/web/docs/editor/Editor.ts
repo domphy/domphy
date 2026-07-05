@@ -22,9 +22,13 @@ export function Editor(code: State<string>): DomphyElement<"div"> {
     },
     style: {
       display: "flex",
+      flexDirection: "column",
       flex: 1,
+      minWidth: 0,
       minHeight: 0,
-      overflow: "auto",
+      // CodeMirror's own `.cm-scroller` already scrolls internally — an
+      // "auto" here would add a second, overlapping scrollbar.
+      overflow: "hidden",
     },
   };
 }

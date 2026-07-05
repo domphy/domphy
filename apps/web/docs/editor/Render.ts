@@ -10,6 +10,7 @@ export const Render = (
     div: [element],
     dataTheme: (listener) => (checked.get(listener) ? "dark" : "light"),
     style: {
+      position: "relative",
       color: (listener) => themeColor(listener, "shift-9"),
       backgroundColor: (listener) => themeColor(listener),
       padding: themeSpacing(9),
