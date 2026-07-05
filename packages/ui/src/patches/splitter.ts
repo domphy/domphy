@@ -36,6 +36,9 @@ function splitter(
             size: toState(defaultSize),
             min,
             max,
+            // Mutable bookkeeping (not reactive state) so splitterPanel can
+            // tell the first panel from later ones — see its own comment.
+            panelCount: 0,
           },
         },
       });
@@ -51,7 +54,11 @@ function splitter(
 /**
  * The resizable panel inside a `splitter`. Reads the `splitter` context and binds its
  * width (horizontal) or height (vertical) to the context `size` state, updating reactively as
- * the handle is dragged. Warns if used outside a `splitter`. Takes no props.
+ * the handle is dragged. Intended for exactly two panels either side of one `splitterHandle`:
+ * the first `splitterPanel` mounted takes `size`%, and the second takes the complementary
+ * `100 - size`% — so the pair always sums to the full width/height instead of both tracking
+ * the same number (which would make them grow and shrink together instead of trading space).
+ * Warns if used outside a `splitter`. Takes no props.
  *
  * @example { div: [...], $: [splitterPanel()] }
  */
@@ -65,14 +72,16 @@ function splitterPanel(): PartialElement {
       }
       const el = node.domElement as HTMLElement;
       const prop = ctx.direction === "horizontal" ? "width" : "height";
+      const isFirst = ctx.panelCount++ === 0;
 
-      el.style[prop] = `${ctx.size.get()}%`;
+      const apply = (size: number) => {
+        el.style[prop] = `${isFirst ? size : 100 - size}%`;
+      };
+      apply(ctx.size.get());
       el.style.flexShrink = "0";
       el.style.overflow = "auto";
 
-      const release = ctx.size.addListener((size: number) => {
-        el.style[prop] = `${size}%`;
-      });
+      const release = ctx.size.addListener(apply);
       node.addHook("Remove", release);
     },
   };

@@ -18,6 +18,7 @@ export function Container(element: DomphyElement): DomphyElement<"div"> {
       const themeTag = document.createElement("style");
       const container = document.createElement("div");
       container.style.flex = "1";
+      container.style.minHeight = "0";
       shadow.append(themeTag, container);
       themeApply(themeTag);
       new ElementNode(Render(element, isDark, hasGrid)).render(container);
@@ -26,6 +27,7 @@ export function Container(element: DomphyElement): DomphyElement<"div"> {
       flex: "1",
       display: "flex",
       flexDirection: "column",
+      minHeight: 0,
     },
   };
 

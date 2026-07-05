@@ -49,12 +49,13 @@ async function mountEditor(
   themeApply();
   const shadowHost = document.createElement("div");
   shadowHost.style.cssText =
-    "flex: 1; display: flex; flex-direction: column; overflow: auto;";
+    "flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto;";
   const shadow = shadowHost.attachShadow({ mode: "open" });
   const themeTag = document.createElement("style");
   themeTag.id = "domphy-themes";
   const previewContainer = document.createElement("div");
   previewContainer.style.flex = "1";
+  previewContainer.style.minHeight = "0";
   shadow.append(themeTag, previewContainer);
   themeApply(themeTag);
   new ElementNode(

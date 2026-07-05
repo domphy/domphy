@@ -38,6 +38,7 @@ export function Preview(
       flex: 1,
       display: "flex",
       flexDirection: "column",
+      minHeight: 0,
     },
   };
 }

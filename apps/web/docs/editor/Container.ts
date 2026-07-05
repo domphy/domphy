@@ -2,7 +2,6 @@ import { type DomphyElement, toState } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { splitter, splitterHandle, splitterPanel } from "@domphy/ui";
 import { Console } from "./Console";
-import { PLAYGROUND_STACK_QUERY } from "./constants";
 import { Editor } from "./Editor";
 import { ErrorOverlay } from "./ErrorOverlay";
 import { lockScrollOnFullscreen } from "./fullscreenLock";
@@ -29,7 +28,6 @@ export function Container(
   const isDark = toState(false);
   const isFull = toState(false);
   const hasGrid = toState(false);
-  const activeTab = toState<"code" | "preview">("code");
 
   const update = (val: string) => {
     error.set("");
@@ -60,12 +58,13 @@ export function Container(
 
   lockScrollOnFullscreen(isFull);
 
-  // Both panels are always in the DOM. On a wide-enough playground they sit
-  // side by side (resizable via the drag handle); below PLAYGROUND_STACK_QUERY
-  // they stack and only the active tab's panel stays visible — the `!important`
-  // width override is required there because splitterPanel() binds width via a
-  // live DOM mutation (not a stylesheet rule), which normal cascade order can't
-  // out-rank.
+  // Code above, preview below — both always at full width. A side-by-side
+  // split looks nice for small self-contained widgets, but most blocks in
+  // this gallery are full-page mockups (login screens, dashboards,
+  // sidebars) that are laid out assuming a full-width viewport; halving
+  // their width breaks their own internal grid/breakpoints. Full width for
+  // both, with a draggable divider to trade code height for preview height,
+  // works for both kinds of demo.
   const editorPanel: DomphyElement<"div"> = {
     div: [Editor(code)],
     class: "dp-editor-panel",
@@ -74,12 +73,6 @@ export function Container(
       flexDirection: "column",
       minHeight: 0,
       overflow: "hidden",
-      [PLAYGROUND_STACK_QUERY]: {
-        width: "100% !important",
-        height: "100%",
-        display: (listener) =>
-          activeTab.get(listener) === "code" ? "flex" : "none",
-      },
     },
     $: [splitterPanel()],
   };
@@ -96,12 +89,6 @@ export function Container(
       flexDirection: "column",
       minHeight: 0,
       overflow: "hidden",
-      [PLAYGROUND_STACK_QUERY]: {
-        width: "100% !important",
-        height: "100%",
-        display: (listener) =>
-          activeTab.get(listener) === "preview" ? "flex" : "none",
-      },
     },
     $: [splitterPanel()],
   };
@@ -111,26 +98,19 @@ export function Container(
     class: "dp-splitter-handle",
     // Decorative drag grip, no text content of its own.
     _doctorDisable: "missing-color",
-    style: {
-      width: themeSpacing(1.5),
-      [PLAYGROUND_STACK_QUERY]: { display: "none" },
-    },
+    style: { height: themeSpacing(1.5) },
     $: [splitterHandle()],
   };
 
-  const grid: DomphyElement<"div"> = {
+  const stack: DomphyElement<"div"> = {
     div: [editorPanel, handle, previewPanel],
-    class: "dp-editor-grid",
-    style: {
-      flex: 1,
-      minHeight: 0,
-      [PLAYGROUND_STACK_QUERY]: { flexDirection: "column" },
-    },
-    $: [splitter({ direction: "horizontal", defaultSize: 50, min: 25, max: 75 })],
+    class: "dp-editor-stack",
+    style: { flex: 1, minHeight: 0 },
+    $: [splitter({ direction: "vertical", defaultSize: 30, min: 15, max: 70 })],
   };
 
   const workspace: DomphyElement<"div"> = {
-    div: [Toolbar({ activeTab, isDark, isFull, hasGrid }), grid],
+    div: [Toolbar({ isDark, isFull, hasGrid }), stack],
     class: "dp-playground",
     style: {
       display: "flex",
@@ -139,19 +119,12 @@ export function Container(
       overflow: "hidden",
       position: (listener) => (isFull.get(listener) ? "fixed" : "relative"),
       inset: 0,
-      // Only one panel's worth of height is ever visible at once now (either
-      // half the width in split view, or the full width in stacked view) —
-      // shorter than the old stacked-rows layout needed.
-      height: (listener) => (isFull.get(listener) ? "100vh" : "520px"),
+      height: (listener) => (isFull.get(listener) ? "100vh" : "760px"),
       // Above the site header's own z-index:100 (packages/press/src/layout.ts)
       // so fullscreen genuinely covers the whole page instead of having its
       // toolbar hidden underneath the sticky header.
       zIndex: (listener) => (isFull.get(listener) ? 300 : 10),
       backgroundColor: (listener) => themeColor(listener, "inherit"),
-      // Establishes the query container PLAYGROUND_STACK_QUERY measures
-      // against — the playground's own rendered width, not the viewport, so
-      // it degrades correctly inside a narrow docs sidebar+TOC column too.
-      containerType: "inline-size",
     },
   };
 
