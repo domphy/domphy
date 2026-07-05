@@ -1,26 +1,41 @@
-// magicui "Dia Text Reveal" — clean-room reimplementation from the public
-// behavior/visual spec only (no upstream source viewed or copied). Plain
-// text that rests in a solid final color, but the first time it scrolls
-// into view a multicolor gradient band sweeps across it once — clipped to
-// the glyph shapes via `background-clip: text` — like a brief foil-shine
-// passing over metallic text, before the layer fades out to reveal the
-// plain solid color underneath, permanently. Can optionally cycle through a
-// list of strings, sweeping each one in with a pause between, looping.
+// magicui "Dia Text Reveal" — verified directly against the real upstream
+// source (registry/magicui/dia-text-reveal.tsx, MIT-licensed).
 //
-// Two stacked copies of the same text (the well-established "twin-layer"
-// technique already used by sibling text blocks in this file, e.g.
-// `sparklesText`): a plain solid-color base layer that is always the
-// visible resting state, and a gradient-clipped sweep layer stacked exactly
-// on top whose opacity and CSS `animation` are both bound to a reactive
-// "is sweeping" flag — so the sweep only exists (visually and
-// computationally) while actually playing, then disappears to reveal the
-// base layer beneath. Trigger timing (view-entry delay, sweep duration,
-// inter-item pause, looping) is plain JS `setTimeout` sequencing, not a
-// fixed CSS timeline.
+// An earlier version of this port got the core technique wrong: it kept the
+// text FULLY VISIBLE at all times (a solid base layer) and merely stacked a
+// decorative color-shine layer on top during the sweep — so a visitor who
+// loaded the page after the one-shot sweep had already played (or even
+// before it started) saw nothing but static, already-readable text the
+// entire time, i.e. "doesn't do anything." Upstream's real technique is a
+// genuine REVEAL: the text starts effectively invisible (a `color:
+// transparent` span background-clipped to the glyphs, painted with a
+// gradient whose stops are almost entirely `transparent`), and a multicolor
+// band sweeps left-to-right — solid `textColor` appears only BEHIND the
+// band as it passes (already-revealed letters), while everything AHEAD of
+// the band stays transparent (not yet revealed). So text visibly
+// materializes letter-by-letter as the band travels across it, not merely
+// a shine over already-solid text. Ported the exact stop-building math
+// (`buildGradient`) and the standard cubic ease-in-out timing curve
+// (upstream's `sweepEase`, which is the textbook easeInOutCubic formula).
+//
+// Since the gradient must be recomputed at arbitrary intermediate band
+// positions every frame (not just a start/end 2-keyframe transition), this
+// is driven by a manual `requestAnimationFrame` loop writing directly to
+// `element.style.backgroundImage` — the same "continuous per-frame
+// recompute" idiom this package's `flickeringGrid.ts`/`particles.ts` use
+// for effects CSS keyframes can't express. `themeColorToken()` resolves the
+// gradient/text colors to literal hex once per trigger (the documented
+// escape hatch for APIs needing a literal color string, same as
+// `textHighlighter.ts`'s rough-notation integration) since a CSS
+// `linear-gradient()` string has no way to reference a live `var()` inside
+// a JS-computed value recomputed every frame.
+//
+// Can optionally cycle through a list of strings, sweeping each one in with
+// a pause between, looping.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
-import { hashString, toState } from "@domphy/core";
-import { type ThemeColor, themeColor } from "@domphy/theme";
+import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
+import { toState } from "@domphy/core";
+import { type ThemeColor, themeColorToken } from "@domphy/theme";
 
 export interface DiaTextRevealProps {
   /** Text to display, or a list of strings to cycle through (one sweep per item). Defaults to a demo phrase. */
@@ -53,14 +68,48 @@ export interface DiaTextRevealProps {
 
 const DEFAULT_COLORS: ThemeColor[] = ["primary", "secondary", "info", "success", "warning"];
 
-let diaTextRevealInstanceCounter = 0;
+// Percentage-space band half-width and travel range, matching upstream
+// exactly: the band starts fully off the left edge and ends fully off the
+// right edge, so both the "not yet revealed" and "fully revealed" states
+// are reached with room to spare.
+const BAND_HALF = 17;
+const SWEEP_START = -BAND_HALF;
+const SWEEP_END = 100 + BAND_HALF;
+
+// Upstream's `sweepEase` — the standard easeInOutCubic curve.
+function sweepEase(t: number): number {
+  return t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
+}
+
+/** Builds the `linear-gradient()` string for one frame: solid `textColorHex`
+ * behind the band (already revealed), the color band itself, transparent
+ * ahead of the band (not yet revealed) — or, once the band has fully passed
+ * (`bandStart >= 100`), a single solid color covering the whole text. */
+function buildGradient(position: number, colorHexes: string[], textColorHex: string): string {
+  const bandStart = position - BAND_HALF;
+  const bandEnd = position + BAND_HALF;
+  if (bandStart >= 100) return `linear-gradient(90deg, ${textColorHex}, ${textColorHex})`;
+
+  const stops: string[] = [];
+  if (bandStart > 0) stops.push(`${textColorHex} 0%`, `${textColorHex} ${bandStart.toFixed(2)}%`);
+
+  const count = colorHexes.length;
+  colorHexes.forEach((hex, index) => {
+    const percent = count === 1 ? position : bandStart + (index / (count - 1)) * BAND_HALF * 2;
+    stops.push(`${hex} ${percent.toFixed(2)}%`);
+  });
+
+  if (bandEnd < 100) stops.push(`transparent ${bandEnd.toFixed(2)}%`, "transparent 100%");
+  return `linear-gradient(90deg, ${stops.join(", ")})`;
+}
 
 /**
- * Text that rests in a solid final color but is swept once by a moving
- * multicolor gradient band the first time it scrolls into view — a brief
- * foil-shine "light sweep" — before settling. Optionally cycles through a
- * list of strings, sweeping each in turn. Call with no arguments for a
- * working demo.
+ * Text that stays invisible (background-clipped to a mostly-transparent
+ * gradient) until the first time it scrolls into view, at which point a
+ * multicolor band sweeps across it once, revealing solid, readable text
+ * behind the band as it travels — a "letters materializing" reveal, not a
+ * shine over already-visible text. Optionally cycles through a list of
+ * strings, sweeping each in turn. Call with no arguments for a working demo.
  */
 function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
   const items = (() => {
@@ -77,91 +126,109 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
   const pauseBetween = props.pauseBetween ?? 500;
   const reserveWidth = props.reserveWidth ?? false;
 
-  const instanceId = ++diaTextRevealInstanceCounter;
-  const keyframes = { "0%": { backgroundPosition: "0% 0" }, "100%": { backgroundPosition: "300% 0" } };
-  const animationName = `dia-text-reveal-sweep-${hashString(JSON.stringify({ instanceId, duration }))}`;
-
-  const currentText = toState(items[0]);
-  const isSweeping = toState(false);
-
   const longestItemLength = items.reduce((max, item) => Math.max(max, item.length), 0);
-
-  const gradientTextLayer: DomphyElement<"span"> = {
-    span: (listener: Listener) => currentText.get(listener),
-    ariaHidden: "true",
-    style: {
-      position: "absolute",
-      insetBlockStart: 0,
-      insetInlineStart: 0,
-      whiteSpace: "nowrap",
-      opacity: (listener: Listener) => (isSweeping.get(listener) ? 1 : 0),
-      backgroundImage: (listener: Listener) =>
-        `linear-gradient(90deg, ${colors.map((color) => themeColor(listener, "shift-8", color)).join(", ")})`,
-      backgroundSize: "300% 100%",
-      backgroundRepeat: "no-repeat",
-      backgroundClip: "text",
-      WebkitBackgroundClip: "text",
-      color: "transparent",
-      transition: "opacity 150ms ease",
-      animation: (listener: Listener) =>
-        isSweeping.get(listener) ? `${animationName} ${duration}ms cubic-bezier(0.16, 1, 0.3, 1) 1 both` : "none",
-      [`@keyframes ${animationName}`]: keyframes,
-    } as StyleObject,
-  };
-
-  const baseTextLayer: DomphyElement<"span"> = {
-    span: (listener: Listener) => currentText.get(listener),
-    style: {
-      position: "relative",
-      whiteSpace: "nowrap",
-      color: (listener: Listener) => themeColor(listener, "shift-11", finalColor),
-    },
-  };
+  const currentText = toState(items[0]);
 
   return {
-    span: [baseTextLayer, gradientTextLayer],
+    span: (listener) => currentText.get(listener),
     style: {
       position: "relative",
       display: "inline-block",
+      whiteSpace: "nowrap",
+      color: "transparent",
+      backgroundClip: "text",
+      WebkitBackgroundClip: "text",
+      backgroundSize: "100% 100%",
       ...(reserveWidth ? { minWidth: `${longestItemLength}ch` } : {}),
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined") return;
       const element = node.domElement as HTMLElement;
-      // Bare (non `window.`-qualified) timer functions: with both DOM and
-      // Node ambient globals in scope, `window.setTimeout`'s return type
-      // resolves inconsistently against `ReturnType<typeof window.setTimeout>`
-      // depending on call-site vs type-query context — the bare globals
-      // resolve to a single consistent type instead (same fix already
-      // applied to `sparklesText` elsewhere in this package).
-      const pendingTimeouts = new Set<ReturnType<typeof setTimeout>>();
+
+      const textColorHex = (() => {
+        try {
+          return themeColorToken(node, "shift-11", finalColor);
+        } catch {
+          return "currentColor";
+        }
+      })();
+      const colorHexes = colors.map((color) => {
+        try {
+          return themeColorToken(node, "shift-8", color);
+        } catch {
+          return textColorHex;
+        }
+      });
+
+      // Not yet revealed: paint the resting (pre-trigger) frame immediately,
+      // rather than leaving the browser's own gradient-less default (which
+      // would render as plain solid text, defeating the whole reveal).
+      element.style.backgroundImage = buildGradient(SWEEP_START, colorHexes, textColorHex);
+
+      const hasRaf = typeof requestAnimationFrame === "function";
+
       let itemIndex = 0;
       let hasStarted = false;
+      let animationFrameId: number | null = null;
+      let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
+
+      // Cycling/repeat is plain setTimeout sequencing and doesn't depend on
+      // rAF at all — only the smooth per-frame sweep does. A runtime with no
+      // rAF (e.g. a non-browser test runtime) still cycles/repeats on
+      // schedule, it just jumps straight to each item's fully-revealed frame
+      // instead of animating the reveal.
+      const onSweepComplete = () => {
+        animationFrameId = null;
+        const isLastItem = itemIndex === items.length - 1;
+        if (isLastItem && !repeat) return;
+        pendingTimeout = setTimeout(() => {
+          pendingTimeout = null;
+          itemIndex = (itemIndex + 1) % items.length;
+          currentText.set(items[itemIndex]);
+          element.style.backgroundImage = buildGradient(SWEEP_START, colorHexes, textColorHex);
+          runSweep();
+        }, pauseBetween);
+      };
 
       const runSweep = () => {
-        isSweeping.set(true);
-        const sweepTimeout = setTimeout(() => {
-          pendingTimeouts.delete(sweepTimeout);
-          isSweeping.set(false);
-          const isLastItem = itemIndex === items.length - 1;
-          if (isLastItem && !repeat) return;
-          const pauseTimeout = setTimeout(() => {
-            pendingTimeouts.delete(pauseTimeout);
-            itemIndex = (itemIndex + 1) % items.length;
-            currentText.set(items[itemIndex]);
-            runSweep();
-          }, pauseBetween);
-          pendingTimeouts.add(pauseTimeout);
-        }, duration);
-        pendingTimeouts.add(sweepTimeout);
+        if (!hasRaf) {
+          element.style.backgroundImage = buildGradient(SWEEP_END, colorHexes, textColorHex);
+          onSweepComplete();
+          return;
+        }
+        // The first frame's own timestamp is the start reference — NOT a
+        // separately-called `performance.now()` — so elapsed-time math never
+        // straddles two different clock sources (matters under mocked timers,
+        // where `requestAnimationFrame`'s callback clock may not track real
+        // high-resolution time).
+        let startTime: number | null = null;
+        const step = (now: number) => {
+          if (startTime === null) startTime = now;
+          const elapsed = now - startTime;
+          const t = Math.min(1, duration <= 0 ? 1 : elapsed / duration);
+          const position = SWEEP_START + sweepEase(t) * (SWEEP_END - SWEEP_START);
+          element.style.backgroundImage = buildGradient(position, colorHexes, textColorHex);
+          if (t < 1) {
+            animationFrameId = requestAnimationFrame(step);
+            return;
+          }
+          onSweepComplete();
+        };
+        animationFrameId = requestAnimationFrame(step);
       };
 
       const beginSequence = () => {
         if (hasStarted) return;
         hasStarted = true;
-        const startTimeout = setTimeout(runSweep, delay);
-        pendingTimeouts.add(startTimeout);
+        if (delay > 0) {
+          pendingTimeout = setTimeout(() => {
+            pendingTimeout = null;
+            runSweep();
+          }, delay);
+        } else {
+          runSweep();
+        }
       };
 
       let intersectionObserver: IntersectionObserver | null = null;
@@ -182,7 +249,7 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
                 intersectionObserver = null;
               }
             },
-            { threshold: 0.2 },
+            { threshold: 0.1 },
           );
           intersectionObserver.observe(element);
         }
@@ -193,8 +260,8 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
       }
 
       node.addHook("Remove", () => {
-        for (const timeout of pendingTimeouts) clearTimeout(timeout);
-        pendingTimeouts.clear();
+        if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+        if (pendingTimeout !== null) clearTimeout(pendingTimeout);
         intersectionObserver?.disconnect();
         if (handleClick) element.removeEventListener("click", handleClick);
       });

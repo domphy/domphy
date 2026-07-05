@@ -23,17 +23,20 @@ afterEach(() => {
 });
 
 describe("diaTextReveal", () => {
-  it("renders a working demo with zero args: a base text layer plus a gradient sweep layer", () => {
+  it("renders a working demo with zero args: a single gradient-clipped reveal span", () => {
     const { host } = render(diaTextReveal() as DomphyElement);
     flushSync();
 
-    const spans = host.querySelectorAll("span > span");
-    expect(spans).toHaveLength(2);
-    expect(spans[1].getAttribute("aria-hidden")).toBe("true");
+    const span = host.querySelector("span") as HTMLElement;
+    expect(span).toBeTruthy();
     expect(host.textContent).toContain("Reveal Yourself");
+    // jsdom does have a real rAF, so `flushSync()` (synchronous, before any
+    // frame ticks) still observes the pre-sweep resting frame — a
+    // mostly-transparent gradient, not plain solid text.
+    expect(span.style.backgroundImage).toContain("linear-gradient");
   });
 
-  it("cycles through a list of strings, swapping both layers' text together", () => {
+  it("cycles through a list of strings, swapping the reveal span's text", () => {
     vi.useFakeTimers();
     const { host } = render(
       diaTextReveal({ children: ["One", "Two"], duration: 200, pauseBetween: 50, repeat: true }) as DomphyElement,
@@ -41,7 +44,11 @@ describe("diaTextReveal", () => {
     flushSync();
     expect(host.textContent).toContain("One");
 
-    vi.advanceTimersByTime(200 + 50);
+    // The sweep is rAF-frame-quantized (~16ms steps under fake timers, and
+    // the very first frame doesn't fire until the first 16ms tick either),
+    // so it completes some frames AFTER `duration`, not at the exact
+    // millisecond — a generous buffer accounts for that overshoot.
+    vi.advanceTimersByTime(200 + 50 + 50);
     flushSync();
     expect(host.textContent).toContain("Two");
   });
