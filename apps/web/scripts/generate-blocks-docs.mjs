@@ -238,13 +238,13 @@ function titleCase(kebabOrCamel) {
     .join(" ");
 }
 
-const SOURCE_LABELS = { shadcn: "shadcn/ui", magicui: "Magic UI", aceternity: "Aceternity UI" };
-const SOURCE_CATALOG_SLUG = { shadcn: "shadcn", magicui: "magicui", aceternity: "aceternity" };
+const SOURCE_LABELS = { shadcn: "shadcn/ui", magicui: "Magic UI" };
+const SOURCE_CATALOG_SLUG = { shadcn: "shadcn", magicui: "magicui" };
 
-// --- clean slate for generated output (demo files + doc pages only; the 6
+// --- clean slate for generated output (demo files + doc pages only; the
 // hand-written catalog/overview/methodology/api pages are untouched since
 // they live at the same docsDir root — only per-export pages are removed) ---
-const HAND_WRITTEN_DOC_PAGES = new Set(["index.md", "shadcn.md", "magicui.md", "aceternity.md", "methodology.md", "api.md"]);
+const HAND_WRITTEN_DOC_PAGES = new Set(["index.md", "shadcn.md", "magicui.md", "methodology.md", "api.md"]);
 
 await mkdir(demosDir, { recursive: true });
 await mkdir(docsDir, { recursive: true });
@@ -330,7 +330,7 @@ function sidebarItemsFor(groupKey) {
     .map((entry) => ({ text: entry.exportName, link: `/docs/blocks/${entry.exportName}` }));
 }
 
-const sourceOrder = ["shadcn", "magicui", "aceternity"];
+const sourceOrder = ["shadcn", "magicui"];
 const groupKeysBySource = new Map(sourceOrder.map((source) => [source, []]));
 for (const groupKey of bySourceCategory.keys()) {
   const source = groupKey.split("/")[0];
@@ -338,9 +338,14 @@ for (const groupKey of bySourceCategory.keys()) {
   groupKeysBySource.get(source).push(groupKey);
 }
 
+// Skip sources with zero groups — a source can go from "has entries" to
+// "fully removed from the registry" (e.g. the Aceternity UI purge), and a
+// pre-seeded-but-now-empty Map entry must not surface as an empty sidebar
+// heading with no children under it.
 const sidebarGroups = [];
 for (const source of [...groupKeysBySource.keys()]) {
   const groupKeys = groupKeysBySource.get(source).sort();
+  if (groupKeys.length === 0) continue;
   const sourceLabel = SOURCE_LABELS[source] ?? source;
   const categoryItems = groupKeys.map((groupKey) => {
     const category = groupKey.split("/")[1];

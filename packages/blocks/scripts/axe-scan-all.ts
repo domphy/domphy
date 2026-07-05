@@ -59,7 +59,7 @@ async function main(): Promise<void> {
       console.log(`${name}: ERROR — ${message.slice(0, 200)}`);
     } finally {
       // Must run on both paths — an unclosed page leaks its own renderer
-      // process for the rest of this 252-iteration loop; left unchecked this
+      // process for the rest of this 173-iteration loop; left unchecked this
       // compounds fast (observed 70+ orphaned chrome-headless-shell.exe
       // processes mid-run before this fix).
       await page?.close().catch(() => {});

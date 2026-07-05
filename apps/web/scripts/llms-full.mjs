@@ -107,15 +107,14 @@ await includeDir(
 );
 await includeDir(resolve(ROOT, "docs/form"), "Form docs (`@domphy/form`)");
 await includeDir(resolve(ROOT, "docs/dnd"), "DnD docs (`@domphy/dnd`)");
-// Only the hand-written overview/catalog/methodology/API pages — NOT the 252
+// Only the hand-written overview/catalog/methodology/API pages — NOT the 173
 // auto-generated per-block pages (each just a live-editable playground around
 // a component whose full source already lives in packages/blocks/src/ and
-// whose summary is already in these catalog tables; dumping all 252 would
+// whose summary is already in these catalog tables; dumping all 173 would
 // bloat this file with mostly-redundant prose).
 await includeFile(resolve(ROOT, "docs/blocks/index.md"), "Blocks overview (`@domphy/blocks`)");
 await includeFile(resolve(ROOT, "docs/blocks/shadcn.md"), "Blocks — shadcn/ui catalog");
 await includeFile(resolve(ROOT, "docs/blocks/magicui.md"), "Blocks — Magic UI catalog");
-await includeFile(resolve(ROOT, "docs/blocks/aceternity.md"), "Blocks — Aceternity UI catalog");
 await includeFile(resolve(ROOT, "docs/blocks/methodology.md"), "Blocks — methodology (clean-room)");
 await includeFile(resolve(ROOT, "docs/blocks/api.md"), "Blocks — API");
 await includeDir(

@@ -2,7 +2,7 @@
 // every block in the "backgrounds" category — the ones whose whole premise
 // is decorative/animated content sitting directly behind default text, where
 // a declared-color contrast check can be fooled by blend-modes/blur/opacity
-// compositing (see auroraBackground, found failing via manual inspection).
+// compositing (see noiseTexture, found failing via manual inspection).
 // Samples at two points in time per block (shortly after mount, and again
 // ~2.5s later) to catch looping/ambient effects that drift brighter or
 // darker over their cycle, not just their first frame.

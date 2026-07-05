@@ -341,7 +341,6 @@ export const config = defineConfig({
         { text: "Overview", link: "/docs/blocks/" },
         { text: "shadcn/ui", link: "/docs/blocks/shadcn" },
         { text: "Magic UI", link: "/docs/blocks/magicui" },
-        { text: "Aceternity UI", link: "/docs/blocks/aceternity" },
         { text: "Methodology", link: "/docs/blocks/methodology" },
         { text: "API", link: "/docs/blocks/api" },
         ...blocksSidebarGroups,

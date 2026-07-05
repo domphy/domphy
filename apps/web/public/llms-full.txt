@@ -64,7 +64,7 @@ const App = {
 | `@domphy/virtual` | virtualization — adapter `createVirtualizer` at `@domphy/virtual/domphy` |
 | `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy` |
 | `@domphy/dnd` | drag & drop — `dragDrop(state, config?)`, `multiList(options)`, `multiListGroup(group, states, config?)` (wraps `@formkit/drag-and-drop`) |
-| `@domphy/blocks` | 252 composed blocks/effect components — sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes (from shadcn/ui), and marketing/effect components (from Magic UI + Aceternity UI). Every export is a **factory function** `name(props?) => DomphyElement` returning a full mountable tree (not a `$`-patch). Clean-room reimplemented — see `packages/blocks/SOURCES.md` |
+| `@domphy/blocks` | 173 composed blocks/effect components — sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes (from shadcn/ui), and marketing/effect components (from Magic UI). Every export is a **factory function** `name(props?) => DomphyElement` returning a full mountable tree (not a `$`-patch). Clean-room reimplemented — see `packages/blocks/SOURCES.md` |
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`) |
 | `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. CLI `domphy-doctor <path...>` scans files on disk (flags: `--only`/`--exclude`/`--no-reactive`/`--no-output`/`--format text\|json`); `auditOutput(node, opts?)` is an optional Layer 4 that lints the real generated HTML/CSS via `htmlhint`/`stylelint` (optional peer deps). **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — internal to `@domphy/ui` overlays |
@@ -21584,14 +21584,14 @@ dragDrop(tasks, {
 
 ---
 title: "@domphy/blocks"
-description: "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, clean-room reimplemented from the public behavior of shadcn/ui, Magic UI, and Aceternity UI."
+description: "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, clean-room reimplemented from the public behavior of shadcn/ui and Magic UI."
 ---
 
 # @domphy/blocks
 
-252 ready-to-use composed blocks and effect components: application shells (sidebar layouts, auth pages, a dashboard), chart recipes for `@domphy/chart`, and marketing/effect components (animated backgrounds, text effects, cards, buttons). Every export is a factory function you call directly — not a `$`-patch you apply to your own tag.
+173 ready-to-use composed blocks and effect components: application shells (sidebar layouts, auth pages, a dashboard), chart recipes for `@domphy/chart`, and marketing/effect components (animated backgrounds, text effects, cards, buttons). Every export is a factory function you call directly — not a `$`-patch you apply to your own tag.
 
-This package exists for two reasons: it is a genuinely useful "bigger than a button" component library, and it doubles as an integration test — building 252 real-world compositions is what surfaces gaps in the rest of the ecosystem (`@domphy/ui`, `@domphy/chart`, `@domphy/table`, `@domphy/form`) that small demos never would.
+This package exists for two reasons: it is a genuinely useful "bigger than a button" component library, and it doubles as an integration test — building real-world compositions is what surfaces gaps in the rest of the ecosystem (`@domphy/ui`, `@domphy/chart`, `@domphy/table`, `@domphy/form`) that small demos never would.
 
 ## Install
 
@@ -21604,7 +21604,7 @@ Peer dependencies: `@domphy/core`, `@domphy/theme`, `@domphy/ui`, `@domphy/chart
 ## Quick start
 
 ```ts
-import { sidebar07, dashboard01, marquee, spotlight } from "@domphy/blocks"
+import { sidebar07, dashboard01, marquee } from "@domphy/blocks"
 
 // Every export is a factory function with an optional props object and
 // sane defaults, so calling it with no arguments renders a working demo.
@@ -21621,13 +21621,12 @@ const Dashboard = dashboard01({
 
 - **[shadcn/ui blocks + chart recipes](/docs/blocks/shadcn)** — 16 sidebar layouts, 10 auth pages, 1 dashboard, 70 `@domphy/chart` recipe presets.
 - **[Magic UI](/docs/blocks/magicui)** — 76 marketing/effect components (text animations, backgrounds, buttons, device mocks).
-- **[Aceternity UI](/docs/blocks/aceternity)** — 79 additional effect components, deduplicated against Magic UI so nothing is ported twice.
 - **[Methodology](/docs/blocks/methodology)** — how these were built (clean-room implementation) and how to compare a block against its public reference.
 - **[API reference](/docs/blocks/api)** — the factory-function contract every export follows, and where to find each block's own props.
 
 ## Full catalog
 
-See [`SOURCES.md`](https://github.com/domphy/domphy/blob/main/packages/blocks/SOURCES.md) in the repo for the complete, generated manifest (export name, source file, reference URL, status, and fidelity notes) for all 252 components.
+See [`SOURCES.md`](https://github.com/domphy/domphy/blob/main/packages/blocks/SOURCES.md) in the repo for the complete, generated manifest (export name, source file, reference URL, status, and fidelity notes) for all 173 components.
 
 
 ---
@@ -21929,179 +21928,6 @@ import { marquee, bentoGrid, numberTicker } from "@domphy/blocks"
 ---
 
 
-## Blocks — Aceternity UI catalog
-
----
-title: "@domphy/blocks — Aceternity UI"
-description: "Aceternity UI-sourced eye-catching effect components, clean-room reimplemented for Domphy, deduplicated against Magic UI."
----
-
-# Aceternity UI components
-
-79 components clean-room reimplemented from Aceternity UI's public component catalog, after deduplicating against Magic UI (components that were the same or a near-duplicate effect were skipped — only genuinely distinct or meaningfully-variant effects were ported). See [Methodology](/docs/blocks/methodology) for why this source in particular relies entirely on clean-room reimplementation rather than a license grant.
-
-```ts
-import { spotlight, card3D, hoverBorderGradient } from "@domphy/blocks"
-```
-
-### Button / Icon / Motion
-
-| Export | Status | Reference |
-|---|---|---|
-| `pathMorph` | ported | [source](https://ui.aceternity.com/labs/svg-path-morphing) |
-
-### Card / Interaction / Motion
-
-| Export | Status | Reference |
-|---|---|---|
-| `fanCards` | ported | [source](https://ui.aceternity.com/labs/fey-cards) |
-| `layoutMotionCards` | ported | [source](https://ui.aceternity.com/labs/interface-crafts-cards) |
-
-### Hero / Marketing / Motion
-
-| Export | Status | Reference |
-|---|---|---|
-| `flowingTextMarquee` | ported | [source](https://ui.aceternity.com/labs/wispr-flow-text-animation) |
-
-### Hero / Poster / Motion
-
-| Export | Status | Reference |
-|---|---|---|
-| `posterReveal` | ported | [source](https://ui.aceternity.com/labs/gta-vi-poster) |
-
-### backgrounds
-
-| Export | Status | Reference |
-|---|---|---|
-| `auroraBackground` | ported | [source](https://ui.aceternity.com/components/aurora-background) |
-| `backgroundBeams` | partial | [source](https://ui.aceternity.com/components/background-beams) |
-| `backgroundBeamsWithCollision` | ported | [source](https://ui.aceternity.com/components/background-beams-with-collision) |
-| `backgroundGradient` | ported | [source](https://ui.aceternity.com/components/background-gradient) |
-| `backgroundLines` | ported | [source](https://ui.aceternity.com/components/background-lines) |
-| `backgroundRippleEffect` | ported | [source](https://ui.aceternity.com/components/background-ripple-effect) |
-| `canvasRevealEffect` | partial | [source](https://ui.aceternity.com/components/canvas-reveal-effect) |
-| `dottedGlowBackground` | ported | [source](https://ui.aceternity.com/components/dotted-glow-background) |
-| `glowingEffect` | partial | [source](https://ui.aceternity.com/components/glowing-effect) |
-| `glowingStars` | ported | [source](https://ui.aceternity.com/components/glowing-stars-effect) |
-| `googleGeminiEffect` | ported | [source](https://ui.aceternity.com/components/google-gemini-effect) |
-| `gradientAnimation` | ported | [source](https://ui.aceternity.com/components/background-gradient-animation) |
-| `imagesBadge` | ported | [source](https://ui.aceternity.com/components/images-badge) |
-| `lampEffect` | ported | [source](https://ui.aceternity.com/components/lamp-effect) |
-| `parallaxHeroImages` | ported | [source](https://ui.aceternity.com/components/parallax-hero-images) |
-| `scales` | ported | [source](https://ui.aceternity.com/components/scales) |
-| `shootingStars` | ported | [source](https://ui.aceternity.com/components/shooting-stars-and-stars-background) |
-| `spotlight` | ported | [source](https://ui.aceternity.com/components/spotlight) |
-| `spotlightDual` | ported | [source](https://ui.aceternity.com/components/spotlight-new) |
-| `svgMaskEffect` | ported | [source](https://ui.aceternity.com/components/svg-mask-effect) |
-| `tracingBeam` | ported | [source](https://ui.aceternity.com/components/tracing-beam) |
-| `vortex` | ported | [source](https://ui.aceternity.com/components/vortex) |
-| `wavyBackground` | ported | [source](https://ui.aceternity.com/components/wavy-background) |
-| `webcamPixelGrid` | partial | [source](https://ui.aceternity.com/components/webcam-pixel-grid) |
-
-### buttons
-
-| Export | Status | Reference |
-|---|---|---|
-| `hoverBorderGradient` | ported | [source](https://ui.aceternity.com/components/hover-border-gradient) |
-| `magneticButton` | ported | [source](https://ui.aceternity.com/components/magnetic-button) |
-| `statefulButton` | ported | [source](https://ui.aceternity.com/components/stateful-button) |
-
-### cards
-
-| Export | Status | Reference |
-|---|---|---|
-| `asciiArt` | ported | [source](https://ui.aceternity.com/components/ascii-art) |
-| `card3D` | ported | [source](https://ui.aceternity.com/components/3d-card-effect) |
-| `cardHoverEffect` | ported | [source](https://ui.aceternity.com/components/card-hover-effect) |
-| `cardStack` | ported | [source](https://ui.aceternity.com/components/card-stack) |
-| `directionAwareHover` | ported | [source](https://ui.aceternity.com/components/direction-aware-hover) |
-| `draggableCard` | ported | [source](https://ui.aceternity.com/components/draggable-card) |
-| `evervaultCard` | ported | [source](https://ui.aceternity.com/components/evervault-card) |
-| `expandableCard` | partial | [source](https://ui.aceternity.com/components/expandable-card) |
-| `focusCards` | ported | [source](https://ui.aceternity.com/components/focus-cards) |
-| `keyboard` | ported | [source](https://ui.aceternity.com/components/keyboard) |
-| `pixelatedCanvas` | ported | [source](https://ui.aceternity.com/components/pixelated-canvas) |
-| `wobbleCard` | ported | [source](https://ui.aceternity.com/components/wobble-card) |
-
-### effects-3d
-
-| Export | Status | Reference |
-|---|---|---|
-| `globe3D` | partial | [source](https://ui.aceternity.com/components/3d-globe) |
-| `marquee3D` | ported | [source](https://ui.aceternity.com/components/3d-marquee) |
-| `pin3D` | ported | [source](https://ui.aceternity.com/components/3d-pin) |
-| `pointerHighlight` | ported | [source](https://ui.aceternity.com/components/pointer-highlight) |
-
-### inputs
-
-| Export | Status | Reference |
-|---|---|---|
-| `fileUpload` | ported | [source](https://ui.aceternity.com/components/file-upload) |
-| `gooeyInput` | ported | [source](https://ui.aceternity.com/components/gooey-input) |
-| `vanishInput` | ported | [source](https://ui.aceternity.com/components/placeholders-and-vanish-input) |
-
-### layout
-
-| Export | Status | Reference |
-|---|---|---|
-| `codeBlock` | ported | [source](https://ui.aceternity.com/components/code-block) |
-| `compareSlider` | ported | [source](https://ui.aceternity.com/components/compare) |
-| `containerCover` | ported | [source](https://ui.aceternity.com/components/container-cover) |
-
-### loaders
-
-| Export | Status | Reference |
-|---|---|---|
-| `loaderSet` | ported | [source](https://ui.aceternity.com/components/loader) |
-| `multiStepLoader` | ported | [source](https://ui.aceternity.com/components/multi-step-loader) |
-
-### navigation
-
-| Export | Status | Reference |
-|---|---|---|
-| `floatingNavbar` | ported | [source](https://ui.aceternity.com/components/floating-navbar) |
-| `hoverSidebar` | ported | [source](https://ui.aceternity.com/components/sidebar) |
-| `notch` | ported | [source](https://ui.aceternity.com/components/notch) |
-| `resizableNavbar` | ported | [source](https://ui.aceternity.com/components/resizable-navbar) |
-| `stickyBanner` | ported | [source](https://ui.aceternity.com/components/sticky-banner) |
-
-### overlays
-
-| Export | Status | Reference |
-|---|---|---|
-| `animatedTestimonials` | ported | [source](https://ui.aceternity.com/components/animated-testimonials) |
-| `carousel` | ported | [source](https://ui.aceternity.com/components/carousel) |
-| `ditherShader` | ported | [source](https://ui.aceternity.com/components/dither-shader) |
-| `imageSlider` | ported | [source](https://ui.aceternity.com/components/images-slider) |
-| `linkPreview` | ported | [source](https://ui.aceternity.com/components/link-preview) |
-
-### scroll
-
-| Export | Status | Reference |
-|---|---|---|
-| `containerScrollAnimation` | ported | [source](https://ui.aceternity.com/components/container-scroll-animation) |
-| `heroParallax` | ported | [source](https://ui.aceternity.com/components/hero-parallax) |
-| `macbookScroll` | partial | [source](https://ui.aceternity.com/components/macbook-scroll) |
-| `parallaxScroll` | ported | [source](https://ui.aceternity.com/components/parallax-scroll) |
-| `stickyScrollReveal` | ported | [source](https://ui.aceternity.com/components/sticky-scroll-reveal) |
-
-### text
-
-| Export | Status | Reference |
-|---|---|---|
-| `canvasText` | ported | [source](https://ui.aceternity.com/components/canvas-text) |
-| `containerTextFlip` | ported | [source](https://ui.aceternity.com/components/container-text-flip) |
-| `heroHighlight` | ported | [source](https://ui.aceternity.com/components/hero-highlight) |
-| `layoutTextFlip` | ported | [source](https://ui.aceternity.com/components/layout-text-flip) |
-| `squigglyText` | ported | [source](https://ui.aceternity.com/components/squiggly-text) |
-| `textFlippingBoard` | ported | [source](https://ui.aceternity.com/components/text-flipping-board) |
-| `textHoverEffect` | ported | [source](https://ui.aceternity.com/components/text-hover-effect) |
-| `textRevealCard` | ported | [source](https://ui.aceternity.com/components/text-reveal-card) |
-
-
----
-
-
 ## Blocks — methodology (clean-room)
 
 ---
@@ -22115,7 +21941,9 @@ Every component in `@domphy/blocks` is a **clean-room implementation**: reimplem
 
 ## Why clean-room
 
-`@domphy/blocks` reimplements publicly documented UI patterns from three sources — shadcn/ui, Magic UI, and Aceternity UI. shadcn/ui and Magic UI's free components are MIT-licensed and explicitly meant to be copied; Aceternity UI is distributed through a mixed free/paid registry with no clearly published permissive license for redistributing source code. Rather than treating these three sources differently, the same process was applied to all of them: describe the behavior, then implement independently from that description. This sidesteps the license question entirely, because the underlying visual/behavioral idea — not the specific code expressing it — is what gets reused, and ideas aren't copyrightable.
+`@domphy/blocks` reimplements publicly documented UI patterns from two sources — shadcn/ui and Magic UI. Both are MIT-licensed and their free components are explicitly meant to be copied; this package doesn't rely on that license grant to justify inclusion, since nothing is copied from them in the first place — the process below describes the behavior, then implements independently from that description, so the underlying visual/behavioral idea (not copyrightable) is what gets reused, not the specific code expressing it.
+
+An earlier version of this package also included ~79 components sourced from Aceternity UI, spec'd the same way. That category was removed entirely (2026-07-05): Aceternity has no clean public source repo, only an unauthenticated registry JSON endpoint, so those 79 had never actually been diffed against real upstream code. A direct-diff pass on a couple of them (see "Fidelity corrections via direct source diff" below) turned up genuine, not-approximation-level gaps — the wrong animation technique entirely, not a styling nuance. Rather than re-diff all 79 one at a time, the whole category was dropped instead of shipping components nobody had verified.
 
 ## The two-stage process
 
@@ -22123,6 +21951,10 @@ Every component in `@domphy/blocks` is a **clean-room implementation**: reimplem
 2. **Implementation stage.** A *different* agent — one that never saw, browsed, or fetched the original source or website — implements the component from that specification alone, using Domphy's own idioms (`@domphy/core` reactivity, `@domphy/theme` tokens, `@domphy/ui` patches, the Web Animations API instead of Framer Motion).
 
 No third-party source code is copied, transcribed, or redistributed anywhere in this package.
+
+## Fidelity corrections via direct source diff
+
+The two-stage spec process is good at capturing gross behavior but can miss precise implementation detail (an animation driven by a growing border vs. a traced SVG outline look similar in prose but read very differently on screen). Since shadcn/ui and Magic UI are both MIT-licensed, reading their real source directly — after the fact, specifically to verify or fix a shipped component — carries no license concern; only the original clean-room *build* process avoided it. When a fidelity issue is suspected or reported, the correct next step is: clone the real upstream repo (or, for shadcn/Magic UI CLI-style registries, fetch the component's registry JSON), diff it line-by-line against the shipped Domphy file, and fix only what's actually different — not re-guess from screenshots. This is how `bentoGrid`'s missing box-shadow and `pointerHighlight`'s (pre-removal Aceternity) wrong outline-draw technique were both found and fixed.
 
 ## Honesty about fidelity
 
@@ -22138,7 +21970,7 @@ Nothing was silently faked; if an implementer couldn't reasonably match part of 
 Two ways to check a block against the public pattern it's based on:
 
 - **Read the reference URL.** Every `SOURCES.md`/`registry.json` entry links to the live docs page it was specified from — open it side by side with the block's demo.
-- **Run the visual-compare script.** `pnpm --filter @domphy/blocks visual-compare [exportName]` boots the local demo harness, screenshots the block, screenshots the reference URL with Playwright, and writes both images to a local (gitignored) folder for side-by-side inspection. This is an on-demand developer tool, not part of CI — reference screenshots are never committed to the repository.
+- **Run the visual-compare script.** `pnpm --filter @domphy/blocks visual-compare [exportName]` boots the local demo harness, screenshots the block, screenshots the reference URL with Playwright, and writes both images to a local (gitignored) folder for side-by-side inspection. The reference screenshot is cached on disk and reused on later runs (only the local screenshot is re-captured each time) — pass `--refresh-reference` to force re-fetching it. This is an on-demand developer tool, not part of CI — reference screenshots are never committed to the repository.
 
 
 ---
@@ -43593,6 +43425,9 @@ function splitter(
             size: toState(defaultSize),
             min,
             max,
+            // Mutable bookkeeping (not reactive state) so splitterPanel can
+            // tell the first panel from later ones — see its own comment.
+            panelCount: 0,
           },
         },
       });
@@ -43608,7 +43443,11 @@ function splitter(
 /**
  * The resizable panel inside a `splitter`. Reads the `splitter` context and binds its
  * width (horizontal) or height (vertical) to the context `size` state, updating reactively as
- * the handle is dragged. Warns if used outside a `splitter`. Takes no props.
+ * the handle is dragged. Intended for exactly two panels either side of one `splitterHandle`:
+ * the first `splitterPanel` mounted takes `size`%, and the second takes the complementary
+ * `100 - size`% — so the pair always sums to the full width/height instead of both tracking
+ * the same number (which would make them grow and shrink together instead of trading space).
+ * Warns if used outside a `splitter`. Takes no props.
  *
  * @example { div: [...], $: [splitterPanel()] }
  */
@@ -43622,14 +43461,16 @@ function splitterPanel(): PartialElement {
       }
       const el = node.domElement as HTMLElement;
       const prop = ctx.direction === "horizontal" ? "width" : "height";
+      const isFirst = ctx.panelCount++ === 0;
 
-      el.style[prop] = `${ctx.size.get()}%`;
+      const apply = (size: number) => {
+        el.style[prop] = `${isFirst ? size : 100 - size}%`;
+      };
+      apply(ctx.size.get());
       el.style.flexShrink = "0";
       el.style.overflow = "auto";
 
-      const release = ctx.size.addListener((size: number) => {
-        el.style[prop] = `${size}%`;
-      });
+      const release = ctx.size.addListener(apply);
       node.addHook("Remove", release);
     },
   };

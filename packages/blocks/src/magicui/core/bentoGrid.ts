@@ -270,10 +270,21 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
       outlineOffset: "-1px",
-      transition: "outline-color 200ms ease",
+      // Diffed directly against the real upstream source (registry/magicui/
+      // bento-grid.tsx, MIT-licensed): the reference card is plain
+      // `bg-background` (no color tint) but carries a layered
+      // `box-shadow: 0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05),
+      // 0 12px 24px rgba(0,0,0,.05)` for depth — this port had NO box-shadow
+      // at all (outline alone), reading visibly flatter. Token-based
+      // near+ambient pair (the outline above already covers the 1px ring).
+      boxShadow: (listener: Listener) =>
+        `0 ${themeSpacing(1)} ${themeSpacing(2)} ${themeColor(listener, "shift-3")}, 0 ${themeSpacing(6)} ${themeSpacing(12)} ${themeColor(listener, "shift-2")}`,
+      transition: "outline-color 200ms ease, box-shadow 200ms ease",
       "&:hover": {
         outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-6")}`,
         outlineOffset: "-1px",
+        boxShadow: (listener: Listener) =>
+          `0 ${themeSpacing(1)} ${themeSpacing(2)} ${themeColor(listener, "shift-4")}, 0 ${themeSpacing(8)} ${themeSpacing(16)} ${themeColor(listener, "shift-3")}`,
       },
       "&:hover [data-bento-background]": { transform: "scale(1.08)", filter: "blur(20px)" },
       "&:hover [data-bento-arrow]": { transform: `translateX(${themeSpacing(1)})` },

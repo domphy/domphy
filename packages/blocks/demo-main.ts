@@ -11,8 +11,8 @@ import * as blocks from "./src/index.js";
 themeApply();
 document.documentElement.setAttribute("data-theme", "light");
 
-// Mounting all 252 blocks eagerly on one page exhausts the browser's WebGL
-// context budget (several blocks — globe3D, retroGrid, iconCloud, etc. — use
+// Mounting all 173 blocks eagerly on one page exhausts the browser's WebGL
+// context budget (several blocks — globe, retroGrid, iconCloud, etc. — use
 // WebGL) and is wasteful when the visual-compare script only needs to
 // screenshot one at a time. Instead, create every card shell up front but
 // defer the actual factory-call + render until each card scrolls near the

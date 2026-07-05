@@ -15,7 +15,7 @@
 //
 // Usage:
 //   pnpm --filter @domphy/blocks visual-compare sidebar07 dashboard01
-//   pnpm --filter @domphy/blocks visual-compare --all        (slow — 252 pairs)
+//   pnpm --filter @domphy/blocks visual-compare --all        (slow — 173 pairs)
 //   pnpm --filter @domphy/blocks visual-compare sidebar07 --refresh-reference
 import { access, mkdir, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -97,7 +97,7 @@ async function main() {
         // block's position between measuring its clip rect and screenshotting.
         await page.evaluate(() => (window as unknown as { disconnectLazyMount: () => void }).disconnectLazyMount());
         // Cards lazy-mount on scroll (to avoid exhausting the browser's WebGL
-        // context budget across all 252 demo blocks); force-mount this one
+        // context budget across all 173 demo blocks); force-mount this one
         // directly instead of relying on scroll-driven IntersectionObserver.
         await page.evaluate((name) => (window as unknown as { mountBlock: (n: string) => void }).mountBlock(name), entry.exportName);
         await locator.locator("canvas, svg").first().waitFor({ state: "attached", timeout: 5000 }).catch(() => {});

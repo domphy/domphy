@@ -19,7 +19,7 @@
     {
       "name": "@domphy/blocks",
       "version": "0.1.0",
-      "description": "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, independently reimplemented (clean-room) from the public behavior of shadcn/ui, Magic UI, and Aceternity UI.",
+      "description": "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, independently reimplemented (clean-room) from the public behavior of shadcn/ui and Magic UI.",
       "subpaths": [
         "."
       ],
@@ -2000,7 +2000,7 @@
       "hostTag": null,
       "signature": "splitterPanel()",
       "props": [],
-      "doc": "The resizable panel inside a `splitter`. Reads the `splitter` context and binds its width (horizontal) or height (vertical) to the context `size` state, updating reactively as the handle is dragged. Warns if used outside a `splitter`. Takes no props.",
+      "doc": "The resizable panel inside a `splitter`. Reads the `splitter` context and binds its width (horizontal) or height (vertical) to the context `size` state, updating reactively as the handle is dragged. Intended for exactly two panels either side of one `splitterHandle`: the first `splitterPanel` mounted takes `size`%, and the second takes the complementary `100 - size`% — so the pair always sums to the full width/height instead of both tracking the same number (which would make them grow and shrink together instead of trading space). Warns if used outside a `splitter`. Takes no props.",
       "example": "{ div: [...], $: [splitterPanel()] }",
       "source": "packages/ui/src/patches/splitter.ts"
     },

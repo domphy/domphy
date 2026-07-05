@@ -2,7 +2,7 @@
 
 **[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/blocks/) · [npm](https://www.npmjs.com/package/@domphy/blocks)
 
-252 composed blocks and effect components for Domphy: sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes, and marketing/effect components — clean-room reimplemented from the public behavior of shadcn/ui, Magic UI, and Aceternity UI.
+173 composed blocks and effect components for Domphy: sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes, and marketing/effect components — clean-room reimplemented from the public behavior of shadcn/ui and Magic UI.
 
 ## Install
 
@@ -17,7 +17,7 @@ Peer dependencies: `@domphy/core`, `@domphy/theme`, `@domphy/ui`, `@domphy/chart
 Every export is a factory function, not a `$`-patch — call it directly to get a complete, mountable element tree:
 
 ```ts
-import { sidebar07, dashboard01, marquee, spotlight } from "@domphy/blocks"
+import { sidebar07, dashboard01, marquee } from "@domphy/blocks"
 
 const App = sidebar07() // works with zero arguments — renders a working demo
 
@@ -36,7 +36,6 @@ const Dashboard = dashboard01({
 | shadcn/ui | 27 | 16 sidebar layouts, 10 auth pages, 1 dashboard |
 | shadcn/ui charts | 70 | `@domphy/chart` recipe presets (area/bar/line/pie/radar/radial/tooltip) |
 | Magic UI | 76 | Text animations, backgrounds, buttons, device mocks, marketing effects |
-| Aceternity UI | 79 | Additional effect components, deduplicated against Magic UI |
 
 See [`SOURCES.md`](./SOURCES.md) for the full manifest (export, file, reference URL, status, fidelity notes), or [`registry.json`](./registry.json) for the machine-readable form.
 

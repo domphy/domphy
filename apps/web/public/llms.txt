@@ -218,11 +218,11 @@ Drag & drop / sortable lists — wraps the framework-agnostic `@formkit/drag-and
 
 ## Blocks (`@domphy/blocks`)
 
-252 composed blocks and effect components — sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes (from shadcn/ui's public blocks + chart galleries), and marketing/effect components (from Magic UI's and Aceternity UI's public catalogs, deduplicated against each other). Every export is a **factory function** `name(props?) => DomphyElement` returning a complete mountable tree — not a `$`-patch merged onto a caller's tag. `props` is optional with sane defaults, so `name()` alone renders a working demo; only genuinely variable parts (data/items/labels/colors) are parameterized.
+173 composed blocks and effect components — sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes (from shadcn/ui's public blocks + chart galleries), and marketing/effect components (from Magic UI's public catalog). Every export is a **factory function** `name(props?) => DomphyElement` returning a complete mountable tree — not a `$`-patch merged onto a caller's tag. `props` is optional with sane defaults, so `name()` alone renders a working demo; only genuinely variable parts (data/items/labels/colors) are parameterized.
 
 **Clean-room implementation:** each component was specified (behavior/visual description only, from the public reference) by one pass and implemented by a separate pass that never saw the original source or website — no third-party code is copied or redistributed. See `packages/blocks/SOURCES.md` for the full manifest (export, file, reference URL, status, fidelity notes) and `pnpm --filter @domphy/blocks visual-compare` for an on-demand Playwright screenshot comparison against the public reference.
 
-- [Overview](https://domphy.com/docs/blocks/) · [shadcn/ui](https://domphy.com/docs/blocks/shadcn) · [Magic UI](https://domphy.com/docs/blocks/magicui) · [Aceternity UI](https://domphy.com/docs/blocks/aceternity) · [Methodology](https://domphy.com/docs/blocks/methodology) · [API](https://domphy.com/docs/blocks/api)
+- [Overview](https://domphy.com/docs/blocks/) · [shadcn/ui](https://domphy.com/docs/blocks/shadcn) · [Magic UI](https://domphy.com/docs/blocks/magicui) · [Methodology](https://domphy.com/docs/blocks/methodology) · [API](https://domphy.com/docs/blocks/api)
 
 ## App (`@domphy/app`)
 

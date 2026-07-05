@@ -9,7 +9,9 @@ Every component in `@domphy/blocks` is a **clean-room implementation**: reimplem
 
 ## Why clean-room
 
-`@domphy/blocks` reimplements publicly documented UI patterns from three sources — shadcn/ui, Magic UI, and Aceternity UI. shadcn/ui and Magic UI's free components are MIT-licensed and explicitly meant to be copied; Aceternity UI is distributed through a mixed free/paid registry with no clearly published permissive license for redistributing source code. Rather than treating these three sources differently, the same process was applied to all of them: describe the behavior, then implement independently from that description. This sidesteps the license question entirely, because the underlying visual/behavioral idea — not the specific code expressing it — is what gets reused, and ideas aren't copyrightable.
+`@domphy/blocks` reimplements publicly documented UI patterns from two sources — shadcn/ui and Magic UI. Both are MIT-licensed and their free components are explicitly meant to be copied; this package doesn't rely on that license grant to justify inclusion, since nothing is copied from them in the first place — the process below describes the behavior, then implements independently from that description, so the underlying visual/behavioral idea (not copyrightable) is what gets reused, not the specific code expressing it.
+
+An earlier version of this package also included ~79 components sourced from Aceternity UI, spec'd the same way. That category was removed entirely (2026-07-05): Aceternity has no clean public source repo, only an unauthenticated registry JSON endpoint, so those 79 had never actually been diffed against real upstream code. A direct-diff pass on a couple of them (see "Fidelity corrections via direct source diff" below) turned up genuine, not-approximation-level gaps — the wrong animation technique entirely, not a styling nuance. Rather than re-diff all 79 one at a time, the whole category was dropped instead of shipping components nobody had verified.
 
 ## The two-stage process
 
@@ -17,6 +19,10 @@ Every component in `@domphy/blocks` is a **clean-room implementation**: reimplem
 2. **Implementation stage.** A *different* agent — one that never saw, browsed, or fetched the original source or website — implements the component from that specification alone, using Domphy's own idioms (`@domphy/core` reactivity, `@domphy/theme` tokens, `@domphy/ui` patches, the Web Animations API instead of Framer Motion).
 
 No third-party source code is copied, transcribed, or redistributed anywhere in this package.
+
+## Fidelity corrections via direct source diff
+
+The two-stage spec process is good at capturing gross behavior but can miss precise implementation detail (an animation driven by a growing border vs. a traced SVG outline look similar in prose but read very differently on screen). Since shadcn/ui and Magic UI are both MIT-licensed, reading their real source directly — after the fact, specifically to verify or fix a shipped component — carries no license concern; only the original clean-room *build* process avoided it. When a fidelity issue is suspected or reported, the correct next step is: clone the real upstream repo (or, for shadcn/Magic UI CLI-style registries, fetch the component's registry JSON), diff it line-by-line against the shipped Domphy file, and fix only what's actually different — not re-guess from screenshots. This is how `bentoGrid`'s missing box-shadow and `pointerHighlight`'s (pre-removal Aceternity) wrong outline-draw technique were both found and fixed.
 
 ## Honesty about fidelity
 

@@ -1,7 +1,7 @@
 {
   "name": "@domphy/blocks",
   "version": "0.1.0",
-  "description": "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, independently reimplemented (clean-room) from the public behavior of shadcn/ui, Magic UI, and Aceternity UI.",
+  "description": "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, independently reimplemented (clean-room) from the public behavior of shadcn/ui and Magic UI.",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",

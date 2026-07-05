@@ -168,7 +168,7 @@ export async function locate(page: Page, name: string) {
 }
 
 /** Screenshots exactly `locator`'s bounding box and returns the raw PNG bytes.
- * Used to prove a WebGL canvas (globe/globe3D) actually re-rendered different
+ * Used to prove a WebGL canvas (e.g. `globe`) actually re-rendered different
  * pixels after a drag/wheel interaction — NOT `canvas.toDataURL()` (unreliable
  * without `preserveDrawingBuffer`) and NOT `locator.screenshot()` (its
  * built-in scroll-then-capture reads a blank WebGL buffer, per
