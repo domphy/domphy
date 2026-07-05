@@ -13,6 +13,17 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartTooltipIndicatorLineDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ActivityDayPoint[]` | — |
+| `series` | `ActivitySeriesEntry[]` | — |
+| `showCursor` | `boolean` | — |
+| `defaultOpenIndex` | `number \| null` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+
 ::: details Implementation notes
 Full port. Default date header kept; indicator set to the shared 'line' style (a short vertical color bar) via activityTooltipFormatter's single indicator enum ('dot'|'square'|'line'|'icon'|'none'), the same code path all indicator-style recipes in this family share.
 

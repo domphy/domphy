@@ -13,6 +13,23 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadialTextDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `value` | `number` | — |
+| `color` | `ThemeColor` | — |
+| `captionText` | `string` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `footerCaptionText` | `string` | — |
+| `sweepDegrees` | `number` | — |
+| `innerRadiusRatio` | `number` | — |
+| `showDecorativeCircles` | `boolean` | — |
+| `showBackgroundTrack` | `boolean` | — |
+
 ::: details Implementation notes
 Parameter preset of the same renderRadialGauge used by chartRadialShape: thinner band (innerRadiusRatio 0.85 vs 0.66), larger sweep (250deg vs 100deg default) and round caps (capStyle:'round') instead of flat, per the researchNote's guidance to treat shape/text as two presets of one underlying single-value gauge. Same decorative framing circles, background track, and HTML-overlay center value/caption as chartRadialShape; no tooltip/interaction, matching the spec. tsc --noEmit clean; 2/2 tests pass.
 

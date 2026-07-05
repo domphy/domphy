@@ -13,6 +13,19 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadarGridCircleDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `RadarPoint[]` | — |
+| `series` | `RadarSeriesConfig[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `showDots` | `boolean` | — |
+
 ::: details Implementation notes
 Circular ring grid with radial spokes kept (the one differentiator from chartRadarGrid, per spec) and corner dots on by default.
 

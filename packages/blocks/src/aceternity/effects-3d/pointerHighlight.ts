@@ -37,9 +37,9 @@ export type PointerHighlightCorner = "top-left" | "top-right" | "bottom-left" | 
 export interface PointerHighlightProps {
   /** The highlighted phrase itself. Defaults to a short demo phrase. */
   children?: DomphyElement | string;
-  /** Plain text rendered before the highlighted phrase. Defaults to `"Try clicking on "`. */
+  /** Plain text rendered before the highlighted phrase. Defaults to `"Scroll down to see "`. */
   leadingText?: string;
-  /** Plain text rendered after the highlighted phrase. Defaults to `" to get started."`. */
+  /** Plain text rendered after the highlighted phrase. Defaults to `" get highlighted."`. */
   trailingText?: string;
   /** Theme color family for the rectangle stroke and pointer fill. Defaults to `"info"`. */
   color?: ThemeColor;
@@ -111,9 +111,13 @@ function cornerAnchorStyle(corner: PointerHighlightCorner): StyleObject {
  * for a working demo — a short sentence with a highlighted phrase.
  */
 function pointerHighlight(props: PointerHighlightProps = {}): DomphyElement<"p"> {
-  const highlighted = props.children ?? "this button";
-  const leadingText = props.leadingText ?? "Try clicking on ";
-  const trailingText = props.trailingText ?? " to get started.";
+  // Not "Try clicking on this button" — the effect triggers on scroll-into-
+  // view (see the IntersectionObserver below), not on click, and `highlighted`
+  // renders as a plain <span>, never an actual <button> — that copy read as a
+  // real, unresponsive clickable button to anyone landing on the demo.
+  const highlighted = props.children ?? "this phrase";
+  const leadingText = props.leadingText ?? "Scroll down to see ";
+  const trailingText = props.trailingText ?? " get highlighted.";
   const color = props.color ?? "info";
   const padding = props.padding ?? 1.5;
   const cornerRadius = props.cornerRadius ?? 8;
@@ -161,6 +165,13 @@ function pointerHighlight(props: PointerHighlightProps = {}): DomphyElement<"p">
     style: {
       position: "absolute",
       inset: themeSpacing(-padding),
+      // `<svg>` is a replaced element (like `<img>`) — `position: absolute` +
+      // `inset` alone positions it but does NOT stretch it to fill the
+      // resulting box; without an explicit width/height it falls back to the
+      // browser's default intrinsic SVG size (300x150px), rendering as a
+      // giant box instead of hugging the highlighted phrase.
+      width: "100%",
+      height: "100%",
       overflow: "visible",
       pointerEvents: "none",
     } as StyleObject,

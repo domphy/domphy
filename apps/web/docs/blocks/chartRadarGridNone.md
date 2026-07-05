@@ -13,6 +13,20 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadarGridNoneDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `RadarPoint[]` | — |
+| `series` | `RadarSeriesConfig[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `showDots` | `boolean` | — |
+| `showGrid` | `boolean` | — |
+
 ::: details Implementation notes
 Grid entirely omitted (gridShape: "none" short-circuits all grid/spoke rendering in the shared renderRadarChart helper), not merely hidden via opacity - matching the spec's 'grid presence toggle (grid omitted rather than merely hidden)' prop note.
 

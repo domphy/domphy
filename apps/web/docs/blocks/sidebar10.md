@@ -13,6 +13,20 @@ A **Sidebar** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clea
 
 <CodeEditor :code="Sidebar10Demo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `teams` | `SidebarTeam[]` | — |
+| `favorites` | `Sidebar10FavoriteItem[]` | — |
+| `favoritesVisibleCount` | `number` | — |
+| `workspaces` | `Sidebar10Workspace[]` | — |
+| `workspacesVisibleCount` | `number` | — |
+| `secondaryLinks` | `Sidebar10SecondaryLink[]` | — |
+| `user` | `SidebarUser` | — |
+| `breadcrumbItems` | `SidebarBreadcrumbItem[]` | — |
+| `children` | `DomphyElement \| DomphyElement[]` | — |
+
 ::: details Implementation notes
 Persistent workspace sidebar reusing the sidebar05-08 team-switcher/user-footer helpers, plus new Favorites (emoji rows with hover-reveal 'more' popover, real 'show more' reveal instead of a fixed count) and Workspaces (details-accordion with nested pages, hover-reveal 'add page' button, real 'show more' reveal) groups, and a 'sidebar in a popover' quick-actions menu (bordered, grouped icon+label rows) wired to both per-row more-buttons and the header's three-dot button. Gap: 'Ask AI' renders as an inert nav-style row rather than a live assistant (faking an LLM response would misrepresent capability); the hover-revealed 'add page' button stops the details toggle but doesn't create a real page (no page-creation flow was specified); the header's avatar-stack is decorative, not backed by live presence data.
 

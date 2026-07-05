@@ -13,6 +13,20 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartPieStackedDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `PieStackedDatum[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendValue` | `string` | — |
+| `trendDirection` | `"up" \| "down"` | — |
+| `caption` | `string` | — |
+| `valueFormatter` | `(value: number) =&gt; string` | — |
+| `innerSeriesLabel` | `string` | — |
+| `outerSeriesLabel` | `string` | — |
+
 ::: details Implementation notes
 Two concentric rings (inner 30-&gt;56, outer 56-&gt;86 viewBox units, contiguous with no gap band) share the same category order and index-based color mapping so both rings visibly agree per category; each ring's own metric normalizes its own 360 degrees independently (own judgment — the spec did not require synchronized angles across rings, only radial continuity). Tooltip uses a thin line marker instead of a filled swatch and prefixes the category with the ring's own series label (e.g. 'Sessions'), per spec. Same mount-sweep approximation caveat as chartPieSimple.
 

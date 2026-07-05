@@ -13,6 +13,16 @@ A **Buttons** block/component from **[Aceternity UI](/docs/blocks/aceternity)** 
 
 <CodeEditor :code="MagneticButtonDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `children` | `DomphyElement \| DomphyElement[]` | The element to wrap (any button/link/interactive node). Defaults to a demo pill CTA button. |
+| `strength` | `number` | 0-1 float: how strongly the child chases the cursor (1 = tracks 1:1). Defaults to `0.8`. |
+| `maxDistance` | `number` | Maximum drift distance, in px. Defaults to `100`. |
+| `className` | `string` | — |
+| `style` | `StyleObject` | — |
+
 ::: details Implementation notes
 Full spring-physics pointer-follow wrapper: pointermove/pointerleave on the wrapper drive a mass/stiffness/damping simulation stepped every requestAnimationFrame, clamped to maxDistance, applied as translate() on the single wrapped child, torn down in _onMount's Remove hook. Default demo child (approximating the reference's solid-blue pill CTA) uses a dark-blue dataTone edge anchor (shift-15, primary family) rather than a literal bright hex blue, and strong()'s fixed shift-11 text-color offset yields a light-blue bold label rather than pure white -- both are deliberate substitutions to stay within Domphy's theme-token/doctor-clean idiom (no raw hex/rgb colors allowed), matching the tradeoff already established by shimmerButton.ts/rainbowButton.ts elsewhere in this package. Verified: tsc clean, `domphy-doctor` reports 0 diagnostics, all tests pass.
 

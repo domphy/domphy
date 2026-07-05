@@ -13,6 +13,20 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartAreaDefaultDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ChartAreaSinglePoint[]` | — |
+| `seriesLabel` | `string` | — |
+| `seriesColor` | `ThemeColor` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `height` | `number` | — |
+
 ::: details Implementation notes
 Fully functional: card shell, hidden y-axis, bare month labels, smooth single-series area fill (opacity 0.4), axis-trigger tooltip (custom formatter shows category label + value, since @domphy/chart's built-in tooltip never prints the axis label and TooltipParams.axisValueLabel is unpopulated at runtime), trend footer. Marked partial only because the spec's mount-time 'draws in over ease-out duration' reveal is approximated with a container-level clip-path wipe (via @domphy/ui motion()) rather than a true per-vertex SVG/WebGL path animation — @domphy/chart's LineRenderer has no such hook today. All other behavior is genuine, not stubbed.
 

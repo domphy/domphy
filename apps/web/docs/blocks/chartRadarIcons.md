@@ -13,6 +13,18 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadarIconsDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `RadarPoint[]` | — |
+| `series` | `RadarSeriesConfig[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+
 ::: details Implementation notes
 Legend entries reuse the same chartLegendRow icon field (and chartTrendIcon glyph) already used by the trend footer across every chart family in this package, so the up/down arrows are original geometric glyphs, not a copied icon set. Desktop assigned the down arrow and Mobile the up arrow - an arbitrary but internally consistent choice, since the spec only describes 'one down, one up' without saying which series gets which.
 

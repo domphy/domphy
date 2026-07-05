@@ -13,6 +13,17 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartTooltipLabelNoneDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ActivityDayPoint[]` | — |
+| `series` | `ActivitySeriesEntry[]` | — |
+| `showCursor` | `boolean` | — |
+| `defaultOpenIndex` | `number \| null` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+
 ::: details Implementation notes
 Full port. Combines showLabel:false and indicator:'none' on the shared formatter to confirm the two visibility flags compose independently rather than being mutually exclusive, as called out in the family's research note.
 

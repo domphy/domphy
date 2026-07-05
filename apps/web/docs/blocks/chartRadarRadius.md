@@ -13,6 +13,20 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadarRadiusDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `RadarPoint[]` | — |
+| `series` | `RadarSeriesConfig[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `radiusAxisAngle` | `number` | — |
+| `showRadiusAxisLine` | `boolean` | — |
+
 ::: details Implementation notes
 Radius-axis rendered as a single line segment from the chart center out to the plot radius at a fixed 60deg angle (not a full symmetric diameter), matching the spec's 'subtle line through roughly one spoke direction... not a fully symmetric cross'. Tooltip now shows the category heading above both series' line-indicator rows.
 

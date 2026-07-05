@@ -13,6 +13,19 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartAreaStackedExpandDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ChartAreaThreeSeriesPoint[]` | — |
+| `series` | `ChartAreaStackedExpandSeries[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `height` | `number` | — |
+
 ::: details Implementation notes
 @domphy/chart has no native percent/offset stacking mode (verified against engine.ts's accumStackedLines, which only sums raw values). Approximated by pre-normalizing each point to its percentage share before handing data to the engine and locking yAxis to a fixed 0-100 domain, so the stack always fills the plot. Tooltip is wired via a custom valueLabel callback to show the true raw counts (looked up by dataIndex/seriesIndex) even though the plotted heights are normalized shares, per the spec's behavior note. This is a genuine functional gap in the underlying chart engine, not a stub — the visual and tooltip behavior both work as specified via this workaround. VISUAL QA FIX (2026-07-04): separately, a real @domphy/chart engine bug made this render as a single pale block with only the top series' line visible — LineRenderer's area fill always used the value-axis zero line as its bottom edge instead of the previous stacked series' cumulative curve, so each later series in the stack fully painted over the ones beneath it (gl/LineRenderer.ts). Fixed at the engine layer: accumStackedLines (engine.ts) now also returns each series' pre-stack running-total baseline, and LineRenderer draws the area as a band between that baseline and its own curve, matching gl/BarRenderer.ts's existing stacked-bar behavior. No recipe-level change needed. Also carries the same mount-reveal approximation caveat as chartAreaDefault.
 

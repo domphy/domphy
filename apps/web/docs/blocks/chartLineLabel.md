@@ -13,6 +13,19 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartLineLabelDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `seriesLabel` | `string` | — |
+| `seriesColor` | `ThemeColor` | — |
+| `data` | `MonthlyPoint[]` | — |
+| `trendHeadline` | `string` | — |
+| `trendSubtitle` | `string` | — |
+| `trendDirection` | `"up" \| "down"` | — |
+
 ::: details Implementation notes
 Always-on numeric labels use @domphy/chart's native LineSeriesOption.label (built-in support, no workaround needed) with extra top grid margin so the topmost label isn't clipped. Hover-enlarging active dot reuses the same hoverDotOverlay technique as chartLineDots (see its notes re: per-point hover state not being a built-in engine feature, and the design-time-only overlay fill color).
 

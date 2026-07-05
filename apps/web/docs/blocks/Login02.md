@@ -13,6 +13,29 @@ A **Auth** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean-r
 
 <CodeEditor :code="Login02Demo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `brandName` | `string` | — |
+| `heading` | `string` | — |
+| `description` | `string` | — |
+| `emailLabel` | `string` | — |
+| `emailPlaceholder` | `string` | — |
+| `passwordLabel` | `string` | — |
+| `forgotPasswordHref` | `string` | — |
+| `primaryButtonLabel` | `string` | — |
+| `dividerText` | `string` | — |
+| `githubButtonLabel` | `string` | — |
+| `onGithubClick` | `() =&gt; void` | — |
+| `signUpPrompt` | `string` | — |
+| `signUpLabel` | `string` | — |
+| `signUpHref` | `string` | — |
+| `coverImageSrc` | `string` | — |
+| `coverImageAlt` | `string` | — |
+| `dimCoverInDarkMode` | `boolean` | — |
+| `onSubmit` | `(values: { email: string; password: string }) =&gt; void` | — |
+
 ::: details Implementation notes
 Full page-level 2-col grid (brand row + centered form column | full-bleed cover photo), image column hidden and grid collapses to 1 col at max-width 47.9375em via @media. Dark-mode image dimming via prefers-color-scheme media query (brightness+saturate filter), discrete not animated. GitHub glyph is a simplified hand-authored octocat-style silhouette, original geometry. Doctor diagnose(): 0 findings.
 

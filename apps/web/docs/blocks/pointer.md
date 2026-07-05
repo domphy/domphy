@@ -13,6 +13,17 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 
 <CodeEditor :code="PointerDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `children` | `DomphyElement` | Custom cursor visual — freely swappable SVG/emoji/element. Defaults to a small pulsing two-tone ring. |
+| `content` | `DomphyElement[]` | The page content the hover zone wraps. Defaults to a short instructional demo panel. |
+| `offset` | `PointerOffset` | Offset (raw pixels) between the real pointer tip and the custom cursor's anchor point. Defaults to `{ x: 16, y: 16 }`. |
+| `smooth` | `boolean` | Smooths motion with a per-frame lerp instead of snapping directly to the pointer. Defaults to `true`. |
+| `smoothing` | `number` | Lerp factor (0–1) used when `smooth` is true — higher tracks faster/snappier. Defaults to `0.25`. |
+| `style` | `StyleObject` | — |
+
 ::: details Implementation notes
 Hover zone hides the native cursor (CSS cursor:none) and tracks the pointer with a custom visual. Position tracking is imperative (direct DOM mutation on mousemove/rAF), matching the spec's own guidance that a lerp-per-rAF is an acceptable substitute for Framer Motion's spring. Enter/leave fade+scale via CSS transition; the default glyph runs an independent CSS @keyframes scale/rotate loop layered on top of position tracking, demonstrating the spec's 'two independent animation concerns'. Default cursor visual is a two-tone ring (primary outline + surface-colored center) rather than any of the gallery's specific glyphs (heart/emoji/dot) — the spec explicitly states there is no single canonical default and treats the visual as a pure children slot, so any reasonable default is correct. One implementation subtlety worth flagging for reviewers: the `_onMount` hook is attached to the cursor element itself (not the outer container), because in Domphy's render order a parent's `_onMount` fires before its children are attached to the DOM — attaching to the container and querying for the cursor child inside its own `_onMount` would find nothing yet.
 

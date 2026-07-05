@@ -13,6 +13,20 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadarLinesOnlyDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `RadarPoint[]` | — |
+| `series` | `RadarSeriesConfig[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `showFill` | `boolean` | — |
+| `showSpokes` | `boolean` | — |
+
 ::: details Implementation notes
 Both series render with fillOpacity 0 (stroke-only) and the grid's radial spoke lines are suppressed via gridShowSpokes: false, while the polygon rings stay. Uses a dedicated tighter/more-overlapping sample dataset (RADAR_MONTHLY_TIGHT_DATA in chart-radar-shared.ts) per the spec's own research note. Hover detection still works with zero fill because it's angle-based, not a fill hit-test.
 

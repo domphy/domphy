@@ -13,6 +13,21 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartBarLabelDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ChartBarPoint[]` | — |
+| `seriesLabel` | `string` | — |
+| `seriesColor` | `ThemeColor` | — |
+| `labelFormatter` | `(value: number) =&gt; string` | Formats each bar's printed value label. Defaults to the raw number. |
+| `title` | `string` | — |
+| `subtitle` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `height` | `number` | — |
+
 ::: details Implementation notes
 Uses @domphy/chart's native bar `label` option (show:true, position:'top', formatter) — this is genuinely engine-supported (packages/chart/src/overlay/labels.ts renderBarLabels), so value labels are real, not an overlay hack. Y-axis fully hidden, vertical split lines only, x-axis month labels with no ticks. Label text color/font-size are the engine's own fixed defaults (renderBarLabels hardcodes the label color and only reads fontSize, not a custom color, from LabelOption) — close enough to the spec's 'foreground-colored ~12px text' that no override was needed.
 

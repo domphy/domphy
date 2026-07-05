@@ -13,6 +13,20 @@ A **Effects** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 
 <CodeEditor :code="AnimatedThemeTogglerDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `theme` | `ValueOrState&lt;ThemeTogglerTheme&gt;` | Controlled current theme. Pass a `State&lt;"light"\|"dark"&gt;` to wire this into an external theme store — writes made by this component go straight through to that same state. Defaults to an internal `"light"` state so the component works as a standalone demo. |
+| `onThemeChange` | `(nextTheme: ThemeTogglerTheme) =&gt; void` | Called with the new theme value at the moment the swap happens (inside the same callback that drives the wipe), for callers that prefer an imperative external store (e.g. writing to `localStorage`) over passing a `State`. |
+| `variant` | `ThemeWipeVariant` | Shape the reveal wipes outward in. Defaults to `"circle"`. |
+| `duration` | `number` | Wipe duration in ms. Defaults to `400`. |
+| `origin` | `"button" \| "center"` | Where the wipe originates from: the button's own screen position, or the viewport center. Defaults to `"button"`. |
+| `ariaLabel` | `string` | Accessible label for the button. Defaults to `"Toggle theme"`. |
+| `lightIcon` | `DomphyElement` | Custom glyph shown in light mode (swapped for `darkIcon` in dark mode). Defaults to a sun glyph. |
+| `darkIcon` | `DomphyElement` | Custom glyph shown in dark mode. Defaults to a crescent-moon glyph. |
+| `style` | `StyleObject` | — |
+
 ::: details Implementation notes
 Full clean-room reimplementation, not viewed against upstream source. Icon button (buttonGhost, ~themeSpacing(9) square) swaps sun/moon glyphs (own hand-built SVGs: rays+circle sun, two-circle SVG-mask crescent moon — not any specific icon library's path data) via a reactive display style keyed off a theme State. On click it uses the real View Transitions API: document.startViewTransition() snapshots old/new frames, then a WAAPI clip-path animation is applied to the browser's own ::view-transition-new(root) pseudo-element (via el.animate(keyframes,{pseudoElement:...})) — no manual DOM screenshot cloning. All 7 shapes implemented: circle uses exact circle(r at x y); square/diamond/hexagon/triangle use a principled regular-polygon apothem bound (radius = cornerDistance/cos(pi/sides)) that's mathematically guaranteed to fully cover the viewport since a convex shape containing all 4 viewport corners contains the whole (convex) viewport rectangle; rectangle uses an exact axis-aligned half-extent fit; star conservatively treats itself as just its inner pentagon (ignoring the outer points' extra reach) for the same guarantee. origin 'button'|'center' and duration are both wired through. Falls back to an instant, unanimated theme swap when document.startViewTransition is unavailable (checked via feature-detection), exactly as the spec requires. theme prop accepts a ValueOrState so passing a caller-owned State two-way-binds into an external store; onThemeChange covers imperative stores (e.g. localStorage) instead. In the course of writing this component's test, found and fixed a genuine pre-existing bug in @domphy/core's ElementNode.remove()/ElementList.remove() (packages/core/src/classes/ElementNode.ts, ElementList.ts): both re-read `_hooks.BeforeRemove` AFTER invoking it to check its arity, but a synchronous 2-arg _onBeforeRemove hook (exactly what @domphy/ui's motion() patch does when no `exit` frame is given) can trigger _dispose() inline, which clears `_hooks` to `{}` before that re-read, throwing instead of completing removal. Fixed by capturing the hook reference before invocation (both files), added 2 regression tests to packages/core/tests/lifecycle.test.ts, and reran the full core (156) and ui (345) suites green before rebuilding core's dist that this package's tests consume.
 

@@ -13,6 +13,21 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartAreaIconsDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ChartAreaTwoSeriesPoint[]` | — |
+| `series` | `ChartAreaIconsSeries[]` | — |
+| `stackId` | `string` | — |
+| `fillOpacity` | `number` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `height` | `number` | — |
+
 ::: details Implementation notes
 Same stacked two-series chart as chartAreaLegend, but each legend entry uses a hand-authored trend-arrow SVG pictogram instead of a flat swatch, and the footer pairs its sentence with an icon (shared chartTrendFooter behavior). Icon choice is fully caller-configurable per the spec's research note (default demo pairs 'down' with one series and 'up' with the other purely to demonstrate the capability). VISUAL QA FIX (2026-07-04): shared the same solid-flat-rectangle @domphy/chart engine bug as chartAreaStacked (LineRenderer area-fill baseline + y-axis auto-extent not accounting for stacked cumulative sums) — fixed at the engine layer, see chartAreaStacked's notes for detail. Same mount-reveal approximation caveat as chartAreaDefault.
 

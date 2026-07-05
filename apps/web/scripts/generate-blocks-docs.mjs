@@ -3,7 +3,15 @@
 // plus a code-group source include), plus a nested sidebar data module for
 // press.config.ts. Re-run whenever packages/blocks/registry.json changes.
 // Run via `node scripts/generate-blocks-docs.mjs` from apps/web.
+//
+// Each doc page's "## Props" table is parsed straight from the block's own
+// source with the TypeScript compiler API (mirrors apps/web/scripts/
+// manifest.mjs's approach for @domphy/ui patches) — never hand-maintained,
+// never drifts. Blocks document each prop with a plain leading JSDoc comment
+// directly on the interface member (not `@param` tags on the function, which
+// is the ui-patch convention) — extraction reads that.
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,6 +20,148 @@ const ROOT = resolve(HERE, ".."); // apps/web
 const REPO = resolve(HERE, "../../.."); // monorepo root
 
 const registry = JSON.parse(await readFile(resolve(REPO, "packages/blocks/registry.json"), "utf8"));
+
+// --- typescript compiler API (same dynamic-resolve trick as manifest.mjs —
+// `typescript` isn't hoisted to the repo root in this pnpm layout) ---
+async function loadModule(specifier, anchors) {
+  for (const anchor of anchors) {
+    try {
+      const require = createRequire(anchor);
+      const resolved = require.resolve(specifier);
+      return await import(`file://${resolved}`);
+    } catch {
+      // try the next anchor
+    }
+  }
+  throw new Error(`Cannot resolve "${specifier}" from any known anchor.`);
+}
+const tsModule = await loadModule("typescript", [
+  resolve(REPO, "packages/doctor/package.json"),
+  resolve(REPO, "packages/mcp/package.json"),
+  resolve(REPO, "package.json"),
+]);
+const ts = tsModule.default ?? tsModule;
+
+const oneLine = (text) => text.replace(/\s+/g, " ").trim();
+
+function propertyKeyText(nameNode) {
+  if (ts.isIdentifier(nameNode)) return nameNode.text;
+  if (ts.isStringLiteral(nameNode)) return nameNode.text;
+  return undefined;
+}
+
+function typeReferenceName(typeNode) {
+  if (typeNode && ts.isTypeReferenceNode(typeNode)) {
+    const name = typeNode.typeName;
+    return ts.isQualifiedName(name) ? name.right.text : name.text;
+  }
+  return undefined;
+}
+
+function commentText(comment) {
+  if (typeof comment === "string") return oneLine(comment);
+  if (Array.isArray(comment)) return oneLine(comment.map((part) => part.text ?? "").join(""));
+  return "";
+}
+
+/** Resolves a named type to the member list of its object-literal shape, if any. */
+function membersOfNamedType(sourceFile, name) {
+  for (const statement of sourceFile.statements) {
+    if (ts.isInterfaceDeclaration(statement) && statement.name.text === name) {
+      return statement.members;
+    }
+    if (
+      ts.isTypeAliasDeclaration(statement) &&
+      statement.name.text === name &&
+      ts.isTypeLiteralNode(statement.type)
+    ) {
+      return statement.type.members;
+    }
+  }
+  return null;
+}
+
+/** A handful of blocks (the sidebar01-04 family) import their props type from
+ * a "-shared.ts" companion file rather than declaring it locally — falls back
+ * to resolving it from the importing file's own import declarations. One
+ * level only (the shared file itself re-exporting from a third file isn't a
+ * pattern used anywhere in this package today). */
+async function membersOfImportedType(sourceFile, sourceDir, name) {
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement) || !statement.importClause?.namedBindings) continue;
+    const bindings = statement.importClause.namedBindings;
+    if (!ts.isNamedImports(bindings)) continue;
+    const matches = bindings.elements.some((el) => (el.propertyName ?? el.name).text === name);
+    if (!matches) continue;
+
+    const specifier = statement.moduleSpecifier.text; // e.g. "./sidebar01-04-shared.js"
+    if (!specifier.startsWith(".")) continue; // only chase relative imports, not @domphy/* packages
+    const importedPath = resolve(sourceDir, specifier).replace(/\.js$/, ".ts");
+    const importedSource = await readFile(importedPath, "utf8").catch(() => null);
+    if (!importedSource) continue;
+    const importedFile = ts.createSourceFile(importedPath, importedSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    const members = membersOfNamedType(importedFile, name);
+    if (members) return { members, sourceFile: importedFile };
+  }
+  return null;
+}
+
+/** Blocks document each prop with a plain leading JSDoc comment on the
+ * interface member itself (`/** ... *\/ foo?: string`), not `@param` tags on
+ * the function — read that comment directly off the member node. */
+function memberJsDoc(member) {
+  for (const doc of ts.getJSDocCommentsAndTags(member)) {
+    if (ts.isJSDoc(doc) && doc.comment) return commentText(doc.comment);
+  }
+  return "";
+}
+
+/** Extracts props [{ name, type, optional, doc }] from a block factory
+ * function's first parameter, by name (blocks aren't required to be the
+ * only function declaration in a "-shared.ts" file). Falls back to the
+ * importing file's own imports when the props type isn't declared locally
+ * (the sidebar01-04 family imports `SidebarBlockOptions` from a shared file). */
+async function extractBlockProps(sourceFile, sourceDir, exportName) {
+  for (const statement of sourceFile.statements) {
+    if (!ts.isFunctionDeclaration(statement) || !statement.name) continue;
+    if (statement.name.text !== exportName) continue;
+
+    const param = statement.parameters?.[0];
+    if (!param || !param.type) return [];
+
+    let members = null;
+    let membersSourceFile = sourceFile;
+    if (ts.isTypeLiteralNode(param.type)) {
+      members = param.type.members;
+    } else if (ts.isTypeReferenceNode(param.type)) {
+      const typeName = typeReferenceName(param.type);
+      members = membersOfNamedType(sourceFile, typeName);
+      if (!members) {
+        const imported = await membersOfImportedType(sourceFile, sourceDir, typeName);
+        if (imported) {
+          members = imported.members;
+          membersSourceFile = imported.sourceFile;
+        }
+      }
+    }
+    if (!members) return [];
+
+    const props = [];
+    for (const member of members) {
+      if (!ts.isPropertySignature(member) || !member.name) continue;
+      const name = propertyKeyText(member.name);
+      if (!name) continue;
+      props.push({
+        name,
+        type: member.type ? oneLine(member.type.getText(membersSourceFile)) : "unknown",
+        optional: Boolean(member.questionToken),
+        doc: memberJsDoc(member),
+      });
+    }
+    return props;
+  }
+  return [];
+}
 
 const demosDir = resolve(ROOT, "docs/demos/blocks");
 const docsDir = resolve(ROOT, "docs/blocks");
@@ -53,6 +203,26 @@ function frontmatterDescription(fidelityNotes) {
   const truncated = escaped.slice(0, 160);
   const lastSpace = truncated.lastIndexOf(" ");
   return `${truncated.slice(0, lastSpace)}...`;
+}
+
+// GFM table cells split on literal "|" at the line level, before any inline
+// markdown/code-span parsing runs — even a `|` inside backticks must be
+// escaped or it silently truncates the row.
+function escapeTableCell(text) {
+  return escapeProseForMarkdown(text).replace(/\|/g, "\\|");
+}
+
+function renderPropsSection(props) {
+  if (props.length === 0) {
+    return "## Props\n\nThis block takes no configurable props — call it with no arguments for the default demo.";
+  }
+  const rows = props.map((prop) => {
+    const name = prop.optional ? `\`${prop.name}\`` : `\`${prop.name}\` (required)`;
+    const type = `\`${escapeTableCell(prop.type)}\``;
+    const description = escapeTableCell(prop.doc || "—");
+    return `| ${name} | ${type} | ${description} |`;
+  });
+  return ["## Props", "", "| Prop | Type | Description |", "|---|---|---|", ...rows].join("\n");
 }
 
 function capitalize(word) {
@@ -108,6 +278,11 @@ for (const entry of registry) {
   const catalogSlug = SOURCE_CATALOG_SLUG[source] ?? source;
   const categoryLabel = titleCase(category);
 
+  const absoluteSourcePath = resolve(REPO, repoRelativePath);
+  const blockSource = await readFile(absoluteSourcePath, "utf8");
+  const blockSourceFile = ts.createSourceFile(entry.exportName, blockSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const props = await extractBlockProps(blockSourceFile, dirname(absoluteSourcePath), entry.exportName);
+
   const doc = [
     "---",
     `title: "@domphy/blocks — ${entry.exportName}"`,
@@ -123,6 +298,8 @@ for (const entry of registry) {
     `A **${categoryLabel}** block/component from **[${sourceLabel}](/docs/blocks/${catalogSlug})** — clean-room reimplemented for Domphy (see [methodology](/docs/blocks/methodology)). Call \`${entry.exportName}()\` with no arguments for a working demo, or edit the code below live.`,
     "",
     `<CodeEditor :code="${demoVar}" />`,
+    "",
+    renderPropsSection(props),
     "",
     "::: details Implementation notes",
     escapeProseForMarkdown(entry.fidelityNotes || "No additional notes recorded."),

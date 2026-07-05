@@ -13,6 +13,17 @@ A **Device Mocks** block/component from **[Magic UI](/docs/blocks/magicui)** —
 
 <CodeEditor :code="AndroidDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `src` | `string` | Screenshot shown in the screen area. |
+| `videoSrc` | `string` | Video shown in the screen area, rendered as a DOM overlay (not an SVG mask) to avoid a known Safari/iOS video-clipping bug when video sits inside a masked SVG tree. |
+| `alt` | `string` | Accessible label for the screen content (image alt text / video description). |
+| `width` | `number` | Overall mockup width in pixels. Defaults to `433`. |
+| `height` | `number` | Overall mockup height in pixels. Defaults to `882`. |
+| `style` | `StyleObject` | — |
+
 ::: details Implementation notes
 Same DOM-frame technique as iphone.ts (percentage border-radius/inset instead of an authored SVG path) but, per the spec's explicit sizing distinction, the root element takes literal width/height props (default 433x882, in px) instead of only being wrapper-driven — verified in tests via generateCSS() output. Front camera is a punch-hole circle (not a Dynamic Island); volume rocker (2 buttons) + power button both sit on the right edge, per the spec's 'one vertical edge' description (a common flagship layout — upstream's exact button placement/colors were noted as low-confidence in the research note). Decorative shapes use the same fill:currentColor glyph idiom as iphone.ts/terminal.ts. Video overlay is a plain DOM &lt;video&gt;, not an SVG mask, for the same Safari/iOS clipping reason. Verified doctor-clean (zero diagnostics) across default/custom-size/image/video prop variants.
 

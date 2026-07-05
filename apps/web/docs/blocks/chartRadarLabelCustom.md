@@ -13,6 +13,18 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadarLabelCustomDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `RadarPoint[]` | — |
+| `series` | `RadarSeriesConfig[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+
 ::: details Implementation notes
 Two-line tick label built from two stacked SVG text elements (bold value/value line using two tspan sub-spans for the two-tone styling, then a muted month-name line below it), per the spec's own domSketch. Plot radius is trimmed slightly and the topmost label pushed further out to leave room for the taller label, matching the spec's 'larger margins' note without claiming an exact upstream pixel match.
 

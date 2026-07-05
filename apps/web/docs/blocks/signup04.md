@@ -13,6 +13,28 @@ A **Auth** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean-r
 
 <CodeEditor :code="Signup04Demo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `title` | `string` | — |
+| `subtitle` | `string` | — |
+| `emailLabel` | `string` | — |
+| `emailPlaceholder` | `string` | — |
+| `emailCaption` | `string` | — |
+| `passwordLabel` | `string` | — |
+| `confirmPasswordLabel` | `string` | — |
+| `passwordCaption` | `string` | — |
+| `submitLabel` | `string` | — |
+| `providers` | `SocialProvider[]` | — |
+| `decorativeImageSrc` | `string` | — |
+| `signInPrompt` | `string` | — |
+| `signInLinkText` | `string` | — |
+| `signInHref` | `string` | — |
+| `termsHref` | `string` | — |
+| `privacyHref` | `string` | — |
+| `onSubmit` | `(event: SubmitEvent) =&gt; void` | — |
+
 ::: details Implementation notes
 Form + decorative-image combined into one contained panel (dataTone='shift-0' edge anchor, its own border/shadow-like outline, rounded corners) on a muted page background (dataTone='shift-2' on the page root). Panel is 1-col on mobile, 2-col at @media(min-width:768px); panel max-width expands from themeSpacing(96)=24em to themeSpacing(224)=56em at the same breakpoint, both pure CSS, no JS. Email field, Password/Confirm as a 2-col grid with shared caption, solid submit, 'Or continue with' divider, and a 3-column row of ICON-ONLY outline buttons for Apple/Google/Meta (configurable via a `providers` prop, each item gets a stable `_key`). Legal line below the panel. No logo row (the spec's domSketch and summary don't include one for this variant, unlike 02/03/05). Provider glyphs are original brand-neutral letter-badge SVGs, not brand marks. Same authFieldInput() local patch as the others.
 

@@ -13,6 +13,19 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadarMultipleDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `RadarPoint[]` | — |
+| `series` | `RadarSeriesConfig[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `tooltipIndicator` | `RadarTooltipIndicator` | — |
+
 ::: details Implementation notes
 Same SVG/tooltip engineering approach as chartRadarDefault. Tooltip renders both series' values with a thin line-style indicator and no month heading (interpreted from the spec's own contrast against chartRadarRadius, which explicitly says it 'now' adds the heading 'rather than only showing values').
 

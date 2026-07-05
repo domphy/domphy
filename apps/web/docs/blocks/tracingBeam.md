@@ -13,6 +13,16 @@ A **Backgrounds** block/component from **[Aceternity UI](/docs/blocks/aceternity
 
 <CodeEditor :code="TracingBeamDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `children` | `DomphyElement \| DomphyElement[]` | Long-form content rendered beside the beam. Defaults to a small demo article. |
+| `curvature` | `number` | Horizontal wiggle amplitude of the path's S-curve, in SVG viewBox units (the lane is 20 units wide). Defaults to `6`. |
+| `gradientColors` | `ThemeColor[]` | Theme color roles for the traveled gradient segment, sampled across three stops. Defaults to `["info", "primary", "secondary"]`. |
+| `showMarker` | `boolean` | Toggles the small circular marker node at the top of the path. Defaults to `true`. |
+| `style` | `StyleObject` | Passthrough style merged onto the outer wrapper. |
+
 ::: details Implementation notes
 Static procedurally generated S-curve SVG path, measured via getTotalLength() (wrapped in try/catch for non-layout test runtimes), revealed top-down with the standard stroke-dasharray/stroke-dashoffset technique. Scroll progress is scoped to the content wrapper's own bounding rect (not document height), per the spec's research note. A critically-damped spring-damper integrator (reusing the same physics smoothCursor.ts already implements in this package) chases the raw scroll fraction, giving the leading edge a slight overshoot-and-settle on fast scrolls. Reference's literal #18CCFC/#6344F5/#AE48FF hex stops replaced with cycling ThemeColor roles (default info/primary/secondary). Cross-sibling DOM refs (svg column vs. content column) are wired via a mutual-registration + guarded trySetup() pattern rather than DOM querying, since this package's client render() fires _onMount top-down (a parent's hook can fire before a later sibling subtree even exists).
 

@@ -13,6 +13,20 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadarGridCircleFillDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `RadarPoint[]` | — |
+| `series` | `RadarSeriesConfig[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `gridFillOpacity` | `number` | — |
+| `seriesFillOpacity` | `number` | — |
+
 ::: details Implementation notes
 Circular grid rings plus a tinted circle fill layer (0.2 opacity) and series fillOpacity reduced to 0.5, same subtlety pattern as chartRadarGridFill but round; keeps the standard labeled (category heading + swatch) tooltip, the one grid-family recipe that does per spec.
 

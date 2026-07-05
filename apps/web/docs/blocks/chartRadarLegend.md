@@ -13,6 +13,19 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadarLegendDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `RadarPoint[]` | — |
+| `series` | `RadarSeriesConfig[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `showLegend` | `boolean` | — |
+
 ::: details Implementation notes
 Reuses chartLegendRow from chart-area-shared.ts for the swatch+label legend row; the plot container gets a negative bottom margin and the legend row extra top padding, matching the spec's 'nudged upward, legend hugs it' description without an exact upstream pixel match (own judgment used for the offset magnitude).
 

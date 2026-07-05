@@ -13,6 +13,21 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartAreaStepDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ChartAreaSinglePoint[]` | — |
+| `seriesLabel` | `string` | — |
+| `seriesColor` | `ThemeColor` | — |
+| `seriesIcon` | `ChartTrendDirection` | Icon shown on the series in the footer instead of a plain trend arrow — demonstrates attaching an icon to the series definition. |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `height` | `number` | — |
+
 ::: details Implementation notes
 Single-series staircase area (LineSeriesOption step:'end', horizontal-then-vertical segments per the engine's buildPixelPoints step logic), plus an optional seriesIcon prop that swaps the footer's default trend arrow for a caller-chosen icon (demonstrating 'attaching an icon to the series definition' per spec, since @domphy/chart's LineSeriesOption itself has no icon field). Same mount-reveal approximation caveat as chartAreaDefault.
 

@@ -22,8 +22,8 @@ describe("pointerHighlight", () => {
     const { host } = render(pointerHighlight() as DomphyElement);
     const paragraphElement = host.firstElementChild as HTMLElement;
     expect(paragraphElement).toBeTruthy();
-    expect(paragraphElement.textContent).toContain("Try clicking on");
-    expect(paragraphElement.textContent).toContain("this button");
+    expect(paragraphElement.textContent).toContain("Scroll down to see");
+    expect(paragraphElement.textContent).toContain("this phrase");
 
     const wrapper = paragraphElement.querySelector("span") as HTMLElement;
     expect(wrapper).toBeTruthy();

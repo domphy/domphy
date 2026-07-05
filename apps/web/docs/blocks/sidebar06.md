@@ -13,6 +13,16 @@ A **Sidebar** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clea
 
 <CodeEditor :code="Sidebar06Demo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `header` | `{ icon?: string; title?: string; subtitle?: string }` | — |
+| `navItems` | `Sidebar06NavItem[]` | — |
+| `optInCard` | `Sidebar06OptInCard \| null` | — |
+| `breadcrumbItems` | `SidebarBreadcrumbItem[]` | — |
+| `children` | `DomphyElement \| DomphyElement[]` | — |
+
 ::: details Implementation notes
 Floating-dropdown nav built on @domphy/ui's popover()+menu(). Only one dropdown open at a time via cross-subscribed State&lt;boolean&gt; instances (opening one closes all siblings). Trigger row gets accent background/foreground via the '&[aria-expanded=true]' CSS selector. Opt-in card + footer included. Same off-canvas mobile shell as sidebar05. PARTIAL because responsive dropdown placement (below-trailing on mobile vs beside-leading on desktop) is approximated with a matchMedia listener flipping a shared placement State between 'bottom-end'/'right-start', combined with @domphy/floating's flip()/shift() middleware for on-screen collision handling — not a bespoke anchor-engine breakpoint rule. Doctor self-check: 0 issues.
 

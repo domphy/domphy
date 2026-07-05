@@ -13,6 +13,17 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartTooltipIndicatorNoneDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ActivityDayPoint[]` | — |
+| `series` | `ActivitySeriesEntry[]` | — |
+| `showCursor` | `boolean` | — |
+| `defaultOpenIndex` | `number \| null` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+
 ::: details Implementation notes
 Full port. Default date header kept; indicator set to 'none' so rows render as bare series-name + value pairs, using the same shared indicator switch as the other indicator-style recipes.
 

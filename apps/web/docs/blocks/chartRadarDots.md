@@ -13,6 +13,20 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadarDotsDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `RadarPoint[]` | — |
+| `series` | `RadarSeriesConfig[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `dotRadius` | `number` | — |
+| `showDots` | `boolean` | — |
+
 ::: details Implementation notes
 Same SVG-based implementation and animation approximation as chartRadarDefault; dots are grouped in the same &lt;g&gt; as the polygon so they inherit its scale-in reveal together, matching the spec's 'no separate dot animation' behavior.
 

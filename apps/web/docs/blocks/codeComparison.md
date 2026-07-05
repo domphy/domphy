@@ -13,6 +13,18 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 
 <CodeEditor :code="CodeComparisonDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `leftCode` | `string` | Left/"before" panel source. |
+| `rightCode` | `string` | Right/"after" panel source. |
+| `leftFilename` | `string` | Filename/label shown in the left panel header. Defaults to `"before.ts"`. |
+| `rightFilename` | `string` | Filename/label shown in the right panel header. Defaults to `"after.ts"`. |
+| `language` | `string` | Language identifier — used only as a fallback header label. Defaults to `"ts"`. |
+| `highlightColor` | `ThemeColor` | Theme color family for `[!code highlight]` line tint. Defaults to `"warning"`. |
+| `style` | `StyleObject` | — |
+
 ::: details Implementation notes
 Structurally complete: two bordered/rounded panels, each with a filename header and a &lt;pre&gt;&lt;code&gt; block of span.line rows; VitePress/Shiki-style trailing markers (// [!code highlight|++|--|focus], also # for Python/shell) are parsed and stripped, driving a soft dataTone-anchored row tint (or, for at least one focus marker, dimming all non-focused lines) with no diff-gutter symbols, matching the spec. Marked 'partial' specifically for the syntax highlighting itself: this package ships no syntax-highlighter dependency (only cobe/canvas-confetti/rough-notation are installed, and I was told not to add new ones without flagging it), so tokens are colored via a small dependency-free regex tokenizer (comment/string/number/keyword/plain, with a merged JS+Python+Rust/Go-ish keyword list) rather than a real grammar-aware highlighter — it reads as 'syntax highlighted' for common C-like snippets but will misclassify language-specific edge cases a Shiki/Prism grammar would get right, and has no per-language grammar switching despite the `language` prop (which only affects the fallback filename label).
 

@@ -13,6 +13,18 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartTooltipLabelCustomDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ActivityDayPoint[]` | — |
+| `series` | `ActivitySeriesEntry[]` | — |
+| `showCursor` | `boolean` | — |
+| `defaultOpenIndex` | `number \| null` | — |
+| `groupLabel` | `string` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+
 ::: details Implementation notes
 Full port. Header pulls from a fixed `groupLabel` prop (default 'Activities') via a dedicated labelMode:'static' lookup path, independent of the hovered column's date and independent of the per-row series-name key, combined with the line indicator style.
 

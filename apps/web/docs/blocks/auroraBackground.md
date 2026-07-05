@@ -13,6 +13,17 @@ A **Backgrounds** block/component from **[Aceternity UI](/docs/blocks/aceternity
 
 <CodeEditor :code="AuroraBackgroundDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `children` | `DomphyElement \| DomphyElement[]` | Foreground content rendered above the effect. Defaults to a small demo panel. |
+| `colors` | `ThemeColor[]` | Theme color roles used for the aurora bands. Defaults to `["primary", "secondary", "info"]`. |
+| `variant` | `"dark" \| "light"` | `"dark"` (default) reads as a deep backdrop with bright bands; `"light"` sits on a pale surface instead. |
+| `showRadialGradient` | `boolean` | Toggles the radial-gradient vignette overlay on top. Defaults to `true`. |
+| `duration` | `number` | Full drift-loop duration, in seconds. Defaults to `60`. |
+| `style` | `StyleObject` | Passthrough style merged onto the outer container. |
+
 ::: details Implementation notes
 Pure CSS, no JS: an oversized (300%) multi-radial-gradient layer with backgroundRepeat:'repeat' animates background-position by exactly one tile-width over the loop duration (default 60s, linear, infinite) for a seamless drift, mirroring retroGrid.ts's own 'shift by exactly one tile' keyframe idiom. Optional radial vignette overlay and dark/light variant toggle both implemented. Literal hue bands substituted with ThemeColor roles (default primary/secondary/info).
 

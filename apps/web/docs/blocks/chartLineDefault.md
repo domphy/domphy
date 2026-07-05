@@ -13,6 +13,19 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartLineDefaultDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `seriesLabel` | `string` | — |
+| `seriesColor` | `ThemeColor` | — |
+| `data` | `MonthlyPoint[]` | — |
+| `trendHeadline` | `string` | — |
+| `trendSubtitle` | `string` | — |
+| `trendDirection` | `"up" \| "down"` | — |
+
 ::: details Implementation notes
 All spec behavior implemented via @domphy/chart's chart() patch: smooth single-series line, hidden y-axis with horizontal-only splitlines, no-axis-line/no-tick month x-axis, value-only hover tooltip with cursor highlight suppressed (axisPointer type 'none'), trend footer with up/down arrow icon. One approximation: the 'line draws in left-to-right' mount animation is done as a clip-path sweep over the WHOLE plot box (grid+axis+line together) via the shared chartMountReveal() helper, not an isolated SVG stroke-dasharray draw-in on just the line — @domphy/chart renders lines through a WebGL canvas with no SVG &lt;path&gt; element to animate that way.
 

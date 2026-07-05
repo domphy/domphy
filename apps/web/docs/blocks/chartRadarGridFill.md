@@ -13,6 +13,20 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadarGridFillDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `RadarPoint[]` | — |
+| `series` | `RadarSeriesConfig[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `gridFillOpacity` | `number` | — |
+| `seriesFillOpacity` | `number` | — |
+
 ::: details Implementation notes
 Grid's outer polygon rendered as a second, low-opacity (0.2) filled layer beneath the ring/spoke lines, same accent hue as the series; series fillOpacity reduced to 0.5 so the tint stays visible through it, per spec's exact opacity figures.
 

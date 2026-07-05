@@ -13,6 +13,24 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 
 <CodeEditor :code="VideoTextDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `text` | `string` | Text rendered as the video mask's glyph shapes. Defaults to `"OCEAN"`. |
+| `videoSrc` | `string` | Video source URL loaded into the masked `&lt;video&gt;`. When omitted, a looping animated theme-gradient panel fills the mask instead — no video asset ships with this package. |
+| `autoPlay` | `boolean` | Autoplays the video once mounted. Defaults to `true`. |
+| `loop` | `boolean` | Loops the video indefinitely. Defaults to `true`. |
+| `muted` | `boolean` | Mutes the video — required by browsers for autoplay to succeed. Defaults to `true`. |
+| `preload` | `"auto" \| "metadata" \| "none"` | `&lt;video&gt;` `preload` strategy. Defaults to `"auto"`. |
+| `fontSize` | `string` | Glyph font-size, any CSS length. Defaults to a fluid value that scales with viewport width. |
+| `fontWeight` | `string \| number` | Glyph font-weight. Defaults to `"800"` (heavy, so each letter reads as a wide video window). |
+| `fontFamily` | `string` | Glyph font-family stack. Defaults to a bold generic sans stack. |
+| `aspectRatio` | `string` | Container aspect ratio, CSS `aspect-ratio` syntax. Defaults to `"3 / 1"`. |
+| `fallbackColor` | `ThemeColor` | Theme color family for the fallback gradient panel (used only when `videoSrc` is omitted). Defaults to `"primary"`. |
+| `pauseWhenOffscreen` | `boolean` | Pauses the video while the container is scrolled out of view, resuming when it re-enters — a small performance courtesy. Defaults to `true`. |
+| `style` | `StyleObject` | Passthrough style merged onto the outer container. |
+
 ::: details Implementation notes
 Full SVG-mask-on-video technique implemented: a hidden &lt;svg&gt;&lt;mask&gt; holds one &lt;text&gt; glyph (fill:white via a raw SVG attribute, not `style`, matching this package's existing chart-label convention), and the &lt;video&gt; (or fallback) is masked via CSS `mask-image: url(#id)` (+ -webkit- prefix) with maskContentUnits=userSpaceOnUse so glyph centering is responsive with zero JS measurement. `_onMount` calls `.play()` with a catch-and-fail-open guard for autoplay-restriction browsers, and imperatively sets the `.muted` IDL property (not just the content attribute) since some browsers only honor the live property for autoplay. An optional IntersectionObserver pauses/resumes the video when scrolled offscreen (fails open when IntersectionObserver is unavailable). Two honest gaps: (1) no video asset ships with this package, so the zero-argument demo substitutes a looping animated theme-gradient panel behind the same mask rather than a real video — passing `videoSrc` activates the real masked &lt;video&gt; path (same tradeoff `heroVideoDialog` already takes with its 'about:blank' default in this package); (2) CSS `mask-image` referencing an SVG mask fragment on a plain HTML element (not an SVG element) has solid but not universal cross-browser support (full in Chromium/Firefox, prefixed support in modern Safari) — older WebKit may not render the mask.
 

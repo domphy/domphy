@@ -13,6 +13,19 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartPieDonutDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `PieDatum[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendValue` | `string` | — |
+| `trendDirection` | `"up" \| "down"` | — |
+| `caption` | `string` | — |
+| `valueFormatter` | `(value: number) =&gt; string` | — |
+| `innerRadius` | `number` | Ring thickness control: smaller = thicker ring, larger = thinner ring. |
+
 ::: details Implementation notes
 Same card/header/footer chrome as chartPieSimple with an annulus (ring) shape instead of a solid disc; innerRadius is a configurable prop (defaults to ~42% of the outer radius, matching the spec's 'moderate inner radius' guidance). Same mount-sweep approximation caveat as chartPieSimple.
 

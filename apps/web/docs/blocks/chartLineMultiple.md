@@ -13,6 +13,21 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartLineMultipleDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `primarySeriesLabel` | `string` | — |
+| `primarySeriesColor` | `ThemeColor` | — |
+| `secondarySeriesLabel` | `string` | — |
+| `secondarySeriesColor` | `ThemeColor` | — |
+| `data` | `MonthlyPoint[]` | — |
+| `trendHeadline` | `string` | — |
+| `trendSubtitle` | `string` | — |
+| `trendDirection` | `"up" \| "down"` | — |
+
 ::: details Implementation notes
 Two smooth lines sharing one category axis, no dots (showSymbol:false both), cursor highlight suppressed (axisPointer:'none'). Uses the engine's own DEFAULT tooltip formatter (left unset) which already renders a swatch+label+value row per series — exactly the richer multi-series tooltip the spec describes, no custom formatter needed.
 

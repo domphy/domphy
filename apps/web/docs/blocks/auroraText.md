@@ -13,6 +13,16 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 
 <CodeEditor :code="AuroraTextDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `children` | `string` | Text content. Defaults to `"Aurora Text"`. |
+| `colors` | `ThemeColor[]` | Gradient color families the sweep cycles through. Defaults to four theme roles standing in for magic UI's pink/purple/blue/cyan palette. |
+| `speed` | `number` | Speed multiplier — `2` sweeps twice as fast, `0.5` half as fast. Defaults to `1`. |
+| `as` | `AuroraTextTag` | Wrapping element tag. Defaults to `"span"`. |
+| `style` | `StyleObject` | — |
+
 ::: details Implementation notes
 Diagonal multi-color `background-clip: text` gradient that pans back and forth via CSS `animation-direction: alternate` (8s / speed multiplier, ease-in-out, infinite) -- matches the spec's own description of an alternating, easing ping-pong loop almost exactly, and is simpler/more correct than a hand-authored 3-stop keyframe. First color is repeated at the gradient's end so the pan never shows a seam, per the spec. Default 4-color pink/purple/blue/cyan palette is mapped to theme color-family roles (`secondary`, `highlight`, `primary`, `info`) instead of literal hex, since Domphy's doctor rules forbid raw hex/rgb colors on style props -- same documented tradeoff this package's existing `animatedGradientText` block already makes for its own default colors. Accessibility uses the exact sr-only-text + aria-hidden-decorative-gradient-copy structure the spec's own DOM sketch describes, reusing the same pattern already established elsewhere in this package (`sidebarInDialog`).
 

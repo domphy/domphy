@@ -13,6 +13,19 @@ A **Backgrounds** block/component from **[Aceternity UI](/docs/blocks/aceternity
 
 <CodeEditor :code="GoogleGeminiEffectDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `title` | `string` | Hero heading above the artwork. Defaults to `"Build with Aceternity UI"`. |
+| `description` | `string` | Supporting description line below the heading. |
+| `paths` | `GoogleGeminiPathSpec[]` | Per-ribbon overrides (color/strokeWidth/custom d/scrollRange). Defaults to 5 generated ribbons in a Gemini-like palette. |
+| `progress` | `ValueOrState&lt;number&gt;[]` | Per-path draw progress, 0–1, one entry per path (matched by index). Accepts a plain number or a `State&lt;number&gt;`. Supplying an entry fully hands control of that ribbon to the caller — internal scroll-tracking is skipped for that index. |
+| `width` | `number` | viewBox width, in SVG user units. Defaults to `1440`. |
+| `height` | `number` | viewBox height, in SVG user units. Defaults to `320`. |
+| `glow` | `boolean` | Renders a soft blurred glow duplicate behind each ribbon. Defaults to `true`. |
+| `style` | `StyleObject` | Passthrough style merged onto the outer section. |
+
 ::: details Implementation notes
 Ribbon shapes are generated procedurally at build time (Catmull-Rom spline through sine-perturbed anchor points, converted to cubic Bezier segments) instead of hand-authored path 'd' data, per the task's clean-room instruction not to copy path data verbatim. Arc length for those generated ribbons is computed analytically by sampling the Bezier segments, so the default demo's stroke-draw animation is deterministic even under jsdom (no SVGPathElement.getTotalLength() dependency). Callers who instead supply their own custom `d` string get length via `getTotalLength()` at mount time (guarded, falls back to a width-based heuristic when unavailable, e.g. headless/jsdom runtimes) since arbitrary path grammar can't be measured analytically. Scroll-progress is tracked via a scroll/resize listener measuring the section's own scroll-through fraction of the viewport (rAF-lerped for smoothness), remapped per-path through staggered [start,end] sub-ranges so ribbons finish drawing at different moments; per-path `progress` overrides (plain number or State&lt;number&gt;) fully bypass this internal tracking, matching the spec's 'parent controls it directly' requirement. Colors cycle through Domphy theme color roles (info/primary/secondary/error/warning) rather than literal Gemini hex values, since raw hex/rgb is forbidden by the design system.
 

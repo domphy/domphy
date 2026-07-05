@@ -13,6 +13,15 @@ A **Effects** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 
 <CodeEditor :code="ConfettiButtonDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `children` | `DomphyElement \| string` | Button label content. Defaults to `"🎉 Celebrate"`. |
+| `options` | `ConfettiFireOptions` | Fire options merged under the burst launched on click. |
+| `color` | `ThemeColor` | Button color tone. Defaults to `"primary"`. |
+| `style` | `StyleObject` | Passthrough style merged onto the button. |
+
 ::: details Implementation notes
 The spec's "ready-made button variant that triggers the burst on click," implemented in the same file as `confetti()` since it is a small, closely related second export sharing the same fire-options defaults and `createConfettiHandle` helper. Fires from the button's own screen position (origin computed from `getBoundingClientRect()` at click time). Its overlay `&lt;canvas&gt;` (fixed, full-viewport, pointer-events:none) is nested INSIDE the returned `&lt;button&gt;` rather than as a sibling, so the whole component stays a single complete `DomphyElement` root tree — valid HTML (canvas is flow content, not interactive content, so it's permitted inside a button) and the fixed positioning takes it out of the button's layout/click box entirely.
 

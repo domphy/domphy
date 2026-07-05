@@ -13,6 +13,17 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 
 <CodeEditor :code="NeonGradientCardDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `children` | `DomphyElement \| DomphyElement[]` | Content rendered inside the frame. Defaults to a small demo card body. |
+| `borderSize` | `number` | Neon frame thickness, in `themeSpacing` units. Defaults to `5`. |
+| `borderRadius` | `number` | Corner rounding, in pixels. Defaults to `20`. |
+| `neonColors` | `NeonGradientCardNeonColors` | The two gradient hues the frame blends through. |
+| `duration` | `number` | Loop duration for the gradient's slow pulse, in seconds. Defaults to `6`. |
+| `style` | `StyleObject` | Passthrough style merged onto the outer wrapper. |
+
 ::: details Implementation notes
 Three stacked layers in one wrapper: a blurred oversized glow copy of the two-color gradient behind everything, a sharp gradient frame that shows through exactly the padding gap the normal-flow content div leaves (no SVG/mask needed), and the content surface on top. Both gradient layers are pointer-events:none and their background-position loops via a CSS keyframe (alternating top-center/bottom-center) for the slow pulsing motion; hovering the wrapper intensifies the glow layer's opacity/blur via a `[data-neon-glow]`-scoped hover selector, matching the spec's hover-enhancement note. Default neonColors ('secondary'/'info') were chosen because those two families are magenta/pink and cyan hues in the default Domphy theme, matching the spec's 'hot pink/magenta paired with cyan' default description — theme tokens are used throughout instead of the literal hex values the upstream spec implies, per this package's color-token constraint.
 

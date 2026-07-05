@@ -13,6 +13,28 @@ A **Auth** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean-r
 
 <CodeEditor :code="Login05Demo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `title` | `string` | — |
+| `signUpPrompt` | `string` | — |
+| `signUpLabel` | `string` | — |
+| `signUpHref` | `string` | — |
+| `emailLabel` | `string` | — |
+| `emailPlaceholder` | `string` | — |
+| `primaryButtonLabel` | `string` | — |
+| `dividerText` | `string` | — |
+| `appleButtonLabel` | `string` | — |
+| `onAppleClick` | `() =&gt; void` | — |
+| `googleButtonLabel` | `string` | — |
+| `onGoogleClick` | `() =&gt; void` | — |
+| `termsLabel` | `string` | — |
+| `termsHref` | `string` | — |
+| `privacyLabel` | `string` | — |
+| `privacyHref` | `string` | — |
+| `onSubmit` | `(values: { email: string }) =&gt; void` | — |
+
 ::: details Implementation notes
 Passwordless entry point: header row (logo badge + bold title, sign-up link right-aligned), single required email field, primary Login button, 'Or' divider, Apple/Google outline fallback buttons, legal footer. No password field / no forgot-password link, matching the spec. Doctor diagnose(): 0 findings.
 

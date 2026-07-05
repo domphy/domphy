@@ -13,6 +13,21 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartLineDotsCustomDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `seriesLabel` | `string` | — |
+| `seriesColor` | `ThemeColor` | — |
+| `data` | `MonthlyPoint[]` | — |
+| `markerWidth` | `number` | — |
+| `markerHeight` | `number` | — |
+| `trendHeadline` | `string` | — |
+| `trendSubtitle` | `string` | — |
+| `trendDirection` | `"up" \| "down"` | — |
+
 ::: details Implementation notes
 Custom per-point icon markers aren't reachable through ChartOption (SymbolType accepts 'pin'/'diamond'/etc in the type surface, but the actual line-symbol renderer always draws a plain circle regardless of the requested symbol). Implemented the same way as chartLineDotsColors: native symbols disabled, a companion SVG overlay draws a small hollow rounded-bar 'pin' glyph (original hand-drawn artwork, outline = series color, fill = card background) at each point via the shared staticPointMarkersOverlay + public scale factories.
 

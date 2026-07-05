@@ -13,6 +13,18 @@ A **Buttons** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 
 <CodeEditor :code="RippleButtonDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `children` | `DomphyElement \| DomphyElement[] \| string` | Button label content. Defaults to `"Click me"`. |
+| `color` | `ThemeColor` | `button()` patch color tone for the button's own chrome. Defaults to `"primary"`. |
+| `rippleColor` | `ThemeColor` | Theme color family the ripple wave is drawn from. Defaults to `"neutral"`. |
+| `duration` | `number` | One ripple's grow-and-fade cycle, in milliseconds. Defaults to `600`. |
+| `onClick` | `(event: MouseEvent) =&gt; void` | — |
+| `disabled` | `boolean` | — |
+| `style` | `StyleObject` | — |
+
 ::: details Implementation notes
 Full behavioral port. Composes the ui button() patch for standard chrome (spec: 'looks like an ordinary button at rest'), adding position:relative/overflow:hidden and a reactive ripple layer. Each click reads coordinates relative to the button's own bounding box (getBoundingClientRect, not the button's center), spawning a ripple sized to fully cover the button from any origin; ripples are tracked in a reactive keyed array (same pattern this package's animatedList.ts uses for its feed) so rapid repeated clicks produce multiple concurrently-animating ripples, each with a stable id used as its _key. Every ripple is auto-removed via a duration-matched setTimeout, with all pending timers cleared on unmount to avoid leaks. rippleColor is exposed as a ThemeColor role (default 'neutral', resolved near-white via a shift-0 edge tone) rather than the spec's literal RGB string, since Domphy forbids raw rgb()/hex on style props — matching the semi-transparent light/white default the spec itself calls out. Verified with jsdom tests covering click-position accuracy, auto-removal timing, and multi-ripple overlap, plus doctor-clean (0 findings) via the domphy-doctor CLI.
 

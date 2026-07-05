@@ -13,6 +13,16 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 
 <CodeEditor :code="KineticTextDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `children` | `string` | Text content. Defaults to a short demo phrase. |
+| `tag` | `KineticTextTag` | Semantic wrapping tag/heading level. Defaults to `"h2"`. |
+| `accentColor` | `ThemeColor` | Accent color family used for the hovered letter's faint glow. Defaults to `"primary"`. |
+| `className` | `string` | Extra class name merged onto the wrapper's native `class` attribute. |
+| `style` | `StyleObject` | Passthrough style merged onto the wrapper. |
+
 ::: details Implementation notes
 One span per character (index-distance falloff, not CSS sibling selectors, per the spec's own clean-room guidance) plus a visually-hidden sr-only duplicate of the full text (aurora-text's sr-only-text pattern) since the decorative letter spans are aria-hidden. Pointer tracking mirrors this package's own dock.ts idiom: rAF-throttled pointermove finds the nearest letter and writes font-weight/padding-inline/text-shadow imperatively per letter (continuous high-frequency effect, matching dock.ts's own exemption from the declarative style object). Declarative resting weight uses the (l)=&gt;value function-form escape hatch (thin baseline is the entire premise, no patch expresses it). Skips attaching hover listeners when matchMedia('(hover: hover)') reports no hover capability, per spec. tag is caller-configurable (h1..h6/p/div/span).
 

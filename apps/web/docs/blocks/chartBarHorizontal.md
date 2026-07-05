@@ -13,6 +13,22 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartBarHorizontalDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ChartBarPoint[]` | — |
+| `seriesLabel` | `string` | — |
+| `seriesColor` | `ThemeColor` | — |
+| `title` | `string` | — |
+| `subtitle` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `categoryTruncateLength` | `number` | Max characters kept from each category label before truncation. |
+| `grid` | `ChartBarGrid` | — |
+| `height` | `number` | — |
+
 ::: details Implementation notes
 Same monthly dataset rotated into horizontal bars against a left category axis, hidden value axis. The engine's built-in axis-trigger tooltip resolves hover position by comparing mouse X against the X scale unconditionally (packages/chart/src/engine.ts bindTooltipEvents) — meaningless for horizontal bars where the category axis is Y — and there is no item-trigger hit-testing for bar series at all, so the native tooltip is disabled (`tooltip: {show:false}`) and replaced with a custom mouse-to-row overlay (chartBarHorizontalHoverOverlay in chart-bar-shared.ts) built with @domphy/chart's own exported scale factories (createOrdinalScale/createLinearScale) against an explicit fixed-pixel grid, so it lines up exactly with the real bars. Category (y) axes render bottom-to-top in this engine, so the data/category arrays are reversed before rendering to keep the on-screen top-to-bottom order chronological (Jan at top). Corner radius again capped at the engine's hardcoded 2px regardless of the requested [0,5,5,0] radius.
 

@@ -13,6 +13,19 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartAreaGradientDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ChartAreaTwoSeriesPoint[]` | — |
+| `series` | `ChartAreaGradientSeries[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `height` | `number` | — |
+
 ::: details Implementation notes
 Two overlapping series, each with a real top-to-baseline fading linear gradient fill (GradientObject, stops built from themeColorToken()-derived rgba, ~0.8 to ~0.1 alpha) plus solid outline stroke; multi-series tooltip with color dots. Same mount-reveal approximation caveat as chartAreaDefault (clip-path wipe, not a per-path draw-in).
 

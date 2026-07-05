@@ -13,6 +13,21 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartRadarGridDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `RadarPoint[]` | — |
+| `series` | `RadarSeriesConfig[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `gridShape` | `"polygon" \| "circle"` | — |
+| `showSpokes` | `boolean` | — |
+| `showDots` | `boolean` | — |
+
 ::: details Implementation notes
 Circular ring grid with radial spokes suppressed and vertex dots on, matching the spec's own note that upstream calls this variant 'Grid Circle - No lines' but it's grouped here under the plain 'grid' export name as the base member of the grid family. Tooltip is value-only (no category heading, no swatch) per spec.
 

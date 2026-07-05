@@ -13,6 +13,16 @@ A **Navigation** block/component from **[Aceternity UI](/docs/blocks/aceternity)
 
 <CodeEditor :code="FloatingNavbarDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `items` | `FloatingNavbarItem[]` | Nav link entries. Defaults to a 4-item marketing-site demo set. |
+| `ctaLabel` | `string` | Trailing call-to-action button label. Defaults to "Login". |
+| `ctaHref` | `string` | Call-to-action button href. Defaults to "#". |
+| `onCtaClick` | `(event: MouseEvent) =&gt; void` | — |
+| `scrollSensitivityPx` | `number` | Minimum absolute scroll delta (px) between two frames before a direction change is honored — filters out sub-pixel scroll jitter. Defaults to 4. |
+
 ::: details Implementation notes
 Direction-based (not distance-threshold-based) hide/reveal via a rAF-throttled window scroll listener comparing consecutive scrollY reads, matching the spec's documented distinguishing behavior versus stickyBanner. A small sensitivity floor (default 4px) filters sub-pixel jitter, and downward hides only past scrollY&gt;80 to avoid flicker right at the top of the page (no numeric threshold is documented upstream, so this is a reasonable low-confidence default). Nav links reuse the listItemButton() ui patch for the hover highlight; CTA reuses linkButton().
 

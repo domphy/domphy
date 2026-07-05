@@ -13,6 +13,19 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartLineLinearDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `seriesLabel` | `string` | — |
+| `seriesColor` | `ThemeColor` | — |
+| `data` | `MonthlyPoint[]` | — |
+| `trendHeadline` | `string` | — |
+| `trendSubtitle` | `string` | — |
+| `trendDirection` | `"up" \| "down"` | — |
+
 ::: details Implementation notes
 Identical to chartLineDefault except smooth:false/step:false (straight segments). Same mount-reveal approximation as chartLineDefault.
 

@@ -13,6 +13,24 @@ A **Auth** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean-r
 
 <CodeEditor :code="Login01Demo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `heading` | `string` | — |
+| `description` | `string` | — |
+| `emailLabel` | `string` | — |
+| `emailPlaceholder` | `string` | — |
+| `passwordLabel` | `string` | — |
+| `forgotPasswordHref` | `string` | — |
+| `primaryButtonLabel` | `string` | — |
+| `googleButtonLabel` | `string` | — |
+| `onGoogleClick` | `() =&gt; void` | — |
+| `signUpPrompt` | `string` | — |
+| `signUpLabel` | `string` | — |
+| `signUpHref` | `string` | — |
+| `onSubmit` | `(values: { email: string; password: string }) =&gt; void` | — |
+
 ::: details Implementation notes
 Full structure per spec: centered narrow card (card() patch), title+description header, email/password fields with inline forgot-password link, solid primary submit + outline Google OAuth button, sign-up footer line. Google glyph is a simplified hand-authored monochrome silhouette (original geometry), not the official trademarked asset. Doctor diagnose(): 0 findings.
 

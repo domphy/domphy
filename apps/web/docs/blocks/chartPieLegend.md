@@ -13,6 +13,16 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartPieLegendDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `PieDatum[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `valueFormatter` | `(value: number) =&gt; string` | — |
+| `legendColumns` | `number` | Number of equal-width legend columns. Defaults to 4. |
+
 ::: details Implementation notes
 No on-slice labels; a wrapped CSS-grid legend (configurable column count, default 4) of swatch+name pairs sits beneath the chart with a themeSpacing(-6) negative top margin so it visually hugs the circle instead of floating at the container's default gap. No footer trend line in this variant (legend takes that slot), matching the spec. Same mount-sweep approximation caveat as chartPieSimple.
 

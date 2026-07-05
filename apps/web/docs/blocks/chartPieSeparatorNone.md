@@ -13,6 +13,20 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartPieSeparatorNoneDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `PieDatum[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendValue` | `string` | — |
+| `trendDirection` | `"up" \| "down"` | — |
+| `caption` | `string` | — |
+| `valueFormatter` | `(value: number) =&gt; string` | — |
+| `strokeWidth` | `string` | Exposed for callers who want to re-enable dividers. Defaults to "0" (none). |
+| `padAngle` | `number` | Exposed for callers who want to re-enable dividers. Defaults to 0 (none). |
+
 ::: details Implementation notes
 Implemented as chartPieSimple's full-disc layout with strokeWidth and padAngle exposed as explicit props defaulting to '0'/0 (no stroke attribute is even emitted when strokeWidth is '0'), matching the researchNote's guidance to keep this a configuration variant rather than a structurally different chart. Callers can pass non-zero values to re-enable separators. Same mount-sweep approximation caveat as chartPieSimple.
 

@@ -13,6 +13,20 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartLineStepDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `seriesLabel` | `string` | — |
+| `seriesColor` | `ThemeColor` | — |
+| `data` | `MonthlyPoint[]` | — |
+| `stepMode` | `NonNullable&lt;LineSeriesOption["step"]&gt;` | Where the vertical jump sits relative to each pair of points. Defaults to "start". |
+| `trendHeadline` | `string` | — |
+| `trendSubtitle` | `string` | — |
+| `trendDirection` | `"up" \| "down"` | — |
+
 ::: details Implementation notes
 Identical to chartLineDefault with LineSeriesOption.step (default 'start', exposed as a stepMode prop). Same mount-reveal approximation as chartLineDefault.
 

@@ -13,6 +13,17 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartTooltipIconsDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ActivityDayPoint[]` | — |
+| `series` | `ActivitySeriesEntry[]` | — |
+| `showCursor` | `boolean` | — |
+| `defaultOpenIndex` | `number \| null` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+
 ::: details Implementation notes
 Full port. Header hidden; each series entry in ACTIVITY_SERIES_CONFIG carries an original inline-SVG iconMarkup string (an abstract footprint glyph for running, a wave glyph for swimming), colored via the row's resolved series color and substituted in place of the dot indicator through the shared indicator-style switch, matching the spec's 'icon present overrides the default dot' behavior.
 

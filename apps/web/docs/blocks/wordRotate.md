@@ -13,6 +13,16 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 
 <CodeEditor :code="WordRotateDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `words` | `string[]` | Words/phrases cycled through in order, looping back to the first. Defaults to a short demo list. |
+| `duration` | `number` | Milliseconds each word stays visible before switching to the next. Defaults to `2500`. |
+| `color` | `ThemeColor` | Theme color for the word text. Defaults to `"neutral"` (theme foreground, flips light/dark automatically). |
+| `transition` | `WordRotateTransition` | Escape hatch for the enter/exit crossfade's own timing/easing. See . |
+| `style` | `StyleObject` | Passthrough style merged onto the outer fixed-line container. |
+
 ::: details Implementation notes
 Single-item reactive keyed-array swap on a setInterval timer (reusing the same enter/exit crossfade state-machine pattern this file's morphingText.ts already established), driving motion()'s WAAPI initial/animate/exit for a vertical slide+fade rather than morphingText's goo-filter crossfade. Large/bold styling and 'reverses to white in dark mode' both come for free from themeSize(increase-4)/themeColor(shift-11) — no extra dark-mode code needed. transition{duration,easing} is the requested 'escape hatch' for the crossfade's own timing.
 

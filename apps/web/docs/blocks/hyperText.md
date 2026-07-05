@@ -13,6 +13,19 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 
 <CodeEditor :code="HyperTextDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `children` | `string` | Text content to animate. Defaults to a short demo phrase. |
+| `tag` | `string` | HTML tag the container renders as. Defaults to `"span"`. |
+| `duration` | `number` | Total milliseconds for the full scramble-to-resolve animation. Defaults to `800`. |
+| `delay` | `number` | Milliseconds to wait after the trigger fires before the scramble starts. Defaults to `0`. |
+| `hoverTrigger` | `boolean` | Replays the scramble on every mouse hover. Defaults to `true`. |
+| `viewTrigger` | `boolean` | Also (or instead) plays the scramble once, automatically, the first time the element scrolls into the viewport. Defaults to `false`. |
+| `characters` | `string` | Character pool randomly sampled while a character position is unresolved. Defaults to A-Z. |
+| `style` | `StyleObject` | Passthrough style merged onto the container. |
+
 ::: details Implementation notes
 Per-character spans with two interval timers (fast scramble reassignment + slower left-to-right lock), hover-trigger-by-default with optional view-trigger, configurable duration/delay/character pool/tag, spaces preserved as non-animated gaps. Matches the spec's 'interval/frame-driven character substitution, not CSS keyframes' requirement. Character DOM refs are written to directly inside the loop (not via reactive State) since this is a continuous high-frequency effect, matching this package's numberTicker/dock convention.
 

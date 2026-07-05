@@ -13,6 +13,16 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 
 <CodeEditor :code="MorphingTextDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `phrases` | `string[]` | Phrases cycled through in order, looping back to the first. Defaults to a short demo sequence. |
+| `interval` | `number` | Milliseconds each phrase is shown before morphing to the next. Defaults to 2500. |
+| `transitionDuration` | `number` | Milliseconds the morph (opacity cross-animation) itself takes. Defaults to 600. |
+| `easing` | `string` | CSS easing for the morph. Defaults to "ease-in-out". |
+| `style` | `StyleObject` | Passthrough style merged onto the outer container. |
+
 ::: details Implementation notes
 Full behavior implemented: a hidden SVG filter (feGaussianBlur -&gt; feColorMatrix with a steep alpha-contrast matrix) applied statically to a container wrapping absolutely-stacked phrase layers; on each interval tick the reactive single-item phrase list is replaced in one `set()` call so the framework's reconciler mounts the new phrase (`motion()` enter) while the old one's `_onBeforeRemove` plays its exit concurrently — the goo filter fuses their overlapping soft edges during that overlap and re-sharpens a single resting phrase. The spec's optional third 'plain non-filtered duplicate layer on top for crisp readability' was intentionally omitted: the same contrast-matrix thresholding that produces the goo effect during overlap is what keeps a single settled phrase sharp, so the extra layer is redundant for this implementation. jsdom has no Web Animations API, so motion()'s enter/exit become synchronous no-ops in tests (verified structurally); real browsers get the actual opacity tween.
 

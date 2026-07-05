@@ -13,6 +13,17 @@ A **Sidebar** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clea
 
 <CodeEditor :code="Sidebar03Demo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `header` | `SidebarHeaderData` | — |
+| `navGroups` | `SidebarNavGroup[]` | — |
+| `user` | `SidebarUser` | — |
+| `breadcrumb` | `SidebarBreadcrumbItem[]` | — |
+| `defaultCollapsed` | `boolean` | — |
+| `side` | `"left" \| "right"` | Which viewport edge the sidebar docks against. Defaults to "left". |
+
 ::: details Implementation notes
 Same shell as sidebar01, but nav items may carry a `children` array; such items render as a &lt;details&gt; row (icon+label+auto chevron) whose child &lt;ul&gt; is indented with a themed left border-guide line. Leaf items and child links use aria-current=page for active-state highlighting (verified in the test that both a top-level and a nested child active item are marked). One level of nesting only, per spec's researchNote. doctor diagnose() reports 0 issues.
 

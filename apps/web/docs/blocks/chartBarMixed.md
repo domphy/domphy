@@ -13,6 +13,20 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartBarMixedDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ChartBarCategoryPoint[]` | — |
+| `seriesLabel` | `string` | — |
+| `title` | `string` | — |
+| `subtitle` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `grid` | `ChartBarGrid` | — |
+| `height` | `number` | — |
+
 ::: details Implementation notes
 Horizontal single-series chart (five browser categories) where every bar gets its own accent color via per-item itemStyle.color (theme-token-derived hex through familyHex/chartBarColorHex), axis labels doubling as the key (no separate legend), numeric axis fully hidden. Uses the same custom horizontal hover overlay as chartBarHorizontal (native tooltip disabled for the same X/Y-scale-mismatch reason documented in chart-bar-shared.ts), configured with `showCategoryTitle:true` so the tooltip shows both the category name and value. Data/category order reversed for the same bottom-to-top category-axis reason as the horizontal recipe.
 

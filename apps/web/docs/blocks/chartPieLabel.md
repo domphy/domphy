@@ -13,6 +13,20 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartPieLabelDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `PieDatum[]` | — |
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `trendValue` | `string` | — |
+| `trendDirection` | `"up" \| "down"` | — |
+| `caption` | `string` | — |
+| `valueFormatter` | `(value: number) =&gt; string` | — |
+| `leaderLine` | `boolean` | Toggle the leader lines connecting each wedge to its label. Defaults to true. |
+| `minLabelFraction` | `number` | Slices smaller than this fraction of the total are left unlabeled to avoid crowding. |
+
 ::: details Implementation notes
 Adds outside category-name labels with thin leader lines (own trigonometry-based placement, hidden below a minLabelFraction to avoid crowding) and suppresses the duplicate name in the tooltip (showName:false, value-only). Same mount-sweep approximation caveat as chartPieSimple.
 

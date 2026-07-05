@@ -13,6 +13,21 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartBarStackedDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `data` | `ChartBarTwoSeriesPoint[]` | — |
+| `series` | `ChartBarStackedSeries[]` | — |
+| `stackId` | `string` | — |
+| `showLegend` | `boolean` | — |
+| `title` | `string` | — |
+| `subtitle` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
+| `height` | `number` | — |
+
 ::: details Implementation notes
 Two series sharing one `stack` id, one bar per month, horizontal split lines only, a swatch+label legend row hand-built below the plot (the engine's own built-in legend overlay only supports a fixed geometric-symbol vocabulary and lives inside the SVG layer rather than the card's DOM flow — same rationale as the sibling chart-area-legend.ts recipe), and a custom tooltip formatter (chartBarStackedTooltipFormatter) that lists both segment values plus a computed Total row. `showLegend` toggle verified in the test suite.
 

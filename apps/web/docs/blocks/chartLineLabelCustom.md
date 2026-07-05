@@ -13,6 +13,18 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 
 <CodeEditor :code="ChartLineLabelCustomDemo" />
 
+## Props
+
+| Prop | Type | Description |
+|---|---|---|
+| `title` | `string` | — |
+| `description` | `string` | — |
+| `seriesColor` | `ThemeColor` | — |
+| `data` | `CategoryPoint[]` | — |
+| `trendHeadline` | `string` | — |
+| `trendSubtitle` | `string` | — |
+| `trendDirection` | `"up" \| "down"` | — |
+
 ::: details Implementation notes
 Colored per-point dots via the same staticPointMarkersOverlay technique as chartLineDotsColors (see its notes on why a custom overlay is needed). The always-on display-name label reuses the engine's native label.formatter (a genuine built-in feature) with a formatter that looks up each point's friendly name from the data array by dataIndex, rather than showing the raw category key or numeric value.
 
