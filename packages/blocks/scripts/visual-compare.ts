@@ -5,14 +5,30 @@
 // pages being screenshotted for QA purposes only, not assets this package
 // redistributes.
 //
+// The reference screenshot is cached on disk (reference.png) and reused on
+// later runs — the upstream page doesn't change between our own edits, so
+// re-fetching it over the network every time (slow, and dependent on a
+// third-party site staying reachable) was pure waste. Only `local.png` is
+// always re-captured, since that's the one side that actually changes. Pass
+// `--refresh-reference` to force re-fetching (e.g. the upstream page changed,
+// or a broken/placeholder screenshot got cached).
+//
 // Usage:
 //   pnpm --filter @domphy/blocks visual-compare sidebar07 dashboard01
 //   pnpm --filter @domphy/blocks visual-compare --all        (slow — 252 pairs)
-import { mkdir, readFile } from "node:fs/promises";
+//   pnpm --filter @domphy/blocks visual-compare sidebar07 --refresh-reference
+import { access, mkdir, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createServer } from "vite";
+
+async function fileExists(path: string): Promise<boolean> {
+  return access(path).then(
+    () => true,
+    () => false,
+  );
+}
 
 const here = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(here, "..");
@@ -33,6 +49,7 @@ async function loadRegistry(): Promise<RegistryEntry[]> {
 async function main() {
   const args = process.argv.slice(2);
   const all = args.includes("--all");
+  const refreshReference = args.includes("--refresh-reference");
   const requested = args.filter((arg) => !arg.startsWith("--"));
 
   const registry = await loadRegistry();
@@ -112,6 +129,12 @@ async function main() {
         continue;
       }
 
+      const referencePath = resolve(targetDir, "reference.png");
+      if (!refreshReference && (await fileExists(referencePath))) {
+        console.log(`  ${entry.exportName}: reusing cached reference.png (pass --refresh-reference to re-fetch)`);
+        continue;
+      }
+
       const refPage = await browser.newPage({ viewport: { width: 1280, height: 900 } });
       try {
         // "networkidle" never fires on sites with persistent background
@@ -120,7 +143,7 @@ async function main() {
         // reference pages we don't control.
         await refPage.goto(entry.refUrl, { waitUntil: "load", timeout: 30000 });
         await refPage.waitForTimeout(500);
-        await refPage.screenshot({ path: resolve(targetDir, "reference.png"), fullPage: false });
+        await refPage.screenshot({ path: referencePath, fullPage: false });
       } catch (error) {
         console.warn(`  reference screenshot failed for ${entry.exportName} (${entry.refUrl}):`, (error as Error).message);
       } finally {
