@@ -48,8 +48,12 @@ async function mountEditor(
   );
   themeApply();
   const shadowHost = document.createElement("div");
+  // No overflow here — Render.ts's own wrapper div (rendered inside
+  // previewContainer below) already scrolls its content at height:100%.
+  // Adding a second overflow:auto here nested it inside the first, producing
+  // two redundant scrollbars right next to each other.
   shadowHost.style.cssText =
-    "flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto;";
+    "flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;";
   const shadow = shadowHost.attachShadow({ mode: "open" });
   const themeTag = document.createElement("style");
   themeTag.id = "domphy-themes";
