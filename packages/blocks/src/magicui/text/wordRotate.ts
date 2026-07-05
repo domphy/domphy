@@ -1,8 +1,8 @@
 // magicui "Word Rotate" — clean-room reimplementation from the public
 // behavior/visual spec only (no upstream source viewed or copied). A single
 // line of large, bold text that automatically cycles through a fixed list
-// of words on a timer: the current word slides up and fades out while the
-// next word slides in from below and fades in, at the same position, so
+// of words on a timer: the current word slides down and fades out while the
+// next word slides in from above and fades in, at the same position, so
 // surrounding layout never jumps. Fully automatic and looping — no
 // interaction required.
 //
@@ -19,9 +19,9 @@ import { motion } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSize } from "@domphy/theme";
 
 export interface WordRotateTransition {
-  /** Milliseconds the slide/fade crossfade itself takes. Defaults to `350`. */
+  /** Milliseconds the slide/fade crossfade itself takes. Defaults to `250`. */
   duration?: number;
-  /** CSS easing for the crossfade. Defaults to a spring-like ease-out curve. */
+  /** CSS easing for the crossfade. Defaults to `"ease-out"`. */
   easing?: string;
 }
 
@@ -68,9 +68,9 @@ function wordLayer(
     },
     $: [
       motion({
-        initial: { opacity: 0, y: `${SLIDE_DISTANCE_EM}em` },
+        initial: { opacity: 0, y: `-${SLIDE_DISTANCE_EM}em` },
         animate: { opacity: 1, y: 0 },
-        exit: { opacity: 0, y: `-${SLIDE_DISTANCE_EM}em` },
+        exit: { opacity: 0, y: `${SLIDE_DISTANCE_EM}em` },
         transition: { duration: transitionDurationMs, easing },
       }),
     ],
@@ -87,8 +87,8 @@ function wordRotate(props: WordRotateProps = {}): DomphyElement<"span"> {
   const words = props.words && props.words.length > 0 ? props.words : DEFAULT_WORDS;
   const holdDuration = props.duration ?? 2500;
   const color = props.color ?? "neutral";
-  const transitionDurationMs = props.transition?.duration ?? 350;
-  const easing = props.transition?.easing ?? "cubic-bezier(0.16, 1, 0.3, 1)";
+  const transitionDurationMs = props.transition?.duration ?? 250;
+  const easing = props.transition?.easing ?? "ease-out";
 
   const layers = toState<WordEntry[]>([{ key: "word-0", text: words[0] }]);
   let wordIndex = 0;

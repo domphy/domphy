@@ -15,7 +15,6 @@ import {
   type PieDatum,
   DEFAULT_DONUT_INNER_RADIUS,
   DEFAULT_PIE_DATA,
-  PIE_OUTER_RADIUS,
   arcSlicePath,
   colorSwatch,
   createPieTooltipState,
@@ -29,6 +28,14 @@ import {
   resolveSliceColor,
   wedgeTooltipHandlers,
 } from "./pie-chart-shared.js";
+
+// The base ring sits well inside the 200-unit viewBox so the selected slice
+// can pop outward *and* trail a detached outer arc (upstream renders the
+// active sector as two stacked <Sector>s: an enlarged wedge plus a thin ring
+// floating just beyond it) without either overflowing the card.
+const BASE_OUTER_RADIUS = 66;
+const ACTIVE_RING_GAP = 3;
+const ACTIVE_RING_THICKNESS = 13;
 
 export interface ChartPieInteractiveProps {
   data?: PieDatum[];
@@ -83,7 +90,7 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
       path: null,
       style: {
         d: (l: Listener) => {
-          const outerRadius = isSelected(l) ? PIE_OUTER_RADIUS + activeRadiusDelta : PIE_OUTER_RADIUS;
+          const outerRadius = isSelected(l) ? BASE_OUTER_RADIUS + activeRadiusDelta : BASE_OUTER_RADIUS;
           return `path("${arcSlicePath(slice, innerRadius, outerRadius, 0.018)}")`;
         },
         transition: "d 260ms ease-out",
@@ -97,6 +104,25 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
       ...wedgeTooltipHandlers(slice, { containerRef, tooltipState, valueFormatter }),
     } as DomphyElement<"path">;
   });
+
+  // One detached "pop-out" ring per slice, faded in only for the selected
+  // one — the arc floats just beyond the enlarged active wedge, mirroring the
+  // second stacked <Sector> in upstream's active-sector shape renderer.
+  const activeRingInner = BASE_OUTER_RADIUS + activeRadiusDelta + ACTIVE_RING_GAP;
+  const activeRingOuter = activeRingInner + ACTIVE_RING_THICKNESS;
+  const activeRings: DomphyElement<"path">[] = slices.map((slice) => ({
+    path: null,
+    d: arcSlicePath(slice, activeRingInner, activeRingOuter, 0.018),
+    fill: (l: Listener) => themeColor(l, "shift-9", slice.color),
+    stroke: "none",
+    ariaHidden: "true",
+    _key: `${slice.datum.key}-active-ring`,
+    style: {
+      pointerEvents: "none",
+      opacity: (l: Listener) => (selectedKey.get(l) === slice.datum.key ? 1 : 0),
+      transition: "opacity 260ms ease-out",
+    },
+  }));
 
   const options: DomphyElement<"option">[] = data.map((datum, index) => ({
     option: datum.name,
@@ -144,7 +170,7 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
       containerRef,
       [
         {
-          g: wedges,
+          g: [...wedges, ...activeRings],
           ariaHidden: "true",
           style: { transformOrigin: "100px 100px" },
           $: [

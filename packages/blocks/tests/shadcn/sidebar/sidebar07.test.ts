@@ -32,6 +32,17 @@ describe("sidebar07", () => {
     expect(host.textContent).toContain("Design Engineering");
   });
 
+  it("renders the Platform nav-group label and the trailing projects 'More' row", () => {
+    const { host } = render(sidebar07() as DomphyElement);
+    const labels = Array.from(host.querySelectorAll("aside nav small")).map((el) => el.textContent);
+    expect(labels).toContain("Platform");
+    expect(labels).toContain("Projects");
+    const moreRow = Array.from(host.querySelectorAll("aside nav button")).find(
+      (button) => button.textContent?.trim() === "More",
+    );
+    expect(moreRow).toBeTruthy();
+  });
+
   it("renders the user footer with name and email", () => {
     const { host } = render(sidebar07() as DomphyElement);
     expect(host.textContent).toContain("Shad Cn");

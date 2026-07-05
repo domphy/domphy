@@ -72,8 +72,13 @@ function spinningText(props: SpinningTextProps = {}): DomphyElement<"div"> {
           position: "absolute",
           insetBlockStart: "50%",
           insetInlineStart: "50%",
-          transformOrigin: "0 0",
-          transform: `rotate(${angleDegrees}deg) translate(0, calc(${radiusStyle} * -1))`,
+          transformOrigin: "center",
+          // Center each glyph *on* the ring: `translate(-50%, -50%)` pulls the
+          // glyph back by half its own box so its center (not its top-left
+          // corner) sits on the circle before it's rotated out to the radius —
+          // matching upstream. Anchoring by the corner left every letter offset
+          // half its own width/height off the ring.
+          transform: `translate(-50%, -50%) rotate(${angleDegrees}deg) translate(0, calc(${radiusStyle} * -1))`,
         },
       };
     },

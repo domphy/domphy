@@ -1,20 +1,15 @@
 // shadcn/ui "charts/line-dots-custom" block — clean-room reimplementation.
 //
 // The default six-month smooth single-line chart with plain circular dots
-// replaced by a small hollow "pin" glyph (an outlined vertical bar, ~24px
-// square bounding box) at every data point: outline matches the line color,
-// fill matches the card background, so it reads as a hollow marker sitting
-// on the line.
+// replaced by a "git commit" glyph at every data point: a hollow circle
+// (outline = line color, fill = card background) with a short vertical tick
+// above and below it, mirroring the upstream block's lucide GitCommitVertical
+// marker.
 //
 // @domphy/chart's built-in line-symbol renderer only ever draws a plain
 // circle (see ./chart-line-shared.ts), so the custom glyph is drawn by a
 // companion SVG overlay positioned with the exact same public scale
 // factories the engine itself uses.
-//
-// Implemented purely from the block's public functional/visual spec — no
-// upstream shadcn/ui source was viewed or copied. The marker glyph is
-// original hand-drawn artwork (a rounded vertical bar), not traced from any
-// icon library.
 
 import type { DomphyElement } from "@domphy/core";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
@@ -109,16 +104,32 @@ function chartLineDotsCustom(props: ChartLineDotsCustomProps = {}): DomphyElemen
           yDomain,
           grid: DEFAULT_LINE_GRID,
           renderMarker({ cx, cy, group }) {
-            const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect") as SVGRectElement;
-            bar.setAttribute("x", String(cx - markerWidth / 2));
-            bar.setAttribute("y", String(cy - markerHeight / 2));
-            bar.setAttribute("width", String(markerWidth));
-            bar.setAttribute("height", String(markerHeight));
-            bar.setAttribute("rx", String(markerWidth / 2));
-            bar.setAttribute("fill", markerFill);
-            bar.setAttribute("stroke", markerOutline);
-            bar.setAttribute("stroke-width", "2");
-            group.appendChild(bar);
+            const svgNamespace = "http://www.w3.org/2000/svg";
+            const radius = markerWidth / 2;
+            const halfHeight = markerHeight / 2;
+            // Short vertical tick above and below the node (the git-commit look).
+            for (const [y1, y2] of [
+              [cy - halfHeight, cy - radius],
+              [cy + radius, cy + halfHeight],
+            ]) {
+              const tick = document.createElementNS(svgNamespace, "line") as SVGLineElement;
+              tick.setAttribute("x1", String(cx));
+              tick.setAttribute("y1", String(y1));
+              tick.setAttribute("x2", String(cx));
+              tick.setAttribute("y2", String(y2));
+              tick.setAttribute("stroke", markerOutline);
+              tick.setAttribute("stroke-width", "2");
+              tick.setAttribute("stroke-linecap", "round");
+              group.appendChild(tick);
+            }
+            const node = document.createElementNS(svgNamespace, "circle") as SVGCircleElement;
+            node.setAttribute("cx", String(cx));
+            node.setAttribute("cy", String(cy));
+            node.setAttribute("r", String(radius));
+            node.setAttribute("fill", markerFill);
+            node.setAttribute("stroke", markerOutline);
+            node.setAttribute("stroke-width", "2");
+            group.appendChild(node);
           },
         }),
       ],

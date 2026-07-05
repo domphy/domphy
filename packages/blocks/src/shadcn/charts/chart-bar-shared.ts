@@ -120,9 +120,9 @@ export const CHART_BAR_NEGATIVE_DATA: ChartBarPoint[] = [
 export const CHART_BAR_BROWSER_DATA: ChartBarCategoryPoint[] = [
   { category: "Chrome", value: 275, color: "primary" },
   { category: "Safari", value: 200, color: "secondary" },
-  { category: "Firefox", value: 187, color: "warning" },
-  { category: "Edge", value: 173, color: "info" },
-  { category: "Other", value: 90, color: "success" },
+  { category: "Firefox", value: 187, color: "success" },
+  { category: "Edge", value: 173, color: "warning" },
+  { category: "Other", value: 90, color: "info" },
 ];
 
 // Anchored to the dataset's own latest date (not the real current date) so

@@ -29,7 +29,7 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `trackStyle` | `StyleObject` | Passthrough style merged onto the scrolling track. |
 
 ::: details Implementation notes
-CSS keyframe loop (translate by -100%/repeat, linear infinite) with duplicated groups (default repeat=4), gradient edge-fade overlays, pauseOnHover via a nested :hover selector, and orientation/reverse support. Default demo renders 5 testimonial 'chips' (avatar+name+username+quote) built from existing @domphy/ui patches. Not implemented: the '3D/perspective-tilted variant' mentioned only as a researchNote style flourish — treated as out of scope for the core primitive; callers can layer their own perspective/rotate transform via the style/trackStyle passthrough.
+CSS keyframe loop (translate by -100%/repeat, linear infinite) with duplicated groups (default repeat=4), gradient edge-fade overlays, pauseOnHover via a nested :hover selector, and orientation/reverse support. Default demo renders 5 testimonial 'chips' (avatar+name+username+quote) built from existing @domphy/ui patches. Not implemented: the '3D/perspective-tilted variant' mentioned only as a researchNote style flourish — treated as out of scope for the core primitive; callers can layer their own perspective/rotate transform via the style/trackStyle passthrough. Direct-source-diff fix (2026-07-05): The whole track animated by -100%/repeat, which leaves a visible seam at the loop point — upstream translates each duplicated GROUP by its own pitch (calc(-100% - gap)) for a truly seamless loop. Switched to the per-group technique.
 
 Status: **ported** · Reference: [Magic UI original](https://magicui.design/docs/components/marquee)
 :::

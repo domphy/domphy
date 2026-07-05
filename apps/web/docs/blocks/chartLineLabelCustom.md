@@ -26,7 +26,7 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `trendDirection` | `"up" \| "down"` | — |
 
 ::: details Implementation notes
-Colored per-point dots via the same staticPointMarkersOverlay technique as chartLineDotsColors (see its notes on why a custom overlay is needed). The always-on display-name label reuses the engine's native label.formatter (a genuine built-in feature) with a formatter that looks up each point's friendly name from the data array by dataIndex, rather than showing the raw category key or numeric value.
+Colored per-point dots via the same staticPointMarkersOverlay technique as chartLineDotsColors (see its notes on why a custom overlay is needed). The always-on display-name label reuses the engine's native label.formatter (a genuine built-in feature) with a formatter that looks up each point's friendly name from the data array by dataIndex, rather than showing the raw category key or numeric value. Direct-source-diff fix (2026-07-05): Line stroke was neutral gray (should be secondary/chart-2) and per-point dots were multicolored by browser — upstream's 'custom' variant is the per-point NAME label, with uniform chart-2 dots, not multicolor ones. Both fixed.
 
 Status: **ported** · Reference: [shadcn/ui original](https://ui.shadcn.com/charts/line)
 :::

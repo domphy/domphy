@@ -83,8 +83,13 @@ function lineShadowText(props: LineShadowTextProps = {}): DomphyElement {
         zIndex: -1,
         transform: "translate(0.04em, 0.04em)",
         pointerEvents: "none",
+        // Fine lines, not thick bars: upstream colors only the middle ~10% of
+        // each 0.06em tile (its gradient runs `transparent 45%, color 45%,
+        // color 55%, transparent`), so the colored band is 0.006em centered in
+        // a 0.06em period. A 50% duty cycle reads as diagonal bars, not the
+        // hair-thin "line shadow" the effect is named for.
         backgroundImage: (listener: Listener) =>
-          `repeating-linear-gradient(45deg, ${themeColor(listener, "shift-17", shadowColor)} 0, ${themeColor(listener, "shift-17", shadowColor)} 0.03em, transparent 0.03em, transparent 0.06em)`,
+          `repeating-linear-gradient(45deg, transparent 0, transparent 0.027em, ${themeColor(listener, "shift-17", shadowColor)} 0.027em, ${themeColor(listener, "shift-17", shadowColor)} 0.033em, transparent 0.033em, transparent 0.06em)`,
         backgroundClip: "text",
         WebkitBackgroundClip: "text",
         color: "transparent",

@@ -724,6 +724,38 @@ function renderProjectRow(
   } as DomphyElement<"li">;
 }
 
+/** Trailing muted "More" row that upstream nav-projects renders under the list. */
+function renderProjectsMoreRow(): DomphyElement<"li"> {
+  return {
+    li: [
+      {
+        button: [
+          sidebarIcon(ICON_MORE),
+          { span: "More", style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+        ],
+        type: "button",
+        style: {
+          display: "flex",
+          alignItems: "center",
+          width: "100%",
+          gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+          paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+          paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+          borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+          border: "none",
+          background: "none",
+          cursor: "pointer",
+          textAlign: "left",
+          color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
+          backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+        },
+      } as unknown as DomphyElement,
+    ],
+    _key: "__more",
+  } as DomphyElement<"li">;
+}
+
 /** User footer: avatar + two-line label + chevrons, opens an account menu. */
 function renderUserFooter(user: SidebarUser): DomphyElement<"div"> {
   const dropdown: DomphyElement<"div"> = {
@@ -775,5 +807,6 @@ export {
   renderPlainNavRow,
   renderExpandableNavRow,
   renderProjectRow,
+  renderProjectsMoreRow,
   renderUserFooter,
 };

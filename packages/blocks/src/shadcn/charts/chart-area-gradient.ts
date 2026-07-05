@@ -1,8 +1,8 @@
 // shadcn/ui "chart-area" (gradient recipe) — clean-room reimplementation.
 //
-// A two-series area chart where each series' fill fades from a tinted top
-// edge to fully transparent at the baseline, overlapping on the same
-// baseline (not stacked) for a soft glow/wash look.
+// A two-series stacked area chart where each series' fill fades from a tinted
+// top edge toward transparent at its own band's baseline, giving a soft
+// layered glow/wash look.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
@@ -76,6 +76,7 @@ function chartAreaGradient(props: ChartAreaGradientProps = {}): DomphyElement<"d
     series: series.map((s) => ({
       type: "line",
       name: s.label,
+      stack: "total",
       smooth: true,
       showSymbol: false,
       color: s.color,

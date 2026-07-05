@@ -1,9 +1,9 @@
 // shadcn/ui "charts/pie-label" — clean-room reimplementation.
 //
 // The simple pie chart plus outside labels: a thin leader line from each
-// wedge's outer edge to its category name. Because the name is already
-// visible as a label, the hover tooltip is configured to suppress the
-// duplicate name and shows mainly the value. Implemented purely from the
+// wedge's outer edge to its numeric value (matching a default Recharts pie
+// `label`, which prints the dataKey value — not the category name). The
+// hover tooltip still carries the category name. Implemented purely from the
 // block's public functional/visual spec — no upstream source was viewed.
 
 import type { DomphyElement } from "@domphy/core";
@@ -62,11 +62,16 @@ function chartPieLabel(props: ChartPieLabelProps = {}): DomphyElement<"div"> {
   const wedgeNodes: DomphyElement[] = slices.flatMap((slice) => [
     pieWedgePath(slice, {
       outerRadius: PIE_OUTER_RADIUS,
-      // The name is already shown as an on-chart label — suppress it in the
-      // tooltip so only the swatch + value remain.
-      tooltip: { containerRef, tooltipState, valueFormatter, showName: false },
+      // The value is already printed as the on-chart label — the tooltip
+      // carries the category name (matching upstream's `hideLabel` tooltip,
+      // which still shows the resolved name + value row).
+      tooltip: { containerRef, tooltipState, valueFormatter },
     }),
-    ...pieOutsideLabel(slice, { text: slice.datum.name, leaderLine, minFraction: minLabelFraction }),
+    ...pieOutsideLabel(slice, {
+      text: valueFormatter(slice.datum.value),
+      leaderLine,
+      minFraction: minLabelFraction,
+    }),
   ]);
 
   return pieCard([

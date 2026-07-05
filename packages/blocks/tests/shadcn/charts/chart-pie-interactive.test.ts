@@ -22,7 +22,9 @@ describe("chartPieInteractive", () => {
 
     expect(host.querySelector("select")).toBeTruthy();
     expect(host.querySelectorAll("select option").length).toBe(5);
-    expect(host.querySelectorAll("svg path").length).toBe(5);
+    // 5 donut wedges + 5 detached "pop-out" rings (one per slice, only the
+    // selected slice's ring is visible) = 10 paths.
+    expect(host.querySelectorAll("svg path").length).toBe(10);
     // Default selection = first record (Chrome, value 275).
     expect(host.textContent).toContain("275");
   });

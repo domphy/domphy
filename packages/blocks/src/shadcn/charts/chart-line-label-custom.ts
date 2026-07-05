@@ -1,9 +1,11 @@
 // shadcn/ui "charts/line-label-custom" block — clean-room reimplementation.
 //
-// The categorical colored-dots chart (see chartLineDotsColors) with an
-// always-visible text label above every point showing that category's
+// A categorical single line (uniform accent color, uniform-color dots) with
+// an always-visible text label above every point showing that category's
 // display name (looked up from the data, not the raw numeric value) instead
-// of hiding the axis with no label at all.
+// of hiding the axis with no label at all. Unlike chartLineDotsColors, the
+// dots here are one uniform accent color — the "custom" part is the label,
+// not per-point dot colors.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
@@ -47,7 +49,7 @@ function chartLineLabelCustom(props: ChartLineLabelCustomProps = {}): DomphyElem
   const {
     title = "Line Chart - Custom Label",
     description = "Browser share for the last 6 months",
-    seriesColor = "neutral",
+    seriesColor = "secondary",
     data = BROWSER_CATEGORY_DATA,
     trendHeadline = "Trending up by 4.8% this period",
     trendSubtitle = "Showing browser share across five platforms",
@@ -57,6 +59,7 @@ function chartLineLabelCustom(props: ChartLineLabelCustomProps = {}): DomphyElem
   const categories = data.map((point) => point.key);
   const values = data.map((point) => point.value);
   const yDomain = computeYDomain(values);
+  const dotFill = themeColorToken(null, "shift-9", seriesColor);
 
   const option: ChartOption = {
     grid: HIDDEN_AXIS_LINE_GRID,
@@ -97,12 +100,12 @@ function chartLineLabelCustom(props: ChartLineLabelCustomProps = {}): DomphyElem
           values,
           yDomain,
           grid: HIDDEN_AXIS_LINE_GRID,
-          renderMarker({ index, cx, cy, group }) {
+          renderMarker({ cx, cy, group }) {
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle") as SVGCircleElement;
             circle.setAttribute("cx", String(cx));
             circle.setAttribute("cy", String(cy));
             circle.setAttribute("r", String(DOT_RADIUS));
-            circle.setAttribute("fill", themeColorToken(null, "shift-9", data[index].color));
+            circle.setAttribute("fill", dotFill);
             group.appendChild(circle);
           },
         }),

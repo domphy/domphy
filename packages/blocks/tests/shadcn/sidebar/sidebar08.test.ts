@@ -40,6 +40,17 @@ describe("sidebar08", () => {
     expect(host.textContent).toContain("shadcn@example.com");
   });
 
+  it("renders the Platform nav-group label and the trailing projects 'More' row", () => {
+    const { host } = render(sidebar08() as DomphyElement);
+    const labels = Array.from(host.querySelectorAll("aside nav small")).map((el) => el.textContent);
+    expect(labels).toContain("Platform");
+    expect(labels).toContain("Projects");
+    const moreRow = Array.from(host.querySelectorAll("aside nav button")).find(
+      (button) => button.textContent?.trim() === "More",
+    );
+    expect(moreRow).toBeTruthy();
+  });
+
   it("secondary nav links carry no aria-current active-state marker", () => {
     const { host } = render(sidebar08() as DomphyElement);
     const secondaryLinks = Array.from(host.querySelectorAll("aside a")).filter((a) =>

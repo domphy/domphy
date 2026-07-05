@@ -32,7 +32,7 @@ export interface ConfettiProps {
   options?: ConfettiFireOptions;
   /** Called once the canvas is mounted and the imperative handle is ready. */
   onReady?: (handle: ConfettiHandle) => void;
-  /** Fires one burst automatically shortly after mount. Defaults to `false`. */
+  /** Fires one burst automatically shortly after mount. Defaults to `true`. */
   autoFire?: boolean;
   /** Delay (ms) before the automatic burst. Defaults to `150`. */
   autoFireDelay?: number;

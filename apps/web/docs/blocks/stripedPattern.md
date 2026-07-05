@@ -19,14 +19,14 @@ A **Backgrounds** block/component from **[Magic UI](/docs/blocks/magicui)** — 
 |---|---|---|
 | `width` | `number` | Tile width, in SVG user units — controls stripe spacing/density. Defaults to `10`. |
 | `height` | `number` | Tile height, in SVG user units. Defaults to `10`. |
-| `direction` | `StripedPatternDirection` | `"right"` slants stripes bottom-left to top-right ("/"); `"left"` mirrors to "\". Defaults to `"right"`. |
+| `direction` | `StripedPatternDirection` | `"left"` slants stripes bottom-left to top-right ("/"); `"right"` mirrors to "\". Defaults to `"left"`. |
 | `strokeDasharray` | `string` | Extra `stroke-dasharray` applied to each stripe line, for broken/dashed stripes. |
 | `color` | `ThemeColor` | Theme color family for the stripe stroke. Defaults to `"neutral"`. |
 | `children` | `DomphyElement \| DomphyElement[]` | Foreground content layered above the pattern. Defaults to a small demo panel. |
 | `style` | `StyleObject` | — |
 
 ::: details Implementation notes
-Full clean-room reimplementation of the three-line-per-tile diagonal-stripe technique (main diagonal + two 10%-tile-sized corner fragments) so the stripe continues unbroken across tile seams, using only namespace-safe SVG tags (svg/defs/pattern/line/rect). `direction` ('left'/'right') is implemented by mirroring line endpoint x-coordinates per the spec's own research note, not a CSS transform. Stroke uses currentColor (no themeColor on the line elements themselves) so it inherits the caller's context color, avoiding missing-color entirely. Same demo-wrapper deviation as hexagonPattern (self-sized dataTone panel with default heading/paragraph content for the zero-arg factory contract; the reusable pattern is the inner &lt;svg&gt;). Default tile size 10x10 and default direction 'right' are this port's own judgment (spec didn't state a direction default). doctor CLI: 0 diagnostics.
+Full clean-room reimplementation of the three-line-per-tile diagonal-stripe technique (main diagonal + two 10%-tile-sized corner fragments) so the stripe continues unbroken across tile seams, using only namespace-safe SVG tags (svg/defs/pattern/line/rect). `direction` ('left'/'right') is implemented by mirroring line endpoint x-coordinates per the spec's own research note, not a CSS transform. Stroke uses currentColor (no themeColor on the line elements themselves) so it inherits the caller's context color, avoiding missing-color entirely. Same demo-wrapper deviation as hexagonPattern (self-sized dataTone panel with default heading/paragraph content for the zero-arg factory contract; the reusable pattern is the inner &lt;svg&gt;). Default tile size 10x10 and default direction 'right' are this port's own judgment (spec didn't state a direction default). doctor CLI: 0 diagnostics. Direct-source-diff fix (2026-07-05): The `direction` prop's mapping was inverted versus upstream ("right"/"left" mapped to the opposite stripe angle from upstream's own convention), and stroke width was 1 instead of upstream's 0.5. Both fixed.
 
 Status: **ported** · Reference: [Magic UI original](https://magicui.design/docs/components/striped-pattern)
 :::

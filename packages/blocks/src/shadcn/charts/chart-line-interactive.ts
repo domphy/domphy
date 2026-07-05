@@ -180,7 +180,7 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
           $: [small({ color: "neutral" })],
           style: { color: (l: Listener) => themeColor(l, "shift-11", "neutral") },
         } as DomphyElement<"small">,
-        { h4: String(totals[key]), $: [heading({ color: "neutral" })] } as DomphyElement<"h4">,
+        { h4: totals[key].toLocaleString("en-US"), $: [heading({ color: "neutral" })] } as DomphyElement<"h4">,
       ],
       type: "button",
       dataActive: (listener: Listener) => (activeSeriesKey.get(listener) === key ? "true" : "false"),

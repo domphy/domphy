@@ -19,6 +19,7 @@ import {
   renderExpandableNavRow,
   renderPlainNavRow,
   renderProjectRow,
+  renderProjectsMoreRow,
   renderTeamSwitcher,
   renderUserFooter,
   sidebarBackdrop,
@@ -172,6 +173,14 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
       {
         nav: [
           {
+            small: "Platform",
+            style: {
+              display: (l: Listener) => (collapsed.get(l) ? "none" : "block"),
+              paddingInline: themeSpacing(3),
+            },
+            $: [small({ color: "neutral" })],
+          } as unknown as DomphyElement,
+          {
             ul: navMainRows,
             style: {
               listStyle: "none",
@@ -193,7 +202,10 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
                 $: [small({ color: "neutral" })],
               } as unknown as DomphyElement,
               {
-                ul: projects.map((project) => renderProjectRow(project, collapsed)),
+                ul: [
+                  ...projects.map((project) => renderProjectRow(project, collapsed)),
+                  renderProjectsMoreRow(),
+                ],
                 style: {
                   listStyle: "none",
                   margin: "0",
@@ -204,7 +216,14 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
                 },
               } as unknown as DomphyElement,
             ],
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(1), marginTop: themeSpacing(4) },
+            // Upstream hides the whole projects group in icon-rail mode
+            // (`group-data-[collapsible=icon]:hidden`).
+            style: {
+              display: (l: Listener) => (collapsed.get(l) ? "none" : "flex"),
+              flexDirection: "column",
+              gap: themeSpacing(1),
+              marginTop: themeSpacing(4),
+            },
           } as unknown as DomphyElement,
         ],
         style: {

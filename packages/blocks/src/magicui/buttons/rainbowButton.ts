@@ -1,21 +1,27 @@
-// Magic UI "Rainbow Button" — clean-room reimplementation.
+// Magic UI "Rainbow Button" — verified directly against the real upstream
+// source (registry/magicui/rainbow-button.tsx, MIT-licensed).
 //
-// A pill-shaped call-to-action whose fill is a multi-hue gradient that pans
-// continuously sideways, with a blurred duplicate of the same gradient
-// sitting behind the shape as a soft colorful glow. Implemented purely from
-// the block's public functional/visual spec — no upstream Magic UI source
-// was viewed or copied.
+// Real upstream technique (NOT a full rainbow-filled face — an earlier
+// version of this port got that wrong): a solid, theme-flipping flat face
+// (near-black in light mode, near-white in dark mode for `default`; the
+// literal inverse for `outline`) painted via THREE stacked backgrounds —
+// (1) the flat color clipped to the padding-box (interior only), (2) the
+// SAME flat color, faded top-to-transparent, clipped to the border-box
+// (covers the border ring), (3) the panning rainbow gradient clipped to the
+// border-box, sitting behind both. Because layer (1) only covers the
+// interior, the border ring shows layer (2) fading into layer (3) — so the
+// rainbow reads as a thin, fading strip at the BOTTOM of the border only,
+// not a full ring and never across the whole face. A small blurred rainbow
+// bar centered just under the button (not a symmetric halo around it) adds
+// the ambient glow. `outline` uses the identical technique with the flat
+// face inverted and its own bottom border suppressed so the same fade
+// shows through unobstructed.
 //
-// Technique: the gradient is painted at 200% background-size and a
-// linear-infinite keyframe animates `backgroundPosition` from "0% 50%" to
-// "200% 50%" — since the animation's end offset matches the oversized
-// background-size, the pattern tiles seamlessly with no visible seam (the
-// same relationship `animatedGradientText.ts` already uses at 300%/300%).
-// The glow is the identical gradient rendered on a second, larger, heavily
-// blurred layer placed BEHIND the button in DOM order inside a shared
-// `position: relative` wrapper (per the block's own domSketch) rather than
-// via a negative z-index trick on the button itself, so it never fights the
-// button's own stacking context.
+// The gradient is painted at 200% background-size and a linear-infinite
+// keyframe animates `backgroundPosition` from "0% 50%" to "200% 50%" —
+// since the animation's end offset matches the oversized background-size,
+// the pattern tiles seamlessly with no visible seam (the same relationship
+// `animatedGradientText.ts` already uses at 300%/300%).
 //
 // The upstream spec's rainbow is five literal hues (red/violet/blue/cyan/
 // yellow-green). Domphy's doctor rules forbid raw hex/rgb color literals on
@@ -25,7 +31,11 @@
 // the closest built-in role to violet, same substitution `animatedGradientText`
 // documents) → "primary" (blue) → "info" (cyan) → "success" (yellow-green).
 // This keeps the sweep fully theme-aware (it follows light/dark theme swaps)
-// at the cost of not accepting an arbitrary caller-supplied hex list.
+// at the cost of not accepting an arbitrary caller-supplied hex list. The
+// flat face's own fade-stop opacity (upstream's `rgba(...,.6)` mid-stop) is
+// expressed via `color-mix()` against `transparent` (the same idiom this
+// package's `demoContentScrim.ts` shared helper already uses), since
+// `themeColor()` itself only ever returns a solid `var(--x-n)` reference.
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
@@ -37,9 +47,11 @@ export type RainbowButtonSize = "sm" | "default" | "lg" | "icon";
 export interface RainbowButtonProps {
   /** Button label content. Defaults to `"Get unlimited access"`. */
   children?: DomphyElement | DomphyElement[] | string;
-  /** `"default"` fills the whole face with the animated gradient; `"outline"` keeps a
-   * neutral flat interior and only rings the border with the animated gradient. Defaults
-   * to `"default"`. */
+  /** `"default"` is a solid dark (light-theme) / light (dark-theme) face with the
+   * animated rainbow showing only as a thin fading strip along the bottom border;
+   * `"outline"` is the literal inverse face with a visible border on 3 sides and the
+   * same bottom-only rainbow strip. Neither variant fills the whole face with the
+   * gradient. Defaults to `"default"`. */
   variant?: RainbowButtonVariant;
   /** Standard button size preset. Defaults to `"default"`. */
   size?: RainbowButtonSize;
@@ -113,52 +125,78 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
 
   const isOutline = variant === "outline";
 
-  const fillStyle = isOutline
-    ? {
-        // Classic dual-background-layer "gradient border" trick: an opaque neutral
-        // layer clipped to the padding-box sits over an animated gradient layer
-        // clipped to the border-box, so only a thin ring of the gradient shows.
-        backgroundImage: (listener: Listener) =>
-          `linear-gradient(${themeColor(listener, "inherit", "neutral")}, ${themeColor(listener, "inherit", "neutral")}), linear-gradient(90deg, ${gradientStops(listener)})`,
-        backgroundOrigin: "border-box",
-        backgroundClip: "padding-box, border-box",
-        backgroundSize: "auto, 200% 100%",
-        backgroundRepeat: "no-repeat, repeat",
-        border: "2px solid transparent",
-        color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
-        animation: flowAnimation,
-        [`@keyframes ${animationName}`]: flowKeyframes,
-      }
-    : {
-        backgroundImage: (listener: Listener) => `linear-gradient(90deg, ${gradientStops(listener)})`,
-        backgroundSize: "200% 100%",
-        color: (listener: Listener) => themeColor(listener, "shift-0", "neutral"),
-        animation: flowAnimation,
-        [`@keyframes ${animationName}`]: flowKeyframes,
-      };
+  // Matches upstream's own two variants exactly: `default` is this package's
+  // established "solid dark button" token (shift-17 — the same one shadcn
+  // auth forms' submit buttons use), `outline` is its literal inverse
+  // (shift-0) — neither is tied to the rainbow itself.
+  const faceTone = isOutline ? "shift-0" : "shift-17";
+  const textTone = isOutline ? "shift-17" : "shift-0";
+  // Upstream's mid-fade stop is a partial-opacity version of the same flat
+  // color (`rgba(...,.6)`) — `themeColor()` only ever returns a solid
+  // `var(--x-n)` reference, so alpha is layered on via `color-mix()` against
+  // `transparent`, the same idiom `demoContentScrim.ts` already uses.
+  const fadedFace = (listener: Listener) =>
+    `color-mix(in srgb, ${themeColor(listener, faceTone, "neutral")} 60%, transparent)`;
 
-  // Decorative blurred halo behind the button — same panning gradient, enlarged,
-  // heavily blurred and dimmed, offset slightly downward to fake a colored drop-shadow.
-  // `_doctorDisable` isn't part of core's strict `PartialElement` type — build through
-  // an untyped literal, then assert, so the excess-property check doesn't fire (mirrors
-  // `overlayCanvas` in confetti.ts).
+  const fillStyle = {
+    // Real upstream technique: THREE stacked backgrounds, not a single
+    // full-face gradient — (1) the flat face clipped to the padding-box
+    // (interior only), (2) the SAME flat color faded top-opaque to
+    // bottom-transparent, clipped to the border-box, (3) the panning rainbow,
+    // also clipped to the border-box, behind both. Layer (1) hides the
+    // interior completely; layer (2) only lets layer (3) peek through where
+    // it has faded away — a thin, fading rainbow strip at the BOTTOM of the
+    // border only, never a full ring and never across the whole face.
+    backgroundImage: (listener: Listener) =>
+      [
+        `linear-gradient(${themeColor(listener, faceTone, "neutral")}, ${themeColor(listener, faceTone, "neutral")})`,
+        `linear-gradient(${themeColor(listener, faceTone, "neutral")} 50%, ${fadedFace(listener)} 80%, transparent)`,
+        `linear-gradient(90deg, ${gradientStops(listener)})`,
+      ].join(", "),
+    backgroundOrigin: "border-box",
+    backgroundClip: "padding-box, border-box, border-box",
+    backgroundSize: "auto, auto, 200% 100%",
+    backgroundRepeat: "no-repeat, no-repeat, repeat",
+    // `outline` keeps a real border stroke on 3 sides (upstream's
+    // `border-input`) but suppresses the BOTTOM one specifically, so nothing
+    // covers the fading rainbow strip there; `default` uses a fully
+    // transparent border on all sides (upstream's own `border` is only ever
+    // a spacer for the background layers to paint into, never a visible
+    // stroke).
+    ...(isOutline
+      ? {
+          borderBlockStart: (listener: Listener) => `2px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          borderInlineStart: (listener: Listener) => `2px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          borderInlineEnd: (listener: Listener) => `2px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          borderBlockEnd: "2px solid transparent",
+        }
+      : { border: "2px solid transparent" }),
+    color: (listener: Listener) => themeColor(listener, textTone, "neutral"),
+    animation: flowAnimation,
+    [`@keyframes ${animationName}`]: flowKeyframes,
+  };
+
+  // Small blurred rainbow bar centered just under the button — NOT a
+  // symmetric halo around the whole shape (upstream's `before:` pseudo is a
+  // 60%-wide, 20%-tall bar sitting 20% below the button's own bottom edge,
+  // blurred 0.75rem/12px). `_doctorDisable` isn't part of core's strict
+  // `PartialElement` type — build through an untyped literal, then assert,
+  // so the excess-property check doesn't fire (mirrors `overlayCanvas` in
+  // confetti.ts).
   const glowLayer = {
     span: null,
     ariaHidden: "true",
     _doctorDisable: "missing-color",
     style: {
       position: "absolute",
-      // Enlarged more at the sides/bottom than the top, and blurred, so the halo
-      // reads as a soft colorful drop-shadow rather than a symmetric outline.
-      top: "0",
-      left: "-6px",
-      right: "-6px",
-      bottom: "-10px",
-      borderRadius: "inherit",
+      insetBlockEnd: "-20%",
+      insetInlineStart: "50%",
+      transform: "translateX(-50%)",
+      width: "60%",
+      height: "20%",
       backgroundImage: (listener: Listener) => `linear-gradient(90deg, ${gradientStops(listener)})`,
       backgroundSize: "200% 100%",
-      filter: "blur(20px)",
-      opacity: 0.65,
+      filter: "blur(12px)",
       zIndex: -1,
       animation: flowAnimation,
       [`@keyframes ${animationName}`]: flowKeyframes,

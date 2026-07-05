@@ -3,9 +3,10 @@
 // infinite, seamlessly looping horizontal/vertical strip of repeated content.
 // The item set is duplicated `repeat` times inside the track so the strip
 // always spans wider (or taller) than its viewport regardless of duration,
-// and a single linear (no-easing) CSS keyframe loop translates the track by
-// exactly one item-group's width/height — since every group is identical,
-// the loop point is imperceptible.
+// and each group runs the same linear (no-easing) CSS keyframe loop that
+// translates it by exactly one group-pitch (its own width/height + the
+// inter-group gap); since consecutive groups are identical and offset by that
+// same pitch, the reset point is seamless.
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
@@ -176,18 +177,25 @@ function marquee(props: MarqueeProps = {}): DomphyElement<"div"> {
   const sourceItems = props.items ?? DEFAULT_REVIEWS.map((review) => reviewChip(review));
 
   const axis = orientation === "vertical" ? "Y" : "X";
+  // One group-pitch = the group's own extent (100%) + one inter-group gap.
+  // Translating each group by exactly this makes the loop truly seamless;
+  // translating the whole track by -100%/repeat instead leaves a gap/repeat
+  // discontinuity at the reset (the gap between groups never divides evenly).
   const keyframes = {
     from: { transform: `translate${axis}(0)` },
-    to: { transform: `translate${axis}(calc(-100% / ${repeatCount}))` },
+    to: { transform: `translate${axis}(calc(-100% - ${themeSpacing(gapUnits)}))` },
   };
   const animationName = `marquee-track-${hashString(JSON.stringify(keyframes))}`;
+  const animation = `${animationName} ${duration}s linear infinite ${reverse ? "reverse" : "normal"}`;
 
   const groupStyle: StyleObject = {
     display: "flex",
     flexDirection: orientation === "vertical" ? "column" : "row",
     flexShrink: 0,
     gap: themeSpacing(gapUnits),
-  };
+    animation,
+    [`@keyframes ${animationName}`]: keyframes,
+  } as StyleObject;
 
   const groups: DomphyElement<"div">[] = Array.from(
     { length: repeatCount },
@@ -213,8 +221,6 @@ function marquee(props: MarqueeProps = {}): DomphyElement<"div"> {
       flexShrink: 0,
       gap: themeSpacing(gapUnits),
       width: orientation === "horizontal" ? "max-content" : "100%",
-      animation: `${animationName} ${duration}s linear infinite ${reverse ? "reverse" : "normal"}`,
-      [`@keyframes ${animationName}`]: keyframes,
       ...(props.trackStyle ?? {}),
     } as StyleObject,
   };
@@ -230,7 +236,7 @@ function marquee(props: MarqueeProps = {}): DomphyElement<"div"> {
       display: "flex",
       width: orientation === "horizontal" ? "100%" : undefined,
       height: orientation === "vertical" ? themeSpacing(96) : undefined,
-      ...(pauseOnHover ? { "&:hover [data-track]": { animationPlayState: "paused" } } : {}),
+      ...(pauseOnHover ? { "&:hover [data-track] > div": { animationPlayState: "paused" } } : {}),
       ...(props.style ?? {}),
     },
   };

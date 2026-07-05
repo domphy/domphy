@@ -56,8 +56,8 @@ export interface DotPatternProps {
 let dotPatternInstanceCounter = 0;
 
 const GLOW_PULSE_KEYFRAMES = {
-  "0%,100%": { transform: "scale(0.85)", opacity: "0.6" },
-  "50%": { transform: "scale(1.25)", opacity: "1" },
+  "0%,100%": { transform: "scale(1)", opacity: "0.4" },
+  "50%": { transform: "scale(1.5)", opacity: "1" },
 };
 
 /**
@@ -146,8 +146,8 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
         circle.setAttribute("r", String(dotRadius));
         if (glow) {
           circle.setAttribute("fill", `url(#${glowGradientId})`);
-          const durationSeconds = 1.6 + Math.random() * 1.4;
-          const delaySeconds = Math.random() * 3;
+          const durationSeconds = 2 + Math.random() * 3;
+          const delaySeconds = Math.random() * 5;
           circle.style.transformBox = "fill-box";
           circle.style.transformOrigin = "center";
           circle.style.animation = `${glowAnimationName} ${durationSeconds}s ease-in-out ${delaySeconds}s infinite`;

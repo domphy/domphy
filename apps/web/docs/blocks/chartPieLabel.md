@@ -28,7 +28,7 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `minLabelFraction` | `number` | Slices smaller than this fraction of the total are left unlabeled to avoid crowding. |
 
 ::: details Implementation notes
-Adds outside category-name labels with thin leader lines (own trigonometry-based placement, hidden below a minLabelFraction to avoid crowding) and suppresses the duplicate name in the tooltip (showName:false, value-only). Same mount-sweep approximation caveat as chartPieSimple.
+Adds outside category-name labels with thin leader lines (own trigonometry-based placement, hidden below a minLabelFraction to avoid crowding) and suppresses the duplicate name in the tooltip (showName:false, value-only). Same mount-sweep approximation caveat as chartPieSimple. Direct-source-diff fix (2026-07-05): Outer labels printed the category NAME — upstream's default Recharts &lt;Pie label&gt; prints the numeric VALUE, with the name only in the tooltip. Fixed.
 
 Status: **ported** · Reference: [shadcn/ui original](https://ui.shadcn.com/charts/pie)
 :::

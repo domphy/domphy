@@ -11,7 +11,7 @@
 
 import type { DomphyElement } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
-import { strong } from "@domphy/ui";
+import { heading } from "@domphy/ui";
 import {
   NARROW_CARD_WIDTH,
   brandBadge,
@@ -70,21 +70,37 @@ function Login05(props: Login05Props = {}): DomphyElement<"div"> {
     onSubmit,
   } = props;
 
+  // Upstream login-05 stacks the header vertically and centers it: brand mark
+  // on top, then the welcome heading, then the "Don't have an account?" line —
+  // not a horizontal logo-left / sign-up-right split.
   const headerRow: DomphyElement<"div"> = {
     div: [
-      {
-        div: [brandBadge(), { strong: title, $: [strong()] }],
-        style: { display: "flex", alignItems: "center", gap: themeSpacing(2) },
-      },
-      signUpLine({ promptText: signUpPrompt, linkLabel: signUpLabel, href: signUpHref, align: "start" }),
+      brandBadge(),
+      { h1: title, $: [heading()] },
+      signUpLine({ promptText: signUpPrompt, linkLabel: signUpLabel, href: signUpHref, align: "center" }),
     ],
     style: {
       display: "flex",
+      flexDirection: "column",
       alignItems: "center",
-      justifyContent: "space-between",
-      flexWrap: "wrap",
+      textAlign: "center",
       gap: themeSpacing(2),
       marginBlockEnd: themeSpacing(6),
+    },
+  };
+
+  // Upstream places the two provider buttons in a `sm:grid-cols-2` grid —
+  // stacked on mobile, side by side from the `sm` breakpoint up.
+  const oauthRow: DomphyElement<"div"> = {
+    div: [
+      oauthButton({ brand: "apple", visibleLabel: appleButtonLabel, accessibleLabel: appleButtonLabel, onClick: onAppleClick }),
+      oauthButton({ brand: "google", visibleLabel: googleButtonLabel, accessibleLabel: googleButtonLabel, onClick: onGoogleClick }),
+    ],
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr",
+      gap: themeSpacing(3),
+      "@media (min-width: 40em)": { gridTemplateColumns: "1fr 1fr" },
     },
   };
 
@@ -98,8 +114,7 @@ function Login05(props: Login05Props = {}): DomphyElement<"div"> {
               emailField({ id: "login05-email", fieldLabel: emailLabel, placeholder: emailPlaceholder }),
               submitButton(primaryButtonLabel),
               dividerRow(dividerText),
-              oauthButton({ brand: "apple", visibleLabel: appleButtonLabel, accessibleLabel: appleButtonLabel, onClick: onAppleClick }),
-              oauthButton({ brand: "google", visibleLabel: googleButtonLabel, accessibleLabel: googleButtonLabel, onClick: onGoogleClick }),
+              oauthRow,
             ],
             onSubmit: (event) => {
               event.preventDefault();

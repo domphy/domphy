@@ -12,7 +12,7 @@ import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { heading, paragraph, strong } from "@domphy/ui";
 import {
-  MOBILE_MEDIA_QUERY,
+  WIDE_SPLIT_MEDIA_QUERY,
   coverImage,
   dividerRow,
   emailField,
@@ -147,7 +147,7 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
         div: [coverImage({ src: coverImageSrc, alt: coverImageAlt, dimInDarkMode: dimCoverInDarkMode })],
         style: {
           minWidth: "0",
-          [MOBILE_MEDIA_QUERY]: { display: "none" },
+          [WIDE_SPLIT_MEDIA_QUERY]: { display: "none" },
         },
       },
     ],
@@ -155,7 +155,7 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
       minHeight: "100dvh",
-      [MOBILE_MEDIA_QUERY]: { gridTemplateColumns: "1fr" },
+      [WIDE_SPLIT_MEDIA_QUERY]: { gridTemplateColumns: "1fr" },
     },
   };
 }

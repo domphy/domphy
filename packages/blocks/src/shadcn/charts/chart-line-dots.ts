@@ -11,7 +11,7 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
+import { type ThemeColor, themeColorToken } from "@domphy/theme";
 import type { ChartOption } from "@domphy/chart";
 import {
   DEFAULT_LINE_GRID,
@@ -24,6 +24,7 @@ import {
   hiddenLabelYAxis,
   hoverDotOverlay,
   monthCategoryXAxis,
+  staticPointMarkersOverlay,
   trendFooter,
 } from "./chart-line-shared.js";
 
@@ -66,6 +67,7 @@ function chartLineDots(props: ChartLineDotsProps = {}): DomphyElement<"div"> {
   const categories = data.map((point) => point.month);
   const values = data.map((point) => point.desktop);
   const yDomain = computeYDomain(values);
+  const dotFill = themeColorToken(null, "shift-9", seriesColor);
 
   const option: ChartOption = {
     grid: DEFAULT_LINE_GRID,
@@ -82,8 +84,10 @@ function chartLineDots(props: ChartLineDotsProps = {}): DomphyElement<"div"> {
         name: seriesLabel,
         data: values,
         smooth: true,
-        showSymbol: true,
-        symbolSize: dotRadius * 2,
+        // Resting dots are drawn by the overlay below as solid filled circles
+        // (upstream `dot={{ fill: color }}`); the engine's built-in line symbol
+        // is a hollow white-fill circle, so it is disabled here.
+        showSymbol: false,
         lineStyle: { width: 2 },
         color: seriesColor,
       },
@@ -96,6 +100,20 @@ function chartLineDots(props: ChartLineDotsProps = {}): DomphyElement<"div"> {
     plot: chartPlot({
       option,
       overlays: [
+        staticPointMarkersOverlay({
+          categories,
+          values,
+          yDomain,
+          grid: DEFAULT_LINE_GRID,
+          renderMarker({ cx, cy, group }) {
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle") as SVGCircleElement;
+            circle.setAttribute("cx", String(cx));
+            circle.setAttribute("cy", String(cy));
+            circle.setAttribute("r", String(dotRadius));
+            circle.setAttribute("fill", dotFill);
+            group.appendChild(circle);
+          },
+        }),
         hoverDotOverlay({
           categories,
           values,

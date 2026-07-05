@@ -614,6 +614,9 @@ export interface RadarChartProps {
   dotRadius?: number;
   strokeOnly?: boolean;
   customLabels?: boolean;
+  /** Plain month-name axis labels around the perimeter. Off = bare perimeter,
+   * matching recipes that omit the angle axis entirely (chartRadarRadius). */
+  showAngleLabels?: boolean;
   labelTopExtraOffset?: number;
   tooltipShowLabel?: boolean;
   tooltipIndicator?: RadarTooltipIndicator;
@@ -640,6 +643,7 @@ export function renderRadarChart(props: RadarChartProps): DomphyElement<"div"> {
     dotRadius = 3,
     strokeOnly = false,
     customLabels = false,
+    showAngleLabels = true,
     labelTopExtraOffset,
     tooltipShowLabel = true,
     tooltipIndicator = "swatch",
@@ -666,7 +670,9 @@ export function renderRadarChart(props: RadarChartProps): DomphyElement<"div"> {
 
   const labelElements = customLabels
     ? renderRadarCustomLabels({ data, series, plotRadius, topExtraOffset: labelTopExtraOffset })
-    : renderRadarAngleLabels({ categories, plotRadius, topExtraOffset: labelTopExtraOffset });
+    : showAngleLabels
+      ? renderRadarAngleLabels({ categories, plotRadius, topExtraOffset: labelTopExtraOffset })
+      : [];
 
   const seriesGroups = series.map((entry) =>
     renderRadarSeriesShape({ data, series: entry, count, maxValue, plotRadius, showDots, dotRadius, strokeOnly }),

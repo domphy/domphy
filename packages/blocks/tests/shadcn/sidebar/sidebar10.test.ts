@@ -68,6 +68,28 @@ describe("sidebar10", () => {
     expect(() => moreActions.click()).not.toThrow();
   });
 
+  it("opens the Notion-style page-actions menu with the upstream grouped items", async () => {
+    const { host } = render(sidebar10() as DomphyElement);
+    const moreActions = host.querySelector('header button[aria-label="More actions"]') as HTMLButtonElement;
+    moreActions.click();
+    // Popover content mounts on a ~100ms open timer.
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const menuText = document.body.textContent ?? "";
+    expect(menuText).toContain("Customize Page");
+    expect(menuText).toContain("Move to Trash");
+    expect(menuText).toContain("Version History");
+    expect(menuText).toContain("Export");
+    // The old invented items are gone.
+    expect(menuText).not.toContain("Invite members");
+  });
+
+  it("renders workspace sub-pages with a leading emoji", () => {
+    const { host } = render(sidebar10() as DomphyElement);
+    // Engineering is pre-expanded; its pages carry per-page emoji.
+    expect(host.textContent).toContain("🏛️");
+    expect(host.textContent).toContain("Architecture");
+  });
+
   it("accepts custom teams and workspaces data", () => {
     const { host } = render(
       sidebar10({

@@ -33,8 +33,16 @@ export const SPLIT_CARD_WIDTH = themeSpacing(200);
 /**
  * Media-query style key (already prefixed with `@media`) below which a
  * cover-photo column is hidden and a split layout collapses to one column.
+ * This is the `md` breakpoint (768px) — used by login-04, whose upstream
+ * hides its image column at `md`.
  */
 export const MOBILE_MEDIA_QUERY = "@media (max-width: 47.9375em)" as const;
+/**
+ * Same as {@link MOBILE_MEDIA_QUERY} but at the `lg` breakpoint (1024px).
+ * login-02's upstream collapses its split / hides its cover column at `lg`,
+ * not `md`, so it needs this wider threshold.
+ */
+export const WIDE_SPLIT_MEDIA_QUERY = "@media (max-width: 63.9375em)" as const;
 
 // ---------------------------------------------------------------------------
 // Hand-authored brand glyphs (24x24, single fill path, currentColor).

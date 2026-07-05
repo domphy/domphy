@@ -1,8 +1,8 @@
 // shadcn/ui "chart-bar" (multiple recipe) — clean-room reimplementation.
 //
 // A two-series grouped bar chart: each month shows a tight desktop/mobile
-// bar pair, with only vertical gridlines and a shared hover tooltip listing
-// both series plus a vertical cursor guide line.
+// bar pair, with only horizontal gridlines and a shared hover tooltip
+// listing both series' values.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
@@ -70,9 +70,9 @@ function chartBarMultiple(props: ChartBarMultipleProps = {}): DomphyElement<"div
     // already renders one color-dot + series-name + value row per series,
     // matching the spec's "shared tooltip listing both series' values with
     // small color swatches" without a per-month title line.
-    tooltip: { trigger: "axis" },
-    xAxis: chartBarCategoryXAxis(categories, { splitLine: true }),
-    yAxis: chartBarHiddenValueYAxis({ splitLine: false, min: 0, max: domainMax }),
+    tooltip: { trigger: "axis", axisPointer: { type: "none" } },
+    xAxis: chartBarCategoryXAxis(categories),
+    yAxis: chartBarHiddenValueYAxis({ splitLine: true, min: 0, max: domainMax }),
     grid: { left: 8, right: 8, top: 16, bottom: 24 },
     series: series.map((s) => ({
       type: "bar",

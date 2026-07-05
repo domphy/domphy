@@ -1,9 +1,12 @@
 // shadcn/ui "charts/tooltip" (formatter recipe) — clean-room reimplementation.
 //
-// Keeps the default date header and color-dot indicator, but renders each
-// row's value through a custom formatter: a monospace/tabular number
-// immediately followed by a small, lighter-colored unit abbreviation, with a
-// minimum row width so the numbers line up as their digit count changes.
+// Drops the date header AND the leading color indicator, replacing each row's
+// content with a custom formatter: the series name followed by a
+// monospace/tabular number and a small, lighter-colored unit abbreviation,
+// with a minimum row width so the numbers line up as their digit count
+// changes. Matches the upstream recipe, whose `hideLabel` + custom
+// `formatter` (which renders no indicator swatch) produce the same
+// header-less, swatch-less rows.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
@@ -53,6 +56,8 @@ function chartTooltipFormatter(props: ChartTooltipFormatterProps = {}): DomphyEl
 
   const categories = data.map((point) => formatWeekdayShort(point.date));
   const formatter = activityTooltipFormatter(data, series, {
+    indicator: "none",
+    showLabel: false,
     renderValue: monoUnitValueRenderer(unit),
     minRowWidthPx,
   });

@@ -7,7 +7,7 @@
 
 import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { button, menu, popover, small, strong } from "@domphy/ui";
+import { button, inputText, menu, popover, small, strong } from "@domphy/ui";
 
 /** The two placements this sidebar's dropdowns flip between (subset of
  * @domphy/floating's full `Placement` union — narrowed locally so this
@@ -189,11 +189,39 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
           { strong: optInCard.title, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
           { small: optInCard.description, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
           {
-            button: optInCard.buttonLabel,
-            type: "button",
-            onClick: () => optInCard.onSubmit?.(),
-            style: { width: "100%" },
-            $: [button({ color: "primary" })],
+            form: [
+              {
+                input: null,
+                type: "email",
+                ariaLabel: "Email",
+                placeholder: "Email",
+                style: { width: "100%" },
+                // inputText() hardcodes type="text" (incl. an _onSchedule that
+                // re-asserts it); compose a later _onSchedule to restore the
+                // email type so upstream's `type="email"` validation is kept.
+                $: [
+                  inputText({ color: "neutral", accentColor: "primary" }),
+                  {
+                    _onSchedule: (_node: ElementNode, element: HTMLInputElement) => {
+                      element.type = "email";
+                    },
+                  },
+                ],
+              } as unknown as DomphyElement,
+              {
+                button: optInCard.buttonLabel,
+                type: "submit",
+                style: { width: "100%" },
+                $: [button({ color: "primary" })],
+              } as unknown as DomphyElement,
+            ],
+            // Handle submit on the form (covers both button click and
+            // Enter-in-field) so the demo never triggers a real navigation.
+            onSubmit: (e: Event) => {
+              e.preventDefault();
+              optInCard.onSubmit?.();
+            },
+            style: { display: "grid", gap: themeSpacing(2.5) },
           } as unknown as DomphyElement,
         ],
         dataTone: "shift-2",

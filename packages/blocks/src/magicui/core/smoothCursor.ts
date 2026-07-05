@@ -37,6 +37,14 @@ const DEFAULT_SPRING: Required<SmoothCursorSpring> = {
   restDelta: 0.001,
 };
 
+// The movement "squish" uses its own snappier spring, independent of the
+// position spring (the reference drives scale with a separate spring). The
+// glyph shrinks to SCALE_ACTIVE while the pointer moves and springs back to 1.
+const SCALE_ACTIVE = 0.95;
+const SCALE_STIFFNESS = 500;
+const SCALE_DAMPING = 35;
+const SCALE_REST_MS = 150;
+
 /** Default cursor graphic — a simple filled arrow/pointer silhouette, tip pointing up-left
  * so a 0deg rotation reads as "neutral/idle" before any direction-of-travel rotation is applied. */
 function defaultCursorGlyph(color: ThemeColor): DomphyElement<"svg"> {
@@ -100,9 +108,15 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
       let hasPosition = false;
       let frameHandle: number | null = null;
       let lastTime = 0;
+      let scale = 1;
+      let scaleVelocity = 0;
+      let targetScale = 1;
+      let lastMoveTime = 0;
 
       const applyTransform = () => {
-        element.style.transform = `translate(${positionX}px, ${positionY}px) rotate(${angle}deg)`;
+        // translate(-50%, -50%) centers the glyph on the pointer (the reference
+        // applies the same -50%/-50% offset); scale() applies the movement squish.
+        element.style.transform = `translate(${positionX}px, ${positionY}px) translate(-50%, -50%) rotate(${angle}deg) scale(${scale})`;
       };
 
       const step = (time: number) => {
@@ -138,12 +152,21 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
           angle = (Math.atan2(positionY - previousY, positionX - previousX) * 180) / Math.PI + 90;
         }
 
+        // Release the squish once the pointer has been idle past the rest window.
+        if (time - lastMoveTime > SCALE_REST_MS) targetScale = 1;
+        const scaleAcceleration =
+          (-SCALE_STIFFNESS * (scale - targetScale) - SCALE_DAMPING * scaleVelocity) / spring.mass;
+        scaleVelocity += scaleAcceleration * deltaSeconds;
+        scale += scaleVelocity * deltaSeconds;
+
         applyTransform();
 
         const settled =
           Math.abs(targetX - positionX) < spring.restDelta &&
           Math.abs(targetY - positionY) < spring.restDelta &&
-          Math.hypot(velocityX, velocityY) < spring.restDelta;
+          Math.hypot(velocityX, velocityY) < spring.restDelta &&
+          Math.abs(targetScale - scale) < spring.restDelta &&
+          Math.abs(scaleVelocity) < spring.restDelta;
 
         frameHandle = settled ? null : requestAnimationFrame(step);
       };
@@ -158,6 +181,8 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
       const handleMove = (event: MouseEvent) => {
         targetX = event.clientX;
         targetY = event.clientY;
+        targetScale = SCALE_ACTIVE;
+        lastMoveTime = performance.now();
         if (!hasPosition) {
           positionX = targetX;
           positionY = targetY;

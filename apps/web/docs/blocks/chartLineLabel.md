@@ -27,7 +27,7 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `trendDirection` | `"up" \| "down"` | — |
 
 ::: details Implementation notes
-Always-on numeric labels use @domphy/chart's native LineSeriesOption.label (built-in support, no workaround needed) with extra top grid margin so the topmost label isn't clipped. Hover-enlarging active dot reuses the same hoverDotOverlay technique as chartLineDots (see its notes re: per-point hover state not being a built-in engine feature, and the design-time-only overlay fill color).
+Always-on numeric labels use @domphy/chart's native LineSeriesOption.label (built-in support, no workaround needed) with extra top grid margin so the topmost label isn't clipped. Hover-enlarging active dot reuses the same hoverDotOverlay technique as chartLineDots (see its notes re: per-point hover state not being a built-in engine feature, and the design-time-only overlay fill color). Direct-source-diff fix (2026-07-05): Same hollow-vs-solid dot gap as chartLineDots. Fixed with the same solid-filled marker overlay.
 
 Status: **ported** · Reference: [shadcn/ui original](https://ui.shadcn.com/charts/line)
 :::

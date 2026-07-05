@@ -25,9 +25,9 @@ export interface InteractiveGridPatternProps {
   /** Theme color family for the single hovered/active square's highlight fill.
    * Defaults to `"neutral"`. */
   hoverColor?: ThemeColor;
-  /** Fade-in duration in ms when a square becomes active. Defaults to `150`. */
+  /** Fade-in duration in ms when a square becomes active. Defaults to `100`. */
   fadeInDuration?: number;
-  /** Fade-out duration in ms when a square stops being active. Defaults to `400`. */
+  /** Fade-out duration in ms when a square stops being active. Defaults to `1000`. */
   fadeOutDuration?: number;
   /** Foreground content layered above the pattern. Defaults to a small demo panel. */
   children?: DomphyElement | DomphyElement[];
@@ -48,8 +48,8 @@ function interactiveGridPattern(props: InteractiveGridPatternProps = {}): Domphy
   const cellHeight = Math.max(4, props.height ?? 40);
   const [columns, rows] = props.squares ?? [30, 20];
   const hoverColor = props.hoverColor ?? "neutral";
-  const fadeInDuration = props.fadeInDuration ?? 150;
-  const fadeOutDuration = props.fadeOutDuration ?? 400;
+  const fadeInDuration = props.fadeInDuration ?? 100;
+  const fadeOutDuration = props.fadeOutDuration ?? 1000;
 
   const gridWidth = columns * cellWidth;
   const gridHeight = rows * cellHeight;

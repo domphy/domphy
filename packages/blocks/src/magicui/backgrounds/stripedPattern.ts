@@ -20,8 +20,8 @@ export interface StripedPatternProps {
   width?: number;
   /** Tile height, in SVG user units. Defaults to `10`. */
   height?: number;
-  /** `"right"` slants stripes bottom-left to top-right ("/"); `"left"` mirrors to "\".
-   * Defaults to `"right"`. */
+  /** `"left"` slants stripes bottom-left to top-right ("/"); `"right"` mirrors to "\".
+   * Defaults to `"left"`. */
   direction?: StripedPatternDirection;
   /** Extra `stroke-dasharray` applied to each stripe line, for broken/dashed stripes. */
   strokeDasharray?: string;
@@ -35,7 +35,7 @@ export interface StripedPatternProps {
 let stripedPatternInstanceCounter = 0;
 
 function mirrorX(x: number, tileWidth: number, direction: StripedPatternDirection): number {
-  return direction === "left" ? tileWidth - x : x;
+  return direction === "right" ? tileWidth - x : x;
 }
 
 /**
@@ -48,7 +48,7 @@ function stripedPattern(props: StripedPatternProps = {}): DomphyElement<"div"> {
   const instanceId = ++stripedPatternInstanceCounter;
   const tileWidth = Math.max(2, props.width ?? 10);
   const tileHeight = Math.max(2, props.height ?? 10);
-  const direction = props.direction ?? "right";
+  const direction = props.direction ?? "left";
   const strokeDasharray = props.strokeDasharray;
   const color = props.color ?? "neutral";
   const patternId = `striped-pattern-${instanceId}`;
@@ -71,7 +71,7 @@ function stripedPattern(props: StripedPatternProps = {}): DomphyElement<"div"> {
         x2: mirrorX(x2, tileWidth, direction),
         y2,
         strokeDasharray,
-        style: { stroke: "currentColor", strokeWidth: 1 } as StyleObject,
+        style: { stroke: "currentColor", strokeWidth: 0.5 } as StyleObject,
       }) as DomphyElement,
   );
 

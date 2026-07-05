@@ -29,7 +29,7 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `trendDirection` | `"up" \| "down"` | — |
 
 ::: details Implementation notes
-Custom per-point icon markers aren't reachable through ChartOption (SymbolType accepts 'pin'/'diamond'/etc in the type surface, but the actual line-symbol renderer always draws a plain circle regardless of the requested symbol). Implemented the same way as chartLineDotsColors: native symbols disabled, a companion SVG overlay draws a small hollow rounded-bar 'pin' glyph (original hand-drawn artwork, outline = series color, fill = card background) at each point via the shared staticPointMarkersOverlay + public scale factories.
+Custom per-point icon markers aren't reachable through ChartOption (SymbolType accepts 'pin'/'diamond'/etc in the type surface, but the actual line-symbol renderer always draws a plain circle regardless of the requested symbol). Implemented the same way as chartLineDotsColors: native symbols disabled, a companion SVG overlay draws a small hollow rounded-bar 'pin' glyph (original hand-drawn artwork, outline = series color, fill = card background) at each point via the shared staticPointMarkersOverlay + public scale factories. Direct-source-diff fix (2026-07-05): Point marker was a rounded capsule bar — upstream uses a lucide GitCommitVertical glyph (hollow circle + short vertical tick above/below). Redrawn to match.
 
 Status: **ported** · Reference: [shadcn/ui original](https://ui.shadcn.com/charts/line)
 :::

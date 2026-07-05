@@ -97,8 +97,18 @@ function chartAreaStackedExpand(props: ChartAreaStackedExpandProps = {}): Domphy
       formatter: chartAxisTooltipFormatter(categories, valueLabel),
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
-    // Fixed 0–100 domain, hidden — the stack always fills the plot exactly.
-    yAxis: { type: "value", min: 0, max: 100, show: false },
+    // Fixed 0–100 domain — the stack always fills the plot exactly. Chrome is
+    // hidden but the horizontal split gridlines stay on, mirroring upstream's
+    // `<CartesianGrid vertical={false} />`.
+    yAxis: {
+      type: "value",
+      min: 0,
+      max: 100,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { show: false },
+      splitLine: { show: true },
+    },
     grid: { left: 8, right: 8, top: 12, bottom: 24, containLabel: false },
     series: series.map((s, seriesIndex) => ({
       type: "line",

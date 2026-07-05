@@ -23,13 +23,13 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `defaultOpenIndex` | `number \| null` | — |
 | `unit` | `string` | — |
 | `panelMinWidthPx` | `number` | — |
-| `totalAtIndex` | `number` | — |
+| `showTotal` | `boolean` | — |
 | `totalLabel` | `string` | — |
 | `title` | `string` | — |
 | `description` | `string` | — |
 
 ::: details Implementation notes
-Square swatch, hidden header, monospace+unit value rendering, and the conditional divider + bold Total row on the configured column index are all fully ported. The one unmet part of the spec is 'a fixed pixel width for the panel': @domphy/chart's tooltip container hardcodes its own box model (border/radius/shadow/background/max-width:260px) inside createTooltip(), and TooltipOption exposes no width field the runtime actually reads (verified in packages/chart/src/overlay/tooltip.ts — only option.show/formatter/valueFormatter are consumed). Approximated with a min-width wrapper div inside the formatter's own returned HTML, which reserves the requested width visually (the outer panel uses white-space:nowrap with no overflow:hidden, so wider content overflows the box rather than wrapping) but cannot truly widen the outer panel past the engine's hardcoded max-width — a real, source-verified engine limitation, not a guess.
+Square swatch, hidden header, monospace+unit value rendering, and the conditional divider + bold Total row on the configured column index are all fully ported. The one unmet part of the spec is 'a fixed pixel width for the panel': @domphy/chart's tooltip container hardcodes its own box model (border/radius/shadow/background/max-width:260px) inside createTooltip(), and TooltipOption exposes no width field the runtime actually reads (verified in packages/chart/src/overlay/tooltip.ts — only option.show/formatter/valueFormatter are consumed). Approximated with a min-width wrapper div inside the formatter's own returned HTML, which reserves the requested width visually (the outer panel uses white-space:nowrap with no overflow:hidden, so wider content overflows the box rather than wrapping) but cannot truly widen the outer panel past the engine's hardcoded max-width — a real, source-verified engine limitation, not a guess. Direct-source-diff fix (2026-07-05): The Total row only rendered for a single hardcoded column — upstream's formatter appends a Total row after every hover, on every column. Replaced the one-off totalAtIndex prop with a showTotal boolean (default true).
 
 Status: **partial** · Reference: [shadcn/ui original](https://ui.shadcn.com/charts/tooltip)
 :::

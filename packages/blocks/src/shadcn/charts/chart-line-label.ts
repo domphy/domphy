@@ -8,7 +8,7 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
+import { type ThemeColor, themeColorToken } from "@domphy/theme";
 import type { ChartOption } from "@domphy/chart";
 import {
   LABELED_LINE_GRID,
@@ -21,6 +21,7 @@ import {
   hoverDotOverlay,
   lineSwatchLabelValueTooltipFormatter,
   monthCategoryXAxis,
+  staticPointMarkersOverlay,
   trendFooter,
 } from "./chart-line-shared.js";
 
@@ -59,6 +60,7 @@ function chartLineLabel(props: ChartLineLabelProps = {}): DomphyElement<"div"> {
   const categories = data.map((point) => point.month);
   const values = data.map((point) => point.desktop);
   const yDomain = computeYDomain(values);
+  const dotFill = themeColorToken(null, "shift-9", seriesColor);
 
   const option: ChartOption = {
     grid: LABELED_LINE_GRID,
@@ -75,8 +77,10 @@ function chartLineLabel(props: ChartLineLabelProps = {}): DomphyElement<"div"> {
         name: seriesLabel,
         data: values,
         smooth: true,
-        showSymbol: true,
-        symbolSize: REST_DOT_RADIUS * 2,
+        // Resting dots are drawn as solid filled circles by the overlay below
+        // (upstream `dot={{ fill: color }}`); the engine's built-in line symbol
+        // is a hollow white-fill circle, so it is disabled here.
+        showSymbol: false,
         lineStyle: { width: 2 },
         color: seriesColor,
         label: { show: true },
@@ -90,6 +94,20 @@ function chartLineLabel(props: ChartLineLabelProps = {}): DomphyElement<"div"> {
     plot: chartPlot({
       option,
       overlays: [
+        staticPointMarkersOverlay({
+          categories,
+          values,
+          yDomain,
+          grid: LABELED_LINE_GRID,
+          renderMarker({ cx, cy, group }) {
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle") as SVGCircleElement;
+            circle.setAttribute("cx", String(cx));
+            circle.setAttribute("cy", String(cy));
+            circle.setAttribute("r", String(REST_DOT_RADIUS));
+            circle.setAttribute("fill", dotFill);
+            group.appendChild(circle);
+          },
+        }),
         hoverDotOverlay({
           categories,
           values,

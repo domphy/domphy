@@ -11,7 +11,6 @@ import { motion } from "@domphy/ui";
 import {
   type PieDatum,
   DEFAULT_DONUT_INNER_RADIUS,
-  DEFAULT_PIE_DATA,
   PIE_OUTER_RADIUS,
   createPieTooltipState,
   defaultValueFormatter,
@@ -24,6 +23,18 @@ import {
   pieChartContainer,
   pieWedgePath,
 } from "./pie-chart-shared.js";
+
+// This recipe's own illustrative dataset — deliberately distinct from the
+// shared five-browser sample so the prominent center total reads 1,125
+// (the value the upstream "donut with text" showcase displays). Callers pass
+// their own `data` in real usage.
+const DEFAULT_DONUT_TEXT_DATA: PieDatum[] = [
+  { key: "chrome", name: "Chrome", value: 275 },
+  { key: "safari", name: "Safari", value: 200 },
+  { key: "firefox", name: "Firefox", value: 287 },
+  { key: "edge", name: "Edge", value: 173 },
+  { key: "other", name: "Other", value: 190 },
+];
 
 export interface ChartPieDonutTextProps {
   data?: PieDatum[];
@@ -46,7 +57,7 @@ export interface ChartPieDonutTextProps {
  */
 function chartPieDonutText(props: ChartPieDonutTextProps = {}): DomphyElement<"div"> {
   const {
-    data = DEFAULT_PIE_DATA,
+    data = DEFAULT_DONUT_TEXT_DATA,
     title = "Pie Chart - Donut with Text",
     description = "January - June 2024",
     trendValue = "5.2%",

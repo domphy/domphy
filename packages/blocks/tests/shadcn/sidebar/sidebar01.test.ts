@@ -61,6 +61,15 @@ describe("sidebar01", () => {
     expect(aside.querySelectorAll("small").length).toBeGreaterThan(0);
   });
 
+  it("renders the docs search field in the header (aside + mobile drawer)", () => {
+    const { host } = render(sidebar01());
+
+    // Upstream sidebar-01's header pairs the version/workspace switcher with a
+    // SearchForm; it appears in both the docked aside and the mobile drawer.
+    expect(host.querySelector("aside input[type='search']")).toBeTruthy();
+    expect(host.querySelector("dialog input[type='search']")).toBeTruthy();
+  });
+
   it("renders a sticky content header with toggle, divider and breadcrumb", () => {
     const { host } = render(sidebar01());
     const main = host.querySelector("main")!;

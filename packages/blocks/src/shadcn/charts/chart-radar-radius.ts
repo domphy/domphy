@@ -3,7 +3,9 @@
 // The two-series radar chart with an added faint radius-axis reference line
 // running from the chart's center out to the edge at a fixed angle (60°,
 // no visible tick labels) — a single line, not a full symmetric cross. The
-// hover tooltip now explicitly shows the month name as a heading above both
+// month-name perimeter labels are dropped (this recipe omits the angle axis
+// entirely, matching the reference), leaving a bare perimeter. The hover
+// tooltip now explicitly shows the month name as a heading above both
 // series' values.
 //
 // Implemented purely from the block's public functional/visual spec — no
@@ -64,6 +66,7 @@ function chartRadarRadius(props: ChartRadarRadiusProps = {}): DomphyElement<"div
           tooltip,
           showRadiusAxisLine,
           radiusAxisAngle,
+          showAngleLabels: false,
           tooltipShowLabel: true,
           tooltipIndicator: "line",
         }),

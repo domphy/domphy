@@ -34,6 +34,17 @@ describe("sidebar11", () => {
     expect(host.textContent).toContain("button.tsx");
   });
 
+  it("renders the Changes group and both group labels above the tree", () => {
+    const { host } = render(sidebar11() as DomphyElement);
+    const labels = Array.from(host.querySelectorAll("aside nav > div small")).map((el) => el.textContent);
+    expect(labels).toContain("Changes");
+    expect(labels).toContain("Files");
+    // The three default changed files, each with a git-status badge (M/U/M).
+    const badges = Array.from(host.querySelectorAll("aside [data-slot='badge']")).map((el) => el.textContent);
+    expect(badges).toEqual(["M", "U", "M"]);
+    expect(host.textContent).toContain("api/hello/route.ts");
+  });
+
   it("pre-expands the ancestor folders of the active file", () => {
     const { host } = render(sidebar11() as DomphyElement);
     const detailsElements = Array.from(host.querySelectorAll("aside details"));

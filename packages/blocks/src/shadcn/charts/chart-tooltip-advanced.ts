@@ -1,9 +1,10 @@
 // shadcn/ui "charts/tooltip" (advanced recipe) — clean-room reimplementation.
 //
 // Enhanced tooltip: no default date header, a small square swatch per row, a
-// monospace value with a muted unit suffix, and — only on the configured
-// column — an extra bold "Total" row appended beneath a divider line summing
-// both series' values.
+// monospace value with a muted unit suffix, and an extra bold "Total" row
+// appended beneath a divider line — on every column — summing both series'
+// values (matching the upstream recipe, whose formatter appends the total
+// after its last series row on every hover).
 //
 // FIDELITY NOTE: the spec calls for "a fixed pixel width for the panel".
 // @domphy/chart's tooltip container hardcodes its own box model
@@ -43,7 +44,7 @@ export interface ChartTooltipAdvancedProps {
   defaultOpenIndex?: number | null;
   unit?: string;
   panelMinWidthPx?: number;
-  totalAtIndex?: number;
+  showTotal?: boolean;
   totalLabel?: string;
   title?: string;
   description?: string;
@@ -51,8 +52,8 @@ export interface ChartTooltipAdvancedProps {
 
 /**
  * shadcn/ui "charts/tooltip" advanced recipe — square swatch, mono+unit
- * values, no header, and a computed grand-total row on the configured
- * column. Call with no arguments for a working demo.
+ * values, no header, and a computed grand-total row on every column. Call
+ * with no arguments for a working demo.
  */
 function chartTooltipAdvanced(props: ChartTooltipAdvancedProps = {}): DomphyElement<"div"> {
   const {
@@ -62,10 +63,10 @@ function chartTooltipAdvanced(props: ChartTooltipAdvancedProps = {}): DomphyElem
     defaultOpenIndex = 1,
     unit = ACTIVITY_ENERGY_UNIT,
     panelMinWidthPx = 220,
-    totalAtIndex = 1,
+    showTotal = true,
     totalLabel = "Total",
     title = "Bar Chart - Tooltip Advanced",
-    description = "Custom rows plus a computed total on day 2",
+    description = "Custom rows plus a computed total per column",
   } = props;
 
   const categories = data.map((point) => formatWeekdayShort(point.date));
@@ -74,7 +75,7 @@ function chartTooltipAdvanced(props: ChartTooltipAdvancedProps = {}): DomphyElem
     showLabel: false,
     renderValue: monoUnitValueRenderer(unit),
     panelMinWidthPx,
-    totalAtIndex,
+    showTotal,
     totalLabel,
   });
   const option = activityBarOption({ data, categories, series, showCursor, formatter });

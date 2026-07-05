@@ -78,6 +78,7 @@ function chartAreaAxes(props: ChartAreaAxesProps = {}): DomphyElement<"div"> {
     series: series.map((s) => ({
       type: "line",
       name: s.label,
+      stack: "total",
       smooth: true,
       showSymbol: false,
       color: s.color,

@@ -188,7 +188,7 @@ function fadeLineElement(
   startDelayMs: number,
   started: State<boolean>,
 ): DomphyElement {
-  const initialFrame: MotionKeyframe = { opacity: 0, y: 6 };
+  const initialFrame: MotionKeyframe = { opacity: 0, y: -5 };
   const revealFrame: MotionKeyframe = { opacity: 1, y: 0 };
   const frame = toState<MotionKeyframe>(initialFrame);
   const tag = line.tag ?? "div";

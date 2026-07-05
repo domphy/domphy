@@ -29,7 +29,7 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `height` | `number` | — |
 
 ::: details Implementation notes
-Uses @domphy/chart's native bar `label` option (show:true, position:'top', formatter) — this is genuinely engine-supported (packages/chart/src/overlay/labels.ts renderBarLabels), so value labels are real, not an overlay hack. Y-axis fully hidden, vertical split lines only, x-axis month labels with no ticks. Label text color/font-size are the engine's own fixed defaults (renderBarLabels hardcodes the label color and only reads fontSize, not a custom color, from LabelOption) — close enough to the spec's 'foreground-colored ~12px text' that no override was needed.
+Uses @domphy/chart's native bar `label` option (show:true, position:'top', formatter) — this is genuinely engine-supported (packages/chart/src/overlay/labels.ts renderBarLabels), so value labels are real, not an overlay hack. Y-axis fully hidden, vertical split lines only, x-axis month labels with no ticks. Label text color/font-size are the engine's own fixed defaults (renderBarLabels hardcodes the label color and only reads fontSize, not a custom color, from LabelOption) — close enough to the spec's 'foreground-colored ~12px text' that no override was needed. Direct-source-diff fix (2026-07-05): Same gridline inversion as chartBarMultiple (vertical instead of horizontal) — fixed, plus disabled the hover cursor to match upstream.
 
 Status: **ported** · Reference: [shadcn/ui original](https://ui.shadcn.com/charts/bar)
 :::

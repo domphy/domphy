@@ -36,7 +36,7 @@ export interface PixelImageProps {
   rows?: number;
   /** Explicit column count, overriding the preset. */
   cols?: number;
-  /** Enables the grayscale-to-color sweep after the tiles finish assembling. Defaults to `false`. */
+  /** Enables the grayscale-to-color sweep after the tiles finish assembling. Defaults to `true`. */
   colorSweep?: boolean;
   /** Per-cell fade-in duration, in ms. Defaults to `1000`. */
   fadeDuration?: number;
@@ -82,7 +82,7 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
   const preset = GRID_PRESETS[props.grid ?? "default"];
   const rows = Math.max(1, Math.round(props.rows ?? preset.rows));
   const cols = Math.max(1, Math.round(props.cols ?? preset.cols));
-  const colorSweep = props.colorSweep ?? false;
+  const colorSweep = props.colorSweep ?? true;
   const fadeDuration = props.fadeDuration ?? 1000;
   const maxStagger = props.maxStagger ?? 1200;
   const colorSweepDelay = props.colorSweepDelay ?? 1300;

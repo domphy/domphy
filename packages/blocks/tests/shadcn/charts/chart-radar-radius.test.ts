@@ -24,6 +24,9 @@ describe("chartRadarRadius", () => {
     expect(host.querySelectorAll("svg polygon[fill-opacity]").length).toBe(2);
     // Six radial spokes (the default grid) plus the one added radius-axis line.
     expect(host.querySelectorAll("svg line").length).toBe(7);
+    // This recipe omits the angle axis entirely (matching the reference), so
+    // there are no month-name perimeter labels.
+    expect(host.querySelectorAll("svg text").length).toBe(0);
   });
 
   it("can hide the radius-axis line via showRadiusAxisLine: false", () => {

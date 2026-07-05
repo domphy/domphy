@@ -52,12 +52,12 @@ export interface TextHighlighterProps {
   /** Stroke thickness in px. Ignored by the `"highlight"` type, which always draws a near-text-height
    * band. Defaults to `1.5`. */
   strokeWidth?: number;
-  /** How long the draw-in animation takes, in ms. Defaults to `500`. */
+  /** How long the draw-in animation takes, in ms. Defaults to `600`. */
   duration?: number;
   /** Number of overlapping redraw passes — above 1 gives the rougher, more authentic "scribbled by
    * hand" look. Defaults to `2`. */
   iterations?: number;
-  /** Gap in px between the text glyphs and the annotation stroke. Defaults to `5`. */
+  /** Gap in px between the text glyphs and the annotation stroke. Defaults to `2`. */
   padding?: TextHighlighterPadding;
   /** Whether the annotation should be drawn as one continuous shape (`false`) or broken per visual
    * line when the text wraps (`true`). Defaults to `true`. */
@@ -93,9 +93,9 @@ function textHighlighter(props: TextHighlighterProps = {}): DomphyElement<"span"
   const colorRole = props.color ?? "highlight";
   const tone = props.tone ?? (type === "highlight" ? "shift-3" : "shift-9");
   const strokeWidth = props.strokeWidth ?? 1.5;
-  const duration = props.duration ?? 500;
+  const duration = props.duration ?? 600;
   const iterations = props.iterations ?? 2;
-  const padding = props.padding ?? 5;
+  const padding = props.padding ?? 2;
   const multiline = props.multiline ?? true;
   const brackets = props.brackets ?? (["left", "right"] as TextHighlighterBracketSide[]);
   const trigger = props.trigger ?? "mount";
@@ -139,13 +139,36 @@ function textHighlighter(props: TextHighlighterProps = {}): DomphyElement<"span"
       // Some environments (older browsers, certain test/DOM-shim runtimes)
       // ship an incomplete SVGGeometryElement (e.g. no `getTotalLength()`),
       // which the draw-in animation depends on. Fail open rather than throw.
+      let hasShown = false;
       const play = () => {
         try {
           annotation?.show();
+          hasShown = true;
         } catch {
           // ignore — see above
         }
       };
+
+      // rough-notation paints an absolutely-positioned SVG sized to the target
+      // at draw time; a later reflow (responsive resize, font load, sibling
+      // layout shift) leaves that overlay misaligned. Redraw it on resize —
+      // matching upstream, which observes both the target and the document
+      // body. Only after the first draw, so a "view"-triggered annotation
+      // isn't shown early.
+      let resizeObserver: ResizeObserver | null = null;
+      if (typeof ResizeObserver !== "undefined") {
+        resizeObserver = new ResizeObserver(() => {
+          if (!hasShown) return;
+          try {
+            annotation?.hide();
+            annotation?.show();
+          } catch {
+            // ignore — see above
+          }
+        });
+        resizeObserver.observe(targetElement);
+        if (document.body) resizeObserver.observe(document.body);
+      }
 
       let mountTimer: ReturnType<typeof setTimeout> | null = null;
       let observer: IntersectionObserver | null = null;
@@ -175,6 +198,7 @@ function textHighlighter(props: TextHighlighterProps = {}): DomphyElement<"span"
       node.addHook("Remove", () => {
         if (mountTimer) clearTimeout(mountTimer);
         observer?.disconnect();
+        resizeObserver?.disconnect();
         try {
           annotation?.remove();
         } catch {

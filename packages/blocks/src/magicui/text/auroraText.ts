@@ -66,7 +66,7 @@ function auroraText(props: AuroraTextProps = {}): DomphyElement {
   const wrapperTag = props.as ?? "span";
 
   const instanceId = ++auroraTextInstanceCounter;
-  const durationSeconds = Math.max(0.5, 8 / speed);
+  const durationSeconds = Math.max(0.5, 10 / speed);
 
   const gradientStops = (listener: Listener): string => {
     const roles = colors.length > 0 ? colors : (["primary"] as ThemeColor[]);
@@ -76,9 +76,15 @@ function auroraText(props: AuroraTextProps = {}): DomphyElement {
   };
 
   const animationName = `aurora-text-sweep-${hashString(JSON.stringify({ instanceId, colors }))}`;
+  // Matches upstream's `@keyframes aurora`: the gradient pans while the glyphs
+  // themselves wobble with a subtle rotate/scale — that shimmer is what makes
+  // the effect read as an "aurora" rather than a plain horizontal gradient pan.
   const keyframes = {
-    "0%": { backgroundPosition: "0% 50%" },
-    "100%": { backgroundPosition: "100% 50%" },
+    "0%": { backgroundPosition: "0% 50%", transform: "rotate(-5deg) scale(0.9)" },
+    "25%": { backgroundPosition: "50% 100%", transform: "rotate(5deg) scale(1.1)" },
+    "50%": { backgroundPosition: "100% 50%", transform: "rotate(-3deg) scale(0.95)" },
+    "75%": { backgroundPosition: "50% 0%", transform: "rotate(3deg) scale(1.05)" },
+    "100%": { backgroundPosition: "0% 50%", transform: "rotate(-5deg) scale(0.9)" },
   };
 
   const auroraSpan: DomphyElement<"span"> = {
@@ -87,7 +93,7 @@ function auroraText(props: AuroraTextProps = {}): DomphyElement {
     _key: "aurora-fill",
     style: {
       backgroundImage: (listener: Listener) => `linear-gradient(135deg, ${gradientStops(listener)})`,
-      backgroundSize: "200% 200%",
+      backgroundSize: "200% auto",
       backgroundClip: "text",
       WebkitBackgroundClip: "text",
       color: "transparent",

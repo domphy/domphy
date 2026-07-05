@@ -33,6 +33,12 @@ describe("sidebar09", () => {
     expect(host.textContent).toContain("Meeting Tomorrow");
   });
 
+  it("shows the active folder's title in the message-list header", () => {
+    const { host } = render(sidebar09() as DomphyElement);
+    const listHeaderTitle = host.querySelectorAll("aside")[1].querySelector("strong");
+    expect(listHeaderTitle?.textContent).toBe("Inbox");
+  });
+
   it("clicking a folder button switches the message list to that folder", async () => {
     const { host } = render(sidebar09() as DomphyElement);
     const draftsButton = Array.from(host.querySelectorAll("button")).find(
@@ -43,6 +49,8 @@ describe("sidebar09", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(host.textContent).toContain("Draft: Quarterly Report");
     expect(host.textContent).not.toContain("Meeting Tomorrow");
+    // The message-list header title tracks the active folder (upstream parity).
+    expect(host.querySelectorAll("aside")[1].querySelector("strong")?.textContent).toBe("Drafts");
   });
 
   it("toggling the Unreads switch filters the list to unread-only messages", async () => {

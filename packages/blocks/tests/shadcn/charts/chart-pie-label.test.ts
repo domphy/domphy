@@ -31,7 +31,9 @@ describe("chartPieLabel", () => {
     expect(svg.querySelectorAll("path").length).toBe(5);
     expect(svg.querySelectorAll("polyline").length).toBe(5);
     expect(svg.querySelectorAll("text").length).toBe(5);
-    expect(host.textContent).toContain("Chrome");
+    // Upstream's default pie label prints the numeric value (dataKey), not
+    // the category name — the first wedge (Chrome) is labeled with "275".
+    expect(svg.querySelectorAll("text")[0].textContent).toBe("275");
   });
 
   it("omits leader lines when leaderLine is false", () => {

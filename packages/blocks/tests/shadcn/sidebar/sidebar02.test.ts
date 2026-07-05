@@ -61,6 +61,13 @@ describe("sidebar02", () => {
     });
   });
 
+  it("renders the docs search field in the header (aside + mobile drawer)", () => {
+    const { host } = render(sidebar02());
+
+    expect(host.querySelector("aside input[type='search']")).toBeTruthy();
+    expect(host.querySelector("dialog input[type='search']")).toBeTruthy();
+  });
+
   it("fills the content pane with many stacked placeholder rows", () => {
     const { host } = render(sidebar02());
     const main = host.querySelector("main")!;

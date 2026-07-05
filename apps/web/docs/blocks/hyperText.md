@@ -27,7 +27,7 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `style` | `StyleObject` | Passthrough style merged onto the container. |
 
 ::: details Implementation notes
-Per-character spans with two interval timers (fast scramble reassignment + slower left-to-right lock), hover-trigger-by-default with optional view-trigger, configurable duration/delay/character pool/tag, spaces preserved as non-animated gaps. Matches the spec's 'interval/frame-driven character substitution, not CSS keyframes' requirement. Character DOM refs are written to directly inside the loop (not via reactive State) since this is a continuous high-frequency effect, matching this package's numberTicker/dock convention.
+Per-character spans with two interval timers (fast scramble reassignment + slower left-to-right lock), hover-trigger-by-default with optional view-trigger, configurable duration/delay/character pool/tag, spaces preserved as non-animated gaps. Matches the spec's 'interval/frame-driven character substitution, not CSS keyframes' requirement. Character DOM refs are written to directly inside the loop (not via reactive State) since this is a continuous high-frequency effect, matching this package's numberTicker/dock convention. Direct-source-diff fix (2026-07-05): Missing upstream's monospace font — proportional-font glyph width reflows/jitters neighboring characters as random glyphs swap mid-scramble. Added fontFamily:monospace.
 
 Status: **ported** · Reference: [Magic UI original](https://magicui.design/docs/components/hyper-text)
 :::

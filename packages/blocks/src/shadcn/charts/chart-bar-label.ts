@@ -2,8 +2,8 @@
 //
 // The same single-series monthly bar chart as the default recipe, but every
 // bar prints its exact value as a text label just above its top edge — the
-// y-axis is fully hidden since the labels take over that role, and only
-// vertical gridlines remain.
+// y-axis is fully hidden since the labels take over that role, with only
+// horizontal gridlines behind the bars.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
@@ -62,9 +62,10 @@ function chartBarLabel(props: ChartBarLabelProps = {}): DomphyElement<"div"> {
   const option: ChartOption = {
     tooltip: {
       trigger: "axis",
+      axisPointer: { type: "none" },
       formatter: chartBarAxisTooltipFormatter(categories),
     },
-    xAxis: chartBarCategoryXAxis(categories, { splitLine: true }),
+    xAxis: chartBarCategoryXAxis(categories),
     yAxis: {
       type: "value",
       min: 0,
@@ -72,7 +73,7 @@ function chartBarLabel(props: ChartBarLabelProps = {}): DomphyElement<"div"> {
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: { show: false },
-      splitLine: { show: false },
+      splitLine: { show: true },
     },
     grid: { left: 8, right: 8, top: 24, bottom: 24 },
     series: [

@@ -31,7 +31,9 @@ export interface ChartLineStepProps {
   seriesLabel?: string;
   seriesColor?: ThemeColor;
   data?: MonthlyPoint[];
-  /** Where the vertical jump sits relative to each pair of points. Defaults to "start". */
+  /** Where the vertical jump sits relative to each pair of points. Defaults to
+   * "middle" (the jump happens midway between adjacent points — matches the
+   * upstream block's d3 `curveStep`). */
   stepMode?: NonNullable<LineSeriesOption["step"]>;
   trendHeadline?: string;
   trendSubtitle?: string;
@@ -49,7 +51,7 @@ function chartLineStep(props: ChartLineStepProps = {}): DomphyElement<"div"> {
     seriesLabel = "Desktop",
     seriesColor = "primary",
     data = MONTHLY_VISITOR_DATA,
-    stepMode = "start",
+    stepMode = "middle",
     trendHeadline = "Trending up by 5.2% this month",
     trendSubtitle = "Showing total visitors for the last 6 months",
     trendDirection = "up",

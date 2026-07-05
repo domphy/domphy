@@ -11,7 +11,9 @@ import { toState } from "@domphy/core";
 import { avatar, buttonGhost, icon, popover, small } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
+  ICON_BAR_CHART,
   ICON_CHEVRON_RIGHT,
+  ICON_FILE,
   ICON_FOLDER,
   ICON_GRID,
   ICON_INBOX,
@@ -40,7 +42,20 @@ import {
 import { ICON_CALENDAR, ICON_HOME, ICON_SETTINGS, ICON_SPARKLE } from "./sidebar09-12-shared.js";
 
 type Sidebar10FavoriteItem = { emoji: string; label: string; href?: string };
-type Sidebar10Page = { title: string; href?: string };
+type Sidebar10Page = { title: string; href?: string; emoji?: string };
+
+// Page-action icons the header's "…" menu needs that aren't in the shared set
+// (lucide equivalents). Local to this block to keep the shared icon module lean.
+const SVG_OPEN =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em">';
+const ICON_LINK = `${SVG_OPEN}<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+const ICON_COPY = `${SVG_OPEN}<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
+const ICON_MOVE_TO = `${SVG_OPEN}<polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/></svg>`;
+const ICON_UNDO = `${SVG_OPEN}<polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>`;
+const ICON_HISTORY = `${SVG_OPEN}<path d="M7 2h10"/><path d="M5 6h14"/><rect width="18" height="12" x="3" y="10" rx="2"/></svg>`;
+const ICON_BELL = `${SVG_OPEN}<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`;
+const ICON_IMPORT = `${SVG_OPEN}<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>`;
+const ICON_EXPORT = `${SVG_OPEN}<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>`;
 type Sidebar10Workspace = { name: string; emoji: string; expanded?: boolean; pages: Sidebar10Page[] };
 type Sidebar10SecondaryLink = { title: string; icon: string; href?: string };
 
@@ -82,13 +97,54 @@ const DEFAULT_WORKSPACES: Sidebar10Workspace[] = [
     name: "Engineering",
     emoji: "🛠️",
     expanded: true,
-    pages: [{ title: "Architecture" }, { title: "RFCs" }, { title: "On-call" }],
+    pages: [
+      { emoji: "🏛️", title: "Architecture" },
+      { emoji: "📄", title: "RFCs" },
+      { emoji: "📟", title: "On-call" },
+    ],
   },
-  { name: "Product", emoji: "📦", pages: [{ title: "Roadmap" }, { title: "Feedback" }, { title: "Specs" }] },
-  { name: "Design", emoji: "🎨", pages: [{ title: "Components" }, { title: "Tokens" }] },
-  { name: "Marketing", emoji: "📣", pages: [{ title: "Campaigns" }, { title: "Brand" }, { title: "Content" }] },
-  { name: "Sales", emoji: "💼", pages: [{ title: "Pipeline" }, { title: "Playbook" }] },
-  { name: "Finance", emoji: "💰", pages: [{ title: "Forecasts" }, { title: "Invoices" }] },
+  {
+    name: "Product",
+    emoji: "📦",
+    pages: [
+      { emoji: "🗺️", title: "Roadmap" },
+      { emoji: "💬", title: "Feedback" },
+      { emoji: "📋", title: "Specs" },
+    ],
+  },
+  {
+    name: "Design",
+    emoji: "🎨",
+    pages: [
+      { emoji: "🧩", title: "Components" },
+      { emoji: "🎟️", title: "Tokens" },
+    ],
+  },
+  {
+    name: "Marketing",
+    emoji: "📣",
+    pages: [
+      { emoji: "🚀", title: "Campaigns" },
+      { emoji: "🏷️", title: "Brand" },
+      { emoji: "✍️", title: "Content" },
+    ],
+  },
+  {
+    name: "Sales",
+    emoji: "💼",
+    pages: [
+      { emoji: "📈", title: "Pipeline" },
+      { emoji: "📕", title: "Playbook" },
+    ],
+  },
+  {
+    name: "Finance",
+    emoji: "💰",
+    pages: [
+      { emoji: "🔮", title: "Forecasts" },
+      { emoji: "🧾", title: "Invoices" },
+    ],
+  },
 ];
 
 const DEFAULT_SECONDARY_LINKS: Sidebar10SecondaryLink[] = [
@@ -235,10 +291,15 @@ function workspaceNode(workspace: Sidebar10Workspace, collapsed: State<boolean>)
             ul: workspace.pages.map((page, index) => ({
               li: [
                 {
-                  a: [{ span: page.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement],
+                  a: [
+                    ...(page.emoji ? [emojiGlyph(page.emoji)] : []),
+                    { span: page.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+                  ],
                   href: page.href ?? "#",
                   style: {
                     display: "flex",
+                    alignItems: "center",
+                    gap: themeSpacing(2),
                     paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
                     paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
                     borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
@@ -321,9 +382,38 @@ function mainHeader(props: {
   breadcrumbItems: SidebarBreadcrumbItem[];
   memberNames: string[];
 }): DomphyElement<"header"> {
+  // Notion-style page-actions menu — matches upstream nav-actions.tsx's four
+  // grouped sections.
   const actionsMenu = sidebarStyledPopoverContent([
-    { items: [{ icon: ICON_SEARCH, label: "Search" }, { icon: ICON_GRID, label: "Templates" }] },
-    { items: [{ icon: ICON_TRASH, label: "Trash" }, { label: "Invite members" }] },
+    {
+      items: [
+        { icon: ICON_SETTINGS, label: "Customize Page" },
+        { icon: ICON_FILE, label: "Turn into wiki" },
+      ],
+    },
+    {
+      items: [
+        { icon: ICON_LINK, label: "Copy Link" },
+        { icon: ICON_COPY, label: "Duplicate" },
+        { icon: ICON_MOVE_TO, label: "Move to" },
+        { icon: ICON_TRASH, label: "Move to Trash" },
+      ],
+    },
+    {
+      items: [
+        { icon: ICON_UNDO, label: "Undo" },
+        { icon: ICON_BAR_CHART, label: "View analytics" },
+        { icon: ICON_HISTORY, label: "Version History" },
+        { icon: ICON_TRASH, label: "Show delete pages" },
+        { icon: ICON_BELL, label: "Notifications" },
+      ],
+    },
+    {
+      items: [
+        { icon: ICON_IMPORT, label: "Import" },
+        { icon: ICON_EXPORT, label: "Export" },
+      ],
+    },
   ]);
 
   return {

@@ -52,7 +52,7 @@ function chartLineDotsColors(props: ChartLineDotsColorsProps = {}): DomphyElemen
   const {
     title = "Line Chart - Dots Colors",
     description = "Browser share for the last 6 months",
-    seriesColor = "neutral",
+    seriesColor = "secondary",
     data = BROWSER_CATEGORY_DATA,
     trendHeadline = "Trending up by 4.8% this period",
     trendSubtitle = "Showing browser share across five platforms",

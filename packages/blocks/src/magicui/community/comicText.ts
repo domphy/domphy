@@ -89,6 +89,10 @@ function comicText(props: ComicTextProps = {}): DomphyElement<"div"> {
       // caller-scaled size, neither of which a typography patch expresses.
       fontSize: () => `${fontSizePx}px`,
       fontWeight: () => "900",
+      // A blocky comic display face is the entire premise of this component;
+      // browsers fall through 'Bangers' (if loaded) to the system 'Impact'/
+      // 'Comic Sans MS' display fonts before the generic sans-serif.
+      fontFamily: "'Bangers', 'Comic Sans MS', 'Impact', sans-serif",
       // Halftone fill: base paper tone + tiled dot pattern, both clipped to
       // the glyphs. `_doctorDisable`d below for `tone-background-inherit`
       // (this fixed-shift backgroundColor is the glyphs' own ink fill, not

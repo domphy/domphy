@@ -1,5 +1,5 @@
 import type { DomphyElement, Listener, PartialElement } from "@domphy/core";
-import { button, heading, icon, label, link, paragraph, small, strong } from "@domphy/ui";
+import { button, card, heading, icon, label, link, paragraph, small, strong } from "@domphy/ui";
 import { themeColor, themeDensity, themeFluidSpacing, themeSize, themeSpacing } from "@domphy/theme";
 
 // Generic monochrome mark — an original, brand-neutral logo glyph placeholder.
@@ -237,19 +237,22 @@ function signup03(props: Signup03Props = {}): DomphyElement<"div"> {
     $: [small({ color: "neutral" })],
   };
 
-  const contentBlock: DomphyElement<"div"> = {
-    div: [{ h2: title, $: [heading()] }, { p: subtitle, $: [paragraph({ color: "neutral" })] }, formElement, footerLine],
-    style: {
-      width: "100%",
-      maxWidth: themeSpacing(96),
-      display: "flex",
-      flexDirection: "column",
-      gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
-    },
+  // Upstream signup-03 wraps its header + form in a visible Card (with a
+  // centered header), sitting on the muted page between the logo above and
+  // the legal line below — mirror that instead of rendering the form uncarded.
+  const cardElement: DomphyElement<"div"> = {
+    div: [
+      { h2: title, $: [heading()], style: { textAlign: "center" } },
+      { p: subtitle, $: [paragraph({ color: "neutral" })], style: { textAlign: "center" } },
+      { div: [formElement] },
+      { footer: [footerLine] },
+    ],
+    $: [card({ color: "neutral" })],
+    style: { width: "100%", maxWidth: themeSpacing(96) },
   };
 
   return {
-    div: [logoRow(companyName, logoHref), contentBlock, legalLine(termsHref, privacyHref)],
+    div: [logoRow(companyName, logoHref), cardElement, legalLine(termsHref, privacyHref)],
     dataTone: "shift-2",
     style: {
       display: "flex",

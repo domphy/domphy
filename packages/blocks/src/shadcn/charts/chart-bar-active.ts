@@ -1,9 +1,10 @@
 // shadcn/ui "chart-bar" (active recipe) — clean-room reimplementation.
 //
-// A vertical single-series bar chart where one pre-selected bar is
-// deliberately emphasized with a bold dashed outline (rather than relying on
-// hover), and the standard hover-tooltip cursor rectangle is disabled so the
-// dashed bar reads as a persistent "selected" state.
+// A vertical multi-color bar chart (each bar carries its own accent color)
+// where one pre-selected bar is deliberately emphasized with a bold dashed
+// outline in that bar's own color (rather than relying on hover), and the
+// standard hover-tooltip cursor rectangle is disabled so the dashed bar
+// reads as a persistent "selected" state.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
@@ -17,6 +18,7 @@ import {
   chartBarAxisTooltipFormatter,
   chartBarCardShell,
   chartBarCategoryXAxis,
+  chartBarColorHex,
   chartBarFrame,
   chartBarHiddenValueYAxis,
   chartBarTrendFooter,
@@ -65,6 +67,7 @@ function chartBarActive(props: ChartBarActiveProps = {}): DomphyElement<"div"> {
   const values = data.map((point) => point.value);
   const valueDomain = chartBarValueDomain(values);
   const clampedActiveIndex = Math.max(0, Math.min(data.length - 1, activeIndex));
+  const barColor = (index: number): ThemeColor => data[index]?.color ?? seriesColor;
 
   const option: ChartOption = {
     tooltip: {
@@ -77,12 +80,17 @@ function chartBarActive(props: ChartBarActiveProps = {}): DomphyElement<"div"> {
     xAxis: chartBarCategoryXAxis(categories),
     yAxis: chartBarHiddenValueYAxis({ min: valueDomain[0], max: valueDomain[1] }),
     grid: GRID,
+    // Every bar carries its own accent color — upstream's active recipe is a
+    // multi-color chart, not a single-hue one; one bar is then singled out by
+    // the dashed overlay below (drawn in that same bar's color).
     series: [
       {
         type: "bar",
         name: seriesLabel,
-        color: seriesColor,
-        data: values,
+        data: data.map((point, index) => ({
+          value: point.value,
+          itemStyle: { color: chartBarColorHex(barColor(index)) },
+        })),
       },
     ],
   };
@@ -101,7 +109,7 @@ function chartBarActive(props: ChartBarActiveProps = {}): DomphyElement<"div"> {
               valueDomain,
               grid: GRID,
               activeIndex: clampedActiveIndex,
-              color: seriesColor,
+              color: barColor(clampedActiveIndex),
             }),
           ],
         }),

@@ -200,9 +200,18 @@ export const CHART_AREA_X_AXIS_BARE = {
   splitLine: { show: false },
 };
 
+// The y-axis chrome (line / ticks / value labels) is hidden, but the
+// horizontal split gridlines stay on — mirroring the upstream recipe's
+// `<CartesianGrid vertical={false} />` (faint horizontal-only gridlines) over
+// an otherwise label-less value axis. Note the engine skips a whole axis when
+// `show: false`, taking its splitLine with it, so the chrome must be hidden
+// per sub-component instead of via `show: false`.
 export const CHART_AREA_Y_AXIS_HIDDEN = {
   type: "value" as const,
-  show: false,
+  axisLine: { show: false },
+  axisTick: { show: false },
+  axisLabel: { show: false },
+  splitLine: { show: true },
 };
 
 export function formatShortMonthDay(isoDate: string): string {
@@ -233,10 +242,14 @@ function escapeHtml(text: string): string {
  *   plotted value. Pass a custom formatter to show raw (pre-normalized)
  *   values when the plotted series data has been transformed (e.g. percent
  *   stacking).
+ * @param hideLabel - When true, the leading category header row is omitted —
+ *   mirroring upstream's `<ChartTooltipContent hideLabel />` (used by the
+ *   linear and step recipes).
  */
 export function chartAxisTooltipFormatter(
   categories: string[],
   valueLabel: (params: TooltipParams) => string = (p) => String(p.value ?? ""),
+  hideLabel = false,
 ): (params: TooltipParams | TooltipParams[]) => string {
   return (paramsInput) => {
     const params = Array.isArray(paramsInput) ? paramsInput : [paramsInput];
@@ -249,7 +262,7 @@ export function chartAxisTooltipFormatter(
         return `${dot}<strong>${label}</strong>: ${escapeHtml(valueLabel(p))}`;
       })
       .join("<br>");
-    return `<strong>${category}</strong><br>${rows}`;
+    return hideLabel ? rows : `<strong>${category}</strong><br>${rows}`;
   };
 }
 

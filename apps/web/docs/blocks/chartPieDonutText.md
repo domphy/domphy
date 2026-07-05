@@ -29,7 +29,7 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `centerCaption` | `string` | Muted caption word beneath the total, e.g. "Visitors". |
 
 ::: details Implementation notes
-Two stacked SVG &lt;text&gt; elements (bold total + muted caption, configurable totalGetter/caption) are anchored at the pie's own center coordinate with text-anchor/dominant-baseline centering, per the spec's guidance to keep this responsive to SVG resizing rather than an absolutely-positioned HTML overlay. Total stays static regardless of hover, as specified. Same mount-sweep approximation caveat as chartPieSimple.
+Two stacked SVG &lt;text&gt; elements (bold total + muted caption, configurable totalGetter/caption) are anchored at the pie's own center coordinate with text-anchor/dominant-baseline centering, per the spec's guidance to keep this responsive to SVG resizing rather than an absolutely-positioned HTML overlay. Total stays static regardless of hover, as specified. Same mount-sweep approximation caveat as chartPieSimple. Direct-source-diff fix (2026-07-05): Used the shared 925-total dataset instead of its own — upstream's donut-text variant has its own data (center total 1,125). Added a dedicated dataset.
 
 Status: **ported** · Reference: [shadcn/ui original](https://ui.shadcn.com/charts/pie)
 :::

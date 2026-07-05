@@ -67,7 +67,7 @@ function chartBarDefault(props: ChartBarDefaultProps = {}): DomphyElement<"div">
   const option: ChartOption = {
     tooltip: {
       trigger: "axis",
-      axisPointer: { type: "shadow" },
+      axisPointer: { type: "none" },
       formatter: chartBarAxisTooltipFormatter(categories),
     },
     xAxis: chartBarCategoryXAxis(categories),

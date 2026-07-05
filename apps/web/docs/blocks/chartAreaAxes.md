@@ -25,7 +25,7 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `height` | `number` | — |
 
 ::: details Implementation notes
-Two-series overlapping area chart with a real sparse y-axis (splitNumber:3, no axis line/tick, floating labels) and horizontal-only gridlines (yAxis.splitLine on, xAxis.splitLine off) via @domphy/chart's native AxisOption/GridOption support — no approximation needed for the axes themselves. Same mount-reveal approximation caveat as chartAreaDefault.
+Two-series overlapping area chart with a real sparse y-axis (splitNumber:3, no axis line/tick, floating labels) and horizontal-only gridlines (yAxis.splitLine on, xAxis.splitLine off) via @domphy/chart's native AxisOption/GridOption support — no approximation needed for the axes themselves. Same mount-reveal approximation caveat as chartAreaDefault. Direct-source-diff fix (2026-07-05): Two-series fill wasn't stacked — upstream stacks both under one stackId. Fixed.
 
 Status: **partial** · Reference: [shadcn/ui original](https://ui.shadcn.com/charts/area)
 :::

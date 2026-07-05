@@ -29,7 +29,7 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `height` | `number` | — |
 
 ::: details Implementation notes
-Single-series staircase area (LineSeriesOption step:'end', horizontal-then-vertical segments per the engine's buildPixelPoints step logic), plus an optional seriesIcon prop that swaps the footer's default trend arrow for a caller-chosen icon (demonstrating 'attaching an icon to the series definition' per spec, since @domphy/chart's LineSeriesOption itself has no icon field). Same mount-reveal approximation caveat as chartAreaDefault.
+Single-series staircase area (LineSeriesOption step:'end', horizontal-then-vertical segments per the engine's buildPixelPoints step logic), plus an optional seriesIcon prop that swaps the footer's default trend arrow for a caller-chosen icon (demonstrating 'attaching an icon to the series definition' per spec, since @domphy/chart's LineSeriesOption itself has no icon field). Same mount-reveal approximation caveat as chartAreaDefault. Direct-source-diff fix (2026-07-05): Tooltip was missing upstream's hideLabel (an extra date header row rendered that upstream's ChartTooltipContent suppresses), and horizontal gridlines were missing. Both fixed.
 
 Status: **partial** · Reference: [shadcn/ui original](https://ui.shadcn.com/charts/area)
 :::

@@ -27,6 +27,7 @@ import {
   details,
   drawer,
   icon,
+  inputSearch,
   list,
   listItemButton,
   menu,
@@ -508,6 +509,50 @@ export function sidebarHeaderSwitcher(
   };
 }
 
+/**
+ * Docs-style search field shown in the sidebar header (sidebar01/02 mirror
+ * upstream's `SearchForm`: a labeled search input with a leading icon). Hidden
+ * in icon-rail mode, where a full-width text field has nowhere to render.
+ */
+export function sidebarSearchForm(collapsed: State<boolean>): DomphyElement<"form"> {
+  return {
+    form: [
+      {
+        div: [
+          {
+            span: [navIcon("search")],
+            style: {
+              position: "absolute",
+              insetInlineStart: themeSpacing(2),
+              top: "50%",
+              transform: "translateY(-50%)",
+              width: themeSpacing(4),
+              height: themeSpacing(4),
+              pointerEvents: "none",
+              opacity: 0.5,
+              display: "inline-flex",
+            },
+          },
+          {
+            input: null,
+            type: "search",
+            ariaLabel: "Search",
+            placeholder: "Search the docs...",
+            style: { width: "100%", paddingInlineStart: themeSpacing(8) },
+            $: [inputSearch({ color: "neutral", accentColor: "primary" })],
+          } as DomphyElement<"input">,
+        ],
+        style: { position: "relative", display: "flex", alignItems: "center" },
+      },
+    ],
+    style: {
+      display: (listener: Listener) => (collapsed.get(listener) ? "none" : "block"),
+      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+      paddingBlockEnd: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+    },
+  };
+}
+
 export function sidebarFooterUser(
   user: SidebarUser,
   collapsed: State<boolean>,
@@ -736,6 +781,8 @@ export interface SidebarShellOptions {
   collapsibleSections: boolean;
   supportsChildren: boolean;
   floating: boolean;
+  /** Renders a docs-style search field under the header switcher (sidebar01/02). */
+  showSearch?: boolean;
   /** Which viewport edge the sidebar docks against. Defaults to "left". */
   side?: "left" | "right";
 }
@@ -743,6 +790,7 @@ export interface SidebarShellOptions {
 export function sidebarAside(options: SidebarShellOptions): DomphyElement<"aside"> {
   const { header, navGroups, user, collapsed, collapsibleSections, supportsChildren, floating } =
     options;
+  const showSearch = options.showSearch ?? false;
   const side = options.side ?? "left";
   const expandedWidth = floating ? SIDEBAR_WIDTH_FLOATING : SIDEBAR_WIDTH;
   // The edge facing the main content: for a left-docked sidebar that's its own
@@ -755,6 +803,7 @@ export function sidebarAside(options: SidebarShellOptions): DomphyElement<"aside
   return {
     aside: [
       sidebarHeaderSwitcher(header, collapsed),
+      ...(showSearch ? [sidebarSearchForm(collapsed)] : []),
       {
         nav: [navGroupList(navGroups, collapsed, collapsibleSections, supportsChildren)],
         // The mobile drawer below renders a second, structurally-identical
@@ -804,6 +853,7 @@ export function sidebarMobileDrawer(
   options: SidebarShellOptions & { mobileOpen: State<boolean> },
 ): DomphyElement<"dialog"> {
   const { header, navGroups, user, collapsibleSections, supportsChildren, mobileOpen } = options;
+  const showSearch = options.showSearch ?? false;
   const side = options.side ?? "left";
   // The mobile drawer always renders fully expanded — there is no icon-rail
   // mode once the sidebar has already collapsed into an overlay sheet.
@@ -812,6 +862,7 @@ export function sidebarMobileDrawer(
   return {
     dialog: [
       sidebarHeaderSwitcher(header, alwaysExpanded),
+      ...(showSearch ? [sidebarSearchForm(alwaysExpanded)] : []),
       {
         nav: [navGroupList(navGroups, alwaysExpanded, collapsibleSections, supportsChildren)],
         ariaLabel: "Sidebar navigation (mobile)",
@@ -860,6 +911,8 @@ export interface SidebarVariantOptions extends SidebarBlockOptions {
   floating?: boolean;
   stickyHeader?: boolean;
   manyContentRows?: boolean;
+  /** Show the docs-style search field in the header (sidebar01/02). */
+  showSearch?: boolean;
   /**
    * Renders the main content column as a rounded, shadowed card inset from the
    * sidebar/viewport edges (like sidebar08) instead of a flush full-bleed panel.
@@ -970,6 +1023,7 @@ export function buildSidebarBlock(options: SidebarVariantOptions): DomphyElement
   const floating = options.floating ?? false;
   const stickyHeader = options.stickyHeader ?? true;
   const manyContentRows = options.manyContentRows ?? false;
+  const showSearch = options.showSearch ?? false;
   const side = options.side ?? "left";
   const insetMain = options.insetMain ?? false;
 
@@ -984,6 +1038,7 @@ export function buildSidebarBlock(options: SidebarVariantOptions): DomphyElement
     collapsibleSections,
     supportsChildren,
     floating,
+    showSearch,
     side,
   };
 

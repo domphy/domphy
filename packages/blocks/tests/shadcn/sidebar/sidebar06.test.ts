@@ -48,6 +48,15 @@ describe("sidebar06", () => {
     expect(host.querySelector("aside footer")).toBeTruthy();
   });
 
+  it("renders the opt-in card as a form with an email input above the button", () => {
+    const { host } = render(sidebar06() as DomphyElement);
+    // Upstream sidebar-06's SidebarOptInForm wraps a `type=email` SidebarInput
+    // and the Subscribe button in a <form>.
+    const emailInput = host.querySelector("aside form input[type='email']");
+    expect(emailInput).toBeTruthy();
+    expect(host.querySelector("aside form button[type='submit']")).toBeTruthy();
+  });
+
   it("omits the opt-in card when optInCard is null", () => {
     const { host } = render(sidebar06({ optInCard: null }) as DomphyElement);
     expect(host.textContent).not.toContain("Get the latest updates");

@@ -83,7 +83,11 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
 
   return {
     [tag]: characterSpans,
-    style: { display: "inline-block", ...(props.style ?? {}) } as StyleObject,
+    // Monospace (upstream's `font-mono`) keeps every character cell a fixed
+    // width, so swapping in random glyphs mid-scramble doesn't jitter the
+    // surrounding characters left and right — and it suits the terminal-decode
+    // aesthetic. A proportional font would visibly reflow on every tick.
+    style: { display: "inline-block", fontFamily: "monospace", ...(props.style ?? {}) } as StyleObject,
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined") return;
       const element = node.domElement as HTMLElement;

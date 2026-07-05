@@ -35,6 +35,7 @@ import {
   chartAreaGradientFill,
   chartAxisTooltipFormatter,
   chartCardShell,
+  chartLegendRow,
   formatShortMonthDay,
   type ChartAreaDailyPoint,
   type ChartRangePreset,
@@ -98,6 +99,7 @@ function chartAreaInteractive(props: ChartAreaInteractiveProps = {}): DomphyElem
       series: series.map((s) => ({
         type: "line",
         name: s.label,
+        stack: "total",
         smooth: true,
         showSymbol: false,
         color: s.color,
@@ -162,7 +164,12 @@ function chartAreaInteractive(props: ChartAreaInteractiveProps = {}): DomphyElem
     title,
     description,
     headerAside: rangeAside,
-    content: { div: [chartFrame] },
+    content: {
+      div: [
+        chartFrame,
+        chartLegendRow(series.map((s) => ({ label: s.label, color: s.color }))),
+      ],
+    },
   });
 }
 

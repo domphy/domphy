@@ -77,6 +77,11 @@ function ringElement(
       borderRadius: "50%",
       transform: "translate(-50%, -50%)",
       opacity,
+      // Faint translucent disc fill (upstream's `bg-foreground/25`): 8 nested
+      // rings stack these into a soft radial buildup toward the center, not
+      // just concentric outlines.
+      backgroundColor: (listener: Listener) =>
+        `color-mix(in srgb, ${themeColor(listener, "shift-9", color)} 25%, transparent)`,
       borderWidth: "1px",
       borderStyle: "solid",
       borderColor: (listener: Listener) => themeColor(listener, "shift-9", color),

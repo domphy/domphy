@@ -196,7 +196,7 @@ export interface ActivityTooltipOptions {
   renderValue?: (context: TooltipValueContext) => string;
   minRowWidthPx?: number;
   panelMinWidthPx?: number;
-  totalAtIndex?: number;
+  showTotal?: boolean;
   totalLabel?: string;
 }
 
@@ -297,8 +297,9 @@ function renderHeaderLabel(
  * Builds an axis-trigger tooltip `formatter` that renders an optional bold
  * header row (date, long-form date, a static config label, or a custom
  * callback) followed by one indicator+name+value row per series, and an
- * optional divider + bold "Total" row when the hovered column matches
- * `totalAtIndex`.
+ * optional divider + bold "Total" row beneath the last series row on every
+ * column when `showTotal` is set (mirroring the upstream recipe, whose custom
+ * formatter appends the total after its last series item on every hover).
  */
 export function activityTooltipFormatter(
   dataset: ActivityDayPoint[],
@@ -311,7 +312,7 @@ export function activityTooltipFormatter(
     renderValue = plainValueRenderer,
     minRowWidthPx,
     panelMinWidthPx,
-    totalAtIndex,
+    showTotal = false,
     totalLabel = "Total",
   } = options;
 
@@ -344,7 +345,7 @@ export function activityTooltipFormatter(
       .join("");
 
     let totalHtml = "";
-    if (totalAtIndex !== undefined && dataIndex === totalAtIndex) {
+    if (showTotal) {
       const sum = params.reduce((total, point) => total + Number(point.value ?? 0), 0);
       const totalValueHtml = wrapValue(
         renderValue({ value: sum, seriesKey: "total", entry: undefined, rowIndex: params.length }),

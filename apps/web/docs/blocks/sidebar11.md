@@ -18,6 +18,7 @@ A **Sidebar** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clea
 | Prop | Type | Description |
 |---|---|---|
 | `tree` | `Sidebar11TreeNode[]` | — |
+| `changes` | `Sidebar11Change[]` | — |
 | `activeFilePath` | `string` | — |
 | `user` | `SidebarUser` | — |
 | `onFolderToggle` | `(path: string, open: boolean) =&gt; void` | — |
@@ -25,7 +26,7 @@ A **Sidebar** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clea
 | `children` | `DomphyElement \| DomphyElement[]` | — |
 
 ::: details Implementation notes
-Fully recursive folder/file tree component (arbitrary depth via a discriminated-union node type), ancestor folders of the active file pre-expanded on first render, active file highlighted, and a header breadcrumb rebuilt reactively (keyed by cumulative path, not index) from the active file's path segments on every selection. Minor, intentional parity note: like the sibling sidebar05-08 accordions, a folder's expand/collapse state is computed once at construction and does not auto re-expand ancestors on a later click-driven selection change — matches the established convention in this package rather than a divergent gap.
+Fully recursive folder/file tree component (arbitrary depth via a discriminated-union node type), ancestor folders of the active file pre-expanded on first render, active file highlighted, and a header breadcrumb rebuilt reactively (keyed by cumulative path, not index) from the active file's path segments on every selection. Minor, intentional parity note: like the sibling sidebar05-08 accordions, a folder's expand/collapse state is computed once at construction and does not auto re-expand ancestors on a later click-driven selection change — matches the established convention in this package rather than a divergent gap. Direct-source-diff fix (2026-07-05): Missing the labeled 'Changes' group (3 files + M/U/M status badges) and the 'Changes'/'Files' group labels above the tree. Added.
 
 Status: **ported** · Reference: [shadcn/ui original](https://ui.shadcn.com/blocks)
 :::

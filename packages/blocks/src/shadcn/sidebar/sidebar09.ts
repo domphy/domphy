@@ -218,7 +218,7 @@ function railFooter(user: Sidebar09User): DomphyElement<"div"> {
 }
 
 function messageListHeader(
-  workspaceName: string,
+  title: (listener: Listener) => string,
   searchQuery: State<string>,
   unreadOnly: State<boolean>,
   onCloseMobile: () => void,
@@ -228,7 +228,9 @@ function messageListHeader(
     div: [
       {
         div: [
-          { strong: workspaceName, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
+          // Upstream's second-sidebar header shows the active folder's title
+          // (it re-renders on folder switch), not a static workspace name.
+          { strong: (l: Listener) => title(l), $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
           {
             button: "×",
             type: "button",
@@ -494,7 +496,13 @@ function sidebar09(props: Sidebar09Props = {}): DomphyElement<"div"> {
 
   const listPanel: DomphyElement<"aside"> = {
     aside: [
-      messageListHeader("Acme Mail", searchQuery, unreadOnly, () => mobileListOpen.set(false), onSearchChange),
+      messageListHeader(
+        (l: Listener) => folders.find((folder) => folder.id === activeFolderId.get(l))?.label ?? "",
+        searchQuery,
+        unreadOnly,
+        () => mobileListOpen.set(false),
+        onSearchChange,
+      ),
       buildMessageList(messages, activeFolderId, activeMessageId, searchQuery, unreadOnly, selectMessage),
     ],
     ariaLabel: "Message list",

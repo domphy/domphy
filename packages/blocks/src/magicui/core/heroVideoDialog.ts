@@ -35,17 +35,18 @@ export interface HeroVideoDialogProps {
   style?: StyleObject;
 }
 
-const OFFSET = themeSpacing(10);
-
+// Offsets match upstream: edge slides start a full 100% of the dialog's own
+// size off-screen (a dramatic slide-in, not a small nudge), and "from-center"
+// grows from scale(0.5) rather than a barely-perceptible 0.92.
 const ANIMATION_TRANSFORMS: Record<HeroVideoAnimationStyle, { enterFrom: string; exitTo: string }> = {
-  "from-center": { enterFrom: "scale(0.92)", exitTo: "scale(0.92)" },
-  "from-top": { enterFrom: `translateY(-${OFFSET})`, exitTo: `translateY(-${OFFSET})` },
-  "from-bottom": { enterFrom: `translateY(${OFFSET})`, exitTo: `translateY(${OFFSET})` },
-  "from-left": { enterFrom: `translateX(-${OFFSET})`, exitTo: `translateX(-${OFFSET})` },
-  "from-right": { enterFrom: `translateX(${OFFSET})`, exitTo: `translateX(${OFFSET})` },
+  "from-center": { enterFrom: "scale(0.5)", exitTo: "scale(0.5)" },
+  "from-top": { enterFrom: "translateY(-100%)", exitTo: "translateY(-100%)" },
+  "from-bottom": { enterFrom: "translateY(100%)", exitTo: "translateY(100%)" },
+  "from-left": { enterFrom: "translateX(-100%)", exitTo: "translateX(-100%)" },
+  "from-right": { enterFrom: "translateX(100%)", exitTo: "translateX(100%)" },
   fade: { enterFrom: "none", exitTo: "none" },
-  "top-in-bottom-out": { enterFrom: `translateY(-${OFFSET})`, exitTo: `translateY(${OFFSET})` },
-  "left-in-right-out": { enterFrom: `translateX(-${OFFSET})`, exitTo: `translateX(${OFFSET})` },
+  "top-in-bottom-out": { enterFrom: "translateY(-100%)", exitTo: "translateY(100%)" },
+  "left-in-right-out": { enterFrom: "translateX(-100%)", exitTo: "translateX(100%)" },
 };
 
 function playGlyph(): DomphyElement<"span"> {

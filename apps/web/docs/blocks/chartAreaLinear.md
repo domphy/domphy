@@ -28,7 +28,7 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `height` | `number` | — |
 
 ::: details Implementation notes
-Identical structure to chartAreaDefault with smooth:false (straight point-to-point segments). Same mount-reveal approximation caveat as chartAreaDefault.
+Identical structure to chartAreaDefault with smooth:false (straight point-to-point segments). Same mount-reveal approximation caveat as chartAreaDefault. Direct-source-diff fix (2026-07-05): Same tooltip hideLabel gap and missing horizontal gridlines as chartAreaStep. Fixed.
 
 Status: **partial** · Reference: [shadcn/ui original](https://ui.shadcn.com/charts/area)
 :::

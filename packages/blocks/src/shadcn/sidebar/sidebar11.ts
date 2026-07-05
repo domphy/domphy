@@ -6,7 +6,7 @@
 
 import type { DomphyElement, Listener, State } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { breadcrumb, buttonGhost, icon, link, strong } from "@domphy/ui";
+import { breadcrumb, buttonGhost, icon, link, small, strong } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   ICON_CHEVRON_RIGHT,
@@ -25,8 +25,12 @@ type Sidebar11TreeNode =
   | { type: "folder"; name: string; children: Sidebar11TreeNode[]; icon?: string }
   | { type: "file"; name: string; icon?: string };
 
+/** A changed file shown in the "Changes" group with a git-status badge. */
+type Sidebar11Change = { file: string; state: string };
+
 type Sidebar11Props = {
   tree?: Sidebar11TreeNode[];
+  changes?: Sidebar11Change[];
   activeFilePath?: string;
   user?: SidebarUser;
   onFolderToggle?: (path: string, open: boolean) => void;
@@ -69,6 +73,12 @@ const DEFAULT_TREE: Sidebar11TreeNode[] = [
     name: "public",
     children: [{ type: "file", name: "favicon.ico" }],
   },
+];
+
+const DEFAULT_CHANGES: Sidebar11Change[] = [
+  { file: "README.md", state: "M" },
+  { file: "api/hello/route.ts", state: "U" },
+  { file: "app/layout.tsx", state: "M" },
 ];
 
 const DEFAULT_ACTIVE_PATH = "components/ui/button.tsx";
@@ -208,6 +218,60 @@ function buildTreeList(
   });
 }
 
+/** Uppercase muted section heading (mirrors upstream's `SidebarGroupLabel`). */
+function groupLabel(text: string): DomphyElement<"div"> {
+  return {
+    div: [{ small: text, $: [small({ color: "neutral" })] } as unknown as DomphyElement],
+    style: {
+      textTransform: "uppercase",
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+      paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+      paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+    },
+  } as unknown as DomphyElement<"div">;
+}
+
+/** A changed-file row with a trailing git-status badge (M/U/etc.). */
+function changeRow(change: Sidebar11Change): DomphyElement<"li"> {
+  return {
+    li: [
+      {
+        button: [
+          sidebarIcon(ICON_FILE),
+          {
+            span: change.file,
+            style: { flex: "1", textAlign: "left", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" },
+          } as unknown as DomphyElement,
+          {
+            span: change.state,
+            dataSlot: "badge",
+            ariaLabel: `status ${change.state}`,
+            style: { flexShrink: "0", color: (l: Listener) => themeColor(l, "shift-7", "neutral") },
+          } as unknown as DomphyElement,
+        ],
+        type: "button",
+        style: {
+          display: "flex",
+          alignItems: "center",
+          width: "100%",
+          gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+          paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
+          paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+          borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+          border: "none",
+          background: "none",
+          cursor: "pointer",
+          textAlign: "left",
+          color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+          backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+        },
+      } as unknown as DomphyElement,
+    ],
+    _key: change.file,
+  } as DomphyElement<"li">;
+}
+
 /** Breadcrumb trail rebuilt reactively from the active file's path segments. */
 function fileBreadcrumb(activeFilePath: State<string>): DomphyElement<"nav"> {
   return {
@@ -247,6 +311,7 @@ function fileBreadcrumb(activeFilePath: State<string>): DomphyElement<"nav"> {
 function sidebar11(props: Sidebar11Props = {}): DomphyElement<"div"> {
   const {
     tree = DEFAULT_TREE,
+    changes = DEFAULT_CHANGES,
     user = DEFAULT_USER,
     onFolderToggle,
     onFileSelect,
@@ -266,6 +331,24 @@ function sidebar11(props: Sidebar11Props = {}): DomphyElement<"div"> {
     aside: [
       {
         nav: [
+          ...(changes.length > 0
+            ? [
+                groupLabel("Changes"),
+                {
+                  ul: changes.map(changeRow),
+                  style: {
+                    listStyle: "none",
+                    margin: "0",
+                    padding: "0",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: themeSpacing(0.5),
+                    marginBlockEnd: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+                  },
+                } as unknown as DomphyElement,
+              ]
+            : []),
+          groupLabel("Files"),
           {
             ul: buildTreeList("", tree, activeFilePath, initialActivePath, onFolderToggle, selectFile),
             style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
@@ -350,4 +433,4 @@ function sidebar11(props: Sidebar11Props = {}): DomphyElement<"div"> {
 }
 
 export { sidebar11 };
-export type { Sidebar11Props, Sidebar11TreeNode };
+export type { Sidebar11Change, Sidebar11Props, Sidebar11TreeNode };

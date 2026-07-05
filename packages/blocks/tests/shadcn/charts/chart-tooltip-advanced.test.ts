@@ -32,9 +32,9 @@ describe("chartTooltipAdvanced", () => {
     expect(host.querySelector("canvas")).toBeTruthy();
   });
 
-  it("accepts a custom unit, panel width and total row index without throwing", () => {
+  it("accepts a custom unit, panel width and disabled total row without throwing", () => {
     const { host } = render(
-      chartTooltipAdvanced({ unit: "cal", panelMinWidthPx: 260, totalAtIndex: 3 }) as DomphyElement,
+      chartTooltipAdvanced({ unit: "cal", panelMinWidthPx: 260, showTotal: false }) as DomphyElement,
     );
     expect(host.querySelector("canvas")).toBeTruthy();
   });

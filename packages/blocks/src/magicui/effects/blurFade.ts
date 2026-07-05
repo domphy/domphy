@@ -30,10 +30,10 @@ export interface BlurFadeProps {
   /** Content to reveal. A single element or a list — passed through
    * unchanged inside the animated wrapper. Defaults to a small demo block. */
   children?: DomphyElement | DomphyElement[];
-  /** Direction the content slides in *from* — `"down"` (the default) starts
-   * the content offset below its final position and it slides upward into
-   * place; `"up"` starts above and slides down; `"left"`/`"right"` slide in
-   * from that side. */
+  /** Direction the content *travels* as it reveals — `"down"` (the default)
+   * starts the content offset above its final position and it slides down into
+   * place; `"up"` starts below and slides up; `"left"` starts to the right and
+   * slides left; `"right"` starts to the left and slides right. */
   direction?: BlurFadeDirection;
   /** How far the content starts offset, in px. Defaults to `6`. */
   offset?: number;
@@ -61,15 +61,19 @@ export interface BlurFadeProps {
 }
 
 function offsetForDirection(direction: BlurFadeDirection, offset: number): { x: number; y: number } {
+  // `direction` is the direction the content *travels* as it reveals, matching
+  // upstream: "down" starts above (y = -offset) and slides down into place,
+  // "up" starts below and slides up, etc. The hidden offset is therefore the
+  // negation of the travel direction.
   switch (direction) {
     case "up":
-      return { x: 0, y: -offset };
-    case "down":
       return { x: 0, y: offset };
+    case "down":
+      return { x: 0, y: -offset };
     case "left":
-      return { x: -offset, y: 0 };
-    case "right":
       return { x: offset, y: 0 };
+    case "right":
+      return { x: -offset, y: 0 };
   }
 }
 

@@ -29,6 +29,7 @@ function sidebar01(props: SidebarBlockOptions = {}): DomphyElement<"div"> {
     floating: false,
     stickyHeader: true,
     manyContentRows: false,
+    showSearch: true,
   });
 }
 
