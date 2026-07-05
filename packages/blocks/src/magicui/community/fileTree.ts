@@ -17,6 +17,11 @@
 // stylesheet hides via `display: none` when closed — a property transitions
 // can't smoothly animate across without extra opt-in machinery. The grid
 // trick needs no height measurement and works for any content height.
+//
+// Each expanded folder draws a vertical guide-rail down its children (the
+// `indicator` prop, on by default, matching upstream's `TreeIndicator`). It's
+// an absolutely-positioned 1px line living inside the grid-collapsed wrapper,
+// so it inherits the expand/collapse height and hides on collapse for free.
 
 import type {
   DomphyElement,
@@ -63,6 +68,8 @@ export interface FileTreeProps {
   sort?: FileTreeSortMode;
   /** Text direction. Defaults to `"ltr"`. */
   direction?: "ltr" | "rtl";
+  /** Draw the vertical guide-rail down each expanded folder's children. Defaults to `true`. */
+  indicator?: boolean;
   /** Custom closed/open folder icon renderer. Defaults to a generic folder glyph. */
   renderFolderIcon?: (open: boolean, node: FileTreeNode) => DomphyElement;
   /** Custom file icon renderer (e.g. per extension). Defaults to a generic document glyph. */
@@ -80,6 +87,7 @@ interface FileTreeContext {
   selectedId: State<string | null>;
   expandedIds: State<string[]>;
   sort: FileTreeSortMode;
+  indicator: boolean;
   color: ThemeColor;
   accentColor: ThemeColor;
   renderFolderIcon: (open: boolean, node: FileTreeNode) => DomphyElement;
@@ -279,11 +287,41 @@ function buildFolderNode(node: FileTreeNode, depth: number, context: FileTreeCon
     style: { ...rowBaseStyle(depth, context.color), cursor: "pointer" } as StyleObject,
   } as DomphyElement;
 
+  // Vertical guide-rail down this folder's children (upstream's `TreeIndicator`,
+  // on by default). Positioned absolutely inside the children area so it spans
+  // exactly the rendered children height, and centered under the parent row's
+  // chevron (paddingInlineStart + half the chevron width). Because it lives
+  // inside the grid-collapsed wrapper it inherits the expand/collapse height
+  // for free — no separate open/close animation needed. `insetInlineStart`
+  // (not `left`) makes it flip to the right edge in RTL automatically.
+  const indicatorRail: DomphyElement = {
+    div: null,
+    dataSlot: "tree-indicator",
+    ariaHidden: "true",
+    style: {
+      position: "absolute",
+      insetInlineStart: themeSpacing(ROW_BASE_INDENT + depth * ROW_INDENT_STEP + 1.75),
+      top: 0,
+      bottom: 0,
+      width: "1px",
+      borderRadius: themeSpacing(0.5),
+      backgroundColor: (listener: Listener) => themeColor(listener, "shift-5", context.color),
+      transition: "background-color 300ms ease-in-out",
+      "&:hover": {
+        backgroundColor: (listener: Listener) => themeColor(listener, "shift-7", context.color),
+      },
+    } as StyleObject,
+    _key: "__rail",
+  };
+
   const childrenWrapper: DomphyElement = {
     div: [
       {
-        div: sortedChildren.map((child) => buildNode(child, depth + 1, context)),
-        style: { minHeight: 0 },
+        div: [
+          ...(context.indicator ? [indicatorRail] : []),
+          ...sortedChildren.map((child) => buildNode(child, depth + 1, context)),
+        ],
+        style: { minHeight: 0, position: "relative" },
       },
     ],
     role: "group",
@@ -390,6 +428,7 @@ function fileTree(props: FileTreeProps = {}): DomphyElement<"div"> {
       props.expandedIds ?? (usingDefaultData ? DEFAULT_EXPANDED_IDS : []),
     ),
     sort,
+    indicator: props.indicator ?? true,
     color,
     accentColor,
     renderFolderIcon: props.renderFolderIcon ?? defaultFolderIcon,

@@ -26,11 +26,13 @@ export interface CodeComparisonProps {
   leftCode?: string;
   /** Right/"after" panel source. */
   rightCode?: string;
-  /** Filename/label shown in the left panel header. Defaults to `"before.ts"`. */
-  leftFilename?: string;
-  /** Filename/label shown in the right panel header. Defaults to `"after.ts"`. */
-  rightFilename?: string;
-  /** Language identifier — used only as a fallback header label. Defaults to `"ts"`. */
+  /**
+   * Filename shown (once) in BOTH panel headers — the two panes are the same
+   * file before/after, distinguished by a `before`/`after` header label rather
+   * than by differing filenames. Defaults to `"app.<language>"`.
+   */
+  filename?: string;
+  /** Language identifier — used only to build the default filename. Defaults to `"ts"`. */
   language?: string;
   /** Theme color family for `[!code highlight]` line tint. Defaults to `"warning"`. */
   highlightColor?: ThemeColor;
@@ -118,10 +120,38 @@ const DEFAULT_RIGHT_CODE = [
   "}",
 ].join("\n");
 
-/** One highlighted code panel: a small filename header above a token-colored `<pre><code>` block. */
+// Hand-authored generic "file" glyph (24x24, stroke=currentColor) — a plain
+// document silhouette with a folded top-right corner. Original geometry, not
+// sourced from any icon library.
+function fileIcon(): DomphyElement<"span"> {
+  return {
+    span: [
+      {
+        svg: [
+          { path: null, d: "M7 3h6l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" },
+          { polyline: null, points: "13 3 13 7 17 7" },
+        ],
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: "2",
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        role: "img",
+        ariaHidden: "true",
+        style: { width: "100%", height: "100%" },
+      } as DomphyElement<"svg">,
+    ],
+    ariaHidden: "true",
+    style: { display: "inline-flex", flex: "0 0 auto", width: themeSpacing(4), height: themeSpacing(4) },
+  };
+}
+
+/** One highlighted code panel: a filename/icon header above a token-colored `<pre><code>` block. */
 function codePanel(
   code: string,
   filename: string,
+  label: string,
   highlightColor: ThemeColor,
 ): DomphyElement<"div"> {
   const parsedLines = code.replace(/\r\n/g, "\n").split("\n").map(parseLine);
@@ -163,16 +193,26 @@ function codePanel(
   return {
     div: [
       {
-        small: filename,
-        $: [small({ color: "neutral" })],
+        div: [
+          fileIcon(),
+          { small: filename, $: [small({ color: "neutral" })] },
+          {
+            small: label,
+            $: [small({ color: "neutral" })],
+            style: { marginInlineStart: "auto" },
+          },
+        ],
         style: {
-          display: "block",
+          display: "flex",
+          alignItems: "center",
+          gap: themeSpacing(2),
           paddingBlock: themeSpacing(2),
           paddingInline: themeSpacing(4),
-          // Duplicates what the `small()` patch already sets — the doctor's
-          // missing-color check only sees this element's own `style` object,
-          // not merged patch styles, so `color` is repeated here to satisfy
-          // the surface contract for the themed `borderBottom` below.
+          // Duplicates what the child `small()` patches already set — the
+          // doctor's missing-color check only sees this element's own `style`
+          // object, not merged patch styles, so `color` is repeated here to
+          // satisfy the surface contract for the themed `borderBottom` below
+          // (and to color the currentColor-stroked file glyph).
           color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
           borderBottom: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
         },
@@ -212,16 +252,41 @@ function codeComparison(props: CodeComparisonProps = {}): DomphyElement<"div"> {
   const language = props.language ?? "ts";
   const leftCode = props.leftCode ?? DEFAULT_LEFT_CODE;
   const rightCode = props.rightCode ?? DEFAULT_RIGHT_CODE;
-  const leftFilename = props.leftFilename ?? `before.${language}`;
-  const rightFilename = props.rightFilename ?? `after.${language}`;
+  const filename = props.filename ?? `app.${language}`;
   const highlightColor = props.highlightColor ?? "warning";
 
   return {
     div: [
-      codePanel(leftCode, leftFilename, highlightColor),
-      codePanel(rightCode, rightFilename, highlightColor),
+      codePanel(leftCode, filename, "before", highlightColor),
+      codePanel(rightCode, filename, "after", highlightColor),
+      // Centered "VS" badge floating on the boundary between the two panes.
+      // Hidden once the panes wrap to a single column (mobile), mirroring
+      // upstream's `hidden md:flex`.
+      {
+        span: [{ small: "VS", $: [small({ color: "neutral" })] }],
+        ariaHidden: "true",
+        dataTone: "shift-2",
+        style: {
+          position: "absolute",
+          top: "50%",
+          insetInlineStart: "50%",
+          transform: "translate(-50%, -50%)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: themeSpacing(8),
+          height: themeSpacing(8),
+          borderRadius: themeSpacing(2),
+          zIndex: 1,
+          backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+          color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
+          border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          "@media (max-width: 640px)": { display: "none" },
+        } as StyleObject,
+      },
     ],
     style: {
+      position: "relative",
       display: "flex",
       flexWrap: "wrap",
       alignItems: "stretch",

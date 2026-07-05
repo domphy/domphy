@@ -746,7 +746,7 @@ function renderProjectsMoreRow(): DomphyElement<"li"> {
           background: "none",
           cursor: "pointer",
           textAlign: "left",
-          color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
+          color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
           "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
         },

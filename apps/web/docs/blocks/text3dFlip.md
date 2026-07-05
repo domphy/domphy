@@ -1,6 +1,6 @@
 ---
 title: "@domphy/blocks — text3dFlip"
-description: "Implemented as pure CSS 3D transforms: each character is split into a front/back face pair (position:relative wrapper + absolutely-stacked back face), both..."
+description: "Faithful to upstream's real technique."
 ---
 
 # text3dFlip
@@ -17,23 +17,23 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 
 | Prop | Type | Description |
 |---|---|---|
-| `children` | `string` | Front-facing phrase. Defaults to a short demo quote. |
-| `flippedChildren` | `string` | Phrase revealed on the flipped (back) face. Defaults to the same text as `children`, rendered in `flippedColor` — i.e. "the same text in a different style" per the spec's default variant. |
-| `edge` | `Text3dFlipEdge` | Which edge each character hinges around. Defaults to `"top"`. |
+| `children` | `string` | Text to flip. Defaults to a short demo phrase. |
+| `flippedChildren` | `string` | Opt-in Domphy extra: a second phrase shown on the flipped (back) face. Defaults to the same text as `children` — i.e. the same glyph on both faces, matching upstream exactly. Only diverges from upstream if you set it. |
+| `edge` | `Text3dFlipEdge` | Which edge each character rolls around. Defaults to `"right"` (upstream's default), i.e. rotateY. |
 | `staggerDelay` | `number` | Per-character stagger increment, in ms. Defaults to `50`. |
-| `staggerFrom` | `Text3dFlipStaggerFrom` | Where the stagger wave originates: from the first character, the last, the center, or a specific character index (rippling outward from there). Defaults to `"start"`. |
-| `duration` | `number` | How long each character's own flip takes, in ms. Defaults to `500`. |
-| `easing` | `string` | CSS easing for the flip. Defaults to a bouncy cubic-bezier overshoot approximating spring physics (moderate damping/stiffness — bouncy but controlled, not floppy). |
+| `staggerFrom` | `Text3dFlipStaggerFrom` | Where the stagger wave originates: the first character, the last, the center, a random character (re-picked per play), or a specific index. Defaults to `"first"`. |
+| `duration` | `number` | How long each character's own roll takes, in ms. Defaults to `500`. |
+| `easing` | `string` | CSS easing for the roll. Defaults to a bouncy "back out" cubic-bezier approximating upstream's spring settle. |
 | `color` | `ThemeColor` | Theme color role for the resting, front-facing text. Defaults to `"neutral"`. |
-| `flippedColor` | `ThemeColor` | Theme color role for the revealed, flipped text. Defaults to `"primary"`. |
+| `flippedColor` | `ThemeColor` | Opt-in Domphy extra: theme color role for the flipped (back) face. Defaults to the same value as `color` so both faces look identical (upstream behavior). Only diverges if you set it. |
 | `style` | `StyleObject` | Passthrough style merged onto the outer wrapper. |
 | `frontStyle` | `StyleObject` | Passthrough style merged onto every front-facing character. |
 | `flippedStyle` | `StyleObject` | Passthrough style merged onto every flipped (back) character. |
 
 ::: details Implementation notes
-Implemented as pure CSS 3D transforms: each character is split into a front/back face pair (position:relative wrapper + absolutely-stacked back face), both hinged around the configurable edge (top/bottom/left/right -&gt; rotateX/rotateY + matching transform-origin) and revealed via a single `&:hover [data-face=...]` rule on the outer heading, with per-character `transition-delay` computed from `staggerFrom` (start/end/center/index) x `staggerDelay` to produce the wave-across-the-word effect. This faithfully covers the visual/DOM shape, edge choice, and stagger origin/order from the spec. The one real gap: the spec explicitly asks for spring-physics-driven rotation (a damped/bouncy settle, not a fixed duration+easing curve), and Domphy has no spring-animation primitive — `motion()` (the package's only animation patch) only drives Web Animations enter/exit/State keyframes with a fixed CSS `easing` string, not a continuously interactive hover-driven transform, and there is no JS spring library among this package's approved dependencies (cobe/canvas-confetti/rough-notation). Approximated with a hand-tuned CSS `cubic-bezier(0.34, 1.56, 0.64, 1)` 'back-out' overshoot curve on `transition-timing-function`, which reads as bouncy but is a fixed curve, not a true mass/stiffness/damping spring model — configurable via the `easing` prop if a different feel is wanted. Hover-only triggering (no click/keyboard-focus flip path) also means the reveal isn't reachable by keyboard users; the back face is marked `aria-hidden` and the front face carries the real accessible text, so this is a graceful-degradation choice rather than a broken state. Direct-source-diff pass (2026-07-05): this is a deliberate reinterpretation, not a contained bug. Upstream is a one-shot hover ripple (each character rolls 90° to a perpendicular face via a JS/framer stagger, same glyph on both faces, default edge right/rotateY) that snaps back after the roll. This port is a pure-CSS :hover that HOLDS the flip, shows a DIFFERENT phrase on the back face (flippedChildren) with its own color, and defaults to edge top/rotateX. Matching upstream exactly would mean a full rewrite of the interaction model and public prop surface — left as a documented, deliberate divergence pending an explicit decision to do that rewrite.
+Faithful to upstream's real technique. Each character is a two-face 3D cell: a front face plus a PERPENDICULAR second face carrying the SAME glyph, offset out along the character's own depth (translateZ / translateX(50%)). On hover a JS `mouseenter` handler drives the Web Animations API to roll every character 90° so its second face swings into view, staggered character-by-character (`staggerFrom` first/last/center/random/index x `staggerDelay`), then — via `fill: 'none'` — instantly reverts each cell to rest the moment its own roll finishes. That is upstream's one-shot ripple-and-return: the roll passes across the word as a wave and snaps back; it does NOT hold while the pointer stays over the text. No perspective is applied anywhere (upstream is orthographic), so the depth offsets only position the faces and never foreshorten, and the resting cube-corner transform is visually identity. The four transform maps (container / front-face / second-face / rotation, keyed by edge top/right/bottom/left) are ported verbatim from upstream; default edge is right/rotateY. One honest gap: upstream's roll is a mass/stiffness/damping spring and Domphy has no spring primitive, so it is approximated with a 'back out' `cubic-bezier(0.34, 1.56, 0.64, 1)` overshoot (configurable via the `easing` prop) — the same documented gap as numberTicker/smoothCursor. Accessibility: the full phrase is exposed via an sr-only label (as upstream does) and the animated cells are `aria-hidden`, so a screen reader reads the phrase once, not letter-by-letter. `flippedChildren`/`flippedColor` are retained as opt-in Domphy extras (a different glyph/color on the back face) but BOTH default to matching the front face, so the zero-arg render is identical to upstream. jsdom has no Web Animations API, so the ripple no-ops in tests (guarded by `typeof element.animate === 'function'`); structure plus a stubbed-`animate` one-shot-ripple test cover it. Direct-source-diff fix (2026-07-05, follow-up): rewrote the interaction model to match upstream's real one-shot staggered ripple-and-return (was a CSS hover-hold with a different back-face phrase), verified visually via before/mid/after-hover screenshots.
 
-Status: **partial** · Reference: [Magic UI original](https://magicui.design/docs/components/text-3d-flip)
+Status: **ported** · Reference: [Magic UI original](https://magicui.design/docs/components/text-3d-flip)
 :::
 
 ::: code-group

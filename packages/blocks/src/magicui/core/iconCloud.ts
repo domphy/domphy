@@ -2,7 +2,8 @@
 // behavior/visual spec only (no upstream source viewed or copied). An
 // interactive, auto-rotating "tag cloud" sphere of icon chips that the user
 // can grab and spin with the mouse or touch, coasting with inertia on
-// release.
+// release. Clicking a single icon (a press with no drag) animates the whole
+// sphere on an easeOutCubic tween so that icon settles at the front-center.
 //
 // Rendered on a single 2D `<canvas>` (not WebGL/DOM 3D transforms) since the
 // point count is small and cheap to project by hand: a fixed set of points is
@@ -57,6 +58,14 @@ const DEFAULT_ICON_SCALE_RANGE: [number, number] = [42, 14];
 const DEFAULT_ICON_OPACITY_RANGE: [number, number] = [1, 0.25];
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const VELOCITY_REST_EPSILON = 0.00005;
+// Click-to-focus tween: duration scales with the angular distance to travel,
+// clamped so a tiny nudge still reads as motion and a half-turn doesn't crawl.
+const FOCUS_MIN_DURATION_MS = 800;
+const FOCUS_MAX_DURATION_MS = 2000;
+const FOCUS_DURATION_PER_RADIAN_MS = 1000;
+// A press whose total pointer travel stays under this (px) counts as a click
+// (focus an icon); beyond it, the press is a drag (spin the sphere) instead.
+const DRAG_CLICK_THRESHOLD_PX = 6;
 
 // Hand-authored, simple geometric glyph shapes (24x24, stroke=currentColor) —
 // generic placeholders standing in for "an icon goes here", not tracing any
@@ -128,6 +137,22 @@ function rotatePoint(point: SpherePoint, yaw: number, pitch: number): SpherePoin
 
 function lerp(from: number, to: number, t: number): number {
   return from + (to - from) * t;
+}
+
+function easeOutCubic(t: number): number {
+  return 1 - (1 - t) ** 3;
+}
+
+/** The absolute yaw/pitch that, applied via `rotatePoint`, bring `point` to the
+ * front-center of the sphere (projected onto the screen center, facing the
+ * viewer). Independent of the current rotation — the tween interpolates from
+ * wherever the sphere currently sits to these target angles. */
+function focusRotationForPoint(point: SpherePoint): { yaw: number; pitch: number } {
+  const radiusInXZ = Math.sqrt(point.x * point.x + point.z * point.z);
+  return {
+    yaw: Math.atan2(-point.x, point.z),
+    pitch: Math.atan2(point.y, radiusInXZ),
+  };
 }
 
 /**
@@ -202,6 +227,15 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
         typeof window.matchMedia === "function" &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+      interface FocusTarget {
+        yaw: number;
+        pitch: number;
+        startYaw: number;
+        startPitch: number;
+        startTime: number;
+        duration: number;
+      }
+
       let yaw = 0;
       let pitch = 0.15;
       let velocityYaw = 0;
@@ -209,9 +243,18 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
       let dragging = false;
       let lastPointerX = 0;
       let lastPointerY = 0;
+      let pointerDownX = 0;
+      let pointerDownY = 0;
+      let pointerMovedFar = false;
+      let focusTarget: FocusTarget | null = null;
       let width = container.clientWidth || size;
       let frameHandle: number | null = null;
       let resizeObserver: ResizeObserver | null = null;
+
+      const now = () =>
+        typeof performance !== "undefined" && typeof performance.now === "function"
+          ? performance.now()
+          : Date.now();
 
       const resizeCanvas = () => {
         width = container.clientWidth || size;
@@ -252,6 +295,60 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
         context.globalAlpha = 1;
       };
 
+      // Maps a client-space point onto the canvas's own drawing coordinates
+      // (the `width`-px space `draw` uses), tolerating any CSS scaling from the
+      // responsive `maxWidth: 100%`.
+      const toCanvasPoint = (clientX: number, clientY: number): { x: number; y: number } => {
+        const rect = canvas.getBoundingClientRect();
+        const scale = rect.width > 0 ? width / rect.width : 1;
+        return { x: (clientX - rect.left) * scale, y: (clientY - rect.top) * scale };
+      };
+
+      // Front-most icon (largest depth) whose rendered disc contains the point,
+      // or null if the click landed on empty space between icons.
+      const iconIndexAtPoint = (canvasX: number, canvasY: number): number | null => {
+        const sphereRadius = width * 0.42;
+        const centerX = width / 2;
+        const centerY = width / 2;
+        let bestIndex: number | null = null;
+        let bestDepth = -Infinity;
+        points.forEach((point, index) => {
+          const rotated = rotatePoint(point, yaw, pitch);
+          const depth = (rotated.z + 1) / 2;
+          const screenX = centerX + rotated.x * sphereRadius;
+          const screenY = centerY + rotated.y * sphereRadius;
+          const hitRadius = lerp(farSize, nearSize, depth) / 2;
+          const dx = canvasX - screenX;
+          const dy = canvasY - screenY;
+          if (dx * dx + dy * dy <= hitRadius * hitRadius && depth > bestDepth) {
+            bestDepth = depth;
+            bestIndex = index;
+          }
+        });
+        return bestIndex;
+      };
+
+      const startFocus = (index: number) => {
+        const target = focusRotationForPoint(points[index]);
+        const distance = Math.hypot(target.yaw - yaw, target.pitch - pitch);
+        const duration = Math.min(
+          FOCUS_MAX_DURATION_MS,
+          Math.max(FOCUS_MIN_DURATION_MS, distance * FOCUS_DURATION_PER_RADIAN_MS),
+        );
+        focusTarget = {
+          yaw: target.yaw,
+          pitch: target.pitch,
+          startYaw: yaw,
+          startPitch: pitch,
+          startTime: now(),
+          duration,
+        };
+        // A focus tween is authoritative while it plays — clear any coasting
+        // velocity so inertia doesn't add to the eased rotation.
+        velocityYaw = 0;
+        velocityPitch = 0;
+      };
+
       const tick = () => {
         // Belt-and-suspenders: bail without rescheduling once the canvas is
         // no longer in the document, so this loop can't outlive the
@@ -260,7 +357,21 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
         // node removal).
         if (!canvas.isConnected) return;
         if (!dragging) {
-          if (Math.abs(velocityYaw) > VELOCITY_REST_EPSILON || Math.abs(velocityPitch) > VELOCITY_REST_EPSILON) {
+          if (focusTarget) {
+            // Click-to-focus easeOutCubic tween takes precedence over both
+            // inertia and idle auto-rotation until it completes.
+            const progress =
+              focusTarget.duration > 0
+                ? Math.min(1, (now() - focusTarget.startTime) / focusTarget.duration)
+                : 1;
+            const eased = easeOutCubic(progress);
+            yaw = focusTarget.startYaw + (focusTarget.yaw - focusTarget.startYaw) * eased;
+            pitch = focusTarget.startPitch + (focusTarget.pitch - focusTarget.startPitch) * eased;
+            if (progress >= 1) focusTarget = null;
+          } else if (
+            Math.abs(velocityYaw) > VELOCITY_REST_EPSILON ||
+            Math.abs(velocityPitch) > VELOCITY_REST_EPSILON
+          ) {
             yaw += velocityYaw;
             pitch += velocityPitch;
             velocityYaw *= friction;
@@ -279,8 +390,14 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
         dragging = true;
         lastPointerX = event.clientX;
         lastPointerY = event.clientY;
+        pointerDownX = event.clientX;
+        pointerDownY = event.clientY;
+        pointerMovedFar = false;
         velocityYaw = 0;
         velocityPitch = 0;
+        // A fresh press cancels any in-flight focus tween so the drag (or the
+        // next auto-rotation) takes over cleanly rather than fighting it.
+        focusTarget = null;
         canvas.style.cursor = "grabbing";
         try {
           canvas.setPointerCapture(event.pointerId);
@@ -294,6 +411,13 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
         const deltaY = event.clientY - lastPointerY;
         lastPointerX = event.clientX;
         lastPointerY = event.clientY;
+        if (!pointerMovedFar) {
+          const totalX = event.clientX - pointerDownX;
+          const totalY = event.clientY - pointerDownY;
+          if (totalX * totalX + totalY * totalY > DRAG_CLICK_THRESHOLD_PX * DRAG_CLICK_THRESHOLD_PX) {
+            pointerMovedFar = true;
+          }
+        }
         const deltaYaw = deltaX * dragSensitivity;
         const deltaPitch = deltaY * dragSensitivity;
         yaw += deltaYaw;
@@ -309,6 +433,13 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
           canvas.releasePointerCapture(event.pointerId);
         } catch {
           // Best-effort release, as above.
+        }
+        // A press that never travelled far is a click: focus the icon under the
+        // pointer (if any). A real drag falls through to inertial coasting.
+        if (!pointerMovedFar) {
+          const point = toCanvasPoint(event.clientX, event.clientY);
+          const index = iconIndexAtPoint(point.x, point.y);
+          if (index !== null) startFocus(index);
         }
       };
 
@@ -334,4 +465,4 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
   };
 }
 
-export { iconCloud };
+export { iconCloud, easeOutCubic, focusRotationForPoint, rotatePoint };

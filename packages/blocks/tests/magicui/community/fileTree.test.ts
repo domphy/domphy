@@ -56,6 +56,18 @@ describe("fileTree", () => {
     expect(onToggle).toHaveBeenCalledWith(expect.objectContaining({ id: "docs" }), true);
   });
 
+  it("renders an indicator guide-rail for each folder by default", () => {
+    const { host } = render(fileTree() as DomphyElement);
+    const rails = host.querySelectorAll('[data-slot="tree-indicator"]');
+    // DEFAULT_DATA has two folders (src, src/components) → one rail each.
+    expect(rails.length).toBe(2);
+  });
+
+  it("omits the indicator rail when indicator is false", () => {
+    const { host } = render(fileTree({ indicator: false }) as DomphyElement);
+    expect(host.querySelectorAll('[data-slot="tree-indicator"]').length).toBe(0);
+  });
+
   it("clicking a file row selects it and calls onSelect", async () => {
     const onSelect = vi.fn();
     const { host } = render(
