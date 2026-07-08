@@ -20,7 +20,6 @@ A **Backgrounds** block/component from **[Magic UI](/docs/blocks/magicui)** — 
 | `count` | `number` | Number of rays. Defaults to `7`. |
 | `color` | `ThemeColor` | Theme color family for the ray tint. Defaults to `"primary"` (reads as a soft translucent blue against a dark backdrop). |
 | `blur` | `number` | Blur radius, in px. Defaults to `36`. |
-| `opacity` | `number` | Peak ray opacity, 0–1. Defaults to `0.65`. |
 | `speed` | `number` | Seconds per animation cycle. Defaults to `14`. |
 | `length` | `string` | Ray height, any CSS length. Defaults to `"70vh"`. |
 | `children` | `DomphyElement \| DomphyElement[]` | Foreground content layered above the rays. Defaults to a small demo panel. |

@@ -23,7 +23,6 @@ A **Sidebar** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clea
 | `workspaces` | `Sidebar10Workspace[]` | — |
 | `workspacesVisibleCount` | `number` | — |
 | `secondaryLinks` | `Sidebar10SecondaryLink[]` | — |
-| `user` | `SidebarUser` | — |
 | `breadcrumbItems` | `SidebarBreadcrumbItem[]` | — |
 | `children` | `DomphyElement \| DomphyElement[]` | — |
 

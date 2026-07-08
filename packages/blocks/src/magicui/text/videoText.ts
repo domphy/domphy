@@ -24,7 +24,7 @@ import type {
   StyleObject,
 } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { type ThemeColor, themeColor, themeFluidSpacing } from "@domphy/theme";
+import { type ThemeColor, themeColor } from "@domphy/theme";
 
 export interface VideoTextProps {
   /** Text rendered as the video mask's glyph shapes. Defaults to `"OCEAN"`. */
@@ -41,18 +41,18 @@ export interface VideoTextProps {
   muted?: boolean;
   /** `<video>` `preload` strategy. Defaults to `"auto"`. */
   preload?: "auto" | "metadata" | "none";
-  /** Glyph font-size, any CSS length. Defaults to a fluid value that scales with viewport width. */
+  /** Glyph font-size, any CSS length. Defaults to `"20vw"` (viewport-relative, matching upstream). */
   fontSize?: string;
-  /** Glyph font-weight. Defaults to `"800"` (heavy, so each letter reads as a wide video window). */
+  /** Glyph font-weight. Defaults to `"bold"` (matching upstream). */
   fontWeight?: string | number;
-  /** Glyph font-family stack. Defaults to a bold generic sans stack. */
+  /** Glyph font-family stack. Defaults to the generic `"sans-serif"` (matching upstream). */
   fontFamily?: string;
-  /** Container aspect ratio, CSS `aspect-ratio` syntax. Defaults to `"3 / 1"`. */
+  /** Fallback aspect ratio for standalone use, CSS `aspect-ratio` syntax. The container is
+   * `height:100%` like upstream's `size-full`, so a parent with a definite height overrides
+   * this; the ratio only engages when the parent height is indefinite. Defaults to `"3 / 1"`. */
   aspectRatio?: string;
   /** Theme color family for the fallback gradient panel (used only when `videoSrc` is omitted). Defaults to `"primary"`. */
   fallbackColor?: ThemeColor;
-  /** Pauses the video while the container is scrolled out of view, resuming when it re-enters — a small performance courtesy. Defaults to `true`. */
-  pauseWhenOffscreen?: boolean;
   /** Passthrough style merged onto the outer container. */
   style?: StyleObject;
 }
@@ -72,13 +72,11 @@ function videoText(props: VideoTextProps = {}): DomphyElement<"div"> {
   const loop = props.loop ?? true;
   const muted = props.muted ?? true;
   const preload = props.preload ?? "auto";
-  const fontSize = props.fontSize ?? themeFluidSpacing(48, 220);
-  const fontWeight = String(props.fontWeight ?? "800");
-  const fontFamily =
-    props.fontFamily ?? "ui-sans-serif, system-ui, 'Segoe UI', sans-serif";
+  const fontSize = props.fontSize ?? "20vw";
+  const fontWeight = String(props.fontWeight ?? "bold");
+  const fontFamily = props.fontFamily ?? "sans-serif";
   const aspectRatio = props.aspectRatio ?? "3 / 1";
   const fallbackColor = props.fallbackColor ?? "primary";
-  const pauseWhenOffscreen = props.pauseWhenOffscreen ?? true;
 
   const instanceId = ++videoTextInstanceCounter;
   const maskId = `domphy-video-text-mask-${instanceId}`;
@@ -95,7 +93,7 @@ function videoText(props: VideoTextProps = {}): DomphyElement<"div"> {
             x: "50%",
             y: "50%",
             textAnchor: "middle",
-            dominantBaseline: "central",
+            dominantBaseline: "middle",
             fill: "white",
             fontSize,
             fontWeight,
@@ -187,46 +185,21 @@ function videoText(props: VideoTextProps = {}): DomphyElement<"div"> {
         } as StyleObject,
       } as DomphyElement<"div">);
 
-  const offscreenPauseHook = (node: ElementNode) => {
-    if (typeof IntersectionObserver !== "function") return;
-    const container = node.domElement as HTMLElement;
-    const videoElement = container.querySelector(
-      "video",
-    ) as HTMLVideoElement | null;
-    if (!videoElement) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            if (!autoPlay) continue;
-            const playResult = videoElement.play();
-            if (playResult && typeof playResult.catch === "function") {
-              playResult.catch(() => {});
-            }
-          } else {
-            videoElement.pause();
-          }
-        }
-      },
-      { threshold: 0.1 },
-    );
-    observer.observe(container);
-    node.addHook("Remove", () => observer.disconnect());
-  };
-
   const outer: DomphyElement<"div"> = {
     div: [fillLayer, maskDefs],
     role: "img",
     ariaLabel: text,
     dataTone: "shift-16",
-    // `_onMount` must be a function or entirely absent — a `key: undefined`
-    // entry is rejected by the framework's hook validation, so this is only
-    // included when the pause-on-offscreen behavior actually applies.
-    ...(pauseWhenOffscreen && videoSrc ? { _onMount: offscreenPauseHook } : {}),
     style: {
       position: "relative",
       overflow: "hidden",
       width: "100%",
+      // Upstream's container is `size-full` (width:100%; height:100%), filling a
+      // sized parent with no aspect-ratio of its own. `height:100%` reproduces
+      // that; `aspectRatio` only engages as a fallback when the parent height is
+      // indefinite (the standalone zero-arg demo) — there `height:100%` resolves
+      // to `auto`, so the ratio derives height from the definite width.
+      height: "100%",
       aspectRatio,
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),

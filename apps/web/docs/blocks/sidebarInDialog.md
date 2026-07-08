@@ -20,7 +20,7 @@ A **Sidebar** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clea
 | `categories` | `SettingsCategory[]` | — |
 | `defaultCategoryId` | `string` | Category selected when the dialog first opens. Defaults to the researched default ("messages"). |
 | `renderContent` | `(categoryId: string) =&gt; DomphyElement \| DomphyElement[]` | Per-category body renderer. Defaults to 10 stacked skeleton placeholder rows. |
-| `open` | `ValueOrState&lt;boolean&gt;` | Dialog open state — pass a `State&lt;boolean&gt;` for controlled usage. Defaults to closed. |
+| `open` | `ValueOrState&lt;boolean&gt;` | Dialog open state — pass a `State&lt;boolean&gt;` for controlled usage. Defaults to open (matches upstream `useState(true)`). |
 | `title` | `string` | Accessible dialog title (also used as the breadcrumb root segment). |
 | `description` | `string` | Accessible dialog description (visually hidden, read by screen readers only). |
 | `triggerLabel` | `string` | Content of the button that opens the dialog. |

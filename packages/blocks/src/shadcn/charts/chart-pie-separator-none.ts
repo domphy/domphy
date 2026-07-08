@@ -46,7 +46,7 @@ export interface ChartPieSeparatorNoneProps {
 function chartPieSeparatorNone(props: ChartPieSeparatorNoneProps = {}): DomphyElement<"div"> {
   const {
     data = DEFAULT_PIE_DATA,
-    title = "Pie Chart - No Separator",
+    title = "Pie Chart - Separator None",
     description = "January - June 2024",
     trendValue = "5.2%",
     trendDirection = "up",

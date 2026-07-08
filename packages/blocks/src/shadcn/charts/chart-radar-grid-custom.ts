@@ -2,8 +2,8 @@
 //
 // A stripped-down grid: just one thin polygon ring at a fixed (roughly
 // mid-to-outer) radius, no radial spoke lines, deliberately understated so
-// the data shape reads as the dominant visual element. Minimal, value-only
-// hover tooltip.
+// the data shape reads as the dominant visual element. Hover tooltip shows a
+// swatch and value for the nearest month (no month-name heading).
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
@@ -41,10 +41,10 @@ function chartRadarGridCustom(props: ChartRadarGridCustomProps = {}): DomphyElem
     data = RADAR_MONTHLY_SINGLE_DATA,
     series = RADAR_SINGLE_SERIES,
     title = "Radar Chart - Grid Custom",
-    description = "January - June 2026",
+    description = "Showing total visitors for the last 6 months",
     trendText = "Trending up by 5.2% this month",
     trendDirection = "up",
-    captionText = "Showing total visitors for the last 6 months",
+    captionText = "January - June 2026",
     ringFraction = 0.75,
     showSpokes = false,
   } = props;
@@ -63,7 +63,7 @@ function chartRadarGridCustom(props: ChartRadarGridCustomProps = {}): DomphyElem
           gridRingFractions: [ringFraction],
           gridShowSpokes: showSpokes,
           tooltipShowLabel: false,
-          tooltipIndicator: "none",
+          tooltipIndicator: "swatch",
         }),
       ],
     },

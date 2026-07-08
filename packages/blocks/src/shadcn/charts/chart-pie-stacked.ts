@@ -1,11 +1,12 @@
 // shadcn/ui "charts/pie-stacked" — clean-room reimplementation.
 //
-// Two concentric donut rings in one plot: a smaller inner ring for one
-// metric and a larger outer ring for a second metric, both sharing the same
-// category keys and the same color-per-category mapping (the inner ring's
-// outer radius sits exactly at the outer ring's inner radius, so together
-// they read as one continuous two-layer ring). Implemented purely from the
-// block's public functional/visual spec — no upstream source was viewed.
+// Two co-centered pie layers in one plot: a SOLID inner disc for one metric
+// (full wedges from the center, no hollow hole) and a larger, detached outer
+// ring for a second metric, separated by an empty radial gap so they read as
+// a filled disc plus a floating band. Both layers share the same category
+// keys and the same color-per-category mapping. Mirrors upstream's two
+// <Pie> elements — inner `outerRadius={60}` (no innerRadius) and outer
+// `innerRadius={70} outerRadius={90}`.
 
 import type { DomphyElement } from "@domphy/core";
 import { motion } from "@domphy/ui";
@@ -33,20 +34,20 @@ export interface PieStackedDatum {
 }
 
 // Illustrative sample data (two metrics per month) — not a required schema.
+// Five months (January–May), matching upstream's desktop/mobile datasets.
 export const DEFAULT_STACKED_DATA: PieStackedDatum[] = [
-  { key: "jan", name: "January", inner: 186, outer: 80 },
-  { key: "feb", name: "February", inner: 305, outer: 200 },
-  { key: "mar", name: "March", inner: 237, outer: 120 },
-  { key: "apr", name: "April", inner: 173, outer: 190 },
+  { key: "january", name: "January", inner: 186, outer: 80 },
+  { key: "february", name: "February", inner: 305, outer: 200 },
+  { key: "march", name: "March", inner: 237, outer: 120 },
+  { key: "april", name: "April", inner: 173, outer: 190 },
   { key: "may", name: "May", inner: 209, outer: 130 },
-  { key: "jun", name: "June", inner: 214, outer: 140 },
 ];
 
-const INNER_RING_INNER_RADIUS = 30;
-const INNER_RING_OUTER_RADIUS = 56;
-// No gap: the outer ring's inner radius picks up exactly where the inner
-// ring's outer radius ends, so the two rings read as one banded ring.
-const OUTER_RING_INNER_RADIUS = INNER_RING_OUTER_RADIUS;
+// Inner metric is a SOLID center disc (innerRadius 0). Radii are scaled to
+// this family's shared PIE_OUTER_RADIUS (86): upstream's 60/70/90 map to
+// ~57/67/86, preserving the ~10-unit empty gap that detaches the outer ring.
+const INNER_DISC_OUTER_RADIUS = 57;
+const OUTER_RING_INNER_RADIUS = 67;
 const OUTER_RING_OUTER_RADIUS = PIE_OUTER_RADIUS;
 
 export interface ChartPieStackedProps {
@@ -62,9 +63,9 @@ export interface ChartPieStackedProps {
 }
 
 /**
- * Two concentric donut rings sharing one categorical color mapping, each
- * ring driven by its own metric. Call with no arguments for a fully working
- * demo.
+ * A solid inner pie plus a larger detached outer ring, sharing one
+ * categorical color mapping, each layer driven by its own metric. Call with
+ * no arguments for a fully working demo.
  */
 function chartPieStacked(props: ChartPieStackedProps = {}): DomphyElement<"div"> {
   const {
@@ -75,8 +76,8 @@ function chartPieStacked(props: ChartPieStackedProps = {}): DomphyElement<"div">
     trendDirection = "up",
     caption = "Showing total visitors for the last 6 months",
     valueFormatter = defaultValueFormatter,
-    innerSeriesLabel = "Sessions",
-    outerSeriesLabel = "Visitors",
+    innerSeriesLabel = "Desktop",
+    outerSeriesLabel = "Mobile",
   } = props;
 
   const toPieDatum = (metric: "inner" | "outer"): PieDatum[] =>
@@ -94,8 +95,8 @@ function chartPieStacked(props: ChartPieStackedProps = {}): DomphyElement<"div">
 
   const innerWedges: DomphyElement<"path">[] = innerSlices.map((slice) =>
     pieWedgePath(slice, {
-      innerRadius: INNER_RING_INNER_RADIUS,
-      outerRadius: INNER_RING_OUTER_RADIUS,
+      // Solid center disc — innerRadius defaults to 0, so no hollow hole.
+      outerRadius: INNER_DISC_OUTER_RADIUS,
       keyPrefix: "inner-",
       tooltip: {
         containerRef,

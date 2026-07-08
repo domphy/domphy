@@ -40,10 +40,10 @@ function chartRadarLegend(props: ChartRadarLegendProps = {}): DomphyElement<"div
     data = RADAR_MONTHLY_MULTI_DATA,
     series = RADAR_MULTI_SERIES,
     title = "Radar Chart - Legend",
-    description = "January - June 2026",
+    description = "Showing total visitors for the last 6 months",
     trendText = "Trending up by 5.2% this month",
     trendDirection = "up",
-    captionText = "Showing total visitors for the last 6 months",
+    captionText = "January - June 2026",
     showLegend = true,
   } = props;
 
@@ -53,13 +53,14 @@ function chartRadarLegend(props: ChartRadarLegendProps = {}): DomphyElement<"div
   return radarCardShell({
     title,
     description,
+    // Upstream chart-radar-legend uses a plain `items-center` header (no pb-4).
+    headerPaddingBottom: false,
     content: {
       div: [
         renderRadarChart({
           data,
           series,
           tooltip,
-          tooltipShowLabel: false,
           tooltipIndicator: "line",
           legend: showLegend ? legendEntries : null,
         }),

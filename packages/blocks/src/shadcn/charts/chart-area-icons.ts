@@ -50,9 +50,13 @@ export interface ChartAreaIconsProps {
   height?: number;
 }
 
+// Mobile-first, matching upstream's Area child order (mobile <Area> declared
+// before desktop) so mobile (chart-2/secondary) is the bottom stack band and
+// desktop (chart-1/primary) sits on top, and the legend row renders Mobile
+// then Desktop. Same ordering as the sibling chart-area-legend recipe.
 const DEFAULT_SERIES: ChartAreaIconsSeries[] = [
-  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0], icon: "down" },
   { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[1], icon: "up" },
+  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0], icon: "down" },
 ];
 
 /**
@@ -79,7 +83,9 @@ function chartAreaIcons(props: ChartAreaIconsProps = {}): DomphyElement<"div"> {
   const option: ChartOption = {
     tooltip: {
       trigger: "axis",
-      formatter: chartAxisTooltipFormatter(categories),
+      axisPointer: { type: "none" },
+      // Upstream passes `<ChartTooltipContent indicator="line" />`.
+      formatter: chartAxisTooltipFormatter(categories, undefined, false, "line"),
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     yAxis: CHART_AREA_Y_AXIS_HIDDEN,

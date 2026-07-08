@@ -1,15 +1,12 @@
-// shadcn/ui "sidebar-on-right" block — clean-room reimplementation from the
-// public behavior/visual spec only (no upstream source viewed). The standard
-// docked app sidebar mirrored to the right viewport edge, with the main
-// content column rendered as a rounded/shadowed inset card (sidebar08-style)
-// instead of a flush full-bleed panel, and the header's collapse toggle
-// pushed to the header's right edge, adjacent to the sidebar. Shares its nav
-// tree, collapse mechanics and mobile drawer with the rest of the sidebar-0N
-// family via ./sidebar01-04-shared.ts — the `side`/`insetMain` options there
-// are the only pieces of shared logic this variant needed added.
-//
-// Implemented purely from the block's public functional/visual spec — no
-// upstream shadcn/ui source was viewed or copied.
+// shadcn/ui "sidebar-on-right" block (registry: sidebar-14). The standard
+// docked app sidebar mirrored to the right viewport edge, with a flush
+// full-bleed main content panel (upstream's Sidebar variant stays the
+// "sidebar" default, not "inset") and a static (non-sticky) content header,
+// with the header's collapse toggle pushed to the header's right edge,
+// adjacent to the sidebar. Shares its nav tree, collapse mechanics and mobile
+// drawer with the rest of the sidebar-0N family via ./sidebar01-04-shared.ts —
+// the `side` option there is the only piece of shared logic this variant
+// needed added.
 
 import type { DomphyElement } from "@domphy/core";
 import {
@@ -19,8 +16,8 @@ import {
 } from "./sidebar01-04-shared.js";
 
 /**
- * Docked app sidebar mirrored to the right viewport edge, with an inset main
- * content card and the collapse toggle on the header's right edge. Pass
+ * Docked app sidebar mirrored to the right viewport edge, with a flush main
+ * content panel and a static (non-sticky) content header. Pass
  * `side: "left"` to fall back to the family's standard left-docked layout.
  * Call with no arguments for a fully working demo.
  */
@@ -32,8 +29,8 @@ function sidebarOnRight(props: SidebarBlockOptions = {}): DomphyElement<"div"> {
     collapsibleSections: false,
     supportsChildren: true,
     floating: false,
-    insetMain: true,
-    stickyHeader: true,
+    insetMain: false,
+    stickyHeader: false,
     manyContentRows: false,
   });
 }

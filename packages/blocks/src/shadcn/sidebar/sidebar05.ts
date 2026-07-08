@@ -9,16 +9,11 @@ import { toState } from "@domphy/core";
 import { icon, inputSearch, list, listItemButton, small, strong } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
-  ICON_BAR_CHART,
-  ICON_FOLDER,
-  ICON_GRID,
-  ICON_INBOX,
   ICON_MARK,
   ICON_MINUS,
   ICON_PLUS,
   ICON_SEARCH,
   sidebarBackdrop,
-  sidebarIcon,
   sidebarMainContent,
   sidebarStickyHeader,
   type SidebarBreadcrumbItem,
@@ -35,7 +30,6 @@ type Sidebar05SubItem = {
 type Sidebar05NavGroup = {
   title: string;
   href?: string;
-  icon?: string;
   defaultOpen?: boolean;
   items: Sidebar05SubItem[];
 };
@@ -51,38 +45,53 @@ type Sidebar05Props = {
 const DEFAULT_NAV_GROUPS: Sidebar05NavGroup[] = [
   {
     title: "Getting Started",
-    icon: ICON_GRID,
-    defaultOpen: true,
     items: [
       { title: "Installation", href: "#" },
-      { title: "Project Structure", href: "#", active: true },
+      { title: "Project Structure", href: "#" },
     ],
   },
   {
-    title: "Building Your Application",
-    icon: ICON_INBOX,
+    title: "Build Your Application",
+    defaultOpen: true,
     items: [
       { title: "Routing", href: "#" },
-      { title: "Data Fetching", href: "#" },
+      { title: "Data Fetching", href: "#", active: true },
       { title: "Rendering", href: "#" },
       { title: "Caching", href: "#" },
+      { title: "Styling", href: "#" },
+      { title: "Optimizing", href: "#" },
+      { title: "Configuring", href: "#" },
+      { title: "Testing", href: "#" },
+      { title: "Authentication", href: "#" },
+      { title: "Deploying", href: "#" },
+      { title: "Upgrading", href: "#" },
+      { title: "Examples", href: "#" },
     ],
   },
   {
     title: "API Reference",
-    icon: ICON_BAR_CHART,
     items: [
       { title: "Components", href: "#" },
       { title: "File Conventions", href: "#" },
+      { title: "Functions", href: "#" },
+      { title: "next.config.js Options", href: "#" },
+      { title: "CLI", href: "#" },
+      { title: "Edge Runtime", href: "#" },
     ],
   },
   {
     title: "Architecture",
-    icon: ICON_FOLDER,
     items: [
       { title: "Accessibility", href: "#" },
       { title: "Fast Refresh", href: "#" },
+      { title: "Next.js Compiler", href: "#" },
+      { title: "Supported Browsers", href: "#" },
+      { title: "Turbopack", href: "#" },
     ],
+  },
+  {
+    title: "Community",
+    items: [{ title: "Contribution Guide", href: "#" }],
   },
 ];
 
@@ -115,7 +124,6 @@ function renderNavGroup(group: Sidebar05NavGroup, key: string | number): DomphyE
         details: [
           {
             summary: [
-              ...(group.icon ? [sidebarIcon(group.icon)] : []),
               { span: group.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
               { span: ICON_PLUS, dataSlot: "toggle-plus", $: [icon({ color: "neutral" })] } as unknown as DomphyElement,
               { span: ICON_MINUS, dataSlot: "toggle-minus", $: [icon({ color: "neutral" })] } as unknown as DomphyElement,
@@ -184,10 +192,10 @@ function renderNavGroup(group: Sidebar05NavGroup, key: string | number): DomphyE
  */
 function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
   const {
-    header = { icon: ICON_MARK, title: "Acme Inc", subtitle: "v1.0.0" },
+    header = { icon: ICON_MARK, title: "Documentation", subtitle: "v1.0.0" },
     searchPlaceholder = "Search the docs...",
     navGroups = DEFAULT_NAV_GROUPS,
-    breadcrumbItems = [{ label: "Building Your Application" }, { label: "Data Fetching" }],
+    breadcrumbItems = [{ label: "Build Your Application" }, { label: "Data Fetching" }],
     children,
   } = props;
 
@@ -198,7 +206,7 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
       {
         div: [
           {
-            div: [
+            a: [
               {
                 span: header.icon ?? ICON_MARK,
                 dataTone: "shift-0",
@@ -216,13 +224,23 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
               } as unknown as DomphyElement,
               {
                 div: [
-                  { strong: header.title ?? "Acme Inc", $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
+                  { strong: header.title ?? "Documentation", $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
                   { small: header.subtitle ?? "v1.0.0", $: [small({ color: "neutral" })] } as unknown as DomphyElement,
                 ],
                 style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5), minWidth: "0" },
               } as unknown as DomphyElement,
             ],
-            style: { display: "flex", alignItems: "center", gap: (l: Listener) => themeSpacing(themeDensity(l) * 3) },
+            href: "#",
+            style: {
+              display: "flex",
+              alignItems: "center",
+              gap: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+              borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+              paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+              paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+              textDecoration: () => "none",
+              "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+            },
           } as unknown as DomphyElement,
           {
             div: [
@@ -241,6 +259,7 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
               {
                 input: null,
                 type: "search",
+                ariaLabel: "Search",
                 placeholder: searchPlaceholder,
                 style: { width: "100%", paddingInlineStart: themeSpacing(9) },
                 $: [inputSearch({ color: "neutral", accentColor: "primary" })],

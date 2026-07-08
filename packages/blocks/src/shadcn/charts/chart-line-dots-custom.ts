@@ -18,11 +18,11 @@ import {
   DEFAULT_LINE_GRID,
   MONTHLY_VISITOR_DATA,
   type MonthlyPoint,
-  bareValueTooltipFormatter,
   chartCard,
   chartPlot,
   computeYDomain,
   hiddenLabelYAxis,
+  lineSwatchLabelValueTooltipFormatter,
   monthCategoryXAxis,
   staticPointMarkersOverlay,
   trendFooter,
@@ -77,7 +77,10 @@ function chartLineDotsCustom(props: ChartLineDotsCustomProps = {}): DomphyElemen
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "none" },
-      formatter: bareValueTooltipFormatter,
+      // Upstream renders <ChartTooltipContent hideLabel />: hideLabel drops only
+      // the category-name header, still showing the color swatch + series label
+      // + value per row (same as chart-line-default, which is also hideLabel).
+      formatter: lineSwatchLabelValueTooltipFormatter,
     },
     series: [
       {

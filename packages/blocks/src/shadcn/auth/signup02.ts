@@ -61,12 +61,10 @@ interface FieldConfig {
   type?: "text" | "email" | "password";
   placeholder?: string;
   caption?: string;
-  autoComplete?: string;
-  minLength?: number;
 }
 
 function field(config: FieldConfig): DomphyElement<"div"> {
-  const { id, labelText, type = "text", placeholder, caption, autoComplete, minLength } = config;
+  const { id, labelText, type = "text", placeholder, caption } = config;
   return {
     div: [
       { label: labelText, for: id, $: [label()] },
@@ -77,8 +75,6 @@ function field(config: FieldConfig): DomphyElement<"div"> {
         type,
         placeholder,
         required: true,
-        autocomplete: autoComplete,
-        minlength: minLength,
         $: [authFieldInput()],
       },
       caption ? { small: caption, $: [small({ color: "neutral" })] } : null,
@@ -200,35 +196,58 @@ function signup02(props: Signup02Props = {}): DomphyElement<"div"> {
     style: { width: "100%" },
   };
 
+  const footerLine: DomphyElement<"small"> = {
+    small: [
+      `${signInPrompt} `,
+      { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
+    ],
+    $: [small({ color: "neutral" })],
+    style: { display: "block", textAlign: "center" },
+  };
+
+  // Upstream keeps the GitHub button and the "Already have an account?" line
+  // together in the final Field (footer is a FieldDescription under the button).
+  const lastField: DomphyElement<"div"> = {
+    div: [showGithubButton ? githubButton : null, footerLine],
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+    },
+  };
+
+  // Upstream nests this header as the first child inside the form's FieldGroup.
+  const headerBlock: DomphyElement<"div"> = {
+    div: [{ h1: title, $: [heading()] }, { p: subtitle, $: [paragraph({ color: "neutral" })] }],
+    style: { textAlign: "center" },
+  };
+
   const formElement: DomphyElement<"form"> = {
     form: [
-      field({ id: "signup02-name", labelText: fullNameLabel, placeholder: fullNamePlaceholder, autoComplete: "name" }),
+      headerBlock,
+      field({ id: "signup02-name", labelText: fullNameLabel, placeholder: fullNamePlaceholder }),
       field({
         id: "signup02-email",
         labelText: emailLabel,
         type: "email",
         placeholder: emailPlaceholder,
         caption: emailCaption,
-        autoComplete: "email",
       }),
       field({
         id: "signup02-password",
         labelText: passwordLabel,
         type: "password",
         caption: passwordCaption,
-        autoComplete: "new-password",
-        minLength: 8,
       }),
       field({
         id: "signup02-confirm-password",
         labelText: confirmPasswordLabel,
         type: "password",
         caption: confirmPasswordCaption,
-        autoComplete: "new-password",
       }),
       submitButton,
       { div: "Or continue with", $: [divider({ color: "neutral" })] },
-      showGithubButton ? githubButton : null,
+      lastField,
     ],
     onSubmit: (event: Event) => {
       event.preventDefault();
@@ -241,22 +260,13 @@ function signup02(props: Signup02Props = {}): DomphyElement<"div"> {
     },
   };
 
-  const footerLine: DomphyElement<"small"> = {
-    small: [
-      `${signInPrompt} `,
-      { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
-    ],
-    $: [small({ color: "neutral" })],
-  };
-
   const contentBlock: DomphyElement<"div"> = {
-    div: [{ h2: title, $: [heading()] }, { p: subtitle, $: [paragraph({ color: "neutral" })] }, formElement, footerLine],
+    div: [formElement],
     style: {
       width: "100%",
-      maxWidth: themeSpacing(96),
+      maxWidth: themeSpacing(80),
       display: "flex",
       flexDirection: "column",
-      gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
     },
   };
 
@@ -269,7 +279,7 @@ function signup02(props: Signup02Props = {}): DomphyElement<"div"> {
           justifyContent: "center",
           paddingInline: themeFluidSpacing(4, 12),
           paddingBlock: themeSpacing(6),
-          "@media(min-width:1024px)": { justifyContent: "flex-start" },
+          "@media(min-width:768px)": { justifyContent: "flex-start" },
         },
       },
       {
@@ -284,7 +294,7 @@ function signup02(props: Signup02Props = {}): DomphyElement<"div"> {
         },
       },
     ],
-    style: { display: "flex", flexDirection: "column", minHeight: "100vh" },
+    style: { display: "flex", flexDirection: "column", minHeight: "100svh" },
   };
 
   const rightColumn: DomphyElement<"div"> = {
@@ -317,7 +327,7 @@ function signup02(props: Signup02Props = {}): DomphyElement<"div"> {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr",
-      minHeight: "100vh",
+      minHeight: "100svh",
       "@media(min-width:1024px)": { gridTemplateColumns: "1fr 1fr" },
     },
   };

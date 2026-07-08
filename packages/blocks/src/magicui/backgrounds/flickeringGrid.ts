@@ -55,8 +55,8 @@ function computeGridDimensions(
 ): { columns: number; rows: number } {
   const cellSpan = squareSize + gridGap;
   return {
-    columns: Math.max(1, Math.floor(containerWidth / cellSpan)),
-    rows: Math.max(1, Math.floor(containerHeight / cellSpan)),
+    columns: Math.max(1, Math.ceil(containerWidth / cellSpan)),
+    rows: Math.max(1, Math.ceil(containerHeight / cellSpan)),
   };
 }
 

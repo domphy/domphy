@@ -15,10 +15,6 @@ import { button, inputText, menu, popover, small, strong } from "@domphy/ui";
 type DropdownPlacement = "right-start" | "bottom-end";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
-  ICON_BAR_CHART,
-  ICON_FOLDER,
-  ICON_GRID,
-  ICON_INBOX,
   ICON_MARK,
   ICON_MORE,
   sidebarBackdrop,
@@ -28,13 +24,13 @@ import {
   type SidebarBreadcrumbItem,
 } from "./sidebar05-08-shared.js";
 
-/** A plain-text child row inside a top-level item's floating dropdown. */
+/** A child row inside a top-level item's floating dropdown; navigates to
+ * `href` on click (matching upstream's `<a href={item.url}>` child rows). */
 type Sidebar06ChildLink = { title: string; href?: string };
 
 /** A top-level nav row whose children live in a floating dropdown, not inline. */
 type Sidebar06NavItem = {
   title: string;
-  icon?: string;
   items: Sidebar06ChildLink[];
 };
 
@@ -57,17 +53,14 @@ type Sidebar06Props = {
 const DEFAULT_NAV_ITEMS: Sidebar06NavItem[] = [
   {
     title: "Playground",
-    icon: ICON_GRID,
     items: [{ title: "History" }, { title: "Starred" }, { title: "Settings" }],
   },
   {
     title: "Models",
-    icon: ICON_INBOX,
     items: [{ title: "Genesis" }, { title: "Explorer" }, { title: "Quantum" }],
   },
   {
     title: "Documentation",
-    icon: ICON_BAR_CHART,
     items: [
       { title: "Introduction" },
       { title: "Get Started" },
@@ -77,7 +70,6 @@ const DEFAULT_NAV_ITEMS: Sidebar06NavItem[] = [
   },
   {
     title: "Settings",
-    icon: ICON_FOLDER,
     items: [
       { title: "General" },
       { title: "Team" },
@@ -135,6 +127,9 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
           items: item.items.map((child, childIndex) => ({
             label: child.title,
             key: `${item.title}-${childIndex}`,
+            onClick: () => {
+              if (child.href) window.location.href = child.href;
+            },
           })),
         }),
       ],
@@ -144,7 +139,6 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
       li: [
         {
           button: [
-            ...(item.icon ? [sidebarIcon(item.icon)] : []),
             { span: item.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
             sidebarIcon(ICON_MORE),
           ],
@@ -165,9 +159,12 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
             "&:hover": {
               backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
             },
+            // Upstream: data-[state=open]:bg-sidebar-accent /
+            // text-sidebar-accent-foreground — the neutral gray accent, not a
+            // brand-tinted highlight.
             "&[aria-expanded=true]": {
-              backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary"),
-              color: (l: Listener) => themeColor(l, "shift-12", "primary"),
+              backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral"),
+              color: (l: Listener) => themeColor(l, "shift-12", "neutral"),
             },
           },
           $: [
@@ -225,6 +222,9 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
           } as unknown as DomphyElement,
         ],
         dataTone: "shift-2",
+        // Upstream's <SidebarFooter> wraps this card and renders as a plain
+        // `<div data-slot="sidebar-footer">` (not a semantic <footer>).
+        dataSlot: "sidebar-footer",
         style: {
           display: "flex",
           flexDirection: "column",
@@ -243,36 +243,57 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
   const asideElement: DomphyElement<"aside"> = {
     aside: [
       {
+        // Upstream wraps the brand mark + label in a clickable <a href="#">
+        // inside a SidebarMenuButton size="lg" (hover accent). Mirror the
+        // team-switcher helper's SidebarHeader(p-2) + menu-button(p-2, rounded)
+        // structure so the hover surface is the compact rounded button, not the
+        // full-width header.
         div: [
           {
-            span: header.icon ?? ICON_MARK,
-            dataTone: "shift-0",
+            a: [
+              {
+                span: header.icon ?? ICON_MARK,
+                dataTone: "shift-0",
+                style: {
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: themeSpacing(8),
+                  height: themeSpacing(8),
+                  flexShrink: "0",
+                  borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+                  backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
+                  color: (l: Listener) => themeColor(l, "shift-10", "primary"),
+                },
+              } as unknown as DomphyElement,
+              {
+                div: [
+                  { strong: header.title ?? "Acme Inc", $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
+                  { small: header.subtitle ?? "v1.0.0", $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+                ],
+                style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5), minWidth: "0" },
+              } as unknown as DomphyElement,
+            ],
+            href: "#",
             style: {
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              width: themeSpacing(8),
-              height: themeSpacing(8),
-              flexShrink: "0",
-              borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-              backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
-              color: (l: Listener) => themeColor(l, "shift-10", "primary"),
+              width: "100%",
+              gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+              padding: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+              borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+              textDecoration: () => "none",
+              overflow: "hidden",
+              color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+              "&:hover": {
+                backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+              },
             },
-          } as unknown as DomphyElement,
-          {
-            div: [
-              { strong: header.title ?? "Acme Inc", $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
-              { small: header.subtitle ?? "v1.0.0", $: [small({ color: "neutral" })] } as unknown as DomphyElement,
-            ],
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5), minWidth: "0" },
           } as unknown as DomphyElement,
         ],
         style: {
-          display: "flex",
-          alignItems: "center",
-          gap: (l: Listener) => themeSpacing(themeDensity(l) * 3),
           flexShrink: "0",
-          padding: (l: Listener) => themeSpacing(themeDensity(l) * 4),
+          padding: (l: Listener) => themeSpacing(themeDensity(l) * 2),
         },
       } as unknown as DomphyElement,
       {
@@ -285,16 +306,19 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
         },
       } as unknown as DomphyElement,
       ...(optInCardElement ? [optInCardElement] : []),
+      // Upstream <SidebarRail /> — thin invisible edge strip that toggles the
+      // sidebar on click. Sits at the trailing edge inside the relatively-
+      // positioned aside (same pattern as sidebar07).
       {
-        footer: [
-          { small: "© Acme Inc.", $: [small({ color: "neutral" })] } as unknown as DomphyElement,
-        ],
+        div: null,
+        ariaHidden: "true",
+        onClick: () => sidebarOpen.set(!sidebarOpen.get()),
         style: {
-          flexShrink: "0",
-          paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
-          paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-          borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
-          color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
+          position: "absolute",
+          insetBlock: "0",
+          insetInlineEnd: "0",
+          width: themeSpacing(1),
+          cursor: "col-resize",
         },
       } as unknown as DomphyElement,
     ],
@@ -309,6 +333,7 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
       node.addHook("Remove", () => media.removeEventListener("change", listener));
     },
     style: {
+      position: "relative",
       display: "flex",
       flexDirection: "column",
       flexShrink: "0",

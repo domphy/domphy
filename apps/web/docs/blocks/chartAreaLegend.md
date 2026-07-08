@@ -23,6 +23,9 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `fillOpacity` | `number` | — |
 | `title` | `string` | — |
 | `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
 | `height` | `number` | — |
 
 ::: details Implementation notes

@@ -1,11 +1,12 @@
 // shadcn/ui "charts/radar-icons" recipe — clean-room reimplementation.
 //
 // Identical to chartRadarLegend, except each legend entry swaps its plain
-// color swatch for a small directional arrow icon in that series' accent
-// color (a downward arrow for one series, an upward arrow for the other).
-//
-// Implemented purely from the block's public functional/visual spec — no
-// upstream shadcn/ui source was viewed or copied.
+// color swatch for a small directional arrow icon (a downward arrow for one
+// series, an upward arrow for the other). Upstream renders both arrows in a
+// single muted-foreground gray via ChartLegendContent's `[&>svg]:text-muted-
+// foreground` — the icon is a per-series glyph *shape*, not a per-series
+// color — so the legend entries pass "neutral" here rather than each series'
+// own accent color.
 
 import type { DomphyElement } from "@domphy/core";
 import { chartTrendFooter, type ChartLegendEntry, type ChartTrendDirection } from "./chart-area-shared.js";
@@ -39,16 +40,18 @@ function chartRadarIcons(props: ChartRadarIconsProps = {}): DomphyElement<"div">
     data = RADAR_MONTHLY_MULTI_DATA,
     series = RADAR_MULTI_SERIES,
     title = "Radar Chart - Icons",
-    description = "January - June 2026",
+    description = "Showing total visitors for the last 6 months",
     trendText = "Trending up by 5.2% this month",
     trendDirection = "up",
-    captionText = "Showing total visitors for the last 6 months",
+    captionText = "January - June 2026",
   } = props;
 
   const tooltip = createRadarTooltip();
   const legendEntries: ChartLegendEntry[] = series.map((entry) => ({
     label: entry.label,
-    color: entry.color,
+    // Upstream ChartLegendContent colors the icon glyph muted-foreground for
+    // every series, not the series' accent color — so pass "neutral".
+    color: "neutral",
     icon: entry.icon ?? "up",
   }));
 
@@ -61,7 +64,7 @@ function chartRadarIcons(props: ChartRadarIconsProps = {}): DomphyElement<"div">
           data,
           series,
           tooltip,
-          tooltipShowLabel: false,
+          tooltipShowLabel: true,
           tooltipIndicator: "line",
           legend: legendEntries,
         }),

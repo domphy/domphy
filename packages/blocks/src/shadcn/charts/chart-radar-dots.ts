@@ -40,11 +40,11 @@ function chartRadarDots(props: ChartRadarDotsProps = {}): DomphyElement<"div"> {
     data = RADAR_MONTHLY_SINGLE_DATA,
     series = RADAR_SINGLE_SERIES,
     title = "Radar Chart - Dots",
-    description = "January - June 2026",
+    description = "Showing total visitors for the last 6 months",
     trendText = "Trending up by 5.2% this month",
     trendDirection = "up",
-    captionText = "Showing total visitors for the last 6 months",
-    dotRadius = 3,
+    captionText = "January - June 2026",
+    dotRadius = 4,
     showDots = true,
   } = props;
 
@@ -53,6 +53,8 @@ function chartRadarDots(props: ChartRadarDotsProps = {}): DomphyElement<"div"> {
   return radarCardShell({
     title,
     description,
+    // Upstream chart-radar-dots uses a plain `items-center` header (no pb-4).
+    headerPaddingBottom: false,
     content: {
       div: [
         renderRadarChart({

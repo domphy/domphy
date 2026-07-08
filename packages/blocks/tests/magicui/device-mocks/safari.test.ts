@@ -47,9 +47,13 @@ describe("safari", () => {
     expect(host.querySelector("img")).toBeNull();
   });
 
-  it("'simple' mode strips the traffic lights but keeps the address bar", () => {
+  it("'simple' mode strips the extra nav/action icons but keeps the traffic lights and address bar", () => {
     const { host } = render(safari({ mode: "simple", url: "example.com" }));
-    expect(host.querySelectorAll("svg circle").length).toBe(0);
+    // Upstream renders the 3 traffic-light dots unconditionally (outside the
+    // `mode` branch) — only the 8 extra nav/action glyphs are gated on "default".
+    expect(host.querySelectorAll("svg circle").length).toBe(3);
+    // Only the address bar's lock icon path remains; the 8 nav/action glyphs are gone.
+    expect(host.querySelectorAll("svg path").length).toBe(1);
     expect(host.textContent).toContain("example.com");
   });
 });

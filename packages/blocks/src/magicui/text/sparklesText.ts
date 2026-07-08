@@ -1,5 +1,6 @@
-// magicui "Sparkles Text" — clean-room reimplementation from the public
-// behavior/visual spec only (no upstream source viewed or copied). Static
+// magicui "Sparkles Text" — port of the MIT-licensed upstream (structure,
+// default typography, and the 4-point sparkle glyph path match
+// registry/magicui/sparkles-text.tsx). Static
 // text overlaid with a handful of small star-shaped sparkles that
 // continuously spawn at random positions, twinkle (scale + rotate + fade in
 // then out) over a short cycle, and are retired from the DOM once their
@@ -30,7 +31,7 @@ export interface SparklesTextProps {
   maxSize?: number;
   /** Milliseconds for one sparkle's full grow/hold/shrink cycle. Defaults to 900. */
   cycleDuration?: number;
-  /** Passthrough style merged onto the text span. */
+  /** Passthrough style merged onto the root element. */
   style?: StyleObject;
 }
 
@@ -51,10 +52,10 @@ function sparkleGlyph(
     svg: [
       {
         path: null,
-        d: "M12 0C13.3 6.3 14.4 9.7 21 12C14.4 14.3 13.3 17.7 12 24C10.7 17.7 9.6 14.3 3 12C9.6 9.7 10.7 6.3 12 0Z",
+        d: "M9.82531 0.843845C10.0553 0.215178 10.9446 0.215178 11.1746 0.843845L11.8618 2.72026C12.4006 4.19229 12.3916 6.39157 13.5 7.5C14.6084 8.60843 16.8077 8.59935 18.2797 9.13822L20.1561 9.82534C20.7858 10.0553 20.7858 10.9447 20.1561 11.1747L18.2797 11.8618C16.8077 12.4007 14.6084 12.3916 13.5 13.5C12.3916 14.6084 12.4006 16.8077 11.8618 18.2798L11.1746 20.1562C10.9446 20.7858 10.0553 20.7858 9.82531 20.1562L9.13819 18.2798C8.59932 16.8077 8.60843 14.6084 7.5 13.5C6.39157 12.3916 4.19225 12.4007 2.72023 11.8618L0.843814 11.1747C0.215148 10.9447 0.215148 10.0553 0.843814 9.82534L2.72023 9.13822C4.19225 8.59935 6.39157 8.60843 7.5 7.5C8.60843 6.39157 8.59932 4.19229 9.13819 2.72026L9.82531 0.843845Z",
       },
     ],
-    viewBox: "0 0 24 24",
+    viewBox: "0 0 21 21",
     fill: "currentColor",
     ariaHidden: "true",
     style: {
@@ -92,7 +93,7 @@ function sparkleElement(
  * automatically — no interaction required. Call with no arguments for a
  * working demo phrase.
  */
-function sparklesText(props: SparklesTextProps = {}): DomphyElement<"span"> {
+function sparklesText(props: SparklesTextProps = {}): DomphyElement<"div"> {
   const text = props.children ?? "Sparkles Everywhere";
   const sparkleCount = Math.max(1, Math.round(props.sparkleCount ?? 10));
   const colors =
@@ -112,21 +113,35 @@ function sparklesText(props: SparklesTextProps = {}): DomphyElement<"span"> {
   const sparkles = toState<SparkleEntry[]>([]);
 
   return {
-    span: [
-      { span: text, style: { position: "relative", zIndex: 1 } },
+    div: [
       {
-        span: (listener) =>
-          sparkles
-            .get(listener)
-            .map((entry) =>
-              sparkleElement(entry, animationName, cycleDuration),
-            ),
-        style: { position: "absolute", inset: 0, pointerEvents: "none" },
+        // Upstream's `relative inline-block` wrapper holding the text and the
+        // absolutely-positioned sparkle overlay.
+        span: [
+          { strong: text, style: { position: "relative", zIndex: 0 } },
+          {
+            span: (listener) =>
+              sparkles
+                .get(listener)
+                .map((entry) =>
+                  sparkleElement(entry, animationName, cycleDuration),
+                ),
+            style: {
+              position: "absolute",
+              inset: 0,
+              zIndex: 1,
+              pointerEvents: "none",
+            },
+          },
+        ],
+        style: { position: "relative", display: "inline-block" },
       },
     ],
+    // Upstream root carries `text-6xl font-bold`.
     style: {
-      position: "relative",
-      display: "inline-block",
+      fontSize: "3.75rem",
+      lineHeight: "1",
+      fontWeight: 700,
       [`@keyframes ${animationName}`]: keyframes,
       ...(props.style ?? {}),
     } as StyleObject,
@@ -144,7 +159,7 @@ function sparklesText(props: SparklesTextProps = {}): DomphyElement<"span"> {
           topPercent: Math.round(Math.random() * 100),
           leftPercent: Math.round(Math.random() * 100),
           sizeUnits: minSize + Math.random() * (maxSize - minSize),
-          color: insertCount % 2 === 0 ? colors[0] : colors[1],
+          color: Math.random() < 0.5 ? colors[0] : colors[1],
         };
         sparkles.set([...sparkles.get(), entry]);
         // Self-cleanup once this sparkle's own twinkle cycle has finished

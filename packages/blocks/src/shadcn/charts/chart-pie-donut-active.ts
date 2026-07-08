@@ -13,6 +13,7 @@ import {
   type PieDatum,
   DEFAULT_DONUT_INNER_RADIUS,
   DEFAULT_PIE_DATA,
+  DONUT_SEPARATOR_STROKE_WIDTH,
   PIE_OUTER_RADIUS,
   createPieTooltipState,
   defaultValueFormatter,
@@ -67,7 +68,9 @@ function chartPieDonutActive(props: ChartPieDonutActiveProps = {}): DomphyElemen
     return pieWedgePath(slice, {
       innerRadius,
       outerRadius: isActive ? PIE_OUTER_RADIUS + activeRadiusDelta : PIE_OUTER_RADIUS,
-      strokeWidth: isActive ? "2.5" : "1.5",
+      // Upstream applies a uniform strokeWidth={5} to the whole <Pie>; the
+      // active sector only grows its radius, it keeps the same outline weight.
+      strokeWidth: DONUT_SEPARATOR_STROKE_WIDTH,
       tooltip: { containerRef, tooltipState, valueFormatter },
     });
   });

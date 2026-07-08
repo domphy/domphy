@@ -1,8 +1,8 @@
 // magicui "Marquee" — clean-room reimplementation from the public
 // behavior/visual spec only (no upstream source viewed or copied). An
 // infinite, seamlessly looping horizontal/vertical strip of repeated content.
-// The item set is duplicated `repeat` times inside the track so the strip
-// always spans wider (or taller) than its viewport regardless of duration,
+// The item set is duplicated `repeat` times so the strip always spans wider
+// (or taller) than its viewport regardless of duration,
 // and each group runs the same linear (no-easing) CSS keyframe loop that
 // translates it by exactly one group-pitch (its own width/height + the
 // inter-group gap); since consecutive groups are identical and offset by that
@@ -30,13 +30,13 @@ export interface MarqueeProps {
   reverse?: boolean;
   /** Freezes the animation on pointer-hover, resuming from the same position on pointer-leave. Defaults to false. */
   pauseOnHover?: boolean;
-  /** Seconds per loop. Defaults to 20. */
+  /** Seconds per loop. Defaults to 40. */
   duration?: number;
   /** How many times the item set is duplicated inside the track. Defaults to 4, minimum 2. */
   repeat?: number;
   /** Gap between items, in `themeSpacing` units. Defaults to 4. */
   gap?: number;
-  /** Fades the strip's edges to transparent. Defaults to true. */
+  /** Opt-in gradient edge-fade scrims. Upstream's Marquee renders none — the fade in Magic UI's demo comes from the demo-page wrapper, not the component. Defaults to false. */
   fade?: boolean;
   /** Passthrough style merged onto the outer (overflow-hidden) container. */
   style?: StyleObject;
@@ -170,10 +170,10 @@ function marquee(props: MarqueeProps = {}): DomphyElement<"div"> {
   const orientation = props.orientation ?? "horizontal";
   const reverse = props.reverse ?? false;
   const pauseOnHover = props.pauseOnHover ?? false;
-  const duration = props.duration ?? 20;
+  const duration = props.duration ?? 40;
   const repeatCount = Math.max(2, Math.round(props.repeat ?? 4));
   const gapUnits = props.gap ?? 4;
-  const fade = props.fade ?? true;
+  const fade = props.fade ?? false;
   const sourceItems = props.items ?? DEFAULT_REVIEWS.map((review) => reviewChip(review));
 
   const axis = orientation === "vertical" ? "Y" : "X";
@@ -192,9 +192,14 @@ function marquee(props: MarqueeProps = {}): DomphyElement<"div"> {
     display: "flex",
     flexDirection: orientation === "vertical" ? "column" : "row",
     flexShrink: 0,
+    // Upstream group class is `flex shrink-0 justify-around gap-(--gap)`.
+    justifyContent: "space-around",
     gap: themeSpacing(gapUnits),
     animation,
     [`@keyframes ${animationName}`]: keyframes,
+    // The repeated groups are the scrolling elements upstream, so the
+    // `trackStyle` passthrough is merged onto each of them.
+    ...(props.trackStyle ?? {}),
   } as StyleObject;
 
   const groups: DomphyElement<"div">[] = Array.from(
@@ -212,31 +217,25 @@ function marquee(props: MarqueeProps = {}): DomphyElement<"div"> {
     }),
   );
 
-  const track: DomphyElement<"div"> = {
-    div: groups,
-    dataTrack: "true",
-    style: {
-      display: "flex",
-      flexDirection: orientation === "vertical" ? "column" : "row",
-      flexShrink: 0,
-      gap: themeSpacing(gapUnits),
-      width: orientation === "horizontal" ? "max-content" : "100%",
-      ...(props.trackStyle ?? {}),
-    } as StyleObject,
-  };
-
+  // Upstream renders the repeated groups as DIRECT children of the single
+  // outer `group` overflow-hidden container — there is no intermediate track
+  // wrapper element.
   return {
     div: [
-      track,
+      ...groups,
       ...(fade ? [fadeOverlay(orientation, "start"), fadeOverlay(orientation, "end")] : []),
     ],
     style: {
-      position: "relative",
-      overflow: "hidden",
       display: "flex",
+      flexDirection: orientation === "vertical" ? "column" : "row",
+      overflow: "hidden",
+      gap: themeSpacing(gapUnits),
+      padding: themeSpacing(2),
       width: orientation === "horizontal" ? "100%" : undefined,
       height: orientation === "vertical" ? themeSpacing(96) : undefined,
-      ...(pauseOnHover ? { "&:hover [data-track] > div": { animationPlayState: "paused" } } : {}),
+      // Only needed to anchor the opt-in, absolutely-positioned fade scrims.
+      ...(fade ? { position: "relative" } : {}),
+      ...(pauseOnHover ? { "&:hover > div": { animationPlayState: "paused" } } : {}),
       ...(props.style ?? {}),
     },
   };

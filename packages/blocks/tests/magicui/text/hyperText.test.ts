@@ -24,13 +24,15 @@ describe("hyperText", () => {
     flushSync();
 
     const container = host.firstElementChild as HTMLElement;
-    expect(container.tagName).toBe("SPAN");
+    // Default container tag is "div", matching upstream's `as: Component = "div"`.
+    expect(container.tagName).toBe("DIV");
     const characterSpans = container.querySelectorAll(":scope > span");
     expect(characterSpans).toHaveLength(Array.from("Hover to Decode").length);
-    // Space characters render as U+00A0 (non-breaking space) so their spans
-    // don't collapse away, matching `spinningText`'s same idiom elsewhere in
-    // this package — normalize before comparing.
-    expect(container.textContent?.replace(/ /g, " ")).toBe("Hover to Decode");
+    // Space cells render as a literal " " character (fixed-width via CSS,
+    // not a non-breaking space), so no normalization is needed here. Upstream
+    // renders every letter via `letter.toUpperCase()`, so the initial glyphs
+    // (before any scramble runs) read uppercase too.
+    expect(container.textContent).toBe("HOVER TO DECODE");
   });
 
   it("scrambles then resolves back to the true text on hover", () => {
@@ -43,7 +45,7 @@ describe("hyperText", () => {
     vi.advanceTimersByTime(200);
     flushSync();
 
-    expect(container.textContent).toBe("Hi");
+    expect(container.textContent).toBe("HI");
   });
 
   it("renders with a custom tag without throwing", () => {

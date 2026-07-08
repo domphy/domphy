@@ -18,8 +18,7 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 | Prop | Type | Description |
 |---|---|---|
 | `children` | `string` | Text content. Defaults to a short demo phrase. |
-| `tag` | `KineticTextTag` | Semantic wrapping tag/heading level. Defaults to `"h2"`. |
-| `accentColor` | `ThemeColor` | Accent color family used for the hovered letter's faint glow. Defaults to `"primary"`. |
+| `tag` | `KineticTextTag` | Semantic wrapping tag/heading level. Defaults to `"h1"`. |
 | `className` | `string` | Extra class name merged onto the wrapper's native `class` attribute. |
 | `style` | `StyleObject` | Passthrough style merged onto the wrapper. |
 

@@ -78,6 +78,28 @@ const ICON_MARK =
 const ICON_USERS =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 6.5a3 3 0 0 1 0 5.8M21 20a5.5 5.5 0 0 0-4.5-5.4"/></svg>';
 
+// Icons for the account dropdown (nav-user) and the projects "more" menu.
+const ICON_SPARKLE =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>';
+
+const ICON_BADGE_CHECK =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><circle cx="12" cy="12" r="9"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>';
+
+const ICON_CREDIT_CARD =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg>';
+
+const ICON_BELL =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>';
+
+const ICON_LOG_OUT =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>';
+
+const ICON_FORWARD =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M15 17l5-5-5-5"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg>';
+
+const ICON_TRASH =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>';
+
 export {
   ICON_PLUS,
   ICON_MINUS,
@@ -94,6 +116,13 @@ export {
   ICON_MESSAGE,
   ICON_MARK,
   ICON_USERS,
+  ICON_SPARKLE,
+  ICON_BADGE_CHECK,
+  ICON_CREDIT_CARD,
+  ICON_BELL,
+  ICON_LOG_OUT,
+  ICON_FORWARD,
+  ICON_TRASH,
 };
 
 // ---------------------------------------------------------------------------
@@ -200,6 +229,14 @@ function sidebarBreadcrumb(
 ): DomphyElement<"nav"> {
   const crumbs: DomphyElement[] = items.map((item, index) => {
     const isLast = index === items.length - 1;
+    // Upstream hides the first crumb AND its trailing separator below md
+    // ("hidden md:block"); hiding the crumb drops its own `::after` separator
+    // (breadcrumb() draws separators as `& > *:not(:last-child)` pseudo-
+    // elements) — but only when a later crumb still anchors the trail.
+    const hideBelowMd =
+      index === 0 && items.length > 1
+        ? { display: "inline-flex", "@media (max-width: 47.9375em)": { display: "none" } }
+        : undefined;
     if (isLast) {
       return {
         strong: item.label,
@@ -212,6 +249,7 @@ function sidebarBreadcrumb(
       a: item.label,
       _key: `${item.label}-${index}`,
       href: item.href ?? "#",
+      style: hideBelowMd,
       $: [link({ color: "neutral", accentColor: "neutral" })],
     } as unknown as DomphyElement;
   });
@@ -228,8 +266,10 @@ function verticalDivider(): DomphyElement<"div"> {
     ariaHidden: "true",
     style: {
       width: "0",
-      alignSelf: "stretch",
-      marginBlock: themeSpacing(2),
+      // Upstream Separator orientation=vertical is `h-4` — a ~16px hairline
+      // vertically centered, not full header height.
+      alignSelf: "center",
+      height: themeSpacing(4),
       borderInlineStart: (l: Listener) =>
         `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-3", "neutral"),
@@ -329,6 +369,8 @@ type SidebarNavMainItem = {
   icon?: string;
   href?: string;
   active?: boolean;
+  /** Trailing count pill (SidebarMenuBadge), e.g. an Inbox unread count. */
+  badge?: string | number;
   items?: SidebarNavChild[];
 };
 type SidebarProject = { title: string; icon?: string; href?: string };
@@ -345,6 +387,28 @@ export type {
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).slice(0, 2);
   return parts.map((part) => part[0]?.toUpperCase() ?? "").join("") || "?";
+}
+
+/** Small trailing count pill (upstream SidebarMenuBadge). Hidden in icon-rail
+ * mode, where the label it trails is already clipped away. */
+function navBadgePill(count: string | number): DomphyElement<"span"> {
+  return {
+    span: String(count),
+    dataTone: "shift-3",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minWidth: themeSpacing(5),
+      height: themeSpacing(5),
+      flexShrink: "0",
+      paddingInline: themeSpacing(1.5),
+      borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
+      fontVariantNumeric: "tabular-nums",
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+    },
+  } as unknown as DomphyElement<"span">;
 }
 
 /** Icon badge used by the team-switcher and the brand mark. Edge-anchored
@@ -463,6 +527,7 @@ function renderPlainNavRow(
   };
 
   const active = "active" in item ? Boolean(item.active) : false;
+  const badge = "badge" in item ? item.badge : undefined;
 
   return {
     li: [
@@ -470,6 +535,7 @@ function renderPlainNavRow(
         a: [
           ...(item.icon ? [sidebarIcon(item.icon)] : []),
           { span: item.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+          ...(badge != null ? [navBadgePill(badge)] : []),
         ],
         href: item.href ?? "#",
         ariaCurrent: active ? "page" : undefined,
@@ -589,7 +655,11 @@ function renderExpandableNavRow(
             },
           } as unknown as DomphyElement,
         ],
-        open: hasActiveChild,
+        // Upstream nav-main uses `defaultOpen={item.isActive}` — the parent's
+        // own active flag opens the group (Playground is active with no active
+        // child). Fall back to an active child so child-only-active data still
+        // opens.
+        open: item.active || hasActiveChild,
         style: {
           display: (l: Listener) => (collapsed.get(l) ? "none" : "block"),
           // Only the chevron glyph rotates on open — a bare "summary span"
@@ -628,6 +698,93 @@ function renderExpandableNavRow(
   } as DomphyElement<"li">;
 }
 
+// ---------------------------------------------------------------------------
+// Dropdown-menu content (icon + label rows, separators) used by the nav-user
+// account menu and the nav-projects "more actions" menu. `menu()` has no
+// separator concept, so these dropdowns build their own rows.
+// ---------------------------------------------------------------------------
+
+type DropdownItem = { icon?: string; label: string; onClick?: () => void };
+
+/** One icon + label menuitem row inside a dropdown. */
+function dropdownRow(item: DropdownItem): DomphyElement<"button"> {
+  return {
+    button: [
+      ...(item.icon ? [sidebarIcon(item.icon)] : []),
+      { span: item.label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+    ],
+    type: "button",
+    role: "menuitem",
+    onClick: item.onClick ?? (() => {}),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      width: "100%",
+      paddingBlock: themeSpacing(1.5),
+      paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+      border: "none",
+      background: "none",
+      cursor: "pointer",
+      textAlign: "left",
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+      "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+    },
+  } as unknown as DomphyElement<"button">;
+}
+
+/** Hairline divider between dropdown sections. */
+function dropdownSeparator(): DomphyElement<"div"> {
+  return {
+    div: null,
+    role: "separator",
+    ariaHidden: "true",
+    style: {
+      height: "0",
+      marginBlock: themeSpacing(1),
+      borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+    },
+  } as unknown as DomphyElement<"div">;
+}
+
+/**
+ * Dropdown content: an optional header block, then icon+label rows grouped into
+ * sections separated by hairline dividers. `role="menu"` with `role="menuitem"`
+ * rows (the header, if present, is `role="none"` presentational content).
+ */
+function dropdownContent(
+  sections: DropdownItem[][],
+  header?: DomphyElement,
+): DomphyElement<"div"> {
+  const children: DomphyElement[] = [];
+  if (header) {
+    children.push({ div: [header], role: "none", style: { padding: themeSpacing(1) } } as unknown as DomphyElement);
+    children.push(dropdownSeparator());
+  }
+  sections.forEach((section, index) => {
+    section.forEach((item) => children.push(dropdownRow(item)));
+    if (index < sections.length - 1) children.push(dropdownSeparator());
+  });
+
+  return {
+    div: children,
+    role: "menu",
+    dataTone: "shift-0",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      minWidth: themeSpacing(56),
+      paddingBlock: themeSpacing(1),
+      borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+    },
+  } as unknown as DomphyElement<"div">;
+}
+
+export { dropdownRow, dropdownSeparator, dropdownContent };
+
 /** Projects row: icon + title + a trailing hover-revealed "more actions" icon
  * (hidden entirely while the sidebar is collapsed). Rendered twice — an
  * expanded row (link + sibling more-button, visible unless collapsed) and a
@@ -639,11 +796,14 @@ function renderProjectRow(
   collapsed: ReadableState<boolean>,
 ): DomphyElement<"li"> {
   const moreOpen = toState(false);
-  const moreMenu: DomphyElement<"div"> = {
-    div: null,
-    style: { minWidth: themeSpacing(36) },
-    $: [menu({ items: [{ label: "Rename" }, { label: "Delete" }] })],
-  } as unknown as DomphyElement<"div">;
+  // Upstream nav-projects.tsx: View Project / Share Project / — / Delete Project.
+  const moreMenu = dropdownContent([
+    [
+      { icon: ICON_FOLDER, label: "View Project" },
+      { icon: ICON_FORWARD, label: "Share Project" },
+    ],
+    [{ icon: ICON_TRASH, label: "Delete Project" }],
+  ]);
 
   const linkStyle = {
     display: "flex",
@@ -758,18 +918,46 @@ function renderProjectsMoreRow(): DomphyElement<"li"> {
 
 /** User footer: avatar + two-line label + chevrons, opens an account menu. */
 function renderUserFooter(user: SidebarUser): DomphyElement<"div"> {
-  const dropdown: DomphyElement<"div"> = {
-    div: null,
-    style: { minWidth: themeSpacing(48) },
-    $: [menu({ items: [{ label: "Account" }, { label: "Billing" }, { label: "Log out" }] })],
-  } as unknown as DomphyElement<"div">;
-
   const avatarChild: DomphyElement<"span"> = user.avatarUrl
     ? ({
         span: [{ img: null, src: user.avatarUrl, alt: user.name } as unknown as DomphyElement],
         $: [avatar({ color: "primary" })],
       } as unknown as DomphyElement<"span">)
     : ({ span: initialsOf(user.name), $: [avatar({ color: "primary" })] } as unknown as DomphyElement<"span">);
+
+  const dropdownAvatar: DomphyElement<"span"> = user.avatarUrl
+    ? ({
+        span: [{ img: null, src: user.avatarUrl, alt: user.name } as unknown as DomphyElement],
+        $: [avatar({ color: "primary" })],
+      } as unknown as DomphyElement<"span">)
+    : ({ span: initialsOf(user.name), $: [avatar({ color: "primary" })] } as unknown as DomphyElement<"span">);
+
+  // Upstream nav-user.tsx dropdown: a header block (avatar + name + email),
+  // then Upgrade to Pro, then Account/Billing/Notifications, then Log out —
+  // each group divided by a separator.
+  const dropdownHeader: DomphyElement<"div"> = {
+    div: [dropdownAvatar, twoLineLabel(user.name, user.email)],
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      paddingBlock: themeSpacing(1),
+      paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+    },
+  } as unknown as DomphyElement<"div">;
+
+  const dropdown = dropdownContent(
+    [
+      [{ icon: ICON_SPARKLE, label: "Upgrade to Pro" }],
+      [
+        { icon: ICON_BADGE_CHECK, label: "Account" },
+        { icon: ICON_CREDIT_CARD, label: "Billing" },
+        { icon: ICON_BELL, label: "Notifications" },
+      ],
+      [{ icon: ICON_LOG_OUT, label: "Log out" }],
+    ],
+    dropdownHeader,
+  );
 
   return {
     div: [

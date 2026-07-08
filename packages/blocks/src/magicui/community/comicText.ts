@@ -14,8 +14,8 @@
 // (the dots) as `backgroundImage`, both clipped to the glyph shapes with
 // `color: transparent`. The thick outline is `-webkit-text-stroke` (which
 // composes cleanly with a clipped-background fill, unlike a real `stroke`
-// SVG property). The two drop shadows are two comma-separated layers of a
-// single `text-shadow` — no extra DOM elements needed, matching the spec's
+// SVG property). The two drop shadows are two `drop-shadow()` layers of a
+// single `filter` — no extra DOM elements needed, matching the spec's
 // "single container, no per-letter spans" DOM sketch.
 //
 // `fontSize`/`fontWeight` are only ever set through a `(l) => value`
@@ -40,7 +40,7 @@ import { type ThemeColor, themeColor } from "@domphy/theme";
 export interface ComicTextProps {
   /** Text content. Forced to uppercase regardless of casing. Defaults to `"BOOM!"`. */
   children?: string;
-  /** Base font size in px — outline thickness and shadow offsets scale proportionally. Defaults to `72`. */
+  /** Base font size in `rem` (e.g. `5` -> `5rem`). Only the outline thickness scales with it (`fontSize * 0.35px`); the halftone dot pattern and drop shadows are fixed. Defaults to `5`. */
   fontSize?: number;
   /** Thick outline color family. Defaults to `"neutral"` (near-black via a fixed dark-edge shift). */
   outlineColor?: ThemeColor;
@@ -62,20 +62,14 @@ export interface ComicTextProps {
  */
 function comicText(props: ComicTextProps = {}): DomphyElement<"div"> {
   const text = (props.children ?? "BOOM!").toUpperCase();
-  const fontSizePx = Math.max(16, props.fontSize ?? 72);
+  // Unitless rem value, matching upstream (`${fontSize}rem`). Only the outline
+  // stroke width is derived from it; dots and shadows are fixed-pixel constants.
+  const fontSize = props.fontSize ?? 5;
   const outlineColor = props.outlineColor ?? "neutral";
   const dotColor = props.dotColor ?? "danger";
   const backgroundFill = props.backgroundFill ?? "warning";
 
-  // All offsets/thicknesses scale proportionally with the base font size,
-  // per the spec, instead of a fixed pixel constant.
-  const strokeWidthPx = Math.max(1, Math.round(fontSizePx * 0.02));
-  const bigShadowOffsetPx = Math.round(fontSizePx * 0.07);
-  const smallShadowOffsetPx = Math.round(fontSizePx * 0.035);
-  const dotTileSizePx = Math.max(4, Math.round(fontSizePx * 0.09));
-  const dotRadiusPx = dotTileSizePx * 0.28;
-
-  const STATIC_SKEW = "skewX(-6deg)";
+  const STATIC_SKEW = "skewX(-10deg)";
 
   const element = {
     div: text,
@@ -84,10 +78,11 @@ function comicText(props: ComicTextProps = {}): DomphyElement<"div"> {
       textAlign: "center",
       textTransform: "uppercase",
       whiteSpace: "pre-wrap",
+      userSelect: "none",
       // Function-form escape hatch — see file header comment. A comic
       // display face genuinely needs an arbitrary heavy weight and a
       // caller-scaled size, neither of which a typography patch expresses.
-      fontSize: () => `${fontSizePx}px`,
+      fontSize: () => `${fontSize}rem`,
       fontWeight: () => "900",
       // A blocky comic display face is the entire premise of this component;
       // browsers fall through 'Bangers' (if loaded) to the system 'Impact'/
@@ -100,29 +95,30 @@ function comicText(props: ComicTextProps = {}): DomphyElement<"div"> {
       // fixed-accent dot color).
       backgroundColor: (listener) => themeColor(listener, "shift-9", backgroundFill),
       backgroundImage: (listener) =>
-        `radial-gradient(circle at ${dotTileSizePx / 2}px ${dotTileSizePx / 2}px, ${themeColor(listener, "shift-9", dotColor)} ${dotRadiusPx}px, transparent ${dotRadiusPx + 1}px)`,
-      backgroundSize: `${dotTileSizePx}px ${dotTileSizePx}px`,
+        `radial-gradient(circle at 1px 1px, ${themeColor(listener, "shift-9", dotColor)} 1px, transparent 0)`,
+      backgroundSize: "8px 8px",
       backgroundClip: "text",
       WebkitBackgroundClip: "text",
       color: "transparent",
       WebkitTextFillColor: "transparent",
       // Thick outline traced around each glyph, composing cleanly with the
       // clipped-background fill above (a real SVG-style `stroke` cannot).
-      WebkitTextStroke: (listener) => `${strokeWidthPx}px ${themeColor(listener, "shift-17", outlineColor)}`,
-      // Two stacked drop shadows in one `text-shadow`: the smaller red one
-      // (listed first, painted on top) sits just behind the glyphs, and the
-      // larger black one (listed second, painted underneath) peeks out
-      // further behind it — the classic layered pop-art sticker look.
-      textShadow: (listener) =>
-        `${smallShadowOffsetPx}px ${smallShadowOffsetPx}px 0 ${themeColor(listener, "shift-9", dotColor)}, ` +
-        `${bigShadowOffsetPx}px ${bigShadowOffsetPx}px 0 ${themeColor(listener, "shift-17", outlineColor)}`,
+      WebkitTextStroke: (listener) => `${fontSize * 0.35}px ${themeColor(listener, "shift-17", outlineColor)}`,
+      // Two stacked drop shadows via `filter` (matching upstream): the larger
+      // black one is applied first, then the smaller red one on top of it.
+      // Offsets are fixed 5px/3px and do NOT scale with fontSize. Using
+      // `filter` drop-shadow (not `text-shadow`) means the shadow silhouette
+      // includes the thick outline stroke — the layered pop-art sticker look.
+      filter: (listener) =>
+        `drop-shadow(5px 5px 0px ${themeColor(listener, "shift-17", outlineColor)}) ` +
+        `drop-shadow(3px 3px 0px ${themeColor(listener, "shift-9", dotColor)})`,
       ...(props.style ?? {}),
     } as StyleObject,
     $: [
       motion({
-        initial: { opacity: 0, transform: `${STATIC_SKEW} scale(0.6) rotate(-8deg)` },
+        initial: { opacity: 0, transform: `${STATIC_SKEW} scale(0.8) rotate(-2deg)` },
         animate: { opacity: 1, transform: `${STATIC_SKEW} scale(1) rotate(0deg)` },
-        transition: { duration: 500, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
+        transition: { duration: 600, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
       }),
     ],
     _doctorDisable: "tone-background-inherit",

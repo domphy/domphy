@@ -1,33 +1,32 @@
-// magicui "Warp Background" — clean-room reimplementation from the public
-// behavior/visual spec only (no upstream source viewed or copied). A
-// decorative wrapper that surrounds its child content with an animated 3D
-// grid tunnel: four gridded planes (top/bottom/left/right) tilted in 3D
-// space via CSS `perspective` + `preserve-3d` so they fan outward like the
-// inside of an open box, each carrying a scattered set of softly glowing
-// vertical "beam" bars that drift and fade on an infinite loop, while the
-// wrapped content sits flat and centered above the tunnel.
+// magicui "Warp Background" — Domphy translation of the upstream React
+// component. A decorative wrapper that surrounds its child content with an
+// animated 3D grid tunnel: four full-sized gridded planes (top/bottom/left/
+// right) each folded a full right angle (±90°) around its outer edge under
+// CSS `perspective` + `preserve-3d`, forming a box tunnel that recedes into
+// depth. Each plane carries a scattered set of softly glowing vertical "beam"
+// bars that drift upward on an infinite loop, while the wrapped content sits
+// flat in normal flow above the tunnel.
 //
-// The grid lines are two perpendicular `repeating-linear-gradient`
-// backgrounds (no image asset) using the theme's stroke/divider token
-// (`shift-3`, per AGENTS.md's role mapping table). Each beam is a small
-// absolutely-positioned span with a vertical gradient fill and a shared CSS
-// `@keyframes` drift/fade loop; per-beam randomized inset, height (aspect),
-// color role, and start delay (drawn once at generation time, like
-// `meteors.ts`) make many beams overlap out of sync so the tunnel reads as
-// continuously alive. This is a CSS-only substitute for the reference's
-// animation-library beam tweens — same tradeoff `meteors.ts` documents: the
-// loop replays the same path every cycle (only the initial delay is
-// randomized, not a fresh position per loop), which would need a JS
-// rAF-driven respawn loop instead of a plain infinite CSS animation to fully
-// match a per-cycle-random reference.
+// Plane sizing mirrors upstream exactly via container-query units: the scene
+// wrapper is a `size` container and each plane spans `100cqi`/`100cqh` ×
+// `100cqmax` of it; each plane is itself a container so its beams can travel
+// `100cqmax` from bottom to top. The crosshatch grid is two tiled
+// `linear-gradient` layers whose cell size is `beamSize%` (coupled to the
+// beam width, exactly as upstream), using the theme's stroke token
+// (`shift-3`) in place of upstream's `var(--border)`.
 //
-// The reference implementation reportedly picks each beam's hue randomly
-// across the full 0-360 hue wheel via literal `hsl()` gradient stops.
-// Domphy's design system has no arbitrary-hue escape hatch (raw hex/rgb/hsl
-// literals on style props are forbidden — theme tokens only), so beams
-// instead draw from a rotating set of the theme's own color roles
-// (`ThemeColor`), the same substitution `rainbowButton.ts` makes for its
-// literal five-hue rainbow gradient.
+// Two documented substitutions vs. upstream, both mirroring existing repo
+// precedent:
+// (1) Beams drift via a shared CSS `@keyframes` loop with a per-beam
+//     randomized `animation-delay` (drawn once at generation time) instead of
+//     an animation-library tween per beam — the same technique meteors.ts
+//     uses. Trade-off: the loop replays the same path each cycle rather than a
+//     fresh random position per cycle.
+// (2) Upstream picks each beam's hue randomly across the full 0–360 wheel via
+//     literal `hsl()` stops. Domphy forbids raw hex/rgb/hsl color literals on
+//     style props (theme tokens only), so beams instead cycle the theme's own
+//     color roles (`ThemeColor`) — the same substitution rainbowButton.ts
+//     makes for its literal five-hue rainbow gradient.
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
@@ -37,19 +36,19 @@ import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 export type WarpBackgroundPlaneSide = "top" | "bottom" | "left" | "right";
 
 export interface WarpBackgroundProps {
-  /** Content rendered flat and centered above the tunnel (e.g. a card). Defaults to a small demo card. */
+  /** Content rendered flat above the tunnel (e.g. a card). Defaults to a small demo card. */
   children?: DomphyElement | DomphyElement[];
-  /** CSS `perspective` depth, in `themeSpacing` units — smaller reads as a stronger/closer tunnel. Defaults to `200`. */
+  /** CSS `perspective` depth in px — smaller reads as a stronger/closer tunnel. Defaults to `100` (matching upstream). */
   perspective?: number;
   /** Number of beams rendered per plane (×4 planes total). Defaults to `3`. */
   beamsPerSide?: number;
-  /** Beam thickness, in `themeSpacing` units. Defaults to `1`. */
+  /** Beam width as a percentage of its plane, which ALSO sets the crosshatch grid cell size. Defaults to `5`. */
   beamSize?: number;
   /** Minimum randomized per-beam start delay, in seconds. Defaults to `0`. */
   beamDelayMin?: number;
-  /** Maximum randomized per-beam start delay, in seconds. Defaults to `4`. */
+  /** Maximum randomized per-beam start delay, in seconds. Defaults to `3`. */
   beamDelayMax?: number;
-  /** One drift-and-fade cycle, in seconds. Defaults to `3`. */
+  /** One drift cycle, in seconds. Defaults to `3`. */
   beamDuration?: number;
   /** Theme color family for the grid lines. Defaults to `"neutral"`. */
   gridColor?: ThemeColor;
@@ -69,44 +68,59 @@ const DEFAULT_BEAM_COLORS: ThemeColor[] = [
   "error",
 ];
 
+// Order matches upstream (top first). "top" carries z-index 20 so it paints
+// above the other three walls at their overlap, exactly as upstream's ceiling
+// plane does.
 const PLANE_SIDES: WarpBackgroundPlaneSide[] = ["top", "bottom", "left", "right"];
 
-/** Rotation applied to each plane so the four faces fan open into a tunnel under perspective. */
-const PLANE_ROTATION: Record<WarpBackgroundPlaneSide, { origin: string; transform: string }> = {
-  top: { origin: "top", transform: "rotateX(70deg)" },
-  bottom: { origin: "bottom", transform: "rotateX(-70deg)" },
-  left: { origin: "left", transform: "rotateY(-70deg)" },
-  right: { origin: "right", transform: "rotateY(70deg)" },
+/**
+ * Per-plane geometry, matching upstream's Tailwind classes 1:1:
+ *   top:    absolute z-20 h-[100cqmax] w-[100cqi] origin-[50%_0%]  rotateX(-90deg)
+ *   bottom: absolute top-full h-[100cqmax] w-[100cqi] origin-[50%_0%]  rotateX(-90deg)
+ *   left:   absolute top-0 left-0 h-[100cqmax] w-[100cqh] origin-[0%_0%]   rotate(90deg) rotateX(-90deg)
+ *   right:  absolute top-0 right-0 h-[100cqmax] w-[100cqh] origin-[100%_0%] rotate(-90deg) rotateX(-90deg)
+ */
+const PLANE_GEOMETRY: Record<
+  WarpBackgroundPlaneSide,
+  { origin: string; transform: string; layout: StyleObject }
+> = {
+  top: {
+    origin: "50% 0%",
+    transform: "rotateX(-90deg)",
+    layout: { insetBlockStart: 0, insetInlineStart: 0, width: "100cqi", height: "100cqmax", zIndex: 20 },
+  },
+  bottom: {
+    origin: "50% 0%",
+    transform: "rotateX(-90deg)",
+    layout: { insetBlockStart: "100%", insetInlineStart: 0, width: "100cqi", height: "100cqmax" },
+  },
+  left: {
+    origin: "0% 0%",
+    transform: "rotate(90deg) rotateX(-90deg)",
+    layout: { insetBlockStart: 0, insetInlineStart: 0, width: "100cqh", height: "100cqmax" },
+  },
+  right: {
+    origin: "100% 0%",
+    transform: "rotate(-90deg) rotateX(-90deg)",
+    layout: { insetBlockStart: 0, insetInlineEnd: 0, width: "100cqh", height: "100cqmax" },
+  },
 };
-
-/** Which half of the scene box each plane occupies before rotation. */
-const PLANE_LAYOUT: Record<WarpBackgroundPlaneSide, StyleObject> = {
-  top: { insetBlockStart: 0, insetInlineStart: 0, insetInlineEnd: 0, height: "50%" },
-  bottom: { insetBlockEnd: 0, insetInlineStart: 0, insetInlineEnd: 0, height: "50%" },
-  left: { insetBlockStart: 0, insetBlockEnd: 0, insetInlineStart: 0, width: "50%" },
-  right: { insetBlockStart: 0, insetBlockEnd: 0, insetInlineEnd: 0, width: "50%" },
-};
-
-const GRID_CELL_UNITS = 8;
 
 let warpBackgroundInstanceCounter = 0;
 
-/** One glowing, drifting-and-fading vertical beam bar inside a plane. */
+/** One glowing, drifting vertical beam bar inside a plane. */
 function warpBeam(
   side: WarpBackgroundPlaneSide,
   index: number,
   instanceId: number,
+  leftPercent: number,
   beamSize: number,
-  delayMin: number,
-  delayMax: number,
+  aspectRatio: number,
+  delaySeconds: string,
   duration: number,
   color: ThemeColor,
   driftAnimationName: string,
 ): DomphyElement<"span"> {
-  const leftPercent = Math.round(Math.random() * 100);
-  const heightPercent = Math.round(40 + Math.random() * 55);
-  const delaySeconds = (delayMin + Math.random() * Math.max(0, delayMax - delayMin)).toFixed(2);
-
   // `_doctorDisable` is a doctor-only annotation not present in core's strict
   // `PartialElement` type — build through an untyped literal, then assert, so
   // the excess-property check doesn't fire (mirrors meteors.ts).
@@ -119,18 +133,24 @@ function warpBeam(
     _doctorDisable: "missing-color",
     style: {
       position: "absolute",
-      insetBlockEnd: 0,
+      // top-0 left-(x%), width beamSize%, aspect-ratio 1/ar — upstream's exact
+      // Beam layout; `translateX(-50%)` (carried in the keyframe) centers it.
+      insetBlockStart: 0,
       insetInlineStart: `${leftPercent}%`,
-      width: themeSpacing(beamSize),
-      height: `${heightPercent}%`,
+      width: `${beamSize}%`,
+      aspectRatio: `1 / ${aspectRatio}`,
+      // linear-gradient(color, transparent) = solid at the top (leading) edge,
+      // fading downward — the comet points the way it travels (upward).
       backgroundImage: (listener: Listener) =>
-        `linear-gradient(to top, ${themeColor(listener, "shift-9", color)}, transparent)`,
-      animation: `${driftAnimationName} ${duration}s linear ${delaySeconds}s infinite`,
+        `linear-gradient(${themeColor(listener, "shift-9", color)}, transparent)`,
+      // `both` holds the 0% frame (fully below) during the delay, matching
+      // framer's `initial={{ y: "100cqmax" }}`.
+      animation: `${driftAnimationName} ${duration}s linear ${delaySeconds}s infinite both`,
     } as StyleObject,
   } as DomphyElement<"span">;
 }
 
-/** One tilted, gridded plane (top/bottom/left/right) making up one face of the tunnel. */
+/** One folded, gridded plane (top/bottom/left/right) making up one wall of the tunnel. */
 function warpPlane(
   side: WarpBackgroundPlaneSide,
   sideIndex: number,
@@ -143,23 +163,33 @@ function warpPlane(
   gridColor: ThemeColor,
   beamColors: ThemeColor[],
   driftAnimationName: string,
-  cellSize: string,
 ): DomphyElement<"div"> {
-  const { origin, transform } = PLANE_ROTATION[side];
+  const { origin, transform, layout } = PLANE_GEOMETRY[side];
+  const cell = `${beamSize}%`;
 
-  const beams = Array.from({ length: beamsPerSide }, (_unused, index) =>
-    warpBeam(
+  // Upstream generateBeams(): evenly spaced cells across the plane width, so
+  // beams spread out (only delay/hue are randomized), not cluster.
+  const cellsPerSide = Math.floor(100 / beamSize);
+  const stepSize = cellsPerSide / beamsPerSide;
+
+  const beams = Array.from({ length: beamsPerSide }, (_unused, index) => {
+    const cellIndex = Math.floor(index * stepSize);
+    const leftPercent = cellIndex * beamSize; // 0%, 30%, 65% for the defaults
+    const aspectRatio = Math.floor(Math.random() * 10) + 1;
+    const delaySeconds = (delayMin + Math.random() * Math.max(0, delayMax - delayMin)).toFixed(2);
+    return warpBeam(
       side,
       index,
       instanceId,
+      leftPercent,
       beamSize,
-      delayMin,
-      delayMax,
+      aspectRatio,
+      delaySeconds,
       duration,
       beamColors[(index + sideIndex) % beamColors.length],
       driftAnimationName,
-    ),
-  );
+    );
+  });
 
   return {
     div: beams,
@@ -170,17 +200,25 @@ function warpPlane(
     _doctorDisable: "missing-color",
     style: {
       position: "absolute",
-      overflow: "hidden",
+      transformStyle: "preserve-3d",
+      // `@container` on each plane so its beams' `100cqmax` resolves against
+      // the plane (upstream marks every plane `@container`).
+      containerType: "inline-size",
       transformOrigin: origin,
       transform,
+      // Two tiled linear-gradient layers (horizontal + vertical hairlines) at
+      // a `beamSize%` cell — upstream's exact crosshatch, cell coupled to beam
+      // width. `var(--grid-color)` -> the theme stroke token.
       backgroundImage: (listener: Listener) => {
         const line = themeColor(listener, "shift-3", gridColor);
         return (
-          `repeating-linear-gradient(to right, ${line} 0, ${line} 1px, transparent 1px, transparent ${cellSize}), ` +
-          `repeating-linear-gradient(to bottom, ${line} 0, ${line} 1px, transparent 1px, transparent ${cellSize})`
+          `linear-gradient(${line} 0 1px, transparent 1px ${cell}), ` +
+          `linear-gradient(90deg, ${line} 0 1px, transparent 1px ${cell})`
         );
       },
-      ...PLANE_LAYOUT[side],
+      backgroundPosition: "50% -0.5px, 50% 50%",
+      backgroundSize: `${cell} ${cell}, ${cell} ${cell}`,
+      ...layout,
     } as StyleObject,
   } as DomphyElement<"div">;
 }
@@ -203,31 +241,30 @@ function defaultWarpContent(): DomphyElement[] {
 
 /**
  * A decorative wrapper that surrounds its content with an animated 3D grid
- * tunnel — four tilted, gridded planes fanning outward around the wrapped
- * content, each scattered with softly glowing beams that drift and fade on
- * an infinite loop from the moment it mounts. Call with no arguments for a
- * working demo — a small card floating above a colorful drifting tunnel.
+ * tunnel — four full-sized planes folded into a box that recedes into depth,
+ * each scattered with softly glowing beams that drift upward on an infinite
+ * loop from the moment it mounts. Call with no arguments for a working demo —
+ * a small card floating above a drifting tunnel.
  */
 function warpBackground(props: WarpBackgroundProps = {}): DomphyElement<"div"> {
   const instanceId = ++warpBackgroundInstanceCounter;
-  const perspective = props.perspective ?? 200;
+  const perspective = props.perspective ?? 100;
   const beamsPerSide = Math.max(1, Math.round(props.beamsPerSide ?? 3));
-  const beamSize = props.beamSize ?? 1;
+  const beamSize = props.beamSize ?? 5;
   const beamDelayMin = props.beamDelayMin ?? 0;
-  const beamDelayMax = props.beamDelayMax ?? 4;
+  const beamDelayMax = props.beamDelayMax ?? 3;
   const beamDuration = props.beamDuration ?? 3;
   const gridColor = props.gridColor ?? "neutral";
   const beamColors = props.beamColors && props.beamColors.length > 0 ? props.beamColors : DEFAULT_BEAM_COLORS;
-  const cellSize = themeSpacing(GRID_CELL_UNITS);
 
   const driftAnimationName = `warp-background-drift-${hashString(
     JSON.stringify({ instanceId, beamDuration, beamDelayMin, beamDelayMax }),
   )}`;
+  // Upstream framer motion: y from 100cqmax (below the plane) to -100% (above),
+  // x held at -50%. No opacity tween — the fade is entirely the gradient.
   const driftKeyframes = {
-    "0%": { transform: "translateY(30%)", opacity: 0 },
-    "15%": { opacity: 1 },
-    "85%": { opacity: 1 },
-    "100%": { transform: "translateY(-130%)", opacity: 0 },
+    "0%": { transform: "translateX(-50%) translateY(100cqmax)" },
+    "100%": { transform: "translateX(-50%) translateY(-100%)" },
   };
 
   const planes = PLANE_SIDES.map((side, sideIndex) =>
@@ -243,7 +280,6 @@ function warpBackground(props: WarpBackgroundProps = {}): DomphyElement<"div"> {
       gridColor,
       beamColors,
       driftAnimationName,
-      cellSize,
     ),
   );
 
@@ -256,30 +292,38 @@ function warpBackground(props: WarpBackgroundProps = {}): DomphyElement<"div"> {
   return {
     div: [
       {
+        // Scene wrapper: the perspective + preserve-3d container and the
+        // `size` query container the planes size against.
         div: planes,
         ariaHidden: "true",
-        style: { position: "absolute", inset: 0, transformStyle: "preserve-3d" } as StyleObject,
+        style: {
+          pointerEvents: "none",
+          position: "absolute",
+          insetBlockStart: 0,
+          insetInlineStart: 0,
+          width: "100%",
+          height: "100%",
+          overflow: "hidden",
+          clipPath: "inset(0)",
+          containerType: "size",
+          perspective: `${perspective}px`,
+          transformStyle: "preserve-3d",
+        } as StyleObject,
       } as DomphyElement<"div">,
       {
+        // Upstream wraps children in a plain `relative` div — natural flow,
+        // no centering.
         div: contentChildren,
-        style: {
-          position: "relative",
-          zIndex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-        } as StyleObject,
+        style: { position: "relative" } as StyleObject,
       } as DomphyElement<"div">,
     ],
     dataTone: "shift-15",
     style: {
+      // Upstream root: `relative rounded border p-20`.
       position: "relative",
-      overflow: "hidden",
-      borderRadius: themeSpacing(4),
-      minHeight: themeSpacing(96),
-      padding: themeSpacing(10),
-      perspective: themeSpacing(perspective),
+      borderRadius: themeSpacing(1),
+      border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", gridColor)}`,
+      padding: themeSpacing(20),
       backgroundColor: (listener) => themeColor(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-9"),
       [`@keyframes ${driftAnimationName}`]: driftKeyframes,

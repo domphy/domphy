@@ -1,23 +1,29 @@
 // magicui "Icon Cloud" — clean-room reimplementation from the public
 // behavior/visual spec only (no upstream source viewed or copied). An
 // interactive, auto-rotating "tag cloud" sphere of icon chips that the user
-// can grab and spin with the mouse or touch, coasting with inertia on
-// release. Clicking a single icon (a press with no drag) animates the whole
-// sphere on an easeOutCubic tween so that icon settles at the front-center.
+// can grab and spin with the mouse or touch, drifting on its own toward
+// wherever the pointer rests when not being dragged. Clicking a single icon
+// (a press with no drag) animates the whole sphere on an easeOutCubic tween
+// so that icon settles at the front-center.
 //
 // Rendered on a single 2D `<canvas>` (not WebGL/DOM 3D transforms) since the
 // point count is small and cheap to project by hand: a fixed set of points is
 // pre-distributed evenly over a unit sphere via a golden-angle (Fibonacci)
 // spiral — this avoids the pole-clumping a naive latitude/longitude grid
 // would produce. Every frame, the points are rotated by the current
-// accumulated yaw/pitch (idle auto-rotation, or driven directly by drag
-// delta while dragging; inertia decays the angular velocity by a friction
-// factor each frame after release), projected orthographically to 2D, sorted
-// back-to-front by depth (painter's algorithm) so nearer icons occlude
-// farther ones, and drawn with `drawImage` at a size/opacity interpolated
-// from normalized depth. Vector glyphs and bitmap image URLs are both
-// pre-rendered to offscreen `Image` objects (via a data: URI for glyphs) so
-// the per-frame draw path is uniform regardless of content source.
+// accumulated yaw/pitch — driven directly by drag delta while dragging, or
+// (when idle) drifting toward wherever the pointer currently rests: speed
+// and direction both derive from the pointer's offset from the canvas
+// center, so hovering near an edge spins the sphere faster in that
+// direction, matching the reference's own idle behavior (there is no
+// separate momentum/coasting phase after a drag ends) — then projected
+// orthographically to 2D, sorted back-to-front by depth (painter's
+// algorithm) so nearer icons occlude farther ones, and drawn with
+// `drawImage` at a size/opacity interpolated from normalized depth. Vector
+// glyphs are rasterized once to an offscreen `Image` via a data: URI; bitmap
+// image URLs are pre-rendered into a 40x40 offscreen canvas behind a circular
+// clip (so avatar/logo art reads as a disc, matching upstream's mask). Either
+// way the per-frame draw path is a single `drawImage`, uniform across sources.
 
 import type { DomphyElement, ElementNode } from "@domphy/core";
 import { themeColorToken } from "@domphy/theme";
@@ -35,14 +41,13 @@ export interface IconCloudItem {
 export interface IconCloudProps {
   /** Icons distributed evenly over the sphere. Defaults to 20 generic hand-authored glyphs. */
   icons?: IconCloudItem[];
-  /** Square canvas/container size, in px. Defaults to 380. */
+  /** Square canvas/container size, in px. Defaults to 400. */
   size?: number;
-  /** Idle auto-rotation angular speed, radians/frame. Defaults to 0.003. */
+  /** Idle auto-rotation base angular speed, radians/frame, at rest with the pointer centered.
+   * Ramps up as the pointer moves away from the canvas center. Defaults to 0.003. */
   autoRotateSpeed?: number;
-  /** Drag sensitivity — radians of rotation per px of pointer movement. Defaults to 0.006. */
+  /** Drag sensitivity — radians of rotation per px of pointer movement. Defaults to 0.002. */
   dragSensitivity?: number;
-  /** Inertia decay factor applied to angular velocity each frame after release (0–1; closer to 1 coasts longer). Defaults to 0.95. */
-  friction?: number;
   /** Icon render size range in px, `[nearest, farthest]`. Defaults to `[42, 14]`. */
   iconScaleRange?: [number, number];
   /** Icon opacity range, `[nearest, farthest]`. Defaults to `[1, 0.25]`. */
@@ -50,14 +55,20 @@ export interface IconCloudProps {
   ariaLabel?: string;
 }
 
-const DEFAULT_SIZE = 380;
+const DEFAULT_SIZE = 400;
 const DEFAULT_AUTO_ROTATE_SPEED = 0.003;
-const DEFAULT_DRAG_SENSITIVITY = 0.006;
-const DEFAULT_FRICTION = 0.95;
+const DEFAULT_DRAG_SENSITIVITY = 0.002;
+// Idle rotation isn't a fixed spin: it's a pointer-relative drift, same as the
+// reference — speed ramps from `autoRotateSpeed` (pointer centered) up to
+// `autoRotateSpeed + AUTO_ROTATE_HOVER_SPEED_BOOST` (pointer at the corner).
+const AUTO_ROTATE_HOVER_SPEED_BOOST = 0.01;
 const DEFAULT_ICON_SCALE_RANGE: [number, number] = [42, 14];
 const DEFAULT_ICON_OPACITY_RANGE: [number, number] = [1, 0.25];
+// Projected sphere radius as a fraction of canvas width. Upstream scales unit
+// points by *100 inside a fixed 400px canvas, so the sphere radius is 25% of
+// the width and the cloud fills roughly half the frame.
+const SPHERE_RADIUS_RATIO = 0.25;
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
-const VELOCITY_REST_EPSILON = 0.00005;
 // Click-to-focus tween: duration scales with the angular distance to travel,
 // clamped so a tiny nudge still reads as motion and a half-turn doesn't crawl.
 const FOCUS_MIN_DURATION_MS = 800;
@@ -124,15 +135,21 @@ function buildFibonacciSpherePoints(count: number): SpherePoint[] {
 }
 
 function rotatePoint(point: SpherePoint, yaw: number, pitch: number): SpherePoint {
+  // Matches upstream's projection exactly: yaw (spin about the vertical axis)
+  // is applied first and alone determines depth (z), then pitch only slides the
+  // point vertically (y) reusing that pre-pitch depth — a deliberately partial,
+  // non-orthonormal rotation. Consequences that make it faithful to upstream:
+  // vertical drag moves icons up/down WITHOUT changing their depth/scale, and
+  // the yaw handedness (sign of the sin terms) matches, so horizontal drag
+  // spins the sphere the same direction as the reference.
   const cosYaw = Math.cos(yaw);
   const sinYaw = Math.sin(yaw);
-  const x1 = point.x * cosYaw + point.z * sinYaw;
-  const z1 = -point.x * sinYaw + point.z * cosYaw;
+  const rotatedX = point.x * cosYaw - point.z * sinYaw;
+  const rotatedZ = point.x * sinYaw + point.z * cosYaw;
   const cosPitch = Math.cos(pitch);
   const sinPitch = Math.sin(pitch);
-  const y2 = point.y * cosPitch - z1 * sinPitch;
-  const z2 = point.y * sinPitch + z1 * cosPitch;
-  return { x: x1, y: y2, z: z2 };
+  const rotatedY = point.y * cosPitch + rotatedZ * sinPitch;
+  return { x: rotatedX, y: rotatedY, z: rotatedZ };
 }
 
 function lerp(from: number, to: number, t: number): number {
@@ -144,27 +161,29 @@ function easeOutCubic(t: number): number {
 }
 
 /** The absolute yaw/pitch that, applied via `rotatePoint`, bring `point` to the
- * front-center of the sphere (projected onto the screen center, facing the
- * viewer). Independent of the current rotation — the tween interpolates from
- * wherever the sphere currently sits to these target angles. */
+ * screen center (projected to the canvas center, on the viewer-facing side).
+ * Independent of the current rotation — the tween interpolates from wherever the
+ * sphere currently sits to these target angles. Uses upstream's exact target
+ * formula (yaw = atan2(x, z), pitch = -atan2(y, r_xz)); under the partial
+ * rotation the focused point lands at x=0, y=0 with depth r_xz — upstream does
+ * not renormalize it to the front pole, so neither do we. */
 function focusRotationForPoint(point: SpherePoint): { yaw: number; pitch: number } {
   const radiusInXZ = Math.sqrt(point.x * point.x + point.z * point.z);
   return {
-    yaw: Math.atan2(-point.x, point.z),
-    pitch: Math.atan2(point.y, radiusInXZ),
+    yaw: Math.atan2(point.x, point.z),
+    pitch: -Math.atan2(point.y, radiusInXZ),
   };
 }
 
 /**
  * An interactive, auto-rotating sphere of icon chips (2D canvas), drag-to-spin
- * with inertial coasting. Call with no arguments for a working demo — 20
- * generic glyphs auto-rotating, themed from the current context.
+ * with a pointer-relative idle drift. Call with no arguments for a working
+ * demo — 20 generic glyphs auto-rotating, themed from the current context.
  */
 function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
   const size = props.size ?? DEFAULT_SIZE;
   const autoRotateSpeed = props.autoRotateSpeed ?? DEFAULT_AUTO_ROTATE_SPEED;
   const dragSensitivity = props.dragSensitivity ?? DEFAULT_DRAG_SENSITIVITY;
-  const friction = props.friction ?? DEFAULT_FRICTION;
   const [nearSize, farSize] = props.iconScaleRange ?? DEFAULT_ICON_SCALE_RANGE;
   const [nearOpacity, farOpacity] = props.iconOpacityRange ?? DEFAULT_ICON_OPACITY_RANGE;
 
@@ -191,6 +210,7 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
       canvas.style.inset = "0";
       canvas.style.width = "100%";
       canvas.style.height = "100%";
+      canvas.style.borderRadius = "0.5rem"; // upstream canvas has rounded-lg corners
       canvas.style.cursor = "grab";
       container.appendChild(canvas);
 
@@ -207,20 +227,45 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
       const points = buildFibonacciSpherePoints(icons.length);
 
       interface LoadedIcon {
-        image: HTMLImageElement | null;
+        // Either the rasterized glyph (a plain <img>) or, for bitmap image URLs,
+        // a 40x40 offscreen canvas the source was circular-clipped into. Stays
+        // null until the load completes, so its presence is the readiness flag.
+        source: CanvasImageSource | null;
       }
-      const loaded: LoadedIcon[] = icons.map(() => ({ image: null }));
+      const loaded: LoadedIcon[] = icons.map(() => ({ source: null }));
       icons.forEach((icon, index) => {
-        const source =
-          icon.image ??
-          (icon.glyphMarkup ? `data:image/svg+xml,${encodeURIComponent(icon.glyphMarkup)}` : undefined);
-        if (!source) return;
+        if (icon.image) {
+          // Bitmap image URL: load cross-origin (so the canvas stays clean) and
+          // pre-render into a 40x40 offscreen canvas behind a circular clip, so
+          // avatar/logo art reads as a disc — matching upstream's arc()+clip().
+          const image = new Image();
+          image.crossOrigin = "anonymous";
+          image.decoding = "async";
+          image.onload = () => {
+            const offscreen = document.createElement("canvas");
+            offscreen.width = 40;
+            offscreen.height = 40;
+            const offContext = offscreen.getContext("2d");
+            if (!offContext) return;
+            offContext.beginPath();
+            offContext.arc(20, 20, 20, 0, Math.PI * 2);
+            offContext.closePath();
+            offContext.clip();
+            offContext.drawImage(image, 0, 0, 40, 40);
+            loaded[index].source = offscreen;
+          };
+          image.src = icon.image;
+          return;
+        }
+        if (!icon.glyphMarkup) return;
+        // Vector glyph: rasterize the inline SVG once via a data: URI, drawn
+        // unclipped (as upstream renders its SVG icons — no circular mask).
         const image = new Image();
         image.decoding = "async";
         image.onload = () => {
-          loaded[index].image = image;
+          loaded[index].source = image;
         };
-        image.src = source;
+        image.src = `data:image/svg+xml,${encodeURIComponent(icon.glyphMarkup)}`;
       });
 
       const prefersReducedMotion =
@@ -237,9 +282,14 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
       }
 
       let yaw = 0;
-      let pitch = 0.15;
-      let velocityYaw = 0;
-      let velocityPitch = 0;
+      let pitch = 0; // start flat, matching upstream's initial rotation (0, 0)
+      // Last-known pointer position in the canvas's own drawing space, used
+      // only to drive the idle drift below — starts at the top-left corner
+      // (maximum offset from center), matching the reference's own initial
+      // state, so the sphere drifts from the very first frame before any
+      // pointer input has landed on the canvas at all.
+      let pointerCanvasX = 0;
+      let pointerCanvasY = 0;
       let dragging = false;
       let lastPointerX = 0;
       let lastPointerY = 0;
@@ -266,7 +316,7 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
       resizeCanvas();
 
       const draw = () => {
-        const sphereRadius = width * 0.42;
+        const sphereRadius = width * SPHERE_RADIUS_RATIO;
         const centerX = width / 2;
         const centerY = width / 2;
 
@@ -285,12 +335,12 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
         projected.sort((a, b) => a.depth - b.depth);
 
         for (const entry of projected) {
-          const image = loaded[entry.index].image;
-          if (!image || !image.complete || image.naturalWidth === 0) continue;
+          const source = loaded[entry.index].source;
+          if (!source) continue;
           const iconSize = lerp(farSize, nearSize, entry.depth);
           const opacity = lerp(farOpacity, nearOpacity, entry.depth);
           context.globalAlpha = opacity;
-          context.drawImage(image, entry.x - iconSize / 2, entry.y - iconSize / 2, iconSize, iconSize);
+          context.drawImage(source, entry.x - iconSize / 2, entry.y - iconSize / 2, iconSize, iconSize);
         }
         context.globalAlpha = 1;
       };
@@ -307,7 +357,7 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
       // Front-most icon (largest depth) whose rendered disc contains the point,
       // or null if the click landed on empty space between icons.
       const iconIndexAtPoint = (canvasX: number, canvasY: number): number | null => {
-        const sphereRadius = width * 0.42;
+        const sphereRadius = width * SPHERE_RADIUS_RATIO;
         const centerX = width / 2;
         const centerY = width / 2;
         let bestIndex: number | null = null;
@@ -343,10 +393,6 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
           startTime: now(),
           duration,
         };
-        // A focus tween is authoritative while it plays — clear any coasting
-        // velocity so inertia doesn't add to the eased rotation.
-        velocityYaw = 0;
-        velocityPitch = 0;
       };
 
       const tick = () => {
@@ -358,8 +404,8 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
         if (!canvas.isConnected) return;
         if (!dragging) {
           if (focusTarget) {
-            // Click-to-focus easeOutCubic tween takes precedence over both
-            // inertia and idle auto-rotation until it completes.
+            // Click-to-focus easeOutCubic tween takes precedence over the
+            // idle drift until it completes.
             const progress =
               focusTarget.duration > 0
                 ? Math.min(1, (now() - focusTarget.startTime) / focusTarget.duration)
@@ -368,18 +414,19 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
             yaw = focusTarget.startYaw + (focusTarget.yaw - focusTarget.startYaw) * eased;
             pitch = focusTarget.startPitch + (focusTarget.pitch - focusTarget.startPitch) * eased;
             if (progress >= 1) focusTarget = null;
-          } else if (
-            Math.abs(velocityYaw) > VELOCITY_REST_EPSILON ||
-            Math.abs(velocityPitch) > VELOCITY_REST_EPSILON
-          ) {
-            yaw += velocityYaw;
-            pitch += velocityPitch;
-            velocityYaw *= friction;
-            velocityPitch *= friction;
           } else if (!prefersReducedMotion) {
-            yaw += autoRotateSpeed;
-            velocityYaw = 0;
-            velocityPitch = 0;
+            // Idle drift: no separate momentum/coasting phase (matching the
+            // reference) — every non-dragging, non-tweening frame just leans
+            // the rotation toward wherever the pointer currently rests,
+            // speeding up the further that pointer sits from center.
+            const centerOffset = width / 2;
+            const offsetX = pointerCanvasX - centerOffset;
+            const offsetY = pointerCanvasY - centerOffset;
+            const maxOffsetDistance = Math.hypot(centerOffset, centerOffset);
+            const offsetRatio = maxOffsetDistance > 0 ? Math.hypot(offsetX, offsetY) / maxOffsetDistance : 0;
+            const speed = autoRotateSpeed + offsetRatio * AUTO_ROTATE_HOVER_SPEED_BOOST;
+            yaw += (offsetX / width) * speed;
+            pitch += (offsetY / width) * speed;
           }
         }
         draw();
@@ -393,8 +440,6 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
         pointerDownX = event.clientX;
         pointerDownY = event.clientY;
         pointerMovedFar = false;
-        velocityYaw = 0;
-        velocityPitch = 0;
         // A fresh press cancels any in-flight focus tween so the drag (or the
         // next auto-rotation) takes over cleanly rather than fighting it.
         focusTarget = null;
@@ -418,12 +463,16 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
             pointerMovedFar = true;
           }
         }
-        const deltaYaw = deltaX * dragSensitivity;
-        const deltaPitch = deltaY * dragSensitivity;
-        yaw += deltaYaw;
-        pitch += deltaPitch;
-        velocityYaw = deltaYaw;
-        velocityPitch = deltaPitch;
+        yaw += deltaX * dragSensitivity;
+        pitch += deltaY * dragSensitivity;
+      };
+      // Tracks the pointer position (in the canvas's own drawing space)
+      // continuously, drag or not — the only input the idle-drift branch of
+      // `tick` reads.
+      const handleHoverMove = (event: PointerEvent) => {
+        const point = toCanvasPoint(event.clientX, event.clientY);
+        pointerCanvasX = point.x;
+        pointerCanvasY = point.y;
       };
       const handlePointerUp = (event: PointerEvent) => {
         if (!dragging) return;
@@ -435,7 +484,7 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
           // Best-effort release, as above.
         }
         // A press that never travelled far is a click: focus the icon under the
-        // pointer (if any). A real drag falls through to inertial coasting.
+        // pointer (if any). A real drag falls through to the idle drift above.
         if (!pointerMovedFar) {
           const point = toCanvasPoint(event.clientX, event.clientY);
           const index = iconIndexAtPoint(point.x, point.y);
@@ -444,6 +493,7 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
       };
 
       canvas.addEventListener("pointerdown", handlePointerDown);
+      canvas.addEventListener("pointermove", handleHoverMove);
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp);
 
@@ -458,6 +508,7 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
         if (frameHandle !== null) cancelAnimationFrame(frameHandle);
         resizeObserver?.disconnect();
         canvas.removeEventListener("pointerdown", handlePointerDown);
+        canvas.removeEventListener("pointermove", handleHoverMove);
         window.removeEventListener("pointermove", handlePointerMove);
         window.removeEventListener("pointerup", handlePointerUp);
       });

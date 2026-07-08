@@ -71,9 +71,12 @@ describe("typingAnimation", () => {
     flushSync();
     expect(revealedTextOf(host)).toBe("Ab");
 
-    // t=30 pause ends, t=30..50 deletes "Ab", t=50 types "Cd" over t=50..70.
-    // Land inside [70, 90) — "Cd" fully typed, before its own delete-back starts.
-    vi.advanceTimersByTime(55); // total elapsed: 75
+    // Each phase change (typing-done -> pause, pause-done -> deleting,
+    // deleting-done -> next word) is its own tick that doesn't touch the
+    // revealed text, matching upstream's per-state-transition setTimeout:
+    // t=30 typing->pause, t=40 pause->deleting, t=50/60 delete "Ab" chars,
+    // t=70 deleting->typing (next word), t=80/90 type "C"/"Cd".
+    vi.advanceTimersByTime(70); // total elapsed: 90
     flushSync();
     expect(revealedTextOf(host)).toBe("Cd");
   });

@@ -1,6 +1,20 @@
 import type { DomphyElement, Listener, PartialElement } from "@domphy/core";
-import { button, divider, heading, icon, label, link, small, strong } from "@domphy/ui";
+import { button, divider, heading, icon, label, link, small } from "@domphy/ui";
 import { themeColor, themeDensity, themeFluidSpacing, themeSize, themeSpacing } from "@domphy/theme";
+
+// Visually-hidden but screen-reader-visible text — same recipe as this
+// package's other `sr-only` usages (see shadcn/auth/login05.ts).
+const SR_ONLY_STYLE = {
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  padding: "0",
+  margin: "-1px",
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  border: "0",
+} as const;
 
 // Generic monochrome letter-badge glyphs — original, brand-neutral placeholders.
 // Swap for official brand SVGs in production.
@@ -59,9 +73,10 @@ function authFieldInput(): PartialElement {
 }
 
 function logoMark(): DomphyElement<"span"> {
+  // Upstream's logo container is a transparent `size-8 rounded-md` box with the
+  // icon in inherited currentColor — no background or color utility on it.
   return {
     span: [{ span: LOGO_ICON, $: [icon({ color: "inherit" })] }],
-    dataTone: "shift-16",
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -70,19 +85,20 @@ function logoMark(): DomphyElement<"span"> {
       height: (listener: Listener) => themeSpacing(themeDensity(listener) * 5),
       borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
       flexShrink: 0,
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "primary"),
-      color: (listener: Listener) => themeColor(listener, "shift-9", "primary"),
     },
   };
 }
 
 function logoRow(companyName: string, href: string): DomphyElement<"a"> {
   return {
-    a: [logoMark(), { strong: companyName, $: [strong({ color: "neutral" })] }],
+    // Upstream stacks the mark above a screen-reader-only company name,
+    // not a horizontal logo-left / text-right row.
+    a: [logoMark(), { span: companyName, style: SR_ONLY_STYLE }],
     href,
     $: [link({ color: "neutral" })],
     style: {
-      display: "inline-flex",
+      display: "flex",
+      flexDirection: "column",
       alignItems: "center",
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
     },
@@ -92,14 +108,16 @@ function logoRow(companyName: string, href: string): DomphyElement<"a"> {
 function legalLine(termsHref: string, privacyHref: string): DomphyElement<"small"> {
   return {
     small: [
-      "By continuing, you agree to our ",
-      { a: "Terms of Service", href: termsHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
+      "By clicking continue, you agree to our ",
+      { a: "Terms of Service", href: termsHref, style: { textDecoration: "underline" }, $: [link({ color: "neutral" })] },
       " and ",
-      { a: "Privacy Policy", href: privacyHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
+      { a: "Privacy Policy", href: privacyHref, style: { textDecoration: "underline" }, $: [link({ color: "neutral" })] },
       ".",
     ],
     $: [small({ color: "neutral" })],
-    style: { display: "block", textAlign: "center" },
+    // Upstream: FieldDescription `px-6 text-center`, nested inside the narrow
+    // `max-w-sm` column so it wraps within ~24rem rather than spanning full width.
+    style: { display: "block", textAlign: "center", paddingInline: themeSpacing(6) },
   };
 }
 
@@ -116,10 +134,11 @@ function providerButton(provider: SocialProvider): DomphyElement<"button"> {
   return {
     button: [
       { span: provider.iconSvg ?? letterBadgeIcon(provider.label.charAt(0)), $: [icon({ color: "inherit" })] },
-      { span: provider.label },
+      // Upstream renders the full CTA text ("Continue with Apple/Google") as the
+      // visible label; that text is the button's accessible name, so no aria-label.
+      { span: `Continue with ${provider.label}` },
     ],
     type: "button",
-    ariaLabel: `Sign up with ${provider.label}`,
     // Only attach onClick when a handler is given — Domphy requires event
     // props, when present, to resolve to an actual function (even `undefined`
     // throws), so an unset handler must omit the key entirely.
@@ -211,33 +230,18 @@ function signup05(props: Signup05Props = {}): DomphyElement<"div"> {
     div: providers.map((provider) => providerButton(provider)),
     style: {
       display: "grid",
-      gridTemplateColumns: `repeat(${providers.length}, 1fr)`,
+      gridTemplateColumns: "1fr",
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
-    },
-  };
-
-  const formElement: DomphyElement<"form"> = {
-    form: [
-      emailField,
-      submitButton,
-      { div: "Or", $: [divider({ color: "neutral" })] },
-      providerRow,
-    ],
-    onSubmit: (event: Event) => {
-      event.preventDefault();
-      onSubmit?.(event as SubmitEvent);
-    },
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 4),
+      // Upstream stacks the provider buttons on mobile and only splits into
+      // columns from the `sm` breakpoint up (`grid gap-4 sm:grid-cols-2`).
+      "@media (min-width: 40em)": { gridTemplateColumns: `repeat(${providers.length}, 1fr)` },
     },
   };
 
   const signInLine: DomphyElement<"small"> = {
     small: [
       `${signInPrompt} `,
-      { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
+      { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "neutral" })] },
     ],
     $: [small({ color: "neutral" })],
   };
@@ -253,26 +257,49 @@ function signup05(props: Signup05Props = {}): DomphyElement<"div"> {
     },
   };
 
+  // Upstream nests the header as the FIRST child of the form's <FieldGroup>
+  // (`flex flex-col gap-7`), so header and the email field share that gap.
+  const formElement: DomphyElement<"form"> = {
+    form: [
+      header,
+      emailField,
+      submitButton,
+      { div: "Or", $: [divider({ color: "neutral" })] },
+      providerRow,
+    ],
+    onSubmit: (event: Event) => {
+      event.preventDefault();
+      onSubmit?.(event as SubmitEvent);
+    },
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 7),
+    },
+  };
+
+  // `w-full max-w-sm` column (SignupForm root: `flex flex-col gap-6`) wrapping
+  // BOTH the form and the legal line, so the legal copy wraps within ~24rem.
   const contentBlock: DomphyElement<"div"> = {
-    div: [header, formElement],
+    div: [formElement, legalLine(termsHref, privacyHref)],
     style: {
       width: "100%",
       maxWidth: themeSpacing(96),
       display: "flex",
       flexDirection: "column",
-      gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 5),
+      gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 6),
     },
   };
 
   return {
-    div: [contentBlock, legalLine(termsHref, privacyHref)],
+    div: [contentBlock],
     style: {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
       minHeight: "100vh",
-      gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 5),
+      gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 6),
       paddingInline: themeFluidSpacing(4, 12),
       paddingBlock: themeFluidSpacing(4, 12),
     },

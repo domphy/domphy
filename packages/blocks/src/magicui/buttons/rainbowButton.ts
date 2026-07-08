@@ -24,12 +24,14 @@
 // `animatedGradientText.ts` already uses at 300%/300%).
 //
 // The upstream spec's rainbow is five literal hues (red/violet/blue/cyan/
-// yellow-green). Domphy's doctor rules forbid raw hex/rgb color literals on
+// yellow-green), painted in the spec's own color-1/color-5/color-3/color-4/
+// color-2 stop order (red → yellow-green → blue → cyan → violet, not a plain
+// spectrum sweep). Domphy's doctor rules forbid raw hex/rgb color literals on
 // style props, and this theme has no dedicated violet family, so the
-// gradient stops are five `ThemeColor` roles instead, chosen to approximate
-// that hue spread: "error" (red) → "secondary" (this theme's rose/magenta —
-// the closest built-in role to violet, same substitution `animatedGradientText`
-// documents) → "primary" (blue) → "info" (cyan) → "success" (yellow-green).
+// gradient stops are five `ThemeColor` roles instead, in that same order:
+// "error" (red) → "success" (yellow-green) → "primary" (blue) → "info" (cyan)
+// → "secondary" (this theme's rose/magenta — the closest built-in role to
+// violet, same substitution `animatedGradientText` documents).
 // This keeps the sweep fully theme-aware (it follows light/dark theme swaps)
 // at the cost of not accepting an arbitrary caller-supplied hex list. The
 // flat face's own fade-stop opacity (upstream's `rgba(...,.6)` mid-stop) is
@@ -56,29 +58,35 @@ export interface RainbowButtonProps {
   /** Standard button size preset. Defaults to `"default"`. */
   size?: RainbowButtonSize;
   /** Gradient stops the sweep pans through, in order. Defaults to a five-hue rainbow
-   * approximation: `["error", "secondary", "primary", "info", "success"]`. */
+   * approximation: `["error", "success", "primary", "info", "secondary"]`, matching
+   * upstream's own color-1/color-5/color-3/color-4/color-2 stop order. */
   colors?: ThemeColor[];
-  /** One full pan cycle, in seconds. Defaults to `3`. */
+  /** One full pan cycle, in seconds. Defaults to `2`, matching upstream's `--speed` default. */
   duration?: number;
   onClick?: (event: MouseEvent) => void;
   disabled?: boolean;
   style?: StyleObject;
 }
 
-const DEFAULT_RAINBOW_COLORS: ThemeColor[] = ["error", "secondary", "primary", "info", "success"];
+const DEFAULT_RAINBOW_COLORS: ThemeColor[] = ["error", "success", "primary", "info", "secondary"];
 
 interface RainbowButtonSizing {
   paddingBlockUnits: number;
   paddingInlineUnits: number;
   fontSizeTone: "decrease-1" | "inherit" | "increase-1";
+  radiusUnits: number;
   square?: boolean;
 }
 
+// Upstream: only `sm` shrinks the label to `text-xs`; `lg` keeps the base
+// `text-sm` (so `fontSizeTone` stays `inherit`, NOT enlarged). Radius: `sm`/`lg`
+// use the extra-rounded `rounded-xl`, while `default`/`icon` inherit the base
+// `rounded-sm` — hence the doubled `radiusUnits` on `sm`/`lg`.
 const RAINBOW_BUTTON_SIZES: Record<RainbowButtonSize, RainbowButtonSizing> = {
-  sm: { paddingBlockUnits: 0.75, paddingInlineUnits: 2.5, fontSizeTone: "decrease-1" },
-  default: { paddingBlockUnits: 1, paddingInlineUnits: 3, fontSizeTone: "inherit" },
-  lg: { paddingBlockUnits: 1.5, paddingInlineUnits: 5, fontSizeTone: "increase-1" },
-  icon: { paddingBlockUnits: 1, paddingInlineUnits: 1, fontSizeTone: "inherit", square: true },
+  sm: { paddingBlockUnits: 0.75, paddingInlineUnits: 2.5, fontSizeTone: "decrease-1", radiusUnits: 2 },
+  default: { paddingBlockUnits: 1, paddingInlineUnits: 3, fontSizeTone: "inherit", radiusUnits: 1 },
+  lg: { paddingBlockUnits: 1.5, paddingInlineUnits: 5, fontSizeTone: "inherit", radiusUnits: 2 },
+  icon: { paddingBlockUnits: 1, paddingInlineUnits: 1, fontSizeTone: "inherit", square: true, radiusUnits: 1 },
 };
 
 let rainbowButtonInstanceCounter = 0;
@@ -91,18 +99,19 @@ function asContent(value: DomphyElement | DomphyElement[] | string): (string | D
 }
 
 /**
- * A pill-shaped hero/CTA button filled (or, in `"outline"` mode, ringed) with a
+ * A small-radius hero/CTA button filled (or, in `"outline"` mode, ringed) with a
  * continuously panning multi-hue gradient, backed by a soft blurred duplicate of the
  * same gradient acting as a colorful ambient glow. The pan animation is fully ambient —
- * it loops from mount with no interaction required, while hover/press layer ordinary
- * button feedback on top. Call with no arguments for a working demo button.
+ * it loops from mount with no interaction required. Matching upstream, the button has NO
+ * hover or press visual change (only an inert `transition-all` and a focus-visible ring).
+ * Call with no arguments for a working demo button.
  */
 function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
   const label = props.children ?? "Get unlimited access";
   const variant = props.variant ?? "default";
   const size = props.size ?? "default";
   const colors = props.colors && props.colors.length > 0 ? props.colors : DEFAULT_RAINBOW_COLORS;
-  const duration = props.duration ?? 3;
+  const duration = props.duration ?? 2;
   const sizing = RAINBOW_BUTTON_SIZES[size];
 
   const instanceId = ++rainbowButtonInstanceCounter;
@@ -131,12 +140,18 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
   // (shift-0) — neither is tied to the rainbow itself.
   const faceTone = isOutline ? "shift-0" : "shift-17";
   const textTone = isOutline ? "shift-17" : "shift-0";
-  // Upstream's mid-fade stop is a partial-opacity version of the same flat
-  // color (`rgba(...,.6)`) — `themeColor()` only ever returns a solid
-  // `var(--x-n)` reference, so alpha is layered on via `color-mix()` against
-  // `transparent`, the same idiom `demoContentScrim.ts` already uses.
+  // Upstream's layer-2 mid-fade (the `80%` stop) is a `.6`-opacity color, but
+  // WHICH color differs by variant: `default` fades over the SAME flat face
+  // color (`#121213`→`rgba(18,18,19,.6)`; dark `#fff`→`rgba(255,255,255,.6)`),
+  // while `outline` fades over the INVERSE face — the text tone (light: white
+  // face over `rgba(18,18,19,.6)`; dark: `#0a0a0a` face over
+  // `rgba(255,255,255,.6)`). So the mid-fade tone is `textTone` for outline,
+  // `faceTone` otherwise. `themeColor()` only returns a solid `var(--x-n)`, so
+  // the `.6` alpha is layered on via `color-mix()` against `transparent`, the
+  // same idiom `demoContentScrim.ts` already uses.
+  const midFadeTone = isOutline ? textTone : faceTone;
   const fadedFace = (listener: Listener) =>
-    `color-mix(in srgb, ${themeColor(listener, faceTone, "neutral")} 60%, transparent)`;
+    `color-mix(in srgb, ${themeColor(listener, midFadeTone, "neutral")} 60%, transparent)`;
 
   const fillStyle = {
     // Real upstream technique: THREE stacked backgrounds, not a single
@@ -157,18 +172,18 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
     backgroundClip: "padding-box, border-box, border-box",
     backgroundSize: "auto, auto, 200% 100%",
     backgroundRepeat: "no-repeat, no-repeat, repeat",
-    // `outline` keeps a real border stroke on 3 sides (upstream's
-    // `border-input`) but suppresses the BOTTOM one specifically, so nothing
-    // covers the fading rainbow strip there; `default` uses a fully
-    // transparent border on all sides (upstream's own `border` is only ever
-    // a spacer for the background layers to paint into, never a visible
-    // stroke).
+    // `outline` keeps a real 1px border stroke on 3 sides (upstream's
+    // `border border-input` = 1px) but suppresses the BOTTOM one specifically,
+    // so nothing covers the fading rainbow strip there; `default` uses a fully
+    // transparent 2px border on all sides (upstream's own `[border:calc(0.125rem)]`
+    // spacer — only ever a spacer for the background layers to paint into,
+    // never a visible stroke).
     ...(isOutline
       ? {
-          borderBlockStart: (listener: Listener) => `2px solid ${themeColor(listener, "shift-4", "neutral")}`,
-          borderInlineStart: (listener: Listener) => `2px solid ${themeColor(listener, "shift-4", "neutral")}`,
-          borderInlineEnd: (listener: Listener) => `2px solid ${themeColor(listener, "shift-4", "neutral")}`,
-          borderBlockEnd: "2px solid transparent",
+          borderBlockStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          borderInlineEnd: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          borderBlockEnd: "1px solid transparent",
         }
       : { border: "2px solid transparent" }),
     color: (listener: Listener) => themeColor(listener, textTone, "neutral"),
@@ -221,19 +236,31 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
+      // Upstream `whitespace-nowrap shrink-0`: a long label must never wrap, and
+      // the button must not be squeezed by a flex parent.
+      whiteSpace: "nowrap",
+      flexShrink: 0,
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+      // Upstream `font-medium` (weight 500), not the default 400.
+      fontWeight: 500,
       fontSize: (listener: Listener) => themeSize(listener, sizing.fontSizeTone),
       paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * sizing.paddingBlockUnits),
       paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * sizing.paddingInlineUnits),
       ...(sizing.square ? { aspectRatio: "1" } : {}),
-      // A radius far beyond any realistic box half-height forces a full pill/circle —
-      // the browser clamps it to the shape's own geometry (not tracked by the
-      // raw-spacing-value doctor rule, which only checks margin/padding/gap props).
-      borderRadius: "999px",
-      opacity: props.disabled ? 0.6 : 1,
-      transition: "transform 150ms ease, filter 150ms ease",
-      "&:hover:not([disabled])": { filter: "brightness(1.06)" },
-      "&:active:not([disabled])": { transform: "scale(0.97)" },
+      // Per-size radius: base `rounded-sm` for default/icon, extra-rounded
+      // `rounded-xl` for sm/lg — driven by `sizing.radiusUnits`.
+      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * sizing.radiusUnits),
+      // Upstream `disabled:opacity-50`.
+      opacity: props.disabled ? 0.5 : 1,
+      // Upstream is inert `transition-all group` with NO hover/press visual
+      // change, plus `outline-none focus-visible:ring-[3px]`. Mirror exactly: an
+      // inert transition (nothing animates on state), no native outline, and a
+      // 3px keyboard-focus ring — no brightness/scale feedback.
+      transition: "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+      outline: "none",
+      "&:focus-visible": {
+        boxShadow: (listener: Listener) => `0 0 0 3px ${themeColor(listener, "shift-6", "neutral")}`,
+      },
       ...fillStyle,
       ...(props.style ?? {}),
     } as StyleObject,

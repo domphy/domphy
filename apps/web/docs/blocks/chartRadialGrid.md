@@ -23,7 +23,8 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `trendText` | `string` | — |
 | `trendDirection` | `ChartTrendDirection` | — |
 | `captionText` | `string` | — |
-| `gridCircleCount` | `number` | — |
+| `spokeCount` | `number` | Radial spoke lines (recharts PolarGrid radialLines), evenly spaced. |
+| `gridCircleCount` | `number` | Concentric gridline count. Defaults to one ring per category band. |
 | `outerRadius` | `number` | — |
 
 ::: details Implementation notes

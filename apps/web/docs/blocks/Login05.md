@@ -17,6 +17,7 @@ A **Auth** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean-r
 
 | Prop | Type | Description |
 |---|---|---|
+| `brandName` | `string` | — |
 | `title` | `string` | — |
 | `signUpPrompt` | `string` | — |
 | `signUpLabel` | `string` | — |

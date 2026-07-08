@@ -18,11 +18,11 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | Prop | Type | Description |
 |---|---|---|
 | `children` | `string` | Text content to animate. Defaults to a short demo phrase. |
-| `tag` | `string` | HTML tag the container renders as. Defaults to `"span"`. |
+| `tag` | `string` | HTML tag the container renders as. Defaults to `"div"`. |
 | `duration` | `number` | Total milliseconds for the full scramble-to-resolve animation. Defaults to `800`. |
-| `delay` | `number` | Milliseconds to wait after the trigger fires before the scramble starts. Defaults to `0`. |
+| `delay` | `number` | Milliseconds to wait after the auto/view trigger fires before the scramble starts. Defaults to `0`. |
 | `hoverTrigger` | `boolean` | Replays the scramble on every mouse hover. Defaults to `true`. |
-| `viewTrigger` | `boolean` | Also (or instead) plays the scramble once, automatically, the first time the element scrolls into the viewport. Defaults to `false`. |
+| `viewTrigger` | `boolean` | Plays the scramble once on scroll-into-view instead of automatically on mount. Defaults to `false`. |
 | `characters` | `string` | Character pool randomly sampled while a character position is unresolved. Defaults to A-Z. |
 | `style` | `StyleObject` | Passthrough style merged onto the container. |
 

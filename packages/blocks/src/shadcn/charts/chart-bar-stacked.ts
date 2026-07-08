@@ -2,13 +2,14 @@
 //
 // A two-series bar chart stacked into one bar per month (bottom segment =
 // first series, top segment = second), with a swatch + label legend row
-// below the plot and a tooltip breaking down both segments plus their total.
+// below the plot and a tooltip breaking down both segments (no category
+// header row, matching upstream's ChartTooltipContent hideLabel usage).
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import type { ChartOption } from "@domphy/chart";
+import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_SERIES_PALETTE,
@@ -18,12 +19,36 @@ import {
   chartBarFrame,
   chartBarHiddenValueYAxis,
   chartBarLegendRow,
-  chartBarStackedTooltipFormatter,
+  chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
   type ChartBarTwoSeriesPoint,
   type ChartTrendDirection,
 } from "./chart-bar-shared.js";
+
+// Upstream's ChartTooltipContent is rendered with `hideLabel`, so the hover
+// panel is JUST one swatch+label+value row per segment — no month header
+// row and no computed Total row (ChartTooltipContent has no total feature).
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function chartBarStackedTooltip(parametersInput: TooltipParams | TooltipParams[]): string {
+  const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
+  if (parameters.length === 0) return "";
+  return parameters
+    .map((p) => {
+      const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
+      const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
+      return chartBarTooltipRow(dot, label, escapeHtml(String(p.value ?? "")));
+    })
+    .join("");
+}
 
 export interface ChartBarStackedSeries {
   key: "desktop" | "mobile";
@@ -76,7 +101,7 @@ function chartBarStacked(props: ChartBarStackedProps = {}): DomphyElement<"div">
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "shadow" },
-      formatter: chartBarStackedTooltipFormatter(categories),
+      formatter: chartBarStackedTooltip,
     },
     xAxis: chartBarCategoryXAxis(categories),
     yAxis: chartBarHiddenValueYAxis({ splitLine: true, min: 0, max: domainMax }),

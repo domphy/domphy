@@ -26,7 +26,9 @@ import {
   chartAxisTooltipFormatter,
   chartCardShell,
   chartLegendRow,
+  chartTrendFooter,
   type ChartAreaTwoSeriesPoint,
+  type ChartTrendDirection,
 } from "./chart-area-shared.js";
 
 export interface ChartAreaLegendSeries {
@@ -42,12 +44,15 @@ export interface ChartAreaLegendProps {
   fillOpacity?: number;
   title?: string;
   description?: string;
+  trendText?: string;
+  trendDirection?: ChartTrendDirection;
+  captionText?: string;
   height?: number;
 }
 
 const DEFAULT_SERIES: ChartAreaLegendSeries[] = [
-  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0] },
   { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[1] },
+  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0] },
 ];
 
 /**
@@ -63,6 +68,9 @@ function chartAreaLegend(props: ChartAreaLegendProps = {}): DomphyElement<"div">
     fillOpacity = 0.4,
     title = "Area Chart - Legend",
     description = "Showing total visitors for the last 6 months",
+    trendText = "Trending up by 5.2% this month",
+    trendDirection = "up",
+    captionText = `${data[0]?.month ?? ""} - ${data[data.length - 1]?.month ?? ""} 2026`,
     height = 64,
   } = props;
 
@@ -71,7 +79,9 @@ function chartAreaLegend(props: ChartAreaLegendProps = {}): DomphyElement<"div">
   const option: ChartOption = {
     tooltip: {
       trigger: "axis",
-      formatter: chartAxisTooltipFormatter(categories),
+      axisPointer: { type: "none" },
+      // Upstream passes `<ChartTooltipContent indicator="line" />`.
+      formatter: chartAxisTooltipFormatter(categories, undefined, false, "line"),
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     yAxis: CHART_AREA_Y_AXIS_HIDDEN,
@@ -98,6 +108,7 @@ function chartAreaLegend(props: ChartAreaLegendProps = {}): DomphyElement<"div">
         chartLegendRow(series.map((s) => ({ label: s.label, color: s.color }))),
       ],
     },
+    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
   });
 }
 

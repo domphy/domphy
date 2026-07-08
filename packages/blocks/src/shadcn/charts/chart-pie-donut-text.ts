@@ -10,7 +10,7 @@ import type { DomphyElement } from "@domphy/core";
 import { motion } from "@domphy/ui";
 import {
   type PieDatum,
-  DEFAULT_DONUT_INNER_RADIUS,
+  DONUT_SEPARATOR_STROKE_WIDTH,
   PIE_OUTER_RADIUS,
   createPieTooltipState,
   defaultValueFormatter,
@@ -28,6 +28,11 @@ import {
 // shared five-browser sample so the prominent center total reads 1,125
 // (the value the upstream "donut with text" showcase displays). Callers pass
 // their own `data` in real usage.
+// Upstream (<Pie innerRadius={60}> against recharts' default outerRadius ~100px)
+// renders a thin ring with a large center hole — an inner/outer ratio of ~0.60,
+// not the shared 0.42 donut default. Pin this block's own ratio in viewBox units.
+const DONUT_TEXT_INNER_RADIUS = PIE_OUTER_RADIUS * 0.6;
+
 const DEFAULT_DONUT_TEXT_DATA: PieDatum[] = [
   { key: "chrome", name: "Chrome", value: 275 },
   { key: "safari", name: "Safari", value: 200 },
@@ -64,7 +69,7 @@ function chartPieDonutText(props: ChartPieDonutTextProps = {}): DomphyElement<"d
     trendDirection = "up",
     caption = "Showing total visitors for the last 6 months",
     valueFormatter = defaultValueFormatter,
-    innerRadius = DEFAULT_DONUT_INNER_RADIUS,
+    innerRadius = DONUT_TEXT_INNER_RADIUS,
     totalGetter = (records: PieDatum[]) => records.reduce((sum, record) => sum + record.value, 0),
     centerCaption = "Visitors",
   } = props;
@@ -77,6 +82,8 @@ function chartPieDonutText(props: ChartPieDonutTextProps = {}): DomphyElement<"d
     pieWedgePath(slice, {
       innerRadius,
       outerRadius: PIE_OUTER_RADIUS,
+      strokeWidth: DONUT_SEPARATOR_STROKE_WIDTH,
+      padAngle: 0,
       tooltip: { containerRef, tooltipState, valueFormatter },
     }),
   );

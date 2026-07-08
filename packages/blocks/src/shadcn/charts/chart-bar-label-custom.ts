@@ -15,9 +15,11 @@ import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_TWO_SERIES_DATA,
   chartBarCardShell,
+  chartBarColorHex,
   chartBarFrame,
   chartBarHorizontalHoverOverlay,
   chartBarInsideOutsideLabelOverlay,
+  chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
   type ChartBarGrid,
@@ -40,6 +42,17 @@ export interface ChartBarLabelCustomProps {
 
 const DEFAULT_GRID: ChartBarGrid = { left: 8, right: 48, top: 8, bottom: 8 };
 
+// Upstream prints the FULL month name inside each bar — its LabelList
+// (dataKey="month") has no formatter; only the hidden YAxis abbreviates via
+// slice(0,3). The shared demo dataset stores abbreviated labels, so expand
+// them for display here; any custom label that isn't a month abbreviation
+// falls through unchanged.
+const MONTH_NAMES: Record<string, string> = {
+  Jan: "January", Feb: "February", Mar: "March", Apr: "April",
+  May: "May", Jun: "June", Jul: "July", Aug: "August",
+  Sep: "September", Oct: "October", Nov: "November", Dec: "December",
+};
+
 /**
  * shadcn/ui "chart-bar" custom-label recipe — inside category label +
  * outside value label, no visible axes. Call with no arguments for a
@@ -49,7 +62,7 @@ function chartBarLabelCustom(props: ChartBarLabelCustomProps = {}): DomphyElemen
   const {
     data = CHART_BAR_TWO_SERIES_DATA,
     seriesLabel = "Desktop",
-    seriesColor = "primary",
+    seriesColor = "secondary",
     title = "Bar Chart - Custom Label",
     subtitle = "January - June 2026",
     trendText = "Trending up by 5.2% this month",
@@ -62,9 +75,10 @@ function chartBarLabelCustom(props: ChartBarLabelCustomProps = {}): DomphyElemen
   // Category (y) axes render bottom-to-top — reverse so the on-screen
   // reading order stays chronological.
   const orderedData = [...data].reverse();
-  const categories = orderedData.map((point) => point.label);
+  const categories = orderedData.map((point) => MONTH_NAMES[point.label] ?? point.label);
   const values = orderedData.map((point) => point.desktop);
   const valueDomain = chartBarValueDomain(values);
+  const seriesColorHex = chartBarColorHex(seriesColor);
 
   const option: ChartOption = {
     tooltip: { show: false },
@@ -106,7 +120,10 @@ function chartBarLabelCustom(props: ChartBarLabelCustomProps = {}): DomphyElemen
               values,
               valueDomain,
               grid,
-              insideColor: seriesColor,
+              // Upstream fills the inside label with var(--background) (a
+              // neutral, near-background color) — not the series hue. Neutral
+              // shift-1 is the closest role match the shared overlay exposes.
+              insideColor: "neutral",
               insideLabel: (index) => categories[index] ?? "",
               outsideLabel: (index) => String(values[index] ?? ""),
             }),
@@ -114,7 +131,14 @@ function chartBarLabelCustom(props: ChartBarLabelCustomProps = {}): DomphyElemen
               categories,
               grid,
               showCategoryTitle: true,
-              valueLabel: (index) => String(values[index] ?? ""),
+              // Match upstream ChartTooltipContent indicator="line": a thin
+              // line swatch in the series color + the series name + the value.
+              valueLabel: (index) =>
+                chartBarTooltipRow(
+                  `<span style="display:inline-block;width:3px;height:11px;border-radius:1px;background:${seriesColorHex};margin-right:6px;vertical-align:middle;"></span>`,
+                  seriesLabel,
+                  String(values[index] ?? ""),
+                ),
             }),
           ],
         }),

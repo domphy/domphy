@@ -10,10 +10,11 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import { chartCardShell, chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
+import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
 import {
   RADIAL_CHANNEL_DATA,
   createRadialTooltip,
+  radialCardShell,
   renderRadialRingsChart,
   type RadialSeriesDatum,
 } from "./chart-radial-shared.js";
@@ -51,7 +52,7 @@ function chartRadialLabel(props: ChartRadialLabelProps = {}): DomphyElement<"div
 
   const tooltip = createRadialTooltip();
 
-  return chartCardShell({
+  return radialCardShell({
     title,
     description,
     content: {

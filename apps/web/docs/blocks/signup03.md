@@ -25,7 +25,6 @@ A **Auth** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean-r
 | `fullNamePlaceholder` | `string` | — |
 | `emailLabel` | `string` | — |
 | `emailPlaceholder` | `string` | — |
-| `emailCaption` | `string` | — |
 | `passwordLabel` | `string` | — |
 | `confirmPasswordLabel` | `string` | — |
 | `passwordCaption` | `string` | — |

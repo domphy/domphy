@@ -24,8 +24,10 @@ describe("chartRadarLabelCustom", () => {
     expect(host.querySelectorAll("svg polygon[fill-opacity]").length).toBe(2);
     // Two <text> lines per category (value/value, then month name) x six categories.
     expect(host.querySelectorAll("svg text").length).toBe(12);
-    // The bold "value/value" line is built from two <tspan> sub-spans per category.
-    expect(host.querySelectorAll("svg tspan").length).toBe(12);
+    // The value line is built from three <tspan> sub-spans per category
+    // (desktop value, a muted "/" separator, mobile value — matching
+    // upstream's own <tspan>desktop</tspan><tspan>/</tspan><tspan>mobile</tspan>).
+    expect(host.querySelectorAll("svg tspan").length).toBe(18);
     expect(host.textContent).toContain("January");
   });
 });

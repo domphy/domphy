@@ -25,7 +25,6 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `trendDirection` | `ChartTrendDirection` | — |
 | `captionText` | `string` | — |
 | `radiusAxisAngle` | `number` | — |
-| `showRadiusAxisLine` | `boolean` | — |
 
 ::: details Implementation notes
 Radius-axis rendered as a single line segment from the chart center out to the plot radius at a fixed 60deg angle (not a full symmetric diameter), matching the spec's 'subtle line through roughly one spoke direction... not a fully symmetric cross'. Tooltip now shows the category heading above both series' line-indicator rows. Direct-source-diff fix (2026-07-05): Perimeter month-name labels were always drawn — upstream's radius variant omits the angle axis entirely (no perimeter labels). Added a showAngleLabels option (default true, only this recipe sets it false).

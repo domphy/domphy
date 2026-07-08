@@ -1,7 +1,7 @@
 // Magic UI "Text 3D Flip" — clean-room reimplementation matched, via a
 // direct source diff, to upstream's real interaction model.
 //
-// A line of heading-sized text where every character is a tiny 3D "cube
+// A line of text where every character is a tiny 3D "cube
 // corner": a front face carrying the resting glyph and a second, perpendicular
 // face carrying the SAME glyph (offset out along the character's own depth by
 // half a line so it doesn't clip through). On hover the whole line plays a
@@ -18,8 +18,11 @@
 // zero-duration reset produces. No perspective is applied anywhere (upstream
 // is orthographic), so the `translateZ`/`translateX(50%)` depth offsets only
 // position the faces — they never foreshorten — and the resting cube-corner
-// transform is visually identity. `fill: "none"` makes each animation revert
-// to that resting transform the instant it finishes, which IS the snap-back.
+// transform is visually identity. Each roll uses `fill: "forwards"` so it
+// holds at the rolled pose once it finishes; only after every character's
+// roll has settled are all animations canceled together, snapping the whole
+// line back to rest in the same instant — matching upstream's own two-phase
+// staggered-group-animate then zero-duration group reset.
 // Default flip edge is right/rotateY (upstream's default). A CSS cubic-bezier
 // "back out" curve approximates the spring settle upstream tunes via
 // mass/stiffness/damping (Domphy has no spring primitive; same documented gap
@@ -31,7 +34,6 @@ import type {
   Listener,
   StyleObject,
 } from "@domphy/core";
-import { heading } from "@domphy/ui";
 import { type ThemeColor, themeColor } from "@domphy/theme";
 
 export type Text3dFlipEdge = "top" | "bottom" | "left" | "right";
@@ -129,6 +131,17 @@ const SECOND_FACE_TRANSFORMS: Record<Text3dFlipEdge, string> = {
   left: "rotateY(90deg) translateX(50%) rotateY(-90deg) translateX(50%) rotateY(-90deg) translateX(50%)",
 };
 
+/** Grapheme-safe split so multi-codepoint graphemes (emoji ZWJ sequences,
+ * flags, combining marks) stay one animated cell. Mirrors upstream's
+ * Intl.Segmenter-with-Array.from-fallback. */
+function splitIntoCharacters(text: string): string[] {
+  if (typeof Intl !== "undefined" && typeof (Intl as unknown as { Segmenter?: unknown }).Segmenter === "function") {
+    const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    return Array.from(segmenter.segment(text), (entry) => entry.segment);
+  }
+  return Array.from(text);
+}
+
 /** Distance (in stagger units) of character `index` from the wave origin. */
 function staggerDistance(index: number, totalCharacters: number, from: Text3dFlipStaggerFrom): number {
   if (from === "first") return index;
@@ -202,12 +215,13 @@ function characterCell(
 }
 
 /**
- * A line of heading-sized text whose characters roll 90° in 3D around a shared
+ * A line of text (a plain, unstyled `<p>`; size comes from the caller's
+ * `style`) whose characters roll 90° in 3D around a shared
  * edge on hover — a one-shot ripple that staggers across the word and then
  * snaps back to rest (it does not hold while hovered). Call with no arguments
  * for a working demo; hover the phrase to see the ripple pass through.
  */
-function text3dFlip(props: Text3dFlipProps = {}): DomphyElement<"h2"> {
+function text3dFlip(props: Text3dFlipProps = {}): DomphyElement<"p"> {
   const text = props.children ?? DEFAULT_TEXT;
   const flippedText = props.flippedChildren ?? text;
   const edge = props.edge ?? "right";
@@ -234,9 +248,9 @@ function text3dFlip(props: Text3dFlipProps = {}): DomphyElement<"h2"> {
   let keyIndex = 0;
   const children: DomphyElement[] = [];
   words.forEach((word, wordIndex) => {
-    const frontCharacters = Array.from(word);
-    const flippedCharacters = Array.from(flippedWords[wordIndex] ?? word);
-    const cells = frontCharacters.map((character, charIndex) => {
+    const frontCharacters = splitIntoCharacters(word);
+    const flippedCharacters = splitIntoCharacters(flippedWords[wordIndex] ?? word);
+    const cells: DomphyElement[] = frontCharacters.map((character, charIndex) => {
       const cell = characterCell(
         character,
         flippedCharacters[charIndex] ?? character,
@@ -246,18 +260,22 @@ function text3dFlip(props: Text3dFlipProps = {}): DomphyElement<"h2"> {
       keyIndex += 1;
       return cell;
     });
-    children.push({
-      span: cells,
-      _key: `word-${wordIndex}`,
-      style: { display: "inline-flex" } as StyleObject,
-    } as DomphyElement);
     if (wordIndex !== words.length - 1) {
-      children.push({
+      // The trailing space is its own cell nested INSIDE the word's own
+      // inline-flex span (matching upstream), not a sibling flex item in the
+      // outer container — that keeps the wrap point after the space, not at
+      // an orphaned space-only flex item.
+      cells.push({
         span: " ",
         _key: `space-${wordIndex}`,
         style: { whiteSpace: "pre" } as StyleObject,
       } as DomphyElement);
     }
+    children.push({
+      span: cells,
+      _key: `word-${wordIndex}`,
+      style: { display: "inline-flex" } as StyleObject,
+    } as DomphyElement);
   });
 
   // Accessible text lives in an sr-only span; the animated cells are decorative
@@ -279,8 +297,7 @@ function text3dFlip(props: Text3dFlipProps = {}): DomphyElement<"h2"> {
   };
 
   return {
-    h2: [accessibleLabel, flipVisual],
-    $: [heading({ color })],
+    p: [accessibleLabel, flipVisual],
     style: {
       position: "relative",
       ...(props.style ?? {}),
@@ -305,32 +322,32 @@ function text3dFlip(props: Text3dFlipProps = {}): DomphyElement<"h2"> {
         isAnimating = true;
         running = boxes.map((box, index) => {
           const delayMs = staggerDistance(index, total, staggerFrom) * staggerDelay;
-          // Roll from the resting cube-corner transform to the 90° face swap,
-          // then — with fill "none" — instantly revert to rest when done. That
-          // instant revert is the snap-back; same glyph both faces makes it
-          // imperceptible, so only the staggered roll-through reads visually.
+          // Roll from the resting cube-corner transform to the 90° face swap
+          // and HOLD there ("forwards"): upstream awaits the whole staggered
+          // group before firing its own zero-duration reset, so an early
+          // character stays flipped while the wave is still crossing later ones.
           return box.animate(
             [{ transform: restTransform }, { transform: rollTransform }],
-            { duration, delay: delayMs, easing, fill: "none" },
+            { duration, delay: delayMs, easing, fill: "forwards" },
           );
         });
         Promise.allSettled(running.map((animation) => animation.finished)).then(() => {
+          // Only once every character's roll has settled: cancel every hold
+          // at once, so each box reverts to its resting `transform` in the
+          // same instant — the synchronized snap-back upstream's own
+          // zero-duration group reset produces.
+          for (const animation of running) animation.cancel();
           isAnimating = false;
           running = [];
         });
       };
 
-      const prefersReducedMotion =
-        typeof window.matchMedia === "function" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-      const handleMouseEnter = () => {
-        if (!prefersReducedMotion) play();
-      };
-      element.addEventListener("mouseenter", handleMouseEnter);
+      // Upstream plays the ripple unconditionally on mouseenter (no
+      // prefers-reduced-motion gate), so match that exactly.
+      element.addEventListener("mouseenter", play);
 
       node.addHook("Remove", () => {
-        element.removeEventListener("mouseenter", handleMouseEnter);
+        element.removeEventListener("mouseenter", play);
         for (const animation of running) animation.cancel();
       });
     },

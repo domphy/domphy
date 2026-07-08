@@ -30,7 +30,7 @@ describe("chartBarNegative", () => {
     const { host } = render(chartBarNegative() as DomphyElement);
     expect(host.querySelector("h3")?.textContent).toBe("Bar Chart - Negative");
     expect(host.querySelector("canvas")).toBeTruthy();
-    expect(host.querySelector("footer")?.textContent).toContain("Trending down by 12.4%");
+    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
   });
 
   it("accepts custom positive/negative colors and mixed-sign data without throwing", () => {

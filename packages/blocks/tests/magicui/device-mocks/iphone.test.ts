@@ -24,8 +24,9 @@ describe("iphone", () => {
     const frame = host.querySelector('[role="img"]')!;
     expect(frame).toBeTruthy();
     expect(frame.getAttribute("aria-label")).toContain("iPhone mockup");
-    // Dynamic Island + 4 side buttons (mute, volume up/down, power) = 5 decorative glyphs.
-    expect(host.querySelectorAll("svg rect").length).toBe(5);
+    // Dynamic Island + its camera lens + earpiece slit + 4 side buttons (mute, volume
+    // up/down, power) = 7 decorative glyphs.
+    expect(host.querySelectorAll("svg rect").length).toBe(7);
     expect(host.querySelector("img")).toBeNull();
     expect(host.querySelector("video")).toBeNull();
   });

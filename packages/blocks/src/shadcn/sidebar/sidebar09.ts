@@ -1,11 +1,13 @@
-// shadcn/ui "sidebar-09" — clean-room reimplementation from the public behavior
-// description only (no upstream source viewed). An email-client-style layout:
-// a narrow icon-only folder rail nested beside a wider message-list panel,
-// both to the left of the main content inset. See ./sidebar09-12-shared.ts.
+// shadcn/ui "sidebar-09" — an email-client-style layout mirroring upstream
+// sidebar-09's documented behavior: a narrow icon-only folder rail nested
+// beside a wider message-list panel, both to the left of the main content
+// inset. Upstream keeps ONE shared mail pool that every folder button reshuffles
+// (random 5–10 slice) rather than per-folder mailboxes; its search box and
+// "Unreads" switch are decorative. See ./sidebar09-12-shared.ts.
 
 import type { DomphyElement, Listener, State } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { avatar, buttonGhost, inputSearch, inputSwitch, menu, popover, small, strong } from "@domphy/ui";
+import { avatar, buttonGhost, inputSearch, inputSwitch, popover, small, strong } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   ICON_DRAFTS,
@@ -13,7 +15,9 @@ import {
   ICON_JUNK,
   ICON_MARK,
   ICON_SEND,
+  ICON_SPARKLE,
   ICON_TRASH,
+  interactiveRowStyle,
   sidebarIcon,
   sidebarMainContent,
   sidebarStickyHeader,
@@ -23,12 +27,10 @@ import {
 type Sidebar09Folder = { id: string; label: string; icon: string };
 type Sidebar09Message = {
   id: string;
-  folderId: string;
   sender: string;
   timestamp: string;
   subject: string;
   preview: string;
-  unread?: boolean;
 };
 type Sidebar09User = { name: string; email: string };
 
@@ -37,14 +39,21 @@ type Sidebar09Props = {
   messages?: Sidebar09Message[];
   activeFolderId?: string;
   activeMessageId?: string | null;
-  searchQuery?: string;
   user?: Sidebar09User;
   breadcrumbItems?: SidebarBreadcrumbItem[];
   onFolderSelect?: (folderId: string) => void;
   onMessageSelect?: (messageId: string) => void;
-  onSearchChange?: (query: string) => void;
   children?: DomphyElement | DomphyElement[];
 };
+
+// Account-menu icons the NavUser dropdown needs (lucide equivalents: Sparkles is
+// shared as ICON_SPARKLE; the rest are hand-authored generic line glyphs).
+const SVG_OPEN =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em">';
+const ICON_BADGE_CHECK = `${SVG_OPEN}<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg>`;
+const ICON_CREDIT_CARD = `${SVG_OPEN}<rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>`;
+const ICON_BELL = `${SVG_OPEN}<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`;
+const ICON_LOGOUT = `${SVG_OPEN}<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>`;
 
 const DEFAULT_FOLDERS: Sidebar09Folder[] = [
   { id: "inbox", label: "Inbox", icon: ICON_INBOX },
@@ -54,89 +63,134 @@ const DEFAULT_FOLDERS: Sidebar09Folder[] = [
   { id: "trash", label: "Trash", icon: ICON_TRASH },
 ];
 
+// Upstream keeps a single flat pool of conversational mails (no per-folder
+// mailbox, no read/unread state); every folder button reshuffles this same pool.
 const DEFAULT_MESSAGES: Sidebar09Message[] = [
   {
     id: "m1",
-    folderId: "inbox",
     sender: "William Smith",
-    timestamp: "9:34 AM",
+    timestamp: "09:34 AM",
     subject: "Meeting Tomorrow",
     preview:
-      "Hi, let's have a meeting tomorrow to discuss the project. I've been reviewing the deliverables and have a few thoughts to share.",
-    unread: true,
+      "Hi team, just a reminder about our meeting tomorrow at 10 AM.\nPlease come prepared with your project updates.",
   },
   {
     id: "m2",
-    folderId: "inbox",
     sender: "Alice Smith",
     timestamp: "Yesterday",
     subject: "Re: Project Update",
-    preview:
-      "Thanks for the update — the progress looks great so far. Let's sync up next week to review the remaining milestones.",
-    unread: true,
+    preview: "Thanks for the update. The progress looks great so far.\nLet's schedule a call to discuss the next steps.",
   },
   {
     id: "m3",
-    folderId: "inbox",
     sender: "Bob Johnson",
     timestamp: "2 days ago",
     subject: "Weekend Plans",
-    preview: "Any plans for the weekend? I was thinking of going hiking if the weather holds up on Saturday.",
-    unread: false,
+    preview:
+      "Hey everyone! I'm thinking of organizing a team outing this weekend.\nWould you be interested in a hiking trip or a beach day?",
   },
   {
     id: "m4",
-    folderId: "inbox",
     sender: "Emily Davis",
     timestamp: "2 days ago",
     subject: "Re: Question about Budget",
-    preview: "I've attached the budget breakdown for this quarter — let me know if anything needs adjusting.",
-    unread: false,
+    preview:
+      "I've reviewed the budget numbers you sent over.\nCan we set up a quick call to discuss some potential adjustments?",
   },
   {
     id: "m5",
-    folderId: "drafts",
-    sender: "You",
-    timestamp: "3 days ago",
-    subject: "Draft: Quarterly Report",
-    preview: "This report summarizes our progress over the last quarter and highlights a few key wins.",
-    unread: false,
+    sender: "Michael Wilson",
+    timestamp: "1 week ago",
+    subject: "Important Announcement",
+    preview:
+      "Please join us for an all-hands meeting this Friday at 3 PM.\nWe have some exciting news to share about the company's future.",
   },
   {
     id: "m6",
-    folderId: "sent",
-    sender: "You",
-    timestamp: "4 days ago",
-    subject: "Invoice #1042",
-    preview: "Please find attached the invoice for last month's services rendered.",
-    unread: false,
+    sender: "Sarah Brown",
+    timestamp: "1 week ago",
+    subject: "Re: Feedback on Proposal",
+    preview:
+      "Thank you for sending over the proposal. I've reviewed it and have some thoughts.\nCould we schedule a meeting to discuss my feedback in detail?",
   },
   {
     id: "m7",
-    folderId: "junk",
-    sender: "Prize Notice",
-    timestamp: "5 days ago",
-    subject: "You've Won!",
-    preview: "Claim your prize now before it expires — a limited-time offer just for you.",
-    unread: true,
+    sender: "David Lee",
+    timestamp: "1 week ago",
+    subject: "New Project Idea",
+    preview:
+      "I've been brainstorming and came up with an interesting project concept.\nDo you have time this week to discuss its potential impact and feasibility?",
   },
   {
     id: "m8",
-    folderId: "trash",
-    sender: "Old Newsletter",
+    sender: "Olivia Wilson",
     timestamp: "1 week ago",
-    subject: "Weekly Digest",
-    preview: "Here is everything you missed this week from our newsletter roundup.",
-    unread: false,
+    subject: "Vacation Plans",
+    preview:
+      "Just a heads up that I'll be taking a two-week vacation next month.\nI'll make sure all my projects are up to date before I leave.",
+  },
+  {
+    id: "m9",
+    sender: "James Martin",
+    timestamp: "1 week ago",
+    subject: "Re: Conference Registration",
+    preview:
+      "I've completed the registration for the upcoming tech conference.\nLet me know if you need any additional information from my end.",
+  },
+  {
+    id: "m10",
+    sender: "Sophia White",
+    timestamp: "1 week ago",
+    subject: "Team Dinner",
+    preview:
+      "To celebrate our recent project success, I'd like to organize a team dinner.\nAre you available next Friday evening? Please let me know your preferences.",
   },
 ];
 
 const DEFAULT_USER: Sidebar09User = { name: "Shad Cn", email: "shadcn@example.com" };
 
-/** Compact icon-badge logo header at the top of the icon rail. */
+/** Upstream's folder click: reshuffle the shared pool and take a random 5–10. */
+function shuffledSlice(pool: Sidebar09Message[]): Sidebar09Message[] {
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const count = Math.max(5, Math.floor(Math.random() * 10) + 1);
+  return shuffled.slice(0, count);
+}
+
+/** Compact icon-badge logo header at the top of the icon rail. Upstream keeps
+ * the "Acme Inc"/"Enterprise" text next to the badge; at icon-rail width it's
+ * clipped (overflow hidden) exactly as upstream truncates it. */
 function railLogo(): DomphyElement<"div"> {
   return {
-    div: [sidebarIcon(ICON_MARK, "primary")],
+    div: [
+      {
+        div: [
+          sidebarIcon(ICON_MARK, "primary"),
+          {
+            div: [
+              {
+                strong: "Acme Inc",
+                style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+                $: [strong({ color: "neutral" })],
+              } as unknown as DomphyElement,
+              {
+                small: "Enterprise",
+                style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+                $: [small({ color: "neutral" })],
+              } as unknown as DomphyElement,
+            ],
+            style: { display: "flex", flexDirection: "column", minWidth: "0", overflow: "hidden", textAlign: "left" },
+          } as unknown as DomphyElement,
+        ],
+        style: {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: themeSpacing(2),
+          width: "100%",
+          overflow: "hidden",
+        },
+      } as unknown as DomphyElement,
+    ],
     style: {
       display: "flex",
       alignItems: "center",
@@ -185,14 +239,100 @@ function folderRailButton(
   } as DomphyElement<"li">;
 }
 
+/** One icon + label row inside the account dropdown (upstream DropdownMenuItem). */
+function accountMenuItem(icon: string, label: string): DomphyElement {
+  return {
+    button: [sidebarIcon(icon), { span: label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement],
+    type: "button",
+    role: "menuitem",
+    style: interactiveRowStyle(true),
+  } as unknown as DomphyElement;
+}
+
+/**
+ * The NavUser account dropdown, matching upstream nav-user.tsx: a header label
+ * (avatar + name + email), then separator-delimited groups — "Upgrade to Pro",
+ * then Account/Billing/Notifications, then "Log out" — each row with its icon.
+ */
+function accountDropdown(user: Sidebar09User): DomphyElement<"div"> {
+  const groups: { icon: string; label: string }[][] = [
+    [{ icon: ICON_SPARKLE, label: "Upgrade to Pro" }],
+    [
+      { icon: ICON_BADGE_CHECK, label: "Account" },
+      { icon: ICON_CREDIT_CARD, label: "Billing" },
+      { icon: ICON_BELL, label: "Notifications" },
+    ],
+    [{ icon: ICON_LOGOUT, label: "Log out" }],
+  ];
+
+  const header: DomphyElement = {
+    div: [
+      { span: user.name.slice(0, 1).toUpperCase(), $: [avatar({ color: "primary" })] } as unknown as DomphyElement,
+      {
+        div: [
+          {
+            strong: user.name,
+            style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+            $: [strong({ color: "neutral" })],
+          } as unknown as DomphyElement,
+          {
+            small: user.email,
+            style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+            $: [small({ color: "neutral" })],
+          } as unknown as DomphyElement,
+        ],
+        style: { display: "flex", flexDirection: "column", minWidth: "0", overflow: "hidden", textAlign: "left" },
+      } as unknown as DomphyElement,
+    ],
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: themeSpacing(2),
+      paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
+      borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+    },
+  } as unknown as DomphyElement;
+
+  const sections = groups.map((items, groupIndex) => ({
+    div: items.map((item) => accountMenuItem(item.icon, item.label)),
+    // `role="menu"` (below) requires menu-item-family children or a "group"
+    // wrapper; this section div carries "group" so each `menuitem` button one
+    // level down has a valid parent.
+    role: "group",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+      paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+      borderBottom:
+        groupIndex < groups.length - 1
+          ? (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`
+          : undefined,
+    },
+    _key: groupIndex,
+  })) as unknown as DomphyElement[];
+
+  return {
+    div: [header, ...sections],
+    dataTone: "shift-0",
+    role: "menu",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      minWidth: themeSpacing(56),
+      borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      border: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      boxShadow: (l: Listener) => `0 ${themeSpacing(2)} ${themeSpacing(8)} ${themeColor(l, "shift-4", "neutral")}`,
+      overflow: "hidden",
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+    },
+  } as unknown as DomphyElement<"div">;
+}
+
 /** Round account-avatar footer button at the bottom of the icon rail. */
 function railFooter(user: Sidebar09User): DomphyElement<"div"> {
-  const accountMenu: DomphyElement<"div"> = {
-    div: null,
-    style: { minWidth: themeSpacing(44) },
-    $: [menu({ items: [{ label: user.name }, { label: user.email }, { label: "Log out" }] })],
-  } as unknown as DomphyElement<"div">;
-
   return {
     div: [
       {
@@ -202,7 +342,7 @@ function railFooter(user: Sidebar09User): DomphyElement<"div"> {
         type: "button",
         ariaLabel: "Account menu",
         style: { display: "flex", border: "none", background: "none", cursor: "pointer", padding: "0" },
-        $: [popover({ placement: "right-end", content: accountMenu })],
+        $: [popover({ placement: "right-end", content: accountDropdown(user) })],
       } as unknown as DomphyElement,
     ],
     style: {
@@ -217,13 +357,7 @@ function railFooter(user: Sidebar09User): DomphyElement<"div"> {
   } as unknown as DomphyElement<"div">;
 }
 
-function messageListHeader(
-  title: (listener: Listener) => string,
-  searchQuery: State<string>,
-  unreadOnly: State<boolean>,
-  onCloseMobile: () => void,
-  onSearchChange?: (query: string) => void,
-): DomphyElement<"div"> {
+function messageListHeader(title: (listener: Listener) => string, onCloseMobile: () => void): DomphyElement<"div"> {
   return {
     div: [
       {
@@ -232,15 +366,29 @@ function messageListHeader(
           // (it re-renders on folder switch), not a static workspace name.
           { strong: (l: Listener) => title(l), $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
           {
-            button: "×",
-            type: "button",
-            ariaLabel: "Close message list",
-            onClick: onCloseMobile,
-            style: {
-              display: "none",
-              "@media (max-width: 768px)": { display: "inline-flex" },
-            },
-            $: [buttonGhost({ color: "neutral" })],
+            div: [
+              {
+                label: [
+                  { small: "Unreads", $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+                  // Decorative switch (upstream <Switch className="shadow-none" />
+                  // has no handler/state and does not filter the list).
+                  { input: null, type: "checkbox", $: [inputSwitch()] } as unknown as DomphyElement,
+                ],
+                style: { display: "flex", alignItems: "center", gap: themeSpacing(2) },
+              } as unknown as DomphyElement,
+              {
+                button: "×",
+                type: "button",
+                ariaLabel: "Close message list",
+                onClick: onCloseMobile,
+                style: {
+                  display: "none",
+                  "@media (max-width: 768px)": { display: "inline-flex" },
+                },
+                $: [buttonGhost({ color: "neutral" })],
+              } as unknown as DomphyElement,
+            ],
+            style: { display: "flex", alignItems: "center", gap: themeSpacing(2), flexShrink: "0" },
           } as unknown as DomphyElement,
         ],
         style: {
@@ -253,37 +401,17 @@ function messageListHeader(
       } as unknown as DomphyElement,
       {
         div: [
+          // Decorative search box (upstream <SidebarInput placeholder="Type to
+          // search..." /> is uncontrolled and does not filter the list).
           {
             input: null,
             type: "search",
-            placeholder: "Search mail...",
-            value: (l: Listener) => searchQuery.get(l),
-            onInput: (e: Event) => {
-              const query = (e.target as HTMLInputElement).value;
-              searchQuery.set(query);
-              onSearchChange?.(query);
-            },
-            style: { flex: "1" },
+            placeholder: "Type to search...",
+            style: { width: "100%" },
             $: [inputSearch()],
-          } as unknown as DomphyElement,
-          {
-            label: [
-              { small: "Unreads", $: [small({ color: "neutral" })] } as unknown as DomphyElement,
-              {
-                input: null,
-                type: "checkbox",
-                checked: (l: Listener) => unreadOnly.get(l),
-                onChange: (e: Event) => unreadOnly.set((e.target as HTMLInputElement).checked),
-                $: [inputSwitch()],
-              } as unknown as DomphyElement,
-            ],
-            style: { display: "flex", alignItems: "center", gap: themeSpacing(2), flexShrink: "0" },
           } as unknown as DomphyElement,
         ],
         style: {
-          display: "flex",
-          alignItems: "center",
-          gap: (l: Listener) => themeSpacing(themeDensity(l) * 3),
           paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
           paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 3),
         },
@@ -306,19 +434,6 @@ function messageRow(message: Sidebar09Message, selected: boolean, onSelect: (id:
         button: [
           {
             div: [
-              {
-                span: null,
-                ariaHidden: "true",
-                style: {
-                  width: themeSpacing(2),
-                  height: themeSpacing(2),
-                  borderRadius: "50%",
-                  flexShrink: "0",
-                  display: message.unread ? "inline-block" : "none",
-                  color: (l: Listener) => themeColor(l, "shift-9", "primary"),
-                  backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
-                },
-              } as unknown as DomphyElement,
               { strong: message.sender, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
               {
                 small: message.timestamp,
@@ -340,6 +455,7 @@ function messageRow(message: Sidebar09Message, selected: boolean, onSelect: (id:
               WebkitLineClamp: "2",
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
+              whiteSpace: "break-spaces",
             },
             $: [small({ color: "neutral" })],
           } as unknown as DomphyElement,
@@ -374,36 +490,22 @@ function messageRow(message: Sidebar09Message, selected: boolean, onSelect: (id:
     // listbox). `role="presentation"` strips the `<li>`'s own semantics so
     // ARIA parent/child computation skips over it to the `<ul>` beneath.
     role: "presentation",
+    style: { "&:last-child > button": { borderBottom: "none" } },
     _key: message.id,
   } as DomphyElement<"li">;
 }
 
 function buildMessageList(
-  messages: Sidebar09Message[],
-  activeFolderId: State<string>,
+  displayedMessages: State<Sidebar09Message[]>,
   activeMessageId: State<string | null>,
-  searchQuery: State<string>,
-  unreadOnly: State<boolean>,
   onSelect: (id: string) => void,
 ): DomphyElement<"ul"> {
   return {
     ul: (listener: Listener) => {
-      const folder = activeFolderId.get(listener);
-      const query = searchQuery.get(listener).trim().toLowerCase();
-      const onlyUnread = unreadOnly.get(listener);
+      const list = displayedMessages.get(listener);
       const selected = activeMessageId.get(listener);
-      const filtered = messages
-        .filter((message) => message.folderId === folder)
-        .filter((message) => !onlyUnread || message.unread)
-        .filter(
-          (message) =>
-            !query ||
-            message.sender.toLowerCase().includes(query) ||
-            message.subject.toLowerCase().includes(query) ||
-            message.preview.toLowerCase().includes(query),
-        );
 
-      if (filtered.length === 0) {
+      if (list.length === 0) {
         return [
           {
             li: [{ small: "No messages", $: [small({ color: "neutral" })] } as unknown as DomphyElement],
@@ -416,7 +518,7 @@ function buildMessageList(
           } as unknown as DomphyElement,
         ];
       }
-      return filtered.map((message) => messageRow(message, message.id === selected, onSelect));
+      return list.map((message) => messageRow(message, message.id === selected, onSelect));
     },
     role: "listbox",
     ariaLabel: "Messages",
@@ -437,19 +539,20 @@ function sidebar09(props: Sidebar09Props = {}): DomphyElement<"div"> {
     breadcrumbItems = [{ label: "All Inboxes" }, { label: "Inbox" }],
     onFolderSelect,
     onMessageSelect,
-    onSearchChange,
     children,
   } = props;
 
   const railCollapsed = toState(false);
   const activeFolderId = toState(props.activeFolderId ?? folders[0]?.id ?? "inbox");
   const activeMessageId = toState<string | null>(props.activeMessageId ?? null);
-  const searchQuery = toState(props.searchQuery ?? "");
-  const unreadOnly = toState(false);
+  // Upstream seeds the list with the full pool, then reshuffles it on each
+  // folder click — folders are triggers over one shared mailbox, not scopes.
+  const displayedMessages = toState<Sidebar09Message[]>(messages);
   const mobileListOpen = toState(false);
 
   const selectFolder = (id: string) => {
     activeFolderId.set(id);
+    displayedMessages.set(shuffledSlice(messages));
     mobileListOpen.set(true);
     onFolderSelect?.(id);
   };
@@ -498,12 +601,9 @@ function sidebar09(props: Sidebar09Props = {}): DomphyElement<"div"> {
     aside: [
       messageListHeader(
         (l: Listener) => folders.find((folder) => folder.id === activeFolderId.get(l))?.label ?? "",
-        searchQuery,
-        unreadOnly,
         () => mobileListOpen.set(false),
-        onSearchChange,
       ),
-      buildMessageList(messages, activeFolderId, activeMessageId, searchQuery, unreadOnly, selectMessage),
+      buildMessageList(displayedMessages, activeMessageId, selectMessage),
     ],
     ariaLabel: "Message list",
     style: {

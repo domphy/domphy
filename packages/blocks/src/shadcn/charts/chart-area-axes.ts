@@ -19,7 +19,9 @@ import {
   chartAreaFrame,
   chartAxisTooltipFormatter,
   chartCardShell,
+  chartTrendFooter,
   type ChartAreaTwoSeriesPoint,
+  type ChartTrendDirection,
 } from "./chart-area-shared.js";
 
 export interface ChartAreaAxesSeries {
@@ -35,12 +37,21 @@ export interface ChartAreaAxesProps {
   yAxisTickCount?: number;
   title?: string;
   description?: string;
+  trendText?: string;
+  trendDirection?: ChartTrendDirection;
+  captionText?: string;
   height?: number;
 }
 
+// Declaration order sets the stack band arrangement: the engine draws
+// series[0] at the baseline (bottom band). Upstream declares Area(mobile)
+// before Area(desktop) under one stackId, so mobile is the bottom band and
+// desktop sits on top. Each key keeps its own color (mobile → chart-2,
+// desktop → chart-1), so the fill bands match upstream and the tooltip lists
+// mobile then desktop.
 const DEFAULT_SERIES: ChartAreaAxesSeries[] = [
-  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0] },
   { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[1] },
+  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0] },
 ];
 
 /**
@@ -55,6 +66,9 @@ function chartAreaAxes(props: ChartAreaAxesProps = {}): DomphyElement<"div"> {
     yAxisTickCount = 3,
     title = "Area Chart - Axes",
     description = "Showing total visitors for the last 6 months",
+    trendText = "Trending up by 5.2% this month",
+    trendDirection = "up",
+    captionText = `${data[0]?.month ?? ""} - ${data[data.length - 1]?.month ?? ""} 2026`,
     height = 64,
   } = props;
 
@@ -63,6 +77,7 @@ function chartAreaAxes(props: ChartAreaAxesProps = {}): DomphyElement<"div"> {
   const option: ChartOption = {
     tooltip: {
       trigger: "axis",
+      axisPointer: { type: "none" },
       formatter: chartAxisTooltipFormatter(categories),
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
@@ -92,6 +107,7 @@ function chartAreaAxes(props: ChartAreaAxesProps = {}): DomphyElement<"div"> {
     title,
     description,
     content: { div: [chartAreaFrame(option, height)] },
+    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
   });
 }
 

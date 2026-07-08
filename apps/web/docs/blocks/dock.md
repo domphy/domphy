@@ -21,7 +21,7 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `iconSizeUnits` | `number` | Icon diameter, in `themeSpacing` units. Defaults to 10 (~40px at the base font size). |
 | `magnification` | `number` | Max scale multiplier reached at closest cursor proximity. Defaults to 1.5. |
 | `proximityMultiplier` | `number` | Proximity falloff width, as a multiple of the icon's own rendered size. Defaults to 3.5 (~140px at 40px icons). |
-| `anchor` | `DockAnchor` | Which edge the dock is anchored against — flips tooltip placement and each icon's grow-from origin. Defaults to "bottom". |
+| `anchor` | `DockAnchor` | Which edge the dock is anchored against — flips tooltip placement and each icon's grow-from origin. Defaults to "middle". |
 | `disableMagnification` | `boolean` | Disables the magnification effect entirely, falling back to static icons. Defaults to false. |
 
 ::: details Implementation notes

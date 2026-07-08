@@ -18,13 +18,15 @@ A **Effects** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 | Prop | Type | Description |
 |---|---|---|
 | `children` | `DomphyElement \| DomphyElement[]` | Content wrapped by the glare surface. Defaults to a small demo panel. |
+| `width` | `string` | Optional CSS width on the root element (e.g. `"100%"`, `"320px"`). Defaults to fit-content. |
+| `height` | `string` | Optional CSS height on the root element (e.g. `"auto"`, `"200px"`). Defaults to fit-content. |
+| `background` | `ThemeColor` | Theme color family for the wrapper surface (upstream's literal `background`). Defaults to `"neutral"` (near-black). |
 | `glareColor` | `ThemeColor` | Theme color family for the streak. Defaults to `"neutral"` (a bright/white-reading sweep). |
-| `glareOpacity` | `number` | Streak alpha, 0–1. Defaults to `0.35`. |
+| `glareOpacity` | `number` | Streak alpha, 0–1. Defaults to `0.5`. |
 | `angle` | `number` | Sweep angle in degrees. Defaults to `-45`. |
-| `size` | `number` | Streak band size, as a percentage of the container's own box. Defaults to `220`. |
+| `size` | `number` | Streak band size, as a percentage of the container's own box. Defaults to `250`. |
 | `duration` | `number` | Sweep duration in ms. Defaults to `650`. |
-| `playOnce` | `boolean` | When true, the sweep only ever plays on the first pointer-enter. Defaults to `false`. |
-| `surface` | `"light" \| "dark"` | Edge-anchor surface tone for the container background. Defaults to `"dark"`. |
+| `playOnce` | `boolean` | When true, mouse-leave is an instant reset instead of a smooth reverse. Defaults to `false`. |
 | `style` | `StyleObject` | Passthrough style merged onto the outer container. |
 
 ::: details Implementation notes

@@ -16,9 +16,14 @@ import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { button } from "@domphy/ui";
 import type { ThemeColor } from "@domphy/theme";
 import confettiLib from "canvas-confetti";
-import type { Options as ConfettiLibOptions } from "canvas-confetti";
+import type {
+  GlobalOptions as ConfettiLibGlobalOptions,
+  Options as ConfettiLibOptions,
+} from "canvas-confetti";
 
 export type ConfettiFireOptions = ConfettiLibOptions;
+/** Instance-creation options passed to `canvas-confetti`'s `confetti.create(...)`. */
+export type ConfettiGlobalOptions = ConfettiLibGlobalOptions;
 
 export interface ConfettiHandle {
   /** Launches one burst, merging `options` over the instance's base options. */
@@ -30,12 +35,22 @@ export interface ConfettiHandle {
 export interface ConfettiProps {
   /** Base options merged under every `fire()` call. See `canvas-confetti`'s `Options`. */
   options?: ConfettiFireOptions;
+  /**
+   * Options for the underlying `confetti.create(canvas, ...)` instance (mirrors
+   * upstream's `globalOptions` prop). Defaults to `{ resize: true, useWorker: true }`;
+   * `resize` is always forced on so the canvas tracks its element size.
+   */
+  globalOptions?: ConfettiGlobalOptions;
   /** Called once the canvas is mounted and the imperative handle is ready. */
   onReady?: (handle: ConfettiHandle) => void;
-  /** Fires one burst automatically shortly after mount. Defaults to `true`. */
+  /** Fires one burst automatically the moment the canvas mounts. Defaults to `true`. */
   autoFire?: boolean;
-  /** Delay (ms) before the automatic burst. Defaults to `150`. */
-  autoFireDelay?: number;
+  /**
+   * Foreground content rendered after the canvas (mirrors upstream's `{children}`).
+   * The burst is reachable from these children via the `onReady` handle — Domphy's
+   * equivalent of upstream's `ConfettiContext`, which has no runtime-context analog.
+   */
+  children?: DomphyElement | DomphyElement[];
   /** Passthrough style merged onto the canvas. */
   style?: StyleObject;
 }
@@ -56,13 +71,18 @@ const DEFAULT_FIRE_OPTIONS: ConfettiFireOptions = {
   origin: { x: 0.5, y: 0.5 },
 };
 
+// Matches upstream's `globalOptions` default.
+const DEFAULT_GLOBAL_OPTIONS: ConfettiGlobalOptions = { resize: true, useWorker: true };
+
 function createConfettiHandle(
   canvasElement: HTMLCanvasElement,
   baseOptions: ConfettiFireOptions,
+  globalOptions: ConfettiGlobalOptions,
 ): ConfettiHandle | null {
   let instanceFire: ReturnType<typeof confettiLib.create> | null = null;
   try {
-    instanceFire = confettiLib.create(canvasElement, { resize: true, useWorker: false });
+    // `resize` is forced on regardless of the passed options — mirrors upstream.
+    instanceFire = confettiLib.create(canvasElement, { ...globalOptions, resize: true });
   } catch {
     instanceFire = null;
   }
@@ -79,20 +99,25 @@ function createConfettiHandle(
 
 /**
  * A transparent, full-viewport canvas that fires a `canvas-confetti` burst on
- * demand. Call with no arguments for a working demo — a burst fires shortly
- * after mount (`autoFire` defaults to `true`); pass `autoFire: false` for a
- * purely imperative canvas that stays inert until `onReady`'s handle fires it.
+ * demand. Call with no arguments for a working demo — a burst fires the instant
+ * the canvas mounts (`autoFire` defaults to `true`); pass `autoFire: false` for
+ * a purely imperative canvas that stays inert until `onReady`'s handle fires it.
+ * Pass `children` to render foreground content over the burst (they reach `fire`
+ * through the `onReady` handle).
  */
-function confetti(props: ConfettiProps = {}): DomphyElement<"canvas"> {
+function confetti(props: ConfettiProps = {}): DomphyElement {
   const baseOptions: ConfettiFireOptions = { ...DEFAULT_FIRE_OPTIONS, ...(props.options ?? {}) };
+  const globalOptions: ConfettiGlobalOptions = {
+    ...DEFAULT_GLOBAL_OPTIONS,
+    ...(props.globalOptions ?? {}),
+  };
   const autoFire = props.autoFire ?? true;
-  const autoFireDelay = props.autoFireDelay ?? 150;
 
   // `_doctorDisable` is a doctor-only annotation not present in core's strict
   // `PartialElement` type — build through an untyped literal, then assert, so
   // the excess-property check doesn't fire (mirrors fadeOverlay() in the
   // marquee block).
-  const element = {
+  const canvasElementNode = {
     canvas: null,
     ariaHidden: "true",
     // Decorative/transparent burst surface with no text of its own — exempt
@@ -111,23 +136,33 @@ function confetti(props: ConfettiProps = {}): DomphyElement<"canvas"> {
       const canvasElement = node.domElement as HTMLCanvasElement | null;
       if (!canvasElement || typeof document === "undefined") return;
 
-      const handle = createConfettiHandle(canvasElement, baseOptions);
+      const handle = createConfettiHandle(canvasElement, baseOptions, globalOptions);
       if (!handle) return;
 
-      let autoFireTimer: ReturnType<typeof setTimeout> | null = null;
-      if (autoFire) {
-        autoFireTimer = setTimeout(() => handle.fire(), autoFireDelay);
-      }
+      // Fire the moment the canvas mounts (no delay) — mirrors upstream's mount
+      // effect firing immediately when `autoFire` (upstream `!manualstart`).
+      if (autoFire) handle.fire();
 
       props.onReady?.(handle);
 
-      node.addHook("Remove", () => {
-        if (autoFireTimer) clearTimeout(autoFireTimer);
-        handle.reset();
-      });
+      node.addHook("Remove", () => handle.reset());
     },
-  };
-  return element as DomphyElement<"canvas">;
+  } as DomphyElement<"canvas">;
+
+  const children = props.children
+    ? Array.isArray(props.children)
+      ? props.children
+      : [props.children]
+    : null;
+  if (!children || children.length === 0) return canvasElementNode;
+
+  // Upstream wraps `<canvas>` + `{children}` in a context Provider, which emits
+  // no DOM node of its own. `display: contents` reproduces that: the wrapper
+  // collapses so children sit where the confetti element was placed.
+  return {
+    div: [canvasElementNode, ...children],
+    style: { display: "contents" } as StyleObject,
+  } as DomphyElement<"div">;
 }
 
 export interface ConfettiButtonProps {
@@ -172,7 +207,7 @@ function confettiButton(props: ConfettiButtonProps = {}): DomphyElement<"button"
     _onMount: (node: ElementNode) => {
       const canvasElement = node.domElement as HTMLCanvasElement | null;
       if (!canvasElement || typeof document === "undefined") return;
-      handle = createConfettiHandle(canvasElement, baseOptions);
+      handle = createConfettiHandle(canvasElement, baseOptions, DEFAULT_GLOBAL_OPTIONS);
       node.addHook("Remove", () => {
         handle?.reset();
         handle = null;

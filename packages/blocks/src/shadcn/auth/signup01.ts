@@ -10,7 +10,6 @@ import {
   button,
   card,
   heading,
-  icon,
   label,
   link,
   paragraph,
@@ -24,15 +23,6 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
-
-// Generic monochrome "G" glyph — an original, brand-neutral placeholder for
-// the Google provider button. Swap for an official brand SVG in production.
-const GOOGLE_ICON =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" ' +
-  'fill="none" stroke="currentColor" stroke-width="1.5">' +
-  '<circle cx="12" cy="12" r="9.25" />' +
-  '<text x="12" y="16" text-anchor="middle" font-size="10" stroke="none" fill="currentColor">G</text>' +
-  "</svg>";
 
 /**
  * Visual formula for a bounded text-like `<input>`, matching @domphy/ui's
@@ -86,19 +76,11 @@ interface FieldConfig {
   placeholder?: string;
   caption?: string;
   autoComplete?: string;
-  minLength?: number;
 }
 
 function field(config: FieldConfig): DomphyElement<"div"> {
-  const {
-    id,
-    labelText,
-    type = "text",
-    placeholder,
-    caption,
-    autoComplete,
-    minLength,
-  } = config;
+  const { id, labelText, type = "text", placeholder, caption, autoComplete } =
+    config;
 
   return {
     div: [
@@ -111,7 +93,6 @@ function field(config: FieldConfig): DomphyElement<"div"> {
         placeholder,
         required: true,
         autocomplete: autoComplete,
-        minlength: minLength,
         $: [authFieldInput()],
       },
       caption ? { small: caption, $: [small({ color: "neutral" })] } : null,
@@ -200,10 +181,7 @@ function signup01(props: Signup01Props = {}): DomphyElement<"div"> {
   };
 
   const googleButton: DomphyElement<"button"> = {
-    button: [
-      { span: GOOGLE_ICON, $: [icon({ color: "inherit" })] },
-      { span: googleButtonLabel },
-    ],
+    button: googleButtonLabel,
     type: "button",
     $: [button({ color: "neutral" })],
     style: { width: "100%" },
@@ -213,6 +191,27 @@ function signup01(props: Signup01Props = {}): DomphyElement<"div"> {
     div: (listener: Listener) => errorState.get(listener) ?? "",
     hidden: (listener: Listener) => !errorState.get(listener),
     $: [alert({ color: "error" })],
+  };
+
+  const signInLine: DomphyElement<"small"> = {
+    small: [
+      `${signInPrompt} `,
+      { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
+    ],
+    $: [small({ color: "neutral" })],
+    style: { display: "block", textAlign: "center" },
+  };
+
+  // Upstream wraps the submit button, Google button and the sign-in prompt in a
+  // single <Field> (flex-col gap-3) — a tight cluster separated from the input
+  // fields above by the wider form gap. No CardFooter, so no divider.
+  const buttonCluster: DomphyElement<"div"> = {
+    div: [submitButton, showGoogleButton ? googleButton : null, signInLine],
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
+    },
   };
 
   const cardBody: DomphyElement<"div"> = {
@@ -239,7 +238,6 @@ function signup01(props: Signup01Props = {}): DomphyElement<"div"> {
             type: "password",
             caption: passwordCaption,
             autoComplete: "new-password",
-            minLength: 8,
           }),
           field({
             id: "signup01-confirm-password",
@@ -249,8 +247,7 @@ function signup01(props: Signup01Props = {}): DomphyElement<"div"> {
             autoComplete: "new-password",
           }),
           errorBanner,
-          submitButton,
-          showGoogleButton ? googleButton : null,
+          buttonCluster,
         ],
         onSubmit: (event: Event) => {
           event.preventDefault();
@@ -265,20 +262,8 @@ function signup01(props: Signup01Props = {}): DomphyElement<"div"> {
     ],
   };
 
-  const cardFooter: DomphyElement<"footer"> = {
-    footer: [
-      {
-        small: [
-          `${signInPrompt} `,
-          { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
-        ],
-        $: [small({ color: "neutral" })],
-      },
-    ],
-  };
-
   const cardElement: DomphyElement<"div"> = {
-    div: [{ h2: title, $: [heading()] }, { p: subtitle, $: [paragraph({ color: "neutral" })] }, cardBody, cardFooter],
+    div: [{ h2: title, $: [heading()] }, { p: subtitle, $: [paragraph({ color: "neutral" })] }, cardBody],
     style: {
       width: "100%",
       maxWidth: themeSpacing(96),

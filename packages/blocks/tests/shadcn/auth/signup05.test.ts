@@ -29,20 +29,22 @@ describe("signup05", () => {
     expect(providerButtons.length).toBe(2);
   });
 
-  it("places the sign-in line in the header, above the form", () => {
+  it("places the sign-in line in the header, above the email field", () => {
     const { host } = render(signup05() as DomphyElement);
     const heading = host.querySelector("h1")!;
-    const form = host.querySelector("form")!;
+    // Upstream nests the header (logo, heading, sign-in line) as the first
+    // child of the form's FieldGroup, so the sign-in link lives inside the
+    // <form> — before the email field, not as a sibling outside the form.
+    const emailInput = host.querySelector('input[type="email"]')!;
     const signInLink = Array.from(host.querySelectorAll("a")).find(
       (a) => a.textContent === "Sign in",
     )!;
     expect(signInLink).toBeTruthy();
-    // The sign-in link's position in the DOM comes before the form (header, not footer).
     expect(
       heading.compareDocumentPosition(signInLink) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      signInLink.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING,
+      signInLink.compareDocumentPosition(emailInput) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

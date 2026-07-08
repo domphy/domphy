@@ -18,13 +18,14 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | Prop | Type | Description |
 |---|---|---|
 | `children` | `DomphyElement` | Content to magnify — image or arbitrary element. Defaults to a generic placeholder image. |
-| `zoomFactor` | `number` | Magnification multiplier. Defaults to 1.3. |
+| `zoomFactor` | `number` | Magnification multiplier (must be ≥ 1). Defaults to 1.3. |
 | `lensSizeUnits` | `number` | Circular lens diameter, in `themeSpacing` units (≈170px at the default). Defaults to 42.5. |
 | `isStatic` | `boolean` | Pins the lens at `position` instead of following the pointer (useful for click-to-reveal, touch, or fully programmatic control). Defaults to false. |
-| `position` | `ValueOrState&lt;LensPosition&gt;` | Coordinate (px, relative to the content's own top-left) used when `isStatic` is true. Accepts a `State` for reactive/programmatic control. Defaults to a point near the top-left of the content. |
-| `lensColor` | `ThemeColor` | Tint/border color for the lens ring. Defaults to `"primary"`. |
+| `position` | `ValueOrState&lt;LensPosition&gt;` | Coordinate (px, relative to the content's own top-left) used when `isStatic` is true. Accepts a `State` for reactive/programmatic control. Defaults to `{ x: 0, y: 0 }`. |
+| `defaultPosition` | `LensPosition` | When provided (and not static), keeps the lens always visible: resting at this coordinate while not hovering and following the cursor while hovering. |
+| `lensColor` | `string` | CSS color used only as the radial-gradient mask fill. The mask reveals via its alpha, so the color itself is visually inert — any opaque value works. Defaults to `"black"`. |
 | `ariaLabel` | `string` | — |
-| `duration` | `number` | Seconds — smoothing speed for lens movement/opacity transitions. Defaults to 0.1. |
+| `duration` | `number` | Seconds — the mount scale/opacity transition speed. Does not slow cursor tracking, which is always instant. Defaults to 0.1. |
 | `style` | `StyleObject` | — |
 
 ::: details Implementation notes

@@ -24,6 +24,7 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `trendDirection` | `"up" \| "down"` | — |
 | `caption` | `string` | — |
 | `valueFormatter` | `(value: number) =&gt; string` | — |
+| `metricLabel` | `string` | Metric label shown in every wedge's tooltip (upstream `chartConfig.visitors.label`). |
 | `displayNameLookup` | `Record&lt;string, string&gt;` | Maps each category's raw `key` to the readable text printed on the chart. |
 | `labelFontSize` | `string` | SVG font-size (viewBox units) for the on-chart labels. |
 

@@ -18,7 +18,9 @@
 // `particles`/`flickeringGrid` manage their canvas pixels imperatively
 // rather than through the declarative tree. Non-glow dots are plain
 // `fill="currentColor"` circles (no per-dot color at all); glow dots read
-// from a shared `<radialGradient>` (bright core fading to transparent) and
+// from a shared `<radialGradient>` (same `currentColor` core shade as the
+// static dots, fading out to transparent — upstream uses currentColor for
+// both stops, so the glow core matches the base dot color exactly) and
 // each get their own randomized `animation-duration`/`animation-delay` on
 // one shared "there and back" scale+opacity `@keyframes`, so no two dots
 // twinkle in sync.
@@ -105,14 +107,18 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
               offset: "0%",
               // Decorative gradient stop, no text of its own.
               _doctorDisable: "missing-color",
-              style: { stopColor: (listener: Listener) => themeColor(listener, "shift-11", color) } as StyleObject,
+              // Core uses the svg's own `currentColor` (the base dot shade),
+              // matching upstream where BOTH stops are stopColor="currentColor"
+              // — the glow core is the same color as the static dots, not a
+              // brighter/more-extreme shade.
+              style: { stopColor: "currentColor", stopOpacity: "1" } as StyleObject,
             } as DomphyElement,
             {
               stop: null,
               offset: "100%",
               _doctorDisable: "missing-color",
               style: {
-                stopColor: (listener: Listener) => themeColor(listener, "shift-11", color),
+                stopColor: "currentColor",
                 stopOpacity: "0",
               } as StyleObject,
             } as DomphyElement,
@@ -150,7 +156,11 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
           const delaySeconds = Math.random() * 5;
           circle.style.transformBox = "fill-box";
           circle.style.transformOrigin = "center";
-          circle.style.animation = `${glowAnimationName} ${durationSeconds}s ease-in-out ${delaySeconds}s infinite`;
+          // `backwards` fill-mode holds each dot at the first keyframe
+          // (scale 1, opacity 0.4) during its random start delay, matching
+          // upstream's initial={opacity:0.4, scale:1}. Without it the dot
+          // would render at full base opacity until its delay elapsed.
+          circle.style.animation = `${glowAnimationName} ${durationSeconds}s ease-in-out ${delaySeconds}s infinite backwards`;
         } else {
           circle.setAttribute("fill", "currentColor");
         }
@@ -163,8 +173,11 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
         // default grid so the component still renders something structural.
         const measuredWidth = rect.width || 320;
         const measuredHeight = rect.height || 200;
-        const columns = Math.max(1, Math.ceil(measuredWidth / spacingWidth) + 1);
-        const rows = Math.max(1, Math.ceil(measuredHeight / spacingHeight) + 1);
+        // Exactly ceil(size / spacing) columns/rows, matching upstream's
+        // Math.ceil(dimensions.width / width) * Math.ceil(dimensions.height /
+        // height) dot count (no extra trailing column/row).
+        const columns = Math.max(1, Math.ceil(measuredWidth / spacingWidth));
+        const rows = Math.max(1, Math.ceil(measuredHeight / spacingHeight));
 
         // The grid is small/cheap enough (dozens to a few hundred cells) that
         // a full rebuild on every resize is simpler and safer than diffing
@@ -207,7 +220,10 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
       width: "100%",
       height: "100%",
       pointerEvents: "none",
-      color: (listener: Listener) => themeColor(listener, "shift-6", color),
+      // 80% alpha on the base color, matching upstream's text-neutral-400/80.
+      // currentColor (dots + glow stops) inherits this softened shade.
+      color: (listener: Listener) =>
+        `color-mix(in srgb, ${themeColor(listener, "shift-6", color)} 80%, transparent)`,
     } as StyleObject,
   } as DomphyElement;
 

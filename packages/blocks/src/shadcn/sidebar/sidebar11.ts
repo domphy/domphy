@@ -122,9 +122,12 @@ function fileRow(path: string, node: Extract<Sidebar11TreeNode, { type: "file" }
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
           "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          // Upstream's active leaf button carries `data-[active=true]:bg-transparent`,
+          // suppressing the accent fill: the active file gets NO background, only
+          // font-medium plus the subtle accent-foreground text color.
           "&[aria-current=true]": {
-            backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary"),
-            color: (l: Listener) => themeColor(l, "shift-12", "primary"),
+            fontWeight: "500",
+            color: (l: Listener) => themeColor(l, "shift-12", "neutral"),
           },
         },
       } as unknown as DomphyElement,
@@ -296,6 +299,7 @@ function fileBreadcrumb(activeFilePath: State<string>): DomphyElement<"nav"> {
               _key: cumulativePath,
               href: "#",
               $: [link({ color: "neutral", accentColor: "neutral" })],
+              style: { "@media (max-width: 768px)": { display: "none" } },
             } as unknown as DomphyElement);
       });
     },
@@ -362,8 +366,24 @@ function sidebar11(props: Sidebar11Props = {}): DomphyElement<"div"> {
         },
       } as unknown as DomphyElement,
       renderUserFooter(user),
+      // Upstream <SidebarRail /> — thin always-present edge strip that toggles
+      // the sidebar on click. Sits at the trailing edge inside the relatively-
+      // positioned aside (same pattern as sidebar06/sidebar07).
+      {
+        div: null,
+        ariaHidden: "true",
+        onClick: () => collapsed.set(!collapsed.get()),
+        style: {
+          position: "absolute",
+          insetBlock: "0",
+          insetInlineEnd: "0",
+          width: themeSpacing(1),
+          cursor: "col-resize",
+        },
+      } as unknown as DomphyElement,
     ],
     style: {
+      position: "relative",
       display: "flex",
       flexDirection: "column",
       flexShrink: "0",

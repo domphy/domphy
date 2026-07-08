@@ -42,7 +42,7 @@
 // original placeholder data, not sourced from upstream.
 
 import type { DomphyElement, PartialElement } from "@domphy/core";
-import { themeSpacing, type ThemeColor } from "@domphy/theme";
+import { themeColorToken, themeSpacing, type ThemeColor } from "@domphy/theme";
 import { card, heading, paragraph } from "@domphy/ui";
 import { chart, createOrdinalScale } from "@domphy/chart";
 import type { ChartOption, TooltipParams } from "@domphy/chart";
@@ -190,6 +190,11 @@ export interface TooltipValueContext {
 export interface ActivityTooltipOptions {
   indicator?: TooltipIndicatorStyle;
   showLabel?: boolean;
+  /** Render series labels in the muted-foreground tone. True for the default/
+   * formatter recipes (whose label inherits `text-muted-foreground`); the
+   * advanced recipe's upstream custom formatter renders the label bare in the
+   * full foreground, so it passes `false`. */
+  mutedLabel?: boolean;
   labelMode?: TooltipLabelMode;
   staticLabel?: string;
   labelFormatter?: (isoDate: string) => string;
@@ -220,31 +225,47 @@ function resolveSeriesEntry(
   return seriesConfig.find((entry) => entry.name === seriesName);
 }
 
+// Upstream renders the series name AND any indicator icon in
+// `text-muted-foreground`, and the total-row divider as a solid `border-t` in
+// the border tone (registry/new-york-v4/ui/chart.tsx). Reproduced here as fixed
+// theme-token neutrals — theme-aware CSS vars, not a raw opacity multiply
+// (which measured a WCAG color-contrast failure in a prior pass).
+const TOOLTIP_MUTED_COLOR = themeColorToken(null, "shift-9", "neutral");
+const TOOLTIP_DIVIDER_COLOR = themeColorToken(null, "shift-2", "neutral");
+
 function renderIndicator(
   style: TooltipIndicatorStyle,
   colorHex: string,
   entry: ActivitySeriesEntry | undefined,
 ): string {
   switch (style) {
+    // Upstream's default "dot" is `h-2.5 w-2.5 rounded-[2px]` — a 10px
+    // rounded-square, not an 8px circle.
     case "dot":
-      return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorHex};margin-right:6px;vertical-align:middle;"></span>`;
+      return `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${colorHex};margin-right:6px;vertical-align:middle;"></span>`;
+    // Upstream's advanced-recipe swatch is also `h-2.5 w-2.5 rounded-[2px]`
+    // (10px), matching the default dot.
     case "square":
-      return `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${colorHex};margin-right:6px;vertical-align:middle;"></span>`;
+      return `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${colorHex};margin-right:6px;vertical-align:middle;"></span>`;
     case "line":
       return `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${colorHex};margin-right:6px;vertical-align:middle;"></span>`;
     case "icon":
+      // Upstream renders `itemConfig.icon` bare, inheriting the row's
+      // `text-muted-foreground` — a neutral tone, not the series color.
       return entry
-        ? `<span style="display:inline-flex;width:12px;height:12px;margin-right:6px;vertical-align:middle;color:${colorHex};">${entry.iconMarkup}</span>`
+        ? `<span style="display:inline-flex;width:12px;height:12px;margin-right:6px;vertical-align:middle;color:${TOOLTIP_MUTED_COLOR};">${entry.iconMarkup}</span>`
         : "";
     default:
       return "";
   }
 }
 
-/** Plain escaped number — the default value renderer used when a recipe
- * doesn't supply its own `renderValue`. */
+/** Upstream's default value cell: a monospace, medium-weight, tabular-nums
+ * number rendered through `value.toLocaleString()` (chart.tsx
+ * ChartTooltipContent). Used when a recipe doesn't supply its own
+ * `renderValue`. */
 export function plainValueRenderer(context: TooltipValueContext): string {
-  return escapeHtml(String(context.value));
+  return `<span style="font-family:ui-monospace,monospace;font-weight:500;font-variant-numeric:tabular-nums;">${escapeHtml(context.value.toLocaleString())}</span>`;
 }
 
 /** Monospace/tabular number immediately followed by a small muted unit
@@ -267,13 +288,21 @@ function renderTooltipRow(params: {
   entry: ActivitySeriesEntry | undefined;
   label: string;
   valueHtml: string;
-  bold?: boolean;
+  isTotal?: boolean;
+  mutedLabel?: boolean;
 }): string {
-  const { indicator, colorHex, entry, label, valueHtml, bold = false } = params;
-  const weight = bold ? "font-weight:600;" : "";
+  const { indicator, colorHex, entry, label, valueHtml, isTotal = false, mutedLabel = true } = params;
+  // Upstream: a series name is `text-muted-foreground` at normal weight; the
+  // total row's label is `text-foreground text-xs font-medium` (weight 500).
+  // Recipes whose upstream renders the label bare (advanced) pass
+  // `mutedLabel: false` so it stays full-foreground like the total row.
+  const rowStyle = isTotal ? "font-size:0.75rem;font-weight:500;" : "";
+  const labelHtml = isTotal || !mutedLabel
+    ? escapeHtml(label)
+    : `<span style="color:${TOOLTIP_MUTED_COLOR};">${escapeHtml(label)}</span>`;
   return (
-    `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;${weight}">` +
-    `<span style="display:flex;align-items:center;">${renderIndicator(indicator, colorHex, entry)}${escapeHtml(label)}</span>` +
+    `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;${rowStyle}">` +
+    `<span style="display:flex;align-items:center;">${renderIndicator(indicator, colorHex, entry)}${labelHtml}</span>` +
     `<span>${valueHtml}</span>` +
     `</div>`
   );
@@ -309,6 +338,7 @@ export function activityTooltipFormatter(
   const {
     indicator = "dot",
     showLabel = true,
+    mutedLabel = true,
     renderValue = plainValueRenderer,
     minRowWidthPx,
     panelMinWidthPx,
@@ -340,6 +370,7 @@ export function activityTooltipFormatter(
           entry,
           label: entry?.name ?? String(point.seriesName ?? ""),
           valueHtml,
+          mutedLabel,
         });
       })
       .join("");
@@ -351,22 +382,25 @@ export function activityTooltipFormatter(
         renderValue({ value: sum, seriesKey: "total", entry: undefined, rowIndex: params.length }),
       );
       totalHtml =
-        '<div style="margin:6px 0;border-top:1px solid currentColor;opacity:0.15;"></div>' +
+        `<div style="margin:6px 0;border-top:1px solid ${TOOLTIP_DIVIDER_COLOR};"></div>` +
         renderTooltipRow({
           indicator: "none",
           colorHex: "",
           entry: undefined,
           label: totalLabel,
           valueHtml: totalValueHtml,
-          bold: true,
+          isTotal: true,
         });
     }
 
+    // Upstream tooltipLabel is `font-medium` = weight 500 (chart.tsx), not
+    // semibold.
     const header = showLabel
-      ? `<div style="font-weight:600;margin-bottom:4px;">${renderHeaderLabel(options, dataIndex, dataset)}</div>`
+      ? `<div style="font-weight:500;margin-bottom:4px;">${renderHeaderLabel(options, dataIndex, dataset)}</div>`
       : "";
 
-    const body = `<div>${header}${rows}${totalHtml}</div>`;
+    // Upstream wraps the series rows in `grid gap-1.5` (6px vertical rhythm).
+    const body = `<div>${header}<div style="display:grid;gap:6px;">${rows}</div>${totalHtml}</div>`;
     return panelMinWidthPx ? `<div style="min-width:${panelMinWidthPx}px;">${body}</div>` : body;
   };
 }

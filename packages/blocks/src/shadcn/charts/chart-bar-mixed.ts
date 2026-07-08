@@ -20,6 +20,7 @@ import {
   chartBarFrame,
   chartBarHiddenValueXAxis,
   chartBarHorizontalHoverOverlay,
+  chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
   type ChartBarCategoryPoint,
@@ -53,7 +54,7 @@ function chartBarMixed(props: ChartBarMixedProps = {}): DomphyElement<"div"> {
     subtitle = "January - June 2026",
     trendText = "Trending up by 5.2% this month",
     trendDirection = "up",
-    captionText = "Showing total visitors by browser",
+    captionText = "Showing total visitors for the last 6 months",
     grid = DEFAULT_GRID,
     height = 64,
   } = props;
@@ -63,6 +64,9 @@ function chartBarMixed(props: ChartBarMixedProps = {}): DomphyElement<"div"> {
   const orderedData = [...data].reverse();
   const categories = orderedData.map((point) => point.category);
   const values = orderedData.map((point) => point.value);
+  const colorHexes = orderedData.map(
+    (point, index) => chartBarColorHex(point.color ?? CHART_BAR_SERIES_PALETTE[index % CHART_BAR_SERIES_PALETTE.length] as ThemeColor),
+  );
   const [, domainMax] = chartBarValueDomain(values);
 
   const option: ChartOption = {
@@ -77,9 +81,7 @@ function chartBarMixed(props: ChartBarMixedProps = {}): DomphyElement<"div"> {
         itemStyle: { borderRadius: [0, 5, 5, 0] },
         data: orderedData.map((point, index) => ({
           value: point.value,
-          itemStyle: {
-            color: chartBarColorHex(point.color ?? CHART_BAR_SERIES_PALETTE[index % CHART_BAR_SERIES_PALETTE.length] as ThemeColor),
-          },
+          itemStyle: { color: colorHexes[index] },
         })),
       },
     ],
@@ -96,8 +98,12 @@ function chartBarMixed(props: ChartBarMixedProps = {}): DomphyElement<"div"> {
             chartBarHorizontalHoverOverlay({
               categories,
               grid,
-              showCategoryTitle: true,
-              valueLabel: (index) => String(values[index] ?? ""),
+              valueLabel: (index) =>
+                chartBarTooltipRow(
+                  `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorHexes[index]};margin-right:6px;"></span>`,
+                  seriesLabel,
+                  String(values[index] ?? ""),
+                ),
             }),
           ],
         }),

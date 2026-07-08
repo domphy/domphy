@@ -52,11 +52,19 @@ export interface ChartAreaStackedExpandProps {
   height?: number;
 }
 
+// Declared bottom-to-top to match upstream's <Area> order (other → mobile →
+// desktop): the engine stacks series[0] at the bottom, so the faint `other`
+// band sits at the base and the primary `desktop` band on top, and the
+// axis-tooltip rows list Other, Mobile, Desktop in this same order. Each key
+// keeps its own palette color / opacity, so the ordering no longer coincides
+// with the engine's rotation-by-position — the tooltip's color dot (driven by
+// series position in the engine, not the configured color) is a known
+// consequence of that, see chart-area-shared.ts's tooltip note.
 const DEFAULT_SERIES: ChartAreaStackedExpandSeries[] = [
-  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0], opacity: 0.4 },
-  { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[1], opacity: 0.4 },
   // Minor category recedes visually at a lower opacity, per spec.
   { key: "other", label: "Other", color: CHART_AREA_SERIES_PALETTE[2], opacity: 0.1 },
+  { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[1], opacity: 0.4 },
+  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0], opacity: 0.4 },
 ];
 
 /**
@@ -94,7 +102,9 @@ function chartAreaStackedExpand(props: ChartAreaStackedExpandProps = {}): Domphy
   const option: ChartOption = {
     tooltip: {
       trigger: "axis",
-      formatter: chartAxisTooltipFormatter(categories, valueLabel),
+      axisPointer: { type: "none" },
+      // Upstream passes `<ChartTooltipContent indicator="line" />`.
+      formatter: chartAxisTooltipFormatter(categories, valueLabel, false, "line"),
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     // Fixed 0–100 domain — the stack always fills the plot exactly. Chrome is

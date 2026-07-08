@@ -50,15 +50,17 @@ describe("sidebar01", () => {
     expect(host.querySelectorAll("main").length).toBe(1);
   });
 
-  it("renders the workspace switcher, nav groups and account footer", () => {
+  it("renders the version switcher, labeled nav groups and a toggle rail (no footer)", () => {
     const { host } = render(sidebar01());
     const aside = host.querySelector("aside")!;
 
-    // Workspace switcher + account row are both buttons inside the aside.
-    expect(aside.querySelectorAll("button").length).toBeGreaterThan(1);
-    // Nav groups render as labeled <ul> lists with icon+label rows.
+    // Upstream sidebar-01 header is a VersionSwitcher (Documentation / v{ver}).
+    expect(aside.querySelector('button[aria-label="Select a version"]')).toBeTruthy();
+    // Nav groups render as labeled <ul> lists with plain text rows.
     expect(aside.querySelectorAll("nav ul li a").length).toBeGreaterThan(0);
     expect(aside.querySelectorAll("small").length).toBeGreaterThan(0);
+    // Non-floating shell renders a <SidebarRail/> toggle; upstream has no footer.
+    expect(aside.querySelector('button[aria-label="Toggle Sidebar"]')).toBeTruthy();
   });
 
   it("renders the docs search field in the header (aside + mobile drawer)", () => {

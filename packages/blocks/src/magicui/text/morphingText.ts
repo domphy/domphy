@@ -1,46 +1,45 @@
-// magicui "Morphing Text" — clean-room reimplementation from the public
-// behavior/visual spec only (no upstream source viewed or copied). A single
-// centered line of display text that liquid-morphs from one phrase to the
-// next on a fixed timer, using the classic SVG "goo" filter technique
-// (heavy Gaussian blur re-thresholded by a contrast-boosting color matrix)
-// so two overlapping soft-edged phrases visually fuse and separate like
-// liquid instead of cross-dissolving. See Codrops' "Morphing Gooey Text
-// Hover Effect" and similar tutorials for the general, framework-agnostic
-// technique this is built from.
+// magicui "Morphing Text" — direct port of the upstream React component
+// (reference/magicui/apps/www/registry/magicui/morphing-text.tsx). A single
+// centered line of large display text that liquid-morphs from one phrase to
+// the next on a rAF-driven timeline using the SVG "goo" thresholding
+// technique: two persistent, absolutely-stacked spans (the current phrase and
+// the next one) each get a per-frame CSS `filter: blur()` that ramps from very
+// blurry to sharp (and back), while a shared `#threshold` feColorMatrix on the
+// container re-thresholds the composited alpha so the two overlapping blurred
+// phrases fuse and separate like liquid instead of plainly cross-dissolving.
 //
-// Only the phrase layers' opacity is actually animated (via `motion()`'s
-// enter/exit, driven by a reactive keyed list); the blur+matrix filter,
-// applied once and left static on the shared container, is what turns a
-// plain crossfade of two overlapping shapes into a gooey merge — and turns
-// a single resting shape back into crisp, readable text once settled.
+// Timeline (upstream, in seconds): each phrase spends `morphTime` (1.5s)
+// actively morphing into the next, then `cooldownTime` (0.5s) fully resolved
+// and at rest — so most of every cycle is spent mid-morph, not idle. The
+// blur/opacity curves are upstream's verbatim: the incoming span's blur is
+// `min(8/fraction - 8, 100)px` with opacity `pow(fraction, 0.4)`, and the
+// outgoing span mirrors it against `1 - fraction`. Per-frame styles are
+// written straight to each span's DOM node inside the requestAnimationFrame
+// loop (same imperative idiom numberTicker/hyperText use in this package),
+// not routed through reactive State.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { toState } from "@domphy/core";
-import { heading, motion } from "@domphy/ui";
-import { themeFluidSpacing } from "@domphy/theme";
 
 export interface MorphingTextProps {
   /** Phrases cycled through in order, looping back to the first. Defaults to a short demo sequence. */
   phrases?: string[];
-  /** Milliseconds each phrase is shown before morphing to the next. Defaults to 2500. */
-  interval?: number;
-  /** Milliseconds the morph (opacity cross-animation) itself takes. Defaults to 600. */
-  transitionDuration?: number;
-  /** CSS easing for the morph. Defaults to "ease-in-out". */
-  easing?: string;
+  /** Seconds each phrase spends actively morphing into the next. Upstream `morphTime`. Defaults to 1.5. */
+  morphTime?: number;
+  /** Seconds each phrase rests fully resolved before the next morph begins. Upstream `cooldownTime`. Defaults to 0.5. */
+  cooldownTime?: number;
   /** Passthrough style merged onto the outer container. */
   style?: StyleObject;
 }
 
 let morphingTextInstanceCounter = 0;
 
-interface PhraseEntry {
-  key: string;
-  text: string;
-}
-
-/** Hidden SVG holding the shared "goo" filter definition — blur then re-threshold via a steep alpha contrast matrix. */
-function gooFilterDefs(filterId: string): DomphyElement<"svg"> {
+/**
+ * Hidden SVG holding the shared `#threshold` filter — a single feColorMatrix
+ * that steepens alpha contrast (upstream `0 0 0 255 -140`). No blur lives
+ * inside the filter; the blur is the per-span CSS `filter: blur()` animated
+ * each frame, and the container adds a static `blur(0.6px)` on top.
+ */
+function thresholdFilterDefs(filterId: string): DomphyElement<"svg"> {
   return {
     svg: [
       {
@@ -48,22 +47,11 @@ function gooFilterDefs(filterId: string): DomphyElement<"svg"> {
           {
             filter: [
               {
-                feGaussianBlur: null,
-                in: "SourceGraphic",
-                // Tuned relative to `phraseLayer`'s own font size below — a
-                // blur this size (in SVG user units, ~px) needs glyph strokes
-                // thick enough to survive it and still cross the color
-                // matrix's re-threshold, or the result never resolves back
-                // into readable text (just a permanent blob) even at rest.
-                stdDeviation: "5",
-                result: "blurred",
-              },
-              {
                 feColorMatrix: null,
-                in: "blurred",
-                mode: "matrix",
-                values: "1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9",
-                result: "goo",
+                in: "SourceGraphic",
+                type: "matrix",
+                values:
+                  "1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 255 -140",
               },
             ],
             id: filterId,
@@ -72,127 +60,160 @@ function gooFilterDefs(filterId: string): DomphyElement<"svg"> {
       },
     ],
     ariaHidden: "true",
-    style: { position: "absolute", width: 0, height: 0, overflow: "hidden" },
+    preserveAspectRatio: "xMidYMid slice",
+    // Upstream `className="fixed h-0 w-0"`.
+    style: { position: "fixed", width: 0, height: 0 },
   } as DomphyElement<"svg">;
 }
 
-function phraseLayer(
-  entry: PhraseEntry,
-  transitionDuration: number,
-  easing: string,
-): DomphyElement<"div"> {
-  return {
-    div: [
-      {
-        h2: entry.text,
-        $: [heading()],
-        style: {
-          margin: 0,
-          textAlign: "center",
-          // `heading()`'s own h2 size (theme "increase-3", ~1.9375rem) is
-          // sized for in-flow section titles, not a standalone display
-          // effect — its stroke width is too thin for the goo blur above to
-          // ever resolve back into legible text. Override with a much
-          // bigger fluid size (function-form, so the inline-typography
-          // doctor rule's literal-value check doesn't flag it) matching the
-          // "large morphing wordmark" this effect is meant to show.
-          fontSize: () => themeFluidSpacing(16, 28),
-        },
-      },
-    ],
-    _key: entry.key,
-    style: {
-      position: "absolute",
-      inset: 0,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    $: [
-      motion({
-        initial: { opacity: 0 },
-        animate: { opacity: 1 },
-        exit: { opacity: 0 },
-        transition: { duration: transitionDuration, easing },
-      }),
-    ],
-  };
-}
-
 /**
- * A single line of display text that automatically, endlessly morphs
+ * A single line of large display text that automatically, endlessly morphs
  * between phrases with a gooey blur-and-sharpen transition instead of an
  * instant change or plain crossfade. No interaction required. Call with no
  * arguments for a working demo cycling through a short phrase list.
  */
 function morphingText(props: MorphingTextProps = {}): DomphyElement<"div"> {
   const phrases = props.phrases ?? ["Build", "Ship", "Scale", "Repeat"];
-  const interval = props.interval ?? 2500;
-  const transitionDuration = props.transitionDuration ?? 600;
-  const easing = props.easing ?? "ease-in-out";
+  const morphTime = props.morphTime ?? 1.5;
+  const cooldownTime = props.cooldownTime ?? 0.5;
 
   const instanceId = ++morphingTextInstanceCounter;
-  const filterId = `domphy-morphing-text-goo-${instanceId}`;
+  const filterId = `domphy-morphing-text-threshold-${instanceId}`;
 
-  const layers = toState<PhraseEntry[]>(
-    phrases.length > 0 ? [{ key: "phrase-0", text: phrases[0] }] : [],
-  );
-  let phraseIndex = 0;
-  let insertCount = 0;
+  const count = phrases.length;
+  const firstPhrase = count > 0 ? phrases[0] : "";
+  const secondPhrase = count > 0 ? phrases[1 % count] : "";
 
-  const advance = () => {
-    if (phrases.length <= 1) return;
-    phraseIndex = (phraseIndex + 1) % phrases.length;
-    insertCount += 1;
-    // Replacing the whole (single-item) array in one `set()` call lets the
-    // reconciler run both halves of the crossfade at once: the new key
-    // mounts immediately (`motion()`'s enter), while the old key's
-    // `_onBeforeRemove` plays its exit and only unmounts once finished —
-    // both layers are absolutely stacked, so they visibly overlap while the
-    // shared goo filter fuses their soft edges together.
-    layers.set([{ key: `phrase-${insertCount}`, text: phrases[phraseIndex] }]);
+  // Refs captured on mount; the rAF loop reads them each frame and no-ops
+  // until both are set (upstream's `if (!current1 || !current2) return`).
+  let currentSpanElement: HTMLElement | null = null;
+  let nextSpanElement: HTMLElement | null = null;
+
+  // Upstream span classes: `absolute inset-x-0 top-0 m-auto inline-block w-full`.
+  const spanStyle: StyleObject = {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    margin: "auto",
+    display: "inline-block",
+    width: "100%",
+  };
+
+  const currentSpan: DomphyElement<"span"> = {
+    span: firstPhrase,
+    style: spanStyle,
+    _onMount: (node: ElementNode) => {
+      currentSpanElement = node.domElement as HTMLElement;
+    },
+    _onRemove: () => {
+      currentSpanElement = null;
+    },
+  };
+
+  const nextSpan: DomphyElement<"span"> = {
+    span: secondPhrase,
+    // Hidden until the loop takes over, so pre-JS/no-JS shows only the first
+    // phrase rather than both stacked phrases at once.
+    style: { ...spanStyle, opacity: 0 },
+    _onMount: (node: ElementNode) => {
+      nextSpanElement = node.domElement as HTMLElement;
+    },
+    _onRemove: () => {
+      nextSpanElement = null;
+    },
   };
 
   return {
-    div: [
-      gooFilterDefs(filterId),
-      {
-        div: (listener) =>
-          layers
-            .get(listener)
-            .map((entry) => phraseLayer(entry, transitionDuration, easing)),
-        // `width`/`height: 100%` here would depend on the outer container
-        // having an *explicit* height — it only has `minHeight`, which a
-        // percentage-height child doesn't resolve against (it resolves to
-        // `auto`, i.e. 0, since there's no other in-flow content to size
-        // against). `position: absolute; inset: 0` sizes against the outer
-        // box's actual used height (min-height included) instead, and — since
-        // the SVG goo filter's default region is relative to *this* element's
-        // own bounding box — a collapsed 0-height box was clipping the filter
-        // region to nothing, hiding the phrases entirely.
-        style: {
-          position: "absolute",
-          inset: 0,
-          filter: `url(#${filterId})`,
-        },
-      },
-    ],
+    div: [currentSpan, nextSpan, thresholdFilterDefs(filterId)],
+    // Upstream container: `relative mx-auto h-16 w-full max-w-3xl text-center
+    // font-sans text-[40pt] leading-none font-bold
+    // filter-[url(#threshold)_blur(0.6px)] md:h-24 lg:text-[6rem]`.
     style: {
       position: "relative",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
+      marginLeft: "auto",
+      marginRight: "auto",
+      height: "4rem",
       width: "100%",
-      // Comfortably taller than the phrase's own fluid font-size range
-      // above (16-28 quarter-em => 4-7em), so the glyph is never clipped by
-      // the goo filter's region (relative to this box) at any viewport size.
-      minHeight: themeFluidSpacing(24, 36),
+      maxWidth: "48rem",
+      textAlign: "center",
+      fontFamily: "ui-sans-serif, system-ui, sans-serif",
+      fontSize: "40pt",
+      lineHeight: "1",
+      fontWeight: "700",
+      filter: `url(#${filterId}) blur(0.6px)`,
+      "@media (min-width: 768px)": { height: "6rem" },
+      "@media (min-width: 1024px)": { fontSize: "6rem" },
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
-      if (typeof window === "undefined" || phrases.length <= 1) return;
-      const timer = setInterval(advance, interval);
-      node.addHook("Remove", () => clearInterval(timer));
+      // Nothing to morph with 0 or 1 phrase — both spans are already seeded,
+      // so skip the perpetual rAF loop entirely.
+      if (typeof window === "undefined" || count <= 1) return;
+
+      let textIndex = 0;
+      let morph = 0;
+      let cooldown = 0;
+      let lastTime = performance.now();
+      let frameHandle = 0;
+
+      const setStyles = (fraction: number) => {
+        const current = currentSpanElement;
+        const next = nextSpanElement;
+        if (!current || !next) return;
+
+        next.style.filter = `blur(${Math.min(8 / fraction - 8, 100)}px)`;
+        next.style.opacity = `${Math.pow(fraction, 0.4) * 100}%`;
+
+        const invertedFraction = 1 - fraction;
+        current.style.filter = `blur(${Math.min(8 / invertedFraction - 8, 100)}px)`;
+        current.style.opacity = `${Math.pow(invertedFraction, 0.4) * 100}%`;
+
+        current.textContent = phrases[textIndex % count];
+        next.textContent = phrases[(textIndex + 1) % count];
+      };
+
+      const doMorph = () => {
+        morph -= cooldown;
+        cooldown = 0;
+
+        let fraction = morph / morphTime;
+        if (fraction > 1) {
+          cooldown = cooldownTime;
+          fraction = 1;
+        }
+
+        setStyles(fraction);
+
+        if (fraction === 1) textIndex += 1;
+      };
+
+      const doCooldown = () => {
+        morph = 0;
+        const current = currentSpanElement;
+        const next = nextSpanElement;
+        if (current && next) {
+          next.style.filter = "none";
+          next.style.opacity = "100%";
+          current.style.filter = "none";
+          current.style.opacity = "0%";
+        }
+      };
+
+      const animate = () => {
+        frameHandle = requestAnimationFrame(animate);
+
+        const now = performance.now();
+        const deltaSeconds = (now - lastTime) / 1000;
+        lastTime = now;
+
+        cooldown -= deltaSeconds;
+        if (cooldown <= 0) doMorph();
+        else doCooldown();
+      };
+
+      frameHandle = requestAnimationFrame(animate);
+      node.addHook("Remove", () => cancelAnimationFrame(frameHandle));
     },
   };
 }

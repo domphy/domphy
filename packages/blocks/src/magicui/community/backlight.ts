@@ -15,7 +15,7 @@
 // (`position: absolute; width: 0; height: 0; overflow: hidden`) as
 // `morphingText.ts`'s "goo" filter defs.
 
-import type { DomphyElement, StyleObject } from "@domphy/core";
+import type { DomphyElement } from "@domphy/core";
 
 export interface BacklightProps {
   /** The single media element to wrap — image, video, or SVG. Defaults to a
@@ -23,8 +23,8 @@ export interface BacklightProps {
   children?: DomphyElement;
   /** Gaussian blur `stdDeviation` controlling how soft/wide the glow spreads. Defaults to `20`. */
   blur?: number;
-  /** Passthrough style merged onto the media wrapper (the filtered element). */
-  style?: StyleObject;
+  /** Passthrough class applied to the outer wrapper div. */
+  className?: string;
 }
 
 let backlightInstanceCounter = 0;
@@ -105,15 +105,10 @@ function backlight(props: BacklightProps = {}): DomphyElement<"div"> {
       backlightFilterDefs(filterId, blur),
       {
         div: [content],
-        style: {
-          position: "relative",
-          display: "inline-block",
-          filter: `url(#${filterId})`,
-          ...(props.style ?? {}),
-        } as StyleObject,
+        style: { filter: `url(#${filterId})` },
       } as DomphyElement<"div">,
     ],
-    style: { position: "relative", display: "inline-block" },
+    class: props.className,
   };
 }
 

@@ -40,10 +40,10 @@ function chartRadarLabelCustom(props: ChartRadarLabelCustomProps = {}): DomphyEl
     data = RADAR_MONTHLY_MULTI_DATA,
     series = RADAR_MULTI_SERIES,
     title = "Radar Chart - Custom Label",
-    description = "January - June 2026",
+    description = "Showing total visitors for the last 6 months",
     trendText = "Trending up by 5.2% this month",
     trendDirection = "up",
-    captionText = "Showing total visitors for the last 6 months",
+    captionText = "January - June 2026",
   } = props;
 
   const tooltip = createRadarTooltip();
@@ -58,7 +58,7 @@ function chartRadarLabelCustom(props: ChartRadarLabelCustomProps = {}): DomphyEl
           series,
           tooltip,
           customLabels: true,
-          tooltipShowLabel: false,
+          tooltipShowLabel: true,
           tooltipIndicator: "line",
         }),
       ],

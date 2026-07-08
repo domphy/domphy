@@ -93,9 +93,14 @@ export const RADAR_SINGLE_SERIES: RadarSeriesConfig[] = [
   { key: "value", label: "Desktop", color: "primary", fillOpacity: 0.6 },
 ];
 
+// Upstream draws desktop with an explicit `fillOpacity={0.6}` and mobile with
+// fillOpacity omitted. recharts 3.8.0 defines no fillOpacity default (verified
+// against `defaultRadarProps` in polar/Radar.tsx and the shape/Polygon.tsx
+// path render — neither sets one), so the mobile polygon paints at the SVG
+// default of 1.0, fully opaque on top of the translucent desktop layer.
 export const RADAR_MULTI_SERIES: RadarSeriesConfig[] = [
   { key: "desktop", label: "Desktop", color: "primary", fillOpacity: 0.6, icon: "down" },
-  { key: "mobile", label: "Mobile", color: "secondary", fillOpacity: 0.95, icon: "up" },
+  { key: "mobile", label: "Mobile", color: "secondary", fillOpacity: 1, icon: "up" },
 ];
 
 // ─── Geometry ───────────────────────────────────────────────────────────────
@@ -312,8 +317,11 @@ export interface RadarCustomLabelsProps {
   topExtraOffset?: number;
 }
 
-/** Two stacked `<text>` lines per spoke: bold "value/value" line, then a muted month-name
- * line offset below it — replaces the plain axis label (chartRadarLabelCustom only). */
+/** Two stacked `<text>` lines per spoke: a medium-weight two-tone value line
+ * (desktop value in foreground, a muted "/" separator, mobile value in
+ * foreground — three tspans, matching upstream's custom tick), then a muted
+ * month-name line offset below it — replaces the plain axis label
+ * (chartRadarLabelCustom only). */
 export function renderRadarCustomLabels(props: RadarCustomLabelsProps): DomphyElement[] {
   const { data, series, plotRadius = RADAR_PLOT_RADIUS, labelOffset = 20, topExtraOffset = 8 } = props;
   const count = data.length;
@@ -328,21 +336,22 @@ export function renderRadarCustomLabels(props: RadarCustomLabelsProps): DomphyEl
     const firstValue = point[first.key];
     const secondValue = second ? point[second.key] : undefined;
 
-    const valueSpans: DomphyElement[] = [
-      { tspan: String(firstValue), fill: (l: Listener) => themeColor(l, "shift-11"), fontWeight: "600" } as DomphyElement<"tspan">,
-    ];
+    // Three tspans: desktop value (inherits the text's foreground fill), a
+    // muted "/" separator, mobile value (foreground again) — matching upstream's
+    // <tspan>desktop</tspan><tspan class="fill-muted-foreground">/</tspan><tspan>mobile</tspan>.
+    const valueSpans: DomphyElement[] = [{ tspan: String(firstValue) } as DomphyElement<"tspan">];
     if (second) {
-      valueSpans.push({
-        tspan: `/${secondValue}`,
-        fill: (l: Listener) => themeColor(l, "shift-6"),
-      } as DomphyElement<"tspan">);
+      valueSpans.push({ tspan: "/", fill: (l: Listener) => themeColor(l, "shift-6") } as DomphyElement<"tspan">);
+      valueSpans.push({ tspan: String(secondValue) } as DomphyElement<"tspan">);
     }
 
     elements.push({
       text: valueSpans,
       x: anchor.x,
       y: anchor.y,
+      fill: (l: Listener) => themeColor(l, "shift-11"),
       fontSize: "11",
+      fontWeight: "500",
       textAnchor,
       dominantBaseline: "middle",
       _key: `custom-label-value-${point.category}`,
@@ -547,9 +556,13 @@ export function radarTooltipLayer(
   const children: DomphyElement[] = [];
 
   if (showLabel) {
+    // Upstream's tooltipLabel is a `font-medium` heading in full foreground
+    // (no muted class) — override small()'s neutral color back to foreground
+    // and bump to medium weight.
     children.push({
       small: (l: Listener) => tooltip.state.get(l).categoryLabel,
       $: [small({ color: "neutral" })],
+      style: { color: (l: Listener) => themeColor(l, "shift-9"), fontWeight: "500" },
     } as DomphyElement<"small">);
   }
 
@@ -557,11 +570,26 @@ export function radarTooltipLayer(
     const row: DomphyElement[] = [];
     if (indicator !== "none") row.push(radarIndicatorMark(entry.color, indicator));
     if (indicator !== "none" || series.length > 1) {
+      // Series name: left-aligned, muted-foreground, normal weight (upstream's
+      // `<span className="text-muted-foreground">`).
       row.push({ small: entry.label, $: [small({ color: "neutral" })] } as DomphyElement<"small">);
     }
+    // Value: pushed to the row's trailing edge (ml-auto), rendered `font-mono
+    // font-medium text-foreground tabular-nums` per upstream ChartTooltipContent,
+    // with `item.value.toLocaleString()` numeric formatting.
     row.push({
-      small: (l: Listener) => String(tooltip.state.get(l).entries[index]?.value ?? ""),
+      small: (l: Listener) => {
+        const value = tooltip.state.get(l).entries[index]?.value;
+        return value == null ? "" : value.toLocaleString();
+      },
       $: [small({ color: "neutral" })],
+      style: {
+        marginInlineStart: "auto",
+        color: (l: Listener) => themeColor(l, "shift-9"),
+        fontFamily: "ui-monospace, monospace",
+        fontWeight: "500",
+        fontVariantNumeric: "tabular-nums",
+      },
     } as DomphyElement<"small">);
     children.push({
       div: row,
@@ -581,6 +609,8 @@ export function radarTooltipLayer(
       display: "flex",
       flexDirection: "column",
       gap: themeSpacing(1),
+      // Upstream ChartTooltipContent panel is `min-w-[8rem]`.
+      minWidth: "8rem",
       paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1),
       paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2.5),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
@@ -754,13 +784,21 @@ export interface RadarCardShellProps {
   description: string;
   content: DomphyElement<"div">;
   footer?: DomphyElement<"footer">;
+  /** Extra gap below the header block, matching upstream's `CardHeader pb-4`.
+   * Most radar recipes carry it; chart-radar-dots and chart-radar-legend use a
+   * plain `items-center` header with no pb-4, so they pass `false`. */
+  headerPaddingBottom?: boolean;
 }
 
 export function radarCardShell(props: RadarCardShellProps): DomphyElement<"div"> {
-  const { title, description, content, footer } = props;
+  const { title, description, content, footer, headerPaddingBottom = true } = props;
   const children: DomphyElement[] = [
     { h3: title, $: [heading()], style: { textAlign: "center" } },
-    { p: description, $: [paragraph({ color: "neutral" })], style: { textAlign: "center" } },
+    {
+      p: description,
+      $: [paragraph({ color: "neutral" })],
+      style: { textAlign: "center", ...(headerPaddingBottom ? { marginBottom: themeSpacing(4) } : {}) },
+    },
     content,
   ];
   if (footer) children.push(footer);

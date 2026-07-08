@@ -22,7 +22,7 @@ A **Effects** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 | `maxDelay` | `number` | Maximum randomized start delay, in seconds. Defaults to `1.2`. |
 | `minDuration` | `number` | Minimum randomized fall duration, in seconds. Defaults to `2`. |
 | `maxDuration` | `number` | Maximum randomized fall duration, in seconds. Defaults to `10`. |
-| `angle` | `number` | Trajectory angle in degrees (215 = down-and-to-the-left). Defaults to `215`. |
+| `angle` | `number` | Trajectory angle in degrees (215 = travels up-and-to-the-right, tail trailing down-and-left). Defaults to `215`. |
 | `color` | `ThemeColor` | Theme color family for the meteor head/tail glow. Defaults to `"neutral"`. |
 | `children` | `DomphyElement \| DomphyElement[]` | Foreground content layered above the shower. Defaults to a small demo heading. |
 | `style` | `StyleObject` | Passthrough style merged onto the outer container. |

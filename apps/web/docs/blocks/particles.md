@@ -19,7 +19,7 @@ A **Effects** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 |---|---|---|
 | `quantity` | `number` | Number of particles. Defaults to `100`. |
 | `color` | `ThemeColor` | Theme color family for the particles. Defaults to `"neutral"` (reads bright against a dark surface). |
-| `size` | `number` | Base particle radius, in canvas pixels. Defaults to `1.2`. |
+| `size` | `number` | Base particle radius, in canvas pixels. Defaults to `0.4`. |
 | `ease` | `number` | Higher = smoother/slower easing back to rest. Defaults to `50`. |
 | `staticity` | `number` | Higher = more resistant to the mouse-repulsion force. Defaults to `50`. |
 | `vx` | `number` | Ambient horizontal drift velocity. Defaults to `0`. |

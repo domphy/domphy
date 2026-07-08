@@ -17,13 +17,13 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 
 | Prop | Type | Description |
 |---|---|---|
-| `children` | `DomphyElement \| DomphyElement[]` | Content rendered flat and centered above the tunnel (e.g. a card). Defaults to a small demo card. |
-| `perspective` | `number` | CSS `perspective` depth, in `themeSpacing` units — smaller reads as a stronger/closer tunnel. Defaults to `200`. |
+| `children` | `DomphyElement \| DomphyElement[]` | Content rendered flat above the tunnel (e.g. a card). Defaults to a small demo card. |
+| `perspective` | `number` | CSS `perspective` depth in px — smaller reads as a stronger/closer tunnel. Defaults to `100` (matching upstream). |
 | `beamsPerSide` | `number` | Number of beams rendered per plane (×4 planes total). Defaults to `3`. |
-| `beamSize` | `number` | Beam thickness, in `themeSpacing` units. Defaults to `1`. |
+| `beamSize` | `number` | Beam width as a percentage of its plane, which ALSO sets the crosshatch grid cell size. Defaults to `5`. |
 | `beamDelayMin` | `number` | Minimum randomized per-beam start delay, in seconds. Defaults to `0`. |
-| `beamDelayMax` | `number` | Maximum randomized per-beam start delay, in seconds. Defaults to `4`. |
-| `beamDuration` | `number` | One drift-and-fade cycle, in seconds. Defaults to `3`. |
+| `beamDelayMax` | `number` | Maximum randomized per-beam start delay, in seconds. Defaults to `3`. |
+| `beamDuration` | `number` | One drift cycle, in seconds. Defaults to `3`. |
 | `gridColor` | `ThemeColor` | Theme color family for the grid lines. Defaults to `"neutral"`. |
 | `beamColors` | `ThemeColor[]` | Color roles cycled across beams — approximates the reference's full-hue-wheel randomization within Domphy's token system. Defaults to six built-in roles. |
 | `style` | `StyleObject` | Passthrough style merged onto the outer container. |

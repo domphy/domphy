@@ -39,20 +39,20 @@ export interface AnimatedBeamConnection {
   bend?: "vertical" | "horizontal";
   /** Plays the pulse from `to` towards `from` instead of `from` towards `to`. */
   reverse?: boolean;
-  /** Full loop duration in ms. Defaults to `3000`. */
+  /** Full loop duration in ms. Defaults to `5000`. */
   duration?: number;
   /** Delay in ms before this beam's pulse starts — use to stagger multiple beams. Defaults to `0`. */
   delay?: number;
-  /** Theme color of the traveling glow. Defaults to `"primary"`. */
-  glowColor?: ThemeColor;
+  /** Leading color of the traveling glow gradient. Defaults to `"#ffaa40"` (orange). */
+  gradientStartColor?: string;
+  /** Trailing color of the traveling glow gradient. Defaults to `"#9c40ff"` (purple). */
+  gradientStopColor?: string;
   /** Theme color of the static background line. Defaults to `"neutral"`. */
   pathColor?: ThemeColor;
-  /** Stroke width (px) of the static background line. Defaults to `2`. */
+  /** Stroke width (px) of the static background line (and the glow, which matches it). Defaults to `2`. */
   pathWidth?: number;
-  /** Opacity of the static background line. Defaults to `0.4`. */
+  /** Opacity of the static background line. Defaults to `0.2`. */
   pathOpacity?: number;
-  /** Stroke width (px) of the glow segment. Defaults to `3`. */
-  glowWidth?: number;
   /** Extra x/y offset (px) applied to the beam's start point, past the node's edge. */
   startXOffset?: number;
   startYOffset?: number;
@@ -169,6 +169,7 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
 
   let containerElement: HTMLElement | null = null;
   let svgElement: SVGSVGElement | null = null;
+  let svgWidth = 0;
   let resizeObserver: ResizeObserver | null = null;
   let recomputeFrameId: number | null = null;
   let animationFrameId: number | null = null;
@@ -185,8 +186,11 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
   ): string {
     const midX = (startX + endX) / 2;
     const midY = (startY + endY) / 2;
-    const controlX = bend === "horizontal" ? midX + curvature : midX;
-    const controlY = bend === "horizontal" ? midY : midY - curvature;
+    // Upstream anchors the control point to the start point, not the chord
+    // midpoint: controlY = startY - curvature (animated-beam.tsx:90). The
+    // horizontal-bend variant is the port's own symmetric analog (startX-anchored).
+    const controlX = bend === "horizontal" ? startX + curvature : midX;
+    const controlY = bend === "horizontal" ? midY : startY - curvature;
     return `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`;
   }
 
@@ -194,6 +198,7 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
     if (!containerElement) return;
     const containerRect = containerElement.getBoundingClientRect();
     if (containerRect.width === 0 && containerRect.height === 0) return;
+    svgWidth = containerRect.width;
 
     svgElement?.setAttribute(
       "viewBox",
@@ -234,10 +239,18 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
     });
   }
 
-  // The moving "window" is a short slice of the gradient's own coordinate
-  // range, linearly interpolated between the beam's start/end points. Its
-  // stops are fixed (transparent -> glow -> transparent), so sliding the
-  // window along the vector produces a traveling pulse.
+  // The gradient vector is a fixed ~10%-of-viewport-wide band whose stops run
+  // orange -> purple, swept horizontally across the whole SVG viewport. Upstream
+  // (animated-beam.tsx:56-68) keeps y1==y2=='0%' and only animates x as a
+  // percentage of the viewport width, so the pulse always travels left-to-right
+  // (or right-to-left when reversed) regardless of the beam's actual angle — it
+  // does NOT follow the start->end chord.
+  // easeOutExpo (https://easings.net/#easeOutExpo) — matches upstream's
+  // motion/react transition easing ([0.16, 1, 0.3, 1]) for the sweep.
+  function easeOutExpo(t: number): number {
+    return t >= 1 ? 1 : 1 - Math.pow(2, -10 * t);
+  }
+
   function tick(timestamp: number): void {
     // Belt-and-suspenders stop condition: some hosts (e.g. a test harness
     // that wipes the DOM directly instead of going through the framework's
@@ -246,32 +259,27 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
     // forever across later, unrelated test files.
     if (!containerElement || !containerElement.isConnected) return;
     if (animationStart === null) animationStart = timestamp;
-    const bandFraction = 0.28;
-    const span = 1 + bandFraction * 2;
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
     connections.forEach((connection, index) => {
       const runtime = runtimes[index];
       const gradient = runtime.gradientElement;
       if (!gradient || !runtime.hasGeometry) return;
 
-      const duration = connection.duration ?? 3000;
+      const duration = connection.duration ?? 5000;
       const delay = connection.delay ?? 0;
       const elapsed = timestamp - animationStart! - delay;
       if (elapsed < 0) return;
 
-      const progress = (elapsed % duration) / duration;
-      let windowStart = progress * span - bandFraction;
-      let windowEnd = windowStart + bandFraction;
-      if (connection.reverse) {
-        windowStart = 1 - windowStart;
-        windowEnd = 1 - windowEnd;
-      }
-
-      const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-      gradient.setAttribute("x1", String(lerp(runtime.startX, runtime.endX, windowStart)));
-      gradient.setAttribute("y1", String(lerp(runtime.startY, runtime.endY, windowStart)));
-      gradient.setAttribute("x2", String(lerp(runtime.startX, runtime.endX, windowEnd)));
-      gradient.setAttribute("y2", String(lerp(runtime.startY, runtime.endY, windowEnd)));
+      const progress = easeOutExpo((elapsed % duration) / duration);
+      // Upstream keyframes (fractions of viewport width): non-reverse sweeps
+      // x1 10%->110% / x2 0%->100%; reverse sweeps x1 90%->-10% / x2 100%->0%.
+      const x1Fraction = connection.reverse ? lerp(0.9, -0.1, progress) : lerp(0.1, 1.1, progress);
+      const x2Fraction = connection.reverse ? lerp(1.0, 0.0, progress) : lerp(0.0, 1.0, progress);
+      gradient.setAttribute("x1", String(x1Fraction * svgWidth));
+      gradient.setAttribute("x2", String(x2Fraction * svgWidth));
+      gradient.setAttribute("y1", "0");
+      gradient.setAttribute("y2", "0");
     });
 
     animationFrameId = window.requestAnimationFrame(tick);
@@ -301,7 +309,7 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       },
       style: {
         color: (listener) => themeColor(listener, "shift-3", connection.pathColor ?? "neutral"),
-        opacity: connection.pathOpacity ?? 0.4,
+        opacity: connection.pathOpacity ?? 0.2,
       },
     } as DomphyElement;
   }
@@ -315,7 +323,9 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       d: "M 0 0",
       fill: "none",
       stroke: `url(#${gradientId(index)})`,
-      strokeWidth: String(connection.glowWidth ?? 3),
+      // Upstream draws the glow at the SAME width as the static path
+      // (animated-beam.tsx:141 & :147 both use pathWidth).
+      strokeWidth: String(connection.pathWidth ?? 2),
       strokeLinecap: "round",
       _key: `glow-${index}`,
       _onMount: (node: ElementNode) => {
@@ -331,18 +341,26 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
     connection: AnimatedBeamConnection,
     index: number,
   ): DomphyElement {
-    const glowColor = connection.glowColor ?? "primary";
+    const startColor = connection.gradientStartColor ?? "#ffaa40";
+    const stopColor = connection.gradientStopColor ?? "#9c40ff";
     // `<stop>` is a paint-server node, not text — it has no `color` to follow the
     // tone context, so the `missing-color` doctor rule is a false positive here.
-    const stop = (offset: string, opacity: number): DomphyElement =>
+    const stop = (offset: string, color: string, opacity: number): DomphyElement =>
       ({
         stop: null,
         offset,
-        style: { stopColor: (listener) => themeColor(listener, "shift-9", glowColor), stopOpacity: opacity },
+        style: { stopColor: color, stopOpacity: opacity },
         _doctorDisable: "missing-color",
       }) as DomphyElement;
+    // Upstream's 4 asymmetric stops (animated-beam.tsx:177-184): start color at
+    // 0% transitioning to stop color, opaque middle, fading to transparent at 100%.
     return {
-      linearGradient: [stop("0%", 0), stop("50%", 1), stop("100%", 0)],
+      linearGradient: [
+        stop("0%", startColor, 0),
+        stop("0%", startColor, 1),
+        stop("32.5%", stopColor, 1),
+        stop("100%", stopColor, 0),
+      ],
       id: gradientId(index),
       gradientUnits: "userSpaceOnUse",
       x1: "0",

@@ -3,17 +3,19 @@
 // A single-value gauge in the same family as chartRadialShape, but with a
 // much thinner ring that sweeps most of the circle (leaving only a small
 // gap) and ends in distinctly rounded, pill-like caps instead of flat ones.
-// Same centered value/caption text treatment and decorative framing circles
-// as chartRadialShape — treat the two as parameter presets of one underlying
-// single-value gauge (see renderRadialGauge in ./chart-radial-shared.ts).
+// Same centered value/caption text treatment as chartRadialShape, but no
+// extra decorative framing circles — its background track's radius already
+// matches the ring's own band exactly, so no separate inset circles render —
+// treat the two as parameter presets of one underlying single-value gauge
+// (see renderRadialGauge in ./chart-radial-shared.ts).
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
-import { chartCardShell, chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
-import { renderRadialGauge } from "./chart-radial-shared.js";
+import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
+import { radialCardShell, renderRadialGauge } from "./chart-radial-shared.js";
 
 export interface ChartRadialTextProps {
   value?: number;
@@ -38,7 +40,7 @@ export interface ChartRadialTextProps {
 function chartRadialText(props: ChartRadialTextProps = {}): DomphyElement<"div"> {
   const {
     value = 1125,
-    color = "primary",
+    color = "secondary",
     captionText = "Visitors",
     title = "Radial Chart - Text",
     description = "January - June 2026",
@@ -46,12 +48,13 @@ function chartRadialText(props: ChartRadialTextProps = {}): DomphyElement<"div">
     trendDirection = "up",
     footerCaptionText = "Showing total visitors for the last 6 months",
     sweepDegrees = 250,
-    innerRadiusRatio = 0.85,
-    showDecorativeCircles = true,
+    // Upstream innerRadius=80 / outerRadius=90 -> a 10-unit band (ratio 80/90).
+    innerRadiusRatio = 80 / 90,
+    showDecorativeCircles = false,
     showBackgroundTrack = true,
   } = props;
 
-  return chartCardShell({
+  return radialCardShell({
     title,
     description,
     content: {

@@ -33,10 +33,12 @@ describe("scrollProgress", () => {
     expect(() => node.remove()).not.toThrow();
   });
 
-  it("accepts a custom color/thickness without throwing", () => {
-    const { host } = render(
-      scrollProgress({ color: "success", thickness: 2 }) as DomphyElement,
+  it("applies custom colors/thickness to the bar's style", () => {
+    const { node } = render(
+      scrollProgress({ colors: ["success"], thickness: 2 }) as DomphyElement,
     );
-    expect(host.querySelector('[role="progressbar"]')).toBeTruthy();
+    const css = node.generateCSS();
+    expect(css).toContain("calc(0.5em)");
+    expect(css).toContain("var(--success-");
   });
 });

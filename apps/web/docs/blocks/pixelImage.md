@@ -26,8 +26,8 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 | `fadeDuration` | `number` | Per-cell fade-in duration, in ms. Defaults to `1000`. |
 | `maxStagger` | `number` | Maximum random stagger delay applied across cells, in ms. Defaults to `1200`. |
 | `colorSweepDelay` | `number` | Delay before the color sweep begins (once `colorSweep` is enabled), in ms. Defaults to `1300`. |
-| `width` | `string` | Container width (any CSS width value). Defaults to `"100%"`. |
-| `aspectRatio` | `string` | Container aspect ratio. Defaults to `"3 / 2"`. |
+| `width` | `string` | Container width (any CSS width value). Defaults to a fixed `"18rem"` (288px) square that doubles to `"24rem"` (384px) at the md breakpoint, mirroring upstream's `h-72 w-72 md:h-96 md:w-96`. |
+| `aspectRatio` | `string` | Container aspect ratio. When set, overrides the default fixed-square height. Upstream has none. |
 | `style` | `StyleObject` | Passthrough style merged onto the container. |
 
 ::: details Implementation notes

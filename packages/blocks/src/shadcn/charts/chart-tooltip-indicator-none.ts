@@ -1,8 +1,10 @@
 // shadcn/ui "charts/tooltip" (indicator-none recipe) — clean-room
 // reimplementation.
 //
-// Keeps the default date header, but drops the leading color swatch
-// entirely — rows read as just the series name followed by its value.
+// Header shows the raw x-axis category value (the ISO date) — upstream's
+// ChartTooltipContent gets no labelFormatter — and the leading color swatch
+// is dropped entirely, so rows read as just the series name followed by its
+// monospace/tabular value.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
@@ -44,7 +46,16 @@ function chartTooltipIndicatorNone(props: ChartTooltipIndicatorNoneProps = {}): 
   } = props;
 
   const categories = data.map((point) => formatWeekdayShort(point.date));
-  const formatter = activityTooltipFormatter(data, series, { indicator: "none" });
+  const formatter = activityTooltipFormatter(data, series, {
+    indicator: "none",
+    // Upstream ChartTooltipContent receives no labelFormatter, so the header
+    // shows the raw category value (the ISO date, e.g. "2024-07-16"), not a
+    // reformatted one — an identity formatter reproduces that verbatim.
+    labelMode: "custom",
+    labelFormatter: (isoDate) => isoDate,
+    // Value cell (mono/medium/tabular + toLocaleString) comes from the shared
+    // default plainValueRenderer, which matches upstream ChartTooltipContent.
+  });
   const option = activityBarOption({ data, categories, series, showCursor, formatter });
 
   return activityTooltipCard({

@@ -1,12 +1,10 @@
-// shadcn/ui "sidebar-in-dialog" block — clean-room reimplementation from the
-// public behavior/visual spec only (no upstream source viewed). A
-// settings-style modal: a trigger opens a centered dialog that embeds its own
-// compact two-pane layout — a narrow category list on the left (hidden on
-// narrow dialog widths, revealed via a `@container` query so the breakpoint
-// tracks the dialog's own rendered width, not the viewport) and a scrollable
-// content pane on the right whose header/body swap instantly when a category
-// is selected. This is a self-contained trigger+dialog pair, not a page shell
-// like the other sidebar-0N blocks.
+// shadcn/ui "sidebar-in-dialog" block — a settings-style modal: a trigger
+// opens a centered dialog that embeds its own compact two-pane layout — a
+// narrow category list on the left (hidden below the 768px breakpoint, same
+// as upstream's `hidden md:flex`) and a scrollable content pane on the right
+// whose header/body swap instantly when a category is selected. This is a
+// self-contained trigger+dialog pair, not a page shell like the other
+// sidebar-0N blocks.
 
 import type { DomphyElement, ElementNode, Listener, ValueOrState } from "@domphy/core";
 import { toState } from "@domphy/core";
@@ -27,7 +25,7 @@ type SidebarInDialogProps = {
   defaultCategoryId?: string;
   /** Per-category body renderer. Defaults to 10 stacked skeleton placeholder rows. */
   renderContent?: (categoryId: string) => DomphyElement | DomphyElement[];
-  /** Dialog open state — pass a `State<boolean>` for controlled usage. Defaults to closed. */
+  /** Dialog open state — pass a `State<boolean>` for controlled usage. Defaults to open (matches upstream `useState(true)`). */
   open?: ValueOrState<boolean>;
   /** Accessible dialog title (also used as the breadcrumb root segment). */
   title?: string;
@@ -45,14 +43,14 @@ type SidebarInDialogProps = {
 const ICON_BELL =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6z"/><path d="M9.5 18a2.5 2.5 0 0 0 5 0"/></svg>';
 
-const ICON_COMPASS =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/></svg>';
+const ICON_MENU =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>';
 
 const ICON_HOME =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1v-9"/></svg>';
 
 const ICON_APPEARANCE =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><circle cx="12" cy="12" r="9"/><path d="M9 9h.01M15 8h.01M16 13h.01M8.5 14h.01"/></svg>';
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M9.5 16.5 18 8a2 2 0 0 0-2-2l-8.5 8.5z"/><path d="M4 20c0-2.2 1.3-4 3-4s3 1.3 3 3-1.4 3-3.2 3c-1.6 0-2.8-.8-2.8-2z"/></svg>';
 
 const ICON_MESSAGE =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M4 5h16v11H8l-4 4z"/></svg>';
@@ -67,23 +65,23 @@ const ICON_CHECK =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M5 12l5 5 9-10"/></svg>';
 
 const ICON_AV =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1"/><rect x="17" y="14" width="4" height="6" rx="1"/></svg>';
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 12 22 8v8z"/></svg>';
 
 const ICON_CONNECTED =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M9 15l6-6"/><path d="M8 12l-2 2a3 3 0 0 0 4 4l2-2"/><path d="M16 12l2-2a3 3 0 0 0-4-4l-2 2"/></svg>';
 
-const ICON_EYE =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_LOCK =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 
-const ICON_SLIDERS =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><line x1="5" y1="4" x2="5" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="19" y1="4" x2="19" y2="20"/><circle cx="5" cy="9" r="2"/><circle cx="12" cy="15" r="2"/><circle cx="19" cy="7" r="2"/></svg>';
+const ICON_SETTINGS =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>';
 
 const ICON_CLOSE =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
 const DEFAULT_CATEGORIES: SettingsCategory[] = [
   { id: "notifications", label: "Notifications", icon: ICON_BELL },
-  { id: "navigation", label: "Navigation", icon: ICON_COMPASS },
+  { id: "navigation", label: "Navigation", icon: ICON_MENU },
   { id: "home", label: "Home", icon: ICON_HOME },
   { id: "appearance", label: "Appearance", icon: ICON_APPEARANCE },
   { id: "messages", label: "Messages & media", icon: ICON_MESSAGE },
@@ -92,8 +90,8 @@ const DEFAULT_CATEGORIES: SettingsCategory[] = [
   { id: "mark-read", label: "Mark as read", icon: ICON_CHECK },
   { id: "audio-video", label: "Audio & video", icon: ICON_AV },
   { id: "connected", label: "Connected accounts", icon: ICON_CONNECTED },
-  { id: "privacy", label: "Privacy & visibility", icon: ICON_EYE },
-  { id: "advanced", label: "Advanced", icon: ICON_SLIDERS },
+  { id: "privacy", label: "Privacy & visibility", icon: ICON_LOCK },
+  { id: "advanced", label: "Advanced", icon: ICON_SETTINGS },
 ];
 
 const SR_ONLY_STYLE = {
@@ -180,7 +178,7 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
     props.defaultCategoryId ?? categories.find((category) => category.id === "messages")?.id ?? categories[0]?.id ?? "";
   const renderContent = props.renderContent ?? (() => defaultCategoryContent());
 
-  const open = toState(props.open ?? false);
+  const open = toState(props.open ?? true);
   const activeCategoryId = toState(defaultCategoryId);
 
   const currentLabel = (l: Listener): string =>
@@ -204,13 +202,13 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
     style: {
       display: "none",
       flexShrink: "0",
-      width: themeSpacing(56),
+      width: themeSpacing(64),
       overflowY: "auto",
       padding: (l: Listener) => themeSpacing(themeDensity(l) * 3),
       borderInlineEnd: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-      "@container (min-width: 30em)": { display: "flex", flexDirection: "column" },
+      "@media (min-width: 768px)": { display: "flex", flexDirection: "column" },
     },
   } as unknown as DomphyElement<"nav">;
 
@@ -218,14 +216,18 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
     div: [
       {
         nav: [
-          { small: title, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+          {
+            small: title,
+            $: [small({ color: "neutral" })],
+            style: { "@media (max-width: 767px)": { display: "none" } },
+          } as unknown as DomphyElement,
           {
             strong: (l: Listener) => currentLabel(l),
             ariaCurrent: "page",
             $: [strong({ color: "neutral" })],
           } as unknown as DomphyElement,
         ],
-        $: [breadcrumb({ color: "neutral" })],
+        $: [breadcrumb({ color: "neutral", separator: "›" })],
       } as unknown as DomphyElement,
       {
         button: { span: ICON_CLOSE, $: [icon({ color: "neutral" })] } as unknown as DomphyElement,
@@ -254,7 +256,7 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
       justifyContent: "space-between",
       flexShrink: "0",
       gap: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-      height: themeSpacing(12),
+      height: themeSpacing(16),
       paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
       borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
@@ -276,7 +278,10 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
       flex: "1",
       minHeight: "0",
       overflowY: "auto",
-      padding: (l: Listener) => themeSpacing(themeDensity(l) * 4),
+      // upstream `p-4 pt-0`: 16px sides/bottom, 0 top (header owns the top gap).
+      paddingTop: "0",
+      paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
+      paddingBottom: (l: Listener) => themeSpacing(themeDensity(l) * 4),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
     },
@@ -337,11 +342,14 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
       flexDirection: "column",
       padding: "0",
       width: "92vw",
-      maxWidth: themeSpacing(190),
+      // upstream steps the cap: base sm:max-w-lg (512px), md:max-w-[700px],
+      // lg:max-w-[800px] — replicated as two min-width breakpoints.
+      maxWidth: themeSpacing(128),
+      "@media (min-width: 768px)": { maxWidth: themeSpacing(175) },
+      "@media (min-width: 1024px)": { maxWidth: themeSpacing(200) },
       height: themeSpacing(125),
       maxHeight: "88vh",
       overflow: "hidden",
-      containerType: "inline-size",
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 3),
       transform: "scale(0.95)",
       transition: "opacity 180ms ease-out, transform 180ms ease-out",
@@ -353,6 +361,10 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
     type: "button",
     onClick: () => open.set(true),
     $: [button({ color: "primary" })],
+    // upstream `<Button size="sm">`: compact h-8 (32px), px-3 (kept from the
+    // patch's density*3 inline padding). Zero the patch's block padding so the
+    // fixed height governs, matching the sm variant's tighter footprint.
+    style: { height: themeSpacing(8), paddingBlock: "0" },
   } as unknown as DomphyElement<"button">;
 
   return {

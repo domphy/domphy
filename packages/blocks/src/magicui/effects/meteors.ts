@@ -32,7 +32,7 @@ export interface MeteorsProps {
   minDuration?: number;
   /** Maximum randomized fall duration, in seconds. Defaults to `10`. */
   maxDuration?: number;
-  /** Trajectory angle in degrees (215 = down-and-to-the-left). Defaults to `215`. */
+  /** Trajectory angle in degrees (215 = travels up-and-to-the-right, tail trailing down-and-left). Defaults to `215`. */
   angle?: number;
   /** Theme color family for the meteor head/tail glow. Defaults to `"neutral"`. */
   color?: ThemeColor;
@@ -64,16 +64,22 @@ function meteors(props: MeteorsProps = {}): DomphyElement<"div"> {
   // rem/em/px length) so a single shared keyframe reliably carries every
   // meteor off any container's edge regardless of its size.
   const keyframes = {
-    "0%": { transform: `rotate(${angle}deg) translateX(0)`, opacity: 1 },
+    "0%": { transform: `rotate(${-angle}deg) translateX(0)`, opacity: 1 },
     "70%": { opacity: 1 },
-    "100%": { transform: `rotate(${angle}deg) translateX(-100vmax)`, opacity: 0 },
+    "100%": { transform: `rotate(${-angle}deg) translateX(-100vmax)`, opacity: 0 },
   };
   const animationName = `meteor-fall-${hashString(JSON.stringify({ keyframes, instanceId }))}`;
 
+  // Upstream spreads meteors across the FULL viewport width (window.innerWidth),
+  // not the container — so inside a narrow container many meteors land past the
+  // right edge and are clipped, which is the intended (lower) visible density.
+  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1920;
+
   const meteorElements: DomphyElement[] = Array.from({ length: count }, (_unused, index) => {
-    const leftPercent = Math.random() * 100;
+    const leftOffset = Math.floor(Math.random() * viewportWidth);
     const delaySeconds = minDelay + Math.random() * Math.max(0, maxDelay - minDelay);
-    const durationSeconds = minDuration + Math.random() * Math.max(0, maxDuration - minDuration);
+    // Upstream floors to whole integer seconds (Math.floor of the full sum).
+    const durationSeconds = Math.floor(Math.random() * Math.max(0, maxDuration - minDuration) + minDuration);
 
     return {
       span: null,
@@ -87,29 +93,32 @@ function meteors(props: MeteorsProps = {}): DomphyElement<"div"> {
       _doctorDisable: ["missing-color", "tone-background-inherit"],
       style: {
         position: "absolute",
-        top: 0,
-        left: `${leftPercent}%`,
+        top: "-5%",
+        left: `${leftOffset}px`,
         width: themeSpacing(0.5),
         height: themeSpacing(0.5),
         borderRadius: "50%",
-        // shift-11/-9 (not a small shift-1/-2) so the head/tail read as a
-        // bright glow against the dark shift-15 container surface — a small
-        // shift only nudges toward the opposite edge by a couple of ramp
-        // steps and would barely be distinguishable from the background.
+        pointerEvents: "none",
+        // shift-11 (not a small shift-1/-2) so the head/tail read as a bright
+        // streak against the dark shift-15 container surface — a small shift
+        // only nudges toward the opposite edge by a couple of ramp steps and
+        // would barely be distinguishable from the background.
         backgroundColor: (listener) => themeColor(listener, "shift-11", color),
-        boxShadow: (listener) =>
-          `0 0 ${themeSpacing(2)} ${themeColor(listener, "shift-9", color)}`,
+        // Upstream: shadow-[0_0_0_1px_#ffffff10] — a hard 1px white-10% ring
+        // with NO blur/glow. Kept as the literal so the head stays a thin
+        // streak with a faint outline, not a glowing halo.
+        boxShadow: "0 0 0 1px #ffffff10",
         animation: `${animationName} ${durationSeconds}s linear ${delaySeconds}s infinite`,
         "&::before": {
           content: `""`,
           position: "absolute",
           top: "50%",
-          right: 0,
-          width: themeSpacing(14),
+          left: 0,
+          width: themeSpacing(12.5),
           height: themeSpacing(0.25),
           transform: "translateY(-50%)",
           background: (listener) =>
-            `linear-gradient(to left, ${themeColor(listener, "shift-11", color)}, transparent)`,
+            `linear-gradient(to right, ${themeColor(listener, "shift-11", color)}, transparent)`,
         },
       } as StyleObject,
     } as DomphyElement;

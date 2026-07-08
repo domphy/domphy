@@ -18,16 +18,18 @@ afterEach(() => {
 });
 
 describe("text3dFlip", () => {
-  it("renders a working demo: one h2 with a front/back flip cell per non-space character", () => {
+  it("renders a working demo: one paragraph with a front/back flip cell per non-space character", () => {
     const { host, node } = render(text3dFlip() as DomphyElement);
     flushSync();
 
-    const heading = host.querySelector("h2");
-    expect(heading).toBeTruthy();
+    // Upstream defaults its `as` prop to "p" (a plain, unstyled line of
+    // text whose size comes from the caller's style), not a heading tag.
+    const paragraph = host.querySelector("p");
+    expect(paragraph).toBeTruthy();
 
     // The full phrase is exposed to screen readers via an sr-only label, so the
     // decorative per-character cells can stay aria-hidden.
-    expect(heading?.firstElementChild?.textContent).toBe("Fortune favors the bold");
+    expect(paragraph?.firstElementChild?.textContent).toBe("Fortune favors the bold");
 
     const flipChars = host.querySelectorAll("[data-flip-char]");
     const frontFaces = Array.from(host.querySelectorAll('[data-face="front"]'));
@@ -59,8 +61,9 @@ describe("text3dFlip", () => {
   it("plays a one-shot ripple on mouseenter and reverts (does not hold)", () => {
     // jsdom has no Web Animations API, so element.animate is stubbed to record
     // the keyframes/options each character cell is driven with — proving the
-    // handler rolls each char to the 90° face and reverts (fill: none), rather
-    // than holding a state open.
+    // handler rolls each char to the 90° face, holds until the whole staggered
+    // group settles, then cancels every animation together (does not hold
+    // indefinitely on pointer-over).
     const animations: { keyframes: unknown; options: unknown }[] = [];
     const original = (HTMLElement.prototype as unknown as { animate?: unknown }).animate;
     (HTMLElement.prototype as unknown as { animate: unknown }).animate = function (
@@ -77,24 +80,26 @@ describe("text3dFlip", () => {
       const { host } = render(text3dFlip() as DomphyElement);
       flushSync();
 
-      const h2 = host.querySelector("h2")!;
+      const paragraph = host.querySelector("p")!;
       const flipCharCount = host.querySelectorAll("[data-flip-char]").length;
 
-      h2.dispatchEvent(new Event("mouseenter"));
+      paragraph.dispatchEvent(new Event("mouseenter"));
       expect(animations.length).toBe(flipCharCount);
 
-      // Each character rolls FROM the resting transform TO the 90° roll target,
-      // with fill "none" so it snaps back to rest when the roll completes.
+      // Each character rolls FROM the resting transform TO the 90° roll target
+      // and HOLDS there (fill "forwards"): the block awaits the whole staggered
+      // group before canceling every animation together, matching upstream's
+      // own two-phase staggered-group-animate then zero-duration group reset.
       const first = animations[0];
       const keyframes = first.keyframes as { transform: string }[];
       expect(keyframes).toHaveLength(2);
       expect(keyframes[1].transform).toBe("rotateY(90deg)"); // default edge = right
-      expect((first.options as { fill: string }).fill).toBe("none");
+      expect((first.options as { fill: string }).fill).toBe("forwards");
 
       // Guard: a second mouseenter while the first ripple is still running does
       // not start a second overlapping set of animations.
       const countAfterFirst = animations.length;
-      h2.dispatchEvent(new Event("mouseenter"));
+      paragraph.dispatchEvent(new Event("mouseenter"));
       expect(animations.length).toBe(countAfterFirst);
     } finally {
       if (original === undefined) {

@@ -16,9 +16,9 @@
 // The upstream spec's `rippleColor` prop is a literal RGB string. Domphy's
 // doctor rules forbid raw rgb/hex color literals on style props, so it is
 // exposed as a `ThemeColor` role instead (default `"neutral"`, resolved at
-// its lightest edge tone — a near-white ripple at partial opacity, matching
-// the spec's own stated default) — the same tradeoff `animatedGradientText`
-// documents for its own literal-color props.
+// its lightest edge tone — a near-white ripple that flashes at full opacity
+// then fades, matching the spec's own stated default) — the same tradeoff
+// `animatedGradientText` documents for its own literal-color props.
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString, toState } from "@domphy/core";
@@ -75,7 +75,9 @@ function rippleButton(props: RippleButtonProps = {}): DomphyElement<"button"> {
     JSON.stringify({ instanceId, duration }),
   )}`;
   const rippleKeyframes = {
-    from: { transform: "translate(-50%, -50%) scale(0)", opacity: 0.45 },
+    // Matches upstream's `rippling` keyframe: the wave flashes at full opacity
+    // then fades to nothing (0%{opacity:1} -> 100%{opacity:0}).
+    from: { transform: "translate(-50%, -50%) scale(0)", opacity: 1 },
     to: { transform: "translate(-50%, -50%) scale(1)", opacity: 0 },
   };
 

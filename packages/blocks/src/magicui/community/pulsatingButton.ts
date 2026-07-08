@@ -70,14 +70,14 @@ function pulsatingButton(props: PulsatingButtonProps = {}): DomphyElement<"butto
   const keyframes =
     variant === "ripple"
       ? {
-          "0%": { boxShadow: "0 0 0 0 color-mix(in srgb, currentColor 60%, transparent)" },
+          "0%": { boxShadow: "0 0 0 0 currentColor" },
           "100%": { boxShadow: `0 0 0 ${expandLength} color-mix(in srgb, currentColor 0%, transparent)` },
         }
       : {
-          "0%,100%": { boxShadow: "0 0 0 0 color-mix(in srgb, currentColor 55%, transparent)" },
-          "50%": { boxShadow: `0 0 0 ${expandLength} color-mix(in srgb, currentColor 0%, transparent)` },
+          "0%,100%": { boxShadow: "0 0 0 0 color-mix(in srgb, currentColor 50%, transparent)" },
+          "50%": { boxShadow: `0 0 0 ${expandLength} color-mix(in srgb, currentColor 50%, transparent)` },
         };
-  const easing = variant === "ripple" ? "cubic-bezier(0, 0, 0.2, 1)" : "ease-in-out";
+  const easing = variant === "ripple" ? "cubic-bezier(0.16, 1, 0.3, 1)" : "ease-out";
   const animationName = `pulsating-button-${variant}-${hashString(
     JSON.stringify({ instanceId, duration, expandDistanceUnits, variant }),
   )}`;
@@ -91,7 +91,7 @@ function pulsatingButton(props: PulsatingButtonProps = {}): DomphyElement<"butto
       borderRadius: "inherit",
       pointerEvents: "none",
       zIndex: 0,
-      color: (listener: Listener) => themeColor(listener, "shift-9", glowFamily(listener)),
+      color: (listener: Listener) => themeColor(listener, "inherit", glowFamily(listener)),
       animation: `${animationName} ${duration}ms ${easing} infinite`,
       [`@keyframes ${animationName}`]: keyframes,
     } as StyleObject,

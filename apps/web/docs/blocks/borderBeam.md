@@ -17,14 +17,15 @@ A **Effects** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 
 | Prop | Type | Description |
 |---|---|---|
-| `size` | `number` | Length of the glowing comet, as a percentage (0-100) of the border perimeter. Defaults to `20`. |
-| `thickness` | `number` | Stroke width in pixels the beam renders at. Defaults to `2`. |
+| `size` | `number` | Diameter of the traveling comet in pixels; also the corner radius of its orbit path. Defaults to `50` (upstream `size`). |
+| `thickness` | `number` | Width in pixels of the border ring the comet is masked into. Defaults to `1` (upstream `borderWidth`). |
 | `borderRadius` | `number` | Corner radius in pixels, should roughly match the host card's own rounding. Defaults to `16`. |
-| `colorFrom` | `ThemeColor` | Gradient start color. Defaults to `"warning"` (warm). |
-| `colorTo` | `ThemeColor` | Gradient end color. Defaults to `"primary"` (cool). |
+| `colorFrom` | `ThemeColor` | Comet head color (bright end of the fade). Defaults to `"warning"` (warm, upstream #ffaa40). |
+| `colorTo` | `ThemeColor` | Comet mid color (fades on to a transparent tail). Defaults to `"secondary"` (violet, upstream #9c40ff). |
 | `duration` | `number` | Full loop duration in seconds. Defaults to `6`. |
-| `delay` | `number` | Delay before the loop starts, in seconds — use to stagger multiple beams. Defaults to `0`. |
+| `delay` | `number` | Negative phase offset in seconds applied immediately (staggers multiple beams that all run at once) — NOT a start delay. Defaults to `0`. |
 | `reverse` | `boolean` | Runs the comet counter-clockwise instead of clockwise. |
+| `initialOffset` | `number` | Starting position along the orbit as a percentage (0-100) — another way to stagger multiple beams. Defaults to `0`. |
 | `children` | `DomphyElement[]` | Card content rendered inside the beamed container. Defaults to a small demo card body. |
 
 ::: details Implementation notes

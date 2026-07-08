@@ -25,12 +25,16 @@ beforeEach(() => {
   // fallback-close timer) never throws "close is not a function" (mirrors
   // packages/ui/tests/overlay.test.ts's drawer suite).
   if (!(HTMLDialogElement.prototype as any).showModal) {
-    (HTMLDialogElement.prototype as any).showModal = function (this: HTMLDialogElement) {
+    (HTMLDialogElement.prototype as any).showModal = function (
+      this: HTMLDialogElement,
+    ) {
       this.open = true;
     };
   }
   if (!(HTMLDialogElement.prototype as any).close) {
-    (HTMLDialogElement.prototype as any).close = function (this: HTMLDialogElement) {
+    (HTMLDialogElement.prototype as any).close = function (
+      this: HTMLDialogElement,
+    ) {
       this.open = false;
     };
   }
@@ -60,11 +64,26 @@ describe("sidebar04", () => {
     expect(css).toMatch(/margin:\s*calc/);
   });
 
-  it("keeps the parent/child nav tree from sidebar03's interaction model", () => {
+  it("renders a flat bold-link nav with always-visible sub-lists (no disclosure widgets, no icons)", () => {
     const { host } = render(sidebar04());
     const aside = host.querySelector("aside")!;
 
-    expect(aside.querySelectorAll("nav li > details").length).toBe(3);
+    // Upstream sidebar-04 renders each top-level entry as a plain BOLD link
+    // with its sub-list ALWAYS visible — not a collapsible <details>.
+    expect(aside.querySelectorAll("nav details").length).toBe(0);
+    // Flat nav (no group-label headings) with no per-row icons.
+    expect(aside.querySelectorAll("nav svg").length).toBe(0);
+
+    const parents = aside.querySelectorAll("nav > ul > li");
+    expect(parents.length).toBe(5);
+    const first = parents[0];
+    // Bold parent link + always-present sub-list, both direct children.
+    expect(first.querySelector(":scope > a strong")).toBeTruthy();
+    expect(first.querySelector(":scope > ul")).toBeTruthy();
+
+    // Static docs identity header, not an interactive switcher/footer button.
+    expect(aside.querySelectorAll("button").length).toBe(0);
+    expect(aside.querySelector('a[href="#"]')).toBeTruthy();
   });
 
   it("renders a non-sticky content header", () => {

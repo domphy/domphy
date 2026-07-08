@@ -21,10 +21,10 @@ A **Effects** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 | `onThemeChange` | `(nextTheme: ThemeTogglerTheme) =&gt; void` | Called with the new theme value at the moment the swap happens (inside the same callback that drives the wipe), for callers that prefer an imperative external store (e.g. writing to `localStorage`) over passing a `State`. |
 | `variant` | `ThemeWipeVariant` | Shape the reveal wipes outward in. Defaults to `"circle"`. |
 | `duration` | `number` | Wipe duration in ms. Defaults to `400`. |
-| `origin` | `"button" \| "center"` | Where the wipe originates from: the button's own screen position, or the viewport center. Defaults to `"button"`. |
+| `fromCenter` | `boolean` | When `true`, the wipe expands from the viewport center instead of the button's own screen position. Defaults to `false`. |
 | `ariaLabel` | `string` | Accessible label for the button. Defaults to `"Toggle theme"`. |
-| `lightIcon` | `DomphyElement` | Custom glyph shown in light mode (swapped for `darkIcon` in dark mode). Defaults to a sun glyph. |
-| `darkIcon` | `DomphyElement` | Custom glyph shown in dark mode. Defaults to a crescent-moon glyph. |
+| `lightIcon` | `DomphyElement` | Custom glyph shown in light mode (swapped for `darkIcon` in dark mode). Defaults to a crescent-moon glyph. |
+| `darkIcon` | `DomphyElement` | Custom glyph shown in dark mode. Defaults to a sun glyph. |
 | `style` | `StyleObject` | — |
 
 ::: details Implementation notes

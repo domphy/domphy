@@ -17,19 +17,21 @@ import {
   DEFAULT_LINE_GRID,
   MONTHLY_VISITOR_DATA,
   type MonthlyPoint,
-  bareValueTooltipFormatter,
   chartCard,
   chartPlot,
   computeYDomain,
   hiddenLabelYAxis,
   hoverDotOverlay,
+  lineSwatchLabelValueTooltipFormatter,
   monthCategoryXAxis,
   staticPointMarkersOverlay,
   trendFooter,
 } from "./chart-line-shared.js";
 
-const REST_DOT_RADIUS = 4;
-const ACTIVE_DOT_RADIUS = 8;
+// Recharts renders `dot={{ fill }}` (no explicit r) at its default radius of 3,
+// and `activeDot={{ r: 6 }}` grows the hover marker to 6.
+const REST_DOT_RADIUS = 3;
+const ACTIVE_DOT_RADIUS = 6;
 
 /** Props for {@link chartLineDots}. */
 export interface ChartLineDotsProps {
@@ -76,7 +78,9 @@ function chartLineDots(props: ChartLineDotsProps = {}): DomphyElement<"div"> {
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "none" },
-      formatter: bareValueTooltipFormatter,
+      // Upstream `<ChartTooltipContent hideLabel />`: hides the axis (month)
+      // label but still shows the color swatch + "Desktop" series label + value.
+      formatter: lineSwatchLabelValueTooltipFormatter,
     },
     series: [
       {

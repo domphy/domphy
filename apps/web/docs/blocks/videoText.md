@@ -23,12 +23,11 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `loop` | `boolean` | Loops the video indefinitely. Defaults to `true`. |
 | `muted` | `boolean` | Mutes the video — required by browsers for autoplay to succeed. Defaults to `true`. |
 | `preload` | `"auto" \| "metadata" \| "none"` | `&lt;video&gt;` `preload` strategy. Defaults to `"auto"`. |
-| `fontSize` | `string` | Glyph font-size, any CSS length. Defaults to a fluid value that scales with viewport width. |
-| `fontWeight` | `string \| number` | Glyph font-weight. Defaults to `"800"` (heavy, so each letter reads as a wide video window). |
-| `fontFamily` | `string` | Glyph font-family stack. Defaults to a bold generic sans stack. |
-| `aspectRatio` | `string` | Container aspect ratio, CSS `aspect-ratio` syntax. Defaults to `"3 / 1"`. |
+| `fontSize` | `string` | Glyph font-size, any CSS length. Defaults to `"20vw"` (viewport-relative, matching upstream). |
+| `fontWeight` | `string \| number` | Glyph font-weight. Defaults to `"bold"` (matching upstream). |
+| `fontFamily` | `string` | Glyph font-family stack. Defaults to the generic `"sans-serif"` (matching upstream). |
+| `aspectRatio` | `string` | Fallback aspect ratio for standalone use, CSS `aspect-ratio` syntax. The container is `height:100%` like upstream's `size-full`, so a parent with a definite height overrides this; the ratio only engages when the parent height is indefinite. Defaults to `"3 / 1"`. |
 | `fallbackColor` | `ThemeColor` | Theme color family for the fallback gradient panel (used only when `videoSrc` is omitted). Defaults to `"primary"`. |
-| `pauseWhenOffscreen` | `boolean` | Pauses the video while the container is scrolled out of view, resuming when it re-enters — a small performance courtesy. Defaults to `true`. |
 | `style` | `StyleObject` | Passthrough style merged onto the outer container. |
 
 ::: details Implementation notes

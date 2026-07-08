@@ -19,9 +19,9 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 |---|---|---|
 | `children` | `string \| DomphyElement \| DomphyElement[]` | Label content. Plain text or a full element (e.g. text + icon). Defaults to `"Shiny Button"`. |
 | `onClick` | `(event: MouseEvent) =&gt; void` | Click handler. |
-| `disabled` | `boolean` | Disables the button (dims it and stops the pointer cursor; the shimmer keeps looping). |
-| `duration` | `number` | One full shimmer sweep, in ms. Also exposed as `--shiny-button-duration` for CSS-side tuning. Defaults to `3000`. |
-| `shimmerWidth` | `number` | Streak band width, as a percent of the button's own box. Also exposed as `--shiny-button-shimmer-width`. Defaults to `35`. |
+| `disabled` | `boolean` | Disables the button (dims it and stops the pointer cursor; pauses the shimmer). |
+| `duration` | `number` | Moving portion of one shimmer loop, in ms; a 1s pause is added after it (upstream `repeatDelay: 1`). The full loop is also exposed as `--shiny-button-duration` for CSS-side tuning. Defaults to `3000`. |
+| `shimmerWidth` | `number` | Shimmer band width, as a percent of the button's own box. Also exposed as `--shiny-button-shimmer-width`. Defaults to `35`. |
 | `style` | `StyleObject` | Passthrough style merged onto the button. |
 
 ::: details Implementation notes

@@ -10,9 +10,10 @@
 
 import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
-import { heading, paragraph, strong } from "@domphy/ui";
+import { heading, paragraph } from "@domphy/ui";
 import {
   WIDE_SPLIT_MEDIA_QUERY,
+  brandBadge,
   coverImage,
   dividerRow,
   emailField,
@@ -70,39 +71,63 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
     onSubmit,
   } = props;
 
-  const brandRow: DomphyElement<"div"> = {
-    div: [
-      {
-        div: null,
-        style: {
-          width: themeSpacing(6),
-          height: themeSpacing(6),
-          borderRadius: themeSpacing(1),
-          backgroundColor: (listener: Listener) =>
-            themeColor(listener, "inherit", "primary"),
-          color: (listener: Listener) => themeColor(listener, "shift-11", "primary"),
-        },
-      },
-      { strong: brandName, $: [strong()] },
-    ],
-    style: { display: "flex", alignItems: "center", gap: themeSpacing(2) },
+  // Upstream wraps the badge + wordmark in a clickable `<a href="#"
+  // className="flex items-center gap-2 font-medium">` — a link, medium
+  // weight (not a bold non-interactive div). `color`/`textDecoration` reset
+  // the browser's default anchor styling so the wordmark reads as plain
+  // foreground text, matching the source.
+  const brandRow: DomphyElement<"a"> = {
+    a: [brandBadge(), brandName],
+    href: "#",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: themeSpacing(2),
+      fontWeight: "500",
+      color: "inherit",
+      textDecoration: "none",
+      "@media (min-width: 48em)": { justifyContent: "flex-start" },
+    },
   };
 
   const formBlock: DomphyElement<"form"> = {
     form: [
-      { h1: headingText, $: [heading()] },
-      { p: description, $: [paragraph({ color: "neutral" })] },
+      // Upstream groups the h1 + p in a
+      // `<div className="flex flex-col items-center gap-1 text-center">`
+      // so both are centered with a 4px (gap-1) gap.
+      {
+        div: [
+          { h1: headingText, $: [heading()] },
+          { p: description, $: [paragraph({ color: "neutral" })] },
+        ],
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+          gap: themeSpacing(1),
+        },
+      },
       emailField({ id: "login02-email", fieldLabel: emailLabel, placeholder: emailPlaceholder }),
       passwordField({ id: "login02-password", fieldLabel: passwordLabel, forgotPasswordHref }),
       submitButton(primaryButtonLabel),
       dividerRow(dividerText),
-      oauthButton({
-        brand: "github",
-        visibleLabel: githubButtonLabel,
-        accessibleLabel: githubButtonLabel,
-        onClick: onGithubClick,
-      }),
-      signUpLine({ promptText: signUpPrompt, linkLabel: signUpLabel, href: signUpHref }),
+      // Upstream keeps the GitHub button and the sign-up line inside a single
+      // `<Field>` (flex-col gap-3 = 12px), so they sit closer together than
+      // the 28px field-group rhythm around them.
+      {
+        div: [
+          oauthButton({
+            brand: "github",
+            visibleLabel: githubButtonLabel,
+            accessibleLabel: githubButtonLabel,
+            onClick: onGithubClick,
+          }),
+          signUpLine({ promptText: signUpPrompt, linkLabel: signUpLabel, href: signUpHref }),
+        ],
+        style: { display: "flex", flexDirection: "column", gap: themeSpacing(3) },
+      },
     ],
     onSubmit: (event) => {
       event.preventDefault();
@@ -115,9 +140,11 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: themeSpacing(4),
+      // Upstream FieldGroup rhythm: gap-7 (28px) between the header, each
+      // Field, and the separator — not the form's own gap-6.
+      gap: themeSpacing(7),
       width: "100%",
-      maxWidth: themeSpacing(88),
+      maxWidth: themeSpacing(80),
     },
   };
 
@@ -139,14 +166,20 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
         style: {
           display: "flex",
           flexDirection: "column",
+          gap: themeSpacing(4),
           minWidth: "0",
+          // Upstream steps padding at the `md` breakpoint (p-6 -> md:p-10)
+          // rather than scaling it continuously.
           padding: themeSpacing(6),
+          "@media (min-width: 48em)": { padding: themeSpacing(10) },
         },
       },
       {
         div: [coverImage({ src: coverImageSrc, alt: coverImageAlt, dimInDarkMode: dimCoverInDarkMode })],
         style: {
           minWidth: "0",
+          // Upstream image container carries `bg-muted` behind the photo.
+          backgroundColor: (listener: Listener) => themeColor(listener, "shift-2", "neutral"),
           [WIDE_SPLIT_MEDIA_QUERY]: { display: "none" },
         },
       },
@@ -154,7 +187,7 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
-      minHeight: "100dvh",
+      minHeight: "100svh",
       [WIDE_SPLIT_MEDIA_QUERY]: { gridTemplateColumns: "1fr" },
     },
   };

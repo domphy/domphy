@@ -73,7 +73,10 @@ function gridPattern(props: GridPatternProps = {}): DomphyElement<"div"> {
     pattern: [
       {
         path: null,
-        d: `M ${width} 0 L 0 0 0 ${height}`,
+        // Half-pixel `.5` start keeps the 1px stroke crisp within one pixel
+        // column (matches upstream `M.5 ${height}V.5H${width}`); integer 0
+        // would land the stroke on a pixel boundary and render antialiased.
+        d: `M.5 ${height}V.5H${width}`,
         fill: "none",
         // Decorative line path, no text of its own.
         _doctorDisable: "missing-color",
@@ -94,14 +97,17 @@ function gridPattern(props: GridPatternProps = {}): DomphyElement<"div"> {
   const squareElements: DomphyElement[] = squares.map(([column, row]) => ({
     rect: null,
     _key: `square-${column}-${row}`,
-    x: column * width + x,
-    y: row * height + y,
-    width,
-    height,
+    x: column * width + x + 1,
+    y: row * height + y + 1,
+    width: width - 1,
+    height: height - 1,
     ariaHidden: "true",
     _doctorDisable: "missing-color",
     style: {
-      fill: (listener: Listener) => themeColor(listener, "shift-8", color),
+      // Same tone as the grid lines (upstream uses one `gray-400/30` for both
+      // `fill-` squares and `stroke-` lines), so highlighted cells read as the
+      // same subtle tint rather than standing out brighter than the lines.
+      fill: (listener: Listener) => themeColor(listener, "shift-4", color),
     } as StyleObject,
   } as DomphyElement));
 

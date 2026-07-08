@@ -1,37 +1,52 @@
 // magicui "Spinning Text" — clean-room reimplementation from the public
-// behavior/visual spec only (no upstream source viewed or copied). A short
-// phrase (typically repeated with a separator to fill the ring) arranged so
-// each character sits at its own point on an invisible circle, oriented to
-// follow the circle's curvature — then the whole ring of pre-placed
-// characters spins as one rigid group via a single continuous CSS rotation.
-// Purely declarative: no imperative/lifecycle code is needed since every
-// character's placement is a static, precomputed transform.
+// behavior/visual spec only (no upstream source viewed or copied). The input
+// phrase is placed exactly ONCE around an invisible circle — one character per
+// span, each pre-placed at its own angle and oriented to follow the circle's
+// curvature, plus a single trailing gap so the ring reads as an open loop —
+// then the whole ring of characters spins as one rigid group via a single
+// continuous CSS rotation on the container. Purely declarative: no
+// imperative/lifecycle code is needed since every character's placement is a
+// static, precomputed transform.
 
 import type { DomphyElement, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { themeSpacing } from "@domphy/theme";
+
+export interface SpinningTextTransition {
+  /** Seconds per full rotation. Overrides `duration` when set. */
+  duration?: number;
+  /** CSS easing for the spin. Defaults to `"linear"`. */
+  easing?: string;
+}
 
 export interface SpinningTextProps {
-  /** Text content, repeated with `separator` until the ring reads as full. Defaults to a short demo phrase. */
-  children?: string;
+  /** Text placed once around the ring. An array is joined into one string. Defaults to a short demo phrase. */
+  children?: string | string[];
   /** Seconds per full rotation. Defaults to 10. */
   duration?: number;
-  /** Radius of the circular path, in `themeSpacing` units. Defaults to 14
-   * (`themeSpacing(14)` = 3.5em) — large enough that the ring's circumference
-   * comfortably exceeds the arc length of `TARGET_RING_LENGTH` repeated
-   * characters without them overlapping each other. */
-  radius?: number;
   /** Spins counter-clockwise instead of clockwise. Defaults to false. */
   reverse?: boolean;
-  /** Joins repeats of `children` when the ring needs filling out. Defaults to " • ". */
-  separator?: string;
-  /** Passthrough style merged onto the outer wrapper. */
+  /** Radius of the circular path, in `ch` (character-width) units — font-relative, matching upstream. Defaults to 5. */
+  radius?: number;
+  /** Escape hatch for the spin's own timing/easing. See {@link SpinningTextTransition}. */
+  transition?: SpinningTextTransition;
+  /** Passthrough style merged onto the wrapper. */
   style?: StyleObject;
 }
 
-// How many characters the ring targets before it reads as "full" — short
-// phrases get repeated (with `separator`) until they reach roughly this length.
-const TARGET_RING_LENGTH = 28;
+// Visually-hidden text (Tailwind's `sr-only`): removed from the visual layout
+// but still read by screen readers, so the phrase stays accessible while each
+// spinning glyph is `aria-hidden`.
+const SR_ONLY_STYLE: StyleObject = {
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  padding: 0,
+  margin: "-1px",
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  borderWidth: 0,
+};
 
 /**
  * A short phrase spinning continuously in a full circle, like text wrapped
@@ -41,19 +56,17 @@ const TARGET_RING_LENGTH = 28;
  * Call with no arguments for a working demo.
  */
 function spinningText(props: SpinningTextProps = {}): DomphyElement<"div"> {
-  const phrase = props.children ?? "learn more";
-  const separator = props.separator ?? " • ";
-  const durationSeconds = props.duration ?? 10;
-  const radiusUnits = props.radius ?? 14;
+  const phrase = Array.isArray(props.children)
+    ? props.children.join("")
+    : props.children ?? "learn more";
+  const durationSeconds = props.transition?.duration ?? props.duration ?? 10;
+  const easing = props.transition?.easing ?? "linear";
+  const radius = props.radius ?? 5;
   const reverse = props.reverse ?? false;
 
-  const repeatUnit = `${phrase}${separator}`;
-  let ringText = repeatUnit;
-  while (ringText.length < TARGET_RING_LENGTH) ringText += repeatUnit;
-  const characters = Array.from(ringText);
-
-  const radiusStyle = themeSpacing(radiusUnits);
-  const diameterStyle = themeSpacing(radiusUnits * 2);
+  // Upstream: `children.split("")` plus a single pushed trailing space, so the
+  // phrase appears once and one gap keeps the ring an open loop.
+  const characters = [...phrase, " "];
 
   const keyframes = {
     from: { transform: "rotate(0deg)" },
@@ -65,20 +78,23 @@ function spinningText(props: SpinningTextProps = {}): DomphyElement<"div"> {
     (character, index) => {
       const angleDegrees = (360 / characters.length) * index;
       return {
-        // Non-breaking space so bare spaces in the phrase render as real content.
+        // Non-breaking space so the trailing/interior gap renders as real
+        // content instead of being collapsed away by the reconciler.
         span: character === " " ? " " : character,
+        ariaHidden: "true",
         _key: `character-${index}`,
         style: {
           position: "absolute",
-          insetBlockStart: "50%",
-          insetInlineStart: "50%",
+          top: "50%",
+          left: "50%",
+          display: "inline-block",
           transformOrigin: "center",
           // Center each glyph *on* the ring: `translate(-50%, -50%)` pulls the
           // glyph back by half its own box so its center (not its top-left
-          // corner) sits on the circle before it's rotated out to the radius —
-          // matching upstream. Anchoring by the corner left every letter offset
-          // half its own width/height off the ring.
-          transform: `translate(-50%, -50%) rotate(${angleDegrees}deg) translate(0, calc(${radiusStyle} * -1))`,
+          // corner) sits on the circle, then it's rotated to its angle and
+          // pushed out along the radius. `-1ch` makes the radius scale with
+          // the font's character width, matching upstream.
+          transform: `translate(-50%, -50%) rotate(${angleDegrees}deg) translateY(calc(${radius} * -1ch))`,
         },
       };
     },
@@ -86,25 +102,15 @@ function spinningText(props: SpinningTextProps = {}): DomphyElement<"div"> {
 
   return {
     div: [
-      {
-        div: characterSpans,
-        ariaHidden: "true",
-        _key: "ring",
-        style: {
-          position: "absolute",
-          inset: 0,
-          animation: `${animationName} ${durationSeconds}s linear infinite ${reverse ? "reverse" : "normal"}`,
-          [`@keyframes ${animationName}`]: keyframes,
-        } as StyleObject,
-      },
+      ...characterSpans,
+      { span: phrase, _key: "sr-only", style: SR_ONLY_STYLE },
     ],
-    role: "img",
-    ariaLabel: phrase,
+    // The spin rotates this single container — the same element that holds the
+    // letter spans — directly, matching upstream's rotated `motion.div`.
     style: {
       position: "relative",
-      display: "inline-block",
-      width: diameterStyle,
-      height: diameterStyle,
+      animation: `${animationName} ${durationSeconds}s ${easing} infinite ${reverse ? "reverse" : "normal"}`,
+      [`@keyframes ${animationName}`]: keyframes,
       ...(props.style ?? {}),
     } as StyleObject,
   };

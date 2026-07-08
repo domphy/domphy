@@ -20,8 +20,8 @@ A **Buttons** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 | `children` | `DomphyElement \| DomphyElement[] \| string` | Button label content. Defaults to `"Get unlimited access"`. |
 | `variant` | `RainbowButtonVariant` | `"default"` is a solid dark (light-theme) / light (dark-theme) face with the animated rainbow showing only as a thin fading strip along the bottom border; `"outline"` is the literal inverse face with a visible border on 3 sides and the same bottom-only rainbow strip. Neither variant fills the whole face with the gradient. Defaults to `"default"`. |
 | `size` | `RainbowButtonSize` | Standard button size preset. Defaults to `"default"`. |
-| `colors` | `ThemeColor[]` | Gradient stops the sweep pans through, in order. Defaults to a five-hue rainbow approximation: `["error", "secondary", "primary", "info", "success"]`. |
-| `duration` | `number` | One full pan cycle, in seconds. Defaults to `3`. |
+| `colors` | `ThemeColor[]` | Gradient stops the sweep pans through, in order. Defaults to a five-hue rainbow approximation: `["error", "success", "primary", "info", "secondary"]`, matching upstream's own color-1/color-5/color-3/color-4/color-2 stop order. |
+| `duration` | `number` | One full pan cycle, in seconds. Defaults to `2`, matching upstream's `--speed` default. |
 | `onClick` | `(event: MouseEvent) =&gt; void` | — |
 | `disabled` | `boolean` | — |
 | `style` | `StyleObject` | — |

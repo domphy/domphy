@@ -8,6 +8,13 @@
 // entrance effects (`blurFade`, `terminal`'s fade lines), driven directly by
 // the Web Animations API instead of a bundled animation library.
 //
+// Stagger model matches upstream: the whole reveal always spans the same time
+// window (`duration`, default 300ms) regardless of how many segments there
+// are, so the inter-segment delay is `duration / segments.length` — long
+// strings reveal just as fast as short ones. Each segment's own tween is a
+// fixed 300ms (upstream hard-codes `duration: 0.3` in every variant and uses
+// the `duration` prop only to size the stagger window).
+//
 // Only `text` is exposed as a `ValueOrState` — passing a `State<string>`
 // gives "replay whenever the text content changes" for free: every segment's
 // `_key` embeds the current text value, so a text change produces entirely
@@ -18,7 +25,6 @@
 
 import type { DomphyElement, ElementNode, Listener, StyleObject, ValueOrState } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
 
 export type TextAnimateBy = "character" | "word" | "line" | "text";
 
@@ -34,7 +40,7 @@ export type TextAnimatePreset =
   | "scaleUp"
   | "scaleDown";
 
-export type TextAnimateTag = "span" | "div" | "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+export type TextAnimateTag = "span" | "div" | "p" | "article" | "section" | "li" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 
 export interface TextAnimateProps {
   /** Text content. Pass a `State<string>` for automatic replay when it changes.
@@ -44,28 +50,30 @@ export interface TextAnimateProps {
   by?: TextAnimateBy;
   /** Which hidden→visible keyframe pair each segment animates through. Defaults to `"fadeIn"`. */
   animation?: TextAnimatePreset;
-  /** Tween duration per segment, in ms. Defaults to `300`. */
+  /** Total time window the whole staggered reveal is spread across, in ms
+   * (matching upstream's `duration`): the inter-segment delay is
+   * `duration / segments.length`. Each segment's own tween is a fixed 300ms.
+   * Defaults to `300`. */
   duration?: number;
   /** Delay before the first segment starts, in ms. Defaults to `0`. */
   delay?: number;
-  /** Delay between consecutive segments, in ms. Defaults to `30` for `"character"`,
-   * `50` for `"word"`, `60` for `"line"`/`"text"`. */
-  staggerDelay?: number;
-  /** Waits until the wrapper scrolls into view before starting. Defaults to `false`. */
+  /** Waits until the wrapper scrolls into view before starting. Defaults to `true`. */
   startOnView?: boolean;
   /** Once triggered by scrolling into view, never re-triggers on re-entry. Only
-   * relevant when `startOnView` is `true`. Defaults to `true`. */
+   * relevant when `startOnView` is `true`. Defaults to `false`. */
   once?: boolean;
-  /** Wrapping element tag. Defaults to `"span"`. */
+  /** Wrapping element tag. Defaults to `"p"`. */
   as?: TextAnimateTag;
   /** Keeps the full, unsplit text readable to screen readers via a visually-hidden
-   * duplicate, marking the animated segments `aria-hidden`. Defaults to `true`. */
+   * duplicate plus an `aria-label` on the wrapper, marking the animated segments
+   * `aria-hidden`. Defaults to `true`. */
   accessibility?: boolean;
   /** Overrides merged onto the computed hidden keyframe. */
   initialStyle?: Record<string, string | number>;
   /** Overrides merged onto the computed visible (resting) keyframe. */
   animateStyle?: Record<string, string | number>;
-  /** Overrides merged onto the exit keyframe (defaults to the hidden keyframe). */
+  /** Overrides merged onto the exit keyframe (defaults to the preset's own exit
+   * keyframe if it has one, otherwise the hidden keyframe). */
   exitStyle?: Record<string, string | number>;
   /** Passthrough style merged onto every segment. */
   segmentStyle?: StyleObject;
@@ -73,33 +81,54 @@ export interface TextAnimateProps {
   style?: StyleObject;
 }
 
-interface TextSegment {
-  text: string;
-  animate: boolean;
-}
+// Every segment animates in upstream — including word-mode whitespace runs,
+// which are split out by `children.split(/(\s+)/)` and rendered as their own
+// `motion.span` (so they count toward `segments.length` and the stagger).
+const SEGMENT_TWEEN_MS = 300;
 
-const DEFAULT_STAGGER_MS: Record<TextAnimateBy, number> = {
-  character: 30,
-  word: 50,
-  line: 60,
-  text: 60,
-};
+// Upstream item tweens set only `duration` and rely on framer-motion's default
+// tween easing (easeInOut), identical for enter and exit. scaleUp/scaleDown
+// give the scale a spring (`type: "spring", damping: 15, stiffness: 300`);
+// WAAPI has no spring, so approximate its slight overshoot with a back-out
+// cubic-bezier on those two presets' enter tween (exit stays a plain tween,
+// matching upstream's spring-free exit variant).
+const DEFAULT_EASING = "ease-in-out";
+const SPRING_EASING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
 
-const PRESET_KEYFRAMES: Record<TextAnimatePreset, { hidden: Record<string, string | number>; visible: Record<string, string | number> }> = {
-  fadeIn: { hidden: { opacity: 0 }, visible: { opacity: 1 } },
+const PRESET_KEYFRAMES: Record<
+  TextAnimatePreset,
+  { hidden: Record<string, string | number>; visible: Record<string, string | number>; exit?: Record<string, string | number> }
+> = {
+  fadeIn: { hidden: { opacity: 0, transform: "translateY(20px)" }, visible: { opacity: 1, transform: "translateY(0)" } },
   blurIn: { hidden: { opacity: 0, filter: "blur(10px)" }, visible: { opacity: 1, filter: "blur(0px)" } },
   blurInUp: {
-    hidden: { opacity: 0, filter: "blur(10px)", transform: "translateY(8px)" },
+    hidden: { opacity: 0, filter: "blur(10px)", transform: "translateY(20px)" },
     visible: { opacity: 1, filter: "blur(0px)", transform: "translateY(0)" },
   },
   blurInDown: {
-    hidden: { opacity: 0, filter: "blur(10px)", transform: "translateY(-8px)" },
+    hidden: { opacity: 0, filter: "blur(10px)", transform: "translateY(-20px)" },
     visible: { opacity: 1, filter: "blur(0px)", transform: "translateY(0)" },
   },
-  slideUp: { hidden: { opacity: 0, transform: "translateY(14px)" }, visible: { opacity: 1, transform: "translateY(0)" } },
-  slideDown: { hidden: { opacity: 0, transform: "translateY(-14px)" }, visible: { opacity: 1, transform: "translateY(0)" } },
-  slideLeft: { hidden: { opacity: 0, transform: "translateX(14px)" }, visible: { opacity: 1, transform: "translateX(0)" } },
-  slideRight: { hidden: { opacity: 0, transform: "translateX(-14px)" }, visible: { opacity: 1, transform: "translateX(0)" } },
+  slideUp: {
+    hidden: { opacity: 0, transform: "translateY(20px)" },
+    visible: { opacity: 1, transform: "translateY(0)" },
+    exit: { opacity: 0, transform: "translateY(-20px)" },
+  },
+  slideDown: {
+    hidden: { opacity: 0, transform: "translateY(-20px)" },
+    visible: { opacity: 1, transform: "translateY(0)" },
+    exit: { opacity: 0, transform: "translateY(20px)" },
+  },
+  slideLeft: {
+    hidden: { opacity: 0, transform: "translateX(20px)" },
+    visible: { opacity: 1, transform: "translateX(0)" },
+    exit: { opacity: 0, transform: "translateX(-20px)" },
+  },
+  slideRight: {
+    hidden: { opacity: 0, transform: "translateX(-20px)" },
+    visible: { opacity: 1, transform: "translateX(0)" },
+    exit: { opacity: 0, transform: "translateX(20px)" },
+  },
   scaleUp: { hidden: { opacity: 0, transform: "scale(0.5)" }, visible: { opacity: 1, transform: "scale(1)" } },
   scaleDown: { hidden: { opacity: 0, transform: "scale(1.5)" }, visible: { opacity: 1, transform: "scale(1)" } },
 };
@@ -125,68 +154,79 @@ function toGraphemes(text: string): string[] {
   return Array.from(text);
 }
 
-function splitIntoSegments(text: string, by: TextAnimateBy): TextSegment[] {
-  if (by === "text") return [{ text, animate: true }];
-  if (by === "line") return text.split("\n").map((line) => ({ text: line, animate: true }));
-  if (by === "character") return toGraphemes(text).map((character) => ({ text: character, animate: true }));
-  // "word": keep whitespace runs as their own non-animated segments so spacing
-  // between words survives unchanged in the rendered layout.
-  const tokens = text.match(/\S+|\s+/g) ?? [];
-  return tokens.map((token) => ({ text: token, animate: !/^\s+$/.test(token) }));
+function splitIntoSegments(text: string, by: TextAnimateBy): string[] {
+  if (by === "text") return [text];
+  if (by === "line") return text.split("\n");
+  if (by === "character") return toGraphemes(text);
+  // "word": upstream splits with `children.split(/(\s+)/)`, keeping each
+  // whitespace run as its own segment so spacing survives AND the run counts
+  // toward `segments.length` (and thus the stagger window).
+  return text.split(/(\s+)/);
 }
 
 /**
  * Text that reveals itself segment by segment (character/word/line/whole)
  * with a small stagger delay between consecutive segments, animating from a
- * hidden keyframe (fade/blur/slide/scale) into its resting position. Plays on
- * mount by default, or once scrolled into view when `startOnView` is set.
- * Call with no arguments for a working demo.
+ * hidden keyframe (fade/blur/slide/scale) into its resting position. Waits
+ * until scrolled into view by default (`startOnView`), replaying on every
+ * re-entry unless `once` is set. Call with no arguments for a working demo.
  */
 function textAnimate(props: TextAnimateProps = {}): DomphyElement {
   const textState = toState(props.text ?? "Domphy renders exactly what you write, nothing more.", "text-animate-text");
   const by = props.by ?? "word";
   const animationPreset = props.animation ?? "fadeIn";
-  const durationMs = props.duration ?? 300;
+  // The `duration` prop sizes the stagger window (upstream `duration`), not the
+  // per-segment tween — that is a fixed SEGMENT_TWEEN_MS, as upstream hard-codes.
+  const staggerWindowMs = props.duration ?? 300;
   const startDelayMs = props.delay ?? 0;
-  const staggerMs = props.staggerDelay ?? DEFAULT_STAGGER_MS[by];
-  const startOnView = props.startOnView ?? false;
-  const once = props.once ?? true;
-  const wrapperTag = props.as ?? "span";
+  const startOnView = props.startOnView ?? true;
+  const once = props.once ?? false;
+  const wrapperTag = props.as ?? "p";
   const accessibility = props.accessibility ?? true;
 
   const preset = PRESET_KEYFRAMES[animationPreset] ?? PRESET_KEYFRAMES.fadeIn;
+  const isSpringScale = animationPreset === "scaleUp" || animationPreset === "scaleDown";
+  const enterEasing = isSpringScale ? SPRING_EASING : DEFAULT_EASING;
   const hiddenKeyframe = { ...preset.hidden, ...(props.initialStyle ?? {}) };
   const visibleKeyframe = { ...preset.visible, ...(props.animateStyle ?? {}) };
-  const exitKeyframe = props.exitStyle ? { ...hiddenKeyframe, ...props.exitStyle } : hiddenKeyframe;
+  const presetExitKeyframe = preset.exit ?? preset.hidden;
+  const exitKeyframe = props.exitStyle ? { ...presetExitKeyframe, ...props.exitStyle } : presetExitKeyframe;
 
   // Shared, instance-scoped runtime state — persists across reactive
   // re-renders of the segment list (e.g. when `text` is a State and changes).
   const viewState = { hasEntered: !startOnView };
   const segmentPlayers: Array<() => void> = [];
 
-  function buildSegmentElement(segment: TextSegment, index: number, currentText: string, animatedIndex: number, animatedCount: number): DomphyElement<"span"> {
+  function buildSegmentElement(
+    segment: string,
+    index: number,
+    currentText: string,
+    count: number,
+    staggerMs: number,
+  ): DomphyElement<"span"> {
     const key = `${currentText}::${index}`;
-    if (!segment.animate) {
-      return { span: segment.text, _key: key } as DomphyElement<"span">;
-    }
     return {
-      span: segment.text,
+      span: segment,
       _key: key,
+      ...(accessibility ? { ariaHidden: "true" } : {}),
       style: {
         display: by === "line" ? "block" : "inline-block",
+        // Upstream non-line segments carry `whitespace-pre`, so whitespace-run
+        // segments keep their spaces instead of collapsing under inline-block.
+        ...(by === "line" ? {} : { whiteSpace: "pre" }),
         willChange: "transform, opacity, filter",
         ...(props.segmentStyle ?? {}),
       } as StyleObject,
       _onMount: (node: ElementNode) => {
         if (typeof window === "undefined") return;
         const element = node.domElement as HTMLElement;
-        const enterDelayMs = startDelayMs + animatedIndex * staggerMs;
+        const enterDelayMs = startDelayMs + index * staggerMs;
         const play = () => {
           if (typeof element.animate !== "function") return;
           element.animate([hiddenKeyframe as Keyframe, visibleKeyframe as Keyframe], {
-            duration: durationMs,
+            duration: SEGMENT_TWEEN_MS,
             delay: enterDelayMs,
-            easing: "ease-out",
+            easing: enterEasing,
             fill: "both",
           });
         };
@@ -203,12 +243,13 @@ function textAnimate(props: TextAnimateProps = {}): DomphyElement {
           done();
           return;
         }
-        // Reversed order: the last segment to enter is the first to leave.
-        const exitDelayMs = startDelayMs + (animatedCount - 1 - animatedIndex) * staggerMs;
+        // Reversed order (upstream `staggerDirection: -1`, exit `delayChildren`
+        // is 0): the last segment to enter is the first to leave.
+        const exitDelayMs = (count - 1 - index) * staggerMs;
         const animation = element.animate([visibleKeyframe as Keyframe, exitKeyframe as Keyframe], {
-          duration: durationMs,
+          duration: SEGMENT_TWEEN_MS,
           delay: exitDelayMs,
-          easing: "ease-in",
+          easing: DEFAULT_EASING,
           fill: "both",
         });
         animation.finished.then(() => done(), () => done());
@@ -217,35 +258,20 @@ function textAnimate(props: TextAnimateProps = {}): DomphyElement {
   }
 
   function buildSegments(currentText: string): DomphyElement[] {
-    const rawSegments = splitIntoSegments(currentText, by);
-    const animatedCount = rawSegments.filter((segment) => segment.animate).length;
-    let animatedRunningIndex = 0;
-    return rawSegments.map((segment, index) => {
-      if (!segment.animate) return buildSegmentElement(segment, index, currentText, -1, animatedCount);
-      const animatedIndex = animatedRunningIndex;
-      animatedRunningIndex += 1;
-      return buildSegmentElement(segment, index, currentText, animatedIndex, animatedCount);
-    });
+    const segments = splitIntoSegments(currentText, by);
+    // Whole reveal spans `staggerWindowMs`, independent of segment count.
+    const staggerMs = segments.length > 0 ? staggerWindowMs / segments.length : 0;
+    return segments.map((segment, index) => buildSegmentElement(segment, index, currentText, segments.length, staggerMs));
   }
-
-  const typographyPatch = wrapperTag === "p" ? [paragraph()] : /^h[1-6]$/.test(wrapperTag) ? [heading()] : [];
 
   const outer = {
     [wrapperTag]: (listener: Listener) => {
       const currentText = textState.get(listener);
       const segmentElements = buildSegments(currentText);
       if (!accessibility) return segmentElements;
-      return [
-        { span: currentText, _key: "sr-only-text", style: SR_ONLY_STYLE },
-        {
-          span: segmentElements,
-          ariaHidden: "true",
-          _key: "segments",
-          style: by === "line" ? { display: "block" } : undefined,
-        },
-      ];
+      return [{ span: currentText, _key: "sr-only-text", style: SR_ONLY_STYLE }, ...segmentElements];
     },
-    ...(typographyPatch.length ? { $: typographyPatch } : {}),
+    ...(accessibility ? { ariaLabel: (listener: Listener) => textState.get(listener) } : {}),
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined" || !startOnView) return;
       if (typeof IntersectionObserver !== "function") {
@@ -273,8 +299,10 @@ function textAnimate(props: TextAnimateProps = {}): DomphyElement {
       observer.observe(element);
       node.addHook("Remove", () => observer.disconnect());
     },
+    // Upstream wrapper is a bare motion element with only `whitespace-pre-wrap`
+    // (plus optional className) — no forced display, no typography.
     style: {
-      display: by === "line" ? "block" : "inline",
+      whiteSpace: "pre-wrap",
       ...(props.style ?? {}),
     } as StyleObject,
   } as unknown as DomphyElement;

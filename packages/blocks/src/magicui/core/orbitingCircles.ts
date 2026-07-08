@@ -28,11 +28,11 @@ export interface OrbitingCircleItem {
 }
 
 export interface OrbitingCirclesProps {
-  /** Items placed evenly around the ring. Defaults to 6 generic icon-chip placeholders. */
+  /** Items placed evenly around the ring. Defaults to 6 generic icon placeholders. */
   items?: (DomphyElement | OrbitingCircleItem)[];
   /** Element pinned at the shared center point — does not orbit. Pass `null` to omit. Defaults to a small hub glyph. */
   center?: DomphyElement | null;
-  /** Orbiting chip box size, in `themeSpacing` units (≈30px at the default). Defaults to 7.5. */
+  /** Orbiting icon box size, in `themeSpacing` units (≈30px at the default). Defaults to 7.5. */
   iconSizeUnits?: number;
   /** Ring radius, in px. Defaults to 160. */
   radius?: number;
@@ -121,11 +121,16 @@ function orbitItemElement(
   const item = isOrbitingCircleItem(entry) ? entry : { content: entry };
   const delaySeconds = item.delay ?? (effectiveDuration / count) * index;
 
+  // Upstream's orbiting item is a bare, transparent `rounded-full` flex box that
+  // holds only the icon — no background, border, or shadow — so the icons read
+  // as free-floating on the ring rather than as boxed chips. `color` stays so
+  // our placeholder `currentColor` glyphs have a stroke color (upstream's real
+  // brand icons carry their own color). No reduced-motion pause — upstream
+  // orbits continuously.
   return {
     div: [item.content],
     _key: `orbit-item-${index}`,
     ariaHidden: "true",
-    dataTone: "shift-1",
     style: {
       position: "absolute",
       insetBlockStart: "50%",
@@ -136,13 +141,8 @@ function orbitItemElement(
       justifyContent: "center",
       width: themeSpacing(iconSizeUnits),
       height: themeSpacing(iconSizeUnits),
-      borderRadius: themeSpacing(2),
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
+      borderRadius: "50%",
       color: (listener: Listener) => themeColor(listener, "shift-9"),
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
-      outlineOffset: "-1px",
-      boxShadow: (listener: Listener) =>
-        `0 ${themeSpacing(1)} ${themeSpacing(3)} ${themeColor(listener, "shift-4")}`,
       willChange: "transform",
       animationName: keyframeName,
       animationDuration: `${effectiveDuration}s`,
@@ -151,12 +151,11 @@ function orbitItemElement(
       animationDirection: reverse ? "reverse" : "normal",
       animationDelay: `${-delaySeconds}s`,
       [`@keyframes ${keyframeName}`]: keyframeRules,
-      "@media (prefers-reduced-motion: reduce)": { animationPlayState: "paused" },
     } as StyleObject,
   };
 }
 
-/** Faint dashed guide circle showing the ring boundary — pure decoration, no text of its own. */
+/** Faint guide circle showing the ring boundary — pure decoration, no text of its own. */
 function orbitPathElement(radius: number): DomphyElement<"div"> {
   const element = {
     div: null,
@@ -171,7 +170,7 @@ function orbitPathElement(radius: number): DomphyElement<"div"> {
       width: `${radius * 2}px`,
       height: `${radius * 2}px`,
       borderRadius: "50%",
-      border: (listener: Listener) => `1px dashed ${themeColor(listener, "shift-3")}`,
+      border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
       pointerEvents: "none",
     },
   };
@@ -208,9 +207,9 @@ function centerElement(content: DomphyElement, iconSizeUnits: number): DomphyEle
  * A decorative "hub and spoke" layout: icon chips continuously orbiting a
  * fixed center point at constant angular velocity, with an upright-glyph
  * counter-rotation trick and evenly staggered start delays. Purely visual —
- * runs automatically on mount and pauses under `prefers-reduced-motion`.
- * Call with no arguments for a working demo — a hub glyph with 6 icon chips
- * orbiting it.
+ * runs automatically and continuously on mount (matching upstream, which has
+ * no reduced-motion pause). Call with no arguments for a working demo — a hub
+ * glyph with 6 icons orbiting it.
  */
 function orbitingCircles(props: OrbitingCirclesProps = {}): DomphyElement<"div"> {
   const items = props.items ?? defaultItems();

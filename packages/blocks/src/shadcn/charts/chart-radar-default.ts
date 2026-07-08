@@ -41,10 +41,10 @@ function chartRadarDefault(props: ChartRadarDefaultProps = {}): DomphyElement<"d
     data = RADAR_MONTHLY_SINGLE_DATA,
     series = RADAR_SINGLE_SERIES,
     title = "Radar Chart",
-    description = "January - June 2026",
+    description = "Showing total visitors for the last 6 months",
     trendText = "Trending up by 5.2% this month",
     trendDirection = "up",
-    captionText = "Showing total visitors for the last 6 months",
+    captionText = "January - June 2026",
     fillOpacity,
     showDots = false,
   } = props;

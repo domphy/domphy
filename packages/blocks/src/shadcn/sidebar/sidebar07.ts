@@ -40,18 +40,25 @@ type Sidebar07Props = {
   children?: DomphyElement | DomphyElement[];
 };
 
+const ICON_SETTINGS =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>';
+
 const DEFAULT_TEAMS: SidebarTeam[] = [
   { name: "Acme Inc", plan: "Enterprise" },
-  { name: "Acme Corp", plan: "Startup" },
+  { name: "Acme Corp.", plan: "Startup" },
+  { name: "Evil Corp.", plan: "Free" },
 ];
 
 const DEFAULT_NAV_MAIN: SidebarNavMainItem[] = [
   {
+    // Upstream marks the parent "Playground" isActive:true — its only effect is
+    // defaultOpen on the collapsible; no child is highlighted as current.
     title: "Playground",
     icon: ICON_GRID,
+    active: true,
     items: [
       { title: "History" },
-      { title: "Starred", active: true },
+      { title: "Starred" },
       { title: "Settings" },
     ],
   },
@@ -60,7 +67,26 @@ const DEFAULT_NAV_MAIN: SidebarNavMainItem[] = [
     icon: ICON_INBOX,
     items: [{ title: "Genesis" }, { title: "Explorer" }, { title: "Quantum" }],
   },
-  { title: "Documentation", icon: ICON_BAR_CHART, href: "#" },
+  {
+    title: "Documentation",
+    icon: ICON_BAR_CHART,
+    items: [
+      { title: "Introduction" },
+      { title: "Get Started" },
+      { title: "Tutorials" },
+      { title: "Changelog" },
+    ],
+  },
+  {
+    title: "Settings",
+    icon: ICON_SETTINGS,
+    items: [
+      { title: "General" },
+      { title: "Team" },
+      { title: "Billing" },
+      { title: "Limits" },
+    ],
+  },
 ];
 
 const DEFAULT_PROJECTS: SidebarProject[] = [
@@ -90,7 +116,9 @@ function sidebar07(props: Sidebar07Props = {}): DomphyElement<"div"> {
     children,
   } = props;
 
-  const sidebarOpen = toState(true);
+  // Upstream's mobile sidebar is a Sheet that defaults closed (openMobile=false);
+  // content is full-width until the trigger is tapped.
+  const sidebarOpen = toState(false);
   const collapsed = toState(false);
 
   const navMainRows = navMain.map((item) =>

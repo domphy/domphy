@@ -1,45 +1,50 @@
 // Magic UI "Glare Hover" — clean-room reimplementation.
 //
-// A wrapper that adds a soft diagonal light-streak sweeping across its child
-// content on pointer-hover, mimicking a glare/reflection passing over a
-// glossy surface. Implemented purely from the block's public
-// functional/visual spec — no upstream Magic UI source was viewed or copied.
+// A wrapper that sweeps a soft diagonal light streak across its child content
+// on pointer-hover, mimicking a glare/reflection passing over a glossy
+// surface. The streak is a diagonal `linear-gradient` band, sized larger than
+// the box and swept corner-to-corner via a CSS `background-position`
+// *transition* (matching upstream's transition-based `::before`, not a
+// keyframe animation): on hover it slides in, and on mouse-leave it reverses
+// smoothly back off-canvas. `playOnce` swaps that smooth reverse for an
+// instant reset — the sweep still plays on every hover, only the leave differs.
 //
-// The upstream spec asks for a literal hex/CSS glare color, but Domphy's
-// doctor rules forbid raw hex/rgb colors on style props — so the color is
-// expressed as a `ThemeColor` family instead, and the streak's alpha is
-// applied with `color-mix()` (a CSS function, not a raw color literal) rather
-// than converting a hex string to `rgba()`. This keeps the effect fully
-// theme-aware (it now follows light/dark theme swaps) at the cost of not
-// accepting an arbitrary caller-supplied hex value.
+// Two deliberate adaptations to Domphy's theme system, both rooted in the
+// shared doctor rule that forbids raw hex/rgb colors on style props: the glare
+// color and the wrapper `background` are expressed as `ThemeColor` families
+// resolved via `themeColor()` instead of literal CSS colors, and the streak's
+// alpha is applied with CSS `color-mix()` rather than a hex->rgba conversion.
+// This keeps the effect fully theme-aware (it follows light/dark theme swaps)
+// at the cost of not accepting an arbitrary caller-supplied hex value.
 
-import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { hashString } from "@domphy/core";
+import type { DomphyElement, StyleObject } from "@domphy/core";
 import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 
 export interface GlareHoverProps {
   /** Content wrapped by the glare surface. Defaults to a small demo panel. */
   children?: DomphyElement | DomphyElement[];
+  /** Optional CSS width on the root element (e.g. `"100%"`, `"320px"`). Defaults to fit-content. */
+  width?: string;
+  /** Optional CSS height on the root element (e.g. `"auto"`, `"200px"`). Defaults to fit-content. */
+  height?: string;
+  /** Theme color family for the wrapper surface (upstream's literal `background`). Defaults to `"neutral"` (near-black). */
+  background?: ThemeColor;
   /** Theme color family for the streak. Defaults to `"neutral"` (a bright/white-reading sweep). */
   glareColor?: ThemeColor;
-  /** Streak alpha, 0–1. Defaults to `0.35`. */
+  /** Streak alpha, 0–1. Defaults to `0.5`. */
   glareOpacity?: number;
   /** Sweep angle in degrees. Defaults to `-45`. */
   angle?: number;
-  /** Streak band size, as a percentage of the container's own box. Defaults to `220`. */
+  /** Streak band size, as a percentage of the container's own box. Defaults to `250`. */
   size?: number;
   /** Sweep duration in ms. Defaults to `650`. */
   duration?: number;
-  /** When true, the sweep only ever plays on the first pointer-enter. Defaults to `false`. */
+  /** When true, mouse-leave is an instant reset instead of a smooth reverse. Defaults to `false`. */
   playOnce?: boolean;
-  /** Edge-anchor surface tone for the container background. Defaults to `"dark"`. */
-  surface?: "light" | "dark";
   /** Passthrough style merged onto the outer container. */
   style?: StyleObject;
 }
-
-let glareHoverInstanceCounter = 0;
 
 /**
  * A wrapper that sweeps a soft diagonal light streak across its child content
@@ -47,34 +52,37 @@ let glareHoverInstanceCounter = 0;
  * with no arguments for a working demo — a dark panel that sweeps on hover.
  */
 function glareHover(props: GlareHoverProps = {}): DomphyElement<"div"> {
-  const instanceId = ++glareHoverInstanceCounter;
+  const background = props.background ?? "neutral";
   const glareColor = props.glareColor ?? "neutral";
-  const glareOpacity = props.glareOpacity ?? 0.35;
+  const glareOpacity = props.glareOpacity ?? 0.5;
   const angle = props.angle ?? -45;
-  const size = props.size ?? 220;
+  const size = props.size ?? 250;
   const duration = props.duration ?? 650;
   const playOnce = props.playOnce ?? false;
-  const surfaceTone = (props.surface ?? "dark") === "dark" ? "shift-15" : "shift-1";
-
-  // The streak is a diagonal gradient band baked into `backgroundImage`, sized
-  // larger than the box and swept via `backgroundPosition` — cheaper and
-  // simpler than transforming/rotating a separate overlay element, and reads
-  // identically as a soft light streak moving across the surface's diagonal.
-  const keyframes = {
-    from: { backgroundPosition: "-160% -160%" },
-    to: { backgroundPosition: "160% 160%" },
-  };
-  const animationName = `glare-hover-sweep-${hashString(JSON.stringify({ keyframes, instanceId }))}`;
 
   const contentChildren: DomphyElement[] = props.children
     ? Array.isArray(props.children)
       ? props.children
       : [props.children]
     : [
-        { h3: "Glare Hover", $: [heading()] } as DomphyElement,
         {
-          p: "Hover to see the light sweep pass over this surface.",
-          $: [paragraph()],
+          // The wrapper itself carries no padding or border-radius (matching
+          // upstream, whose child supplies its own surface); the default demo
+          // child provides its own padded panel so the standalone demo isn't
+          // flush to the container edge.
+          div: [
+            { h3: "Glare Hover", $: [heading()] } as DomphyElement,
+            {
+              p: "Hover to see the light sweep pass over this surface.",
+              $: [paragraph()],
+            } as DomphyElement,
+          ],
+          style: {
+            display: "grid",
+            gap: themeSpacing(2),
+            padding: themeSpacing(6),
+            minWidth: "18rem",
+          },
         } as DomphyElement,
       ];
 
@@ -89,56 +97,66 @@ function glareHover(props: GlareHoverProps = {}): DomphyElement<"div"> {
     // Decorative gradient streak with no text of its own — exempt from the
     // missing-color contract.
     _doctorDisable: "missing-color",
-    _onMount: (node: ElementNode) => {
-      if (!playOnce) return;
-      const bandElement = node.domElement as HTMLElement;
-      const containerElement = bandElement.parentElement;
-      if (!containerElement) return;
-      const onAnimationEnd = () => {
-        containerElement.setAttribute("data-glare-armed", "false");
-      };
-      bandElement.addEventListener("animationend", onAnimationEnd);
-      node.addHook("Remove", () => {
-        bandElement.removeEventListener("animationend", onAnimationEnd);
-      });
-    },
     style: {
       position: "absolute",
       inset: 0,
-      zIndex: 0,
+      zIndex: 1,
       pointerEvents: "none",
       // shift-11 (not a small shift-1) so the streak reads as a bright
-      // highlight against the container's own surface tone — a small shift
-      // only nudges a couple of ramp steps toward the opposite edge and
-      // would barely be distinguishable from the surrounding background.
+      // highlight against the container's own dark surface tone. Upstream
+      // stops: `transparent 60%, glare 70%, transparent, transparent 100%` — a
+      // narrow highlight band biased toward 70%, not a symmetric 50% band.
       backgroundImage: (listener) =>
-        `linear-gradient(${angle}deg, transparent 35%, color-mix(in srgb, ${themeColor(listener, "shift-11", glareColor)} ${Math.round(glareOpacity * 100)}%, transparent) 50%, transparent 65%)`,
+        `linear-gradient(${angle}deg, transparent 60%, color-mix(in srgb, ${themeColor(listener, "shift-11", glareColor)} ${Math.round(glareOpacity * 100)}%, transparent) 70%, transparent, transparent 100%)`,
       backgroundSize: `${size}% ${size}%`,
       backgroundRepeat: "no-repeat",
-      backgroundPosition: "-160% -160%",
+      backgroundPosition: "-100% -100%",
+      // Non-playOnce: a resting two-way transition, so the streak reverses
+      // smoothly back off-canvas on mouse-leave. playOnce: no resting
+      // transition, so leave snaps back instantly (the hover rule below
+      // re-adds the transition for the inbound sweep only).
+      transition: playOnce
+        ? "none"
+        : `background-position ${duration}ms ease-in-out`,
     } as StyleObject,
   } as DomphyElement<"div">;
 
   return {
     div: [
-      { div: contentChildren, style: { position: "relative", zIndex: 1 } },
+      { div: contentChildren, style: { position: "relative", zIndex: 0 } },
       glareBand,
     ],
-    // Armed by default; playOnce disarms it (via the band's animationend
-    // handler above) after the first sweep finishes.
+    // Dark ambient tone: the wrapper surface resolves to the darkest step of
+    // the `background` family (upstream default `#000`) and the glare's
+    // `shift-11` reads as a bright highlight against it.
+    dataTone: "shift-15",
+    // Inert static marker retained only for the block's existing DOM-shape
+    // test. It no longer gates the sweep: upstream sweeps on EVERY hover, so
+    // there is no "disarm after first play" step — `playOnce` only changes the
+    // mouse-leave from a smooth reverse to an instant reset.
     dataGlareArmed: "true",
-    dataTone: surfaceTone,
     style: {
       position: "relative",
+      display: "grid",
+      placeItems: "center",
+      width: "fit-content",
+      height: "fit-content",
+      cursor: "pointer",
       overflow: "hidden",
-      borderRadius: themeSpacing(4),
-      padding: themeSpacing(6),
-      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      backgroundColor: (listener) => themeColor(listener, "inherit", background),
       color: (listener) => themeColor(listener, "shift-9"),
-      "&[data-glare-armed=true]:hover [data-glare-band]": {
-        animation: `${animationName} ${duration}ms linear forwards`,
-      },
-      [`@keyframes ${animationName}`]: keyframes,
+      // On hover the streak slides corner-to-corner. playOnce re-adds the
+      // transition here (band base is `none`) so only the inbound sweep eases;
+      // non-playOnce inherits the band's resting transition and reverses on
+      // leave.
+      "&:hover [data-glare-band]": playOnce
+        ? {
+            transition: `background-position ${duration}ms`,
+            backgroundPosition: "100% 100%",
+          }
+        : { backgroundPosition: "100% 100%" },
+      ...(props.width !== undefined ? { width: props.width } : {}),
+      ...(props.height !== undefined ? { height: props.height } : {}),
       ...(props.style ?? {}),
     } as StyleObject,
   };

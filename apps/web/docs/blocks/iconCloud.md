@@ -18,10 +18,9 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | Prop | Type | Description |
 |---|---|---|
 | `icons` | `IconCloudItem[]` | Icons distributed evenly over the sphere. Defaults to 20 generic hand-authored glyphs. |
-| `size` | `number` | Square canvas/container size, in px. Defaults to 380. |
-| `autoRotateSpeed` | `number` | Idle auto-rotation angular speed, radians/frame. Defaults to 0.003. |
-| `dragSensitivity` | `number` | Drag sensitivity — radians of rotation per px of pointer movement. Defaults to 0.006. |
-| `friction` | `number` | Inertia decay factor applied to angular velocity each frame after release (0–1; closer to 1 coasts longer). Defaults to 0.95. |
+| `size` | `number` | Square canvas/container size, in px. Defaults to 400. |
+| `autoRotateSpeed` | `number` | Idle auto-rotation base angular speed, radians/frame, at rest with the pointer centered. Ramps up as the pointer moves away from the canvas center. Defaults to 0.003. |
+| `dragSensitivity` | `number` | Drag sensitivity — radians of rotation per px of pointer movement. Defaults to 0.002. |
 | `iconScaleRange` | `[number, number]` | Icon render size range in px, `[nearest, farthest]`. Defaults to `[42, 14]`. |
 | `iconOpacityRange` | `[number, number]` | Icon opacity range, `[nearest, farthest]`. Defaults to `[1, 0.25]`. |
 | `ariaLabel` | `string` | — |

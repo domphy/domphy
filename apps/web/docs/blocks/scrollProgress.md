@@ -17,9 +17,8 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 
 | Prop | Type | Description |
 |---|---|---|
-| `thickness` | `number` | Bar thickness, in `themeSpacing` units. Defaults to `1`. |
-| `color` | `ThemeColor` | Theme color family for the fill gradient. Defaults to `"primary"`. |
-| `smoothing` | `number` | Lerp factor per animation frame (0–1); higher catches up faster. Defaults to `0.2`. |
+| `thickness` | `number` | Bar thickness, in `themeSpacing` units. Defaults to `0.25` (~1px at the default root font size, matching the spec's `h-px`). |
+| `colors` | `ThemeColor[]` | Gradient stops the fill blends through, left-to-right. Defaults to `["primary", "secondary", "warning"]`, mapping upstream's three-hue `#A97CF8`/`#F38CB8`/`#FDCC92` (purple/pink/peach) sweep to the closest distinct theme families. |
 | `zIndex` | `number` | Stacking order. Defaults to `50`. |
 | `target` | `() =&gt; Element \| null` | Getter for a specific scrollable container to track instead of the whole page/window. Called on mount and on every scroll/resize. |
 | `style` | `StyleObject` | Passthrough style merged onto the bar. |

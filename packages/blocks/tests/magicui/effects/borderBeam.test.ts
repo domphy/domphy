@@ -18,16 +18,21 @@ afterEach(() => {
 });
 
 describe("borderBeam", () => {
-  it("renders a working demo card with a comet-beam svg overlay", () => {
-    const { host } = render(borderBeam() as DomphyElement);
+  it("renders a working demo card with a comet riding a masked border overlay", () => {
+    const { host, node } = render(borderBeam() as DomphyElement);
     expect(host.querySelector("h3")?.textContent).toBe("Border Beam");
-    const svg = host.querySelector("svg");
-    expect(svg).toBeTruthy();
-    // Core beam + blurred halo duplicate.
-    expect(svg!.querySelectorAll("rect")).toHaveLength(2);
-    const gradient = svg!.querySelector("linearGradient");
-    expect(gradient).toBeTruthy();
-    expect(gradient!.querySelectorAll("stop")).toHaveLength(2);
+    // No SVG: upstream's technique is a CSS mask overlay plus an offset-path
+    // comet div, not stroke-dasharray SVG rects.
+    expect(host.querySelector("svg")).toBeNull();
+    // Overlay (mask ring) + comet box, both decorative.
+    expect(host.querySelectorAll('[aria-hidden="true"]')).toHaveLength(2);
+    const css = node.generateCSS();
+    // Mask intersects padding-box/border-box to reveal only the border ring.
+    expect(css).toContain("mask-composite: intersect");
+    // Comet rides a rounded-rect offset-path and fades head-to-transparent-tail.
+    expect(css).toContain("offset-path: rect(0 auto auto 0 round 50px)");
+    expect(css).toContain("linear-gradient(to left, var(--warning-9), var(--secondary-9), transparent)");
+    expect(css).toMatch(/@keyframes border-beam-move-\d+/);
   });
 
   it("renders custom children content instead of the default demo body", () => {
@@ -38,11 +43,11 @@ describe("borderBeam", () => {
     expect(host.querySelector("h3")).toBeNull();
   });
 
-  it("applies the configured stroke-dasharray fraction to both rects", () => {
-    const { host } = render(borderBeam({ size: 35 }) as DomphyElement);
-    const rects = host.querySelectorAll("rect");
-    for (const rect of Array.from(rects)) {
-      expect(rect.getAttribute("stroke-dasharray")).toBe("35 65");
-    }
+  it("applies the configured size to the comet's dimensions and orbit corner radius", () => {
+    const { node } = render(borderBeam({ size: 35 }) as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toContain("width: 35px");
+    expect(css).toContain("height: 35px");
+    expect(css).toContain("offset-path: rect(0 auto auto 0 round 35px)");
   });
 });

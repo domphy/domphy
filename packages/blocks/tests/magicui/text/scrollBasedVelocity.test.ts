@@ -22,28 +22,29 @@ afterEach(() => {
 });
 
 describe("scrollBasedVelocity", () => {
-  it("renders a working demo with zero args: 2 rows, each with a track and two edge fades", () => {
+  it("renders a working demo with zero args: 2 rows, each with just a track (no edge fades — upstream renders none)", () => {
     const { host } = render(scrollBasedVelocity() as DomphyElement);
     const container = host.firstElementChild as HTMLElement;
     expect(container).toBeTruthy();
     const rows = container.querySelectorAll(":scope > div");
     expect(rows).toHaveLength(2);
     for (const row of Array.from(rows)) {
-      expect(row.querySelectorAll(":scope > div")).toHaveLength(3); // track + 2 fades
+      expect(row.querySelectorAll(":scope > div")).toHaveLength(1); // track only
     }
   });
 
-  it("duplicates row content into `repeat` copies, only the first announced", () => {
+  it("duplicates row content into copies, each wrapped in a block, only the first announced", () => {
     const { host } = render(
       scrollBasedVelocity({
         rows: [{ content: "Hello" }],
-        repeat: 4,
       }) as DomphyElement,
     );
     const track = host.querySelector('[data-size="increase-6"]') as HTMLElement;
     expect(track).toBeTruthy();
-    const copies = track.querySelectorAll(":scope > strong");
-    expect(copies).toHaveLength(4);
+    // Copy count is measured from container/content widths at runtime; jsdom
+    // reports zero layout, so it stays at the viewport-agnostic minimum of 3.
+    const copies = track.querySelectorAll(":scope > div");
+    expect(copies).toHaveLength(3);
     expect(copies[0].getAttribute("aria-hidden")).toBeNull();
     expect(copies[1].getAttribute("aria-hidden")).toBe("true");
     expect(host.textContent).toContain("Hello");

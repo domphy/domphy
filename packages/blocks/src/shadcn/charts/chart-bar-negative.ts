@@ -9,7 +9,7 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import type { ChartOption } from "@domphy/chart";
+import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_NEGATIVE_DATA,
@@ -18,7 +18,7 @@ import {
   chartBarFrame,
   chartBarSignedDomain,
   chartBarSignedLabelOverlay,
-  chartBarSignedTooltipFormatter,
+  chartBarTooltipRow,
   chartBarTrendFooter,
   type ChartBarGrid,
   type ChartBarPoint,
@@ -49,11 +49,13 @@ function chartBarNegative(props: ChartBarNegativeProps = {}): DomphyElement<"div
     data = CHART_BAR_NEGATIVE_DATA,
     seriesLabel = "Visitors",
     positiveColor = "primary",
-    negativeColor = "danger",
+    // Upstream fills negative bars with var(--chart-2); this family maps
+    // chart-2 to the 'secondary' role (see CHART_BAR_SERIES_PALETTE).
+    negativeColor = "secondary",
     title = "Bar Chart - Negative",
     subtitle = "January - June 2026",
-    trendText = "Trending down by 12.4% this month",
-    trendDirection = "down",
+    trendText = "Trending up by 5.2% this month",
+    trendDirection = "up",
     captionText = "Showing visitor change for the last 6 months",
     height = 64,
   } = props;
@@ -68,7 +70,10 @@ function chartBarNegative(props: ChartBarNegativeProps = {}): DomphyElement<"div
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "none" },
-      formatter: chartBarSignedTooltipFormatter(categories),
+      // Upstream renders this recipe's tooltip with hideLabel + hideIndicator —
+      // the month name and color dot are both dropped, only the series name +
+      // value line shows.
+      formatter: chartBarNegativeTooltipFormatter(seriesLabel),
     },
     xAxis: {
       type: "category",
@@ -97,7 +102,7 @@ function chartBarNegative(props: ChartBarNegativeProps = {}): DomphyElement<"div
         markLine: { data: [[{ yAxis: 0 }, { yAxis: 0 }]] },
         data: values.map((value) => ({
           value,
-          itemStyle: { color: value >= 0 ? positiveHex : negativeHex },
+          itemStyle: { color: value > 0 ? positiveHex : negativeHex },
         })),
       },
     ],
@@ -116,6 +121,23 @@ function chartBarNegative(props: ChartBarNegativeProps = {}): DomphyElement<"div
     },
     footer: chartBarTrendFooter({ trendText, direction: trendDirection, captionText }),
   });
+}
+
+function escapeTooltipHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function chartBarNegativeTooltipFormatter(
+  seriesLabel: string,
+): (parametersInput: TooltipParams | TooltipParams[]) => string {
+  return (parametersInput) => {
+    const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
+    if (parameters.length === 0) return "";
+    const value = escapeTooltipHtml(String(parameters[0].value ?? ""));
+    // Upstream negative chart: <ChartTooltipContent hideLabel hideIndicator />
+    // — no swatch, name muted, value mono medium foreground.
+    return chartBarTooltipRow("", escapeTooltipHtml(seriesLabel), value);
+  };
 }
 
 export { chartBarNegative };

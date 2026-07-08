@@ -134,12 +134,6 @@ const ICON_STAR =
 const ICON_CHEVRON_DOUBLE_RIGHT =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M7 6l6 6-6 6"/><path d="M14 6l6 6-6 6"/></svg>';
 
-const DASHBOARD01_SPIN_ANIMATION = "dashboard01-status-spin";
-const DASHBOARD01_SPIN_KEYFRAMES = {
-  "0%": { transform: "rotate(0deg)" },
-  "100%": { transform: "rotate(360deg)" },
-};
-
 /** Wraps a raw inline SVG string in a themed `icon()` box, mirrored on the
  * inline axis — reuses a single chevron glyph for both "next" and "prev" /
  * "last" and "first" instead of authoring four near-identical SVGs. */
@@ -226,41 +220,45 @@ const DEFAULT_METRIC_CARDS: MetricCardData[] = [
 /** A single elevated, gradient-tinted KPI card: muted label, huge bold value,
  * a top-right trend-delta pill, and a two-line trend footer. */
 function metricCard(data: MetricCardData, key: string | number): DomphyElement<"div"> {
-  const trendColor: ThemeColor = data.trendDirection === "up" ? "success" : "danger";
-
-  const trendBadge: DomphyElement<"aside"> = {
-    aside: [
-      {
-        span: [
-          chartBarTrendIcon(data.trendDirection, trendColor),
-          { span: data.badgeDelta } as unknown as DomphyElement,
-        ],
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          gap: themeSpacing(1),
-          paddingInline: themeSpacing(2),
-          paddingBlock: themeSpacing(1),
-          borderRadius: themeSpacing(999),
-          border: (l: Listener) => `1px solid ${themeColor(l, "shift-4", trendColor)}`,
-          // Own background (not just text + border floating on whatever the
-          // card's gradient tint happens to be behind it) — the badge text's
-          // contrast was measuring against the card's own background before.
-          // shift-9 text on this shift-1 background still only measured
-          // ~4.23:1 for the "success" (green) family specifically — green's
-          // heavier weight in relative-luminance math makes a given shift
-          // step read lower-contrast than the same step in other hues —
-          // shift-11 clears it with real margin.
-          backgroundColor: (l: Listener) => themeColor(l, "shift-1", trendColor),
-          color: (l: Listener) => themeColor(l, "shift-11", trendColor),
-        },
-      } as unknown as DomphyElement,
+  // Rendered inline with the label (not as a sibling `aside`) — `card()`'s
+  // grid only carves out an "aside" column next to a "title"/"desc" pair,
+  // and this KPI tile's label+value order is reversed from that (label
+  // above value, whereas card()'s "title" area always renders above
+  // "desc"), so both already bypass those named areas via the `content`
+  // wrapper below. A standalone `aside` sibling here would span the now-
+  // empty title/desc rows and float above `content` instead of sitting
+  // next to the label.
+  //
+  // Upstream section-cards.tsx uses a uniform neutral `<Badge
+  // variant="outline">` on every card: direction is conveyed only by the
+  // trend-arrow glyph, never by tinting the badge (or footer icon) per
+  // direction — so both stay neutral here.
+  const trendBadge: DomphyElement<"span"> = {
+    span: [
+      chartBarTrendIcon(data.trendDirection, "neutral"),
+      { span: data.badgeDelta } as unknown as DomphyElement,
     ],
-  } as unknown as DomphyElement<"aside">;
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: themeSpacing(1),
+      paddingInline: themeSpacing(2),
+      paddingBlock: themeSpacing(1),
+      borderRadius: themeSpacing(999),
+      border: (l: Listener) => `1px solid ${themeColor(l, "shift-4", "neutral")}`,
+      color: (l: Listener) => themeColor(l, "shift-10", "neutral"),
+    },
+  } as unknown as DomphyElement<"span">;
 
   const content: DomphyElement<"div"> = {
     div: [
-      { small: data.label, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+      {
+        div: [
+          { small: data.label, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+          trendBadge,
+        ],
+        style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: themeSpacing(2) },
+      } as unknown as DomphyElement,
       { h2: data.value, $: [heading({ color: "neutral" })] } as unknown as DomphyElement,
     ],
     style: { display: "flex", flexDirection: "column", gap: themeSpacing(1) },
@@ -270,7 +268,7 @@ function metricCard(data: MetricCardData, key: string | number): DomphyElement<"
     footer: [
       {
         div: [
-          chartBarTrendIcon(data.trendDirection, trendColor),
+          chartBarTrendIcon(data.trendDirection, "neutral"),
           { strong: data.footerHeadline, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
         ],
         style: { display: "flex", alignItems: "center", gap: themeSpacing(1.5) },
@@ -281,7 +279,7 @@ function metricCard(data: MetricCardData, key: string | number): DomphyElement<"
   } as unknown as DomphyElement<"footer">;
 
   return {
-    div: [trendBadge, content, footer],
+    div: [content, footer],
     _key: key,
     $: [card({ color: "neutral" })],
     // `color` is already declared by the card() patch above — the doctor
@@ -349,7 +347,16 @@ function computeChartTrend(series: ChartBarTwoSeriesPoint[]): { direction: Chart
 }
 
 function chartRegion(data: ChartBarDailyPoint[]): DomphyElement<"div"> {
-  const rangeKey = toState(CHART_RANGE_PRESETS[0].key);
+  // Upstream chart-area-interactive uses useIsMobile() (a 768px breakpoint)
+  // plus an effect that forces the range to "7d" on small screens. The range
+  // control isn't otherwise reactive to viewport resize here, so mirror that
+  // with a one-shot matchMedia check at build time (same approach the drawer's
+  // placement uses below).
+  const isMobileViewport =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(max-width: 767px)").matches;
+  const rangeKey = toState(isMobileViewport ? "7d" : CHART_RANGE_PRESETS[0].key);
 
   const controlRow: DomphyElement<"div"> = {
     div: [
@@ -442,6 +449,11 @@ const REVIEWER_ROSTER = [
   "Ethan Brooks",
 ];
 
+// Section categories offered by the drawer's Type/Category select (upstream's
+// TableCellViewer has an editable Type field). Any row whose current value
+// falls outside this roster is unioned in at render time.
+const CATEGORY_ROSTER = ["Overview", "Analysis", "Finance", "Design", "Engineering"];
+
 const DEFAULT_TABLE_ROWS: DashboardTableRow[] = [
   { id: 1, header: "Project Brief", sectionType: "Overview", status: "Done", target: 24, limit: 20, reviewer: "Maria Chen" },
   { id: 2, header: "Market Research", sectionType: "Analysis", status: "In Progress", target: 18, limit: 15, reviewer: "Jonas Weber" },
@@ -453,27 +465,26 @@ const DEFAULT_TABLE_ROWS: DashboardTableRow[] = [
   { id: 8, header: "Compliance Review", sectionType: "Finance", status: "In Progress", target: 22, limit: 20, reviewer: "Ethan Brooks" },
 ];
 
-const STATUS_META: Record<DashboardTableStatus, { svg: string; color: ThemeColor; spin?: boolean }> = {
-  "Done": { svg: ICON_CHECK_CIRCLE, color: "success" },
-  "In Progress": { svg: ICON_SPINNER_ARC, color: "info", spin: true },
-  "Not Started": { svg: ICON_CIRCLE_DASHED, color: "neutral" },
-};
+// Editable status values, shared by the status cell and the drawer's status
+// select. Upstream data-table.tsx distinguishes only "Done" (a green filled
+// check) from everything-else (one static loader glyph, no spin); the badge
+// chrome itself is a neutral outline for every status — there is no
+// per-status border/text tint and no animation.
+const TABLE_STATUSES: DashboardTableStatus[] = ["Done", "In Progress", "Not Started"];
 
 function statusBadge(status: DashboardTableStatus): DomphyElement<"span"> {
-  const meta = STATUS_META[status];
+  const isDone = status === "Done";
   return {
     span: [
       {
-        span: meta.svg,
+        span: isDone ? ICON_CHECK_CIRCLE : ICON_SPINNER_ARC,
         ariaHidden: "true",
         style: {
           display: "inline-flex",
           width: themeSpacing(4),
           height: themeSpacing(4),
-          animation: meta.spin ? `${DASHBOARD01_SPIN_ANIMATION} 1s linear infinite` : undefined,
-          [`@keyframes ${DASHBOARD01_SPIN_ANIMATION}`]: meta.spin ? DASHBOARD01_SPIN_KEYFRAMES : undefined,
         },
-        $: [icon({ color: meta.color })],
+        $: [icon({ color: isDone ? "success" : "neutral" })],
       } as unknown as DomphyElement,
       { span: status } as unknown as DomphyElement,
     ],
@@ -484,8 +495,8 @@ function statusBadge(status: DashboardTableStatus): DomphyElement<"span"> {
       paddingInline: themeSpacing(2),
       paddingBlock: themeSpacing(0.5),
       borderRadius: themeSpacing(999),
-      border: (l: Listener) => `1px solid ${themeColor(l, "shift-4", meta.color)}`,
-      color: (l: Listener) => themeColor(l, "shift-9", meta.color),
+      border: (l: Listener) => `1px solid ${themeColor(l, "shift-4", "neutral")}`,
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
   } as unknown as DomphyElement<"span">;
 }
@@ -523,8 +534,8 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
 
   const columnHelper = createColumnHelper<DashboardTableRow>();
   const columns = [
-    columnHelper.display({ id: "select", header: "Select", enableHiding: false }),
     columnHelper.display({ id: "drag", header: "", enableHiding: false }),
+    columnHelper.display({ id: "select", header: "Select", enableHiding: false }),
     columnHelper.accessor("header", { id: "header", header: "Title" }),
     columnHelper.accessor("sectionType", { id: "sectionType", header: "Category" }),
     columnHelper.accessor("status", { id: "status", header: "Status", filterFn: "equalsString" }),
@@ -541,7 +552,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageIndex: 0, pageSize: 5 } },
+    initialState: { pagination: { pageIndex: 0, pageSize: 10 } },
   });
 
   function commitRows(): void {
@@ -611,7 +622,14 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
             { label: "Edit", key: "edit", onClick: () => openDrawerForRow(row) },
             { label: "Duplicate", key: "duplicate", onClick: () => duplicateRow(row) },
             { label: row.favorite ? "Unfavorite" : "Favorite", key: "favorite", onClick: () => toggleFavorite(row) },
-            { label: "Delete", key: "delete", onClick: () => deleteRow(row) },
+            {
+              label: {
+                span: "Delete",
+                style: { color: (l: Listener) => themeColor(l, "shift-9", "danger") },
+              } as unknown as DomphyElement,
+              key: "delete",
+              onClick: () => deleteRow(row),
+            },
           ],
         }),
       ],
@@ -626,11 +644,11 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
             input: null,
             type: "checkbox",
             ariaLabel: "Select all rows",
-            checked: domphyTable.getIsAllRowsSelected(),
-            onChange: () => domphyTable.table.toggleAllRowsSelected(),
+            checked: domphyTable.table.getIsAllPageRowsSelected(),
+            onChange: () => domphyTable.table.toggleAllPageRowsSelected(),
             _onMount: (node: ElementNode) => {
               (node.domElement as HTMLInputElement).indeterminate =
-                domphyTable.getIsSomeRowsSelected() && !domphyTable.getIsAllRowsSelected();
+                domphyTable.table.getIsSomePageRowsSelected() && !domphyTable.table.getIsAllPageRowsSelected();
             },
             _doctorDisable: "missing-color",
             $: [inputCheckbox({ accentColor: "primary" })],
@@ -674,6 +692,9 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
         return {
           td: [{ span: ICON_GRIP, ariaHidden: "true", $: [icon({ color: "neutral" })] } as unknown as DomphyElement],
           _key: "drag",
+          draggable: true,
+          onDragStart: () => draggingId.set(original.id),
+          onDragEnd: () => draggingId.set(null),
           style: { cursor: "grab", width: themeSpacing(6) },
         } as unknown as DomphyElement<"td">;
 
@@ -767,21 +788,17 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
     return {
       tr: row.getVisibleCells().map((cell) => bodyCellFor(cell.column, row)),
       _key: original.id,
-      draggable: true,
-      onDragStart: () => draggingId.set(original.id),
       onDragOver: (e: Event) => e.preventDefault(),
       onDrop: (e: Event) => {
         e.preventDefault();
         reorderRows(draggingId.get(), original.id);
       },
-      onDragEnd: () => draggingId.set(null),
       style: {
         opacity: (l: Listener) => (draggingId.get(l) === original.id ? "0.5" : "1"),
         boxShadow: (l: Listener) =>
           draggingId.get(l) === original.id
             ? `0 ${themeSpacing(2)} ${themeSpacing(4)} ${themeColor(l, "shift-4", "neutral")}`
             : "none",
-        cursor: "grab",
       },
     } as unknown as DomphyElement<"tr">;
   }
@@ -934,7 +951,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
       div: [
         { small: "Rows per page", $: [small({ color: "neutral" })] } as unknown as DomphyElement,
         {
-          select: [5, 10, 20, 30].map((size) => ({ option: String(size), value: String(size), _key: size })),
+          select: [10, 20, 30, 40, 50].map((size) => ({ option: String(size), value: String(size), _key: size })),
           value: String(domphyTable.table.getState().pagination.pageSize),
           ariaLabel: "Rows per page",
           onChange: (e: Event) => domphyTable.table.setPageSize(Number((e.target as HTMLSelectElement).value)),
@@ -984,7 +1001,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
       const pageIndex = domphyTable.table.getState().pagination.pageIndex;
       const pageCount = Math.max(1, domphyTable.getPageCount());
       const selectedCount = domphyTable.getSelectedRowModel().rows.length;
-      const totalCount = domphyTable.getRowModel().rows.length;
+      const totalCount = domphyTable.table.getFilteredRowModel().rows.length;
       return [
         {
           small: `${selectedCount} of ${totalCount} row(s) selected.`,
@@ -1084,6 +1101,21 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
           },
           $: [inputText()],
         } as unknown as DomphyElement,
+        { label: "Category", for: fieldId("category"), $: [label()] },
+        {
+          select: Array.from(new Set([...CATEGORY_ROSTER, row.sectionType])).map((name) => ({
+            option: name,
+            value: name,
+            _key: name,
+          })),
+          id: fieldId("category"),
+          value: row.sectionType,
+          onChange: (e: Event) => {
+            row.sectionType = (e.target as HTMLSelectElement).value;
+            commitRows();
+          },
+          $: [select()],
+        } as unknown as DomphyElement,
         { label: "Reviewer", for: fieldId("reviewer"), $: [label()] },
         {
           select: REVIEWER_ROSTER.map((name) => ({ option: name, value: name, _key: name })),
@@ -1097,7 +1129,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
         } as unknown as DomphyElement,
         { label: "Status", for: fieldId("status"), $: [label()] },
         {
-          select: (Object.keys(STATUS_META) as DashboardTableStatus[]).map((status) => ({
+          select: TABLE_STATUSES.map((status) => ({
             option: status,
             value: status,
             _key: status,
@@ -1141,17 +1173,36 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
   }
 
   function drawerFooter(): DomphyElement<"footer"> {
+    // Upstream DrawerFooter renders a primary `Submit` plus an outline `Done`
+    // (DrawerClose). Field edits already commit live on each change, so Submit
+    // just flushes + closes; Done closes without further action.
     return {
       footer: [
+        {
+          button: "Submit",
+          type: "button",
+          onClick: () => {
+            commitRows();
+            drawerOpen.set(false);
+          },
+          _key: "submit",
+          $: [button({ color: "primary" })],
+        } as unknown as DomphyElement,
         {
           button: "Done",
           type: "button",
           onClick: () => drawerOpen.set(false),
-          $: [button({ color: "primary" })],
+          _key: "done",
+          $: [button({ color: "neutral" })],
         } as unknown as DomphyElement,
       ],
       _key: "footer",
-      style: { display: "flex", justifyContent: "flex-end", marginBlockStart: themeSpacing(4) },
+      style: {
+        display: "flex",
+        justifyContent: "flex-end",
+        gap: themeSpacing(2),
+        marginBlockStart: themeSpacing(4),
+      },
     } as unknown as DomphyElement<"footer">;
   }
 

@@ -57,9 +57,14 @@ export interface ChartAreaInteractiveProps {
   height?: number;
 }
 
+// Order matches upstream's <Area> render order: mobile (chart-2) is declared
+// first so it is the bottom band, desktop (chart-1) is stacked on top. The
+// auto legend and the stacked series both follow this array order, so keeping
+// mobile-then-desktop here yields the upstream legend "Mobile, Desktop" and the
+// upstream band coloring (secondary on the bottom, primary layered above).
 const DEFAULT_SERIES: ChartAreaInteractiveSeries[] = [
-  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0] },
   { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[1] },
+  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0] },
 ];
 
 /**
@@ -75,24 +80,25 @@ function chartAreaInteractive(props: ChartAreaInteractiveProps = {}): DomphyElem
     defaultRangeDays = 90,
     title = "Area Chart - Interactive",
     description = "Total visitors for the selected date range",
-    height = 100,
+    // Upstream ChartContainer is fixed at h-[250px]; themeSpacing(64) ≈ 256px
+    // matches that and the rest of the chart-area recipe family.
+    height = 64,
   } = props;
 
   let chartFrameElement: HTMLElement | null = null;
 
   function buildOption(days: number): ChartOption {
     const sliced = data.slice(-days);
-    const rawDates = sliced.map((point) => point.date);
-    const tooltipCategories = rawDates.map(formatShortMonthDay);
+    const tooltipCategories = sliced.map((point) => formatShortMonthDay(point.date));
     return {
       tooltip: {
         trigger: "axis",
+        axisPointer: { type: "none" },
         formatter: chartAxisTooltipFormatter(tooltipCategories),
       },
       xAxis: {
         ...CHART_AREA_X_AXIS_BARE,
-        data: rawDates,
-        axisLabel: { formatter: (value: unknown) => formatShortMonthDay(String(value)) },
+        data: tooltipCategories,
       },
       yAxis: CHART_AREA_Y_AXIS_HIDDEN,
       grid: { left: 8, right: 8, top: 12, bottom: 24, containLabel: false },
@@ -156,7 +162,7 @@ function chartAreaInteractive(props: ChartAreaInteractiveProps = {}): DomphyElem
     ],
     style: {
       // The range control collapses on narrow viewports, per spec.
-      "@media (max-width: 36em)": { display: "none" },
+      "@media (max-width: 640px)": { display: "none" },
     },
   };
 

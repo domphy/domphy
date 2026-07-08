@@ -42,10 +42,10 @@ function chartRadarMultiple(props: ChartRadarMultipleProps = {}): DomphyElement<
     data = RADAR_MONTHLY_MULTI_DATA,
     series = RADAR_MULTI_SERIES,
     title = "Radar Chart - Multiple",
-    description = "January - June 2026",
+    description = "Showing total visitors for the last 6 months",
     trendText = "Trending up by 5.2% this month",
     trendDirection = "up",
-    captionText = "Showing total visitors for the last 6 months",
+    captionText = "January - June 2026",
     tooltipIndicator = "line",
   } = props;
 
@@ -60,7 +60,7 @@ function chartRadarMultiple(props: ChartRadarMultipleProps = {}): DomphyElement<
           data,
           series,
           tooltip,
-          tooltipShowLabel: false,
+          tooltipShowLabel: true,
           tooltipIndicator,
         }),
       ],

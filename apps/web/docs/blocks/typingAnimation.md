@@ -22,11 +22,11 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `deletingSpeed` | `number` | ms per character while deleting. Defaults to roughly twice as fast as typing (`typingSpeed / 2`). |
 | `pauseDuration` | `number` | ms a fully-typed phrase is held before deleting starts. Only relevant with multiple phrases. Defaults to `1000`. |
 | `startDelay` | `number` | ms before the very first character types. Defaults to `0`. |
-| `loop` | `boolean` | Cycles back to the first phrase after the last. Only relevant with multiple phrases. Defaults to `true`. |
+| `loop` | `boolean` | Cycles back to the first phrase after the last. Only relevant with multiple phrases. Defaults to `false`. |
 | `showCursor` | `boolean` | Shows the trailing cursor glyph. Defaults to `true`. |
 | `cursorBlink` | `boolean` | Blinks the cursor. When `false`, the cursor is shown static (solid). Defaults to `true`. |
 | `cursorStyle` | `TypingCursorStyle` | Cursor glyph shape. Defaults to `"line"`. |
-| `startOnView` | `boolean` | Waits until the wrapper scrolls into view before typing starts. Defaults to `false`. |
+| `startOnView` | `boolean` | Waits until the wrapper scrolls into view before typing starts. Defaults to `true`. |
 | `as` | `TypingAnimationTag` | Wrapping element tag. Defaults to `"span"`. |
 | `style` | `StyleObject` | Passthrough style merged onto the outer wrapper. |
 

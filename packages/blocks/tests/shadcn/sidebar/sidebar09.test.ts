@@ -17,6 +17,22 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
+// Mirrors DEFAULT_MESSAGES' senders in src/shadcn/sidebar/sidebar09.ts — upstream
+// keeps one shared mail pool that every folder click reshuffles/re-slices
+// (random 5-10), rather than per-folder mailboxes.
+const KNOWN_SENDERS = [
+  "William Smith",
+  "Alice Smith",
+  "Bob Johnson",
+  "Emily Davis",
+  "Michael Wilson",
+  "Sarah Brown",
+  "David Lee",
+  "Olivia Wilson",
+  "James Martin",
+  "Sophia White",
+];
+
 describe("sidebar09", () => {
   it("renders a working demo tree with zero args: icon rail + list panel + main shell", () => {
     const { host } = render(sidebar09() as DomphyElement);
@@ -39,7 +55,7 @@ describe("sidebar09", () => {
     expect(listHeaderTitle?.textContent).toBe("Inbox");
   });
 
-  it("clicking a folder button switches the message list to that folder", async () => {
+  it("clicking a folder button reshuffles the shared mail pool and updates the header title", async () => {
     const { host } = render(sidebar09() as DomphyElement);
     const draftsButton = Array.from(host.querySelectorAll("button")).find(
       (button) => button.getAttribute("aria-label") === "Drafts",
@@ -47,20 +63,27 @@ describe("sidebar09", () => {
     expect(draftsButton).toBeTruthy();
     draftsButton.click();
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(host.textContent).toContain("Draft: Quarterly Report");
-    expect(host.textContent).not.toContain("Meeting Tomorrow");
     // The message-list header title tracks the active folder (upstream parity).
     expect(host.querySelectorAll("aside")[1].querySelector("strong")?.textContent).toBe("Drafts");
+    // Upstream has no per-folder mailboxes: every folder click reshuffles the
+    // SAME shared mail pool and slices a random 5-10 of it. Assert the
+    // invariant rather than a specific message, since the exact subset is random.
+    const messageRows = host.querySelectorAll("aside:nth-of-type(2) ul[role=listbox] > li[role=presentation]");
+    expect(messageRows.length).toBeGreaterThanOrEqual(5);
+    expect(messageRows.length).toBeLessThanOrEqual(10);
+    for (const row of Array.from(messageRows)) {
+      expect(KNOWN_SENDERS).toContain(row.querySelector("strong")?.textContent);
+    }
   });
 
-  it("toggling the Unreads switch filters the list to unread-only messages", async () => {
+  it("toggling the Unreads switch does not filter the list (decorative, matching upstream)", async () => {
     const { host } = render(sidebar09() as DomphyElement);
     const unreadSwitch = host.querySelector('input[type=checkbox][role=switch]') as HTMLInputElement;
     expect(unreadSwitch).toBeTruthy();
+    const messageTextBefore = host.querySelector("aside:nth-of-type(2) ul[role=listbox]")?.textContent;
     unreadSwitch.click();
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(host.textContent).toContain("William Smith");
-    expect(host.textContent).not.toContain("Bob Johnson");
+    expect(host.querySelector("aside:nth-of-type(2) ul[role=listbox]")?.textContent).toBe(messageTextBefore);
   });
 
   it("clicking the header toggle does not throw", () => {

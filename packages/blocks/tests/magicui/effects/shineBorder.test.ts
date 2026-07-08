@@ -33,11 +33,13 @@ describe("shineBorder", () => {
     expect(svg!.querySelector("animateTransform")).toBeTruthy();
   });
 
-  it("emits one gradient stop per configured color, plus a seamless-loop repeat", () => {
+  it("emits one gradient stop per configured color, flanked by transparent stops", () => {
     const { host } = render(shineBorder({ colors: ["primary", "warning"] }) as DomphyElement);
     const stops = host.querySelectorAll("stop");
-    expect(stops).toHaveLength(3);
+    // Transparent start + one stop per color + transparent end, matching
+    // upstream's `radial-gradient(transparent, transparent, ...shineColor, transparent, transparent)`.
+    expect(stops).toHaveLength(4);
     expect(stops[0].getAttribute("offset")).toBe("0%");
-    expect(stops[2].getAttribute("offset")).toBe("100%");
+    expect(stops[3].getAttribute("offset")).toBe("100%");
   });
 });

@@ -1,27 +1,61 @@
 // shadcn/ui "chart-area" (step recipe) — clean-room reimplementation.
 //
 // A single-series area chart whose outline/fill follows right-angle
-// staircase steps between data points (horizontal-then-vertical segments)
-// instead of a smooth or straight interpolation.
+// staircase steps between data points — each point sits mid-tread and the
+// vertical jump is centered at the midpoint between adjacent x-values
+// (recharts `type="step"` / d3 curveStep) — instead of a smooth or straight
+// interpolation.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import type { ChartOption } from "@domphy/chart";
+import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_AREA_MONTHLY_DATA,
   CHART_AREA_X_AXIS_BARE,
   CHART_AREA_Y_AXIS_HIDDEN,
   chartAreaFrame,
-  chartAxisTooltipFormatter,
+  chartAreaTooltipRow,
   chartCardShell,
   chartTrendFooter,
   chartTrendIcon,
+  wrapChartAreaTooltip,
   type ChartAreaSinglePoint,
   type ChartTrendDirection,
 } from "./chart-area-shared.js";
+
+// Upstream's chartConfig assigns this series `icon: Activity`, and shadcn's
+// ChartTooltipContent draws that config icon in place of the color-indicator
+// dot on hover — even under `hideLabel`. The shared axis-tooltip formatter
+// always emits a colored dot, so this recipe supplies its own formatter that
+// swaps the dot for a small muted "activity" pulse glyph (an original
+// clean-room waveform on a 24x24 grid, not lucide's exact path).
+const ACTIVITY_TOOLTIP_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"' +
+  ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"' +
+  ' style="display:inline-block;width:10px;height:10px;margin-right:6px;opacity:0.6;vertical-align:middle;">' +
+  '<polyline points="2,12 7,12 10,5 14,19 17,12 22,12"></polyline></svg>';
+
+function escapeTooltipText(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Axis-trigger tooltip: no category header (upstream `hideLabel`), one
+// activity-icon + muted series-name (left) + mono value (right) row per
+// series. Value is the bare number — upstream uses no value formatter here.
+function stepTooltipFormatter(paramsInput: TooltipParams | TooltipParams[]): string {
+  const params = Array.isArray(paramsInput) ? paramsInput : [paramsInput];
+  if (params.length === 0) return "";
+  const rows = params
+    .map((p) => {
+      const label = escapeTooltipText(String(p.seriesName ?? p.name ?? ""));
+      return chartAreaTooltipRow(ACTIVITY_TOOLTIP_ICON, label, escapeTooltipText(String(p.value ?? "")));
+    })
+    .join("");
+  return wrapChartAreaTooltip(rows);
+}
 
 export interface ChartAreaStepProps {
   data?: ChartAreaSinglePoint[];
@@ -60,22 +94,26 @@ function chartAreaStep(props: ChartAreaStepProps = {}): DomphyElement<"div"> {
   const option: ChartOption = {
     tooltip: {
       trigger: "axis",
-      axisPointer: { snap: true },
-      // Upstream hides the category header on this recipe (hideLabel).
-      formatter: chartAxisTooltipFormatter(categories, (p) => `${p.value} visitors`, true),
+      axisPointer: { type: "none" },
+      formatter: stepTooltipFormatter,
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     yAxis: CHART_AREA_Y_AXIS_HIDDEN,
-    grid: { left: 8, right: 8, top: 12, bottom: 24, containLabel: false },
+    // Upstream `<AreaChart margin={{ left: 12, right: 12 }}>`.
+    grid: { left: 12, right: 12, top: 12, bottom: 24, containLabel: false },
     series: [
       {
         type: "line",
         name: seriesLabel,
-        // Horizontal-then-vertical staircase between points.
-        step: "end",
+        // recharts `<Area type="step">` maps to d3 curveStep: the vertical jump
+        // is centered at the midpoint between adjacent months (data points sit
+        // mid-tread), NOT held flat until the next x. Domphy's engine renders
+        // `step: "middle"` as that same centered staircase.
+        step: "middle",
         showSymbol: false,
         color: seriesColor,
-        lineStyle: { width: 2 },
+        // recharts <Area> default stroke is ~1px.
+        lineStyle: { width: 1 },
         areaStyle: { opacity: 0.4 },
         data: data.map((point) => point.value),
       },
@@ -90,8 +128,7 @@ function chartAreaStep(props: ChartAreaStepProps = {}): DomphyElement<"div"> {
       trendText,
       direction: trendDirection,
       captionText,
-      color: seriesColor,
-      trendIconOverride: seriesIcon ? chartTrendIcon(seriesIcon, seriesColor) : undefined,
+      trendIconOverride: seriesIcon ? chartTrendIcon(seriesIcon) : undefined,
     }),
   });
 }

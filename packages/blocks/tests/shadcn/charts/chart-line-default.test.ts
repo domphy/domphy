@@ -32,7 +32,7 @@ describe("chartLineDefault", () => {
     expect(host.querySelector("h3")?.textContent).toBe("Line Chart");
     expect(host.querySelector("p")?.textContent).toContain("2026");
     expect(host.querySelector("footer")).toBeTruthy();
-    expect(host.querySelector("footer strong")?.textContent).toContain("Trending up");
+    expect(host.querySelector("footer span")?.textContent).toContain("Trending up");
     // chart() appends a <canvas> + two <svg> overlays synchronously on mount.
     expect(host.querySelector("canvas")).toBeTruthy();
     expect(host.querySelectorAll("svg").length).toBeGreaterThanOrEqual(2);
@@ -49,6 +49,6 @@ describe("chartLineDefault", () => {
     );
     expect(host.querySelector("h3")?.textContent).toBe("Custom Title");
     expect(host.querySelector("p")?.textContent).toBe("Custom description");
-    expect(host.querySelector("footer strong")?.textContent).toBe("Trending down by 3%");
+    expect(host.querySelector("footer span")?.textContent).toBe("Trending down by 3%");
   });
 });

@@ -40,11 +40,13 @@ export interface CoolModeProps {
   children?: DomphyElement | DomphyElement[];
   /** Particle appearance. Defaults to `{ kind: "circle" }` (theme-colored dots). */
   particle?: CoolModeParticleAppearance;
-  /** Preset pool of particle sizes (px), randomly picked per spawn. Defaults to `[15, 20, 25, 30, 35, 40, 45]`. */
+  /** Preset pool of particle sizes (px), randomly picked per spawn. Defaults to `[15, 20, 25, 35, 45]`. */
   sizes?: number[];
-  /** Fixed horizontal drift magnitude (px/frame). Randomized per-particle when unset. */
+  /** Fixed particle size (px). When set, forces every particle to this exact size, overriding the random `sizes` pool. */
+  size?: number;
+  /** Fixed horizontal drift magnitude (px/frame). Randomized 0–10 per-particle when unset. */
   driftSpeed?: number;
-  /** Fixed upward launch speed (px/frame). Randomized per-particle when unset. */
+  /** Fixed upward launch speed (px/frame). Randomized 0–25 per-particle when unset. */
   launchSpeed?: number;
   /** Passthrough style merged onto the thin wrapper. */
   style?: StyleObject;
@@ -52,20 +54,19 @@ export interface CoolModeProps {
 
 interface CoolModeParticleInstance {
   element: HTMLElement;
-  x: number;
-  y: number;
-  velocityX: number;
-  velocityY: number;
-  rotation: number;
-  rotationSpeed: number;
+  left: number;
+  top: number;
+  size: number;
+  speedHorz: number;
+  direction: number;
+  speedUp: number;
+  spinVal: number;
+  spinSpeed: number;
 }
 
-const DEFAULT_SIZES = [15, 20, 25, 30, 35, 40, 45];
+const DEFAULT_SIZES = [15, 20, 25, 35, 45];
 const MAX_CONCURRENT_PARTICLES = 45;
 const SPAWN_INTERVAL_MS = 30;
-// Per-frame downward acceleration added to vertical velocity — a simple
-// decaying-velocity/gravity model, not a literal physics integrator.
-const GRAVITY_PER_FRAME = 0.6;
 const COLOR_FAMILIES: ThemeColor[] = [
   "primary",
   "secondary",
@@ -117,19 +118,21 @@ function ensureSharedLoop(): void {
   if (sharedAnimationFrame !== null) return;
   const tick = () => {
     sharedAnimationFrame = null;
-    const viewportBottom = window.innerHeight + 80;
+    const viewportBottom = Math.max(window.innerHeight, document.body.clientHeight);
     for (let index = sharedParticles.length - 1; index >= 0; index -= 1) {
       const particle = sharedParticles[index];
-      particle.velocityY += GRAVITY_PER_FRAME;
-      particle.x += particle.velocityX;
-      particle.y += particle.velocityY;
-      particle.rotation += particle.rotationSpeed;
-      if (particle.y > viewportBottom) {
+      particle.left -= particle.speedHorz * particle.direction;
+      particle.top -= particle.speedUp;
+      // Gravity: upward speed decays 1px/frame, initial rise capped at the
+      // particle's own size (matches upstream `Math.min(size, speedUp - 1)`).
+      particle.speedUp = Math.min(particle.size, particle.speedUp - 1);
+      particle.spinVal += particle.spinSpeed;
+      if (particle.top >= viewportBottom + particle.size) {
         particle.element.remove();
         sharedParticles.splice(index, 1);
         continue;
       }
-      particle.element.style.transform = `translate3d(${particle.x}px, ${particle.y}px, 0) rotate(${particle.rotation}deg)`;
+      particle.element.style.transform = `translate3d(${particle.left}px, ${particle.top}px, 0) rotate(${particle.spinVal}deg)`;
     }
     if (sharedParticles.length > 0) {
       sharedAnimationFrame = requestAnimationFrame(tick);
@@ -156,13 +159,16 @@ function spawnParticle(
   originY: number,
   appearance: CoolModeParticleAppearance,
   sizes: number[],
+  fixedSize: number | undefined,
   driftSpeed: number | undefined,
   launchSpeed: number | undefined,
 ): void {
   if (sharedParticles.length >= MAX_CONCURRENT_PARTICLES) return;
   const overlay = ensureSharedOverlay();
   const sizePool = sizes.length > 0 ? sizes : DEFAULT_SIZES;
-  const size = sizePool[Math.floor(Math.random() * sizePool.length)] ?? 24;
+  // Upstream: `options?.size || sizes[...]` — a fixed `size` forces every
+  // particle to one px size, overriding the random pool.
+  const size = fixedSize || (sizePool[Math.floor(Math.random() * sizePool.length)] ?? 24);
 
   const element = document.createElement(appearance.kind === "image" ? "img" : "div");
   element.style.position = "absolute";
@@ -177,12 +183,22 @@ function spawnParticle(
     element.style.objectFit = "cover";
     element.style.borderRadius = "50%";
   } else if (appearance.kind === "text") {
-    element.textContent = appearance.glyph;
-    element.style.display = "flex";
-    element.style.alignItems = "center";
-    element.style.justifyContent = "center";
-    element.style.fontSize = `${size}px`;
-    element.style.lineHeight = "1";
+    // Upstream renders the glyph in an inner content box at fontSize=size*3
+    // AND transform:scale(3) (~9x base). The outer particle element carries
+    // the physics transform, so the scale lives on this independent inner box.
+    const content = document.createElement("div");
+    content.textContent = appearance.glyph;
+    content.style.fontSize = `${size * 3}px`;
+    content.style.lineHeight = "1";
+    content.style.textAlign = "center";
+    content.style.width = `${size}px`;
+    content.style.height = `${size}px`;
+    content.style.display = "flex";
+    content.style.alignItems = "center";
+    content.style.justifyContent = "center";
+    content.style.transform = "scale(3)";
+    content.style.transformOrigin = "center";
+    element.appendChild(content);
   } else {
     element.style.borderRadius = "50%";
     element.style.backgroundColor = nextParticleColorToken(node);
@@ -190,17 +206,19 @@ function spawnParticle(
 
   overlay.appendChild(element);
 
-  const drift = driftSpeed ?? 1 + Math.random() * 3;
-  const launch = launchSpeed ?? 6 + Math.random() * 6;
+  const speedHorz = driftSpeed ?? Math.random() * 10;
+  const speedUp = launchSpeed ?? Math.random() * 25;
 
   sharedParticles.push({
     element,
-    x: originX - size / 2,
-    y: originY - size / 2,
-    velocityX: (Math.random() < 0.5 ? -1 : 1) * drift * Math.random(),
-    velocityY: -launch,
-    rotation: 0,
-    rotationSpeed: (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 8),
+    left: originX - size / 2,
+    top: originY - size / 2,
+    size,
+    speedHorz,
+    direction: Math.random() <= 0.5 ? -1 : 1,
+    speedUp,
+    spinVal: Math.random() * 360,
+    spinSpeed: Math.random() * 35 * (Math.random() <= 0.5 ? -1 : 1),
   });
 
   ensureSharedLoop();
@@ -250,7 +268,7 @@ function coolMode(props: CoolModeProps = {}): DomphyElement<"span"> {
           stopEmitting();
           return;
         }
-        spawnParticle(node, lastPointerX, lastPointerY, appearance, sizes, props.driftSpeed, props.launchSpeed);
+        spawnParticle(node, lastPointerX, lastPointerY, appearance, sizes, props.size, props.driftSpeed, props.launchSpeed);
       };
 
       const trackPointer = (event: PointerEvent) => {

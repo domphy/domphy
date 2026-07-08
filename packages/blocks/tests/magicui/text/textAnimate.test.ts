@@ -30,10 +30,16 @@ describe("textAnimate", () => {
     flushSync();
 
     const wrapper = host.firstElementChild as HTMLElement;
-    expect(wrapper.tagName).toBe("SPAN");
-    const hiddenSegments = wrapper.querySelector('[aria-hidden="true"]') as HTMLElement;
-    expect(hiddenSegments).toBeTruthy();
-    expect(hiddenSegments.textContent).toContain("Domphy renders");
+    expect(wrapper.tagName).toBe("P");
+    // Upstream marks each motion segment `aria-hidden` individually (no shared
+    // wrapper around them), so the hidden reading is the concatenation of every
+    // `[aria-hidden="true"]` segment's text, not a single container's text.
+    const hiddenSegments = wrapper.querySelectorAll('[aria-hidden="true"]');
+    expect(hiddenSegments.length).toBeGreaterThan(1);
+    const hiddenText = Array.from(hiddenSegments)
+      .map((segment) => segment.textContent)
+      .join("");
+    expect(hiddenText).toBe("Domphy renders exactly what you write, nothing more.");
     expect(wrapper.textContent).toContain("Domphy renders exactly what you write, nothing more.");
   });
 

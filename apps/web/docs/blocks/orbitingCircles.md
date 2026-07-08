@@ -17,9 +17,9 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 
 | Prop | Type | Description |
 |---|---|---|
-| `items` | `(DomphyElement \| OrbitingCircleItem)[]` | Items placed evenly around the ring. Defaults to 6 generic icon-chip placeholders. |
+| `items` | `(DomphyElement \| OrbitingCircleItem)[]` | Items placed evenly around the ring. Defaults to 6 generic icon placeholders. |
 | `center` | `DomphyElement \| null` | Element pinned at the shared center point — does not orbit. Pass `null` to omit. Defaults to a small hub glyph. |
-| `iconSizeUnits` | `number` | Orbiting chip box size, in `themeSpacing` units (≈30px at the default). Defaults to 7.5. |
+| `iconSizeUnits` | `number` | Orbiting icon box size, in `themeSpacing` units (≈30px at the default). Defaults to 7.5. |
 | `radius` | `number` | Ring radius, in px. Defaults to 160. |
 | `duration` | `number` | Seconds per full revolution. Defaults to 20. |
 | `reverse` | `boolean` | Counterclockwise instead of clockwise. Defaults to false. |

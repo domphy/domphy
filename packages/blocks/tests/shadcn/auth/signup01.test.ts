@@ -57,7 +57,7 @@ describe("signup01", () => {
     const { host } = render(
       signup01({ signInHref: "/login" }) as DomphyElement,
     );
-    const link = host.querySelector("footer a") as HTMLAnchorElement;
+    const link = host.querySelector("form a") as HTMLAnchorElement;
     expect(link.getAttribute("href")).toBe("/login");
     expect(link.textContent).toBe("Sign in");
   });

@@ -2,12 +2,14 @@
 // behavior/visual spec only (no upstream source viewed or copied). A hover
 // zone that hides the native OS cursor and replaces it with a small,
 // freely-swappable visual (a shape, emoji, or icon) that tracks the mouse in
-// real time while it's inside the zone, fading/scaling in on enter and out
-// on leave. Position tracking is done imperatively (direct DOM writes on
-// every mousemove/rAF tick) rather than through reactive state, since it is
-// a high-frequency, purely visual concern — the same tradeoff other
-// lifecycle-hook-driven patches in this file make for canvas refs and
-// third-party integrations.
+// real time while it's inside the zone, scaling+fading in on enter and
+// shrinking+fading out on leave. Position tracking is done imperatively
+// (direct DOM writes on every mousemove) rather than through reactive state,
+// since it is a high-frequency, purely visual concern — the same tradeoff
+// other lifecycle-hook-driven patches in this file make for canvas refs and
+// third-party integrations. Position snaps 1:1 to the pointer (no smoothing):
+// upstream binds top/left straight to the raw pointer coords via a Framer
+// motion value, which has no spring on it.
 
 import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
@@ -24,16 +26,12 @@ export interface PointerProps {
   children?: DomphyElement;
   /** The page content the hover zone wraps. Defaults to a short instructional demo panel. */
   content?: DomphyElement[];
-  /** Offset (raw pixels) between the real pointer tip and the custom cursor's anchor point. Defaults to `{ x: 16, y: 16 }`. */
+  /** Offset (raw pixels) between the real pointer tip and the custom cursor's anchor point. Defaults to `{ x: 0, y: 0 }` (cursor centered directly on the pointer). */
   offset?: PointerOffset;
-  /** Smooths motion with a per-frame lerp instead of snapping directly to the pointer. Defaults to `true`. */
-  smooth?: boolean;
-  /** Lerp factor (0–1) used when `smooth` is true — higher tracks faster/snappier. Defaults to `0.25`. */
-  smoothing?: number;
   style?: StyleObject;
 }
 
-const DEFAULT_OFFSET: PointerOffset = { x: 16, y: 16 };
+const DEFAULT_OFFSET: PointerOffset = { x: 0, y: 0 };
 
 const GLYPH_LOOP_KEYFRAMES = {
   "0%,100%": { transform: "scale(1) rotate(0deg)" },
@@ -41,9 +39,12 @@ const GLYPH_LOOP_KEYFRAMES = {
 };
 const GLYPH_LOOP_ANIMATION_NAME = `pointer-glyph-loop-${hashString(JSON.stringify(GLYPH_LOOP_KEYFRAMES))}`;
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
+// translate(-50%,-50%) centers the glyph on the pointer coords (which live in
+// top/left); the scale factor is the only part that changes, so a `transition`
+// on `transform` tweens the scale pop-in/pop-out without ever tweening
+// position — top/left carry no transition and therefore snap instantly.
+const SCALE_IN = "translate(-50%, -50%) scale(1)";
+const SCALE_OUT = "translate(-50%, -50%) scale(0)";
 
 /** Default cursor visual: a two-tone ring (primary outline, surface-colored center) with a
  * continuous, independent scale/rotate loop — demonstrates that intrinsic decoration can run
@@ -99,8 +100,6 @@ function defaultContent(): DomphyElement[] {
  */
 function pointer(props: PointerProps = {}): DomphyElement<"div"> {
   const offset = props.offset ?? DEFAULT_OFFSET;
-  const smooth = props.smooth ?? true;
-  const smoothing = clamp(props.smoothing ?? 0.25, 0.01, 1);
   const glyph = props.children ?? defaultCursorGlyph();
   const content = props.content ?? defaultContent();
 
@@ -110,12 +109,15 @@ function pointer(props: PointerProps = {}): DomphyElement<"div"> {
     ariaHidden: "true",
     style: {
       position: "absolute",
-      insetBlockStart: 0,
-      insetInlineStart: 0,
+      top: 0,
+      left: 0,
       pointerEvents: "none",
       zIndex: 50,
       opacity: 0,
-      transform: "translate(-9999px, -9999px) scale(0.5)",
+      // Starts collapsed at scale 0 (not off-screen): the first mouseenter
+      // snaps top/left to the pointer instantly and lets scale/opacity tween
+      // up from here — so there is no diagonal fly-in from off-screen.
+      transform: SCALE_OUT,
       transition: "opacity 150ms ease-out, transform 150ms ease-out",
       willChange: "transform, opacity",
     },
@@ -130,80 +132,38 @@ function pointer(props: PointerProps = {}): DomphyElement<"div"> {
       const container = cursor.parentElement;
       if (!container) return;
 
-      let targetX = 0;
-      let targetY = 0;
-      let currentX = 0;
-      let currentY = 0;
-      let active = false;
-      let frameHandle: number | null = null;
-
-      const applyTransform = (x: number, y: number, scale: number) => {
-        cursor.style.transform = `translate(${x + offset.x}px, ${y + offset.y}px) scale(${scale})`;
-      };
-
-      const tick = () => {
-        // Belt-and-suspenders stop condition: some hosts (e.g. a test harness
-        // that wipes the DOM directly instead of going through the
-        // framework's removal lifecycle) never fire the "Remove" hook below.
-        // Once the cursor element is detached, the native mouseenter/
-        // mouseleave events that would otherwise flip `active` back to
-        // `false` can never fire again either, so bailing here is what
-        // actually stops the loop from leaking forever.
-        if (!cursor.isConnected) {
-          frameHandle = null;
-          return;
-        }
-        currentX += (targetX - currentX) * smoothing;
-        currentY += (targetY - currentY) * smoothing;
-        applyTransform(currentX, currentY, 1);
-        if (active) frameHandle = requestAnimationFrame(tick);
-        else frameHandle = null;
-      };
-
-      const positionFromEvent = (event: MouseEvent) => {
+      // Snap top/left straight to the raw pointer coords (container-relative),
+      // no smoothing — mirrors upstream's motion-value binding, which has no
+      // spring. top/left carry no CSS transition, so this is instantaneous.
+      const place = (event: MouseEvent) => {
         const rect = container.getBoundingClientRect();
-        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+        cursor.style.left = `${event.clientX - rect.left + offset.x}px`;
+        cursor.style.top = `${event.clientY - rect.top + offset.y}px`;
       };
 
-      const handleMove = (event: MouseEvent) => {
-        const point = positionFromEvent(event);
-        targetX = point.x;
-        targetY = point.y;
-        if (!smooth) {
-          currentX = targetX;
-          currentY = targetY;
-          applyTransform(currentX, currentY, 1);
-        }
-      };
-
-      const handleEnter = (event: MouseEvent) => {
-        const point = positionFromEvent(event);
-        currentX = targetX = point.x;
-        currentY = targetY = point.y;
-        applyTransform(currentX, currentY, 1);
+      // mousemove and mouseenter are identical upstream (set coords + activate).
+      // Positioning first (instant) then flipping to the shown state makes the
+      // scale pop-in play in place; because `hide` returns scale to 0, every
+      // fresh enter re-pops from 0 rather than only the first one.
+      const show = (event: MouseEvent) => {
+        place(event);
         cursor.style.opacity = "1";
-        active = true;
-        if (smooth && frameHandle === null) frameHandle = requestAnimationFrame(tick);
+        cursor.style.transform = SCALE_IN;
       };
 
-      const handleLeave = () => {
+      const hide = () => {
         cursor.style.opacity = "0";
-        active = false;
-        if (frameHandle !== null) {
-          cancelAnimationFrame(frameHandle);
-          frameHandle = null;
-        }
+        cursor.style.transform = SCALE_OUT;
       };
 
-      container.addEventListener("mousemove", handleMove);
-      container.addEventListener("mouseenter", handleEnter);
-      container.addEventListener("mouseleave", handleLeave);
+      container.addEventListener("mousemove", show);
+      container.addEventListener("mouseenter", show);
+      container.addEventListener("mouseleave", hide);
 
       node.addHook("Remove", () => {
-        container.removeEventListener("mousemove", handleMove);
-        container.removeEventListener("mouseenter", handleEnter);
-        container.removeEventListener("mouseleave", handleLeave);
-        if (frameHandle !== null) cancelAnimationFrame(frameHandle);
+        container.removeEventListener("mousemove", show);
+        container.removeEventListener("mouseenter", show);
+        container.removeEventListener("mouseleave", hide);
       });
     },
   };

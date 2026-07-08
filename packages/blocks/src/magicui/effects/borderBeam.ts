@@ -1,39 +1,52 @@
-// Magic UI "Border Beam" — clean-room reimplementation.
+// Magic UI "Border Beam" — verified directly against the real upstream source
+// (registry/magicui/border-beam.tsx, MIT-licensed).
 //
-// A short bright segment of light that continuously travels around a
-// container's rounded-rectangle border, like a comet chasing itself around
-// the card's edge. Implemented as a pure CSS/SVG loop (a normalized-length
-// `<rect>` stroke-dasharray "comet" animated via `stroke-dashoffset`) — no
-// JS measurement, resize listeners, or animation-frame loop needed, so the
-// beam degrades gracefully to a static outline wherever CSS animations are
-// disabled.
+// A short bright comet of light continuously travels around a container's
+// rounded-rectangle border. Upstream's exact technique (faithfully ported
+// here, replacing an earlier clean-room SVG stroke-dasharray approximation
+// that could not reproduce the comet's fading tail): a `pointer-events-none`
+// overlay whose CSS mask reveals ONLY the border ring (the standard
+// intersect-of-`padding-box`-and-`border-box` mask, the same idiom this
+// package's `shinyButton.ts` already uses), containing a single small square
+// element that rides a rounded-rectangle `offset-path` and is painted with a
+// `linear-gradient(to left, colorFrom, colorTo, transparent)` — a bright head
+// fading to a fully transparent tail, i.e. a real directional comet fade, not
+// a spatial two-color stroke. A negative `animation-delay` is a phase offset
+// (the beam animates immediately, shifted in its cycle) so several beams can
+// be staggered while all running at once — matching upstream's `delay: -delay`.
 //
-// Implemented purely from the block's public functional/visual spec — no
-// upstream Magic UI source was viewed or copied.
+// The port keeps the demo card wrapper (background/outline/children) as the
+// self-contained container this package renders each block inside; the beam
+// overlay is the faithful part. Upstream's raw hexes map to theme roles so the
+// beam follows light/dark theme: `colorFrom` #ffaa40 (warm) → `warning`, and
+// `colorTo` #9c40ff (violet) → `secondary` (this theme's rose/magenta, the
+// closest built-in to violet — the same substitution `rainbowButton.ts`
+// documents), not `primary` (a cool/blue tone that weakened the endpoint hue).
 
-import type { DomphyElement } from "@domphy/core";
-import { hashString } from "@domphy/core";
+import type { DomphyElement, StyleObject } from "@domphy/core";
 import { heading, paragraph } from "@domphy/ui";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import type { ThemeColor } from "@domphy/theme";
 
 export interface BorderBeamProps {
-  /** Length of the glowing comet, as a percentage (0-100) of the border perimeter. Defaults to `20`. */
+  /** Diameter of the traveling comet in pixels; also the corner radius of its orbit path. Defaults to `50` (upstream `size`). */
   size?: number;
-  /** Stroke width in pixels the beam renders at. Defaults to `2`. */
+  /** Width in pixels of the border ring the comet is masked into. Defaults to `1` (upstream `borderWidth`). */
   thickness?: number;
   /** Corner radius in pixels, should roughly match the host card's own rounding. Defaults to `16`. */
   borderRadius?: number;
-  /** Gradient start color. Defaults to `"warning"` (warm). */
+  /** Comet head color (bright end of the fade). Defaults to `"warning"` (warm, upstream #ffaa40). */
   colorFrom?: ThemeColor;
-  /** Gradient end color. Defaults to `"primary"` (cool). */
+  /** Comet mid color (fades on to a transparent tail). Defaults to `"secondary"` (violet, upstream #9c40ff). */
   colorTo?: ThemeColor;
   /** Full loop duration in seconds. Defaults to `6`. */
   duration?: number;
-  /** Delay before the loop starts, in seconds — use to stagger multiple beams. Defaults to `0`. */
+  /** Negative phase offset in seconds applied immediately (staggers multiple beams that all run at once) — NOT a start delay. Defaults to `0`. */
   delay?: number;
   /** Runs the comet counter-clockwise instead of clockwise. */
   reverse?: boolean;
+  /** Starting position along the orbit as a percentage (0-100) — another way to stagger multiple beams. Defaults to `0`. */
+  initialOffset?: number;
   /** Card content rendered inside the beamed container. Defaults to a small demo card body. */
   children?: DomphyElement[];
 }
@@ -47,14 +60,15 @@ let borderBeamInstanceCounter = 0;
  */
 function borderBeam(props: BorderBeamProps = {}): DomphyElement<"div"> {
   const {
-    size = 20,
-    thickness = 2,
+    size = 50,
+    thickness = 1,
     borderRadius = 16,
     colorFrom = "warning",
-    colorTo = "primary",
+    colorTo = "secondary",
     duration = 6,
     delay = 0,
     reverse = false,
+    initialOffset = 0,
     children = [
       { h3: "Border Beam", $: [heading()] },
       {
@@ -65,50 +79,60 @@ function borderBeam(props: BorderBeamProps = {}): DomphyElement<"div"> {
   } = props;
 
   const instanceId = ++borderBeamInstanceCounter;
-  const gradientId = `domphy-border-beam-gradient-${instanceId}`;
-  const animationName = hashString(
-    `border-beam-${instanceId}-${size}-${duration}-${reverse}`,
-  );
+  const animationName = `border-beam-move-${instanceId}`;
 
-  const dashArray = `${size} ${100 - size}`;
+  // Upstream animate range: `${initialOffset}%`→`${100+initialOffset}%`
+  // clockwise, mirrored `${100-initialOffset}%`→`${-initialOffset}%` reverse.
   const keyframes = {
-    from: { strokeDashoffset: "0" },
-    to: { strokeDashoffset: reverse ? "100" : "-100" },
+    from: { offsetDistance: reverse ? `${100 - initialOffset}%` : `${initialOffset}%` },
+    to: { offsetDistance: reverse ? `${-initialOffset}%` : `${100 + initialOffset}%` },
   };
 
-  // `<stop>` is a paint-server node, not text — it has no `color` to follow the
-  // tone context, so the `missing-color` doctor rule is a false positive here.
-  const gradientStop = (offset: string, color: ThemeColor): DomphyElement =>
-    ({
-      stop: null,
-      offset,
-      style: { stopColor: (listener) => themeColor(listener, "shift-9", color) },
-      _doctorDisable: "missing-color",
-    }) as DomphyElement;
+  // The comet: a small square riding a rounded-rect `offset-path`, painted with
+  // a bright-head → transparent-tail gradient. `_doctorDisable`/`ariaHidden`
+  // mirror `rainbowButton.ts`' glow layer — it is a themed, decorative surface
+  // with no text of its own, so the `missing-color` rule is a false positive.
+  const cometBox = {
+    div: null,
+    ariaHidden: "true",
+    _doctorDisable: "missing-color",
+    style: {
+      position: "absolute",
+      width: `${size}px`,
+      height: `${size}px`,
+      offsetPath: `rect(0 auto auto 0 round ${size}px)`,
+      background: (listener) =>
+        `linear-gradient(to left, ${themeColor(listener, "shift-9", colorFrom)}, ${themeColor(
+          listener,
+          "shift-9",
+          colorTo,
+        )}, transparent)`,
+      animation: `${animationName} ${duration}s linear infinite`,
+      // Negative delay = immediate phase offset (upstream `delay: -delay`).
+      animationDelay: `${-delay}s`,
+      [`@keyframes ${animationName}`]: keyframes,
+    } as StyleObject,
+  } as DomphyElement<"div">;
 
-  const orbitRect = (strokeWidth: number, blur: number, opacity: number): DomphyElement =>
-    ({
-      rect: null,
-      x: "1",
-      y: "1",
-      width: "calc(100% - 2px)",
-      height: "calc(100% - 2px)",
-      rx: String(Math.max(borderRadius - 1, 0)),
-      ry: String(Math.max(borderRadius - 1, 0)),
-      fill: "none",
-      stroke: `url(#${gradientId})`,
-      strokeWidth: String(strokeWidth),
-      strokeLinecap: "round",
-      pathLength: "100",
-      strokeDasharray: dashArray,
-      style: {
-        opacity,
-        ...(blur > 0 ? { filter: `blur(${blur}px)` } : {}),
-        animation: `${animationName} ${duration}s linear infinite`,
-        animationDelay: `${delay}s`,
-        [`@keyframes ${animationName}`]: keyframes,
-      },
-    }) as DomphyElement;
+  // The overlay: a transparent-bordered box masked to reveal ONLY the border
+  // ring (intersect of the padding-box and border-box mask layers), clipping
+  // the comet so it appears to travel along the border. `#000` in the mask is
+  // an alpha mask, not a theme color — `mask-image` is not a color property so
+  // the raw-color doctor rule does not apply.
+  const beamOverlay = {
+    div: [cometBox],
+    ariaHidden: "true",
+    style: {
+      position: "absolute",
+      inset: 0,
+      pointerEvents: "none",
+      borderRadius: "inherit",
+      border: `${thickness}px solid transparent`,
+      maskImage: "linear-gradient(transparent, transparent), linear-gradient(#000, #000)",
+      maskClip: "padding-box, border-box",
+      maskComposite: "intersect",
+    } as StyleObject,
+  } as DomphyElement<"div">;
 
   return {
     div: [
@@ -120,31 +144,7 @@ function borderBeam(props: BorderBeamProps = {}): DomphyElement<"div"> {
           padding: themeSpacing(6),
         },
       } as DomphyElement,
-      {
-        svg: [
-          {
-            defs: [
-              {
-                linearGradient: [gradientStop("0%", colorFrom), gradientStop("100%", colorTo)],
-                id: gradientId,
-                gradientUnits: "objectBoundingBox",
-                x1: "0%",
-                y1: "0%",
-                x2: "100%",
-                y2: "100%",
-              } as DomphyElement,
-            ],
-          } as DomphyElement,
-          // A wider, blurred duplicate underneath gives the comet a soft halo.
-          orbitRect(thickness * 3, 3, 0.5),
-          orbitRect(thickness, 0, 1),
-        ],
-        width: "100%",
-        height: "100%",
-        xmlns: "http://www.w3.org/2000/svg",
-        ariaHidden: "true",
-        style: { position: "absolute", inset: 0, pointerEvents: "none" },
-      } as DomphyElement,
+      beamOverlay,
     ],
     style: {
       position: "relative",

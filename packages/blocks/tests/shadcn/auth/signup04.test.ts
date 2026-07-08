@@ -20,7 +20,7 @@ afterEach(() => {
 describe("signup04", () => {
   it("renders a working demo tree with zero args: email + password pair + three provider buttons", () => {
     const { host } = render(signup04() as DomphyElement);
-    expect(host.querySelector("h2")?.textContent).toBe("Create your account");
+    expect(host.querySelector("h1")?.textContent).toBe("Create your account");
     expect(host.querySelectorAll("form input").length).toBe(3);
     expect(host.querySelectorAll('input[type="password"]').length).toBe(2);
     const providerButtons = Array.from(host.querySelectorAll("form button")).filter(

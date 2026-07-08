@@ -63,14 +63,16 @@ export interface TextHighlighterProps {
    * line when the text wraps (`true`). Defaults to `true`. */
   multiline?: boolean;
   /** Which side(s) get a corner bracket mark. Only used by the `"bracket"` type. Defaults to
-   * `["left", "right"]` (flanking marks on both sides). */
+   * `"right"` (matches rough-notation's own fallback for an unset `brackets` config). */
   brackets?: TextHighlighterBracketSide | TextHighlighterBracketSide[];
-  /** `"mount"` (default) draws shortly after mount; `"view"` waits until the wrapper first scrolls
-   * into the viewport, so offscreen highlights don't animate prematurely on long pages. */
+  /** `"mount"` (default) draws immediately after mount (matching upstream's `useLayoutEffect`);
+   * `"view"` waits until the wrapper first scrolls into the viewport, so offscreen highlights
+   * don't animate prematurely on long pages. */
   trigger?: "mount" | "view";
-  /** Delay before drawing, in ms, once triggered. Defaults to `100`. */
+  /** Delay before drawing, in ms, once triggered. Defaults to `0` (upstream draws immediately). */
   mountDelay?: number;
-  /** `IntersectionObserver` `rootMargin` used when `trigger` is `"view"`. Defaults to `"-50px"`. */
+  /** `IntersectionObserver` `rootMargin` used when `trigger` is `"view"`. Defaults to `"-10%"`
+   * (matches upstream's `useInView` `margin`). */
   viewMargin?: string;
   /** Passthrough style merged onto the wrapping span. */
   style?: StyleObject;
@@ -97,14 +99,23 @@ function textHighlighter(props: TextHighlighterProps = {}): DomphyElement<"span"
   const iterations = props.iterations ?? 2;
   const padding = props.padding ?? 2;
   const multiline = props.multiline ?? true;
-  const brackets = props.brackets ?? (["left", "right"] as TextHighlighterBracketSide[]);
+  const brackets = props.brackets ?? "right";
   const trigger = props.trigger ?? "mount";
-  const mountDelay = props.mountDelay ?? 100;
-  const viewMargin = props.viewMargin ?? "-50px";
+  const mountDelay = props.mountDelay ?? 0;
+  const viewMargin = props.viewMargin ?? "-10%";
 
   return {
     span: children,
-    style: { ...(props.style ?? {}) } as StyleObject,
+    // Upstream wraps its content in `<span className="relative inline-block bg-transparent">`.
+    // `inline-block` in particular is load-bearing: it gives rough-notation an
+    // inline-block box to measure instead of a raw inline span. Passthrough
+    // style still wins (spread last).
+    style: {
+      position: "relative",
+      display: "inline-block",
+      background: "transparent",
+      ...(props.style ?? {}),
+    } as StyleObject,
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined" || typeof document === "undefined") return;
       const targetElement = node.domElement as HTMLElement | null;
@@ -191,8 +202,11 @@ function textHighlighter(props: TextHighlighterProps = {}): DomphyElement<"span"
           );
           observer.observe(targetElement);
         }
-      } else {
+      } else if (mountDelay > 0) {
         mountTimer = setTimeout(play, mountDelay);
+      } else {
+        // Upstream draws synchronously in useLayoutEffect — no timer.
+        play();
       }
 
       node.addHook("Remove", () => {

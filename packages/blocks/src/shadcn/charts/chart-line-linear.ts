@@ -15,11 +15,11 @@ import {
   DEFAULT_LINE_GRID,
   MONTHLY_VISITOR_DATA,
   type MonthlyPoint,
-  bareValueTooltipFormatter,
   chartCard,
   chartPlot,
   computeYDomain,
   hiddenLabelYAxis,
+  lineSwatchLabelValueTooltipFormatter,
   monthCategoryXAxis,
   trendFooter,
 } from "./chart-line-shared.js";
@@ -64,7 +64,7 @@ function chartLineLinear(props: ChartLineLinearProps = {}): DomphyElement<"div">
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "none" },
-      formatter: bareValueTooltipFormatter,
+      formatter: lineSwatchLabelValueTooltipFormatter,
     },
     series: [
       {

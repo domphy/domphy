@@ -10,14 +10,17 @@
 // this package's sibling `gridPattern` (see that file's header for why it
 // needs no JS measurement at all). The animated squares are a fixed set of
 // `<rect>` elements, each driven by ONE shared CSS `@keyframes` (opacity
-// 0 → maxOpacity → 0, i.e. a symmetric fade-in/fade-out with no explicit
-// hold — mirroring the spec's "animate up once, then mirror the same tween
-// in reverse") with a per-index `animation-delay` spread evenly across one
+// 0 → maxOpacity over `duration`, held at maxOpacity for `repeatDelay`, then
+// back to 0 over another `duration` — mirroring the spec's "animate up once
+// over `duration`, pause `repeatDelay`, then mirror the same tween in
+// reverse") with a per-index `animation-delay` spread evenly across one
 // full cycle length so the population is continuously staggered rather than
 // pulsing in lockstep. Because both ends of the keyframe sit at `opacity: 0`,
 // the loop point is seamless — a plain CSS `infinite` iteration count already
-// gives the "fade out, wait `repeatDelay`, fade back in" cadence with no JS
-// timer needed. Re-rolling a square's grid cell on every completed cycle
+// gives the cadence with no JS timer needed. Each square is inset by 1px from
+// its cell's top-left corner (matching the spec) so the grid lines it sits
+// over stay visible rather than being fully covered. Re-rolling a square's
+// grid cell on every completed cycle
 // (which pure CSS cannot do — a cell's position isn't animatable state) is
 // handled by listening for the DOM `animationiteration` event, which fires at
 // exactly the loop boundary (both ends already sit at 0 opacity, so the
@@ -95,13 +98,13 @@ function animatedGridPattern(props: AnimatedGridPatternProps = {}): DomphyElemen
   let currentColumns = Math.max(1, Math.ceil(FALLBACK_CONTAINER_WIDTH / width));
   let currentRows = Math.max(1, Math.ceil(FALLBACK_CONTAINER_HEIGHT / height));
 
-  const totalCycleSeconds = duration + repeatDelay;
-  const fadeInEndPercent = ((duration / 2 / totalCycleSeconds) * 100).toFixed(4);
-  const fadeOutEndPercent = ((duration / totalCycleSeconds) * 100).toFixed(4);
+  const totalCycleSeconds = duration * 2 + repeatDelay;
+  const fadeInEndPercent = ((duration / totalCycleSeconds) * 100).toFixed(4);
+  const holdEndPercent = (((duration + repeatDelay) / totalCycleSeconds) * 100).toFixed(4);
   const keyframes = {
     "0%": { opacity: 0 },
     [`${fadeInEndPercent}%`]: { opacity: maxOpacity },
-    [`${fadeOutEndPercent}%`]: { opacity: 0 },
+    [`${holdEndPercent}%`]: { opacity: maxOpacity },
     "100%": { opacity: 0 },
   };
   const animationName = `animated-grid-pattern-fade-${hashString(
@@ -138,10 +141,10 @@ function animatedGridPattern(props: AnimatedGridPatternProps = {}): DomphyElemen
       rect: null,
       _key: `square-${instanceId}-${index}`,
       dataAnimatedSquare: "true",
-      x: cell.column * width + x,
-      y: cell.row * height + y,
-      width,
-      height,
+      x: cell.column * width + x + 1,
+      y: cell.row * height + y + 1,
+      width: width - 1,
+      height: height - 1,
       ariaHidden: "true",
       // Decorative fill-only rect, no text of its own.
       _doctorDisable: "missing-color",
@@ -156,8 +159,8 @@ function animatedGridPattern(props: AnimatedGridPatternProps = {}): DomphyElemen
 
         const handleIteration = () => {
           const nextCell = pickRandomCell(currentColumns, currentRows);
-          element.setAttribute("x", String(nextCell.column * width + x));
-          element.setAttribute("y", String(nextCell.row * height + y));
+          element.setAttribute("x", String(nextCell.column * width + x + 1));
+          element.setAttribute("y", String(nextCell.row * height + y + 1));
         };
         element.addEventListener("animationiteration", handleIteration);
         node.addHook("Remove", () => {
@@ -207,8 +210,8 @@ function animatedGridPattern(props: AnimatedGridPatternProps = {}): DomphyElemen
             const squareNodes = svgElement.querySelectorAll("[data-animated-square]");
             for (const squareNode of Array.from(squareNodes)) {
               const cell = pickRandomCell(currentColumns, currentRows);
-              squareNode.setAttribute("x", String(cell.column * width + x));
-              squareNode.setAttribute("y", String(cell.row * height + y));
+              squareNode.setAttribute("x", String(cell.column * width + x + 1));
+              squareNode.setAttribute("y", String(cell.row * height + y + 1));
             }
           });
           resizeObserver.observe(svgElement);

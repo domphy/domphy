@@ -62,10 +62,10 @@ describe("sidebarStickyHeader", () => {
     expect(() => toggle.click()).not.toThrow();
   });
 
-  it("marks the pre-expanded active child link with aria-current=page", () => {
+  it("marks no nav sub-item active (upstream applies isActive to the parent, not a SidebarMenuSubButton)", () => {
     const { host } = render(sidebarStickyHeader() as DomphyElement);
     const activeLinks = Array.from(host.querySelectorAll('a[aria-current="page"]'));
-    expect(activeLinks.some((link) => link.textContent?.includes("Starred"))).toBe(true);
+    expect(activeLinks.length).toBe(0);
   });
 
   it("accepts custom breadcrumb and secondary nav data", () => {

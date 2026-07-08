@@ -20,7 +20,6 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `lines` | `TerminalLine[]` | Ordered script of typed-command and fade-output lines. Defaults to a demo install script. |
 | `sequence` | `boolean` | Auto-sequence lines one after another (each waits for the previous to finish). Defaults to true. |
 | `startOnView` | `boolean` | Only start playback once the window scrolls into view. Defaults to true. |
-| `title` | `string` | Window title shown centered in the header strip. Defaults to "zsh". |
 | `style` | `StyleObject` | — |
 
 ::: details Implementation notes

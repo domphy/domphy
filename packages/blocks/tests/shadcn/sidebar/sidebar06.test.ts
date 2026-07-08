@@ -45,7 +45,9 @@ describe("sidebar06", () => {
   it("renders the opt-in card and footer by default", () => {
     const { host } = render(sidebar06() as DomphyElement);
     expect(host.textContent).toContain("Subscribe");
-    expect(host.querySelector("aside footer")).toBeTruthy();
+    // Upstream's <SidebarFooter> renders as `<div data-slot="sidebar-footer">`,
+    // not a semantic <footer> element.
+    expect(host.querySelector("aside [data-slot='sidebar-footer']")).toBeTruthy();
   });
 
   it("renders the opt-in card as a form with an email input above the button", () => {

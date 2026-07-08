@@ -47,7 +47,10 @@ function chartTooltipDefault(props: ChartTooltipDefaultProps = {}): DomphyElemen
   } = props;
 
   const categories = data.map((point) => formatWeekdayShort(point.date));
-  const formatter = activityTooltipFormatter(data, series);
+  const formatter = activityTooltipFormatter(data, series, {
+    labelMode: "custom",
+    labelFormatter: (isoDate) => isoDate,
+  });
   const option = activityBarOption({ data, categories, series, showCursor, formatter });
 
   return activityTooltipCard({

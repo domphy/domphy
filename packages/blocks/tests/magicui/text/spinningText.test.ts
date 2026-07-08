@@ -22,13 +22,18 @@ describe("spinningText", () => {
     const { host } = render(spinningText() as DomphyElement);
     const wrapper = host.firstElementChild as HTMLElement;
     expect(wrapper).toBeTruthy();
-    expect(wrapper.getAttribute("role")).toBe("img");
-    expect(wrapper.getAttribute("aria-label")).toBe("learn more");
 
-    const ring = wrapper.querySelector('[aria-hidden="true"]') as HTMLElement;
-    expect(ring).toBeTruthy();
-    // The default "learn more • " unit is repeated until the ring reads full.
-    expect(ring.querySelectorAll(":scope > span").length).toBeGreaterThan(10);
+    // Every glyph is its own aria-hidden span, pre-placed on the ring — the
+    // default phrase ("learn more") appears exactly once, plus the single
+    // trailing gap character upstream pushes onto the letters array.
+    const characters = wrapper.querySelectorAll('span[aria-hidden="true"]');
+    expect(characters.length).toBe("learn more".length + 1);
+
+    // The full phrase stays screen-reader accessible via a visually-hidden span.
+    const srOnly = Array.from(wrapper.querySelectorAll("span")).find(
+      (span) => !span.hasAttribute("aria-hidden"),
+    );
+    expect(srOnly?.textContent).toBe("learn more");
   });
 
   it("spins in reverse and honors a custom radius/duration without throwing", () => {
@@ -46,15 +51,16 @@ describe("spinningText", () => {
 
   it("places every character with its own precomputed rotate+translate transform", () => {
     const { host, node } = render(
-      spinningText({ children: "hi", separator: "-" }) as DomphyElement,
+      spinningText({ children: "hi" }) as DomphyElement,
     );
-    const characters = host.querySelectorAll('[aria-hidden="true"] > span');
-    expect(characters.length).toBeGreaterThan(0);
+    // "hi" (2 chars) plus the single trailing gap character = 3 spans.
+    const characters = host.querySelectorAll('[aria-hidden="true"]');
+    expect(characters.length).toBe(3);
     // Declarative `style:` objects compile to class-based CSS (not inline
     // `style="..."` attributes), so assert against the generated stylesheet.
     const css = node.generateCSS();
     const rotateMatches =
-      css.match(/rotate\([^)]+deg\) translate\(0, calc\(/g) ?? [];
+      css.match(/rotate\([^)]+deg\) translateY\(calc\(/g) ?? [];
     // At least one match per character (the generated stylesheet may also
     // emit vendor-prefixed duplicates of the same `transform` declaration).
     expect(rotateMatches.length).toBeGreaterThanOrEqual(characters.length);

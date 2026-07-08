@@ -8,7 +8,7 @@
 
 import type { DomphyElement, Listener, State } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { avatar, buttonGhost, icon, popover, small } from "@domphy/ui";
+import { buttonGhost, icon, popover, small } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   ICON_BAR_CHART,
@@ -27,7 +27,6 @@ import {
   interactiveRowStyle,
   renderPlainNavRow,
   renderTeamSwitcher,
-  renderUserFooter,
   sidebarBreadcrumb,
   sidebarIcon,
   sidebarMainContent,
@@ -37,7 +36,6 @@ import {
   type SidebarBreadcrumbItem,
   type SidebarNavMainItem,
   type SidebarTeam,
-  type SidebarUser,
 } from "./sidebar09-12-shared.js";
 import { ICON_CALENDAR, ICON_HOME, ICON_SETTINGS, ICON_SPARKLE } from "./sidebar09-12-shared.js";
 
@@ -56,6 +54,9 @@ const ICON_HISTORY = `${SVG_OPEN}<path d="M7 2h10"/><path d="M5 6h14"/><rect wid
 const ICON_BELL = `${SVG_OPEN}<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`;
 const ICON_IMPORT = `${SVG_OPEN}<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>`;
 const ICON_EXPORT = `${SVG_OPEN}<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>`;
+const ICON_STAR = `${SVG_OPEN}<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+const ICON_STAR_OFF = `${SVG_OPEN}<path d="M8.34 8.34 2 9.27l5 4.87L5.82 21 12 17.77l1.28.67"/><path d="M18.42 12.76 22 9.27l-6.91-1.01L12 2l-1.44 2.91"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`;
+const ICON_ARROW_UP_RIGHT = `${SVG_OPEN}<path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>`;
 type Sidebar10Workspace = { name: string; emoji: string; expanded?: boolean; pages: Sidebar10Page[] };
 type Sidebar10SecondaryLink = { title: string; icon: string; href?: string };
 
@@ -66,14 +67,14 @@ type Sidebar10Props = {
   workspaces?: Sidebar10Workspace[];
   workspacesVisibleCount?: number;
   secondaryLinks?: Sidebar10SecondaryLink[];
-  user?: SidebarUser;
   breadcrumbItems?: SidebarBreadcrumbItem[];
   children?: DomphyElement | DomphyElement[];
 };
 
 const DEFAULT_TEAMS: SidebarTeam[] = [
   { name: "Acme Inc", plan: "Enterprise" },
-  { name: "Acme Corp", plan: "Startup" },
+  { name: "Acme Corp.", plan: "Startup" },
+  { name: "Evil Corp.", plan: "Free" },
 ];
 
 const DEFAULT_FAVORITES: Sidebar10FavoriteItem[] = [
@@ -96,7 +97,6 @@ const DEFAULT_WORKSPACES: Sidebar10Workspace[] = [
   {
     name: "Engineering",
     emoji: "🛠️",
-    expanded: true,
     pages: [
       { emoji: "🏛️", title: "Architecture" },
       { emoji: "📄", title: "RFCs" },
@@ -155,8 +155,6 @@ const DEFAULT_SECONDARY_LINKS: Sidebar10SecondaryLink[] = [
   { title: "Help", icon: ICON_LIFEBUOY },
 ];
 
-const DEFAULT_USER: SidebarUser = { name: "Shad Cn", email: "shadcn@example.com" };
-
 /** Uppercase muted section heading (hidden in icon-rail mode). */
 function sectionLabel(text: string, collapsed: State<boolean>): DomphyElement<"small"> {
   return {
@@ -174,7 +172,9 @@ function sectionLabel(text: string, collapsed: State<boolean>): DomphyElement<"s
 /** A favorite row: emoji + label + hover-revealed "more" popover trigger. */
 function favoriteRow(item: Sidebar10FavoriteItem, collapsed: State<boolean>): DomphyElement<"li"> {
   const actionsMenu = sidebarStyledPopoverContent([
-    { items: [{ label: "Rename" }, { label: "Copy link" }, { label: "Remove from favorites" }] },
+    { items: [{ icon: ICON_STAR_OFF, label: "Remove from Favorites" }] },
+    { items: [{ icon: ICON_LINK, label: "Copy Link" }, { icon: ICON_ARROW_UP_RIGHT, label: "Open in New Tab" }] },
+    { items: [{ icon: ICON_TRASH, label: "Delete" }] },
   ]);
 
   return {
@@ -233,114 +233,153 @@ function favoriteRow(item: Sidebar10FavoriteItem, collapsed: State<boolean>): Do
   } as DomphyElement<"li">;
 }
 
-/** A workspace tree node: `<details>` accordion + hover add-page button + nested page list. */
+/**
+ * A workspace tree node. Mirrors upstream nav-workspaces.tsx: a name **link**
+ * (`<a href="#">`) as the row body, a chevron collapse toggle anchored on the
+ * **left** (rotates 90deg when open), and a separate Plus action on the
+ * **right**. The chevron button — not the whole row — is the toggle, so the
+ * name stays an independent navigable link. All workspaces start collapsed
+ * (upstream wraps each in a bare `<Collapsible>` with no `defaultOpen`).
+ */
 function workspaceNode(workspace: Sidebar10Workspace, collapsed: State<boolean>): DomphyElement<"li"> {
+  const open = toState(workspace.expanded ?? false);
+
   return {
     li: [
       {
-        details: [
+        div: [
           {
-            summary: [
-              emojiGlyph(workspace.emoji),
-              { span: workspace.name, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
-              {
-                button: sidebarIcon(ICON_PLUS),
-                type: "button",
-                dataSlot: "row-add",
-                ariaLabel: `Add page to ${workspace.name}`,
-                onClick: (event: Event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                },
-                style: {
-                  display: "none",
-                  flexShrink: "0",
-                  border: "none",
-                  background: "none",
-                  cursor: "pointer",
-                  color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
-                },
-              } as unknown as DomphyElement,
+            button: [
               {
                 span: ICON_CHEVRON_RIGHT,
                 dataSlot: "chevron",
-                style: { transition: "transform 150ms ease" },
+                style: {
+                  display: "inline-flex",
+                  transition: "transform 150ms ease",
+                  transform: (l: Listener) => (open.get(l) ? "rotate(90deg)" : "none"),
+                },
                 $: [icon({ color: "neutral" })],
               } as unknown as DomphyElement,
             ],
+            type: "button",
+            dataSlot: "chevron-toggle",
+            ariaLabel: `Toggle ${workspace.name}`,
+            ariaExpanded: (l: Listener) => (open.get(l) ? "true" : "false"),
+            onClick: (event: Event) => {
+              event.preventDefault();
+              open.set(!open.get());
+            },
             style: {
-              listStyle: "none",
-              cursor: "pointer",
-              userSelect: "none",
-              display: "flex",
+              display: (l: Listener) => (open.get(l) ? "inline-flex" : "none"),
+              flexShrink: "0",
               alignItems: "center",
-              gap: themeSpacing(2),
-              width: "100%",
-              paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
-              paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-              borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
-              color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-              backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-              "&::-webkit-details-marker": { display: "none" },
-              "&::marker": { content: `""` },
-              "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
-              "&:hover [data-slot=row-add]": { display: "inline-flex" },
+              justifyContent: "center",
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              padding: "0",
+              color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
             },
           } as unknown as DomphyElement,
           {
-            ul: workspace.pages.map((page, index) => ({
-              li: [
-                {
-                  a: [
-                    ...(page.emoji ? [emojiGlyph(page.emoji)] : []),
-                    { span: page.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
-                  ],
-                  href: page.href ?? "#",
-                  style: {
-                    display: "flex",
-                    alignItems: "center",
-                    gap: themeSpacing(2),
-                    paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
-                    paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-                    borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
-                    textDecoration: () => "none",
-                    color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-                    backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-                    "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
-                  },
-                } as unknown as DomphyElement,
-              ],
-              _key: index,
-            })) as unknown as DomphyElement[],
+            a: [
+              emojiGlyph(workspace.emoji),
+              { span: workspace.name, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+            ],
+            href: "#",
             style: {
-              listStyle: "none",
-              margin: "0",
               display: "flex",
-              flexDirection: "column",
-              gap: themeSpacing(0.5),
-              marginInlineStart: themeSpacing(5),
-              paddingInlineStart: themeSpacing(3),
-              paddingBlock: "0",
-              paddingInlineEnd: "0",
-              borderInlineStart: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
-              color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-              maxHeight: "0px",
+              alignItems: "center",
+              flex: "1",
+              minWidth: "0",
+              gap: themeSpacing(2),
+              textDecoration: () => "none",
               overflow: "hidden",
-              opacity: "0",
-              transition: "max-height 180ms linear, opacity 180ms linear",
+              whiteSpace: "nowrap",
+              color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+            },
+          } as unknown as DomphyElement,
+          {
+            button: sidebarIcon(ICON_PLUS),
+            type: "button",
+            dataSlot: "row-add",
+            ariaLabel: `Add page to ${workspace.name}`,
+            onClick: (event: Event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            },
+            style: {
+              display: "none",
+              flexShrink: "0",
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
             },
           } as unknown as DomphyElement,
         ],
-        open: workspace.expanded ?? false,
         style: {
-          display: (l: Listener) => (collapsed.get(l) ? "none" : "block"),
-          "&[open] summary [data-slot=chevron]": { transform: "rotate(90deg)" },
-          "&[open] > ul": { maxHeight: themeSpacing(240), opacity: "1", paddingBlock: themeSpacing(1) },
+          display: "flex",
+          alignItems: "center",
+          gap: themeSpacing(2),
+          width: "100%",
+          paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
+          paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+          borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+          color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+          backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover [data-slot=chevron-toggle], &:focus-within [data-slot=chevron-toggle]": { display: "inline-flex" },
+          "&:hover [data-slot=row-add], &:focus-within [data-slot=row-add]": { display: "inline-flex" },
+        },
+      } as unknown as DomphyElement,
+      {
+        ul: workspace.pages.map((page, index) => ({
+          li: [
+            {
+              a: [
+                ...(page.emoji ? [emojiGlyph(page.emoji)] : []),
+                { span: page.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+              ],
+              href: page.href ?? "#",
+              style: {
+                display: "flex",
+                alignItems: "center",
+                gap: themeSpacing(2),
+                paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
+                paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+                borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+                textDecoration: () => "none",
+                color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+                backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+                "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+              },
+            } as unknown as DomphyElement,
+          ],
+          _key: index,
+        })) as unknown as DomphyElement[],
+        style: {
+          listStyle: "none",
+          margin: "0",
+          display: "flex",
+          flexDirection: "column",
+          gap: themeSpacing(0.5),
+          marginInlineStart: themeSpacing(5),
+          paddingInlineStart: themeSpacing(3),
+          paddingInlineEnd: "0",
+          borderInlineStart: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+          color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+          overflow: "hidden",
+          maxHeight: (l: Listener) => (open.get(l) ? themeSpacing(240) : "0px"),
+          opacity: (l: Listener) => (open.get(l) ? "1" : "0"),
+          paddingBlock: (l: Listener) => (open.get(l) ? themeSpacing(1) : "0"),
+          transition: "max-height 180ms linear, opacity 180ms linear",
         },
       } as unknown as DomphyElement,
     ],
     _key: workspace.name,
-  } as DomphyElement<"li">;
+    style: { display: (l: Listener) => (collapsed.get(l) ? "none" : "block") },
+  } as unknown as DomphyElement<"li">;
 }
 
 /** A real "show more" toggle row — reveals the rest of an overflowed list. */
@@ -359,28 +398,69 @@ function moreRow(label: string, onClick: () => void, collapsed: State<boolean>):
   } as unknown as DomphyElement<"li">;
 }
 
-/** Overlapping avatar-stack shown in the main header's nav-actions cluster. */
-function avatarStack(names: string[]): DomphyElement<"div"> {
+/**
+ * Right-aligned count badge overlaid on a nav row (upstream SidebarMenuBadge —
+ * `absolute right-1`, hidden in the collapsed icon rail). The row it decorates
+ * must be `position: relative`.
+ */
+function navRowBadge(text: string, collapsed: State<boolean>): DomphyElement<"span"> {
   return {
-    div: names.map((name, index) => ({
-      span: name.slice(0, 1).toUpperCase(),
-      _key: index,
-      style: {
-        marginInlineStart: index === 0 ? "0" : `-${themeSpacing(2)}`,
-        outline: (l: Listener) => `2px solid ${themeColor(l, "inherit", "neutral")}`,
-        outlineOffset: "0",
-        color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-      },
-      $: [avatar({ color: index % 2 === 0 ? "primary" : "neutral" })],
-    })) as unknown as DomphyElement[],
-    style: { display: "flex", alignItems: "center" },
+    span: text,
+    ariaHidden: "true",
+    style: {
+      position: "absolute",
+      insetInlineEnd: themeSpacing(3),
+      top: "50%",
+      transform: "translateY(-50%)",
+      display: (l: Listener) => (collapsed.get(l) ? "none" : "flex"),
+      alignItems: "center",
+      justifyContent: "center",
+      height: themeSpacing(5),
+      minWidth: themeSpacing(5),
+      paddingInline: themeSpacing(1),
+      pointerEvents: "none",
+      color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
+    },
+  } as unknown as DomphyElement<"span">;
+}
+
+/** A quick-link nav row, optionally carrying a right-aligned count badge. */
+function quickLinkRow(item: SidebarNavMainItem & { badge?: string }, collapsed: State<boolean>): DomphyElement<"li"> {
+  const row = renderPlainNavRow(item, collapsed) as unknown as {
+    li: DomphyElement[];
+    style?: Record<string, unknown>;
+  };
+  if (item.badge) {
+    row.style = { position: "relative" };
+    row.li.push(navRowBadge(item.badge, collapsed));
+  }
+  return row as unknown as DomphyElement<"li">;
+}
+
+/**
+ * Centered muted placeholder box for the main content — mirrors upstream
+ * page.tsx (`mx-auto max-w-3xl rounded-xl bg-muted/50`). `fill` = the second,
+ * height-filling box (`h-full`); otherwise a fixed `h-24` box.
+ */
+function centeredBox(fill: boolean): DomphyElement<"div"> {
+  return {
+    div: null,
+    dataTone: "shift-2",
+    style: {
+      marginInline: "auto",
+      width: "100%",
+      maxWidth: themeSpacing(192),
+      ...(fill ? { flex: "1", minHeight: themeSpacing(24) } : { height: themeSpacing(24) }),
+      borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+    },
   } as unknown as DomphyElement<"div">;
 }
 
 function mainHeader(props: {
   onToggle: () => void;
   breadcrumbItems: SidebarBreadcrumbItem[];
-  memberNames: string[];
 }): DomphyElement<"header"> {
   // Notion-style page-actions menu — matches upstream nav-actions.tsx's four
   // grouped sections.
@@ -429,11 +509,48 @@ function mainHeader(props: {
       sidebarBreadcrumb(props.breadcrumbItems),
       {
         div: [
-          avatarStack(props.memberNames),
+          {
+            small: "Edit Oct 08",
+            // Upstream: `hidden ... md:inline-block` — hidden below the md breakpoint.
+            style: {
+              display: "none",
+              "@media (min-width: 768px)": { display: "inline-block" },
+            },
+            $: [small({ color: "neutral" })],
+          } as unknown as DomphyElement,
+          {
+            button: sidebarIcon(ICON_STAR),
+            type: "button",
+            ariaLabel: "Favorite this page",
+            style: {
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
+            },
+          } as unknown as DomphyElement,
           {
             button: sidebarIcon(ICON_MORE),
             type: "button",
             ariaLabel: "More actions",
+            // Upstream NavActions opens the page-actions popover on mount
+            // (`useEffect(() => setIsOpen(true), [])`) — an idempotent *set*,
+            // not a toggle. Domphy's popover only inserts its floating content
+            // on `show()`, reachable here only through the trigger's click
+            // handler, so replicate the post-mount effect with a synthetic
+            // click. Fire it synchronously (not `setTimeout(fn, 0)`): by the
+            // time `_onMount` runs the click handler is already wired, and a
+            // deferred macrotask here would queue on every render even when
+            // nothing else interacts with this button — those pile up across
+            // renders and, once flushed together, each extra `show()` call
+            // resets the popover's open debounce, delaying the real open past
+            // any caller's wait window. Guard on `aria-expanded` so this is a
+            // no-op (not a toggle-closed) if the popover is already open.
+            _onMount: (node: { domElement: HTMLElement | null }) => {
+              if (node.domElement?.getAttribute("aria-expanded") !== "true") {
+                node.domElement?.click();
+              }
+            },
             style: {
               border: "none",
               background: "none",
@@ -453,7 +570,7 @@ function mainHeader(props: {
       display: "flex",
       alignItems: "center",
       gap: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-      height: themeSpacing(16),
+      height: themeSpacing(14),
       flexShrink: "0",
       paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
       borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
@@ -476,8 +593,7 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
     workspaces = DEFAULT_WORKSPACES,
     workspacesVisibleCount = 5,
     secondaryLinks = DEFAULT_SECONDARY_LINKS,
-    user = DEFAULT_USER,
-    breadcrumbItems = [{ label: "Engineering" }, { label: "Architecture" }],
+    breadcrumbItems = [{ label: "Project Management & Task Tracking" }],
     children,
   } = props;
 
@@ -485,22 +601,30 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
   const favoritesShowMore = useShowMore(favorites, favoritesVisibleCount);
   const workspacesShowMore = useShowMore(workspaces, workspacesVisibleCount);
 
-  const quickLinks: SidebarNavMainItem[] = [
+  const quickLinks: Array<SidebarNavMainItem & { badge?: string }> = [
     { title: "Search", icon: ICON_SEARCH, href: "#" },
     { title: "Ask AI", icon: ICON_SPARKLE, href: "#" },
-    { title: "Home", icon: ICON_HOME, href: "#" },
-    { title: "Inbox", icon: ICON_INBOX, href: "#" },
+    { title: "Home", icon: ICON_HOME, href: "#", active: true },
+    { title: "Inbox", icon: ICON_INBOX, href: "#", badge: "10" },
   ];
 
   const asideElement: DomphyElement<"aside"> = {
     aside: [
       renderTeamSwitcher(teams),
       {
+        ul: quickLinks.map((item) => quickLinkRow(item, collapsed)),
+        style: {
+          listStyle: "none",
+          margin: "0",
+          padding: "0",
+          display: "flex",
+          flexDirection: "column",
+          gap: themeSpacing(0.5),
+          paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+        },
+      } as unknown as DomphyElement,
+      {
         nav: [
-          {
-            ul: quickLinks.map((item) => renderPlainNavRow(item, collapsed)),
-            style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
-          } as unknown as DomphyElement,
           {
             div: [
               sectionLabel("Favorites", collapsed),
@@ -557,9 +681,23 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
         },
       } as unknown as DomphyElement,
-      renderUserFooter(user),
+      // Upstream app-sidebar.tsx renders <SidebarRail /> — a thin always-present
+      // edge strip that toggles the sidebar on click (same pattern as sidebar11).
+      {
+        div: null,
+        ariaHidden: "true",
+        onClick: () => collapsed.set(!collapsed.get()),
+        style: {
+          position: "absolute",
+          insetBlock: "0",
+          insetInlineEnd: "0",
+          width: themeSpacing(1),
+          cursor: "col-resize",
+        },
+      } as unknown as DomphyElement,
     ],
     style: {
+      position: "relative",
       display: "flex",
       flexDirection: "column",
       flexShrink: "0",
@@ -577,9 +715,8 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
       mainHeader({
         onToggle: () => collapsed.set(!collapsed.get()),
         breadcrumbItems,
-        memberNames: [user.name, "Alex Rivera", "Jordan Lee"],
       }),
-      sidebarMainContent(children),
+      sidebarMainContent(children ?? [centeredBox(false), centeredBox(true)]),
     ],
     style: {
       display: "flex",

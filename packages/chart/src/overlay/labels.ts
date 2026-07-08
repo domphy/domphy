@@ -119,7 +119,7 @@ function renderLineLabels(
   yScales: AnyScale[],
   hiddenSeries: Set<string>,
 ): void {
-  const labelColor = themeColorToken(null, "shift-9", "neutral");
+  const defaultLabelColor = themeColorToken(null, "shift-9", "neutral");
 
   for (const s of series) {
     if (!s.label?.show) continue;
@@ -127,6 +127,12 @@ function renderLineLabels(
     const xScale = xScales[s.xAxisIndex ?? 0];
     const yScale = yScales[s.yAxisIndex ?? 0];
     if (!xScale || !yScale) continue;
+    // Upstream <LabelList className="fill-foreground"> renders point labels at
+    // full card-foreground contrast; honor a per-series label color (resolved at
+    // the foreground `shift-11` tone) when set, else keep the muted default.
+    const labelColor = s.label.color
+      ? themeColorToken(null, "shift-11", s.label.color)
+      : defaultLabelColor;
 
     (s.data ?? []).forEach((item, index) => {
       let xVal: any;

@@ -42,8 +42,8 @@ export interface ChartAreaGradientProps {
 }
 
 const DEFAULT_SERIES: ChartAreaGradientSeries[] = [
-  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0] },
-  { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[1] },
+  { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[0] },
+  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[1] },
 ];
 
 /**
@@ -68,6 +68,7 @@ function chartAreaGradient(props: ChartAreaGradientProps = {}): DomphyElement<"d
   const option: ChartOption = {
     tooltip: {
       trigger: "axis",
+      axisPointer: { type: "none" },
       formatter: chartAxisTooltipFormatter(categories),
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
@@ -81,7 +82,7 @@ function chartAreaGradient(props: ChartAreaGradientProps = {}): DomphyElement<"d
       showSymbol: false,
       color: s.color,
       lineStyle: { width: 2 },
-      areaStyle: { color: chartAreaGradientFill(s.color), opacity: 1 },
+      areaStyle: { color: chartAreaGradientFill(s.color), opacity: 0.4 },
       data: data.map((point) => point[s.key]),
     })),
   };

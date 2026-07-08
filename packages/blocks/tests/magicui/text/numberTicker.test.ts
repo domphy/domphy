@@ -2,7 +2,7 @@
 
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode } from "@domphy/core";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { numberTicker } from "../../../src/magicui/text/numberTicker.js";
 
 function render(app: DomphyElement) {
@@ -15,6 +15,7 @@ function render(app: DomphyElement) {
 
 afterEach(() => {
   document.body.innerHTML = "";
+  vi.useRealTimers();
 });
 
 describe("numberTicker", () => {
@@ -29,7 +30,7 @@ describe("numberTicker", () => {
     expect(span.textContent).toBe("0");
   });
 
-  it("starts at the formatted target value when direction is 'down'", () => {
+  it("still paints the literal startValue as the pre-trigger text when direction is 'down' (matches upstream's static JSX children, not the count's flipped starting point)", () => {
     const { host } = render(
       numberTicker({
         value: 250,
@@ -40,10 +41,13 @@ describe("numberTicker", () => {
     const span = host.querySelector(
       '[data-number-ticker="true"]',
     ) as HTMLElement;
-    expect(span.textContent).toBe("250");
+    expect(span.textContent).toBe("0");
   });
 
-  it("formats decimal places and thousands separators via Intl.NumberFormat", () => {
+  it("formats decimal places and thousands separators via Intl.NumberFormat once the spring settles", () => {
+    // Drive the rAF spring loop via fake timers so it can settle inside the
+    // test instead of asserting the raw (unformatted) pre-trigger text.
+    vi.useFakeTimers();
     const { host } = render(
       numberTicker({
         value: 1234.5,
@@ -54,7 +58,12 @@ describe("numberTicker", () => {
     const span = host.querySelector(
       '[data-number-ticker="true"]',
     ) as HTMLElement;
-    expect(span.textContent).toBe("1,000.0");
+    // No IntersectionObserver in jsdom -> fails open and triggers on mount.
+    // Advance well past the spring's settle time: the overdamped decay's
+    // slower pole (~1.715/s here) needs ln(distance/restDelta)/pole seconds
+    // to fall under restDelta, which for a 234.5-wide count is ~6s.
+    vi.advanceTimersByTime(12000);
+    expect(span.textContent).toBe("1,234.5");
   });
 
   it("does not throw once mounted (rAF spring loop starts without error)", () => {

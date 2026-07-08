@@ -14,7 +14,7 @@
 // unaffected, and the frame's background-position is looped via a CSS
 // keyframe for the "slow pulsing light" motion the spec describes.
 
-import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
+import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
@@ -29,7 +29,7 @@ export interface NeonGradientCardNeonColors {
 export interface NeonGradientCardProps {
   /** Content rendered inside the frame. Defaults to a small demo card body. */
   children?: DomphyElement | DomphyElement[];
-  /** Neon frame thickness, in `themeSpacing` units. Defaults to `5`. */
+  /** Neon frame thickness, in pixels (a thin fixed hairline). Defaults to `2`. */
   borderSize?: number;
   /** Corner rounding, in pixels. Defaults to `20`. */
   borderRadius?: number;
@@ -45,11 +45,10 @@ let neonGradientCardInstanceCounter = 0;
 
 /**
  * A card framed by a thick, animated two-color neon gradient border with a
- * blurred halo behind it. Hovering intensifies the glow. Call with no
- * arguments for a working demo card.
+ * blurred halo behind it. Call with no arguments for a working demo card.
  */
 function neonGradientCard(props: NeonGradientCardProps = {}): DomphyElement<"div"> {
-  const borderSize = props.borderSize ?? 5;
+  const borderSize = props.borderSize ?? 2;
   const borderRadius = props.borderRadius ?? 20;
   const firstColor = props.neonColors?.firstColor ?? "secondary";
   const secondColor = props.neonColors?.secondColor ?? "info";
@@ -61,10 +60,14 @@ function neonGradientCard(props: NeonGradientCardProps = {}): DomphyElement<"div
     : [
         { h3: "Neon Gradient Card", $: [heading()] } as DomphyElement,
         {
-          p: "A pulsing two-color neon frame halos this card, brightening further on hover.",
+          p: "A pulsing two-color neon frame halos this card.",
           $: [paragraph({ color: "neutral" })],
         } as DomphyElement,
       ];
+
+  // Upstream measures the card's rendered width and sets the halo blur to
+  // width/3, so the glow stays proportional to the card. Recompute on resize.
+  let resizeObserver: ResizeObserver | null = null;
 
   const instanceId = ++neonGradientCardInstanceCounter;
   const animationName = `neon-gradient-card-pulse-${hashString(
@@ -78,7 +81,7 @@ function neonGradientCard(props: NeonGradientCardProps = {}): DomphyElement<"div
   };
 
   const gradientImage = (listener: Listener) =>
-    `linear-gradient(135deg, ${themeColor(listener, "shift-9", firstColor)}, ${themeColor(listener, "shift-9", secondColor)}, ${themeColor(listener, "shift-9", firstColor)})`;
+    `linear-gradient(0deg, ${themeColor(listener, "shift-9", firstColor)}, ${themeColor(listener, "shift-9", secondColor)})`;
 
   // Decorative gradient layers carry no text of their own — exempt from the
   // missing-color contract (same idiom as `borderBeam`/`shineBorder`'s ring
@@ -90,17 +93,41 @@ function neonGradientCard(props: NeonGradientCardProps = {}): DomphyElement<"div
     dataNeonGlow: "true",
     ariaHidden: "true",
     _doctorDisable: "missing-color",
+    // Upstream sizes the halo blur to the card's own width (offsetWidth / 3),
+    // so the glow stays proportional as the card grows. Measure the parent
+    // wrapper on mount (and on resize) and write the blur imperatively. The
+    // hook lives on this layer — not the wrapper — because a node's own Mount
+    // fires only once it is appended, whereas the wrapper's fires before its
+    // children exist.
+    _onMount: (node: ElementNode) => {
+      const glow = node.domElement as HTMLElement;
+      const wrapper = glow.parentElement;
+      if (!wrapper) return;
+      const applyBlur = () => {
+        glow.style.filter = `blur(${wrapper.offsetWidth / 3}px)`;
+      };
+      applyBlur();
+      if (typeof ResizeObserver !== "undefined") {
+        resizeObserver = new ResizeObserver(applyBlur);
+        resizeObserver.observe(wrapper);
+      }
+    },
+    _onRemove: () => {
+      resizeObserver?.disconnect();
+      resizeObserver = null;
+    },
     style: {
       position: "absolute",
-      inset: themeSpacing(-(borderSize * 2)),
+      inset: `${-(borderSize * 2)}px`,
       borderRadius: `${borderRadius + borderSize * 2}px`,
       backgroundImage: gradientImage,
-      backgroundSize: "200% 200%",
+      backgroundSize: "100% 200%",
+      // Pre-mount / no-JS fallback; `_onMount` overrides this with the
+      // width-proportional `blur(offsetWidth / 3)` upstream uses.
       filter: `blur(${themeSpacing(borderSize * 3)})`,
-      opacity: 0.5,
+      opacity: 0.8,
       pointerEvents: "none",
       zIndex: 0,
-      transition: "opacity 300ms ease, filter 300ms ease",
       animation: `${animationName} ${duration}s ease-in-out infinite`,
       [`@keyframes ${animationName}`]: keyframes,
     } as StyleObject,
@@ -115,7 +142,7 @@ function neonGradientCard(props: NeonGradientCardProps = {}): DomphyElement<"div
       inset: 0,
       borderRadius: `${borderRadius}px`,
       backgroundImage: gradientImage,
-      backgroundSize: "200% 200%",
+      backgroundSize: "100% 200%",
       pointerEvents: "none",
       zIndex: 1,
       animation: `${animationName} ${duration}s ease-in-out infinite`,
@@ -128,6 +155,11 @@ function neonGradientCard(props: NeonGradientCardProps = {}): DomphyElement<"div
     style: {
       position: "relative",
       zIndex: 2,
+      boxSizing: "border-box",
+      width: "100%",
+      height: "100%",
+      minHeight: "inherit",
+      overflowWrap: "break-word",
       borderRadius: `${Math.max(borderRadius - borderSize, 0)}px`,
       padding: themeSpacing(6),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
@@ -139,16 +171,20 @@ function neonGradientCard(props: NeonGradientCardProps = {}): DomphyElement<"div
     div: [glowLayer, frameLayer, contentLayer],
     style: {
       position: "relative",
+      // Lift the whole card above sibling content (upstream `z-10`).
+      zIndex: 10,
+      boxSizing: "border-box",
+      // Fill the parent instead of shrink-wrapping content (upstream `size-full`).
+      width: "100%",
+      height: "100%",
       borderRadius: `${borderRadius}px`,
       // The gap this padding leaves (between the wrapper's edge and the
       // ordinary-flow content div) is exactly where `frameLayer` — an
       // `inset: 0` absolutely positioned sibling filling the wrapper's whole
-      // padding box — shows through as the visible neon ring.
-      padding: themeSpacing(borderSize),
-      "&:hover [data-neon-glow]": {
-        opacity: 0.85,
-        filter: `blur(${themeSpacing(borderSize * 2)})`,
-      },
+      // padding box — shows through as the visible neon ring. Its width is
+      // `borderSize` in pixels (upstream's `--border-size`): a fixed thin
+      // hairline, not an em-scaled band.
+      padding: `${borderSize}px`,
       ...(props.style ?? {}),
     } as StyleObject,
   };

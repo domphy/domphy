@@ -9,8 +9,8 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement, Listener } from "@domphy/core";
-import { themeColor, themeSpacing } from "@domphy/theme";
-import { card, heading, paragraph, strong } from "@domphy/ui";
+import { themeColor, themeSize, themeSpacing } from "@domphy/theme";
+import { card, heading, paragraph } from "@domphy/ui";
 import {
   NARROW_CARD_WIDTH,
   brandBadge,
@@ -77,31 +77,63 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
     onSubmit,
   } = props;
 
-  const logoRow: DomphyElement<"div"> = {
-    div: [brandBadge(), { strong: brandName, $: [strong()] }],
+  const logoRow: DomphyElement<"a"> = {
+    a: [brandBadge(), brandName],
+    href: "#",
     style: {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      // Upstream logo link is `font-medium` (500) over the whole wordmark —
+      // not bold. `strong()` would render it at 700 and read as a heading.
+      fontWeight: "500",
       gap: themeSpacing(2),
       marginBlockEnd: themeSpacing(6),
     },
   };
 
+  const emailFieldRow = emailField({
+    id: "login03-email",
+    fieldLabel: emailLabel,
+    placeholder: emailPlaceholder,
+  });
+
+  const passwordFieldRow = passwordField({
+    id: "login03-password",
+    fieldLabel: passwordLabel,
+    forgotPasswordHref,
+  });
+
   const cardElement: DomphyElement<"div"> = {
     div: [
       { h2: headingText, $: [heading()], style: { textAlign: "center" } },
-      { p: subheading, $: [paragraph({ color: "neutral" })], style: { textAlign: "center" } },
+      {
+        p: subheading,
+        $: [paragraph({ color: "neutral" })],
+        // Upstream CardDescription is `text-sm` (0.875rem), a step below base.
+        style: { textAlign: "center", fontSize: (listener: Listener) => themeSize(listener, "decrease-1") },
+      },
       {
         div: [
           {
             form: [
-              oauthButton({ brand: "apple", visibleLabel: appleButtonLabel, accessibleLabel: appleButtonLabel, onClick: onAppleClick }),
-              oauthButton({ brand: "google", visibleLabel: googleButtonLabel, accessibleLabel: googleButtonLabel, onClick: onGoogleClick }),
+              {
+                div: [
+                  oauthButton({ brand: "apple", visibleLabel: appleButtonLabel, accessibleLabel: appleButtonLabel, onClick: onAppleClick }),
+                  oauthButton({ brand: "google", visibleLabel: googleButtonLabel, accessibleLabel: googleButtonLabel, onClick: onGoogleClick }),
+                ],
+                style: { display: "flex", flexDirection: "column", gap: themeSpacing(3) },
+              },
               dividerRow(dividerText),
-              emailField({ id: "login03-email", fieldLabel: emailLabel, placeholder: emailPlaceholder }),
-              passwordField({ id: "login03-password", fieldLabel: passwordLabel, forgotPasswordHref }),
-              submitButton(primaryButtonLabel),
+              emailFieldRow,
+              passwordFieldRow,
+              {
+                div: [
+                  submitButton(primaryButtonLabel),
+                  signUpLine({ promptText: signUpPrompt, linkLabel: signUpLabel, href: signUpHref }),
+                ],
+                style: { display: "flex", flexDirection: "column", gap: themeSpacing(3) },
+              },
             ],
             onSubmit: (event: Event) => {
               event.preventDefault();
@@ -111,11 +143,10 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
                 password: String(data.get("password") ?? ""),
               });
             },
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(4) },
+            style: { display: "flex", flexDirection: "column", gap: themeSpacing(7) },
           } as DomphyElement<"form">,
         ],
       },
-      { footer: [signUpLine({ promptText: signUpPrompt, linkLabel: signUpLabel, href: signUpHref })] },
     ],
     $: [card({ color: "neutral" })],
     style: { width: "100%", maxWidth: NARROW_CARD_WIDTH },
@@ -140,8 +171,11 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      minHeight: "100dvh",
+      minHeight: "100svh",
+      // Upstream steps padding at the `md` breakpoint (p-6 -> md:p-10)
+      // rather than scaling it continuously.
       padding: themeSpacing(6),
+      "@media (min-width: 48em)": { padding: themeSpacing(10) },
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },

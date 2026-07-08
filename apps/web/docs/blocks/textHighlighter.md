@@ -26,10 +26,10 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `iterations` | `number` | Number of overlapping redraw passes — above 1 gives the rougher, more authentic "scribbled by hand" look. Defaults to `2`. |
 | `padding` | `TextHighlighterPadding` | Gap in px between the text glyphs and the annotation stroke. Defaults to `2`. |
 | `multiline` | `boolean` | Whether the annotation should be drawn as one continuous shape (`false`) or broken per visual line when the text wraps (`true`). Defaults to `true`. |
-| `brackets` | `TextHighlighterBracketSide \| TextHighlighterBracketSide[]` | Which side(s) get a corner bracket mark. Only used by the `"bracket"` type. Defaults to `["left", "right"]` (flanking marks on both sides). |
-| `trigger` | `"mount" \| "view"` | `"mount"` (default) draws shortly after mount; `"view"` waits until the wrapper first scrolls into the viewport, so offscreen highlights don't animate prematurely on long pages. |
-| `mountDelay` | `number` | Delay before drawing, in ms, once triggered. Defaults to `100`. |
-| `viewMargin` | `string` | `IntersectionObserver` `rootMargin` used when `trigger` is `"view"`. Defaults to `"-50px"`. |
+| `brackets` | `TextHighlighterBracketSide \| TextHighlighterBracketSide[]` | Which side(s) get a corner bracket mark. Only used by the `"bracket"` type. Defaults to `"right"` (matches rough-notation's own fallback for an unset `brackets` config). |
+| `trigger` | `"mount" \| "view"` | `"mount"` (default) draws immediately after mount (matching upstream's `useLayoutEffect`); `"view"` waits until the wrapper first scrolls into the viewport, so offscreen highlights don't animate prematurely on long pages. |
+| `mountDelay` | `number` | Delay before drawing, in ms, once triggered. Defaults to `0` (upstream draws immediately). |
+| `viewMargin` | `string` | `IntersectionObserver` `rootMargin` used when `trigger` is `"view"`. Defaults to `"-10%"` (matches upstream's `useInView` `margin`). |
 | `style` | `StyleObject` | Passthrough style merged onto the wrapping span. |
 
 ::: details Implementation notes

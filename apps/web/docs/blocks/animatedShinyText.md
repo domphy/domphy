@@ -19,7 +19,7 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 |---|---|---|
 | `children` | `string` | Label text. Defaults to `"Introducing Domphy Blocks"`. |
 | `shimmerWidth` | `number` | Pixel width of the bright sweeping band. Narrower reads as a sharp glint, wider as a soft glow. Defaults to `100`. |
-| `duration` | `number` | One full sweep loop, in ms. Defaults to `2500`. |
+| `duration` | `number` | One full sweep loop, in ms. Defaults to `8000`. |
 | `color` | `ThemeColor` | Theme color family for the muted resting text. Defaults to `"neutral"`. |
 | `showBadge` | `boolean` | Wraps the text in the rounded pill/badge shown in the spec's demo, with a trailing arrow that nudges right on hover. Defaults to `true`. |
 | `icon` | `DomphyElement` | Optional leading icon/glyph rendered before the text inside the badge. |

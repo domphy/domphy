@@ -1,18 +1,21 @@
 // magicui "Dock" — clean-room reimplementation from the public
 // behavior/visual spec only (no upstream source viewed or copied). A
 // macOS-style row of circular icon buttons inside a floating translucent
-// pill that magnify smoothly as the cursor approaches — closest icon grows
-// largest, neighbors grow progressively less by distance, and everything
-// relaxes back to rest size when the cursor leaves.
+// rounded bar (rounded-2xl, fixed height) that magnify smoothly as the cursor
+// approaches — closest icon grows largest, neighbors grow progressively less
+// by distance, and everything relaxes back to rest size when the cursor
+// leaves. Each icon's width/height (a layout property, in pixels) is animated,
+// so the flex row reflows and neighboring icons physically spread apart as one
+// icon grows; a magnified icon overflows the fixed-height bar.
 //
 // True mass/stiffness/damping spring physics aren't implemented (Domphy has
-// no bundled spring integrator); instead each icon's `transform` is driven
+// no bundled spring integrator); instead each icon's width/height is driven
 // directly (imperative DOM writes, not Domphy reactivity — this is a
 // continuous, high-frequency effect, matching the "canvas loop / marquee"
 // guidance for such effects) from live cursor position, rAF-throttled, and
-// eased through a bouncy CSS `cubic-bezier` transition so the icon overshoots
-// slightly before settling — a visual approximation of a damped spring, not
-// a literal one.
+// eased through a CSS `cubic-bezier` transition — a visual approximation of a
+// damped spring, not a literal one. The proximity falloff is piecewise-linear,
+// matching motion's `useTransform` 3-point range [-distance, 0, distance].
 
 import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
 import { tooltip } from "@domphy/ui";
@@ -47,7 +50,7 @@ export interface DockProps {
   magnification?: number;
   /** Proximity falloff width, as a multiple of the icon's own rendered size. Defaults to 3.5 (~140px at 40px icons). */
   proximityMultiplier?: number;
-  /** Which edge the dock is anchored against — flips tooltip placement and each icon's grow-from origin. Defaults to "bottom". */
+  /** Which edge the dock is anchored against — flips tooltip placement and each icon's grow-from origin. Defaults to "middle". */
   anchor?: DockAnchor;
   /** Disables the magnification effect entirely, falling back to static icons. Defaults to false. */
   disableMagnification?: boolean;
@@ -142,6 +145,9 @@ function dockSeparator(index: number): DomphyElement<"div"> {
 
 interface DockIconRef {
   element: HTMLElement;
+  /** Natural rest width (px), captured on the first magnify frame while the
+   * inline width is still empty; the base for the pixel width/height interp. */
+  baseSize: number;
 }
 
 function dockIconButton(
@@ -149,11 +155,10 @@ function dockIconButton(
   index: number,
   iconSizeUnits: number,
   anchor: DockAnchor,
+  disableMagnification: boolean,
   iconRefs: DockIconRef[],
 ): DomphyElement<"a"> {
   const tooltipPlacement = anchor === "top" ? "bottom" : "top";
-  const transformOrigin =
-    anchor === "top" ? "center top" : anchor === "bottom" ? "center bottom" : "center center";
 
   const anchorElement: DomphyElement<"a"> = {
     a: [dockGlyph(item.icon)],
@@ -170,17 +175,19 @@ function dockIconButton(
       height: themeSpacing(iconSizeUnits),
       borderRadius: "50%",
       textDecoration: () => "none",
-      transformOrigin,
-      willChange: "transform",
-      transition: "transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 150ms ease",
+      willChange: "width, height",
+      transition:
+        "width 250ms cubic-bezier(0.34, 1.56, 0.64, 1), height 250ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 150ms ease",
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
-      "&:hover": { backgroundColor: (listener: Listener) => themeColor(listener, "increase-1") },
+      ...(disableMagnification
+        ? { "&:hover": { backgroundColor: (listener: Listener) => themeColor(listener, "increase-1") } }
+        : {}),
     },
     $: [tooltip({ content: item.label, placement: tooltipPlacement })],
     _onMount: (node: ElementNode) => {
       const element = node.domElement as HTMLElement | null;
-      if (element) iconRefs.push({ element });
+      if (element) iconRefs.push({ element, baseSize: 0 });
     },
     _onRemove: (node: ElementNode) => {
       const element = node.domElement as HTMLElement | null;
@@ -195,12 +202,6 @@ function dockIconButton(
   return anchorElement;
 }
 
-/** Smoothstep falloff — smoother than linear, cheap to compute per frame. */
-function smoothstep(t: number): number {
-  const clamped = Math.max(0, Math.min(1, t));
-  return clamped * clamped * (3 - 2 * clamped);
-}
-
 /**
  * A floating macOS-style dock: a row of circular icon buttons that magnify
  * as the cursor approaches them, with optional group separators and
@@ -211,7 +212,7 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
   const iconSizeUnits = props.iconSizeUnits ?? 10;
   const magnification = props.magnification ?? 1.5;
   const proximityMultiplier = props.proximityMultiplier ?? 3.5;
-  const anchor = props.anchor ?? "bottom";
+  const anchor = props.anchor ?? "middle";
   const disableMagnification = props.disableMagnification ?? false;
 
   const iconRefs: DockIconRef[] = [];
@@ -222,17 +223,30 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
     animationFrame = null;
     for (const ref of iconRefs) {
       if (pointerX === null || disableMagnification) {
-        ref.element.style.transform = "";
+        // Clear inline sizes so the base themeSpacing width/height (and the
+        // CSS transition) take back over and the icon eases to rest.
+        ref.element.style.width = "";
+        ref.element.style.height = "";
         continue;
       }
       const rect = ref.element.getBoundingClientRect();
       if (rect.width === 0) continue;
+      // Capture the natural size only while no inline width is applied yet
+      // (i.e. the first frame of a hover session); afterwards rect.width
+      // reflects the magnified size and must not be mistaken for the base.
+      if (!ref.element.style.width) ref.baseSize = rect.width;
+      const baseSize = ref.baseSize || rect.width;
       const center = rect.left + rect.width / 2;
       const distance = Math.abs(pointerX - center);
-      const threshold = rect.width * proximityMultiplier;
-      const falloff = smoothstep(1 - distance / threshold);
-      const scale = 1 + (magnification - 1) * falloff;
-      ref.element.style.transform = scale > 1.001 ? `scale(${scale.toFixed(3)})` : "";
+      const threshold = baseSize * proximityMultiplier;
+      // Piecewise-linear falloff — matches motion useTransform's 3-point
+      // range [-distance, 0, distance] -> [base, target, base].
+      const falloff = threshold > 0 ? 1 - Math.min(distance, threshold) / threshold : 0;
+      // Interpolate the size in PIXELS (a layout property), not a transform,
+      // so the flex row reflows and neighbouring icons spread apart.
+      const size = baseSize + baseSize * (magnification - 1) * falloff;
+      ref.element.style.width = `${size.toFixed(2)}px`;
+      ref.element.style.height = `${size.toFixed(2)}px`;
     }
   };
 
@@ -243,7 +257,7 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
   const children: DomphyElement[] = entries.map((entry, index) =>
     "separator" in entry
       ? dockSeparator(index)
-      : dockIconButton(entry, index, iconSizeUnits, anchor, iconRefs),
+      : dockIconButton(entry, index, iconSizeUnits, anchor, disableMagnification, iconRefs),
   );
 
   return {
@@ -253,13 +267,23 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
     style: {
       position: "relative",
       display: "flex",
-      alignItems: "center",
+      // align-items positions the taller magnified icons: top anchors them to
+      // the bar's top edge (grow down), bottom to the bottom (grow up), middle
+      // centres them (overflow both edges) — mirrors upstream items-start/
+      // center/end. Must not be `stretch`, or icons would stretch to fill.
+      alignItems: anchor === "top" ? "flex-start" : anchor === "bottom" ? "flex-end" : "center",
       width: "fit-content",
       marginInline: "auto",
+      // Fixed height (base icon + block padding on both sides), so a magnified
+      // icon overflows the bar instead of stretching it taller — upstream's
+      // h-[58px]. Icons overflow visibly (default overflow: visible).
+      height: (listener: Listener) =>
+        `calc(${themeSpacing(iconSizeUnits)} + 2 * ${themeSpacing(themeDensity(listener) * 2)})`,
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
       paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
       paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
-      borderRadius: themeSpacing(999),
+      // Upstream rounded-2xl (16px rounded rectangle), not a fully-rounded pill.
+      borderRadius: themeSpacing(4),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,

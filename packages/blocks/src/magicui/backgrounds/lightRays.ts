@@ -27,8 +27,6 @@ export interface LightRaysProps {
   color?: ThemeColor;
   /** Blur radius, in px. Defaults to `36`. */
   blur?: number;
-  /** Peak ray opacity, 0–1. Defaults to `0.65`. */
-  opacity?: number;
   /** Seconds per animation cycle. Defaults to `14`. */
   speed?: number;
   /** Ray height, any CSS length. Defaults to `"70vh"`. */
@@ -46,6 +44,8 @@ function randomBetween(min: number, max: number): number {
 }
 
 function glowBlob(key: string, corner: "left" | "right", color: ThemeColor): DomphyElement {
+  const gradientPosition = corner === "left" ? "20% 15%" : "80% 10%";
+  const fadeStop = corner === "left" ? "70%" : "75%";
   return {
     div: null,
     _key: key,
@@ -55,16 +55,11 @@ function glowBlob(key: string, corner: "left" | "right", color: ThemeColor): Dom
     _doctorDisable: "missing-color",
     style: {
       position: "absolute",
-      top: 0,
-      left: corner === "left" ? 0 : "auto",
-      right: corner === "right" ? 0 : "auto",
-      width: "45%",
-      height: "45%",
+      inset: 0,
       pointerEvents: "none",
-      mixBlendMode: "screen",
+      opacity: 0.6,
       backgroundImage: (listener) =>
-        `radial-gradient(circle, ${themeColor(listener, "shift-10", color)} 0%, transparent 70%)`,
-      filter: "blur(48px)",
+        `radial-gradient(circle at ${gradientPosition}, ${themeColor(listener, "shift-10", color)} 0%, transparent ${fadeStop})`,
     } as StyleObject,
   } as DomphyElement;
 }
@@ -81,27 +76,38 @@ function lightRays(props: LightRaysProps = {}): DomphyElement<"div"> {
   const count = Math.max(1, Math.round(props.count ?? 7));
   const color = props.color ?? "primary";
   const blur = props.blur ?? 36;
-  const peakOpacity = props.opacity ?? 0.65;
   const speed = props.speed ?? 14;
   const length = props.length ?? "70vh";
+  const cycleDuration = Math.max(speed, 0.1);
 
   const rayElements: DomphyElement[] = Array.from({ length: count }, (_unused, index) => {
-    const leftPercent = ((index + 0.5) / count) * 100 + randomBetween(-1, 1) * (50 / count);
-    const baseAngle =
-      count > 1 ? -28 + (index / (count - 1)) * 56 + randomBetween(-5, 5) : randomBetween(-8, 8);
-    const widthPercent = randomBetween(4, 10);
-    const swingAmplitude = randomBetween(6, 16);
-    const delaySeconds = randomBetween(0, speed);
-    const durationSeconds = speed * randomBetween(0.85, 1.15);
+    // Each ray fully random per upstream createRays() — a true scatter, not an
+    // even index-fanned distribution.
+    const leftPercent = randomBetween(8, 92);
+    const baseAngle = randomBetween(-28, 28);
+    const widthPixels = randomBetween(160, 320);
+    const swingAmplitude = randomBetween(0.8, 2.6);
+    const delaySeconds = randomBetween(0, cycleDuration);
+    const durationSeconds = cycleDuration * randomBetween(0.75, 1.25);
+    // Mirrors upstream's `repeatDelay: duration * 0.1` — each ray holds at
+    // rest for one tenth of its cycle before pulsing again, rather than
+    // looping straight back into the next rise.
+    const totalCycleSeconds = durationSeconds * 1.1;
+    const activePercent = (100 / 1.1).toFixed(2);
+    const halfActivePercent = (50 / 1.1).toFixed(2);
+    // Upstream: intensity = 0.6 + Math.random() * 0.5 (0.6–1.1, no prop).
+    const rayPeakOpacity = randomBetween(0.6, 1.1);
 
     const opacityKeyframes = {
       "0%": { opacity: 0 },
-      "50%": { opacity: peakOpacity },
+      [`${halfActivePercent}%`]: { opacity: rayPeakOpacity },
+      [`${activePercent}%`]: { opacity: 0 },
       "100%": { opacity: 0 },
     };
     const rotateKeyframes = {
       "0%": { transform: `rotate(${(baseAngle - swingAmplitude).toFixed(2)}deg)` },
-      "50%": { transform: `rotate(${(baseAngle + swingAmplitude).toFixed(2)}deg)` },
+      [`${halfActivePercent}%`]: { transform: `rotate(${(baseAngle + swingAmplitude).toFixed(2)}deg)` },
+      [`${activePercent}%`]: { transform: `rotate(${(baseAngle - swingAmplitude).toFixed(2)}deg)` },
       "100%": { transform: `rotate(${(baseAngle - swingAmplitude).toFixed(2)}deg)` },
     };
     const opacityAnimationName = `light-ray-opacity-${hashString(`${instanceId}-${index}-${JSON.stringify(opacityKeyframes)}`)}`;
@@ -116,18 +122,22 @@ function lightRays(props: LightRaysProps = {}): DomphyElement<"div"> {
       _doctorDisable: "missing-color",
       style: {
         position: "absolute",
-        top: 0,
+        // Upstream ray: `-top-[12%]` starts above the frame; `-translate-x-1/2`
+        // centers the beam on its `left` coordinate (Tailwind v4 `translate`
+        // property is independent of the animated `transform: rotate()`).
+        top: "-12%",
         left: `${leftPercent}%`,
-        width: `${widthPercent}%`,
+        width: `${widthPixels}px`,
         height: length,
         transformOrigin: "top center",
+        translate: "-50%",
         clipPath: "polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%)",
         pointerEvents: "none",
         mixBlendMode: "screen",
         filter: `blur(${blur}px)`,
         backgroundImage: (listener) =>
           `linear-gradient(to bottom, ${themeColor(listener, "shift-11", color)} 0%, transparent 100%)`,
-        animation: `${opacityAnimationName} ${durationSeconds.toFixed(2)}s ease-in-out ${delaySeconds.toFixed(2)}s infinite, ${rotateAnimationName} ${durationSeconds.toFixed(2)}s ease-in-out ${delaySeconds.toFixed(2)}s infinite`,
+        animation: `${opacityAnimationName} ${totalCycleSeconds.toFixed(2)}s ease-in-out ${delaySeconds.toFixed(2)}s infinite, ${rotateAnimationName} ${totalCycleSeconds.toFixed(2)}s ease-in-out ${delaySeconds.toFixed(2)}s infinite`,
         [`@keyframes ${opacityAnimationName}`]: opacityKeyframes,
         [`@keyframes ${rotateAnimationName}`]: rotateKeyframes,
       } as StyleObject,
@@ -162,6 +172,9 @@ function lightRays(props: LightRaysProps = {}): DomphyElement<"div"> {
     dataTone: "shift-15",
     style: {
       position: "relative",
+      // Upstream root carries `isolate` — own stacking context so the rays'
+      // mix-blend-mode:screen composites only within the component.
+      isolation: "isolate",
       overflow: "hidden",
       borderRadius: themeSpacing(4),
       padding: themeSpacing(8),

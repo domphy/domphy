@@ -18,7 +18,7 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 | Prop | Type | Description |
 |---|---|---|
 | `children` | `DomphyElement \| DomphyElement[]` | Content rendered inside the frame. Defaults to a small demo card body. |
-| `borderSize` | `number` | Neon frame thickness, in `themeSpacing` units. Defaults to `5`. |
+| `borderSize` | `number` | Neon frame thickness, in pixels (a thin fixed hairline). Defaults to `2`. |
 | `borderRadius` | `number` | Corner rounding, in pixels. Defaults to `20`. |
 | `neonColors` | `NeonGradientCardNeonColors` | The two gradient hues the frame blends through. |
 | `duration` | `number` | Loop duration for the gradient's slow pulse, in seconds. Defaults to `6`. |

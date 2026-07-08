@@ -6,9 +6,18 @@
 
 import type { DomphyElement, Listener, State } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { avatar, inputCheckbox, small, strong } from "@domphy/ui";
+import { avatar, icon, inputCheckbox, popover, small, strong } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeDensity, themeSpacing } from "@domphy/theme";
-import { ICON_PANEL_TOGGLE, ICON_PLUS, sidebarIcon, verticalDivider } from "./sidebar09-12-shared.js";
+import {
+  ICON_CHEVRON_RIGHT,
+  ICON_CHEVRONS_UPDOWN,
+  ICON_PANEL_TOGGLE,
+  ICON_PLUS,
+  ICON_SPARKLE,
+  interactiveRowStyle,
+  sidebarIcon,
+  verticalDivider,
+} from "./sidebar09-12-shared.js";
 
 type Sidebar12User = { name: string; email: string; avatarUrl?: string };
 type Sidebar12CalendarEntry = { id: string; name: string; color: ThemeColor };
@@ -57,6 +66,186 @@ const DEFAULT_GROUPS: Sidebar12CalendarGroup[] = [
 
 const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
+// ---------------------------------------------------------------------------
+// Account dropdown — upstream nav-user.tsx renders a user-info header plus five
+// items in three separator-divided, icon-labeled groups. The shared
+// renderUserFooter() only produces a plain 3-item Account/Billing/Log out menu,
+// so this block builds its own footer + dropdown locally (see structured-output
+// sharedFileSuspicion: the shared helper is the real root cause). Icons below
+// are hand-authored generic line glyphs (24x24, stroke=currentColor), matching
+// the clean-room icon style already used across this sidebar family — not
+// sourced from any icon library.
+// ---------------------------------------------------------------------------
+
+const ICON_BADGE_CHECK =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M12 3l7 3v6c0 4-3 7-7 8-4-1-7-4-7-8V6z"/><path d="M9 12l2 2 4-4"/></svg>';
+
+const ICON_CREDIT_CARD =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>';
+
+const ICON_BELL =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.5 21a1.5 1.5 0 0 1-3 0"/></svg>';
+
+const ICON_LOG_OUT =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>';
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((part) => part[0]?.toUpperCase() ?? "").join("") || "?";
+}
+
+/** Avatar span: user image if present, otherwise two-letter initials fallback. */
+function accountAvatar(user: Sidebar12User): DomphyElement<"span"> {
+  return user.avatarUrl
+    ? ({
+        span: [{ img: null, src: user.avatarUrl, alt: user.name } as unknown as DomphyElement],
+        $: [avatar({ color: "primary" })],
+      } as unknown as DomphyElement<"span">)
+    : ({ span: initialsOf(user.name), $: [avatar({ color: "primary" })] } as unknown as DomphyElement<"span">);
+}
+
+/** Two-line label (bold name + muted email) that clips instead of wrapping. */
+function twoLineLabel(title: string, caption: string): DomphyElement<"div"> {
+  return {
+    div: [
+      { strong: title, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
+      { small: caption, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+    ],
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: themeSpacing(0.5),
+      minWidth: "0",
+      overflow: "hidden",
+      whiteSpace: "nowrap",
+    },
+  } as unknown as DomphyElement<"div">;
+}
+
+type AccountMenuEntry = { icon: string; label: string };
+
+/** Upstream nav-user.tsx dropdown groups (5 items across 3 separator-divided,
+ * icon-labeled groups): [Upgrade to Pro] / [Account, Billing, Notifications] /
+ * [Log out]. */
+const ACCOUNT_MENU_GROUPS: AccountMenuEntry[][] = [
+  [{ icon: ICON_SPARKLE, label: "Upgrade to Pro" }],
+  [
+    { icon: ICON_BADGE_CHECK, label: "Account" },
+    { icon: ICON_CREDIT_CARD, label: "Billing" },
+    { icon: ICON_BELL, label: "Notifications" },
+  ],
+  [{ icon: ICON_LOG_OUT, label: "Log out" }],
+];
+
+/** Account dropdown content: user-info header + separator, then the three
+ * icon-labeled item groups divided by separator hairlines — mirrors upstream
+ * nav-user.tsx exactly. */
+function accountDropdownContent(user: Sidebar12User): DomphyElement<"div"> {
+  return {
+    div: [
+      // Header (DropdownMenuLabel): avatar + name/email, with a bottom hairline
+      // standing in for the separator between it and the first group.
+      {
+        div: [accountAvatar(user), twoLineLabel(user.name, user.email)],
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+          paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
+          paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+          borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+          color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+        },
+      } as unknown as DomphyElement,
+      {
+        div: ACCOUNT_MENU_GROUPS.map((entries, groupIndex) => ({
+          div: entries.map((entry, itemIndex) => ({
+            button: [
+              sidebarIcon(entry.icon),
+              { span: entry.label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+            ],
+            type: "button",
+            role: "menuitem",
+            style: interactiveRowStyle(true),
+            _key: itemIndex,
+          })) as unknown as DomphyElement[],
+          role: "group",
+          style: {
+            display: "flex",
+            flexDirection: "column",
+            paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+            paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+            // Separator hairline between groups (last group has none), matching
+            // upstream's DropdownMenuSeparator between every group.
+            borderBottom:
+              groupIndex < ACCOUNT_MENU_GROUPS.length - 1
+                ? (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`
+                : undefined,
+          },
+          _key: groupIndex,
+        })) as unknown as DomphyElement[],
+        role: "menu",
+        style: { display: "flex", flexDirection: "column" },
+      } as unknown as DomphyElement,
+    ],
+    dataTone: "shift-0",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      minWidth: themeSpacing(56),
+      borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      border: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      boxShadow: (l: Listener) => `0 ${themeSpacing(2)} ${themeSpacing(8)} ${themeColor(l, "shift-4", "neutral")}`,
+      overflow: "hidden",
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+    },
+  } as unknown as DomphyElement<"div">;
+}
+
+/** Account footer trigger (avatar + name/email + chevrons) opening the
+ * upstream-faithful account dropdown. Local to this block instead of the shared
+ * renderUserFooter(), whose plain 3-item menu omits the header/groups/icons. */
+function renderAccountFooter(user: Sidebar12User): DomphyElement<"div"> {
+  return {
+    div: [
+      {
+        button: [accountAvatar(user), twoLineLabel(user.name, user.email), sidebarIcon(ICON_CHEVRONS_UPDOWN)],
+        type: "button",
+        ariaLabel: "Account menu",
+        style: {
+          display: "flex",
+          alignItems: "center",
+          width: "100%",
+          gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+          padding: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+          borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+          border: "none",
+          cursor: "pointer",
+          overflow: "hidden",
+          color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+          backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+        },
+        $: [popover({ placement: "right-start", content: accountDropdownContent(user) })],
+      } as unknown as DomphyElement,
+    ],
+    style: {
+      // Header sits at the top of the aside (like upstream SidebarHeader,
+      // border-b), so the hairline is a bottom border, not a top one. Upstream
+      // SidebarHeader here is `h-16 border-b` — a fixed 64px height that lines
+      // up with the content header, so center its trigger vertically.
+      display: "flex",
+      alignItems: "center",
+      height: themeSpacing(16),
+      boxSizing: "border-box",
+      padding: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+    },
+  } as unknown as DomphyElement<"div">;
+}
+
 function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
@@ -71,32 +260,6 @@ function sameDay(a: Date, b: Date): boolean {
 }
 function isoOf(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-}
-
-/** User avatar + name/email header, pinned above the date picker. */
-function sidebarUserHeader(user: Sidebar12User): DomphyElement<"div"> {
-  const avatarChild: DomphyElement<"span"> = user.avatarUrl
-    ? ({ span: [{ img: null, src: user.avatarUrl, alt: user.name } as unknown as DomphyElement], $: [avatar({ color: "primary" })] } as unknown as DomphyElement<"span">)
-    : ({ span: user.name.slice(0, 1).toUpperCase(), $: [avatar({ color: "primary" })] } as unknown as DomphyElement<"span">);
-
-  return {
-    div: [
-      avatarChild,
-      {
-        div: [
-          { strong: user.name, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
-          { small: user.email, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
-        ],
-        style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5), minWidth: "0", overflow: "hidden" },
-      } as unknown as DomphyElement,
-    ],
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-      padding: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-    },
-  } as unknown as DomphyElement<"div">;
 }
 
 /** Compact always-visible month-grid date picker (Sunday-first, no popover). */
@@ -278,7 +441,15 @@ function calendarGroupSection(
       {
         details: [
           {
-            summary: [{ span: group.label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement],
+            summary: [
+              { span: group.label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+              {
+                span: ICON_CHEVRON_RIGHT,
+                dataSlot: "chevron",
+                style: { transition: "transform 150ms ease" },
+                $: [icon({ color: "neutral" })],
+              } as unknown as DomphyElement,
+            ],
             style: {
               listStyle: "none",
               cursor: "pointer",
@@ -300,10 +471,34 @@ function calendarGroupSection(
           } as unknown as DomphyElement,
         ],
         open: groupIndex === 0,
+        style: {
+          "&[open] summary [data-slot=chevron]": { transform: "rotate(90deg)" },
+        },
       } as unknown as DomphyElement,
+      // Upstream calendars.tsx renders a <SidebarSeparator className="mx-0" />
+      // after every group (including the last) — a full-width divider line
+      // between/after each of the three calendar groups.
+      groupSeparator(),
     ],
     _key: group.label,
   } as DomphyElement<"li">;
+}
+
+/** Full-width horizontal divider rendered after each calendar group, matching
+ * upstream's per-group SidebarSeparator. Border (not backgroundColor) to stay
+ * theme-safe, like verticalDivider() in the shared module. */
+function groupSeparator(): DomphyElement<"div"> {
+  return {
+    div: null,
+    ariaHidden: "true",
+    style: {
+      height: "0",
+      width: "100%",
+      marginBlockStart: themeSpacing(2),
+      borderBlockStart: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      color: (l: Listener) => themeColor(l, "shift-3", "neutral"),
+    },
+  } as unknown as DomphyElement<"div">;
 }
 
 /** Tall placeholder day-grid demonstrating the sidebar's independent scroll. */
@@ -355,10 +550,13 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
 
   const asideElement: DomphyElement<"aside"> = {
     aside: [
-      sidebarUserHeader(user),
-      verticalDivider(),
+      renderAccountFooter(user),
       monthDatePicker(viewMonth, selectedDate, selectDate),
-      verticalDivider(),
+      // Upstream app-sidebar.tsx renders a single <SidebarSeparator className="mx-0" />
+      // between the DatePicker and the Calendars — a full-width HORIZONTAL rule.
+      // (verticalDivider() is a no-op sliver in this column stack, and the
+      // header/content divider is already the renderAccountFooter border-b.)
+      groupSeparator(),
       {
         ul: groups.map((group, groupIndex) => calendarGroupSection(group, groupIndex, onCalendarToggle)),
         style: {
@@ -395,6 +593,23 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
           borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
           padding: (l: Listener) => themeSpacing(themeDensity(l) * 1),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+        },
+      } as unknown as DomphyElement,
+      // Upstream app-sidebar.tsx renders <SidebarRail /> — a thin always-present
+      // edge strip that toggles the sidebar on click (same pattern as sidebar11).
+      {
+        div: null,
+        ariaHidden: "true",
+        onClick: () => {
+          collapsed.set(!collapsed.get());
+          mobileOpen.set(!mobileOpen.get());
+        },
+        style: {
+          position: "absolute",
+          insetBlock: "0",
+          insetInlineEnd: "0",
+          width: themeSpacing(1),
+          cursor: "col-resize",
         },
       } as unknown as DomphyElement,
     ],

@@ -22,6 +22,9 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `yAxisTickCount` | `number` | Number of y-axis ticks to show. Defaults to a sparse 3. |
 | `title` | `string` | — |
 | `description` | `string` | — |
+| `trendText` | `string` | — |
+| `trendDirection` | `ChartTrendDirection` | — |
+| `captionText` | `string` | — |
 | `height` | `number` | — |
 
 ::: details Implementation notes

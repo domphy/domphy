@@ -56,7 +56,10 @@ function chartAreaDefault(props: ChartAreaDefaultProps = {}): DomphyElement<"div
   const option: ChartOption = {
     tooltip: {
       trigger: "axis",
-      formatter: chartAxisTooltipFormatter(categories, (p) => `${p.value} visitors`),
+      axisPointer: { type: "none" },
+      // Upstream passes `<ChartTooltipContent indicator="line" />` and no value
+      // formatter, so the tooltip shows the bare number (no " visitors" unit).
+      formatter: chartAxisTooltipFormatter(categories, undefined, false, "line"),
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     yAxis: CHART_AREA_Y_AXIS_HIDDEN,
@@ -68,7 +71,10 @@ function chartAreaDefault(props: ChartAreaDefaultProps = {}): DomphyElement<"div
         smooth: true,
         showSymbol: false,
         color: seriesColor,
-        lineStyle: { width: 2 },
+        // Upstream <Area> sets no strokeWidth, so the outline renders at the
+        // 1px SVG default (unlike the linear recipe, which sets strokeWidth=2).
+        // The engine defaults an unset lineStyle.width to 2, so pin it to 1.
+        lineStyle: { width: 1 },
         areaStyle: { opacity: 0.4 },
         data: data.map((point) => point.value),
       },
@@ -79,7 +85,9 @@ function chartAreaDefault(props: ChartAreaDefaultProps = {}): DomphyElement<"div
     title,
     description,
     content: { div: [chartAreaFrame(option, height)] },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    // Upstream's <TrendingUp/> has no color class — it inherits the neutral
+    // foreground, not a green/red trend tint.
+    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText, color: "neutral" }),
   });
 }
 

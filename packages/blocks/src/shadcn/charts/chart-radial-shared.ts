@@ -27,7 +27,7 @@
 import type { DomphyElement, Listener } from "@domphy/core";
 import { State, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing, type ThemeColor } from "@domphy/theme";
-import { heading, small } from "@domphy/ui";
+import { card, heading, paragraph, small } from "@domphy/ui";
 import { motion } from "@domphy/ui";
 
 // ─── Data shapes ───────────────────────────────────────────────────────────
@@ -188,6 +188,7 @@ export interface RadialArcPathProps {
   capStyle?: "butt" | "round";
   tooltip?: RadialTooltipController;
   tooltipLabel?: string;
+  tooltipValue?: number;
   seriesKey: string;
 }
 
@@ -204,6 +205,7 @@ export function radialArcPath(props: RadialArcPathProps): DomphyElement<"path"> 
     capStyle = "butt",
     tooltip,
     tooltipLabel,
+    tooltipValue,
     seriesKey,
   } = props;
   const pathData = describeRadialArc(cx, cy, radius, startAngleDeg, endAngleDeg);
@@ -229,7 +231,7 @@ export function radialArcPath(props: RadialArcPathProps): DomphyElement<"path"> 
   };
 
   if (tooltip && tooltipLabel) {
-    element.onMouseEnter = (event) => tooltip.show(event as MouseEvent, { label: tooltipLabel, color });
+    element.onMouseEnter = (event) => tooltip.show(event as MouseEvent, { label: tooltipLabel, color, value: tooltipValue });
     element.onMouseMove = (event) => tooltip.move(event as MouseEvent);
     element.onMouseLeave = () => tooltip.hide();
   }
@@ -278,12 +280,16 @@ export function radialThinCircle(
 export interface RadialTooltipEntry {
   label: string;
   color: ThemeColor;
+  /** Numeric value shown right-aligned after the label (upstream
+   * ChartTooltipContent renders `item.value.toLocaleString()`). */
+  value?: number;
 }
 
 interface RadialTooltipStateShape {
   visible: boolean;
   label: string;
   color: ThemeColor;
+  value?: number;
   x: number;
   y: number;
 }
@@ -302,6 +308,7 @@ export function createRadialTooltip(): RadialTooltipController {
     visible: false,
     label: "",
     color: "neutral",
+    value: undefined,
     x: 0,
     y: 0,
   });
@@ -319,7 +326,7 @@ export function createRadialTooltip(): RadialTooltipController {
       container = element;
     },
     show: (event, entry) => {
-      state.set({ visible: true, label: entry.label, color: entry.color, ...positionFromEvent(event) });
+      state.set({ visible: true, label: entry.label, color: entry.color, value: entry.value, ...positionFromEvent(event) });
     },
     move: (event) => {
       const current = state.get();
@@ -355,6 +362,26 @@ export function radialTooltipLayer(tooltip: RadialTooltipController): DomphyElem
         },
       } as DomphyElement<"span">,
       { small: (listener: Listener) => tooltip.state.get(listener).label, $: [small({ color: "neutral" })] } as DomphyElement<"small">,
+      // Right-aligned numeric value — upstream ChartTooltipContent renders
+      // `item.value.toLocaleString()` in `font-mono font-medium
+      // text-foreground tabular-nums`, pushed to the row's end via the parent
+      // `flex-1 justify-between`. Here: full-strength (box) color, monospace
+      // family, medium weight, tabular numerals, and `margin-inline-start:auto`
+      // (ml-auto) to shove the value against the row's trailing edge.
+      {
+        small: (listener: Listener) => {
+          const value = tooltip.state.get(listener).value;
+          return value == null ? "" : value.toLocaleString();
+        },
+        $: [small({ color: "neutral" })],
+        style: {
+          marginInlineStart: "auto",
+          color: (listener: Listener) => themeColor(listener, "shift-9"),
+          fontFamily: "ui-monospace, monospace",
+          fontWeight: "500",
+          fontVariantNumeric: "tabular-nums",
+        },
+      } as DomphyElement<"small">,
     ],
     dataTone: "shift-17",
     style: {
@@ -378,6 +405,32 @@ export function radialTooltipLayer(tooltip: RadialTooltipController): DomphyElem
         return `translate(${current.x + 14}px, ${current.y - 14}px)`;
       },
     },
+  };
+}
+
+// ─── Card shell (centered title/description, matching every upstream
+// chart-radial-*.tsx's `<CardHeader className="items-center pb-0">` — distinct
+// from the left-aligned chartCardShell the other chart families use) ─────────
+
+export interface RadialCardShellProps {
+  title: string;
+  description: string;
+  content: DomphyElement<"div">;
+  footer?: DomphyElement<"footer">;
+}
+
+export function radialCardShell(props: RadialCardShellProps): DomphyElement<"div"> {
+  const { title, description, content, footer } = props;
+  const children: DomphyElement[] = [
+    { h3: title, $: [heading()], style: { textAlign: "center" } },
+    { p: description, $: [paragraph({ color: "neutral" })], style: { textAlign: "center" } },
+    content,
+  ];
+  if (footer) children.push(footer);
+  return {
+    div: children,
+    $: [card({ color: "neutral" })],
+    style: { width: "100%" },
   };
 }
 
@@ -488,6 +541,7 @@ export function renderRadialRingsChart(props: RadialRingsChartProps): DomphyElem
         capStyle,
         tooltip,
         tooltipLabel: point.label,
+        tooltipValue: point.value,
         seriesKey: point.key,
       }),
     );
@@ -672,13 +726,12 @@ export function renderRadialStackedGauge(props: RadialStackedGaugeProps): Domphy
         capStyle: "round",
         tooltip,
         tooltipLabel: segment.label,
+        tooltipValue: segment.value,
         seriesKey: segment.key,
       }),
     );
     cursor += segmentSweep;
   });
-
-  const labelTopPercent = toPercent(cy - outerRadius * 0.5);
 
   return {
     div: [
@@ -687,7 +740,10 @@ export function renderRadialStackedGauge(props: RadialStackedGaugeProps): Domphy
         viewBox: `0 0 ${RADIAL_VIEW_SIZE} ${RADIAL_VIEW_SIZE}`,
         style: { width: "100%", height: "100%", display: "block", overflow: "visible" },
       } as DomphyElement<"svg">,
-      radialCenterLabel({ valueText: totalText, captionText, topPercent: labelTopPercent }),
+      // Center total/caption at the chart's true vertical center (topPercent
+      // defaults to 50 / cy), matching renderRadialGauge — the previous
+      // (cy − outerRadius*0.5) sat too high inside the arc band.
+      radialCenterLabel({ valueText: totalText, captionText }),
       radialTooltipLayer(tooltip),
     ],
     style: {

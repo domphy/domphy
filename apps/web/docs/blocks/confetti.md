@@ -18,9 +18,10 @@ A **Effects** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 | Prop | Type | Description |
 |---|---|---|
 | `options` | `ConfettiFireOptions` | Base options merged under every `fire()` call. See `canvas-confetti`'s `Options`. |
+| `globalOptions` | `ConfettiGlobalOptions` | Options for the underlying `confetti.create(canvas, ...)` instance (mirrors upstream's `globalOptions` prop). Defaults to `{ resize: true, useWorker: true }`; `resize` is always forced on so the canvas tracks its element size. |
 | `onReady` | `(handle: ConfettiHandle) =&gt; void` | Called once the canvas is mounted and the imperative handle is ready. |
-| `autoFire` | `boolean` | Fires one burst automatically shortly after mount. Defaults to `true`. |
-| `autoFireDelay` | `number` | Delay (ms) before the automatic burst. Defaults to `150`. |
+| `autoFire` | `boolean` | Fires one burst automatically the moment the canvas mounts. Defaults to `true`. |
+| `children` | `DomphyElement \| DomphyElement[]` | Foreground content rendered after the canvas (mirrors upstream's `{children}`). The burst is reachable from these children via the `onReady` handle — Domphy's equivalent of upstream's `ConfettiContext`, which has no runtime-context analog. |
 | `style` | `StyleObject` | Passthrough style merged onto the canvas. |
 
 ::: details Implementation notes

@@ -1,16 +1,19 @@
 // Magic UI "Shine Border" — clean-room reimplementation.
 //
-// A decorative animated border whose color itself continuously rotates
-// through a gradient of colors — a shimmering, shifting outline rather than
-// a moving dot of light (contrast with `borderBeam`, which animates a single
-// traveling comet). Implemented as a full-perimeter SVG ring stroked with a
-// gradient whose orientation is continuously rotated by a native SMIL
-// `<animateTransform>` — pure declarative markup, no JS timers, resize
-// listeners, or measurement needed, so it degrades to a static gradient ring
-// wherever SMIL is unavailable.
+// A decorative animated border: a subtle single-hue shine band that
+// continuously sweeps around a container's rounded outline (contrast with
+// `borderBeam`, which animates a single traveling comet). Implemented as a
+// full-perimeter SVG ring stroked with a gradient — transparent flanks around
+// the shine color, matching upstream's `radial-gradient(transparent,
+// transparent, shineColor, transparent, transparent)` — whose orientation is
+// continuously rotated by a native SMIL `<animateTransform>`. Pure declarative
+// markup: no JS timers, resize listeners, or measurement, so it degrades to a
+// static gradient ring wherever SMIL is unavailable, and to a static ring for
+// users with `prefers-reduced-motion: reduce` (upstream's `motion-safe:` gate).
 //
-// Implemented purely from the block's public functional/visual spec — no
-// upstream Magic UI source was viewed or copied.
+// Defaults and reduced-motion behavior verified against the real upstream
+// source (registry/magicui/shine-border.tsx, MIT-licensed); the SMIL ring is a
+// technique substitution for upstream's CSS `animate-shine` (see SOURCES.md).
 
 import type { DomphyElement } from "@domphy/core";
 import { heading, paragraph } from "@domphy/ui";
@@ -18,11 +21,11 @@ import { themeColor, themeSpacing } from "@domphy/theme";
 import type { ThemeColor } from "@domphy/theme";
 
 export interface ShineBorderProps {
-  /** Ring thickness in pixels. Defaults to `2`. */
+  /** Ring thickness in pixels. Defaults to `1`. */
   thickness?: number;
   /** One full rotation, in seconds — slower/calmer than `borderBeam`'s comet. Defaults to `14`. */
   duration?: number;
-  /** Colors the ring blends through, in order. Defaults to `["primary", "highlight", "warning"]`. */
+  /** Colors the shine band blends through, in order. Defaults to a single subtle hue `["neutral"]` (upstream's `#000000`). */
   colors?: ThemeColor[];
   /** Corner radius in pixels, should roughly match the host card's own rounding. Defaults to `16`. */
   borderRadius?: number;
@@ -39,9 +42,9 @@ let shineBorderInstanceCounter = 0;
  */
 function shineBorder(props: ShineBorderProps = {}): DomphyElement<"div"> {
   const {
-    thickness = 2,
+    thickness = 1,
     duration = 14,
-    colors = ["primary", "highlight", "warning"],
+    colors = ["neutral"],
     borderRadius = 16,
     children = [
       { h3: "Shine Border", $: [heading()] },
@@ -57,22 +60,31 @@ function shineBorder(props: ShineBorderProps = {}): DomphyElement<"div"> {
 
   // `<stop>` is a paint-server node, not text — it has no `color` to follow the
   // tone context, so the `missing-color` doctor rule is a false positive here.
-  const stopCount = Math.max(colors.length, 2);
-  const stops: DomphyElement[] = colors.map((color, index) => ({
-    stop: null,
-    offset: `${(index / (stopCount - 1)) * 100}%`,
-    style: { stopColor: (listener) => themeColor(listener, "shift-9", color) },
-    _doctorDisable: "missing-color",
-    _key: `stop-${index}`,
-  })) as DomphyElement[];
-  // Repeat the first color at 100% so the rotation has no visible hard seam.
-  stops.push({
-    stop: null,
-    offset: "100%",
-    style: { stopColor: (listener) => themeColor(listener, "shift-9", colors[0]) },
-    _doctorDisable: "missing-color",
-    _key: "stop-loop",
-  } as DomphyElement);
+  //
+  // Upstream flanks the shine color(s) with transparent on both ends
+  // (`radial-gradient(transparent, transparent, <shineColor>, transparent,
+  // transparent)`), so even a single subtle hue reads as a moving band rather
+  // than a flat uniform ring. Mirror that: transparent → color(s) across the
+  // middle → transparent, with the SMIL rotation below sweeping the band around.
+  const transparentStop = (offset: string, key: string): DomphyElement =>
+    ({
+      stop: null,
+      offset,
+      style: { stopColor: "transparent" },
+      _doctorDisable: "missing-color",
+      _key: key,
+    }) as DomphyElement;
+  const stops: DomphyElement[] = [
+    transparentStop("0%", "stop-start"),
+    ...(colors.map((color, index) => ({
+      stop: null,
+      offset: `${((index + 1) / (colors.length + 1)) * 100}%`,
+      style: { stopColor: (listener) => themeColor(listener, "shift-9", color) },
+      _doctorDisable: "missing-color",
+      _key: `stop-${index}`,
+    })) as DomphyElement[]),
+    transparentStop("100%", "stop-end"),
+  ];
 
   const ringRect = (strokeWidth: number, blur: number, opacity: number): DomphyElement =>
     ({
@@ -92,6 +104,17 @@ function shineBorder(props: ShineBorderProps = {}): DomphyElement<"div"> {
       },
     }) as DomphyElement;
 
+  // Upstream gates the shine behind `motion-safe:animate-shine`, so users who
+  // request `prefers-reduced-motion: reduce` get a static ring. SMIL can't be
+  // gated by a CSS media query, so snapshot the preference at build time and
+  // omit the `<animateTransform>` entirely — leaving the same static gradient
+  // ring upstream's `motion-safe:` gate leaves. (Build-time snapshot, not a live
+  // listener; a mid-session OS toggle takes effect on the next render.)
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   return {
     div: [
       {
@@ -109,15 +132,19 @@ function shineBorder(props: ShineBorderProps = {}): DomphyElement<"div"> {
               {
                 linearGradient: [
                   ...stops,
-                  {
-                    animateTransform: null,
-                    attributeName: "gradientTransform",
-                    type: "rotate",
-                    from: "0 0.5 0.5",
-                    to: "360 0.5 0.5",
-                    dur: `${duration}s`,
-                    repeatCount: "indefinite",
-                  } as DomphyElement,
+                  ...(prefersReducedMotion
+                    ? []
+                    : [
+                        {
+                          animateTransform: null,
+                          attributeName: "gradientTransform",
+                          type: "rotate",
+                          from: "0 0.5 0.5",
+                          to: "360 0.5 0.5",
+                          dur: `${duration}s`,
+                          repeatCount: "indefinite",
+                        } as DomphyElement,
+                      ]),
                 ],
                 id: gradientId,
                 gradientUnits: "objectBoundingBox",

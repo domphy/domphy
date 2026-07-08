@@ -18,6 +18,7 @@ import { chart } from "@domphy/chart";
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import {
   CHART_BAR_DAILY_DATA,
+  chartBarTooltipRow,
   chartBarValueDomain,
   type ChartBarDailyPoint,
 } from "./chart-bar-shared.js";
@@ -36,7 +37,7 @@ function escapeHtml(text: string): string {
 function formatLongDate(isoDate: string): string {
   const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return isoDate;
-  return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
 }
 
 // @domphy/chart's axis renderer never reads `axisLabel.formatter` (verified
@@ -68,13 +69,16 @@ export interface ChartBarInteractiveProps {
 function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElement<"div"> {
   const {
     title = "Bar Chart - Interactive",
-    subtitle = "Showing daily visitors for the last 3 months",
+    subtitle = "Showing total visitors for the last 3 months",
     data = CHART_BAR_DAILY_DATA,
     initialSeries = "desktop",
     desktopLabel = "Desktop",
-    desktopColor = "primary",
+    // Upstream chartConfig: desktop=var(--chart-2), mobile=var(--chart-1); with
+    // this package's chart-1→primary / chart-2→secondary map that means desktop
+    // is secondary and mobile is primary (default active series is desktop).
+    desktopColor = "secondary",
     mobileLabel = "Mobile",
-    mobileColor = "secondary",
+    mobileColor = "primary",
   } = props;
 
   const seriesMeta: Record<SeriesKey, { label: string; color: ThemeColor }> = {
@@ -99,7 +103,8 @@ function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElemen
     if (!point) return "";
     const day = data[point.dataIndex];
     const dateLabel = day ? formatLongDate(day.date) : "";
-    return `<strong>${escapeHtml(dateLabel)}</strong><br>${escapeHtml(String(point.value ?? ""))}`;
+    const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${point.color};margin-right:6px;"></span>`;
+    return `<strong>${escapeHtml(dateLabel)}</strong>${chartBarTooltipRow(swatch, "Page Views", escapeHtml(String(point.value ?? "")))}`;
   };
 
   function buildOption(activeKey: SeriesKey): ChartOption {
@@ -203,7 +208,16 @@ function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElemen
     style: {
       display: "flex",
       width: "100%",
-      "@media (min-width: 640px)": { width: "auto" },
+      // Tile-group leading separator (upstream: buttons carry `border-t` when the
+      // header stacks, `sm:border-t-0 sm:border-l` when it goes row): a top rule
+      // above the tiles on narrow viewports, a left rule between the title block
+      // and the tiles at >=640px.
+      borderBlockStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+      "@media (min-width: 640px)": {
+        width: "auto",
+        borderBlockStart: "none",
+        borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+      },
       "& > button + button": {
         borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
       },
@@ -230,7 +244,15 @@ function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElemen
       { h3: title, $: [heading()] } as DomphyElement<"h3">,
       { p: subtitle, $: [paragraph({ color: "neutral" })] } as DomphyElement<"p">,
       asideElement,
-      { div: [plotWrapper] } as DomphyElement<"div">,
+      {
+        // Full-width rule under the header (upstream CardHeader `border-b`): the
+        // card grid's "content" area spans both columns, so a top border here
+        // separates the title/desc/tile header row from the chart below.
+        div: [plotWrapper],
+        style: {
+          borderBlockStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+        },
+      } as DomphyElement<"div">,
     ],
     $: [card({ color: "neutral" })],
     style: {

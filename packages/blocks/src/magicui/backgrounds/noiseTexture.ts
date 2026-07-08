@@ -159,7 +159,15 @@ function noiseTexture(props: NoiseTextureProps = {}): DomphyElement<"div"> {
       pointerEvents: "none",
       // Reads as a texture multiply over whatever content sits beneath.
       mixBlendMode: "multiply",
-      opacity: noiseOpacity,
+      // Upstream layers noiseOpacity onto a root svg that's itself
+      // opacity-50 in light mode / dark:opacity-[0.75] — grain reads
+      // dimmer in light mode, stronger in dark. Mirrored via the same
+      // prefers-color-scheme override this package already uses (see
+      // retroGrid.ts) since it's an OS-level switch, not a Domphy theme one.
+      opacity: noiseOpacity * 0.5,
+      "@media (prefers-color-scheme: dark)": {
+        opacity: noiseOpacity * 0.75,
+      },
     } as StyleObject,
   } as DomphyElement<"canvas">;
 

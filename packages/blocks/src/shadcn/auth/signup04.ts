@@ -59,12 +59,10 @@ interface FieldConfig {
   type?: "text" | "email" | "password";
   placeholder?: string;
   caption?: string;
-  autoComplete?: string;
-  minLength?: number;
 }
 
 function field(config: FieldConfig): DomphyElement<"div"> {
-  const { id, labelText, type = "text", placeholder, caption, autoComplete, minLength } = config;
+  const { id, labelText, type = "text", placeholder, caption } = config;
   return {
     div: [
       { label: labelText, for: id, $: [label()] },
@@ -75,8 +73,6 @@ function field(config: FieldConfig): DomphyElement<"div"> {
         type,
         placeholder,
         required: true,
-        autocomplete: autoComplete,
-        minlength: minLength,
         $: [authFieldInput()],
       },
       caption ? { small: caption, $: [small({ color: "neutral" })] } : null,
@@ -194,8 +190,8 @@ function signup04(props: Signup04Props = {}): DomphyElement<"div"> {
 
   const passwordGrid: DomphyElement<"div"> = {
     div: [
-      { div: [field({ id: "signup04-password", labelText: passwordLabel, type: "password", autoComplete: "new-password", minLength: 8 })] },
-      { div: [field({ id: "signup04-confirm-password", labelText: confirmPasswordLabel, type: "password", autoComplete: "new-password" })] },
+      { div: [field({ id: "signup04-password", labelText: passwordLabel, type: "password" })] },
+      { div: [field({ id: "signup04-confirm-password", labelText: confirmPasswordLabel, type: "password" })] },
     ],
     style: {
       display: "grid",
@@ -221,7 +217,6 @@ function signup04(props: Signup04Props = {}): DomphyElement<"div"> {
         type: "email",
         placeholder: emailPlaceholder,
         caption: emailCaption,
-        autoComplete: "email",
       }),
       passwordGrid,
       { small: passwordCaption, $: [small({ color: "neutral" })] },
@@ -246,10 +241,16 @@ function signup04(props: Signup04Props = {}): DomphyElement<"div"> {
       { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
     ],
     $: [small({ color: "neutral" })],
+    style: { display: "block", textAlign: "center" },
   };
 
   const formSide: DomphyElement<"div"> = {
-    div: [{ h2: title, $: [heading()] }, { p: subtitle, $: [paragraph({ color: "neutral" })] }, formElement, footerLine],
+    div: [
+      { h1: title, $: [heading()], style: { textAlign: "center" } },
+      { p: subtitle, $: [paragraph({ color: "neutral" })], style: { textAlign: "center" } },
+      formElement,
+      footerLine,
+    ],
     style: {
       padding: (listener: Listener) => themeSpacing(themeDensity(listener) * 6),
       display: "flex",
@@ -271,7 +272,7 @@ function signup04(props: Signup04Props = {}): DomphyElement<"div"> {
           height: "100%",
           objectFit: "cover",
           "@media (prefers-color-scheme: dark)": {
-            filter: "brightness(0.45) grayscale(0.4)",
+            filter: "brightness(0.2) grayscale(1)",
           },
         },
       },

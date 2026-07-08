@@ -14,9 +14,12 @@
 // highlight traveling around the border. `overflow: hidden` on the button
 // itself is essential: without it the oversized rotating patch would spill
 // outside the rounded silhouette instead of only ever showing as a thin ring.
-// A third, separate radial-gradient layer (opacity toggled on `:hover` via a
-// `data-slot` attribute selector — the same descendant-hover technique the
-// sidebar blocks already use for their own row actions) supplies the hover glow.
+// The only other inner layer is upstream's `Highlight` — a transparent span
+// whose bottom-edge inset box-shadow deepens on the button's `:hover`/`:active`
+// (upstream's `group-hover`/`group-active`), toggled purely via CSS with a
+// `data-slot` attribute selector (the same descendant-hover technique the
+// sidebar blocks already use for their own row actions). Upstream has no radial
+// hover-glow element, no outer drop shadow, and no hover scale/brightness.
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
@@ -28,10 +31,10 @@ export interface ShimmerButtonProps {
   /** Fill color family for the button's dark base and the ring's solid mask layer.
    * Defaults to `"neutral"` (near-black, via a `shift-15` dark edge anchor). */
   background?: ThemeColor;
-  /** Color family the rotating highlight sliver and hover glow are drawn from.
+  /** Color family the rotating highlight sliver is drawn from.
    * Defaults to `"neutral"` (near-white). */
   shimmerColor?: ThemeColor;
-  /** Thickness of the visible ring, as a CSS length. Defaults to `"0.12em"`. */
+  /** Thickness of the visible ring, as a CSS length. Defaults to `"0.05em"`. */
   shimmerSize?: string;
   /** One full rotation around the border, in seconds. Defaults to `3`. */
   shimmerDuration?: number;
@@ -53,16 +56,17 @@ function asContent(value: DomphyElement | DomphyElement[] | string): (string | D
 
 /**
  * A dark, near-pill button with a thin bright highlight continuously rotating
- * around its border, plus a soft inner radial glow on hover — a premium/
- * "shimmering" call-to-action. The border rotation is fully ambient and loops
- * from mount; hover/press layer ordinary scale/brightness feedback on top.
- * Call with no arguments for a working demo button.
+ * around its border, plus an always-on inset sheen along the bottom edge — a
+ * premium/"shimmering" call-to-action. The border rotation is fully ambient and
+ * loops from mount; on hover the bottom sheen deepens and on press the button
+ * nudges 1px down (matching upstream — no hover scale/brightness). Call with no
+ * arguments for a working demo button.
  */
 function shimmerButton(props: ShimmerButtonProps = {}): DomphyElement<"button"> {
   const label = props.children ?? "Shimmer Button";
   const background = props.background ?? "neutral";
   const shimmerColor = props.shimmerColor ?? "neutral";
-  const shimmerSize = props.shimmerSize ?? "0.12em";
+  const shimmerSize = props.shimmerSize ?? "0.05em";
   const shimmerDuration = props.shimmerDuration ?? 3;
   const borderRadius = props.borderRadius ?? 100;
 
@@ -93,7 +97,7 @@ function shimmerButton(props: ShimmerButtonProps = {}): DomphyElement<"button"> 
       width: "200%",
       height: "200%",
       backgroundImage: (listener: Listener) =>
-        `conic-gradient(from 0deg, transparent 0turn, transparent 0.82turn, ${themeColor(listener, "shift-1", shimmerColor)} 0.93turn, transparent 1turn)`,
+        `conic-gradient(from 0deg, transparent 0turn, ${themeColor(listener, "shift-1", shimmerColor)} 0.25turn, transparent 0.25turn)`,
       animation: `${spinAnimationName} ${shimmerDuration}s linear infinite`,
       [`@keyframes ${spinAnimationName}`]: spinKeyframes,
     } as StyleObject,
@@ -113,21 +117,24 @@ function shimmerButton(props: ShimmerButtonProps = {}): DomphyElement<"button"> 
     } as StyleObject,
   } as DomphyElement<"span">;
 
-  // Hover-only soft radial glow, toggled purely via CSS on the button's own
-  // `:hover` state (see `&:hover [data-slot=…]` below) — no JS/state needed.
-  const hoverGlow = {
+  // Always-on glossy inset sheen along the bottom edge — upstream's own
+  // `Highlight` layer: visible at rest (inset shadow at #ffffff1f ≈ 12% white)
+  // and deepening to ~25% white on the button's hover and active states
+  // (upstream's `group-hover`/`group-active`). This is the only inner layer
+  // besides the rotating sliver and the ring mask.
+  const innerHighlight = {
     span: null,
     ariaHidden: "true",
-    dataSlot: "shimmer-hover-glow",
+    dataSlot: "shimmer-highlight",
     _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       inset: 0,
       borderRadius: "inherit",
-      opacity: 0,
-      transition: "opacity 200ms ease",
-      backgroundImage: (listener: Listener) =>
-        `radial-gradient(circle at 50% 0%, ${themeColor(listener, "shift-3", shimmerColor)}, transparent 70%)`,
+      // Upstream: `transition-all duration-300 ease-in-out` on the Highlight.
+      transition: "box-shadow 300ms ease-in-out",
+      boxShadow: (listener: Listener) =>
+        `inset 0 -8px 10px color-mix(in srgb, ${themeColor(listener, "shift-0", "neutral")} 12%, transparent)`,
     } as StyleObject,
   } as DomphyElement<"span">;
 
@@ -137,7 +144,7 @@ function shimmerButton(props: ShimmerButtonProps = {}): DomphyElement<"button"> 
   };
 
   const buttonElement: DomphyElement<"button"> = {
-    button: [rotatingSliver, ringMask, hoverGlow, labelSpan],
+    button: [rotatingSliver, ringMask, innerHighlight, labelSpan],
     type: "button",
     disabled: props.disabled,
     // Sets a fixed dark surface regardless of the surrounding page tone (edge anchor,
@@ -148,11 +155,18 @@ function shimmerButton(props: ShimmerButtonProps = {}): DomphyElement<"button"> 
       position: "relative",
       overflow: "hidden",
       appearance: "none",
-      border: "none",
+      // Upstream: `border border-white/10` — a subtle 1px translucent-white
+      // outline. `white/10` is white (shift-0 neutral) mixed 10% into
+      // transparent, the same color-mix idiom `innerHighlight` uses for its
+      // inset sheen.
+      border: (listener: Listener) =>
+        `1px solid color-mix(in srgb, ${themeColor(listener, "shift-0", "neutral")} 10%, transparent)`,
       cursor: props.disabled ? "not-allowed" : "pointer",
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
+      // Upstream: `whitespace-nowrap` — the label never wraps.
+      whiteSpace: "nowrap",
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
       fontSize: (listener: Listener) => themeSize(listener, "inherit"),
       paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
@@ -160,12 +174,20 @@ function shimmerButton(props: ShimmerButtonProps = {}): DomphyElement<"button"> 
       borderRadius: `${borderRadius}px`,
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit", background),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
-      boxShadow: (listener: Listener) => `0 ${themeSpacing(2)} ${themeSpacing(6)} ${themeColor(listener, "shift-9")}`,
       opacity: props.disabled ? 0.6 : 1,
-      transition: "transform 150ms ease, filter 150ms ease",
-      "&:hover:not([disabled])": { transform: "scale(1.02)", filter: "brightness(1.1)" },
-      "&:hover:not([disabled]) [data-slot=shimmer-hover-glow]": { opacity: 0.35 },
-      "&:active:not([disabled])": { transform: "scale(0.96)" },
+      // Upstream: `transform-gpu transition-transform duration-300 ease-in-out`.
+      // No hover transform/filter — only the bottom Highlight sheen reacts.
+      transition: "transform 300ms ease-in-out",
+      "&:hover:not([disabled]) [data-slot=shimmer-highlight]": {
+        boxShadow: (listener: Listener) =>
+          `inset 0 -6px 10px color-mix(in srgb, ${themeColor(listener, "shift-0", "neutral")} 25%, transparent)`,
+      },
+      // Upstream: `active:translate-y-px` — a 1px downward nudge on press.
+      "&:active:not([disabled])": { transform: "translateY(1px)" },
+      "&:active:not([disabled]) [data-slot=shimmer-highlight]": {
+        boxShadow: (listener: Listener) =>
+          `inset 0 -10px 10px color-mix(in srgb, ${themeColor(listener, "shift-0", "neutral")} 25%, transparent)`,
+      },
       ...(props.style ?? {}),
     } as StyleObject,
   };

@@ -1,13 +1,17 @@
-// magicui "HeroVideoDialog" — clean-room reimplementation from the public
-// behavior/visual spec only (no upstream source viewed or copied). A large
-// clickable video thumbnail with a centered play button that opens the real
-// video in an animated modal above a dimmed backdrop. Built on the `dialog()`
-// ui patch (native <dialog>, backdrop, focus trap, scroll lock, outside-click
-// close) with an extra transform layered on top for the edge-slide/grow
-// animation presets — the same technique used by the shadcn
-// "sidebar-in-dialog" block's scale-in dialog.
+// magicui "HeroVideoDialog" — direct-source-diffed against
+// registry/magicui/hero-video-dialog.tsx (Magic UI, MIT). A large clickable
+// video thumbnail with a STATIC nested double-circle play button (a frosted
+// translucent-primary outer circle wrapping a primary-blue gradient inner
+// button) that opens the real video in an animated modal above a dimmed
+// backdrop. Built on the `dialog()` ui patch (native <dialog>, backdrop, focus
+// trap, scroll lock, outside-click close) with an extra transform layered on
+// top for the edge-slide/grow animation presets — the same technique used by
+// the shadcn "sidebar-in-dialog" block's scale-in dialog. Hover feedback
+// (thumbnail dim, overlay/button/icon scale) is driven by group-hover-style
+// `&:hover [data-*]` selectors on the trigger, mirroring bentoGrid /
+// interactiveHoverButton.
 
-import type { DomphyElement, ElementNode, Listener, State, StyleObject } from "@domphy/core";
+import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
 import { dialog, small } from "@domphy/ui";
 import { themeColor, themeSpacing } from "@domphy/theme";
@@ -49,6 +53,9 @@ const ANIMATION_TRANSFORMS: Record<HeroVideoAnimationStyle, { enterFrom: string;
   "left-in-right-out": { enterFrom: "translateX(-100%)", exitTo: "translateX(100%)" },
 };
 
+/** White play triangle (upstream `size-8 fill-white text-white`) with the same
+ * two-layer black depth drop-shadow. Carries `data-hvd-icon` so the trigger's
+ * group-hover can scale it (upstream `group-hover:scale-105`). */
 function playGlyph(): DomphyElement<"span"> {
   return {
     span: [
@@ -61,13 +68,25 @@ function playGlyph(): DomphyElement<"span"> {
         style: { width: "100%", height: "100%" },
       } as DomphyElement<"svg">,
     ],
+    dataHvdIcon: "true",
     ariaHidden: "true",
     style: {
       display: "inline-flex",
-      width: themeSpacing(6),
-      height: themeSpacing(6),
+      width: themeSpacing(8),
+      height: themeSpacing(8),
       // Optical centering — a triangle's visual weight sits left of its bounding box.
       marginInlineStart: themeSpacing(0.5),
+      transform: "scale(1)",
+      transformOrigin: "center",
+      transition: "transform 200ms ease-out",
+      // Upstream `fill-white text-white` — the lightest neutral tone reads as
+      // white on the saturated primary-blue button (same light-on-fill idiom
+      // rainbowButton / interactiveHoverButton use).
+      color: (listener: Listener) => themeColor(listener, "shift-0", "neutral"),
+      // Upstream inline two-layer black drop-shadow (7% / 6% alpha).
+      filter: (listener: Listener) =>
+        `drop-shadow(0 ${themeSpacing(1)} ${themeSpacing(0.75)} color-mix(in srgb, ${themeColor(listener, "shift-17", "neutral")} 7%, transparent)) ` +
+        `drop-shadow(0 ${themeSpacing(0.5)} ${themeSpacing(0.5)} color-mix(in srgb, ${themeColor(listener, "shift-17", "neutral")} 6%, transparent))`,
     },
   };
 }
@@ -91,13 +110,15 @@ function closeGlyph(): DomphyElement<"span"> {
       } as DomphyElement<"svg">,
     ],
     ariaHidden: "true",
-    style: { display: "inline-flex", width: themeSpacing(4), height: themeSpacing(4) },
+    // Upstream lucide `XIcon` at `size-5` (20px == themeSpacing(5)).
+    style: { display: "inline-flex", width: themeSpacing(5), height: themeSpacing(5) },
   };
 }
 
 function placeholderThumbnail(alt: string): DomphyElement<"div"> {
   return {
     div: [{ small: alt, $: [small()] }],
+    dataHvdThumb: "true",
     ariaHidden: "true",
     dataTone: "shift-2",
     style: {
@@ -106,71 +127,88 @@ function placeholderThumbnail(alt: string): DomphyElement<"div"> {
       justifyContent: "center",
       width: "100%",
       aspectRatio: "16 / 9",
-      borderRadius: themeSpacing(4),
+      // Upstream thumbnail `rounded-md` (6px == themeSpacing(1.5)).
+      borderRadius: themeSpacing(1.5),
+      transition: "filter 200ms ease-out",
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
     },
   };
 }
 
-/** Soft pulsing glow ring rendered behind the play button — decorative, no text of its own. */
-function pulseRing(): DomphyElement<"div"> {
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire (mirrors verticalDivider() in the
-  // shadcn sidebar family).
-  const element = {
-    div: null,
+/**
+ * Static nested double-circle play control centered over the thumbnail
+ * (upstream): a frosted translucent-primary outer circle (`bg-primary/10
+ * backdrop-blur-md size-28`) wrapping a primary-blue gradient inner button
+ * (`from-primary/30 to-primary bg-linear-to-b shadow-md size-20`) with the
+ * white play glyph. The overlay, inner button, and glyph carry `data-hvd-*`
+ * hooks for the trigger's group-hover scale feedback.
+ */
+function playButton(): DomphyElement<"div"> {
+  // `_doctorDisable`d for `missing-color` (decorative, no text) and
+  // `tone-background-inherit` (intentionally a fixed primary tint / gradient,
+  // not a surface tracking the ambient dataTone) — the same exemption
+  // meteors / interactiveHoverButton's accent fills take.
+  const innerButton = {
+    div: [playGlyph()],
+    dataHvdInner: "true",
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
+    _doctorDisable: ["missing-color", "tone-background-inherit"],
     style: {
-      position: "absolute",
-      inset: 0,
-      borderRadius: "50%",
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
-      opacity: 0.5,
-      animation: "domphy-hero-video-pulse 2.2s ease-out infinite",
-      "@keyframes domphy-hero-video-pulse": {
-        "0%": { transform: "scale(1)", opacity: 0.45 },
-        "100%": { transform: "scale(1.6)", opacity: 0 },
-      },
-    },
-  };
-  return element as DomphyElement<"div">;
-}
-
-/** Circular play button centered over the thumbnail, with a soft pulsing glow ring. */
-function playButton(open: State<boolean>, label: string): DomphyElement<"div"> {
-  const activate = () => open.set(true);
-  return {
-    div: [pulseRing(), playGlyph()],
-    role: "button",
-    tabindex: 0,
-    ariaLabel: label,
-    onClick: activate,
-    onKeyDown: (event: KeyboardEvent) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        activate();
-      }
-    },
-    dataTone: "shift-0",
-    style: {
-      position: "absolute",
-      inset: 0,
-      margin: "auto",
-      width: themeSpacing(18),
-      height: themeSpacing(18),
+      position: "relative",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      width: themeSpacing(20),
+      height: themeSpacing(20),
       borderRadius: "50%",
-      cursor: "pointer",
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
-      color: (listener: Listener) => themeColor(listener, "shift-9"),
-      boxShadow: (listener: Listener) => `0 ${themeSpacing(2)} ${themeSpacing(10)} ${themeColor(listener, "shift-4", "neutral")}`,
-      transition: "transform 150ms ease",
-      "&:hover": { transform: "scale(1.06)" },
+      transform: "scale(1)",
+      transformOrigin: "center",
+      transition: "transform 200ms ease-out",
+      // `bg-linear-to-b from-primary/30 to-primary`.
+      backgroundImage: (listener: Listener) =>
+        `linear-gradient(to bottom, color-mix(in srgb, ${themeColor(listener, "shift-9", "primary")} 30%, transparent), ${themeColor(listener, "shift-9", "primary")})`,
+      // `shadow-md`.
+      boxShadow: (listener: Listener) =>
+        `0 ${themeSpacing(1)} ${themeSpacing(2)} ${themeColor(listener, "shift-4", "neutral")}`,
+    } as StyleObject,
+  } as DomphyElement<"div">;
+
+  const frostCircle = {
+    div: [innerButton],
+    ariaHidden: "true",
+    _doctorDisable: ["missing-color", "tone-background-inherit"],
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: themeSpacing(28),
+      height: themeSpacing(28),
+      borderRadius: "50%",
+      // `backdrop-blur-md` (12px == themeSpacing(3)).
+      backdropFilter: (listener: Listener) => `blur(${themeSpacing(3)})`,
+      // `bg-primary/10`.
+      backgroundColor: (listener: Listener) =>
+        `color-mix(in srgb, ${themeColor(listener, "shift-9", "primary")} 10%, transparent)`,
+    } as StyleObject,
+  } as DomphyElement<"div">;
+
+  // Centering overlay — `absolute inset-0 flex scale-[0.9] rounded-2xl`,
+  // grows to scale(1) on group-hover.
+  return {
+    div: [frostCircle],
+    dataHvdOverlay: "true",
+    ariaHidden: "true",
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: themeSpacing(4),
+      transform: "scale(0.9)",
+      transformOrigin: "center",
+      transition: "transform 200ms ease-out",
     },
   };
 }
@@ -190,60 +228,104 @@ function heroVideoDialog(props: HeroVideoDialogProps = {}): DomphyElement<"div">
   const transforms = ANIMATION_TRANSFORMS[animationStyle];
   const open = toState(false);
 
+  // Upstream thumbnail `img`: `w-full rounded-md border shadow-lg`, dimmed to
+  // `brightness-[0.8]` on group-hover. `_doctorDisable`d for `missing-color`
+  // — a decorative image with a themed border but no text of its own.
   const thumbnail: DomphyElement = props.thumbnailSrc
-    ? {
+    ? ({
         img: null,
         src: props.thumbnailSrc,
         alt: thumbnailAlt,
+        dataHvdThumb: "true",
+        _doctorDisable: "missing-color",
         style: {
           width: "100%",
           display: "block",
-          borderRadius: themeSpacing(4),
+          borderRadius: themeSpacing(1.5),
           aspectRatio: "16 / 9",
           objectFit: "cover",
+          transition: "filter 200ms ease-out",
+          border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+          boxShadow: (listener: Listener) =>
+            `0 ${themeSpacing(2.5)} ${themeSpacing(3.75)} ${themeColor(listener, "shift-3", "neutral")}`,
         },
-      }
+      } as DomphyElement<"img">)
     : placeholderThumbnail(thumbnailAlt);
 
-  const closeButton: DomphyElement<"button"> = {
+  // Upstream close button: positioned ABOVE the video (`-top-16 right-0`),
+  // `rounded-full p-2 ring-1 backdrop-blur-md`, `bg-neutral-900/50 text-white`
+  // in light and `dark:bg-neutral-100/50 dark:text-black`. `_doctorDisable`d
+  // for `tone-background-inherit` — a fixed translucent chrome tint, not an
+  // ambient surface.
+  const closeButton = {
     button: [closeGlyph()],
+    type: "button",
     ariaLabel: "Close video",
     onClick: () => open.set(false),
-    dataTone: "shift-0",
+    _doctorDisable: "tone-background-inherit",
     style: {
       position: "absolute",
-      insetBlockStart: 0,
+      insetBlockStart: themeSpacing(-16),
       insetInlineEnd: 0,
-      transform: `translate(35%, -35%)`,
-      width: themeSpacing(9),
-      height: themeSpacing(9),
-      display: "flex",
+      display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
+      padding: themeSpacing(2),
       borderRadius: "50%",
       border: "none",
       cursor: "pointer",
       zIndex: 1,
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
-      color: (listener: Listener) => themeColor(listener, "shift-9"),
-      boxShadow: (listener: Listener) => `0 ${themeSpacing(1)} ${themeSpacing(4)} ${themeColor(listener, "shift-4", "neutral")}`,
-    },
-  };
+      backdropFilter: (listener: Listener) => `blur(${themeSpacing(3)})`,
+      backgroundColor: (listener: Listener) =>
+        `color-mix(in srgb, ${themeColor(listener, "shift-15", "neutral")} 50%, transparent)`,
+      color: (listener: Listener) => themeColor(listener, "shift-0", "neutral"),
+      boxShadow: (listener: Listener) => `0 0 0 1px ${themeColor(listener, "shift-6", "neutral")}`,
+      "@media (prefers-color-scheme: dark)": {
+        backgroundColor: (listener: Listener) =>
+          `color-mix(in srgb, ${themeColor(listener, "shift-1", "neutral")} 50%, transparent)`,
+        color: (listener: Listener) => themeColor(listener, "shift-17", "neutral"),
+      },
+    } as StyleObject,
+  } as DomphyElement<"button">;
 
   const videoFrame: DomphyElement<"iframe"> = {
     iframe: null,
     src: (listener: Listener) => (open.get(listener) ? videoSrc : ""),
-    title: thumbnailAlt,
-    allow: "autoplay; encrypted-media; picture-in-picture",
+    title: "Hero Video player",
+    allow:
+      "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
     allowFullScreen: true,
-    style: { width: "100%", height: "100%", display: "block", border: "none" },
+    style: {
+      width: "100%",
+      height: "100%",
+      display: "block",
+      border: "none",
+      borderRadius: themeSpacing(4),
+    },
   };
 
+  // Upstream `relative isolate z-1 size-full overflow-hidden rounded-2xl
+  // border-2 border-white` frame wrapping the iframe. `_doctorDisable`d for
+  // `missing-color` — a decorative white frame with no text of its own.
+  const videoContainer = {
+    div: [videoFrame],
+    _doctorDisable: "missing-color",
+    style: {
+      position: "relative",
+      isolation: "isolate",
+      zIndex: 1,
+      width: "100%",
+      height: "100%",
+      overflow: "hidden",
+      borderRadius: themeSpacing(4),
+      border: (listener: Listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-0", "neutral")}`,
+    } as StyleObject,
+  } as DomphyElement<"div">;
+
   const dialogElement: DomphyElement<"dialog"> = {
-    dialog: [closeButton, videoFrame],
+    dialog: [closeButton, videoContainer],
     $: [dialog({ open, color: "neutral" })],
     ariaLabel: `${thumbnailAlt} — video player`,
-    dataTone: "shift-17",
     _onMount: (node: ElementNode) => {
       const element = node.domElement as HTMLElement;
       const update = (isOpen: boolean) => {
@@ -258,25 +340,50 @@ function heroVideoDialog(props: HeroVideoDialogProps = {}): DomphyElement<"div">
       const release = open.addListener(update);
       node.addHook("Remove", () => release());
     },
+    // Transparent positioning container (upstream `mx-4 aspect-video w-full
+    // max-w-4xl`) — the white frame/rounding lives on `videoContainer`, and
+    // `overflow: visible` lets the close button sit above the video. Overrides
+    // the dialog() patch's own surface fill/box-shadow.
     style: {
       position: "relative",
       padding: 0,
       border: "none",
-      overflow: "hidden",
-      borderRadius: themeSpacing(4),
-      width: "min(90vw, 60em)",
+      overflow: "visible",
+      // Upstream `max-w-4xl` (56rem), with `w-full` + `mx-4` breathing room.
+      width: "min(90vw, 56rem)",
       aspectRatio: "16 / 9",
+      backgroundColor: "transparent",
+      boxShadow: "none",
       transition: "transform 250ms ease, opacity 200ms ease",
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
-      color: (listener: Listener) => themeColor(listener, "shift-9"),
     },
   };
+
+  const activate = () => open.set(true);
 
   return {
     div: [
       {
-        div: [thumbnail, playButton(open, `Play video: ${thumbnailAlt}`)],
-        style: { position: "relative", cursor: "pointer" },
+        div: [thumbnail, playButton()],
+        role: "button",
+        tabindex: 0,
+        ariaLabel: "Play video",
+        onClick: activate,
+        onKeyDown: (event: KeyboardEvent) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            activate();
+          }
+        },
+        // group-hover feedback (upstream): dim the thumbnail, grow the play
+        // overlay 0.9 -> 1, scale the inner button -> 1.2, scale the glyph -> 1.05.
+        style: {
+          position: "relative",
+          cursor: "pointer",
+          "&:hover [data-hvd-thumb]": { filter: "brightness(0.8)" },
+          "&:hover [data-hvd-overlay]": { transform: "scale(1)" },
+          "&:hover [data-hvd-inner]": { transform: "scale(1.2)" },
+          "&:hover [data-hvd-icon]": { transform: "scale(1.05)" },
+        },
       },
       dialogElement,
     ],

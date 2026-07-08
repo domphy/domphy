@@ -19,7 +19,7 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 |---|---|---|
 | `edges` | `ProgressiveBlurEdge[]` | Which edge(s) get a blur fade. Defaults to `["bottom"]`. |
 | `thickness` | `number \| string` | Thickness of the blurred zone: a `themeSpacing` unit count, or a raw CSS length/percentage. Defaults to `"30%"`. |
-| `blurSteps` | `number[]` | Ordered blur radii (px), lightest → strongest, one band per entry. Defaults to `[0.5, 1, 2, 4, 8, 16, 32, 64]`. |
+| `blurSteps` | `number[]` | Blur radii (px), one band per entry, applied in the caller's given order — entry 0 = innermost/lightest layer, last entry = outermost edge layer. Never sorted (matches upstream). Defaults to `[0.5, 1, 2, 4, 8, 16, 32, 64]`. |
 | `content` | `DomphyElement[]` | The underlying content the blur overlays. Defaults to a short demo panel. |
 | `overlayContent` | `DomphyElement` | Optional content rendered inside the blurred region (e.g. a "show more" affordance). |
 | `style` | `StyleObject` | — |

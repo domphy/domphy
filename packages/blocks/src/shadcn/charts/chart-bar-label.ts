@@ -9,14 +9,14 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import type { ChartOption, LabelParams } from "@domphy/chart";
+import type { ChartOption, LabelParams, TooltipParams } from "@domphy/chart";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_MONTHLY_DATA,
-  chartBarAxisTooltipFormatter,
   chartBarCardShell,
   chartBarCategoryXAxis,
   chartBarFrame,
+  chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
   type ChartBarPoint,
@@ -63,7 +63,9 @@ function chartBarLabel(props: ChartBarLabelProps = {}): DomphyElement<"div"> {
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "none" },
-      formatter: chartBarAxisTooltipFormatter(categories),
+      // Upstream renders this recipe's tooltip with hideLabel — the month
+      // name is dropped, only the series dot + name + value line shows.
+      formatter: chartBarLabelTooltipFormatter,
     },
     xAxis: chartBarCategoryXAxis(categories),
     yAxis: {
@@ -84,6 +86,7 @@ function chartBarLabel(props: ChartBarLabelProps = {}): DomphyElement<"div"> {
         label: {
           show: true,
           position: "top",
+          fontSize: 12,
           formatter: (parameters: LabelParams) => labelFormatter(Number(parameters.value) || 0),
         },
         data: values,
@@ -97,6 +100,22 @@ function chartBarLabel(props: ChartBarLabelProps = {}): DomphyElement<"div"> {
     content: { div: [chartBarFrame(option, { height })] },
     footer: chartBarTrendFooter({ trendText, direction: trendDirection, captionText }),
   });
+}
+
+function escapeTooltipHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function chartBarLabelTooltipFormatter(parametersInput: TooltipParams | TooltipParams[]): string {
+  const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
+  if (parameters.length === 0) return "";
+  const item = parameters[0];
+  // Upstream ChartTooltipContent's default 'dot' indicator is a 10px rounded
+  // SQUARE (rounded-[2px], h-2.5 w-2.5), not a circle — see chart.tsx.
+  const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${item.color};margin-right:6px;"></span>`;
+  const label = escapeTooltipHtml(String(item.seriesName ?? item.name ?? ""));
+  const value = escapeTooltipHtml(String(item.value ?? ""));
+  return chartBarTooltipRow(dot, label, value);
 }
 
 export { chartBarLabel };

@@ -55,6 +55,10 @@ function chartPieSimple(props: ChartPieSimpleProps = {}): DomphyElement<"div"> {
   const wedges: DomphyElement<"path">[] = slices.map((slice) =>
     pieWedgePath(slice, {
       outerRadius: PIE_OUTER_RADIUS,
+      // Upstream <Pie> passes no padAngle; wedges touch and are parted only by
+      // the sector stroke, with no extra angular gap (matches the shared
+      // default of 0).
+      padAngle: 0,
       tooltip: { containerRef, tooltipState, valueFormatter },
     }),
   );

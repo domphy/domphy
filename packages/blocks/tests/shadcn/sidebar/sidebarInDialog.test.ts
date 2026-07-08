@@ -2,7 +2,7 @@
 
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode, flushSync } from "@domphy/core";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { sidebarInDialog } from "../../../src/shadcn/sidebar/sidebarInDialog.ts";
 
 function render(app: DomphyElement) {
@@ -28,21 +28,32 @@ afterEach(() => {
 });
 
 describe("sidebarInDialog", () => {
-  it("renders a trigger and a closed dialog with zero args", () => {
+  it("renders a trigger and an open dialog with zero args (matches upstream useState(true))", () => {
     const { host } = render(sidebarInDialog() as DomphyElement);
     const dialogElement = host.querySelector("dialog") as HTMLDialogElement;
     expect(host.querySelector("button")).toBeTruthy();
     expect(dialogElement).toBeTruthy();
-    expect(dialogElement.open).toBe(false);
+    expect(dialogElement.open).toBe(true);
   });
 
-  it("clicking the trigger opens the dialog via showModal", () => {
-    const { host } = render(sidebarInDialog() as DomphyElement);
-    const trigger = host.querySelector("button") as HTMLButtonElement;
-    trigger.click();
-    flushSync();
-    const dialogElement = host.querySelector("dialog") as HTMLDialogElement;
-    expect(dialogElement.open).toBe(true);
+  it("clicking the close button closes the dialog", () => {
+    // The dialog patch finalizes close() either on a real `transitionend`
+    // (never fires in jsdom) or a 350ms fallback timer — exactly the
+    // "reduced-motion, display:none" path its own comment calls out.
+    vi.useFakeTimers();
+    try {
+      const { host } = render(sidebarInDialog() as DomphyElement);
+      const dialogElement = host.querySelector("dialog") as HTMLDialogElement;
+      expect(dialogElement.open).toBe(true);
+      const closeButton = host.querySelector('button[aria-label="Close settings"]') as HTMLButtonElement;
+      expect(closeButton).toBeTruthy();
+      closeButton.click();
+      flushSync();
+      vi.advanceTimersByTime(400);
+      expect(dialogElement.open).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("renders the default 12 settings categories and the default active category", () => {

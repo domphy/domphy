@@ -1,20 +1,18 @@
-// Magic UI "Kinetic Text" — clean-room reimplementation.
+// Magic UI "Kinetic Text" — Domphy port of kinetic-text.tsx.
 //
 // Headline text rendered thin by default; hovering ripples a font-weight
 // thickening wave through neighboring letters, simulating motion without
-// any character ever actually moving. Implemented purely from the block's
-// public functional/visual spec — no upstream Magic UI source was viewed
-// or copied.
+// any character ever actually moving.
 //
 // Each character is its own `<span>` (spaces preserved as ` ` so
 // line-wrapping still behaves), and a `pointermove`-driven, rAF-throttled
 // loop (same "capture DOM refs, throttle via rAF, write style imperatively"
 // idiom as this package's own `dock.ts` icon-magnification effect) finds
 // the letter nearest the pointer and writes each letter's `font-weight`
-// directly on its own DOM node — an *index*-distance falloff (not a pixel
-// one), per the spec's own clean-room guidance, since no CSS
-// sibling-selector chain can express "N steps out" generically for
-// arbitrary text. These are continuous, high-frequency imperative writes
+// directly on its own DOM node, mirroring upstream's CSS sibling chain
+// (`hover:` / `has-[+span:hover]` / `[:hover+&]`): the hovered letter reaches
+// 900, its ±1 neighbors 600, its ±2 neighbors 400, everything else the 300
+// baseline. These are continuous, high-frequency imperative writes
 // (not part of the declarative `style` object the doctor's static analyzer
 // walks) — the same exemption `dock.ts`'s `ref.element.style.transform`
 // writes rely on. The declarative resting style only ever sets a *thin*
@@ -28,17 +26,15 @@
 // pattern `auroraText` uses in this package.
 
 import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
-import { type ThemeColor, themeColorToken, themeSize } from "@domphy/theme";
+import { themeSize } from "@domphy/theme";
 
 export type KineticTextTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "div" | "span";
 
 export interface KineticTextProps {
   /** Text content. Defaults to a short demo phrase. */
   children?: string;
-  /** Semantic wrapping tag/heading level. Defaults to `"h2"`. */
+  /** Semantic wrapping tag/heading level. Defaults to `"h1"`. */
   tag?: KineticTextTag;
-  /** Accent color family used for the hovered letter's faint glow. Defaults to `"primary"`. */
-  accentColor?: ThemeColor;
   /** Extra class name merged onto the wrapper's native `class` attribute. */
   className?: string;
   /** Passthrough style merged onto the wrapper. */
@@ -46,11 +42,15 @@ export interface KineticTextProps {
 }
 
 const DEFAULT_TEXT = "Kinetic Type In Motion";
-const BASE_WEIGHT = 200;
-const PEAK_WEIGHT = 900;
-// How many letters out from the hovered one the weight bump still reaches,
-// tapering back to the thin baseline — "2+ falloff steps" per the spec.
-const FALLOFF_RADIUS = 4;
+const BASE_WEIGHT = 300;
+// Discrete weight ramp keyed by index-distance from the hovered letter,
+// mirroring upstream's CSS sibling chain: hovered 900, ±1 600, ±2 400.
+// Any distance past ±2 falls off the array and reverts to the 300 baseline.
+const NEIGHBOR_WEIGHTS = [900, 600, 400];
+// Upstream --hover-padding: calc(1em / 12) (~0.083em), applied to the hovered
+// letter and both immediate ±1 neighbors.
+const HOVER_PADDING = "calc(1em / 12)";
+const STROKE_WIDTH_EM = 0.0208;
 
 const SR_ONLY_STYLE = {
   position: "absolute",
@@ -65,15 +65,14 @@ const SR_ONLY_STYLE = {
 } as const;
 
 /**
- * Headline text whose letters thicken in a smooth weight gradient centered
- * on the pointer as it hovers across them — no character ever moves. Static
+ * Headline text whose letters thicken in a weight wave centered on the
+ * pointer as it hovers across them — no character ever moves. Static
  * (thin) on touch devices with no hover capability. Call with no arguments
  * for a working demo phrase.
  */
 function kineticText(props: KineticTextProps = {}): DomphyElement {
   const text = props.children ?? DEFAULT_TEXT;
-  const tag = props.tag ?? "h2";
-  const accentColor = props.accentColor ?? "primary";
+  const tag = props.tag ?? "h1";
 
   const characters = Array.from(text);
   const characterElementRefs: (HTMLElement | null)[] = new Array(characters.length).fill(null);
@@ -83,13 +82,17 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
     _key: `character-${index}`,
     ariaHidden: "true",
     style: {
-      display: "inline-block",
       // Function-form escape hatch (see file header) — the thin resting
       // weight is the entire premise of this component, not something a
       // typography patch can express.
       fontWeight: () => BASE_WEIGHT,
-      transition: "font-weight 260ms ease, padding-inline 260ms ease, text-shadow 260ms ease",
-      willChange: "font-weight",
+      // Match upstream's transition list exactly: font-weight, stroke-color,
+      // and padding (each 0.4s). Stroke-width and shadow are intentionally
+      // not transitioned upstream.
+      transition: "font-weight 0.4s, -webkit-text-stroke-color 0.4s, padding 0.4s",
+      willChange: "font-weight, -webkit-text-stroke-width, padding",
+      WebkitTextStrokeColor: "transparent",
+      WebkitTextStrokeWidth: `${STROKE_WIDTH_EM}em`,
     },
     _onMount: (node: ElementNode) => {
       characterElementRefs[index] = node.domElement as HTMLElement;
@@ -106,15 +109,17 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
   };
 
   return {
-    [tag]: [srOnlyText, ...characterSpans],
+    [tag]: [...characterSpans, srOnlyText],
     style: {
-      display: "inline-block",
+      // Upstream container is `flex flex-wrap` so every letter is a flex item
+      // that can wrap mid-word; spaces (rendered as   above) hold their cell.
+      display: "flex",
+      flexWrap: "wrap",
       // Headline-scale text is the entire premise of this effect (a large
       // hover-thickening display phrase) — without an explicit size token
       // it inherits whatever tiny ambient font-size the caller's context
       // happens to have, which reads as plain unstyled body text.
       fontSize: (listener: Listener) => themeSize(listener, "increase-6"),
-      color: (listener: Listener) => themeColorToken(listener, "shift-9", accentColor),
       ...(props.style ?? {}),
     } as StyleObject,
     class: props.className,
@@ -125,14 +130,6 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
       const supportsHover =
         typeof window.matchMedia !== "function" || window.matchMedia("(hover: hover)").matches;
       if (!supportsHover) return;
-
-      const accentColorToken = (() => {
-        try {
-          return themeColorToken(node, "shift-9", accentColor);
-        } catch {
-          return null;
-        }
-      })();
 
       let animationFrame: number | null = null;
       let hoveredIndex: number | null = null;
@@ -145,16 +142,21 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
           if (hoveredIndex === null) {
             characterElement.style.fontWeight = "";
             characterElement.style.paddingInline = "";
-            characterElement.style.textShadow = "";
+            characterElement.style.webkitTextStrokeColor = "";
+            characterElement.style.webkitTextStrokeWidth = "";
             continue;
           }
           const distance = Math.abs(index - hoveredIndex);
-          const falloff = Math.max(0, 1 - distance / FALLOFF_RADIUS);
-          const weight = Math.round(BASE_WEIGHT + (PEAK_WEIGHT - BASE_WEIGHT) * falloff * falloff);
-          characterElement.style.fontWeight = String(weight);
-          characterElement.style.paddingInline = distance === 0 ? "0.04em" : "";
-          characterElement.style.textShadow =
-            distance === 0 && accentColorToken ? `0 0 0.08em ${accentColorToken}` : "";
+          // Discrete weights (900 / 600 / 400) for the hovered letter and its
+          // ±1, ±2 neighbors; past ±2 the lookup is undefined and reverts to
+          // the 300 baseline.
+          const weight = NEIGHBOR_WEIGHTS[distance];
+          characterElement.style.fontWeight = weight === undefined ? "" : String(weight);
+          // padding-inline nudges the hovered letter AND both immediate ±1
+          // neighbors apart (upstream hover: / has-[+span:hover] / [:hover+&]).
+          characterElement.style.paddingInline = distance <= 1 ? HOVER_PADDING : "";
+          characterElement.style.webkitTextStrokeColor = distance === 0 ? "currentColor" : "";
+          characterElement.style.webkitTextStrokeWidth = distance === 0 ? `${STROKE_WIDTH_EM * 2}em` : "";
         }
       };
 

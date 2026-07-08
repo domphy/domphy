@@ -54,8 +54,8 @@ describe("sidebar02", () => {
     const aside = host.querySelector("aside")!;
     const sections = aside.querySelectorAll("nav > ul > li > details");
 
-    // Default demo data has 3 nav groups, each its own accordion section.
-    expect(sections.length).toBe(3);
+    // Upstream sidebar-02 navMain has 5 groups, each its own accordion section.
+    expect(sections.length).toBe(5);
     sections.forEach((section) => {
       expect(section.querySelector("summary")).toBeTruthy();
     });

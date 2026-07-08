@@ -13,7 +13,6 @@ import {
   DEFAULT_PIE_DATA,
   PIE_OUTER_RADIUS,
   createPieTooltipState,
-  defaultValueFormatter,
   layoutPieSlices,
   pieCard,
   pieCardDescription,
@@ -27,7 +26,6 @@ export interface ChartPieLegendProps {
   data?: PieDatum[];
   title?: string;
   description?: string;
-  valueFormatter?: (value: number) => string;
   /** Number of equal-width legend columns. Defaults to 4. */
   legendColumns?: number;
 }
@@ -41,7 +39,6 @@ function chartPieLegend(props: ChartPieLegendProps = {}): DomphyElement<"div"> {
     data = DEFAULT_PIE_DATA,
     title = "Pie Chart - Legend",
     description = "January - June 2024",
-    valueFormatter = defaultValueFormatter,
     legendColumns = 4,
   } = props;
 
@@ -50,10 +47,7 @@ function chartPieLegend(props: ChartPieLegendProps = {}): DomphyElement<"div"> {
   const containerRef = { current: null as HTMLElement | null };
 
   const wedges: DomphyElement<"path">[] = slices.map((slice) =>
-    pieWedgePath(slice, {
-      outerRadius: PIE_OUTER_RADIUS,
-      tooltip: { containerRef, tooltipState, valueFormatter },
-    }),
+    pieWedgePath(slice, { outerRadius: PIE_OUTER_RADIUS }),
   );
 
   return pieCard([

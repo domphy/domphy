@@ -22,7 +22,7 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 | `max` | `number` | Upper bound of `value`'s range. Defaults to `100`. |
 | `primaryColor` | `ThemeColor` | Theme color for the progress arc. Defaults to `"primary"`. |
 | `secondaryColor` | `ThemeColor` | Theme color for the background track. Defaults to `"neutral"`. |
-| `size` | `number` | Ring diameter, in `themeSpacing` units. Defaults to `32`. |
+| `size` | `number` | Ring diameter, in `themeSpacing` units. Defaults to `40` (upstream `size-40` = 10rem). |
 | `strokeWidth` | `number` | SVG stroke width, in viewBox user units (0–100 viewBox, so this is roughly a percentage of the ring's own diameter). Defaults to `10`. |
 | `autoPlayIntervalMs` | `number` | Interval, in ms, between auto-demo steps when `value` is omitted. Defaults to `2000`. |
 | `label` | `string` | Accessible name for the `role="progressbar"` element. Defaults to `"Progress"`. |

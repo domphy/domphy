@@ -4,7 +4,8 @@
 // polygon shape carries a soft, low-opacity tint in the same accent hue as
 // the data series, giving the chart canvas a faint colored backdrop. The
 // data polygon's own fill opacity is reduced slightly so the tinted grid
-// stays visible through it. Minimal, value-only hover tooltip.
+// stays visible through it. Hover tooltip shows a swatch + series label +
+// value, no category heading.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
@@ -42,10 +43,10 @@ function chartRadarGridFill(props: ChartRadarGridFillProps = {}): DomphyElement<
     data = RADAR_MONTHLY_SINGLE_DATA,
     series = RADAR_SINGLE_SERIES,
     title = "Radar Chart - Grid Filled",
-    description = "January - June 2026",
+    description = "Showing total visitors for the last 6 months",
     trendText = "Trending up by 5.2% this month",
     trendDirection = "up",
-    captionText = "Showing total visitors for the last 6 months",
+    captionText = "January - June 2024",
     gridFillOpacity = 0.2,
     seriesFillOpacity = 0.5,
   } = props;
@@ -64,7 +65,7 @@ function chartRadarGridFill(props: ChartRadarGridFillProps = {}): DomphyElement<
           tooltip,
           gridFill: { color: resolvedSeries[0].color, opacity: gridFillOpacity },
           tooltipShowLabel: false,
-          tooltipIndicator: "none",
+          tooltipIndicator: "swatch",
         }),
       ],
     },

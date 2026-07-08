@@ -19,7 +19,7 @@
 
 import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSize, themeSpacing } from "@domphy/theme";
+import { type ThemeColor, themeColor, themeFluidSpacing, themeSpacing } from "@domphy/theme";
 
 export interface TextRevealProps {
   /** Text content to reveal, split into words on whitespace. Defaults to a short demo paragraph. */
@@ -39,20 +39,22 @@ export interface TextRevealProps {
 const DEFAULT_TEXT =
   "Domphy renders every element through a single reactive theme system, so as you scroll through this section each word brightens from a washed out gray into full readable color.";
 
-// Resting opacity for a word before its own scroll-progress slice begins,
-// and the constant opacity of the always-visible muted full-text layer
-// behind the words — never fully invisible, so the unrevealed tail of the
-// paragraph still reads as a shape while scrolling.
+// Constant opacity of the always-visible muted full-text layer behind the
+// words — never fully invisible, so the unrevealed tail of the paragraph
+// still reads as a shape while scrolling.
 const RESTING_LAYER_OPACITY = 0.18;
 
-/** Maps overall scroll progress (0-1) to one word's own opacity via an even slice of the range. */
+/**
+ * Maps overall scroll progress (0-1) to one word's own opacity via an even
+ * slice of the range — 0 before its slice starts (fully transparent, so only
+ * the muted background layer shows through) up to 1 once its slice ends.
+ */
 function wordOpacityForProgress(progress: number, wordIndex: number, wordCount: number): number {
   if (wordCount <= 0) return 1;
   const sliceStart = wordIndex / wordCount;
   const sliceEnd = (wordIndex + 1) / wordCount;
   const sliceProgress = wordCount === 1 ? progress : (progress - sliceStart) / (sliceEnd - sliceStart);
-  const clamped = Math.min(1, Math.max(0, sliceProgress));
-  return RESTING_LAYER_OPACITY + (1 - RESTING_LAYER_OPACITY) * clamped;
+  return Math.min(1, Math.max(0, sliceProgress));
 }
 
 /**
@@ -73,9 +75,8 @@ function textReveal(props: TextRevealProps = {}): DomphyElement<"div"> {
 
   const paragraphTypography: StyleObject = {
     margin: 0,
-    fontSize: (listener: Listener) => themeSize(listener, "increase-2"),
+    fontSize: () => themeFluidSpacing(6, 12),
     fontWeight: () => "700",
-    textAlign: "center",
     // Fallback resting color for the paragraph itself — the background
     // layer overrides this with its own muted tone below, and the
     // foreground layer's per-word spans override it with their own

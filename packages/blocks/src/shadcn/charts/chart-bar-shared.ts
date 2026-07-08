@@ -56,7 +56,7 @@
 
 import type { DomphyElement, Listener, PartialElement, ReadableState } from "@domphy/core";
 import { themeColor, themeColorToken, themeSpacing, type ThemeColor } from "@domphy/theme";
-import { card, heading, icon, paragraph, small, strong } from "@domphy/ui";
+import { card, heading, icon, paragraph, small } from "@domphy/ui";
 import { motion } from "@domphy/ui";
 import { chart, createLinearScale, createOrdinalScale, familyHex } from "@domphy/chart";
 import type { AxisOption, ChartOption, TooltipParams } from "@domphy/chart";
@@ -276,27 +276,52 @@ function escapeHtml(text: string): string {
 }
 
 /**
+ * One upstream ChartTooltipContent item row (ui/chart.tsx ~243-262): the
+ * indicator `swatch`, then the series NAME on the left in muted-foreground at
+ * normal weight, then the VALUE pushed to the right edge as font-mono,
+ * font-weight 500, tabular-nums in FULL foreground. `swatch` is trusted HTML;
+ * `name`/`value` must already be escaped. Pass `""` for the swatch to omit the
+ * indicator (upstream `hideIndicator`).
+ */
+export function chartBarTooltipRow(swatch: string, name: string, value: string): string {
+  const muted = themeColorToken(null, "shift-9", "neutral");
+  const foreground = themeColorToken(null, "shift-11", "neutral");
+  return (
+    `<span style="display:flex;align-items:center;">${swatch}` +
+    `<span style="color:${muted};">${name}</span>` +
+    `<span style="margin-left:auto;padding-left:12px;` +
+    `font-family:ui-monospace,SFMono-Regular,Menlo,monospace;` +
+    `font-weight:500;font-variant-numeric:tabular-nums;color:${foreground};">${value}</span>` +
+    `</span>`
+  );
+}
+
+/**
  * Builds an axis-trigger tooltip formatter that prints the hovered category
  * label (resolved from `categories[dataIndex]`, since the engine does not
  * populate `axisValueLabel` at runtime) followed by one color-dot +
- * series-name + value line per series.
+ * series-name + value line per series. Pass `hideLabel: true` to omit the
+ * category header row (mirrors upstream's `<ChartTooltipContent hideLabel />`).
  */
 export function chartBarAxisTooltipFormatter(
   categories: string[],
   valueLabel: (parameters: TooltipParams) => string = (p) => String(p.value ?? ""),
+  options: { hideLabel?: boolean } = {},
 ): (parameters: TooltipParams | TooltipParams[]) => string {
+  const { hideLabel = false } = options;
   return (parametersInput) => {
     const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
     if (parameters.length === 0) return "";
-    const category = escapeHtml(categories[parameters[0].dataIndex] ?? parameters[0].name ?? "");
     const rows = parameters
       .map((p) => {
         const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
         const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
-        return `${dot}<strong>${label}</strong>: ${escapeHtml(valueLabel(p))}`;
+        return chartBarTooltipRow(dot, label, escapeHtml(valueLabel(p)));
       })
-      .join("<br>");
-    return `<strong>${category}</strong><br>${rows}`;
+      .join("");
+    if (hideLabel) return rows;
+    const category = escapeHtml(categories[parameters[0].dataIndex] ?? parameters[0].name ?? "");
+    return `<strong>${category}</strong>${rows}`;
   };
 }
 
@@ -318,13 +343,13 @@ export function chartBarStackedTooltipFormatter(
     const rows = parameters.map((p) => {
       const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
       const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
-      return `${dot}<strong>${label}</strong>: ${escapeHtml(String(p.value ?? ""))}`;
+      return chartBarTooltipRow(dot, label, escapeHtml(String(p.value ?? "")));
     });
     if (showTotal) {
       const total = parameters.reduce((sum, p) => sum + (Number(p.value) || 0), 0);
-      rows.push(`<strong>Total</strong>: ${escapeHtml(String(total))}`);
+      rows.push(chartBarTooltipRow("", "Total", escapeHtml(String(total))));
     }
-    return `<strong>${category}</strong><br>${rows.join("<br>")}`;
+    return `<strong>${category}</strong>${rows.join("")}`;
   };
 }
 
@@ -340,7 +365,7 @@ export function chartBarSignedTooltipFormatter(
     const category = escapeHtml(categories[point.dataIndex] ?? point.name ?? "");
     const value = Number(point.value) || 0;
     const sign = value > 0 ? "+" : "";
-    return `<strong>${category}</strong>: ${sign}${escapeHtml(String(value))}`;
+    return chartBarTooltipRow("", category, `${sign}${escapeHtml(String(value))}`);
   };
 }
 
@@ -466,12 +491,27 @@ export interface ChartBarTrendFooterProps {
   showIcon?: boolean;
 }
 
-/** Two-line footer: icon + bold trend sentence, then a muted caption line. */
+/** Two-line footer: trend sentence + trailing icon, then a muted caption line.
+ * Upstream footer trend line is `<div className="... font-medium">` — weight
+ * 500 (NOT bold/700) in FULL card foreground, sentence FIRST then a plain trend
+ * glyph AFTER it ("Trending up by 5.2% this month <TrendingUp/>"), the icon
+ * inheriting that SAME full-foreground currentColor (no success/danger tint,
+ * and NOT the muted 'neutral'/shift-9 tone icon() paints by default — only the
+ * caption line below is muted). */
 export function chartBarTrendFooter(props: ChartBarTrendFooterProps): DomphyElement<"footer"> {
-  const { trendText, direction, captionText, color = direction === "up" ? "success" : "danger", showIcon = true } = props;
-  const trendRow: DomphyElement[] = [];
-  if (showIcon) trendRow.push(chartBarTrendIcon(direction, color));
-  trendRow.push({ strong: trendText, $: [strong({ color: "neutral" })] });
+  const { trendText, direction, captionText, color = "neutral", showIcon = true } = props;
+  const foreground = (listener: Listener) => themeColor(listener, "shift-11", "neutral");
+  const trendRow: DomphyElement[] = [
+    { span: trendText, style: { fontWeight: "500", color: foreground } },
+  ];
+  if (showIcon) {
+    const trendIcon = chartBarTrendIcon(direction, color);
+    // Icon inherits the sentence's full-foreground currentColor. icon() alone
+    // paints shift-9 muted; the element's own style wins over the patch style
+    // (native-win merge), so this overrides only the color and keeps its box.
+    trendIcon.style = { color: foreground };
+    trendRow.push(trendIcon);
+  }
   return {
     footer: [
       { div: trendRow, style: { display: "flex", alignItems: "center", gap: themeSpacing(1.5) } },
@@ -702,7 +742,9 @@ export function chartBarActiveOverlay(props: ChartBarActiveOverlayProps): Partia
         rect.setAttribute("fill", "none");
         rect.setAttribute("stroke", themeColorToken(null, "shift-9", color));
         rect.setAttribute("stroke-width", "2");
-        rect.setAttribute("stroke-dasharray", "4,3");
+        // Upstream Rectangle: strokeDasharray={4} + strokeDashoffset={4}.
+        rect.setAttribute("stroke-dasharray", "4");
+        rect.setAttribute("stroke-dashoffset", "4");
         svg.appendChild(rect);
       }
 

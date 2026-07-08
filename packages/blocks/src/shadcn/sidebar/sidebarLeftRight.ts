@@ -17,11 +17,11 @@ import { type ThemeColor, themeColor, themeDensity, themeSpacing } from "@domphy
 import {
   ICON_CHEVRONS_UPDOWN,
   ICON_CHEVRON_RIGHT,
+  ICON_MARK,
   ICON_MORE,
   ICON_PANEL_TOGGLE,
   ICON_PLUS,
   ICON_SEARCH,
-  renderTeamSwitcher,
   sidebarBackdrop,
   sidebarIcon,
   sidebarMainContent,
@@ -36,6 +36,9 @@ import {
 
 const ICON_SPARKLE =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>';
+
+const ICON_CHEVRON_DOWN =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M6 9l6 6 6-6"/></svg>';
 
 const ICON_HOME =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1v-9"/></svg>';
@@ -86,7 +89,8 @@ type SidebarLeftRightProps = {
 
 const DEFAULT_ORGANIZATIONS: SidebarTeam[] = [
   { name: "Acme Inc", plan: "Enterprise" },
-  { name: "Acme Corp", plan: "Startup" },
+  { name: "Acme Corp.", plan: "Startup" },
+  { name: "Evil Corp.", plan: "Free" },
 ];
 
 const DEFAULT_FAVORITES: FavoriteItem[] = [
@@ -161,28 +165,32 @@ const DEFAULT_FOOTER_LINKS: FooterLink[] = [
 
 const DEFAULT_USER: CurrentUser = { name: "Shad Cn", email: "shadcn@example.com" };
 
+// Upstream `Calendars` marks exactly the first two items of every group active
+// (`data-active={index < 2}`) and colors every active indicator with the single
+// `sidebar-primary` accent — so every entry here is `primary`, and only the
+// first two entries of each group start checked.
 const DEFAULT_CALENDAR_GROUPS: CalendarGroup[] = [
   {
     label: "My Calendars",
     entries: [
       { id: "personal", name: "Personal", color: "primary", checked: true },
-      { id: "work", name: "Work", color: "secondary", checked: true },
-      { id: "family", name: "Family", color: "success", checked: true },
+      { id: "work", name: "Work", color: "primary", checked: true },
+      { id: "family", name: "Family", color: "primary", checked: false },
     ],
   },
   {
     label: "Favorites",
     entries: [
-      { id: "holidays", name: "Holidays", color: "warning", checked: true },
-      { id: "birthdays", name: "Birthdays", color: "error", checked: false },
+      { id: "holidays", name: "Holidays", color: "primary", checked: true },
+      { id: "birthdays", name: "Birthdays", color: "primary", checked: true },
     ],
   },
   {
     label: "Other",
     entries: [
-      { id: "travel", name: "Travel", color: "info", checked: false },
-      { id: "reminders", name: "Reminders", color: "neutral", checked: true },
-      { id: "deadlines", name: "Deadlines", color: "error", checked: true },
+      { id: "travel", name: "Travel", color: "primary", checked: true },
+      { id: "reminders", name: "Reminders", color: "primary", checked: true },
+      { id: "deadlines", name: "Deadlines", color: "primary", checked: false },
     ],
   },
 ];
@@ -258,26 +266,8 @@ function quickLinkRow(
   emojiOrIcon: string,
   label: string,
   collapsed: ReadableState<boolean>,
-  options: { href?: string; onClick?: () => void; badge?: number } = {},
+  options: { href?: string; onClick?: () => void; active?: boolean } = {},
 ): DomphyElement<"li"> {
-  const badgeElement = options.badge
-    ? ({
-        span: String(options.badge),
-        dataTone: "shift-0",
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minWidth: themeSpacing(5),
-          paddingInline: themeSpacing(1.5),
-          borderRadius: themeSpacing(999),
-          opacity: (l: Listener) => (collapsed.get(l) ? 0 : 1),
-          backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
-          color: (l: Listener) => themeColor(l, "shift-10", "primary"),
-        },
-      } as unknown as DomphyElement)
-    : null;
-
   const rowStyle = {
     display: "flex",
     alignItems: "center",
@@ -293,18 +283,28 @@ function quickLinkRow(
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
     "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+    "&[aria-current=page]": {
+      backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary"),
+      color: (l: Listener) => themeColor(l, "shift-12", "primary"),
+    },
   };
 
-  const content = [sidebarIcon(emojiOrIcon), collapsibleLabel(collapsed, label), ...(badgeElement ? [badgeElement] : [])];
+  const content = [sidebarIcon(emojiOrIcon), collapsibleLabel(collapsed, label)];
+  const ariaCurrent = options.active ? "page" : undefined;
 
-  return {
-    li: [
-      options.href
-        ? ({ a: content, href: options.href, style: rowStyle } as unknown as DomphyElement)
-        : ({ button: content, type: "button", onClick: options.onClick, style: rowStyle } as unknown as DomphyElement),
-    ],
-    _key: label,
-  } as DomphyElement<"li">;
+  // A no-href "More" row has no action — omit `onClick` entirely rather than
+  // passing `undefined`, which Domphy rejects (`on*` must be a function).
+  const row = options.href
+    ? ({ a: content, href: options.href, ariaCurrent, style: rowStyle } as unknown as DomphyElement)
+    : ({
+        button: content,
+        type: "button",
+        ariaCurrent,
+        ...(options.onClick ? { onClick: options.onClick } : {}),
+        style: rowStyle,
+      } as unknown as DomphyElement);
+
+  return { li: [row], _key: label } as DomphyElement<"li">;
 }
 
 /** Favorites row: emoji + label, hover-revealed "more" icon-button with a
@@ -333,6 +333,7 @@ function favoriteRow(item: FavoriteItem, collapsed: ReadableState<boolean>): Dom
           {
             a: [sidebarIcon(item.emoji), collapsibleLabel(collapsed, item.label)],
             href: item.href ?? "#",
+            title: item.label,
             style: {
               display: "flex",
               alignItems: "center",
@@ -381,83 +382,138 @@ function favoriteRow(item: FavoriteItem, collapsed: ReadableState<boolean>): Dom
   } as DomphyElement<"li">;
 }
 
-/** An expandable workspace group: emoji + label + chevron, revealing a
- * nested list of emoji-prefixed pages on click. */
+/** An expandable workspace group. Mirrors upstream `NavWorkspaces`: the row
+ * `<a>` navigates, while a hover-revealed accent-tinted `ChevronRight` sitting
+ * at `left-2` (over the emoji) is the ONLY thing that toggles the nested page
+ * list, and a hover-revealed `Plus` on the right is an add-page action. */
 function workspaceGroupRow(group: WorkspaceGroup, collapsed: ReadableState<boolean>): DomphyElement<"li"> {
+  const open = toState(false);
+
+  // Absolutely-positioned SidebarMenuAction buttons hidden until row hover
+  // (base `display: none`; the wrapper's `:hover`/`:focus-within` descendant
+  // rule reveals them). The chevron stays visible whenever the group is open.
   return {
     li: [
       {
-        details: [
+        div: [
           {
-            summary: [
-              sidebarIcon(group.emoji),
-              collapsibleLabel(collapsed, group.label),
-              {
-                span: ICON_CHEVRON_RIGHT,
-                style: {
-                  transition: "transform 150ms ease",
-                  display: (l: Listener) => (collapsed.get(l) ? "none" : "inline-flex"),
-                },
-                $: [icon({ color: "neutral" })],
-              } as unknown as DomphyElement,
-            ],
+            a: [sidebarIcon(group.emoji), collapsibleLabel(collapsed, group.label)],
+            href: "#",
             style: {
-              listStyle: "none",
-              cursor: "pointer",
-              userSelect: "none",
               display: "flex",
               alignItems: "center",
-              gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
               width: "100%",
+              gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
               paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
               paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
               borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+              textDecoration: () => "none",
+              overflow: "hidden",
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-              backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-              "&::-webkit-details-marker": { display: "none" },
-              "&::marker": { content: `""` },
-              "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
             },
           } as unknown as DomphyElement,
           {
-            ul: group.pages.map((page, index) => ({
-              li: [
-                {
-                  a: [sidebarIcon(page.emoji), { span: page.label, style: { flex: "1", textAlign: "left" } }],
-                  href: page.href ?? "#",
-                  style: {
-                    display: "flex",
-                    alignItems: "center",
-                    gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-                    paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
-                    paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-                    borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
-                    textDecoration: () => "none",
-                    color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-                    "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
-                  },
-                } as unknown as DomphyElement,
-              ],
-              _key: `${group.id}-${index}`,
-            })) as unknown as DomphyElement[],
+            button: {
+              span: ICON_CHEVRON_RIGHT,
+              style: {
+                display: "inline-flex",
+                transition: "transform 150ms ease",
+                transform: (l: Listener) => (open.get(l) ? "rotate(90deg)" : "rotate(0deg)"),
+              },
+              $: [icon({ color: "neutral" })],
+            } as unknown as DomphyElement,
+            type: "button",
+            dataSlot: "workspace-toggle",
+            ariaLabel: `Toggle ${group.label}`,
+            ariaExpanded: (l: Listener) => open.get(l),
+            onClick: () => open.set(!open.get()),
             style: {
-              listStyle: "none",
-              margin: "0",
-              display: "flex",
-              flexDirection: "column",
-              gap: themeSpacing(0.5),
-              marginInlineStart: themeSpacing(5),
-              paddingInlineStart: themeSpacing(3),
-              paddingBlock: "0",
-              paddingInlineEnd: "0",
-              borderInlineStart: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
-              color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+              position: "absolute",
+              insetInlineStart: themeSpacing(2),
+              top: themeSpacing(1.5),
+              alignItems: "center",
+              justifyContent: "center",
+              width: themeSpacing(5),
+              height: themeSpacing(5),
+              border: "none",
+              cursor: "pointer",
+              borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+              // Revealed on row hover, or kept on-screen while the group is open.
+              display: (l: Listener) => (collapsed.get(l) ? "none" : open.get(l) ? "flex" : "none"),
+              backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral"),
+              color: (l: Listener) => themeColor(l, "shift-11", "neutral"),
+            },
+          } as unknown as DomphyElement,
+          {
+            button: sidebarIcon(ICON_PLUS),
+            type: "button",
+            dataSlot: "workspace-add",
+            ariaLabel: `Add page to ${group.label}`,
+            style: {
+              position: "absolute",
+              insetInlineEnd: themeSpacing(1),
+              top: themeSpacing(1.5),
+              alignItems: "center",
+              justifyContent: "center",
+              width: themeSpacing(5),
+              height: themeSpacing(5),
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+              display: "none",
+              color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
+              "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral") },
             },
           } as unknown as DomphyElement,
         ],
         style: {
+          position: "relative",
           display: (l: Listener) => (collapsed.get(l) ? "none" : "block"),
-          "&[open] summary span": { transform: "rotate(90deg)" },
+          borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover [data-slot=workspace-toggle], &:focus-within [data-slot=workspace-toggle]": {
+            display: (l: Listener) => (collapsed.get(l) ? "none" : "flex"),
+          },
+          "&:hover [data-slot=workspace-add], &:focus-within [data-slot=workspace-add]": {
+            display: (l: Listener) => (collapsed.get(l) ? "none" : "flex"),
+          },
+        },
+      } as unknown as DomphyElement,
+      {
+        ul: group.pages.map((page, index) => ({
+          li: [
+            {
+              a: [sidebarIcon(page.emoji), { span: page.label, style: { flex: "1", textAlign: "left" } }],
+              href: page.href ?? "#",
+              style: {
+                display: "flex",
+                alignItems: "center",
+                gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+                paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
+                paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+                borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+                textDecoration: () => "none",
+                color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+                "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+              },
+            } as unknown as DomphyElement,
+          ],
+          _key: `${group.id}-${index}`,
+        })) as unknown as DomphyElement[],
+        style: {
+          listStyle: "none",
+          margin: "0",
+          flexDirection: "column",
+          gap: themeSpacing(0.5),
+          marginInlineStart: themeSpacing(5),
+          paddingInlineStart: themeSpacing(3),
+          paddingBlock: "0",
+          paddingInlineEnd: "0",
+          borderInlineStart: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+          color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+          // Only the chevron toggles this; hidden until the group is open.
+          display: (l: Listener) => (open.get(l) && !collapsed.get(l) ? "flex" : "none"),
         },
       } as unknown as DomphyElement,
     ],
@@ -470,15 +526,195 @@ function footerLinkRow(item: FooterLink, collapsed: ReadableState<boolean>): Dom
   return quickLinkRow(item.icon, item.label, collapsed, { href: item.href ?? "#" });
 }
 
+/** Compact `size-5` primary logo badge shown in the team-switcher trigger. */
+function teamTriggerBadge(glyph: string): DomphyElement<"span"> {
+  return {
+    span: glyph,
+    dataTone: "shift-0",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: themeSpacing(5),
+      height: themeSpacing(5),
+      flexShrink: "0",
+      fontSize: themeSpacing(3),
+      borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
+      color: (l: Listener) => themeColor(l, "shift-10", "primary"),
+    },
+  } as unknown as DomphyElement<"span">;
+}
+
+/** Bordered `size-6` logo box shown on each row of the team-switcher dropdown. */
+function teamMenuBadge(glyph: string): DomphyElement<"span"> {
+  return {
+    span: glyph,
+    dataTone: "shift-2",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: themeSpacing(6),
+      height: themeSpacing(6),
+      flexShrink: "0",
+      fontSize: themeSpacing(4),
+      borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+      border: (l: Listener) => `1px solid ${themeColor(l, "shift-4", "neutral")}`,
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+    },
+  } as unknown as DomphyElement<"span">;
+}
+
+/**
+ * Org/team switcher matching upstream `TeamSwitcher` (sidebar-15): a compact
+ * `w-fit px-1.5` trigger with a `size-5` logo badge, a single-line team NAME,
+ * and a down-only `ChevronDown` (opacity-50). The dropdown has a muted "Teams"
+ * heading, one row per team (logo box + name + ⌘N shortcut), and a trailing
+ * "Add team" row (Plus badge + muted label). Not the two-line/ChevronsUpDown
+ * switcher the sidebar05-08 family shares.
+ */
+function localTeamSwitcher(teams: SidebarTeam[], collapsed: ReadableState<boolean>): DomphyElement<"div"> {
+  const active = teams[0] ?? { name: "Acme Inc", plan: "Enterprise" };
+
+  const rowLabelStyle = {
+    display: "flex",
+    alignItems: "center",
+    width: "100%",
+    gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+  };
+
+  const dropdown: DomphyElement<"div"> = {
+    div: [
+      {
+        small: "Teams",
+        $: [small({ color: "neutral" })],
+        style: {
+          display: "block",
+          paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+          paddingBlock: themeSpacing(1.5),
+        },
+      } as unknown as DomphyElement,
+      {
+        div: null,
+        $: [
+          menu({
+            items: [
+              ...teams.map((team, index) => ({
+                key: `${team.name}-${index}`,
+                label: {
+                  div: [
+                    teamMenuBadge(team.logo ?? ICON_MARK),
+                    {
+                      span: team.name,
+                      style: { flex: "1", textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+                    } as unknown as DomphyElement,
+                    {
+                      small: `⌘${index + 1}`,
+                      $: [small({ color: "neutral" })],
+                      style: { marginInlineStart: "auto", opacity: "0.6" },
+                    } as unknown as DomphyElement,
+                  ],
+                  style: rowLabelStyle,
+                } as unknown as DomphyElement,
+              })),
+              {
+                key: "__add-team",
+                label: {
+                  div: [teamMenuBadge(ICON_PLUS), { span: "Add team", $: [small({ color: "neutral" })] } as unknown as DomphyElement],
+                  style: rowLabelStyle,
+                } as unknown as DomphyElement,
+              },
+            ],
+          }),
+        ],
+      } as unknown as DomphyElement,
+    ],
+    style: { minWidth: themeSpacing(64) },
+  } as unknown as DomphyElement<"div">;
+
+  return {
+    div: [
+      {
+        button: [
+          teamTriggerBadge(active.logo ?? ICON_MARK),
+          collapsibleLabel(collapsed, active.name),
+          {
+            span: ICON_CHEVRON_DOWN,
+            style: { display: (l: Listener) => (collapsed.get(l) ? "none" : "inline-flex"), opacity: "0.5" },
+            $: [icon({ color: "neutral" })],
+          } as unknown as DomphyElement,
+        ],
+        type: "button",
+        ariaLabel: "Switch team",
+        style: {
+          display: "flex",
+          alignItems: "center",
+          width: "fit-content",
+          gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+          paddingBlock: themeSpacing(1.5),
+          paddingInline: themeSpacing(1.5),
+          borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+          border: "none",
+          cursor: "pointer",
+          overflow: "hidden",
+          color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+          backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+        },
+        $: [popover({ placement: "bottom-start", content: dropdown })],
+      } as unknown as DomphyElement,
+    ],
+    style: { padding: (l: Listener) => themeSpacing(themeDensity(l) * 2) },
+  } as unknown as DomphyElement<"div">;
+}
+
 // ---------------------------------------------------------------------------
 // Right sidebar — user header + inline month calendar + calendar list
 // ---------------------------------------------------------------------------
 
 function currentUserHeader(user: CurrentUser): DomphyElement<"div"> {
+  // Upstream `NavUser` dropdown: a user-info header label followed by five
+  // actions — Upgrade to Pro / Account / Billing / Notifications / Log out.
   const accountMenu: DomphyElement<"div"> = {
-    div: null,
-    style: { minWidth: themeSpacing(44) },
-    $: [menu({ items: [{ label: "Account" }, { label: "Billing" }, { label: "Log out" }] })],
+    div: [
+      {
+        div: [
+          user.avatarUrl
+            ? ({ span: [{ img: null, src: user.avatarUrl, alt: user.name } as unknown as DomphyElement], $: [avatar({ color: "primary" })] } as unknown as DomphyElement)
+            : ({ span: user.name.slice(0, 1).toUpperCase(), $: [avatar({ color: "primary" })] } as unknown as DomphyElement),
+          {
+            div: [
+              { strong: user.name, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
+              { small: user.email, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+            ],
+            style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5), minWidth: "0", overflow: "hidden" },
+          } as unknown as DomphyElement,
+        ],
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+          padding: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+        },
+      } as unknown as DomphyElement,
+      {
+        div: null,
+        $: [
+          menu({
+            items: [
+              { label: "Upgrade to Pro" },
+              { label: "Account" },
+              { label: "Billing" },
+              { label: "Notifications" },
+              { label: "Log out" },
+            ],
+          }),
+        ],
+      } as unknown as DomphyElement,
+    ],
+    style: { minWidth: themeSpacing(56) },
   } as unknown as DomphyElement<"div">;
 
   const avatarChild: DomphyElement<"span"> = user.avatarUrl
@@ -497,6 +733,7 @@ function currentUserHeader(user: CurrentUser): DomphyElement<"div"> {
             ],
             style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5), minWidth: "0", overflow: "hidden" },
           } as unknown as DomphyElement,
+          sidebarIcon(ICON_CHEVRONS_UPDOWN),
         ],
         type: "button",
         ariaLabel: "Account menu",
@@ -689,21 +926,65 @@ function calendarEntryRow(entry: CalendarEntry, visibility: RecordState<Record<s
   } as DomphyElement<"li">;
 }
 
-function calendarGroupSection(group: CalendarGroup, visibility: RecordState<Record<string, boolean>>): DomphyElement<"div"> {
+function calendarGroupSection(
+  group: CalendarGroup,
+  visibility: RecordState<Record<string, boolean>>,
+  defaultOpen: boolean,
+): DomphyElement<"div"> {
   return {
     div: [
       {
-        small: group.label,
-        style: { textTransform: "uppercase", paddingInline: themeSpacing(3) },
-        $: [small({ color: "neutral" })],
-      } as unknown as DomphyElement,
-      {
-        ul: group.entries.map((entry) => calendarEntryRow(entry, visibility)),
-        style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
+        details: [
+          {
+            summary: [
+              { small: group.label, style: { flex: "1", textTransform: "uppercase" }, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+              {
+                span: ICON_CHEVRON_RIGHT,
+                dataSlot: "calendar-chevron",
+                style: { transition: "transform 150ms ease" },
+                $: [icon({ color: "neutral" })],
+              } as unknown as DomphyElement,
+            ],
+            style: {
+              listStyle: "none",
+              cursor: "pointer",
+              userSelect: "none",
+              display: "flex",
+              alignItems: "center",
+              paddingInline: themeSpacing(3),
+              color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+              "&::-webkit-details-marker": { display: "none" },
+              "&::marker": { content: `""` },
+            },
+          } as unknown as DomphyElement,
+          {
+            ul: group.entries.map((entry) => calendarEntryRow(entry, visibility)),
+            style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
+          } as unknown as DomphyElement,
+        ],
+        open: defaultOpen,
+        style: { "&[open] summary [data-slot=calendar-chevron]": { transform: "rotate(90deg)" } },
       } as unknown as DomphyElement,
     ],
     style: { display: "flex", flexDirection: "column", gap: themeSpacing(1) },
     _key: group.label,
+  } as unknown as DomphyElement<"div">;
+}
+
+/** Full-width hairline rule (upstream `SidebarSeparator` with `mx-0`), rendered
+ * after the date picker and after every calendar group. */
+function calendarSeparator(key: string): DomphyElement<"div"> {
+  return {
+    div: null,
+    _key: key,
+    ariaHidden: "true",
+    style: {
+      height: "0",
+      marginBlock: themeSpacing(2),
+      marginInline: "0",
+      borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+    },
+    _doctorDisable: "missing-color",
   } as unknown as DomphyElement<"div">;
 }
 
@@ -746,13 +1027,13 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
 
   const leftAside: DomphyElement<"aside"> = {
     aside: [
-      renderTeamSwitcher(organizations),
+      localTeamSwitcher(organizations, leftCollapsed),
       {
         ul: [
           quickLinkRow(ICON_SEARCH, "Search", leftCollapsed, { href: "#" }),
           quickLinkRow(ICON_SPARKLE, "Ask AI", leftCollapsed, { href: "#" }),
-          quickLinkRow(ICON_HOME, "Home", leftCollapsed, { href: "#" }),
-          quickLinkRow(ICON_INBOX, "Inbox", leftCollapsed, { href: "#", badge: 3 }),
+          quickLinkRow(ICON_HOME, "Home", leftCollapsed, { href: "#", active: true }),
+          quickLinkRow(ICON_INBOX, "Inbox", leftCollapsed, { href: "#" }),
         ],
         style: {
           listStyle: "none",
@@ -770,7 +1051,7 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
             div: [
               sectionLabel(leftCollapsed, "Favorites"),
               {
-                ul: favorites.map((item) => favoriteRow(item, leftCollapsed)),
+                ul: [...favorites.map((item) => favoriteRow(item, leftCollapsed)), quickLinkRow(ICON_MORE, "More", leftCollapsed)],
                 style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
               } as unknown as DomphyElement,
             ],
@@ -780,34 +1061,38 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
             div: [
               sectionLabel(leftCollapsed, "Workspaces"),
               {
-                ul: workspaces.map((group) => workspaceGroupRow(group, leftCollapsed)),
+                ul: [...workspaces.map((group) => workspaceGroupRow(group, leftCollapsed)), quickLinkRow(ICON_MORE, "More", leftCollapsed)],
                 style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
               } as unknown as DomphyElement,
             ],
             style: { display: "flex", flexDirection: "column", gap: themeSpacing(1), marginTop: themeSpacing(4) },
           } as unknown as DomphyElement,
+          // NavSecondary (Calendar/Settings/Templates/Trash/Help). Upstream
+          // renders this INSIDE the scrollable content with `mt-auto` — it
+          // scrolls with the content and has no pinned divider.
+          {
+            ul: footerLinks.map((item) => footerLinkRow(item, leftCollapsed)),
+            style: {
+              listStyle: "none",
+              margin: "0",
+              padding: "0",
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(0.5),
+              marginTop: "auto",
+            },
+          } as unknown as DomphyElement,
         ],
         style: {
           flex: "1",
           minHeight: "0",
+          display: "flex",
+          flexDirection: "column",
           overflowY: "auto",
           overflowX: "hidden",
           paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
           paddingBlockStart: themeSpacing(2),
-        },
-      } as unknown as DomphyElement,
-      {
-        ul: footerLinks.map((item) => footerLinkRow(item, leftCollapsed)),
-        style: {
-          listStyle: "none",
-          margin: "0",
-          padding: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-          display: "flex",
-          flexDirection: "column",
-          gap: themeSpacing(0.5),
-          flexShrink: "0",
-          borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
-          color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+          paddingBlockEnd: themeSpacing(2),
         },
       } as unknown as DomphyElement,
       // Thin invisible edge rail — also acts as a click target to toggle collapse.
@@ -841,7 +1126,8 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
       width: (l: Listener) => (leftCollapsed.get(l) ? themeSpacing(14) : themeSpacing(64)),
       overflow: "hidden",
       transition: "width 0.2s linear",
-      borderInlineEnd: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      // Upstream `<SidebarLeft className="border-r-0">` deliberately removes the
+      // right border, so the left sidebar butts up to the content with no rule.
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       "@media (max-width: 768px)": {
@@ -901,24 +1187,23 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
     aside: [
       currentUserHeader(user),
       {
+        // Upstream `SidebarRight` content: DatePicker, a `mx-0` separator, then
+        // `Calendars` which emits a `mx-0` SidebarSeparator after EACH of the
+        // three groups.
         div: [
-          inlineMonthCalendar(viewMonthState, selectedDateState),
-          {
-            div: null,
-            ariaHidden: "true",
-            style: {
-              height: "0",
-              marginInline: themeSpacing(3),
-              borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
-            },
-            _doctorDisable: "missing-color",
-          } as unknown as DomphyElement,
-          {
-            div: calendarGroups.map((group) => calendarGroupSection(group, calendarVisibility)),
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(4), padding: (l: Listener) => themeSpacing(themeDensity(l) * 3) },
-          } as unknown as DomphyElement,
+          { ...inlineMonthCalendar(viewMonthState, selectedDateState), _key: "datepicker" } as unknown as DomphyElement,
+          calendarSeparator("sep-datepicker"),
+          ...calendarGroups.flatMap((group, index) => [
+            calendarGroupSection(group, calendarVisibility, index === 0),
+            calendarSeparator(`sep-${group.label}`),
+          ]),
         ],
-        style: { flex: "1", minHeight: "0", overflowY: "auto" },
+        style: {
+          flex: "1",
+          minHeight: "0",
+          overflowY: "auto",
+          paddingBlock: themeSpacing(2),
+        },
       } as unknown as DomphyElement,
       {
         div: [

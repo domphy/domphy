@@ -31,7 +31,7 @@ export interface AnimatedCircularProgressBarProps {
   primaryColor?: ThemeColor;
   /** Theme color for the background track. Defaults to `"neutral"`. */
   secondaryColor?: ThemeColor;
-  /** Ring diameter, in `themeSpacing` units. Defaults to `32`. */
+  /** Ring diameter, in `themeSpacing` units. Defaults to `40` (upstream `size-40` = 10rem). */
   size?: number;
   /** SVG stroke width, in viewBox user units (0–100 viewBox, so this is roughly a
    * percentage of the ring's own diameter). Defaults to `10`. */
@@ -65,7 +65,7 @@ function animatedCircularProgressBar(
   const max = props.max ?? 100;
   const primaryColor = props.primaryColor ?? "primary";
   const secondaryColor = props.secondaryColor ?? "neutral";
-  const size = props.size ?? 32;
+  const size = props.size ?? 40;
   const strokeWidth = props.strokeWidth ?? 10;
   const autoPlayIntervalMs = props.autoPlayIntervalMs ?? 2000;
   const label = props.label ?? "Progress";
@@ -76,6 +76,11 @@ function animatedCircularProgressBar(
   const circumference = 2 * Math.PI * radius;
 
   const percent = (listener: Listener) => clampPercent(value.get(listener), min, max);
+  // Upstream caps the background track at a 90%-of-circumference arc (never a
+  // fully closed ring) and hides it past 90%, leaving a fixed gap before the
+  // progress arc's start — reproduced here as an offset fraction rather than
+  // upstream's scaleY(-1)-flipped dash technique.
+  const trackFraction = (listener: Listener) => Math.max(0, (90 - percent(listener)) / 100);
 
   const trackCircle: DomphyElement<"circle"> = {
     circle: null,
@@ -84,12 +89,18 @@ function animatedCircularProgressBar(
     r: String(radius),
     fill: "none",
     strokeWidth: String(strokeWidth),
+    strokeLinecap: "round",
     ariaHidden: "true",
     // Decorative background ring with no text of its own — exempt from the
     // missing-color contract, matching meteors.ts's tail-gradient spans.
     _doctorDisable: "missing-color",
     style: {
       stroke: (listener: Listener) => themeColor(listener, "shift-3", secondaryColor),
+      transform: "rotate(-18deg)",
+      strokeDasharray: `${circumference} ${circumference}`,
+      strokeDashoffset: (listener: Listener) =>
+        `${(-(circumference * (1 - trackFraction(listener)))).toFixed(2)}`,
+      transition: "stroke-dashoffset 1s ease",
     } as StyleObject,
   } as DomphyElement<"circle">;
 
@@ -108,13 +119,13 @@ function animatedCircularProgressBar(
       strokeDasharray: `${circumference} ${circumference}`,
       strokeDashoffset: (listener: Listener) =>
         `${(circumference - (percent(listener) / 100) * circumference).toFixed(2)}`,
-      transition: "stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)",
+      transition: "stroke-dashoffset 1s ease",
     } as StyleObject,
   } as DomphyElement<"circle">;
 
   const percentReadout: DomphyElement<"strong"> = {
-    strong: (listener: Listener) => `${Math.round(percent(listener))}%`,
-    $: [strong({ color: primaryColor })],
+    strong: (listener: Listener) => String(Math.round(percent(listener))),
+    $: [strong()],
     dataSize: "increase-2",
     style: { margin: 0 } as StyleObject,
     // Briefly replays a fade whenever the underlying value changes, so the

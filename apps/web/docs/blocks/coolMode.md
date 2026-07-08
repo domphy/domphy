@@ -19,9 +19,10 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 |---|---|---|
 | `children` | `DomphyElement \| DomphyElement[]` | Element(s) the burst effect wraps. Defaults to a small demo "Hold Me" button. |
 | `particle` | `CoolModeParticleAppearance` | Particle appearance. Defaults to `{ kind: "circle" }` (theme-colored dots). |
-| `sizes` | `number[]` | Preset pool of particle sizes (px), randomly picked per spawn. Defaults to `[15, 20, 25, 30, 35, 40, 45]`. |
-| `driftSpeed` | `number` | Fixed horizontal drift magnitude (px/frame). Randomized per-particle when unset. |
-| `launchSpeed` | `number` | Fixed upward launch speed (px/frame). Randomized per-particle when unset. |
+| `sizes` | `number[]` | Preset pool of particle sizes (px), randomly picked per spawn. Defaults to `[15, 20, 25, 35, 45]`. |
+| `size` | `number` | Fixed particle size (px). When set, forces every particle to this exact size, overriding the random `sizes` pool. |
+| `driftSpeed` | `number` | Fixed horizontal drift magnitude (px/frame). Randomized 0–10 per-particle when unset. |
+| `launchSpeed` | `number` | Fixed upward launch speed (px/frame). Randomized 0–25 per-particle when unset. |
 | `style` | `StyleObject` | Passthrough style merged onto the thin wrapper. |
 
 ::: details Implementation notes

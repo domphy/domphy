@@ -43,8 +43,8 @@ export interface ChartAreaStackedProps {
 }
 
 const DEFAULT_SERIES: ChartAreaStackedSeries[] = [
-  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0] },
-  { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[1] },
+  { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[0] },
+  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[1] },
 ];
 
 /**
@@ -71,6 +71,7 @@ function chartAreaStacked(props: ChartAreaStackedProps = {}): DomphyElement<"div
   const option: ChartOption = {
     tooltip: {
       trigger: "axis",
+      axisPointer: { type: "none" },
       formatter: chartAxisTooltipFormatter(categories),
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },

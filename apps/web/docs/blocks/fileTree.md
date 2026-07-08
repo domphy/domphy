@@ -19,16 +19,17 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 |---|---|---|
 | `data` | `FileTreeNode[]` | Root-level nodes. Defaults to a small demo `src/` layout. |
 | `expandedIds` | `ValueOrState&lt;string[]&gt;` | Folder ids that start (or, when a `State` is passed, stay) expanded. |
-| `selectedId` | `ValueOrState&lt;string \| null&gt;` | The initially (or, when a `State` is passed, externally) selected node id. |
+| `selectedId` | `ValueOrState&lt;string \| null&gt;` | The initially (or, when a `State` is passed, externally) selected node id. Its ancestor folders auto-expand so the node is revealed. |
 | `sort` | `FileTreeSortMode` | How sibling nodes at each level are ordered. Defaults to `"folders-first"`. |
 | `direction` | `"ltr" \| "rtl"` | Text direction. Defaults to `"ltr"`. |
 | `indicator` | `boolean` | Draw the vertical guide-rail down each expanded folder's children. Defaults to `true`. |
+| `collapseButton` | `boolean` | Render a floating expand-all / collapse-all toggle over the tree (upstream's `CollapseButton`). Defaults to `false`. |
 | `renderFolderIcon` | `(open: boolean, node: FileTreeNode) =&gt; DomphyElement` | Custom closed/open folder icon renderer. Defaults to a generic folder glyph. |
 | `renderFileIcon` | `(node: FileTreeNode) =&gt; DomphyElement` | Custom file icon renderer (e.g. per extension). Defaults to a generic document glyph. |
 | `onSelect` | `(node: FileTreeNode) =&gt; void` | — |
 | `onToggle` | `(node: FileTreeNode, open: boolean) =&gt; void` | — |
 | `color` | `ThemeColor` | Theme color for the panel surface/borders. Defaults to `"neutral"`. |
-| `accentColor` | `ThemeColor` | Accent color for the selected-row highlight. Defaults to `"primary"`. |
+| `accentColor` | `ThemeColor` | Color for the selected-row highlight fill. Defaults to the panel `color` (a neutral muted fill, matching upstream `bg-muted`); pass a distinct tone for a tinted highlight. |
 | `style` | `StyleObject` | — |
 
 ::: details Implementation notes

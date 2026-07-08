@@ -1,34 +1,95 @@
-// shadcn/ui "sidebar-04" block — clean-room reimplementation.
+// shadcn/ui "sidebar-04" block — Domphy reimplementation.
 //
-// Same parent/child nav tree as sidebar-03, but the sidebar panel floats:
-// inset from the page edge with margin, rounded corners and a border/shadow
-// instead of sitting flush against the viewport edge, and noticeably wider
-// (~19rem vs ~16rem). The content header is simpler (not sticky). See
-// ./sidebar01-04-shared.ts.
-//
-// Implemented purely from the block's public functional/visual spec — no
-// upstream shadcn/ui source was viewed or copied.
+// Structurally identical to sidebar-03 (static docs identity header, a flat
+// bold-link nav with always-visible sub-lists, a <SidebarRail/>, and NO footer)
+// but rendered as a FLOATING inset card (upstream `Sidebar variant="floating"`)
+// rather than a flush standard panel. Both variants share
+// `buildDocsSidebarBlock()`; `floating: true` is the only difference.
 
 import type { DomphyElement } from "@domphy/core";
 import {
-  DEFAULT_NAV_GROUPS_WITH_CHILDREN,
-  buildSidebarBlock,
+  buildDocsSidebarBlock,
+  DEFAULT_BREADCRUMB,
   type SidebarBlockOptions,
+  type SidebarNavItem,
 } from "./sidebar01-04-shared.js";
 
+// Upstream sidebar-04's sample nav: a single flat list of top-level sections,
+// each with an always-visible sub-list. No group labels, no icons.
+const DOCS_NAV: SidebarNavItem[] = [
+  {
+    label: "Getting Started",
+    href: "#",
+    children: [
+      { label: "Installation", href: "#" },
+      { label: "Project Structure", href: "#" },
+    ],
+  },
+  {
+    label: "Build Your Application",
+    href: "#",
+    children: [
+      { label: "Routing", href: "#" },
+      { label: "Data Fetching", href: "#", active: true },
+      { label: "Rendering", href: "#" },
+      { label: "Caching", href: "#" },
+      { label: "Styling", href: "#" },
+      { label: "Optimizing", href: "#" },
+      { label: "Configuring", href: "#" },
+      { label: "Testing", href: "#" },
+      { label: "Authentication", href: "#" },
+      { label: "Deploying", href: "#" },
+      { label: "Upgrading", href: "#" },
+      { label: "Examples", href: "#" },
+    ],
+  },
+  {
+    label: "API Reference",
+    href: "#",
+    children: [
+      { label: "Components", href: "#" },
+      { label: "File Conventions", href: "#" },
+      { label: "Functions", href: "#" },
+      { label: "next.config.js Options", href: "#" },
+      { label: "CLI", href: "#" },
+      { label: "Edge Runtime", href: "#" },
+    ],
+  },
+  {
+    label: "Architecture",
+    href: "#",
+    children: [
+      { label: "Accessibility", href: "#" },
+      { label: "Fast Refresh", href: "#" },
+      { label: "Next.js Compiler", href: "#" },
+      { label: "Supported Browsers", href: "#" },
+      { label: "Turbopack", href: "#" },
+    ],
+  },
+  {
+    label: "Community",
+    href: "#",
+    children: [{ label: "Contribution Guide", href: "#" }],
+  },
+];
+
 /**
- * Floating, inset variant of the parent/child-nav sidebar — wider, rounded,
- * bordered card treatment. Call with no arguments for a fully working demo.
+ * Floating, inset docs sidebar (shadcn "sidebar-04"): a static docs identity
+ * header, a flat bold-link nav with always-visible sub-lists, and no footer.
+ * Call with no arguments for a fully working demo.
  */
 function sidebar04(props: SidebarBlockOptions = {}): DomphyElement<"div"> {
-  return buildSidebarBlock({
-    ...props,
-    defaultNavGroups: DEFAULT_NAV_GROUPS_WITH_CHILDREN,
-    collapsibleSections: false,
-    supportsChildren: true,
+  const navItems = props.navGroups
+    ? props.navGroups.flatMap((group) => group.items)
+    : DOCS_NAV;
+  return buildDocsSidebarBlock({
+    title: props.header?.workspaceName ?? "Documentation",
+    subtitle: props.header?.workspacePlan ?? "v1.0.0",
+    navItems,
+    breadcrumb: props.breadcrumb ?? DEFAULT_BREADCRUMB,
+    defaultCollapsed: props.defaultCollapsed,
+    side: props.side,
     floating: true,
-    stickyHeader: false,
-    manyContentRows: false,
   });
 }
 

@@ -1,12 +1,16 @@
-// magicui "Progressive Blur" — clean-room reimplementation from the public
-// behavior/visual spec only (no upstream source viewed or copied). A static
-// overlay that dissolves content into blur near one or both edges of a
-// container instead of cutting it off sharply. Built from several thin,
-// absolutely-positioned bands stacked at the edge, each with a stronger
-// `backdrop-filter: blur()` than the one before it and a `mask-image`
-// gradient that limits where that band is visible — the overlapping masks
-// blend the discrete blur steps into a smooth, purely-blur-intensity fade
-// (no color/opacity gradient of its own).
+// magicui "Progressive Blur" — a static overlay that dissolves content into
+// blur near one or both edges of a container instead of cutting it off sharply
+// (no color/opacity gradient of its own — only the blur intensity increases).
+//
+// Single-edge (top/bottom): several thin, absolutely-positioned bands stacked at
+// the edge, each with a stronger `backdrop-filter: blur()` and a `mask-image`
+// gradient window that overlaps its neighbour so the discrete blur steps blend
+// into a smooth fade (an original overlap formula, documented in SOURCES.md).
+//
+// Both edges: mirrors upstream's `position="both"` exactly — one full-height
+// overlay whose every layer shares one identical mask window, giving a
+// near-uniform heavy blur that fades only at the two extreme 5% edges
+// (thickness is ignored, as upstream forces the overlay height to 100%).
 
 import type { DomphyElement, StyleObject } from "@domphy/core";
 import { paragraph, strong } from "@domphy/ui";
@@ -19,7 +23,9 @@ export interface ProgressiveBlurProps {
   edges?: ProgressiveBlurEdge[];
   /** Thickness of the blurred zone: a `themeSpacing` unit count, or a raw CSS length/percentage. Defaults to `"30%"`. */
   thickness?: number | string;
-  /** Ordered blur radii (px), lightest → strongest, one band per entry. Defaults to `[0.5, 1, 2, 4, 8, 16, 32, 64]`. */
+  /** Blur radii (px), one band per entry, applied in the caller's given order —
+   * entry 0 = innermost/lightest layer, last entry = outermost edge layer. Never
+   * sorted (matches upstream). Defaults to `[0.5, 1, 2, 4, 8, 16, 32, 64]`. */
   blurSteps?: number[];
   /** The underlying content the blur overlays. Defaults to a short demo panel. */
   content?: DomphyElement[];
@@ -70,6 +76,35 @@ function blurBand(
   };
 }
 
+/** Upstream `position="both"`: every layer shares this single mask window, so the
+ * whole element reads as a near-uniform heavy blur that fades only at the 5% edges. */
+const BOTH_MASK = "linear-gradient(rgba(0,0,0,0) 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, rgba(0,0,0,0) 100%)";
+
+/** One full-height blur layer for `both` mode. Fills the container (thickness is
+ * ignored, matching upstream forcing the overlay height to 100%) with
+ * `blur(blurPixels)`, all N layers sharing `BOTH_MASK`. */
+function uniformBlurBand(index: number, blurPixels: number): DomphyElement<"div"> {
+  const blurFilter = `blur(${blurPixels}px)`;
+  return {
+    div: null,
+    _key: `both-band-${index}`,
+    ariaHidden: "true",
+    style: {
+      position: "absolute",
+      insetInlineStart: 0,
+      insetInlineEnd: 0,
+      insetBlockStart: 0,
+      insetBlockEnd: 0,
+      zIndex: index + 1,
+      pointerEvents: "none",
+      backdropFilter: blurFilter,
+      WebkitBackdropFilter: blurFilter,
+      maskImage: BOTH_MASK,
+      WebkitMaskImage: BOTH_MASK,
+    } as StyleObject,
+  };
+}
+
 const DEMO_LINES = [
   "Progressive blur hints that more content continues beyond the edge.",
   "Each band stacks a slightly stronger backdrop blur than the one before it.",
@@ -110,12 +145,22 @@ function defaultContent(): DomphyElement[] {
 function progressiveBlur(props: ProgressiveBlurProps = {}): DomphyElement<"div"> {
   const edges = props.edges && props.edges.length ? props.edges : (["bottom"] as ProgressiveBlurEdge[]);
   const thickness = props.thickness ?? DEFAULT_THICKNESS;
-  const blurSteps =
-    props.blurSteps && props.blurSteps.length ? [...props.blurSteps].sort((a, b) => a - b) : DEFAULT_BLUR_STEPS;
+  // Caller order is preserved (upstream never sorts blurLevels): entry 0 is the
+  // innermost layer, the last entry the outermost/edge layer.
+  const blurSteps = props.blurSteps && props.blurSteps.length ? props.blurSteps : DEFAULT_BLUR_STEPS;
   const content = props.content ?? defaultContent();
 
+  // Both edges present == upstream position="both": a single full-height overlay
+  // of exactly N layers sharing one mask window, NOT two per-edge fade regions.
+  const isBoth = edges.includes("top") && edges.includes("bottom");
+
   const bands: DomphyElement[] = [];
-  for (const edge of edges) {
+  if (isBoth) {
+    for (let index = 0; index < blurSteps.length; index += 1) {
+      bands.push(uniformBlurBand(index, blurSteps[index]));
+    }
+  } else {
+    const edge: ProgressiveBlurEdge = edges.includes("top") ? "top" : "bottom";
     for (let index = 0; index < blurSteps.length; index += 1) {
       bands.push(blurBand(edge, index, blurSteps.length, blurSteps[index], thickness));
     }
@@ -132,7 +177,8 @@ function progressiveBlur(props: ProgressiveBlurProps = {}): DomphyElement<"div">
             insetInlineEnd: 0,
             insetBlockEnd: edges.includes("bottom") ? 0 : undefined,
             insetBlockStart: !edges.includes("bottom") && edges.includes("top") ? 0 : undefined,
-            zIndex: 2,
+            // sit above every blur band (both-mode bands carry z-index up to N)
+            zIndex: blurSteps.length + 1,
             pointerEvents: "none",
             ...(props.overlayContent.style ?? {}),
           },

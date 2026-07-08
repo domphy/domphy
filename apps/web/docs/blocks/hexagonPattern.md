@@ -23,9 +23,8 @@ A **Backgrounds** block/component from **[Magic UI](/docs/blocks/magicui)** — 
 | `y` | `number` | Pattern origin vertical offset, in user units. Defaults to `-1`. |
 | `direction` | `HexagonPatternDirection` | `"horizontal"` renders flat-top hexagons (flat edges up/down); `"vertical"` renders pointy-top hexagons (a vertex up/down). Defaults to `"horizontal"`. |
 | `hexagons` | `Array&lt;[number, number]&gt;` | `[column, row]` coordinates of cells to render as solid highlighted hexagons, layered above the outline tile. Defaults to a small demo set. |
-| `strokeDasharray` | `string` | Switches outline rendering from a closed polygon to per-edge dashed line segments (e.g. `"4 2"`). Solid closed polygons are used when omitted. |
+| `strokeDasharray` | `string` | Switches outline rendering from a closed polygon to per-edge dashed line segments (e.g. `"4 2"`). The values `"0"`, `"none"`, and `""` count as solid and render closed polygons; any other value renders dashed per-edge lines. Defaults to `"0"` (solid). |
 | `color` | `ThemeColor` | Theme color family for the outline stroke. Defaults to `"neutral"`. |
-| `highlightColor` | `ThemeColor` | Theme color family for highlighted cells. Defaults to `"primary"`. |
 | `children` | `DomphyElement \| DomphyElement[]` | Foreground content layered above the pattern. Defaults to a small demo panel. |
 | `style` | `StyleObject` | Passthrough style merged onto the outer demo wrapper. |
 

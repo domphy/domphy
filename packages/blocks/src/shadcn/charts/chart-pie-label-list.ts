@@ -1,15 +1,17 @@
 // shadcn/ui "charts/pie-label-list" — clean-room reimplementation.
 //
 // A pie chart that labels every wedge with a friendly display name (sourced
-// from a name lookup table rather than the raw data key) in a small, compact
-// font sitting just outside the wedge — no leader lines, no separate legend
-// block. Implemented purely from the block's public functional/visual spec —
-// no upstream source was viewed.
+// from a name lookup table rather than the raw data key) printed directly on
+// each wedge's own fill in a small, compact, background-contrasting font — no
+// leader lines, no separate legend block. Implemented purely from the block's
+// public functional/visual spec — no upstream source was viewed.
 
-import type { DomphyElement } from "@domphy/core";
+import type { DomphyElement, Listener } from "@domphy/core";
+import { themeColor } from "@domphy/theme";
 import { motion } from "@domphy/ui";
 import {
   type PieDatum,
+  type PieSlice,
   DEFAULT_PIE_DATA,
   PIE_OUTER_RADIUS,
   createPieTooltipState,
@@ -20,9 +22,28 @@ import {
   pieCardFooter,
   pieCardTitle,
   pieChartContainer,
-  pieRimLabel,
+  polarPoint,
   pieWedgePath,
 } from "./pie-chart-shared.js";
+
+// On-wedge display-name label: sits at each wedge's own mid-radius/bisector
+// (not past the outer rim) with a fixed light fill so it reads against any
+// slice color, matching the "printed on the fill" spec this block calls for.
+// Upstream's <LabelList> labels every sector regardless of size, so there is
+// no minimum-fraction cutoff here.
+function pieWedgeNameLabel(slice: PieSlice, text: string, fontSize: string): DomphyElement<"text"> {
+  const [x, y] = polarPoint(PIE_OUTER_RADIUS * 0.62, slice.midAngle);
+  return {
+    text,
+    x: String(x),
+    y: String(y),
+    fill: (l: Listener) => themeColor(l, "shift-0", "neutral"),
+    fontSize,
+    textAnchor: "middle",
+    dominantBaseline: "middle",
+    _key: `${slice.datum.key}-name-label`,
+  };
+}
 
 // Default lookup mapping raw data keys ("chrome") to a readable display name
 // ("Chrome") — deliberately kept separate from `PieDatum.name` to demonstrate
@@ -43,6 +64,8 @@ export interface ChartPieLabelListProps {
   trendDirection?: "up" | "down";
   caption?: string;
   valueFormatter?: (value: number) => string;
+  /** Metric label shown in every wedge's tooltip (upstream `chartConfig.visitors.label`). */
+  metricLabel?: string;
   /** Maps each category's raw `key` to the readable text printed on the chart. */
   displayNameLookup?: Record<string, string>;
   /** SVG font-size (viewBox units) for the on-chart labels. */
@@ -62,6 +85,7 @@ function chartPieLabelList(props: ChartPieLabelListProps = {}): DomphyElement<"d
     trendDirection = "up",
     caption = "Showing total visitors for the last 6 months",
     valueFormatter = defaultValueFormatter,
+    metricLabel = "Visitors",
     displayNameLookup = DEFAULT_DISPLAY_NAME_LOOKUP,
     labelFontSize = "9",
   } = props;
@@ -72,13 +96,20 @@ function chartPieLabelList(props: ChartPieLabelListProps = {}): DomphyElement<"d
 
   const wedgeNodes: DomphyElement[] = slices.flatMap((slice) => {
     const displayName = displayNameLookup[slice.datum.key] ?? slice.datum.name;
-    const label = pieRimLabel(slice, displayName, { fontSize: labelFontSize });
+    // Upstream's tooltip uses nameKey="visitors" + hideLabel, so every row
+    // reads "<metricLabel> <value>" (e.g. "Visitors 275") — the metric label,
+    // not the browser category (already printed on the wedge). The shared
+    // handler takes the tooltip name from the slice's datum name, so pass it a
+    // slice carrying the metric label; geometry ignores the name.
     return [
-      pieWedgePath(slice, {
-        outerRadius: PIE_OUTER_RADIUS,
-        tooltip: { containerRef, tooltipState, valueFormatter, showName: false },
-      }),
-      ...(label ? [label] : []),
+      pieWedgePath(
+        { ...slice, datum: { ...slice.datum, name: metricLabel } },
+        {
+          outerRadius: PIE_OUTER_RADIUS,
+          tooltip: { containerRef, tooltipState, valueFormatter },
+        },
+      ),
+      pieWedgeNameLabel(slice, displayName, labelFontSize),
     ];
   });
 

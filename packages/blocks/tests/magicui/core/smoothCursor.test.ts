@@ -35,7 +35,9 @@ describe("smoothCursor", () => {
     const { host, node } = render(smoothCursor() as DomphyElement);
     const wrapper = host.querySelector('[data-smooth-cursor="true"]') as HTMLElement;
     expect(() => {
-      window.dispatchEvent(new MouseEvent("mousemove", { clientX: 120, clientY: 80 }));
+      window.dispatchEvent(
+        new PointerEvent("pointermove", { clientX: 120, clientY: 80, pointerType: "mouse" }),
+      );
     }).not.toThrow();
     expect(wrapper.style.opacity).toBe("1");
     node.remove();

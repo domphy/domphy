@@ -1,8 +1,10 @@
 // magicui "Lens" — clean-room reimplementation from the public
 // behavior/visual spec only (no upstream source viewed or copied). A
-// magnifying-glass overlay: hovering (or, in static mode, an externally
-// controlled coordinate) shows a small circular window with a zoomed-in copy
-// of the same content, offset so the point under the cursor is centered.
+// magnifying-glass overlay: hovering (or, in static/default-position mode, an
+// externally controlled or resting coordinate) shows a circular window with a
+// zoomed-in copy of the same content, revealed solely through a radial-gradient
+// mask (no border, outline, or shadow — the lens has no visible chrome of its
+// own) and offset so the point under the cursor is centered.
 //
 // The magnified copy is produced with a plain `element.cloneNode(true)` of
 // the already-rendered base content (done once, imperatively, in
@@ -12,15 +14,22 @@
 // DOM subtree works for arbitrary content (image, nested markup, …), matching
 // the spec's "image or arbitrary element" scope, without double-binding.
 //
-// Coordinate math (content-space point (x, y), lens radius r, zoom z):
-// the zoom layer is scaled by `z` about its own (0,0) origin, then translated
-// by `(r - x*z, r - y*z)` so the scaled point lands exactly on the lens
-// overlay's center — the "translate by -(cursor*zoom - radius)" idea from the
-// spec's research note.
+// Element split, so position tracking and the mount scale/fade animation
+// never fight over one `transform` (position must be instant on every
+// mousemove; scale/opacity must ease over `duration`):
+//   overlay      — circular window; carries the position `translate(...)`
+//                  (instant, untransitioned) plus `opacity` (eased).
+//   scaleWrapper — clips the zoom layer, carries the radial-gradient mask and
+//                  the mount `scale(...)` (eased). Its box is centered on the
+//                  cursor, so scaling about its own center matches upstream's
+//                  "scale about the cursor point" origin.
+//   zoomLayer    — the cloned content, `scale(zoomFactor)` translated by
+//                  `(r - x*z, r - y*z)` so the scaled content point (x, y)
+//                  lands on the window's center.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
+import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { effect, toState, type ValueOrState } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { themeSpacing } from "@domphy/theme";
 
 export interface LensPosition {
   x: number;
@@ -30,7 +39,7 @@ export interface LensPosition {
 export interface LensProps {
   /** Content to magnify — image or arbitrary element. Defaults to a generic placeholder image. */
   children?: DomphyElement;
-  /** Magnification multiplier. Defaults to 1.3. */
+  /** Magnification multiplier (must be ≥ 1). Defaults to 1.3. */
   zoomFactor?: number;
   /** Circular lens diameter, in `themeSpacing` units (≈170px at the default). Defaults to 42.5. */
   lensSizeUnits?: number;
@@ -38,12 +47,17 @@ export interface LensProps {
    * or fully programmatic control). Defaults to false. */
   isStatic?: boolean;
   /** Coordinate (px, relative to the content's own top-left) used when `isStatic` is true. Accepts a
-   * `State` for reactive/programmatic control. Defaults to a point near the top-left of the content. */
+   * `State` for reactive/programmatic control. Defaults to `{ x: 0, y: 0 }`. */
   position?: ValueOrState<LensPosition>;
-  /** Tint/border color for the lens ring. Defaults to `"primary"`. */
-  lensColor?: ThemeColor;
+  /** When provided (and not static), keeps the lens always visible: resting at this coordinate while
+   * not hovering and following the cursor while hovering. */
+  defaultPosition?: LensPosition;
+  /** CSS color used only as the radial-gradient mask fill. The mask reveals via its alpha, so the
+   * color itself is visually inert — any opaque value works. Defaults to `"black"`. */
+  lensColor?: string;
   ariaLabel?: string;
-  /** Seconds — smoothing speed for lens movement/opacity transitions. Defaults to 0.1. */
+  /** Seconds — the mount scale/opacity transition speed. Does not slow cursor tracking, which is
+   * always instant. Defaults to 0.1. */
   duration?: number;
   style?: StyleObject;
 }
@@ -51,7 +65,12 @@ export interface LensProps {
 const DEFAULT_ZOOM_FACTOR = 1.3;
 const DEFAULT_LENS_SIZE_UNITS = 42.5; // themeSpacing(42.5) = 10.625em ≈ 170px at the base font size.
 const DEFAULT_DURATION = 0.1;
-const DEFAULT_STATIC_POSITION: LensPosition = { x: 110, y: 90 };
+const DEFAULT_POSITION: LensPosition = { x: 0, y: 0 };
+const DEFAULT_LENS_COLOR = "black";
+const DEFAULT_ARIA_LABEL = "Zoom Area";
+const ENTER_SCALE = "scale(1)";
+const INITIAL_SCALE = "scale(0.58)";
+const EXIT_SCALE = "scale(0.8)";
 
 /** Default magnifiable content — a generic inline SVG placeholder photo (no network fetch).
  * Deliberately an abstract gradient-and-bokeh composition rather than the familiar
@@ -79,18 +98,27 @@ function defaultLensContent(): DomphyElement<"img"> {
 
 /**
  * A magnifying-glass hover overlay: shows a circular, zoomed-in copy of the
- * wrapped content centered on the cursor (or, in static mode, on an
- * externally controlled coordinate). Call with no arguments for a working
- * demo — a placeholder image with a 1.3x follow-cursor lens.
+ * wrapped content centered on the cursor (or, in static / default-position
+ * mode, on an externally controlled or resting coordinate). Call with no
+ * arguments for a working demo — a placeholder image with a 1.3x
+ * follow-cursor lens.
  */
 function lens(props: LensProps = {}): DomphyElement<"div"> {
   const content = props.children ?? defaultLensContent();
   const zoomFactor = props.zoomFactor ?? DEFAULT_ZOOM_FACTOR;
   const lensSizeUnits = props.lensSizeUnits ?? DEFAULT_LENS_SIZE_UNITS;
   const isStatic = props.isStatic ?? false;
-  const positionState = toState(props.position ?? DEFAULT_STATIC_POSITION);
-  const lensColor = props.lensColor ?? "primary";
+  const positionState = toState(props.position ?? DEFAULT_POSITION);
+  const defaultPosition = props.defaultPosition;
+  const lensColor = props.lensColor ?? DEFAULT_LENS_COLOR;
   const duration = props.duration ?? DEFAULT_DURATION;
+
+  if (zoomFactor < 1) throw new Error("zoomFactor must be greater than 1");
+  if (lensSizeUnits < 0) throw new Error("lensSize must be greater than 0");
+
+  // isStatic pins it; a defaultPosition keeps it parked-but-visible. Either way
+  // the lens starts shown (no hover-in animation gating its first paint).
+  const alwaysVisible = isStatic || defaultPosition !== undefined;
 
   const baseContentElement: DomphyElement = {
     div: [content],
@@ -113,9 +141,10 @@ function lens(props: LensProps = {}): DomphyElement<"div"> {
     style: { position: "absolute", insetBlockStart: 0, insetInlineStart: 0 },
     _onMount: (node: ElementNode) => {
       const zoomLayer = node.domElement as HTMLElement | null;
-      const overlay = zoomLayer?.parentElement ?? null;
+      const scaleWrapper = zoomLayer?.parentElement ?? null;
+      const overlay = scaleWrapper?.parentElement ?? null;
       const wrapper = overlay?.parentElement ?? null;
-      if (!zoomLayer || !overlay || !wrapper || typeof window === "undefined") return;
+      if (!zoomLayer || !scaleWrapper || !overlay || !wrapper || typeof window === "undefined") return;
       const baseContent = wrapper.querySelector('[data-lens-content="true"]') as HTMLElement | null;
       if (!baseContent) return;
 
@@ -134,12 +163,28 @@ function lens(props: LensProps = {}): DomphyElement<"div"> {
       };
       syncSizes();
 
+      // Position is written straight to the untransitioned `translate(...)` on
+      // the overlay, so the lens snaps to the cursor with no lag on every move.
       const applyLensPosition = (x: number, y: number) => {
         overlay.style.transform = `translate(${x - lensRadius}px, ${y - lensRadius}px)`;
         zoomLayer.style.transformOrigin = "0 0";
         zoomLayer.style.transform =
           `translate(${lensRadius - x * zoomFactor}px, ${lensRadius - y * zoomFactor}px) ` +
           `scale(${zoomFactor})`;
+      };
+
+      const showLens = () => {
+        overlay.style.opacity = "1";
+        scaleWrapper.style.transform = ENTER_SCALE;
+      };
+      const hideLens = () => {
+        overlay.style.opacity = "0";
+        scaleWrapper.style.transform = EXIT_SCALE;
+      };
+
+      const positionFromEvent = (event: MouseEvent) => {
+        const rect = baseContent.getBoundingClientRect();
+        applyLensPosition(event.clientX - rect.left, event.clientY - rect.top);
       };
 
       let resizeObserver: ResizeObserver | null = null;
@@ -155,26 +200,30 @@ function lens(props: LensProps = {}): DomphyElement<"div"> {
 
       if (isStatic) {
         // Reactive, declarative-style control: re-applies whenever the caller
-        // updates a `State<LensPosition>` passed as `props.position`.
+        // updates a `State<LensPosition>` passed as `props.position`. Stays
+        // visible (overlay opacity / wrapper scale start shown).
         disposeEffect = effect(() => {
           const position = positionState.get();
           applyLensPosition(position.x, position.y);
         });
+      } else if (defaultPosition) {
+        // Always visible: rest at defaultPosition, follow the cursor on hover,
+        // snap back on leave. No fade — opacity/scale stay at their shown values.
+        applyLensPosition(defaultPosition.x, defaultPosition.y);
+        handleMove = positionFromEvent;
+        handleLeave = () => applyLensPosition(defaultPosition.x, defaultPosition.y);
+        wrapper.addEventListener("mousemove", handleMove);
+        wrapper.addEventListener("mouseleave", handleLeave);
       } else {
-        // High-frequency pointer tracking is imperative (direct DOM writes),
-        // matching the same tradeoff `pointer.ts`/`dock.ts` make for
-        // continuous, purely visual cursor-following effects.
-        handleMove = (event: MouseEvent) => {
-          const rect = baseContent.getBoundingClientRect();
-          applyLensPosition(event.clientX - rect.left, event.clientY - rect.top);
-        };
+        // Follow mode: hidden until hover, fades/scales in on enter and out on
+        // leave. High-frequency tracking is imperative (direct DOM writes),
+        // matching the same tradeoff pointer.ts/dock.ts make.
+        handleMove = positionFromEvent;
         handleEnter = (event: MouseEvent) => {
-          handleMove?.(event);
-          overlay.style.opacity = "1";
+          positionFromEvent(event);
+          showLens();
         };
-        handleLeave = () => {
-          overlay.style.opacity = "0";
-        };
+        handleLeave = hideLens;
         wrapper.addEventListener("mousemove", handleMove);
         wrapper.addEventListener("mouseenter", handleEnter);
         wrapper.addEventListener("mouseleave", handleLeave);
@@ -190,13 +239,36 @@ function lens(props: LensProps = {}): DomphyElement<"div"> {
     },
   };
 
+  // Clips the zoom layer and carries the radial-gradient mask (the sole reveal
+  // mechanism — no border/outline/shadow) plus the eased mount scale. `lensColor`
+  // is only the mask fill; the mask reveals via alpha, so its color is inert.
+  const maskImage = `radial-gradient(circle closest-side at 50% 50%, ${lensColor} 100%, transparent 100%)`;
+  const scaleWrapperElement: DomphyElement<"div"> = {
+    div: [zoomLayerElement],
+    ariaHidden: "true",
+    style: {
+      position: "absolute",
+      insetBlockStart: 0,
+      insetInlineStart: 0,
+      width: "100%",
+      height: "100%",
+      overflow: "hidden",
+      maskImage,
+      WebkitMaskImage: maskImage,
+      transform: alwaysVisible ? ENTER_SCALE : INITIAL_SCALE,
+      transformOrigin: "center",
+      transition: `transform ${duration}s ease-out`,
+      willChange: "transform",
+    } as StyleObject,
+  };
+
   // `_doctorDisable` is a doctor-only annotation not present in core's strict
   // `PartialElement` type — build through an untyped literal, then assert, so
   // the excess-property check doesn't fire (mirrors dock.ts's separator()).
   // This overlay is a decorative, aria-hidden magnified duplicate with no
   // text of its own, so it is exempt from the missing-color contract.
   const overlayElement = {
-    div: [zoomLayerElement],
+    div: [scaleWrapperElement],
     dataLensOverlay: "true",
     ariaHidden: "true",
     _doctorDisable: "missing-color",
@@ -206,27 +278,31 @@ function lens(props: LensProps = {}): DomphyElement<"div"> {
       insetInlineStart: 0,
       width: themeSpacing(lensSizeUnits),
       height: themeSpacing(lensSizeUnits),
-      borderRadius: "50%",
-      overflow: "hidden",
       pointerEvents: "none",
-      zIndex: 10,
-      opacity: isStatic ? 1 : 0,
+      zIndex: 50,
+      opacity: alwaysVisible ? 1 : 0,
+      // Position is written here on every move (untransitioned). Only opacity
+      // eases, so tracking never lags.
       transform: "translate(-9999px, -9999px)",
-      outline: (listener: Listener) => `${themeSpacing(1)} solid ${themeColor(listener, "shift-9", lensColor)}`,
-      outlineOffset: "-1px",
-      boxShadow: (listener: Listener) =>
-        `0 ${themeSpacing(2)} ${themeSpacing(8)} ${themeColor(listener, "shift-4")}`,
-      transition: `transform ${duration}s ease-out, opacity ${Math.max(duration * 1.5, 0.05)}s ease-out`,
-      willChange: "transform, opacity",
+      transition: `opacity ${duration}s ease-out`,
+      willChange: "opacity, transform",
     } as StyleObject,
   } as DomphyElement<"div">;
 
   return {
     div: [baseContentElement, overlayElement],
-    ariaLabel: props.ariaLabel,
+    role: "region",
+    ariaLabel: props.ariaLabel ?? DEFAULT_ARIA_LABEL,
+    tabindex: 0,
+    onKeyDown: (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      (event.currentTarget as HTMLElement | null)?.dispatchEvent(new MouseEvent("mouseleave"));
+    },
     style: {
       position: "relative",
-      display: "inline-block",
+      zIndex: 20,
+      overflow: "hidden",
+      borderRadius: themeSpacing(3),
       ...(props.style ?? {}),
     },
   };

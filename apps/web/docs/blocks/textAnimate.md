@@ -20,16 +20,15 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `text` | `ValueOrState&lt;string&gt;` | Text content. Pass a `State&lt;string&gt;` for automatic replay when it changes. Defaults to a short demo sentence. |
 | `by` | `TextAnimateBy` | How the text is split into animated segments. Defaults to `"word"`. |
 | `animation` | `TextAnimatePreset` | Which hidden→visible keyframe pair each segment animates through. Defaults to `"fadeIn"`. |
-| `duration` | `number` | Tween duration per segment, in ms. Defaults to `300`. |
+| `duration` | `number` | Total time window the whole staggered reveal is spread across, in ms (matching upstream's `duration`): the inter-segment delay is `duration / segments.length`. Each segment's own tween is a fixed 300ms. Defaults to `300`. |
 | `delay` | `number` | Delay before the first segment starts, in ms. Defaults to `0`. |
-| `staggerDelay` | `number` | Delay between consecutive segments, in ms. Defaults to `30` for `"character"`, `50` for `"word"`, `60` for `"line"`/`"text"`. |
-| `startOnView` | `boolean` | Waits until the wrapper scrolls into view before starting. Defaults to `false`. |
-| `once` | `boolean` | Once triggered by scrolling into view, never re-triggers on re-entry. Only relevant when `startOnView` is `true`. Defaults to `true`. |
-| `as` | `TextAnimateTag` | Wrapping element tag. Defaults to `"span"`. |
-| `accessibility` | `boolean` | Keeps the full, unsplit text readable to screen readers via a visually-hidden duplicate, marking the animated segments `aria-hidden`. Defaults to `true`. |
+| `startOnView` | `boolean` | Waits until the wrapper scrolls into view before starting. Defaults to `true`. |
+| `once` | `boolean` | Once triggered by scrolling into view, never re-triggers on re-entry. Only relevant when `startOnView` is `true`. Defaults to `false`. |
+| `as` | `TextAnimateTag` | Wrapping element tag. Defaults to `"p"`. |
+| `accessibility` | `boolean` | Keeps the full, unsplit text readable to screen readers via a visually-hidden duplicate plus an `aria-label` on the wrapper, marking the animated segments `aria-hidden`. Defaults to `true`. |
 | `initialStyle` | `Record&lt;string, string \| number&gt;` | Overrides merged onto the computed hidden keyframe. |
 | `animateStyle` | `Record&lt;string, string \| number&gt;` | Overrides merged onto the computed visible (resting) keyframe. |
-| `exitStyle` | `Record&lt;string, string \| number&gt;` | Overrides merged onto the exit keyframe (defaults to the hidden keyframe). |
+| `exitStyle` | `Record&lt;string, string \| number&gt;` | Overrides merged onto the exit keyframe (defaults to the preset's own exit keyframe if it has one, otherwise the hidden keyframe). |
 | `segmentStyle` | `StyleObject` | Passthrough style merged onto every segment. |
 | `style` | `StyleObject` | Passthrough style merged onto the outer wrapper. |
 

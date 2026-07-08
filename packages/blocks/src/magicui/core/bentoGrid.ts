@@ -55,7 +55,8 @@ function lineIcon(children: DomphyElement[]): DomphyElement<"span"> {
       } as DomphyElement<"svg">,
     ],
     ariaHidden: "true",
-    style: { display: "inline-flex", width: themeSpacing(8), height: themeSpacing(8) },
+    // Upstream Icon is `h-12 w-12` (3rem).
+    style: { display: "inline-flex", width: themeSpacing(12), height: themeSpacing(12) },
   };
 }
 
@@ -182,7 +183,7 @@ const DEFAULT_CARDS: BentoCardSpec[] = [
   },
 ];
 
-/** One mosaic tile: decorative background layer, edge-fade scrim, then the text/CTA layer. */
+/** One mosaic tile: decorative background layer, the text/CTA layer, then a hover-only tint overlay. */
 function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
   const ctaLabel = card.ctaLabel ?? "Learn more";
 
@@ -205,42 +206,70 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
   // `PartialElement` type — build through an untyped literal, then assert, so
   // the excess-property check doesn't fire (mirrors verticalDivider() in the
   // shadcn sidebar family).
-  const scrimElement = {
+  //
+  // Full-card hover tint overlay — upstream's final card layer
+  // (`group-hover:bg-black/3 group-hover:dark:bg-neutral-800/10`): fully
+  // transparent at rest, a faint dark wash on hover. Replaces this port's
+  // earlier bottom linear-gradient scrim, which upstream's card does NOT have
+  // (each background widget carries its own top mask instead).
+  const overlayElement = {
     div: null,
     ariaHidden: "true",
-    // Decorative gradient scrim with no text of its own — exempt from the
+    dataBentoOverlay: "true",
+    // Decorative tint layer with no text of its own — exempt from the
     // missing-color contract.
     _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       inset: 0,
       pointerEvents: "none",
-      background: (listener: Listener) =>
-        `linear-gradient(to top, ${themeColor(listener, "inherit")} 20%, transparent 70%)`,
+      backgroundColor: "transparent",
+      transition: "background-color 300ms ease",
     },
   };
-  const scrim = scrimElement as DomphyElement<"div">;
+  const overlay = overlayElement as DomphyElement<"div">;
 
   const content: DomphyElement<"div"> = {
     div: [
-      ...(card.icon
-        ? [
-            {
-              span: [card.icon],
-              style: { display: "inline-flex", color: (listener: Listener) => themeColor(listener, "shift-10") },
-            } as DomphyElement<"span">,
-          ]
-        : []),
-      { h3: card.title, $: [heading({ color: "neutral" })] },
-      { p: card.description, $: [paragraph({ color: "neutral" })] },
+      {
+        div: [
+          ...(card.icon
+            ? [
+                {
+                  span: [card.icon],
+                  dataBentoIcon: "true",
+                  style: {
+                    display: "inline-flex",
+                    color: (listener: Listener) => themeColor(listener, "shift-10"),
+                    transformOrigin: "left",
+                    transition: "transform 300ms ease",
+                  },
+                } as DomphyElement<"span">,
+              ]
+            : []),
+          { h3: card.title, $: [heading({ color: "neutral" })] },
+          { p: card.description, $: [paragraph({ color: "neutral" })] },
+        ],
+        dataBentoText: "true",
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          // Upstream text block is `gap-1` (0.25rem).
+          gap: themeSpacing(1),
+          transition: "transform 300ms ease",
+        },
+      } as DomphyElement<"div">,
       {
         a: [ctaLabel, arrowRightIcon()],
         href: card.href ?? "#",
+        dataBentoCta: "true",
         style: {
           display: "inline-flex",
           alignItems: "center",
-          gap: themeSpacing(1),
+          // Upstream arrow icon is `ms-2` (0.5rem) from the label.
+          gap: themeSpacing(2),
           marginTop: "auto",
+          transition: "transform 300ms ease, opacity 300ms ease",
         },
         $: [link({ color: "primary" })],
       },
@@ -251,13 +280,14 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
       flexDirection: "column",
       gap: themeSpacing(2),
       height: "100%",
-      padding: themeSpacing(5),
+      // Upstream content wrapper is `p-4` (1rem).
+      padding: themeSpacing(4),
       justifyContent: "flex-end",
     },
   };
 
   return {
-    div: [...(backgroundLayer ? [backgroundLayer, scrim] : []), content],
+    div: [...(backgroundLayer ? [backgroundLayer] : []), content, overlay],
     _key: card.title,
     dataTone: "shift-1",
     style: {
@@ -268,26 +298,46 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
       gridRow: card.rowSpan ? `span ${card.rowSpan}` : undefined,
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
+      // Diffed directly against the real upstream source (registry/magicui/
+      // bento-grid.tsx, MIT-licensed). Light: `bg-background` plus a layered
+      // `box-shadow: 0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05),
+      // 0 12px 24px rgba(0,0,0,.05)` — the 1px ring maps to the outline below,
+      // the near+ambient pair to the token box-shadow. Dark: upstream swaps the
+      // light shadow for an inset top white glow
+      // (`dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset]`, #ffffff1f ≈ 12%
+      // white — same literal shimmerButton uses) and a translucent-white 1px
+      // border (`dark:[border:1px_solid_rgba(255,255,255,.1)]`), both reproduced
+      // in the prefers-color-scheme override (an OS-level switch, the same idiom
+      // retroGrid/noiseTexture use). The card's border/shadow stay STATIC on
+      // hover — upstream's only hover surface feedback is the tint overlay, not
+      // an animated ring/shadow.
       outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
       outlineOffset: "-1px",
-      // Diffed directly against the real upstream source (registry/magicui/
-      // bento-grid.tsx, MIT-licensed): the reference card is plain
-      // `bg-background` (no color tint) but carries a layered
-      // `box-shadow: 0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05),
-      // 0 12px 24px rgba(0,0,0,.05)` for depth — this port had NO box-shadow
-      // at all (outline alone), reading visibly flatter. Token-based
-      // near+ambient pair (the outline above already covers the 1px ring).
       boxShadow: (listener: Listener) =>
         `0 ${themeSpacing(1)} ${themeSpacing(2)} ${themeColor(listener, "shift-3")}, 0 ${themeSpacing(6)} ${themeSpacing(12)} ${themeColor(listener, "shift-2")}`,
-      transition: "outline-color 200ms ease, box-shadow 200ms ease",
-      "&:hover": {
-        outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-6")}`,
-        outlineOffset: "-1px",
-        boxShadow: (listener: Listener) =>
-          `0 ${themeSpacing(1)} ${themeSpacing(2)} ${themeColor(listener, "shift-4")}, 0 ${themeSpacing(8)} ${themeSpacing(16)} ${themeColor(listener, "shift-3")}`,
-      },
+      "&:hover [data-bento-overlay]": { backgroundColor: "rgba(0,0,0,0.03)" },
       "&:hover [data-bento-background]": { transform: "scale(1.08)", filter: "blur(20px)" },
       "&:hover [data-bento-arrow]": { transform: `translateX(${themeSpacing(1)})` },
+      "&:hover [data-bento-icon]": { transform: "scale(0.75)" },
+      "@media (prefers-color-scheme: dark)": {
+        outlineColor: "rgba(255,255,255,0.1)",
+        boxShadow: "0 -20px 80px -20px rgba(255,255,255,0.12) inset",
+        "&:hover [data-bento-overlay]": { backgroundColor: "rgba(38,38,38,0.1)" },
+      },
+      "@media (min-width: 64em)": {
+        // `& [descendant]` (not a bare `[descendant]`) so the key matches
+        // StyleObject's `&${string}` nested-selector contract — a bare bracket
+        // key is not in that union and fails the .d.ts build. Same emitted CSS.
+        "& [data-bento-cta]": {
+          position: "absolute",
+          insetInline: 0,
+          bottom: 0,
+          opacity: 0,
+          transform: `translateY(${themeSpacing(10)})`,
+        },
+        "&:hover [data-bento-cta]": { opacity: 1, transform: "translateY(0)" },
+        "&:hover [data-bento-text]": { transform: `translateY(-${themeSpacing(10)})` },
+      },
     },
   };
 }
@@ -305,11 +355,18 @@ function bentoGrid(props: BentoGridProps = {}): DomphyElement<"div"> {
     div: cards.map((card) => bentoCard(card)),
     style: {
       display: "grid",
+      // Upstream grid is a fixed `grid-cols-3` at all widths; each card is
+      // `col-span-3` by default and only takes its `lg:col-span-N` mosaic span
+      // at `lg` (64em), so below 64em every card fills the row = single column.
+      // Reproduced here by collapsing to one column below 64em and expanding to
+      // `columns` at 64em — matching upstream's breakpoint and this card's own
+      // CTA-reveal media query (also 64em).
       gridTemplateColumns: "repeat(1, 1fr)",
       gridAutoFlow: "dense",
-      gridAutoRows: themeSpacing(44),
+      // Upstream `auto-rows-[22rem]`.
+      gridAutoRows: themeSpacing(88),
       gap: themeSpacing(4),
-      "@media (min-width: 48em)": {
+      "@media (min-width: 64em)": {
         gridTemplateColumns: `repeat(${columns}, 1fr)`,
       },
       ...(props.style ?? {}),

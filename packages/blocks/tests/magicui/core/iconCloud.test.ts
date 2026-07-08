@@ -71,7 +71,7 @@ describe("iconCloud focus math", () => {
     expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
   });
 
-  it("focusRotationForPoint returns angles that rotate any point to front-center", () => {
+  it("focusRotationForPoint returns angles that rotate any point to screen-center", () => {
     const samples = [
       { x: 0.3, y: 0.4, z: Math.sqrt(1 - 0.3 ** 2 - 0.4 ** 2) },
       { x: -0.7, y: 0.1, z: Math.sqrt(1 - 0.7 ** 2 - 0.1 ** 2) },
@@ -82,10 +82,16 @@ describe("iconCloud focus math", () => {
     for (const point of samples) {
       const { yaw, pitch } = focusRotationForPoint(point);
       const rotated = rotatePoint(point, yaw, pitch);
-      // Lands dead-center on screen (x=0, y=0) and faces the viewer (z = +radius).
+      // Lands dead-center on screen (x=0, y=0). Depth (z) is NOT renormalized
+      // to 1: rotatePoint's pitch step deliberately reuses the pre-pitch z
+      // (matching upstream's own partial, non-orthonormal rotation), so the
+      // landed depth is the point's original xz-plane radius — a point on
+      // the equator (y=0) lands at full depth 1, but a point near the poles
+      // lands shallower.
+      const expectedDepth = Math.sqrt(point.x * point.x + point.z * point.z);
       expect(rotated.x).toBeCloseTo(0, 10);
       expect(rotated.y).toBeCloseTo(0, 10);
-      expect(rotated.z).toBeCloseTo(1, 10);
+      expect(rotated.z).toBeCloseTo(expectedDepth, 10);
     }
   });
 });

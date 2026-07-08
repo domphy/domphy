@@ -18,7 +18,7 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 | Prop | Type | Description |
 |---|---|---|
 | `children` | `string` | Text content. Forced to uppercase regardless of casing. Defaults to `"BOOM!"`. |
-| `fontSize` | `number` | Base font size in px — outline thickness and shadow offsets scale proportionally. Defaults to `72`. |
+| `fontSize` | `number` | Base font size in `rem` (e.g. `5` -&gt; `5rem`). Only the outline thickness scales with it (`fontSize * 0.35px`); the halftone dot pattern and drop shadows are fixed. Defaults to `5`. |
 | `outlineColor` | `ThemeColor` | Thick outline color family. Defaults to `"neutral"` (near-black via a fixed dark-edge shift). |
 | `dotColor` | `ThemeColor` | Halftone dot color family. Defaults to `"danger"` (red). |
 | `backgroundFill` | `ThemeColor` | Halftone paper/background color family showing through the dots. Defaults to `"warning"` (yellow). |

@@ -13,8 +13,8 @@ import { themeColor, themeSpacing } from "@domphy/theme";
 import { motion, select } from "@domphy/ui";
 import {
   type PieDatum,
-  DEFAULT_DONUT_INNER_RADIUS,
   DEFAULT_PIE_DATA,
+  DONUT_SEPARATOR_STROKE_WIDTH,
   arcSlicePath,
   colorSwatch,
   createPieTooltipState,
@@ -62,11 +62,14 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
     title = "Pie Chart - Interactive",
     description = "January - June 2024",
     valueFormatter = defaultValueFormatter,
-    innerRadius = DEFAULT_DONUT_INNER_RADIUS,
+    // ~0.6 hole/outer ratio (upstream innerRadius={60}) measured against this
+    // recipe's own smaller base radius, so the shared donut default — sized to
+    // the full 86-unit outer — doesn't leave too thin a ring here.
+    innerRadius = BASE_OUTER_RADIUS * 0.6,
     activeKey,
     onSelectionChange,
     centerCaption = "Visitors",
-    activeRadiusDelta = 12,
+    activeRadiusDelta = 10,
   } = props;
 
   const selectedKey = toState(activeKey ?? data[0]?.key ?? "");
@@ -91,12 +94,16 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
       style: {
         d: (l: Listener) => {
           const outerRadius = isSelected(l) ? BASE_OUTER_RADIUS + activeRadiusDelta : BASE_OUTER_RADIUS;
-          return `path("${arcSlicePath(slice, innerRadius, outerRadius, 0.018)}")`;
+          return `path("${arcSlicePath(slice, innerRadius, outerRadius, 0)}")`;
         },
         transition: "d 260ms ease-out",
       },
       fill: (l: Listener) => themeColor(l, "shift-9", slice.color),
-      strokeWidth: (l: Listener) => (isSelected(l) ? "2.5" : "1.5"),
+      // Uniform stroke on every wedge — upstream applies a single
+      // strokeWidth={5} to the whole <Pie> and the active sector inherits it
+      // via {...props}, so selection changes the wedge's radius, never its
+      // outline weight.
+      strokeWidth: DONUT_SEPARATOR_STROKE_WIDTH,
       stroke: (l: Listener) => themeColor(l, "inherit"),
       strokeLinejoin: "round",
       cursor: "pointer",
@@ -112,7 +119,7 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
   const activeRingOuter = activeRingInner + ACTIVE_RING_THICKNESS;
   const activeRings: DomphyElement<"path">[] = slices.map((slice) => ({
     path: null,
-    d: arcSlicePath(slice, activeRingInner, activeRingOuter, 0.018),
+    d: arcSlicePath(slice, activeRingInner, activeRingOuter, 0),
     fill: (l: Listener) => themeColor(l, "shift-9", slice.color),
     stroke: "none",
     ariaHidden: "true",
@@ -160,7 +167,7 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
           select: options,
           value: (l: Listener) => selectedKey.get(l),
           onChange: (e: Event) => setSelection((e.target as HTMLSelectElement).value),
-          ariaLabel: "Select a category",
+          ariaLabel: "Select a value",
           $: [select()],
         },
       ],

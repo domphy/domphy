@@ -21,9 +21,8 @@
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { themeSpacing } from "@domphy/theme";
 
-export type PixelImageGridPreset = "default" | "fine" | "tallStrip" | "wideStrip";
+export type PixelImageGridPreset = "default" | "fine" | "portrait" | "tallStrip" | "wideStrip";
 
 export interface PixelImageProps {
   /** Image URL. Defaults to a generic inline placeholder graphic (no network fetch). */
@@ -44,9 +43,9 @@ export interface PixelImageProps {
   maxStagger?: number;
   /** Delay before the color sweep begins (once `colorSweep` is enabled), in ms. Defaults to `1300`. */
   colorSweepDelay?: number;
-  /** Container width (any CSS width value). Defaults to `"100%"`. */
+  /** Container width (any CSS width value). Defaults to a fixed `"18rem"` (288px) square that doubles to `"24rem"` (384px) at the md breakpoint, mirroring upstream's `h-72 w-72 md:h-96 md:w-96`. */
   width?: string;
-  /** Container aspect ratio. Defaults to `"3 / 2"`. */
+  /** Container aspect ratio. When set, overrides the default fixed-square height. Upstream has none. */
   aspectRatio?: string;
   /** Passthrough style merged onto the container. */
   style?: StyleObject;
@@ -55,9 +54,12 @@ export interface PixelImageProps {
 const GRID_PRESETS: Record<PixelImageGridPreset, { rows: number; cols: number }> = {
   default: { rows: 4, cols: 6 },
   fine: { rows: 8, cols: 8 },
+  portrait: { rows: 6, cols: 4 },
   tallStrip: { rows: 8, cols: 3 },
   wideStrip: { rows: 3, cols: 8 },
 };
+
+const MAX_GRID_LINES = 16;
 
 // Generic abstract placeholder graphic — an inline SVG data URI, no network
 // fetch and no real photo (same idiom `avatarCircles.ts` uses for its own
@@ -80,14 +82,14 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
   const src = props.src ?? PLACEHOLDER_IMAGE_URI;
   const alt = props.alt ?? "Pixel reveal image";
   const preset = GRID_PRESETS[props.grid ?? "default"];
-  const rows = Math.max(1, Math.round(props.rows ?? preset.rows));
-  const cols = Math.max(1, Math.round(props.cols ?? preset.cols));
+  const rows = Math.min(MAX_GRID_LINES, Math.max(1, Math.round(props.rows ?? preset.rows)));
+  const cols = Math.min(MAX_GRID_LINES, Math.max(1, Math.round(props.cols ?? preset.cols)));
   const colorSweep = props.colorSweep ?? true;
   const fadeDuration = props.fadeDuration ?? 1000;
   const maxStagger = props.maxStagger ?? 1200;
   const colorSweepDelay = props.colorSweepDelay ?? 1300;
-  const width = props.width ?? "100%";
-  const aspectRatio = props.aspectRatio ?? "3 / 2";
+  const hasSizeOverride = props.width !== undefined || props.aspectRatio !== undefined;
+  const width = props.width ?? "18rem";
 
   const revealed = toState(false);
   const colorRevealed = toState(false);
@@ -100,15 +102,20 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
       const topPercent = (row / rows) * 100;
       const bottomPercent = ((row + 1) / rows) * 100;
       const staggerDelayMs = Math.round(Math.random() * maxStagger);
+      // Opacity: upstream piece wrapper is `transition-all ease-out`
+      // (cubic-bezier(0,0,0.2,1)) over `pixelFadeInDuration`. Filter: upstream
+      // <img> is `filter ${pixelFadeInDuration}ms cubic-bezier(0.4,0,0.2,1)` —
+      // tied to the same fade-duration prop, material ease-in-out curve.
       const transition = colorSweep
-        ? `opacity ${fadeDuration}ms ease ${staggerDelayMs}ms, filter 700ms ease`
-        : `opacity ${fadeDuration}ms ease ${staggerDelayMs}ms`;
+        ? `opacity ${fadeDuration}ms ease-out ${staggerDelayMs}ms, filter ${fadeDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`
+        : `opacity ${fadeDuration}ms ease-out ${staggerDelayMs}ms`;
 
       tiles.push({
         img: null,
         src,
         alt: "",
         ariaHidden: "true",
+        draggable: false,
         _key: `tile-${row}-${col}`,
         style: {
           position: "absolute",
@@ -116,6 +123,9 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
           width: "100%",
           height: "100%",
           objectFit: "cover",
+          // Upstream rounds each full-size <img> (`rounded-[2.5rem]` = 40px);
+          // the per-cell clip-path then keeps only the corner tiles rounded.
+          borderRadius: "2.5rem",
           clipPath: `polygon(${leftPercent}% ${topPercent}%, ${rightPercent}% ${topPercent}%, ${rightPercent}% ${bottomPercent}%, ${leftPercent}% ${bottomPercent}%)`,
           opacity: (listener) => (revealed.get(listener) ? 1 : 0),
           filter: colorSweep
@@ -131,12 +141,17 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
     div: tiles,
     role: "img",
     ariaLabel: alt,
+    // Upstream is a fixed square (`h-72 w-72` = 288px) that doubles at the md
+    // (768px) breakpoint (`md:h-96 md:w-96` = 384px), with no aspect-ratio and
+    // no overflow clip (the rounded corners live on each tile <img>). When the
+    // caller overrides `width`/`aspectRatio`, honor those instead of the
+    // responsive default.
     style: {
       position: "relative",
-      overflow: "hidden",
+      userSelect: "none",
       width,
-      aspectRatio,
-      borderRadius: themeSpacing(3),
+      ...(props.aspectRatio ? { aspectRatio: props.aspectRatio } : { height: width }),
+      ...(hasSizeOverride ? {} : { "@media (min-width: 768px)": { width: "24rem", height: "24rem" } }),
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {

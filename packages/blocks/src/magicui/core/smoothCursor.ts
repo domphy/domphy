@@ -45,6 +45,16 @@ const SCALE_STIFFNESS = 500;
 const SCALE_DAMPING = 35;
 const SCALE_REST_MS = 150;
 
+// Rotation is its own spring too (softer than position), so the glyph eases
+// into a new heading instead of snapping to the raw atan2 angle every frame.
+const ROTATION_STIFFNESS = 300;
+const ROTATION_DAMPING = 60;
+
+// Only desktop-class pointers (mouse/trackpad) get a custom cursor — a
+// touch-primary device has no hover pointer to trail, so the native cursor
+// should stay untouched there.
+const DESKTOP_POINTER_QUERY = "(any-hover: hover) and (any-pointer: fine)";
+
 /** Default cursor graphic — a simple filled arrow/pointer silhouette, tip pointing up-left
  * so a 0deg rotation reads as "neutral/idle" before any direction-of-travel rotation is applied. */
 function defaultCursorGlyph(color: ThemeColor): DomphyElement<"svg"> {
@@ -86,8 +96,9 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
       insetBlockStart: 0,
       insetInlineStart: 0,
       pointerEvents: "none",
-      zIndex: 2147483647,
+      zIndex: 100,
       opacity: 0,
+      transition: "opacity 150ms ease",
       willChange: "transform",
       transform: "translate(-100px, -100px)",
       ...(props.style ?? {}),
@@ -96,7 +107,8 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
       if (typeof window === "undefined") return;
       const element = node.domElement as HTMLElement;
       const previousCursor = document.body.style.cursor;
-      document.body.style.cursor = "none";
+      const pointerQuery =
+        typeof window.matchMedia === "function" ? window.matchMedia(DESKTOP_POINTER_QUERY) : null;
 
       let positionX = 0;
       let positionY = 0;
@@ -105,6 +117,9 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
       let targetX = 0;
       let targetY = 0;
       let angle = 0;
+      let angleVelocity = 0;
+      let targetAngle = 0;
+      let previousDirectionAngle = 0;
       let hasPosition = false;
       let frameHandle: number | null = null;
       let lastTime = 0;
@@ -112,6 +127,7 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
       let scaleVelocity = 0;
       let targetScale = 1;
       let lastMoveTime = 0;
+      let enabled = false;
 
       const applyTransform = () => {
         // translate(-50%, -50%) centers the glyph on the pointer (the reference
@@ -123,7 +139,7 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
         // Belt-and-suspenders stop condition: some hosts (e.g. a test harness
         // that wipes the DOM directly instead of going through the
         // framework's removal lifecycle) never fire the "Remove" hook below.
-        // The `mousemove` listener here is attached to `window`, not this
+        // The `pointermove` listener here is attached to `window`, not this
         // element, so it keeps firing (and would keep restarting the loop
         // via `ensureLoopRunning`) even after the cursor is detached —
         // bailing here once `element.isConnected` is false is what actually
@@ -149,8 +165,21 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
 
         const travelDistance = Math.hypot(positionX - previousX, positionY - previousY);
         if (travelDistance > 0.05) {
-          angle = (Math.atan2(positionY - previousY, positionX - previousX) * 180) / Math.PI + 90;
+          const directionAngle = (Math.atan2(positionY - previousY, positionX - previousX) * 180) / Math.PI + 90;
+          // Accumulate the shortest signed turn rather than jumping straight to
+          // directionAngle, so the rotation spring never whips the long way
+          // around when the heading crosses the -180/180 wraparound.
+          let angleDelta = directionAngle - previousDirectionAngle;
+          if (angleDelta > 180) angleDelta -= 360;
+          if (angleDelta < -180) angleDelta += 360;
+          targetAngle += angleDelta;
+          previousDirectionAngle = directionAngle;
         }
+
+        const angleAcceleration =
+          (-ROTATION_STIFFNESS * (angle - targetAngle) - ROTATION_DAMPING * angleVelocity) / spring.mass;
+        angleVelocity += angleAcceleration * deltaSeconds;
+        angle += angleVelocity * deltaSeconds;
 
         // Release the squish once the pointer has been idle past the rest window.
         if (time - lastMoveTime > SCALE_REST_MS) targetScale = 1;
@@ -166,7 +195,9 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
           Math.abs(targetY - positionY) < spring.restDelta &&
           Math.hypot(velocityX, velocityY) < spring.restDelta &&
           Math.abs(targetScale - scale) < spring.restDelta &&
-          Math.abs(scaleVelocity) < spring.restDelta;
+          Math.abs(scaleVelocity) < spring.restDelta &&
+          Math.abs(targetAngle - angle) < spring.restDelta &&
+          Math.abs(angleVelocity) < spring.restDelta;
 
         frameHandle = settled ? null : requestAnimationFrame(step);
       };
@@ -178,7 +209,12 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
         }
       };
 
-      const handleMove = (event: MouseEvent) => {
+      const handleMove = (event: PointerEvent) => {
+        if (!enabled) return;
+        // isTrackablePointer: ignore synthetic pointer events from touch
+        // input (the reference filters pointerType === "touch"), so a hybrid
+        // device's touch-derived pointer events don't move the custom cursor.
+        if (event.pointerType === "touch") return;
         targetX = event.clientX;
         targetY = event.clientY;
         targetScale = SCALE_ACTIVE;
@@ -193,10 +229,24 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
         ensureLoopRunning();
       };
 
-      window.addEventListener("mousemove", handleMove);
+      const updateEnabled = () => {
+        enabled = pointerQuery === null || pointerQuery.matches;
+        if (enabled) {
+          document.body.style.cursor = "none";
+        } else {
+          hasPosition = false;
+          element.style.opacity = "0";
+          document.body.style.cursor = previousCursor;
+        }
+      };
+
+      updateEnabled();
+      window.addEventListener("pointermove", handleMove);
+      pointerQuery?.addEventListener("change", updateEnabled);
 
       node.addHook("Remove", () => {
-        window.removeEventListener("mousemove", handleMove);
+        window.removeEventListener("pointermove", handleMove);
+        pointerQuery?.removeEventListener("change", updateEnabled);
         if (frameHandle !== null) cancelAnimationFrame(frameHandle);
         document.body.style.cursor = previousCursor;
       });

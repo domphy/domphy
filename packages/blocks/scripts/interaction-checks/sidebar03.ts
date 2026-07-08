@@ -1,61 +1,57 @@
-// Real browser interaction checks for sidebar03: top-level nav items that
-// carry a `children` array render as a `<details>` disclosure (see
-// sidebar01-04-shared.ts's `navItemWithChildrenRow`) — clicking the parent
-// row's summary reveals its indented sub-list. `DEFAULT_NAV_GROUPS_WITH_CHILDREN`
-// only auto-opens a group when the item itself (or one of its children) is
-// `active` — "Design Engineering" (child "Explorer" active) starts open,
-// "Sales & Marketing" and "Travel" start closed. Plus the same icon-rail
-// toggle button + Ctrl/Cmd+B shortcut as sidebar01/02.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+// Real browser interaction checks for sidebar03. Upstream sidebar-03 is
+// structurally identical to sidebar-04 (a static docs header, a flat nav whose
+// top-level entries are bold links with ALWAYS-visible sub-lists, no <details>
+// disclosure) but rendered flush (standard variant) rather than as a floating
+// inset card. Verifies the flat always-open nav plus the icon-rail toggle +
+// Ctrl/Cmd+B shortcut.
+import {
+  boot,
+  locate,
+  report,
+  summarize,
+  teardown,
+  mountedPage,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
   const page = await mountedPage(demoUrl, "sidebar03");
   await locate(page, "sidebar03");
 
-  const travelDetails = page
-    .locator('[data-block="sidebar03"] aside nav li details')
-    .filter({ hasText: "Travel" })
-    .first();
-  const travelSummary = travelDetails.locator("summary").first();
+  const nav = page.locator('[data-block="sidebar03"] aside nav').first();
 
-  const initiallyOpen = await travelDetails.evaluate((el) => (el as HTMLDetailsElement).open);
+  const detailsCount = await nav.locator("details").count();
   report(
-    "sidebar03: 'Travel' group (no active child) starts closed",
-    initiallyOpen === false,
-    `open=${initiallyOpen}`,
+    "sidebar03: nav uses no <details> disclosure widgets (upstream renders flat, always-open sub-lists)",
+    detailsCount === 0,
+    `detailsCount=${detailsCount}`,
   );
 
-  const childrenVisibleBefore = await travelDetails.locator("ul li a", { hasText: "Trips" }).first().isVisible();
+  // The active child link ("Data Fetching") is visible with no interaction,
+  // because the parent's sub-list is not collapsed behind a disclosure.
+  const activeChild = nav.locator("a", { hasText: "Data Fetching" }).first();
+  const activeChildVisible = await activeChild.isVisible();
   report(
-    "sidebar03: 'Trips' child link is not visible before expanding",
-    childrenVisibleBefore === false,
-    `visible=${childrenVisibleBefore}`,
+    "sidebar03: a child link is visible immediately (sub-list is always open, not gated by a click)",
+    activeChildVisible === true,
+    `activeChildVisible=${activeChildVisible}`,
   );
 
-  await travelSummary.click();
-  await page.waitForTimeout(150);
-  const afterClickOpen = await travelDetails.evaluate((el) => (el as HTMLDetailsElement).open);
-  const childrenVisibleAfter = await travelDetails.locator("ul li a", { hasText: "Trips" }).first().isVisible();
+  // Top-level entries are bold links (a <strong> label inside the <a>).
+  const parentBold = await nav
+    .locator("li > a strong", { hasText: "Build Your Application" })
+    .first()
+    .count();
   report(
-    "sidebar03: clicking 'Travel' expands it and reveals the 'Trips' child link",
-    afterClickOpen === true && childrenVisibleAfter === true,
-    `open=${afterClickOpen} tripsVisible=${childrenVisibleAfter}`,
-  );
-
-  const designDetails = page
-    .locator('[data-block="sidebar03"] aside nav li details')
-    .filter({ hasText: "Design Engineering" })
-    .first();
-  const designOpen = await designDetails.evaluate((el) => (el as HTMLDetailsElement).open);
-  report(
-    "sidebar03: 'Design Engineering' (has an active child) starts open",
-    designOpen === true,
-    `open=${designOpen}`,
+    "sidebar03: top-level entries render as bold plain links",
+    parentBold > 0,
+    `boldParentMatches=${parentBold}`,
   );
 
   const aside = page.locator('[data-block="sidebar03"] aside').first();
-  const toggleButton = page.locator('[data-block="sidebar03"] main header button').first();
+  const toggleButton = page
+    .locator('[data-block="sidebar03"] main header button')
+    .first();
   const expandedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
   await toggleButton.click();
   await page.waitForTimeout(300);

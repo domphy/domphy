@@ -93,7 +93,8 @@ export function brandBadge(): DomphyElement<"div"> {
         fill: "currentColor",
         role: "img",
         ariaHidden: "true",
-        style: { width: "55%", height: "55%" },
+        // Upstream badge icon is size-4 (16px) inside a size-6 (24px) box.
+        style: { width: themeSpacing(4), height: themeSpacing(4) },
       } as DomphyElement<"svg">,
     ],
     style: {
@@ -101,8 +102,8 @@ export function brandBadge(): DomphyElement<"div"> {
       alignItems: "center",
       justifyContent: "center",
       flexShrink: 0,
-      width: themeSpacing(8),
-      height: themeSpacing(8),
+      width: themeSpacing(6),
+      height: themeSpacing(6),
       borderRadius: (listener: Listener) =>
         themeSpacing(themeDensity(listener) * 1),
       backgroundColor: (listener: Listener) =>
@@ -197,7 +198,7 @@ export function emailField(options: EmailFieldOptions): DomphyElement<"div"> {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: themeSpacing(2),
+      gap: themeSpacing(3),
     },
   };
 }
@@ -231,7 +232,11 @@ export function passwordField(
       // `link()` only underlines on hover — axe-core's `link-in-text-block`
       // rule (WCAG 1.4.1) needs this link visually distinguishable from
       // surrounding text at rest too, not just by its color.
-      style: { textDecoration: "underline" },
+      style: {
+        textDecoration: "underline",
+        // Upstream forgot-password link is text-sm.
+        fontSize: (listener: Listener) => themeSize(listener, "decrease-1"),
+      },
       $: [link({ color: "neutral" })],
     } as DomphyElement<"a">);
   }
@@ -262,7 +267,7 @@ export function passwordField(
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: themeSpacing(2),
+      gap: themeSpacing(3),
     },
   };
 }
@@ -334,7 +339,13 @@ export function signUpLine(
     align = "center",
   } = options;
   return {
-    small: [`${promptText} `, { a: linkLabel, href, style: { textDecoration: "underline" }, $: [link()] }],
+    small: [
+      `${promptText} `,
+      // Upstream renders the "Sign up" link as a bare <a> inside
+      // FieldDescription, inheriting its text-muted-foreground at rest (not a
+      // primary tone). Match that with the neutral link tone; keep underline.
+      { a: linkLabel, href, style: { textDecoration: "underline" }, $: [link({ color: "neutral" })] },
+    ],
     $: [small()],
     style: { display: "block", textAlign: align },
   };
@@ -407,7 +418,8 @@ export function coverImage(options: CoverImageOptions): DomphyElement<"img"> {
       ...(dimInDarkMode
         ? {
             "@media (prefers-color-scheme: dark)": {
-              filter: "brightness(0.7) saturate(0.6)",
+              // Upstream img: dark:brightness-[0.2] dark:grayscale.
+              filter: "brightness(0.2) grayscale(1)",
             },
           }
         : {}),

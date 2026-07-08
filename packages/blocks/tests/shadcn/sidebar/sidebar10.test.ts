@@ -34,12 +34,14 @@ describe("sidebar10", () => {
     expect(host.textContent).toContain("Engineering");
   });
 
-  it("renders one collapsible <details> workspace per default-visible workspace, one pre-expanded", () => {
+  it("renders one workspace chevron-toggle per default-visible workspace, all collapsed by default", () => {
+    // Mirrors upstream nav-workspaces.tsx: each workspace is wrapped in a bare
+    // <Collapsible> with no `defaultOpen` — every workspace starts collapsed.
     const { host } = render(sidebar10() as DomphyElement);
-    const details = host.querySelectorAll("aside details");
-    expect(details.length).toBe(5);
-    const openOnes = Array.from(details).filter((element) => element.hasAttribute("open"));
-    expect(openOnes.length).toBe(1);
+    const toggles = Array.from(host.querySelectorAll('aside button[data-slot="chevron-toggle"]'));
+    expect(toggles.length).toBe(5);
+    const expandedOnes = toggles.filter((toggle) => toggle.getAttribute("aria-expanded") === "true");
+    expect(expandedOnes.length).toBe(0);
   });
 
   it("clicking the Favorites 'More' row reveals the rest of the favorites", async () => {
@@ -52,20 +54,26 @@ describe("sidebar10", () => {
     expect(host.textContent).toContain("Security");
   });
 
-  it("renders the secondary links and user footer", () => {
+  it("renders the secondary links", () => {
+    // Upstream app-sidebar.tsx renders no NavUser/footer for sidebar-10 (only
+    // TeamSwitcher, NavMain, NavFavorites, NavWorkspaces, NavSecondary, SidebarRail).
     const { host } = render(sidebar10() as DomphyElement);
     expect(host.textContent).toContain("Settings");
     expect(host.textContent).toContain("Trash");
-    expect(host.textContent).toContain("Shad Cn");
   });
 
-  it("clicking the header toggle and the three-dot actions button does not throw", () => {
+  it("clicking the header toggle and the three-dot actions button does not throw", async () => {
     const { host } = render(sidebar10() as DomphyElement);
     const toggle = host.querySelector("header button") as HTMLButtonElement;
     expect(() => toggle.click()).not.toThrow();
     const moreActions = host.querySelector('header button[aria-label="More actions"]') as HTMLButtonElement;
     expect(moreActions).toBeTruthy();
     expect(() => moreActions.click()).not.toThrow();
+    // Let the popover's open/close debounce timer settle before the test ends —
+    // otherwise its pending timer fires mid-way through the next test and steals
+    // its 100ms show() window (cross-test timing leak; afterEach only clears the
+    // DOM, it doesn't run the framework's unmount/BeforeRemove cleanup).
+    await new Promise((resolve) => setTimeout(resolve, 150));
   });
 
   it("opens the Notion-style page-actions menu with the upstream grouped items", async () => {

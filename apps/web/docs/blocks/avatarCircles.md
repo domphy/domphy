@@ -20,7 +20,7 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `avatars` | `AvatarCirclesItem[]` | Ordered avatar entries rendered as the overlapping stack. Defaults to 6 generic placeholders. |
 | `overflowCount` | `number` | Count shown in the trailing "+N" badge. Defaults to 99. Pass `0` to omit the badge entirely. |
 | `diameterUnits` | `number` | Avatar diameter, in `themeSpacing` units (≈40px at the default). Defaults to 10. |
-| `overlapUnits` | `number` | How much each avatar overlaps the previous one, in `themeSpacing` units. Defaults to 3. |
+| `overlapUnits` | `number` | How much each avatar overlaps the previous one, in `themeSpacing` units. Defaults to 4 (matches upstream's 16px `-space-x-4` at the default diameter). |
 | `ringColor` | `ThemeColor` | Ring/border color around each avatar, matching the surrounding surface. Defaults to `"neutral"`. |
 | `style` | `StyleObject` | — |
 

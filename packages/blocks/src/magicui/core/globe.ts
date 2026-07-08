@@ -1,7 +1,9 @@
 // magicui "Globe" — clean-room reimplementation from the public
 // behavior/visual spec only (no upstream source viewed or copied). An
 // interactive, auto-rotating 3D dot-sphere globe, drag-to-orbit with
-// inertial coasting, rendered on a `<canvas>` via WebGL.
+// spring-eased rotation (the drag offset feeds a critically-overdamped
+// spring, so rotation eases smoothly and there is no release momentum),
+// rendered on a `<canvas>` via WebGL.
 //
 // Rendering is delegated to `cobe` (already an approved dependency of this
 // package, per the block-authoring brief — see the package's `dependencies`)
@@ -26,7 +28,7 @@ export interface GlobeMarker {
 }
 
 export interface GlobeProps {
-  /** Container max diameter, in `themeSpacing` units. Defaults to 90 (~22.5em). */
+  /** Container max diameter, in `themeSpacing` units. Defaults to 150 (37.5em ≈ 600px, matching upstream's `max-w-150`). */
   diameterUnits?: number;
   /** cobe's own dark-mode shading flag (affects the lighting model, independent of the page theme). Defaults to false. */
   dark?: boolean;
@@ -38,9 +40,9 @@ export interface GlobeProps {
   glowColor?: [number, number, number];
   /** Dot sample density across the sphere surface. Defaults to 16000. */
   mapSamples?: number;
-  /** Land-dot brightness. Defaults to 6. */
+  /** Land-dot brightness. Defaults to 1.2. */
   mapBrightness?: number;
-  /** Auto-rotation speed (phi radians added per frame). Defaults to 0.0035. */
+  /** Auto-rotation speed (phi radians added per frame). Defaults to 0.005. */
   rotationSpeed?: number;
   /** Initial phi (longitude) rotation offset, radians. Defaults to 0. */
   initialPhi?: number;
@@ -56,11 +58,16 @@ export interface GlobeProps {
 // illustrative default marker locations for the demo, not sourced from any
 // third party's specific marker dataset.
 const DEFAULT_MARKERS: GlobeMarker[] = [
-  { latitude: 40.7128, longitude: -74.006, size: 0.05 },
-  { latitude: 51.5074, longitude: -0.1278, size: 0.05 },
-  { latitude: 35.6762, longitude: 139.6503, size: 0.05 },
-  { latitude: -33.8688, longitude: 151.2093, size: 0.05 },
-  { latitude: 1.3521, longitude: 103.8198, size: 0.05 },
+  { latitude: 14.5995, longitude: 120.9842, size: 0.03 }, // Manila
+  { latitude: 19.076, longitude: 72.8777, size: 0.1 }, // Mumbai
+  { latitude: 23.8103, longitude: 90.4125, size: 0.05 }, // Dhaka
+  { latitude: 30.0444, longitude: 31.2357, size: 0.07 }, // Cairo
+  { latitude: 39.9042, longitude: 116.4074, size: 0.08 }, // Beijing
+  { latitude: -23.5505, longitude: -46.6333, size: 0.1 }, // São Paulo
+  { latitude: 19.4326, longitude: -99.1332, size: 0.1 }, // Mexico City
+  { latitude: 40.7128, longitude: -74.006, size: 0.1 }, // New York
+  { latitude: 34.6937, longitude: 135.5022, size: 0.05 }, // Osaka
+  { latitude: 41.0082, longitude: 28.9784, size: 0.06 }, // Istanbul
 ];
 
 function hexToNormalizedRgb(hex: string): [number, number, number] {
@@ -73,16 +80,16 @@ function hexToNormalizedRgb(hex: string): [number, number, number] {
 
 /**
  * An interactive auto-rotating dot-sphere globe (WebGL via `cobe`), with
- * drag-to-orbit and inertial coasting. Call with no arguments for a working
+ * drag-to-orbit and spring-eased rotation. Call with no arguments for a working
  * demo — a themed sphere with a handful of highlighted city markers,
  * auto-rotating at rest.
  */
 function globe(props: GlobeProps = {}): DomphyElement<"div"> {
-  const diameterUnits = props.diameterUnits ?? 90;
+  const diameterUnits = props.diameterUnits ?? 150;
   const dark = props.dark ?? false;
   const mapSamples = props.mapSamples ?? 16000;
-  const mapBrightness = props.mapBrightness ?? 6;
-  const rotationSpeed = props.rotationSpeed ?? 0.0035;
+  const mapBrightness = props.mapBrightness ?? 1.2;
+  const rotationSpeed = props.rotationSpeed ?? 0.005;
   const initialPhi = props.initialPhi ?? 0;
   const initialTheta = props.initialTheta ?? 0.3;
   const markers = props.markers ?? DEFAULT_MARKERS;
@@ -111,13 +118,29 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
       canvas.style.width = "100%";
       canvas.style.height = "100%";
       canvas.style.cursor = draggable ? "grab" : "default";
+      canvas.style.opacity = "0";
+      canvas.style.transition = "opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)";
       container.appendChild(canvas);
 
+      // Upstream feeds the drag offset into a motion/react spring
+      // (mass 1, damping 30, stiffness 100 → damping ratio 1.5, i.e.
+      // overdamped: eases toward the target with no overshoot and, once the
+      // drag is released, no residual momentum — the spring just settles).
+      // We integrate that same spring by hand each frame instead of coasting.
+      const SPRING_MASS = 1;
+      const SPRING_DAMPING = 30;
+      const SPRING_STIFFNESS = 100;
+
       let phi = initialPhi;
-      let velocity = 0;
-      let pointerDown = false;
-      let pointerStartX = 0;
-      let phiAtPointerDown = 0;
+      // Accumulated drag offset (radians) — the spring's target — and the
+      // spring's own current value/velocity that ease toward it.
+      let dragTarget = 0;
+      let dragSpring = 0;
+      let dragSpringVelocity = 0;
+      // Null when not dragging; otherwise the pointer's clientX at the moment
+      // the drag began (kept fixed for the whole drag, matching upstream).
+      let pointerStartX: number | null = null;
+      let lastFrameTime = 0;
       let width = container.clientWidth || 1;
       let globeInstance: ReturnType<typeof createGlobe> | null = null;
       let resizeObserver: ResizeObserver | null = null;
@@ -145,17 +168,18 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
       const markerColor = resolveColor(props.markerColor, "shift-9", "attention");
       const glowColor = resolveColor(props.glowColor, "shift-1", "neutral");
 
-      // cobe delegates to `phenomenon`, which sizes the canvas's REAL backing
-      // store as `canvas.clientWidth * devicePixelRatio` (see phenomenon's own
-      // `resize()`) — completely independent of the `width`/`height` numbers
-      // we pass here, which only feed the fragment shader's own "logical
-      // resolution" uniform. Those two must describe the same pixel count, or
-      // the shader's aspect/projection math disagrees with the actual
-      // viewport and the sphere renders wildly mis-scaled (cropped into a
-      // corner) — so `width`/`height` MUST be multiplied by the exact same
-      // `devicePixelRatio` value passed below, not a hardcoded constant.
+      // Upstream hardcodes `devicePixelRatio: 2` (always supersamples, even on
+      // DPR-1 screens). cobe delegates to `phenomenon`, which sizes the
+      // canvas's REAL backing store as `canvas.clientWidth * devicePixelRatio`
+      // (see phenomenon's own `resize()`) — completely independent of the
+      // `width`/`height` numbers we pass here, which only feed the fragment
+      // shader's own "logical resolution" uniform. Those two must describe the
+      // same pixel count, or the shader's aspect/projection math disagrees
+      // with the actual viewport and the sphere renders wildly mis-scaled
+      // (cropped into a corner) — so `width`/`height` MUST be multiplied by
+      // that same factor of 2.
       const buildOptions = (): COBEOptions => {
-        const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        const devicePixelRatio = 2;
         return {
           devicePixelRatio,
           width: width * devicePixelRatio,
@@ -163,7 +187,7 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
           phi,
           theta: initialTheta,
           dark: dark ? 1 : 0,
-          diffuse: 1.2,
+          diffuse: 0.4,
           mapSamples,
           mapBrightness,
           baseColor,
@@ -171,15 +195,26 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
           glowColor,
           markers: markerList,
           onRender: (state) => {
-            if (!pointerDown) {
-              if (Math.abs(velocity) > 0.0001) {
-                phi += velocity;
-                velocity *= 0.92;
-              } else {
-                phi += rotationSpeed;
-              }
-            }
-            state.phi = phi;
+            // Advance the auto-rotation only while at rest; upstream freezes
+            // it during a drag (`if (!pointerInteracting.current) phi += …`).
+            if (pointerStartX === null) phi += rotationSpeed;
+
+            // Ease the drag spring toward its target (semi-implicit Euler).
+            // dt is clamped so a backgrounded tab can't destabilize it.
+            const now =
+              typeof performance !== "undefined" ? performance.now() : Date.now();
+            let dt = lastFrameTime ? (now - lastFrameTime) / 1000 : 1 / 60;
+            lastFrameTime = now;
+            if (dt > 1 / 30) dt = 1 / 30;
+            const springForce =
+              -SPRING_STIFFNESS * (dragSpring - dragTarget) -
+              SPRING_DAMPING * dragSpringVelocity;
+            dragSpringVelocity += (springForce / SPRING_MASS) * dt;
+            dragSpring += dragSpringVelocity * dt;
+
+            // Final rotation = auto-rotate accumulator + spring-eased drag
+            // offset (upstream: `state.phi = phiRef.current + rs.get()`).
+            state.phi = phi + dragSpring;
           },
         };
       };
@@ -193,48 +228,55 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
       } catch {
         globeInstance = null;
       }
+      setTimeout(() => {
+        canvas.style.opacity = "1";
+      }, 0);
 
-      const handlePointerDown = (event: PointerEvent) => {
-        if (!draggable) return;
-        pointerDown = true;
-        pointerStartX = event.clientX;
-        phiAtPointerDown = phi;
-        velocity = 0;
+      // Upstream divides the pointer delta by MOVEMENT_DAMPING (1400) before
+      // adding it to the spring target `r`.
+      const MOVEMENT_DAMPING = 1400;
+
+      const startDrag = (clientX: number) => {
+        pointerStartX = clientX;
         canvas.style.cursor = "grabbing";
-        try {
-          canvas.setPointerCapture(event.pointerId);
-        } catch {
-          // Pointer capture is best-effort — unsupported/detached targets are fine to ignore.
-        }
       };
-      const handlePointerMove = (event: PointerEvent) => {
-        if (!pointerDown) return;
-        const delta = event.clientX - pointerStartX;
-        const nextPhi = phiAtPointerDown + delta / 100;
-        velocity = nextPhi - phi;
-        phi = nextPhi;
-      };
-      const handlePointerUp = (event: PointerEvent) => {
-        if (!pointerDown) return;
-        pointerDown = false;
+      // Upstream releases the drag on BOTH pointerup and pointerout: the
+      // pointer leaving the canvas cancels the drag. There is no pointer
+      // capture, so a drag does not continue while the pointer is outside.
+      const endDrag = () => {
+        if (pointerStartX === null) return;
+        pointerStartX = null;
         canvas.style.cursor = "grab";
-        try {
-          canvas.releasePointerCapture(event.pointerId);
-        } catch {
-          // Best-effort release, as above.
-        }
+      };
+      const applyMovement = (clientX: number) => {
+        if (pointerStartX === null) return;
+        // delta is measured from the drag's fixed start point (upstream keeps
+        // `pointerInteracting.current` at the down position for the whole drag).
+        const delta = clientX - pointerStartX;
+        dragTarget += delta / MOVEMENT_DAMPING;
+      };
+
+      const handlePointerDown = (event: PointerEvent) => startDrag(event.clientX);
+      const handlePointerUp = () => endDrag();
+      const handlePointerOut = () => endDrag();
+      const handleMouseMove = (event: MouseEvent) => applyMovement(event.clientX);
+      const handleTouchMove = (event: TouchEvent) => {
+        const touch = event.touches[0];
+        if (touch) applyMovement(touch.clientX);
       };
 
       if (draggable) {
         canvas.addEventListener("pointerdown", handlePointerDown);
-        window.addEventListener("pointermove", handlePointerMove);
-        window.addEventListener("pointerup", handlePointerUp);
+        canvas.addEventListener("pointerup", handlePointerUp);
+        canvas.addEventListener("pointerout", handlePointerOut);
+        canvas.addEventListener("mousemove", handleMouseMove);
+        canvas.addEventListener("touchmove", handleTouchMove);
       }
 
       // cobe bakes width/height into its initial options rather than reading
       // them reactively every frame, so a meaningful container resize
-      // recreates the instance (preserving the current `phi`/`velocity`
-      // closures) instead of trying to mutate it in place.
+      // recreates the instance (preserving the current `phi`/`dragTarget`/
+      // `dragSpring` closures) instead of trying to mutate it in place.
       if (typeof ResizeObserver !== "undefined") {
         resizeObserver = new ResizeObserver(() => {
           const nextWidth = container.clientWidth;
@@ -255,8 +297,10 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
         resizeObserver?.disconnect();
         if (draggable) {
           canvas.removeEventListener("pointerdown", handlePointerDown);
-          window.removeEventListener("pointermove", handlePointerMove);
-          window.removeEventListener("pointerup", handlePointerUp);
+          canvas.removeEventListener("pointerup", handlePointerUp);
+          canvas.removeEventListener("pointerout", handlePointerOut);
+          canvas.removeEventListener("mousemove", handleMouseMove);
+          canvas.removeEventListener("touchmove", handleTouchMove);
         }
       });
     },

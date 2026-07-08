@@ -8,7 +8,7 @@
 // Domphy has no bundled spring integrator (see `smoothCursor`'s header
 // comment for the same caveat elsewhere in this package) — this hand-rolls
 // the same mass/stiffness/damping integration loop `smoothCursor` uses,
-// tuned near-critically-damped (damping just above 2*sqrt(stiffness*mass))
+// tuned overdamped (damping well above 2*sqrt(stiffness*mass))
 // so the displayed number decelerates into its target without visibly
 // overshooting past it. Per the "continuous, high-frequency effect"
 // guidance used elsewhere in this package (see `dock.ts`'s header comment),
@@ -16,12 +16,12 @@
 // rAF loop rather than through `State.set()` on every frame.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { type ThemeColor, themeColor, themeFluidSpacing } from "@domphy/theme";
+import { type ThemeColor, themeColor } from "@domphy/theme";
 
 export interface NumberTickerSpring {
-  /** How fast oscillation dies out. Defaults to `26`. */
+  /** How fast oscillation dies out. Defaults to `60`. */
   damping?: number;
-  /** How strongly the number is pulled toward its target. Defaults to `90`. */
+  /** How strongly the number is pulled toward its target. Defaults to `100`. */
   stiffness?: number;
   /** Perceived weight/inertia. Defaults to `1`. */
   mass?: number;
@@ -52,8 +52,8 @@ export interface NumberTickerProps {
 }
 
 const DEFAULT_SPRING: Required<NumberTickerSpring> = {
-  damping: 26,
-  stiffness: 90,
+  damping: 60,
+  stiffness: 100,
   mass: 1,
   restDelta: 0.01,
 };
@@ -84,13 +84,20 @@ function numberTicker(props: NumberTickerProps = {}): DomphyElement<"span"> {
   });
 
   return {
-    span: formatter.format(from),
+    // Upstream always paints the literal `startValue` as the pre-trigger text,
+    // regardless of direction (for "down" the animation still starts from the
+    // target, but the first painted frame shows startValue).
+    span: String(startValue),
     dataNumberTicker: "true",
     style: {
       display: "inline-block",
       fontVariantNumeric: "tabular-nums",
-      fontSize: () => themeFluidSpacing(32, 96),
-      fontWeight: () => "800",
+      // text-8xl (fixed 96px) + tracking-wider (0.05em) from the upstream
+      // component class + demo; no fluid clamp (upstream sets no responsive
+      // shrink) and no bold — the demos use font-medium (500).
+      fontSize: "6rem",
+      fontWeight: "500",
+      letterSpacing: "0.05em",
       color: (listener) => themeColor(listener, "shift-11", color),
       ...(props.style ?? {}),
     },
@@ -155,7 +162,9 @@ function numberTicker(props: NumberTickerProps = {}): DomphyElement<"span"> {
               }
             }
           },
-          { threshold: 0.1 },
+          // Upstream useInView({ margin: "0px" }) fires the moment any part of
+          // the element edge enters the viewport — threshold 0, not 0.1.
+          { threshold: 0 },
         );
         observer.observe(element);
       }

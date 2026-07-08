@@ -1,23 +1,23 @@
-// magicui "Interactive Hover Button" — clean-room reimplementation from the
-// public behavior/visual spec only (no upstream source viewed or copied). A
-// pill-shaped button whose resting state shows a small accent dot followed
-// by a label; on hover the label swaps for an arrow-and-label pair while the
-// dot scales up far past its own bounds so it floods the button with a
-// solid accent color.
+// magicui "Interactive Hover Button" — verified directly against the real
+// upstream source (registry/magicui/interactive-hover-button.tsx, MIT-licensed).
+// A pill-shaped button whose resting state shows a small accent dot followed
+// by a neutral-foreground label on a neutral `bg-background` face; on hover the
+// label swaps for an arrow-and-label pair while the dot scales up far past its
+// own bounds so it floods the button with a solid accent color.
 //
 // Pure CSS: no JS timers or pointer handlers. The whole effect is driven by
 // nested `&:hover [data-*]` selectors on the button's own style object (the
 // same technique `glareHover.ts` uses for its hover-armed sweep), so hover
 // and un-hover both animate via the browser's native `:hover` transition
-// engine with a single shared ~320ms duration.
+// engine with a single shared 300ms duration (upstream's `duration-300`).
 //
 // The flood is a scale trick, not a background-color transition: the dot
-// starts as a small circle and scales up ~90x on hover, which — combined
+// starts as a small circle and scales up ~100x on hover, which — combined
 // with the button's own `overflow: hidden` — reads as the accent color
 // washing over the whole face rather than a visibly growing circle.
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
-import { type ThemeColor, themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme";
+import { type ThemeColor, themeColor, themeSize, themeSpacing } from "@domphy/theme";
 
 export interface InteractiveHoverButtonProps {
   /** Button label. Defaults to `"Get Started"`. */
@@ -51,7 +51,9 @@ function arrowGlyph(): DomphyElement<"span"> {
       } as DomphyElement<"svg">,
     ],
     ariaHidden: "true",
-    style: { display: "inline-flex", width: themeSpacing(4), height: themeSpacing(4) },
+    // Upstream renders lucide's `<ArrowRight />` at its default 24px size
+    // (`themeSpacing(6)` == 1.5em == 24px at the root em).
+    style: { display: "inline-flex", width: themeSpacing(6), height: themeSpacing(6) },
   };
 }
 
@@ -68,16 +70,14 @@ function accentDot(color: ThemeColor): DomphyElement<"span"> {
     // track the ambient dataTone context.
     _doctorDisable: ["missing-color", "tone-background-inherit"],
     style: {
-      position: "absolute",
-      insetInlineStart: themeSpacing(3),
-      insetBlockStart: "50%",
+      flexShrink: 0,
       width: themeSpacing(2),
       height: themeSpacing(2),
       borderRadius: "50%",
       transformOrigin: "center",
-      transform: "translateY(-50%) scale(1)",
+      transform: "scale(1)",
       backgroundColor: (listener: Listener) => themeColor(listener, "shift-9", color),
-      transition: "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+      transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1)",
       pointerEvents: "none",
       zIndex: 0,
     } as StyleObject,
@@ -99,7 +99,17 @@ function interactiveHoverButton(props: InteractiveHoverButtonProps = {}): Domphy
     style: {
       position: "relative",
       zIndex: 1,
-      transition: "transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+      transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+    } as StyleObject,
+  };
+
+  const restingGroup: DomphyElement<"span"> = {
+    span: [accentDot(color), restingLabel],
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: themeSpacing(2),
     } as StyleObject,
   };
 
@@ -115,7 +125,7 @@ function interactiveHoverButton(props: InteractiveHoverButtonProps = {}): Domphy
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: (listener) => themeSpacing(themeDensity(listener) * 1),
+      gap: themeSpacing(2),
       zIndex: 1,
       opacity: 0,
       pointerEvents: "none",
@@ -124,13 +134,14 @@ function interactiveHoverButton(props: InteractiveHoverButtonProps = {}): Domphy
       // a saturated fill" convention `rainbowButton.ts` uses for its filled
       // variant.
       color: (listener: Listener) => themeColor(listener, "shift-0", color),
-      transform: `translate(${themeSpacing(6)}, -50%)`,
-      transition: "transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+      // Upstream's initial offset is `translate-x-12` == 48px == themeSpacing(12).
+      transform: `translate(${themeSpacing(12)}, -50%)`,
+      transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)",
     } as StyleObject,
   };
 
   const buttonElement: DomphyElement<"button"> = {
-    button: [accentDot(color), restingLabel, hoverOverlay],
+    button: [restingGroup, hoverOverlay],
     type: "button",
     disabled: props.disabled,
     style: {
@@ -143,24 +154,37 @@ function interactiveHoverButton(props: InteractiveHoverButtonProps = {}): Domphy
       justifyContent: "center",
       cursor: props.disabled ? "not-allowed" : "pointer",
       fontSize: (listener: Listener) => themeSize(listener, "inherit"),
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 4),
+      // Upstream `font-semibold`.
+      fontWeight: 600,
+      // Upstream `p-2 px-6`: 8px block / 24px inline == themeSpacing(2)/themeSpacing(6).
+      paddingBlock: themeSpacing(2),
+      paddingInline: themeSpacing(6),
       // A radius far beyond any realistic box half-height forces a full
       // pill shape — the browser clamps it to the shape's own geometry (not
       // tracked by the raw-spacing-value doctor rule, which only checks
       // margin/padding/gap props). Same trick `rainbowButton.ts` uses.
       borderRadius: "999px",
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
+      // Upstream's chrome is neutral, not accent-tinted: a plain `border`
+      // (theme `--border` gray) and default `--foreground` text on the
+      // `bg-background` surface. Only the dot + hover overlay carry the accent
+      // `color` family. Neutral tones here mirror sibling `shinyButton.ts`.
+      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
       outlineOffset: "-1px",
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", color),
-      color: (listener: Listener) => themeColor(listener, "shift-9", color),
+      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
       opacity: props.disabled ? 0.6 : 1,
-      "&:hover:not([disabled]) [data-ihb-dot]": { transform: "translateY(-50%) scale(90)" },
+      // Upstream `group-hover:scale-[100.8]`.
+      "&:hover:not([disabled]) [data-ihb-dot]": { transform: "scale(100.8)" },
+      // Upstream `group-hover:translate-x-12` (48px) + `group-hover:opacity-0`.
       "&:hover:not([disabled]) [data-ihb-label]": {
         opacity: 0,
-        transform: `translateX(${themeSpacing(-6)})`,
+        transform: `translateX(${themeSpacing(12)})`,
       },
-      "&:hover:not([disabled]) [data-ihb-overlay]": { opacity: 1, transform: "translate(0, -50%)" },
+      // Upstream `group-hover:-translate-x-5` (-20px), keeping the -50% vertical centering.
+      "&:hover:not([disabled]) [data-ihb-overlay]": {
+        opacity: 1,
+        transform: `translate(${themeSpacing(-5)}, -50%)`,
+      },
       ...(props.style ?? {}),
     } as StyleObject,
   };

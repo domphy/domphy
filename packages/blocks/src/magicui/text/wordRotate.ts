@@ -1,17 +1,18 @@
-// magicui "Word Rotate" — clean-room reimplementation from the public
-// behavior/visual spec only (no upstream source viewed or copied). A single
-// line of large, bold text that automatically cycles through a fixed list
-// of words on a timer: the current word slides down and fades out while the
-// next word slides in from above and fades in, at the same position, so
-// surrounding layout never jumps. Fully automatic and looping — no
-// interaction required.
+// magicui "Word Rotate" — direct port of the upstream React component
+// (reference/magicui/apps/www/registry/magicui/word-rotate.tsx). A single line
+// of large, bold heading text that automatically cycles through a fixed word
+// list on a timer: each swap slides+fades the current word DOWN and out, then
+// (once it has fully left) slides+fades the next word IN from above, at the
+// same position.
 //
-// Structurally this is the same "single-item reactive keyed list" state
-// machine `morphingText` uses in this file (replacing the one-item array on
-// each tick lets the reconciler run the outgoing word's exit and the
-// incoming word's enter at once), swapped from a gooey blur crossfade to a
-// plain vertical slide-and-fade via `motion()`'s `initial`/`animate`/`exit`
-// keyframes — an odometer/ticker-style word swap rather than a liquid morph.
+// Upstream wraps the word in `<AnimatePresence mode="wait">`, so the outgoing
+// word's exit runs to completion BEFORE the incoming word's enter begins
+// (sequential, ~0.25s exit + ~0.25s enter = ~0.5s per swap, with a brief empty
+// beat). We reproduce that here by driving the reactive one-item list in two
+// phases: first clear it to `[]` (which plays the current word's `motion` exit
+// via `_onBeforeRemove`, keeping the exiting node mounted until its animation
+// finishes), then — after the exit duration — set the next word (which plays
+// its enter). This is deliberately NOT a concurrent crossfade.
 
 import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
@@ -19,9 +20,9 @@ import { motion } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSize } from "@domphy/theme";
 
 export interface WordRotateTransition {
-  /** Milliseconds the slide/fade crossfade itself takes. Defaults to `250`. */
+  /** Milliseconds the slide/fade itself takes. Defaults to `250` (upstream 0.25s). */
   duration?: number;
-  /** CSS easing for the crossfade. Defaults to `"ease-out"`. */
+  /** CSS easing for the slide/fade. Defaults to `"ease-out"` (upstream `easeOut`). */
   easing?: string;
 }
 
@@ -32,9 +33,9 @@ export interface WordRotateProps {
   duration?: number;
   /** Theme color for the word text. Defaults to `"neutral"` (theme foreground, flips light/dark automatically). */
   color?: ThemeColor;
-  /** Escape hatch for the enter/exit crossfade's own timing/easing. See {@link WordRotateTransition}. */
+  /** Escape hatch for the enter/exit slide's own timing/easing. See {@link WordRotateTransition}. */
   transition?: WordRotateTransition;
-  /** Passthrough style merged onto the outer fixed-line container. */
+  /** Passthrough style merged onto the outer block container. */
   style?: StyleObject;
 }
 
@@ -44,23 +45,23 @@ interface WordEntry {
 }
 
 const DEFAULT_WORDS = ["better", "faster", "modern", "reactive"];
-// Vertical travel distance for the enter/exit slide, in em — scales with the
-// word's own font size rather than a fixed pixel offset.
-const SLIDE_DISTANCE_EM = 0.5;
+// Upstream's fixed vertical travel for the enter (y:-50) / exit (y:+50) slide,
+// in px — a `motion` numeric `y` becomes `translateY(<n>px)`.
+const SLIDE_DISTANCE_PX = 50;
 
 function wordLayer(
   entry: WordEntry,
   color: ThemeColor,
   transitionDurationMs: number,
   easing: string,
-): DomphyElement<"span"> {
+): DomphyElement<"h1"> {
   return {
-    span: entry.text,
+    h1: entry.text,
     _key: entry.key,
     style: {
-      position: "absolute",
-      insetInlineStart: 0,
-      insetBlockStart: 0,
+      // Tailwind's preflight zeroes heading margins; match it so the h1 does
+      // not inject browser-default block margin around the rotating word.
+      margin: 0,
       whiteSpace: "nowrap",
       fontSize: (listener: Listener) => themeSize(listener, "increase-4"),
       fontWeight: () => "800",
@@ -68,9 +69,9 @@ function wordLayer(
     },
     $: [
       motion({
-        initial: { opacity: 0, y: `-${SLIDE_DISTANCE_EM}em` },
+        initial: { opacity: 0, y: -SLIDE_DISTANCE_PX },
         animate: { opacity: 1, y: 0 },
-        exit: { opacity: 0, y: `${SLIDE_DISTANCE_EM}em` },
+        exit: { opacity: 0, y: SLIDE_DISTANCE_PX },
         transition: { duration: transitionDurationMs, easing },
       }),
     ],
@@ -78,12 +79,13 @@ function wordLayer(
 }
 
 /**
- * A single line of large, bold text that automatically and endlessly cycles
- * through a word list, sliding/fading the outgoing word out and the
- * incoming word in at the same fixed position. No interaction required.
- * Call with no arguments for a working demo cycling through a short word list.
+ * A single line of large, bold heading text that automatically and endlessly
+ * cycles through a word list. Each swap slides/fades the outgoing word out and,
+ * once it has fully left, slides/fades the incoming word in at the same
+ * position (upstream's `AnimatePresence mode="wait"` behavior). No interaction
+ * required. Call with no arguments for a working demo cycling a short list.
  */
-function wordRotate(props: WordRotateProps = {}): DomphyElement<"span"> {
+function wordRotate(props: WordRotateProps = {}): DomphyElement<"div"> {
   const words = props.words && props.words.length > 0 ? props.words : DEFAULT_WORDS;
   const holdDuration = props.duration ?? 2500;
   const color = props.color ?? "neutral";
@@ -93,58 +95,44 @@ function wordRotate(props: WordRotateProps = {}): DomphyElement<"span"> {
   const layers = toState<WordEntry[]>([{ key: "word-0", text: words[0] }]);
   let wordIndex = 0;
   let insertCount = 0;
+  let swapTimer = 0;
 
+  // Two-phase swap = `mode="wait"`: clear the list so the current word plays
+  // its exit (its node stays mounted until the exit animation finishes), then
+  // after the exit duration mount the next word so it plays its enter.
   const advance = () => {
     if (words.length <= 1) return;
-    wordIndex = (wordIndex + 1) % words.length;
-    insertCount += 1;
-    layers.set([{ key: `word-${insertCount}`, text: words[wordIndex] }]);
+    layers.set([]);
+    swapTimer = window.setTimeout(() => {
+      wordIndex = (wordIndex + 1) % words.length;
+      insertCount += 1;
+      layers.set([{ key: `word-${insertCount}`, text: words[wordIndex] }]);
+    }, transitionDurationMs);
   };
 
   return {
-    span: [
-      {
-        span: (listener: Listener) =>
-          layers.get(listener).map((entry) => wordLayer(entry, color, transitionDurationMs, easing)),
-        // `position: absolute` + `inset: 0` fills the outer wrapper exactly.
-        // This span's own children are all `position: absolute` (so the
-        // outgoing/incoming word can overlap mid-crossfade), which collapses
-        // ITS box to 0x0. A 0x0 `display: inline-block` sibling defaults to
-        // `vertical-align: baseline`, which — per the CSS spec's rule for an
-        // empty inline-block's baseline being its bottom margin edge —
-        // shoves the whole 0x0 box down near the surrounding text baseline
-        // instead of the top, dragging every absolutely-positioned word
-        // layer down with it and off the bottom of the outer wrapper's
-        // visible box. Filling the parent via `inset: 0` sidesteps inline
-        // baseline alignment entirely.
-        style: { position: "absolute", inset: 0 },
-      },
-    ],
+    // Reactive one-item (or empty, mid-swap) keyed list of the current word.
+    div: (listener: Listener) =>
+      layers.get(listener).map((entry) => wordLayer(entry, color, transitionDurationMs, easing)),
+    // Upstream outer `<div className="overflow-hidden py-2">`: block-level,
+    // clips the slide, and the 0.5rem block padding gives the sliding word
+    // clearance top and bottom inside the clip. The exiting/entering h1 stays
+    // mounted throughout its animation, so the block never collapses mid-swap.
     style: {
-      position: "relative",
-      display: "inline-block",
-      // Must match the word layer's own font-size (below). The crossfading
-      // words are positioned `absolute` (so outgoing/incoming can overlap
-      // mid-transition), which means they contribute zero natural height to
-      // this wrapper — `minHeight: 1.2em` is what actually reserves visible
-      // space for them. If this element's own font-size stayed at the
-      // inherited ambient size instead of the word's real (larger) size,
-      // that `1.2em` would resolve far too small, the wrapper would
-      // collapse to near-zero height, and the word would render entirely
-      // outside any scrollable ancestor's visible viewport.
-      fontSize: (listener: Listener) => themeSize(listener, "increase-4"),
-      fontWeight: () => "800",
-      color: (listener: Listener) => themeColor(listener, "shift-11", color),
-      minHeight: "1.2em",
-      minWidth: "1ch",
+      overflow: "hidden",
+      paddingTop: "0.5rem",
+      paddingBottom: "0.5rem",
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined" || words.length <= 1) return;
       const timer = window.setInterval(advance, holdDuration);
-      node.addHook("Remove", () => window.clearInterval(timer));
+      node.addHook("Remove", () => {
+        window.clearInterval(timer);
+        window.clearTimeout(swapTimer);
+      });
     },
-  } as DomphyElement<"span">;
+  } as DomphyElement<"div">;
 }
 
 export { wordRotate };

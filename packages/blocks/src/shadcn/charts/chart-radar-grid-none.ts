@@ -1,8 +1,9 @@
 // shadcn/ui "charts/radar-grid-none" recipe — clean-room reimplementation.
 //
-// The most minimal radar recipe: no background grid at all — only the six
-// month labels and a single translucent data polygon with corner dots
-// floating in otherwise empty space. Minimal, value-only hover tooltip.
+// The most minimal radar recipe: no polar grid rings or spokes — only the
+// angle axis's own faint outer boundary hexagon, the six month labels, and a
+// single translucent data polygon with corner dots. Minimal, value-only
+// hover tooltip.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
@@ -40,10 +41,10 @@ function chartRadarGridNone(props: ChartRadarGridNoneProps = {}): DomphyElement<
     data = RADAR_MONTHLY_SINGLE_DATA,
     series = RADAR_SINGLE_SERIES,
     title = "Radar Chart - Grid None",
-    description = "January - June 2026",
+    description = "Showing total visitors for the last 6 months",
     trendText = "Trending up by 5.2% this month",
     trendDirection = "up",
-    captionText = "Showing total visitors for the last 6 months",
+    captionText = "January - June 2026",
     showDots = true,
     showGrid = false,
   } = props;
@@ -59,10 +60,19 @@ function chartRadarGridNone(props: ChartRadarGridNoneProps = {}): DomphyElement<
           data,
           series,
           tooltip,
-          gridShape: showGrid ? "polygon" : "none",
+          // "Grid none" hides the polar grid's rings and spokes but NOT the
+          // angle axis's own outer boundary line — upstream <PolarAngleAxis>
+          // defaults axisLine=true / axisLineType="polygon", so a faint
+          // perimeter hexagon still connects the six month vertices. Render
+          // just that single outer ring (no inner rings, no spokes) unless the
+          // caller opts into the full grid.
+          gridShape: "polygon",
+          gridRingFractions: showGrid ? undefined : [1],
+          gridShowSpokes: showGrid,
           showDots,
+          dotRadius: 4,
           tooltipShowLabel: false,
-          tooltipIndicator: "none",
+          tooltipIndicator: "swatch",
         }),
       ],
     },

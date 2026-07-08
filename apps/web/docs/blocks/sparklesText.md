@@ -23,7 +23,7 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `minSize` | `number` | Smallest sparkle size, in `themeSpacing` units. Defaults to 1.5. |
 | `maxSize` | `number` | Largest sparkle size, in `themeSpacing` units. Defaults to 3. |
 | `cycleDuration` | `number` | Milliseconds for one sparkle's full grow/hold/shrink cycle. Defaults to 900. |
-| `style` | `StyleObject` | Passthrough style merged onto the text span. |
+| `style` | `StyleObject` | Passthrough style merged onto the root element. |
 
 ::: details Implementation notes
 Full behavior implemented: plain inherited-style text plus a reactive sparkle list seeded on mount and refreshed on an interval (spawnInterval = cycleDuration / sparkleCount), each sparkle a 4-point star SVG positioned at a random top/left percent with its own CSS keyframe animation (scale 0-&gt;1 + quarter rotate, hold, scale back to 0, opacity in/out) and self-cleanup via a matched setTimeout so the DOM population stays roughly constant. The upstream demo's two literal hex accent colors (#A07CFE violet, #FE8FB5 pink) cannot be used verbatim (Domphy forbids raw color literals) — mapped to the closest built-in theme families, `secondary` (rose/pink) and `primary` (blue, no violet family exists in the default theme), both overridable via the `colors` prop.

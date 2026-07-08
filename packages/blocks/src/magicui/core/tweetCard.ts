@@ -9,9 +9,9 @@
 // independently designed shape to build against, not lifted from any
 // existing fetching library.
 
-import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
+import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { avatar, empty, icon, link, paragraph, skeleton, small, strong } from "@domphy/ui";
+import { avatar, empty, icon, paragraph, skeleton, small, strong } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 
 export interface TweetAuthor {
@@ -19,6 +19,9 @@ export interface TweetAuthor {
   handle: string;
   avatarUrl?: string;
   verified?: boolean;
+  /** Link to the author's profile (upstream `tweet.user.url`). When set, the
+   * avatar, name and handle become clickable anchors to it. */
+  profileUrl?: string;
 }
 
 export interface TweetMedia {
@@ -38,6 +41,9 @@ export interface TweetData {
   author: TweetAuthor;
   text: string;
   createdAt: string | number | Date;
+  /** Permalink to the post itself (upstream `tweet.url`). When set, the header's
+   * platform icon becomes a link to it carrying an sr-only "Link to tweet" label. */
+  url?: string;
   media?: TweetMedia[];
   linkPreview?: TweetLinkPreview;
   quotedTweet?: TweetData;
@@ -62,9 +68,10 @@ type TweetPhase = "loading" | "loaded" | "error";
 
 const DEFAULT_TWEET: TweetData = {
   id: "domphy-demo-1",
-  author: { name: "Ada Byte", handle: "adabyte", verified: true },
+  author: { name: "Ada Byte", handle: "adabyte", verified: true, profileUrl: "https://domphy.com/@adabyte" },
   text: "Shipping a whole design system as plain objects keyed by HTML tag. No JSX, no virtual DOM. @domphy #buildinpublic https://domphy.com",
   createdAt: "2026-06-18T15:32:00Z",
+  url: "https://domphy.com/@adabyte/posts/domphy-demo-1",
   linkPreview: {
     url: "https://domphy.com",
     title: "Domphy — the AI-friendly UI framework",
@@ -107,6 +114,40 @@ function formatTweetDate(createdAt: TweetData["createdAt"]): string {
     minute: "2-digit",
   });
 }
+
+/** Caps a string at `length`, replacing the tail with an ellipsis — mirrors
+ * upstream's `truncate` used on the display name (20) and handle (16). */
+function truncate(value: string, length: number): string {
+  if (value.length <= length) return value;
+  return `${value.slice(0, length - 3)}...`;
+}
+
+/** Visually-hidden ("sr-only") style, same recipe as this package's other
+ * sr-only usages (auroraText, kineticText). Carries the accessible "Link to
+ * tweet" label behind the decorative, aria-hidden platform icon. */
+const SR_ONLY_STYLE: StyleObject = {
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  padding: "0",
+  margin: "-1px",
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  border: "0",
+};
+
+/** Body-entity (@mention / #hashtag / URL) styling. Upstream renders these as
+ * muted, de-emphasized text below the body copy (`text-muted-foreground`), no
+ * underline, brightening to the foreground color on hover (`hover:text-foreground
+ * transition-colors`) — the reverse of an emphasized accent link. */
+const ENTITY_STYLE: StyleObject = {
+  color: (listener: Listener) => themeColor(listener, "shift-8", "neutral"),
+  textDecoration: "none",
+  fontWeight: 400,
+  transition: "color 150ms ease",
+  "&:hover": { color: (listener: Listener) => themeColor(listener, "shift-10", "neutral") },
+};
 
 /** Small outline checkmark badge shown next to a verified author's name. */
 function verifiedBadgeIcon(): DomphyElement<"span"> {
@@ -159,11 +200,19 @@ function platformLogoIcon(): DomphyElement<"span"> {
     ],
     ariaHidden: "true",
     $: [icon({ color: "neutral" })],
-    style: { width: themeSpacing(4), height: themeSpacing(4), marginInlineStart: "auto", flexShrink: "0" },
+    style: {
+      width: themeSpacing(4),
+      height: themeSpacing(4),
+      flexShrink: "0",
+      // Upstream: `hover:text-foreground hover:scale-105 transition-all`.
+      transition: "color 150ms ease, transform 150ms ease",
+      "&:hover": { color: (listener: Listener) => themeColor(listener, "shift-10", "neutral"), transform: "scale(1.05)" },
+    },
   };
 }
 
-function tweetHeader(author: TweetAuthor): DomphyElement<"div"> {
+function tweetHeader(data: TweetData): DomphyElement<"div"> {
+  const author = data.author;
   const initials =
     author.name
       .split(/\s+/)
@@ -171,29 +220,96 @@ function tweetHeader(author: TweetAuthor): DomphyElement<"div"> {
       .slice(0, 2)
       .join("")
       .toUpperCase() || "?";
+  const profileUrl = author.profileUrl;
 
-  const nameRowChildren: DomphyElement[] = [{ strong: author.name, $: [strong()] }];
+  // Avatar — a profile anchor when a profileUrl exists (upstream wraps the
+  // `<img>` in `<a href={tweet.user.url}>`), otherwise the bare avatar span.
+  const avatarSpan: DomphyElement<"span"> = {
+    span: author.avatarUrl
+      ? [{ img: null, src: author.avatarUrl, alt: author.name, loading: "lazy" as const }]
+      : initials,
+    $: [avatar({ color: "primary" })],
+  };
+  const avatarNode: DomphyElement = profileUrl
+    ? {
+        a: [avatarSpan],
+        href: profileUrl,
+        target: "_blank",
+        rel: "noreferrer",
+        style: { display: "inline-flex", flexShrink: "0", textDecoration: "none" },
+      }
+    : avatarSpan;
+
+  // Name row (name + verified badge) — truncated to 20 chars like upstream.
+  const nameRowChildren: DomphyElement[] = [{ strong: truncate(author.name, 20), $: [strong()] }];
   if (author.verified) nameRowChildren.push(verifiedBadgeIcon());
+  const nameNode: DomphyElement = profileUrl
+    ? {
+        a: nameRowChildren,
+        href: profileUrl,
+        target: "_blank",
+        rel: "noreferrer",
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: themeSpacing(1),
+          whiteSpace: "nowrap",
+          textDecoration: "none",
+          color: "inherit",
+          transition: "opacity 150ms ease",
+          "&:hover": { opacity: "0.8" },
+        },
+      }
+    : { div: nameRowChildren, style: { display: "flex", alignItems: "center", gap: themeSpacing(1) } };
+
+  // Handle — truncated to 16 chars; a muted profile anchor (upstream
+  // `text-muted-foreground hover:text-foreground text-sm transition-colors`)
+  // or the plain `small` when no profileUrl.
+  const handleText = `@${truncate(author.handle, 16)}`;
+  const handleNode: DomphyElement = profileUrl
+    ? {
+        a: handleText,
+        href: profileUrl,
+        target: "_blank",
+        rel: "noreferrer",
+        dataSize: "decrease-1",
+        style: {
+          color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
+          textDecoration: "none",
+          transition: "color 150ms ease",
+          "&:hover": { color: (listener: Listener) => themeColor(listener, "shift-10", "neutral") },
+        },
+      }
+    : { small: handleText, $: [small()] };
+
+  // Platform icon — a link to the tweet (upstream `<a href={tweet.url}>` with an
+  // sr-only "Link to tweet" label) when a url exists, otherwise the inert icon.
+  const platformIcon = platformLogoIcon();
+  const platformNode: DomphyElement = data.url
+    ? {
+        a: [{ span: "Link to tweet", style: SR_ONLY_STYLE }, platformIcon],
+        href: data.url,
+        target: "_blank",
+        rel: "noreferrer",
+        style: {
+          display: "inline-flex",
+          alignItems: "flex-start",
+          flexShrink: "0",
+          marginInlineStart: "auto",
+          textDecoration: "none",
+          color: "inherit",
+        },
+      }
+    : { ...platformIcon, style: { ...platformIcon.style, marginInlineStart: "auto" } };
 
   return {
     div: [
+      avatarNode,
       {
-        span: author.avatarUrl
-          ? [{ img: null, src: author.avatarUrl, alt: author.name, loading: "lazy" as const }]
-          : initials,
-        $: [avatar({ color: "primary" })],
-      },
-      {
-        div: [
-          {
-            div: nameRowChildren,
-            style: { display: "flex", alignItems: "center", gap: themeSpacing(1) },
-          },
-          { small: `@${author.handle}`, $: [small()] },
-        ],
+        div: [nameNode, handleNode],
         style: { display: "flex", flexDirection: "column", minWidth: "0", overflow: "hidden" },
       },
-      platformLogoIcon(),
+      platformNode,
     ],
     style: { display: "flex", alignItems: "flex-start", gap: themeSpacing(3) },
   };
@@ -210,12 +326,7 @@ function tweetTextBody(text: string): DomphyElement<"p"> {
         target: "_blank",
         rel: "noopener noreferrer",
         _key: `entity-${index}`,
-        // `link()` only underlines on hover — these entities sit inline
-        // within the tweet body's own plain-text runs, so axe-core's
-        // `link-in-text-block` rule (WCAG 1.4.1) needs them distinguishable
-        // from surrounding text at rest too, not just by color.
-        style: { textDecoration: "underline" },
-        $: [link({ color: "info" })],
+        style: ENTITY_STYLE,
       };
     }
     if (/^[@#]\w+/.test(token)) {
@@ -223,8 +334,7 @@ function tweetTextBody(text: string): DomphyElement<"p"> {
         a: token,
         href: "#",
         _key: `entity-${index}`,
-        style: { textDecoration: "underline" },
-        $: [link({ color: "info" })],
+        style: ENTITY_STYLE,
       };
     }
     return token;
@@ -336,7 +446,7 @@ interface TweetBodyOptions {
 }
 
 function tweetBody(data: TweetData, options: TweetBodyOptions): DomphyElement<"div"> {
-  const children: DomphyElement[] = [tweetHeader(data.author), tweetTextBody(data.text)];
+  const children: DomphyElement[] = [tweetHeader(data), tweetTextBody(data.text)];
 
   if (options.showMedia && data.media?.length) children.push(mediaGrid(data.media));
   if (data.linkPreview) children.push(linkPreviewCard(data.linkPreview));

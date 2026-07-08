@@ -49,25 +49,39 @@ describe("sidebar03", () => {
     expect(host.querySelectorAll("main").length).toBe(1);
   });
 
-  it("renders parent nav items with a nested, indented sub-list of children", () => {
+  it("renders a flat bold-link nav with always-visible sub-lists (no disclosure widgets, no icons)", () => {
     const { host } = render(sidebar03());
     const aside = host.querySelector("aside")!;
-    const parentDetails = aside.querySelectorAll("nav li > details");
 
-    // Default demo data ("Projects" group) has 3 parent items with children.
-    expect(parentDetails.length).toBe(3);
-    parentDetails.forEach((details) => {
-      const subLinks = details.querySelectorAll("ul li a");
-      expect(subLinks.length).toBeGreaterThan(0);
-    });
+    // Upstream sidebar-03 renders each top-level entry as a plain BOLD link
+    // with its sub-list ALWAYS visible — not a collapsible <details>.
+    expect(aside.querySelectorAll("nav details").length).toBe(0);
+    // Flat nav (no group-label headings) with no per-row icons.
+    expect(aside.querySelectorAll("nav svg").length).toBe(0);
+
+    const parents = aside.querySelectorAll("nav > ul > li");
+    expect(parents.length).toBe(5);
+    const first = parents[0];
+    expect(first.querySelector(":scope > a strong")).toBeTruthy();
+    expect(first.querySelector(":scope > ul")).toBeTruthy();
   });
 
-  it("marks active top-level and nested child links with aria-current=page", () => {
+  it("renders a static docs identity header and a toggle rail (no switcher/footer)", () => {
+    const { host } = render(sidebar03());
+    const aside = host.querySelector("aside")!;
+
+    // Static header is a plain <a> logo/title link, not a switcher button.
+    expect(aside.querySelector('a[href="#"]')).toBeTruthy();
+    // The flush (non-floating) variant renders a <SidebarRail/> toggle button.
+    const rail = aside.querySelector('button[aria-label="Toggle Sidebar"]');
+    expect(rail).toBeTruthy();
+  });
+
+  it("marks the active child link with aria-current=page", () => {
     const { host } = render(sidebar03());
     const activeLinks = Array.from(host.querySelectorAll('a[aria-current="page"]'));
     const activeLabels = activeLinks.map((link) => link.textContent);
 
-    expect(activeLabels.some((label) => label?.includes("Dashboard"))).toBe(true);
-    expect(activeLabels.some((label) => label?.includes("Explorer"))).toBe(true);
+    expect(activeLabels.some((label) => label?.includes("Data Fetching"))).toBe(true);
   });
 });

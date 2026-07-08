@@ -28,7 +28,7 @@ describe("sidebar05", () => {
   it("renders one <details> per nav group, with the defaultOpen group already open", () => {
     const { host } = render(sidebar05() as DomphyElement);
     const groups = host.querySelectorAll("aside details");
-    expect(groups.length).toBe(4);
+    expect(groups.length).toBe(5);
     expect(host.querySelector("aside details[open]")).toBeTruthy();
   });
 

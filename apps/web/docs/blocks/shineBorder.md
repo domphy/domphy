@@ -17,9 +17,9 @@ A **Effects** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 
 | Prop | Type | Description |
 |---|---|---|
-| `thickness` | `number` | Ring thickness in pixels. Defaults to `2`. |
+| `thickness` | `number` | Ring thickness in pixels. Defaults to `1`. |
 | `duration` | `number` | One full rotation, in seconds — slower/calmer than `borderBeam`'s comet. Defaults to `14`. |
-| `colors` | `ThemeColor[]` | Colors the ring blends through, in order. Defaults to `["primary", "highlight", "warning"]`. |
+| `colors` | `ThemeColor[]` | Colors the shine band blends through, in order. Defaults to a single subtle hue `["neutral"]` (upstream's `#000000`). |
 | `borderRadius` | `number` | Corner radius in pixels, should roughly match the host card's own rounding. Defaults to `16`. |
 | `children` | `DomphyElement[]` | Card content rendered inside the shined container. Defaults to a small demo card body. |
 

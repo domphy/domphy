@@ -45,11 +45,11 @@ describe("shimmerButton", () => {
     expect(css).toContain("overflow: hidden");
   });
 
-  it("wires the hover glow to a data-slot descendant selector", () => {
+  it("wires the hover highlight sheen to a data-slot descendant selector", () => {
     const { host, node } = render(shimmerButton() as DomphyElement);
-    const glow = host.querySelector('[data-slot="shimmer-hover-glow"]');
-    expect(glow).toBeTruthy();
-    expect(node.generateCSS()).toContain("[data-slot=shimmer-hover-glow]");
+    const highlight = host.querySelector('[data-slot="shimmer-highlight"]');
+    expect(highlight).toBeTruthy();
+    expect(node.generateCSS()).toContain("[data-slot=shimmer-highlight]");
   });
 
   it("fires the provided onClick handler when clicked", () => {

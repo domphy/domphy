@@ -1,15 +1,25 @@
-// shadcn-community "File Tree" — clean-room reimplementation.
+// shadcn-community "File Tree" — clean-room reimplementation, behaviour
+// re-verified against the real upstream source (registry/magicui/file-tree.tsx,
+// MIT-licensed) so it matches: folders are selectable (a click both selects
+// and toggles, highlighting the folder row), the selected row gets a neutral
+// muted fill (not an accent tint) that hugs the label width, non-selectable
+// rows render disabled/dimmed, the selected node's ancestors auto-expand on
+// mount, and an optional collapse/expand-all control mirrors upstream's
+// `CollapseButton`.
 //
 // A nested, expandable directory/file browser resembling a code editor's
-// sidebar explorer. Implemented purely from the block's public functional/
-// visual spec — no upstream source was viewed or copied.
+// sidebar explorer, built fully custom (rather than layered on the
+// `accordion()`/`details()` patches) so expand state, selection, sort order,
+// and custom icon renderers can all be driven from one shared, optionally
+// externally controlled reactive context — matching the props surface the
+// spec asks for (pre-set/controlled expanded ids + selected id, onSelect/
+// onToggle).
 //
-// Structurally close to a Collapsible/Accordion-built tree view, but built
-// fully custom here (rather than layered on the `accordion()`/`details()`
-// patches) so expand state, selection, sort order, and custom icon
-// renderers can all be driven from one shared, optionally externally
-// controlled reactive context — matching the props surface the spec asks
-// for (pre-set/controlled expanded ids + selected id, onSelect/onToggle).
+// Upstream shows only the open/closed folder icon then the name — no
+// disclosure caret — so this renders no chevron either. Indentation is
+// structural (each nesting level's child group carries a `marginInlineStart`,
+// upstream's `ml-5`), which lets the selected background hug just the icon +
+// label (upstream's `w-fit` button) instead of spanning the whole row.
 //
 // The expand/collapse reveal uses the CSS grid "0fr → 1fr" accordion trick
 // (a `display: grid` wrapper whose single track animates between those two
@@ -48,7 +58,7 @@ export interface FileTreeNode {
   type: "file" | "folder";
   /** Nested entries. Only meaningful when `type` is `"folder"`. */
   children?: FileTreeNode[];
-  /** Whether this node can become the selected item. Files default to `true`; folders ignore this (they toggle, not select). */
+  /** Whether this node can be selected/focused. Files and folders default to `true`; set `false` to render the row disabled (dimmed, non-interactive). */
   selectable?: boolean;
 }
 
@@ -62,7 +72,7 @@ export interface FileTreeProps {
   data?: FileTreeNode[];
   /** Folder ids that start (or, when a `State` is passed, stay) expanded. */
   expandedIds?: ValueOrState<string[]>;
-  /** The initially (or, when a `State` is passed, externally) selected node id. */
+  /** The initially (or, when a `State` is passed, externally) selected node id. Its ancestor folders auto-expand so the node is revealed. */
   selectedId?: ValueOrState<string | null>;
   /** How sibling nodes at each level are ordered. Defaults to `"folders-first"`. */
   sort?: FileTreeSortMode;
@@ -70,6 +80,8 @@ export interface FileTreeProps {
   direction?: "ltr" | "rtl";
   /** Draw the vertical guide-rail down each expanded folder's children. Defaults to `true`. */
   indicator?: boolean;
+  /** Render a floating expand-all / collapse-all toggle over the tree (upstream's `CollapseButton`). Defaults to `false`. */
+  collapseButton?: boolean;
   /** Custom closed/open folder icon renderer. Defaults to a generic folder glyph. */
   renderFolderIcon?: (open: boolean, node: FileTreeNode) => DomphyElement;
   /** Custom file icon renderer (e.g. per extension). Defaults to a generic document glyph. */
@@ -78,7 +90,7 @@ export interface FileTreeProps {
   onToggle?: (node: FileTreeNode, open: boolean) => void;
   /** Theme color for the panel surface/borders. Defaults to `"neutral"`. */
   color?: ThemeColor;
-  /** Accent color for the selected-row highlight. Defaults to `"primary"`. */
+  /** Color for the selected-row highlight fill. Defaults to the panel `color` (a neutral muted fill, matching upstream `bg-muted`); pass a distinct tone for a tinted highlight. */
   accentColor?: ThemeColor;
   style?: StyleObject;
 }
@@ -121,15 +133,18 @@ const DEFAULT_DATA: FileTreeNode[] = [
 
 const DEFAULT_EXPANDED_IDS = ["src"];
 const DEFAULT_SELECTED_ID = "src/index.ts";
-const ROW_INDENT_STEP = 5;
-const ROW_BASE_INDENT = 2;
+// Per-level child indent (upstream's `ml-5`) and guide-rail inset (`left-1.5`).
+const INDENT_STEP = 5;
+const RAIL_INSET = 1.5;
+
+const fileTreeCollator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
 
 function sortNodes(nodes: FileTreeNode[], sort: FileTreeSortMode): FileTreeNode[] {
   if (sort === "as-is") return nodes;
   if (typeof sort === "function") return [...nodes].sort(sort);
   return [...nodes].sort((a, b) => {
     if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
-    return a.name.localeCompare(b.name);
+    return fileTreeCollator.compare(a.name, b.name);
   });
 }
 
@@ -137,13 +152,50 @@ function isNodeExpanded(context: FileTreeContext, node: FileTreeNode, listener: 
   return context.expandedIds.get(listener).includes(node.id);
 }
 
-function rowBaseStyle(depth: number, color: ThemeColor): StyleObject {
+// Walk `nodes` for `targetId`, returning the id chain from root down to and
+// including the target, plus whether the target is selectable. Mirrors
+// upstream's `expandSpecificTargetedElements`/`findParent`.
+function findSelectionPath(
+  nodes: FileTreeNode[],
+  targetId: string,
+): { path: string[]; selectable: boolean } | null {
+  for (const node of nodes) {
+    if (node.id === targetId) {
+      return { path: [node.id], selectable: node.selectable ?? true };
+    }
+    if (node.children?.length) {
+      const found = findSelectionPath(node.children, targetId);
+      if (found) return { path: [node.id, ...found.path], selectable: found.selectable };
+    }
+  }
+  return null;
+}
+
+// All folder ids (selectable, with children) — upstream's `expendAllTree`.
+function collectExpandableIds(nodes: FileTreeNode[]): string[] {
+  const ids: string[] = [];
+  const walk = (node: FileTreeNode) => {
+    if ((node.selectable ?? true) && node.children?.length) {
+      ids.push(node.id);
+      node.children.forEach(walk);
+    }
+  };
+  nodes.forEach(walk);
+  return [...new Set(ids)];
+}
+
+function rowBaseStyle(color: ThemeColor): StyleObject {
   return {
     display: "flex",
     alignItems: "center",
     gap: themeSpacing(1.5),
     height: themeSpacing(7),
-    paddingInlineStart: themeSpacing(ROW_BASE_INDENT + depth * ROW_INDENT_STEP),
+    // `w-fit`: the row (and thus its selected fill) hugs its icon + label
+    // rather than stretching to fill the column (upstream File is a w-fit button).
+    width: "fit-content",
+    maxWidth: "100%",
+    alignSelf: "flex-start",
+    paddingInlineStart: themeSpacing(1.5),
     paddingInlineEnd: themeSpacing(2),
     borderRadius: themeSpacing(1.5),
     userSelect: "none",
@@ -153,6 +205,17 @@ function rowBaseStyle(depth: number, color: ThemeColor): StyleObject {
     transition: "background-color 150ms ease",
     "&:hover": {
       backgroundColor: (listener: Listener) => themeColor(listener, "shift-2", color),
+    },
+  } as StyleObject;
+}
+
+// Neutral muted fill for the selected row (upstream `bg-muted`) — background
+// only, text colour left untouched. Gated by `selectable` so a non-selectable
+// row never highlights, matching upstream's `isSelected && isSelectable`.
+function selectedFillStyle(context: FileTreeContext): StyleObject {
+  return {
+    "&[aria-selected=true]": {
+      backgroundColor: (listener: Listener) => themeColor(listener, "shift-3", context.accentColor),
     },
   } as StyleObject;
 }
@@ -196,37 +259,32 @@ function defaultFileIcon(): DomphyElement {
   ]);
 }
 
-function chevronGlyph(context: FileTreeContext, node: FileTreeNode): DomphyElement<"span"> {
-  return {
-    span: [
-      {
-        svg: [{ polyline: null, points: "9 5 15 12 9 19" }],
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: "2",
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        role: "img",
-        ariaHidden: "true",
-        style: { width: "100%", height: "100%" },
-      } as DomphyElement<"svg">,
-    ],
-    ariaHidden: "true",
-    style: {
-      display: "inline-flex",
-      flexShrink: 0,
-      width: themeSpacing(3.5),
-      height: themeSpacing(3.5),
-      transition: "transform 200ms ease-out",
-      transform: (listener: Listener) =>
-        isNodeExpanded(context, node, listener) ? "rotate(90deg)" : "rotate(0deg)",
-    },
-  };
+// Expand/collapse-all glyph for the CollapseButton (fold-vertical).
+function collapseGlyph(): DomphyElement {
+  return treeGlyph(["M8 9l4-4 4 4", "M8 15l4 4 4-4"]);
 }
 
-function buildFolderNode(node: FileTreeNode, depth: number, context: FileTreeContext): DomphyElement {
-  const toggle = () => {
+function nameSpan(node: FileTreeNode, context: FileTreeContext): DomphyElement {
+  return {
+    small: node.name,
+    $: [small({ color: context.color })],
+    // `small()`'s own muted shift-6/7 sets itself directly on the tag,
+    // overriding (and measuring less contrast than) this row's own shift-9
+    // color set in `rowBaseStyle` — inherit that instead.
+    style: {
+      whiteSpace: "nowrap",
+      color: "currentColor",
+    },
+  } as DomphyElement;
+}
+
+function buildFolderNode(node: FileTreeNode, context: FileTreeContext): DomphyElement {
+  const selectable = node.selectable ?? true;
+
+  // Upstream Folder Trigger onClick: select the folder AND toggle its expansion.
+  const activate = () => {
+    context.selectedId.set(node.id);
+    context.onSelect?.(node);
     const currentIds = context.expandedIds.get();
     const currentlyOpen = currentIds.includes(node.id);
     const next = !currentlyOpen;
@@ -253,54 +311,48 @@ function buildFolderNode(node: FileTreeNode, depth: number, context: FileTreeCon
     },
   };
 
-  const header: DomphyElement = {
-    div: [
-      chevronGlyph(context, node),
-      closedIcon,
-      openIcon,
-      {
-        small: node.name,
-        $: [small({ color: context.color })],
-        // `small()`'s own muted shift-6/7 sets itself directly on the tag,
-        // overriding (and measuring less contrast than) this row's own
-        // `shift-9` color set in `rowBaseStyle` — inherit that instead.
-        style: {
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          flex: "1 1 auto",
-          minWidth: 0,
-          color: "currentColor",
-        },
-      },
-    ],
+  const header: Record<string, unknown> = {
+    div: [closedIcon, openIcon, nameSpan(node, context)],
     role: "treeitem",
-    tabindex: 0,
+    tabindex: selectable ? 0 : -1,
     ariaExpanded: (listener: Listener) => String(isNodeExpanded(context, node, listener)),
-    onClick: toggle,
-    onKeyDown: (event: KeyboardEvent) => {
+    ariaSelected: (listener: Listener) => String(context.selectedId.get(listener) === node.id),
+    ariaDisabled: selectable ? "false" : "true",
+    style: {
+      ...rowBaseStyle(context.color),
+      cursor: selectable ? "pointer" : "not-allowed",
+      opacity: selectable ? undefined : 0.5,
+      ...(selectable ? selectedFillStyle(context) : {}),
+    } as StyleObject,
+  };
+
+  // Domphy's event validation rejects an explicit `onClick: undefined`, and a
+  // non-selectable folder is `disabled` upstream (no expand, no select) — so
+  // attach handlers only when the folder supports interaction.
+  if (selectable) {
+    header.onClick = activate;
+    header.onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        toggle();
+        activate();
       }
-    },
-    style: { ...rowBaseStyle(depth, context.color), cursor: "pointer" } as StyleObject,
-  } as DomphyElement;
+    };
+  }
 
   // Vertical guide-rail down this folder's children (upstream's `TreeIndicator`,
   // on by default). Positioned absolutely inside the children area so it spans
-  // exactly the rendered children height, and centered under the parent row's
-  // chevron (paddingInlineStart + half the chevron width). Because it lives
-  // inside the grid-collapsed wrapper it inherits the expand/collapse height
-  // for free — no separate open/close animation needed. `insetInlineStart`
-  // (not `left`) makes it flip to the right edge in RTL automatically.
+  // exactly the rendered children height, sitting just inside the folder row's
+  // left edge (upstream's `left-1.5`). Because it lives inside the
+  // grid-collapsed wrapper it inherits the expand/collapse height for free — no
+  // separate open/close animation needed. `insetInlineStart` (not `left`) makes
+  // it flip to the right edge in RTL automatically.
   const indicatorRail: DomphyElement = {
     div: null,
     dataSlot: "tree-indicator",
     ariaHidden: "true",
     style: {
       position: "absolute",
-      insetInlineStart: themeSpacing(ROW_BASE_INDENT + depth * ROW_INDENT_STEP + 1.75),
+      insetInlineStart: themeSpacing(RAIL_INSET),
       top: 0,
       bottom: 0,
       width: "1px",
@@ -319,7 +371,19 @@ function buildFolderNode(node: FileTreeNode, depth: number, context: FileTreeCon
       {
         div: [
           ...(context.indicator ? [indicatorRail] : []),
-          ...sortedChildren.map((child) => buildNode(child, depth + 1, context)),
+          {
+            // Structural indent (upstream's `ml-5`) — this is what steps each
+            // nesting level in, so the rows themselves stay `w-fit`.
+            div: sortedChildren.map((child) => buildNode(child, context)),
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(0.5),
+              marginInlineStart: themeSpacing(INDENT_STEP),
+              paddingBlock: themeSpacing(1),
+            },
+            _key: "__children",
+          },
         ],
         style: { minHeight: 0, position: "relative" },
       },
@@ -336,12 +400,12 @@ function buildFolderNode(node: FileTreeNode, depth: number, context: FileTreeCon
   };
 
   return {
-    div: [header, childrenWrapper],
+    div: [header as DomphyElement, childrenWrapper],
     _key: node.id,
   };
 }
 
-function buildFileNode(node: FileTreeNode, depth: number, context: FileTreeContext): DomphyElement {
+function buildFileNode(node: FileTreeNode, context: FileTreeContext): DomphyElement {
   const selectable = node.selectable ?? true;
   const select = () => {
     context.selectedId.set(node.id);
@@ -349,41 +413,23 @@ function buildFileNode(node: FileTreeNode, depth: number, context: FileTreeConte
   };
 
   const fileRow: Record<string, unknown> = {
-    div: [
-      // Spacer matching the folder row's chevron width, so file/folder names align.
-      { span: null, ariaHidden: "true", style: { display: "inline-flex", flexShrink: 0, width: themeSpacing(3.5) } },
-      context.renderFileIcon(node),
-      {
-        small: node.name,
-        $: [small({ color: context.color })],
-        style: {
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          flex: "1 1 auto",
-          minWidth: 0,
-          color: "currentColor",
-        },
-      },
-    ],
+    div: [context.renderFileIcon(node), nameSpan(node, context)],
     role: "treeitem",
     tabindex: selectable ? 0 : -1,
     ariaSelected: (listener: Listener) => String(context.selectedId.get(listener) === node.id),
     ariaDisabled: selectable ? "false" : "true",
     _key: node.id,
     style: {
-      ...rowBaseStyle(depth, context.color),
-      cursor: selectable ? "pointer" : "default",
-      "&[aria-selected=true]": {
-        backgroundColor: (listener: Listener) => themeColor(listener, "shift-3", context.accentColor),
-        color: (listener: Listener) => themeColor(listener, "shift-11", context.accentColor),
-      },
+      ...rowBaseStyle(context.color),
+      cursor: selectable ? "pointer" : "not-allowed",
+      opacity: selectable ? undefined : 0.5,
+      ...(selectable ? selectedFillStyle(context) : {}),
     } as StyleObject,
   };
 
   // Domphy's event validation rejects an explicit `onClick: undefined`
   // (unlike ordinary attribute props), so only attach handlers when the
-  // node actually supports selection.
+  // node actually supports selection (upstream `disabled={!isSelectable}`).
   if (selectable) {
     fileRow.onClick = select;
     fileRow.onKeyDown = (event: KeyboardEvent) => {
@@ -397,17 +443,54 @@ function buildFileNode(node: FileTreeNode, depth: number, context: FileTreeConte
   return fileRow as DomphyElement;
 }
 
-function buildNode(node: FileTreeNode, depth: number, context: FileTreeContext): DomphyElement {
+function buildNode(node: FileTreeNode, context: FileTreeContext): DomphyElement {
   return node.type === "folder"
-    ? buildFolderNode(node, depth, context)
-    : buildFileNode(node, depth, context);
+    ? buildFolderNode(node, context)
+    : buildFileNode(node, context);
+}
+
+// Floating expand-all / collapse-all toggle (upstream's `CollapseButton`):
+// if anything is open, close everything; otherwise expand every folder.
+function collapseToggleButton(context: FileTreeContext, data: FileTreeNode[]): DomphyElement {
+  return {
+    button: [collapseGlyph()],
+    type: "button",
+    ariaLabel: "Toggle all folders",
+    onClick: () => {
+      context.expandedIds.set(
+        context.expandedIds.get().length > 0 ? [] : collectExpandableIds(data),
+      );
+    },
+    _key: "__collapse",
+    style: {
+      position: "absolute",
+      insetInlineEnd: themeSpacing(2),
+      bottom: themeSpacing(1),
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: themeSpacing(8),
+      height: themeSpacing(8),
+      padding: themeSpacing(1),
+      borderRadius: themeSpacing(1.5),
+      border: "none",
+      cursor: "pointer",
+      color: (listener: Listener) => themeColor(listener, "shift-9", context.color),
+      backgroundColor: "transparent",
+      transition: "background-color 150ms ease",
+      "&:hover": {
+        backgroundColor: (listener: Listener) => themeColor(listener, "shift-2", context.color),
+      },
+    } as StyleObject,
+  } as DomphyElement;
 }
 
 /**
- * A nested, expandable file/folder browser with accordion-style reveal,
- * a rotating chevron, an open/closed folder icon swap, and click-to-select
- * files. Call with no arguments for a working demo — a small `src/` layout
- * with one folder pre-expanded and `index.ts` pre-selected.
+ * A nested, expandable file/folder browser with accordion-style reveal, an
+ * open/closed folder icon swap, and click-to-select rows (both files and
+ * folders are selectable; a folder click also toggles its expansion). Call
+ * with no arguments for a working demo — a small `src/` layout with one folder
+ * pre-expanded and `index.ts` pre-selected.
  */
 function fileTree(props: FileTreeProps = {}): DomphyElement<"div"> {
   // The demo `selectedId`/`expandedIds` only make sense paired with the demo
@@ -418,7 +501,7 @@ function fileTree(props: FileTreeProps = {}): DomphyElement<"div"> {
   const sort = props.sort ?? "folders-first";
   const direction = props.direction ?? "ltr";
   const color = props.color ?? "neutral";
-  const accentColor = props.accentColor ?? "primary";
+  const accentColor = props.accentColor ?? color;
 
   const context: FileTreeContext = {
     selectedId: toState<string | null>(
@@ -437,13 +520,30 @@ function fileTree(props: FileTreeProps = {}): DomphyElement<"div"> {
     onToggle: props.onToggle,
   };
 
+  // Auto-expand the selected node's ancestor path so it is revealed on mount
+  // (upstream's `expandSpecificTargetedElements` effect). Add-only merge — it
+  // never collapses folders the caller pre-opened.
+  const initialSelected = context.selectedId.get();
+  if (initialSelected) {
+    const found = findSelectionPath(data, initialSelected);
+    if (found) {
+      const toReveal = found.selectable ? found.path : found.path.slice(0, -1);
+      const current = context.expandedIds.get();
+      const merged = [...new Set([...current, ...toReveal])];
+      if (merged.length !== current.length) context.expandedIds.set(merged);
+    }
+  }
+
   const sortedRoots = sortNodes(data, sort);
+  const children = sortedRoots.map((node) => buildNode(node, context));
+  if (props.collapseButton) children.push(collapseToggleButton(context, data));
 
   return {
-    div: sortedRoots.map((node) => buildNode(node, 0, context)),
+    div: children,
     dir: direction,
     role: "tree",
     style: {
+      position: "relative",
       display: "flex",
       flexDirection: "column",
       gap: themeSpacing(0.5),

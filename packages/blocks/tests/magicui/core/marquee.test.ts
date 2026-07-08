@@ -19,21 +19,24 @@ afterEach(() => {
 
 describe("marquee", () => {
   it("renders a working demo with zero arguments", () => {
-    const { host } = render(marquee());
+    const { host, node } = render(marquee());
 
-    // Outer overflow-hidden container > track (with duplicated groups) + two fade overlays.
+    // Single outer overflow-hidden container; upstream renders the repeated
+    // groups as its DIRECT children — there is no intermediate track wrapper.
     expect(host.children.length).toBe(1);
     const container = host.firstElementChild!;
-    expect(container.querySelector("[data-track]")).toBeTruthy();
+    const groups = container.querySelectorAll(":scope > div");
     // Default repeat count is 4 identical groups.
-    expect(container.querySelectorAll("[data-track] > div").length).toBe(4);
-    // Fade overlays default on.
-    expect(container.querySelectorAll('[aria-hidden="true"]').length).toBeGreaterThanOrEqual(2);
+    expect(groups.length).toBe(4);
+    // Fade overlays are opt-in — upstream's Marquee renders none (the fade in
+    // Magic UI's demo comes from the demo-page wrapper) — off by default.
+    expect(node.generateCSS()).not.toContain("linear-gradient");
   });
 
   it("duplicates duplicate groups after the first as aria-hidden", () => {
     const { host } = render(marquee({ repeat: 3, fade: false }));
-    const groups = host.querySelectorAll("[data-track] > div");
+    const container = host.firstElementChild!;
+    const groups = container.querySelectorAll(":scope > div");
     expect(groups.length).toBe(3);
     expect(groups[0].getAttribute("aria-hidden")).toBeNull();
     expect(groups[1].getAttribute("aria-hidden")).toBe("true");
@@ -44,6 +47,7 @@ describe("marquee", () => {
     const { host } = render(marquee({ items, repeat: 2, fade: false }));
     expect(host.textContent).toContain("Logo A");
     expect(host.textContent).toContain("Logo B");
-    expect(host.querySelectorAll("[data-track] > div").length).toBe(2);
+    const container = host.firstElementChild!;
+    expect(container.querySelectorAll(":scope > div").length).toBe(2);
   });
 });

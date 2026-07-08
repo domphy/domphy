@@ -20,7 +20,7 @@ export interface InteractiveGridPatternProps {
   width?: number;
   /** Height of each grid square, in SVG user units. Defaults to `40`. */
   height?: number;
-  /** `[columns, rows]` grid dimensions. Defaults to `[30, 20]`. */
+  /** `[columns, rows]` grid dimensions. Defaults to `[24, 24]`. */
   squares?: [number, number];
   /** Theme color family for the single hovered/active square's highlight fill.
    * Defaults to `"neutral"`. */
@@ -46,7 +46,7 @@ function interactiveGridPattern(props: InteractiveGridPatternProps = {}): Domphy
   const instanceId = ++interactiveGridPatternInstanceCounter;
   const cellWidth = Math.max(4, props.width ?? 40);
   const cellHeight = Math.max(4, props.height ?? 40);
-  const [columns, rows] = props.squares ?? [30, 20];
+  const [columns, rows] = props.squares ?? [24, 24];
   const hoverColor = props.hoverColor ?? "neutral";
   const fadeInDuration = props.fadeInDuration ?? 100;
   const fadeOutDuration = props.fadeOutDuration ?? 1000;
@@ -80,7 +80,7 @@ function interactiveGridPattern(props: InteractiveGridPatternProps = {}): Domphy
           strokeWidth: 1,
           transitionProperty: "fill",
           transitionDuration: `${fadeOutDuration}ms`,
-          transitionTimingFunction: "ease-out",
+          transitionTimingFunction: "ease-in-out",
         } as StyleObject,
       } as DomphyElement);
     }
@@ -103,8 +103,12 @@ function interactiveGridPattern(props: InteractiveGridPatternProps = {}): Domphy
     div: [
       {
         svg: squareElements,
-        viewBox: `0 0 ${gridWidth} ${gridHeight}`,
-        preserveAspectRatio: "none",
+        // Fixed pixel size with NO viewBox — matches upstream. Without a
+        // viewBox the SVG's user units map 1:1 to CSS px, so each cell keeps
+        // its exact pixel size (always square) and the grid simply clips or
+        // underflows the container rather than stretching to fill it.
+        width: gridWidth,
+        height: gridHeight,
         ariaHidden: "true",
         _onMount: (node: ElementNode) => {
           const svgElement = node.domElement as unknown as SVGSVGElement;
@@ -130,10 +134,13 @@ function interactiveGridPattern(props: InteractiveGridPatternProps = {}): Domphy
           const indexFromEvent = (event: MouseEvent): number | null => {
             const boundingBox = svgElement.getBoundingClientRect();
             if (boundingBox.width === 0 || boundingBox.height === 0) return null;
-            const scaleX = gridWidth / boundingBox.width;
-            const scaleY = gridHeight / boundingBox.height;
-            const localX = (event.clientX - boundingBox.left) * scaleX;
-            const localY = (event.clientY - boundingBox.top) * scaleY;
+            // No viewBox: user units == CSS px 1:1, so the pointer maps directly
+            // to grid coordinates with no aspect scaling. Cells outside the
+            // container (grid overflow) are simply unreachable, and pointer over
+            // empty space (grid underflow) yields an out-of-range cell -> null,
+            // exactly mirroring upstream's per-rect onMouseEnter hit-testing.
+            const localX = event.clientX - boundingBox.left;
+            const localY = event.clientY - boundingBox.top;
             const column = Math.floor(localX / cellWidth);
             const row = Math.floor(localY / cellHeight);
             if (column < 0 || column >= columns || row < 0 || row >= rows) return null;
@@ -166,6 +173,7 @@ function interactiveGridPattern(props: InteractiveGridPatternProps = {}): Domphy
           inset: 0,
           width: "100%",
           height: "100%",
+          border: "1px solid currentColor",
           color: (listener) => themeColor(listener, "shift-3"),
         } as StyleObject,
       } as DomphyElement<"svg">,

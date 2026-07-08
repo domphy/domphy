@@ -21,10 +21,10 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `orientation` | `"horizontal" \| "vertical"` | Scroll axis. Defaults to "horizontal". |
 | `reverse` | `boolean` | Flips the scroll direction (right-to-left becomes left-to-right, etc.). Defaults to false. |
 | `pauseOnHover` | `boolean` | Freezes the animation on pointer-hover, resuming from the same position on pointer-leave. Defaults to false. |
-| `duration` | `number` | Seconds per loop. Defaults to 20. |
+| `duration` | `number` | Seconds per loop. Defaults to 40. |
 | `repeat` | `number` | How many times the item set is duplicated inside the track. Defaults to 4, minimum 2. |
 | `gap` | `number` | Gap between items, in `themeSpacing` units. Defaults to 4. |
-| `fade` | `boolean` | Fades the strip's edges to transparent. Defaults to true. |
+| `fade` | `boolean` | Opt-in gradient edge-fade scrims. Upstream's Marquee renders none — the fade in Magic UI's demo comes from the demo-page wrapper, not the component. Defaults to false. |
 | `style` | `StyleObject` | Passthrough style merged onto the outer (overflow-hidden) container. |
 | `trackStyle` | `StyleObject` | Passthrough style merged onto the scrolling track. |
 

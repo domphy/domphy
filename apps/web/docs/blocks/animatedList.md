@@ -19,9 +19,9 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 |---|---|---|
 | `items` | `AnimatedListItem[]` | Source notifications cycled one at a time into the feed. Defaults to a sample activity stream. |
 | `intervalDelay` | `number` | Milliseconds between each new item's insertion. Defaults to 1000. |
-| `maxItems` | `number` | Max items kept mounted before the oldest are recycled out. Defaults to 5. |
+| `maxItems` | `number` | Cap on mounted cards in the bounded recycling feed. Only applies while looping; setting it turns looping on. Defaults to 5. |
 | `direction` | `"top" \| "bottom"` | Insertion edge: "top" pushes new items in above (list grows downward), "bottom" appends below (list grows upward). Defaults to "top". |
-| `loop` | `boolean` | Wrap back to the start of `items` once exhausted. Defaults to true. |
+| `loop` | `boolean` | Recycle the source endlessly as a bounded live feed. When off (the default) each item is revealed once and the feed halts, matching upstream. Defaults to false, or true when `maxItems` is set. |
 | `maxHeightUnits` | `number` | Container max-height, in `themeSpacing` units. Defaults to 112 (~28em). |
 
 ::: details Implementation notes

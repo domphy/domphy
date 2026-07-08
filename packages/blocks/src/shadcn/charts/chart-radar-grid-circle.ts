@@ -3,7 +3,8 @@
 // A single-series radar chart over a fully circular (ring) background grid
 // while keeping the radial spoke lines, so the data polygon's straight
 // hexagon silhouette contrasts against the round grid beneath it. Corner
-// dots included by default. Minimal, value-only hover tooltip.
+// dots included by default. Hover tooltip shows the series color dot and
+// "Desktop" label with the value, hiding only the month heading (hideLabel).
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
@@ -41,10 +42,10 @@ function chartRadarGridCircle(props: ChartRadarGridCircleProps = {}): DomphyElem
     data = RADAR_MONTHLY_SINGLE_DATA,
     series = RADAR_SINGLE_SERIES,
     title = "Radar Chart - Grid Circle",
-    description = "January - June 2026",
+    description = "Showing total visitors for the last 6 months",
     trendText = "Trending up by 5.2% this month",
     trendDirection = "up",
-    captionText = "Showing total visitors for the last 6 months",
+    captionText = "January - June 2026",
     showDots = true,
   } = props;
 
@@ -62,8 +63,9 @@ function chartRadarGridCircle(props: ChartRadarGridCircleProps = {}): DomphyElem
           gridShape: "circle",
           gridShowSpokes: true,
           showDots,
+          dotRadius: 4,
           tooltipShowLabel: false,
-          tooltipIndicator: "none",
+          tooltipIndicator: "swatch",
         }),
       ],
     },

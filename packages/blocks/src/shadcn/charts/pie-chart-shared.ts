@@ -20,7 +20,7 @@ import {
   themeDensity,
   themeSpacing,
 } from "@domphy/theme";
-import { card, heading, icon, small, strong } from "@domphy/ui";
+import { card, heading, icon, small } from "@domphy/ui";
 
 // ---------------------------------------------------------------------------
 // Data shapes + sample dataset
@@ -71,8 +71,16 @@ export function defaultValueFormatter(value: number): string {
 export const PIE_VIEWBOX_SIZE = 200;
 export const PIE_CENTER = PIE_VIEWBOX_SIZE / 2;
 export const PIE_OUTER_RADIUS = 86;
-export const DEFAULT_DONUT_INNER_RADIUS = PIE_OUTER_RADIUS * 0.42;
-export const DEFAULT_PAD_ANGLE = 0.018;
+// Upstream donut demos use `innerRadius={60}` against a ~100px outer radius —
+// a hole/outer ratio of ~0.6, not the thick ~0.42 ring an earlier default gave.
+export const DEFAULT_DONUT_INNER_RADIUS = PIE_OUTER_RADIUS * 0.6;
+// Upstream <Pie> sets no `paddingAngle` (default 0): adjacent wedges touch and
+// are parted only by the sector stroke, never by a tapering angular gap.
+export const DEFAULT_PAD_ANGLE = 0;
+// Thick separator stroke for the donut recipes upstream draws with
+// `strokeWidth={5}` (donut-text, donut-active, interactive) — ~5% of the outer
+// radius, in the background color, so segments read as cleanly parted.
+export const DONUT_SEPARATOR_STROKE_WIDTH = String(PIE_OUTER_RADIUS / 20);
 
 export interface PieSlice {
   datum: PieDatum;
@@ -255,20 +263,28 @@ export function pieTooltipLayer(tooltipState: State<PieTooltipInfo>): DomphyElem
         style: { width: themeSpacing(2.5), height: themeSpacing(2.5), flexShrink: "0" },
       } as DomphyElement<"svg">,
       {
-        div: [
-          {
-            small: (l: Listener) => tooltipState.get(l).name,
-            $: [small()],
-            style: {
-              display: (l: Listener) => (tooltipState.get(l).name ? "block" : "none"),
-            },
-          },
-          {
-            strong: (l: Listener) => tooltipState.get(l).value,
-            $: [strong()],
-          },
-        ],
-        style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
+        small: (l: Listener) => tooltipState.get(l).name,
+        $: [small()],
+        style: {
+          display: (l: Listener) => (tooltipState.get(l).name ? "block" : "none"),
+        },
+      },
+      // Right-aligned value — upstream ChartTooltipContent renders each item's
+      // value as `font-mono font-medium text-foreground tabular-nums`, pushed to
+      // the row's trailing edge by the item row's `flex-1 justify-between`. Here:
+      // one horizontal row (name left / value right), the value in monospace,
+      // medium weight (NOT strong()/bold), tabular numerals, full foreground,
+      // shoved right via `margin-inline-start: auto` (ml-auto).
+      {
+        small: (l: Listener) => tooltipState.get(l).value,
+        $: [small()],
+        style: {
+          marginInlineStart: "auto",
+          color: (l: Listener) => themeColor(l, "shift-11"),
+          fontFamily: "ui-monospace, monospace",
+          fontWeight: "500",
+          fontVariantNumeric: "tabular-nums",
+        },
       },
     ],
     ariaHidden: "true",
@@ -560,7 +576,12 @@ export function pieTrendIcon(direction: "up" | "down"): DomphyElement<"span"> {
         style: { width: "100%", height: "100%" },
       } as DomphyElement<"svg">,
     ],
-    $: [icon({ color: direction === "up" ? "success" : "danger" })],
+    // Upstream renders the glyph in plain foreground/currentColor with no
+    // semantic red/green tint — it inherits the trend line's full card
+    // foreground. Override icon()'s muted default (shift-9 neutral) so the arrow
+    // sits at the same full foreground (shift-10) as the sentence beside it.
+    $: [icon()],
+    style: { color: (l: Listener) => themeColor(l, "shift-10") },
   };
 }
 
@@ -578,11 +599,18 @@ export function pieCardFooter(options: PieFooterOptions): DomphyElement<"footer"
         div: [
           {
             div: [
-              pieTrendIcon(trendDirection),
+              // Upstream trend line is a `font-medium` (weight 500) row in the
+              // card's full foreground — NOT bold/700 — with order
+              // sentence-then-glyph ("Trending up by 5.2% this month
+              // <TrendingUp/>"): text first, trailing icon.
               {
-                strong: `Trending ${trendDirection} by ${trendValue} this period`,
-                $: [strong()],
+                span: `Trending ${trendDirection} by ${trendValue} this month`,
+                style: {
+                  fontWeight: "500",
+                  color: (l: Listener) => themeColor(l, "shift-10"),
+                },
               },
+              pieTrendIcon(trendDirection),
             ],
             style: { display: "flex", alignItems: "center", gap: themeSpacing(1.5) },
           },

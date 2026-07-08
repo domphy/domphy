@@ -20,11 +20,11 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement, Listener } from "@domphy/core";
-import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import { themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
 import {
   MOBILE_MEDIA_QUERY,
-  SPLIT_CARD_WIDTH,
+  NARROW_CARD_WIDTH,
   coverImage,
   dividerRow,
   emailField,
@@ -109,7 +109,47 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(3, 1fr)",
-      gap: themeSpacing(3),
+      gap: themeSpacing(4),
+    },
+  };
+
+  const emailFieldRow = emailField({
+    id: "login04-email",
+    fieldLabel: emailLabel,
+    placeholder: emailPlaceholder,
+  });
+
+  const passwordFieldRow = passwordField({
+    id: "login04-password",
+    fieldLabel: passwordLabel,
+    forgotPasswordHref,
+  });
+
+  // Upstream wraps title + description in one centered
+  // `flex flex-col items-center gap-2 text-center` block (a single FieldGroup
+  // item), so the gap-7 field rhythm sits below the pair — not between them.
+  const headingGroup: DomphyElement<"div"> = {
+    div: [
+      {
+        // Upstream is <h1 class="text-2xl font-bold"> (h1 is bold by default).
+        // `increase-2` is the theme step nearest text-2xl (1.5rem); it
+        // overrides heading()'s h1 default (increase-4) and its bottom margin
+        // so the group's gap-2 is the only title->description spacing.
+        h1: headingText,
+        $: [heading()],
+        style: {
+          fontSize: (listener: Listener) => themeSize(listener, "increase-2"),
+          marginBottom: 0,
+        },
+      },
+      { p: description, $: [paragraph({ color: "neutral" })] },
+    ],
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: themeSpacing(2),
+      textAlign: "center",
     },
   };
 
@@ -117,10 +157,9 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
     div: [
       {
         form: [
-          { h2: headingText, $: [heading()] },
-          { p: description, $: [paragraph({ color: "neutral" })] },
-          emailField({ id: "login04-email", fieldLabel: emailLabel, placeholder: emailPlaceholder }),
-          passwordField({ id: "login04-password", fieldLabel: passwordLabel, forgotPasswordHref }),
+          headingGroup,
+          emailFieldRow,
+          passwordFieldRow,
           submitButton(primaryButtonLabel),
           dividerRow(dividerText),
           oauthRow,
@@ -134,11 +173,14 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
             password: String(data.get("password") ?? ""),
           });
         },
-        style: { display: "flex", flexDirection: "column", gap: themeSpacing(4) },
+        style: { display: "flex", flexDirection: "column", gap: themeSpacing(7) },
       },
     ],
     style: {
-      padding: (listener: Listener) => themeSpacing(themeDensity(listener) * 6),
+      // Upstream form is p-6 md:p-8 — stepped at the md breakpoint, not a
+      // continuously density-scaled pad.
+      padding: themeSpacing(6),
+      "@media (min-width: 48em)": { padding: themeSpacing(8) },
       minWidth: "0",
     },
   };
@@ -163,17 +205,30 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-10", "neutral"),
       width: "100%",
-      maxWidth: SPLIT_CARD_WIDTH,
       [MOBILE_MEDIA_QUERY]: { gridTemplateColumns: "1fr" },
     },
   };
 
+  const legalFooterNode = legalFooter({ termsLabel, termsHref, privacyLabel, privacyHref });
+  // Upstream footer FieldDescription is px-6 text-center.
+  legalFooterNode.style = { ...legalFooterNode.style, paddingInline: themeSpacing(6) };
+
   return {
     div: [
-      cardFrame,
       {
-        div: [legalFooter({ termsLabel, termsHref, privacyLabel, privacyHref })],
-        style: { marginBlockStart: themeSpacing(6), width: "100%", maxWidth: SPLIT_CARD_WIDTH },
+        // Upstream page wrapper: `w-full max-w-sm md:max-w-4xl`, stacking the
+        // card and the legal footer with gap-6 (LoginForm's own
+        // `flex flex-col gap-6`). Caps at 384px below md and 896px at md+ —
+        // not a single fixed ~800px width for both bands.
+        div: [cardFrame, legalFooterNode],
+        style: {
+          width: "100%",
+          maxWidth: NARROW_CARD_WIDTH,
+          display: "flex",
+          flexDirection: "column",
+          gap: themeSpacing(6),
+          "@media (min-width: 48em)": { maxWidth: themeSpacing(224) },
+        },
       },
     ],
     dataTone: "shift-2",
@@ -184,6 +239,7 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
       justifyContent: "center",
       minHeight: "100dvh",
       padding: themeSpacing(6),
+      "@media (min-width: 48em)": { padding: themeSpacing(10) },
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },

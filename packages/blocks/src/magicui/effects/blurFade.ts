@@ -19,6 +19,11 @@ import { themeSpacing } from "@domphy/theme";
 
 export type BlurFadeDirection = "up" | "down" | "left" | "right";
 
+// Upstream applies `delay: 0.04 + delay` (seconds) to every reveal — a constant
+// 40ms baseline on top of the caller's delay. Mirror it here so the port starts
+// on the same beat instead of 40ms early.
+const REVEAL_BASELINE_DELAY = 40;
+
 export interface BlurFadeKeyframePair {
   /** Starting keyframe, before the reveal plays. */
   hidden: MotionKeyframe;
@@ -168,7 +173,7 @@ function blurFade(props: BlurFadeProps = {}): DomphyElement<"div"> {
       let observer: IntersectionObserver | null = null;
 
       const reveal = () => {
-        timeoutHandle = setTimeout(() => frame.set(visibleFrame), delay);
+        timeoutHandle = setTimeout(() => frame.set(visibleFrame), REVEAL_BASELINE_DELAY + delay);
       };
 
       if (trigger === "view") {

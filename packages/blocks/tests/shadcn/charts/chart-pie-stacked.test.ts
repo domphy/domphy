@@ -17,10 +17,10 @@ afterEach(() => {
 });
 
 describe("chartPieStacked", () => {
-  it("renders two concentric rings (12 wedges for the 6-month default dataset)", () => {
+  it("renders two concentric rings (10 wedges for the 5-month default dataset)", () => {
     const { host } = render(chartPieStacked());
 
-    expect(host.querySelectorAll("svg path").length).toBe(12);
+    expect(host.querySelectorAll("svg path").length).toBe(10);
   });
 
   it("labels the hovered wedge's ring in the tooltip", () => {
@@ -29,6 +29,6 @@ describe("chartPieStacked", () => {
 
     wedges[0].dispatchEvent(new MouseEvent("mouseenter", { bubbles: true, clientX: 5, clientY: 5 }));
     flushSync();
-    expect(host.textContent).toContain("Sessions");
+    expect(host.textContent).toContain("Desktop");
   });
 });

@@ -20,7 +20,7 @@ afterEach(() => {
 describe("signup02", () => {
   it("renders a working demo tree with zero args: two-column grid, logo, form, cover image", () => {
     const { host } = render(signup02() as DomphyElement);
-    expect(host.querySelector("h2")?.textContent).toBe("Create your account");
+    expect(host.querySelector("h1")?.textContent).toBe("Create your account");
     expect(host.querySelectorAll("form input").length).toBe(4);
     expect(host.querySelector("img")).toBeTruthy();
     expect(host.querySelector("a strong")?.textContent).toBe("Acme Inc.");

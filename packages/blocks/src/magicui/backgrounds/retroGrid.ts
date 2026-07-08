@@ -12,8 +12,10 @@
 // elements) sits inside a 3D `perspective` container and is tilted with
 // `rotateX(angle)` so it reads as a floor receding to a horizon. The
 // "flying toward the camera" motion is a single `linear infinite` CSS
-// `@keyframes` that shifts `background-position` by exactly one grid tile
-// per cycle, so the loop is seamless with no JS animation frame needed. A
+// `@keyframes` that shifts `background-position` by a whole number of grid
+// tiles per cycle — matching upstream's brisk ~108px/s floor flow (its 300vh
+// fallback plane translateY(-50%)->0 over 15s), independent of cell size — so
+// the loop stays seamless with no JS animation frame needed. A
 // full-size top-to-bottom gradient overlay div sits on top to fade the
 // horizon into the surrounding surface color. Distant-line thinning/LOD (the
 // production version's anti-aliasing refinement) is intentionally out of
@@ -51,11 +53,20 @@ export interface RetroGridProps {
 
 let retroGridInstanceCounter = 0;
 
-/** One-tile-per-cycle `background-position` scroll, seamless because it always ends exactly one tile past where it started. */
+// Upstream scrolls the floor ~1.5 viewport-heights per 15s cycle (300vh plane,
+// translateY(-50%)->0) — ~108px/s at a 1080px viewport, i.e. ~1.8 cells/sec at
+// the default cellSize. Reproduce that px/s here, independent of cellSize (as
+// upstream is), while keeping the background-position loop seamless.
+// ponytail: 1620 = 1.5 * a nominal 1080px viewport; bump if the target differs.
+const SCROLL_DISTANCE_PX = 1620;
+
+/** Multi-tile-per-cycle `background-position` scroll, seamless because it always ends a whole number of tiles past where it started. */
 function buildScrollKeyframes(cellSize: number) {
+  const tilesPerCycle = Math.max(1, Math.round(SCROLL_DISTANCE_PX / cellSize));
+  const distance = tilesPerCycle * cellSize;
   return {
     "0%": { backgroundPosition: "0px 0px" },
-    "100%": { backgroundPosition: `0px ${cellSize}px` },
+    "100%": { backgroundPosition: `0px ${distance}px` },
   };
 }
 
@@ -73,7 +84,7 @@ function buildGridBackgroundImage(lineColor: string, cellSize: number): string {
  * heading.
  */
 function retroGrid(props: RetroGridProps = {}): DomphyElement<"div"> {
-  const angle = props.angle ?? 65;
+  const angle = Math.min(Math.max(props.angle ?? 65, 1), 89);
   const cellSize = Math.max(1, props.cellSize ?? 60);
   const opacity = props.opacity ?? 0.5;
   const lightLineColor = props.lightLineColor ?? "neutral";
@@ -110,7 +121,6 @@ function retroGrid(props: RetroGridProps = {}): DomphyElement<"div"> {
       height: "200%",
       transform: `rotateX(${angle}deg)`,
       transformOrigin: "top",
-      opacity,
       backgroundImage: (listener: Listener) =>
         buildGridBackgroundImage(themeColor(listener, "shift-6", lightLineColor), cellSize),
       backgroundSize: `${cellSize}px ${cellSize}px`,
@@ -133,7 +143,7 @@ function retroGrid(props: RetroGridProps = {}): DomphyElement<"div"> {
       position: "absolute",
       inset: 0,
       backgroundImage: (listener: Listener) =>
-        `linear-gradient(to bottom, ${themeColor(listener, "inherit")} 0%, transparent 70%)`,
+        `linear-gradient(to top, ${themeColor(listener, "inherit")} 0%, transparent 90%)`,
     } as StyleObject,
   } as DomphyElement;
 
@@ -145,6 +155,7 @@ function retroGrid(props: RetroGridProps = {}): DomphyElement<"div"> {
       inset: 0,
       overflow: "hidden",
       pointerEvents: "none",
+      opacity,
       // A 3D `perspective` distance needs to be large relative to the plane
       // it's projecting, or points past that distance get crushed toward (or
       // past) the vanishing point. `floorPlane` is 200% of this wrapper's own

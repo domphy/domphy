@@ -18,11 +18,10 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | Prop | Type | Description |
 |---|---|---|
 | `children` | `string` | Text content. Defaults to `"Animated Gradient Text"`. |
-| `speed` | `number` | Flow speed multiplier — higher plays faster. Defaults to `1`. |
-| `colorFrom` | `ThemeColor` | First gradient stop's theme color family. Defaults to `"warning"` (orange). |
-| `colorVia` | `ThemeColor` | Middle gradient stop's theme color family. Defaults to `"secondary"` (this theme's closest role to purple). |
-| `colorTo` | `ThemeColor` | Last gradient stop's theme color family. Defaults to `"primary"` (blue). |
-| `showPill` | `boolean` | Wraps the text in a pill whose border is filled with the same flowing gradient (a subtle ring/glow around the label). Defaults to `true`. |
+| `speed` | `number` | Pan speed multiplier — scales per-cycle travel over a fixed 8s loop, so higher plays faster. Defaults to `1`. |
+| `colorFrom` | `ThemeColor` | First/last gradient stop's theme color family (the sweep is symmetric `from -&gt; to -&gt; from`). Defaults to `"warning"` (orange). |
+| `colorTo` | `ThemeColor` | Middle gradient stop's theme color family. Defaults to `"secondary"` (this theme's closest role to purple). |
+| `showPill` | `boolean` | Wraps the text in the badge the upstream demo shows (leading emoji, divider, flowing label, hover-nudging chevron, animated gradient border). Pass `false` for the bare inline gradient span. Defaults to `true`. |
 | `style` | `StyleObject` | — |
 
 ::: details Implementation notes

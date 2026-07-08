@@ -19,9 +19,7 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 |---|---|---|
 | `children` | `DomphyElement` | Custom cursor visual — freely swappable SVG/emoji/element. Defaults to a small pulsing two-tone ring. |
 | `content` | `DomphyElement[]` | The page content the hover zone wraps. Defaults to a short instructional demo panel. |
-| `offset` | `PointerOffset` | Offset (raw pixels) between the real pointer tip and the custom cursor's anchor point. Defaults to `{ x: 16, y: 16 }`. |
-| `smooth` | `boolean` | Smooths motion with a per-frame lerp instead of snapping directly to the pointer. Defaults to `true`. |
-| `smoothing` | `number` | Lerp factor (0–1) used when `smooth` is true — higher tracks faster/snappier. Defaults to `0.25`. |
+| `offset` | `PointerOffset` | Offset (raw pixels) between the real pointer tip and the custom cursor's anchor point. Defaults to `{ x: 0, y: 0 }` (cursor centered directly on the pointer). |
 | `style` | `StyleObject` | — |
 
 ::: details Implementation notes

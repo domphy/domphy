@@ -18,10 +18,13 @@
 // context's own in-flow inline content, so it sits under the live text
 // without needing any extra wrapper.
 //
-// The stripe fill itself is a small `repeating-linear-gradient` clipped to
-// the pseudo-element's generated text (`background-clip: text` + transparent
-// fill) — animating its `background-position` on a slow linear loop makes the
-// stripe texture crawl diagonally, purely via CSS, no per-frame JS.
+// The stripe fill itself is a single diagonal `linear-gradient` tiled by a
+// small `background-size` (0.06em, so the pattern is much smaller than the
+// text box) and clipped to the pseudo-element's generated text
+// (`background-clip: text` + transparent fill) — because the tile is smaller
+// than the box, percentage `background-position` keyframes translate it by a
+// non-zero amount, so animating on a slow linear loop makes the stripe texture
+// crawl diagonally, purely via CSS, no per-frame JS.
 //
 // The shadow color defaults to a theme-aware fixed-shift neutral tone
 // (`themeColor(l, "shift-17", "neutral")`), which — because tone shifts are
@@ -61,14 +64,19 @@ function lineShadowText(props: LineShadowTextProps = {}): DomphyElement {
 
   const instanceId = ++lineShadowTextInstanceCounter;
   const animationName = `line-shadow-text-crawl-${hashString(JSON.stringify({ instanceId, shadowColor }))}`;
-  const keyframes = { from: { backgroundPosition: "0 0" }, to: { backgroundPosition: "0.12em 0.12em" } };
+  const keyframes = { from: { backgroundPosition: "0 0" }, to: { backgroundPosition: "100% -100%" } };
 
   const outer = {
     [wrapperTag]: text,
     dataShadowText: text,
     style: {
       position: "relative",
-      display: "inline-block",
+      // Explicit `zIndex` (not just `position: relative`) so this host
+      // establishes its own stacking context — without it the `::after`'s
+      // `zIndex: -1` isn't contained locally and can paint behind unrelated
+      // page content instead of just behind this element's own text.
+      zIndex: 0,
+      display: "inline-flex",
       // This is a large *display* text effect (the whole premise is a bold
       // heading with a decorative shadow copy) — without an explicit size
       // token it inherits whatever tiny ambient font-size the caller's
@@ -83,13 +91,16 @@ function lineShadowText(props: LineShadowTextProps = {}): DomphyElement {
         zIndex: -1,
         transform: "translate(0.04em, 0.04em)",
         pointerEvents: "none",
-        // Fine lines, not thick bars: upstream colors only the middle ~10% of
-        // each 0.06em tile (its gradient runs `transparent 45%, color 45%,
-        // color 55%, transparent`), so the colored band is 0.006em centered in
-        // a 0.06em period. A 50% duty cycle reads as diagonal bars, not the
-        // hair-thin "line shadow" the effect is named for.
+        // Fine lines, not thick bars: upstream colors only the middle 10% of
+        // each tile (gradient runs `transparent 45%, color 45%, color 55%,
+        // transparent`), then tiles that gradient at a 0.06em background-size so
+        // the colored band is a 0.006em stripe repeating every 0.06em. The tile
+        // MUST be smaller than the text box (via background-size) — otherwise
+        // the image fills the whole box and the percentage background-position
+        // keyframes resolve to zero movement and the stripes never crawl.
         backgroundImage: (listener: Listener) =>
-          `repeating-linear-gradient(45deg, transparent 0, transparent 0.027em, ${themeColor(listener, "shift-17", shadowColor)} 0.027em, ${themeColor(listener, "shift-17", shadowColor)} 0.033em, transparent 0.033em, transparent 0.06em)`,
+          `linear-gradient(45deg, transparent 45%, ${themeColor(listener, "shift-17", shadowColor)} 45%, ${themeColor(listener, "shift-17", shadowColor)} 55%, transparent 0)`,
+        backgroundSize: "0.06em 0.06em",
         backgroundClip: "text",
         WebkitBackgroundClip: "text",
         color: "transparent",

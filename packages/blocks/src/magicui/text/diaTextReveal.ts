@@ -30,8 +30,10 @@
 // `linear-gradient()` string has no way to reference a live `var()` inside
 // a JS-computed value recomputed every frame.
 //
-// Can optionally cycle through a list of strings, sweeping each one in with
-// a pause between, looping.
+// Can optionally cycle through a list of strings (`repeat`), sweeping each in
+// with a pause between and animating the wrapper's width to each item's
+// measured pixel width as it rotates; and can replay on every scroll-back
+// (`once: false`) rather than only the first time it enters view.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
@@ -52,15 +54,19 @@ export interface DiaTextRevealProps {
    * sweep instead waits for a click (there is no external imperative trigger in this factory-function
    * API, so click is the manual-trigger substitute). Defaults to `true`. */
   autoStart?: boolean;
-  /** When multiple `children` items are given, loop back to the first after the last instead of
-   * stopping there; when a single string is given, keep re-sweeping it on `duration + pauseBetween`
-   * cycles instead of sweeping only once. Defaults to `false`. */
+  /** When multiple `children` items are given, cycle through them (advancing one per sweep, looping
+   * back to the first after the last); when a single string is given, keep re-sweeping it. When
+   * `false`, sweep only the first item once and stop — the list is not walked. Defaults to `false`. */
   repeat?: boolean;
   /** Milliseconds paused (settled, solid color) between one item's sweep finishing and the next
    * starting. Defaults to `500`. */
   pauseBetween?: number;
-  /** Reserves enough inline width for the longest item so cycling text doesn't shift surrounding
-   * layout. Defaults to `false`. */
+  /** Replays the sweep every time the element re-enters the viewport (only applies when `autoStart`
+   * is on). When `true`, the sweep plays a single time on first entry. Defaults to `true`. */
+  once?: boolean;
+  /** Reserves the widest item's measured pixel width (applied as `width`) so cycling text doesn't
+   * shift surrounding layout. When `false` and multiple items are given, the width instead animates
+   * smoothly to each item's measured width as it rotates. Defaults to `false`. */
   reserveWidth?: boolean;
   /** Passthrough style merged onto the outer wrapper. */
   style?: StyleObject;
@@ -103,6 +109,30 @@ function buildGradient(position: number, colorHexes: string[], textColorHex: str
   return `linear-gradient(90deg, ${stops.join(", ")})`;
 }
 
+/** Measures each string's rendered pixel width by cloning the span into the
+ * same layout context (upstream's `measureWidths` ghost-clone), so cycling
+ * text can reserve or animate to a real pixel width instead of a raw
+ * character count that diverges under proportional fonts. */
+function measureWidths(element: HTMLElement, texts: string[]): number[] {
+  const parent = element.parentElement;
+  if (!parent) return [];
+  const ghost = element.cloneNode(false) as HTMLElement;
+  Object.assign(ghost.style, {
+    position: "absolute",
+    visibility: "hidden",
+    pointerEvents: "none",
+    width: "auto",
+    whiteSpace: "nowrap",
+  });
+  parent.appendChild(ghost);
+  const widths = texts.map((text) => {
+    ghost.textContent = text;
+    return ghost.getBoundingClientRect().width;
+  });
+  ghost.remove();
+  return widths;
+}
+
 /**
  * Text that stays invisible (background-clipped to a mostly-transparent
  * gradient) until the first time it scrolls into view, at which point a
@@ -124,22 +154,27 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
   const autoStart = props.autoStart ?? true;
   const repeat = props.repeat ?? false;
   const pauseBetween = props.pauseBetween ?? 500;
+  const once = props.once ?? true;
   const reserveWidth = props.reserveWidth ?? false;
 
-  const longestItemLength = items.reduce((max, item) => Math.max(max, item.length), 0);
+  const isMulti = items.length > 1;
   const currentText = toState(items[0]);
 
   return {
     span: (listener) => currentText.get(listener),
     style: {
       position: "relative",
-      display: "inline-block",
-      whiteSpace: "nowrap",
+      verticalAlign: "bottom",
+      lineHeight: "100%",
+      transform: "translateY(-2px)",
       color: "transparent",
       backgroundClip: "text",
       WebkitBackgroundClip: "text",
       backgroundSize: "100% 100%",
-      ...(reserveWidth ? { minWidth: `${longestItemLength}ch` } : {}),
+      // Multi-item wrapper clips during the width transition (upstream's
+      // `overflow: hidden`); the concrete pixel width is measured and applied
+      // in `_onMount`, not reserved here as a character count.
+      ...(isMulti ? { display: "inline-block", overflow: "hidden", whiteSpace: "nowrap" } : {}),
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
@@ -161,6 +196,33 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
         }
       });
 
+      // Measure each item's rendered pixel width (only meaningful when cycling
+      // multiple strings). With `reserveWidth` the wrapper is pinned to the
+      // widest item; otherwise its width animates to each item's width as the
+      // list rotates — matching upstream's `measureWidths` + `animate({width})`.
+      const widths = isMulti ? measureWidths(element, items) : [];
+      if (isMulti && widths.length > 0) {
+        if (reserveWidth) {
+          element.style.width = `${Math.max(...widths)}px`;
+        } else {
+          element.style.transition = "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
+          element.style.width = `${widths[0]}px`;
+        }
+      }
+      const applyItemWidth = (index: number) => {
+        if (isMulti && !reserveWidth && widths[index] != null) {
+          element.style.width = `${widths[index]}px`;
+        }
+      };
+
+      const prefersReducedMotion =
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (prefersReducedMotion) {
+        element.style.backgroundImage = buildGradient(SWEEP_END, colorHexes, textColorHex);
+        return;
+      }
+
       // Not yet revealed: paint the resting (pre-trigger) frame immediately,
       // rather than leaving the browser's own gradient-less default (which
       // would render as plain solid text, defeating the whole reveal).
@@ -173,21 +235,35 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
       let animationFrameId: number | null = null;
       let pendingTimeout: ReturnType<typeof setTimeout> | null = null;
 
+      const stop = () => {
+        if (animationFrameId !== null) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+        if (pendingTimeout !== null) {
+          clearTimeout(pendingTimeout);
+          pendingTimeout = null;
+        }
+      };
+
       // Cycling/repeat is plain setTimeout sequencing and doesn't depend on
       // rAF at all — only the smooth per-frame sweep does. A runtime with no
       // rAF (e.g. a non-browser test runtime) still cycles/repeats on
       // schedule, it just jumps straight to each item's fully-revealed frame
       // instead of animating the reveal.
+      //
+      // Upstream advances only when `repeat` is on (a multi list cycling, or a
+      // single string re-sweeping); with `repeat` off it sweeps exactly the
+      // first item once and stops — it never walks the list.
       const onSweepComplete = () => {
         animationFrameId = null;
-        const isLastItem = itemIndex === items.length - 1;
-        if (isLastItem && !repeat) return;
+        if (!repeat) return;
         pendingTimeout = setTimeout(() => {
           pendingTimeout = null;
           itemIndex = (itemIndex + 1) % items.length;
           currentText.set(items[itemIndex]);
-          element.style.backgroundImage = buildGradient(SWEEP_START, colorHexes, textColorHex);
-          runSweep();
+          applyItemWidth(itemIndex);
+          play();
         }, pauseBetween);
       };
 
@@ -218,9 +294,12 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
         animationFrameId = requestAnimationFrame(step);
       };
 
-      const beginSequence = () => {
-        if (hasStarted) return;
-        hasStarted = true;
+      // One play pass: reset to the resting (invisible) frame immediately, wait
+      // `delay`, then sweep. `delay` precedes every pass — the first sweep, each
+      // repeat cycle, and each scroll-back replay — matching upstream's
+      // `animate(..., { delay })` being re-supplied on every `playRef` call.
+      const play = () => {
+        element.style.backgroundImage = buildGradient(SWEEP_START, colorHexes, textColorHex);
         if (delay > 0) {
           pendingTimeout = setTimeout(() => {
             pendingTimeout = null;
@@ -231,6 +310,12 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
         }
       };
 
+      const startOnce = () => {
+        if (hasStarted) return;
+        hasStarted = true;
+        play();
+      };
+
       let intersectionObserver: IntersectionObserver | null = null;
       let handleClick: (() => void) | null = null;
 
@@ -238,15 +323,27 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
         if (typeof IntersectionObserver !== "function") {
           // No IntersectionObserver support (e.g. a non-browser test runtime)
           // — fail open and play immediately rather than never playing.
-          beginSequence();
+          startOnce();
         } else {
           intersectionObserver = new IntersectionObserver(
             (entries) => {
               for (const entry of entries) {
-                if (!entry.isIntersecting) continue;
-                beginSequence();
-                intersectionObserver?.disconnect();
-                intersectionObserver = null;
+                if (entry.isIntersecting) {
+                  if (once) {
+                    startOnce();
+                    intersectionObserver?.disconnect();
+                    intersectionObserver = null;
+                  } else {
+                    // Replay on every re-entry: halt any in-flight pass and
+                    // sweep again from the start, keeping the current item.
+                    stop();
+                    play();
+                  }
+                } else if (!once) {
+                  // Left the viewport: stop the in-flight sweep so the next
+                  // re-entry restarts cleanly (upstream's effect-cleanup stop).
+                  stop();
+                }
               }
             },
             { threshold: 0.1 },
@@ -254,14 +351,13 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
           intersectionObserver.observe(element);
         }
       } else {
-        handleClick = () => beginSequence();
+        handleClick = () => startOnce();
         element.style.cursor = "pointer";
         element.addEventListener("click", handleClick);
       }
 
       node.addHook("Remove", () => {
-        if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
-        if (pendingTimeout !== null) clearTimeout(pendingTimeout);
+        stop();
         intersectionObserver?.disconnect();
         if (handleClick) element.removeEventListener("click", handleClick);
       });

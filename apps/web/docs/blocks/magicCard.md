@@ -17,8 +17,8 @@ A **Effects** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 
 | Prop | Type | Description |
 |---|---|---|
-| `variant` | `"border" \| "orb"` | `"border"` traces a spotlight along the card edge; `"orb"` is a softer diffuse glow behind the content. Defaults to `"border"`. |
-| `spotlightSize` | `number` | Spotlight diameter in pixels, `"border"` mode only. Defaults to `200`. |
+| `variant` | `"border" \| "orb"` | `"border"` keeps a gradient ring on the edge and adds a soft interior glow that tracks the cursor; `"orb"` is a larger blurred blob that spring-lags behind the pointer and blends into the content. Defaults to `"border"`. |
+| `spotlightSize` | `number` | Spotlight/ring diameter in pixels, `"border"` mode only. Defaults to `200`. |
 | `orbSize` | `number` | Orb diameter in pixels, `"orb"` mode only. Defaults to `420`. |
 | `orbBlur` | `number` | Orb blur radius in pixels, `"orb"` mode only. Defaults to `60`. |
 | `orbOpacity` | `number` | Orb opacity while hovered, `"orb"` mode only. Defaults to `0.9`. |

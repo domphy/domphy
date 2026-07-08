@@ -31,7 +31,7 @@ describe("animatedCircularProgressBar", () => {
     expect(container.getAttribute("aria-valuemin")).toBe("0");
     expect(container.getAttribute("aria-valuemax")).toBe("100");
     expect(container.querySelectorAll("circle").length).toBe(2);
-    expect(container.querySelector("strong")?.textContent).toBe("40%");
+    expect(container.querySelector("strong")?.textContent).toBe("40");
   });
 
   it("updates the arc and readout reactively when a state value changes", async () => {
@@ -39,12 +39,12 @@ describe("animatedCircularProgressBar", () => {
     const { host } = render(animatedCircularProgressBar({ value }));
 
     const container = host.querySelector('[role="progressbar"]')!;
-    expect(container.querySelector("strong")?.textContent).toBe("10%");
+    expect(container.querySelector("strong")?.textContent).toBe("10");
 
     value.set(70);
     await flush();
 
     expect(container.getAttribute("aria-valuenow")).toBe("70");
-    expect(container.querySelector("strong")?.textContent).toBe("70%");
+    expect(container.querySelector("strong")?.textContent).toBe("70");
   });
 });

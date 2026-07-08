@@ -20,8 +20,8 @@
 // original placeholder data, not sourced from upstream.
 
 import type { DomphyElement, PartialElement } from "@domphy/core";
-import { type ThemeColor, themeColorToken, themeSpacing } from "@domphy/theme";
-import { card, heading, icon, motion, paragraph, small, strong } from "@domphy/ui";
+import { type ThemeColor, themeColor, themeColorToken, themeSpacing } from "@domphy/theme";
+import { card, heading, icon, motion, paragraph, small } from "@domphy/ui";
 import { chart, createLinearScale, createOrdinalScale } from "@domphy/chart";
 import type { ChartOption, AxisOption, TooltipParams } from "@domphy/chart";
 
@@ -217,7 +217,12 @@ const TREND_GLYPH: Record<"up" | "down", DomphyElement[]> = {
   ],
 };
 
-function trendGlyphIcon(direction: "up" | "down", color: ThemeColor): DomphyElement<"span"> {
+// Upstream renders `<TrendingUp className="h-4 w-4" />` with no color class, so
+// the arrow inherits the footer's full-foreground text color — NO green/red
+// semantic tint and NOT the muted point-label tone. `icon()` sizes/centers the
+// box but always paints the muted `shift-9` tone, so override the span's own
+// color to the `shift-11` foreground tone (native style wins over the patch).
+function trendGlyphIcon(direction: "up" | "down", color?: ThemeColor): DomphyElement<"span"> {
   return {
     span: [
       {
@@ -233,7 +238,10 @@ function trendGlyphIcon(direction: "up" | "down", color: ThemeColor): DomphyElem
         style: { width: "100%", height: "100%" },
       } as DomphyElement<"svg">,
     ],
-    $: [icon({ color })],
+    style: {
+      color: (listener) => themeColor(listener, "shift-11", color ?? "neutral"),
+    },
+    $: [icon(color ? { color } : {})],
   };
 }
 
@@ -243,16 +251,25 @@ export interface TrendFooterProps {
   direction?: "up" | "down";
 }
 
-/** A card footer: bold "trend went up/down N%" line with an arrow glyph, and
- * a smaller muted sentence underneath. */
+/** A card footer: a medium-weight "trend went up/down N%" line with an arrow
+ * glyph, and a smaller muted sentence underneath. */
 export function trendFooter(props: TrendFooterProps): DomphyElement<"footer"> {
   const { headline, subtitle, direction = "up" } = props;
   return {
     footer: [
       {
         div: [
-          { strong: headline, $: [strong()] } as DomphyElement<"strong">,
-          trendGlyphIcon(direction, direction === "up" ? "success" : "danger"),
+          // Upstream footer trend line is `font-medium` (500) in FULL card
+          // foreground — not bold/strong (700). Only the second caption line
+          // below uses the muted tone.
+          {
+            span: headline,
+            style: {
+              fontWeight: 500,
+              color: (listener) => themeColor(listener, "shift-11", "neutral"),
+            },
+          } as DomphyElement<"span">,
+          trendGlyphIcon(direction),
         ],
         style: { display: "flex", alignItems: "center", gap: themeSpacing(1.5) },
       } as DomphyElement<"div">,
@@ -284,6 +301,29 @@ function firstTooltipParam(params: TooltipParams | TooltipParams[]): TooltipPara
   return Array.isArray(params) ? params[0] : params;
 }
 
+// Static light-theme tokens + a monospace stack for the raw-HTML tooltip rows
+// (same static-token approach as every other raw-HTML/SVG string in this
+// family — see the tooltip-formatter note above).
+const TOOLTIP_MUTED = themeColorToken(null, "shift-9", "neutral");
+const TOOLTIP_FOREGROUND = themeColorToken(null, "shift-11", "neutral");
+const TOOLTIP_MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+
+/** Wraps a ready `swatch` HTML fragment + already-escaped series `label` and
+ * `valueText` into the upstream ChartTooltipContent row (ui/chart.tsx
+ * ~L243-262): swatch, then the series NAME on the LEFT in muted foreground at
+ * normal weight, and the VALUE pushed to the RIGHT edge as monospace / medium /
+ * tabular-nums in FULL foreground. */
+export function tooltipRow(swatch: string, label: string, valueText: string): string {
+  return (
+    `<span style="display:flex;align-items:center;gap:8px;">${swatch}` +
+    `<span style="display:flex;flex:1;justify-content:space-between;align-items:center;gap:16px;">` +
+    `<span style="color:${TOOLTIP_MUTED};">${label}</span>` +
+    `<span style="font-family:${TOOLTIP_MONO};font-weight:500;` +
+    `font-variant-numeric:tabular-nums;color:${TOOLTIP_FOREGROUND};">${valueText}</span>` +
+    `</span></span>`
+  );
+}
+
 /** Bare numeric value, no swatch, no series/date label. */
 export function bareValueTooltipFormatter(params: TooltipParams | TooltipParams[]): string {
   const point = firstTooltipParam(params);
@@ -299,13 +339,14 @@ export function lineSwatchValueTooltipFormatter(params: TooltipParams | TooltipP
   return `${swatch}${escapeHtml(String(point.value ?? ""))}`;
 }
 
-/** A small vertical-line color swatch + series label + the numeric value. */
+/** A small vertical-line color swatch + muted series label on the left + the
+ * value pushed right (monospace/medium/foreground) — the upstream row. */
 export function lineSwatchLabelValueTooltipFormatter(params: TooltipParams | TooltipParams[]): string {
   const point = firstTooltipParam(params);
   if (!point) return "";
-  const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${point.color};margin-right:6px;vertical-align:middle;"></span>`;
+  const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${point.color};"></span>`;
   const label = escapeHtml(String(point.seriesName ?? point.name ?? ""));
-  return `${swatch}<strong>${label}</strong>: ${escapeHtml(String(point.value ?? ""))}`;
+  return tooltipRow(swatch, label, escapeHtml(String(point.value ?? "")));
 }
 
 // ─── Mount reveal animation ───────────────────────────────────────────────────
@@ -451,6 +492,11 @@ export function hoverDotOverlay(props: HoverDotOverlayProps): PartialElement {
       const dot = document.createElementNS(svgNamespace, "circle") as SVGCircleElement;
       dot.setAttribute("r", String(radius));
       dot.setAttribute("fill", themeColorToken(null, "shift-9", color));
+      // recharts activeDot defaults: fill=seriesColor, stroke=#fff, strokeWidth=2.
+      // The white stroke reads as a card/background-tone ring that separates the
+      // active dot from the line — use the lightest neutral (card background).
+      dot.setAttribute("stroke", themeColorToken(null, "shift-0", "neutral"));
+      dot.setAttribute("stroke-width", "2");
       dot.style.opacity = "0";
       dot.style.transition = "opacity 100ms ease-out";
       svg.appendChild(dot);

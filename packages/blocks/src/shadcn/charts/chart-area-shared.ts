@@ -34,7 +34,7 @@ import {
   themeSpacing,
   type ThemeColor,
 } from "@domphy/theme";
-import { card, heading, icon, paragraph, small, strong } from "@domphy/ui";
+import { card, heading, icon, paragraph, small } from "@domphy/ui";
 import { chart } from "@domphy/chart";
 import type { ChartOption, GradientObject, TooltipParams } from "@domphy/chart";
 import { motion } from "@domphy/ui";
@@ -230,6 +230,32 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#39;");
 }
 
+// Upstream ChartTooltipContent (registry/new-york-v4/ui/chart.tsx ~207-262)
+// renders each series as ONE flex row: the color swatch + the series name in
+// muted-foreground on the LEFT, and the value pushed to the RIGHT edge as
+// monospace / weight-500 / tabular-nums in the panel's full foreground. The
+// panel carries `min-w-[8rem]`, which is what lets the value right-align even
+// for a single-series tooltip. Reproduced here with fixed theme tokens (muted
+// name = neutral shift-9; the value inherits the engine tooltip's shift-10
+// foreground) — the same approach as chart-tooltip-shared.ts.
+const TOOLTIP_MUTED_COLOR = themeColorToken(null, "shift-9", "neutral");
+
+/** One tooltip series row: swatch + muted name (left), mono value (right). */
+export function chartAreaTooltipRow(swatch: string, label: string, value: string): string {
+  return (
+    `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">` +
+    `<span style="display:flex;align-items:center;">${swatch}` +
+    `<span style="color:${TOOLTIP_MUTED_COLOR};">${label}</span></span>` +
+    `<span style="font-family:ui-monospace,monospace;font-weight:500;font-variant-numeric:tabular-nums;">${value}</span>` +
+    `</div>`
+  );
+}
+
+/** Wraps assembled tooltip rows in the upstream `min-w-[8rem]` panel. */
+export function wrapChartAreaTooltip(inner: string): string {
+  return `<div style="min-width:8rem;">${inner}</div>`;
+}
+
 /**
  * Builds an axis-trigger tooltip formatter that prints the hovered
  * category label (resolved from `categories[dataIndex]`, since the engine
@@ -245,11 +271,16 @@ function escapeHtml(text: string): string {
  * @param hideLabel - When true, the leading category header row is omitted —
  *   mirroring upstream's `<ChartTooltipContent hideLabel />` (used by the
  *   linear and step recipes).
+ * @param indicator - Series color-swatch shape. `'dot'` (default) is a round
+ *   swatch; `'line'` is a thin vertical bar — mirroring upstream's
+ *   `<ChartTooltipContent indicator="line" />` (used by the default, icons,
+ *   legend and stacked-expand recipes; the rest keep the default dot).
  */
 export function chartAxisTooltipFormatter(
   categories: string[],
   valueLabel: (params: TooltipParams) => string = (p) => String(p.value ?? ""),
   hideLabel = false,
+  indicator: "dot" | "line" = "dot",
 ): (params: TooltipParams | TooltipParams[]) => string {
   return (paramsInput) => {
     const params = Array.isArray(paramsInput) ? paramsInput : [paramsInput];
@@ -257,12 +288,19 @@ export function chartAxisTooltipFormatter(
     const category = escapeHtml(categories[params[0].dataIndex] ?? params[0].name ?? "");
     const rows = params
       .map((p) => {
-        const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
+        const swatch =
+          indicator === "line"
+            ? `<span style="display:inline-block;width:4px;height:12px;border-radius:2px;background:${p.color};margin-right:6px;vertical-align:middle;"></span>`
+            : `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
         const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
-        return `${dot}<strong>${label}</strong>: ${escapeHtml(valueLabel(p))}`;
+        return chartAreaTooltipRow(swatch, label, escapeHtml(valueLabel(p)));
       })
-      .join("<br>");
-    return hideLabel ? rows : `<strong>${category}</strong><br>${rows}`;
+      .join("");
+    // Upstream tooltipLabel is `font-medium` = weight 500 (chart.tsx), not bold.
+    const header = hideLabel
+      ? ""
+      : `<div style="font-weight:500;margin-bottom:4px;">${category}</div>`;
+    return wrapChartAreaTooltip(`${header}${rows}`);
   };
 }
 
@@ -316,9 +354,11 @@ export function chartLegendSwatch(color: ThemeColor): PartialElement {
   return {
     style: {
       display: "inline-block",
-      width: themeSpacing(2.5),
-      height: themeSpacing(2.5),
-      borderRadius: themeSpacing(1),
+      // Upstream ChartLegendContent swatch is `h-2 w-2 rounded-[2px]`
+      // (8px square, 2px radius), not a 10px/4px chip.
+      width: themeSpacing(2),
+      height: themeSpacing(2),
+      borderRadius: themeSpacing(0.5),
       flexShrink: "0",
       backgroundColor: (listener: Listener) => themeColor(listener, "shift-9", colorState.get(listener)),
       color: (listener: Listener) => themeColor(listener, "shift-9", colorState.get(listener)),
@@ -365,23 +405,46 @@ export interface ChartTrendFooterProps {
   captionText: string;
   color?: ThemeColor;
   trendIconOverride?: DomphyElement<"span">;
-  /** Whether the trend-arrow icon is shown before the bold sentence. Defaults to `true`. */
+  /** Whether the trend-arrow icon is shown after the bold sentence. Defaults to `true`. */
   showIcon?: boolean;
 }
 
-/** Two-line footer: icon + bold trend sentence, then a muted caption line. */
+/** Two-line footer: bold trend sentence + trailing trend icon, then a muted caption line. */
 export function chartTrendFooter(props: ChartTrendFooterProps): DomphyElement<"footer"> {
   const {
     trendText,
     direction,
     captionText,
-    color = direction === "up" ? "success" : "danger",
+    // Upstream renders the icon with plain foreground/currentColor — no
+    // semantic green/red tint. Callers may still override explicitly.
+    color = "neutral",
     trendIconOverride,
     showIcon = true,
   } = props;
-  const trendRow: DomphyElement[] = [];
-  if (showIcon) trendRow.push(trendIconOverride ?? chartTrendIcon(direction, color));
-  trendRow.push({ strong: trendText, $: [strong({ color: "neutral" })] });
+  // Upstream footer trend line is `font-medium` (weight 500) in the card's
+  // FULL foreground — NOT bold (700). A plain span at 500, not strong().
+  const trendRow: DomphyElement[] = [
+    {
+      span: trendText,
+      style: {
+        fontWeight: "500",
+        color: (listener: Listener) => themeColor(listener, "shift-11", color),
+      },
+    },
+  ];
+  // Upstream order: sentence FIRST, then the trend icon after it
+  // ("Trending up by 5.2% this month <TrendingUp />").
+  if (showIcon) {
+    const trendIcon = trendIconOverride ?? chartTrendIcon(direction, color);
+    // Upstream's footer <TrendingUp/> has no color class, so it inherits the
+    // trend line's FULL foreground (currentColor) — unlike the muted legend
+    // icons. icon() bakes in shift-9 (muted); restore full foreground here.
+    trendIcon.$ = [
+      ...(trendIcon.$ ?? []),
+      { style: { color: (listener: Listener) => themeColor(listener, "shift-11", color) } },
+    ];
+    trendRow.push(trendIcon);
+  }
   return {
     footer: [
       {
@@ -408,7 +471,12 @@ export function chartLegendRow(entries: ChartLegendEntry[]): DomphyElement<"div"
         entry.icon
           ? chartTrendIcon(entry.icon, entry.color)
           : ({ span: null, $: [chartLegendSwatch(entry.color)] } as DomphyElement<"span">),
-        { small: entry.label, $: [small({ color: "neutral" })] },
+        // Upstream ChartLegendContent label is plain inherited-size FULL
+        // foreground text (chart.tsx line 322) — not muted, not shrunk.
+        {
+          span: entry.label,
+          style: { color: (listener: Listener) => themeColor(listener, "shift-11", "neutral") },
+        },
       ],
       style: { display: "inline-flex", alignItems: "center", gap: themeSpacing(1.5) },
       _key: entry.label,

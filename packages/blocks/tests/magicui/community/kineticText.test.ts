@@ -23,7 +23,7 @@ describe("kineticText", () => {
     flushSync();
 
     const container = host.firstElementChild as HTMLElement;
-    expect(container.tagName).toBe("H2");
+    expect(container.tagName).toBe("H1");
     const spans = container.querySelectorAll(":scope > span");
     // sr-only duplicate + one span per character.
     expect(spans.length).toBe("Kinetic Type In Motion".length + 1);

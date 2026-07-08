@@ -20,7 +20,6 @@ A **Charts** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clean
 | `data` | `PieDatum[]` | — |
 | `title` | `string` | — |
 | `description` | `string` | — |
-| `valueFormatter` | `(value: number) =&gt; string` | — |
 | `legendColumns` | `number` | Number of equal-width legend columns. Defaults to 4. |
 
 ::: details Implementation notes

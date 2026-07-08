@@ -19,8 +19,8 @@ A **Buttons** block/component from **[Magic UI](/docs/blocks/magicui)** — clea
 |---|---|---|
 | `children` | `DomphyElement \| DomphyElement[] \| string` | Button label content. Defaults to `"Shimmer Button"`. |
 | `background` | `ThemeColor` | Fill color family for the button's dark base and the ring's solid mask layer. Defaults to `"neutral"` (near-black, via a `shift-15` dark edge anchor). |
-| `shimmerColor` | `ThemeColor` | Color family the rotating highlight sliver and hover glow are drawn from. Defaults to `"neutral"` (near-white). |
-| `shimmerSize` | `string` | Thickness of the visible ring, as a CSS length. Defaults to `"0.12em"`. |
+| `shimmerColor` | `ThemeColor` | Color family the rotating highlight sliver is drawn from. Defaults to `"neutral"` (near-white). |
+| `shimmerSize` | `string` | Thickness of the visible ring, as a CSS length. Defaults to `"0.05em"`. |
 | `shimmerDuration` | `number` | One full rotation around the border, in seconds. Defaults to `3`. |
 | `borderRadius` | `number` | Corner radius in pixels. Defaults to `100` (near-pill). |
 | `onClick` | `(event: MouseEvent) =&gt; void` | — |

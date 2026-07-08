@@ -14,9 +14,11 @@ import {
   CHART_BAR_MONTHLY_DATA,
   chartBarCardShell,
   chartBarCategoryYAxis,
+  chartBarColorHex,
   chartBarFrame,
   chartBarHiddenValueXAxis,
   chartBarHorizontalHoverOverlay,
+  chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
   type ChartBarGrid,
@@ -68,6 +70,7 @@ function chartBarHorizontal(props: ChartBarHorizontalProps = {}): DomphyElement<
   const categories = orderedData.map((point) => point.label.slice(0, categoryTruncateLength));
   const values = orderedData.map((point) => point.value);
   const [, domainMax] = chartBarValueDomain(values);
+  const seriesColorHex = chartBarColorHex(seriesColor);
 
   const option: ChartOption = {
     tooltip: { show: false },
@@ -96,7 +99,12 @@ function chartBarHorizontal(props: ChartBarHorizontalProps = {}): DomphyElement<
             chartBarHorizontalHoverOverlay({
               categories,
               grid,
-              valueLabel: (index) => String(values[index] ?? ""),
+              valueLabel: (index) =>
+                chartBarTooltipRow(
+                  `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${seriesColorHex};margin-right:6px;"></span>`,
+                  seriesLabel,
+                  String(values[index] ?? ""),
+                ),
             }),
           ],
         }),

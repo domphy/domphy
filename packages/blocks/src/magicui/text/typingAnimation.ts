@@ -9,9 +9,9 @@
 // `terminal()` block uses for its own typed command lines, generalized to
 // support delete/cycle through multiple phrases.
 
-import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
+import type { DomphyElement, ElementNode, State, StyleObject } from "@domphy/core";
 import { hashString, toState } from "@domphy/core";
-import { themeColor, themeSpacing } from "@domphy/theme";
+import { themeColor } from "@domphy/theme";
 
 export type TypingCursorStyle = "line" | "block" | "underscore";
 export type TypingAnimationTag = "span" | "div" | "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -27,7 +27,7 @@ export interface TypingAnimationProps {
   pauseDuration?: number;
   /** ms before the very first character types. Defaults to `0`. */
   startDelay?: number;
-  /** Cycles back to the first phrase after the last. Only relevant with multiple phrases. Defaults to `true`. */
+  /** Cycles back to the first phrase after the last. Only relevant with multiple phrases. Defaults to `false`. */
   loop?: boolean;
   /** Shows the trailing cursor glyph. Defaults to `true`. */
   showCursor?: boolean;
@@ -35,7 +35,7 @@ export interface TypingAnimationProps {
   cursorBlink?: boolean;
   /** Cursor glyph shape. Defaults to `"line"`. */
   cursorStyle?: TypingCursorStyle;
-  /** Waits until the wrapper scrolls into view before typing starts. Defaults to `false`. */
+  /** Waits until the wrapper scrolls into view before typing starts. Defaults to `true`. */
   startOnView?: boolean;
   /** Wrapping element tag. Defaults to `"span"`. */
   as?: TypingAnimationTag;
@@ -61,20 +61,19 @@ function toGraphemes(text: string): string[] {
 // lights, and keeps the glyph's height matched to the surrounding text size
 // for free (inherited font-size, no literal width/height needed).
 const CURSOR_GLYPH_BY_STYLE: Record<TypingCursorStyle, string> = {
-  line: "▏",
-  block: "█",
+  line: "|",
+  block: "▌",
   underscore: "_",
 };
 
-function cursorGlyph(cursorStyle: TypingCursorStyle, blink: boolean): DomphyElement<"span"> {
+function cursorGlyph(cursorStyle: TypingCursorStyle, blink: boolean, visible: State<boolean>): DomphyElement<"span"> {
   return {
     span: CURSOR_GLYPH_BY_STYLE[cursorStyle],
     ariaHidden: "true",
     style: {
-      display: "inline-block",
-      marginInlineStart: themeSpacing(1),
+      display: (listener) => (visible.get(listener) ? "inline-block" : "none"),
       color: (listener) => themeColor(listener, "shift-9"),
-      animation: blink ? `${CURSOR_ANIMATION_NAME} 1s steps(1) infinite` : undefined,
+      animation: blink ? `${CURSOR_ANIMATION_NAME} 1.2s step-end infinite` : undefined,
       [`@keyframes ${CURSOR_ANIMATION_NAME}`]: blink ? CURSOR_KEYFRAMES : undefined,
     } as StyleObject,
   } as DomphyElement<"span">;
@@ -96,66 +95,117 @@ function typingAnimation(props: TypingAnimationProps = {}): DomphyElement {
   const deletingSpeed = props.deletingSpeed ?? Math.max(1, Math.round(typingSpeed / 2));
   const pauseDuration = props.pauseDuration ?? 1000;
   const startDelay = props.startDelay ?? 0;
-  const loop = props.loop ?? true;
+  const loop = props.loop ?? false;
   const showCursor = props.showCursor ?? true;
   const cursorBlink = props.cursorBlink ?? true;
   const cursorStyle = props.cursorStyle ?? "line";
-  const startOnView = props.startOnView ?? false;
+  const startOnView = props.startOnView ?? true;
   const wrapperTag = props.as ?? "span";
 
   const phraseGraphemes = phrases.map((phrase) => toGraphemes(phrase));
   const revealedText = toState("");
+  const cursorVisible = toState(true);
 
   const outerChildren: DomphyElement[] = [
     {
       span: (listener) => revealedText.get(listener),
       _key: "revealed",
       dataTypingRevealed: "true",
-      style: { whiteSpace: "pre-wrap" },
     },
-    ...(showCursor ? [{ ...cursorGlyph(cursorStyle, cursorBlink), _key: "cursor" }] : []),
+    ...(showCursor ? [{ ...cursorGlyph(cursorStyle, cursorBlink, cursorVisible), _key: "cursor" }] : []),
   ];
+
+  const hasMultipleWords = phrases.length > 1;
 
   const outer = {
     [wrapperTag]: outerChildren,
     style: {
-      display: "inline-flex",
-      alignItems: "center",
+      // Upstream always applies `leading-20` (line-height 5rem) and
+      // `tracking-[-0.02em]`, plus `inline-block` only when `as === "span"`
+      // (block/inline tags keep their native display). Passthrough style wins.
+      lineHeight: "5rem",
+      letterSpacing: "-0.02em",
+      ...(wrapperTag === "span" ? { display: "inline-block" } : {}),
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined") return;
       let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-      let phraseIndex = 0;
+      // Direct translation of upstream's `phase`/index state machine so the
+      // timing matches exactly: the per-step delay is computed BEFORE each
+      // transition from the (possibly empty) currently-displayed text, so
+      // `startDelay` re-applies before the first character of every new word
+      // and a finished word is held for `typingSpeed + pauseDuration`.
+      let displayed = "";
+      let wordIndex = 0;
+      let charIndex = 0;
+      let phase: "typing" | "pause" | "deleting" = "typing";
 
-      const typeStep = (characterIndex: number) => {
-        const graphemes = phraseGraphemes[phraseIndex];
-        revealedText.set(graphemes.slice(0, characterIndex).join(""));
-        if (characterIndex < graphemes.length) {
-          timeoutHandle = setTimeout(() => typeStep(characterIndex + 1), typingSpeed);
-          return;
+      const step = () => {
+        const graphemes = phraseGraphemes[wordIndex];
+        let changed = false;
+        switch (phase) {
+          case "typing":
+            if (charIndex < graphemes.length) {
+              displayed = graphemes.slice(0, charIndex + 1).join("");
+              charIndex += 1;
+              changed = true;
+            } else if (hasMultipleWords || loop) {
+              const isLastWord = wordIndex === phrases.length - 1;
+              if (!isLastWord || loop) {
+                phase = "pause";
+                changed = true;
+              }
+            }
+            break;
+          case "pause":
+            phase = "deleting";
+            changed = true;
+            break;
+          case "deleting":
+            if (charIndex > 0) {
+              displayed = graphemes.slice(0, charIndex - 1).join("");
+              charIndex -= 1;
+              changed = true;
+            } else {
+              wordIndex = (wordIndex + 1) % phrases.length;
+              phase = "typing";
+              changed = true;
+            }
+            break;
         }
-        // Finished typing this phrase. A single phrase (no cycling target)
-        // just stops here, cursor still blinking.
-        if (phrases.length <= 1) return;
-        timeoutHandle = setTimeout(() => deleteStep(graphemes.length), pauseDuration);
+        revealedText.set(displayed);
+        // Mirror upstream `shouldShowCursor` (its `showCursor` gate is handled
+        // when the cursor element is built): hide once the last word is fully
+        // typed with no loop, otherwise keep it visible.
+        const activeGraphemes = phraseGraphemes[wordIndex];
+        const isComplete =
+          !loop &&
+          wordIndex === phrases.length - 1 &&
+          charIndex >= activeGraphemes.length &&
+          phase !== "deleting";
+        cursorVisible.set(
+          !isComplete && (hasMultipleWords || loop || charIndex < activeGraphemes.length),
+        );
+        // No transition means the terminal freeze (single/last word done, no
+        // loop) — stop scheduling, matching upstream's effect no longer re-running.
+        if (changed) scheduleTick();
       };
 
-      const deleteStep = (characterIndex: number) => {
-        const graphemes = phraseGraphemes[phraseIndex];
-        revealedText.set(graphemes.slice(0, characterIndex).join(""));
-        if (characterIndex > 0) {
-          timeoutHandle = setTimeout(() => deleteStep(characterIndex - 1), deletingSpeed);
-          return;
-        }
-        const nextPhraseIndex = (phraseIndex + 1) % phrases.length;
-        if (nextPhraseIndex === 0 && !loop) return; // completed the full cycle, don't wrap back
-        phraseIndex = nextPhraseIndex;
-        timeoutHandle = setTimeout(() => typeStep(0), 0);
+      const scheduleTick = () => {
+        const timeoutDelay =
+          startDelay > 0 && displayed === ""
+            ? startDelay
+            : phase === "typing"
+              ? typingSpeed
+              : phase === "deleting"
+                ? deletingSpeed
+                : pauseDuration;
+        timeoutHandle = setTimeout(step, timeoutDelay);
       };
 
       const begin = () => {
-        timeoutHandle = setTimeout(() => typeStep(0), startDelay);
+        scheduleTick();
       };
 
       if (!startOnView) {
@@ -173,7 +223,7 @@ function typingAnimation(props: TypingAnimationProps = {}): DomphyElement {
               observer.disconnect();
             }
           },
-          { threshold: 0.1 },
+          { threshold: 0.3 },
         );
         observer.observe(element);
         node.addHook("Remove", () => observer.disconnect());

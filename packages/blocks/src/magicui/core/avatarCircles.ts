@@ -30,7 +30,7 @@ export interface AvatarCirclesProps {
   overflowCount?: number;
   /** Avatar diameter, in `themeSpacing` units (≈40px at the default). Defaults to 10. */
   diameterUnits?: number;
-  /** How much each avatar overlaps the previous one, in `themeSpacing` units. Defaults to 3. */
+  /** How much each avatar overlaps the previous one, in `themeSpacing` units. Defaults to 4 (matches upstream's 16px `-space-x-4` at the default diameter). */
   overlapUnits?: number;
   /** Ring/border color around each avatar, matching the surrounding surface. Defaults to `"neutral"`. */
   ringColor?: ThemeColor;
@@ -39,7 +39,7 @@ export interface AvatarCirclesProps {
 
 const DEFAULT_OVERFLOW_COUNT = 99;
 const DEFAULT_DIAMETER_UNITS = 10;
-const DEFAULT_OVERLAP_UNITS = 3;
+const DEFAULT_OVERLAP_UNITS = 4;
 
 // Generic person-silhouette placeholder — a single reusable inline SVG data
 // URI, not any real user's photo. Real usage supplies actual `imageUrl`s.
@@ -62,7 +62,6 @@ function defaultAvatars(): AvatarCirclesItem[] {
 function avatarLink(
   item: AvatarCirclesItem,
   index: number,
-  count: number,
   diameterUnits: number,
   overlapUnits: number,
   ringColor: ThemeColor,
@@ -81,7 +80,7 @@ function avatarLink(
     ],
     href: item.profileUrl ?? "#",
     target: "_blank",
-    rel: "noreferrer",
+    rel: "noopener noreferrer",
     title: item.name,
     _key: `avatar-${index}`,
     // Image-only content, no text — the ring color intentionally matches the
@@ -98,10 +97,9 @@ function avatarLink(
       height: themeSpacing(diameterUnits),
       borderRadius: "50%",
       overflow: "hidden",
-      zIndex: count - index,
       marginInlineStart: index === 0 ? undefined : themeSpacing(-overlapUnits),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
-      outline: (listener: Listener) => `${themeSpacing(1)} solid ${themeColor(listener, "inherit", ringColor)}`,
+      outline: (listener: Listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "inherit", ringColor)}`,
       outlineOffset: "0",
     } as StyleObject,
   };
@@ -118,7 +116,12 @@ function overflowBadge(
   return {
     div: [{ small: `+${overflowCount}`, $: [small({ color: "neutral" })] }],
     _key: "avatar-overflow",
-    dataTone: "shift-3",
+    // Upstream is a solid high-contrast disc — `bg-black text-white` in light,
+    // `dark:bg-white dark:text-black` in dark. `shift-17` is this package's
+    // established "solid dark button" anchor (same one signup01's submit uses);
+    // the dark theme reverses the neutral ramp, so it flips black↔white exactly
+    // like upstream, and `color: shift-9` rides the surface to the readable side.
+    dataTone: "shift-17",
     style: {
       display: "flex",
       alignItems: "center",
@@ -127,11 +130,16 @@ function overflowBadge(
       width: themeSpacing(diameterUnits),
       height: themeSpacing(diameterUnits),
       borderRadius: "50%",
-      zIndex: 0,
       marginInlineStart: count === 0 ? undefined : themeSpacing(-overlapUnits),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
-      outline: (listener: Listener) => `${themeSpacing(1)} solid ${themeColor(listener, "inherit", ringColor)}`,
+      outline: (listener: Listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "inherit", ringColor)}`,
+      // Upstream `hover:bg-gray-600`: a small lighten off the shift-17 surface
+      // reads as the same hover cue in both themes (black disc → gray, white
+      // disc → light-gray). Mirrors animatedShinyText's nested-hover idiom.
+      "&:hover": {
+        backgroundColor: (listener: Listener) => themeColor(listener, "shift-2"),
+      },
     } as StyleObject,
   };
 }
@@ -149,7 +157,7 @@ function avatarCircles(props: AvatarCirclesProps = {}): DomphyElement<"div"> {
   const ringColor = props.ringColor ?? "neutral";
 
   const children: DomphyElement[] = avatars.map((item, index) =>
-    avatarLink(item, index, avatars.length, diameterUnits, overlapUnits, ringColor),
+    avatarLink(item, index, diameterUnits, overlapUnits, ringColor),
   );
   if (overflowCount > 0) {
     children.push(overflowBadge(overflowCount, avatars.length, diameterUnits, overlapUnits, ringColor));
@@ -162,6 +170,9 @@ function avatarCircles(props: AvatarCirclesProps = {}): DomphyElement<"div"> {
     style: {
       display: "flex",
       alignItems: "center",
+      // Upstream root carries `z-10` — preserve it so the stack keeps its
+      // stacking priority against adjacent page content.
+      zIndex: 10,
       width: "fit-content",
       ...(props.style ?? {}),
     },

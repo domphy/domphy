@@ -2,7 +2,8 @@
 //
 // Hides the date header and replaces the usual color-dot indicator with a
 // small line-icon glyph per series (a footprint-style icon for running, a
-// wave-style icon for swimming), colored via the series' own theme color.
+// wave-style icon for swimming), rendered in a neutral muted tone — upstream
+// renders the icon bare so it inherits the row's `text-muted-foreground`.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied. Icon artwork (footprint /
@@ -48,6 +49,8 @@ function chartTooltipIcons(props: ChartTooltipIconsProps = {}): DomphyElement<"d
   const formatter = activityTooltipFormatter(data, series, {
     indicator: "icon",
     showLabel: false,
+    // Value cell (mono/medium/tabular + toLocaleString) comes from the shared
+    // default plainValueRenderer, which matches upstream ChartTooltipContent.
   });
   const option = activityBarOption({ data, categories, series, showCursor, formatter });
 

@@ -15,7 +15,7 @@
 
 import type { DomphyElement } from "@domphy/core";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
-import type { ChartOption } from "@domphy/chart";
+import type { ChartOption, TooltipParams } from "@domphy/chart";
 import {
   BROWSER_CATEGORY_DATA,
   type CategoryPoint,
@@ -25,12 +25,21 @@ import {
   computeYDomain,
   hiddenLabelYAxis,
   hiddenXAxis,
-  lineSwatchValueTooltipFormatter,
   staticPointMarkersOverlay,
+  tooltipRow,
   trendFooter,
 } from "./chart-line-shared.js";
 
 const DOT_RADIUS = 5;
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 /** Props for {@link chartLineDotsColors}. */
 export interface ChartLineDotsColorsProps {
@@ -63,6 +72,20 @@ function chartLineDotsColors(props: ChartLineDotsColorsProps = {}): DomphyElemen
   const values = data.map((point) => point.value);
   const yDomain = computeYDomain(values);
 
+  // Upstream ChartTooltipContent (indicator="line") colors the swatch with
+  // item.payload.fill — the HOVERED point's own per-browser fill — so it
+  // matches that point's colored dot. The engine's TooltipParams.color is the
+  // uniform series color instead, so resolve the point's own color by
+  // dataIndex here, exactly as renderMarker below does.
+  function perPointSwatchTooltipFormatter(params: TooltipParams | TooltipParams[]): string {
+    const point = Array.isArray(params) ? params[0] : params;
+    if (!point) return "";
+    const pointColor = data[point.dataIndex]?.color ?? seriesColor;
+    const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${themeColorToken(null, "shift-9", pointColor)};"></span>`;
+    const label = escapeHtml(String(point.seriesName ?? point.name ?? ""));
+    return tooltipRow(swatch, label, escapeHtml(String(point.value ?? "")));
+  }
+
   const option: ChartOption = {
     grid: HIDDEN_AXIS_LINE_GRID,
     xAxis: hiddenXAxis(categories),
@@ -70,7 +93,7 @@ function chartLineDotsColors(props: ChartLineDotsColorsProps = {}): DomphyElemen
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "none" },
-      formatter: lineSwatchValueTooltipFormatter,
+      formatter: perPointSwatchTooltipFormatter,
     },
     series: [
       {

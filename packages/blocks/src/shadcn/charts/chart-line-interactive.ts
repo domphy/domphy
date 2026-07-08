@@ -39,7 +39,7 @@ function formatLongDate(isoDate: string): string {
   const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return isoDate;
   return new Intl.DateTimeFormat("en-US", {
-    month: "long",
+    month: "short",
     day: "numeric",
     year: "numeric",
     timeZone: "UTC",
@@ -90,7 +90,7 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
     mobile: { label: mobileLabel, color: mobileColor },
   };
 
-  const categories = data.map((point) => point.date);
+  const categories = data.map((point) => formatShortDate(point.date));
   const totals: Record<SeriesKey, number> = {
     desktop: data.reduce((sum, point) => sum + point.desktop, 0),
     mobile: data.reduce((sum, point) => sum + point.mobile, 0),
@@ -110,7 +110,7 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
     const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${point.color};margin-right:6px;"></span>`;
     return (
       `<div>${escapeHtml(dateLabel)}</div>` +
-      `<div style="margin-top:2px;">${swatch}Views: ${escapeHtml(String(point.value ?? ""))}</div>`
+      `<div style="margin-top:2px;">${swatch}Page Views: ${escapeHtml(String(point.value ?? ""))}</div>`
     );
   };
 
@@ -126,7 +126,7 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
         axisLine: { show: false },
         axisTick: { show: false },
         splitLine: { show: false },
-        axisLabel: { formatter: (value) => formatShortDate(String(value)) },
+        axisLabel: { show: true },
       },
       yAxis: hiddenLabelYAxis(yDomain),
       tooltip: {
@@ -180,7 +180,22 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
           $: [small({ color: "neutral" })],
           style: { color: (l: Listener) => themeColor(l, "shift-11", "neutral") },
         } as DomphyElement<"small">,
-        { h4: totals[key].toLocaleString("en-US"), $: [heading({ color: "neutral" })] } as DomphyElement<"h4">,
+        // Upstream: bold `text-lg` scaling to `sm:text-3xl` with `leading-none`
+        // and no margin — a prominent stat number, not a heading. Rendered as a
+        // plain bold span (function-form typography per the doctor's
+        // inline-typography rule) so it carries neither heading()'s smaller
+        // increase-1 size nor its margin-bottom.
+        {
+          span: totals[key].toLocaleString("en-US"),
+          style: {
+            fontWeight: () => "700",
+            lineHeight: () => "1",
+            fontSize: () => "1.125rem",
+            "@media (min-width: 640px)": {
+              fontSize: () => "1.875rem",
+            },
+          },
+        } as DomphyElement<"span">,
       ],
       type: "button",
       dataActive: (listener: Listener) => (activeSeriesKey.get(listener) === key ? "true" : "false"),
@@ -210,8 +225,15 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
     style: {
       display: "flex",
       width: "100%",
+      // Tile-group leading separator (upstream buttons: `border-t` when the
+      // header stacks, `sm:border-t-0 sm:border-l` when it goes row): a top rule
+      // above the tiles on narrow viewports, a left rule between the title block
+      // and the first tile at >=640px.
+      borderBlockStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
       "@media (min-width: 640px)": {
         width: "auto",
+        borderBlockStart: "none",
+        borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
       },
       "& > button + button": {
         borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
@@ -227,7 +249,7 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
         $: [chart(optionState)],
       } as DomphyElement<"div">,
     ],
-    style: { position: "relative", width: "100%", height: "300px" },
+    style: { position: "relative", width: "100%", height: "250px" },
     _onMount(node) {
       plotElement = node.domElement as HTMLElement;
       sweepReveal();
@@ -239,7 +261,15 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
       { h3: title, $: [heading()] } as DomphyElement<"h3">,
       { p: description, $: [paragraph({ color: "neutral" })] } as DomphyElement<"p">,
       asideElement,
-      { div: [plotWrapper] } as DomphyElement<"div">,
+      {
+        // Full-width rule under the header (upstream CardHeader `border-b`): the
+        // card grid's "content" area spans both columns, so a top border here
+        // separates the title/desc/tile header row from the chart below.
+        div: [plotWrapper],
+        style: {
+          borderBlockStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+        },
+      } as DomphyElement<"div">,
     ],
     $: [card({ color: "neutral" })],
     style: {
@@ -247,7 +277,7 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
       maxWidth: themeSpacing(220),
       "@media (max-width: 640px)": {
         gridTemplateColumns: "1fr",
-        gridTemplateAreas: '"image" "title" "aside" "desc" "content" "footer"',
+        gridTemplateAreas: '"image" "title" "desc" "aside" "content" "footer"',
       },
     },
   } as DomphyElement<"div">;

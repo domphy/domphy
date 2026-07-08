@@ -27,9 +27,11 @@ describe("android", () => {
     const css = node.generateCSS();
     expect(css).toContain("width: 433px");
     expect(css).toContain("height: 882px");
-    // Punch-hole camera circle + 3 side buttons (volume up/down, power).
-    expect(host.querySelectorAll("svg circle").length).toBe(1);
-    expect(host.querySelectorAll("svg rect").length).toBe(3);
+    // Punch-hole camera (outer ring + inner lens circle) + 2 side-button glyphs
+    // (tall volume rocker, short power button), matching upstream's 2 authored
+    // button paths.
+    expect(host.querySelectorAll("svg circle").length).toBe(2);
+    expect(host.querySelectorAll("svg rect").length).toBe(2);
     expect(host.querySelector("img")).toBeNull();
     expect(host.querySelector("video")).toBeNull();
   });

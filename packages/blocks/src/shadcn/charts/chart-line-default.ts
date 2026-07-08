@@ -11,19 +11,43 @@
 
 import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
-import type { ChartOption } from "@domphy/chart";
+import type { ChartOption, TooltipParams } from "@domphy/chart";
 import {
   DEFAULT_LINE_GRID,
   MONTHLY_VISITOR_DATA,
   type MonthlyPoint,
-  bareValueTooltipFormatter,
   chartCard,
   chartPlot,
   computeYDomain,
   hiddenLabelYAxis,
   monthCategoryXAxis,
+  tooltipRow,
   trendFooter,
 } from "./chart-line-shared.js";
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Matches upstream `<ChartTooltipContent hideLabel />` default (indicator
+ * "dot"): a ~10px rounded-square swatch in the series color, the series label,
+ * and the value formatted with thousands separators via `toLocaleString()`.
+ * Defined locally rather than via the shared line-swatch formatter because
+ * that one draws a line-style bar and stringifies the value raw. */
+function chartLineDefaultTooltipFormatter(params: TooltipParams | TooltipParams[]): string {
+  const point = Array.isArray(params) ? params[0] : params;
+  if (!point) return "";
+  const swatch = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${point.color};"></span>`;
+  const label = escapeHtml(String(point.seriesName ?? point.name ?? ""));
+  const value = point.value;
+  const valueText = typeof value === "number" ? value.toLocaleString() : String(value ?? "");
+  return tooltipRow(swatch, label, escapeHtml(valueText));
+}
 
 /** Props for {@link chartLineDefault}. */
 export interface ChartLineDefaultProps {
@@ -65,7 +89,7 @@ function chartLineDefault(props: ChartLineDefaultProps = {}): DomphyElement<"div
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "none" },
-      formatter: bareValueTooltipFormatter,
+      formatter: chartLineDefaultTooltipFormatter,
     },
     series: [
       {

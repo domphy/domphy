@@ -8,10 +8,13 @@
 //
 // Canvas particle simulation via `requestAnimationFrame`: particles are
 // generated on mount (and regenerated on resize/refresh) with random
-// position/size/drift, then each frame drifts by its own ambient velocity,
-// wraps at the container edges, and eases toward a mouse-repulsion offset
-// when the pointer is within an interaction radius (scaled by `staticity`,
-// approached at a rate scaled by `ease`). Mouse position is tracked via
+// position/size/drift, then each frame fades in/out near the container
+// edges, drifts by its own ambient velocity, wraps at the container edges,
+// and eases toward an offset proportional to the mouse's position relative
+// to the container's center (scaled per-particle by its own `magnetism` and
+// by `staticity`, approached at a rate scaled by `ease`) -- so the whole
+// field subtly parallaxes toward/away from the cursor rather than each
+// particle individually fleeing it. Mouse position is tracked via
 // pointermove on the container (the canvas itself has `pointerEvents: none`
 // so it never intercepts clicks meant for foreground content) and the canvas
 // backing store is scaled for `devicePixelRatio` for crisp rendering.
@@ -32,7 +35,7 @@ export interface ParticlesProps {
   quantity?: number;
   /** Theme color family for the particles. Defaults to `"neutral"` (reads bright against a dark surface). */
   color?: ThemeColor;
-  /** Base particle radius, in canvas pixels. Defaults to `1.2`. */
+  /** Base particle radius, in canvas pixels. Defaults to `0.4`. */
   size?: number;
   /** Higher = smoother/slower easing back to rest. Defaults to `50`. */
   ease?: number;
@@ -84,16 +87,14 @@ function createParticle(
     y: Math.random() * height,
     translateX: 0,
     translateY: 0,
-    size: baseSize + Math.random() * baseSize,
+    size: Math.floor(Math.random() * 2) + baseSize,
     alpha: 0,
-    targetAlpha: Math.random() * 0.6 + 0.15,
-    driftX: (Math.random() - 0.5) * 0.15 + vx,
-    driftY: (Math.random() - 0.5) * 0.15 + vy,
-    magnetism: 0.15 + Math.random() * 0.6,
+    targetAlpha: Math.round((Math.random() * 0.6 + 0.1) * 10) / 10,
+    driftX: (Math.random() - 0.5) * 0.1 + vx,
+    driftY: (Math.random() - 0.5) * 0.1 + vy,
+    magnetism: 0.1 + Math.random() * 4,
   };
 }
-
-const MOUSE_INTERACTION_RADIUS = 120;
 
 /**
  * An ambient animated dot-field background (canvas), where particles drift
@@ -103,7 +104,7 @@ const MOUSE_INTERACTION_RADIUS = 120;
 function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
   const quantity = Math.max(1, Math.round(props.quantity ?? 100));
   const color = props.color ?? "neutral";
-  const baseSize = props.size ?? 1.2;
+  const baseSize = props.size ?? 0.4;
   const ease = Math.max(1, props.ease ?? 50);
   const staticity = Math.max(1, props.staticity ?? 50);
   const vx = props.vx ?? 0;
@@ -152,12 +153,15 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
       if (!context) return;
 
       let particleList: ParticleInstance[] = [];
-      let devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      // Raw devicePixelRatio, no clamp — matches upstream (`const dpr =
+      // window.devicePixelRatio`). Clamping to 2 would render a lower-res
+      // backing store on >2× displays. `|| 1` guards a 0/undefined ratio so
+      // the width/scale math below can't collapse.
+      let devicePixelRatio = window.devicePixelRatio || 1;
       let canvasWidth = 0;
       let canvasHeight = 0;
-      let mouseX = -MOUSE_INTERACTION_RADIUS * 2;
-      let mouseY = -MOUSE_INTERACTION_RADIUS * 2;
-      let pointerActive = false;
+      let mouseX = 0;
+      let mouseY = 0;
       let animationFrameId: number | null = null;
       let resizeObserver: ResizeObserver | null = null;
 
@@ -183,7 +187,11 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
       }
 
       function generateParticles(): void {
-        particleList = Array.from({ length: quantity }, () =>
+        // 2× quantity: upstream initCanvas() pushes `quantity` circles in
+        // resizeCanvas() then another `quantity` in drawParticles() (which
+        // clears the canvas but not the circles array), so the field holds
+        // 2×quantity particles. Per-particle respawn keeps that count stable.
+        particleList = Array.from({ length: quantity * 2 }, () =>
           createParticle(canvasWidth, canvasHeight, baseSize, vx, vy),
         );
       }
@@ -203,33 +211,26 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
         context!.clearRect(0, 0, canvasWidth, canvasHeight);
 
         for (const particle of particleList) {
+          const closestEdge = Math.min(
+            particle.x + particle.translateX - particle.size,
+            canvasWidth - particle.x - particle.translateX - particle.size,
+            particle.y + particle.translateY - particle.size,
+            canvasHeight - particle.y - particle.translateY - particle.size,
+          );
+          const closestEdgeAlpha = Math.max(0, closestEdge / 20);
+          if (closestEdgeAlpha > 1) {
+            particle.alpha = Math.min(particle.alpha + 0.02, particle.targetAlpha);
+          } else {
+            particle.alpha = particle.targetAlpha * closestEdgeAlpha;
+          }
+
           particle.x += particle.driftX;
           particle.y += particle.driftY;
 
-          if (
-            particle.x < -particle.size ||
-            particle.x > canvasWidth + particle.size ||
-            particle.y < -particle.size ||
-            particle.y > canvasHeight + particle.size
-          ) {
-            respawnParticle(particle);
-          }
-
-          particle.alpha += (particle.targetAlpha - particle.alpha) * 0.05;
-
-          let targetTranslateX = 0;
-          let targetTranslateY = 0;
-          if (pointerActive) {
-            const distanceX = mouseX - particle.x;
-            const distanceY = mouseY - particle.y;
-            const distanceSquared = distanceX * distanceX + distanceY * distanceY;
-            if (distanceSquared < MOUSE_INTERACTION_RADIUS * MOUSE_INTERACTION_RADIUS) {
-              targetTranslateX = -(distanceX / staticity) * particle.magnetism;
-              targetTranslateY = -(distanceY / staticity) * particle.magnetism;
-            }
-          }
-          particle.translateX += (targetTranslateX - particle.translateX) / ease;
-          particle.translateY += (targetTranslateY - particle.translateY) / ease;
+          particle.translateX +=
+            (mouseX * (particle.magnetism / staticity) - particle.translateX) / ease;
+          particle.translateY +=
+            (mouseY * (particle.magnetism / staticity) - particle.translateY) / ease;
 
           context!.beginPath();
           context!.arc(
@@ -241,6 +242,15 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
           );
           context!.fillStyle = hexTokenToRgba(fillColor, particle.alpha);
           context!.fill();
+
+          if (
+            particle.x < -particle.size ||
+            particle.x > canvasWidth + particle.size ||
+            particle.y < -particle.size ||
+            particle.y > canvasHeight + particle.size
+          ) {
+            respawnParticle(particle);
+          }
         }
 
         animationFrameId = window.requestAnimationFrame(tick);
@@ -248,12 +258,8 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
 
       function handlePointerMove(event: PointerEvent): void {
         const rect = containerElement!.getBoundingClientRect();
-        mouseX = event.clientX - rect.left;
-        mouseY = event.clientY - rect.top;
-        pointerActive = true;
-      }
-      function handlePointerLeave(): void {
-        pointerActive = false;
+        mouseX = event.clientX - rect.left - canvasWidth / 2;
+        mouseY = event.clientY - rect.top - canvasHeight / 2;
       }
 
       resizeCanvas();
@@ -261,7 +267,6 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
       animationFrameId = window.requestAnimationFrame(tick);
 
       containerElement.addEventListener("pointermove", handlePointerMove);
-      containerElement.addEventListener("pointerleave", handlePointerLeave);
 
       if (typeof ResizeObserver !== "undefined") {
         resizeObserver = new ResizeObserver(() => {
@@ -280,7 +285,6 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
         if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId);
         resizeObserver?.disconnect();
         containerElement.removeEventListener("pointermove", handlePointerMove);
-        containerElement.removeEventListener("pointerleave", handlePointerLeave);
         releaseRefreshListener();
       });
     },

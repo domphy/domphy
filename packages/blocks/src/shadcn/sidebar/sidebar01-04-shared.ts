@@ -35,6 +35,7 @@ import {
   scrollArea,
   skeleton,
   small,
+  strong,
   toolbar,
   toolbarSpacer,
 } from "@domphy/ui";
@@ -74,7 +75,15 @@ export interface SidebarHeaderData {
   workspaceName: string;
   workspacePlan: string;
   teams: SidebarTeam[];
+  /** Version list for the version-switcher header variant (sidebar01/02). */
+  versions?: string[];
 }
+
+/** Which header the sidebar shell renders at its top. */
+export type SidebarHeaderVariant = "switcher" | "version" | "static";
+
+/** Upstream sidebar-01/02 version list; first entry is the default. */
+export const DEFAULT_VERSIONS = ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"];
 
 export interface SidebarUser {
   name: string;
@@ -118,7 +127,9 @@ export type IconName =
   | "logOut"
   | "grid"
   | "panel"
-  | "chevronsUpDown";
+  | "chevronsUpDown"
+  | "gallery"
+  | "check";
 
 const ICON_SHAPES: Record<IconName, DomphyElement[]> = {
   home: [
@@ -173,6 +184,13 @@ const ICON_SHAPES: Record<IconName, DomphyElement[]> = {
     { polyline: null, points: "8,9 12,5 16,9" },
     { polyline: null, points: "8,15 12,19 16,15" },
   ],
+  // GalleryVerticalEnd stand-in: three stacked rounded panels.
+  gallery: [
+    { rect: null, x: "5", y: "3", width: "14", height: "4", rx: "1" },
+    { rect: null, x: "5", y: "10", width: "14", height: "4", rx: "1" },
+    { rect: null, x: "5", y: "16", width: "14", height: "5", rx: "1" },
+  ],
+  check: [{ polyline: null, points: "5,12 10,17 19,7" }],
 };
 
 /** Renders a small stroke-based glyph inside a themed `icon()` box. */
@@ -222,7 +240,7 @@ export function collapsibleLabel(
   };
 }
 
-/** Uppercase muted section/group heading, hidden in icon-rail mode. */
+/** Muted section/group heading (text-xs, font-medium), hidden in icon-rail mode. */
 export function navGroupLabel(
   collapsed: State<boolean>,
   text: string,
@@ -231,10 +249,12 @@ export function navGroupLabel(
     small: text,
     $: [small()],
     style: {
-      textTransform: "uppercase",
+      // Upstream SidebarGroupLabel is `text-xs font-medium text-sidebar-foreground/70`
+      // with NO uppercase.
+      fontWeight: 500,
       // shift-6 ("muted section heading," matching the theme's own "muted
       // text" convention) measured a real WCAG contrast failure here —
-      // bumped to shift-9.
+      // bumped to shift-9 (~70% foreground).
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
       paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
       overflow: "hidden",
@@ -282,7 +302,10 @@ export function verticalDivider(): DomphyElement<"div"> {
     div: null,
     ariaHidden: "true",
     style: {
-      alignSelf: "stretch",
+      // Upstream Separator orientation=vertical is `data-[orientation=vertical]:h-4`
+      // — a ~16px hairline vertically centered, not full header height.
+      alignSelf: "center",
+      height: themeSpacing(4),
       borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
     },
     // Decorative separator bar — no text content of its own.
@@ -304,9 +327,13 @@ function hideChevronWhenCollapsed(collapsed: State<boolean>) {
 // Nav rows
 // ---------------------------------------------------------------------------
 
-function navItemRow(item: SidebarNavItem, collapsed: State<boolean>): DomphyElement<"li"> {
+function navItemRow(
+  item: SidebarNavItem,
+  collapsed: State<boolean>,
+  showIcons = true,
+): DomphyElement<"li"> {
   const rowChildren: DomphyElement[] = [
-    navIcon(item.iconName ?? "folder"),
+    ...(showIcons ? [navIcon(item.iconName ?? "folder")] : []),
     collapsibleLabel(collapsed, item.label),
   ];
   if (item.badge != null) rowChildren.push(navBadge(item.badge));
@@ -383,11 +410,12 @@ function navGroupSection(
   group: SidebarNavGroup,
   collapsed: State<boolean>,
   supportsChildren: boolean,
+  showIcons = true,
 ): DomphyElement<"li"> {
   const itemRows = group.items.map((item) =>
     supportsChildren && item.children?.length
       ? navItemWithChildrenRow(item, collapsed)
-      : navItemRow(item, collapsed),
+      : navItemRow(item, collapsed, showIcons),
   );
 
   // `details()`'s own `"& > summary"` rule (shift-10 text on a shift-2
@@ -433,10 +461,11 @@ export function navGroupList(
   collapsed: State<boolean>,
   collapsibleSections: boolean,
   supportsChildren: boolean,
+  showIcons = true,
 ): DomphyElement<"ul"> {
   if (collapsibleSections) {
     return {
-      ul: navGroups.map((group) => navGroupSection(group, collapsed, supportsChildren)),
+      ul: navGroups.map((group) => navGroupSection(group, collapsed, supportsChildren, showIcons)),
       $: [list()],
       style: { gap: themeSpacing(1) },
     };
@@ -450,7 +479,7 @@ export function navGroupList(
           ul: group.items.map((item) =>
             supportsChildren && item.children?.length
               ? navItemWithChildrenRow(item, collapsed)
-              : navItemRow(item, collapsed),
+              : navItemRow(item, collapsed, showIcons),
           ),
           $: [list()],
           style: { color: (listener: Listener) => themeColor(listener, "shift-9") },
@@ -500,6 +529,165 @@ export function sidebarHeaderSwitcher(
             content: { div: null, $: [menu({ items: teamMenuItems })] },
           }),
         ],
+      },
+    ],
+    style: {
+      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+    },
+  };
+}
+
+/** Square brand box holding a `gallery` glyph (GalleryVerticalEnd stand-in). */
+function headerBrandBox(): DomphyElement<"span"> {
+  return {
+    span: [navIcon("gallery", "primary")],
+    $: [avatar({ color: "primary" })],
+    style: {
+      width: themeSpacing(8),
+      height: themeSpacing(8),
+      flexShrink: 0,
+      borderRadius: themeSpacing(2),
+    },
+  };
+}
+
+/** Two-line "Documentation / v{version}" block that collapses in rail mode. */
+function headerTwoLine(
+  title: string,
+  subtitle: string | ((listener: Listener) => string),
+  collapsed: State<boolean>,
+): DomphyElement<"div"> {
+  return {
+    div: [
+      {
+        span: title,
+        style: {
+          // Upstream span is `font-medium`.
+          fontWeight: 500,
+          fontSize: (listener: Listener) => themeSize(listener, "inherit"),
+          color: (listener: Listener) => themeColor(listener, "shift-10"),
+        },
+      },
+      { small: subtitle, $: [small()] },
+    ],
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      // Upstream: `gap-0.5 leading-none`.
+      gap: themeSpacing(0.5),
+      lineHeight: 1,
+      overflow: "hidden",
+      opacity: (listener: Listener) => (collapsed.get(listener) ? 0 : 1),
+      maxWidth: (listener: Listener) => (collapsed.get(listener) ? "0em" : themeSpacing(44)),
+      transition: "opacity 150ms linear, max-width 150ms linear",
+    },
+  };
+}
+
+/**
+ * Version-switcher header (sidebar01/02): a two-line "Documentation / v{version}"
+ * trigger with a GalleryVerticalEnd brand box, opening a dropdown of versions
+ * with a Check next to the currently-selected one. Selecting a version updates
+ * the subtitle live.
+ */
+export function sidebarHeaderVersionSwitcher(
+  header: SidebarHeaderData,
+  collapsed: State<boolean>,
+): DomphyElement<"div"> {
+  const versions = header.versions ?? DEFAULT_VERSIONS;
+  const selected = toState(versions[0] ?? "1.0.0");
+
+  const menuContent: DomphyElement<"div"> = {
+    div: versions.map((version) => ({
+      button: [
+        { span: `v${version}`, style: { flex: "1", textAlign: "left" } },
+        {
+          span: [navIcon("check")],
+          style: {
+            marginInlineStart: "auto",
+            display: (listener: Listener) =>
+              selected.get(listener) === version ? "inline-flex" : "none",
+          },
+        },
+      ],
+      _key: version,
+      role: "menuitem",
+      onClick: () => selected.set(version),
+      style: {
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: themeSpacing(2),
+        width: "100%",
+        paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
+        paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 1.5),
+        border: "none",
+        background: "none",
+        color: (listener: Listener) => themeColor(listener, "shift-9"),
+        "&:hover": { backgroundColor: (listener: Listener) => themeColor(listener, "shift-2") },
+      },
+    })) as DomphyElement[],
+    role: "menu",
+    dataTone: "shift-17",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      minWidth: themeSpacing(48),
+      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+      backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
+    },
+  };
+
+  return {
+    div: [
+      {
+        button: [
+          headerBrandBox(),
+          headerTwoLine(
+            "Documentation",
+            (listener: Listener) => `v${selected.get(listener)}`,
+            collapsed,
+          ),
+          {
+            span: [navIcon("chevronsUpDown")],
+            style: {
+              marginInlineStart: "auto",
+              display: (listener: Listener) => (collapsed.get(listener) ? "none" : "inline-flex"),
+            },
+          },
+        ],
+        ariaLabel: "Select a version",
+        style: { width: "100%" },
+        $: [
+          listItemButton({ color: "neutral" }),
+          popover({ placement: "bottom-start", content: menuContent }),
+        ],
+      },
+    ],
+    style: {
+      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+    },
+  };
+}
+
+/**
+ * Static branding header (sidebar03): a non-interactive `<a>` logo+title link
+ * (GalleryVerticalEnd box + "Documentation / v1.0.0"), no dropdown.
+ */
+export function sidebarHeaderStatic(
+  title: string,
+  subtitle: string,
+  collapsed: State<boolean>,
+): DomphyElement<"div"> {
+  return {
+    div: [
+      {
+        a: [headerBrandBox(), headerTwoLine(title, subtitle, collapsed)],
+        href: "#",
+        $: [listItemButton({ color: "neutral" })],
+        style: { width: "100%", minHeight: themeSpacing(12) },
       },
     ],
     style: {
@@ -627,11 +815,10 @@ export function sidebarFooterUser(
 // Sidebar toggle + content header
 // ---------------------------------------------------------------------------
 
-export function sidebarToggleButton(
-  collapsed: State<boolean>,
-  mobileOpen: State<boolean>,
-): DomphyElement<"button"> {
-  const toggle = () => {
+/** Toggle fn shared by the header toggle button and the edge rail: flips the
+ * mobile drawer under the mobile breakpoint, otherwise the icon-rail collapse. */
+export function makeSidebarToggle(collapsed: State<boolean>, mobileOpen: State<boolean>) {
+  return () => {
     const isMobile =
       typeof window !== "undefined" &&
       typeof window.matchMedia === "function" &&
@@ -639,6 +826,60 @@ export function sidebarToggleButton(
     if (isMobile) mobileOpen.set(!mobileOpen.get());
     else collapsed.set(!collapsed.get());
   };
+}
+
+/**
+ * Thin absolutely-positioned edge strip (upstream `<SidebarRail/>`) that toggles
+ * the sidebar's collapse on click. Sits on the content-facing edge of the aside.
+ */
+export function sidebarRail(
+  collapsed: State<boolean>,
+  mobileOpen: State<boolean>,
+  side: "left" | "right" = "left",
+): DomphyElement<"button"> {
+  return {
+    button: null,
+    type: "button",
+    ariaLabel: "Toggle Sidebar",
+    title: "Toggle Sidebar",
+    tabindex: "-1",
+    onClick: makeSidebarToggle(collapsed, mobileOpen),
+    style: {
+      position: "absolute",
+      insetBlock: "0",
+      zIndex: 20,
+      width: themeSpacing(4),
+      border: "none",
+      background: "transparent",
+      padding: "0",
+      cursor: side === "right" ? "w-resize" : "e-resize",
+      // Sits flush against the aside's own content-facing edge (the aside clips
+      // overflow, so the strip stays inside its box rather than straddling it).
+      insetInlineEnd: side === "right" ? undefined : "0",
+      insetInlineStart: side === "right" ? "0" : undefined,
+      // Hairline that brightens on hover — the visible affordance of the strip.
+      "&::after": {
+        content: `""`,
+        position: "absolute",
+        insetBlock: "0",
+        insetInlineStart: "50%",
+        width: "2px",
+        transition: "background-color 150ms linear",
+      },
+      "&:hover::after": {
+        backgroundColor: (listener: Listener) => themeColor(listener, "shift-5"),
+      },
+      // No edge affordance under the mobile breakpoint (drawer takes over).
+      "@media (max-width: 47.9375em)": { display: "none" },
+    },
+  };
+}
+
+export function sidebarToggleButton(
+  collapsed: State<boolean>,
+  mobileOpen: State<boolean>,
+): DomphyElement<"button"> {
+  const toggle = makeSidebarToggle(collapsed, mobileOpen);
 
   return {
     button: [navIcon("panel")],
@@ -674,7 +915,7 @@ export function contentHeader(
     // class is a cascade-order tie this couldn't reliably win by overriding
     // color directly on the direct child. One more level of nesting takes
     // the real crumb text out of that direct-child match.
-    nav: breadcrumbItems.map((crumb) => ({
+    nav: breadcrumbItems.map((crumb, index) => ({
       span: [
         {
           span: crumb.label,
@@ -688,6 +929,15 @@ export function contentHeader(
       ],
       ariaCurrent: crumb.current ? ("page" as const) : undefined,
       _key: crumb.label,
+      // Upstream hides the first crumb AND its trailing separator below md
+      // ("hidden md:block"). Hiding this wrapper removes its own `::after`
+      // separator (breadcrumb() draws separators as `& > *:not(:last-child)`
+      // pseudo-elements), so both drop together — but only when there's a
+      // later crumb still visible to anchor the trail.
+      style:
+        index === 0 && breadcrumbItems.length > 1
+          ? { display: "inline-flex", "@media (max-width: 47.9375em)": { display: "none" } }
+          : undefined,
     })),
     $: [breadcrumb()],
   };
@@ -785,12 +1035,34 @@ export interface SidebarShellOptions {
   showSearch?: boolean;
   /** Which viewport edge the sidebar docks against. Defaults to "left". */
   side?: "left" | "right";
+  /** Which header to render. Defaults to "switcher" (the team/workspace switcher). */
+  headerVariant?: SidebarHeaderVariant;
+  /** Render the account footer. Defaults to true; false where upstream has none. */
+  showFooter?: boolean;
+  /** Render leading nav-row icons. Defaults to true; false for text-only nav. */
+  showIcons?: boolean;
+  /** Shared collapse state used by the edge rail. */
+  mobileOpen?: State<boolean>;
+}
+
+/** Header element for the shell, chosen by `headerVariant`. */
+function shellHeader(options: SidebarShellOptions, collapsed: State<boolean>): DomphyElement {
+  const variant = options.headerVariant ?? "switcher";
+  if (variant === "version") return sidebarHeaderVersionSwitcher(options.header, collapsed);
+  if (variant === "static")
+    return sidebarHeaderStatic(
+      options.header.workspaceName,
+      options.header.workspacePlan,
+      collapsed,
+    );
+  return sidebarHeaderSwitcher(options.header, collapsed);
 }
 
 export function sidebarAside(options: SidebarShellOptions): DomphyElement<"aside"> {
-  const { header, navGroups, user, collapsed, collapsibleSections, supportsChildren, floating } =
-    options;
+  const { navGroups, user, collapsed, collapsibleSections, supportsChildren, floating } = options;
   const showSearch = options.showSearch ?? false;
+  const showFooter = options.showFooter ?? true;
+  const showIcons = options.showIcons ?? true;
   const side = options.side ?? "left";
   const expandedWidth = floating ? SIDEBAR_WIDTH_FLOATING : SIDEBAR_WIDTH;
   // The edge facing the main content: for a left-docked sidebar that's its own
@@ -802,10 +1074,10 @@ export function sidebarAside(options: SidebarShellOptions): DomphyElement<"aside
 
   return {
     aside: [
-      sidebarHeaderSwitcher(header, collapsed),
+      shellHeader(options, collapsed),
       ...(showSearch ? [sidebarSearchForm(collapsed)] : []),
       {
-        nav: [navGroupList(navGroups, collapsed, collapsibleSections, supportsChildren)],
+        nav: [navGroupList(navGroups, collapsed, collapsibleSections, supportsChildren, showIcons)],
         // The mobile drawer below renders a second, structurally-identical
         // `<nav>` (shown off-canvas rather than removed from the DOM) —
         // without distinct names both collide as duplicate "navigation"
@@ -817,13 +1089,16 @@ export function sidebarAside(options: SidebarShellOptions): DomphyElement<"aside
           paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
         },
       },
-      sidebarFooterUser(user, collapsed),
+      ...(showFooter ? [sidebarFooterUser(user, collapsed)] : []),
+      // Floating variant renders no edge rail upstream; docked shells do.
+      ...(options.mobileOpen && !floating ? [sidebarRail(collapsed, options.mobileOpen, side)] : []),
     ],
     dataTone: "shift-1",
     style: {
       display: "flex",
       flexDirection: "column",
       flexShrink: 0,
+      position: "relative",
       width: (listener: Listener) => (collapsed.get(listener) ? SIDEBAR_WIDTH_ICON : expandedWidth),
       transition: "width 200ms linear",
       overflow: "hidden",
@@ -852,8 +1127,10 @@ export function sidebarAside(options: SidebarShellOptions): DomphyElement<"aside
 export function sidebarMobileDrawer(
   options: SidebarShellOptions & { mobileOpen: State<boolean> },
 ): DomphyElement<"dialog"> {
-  const { header, navGroups, user, collapsibleSections, supportsChildren, mobileOpen } = options;
+  const { navGroups, user, collapsibleSections, supportsChildren, mobileOpen } = options;
   const showSearch = options.showSearch ?? false;
+  const showFooter = options.showFooter ?? true;
+  const showIcons = options.showIcons ?? true;
   const side = options.side ?? "left";
   // The mobile drawer always renders fully expanded — there is no icon-rail
   // mode once the sidebar has already collapsed into an overlay sheet.
@@ -861,10 +1138,10 @@ export function sidebarMobileDrawer(
 
   return {
     dialog: [
-      sidebarHeaderSwitcher(header, alwaysExpanded),
+      shellHeader(options, alwaysExpanded),
       ...(showSearch ? [sidebarSearchForm(alwaysExpanded)] : []),
       {
-        nav: [navGroupList(navGroups, alwaysExpanded, collapsibleSections, supportsChildren)],
+        nav: [navGroupList(navGroups, alwaysExpanded, collapsibleSections, supportsChildren, showIcons)],
         ariaLabel: "Sidebar navigation (mobile)",
         $: [scrollArea()],
         style: {
@@ -872,7 +1149,7 @@ export function sidebarMobileDrawer(
           paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
         },
       },
-      sidebarFooterUser(user, alwaysExpanded),
+      ...(showFooter ? [sidebarFooterUser(user, alwaysExpanded)] : []),
     ],
     dataTone: "shift-1",
     $: [drawer({ open: mobileOpen, placement: side === "right" ? "end" : "start", size: SIDEBAR_WIDTH })],
@@ -913,6 +1190,12 @@ export interface SidebarVariantOptions extends SidebarBlockOptions {
   manyContentRows?: boolean;
   /** Show the docs-style search field in the header (sidebar01/02). */
   showSearch?: boolean;
+  /** Which header to render. Defaults to "switcher". */
+  headerVariant?: SidebarHeaderVariant;
+  /** Render the account footer. Defaults to true; false where upstream has none. */
+  showFooter?: boolean;
+  /** Render leading nav-row icons. Defaults to true; false for text-only nav. */
+  showIcons?: boolean;
   /**
    * Renders the main content column as a rounded, shadowed card inset from the
    * sidebar/viewport edges (like sidebar08) instead of a flush full-bleed panel.
@@ -929,6 +1212,7 @@ export const DEFAULT_HEADER: SidebarHeaderData = {
     { name: "Acme Corp", plan: "Startup" },
     { name: "Evil Corp", plan: "Free" },
   ],
+  versions: DEFAULT_VERSIONS,
 };
 
 export const DEFAULT_USER: SidebarUser = {
@@ -1026,6 +1310,9 @@ export function buildSidebarBlock(options: SidebarVariantOptions): DomphyElement
   const showSearch = options.showSearch ?? false;
   const side = options.side ?? "left";
   const insetMain = options.insetMain ?? false;
+  const headerVariant = options.headerVariant ?? "switcher";
+  const showFooter = options.showFooter ?? true;
+  const showIcons = options.showIcons ?? true;
 
   const collapsed = toState(options.defaultCollapsed ?? false);
   const mobileOpen = toState(false);
@@ -1040,6 +1327,10 @@ export function buildSidebarBlock(options: SidebarVariantOptions): DomphyElement
     floating,
     showSearch,
     side,
+    headerVariant,
+    showFooter,
+    showIcons,
+    mobileOpen,
   };
 
   const asideElement = sidebarAside(shellOptions);
@@ -1091,6 +1382,213 @@ export function buildSidebarBlock(options: SidebarVariantOptions): DomphyElement
       // align-items:stretch) grows far past the viewport instead of the
       // content pane scrolling internally. See `mainElement`'s `minHeight: 0`
       // above for the matching half of this fix.
+      height: "100dvh",
+      position: "relative",
+      overflow: "hidden",
+      backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
+      color: (listener: Listener) => themeColor(listener, "shift-9"),
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Docs-style sidebar (sidebar03 / sidebar04)
+//
+// Distinct from the switcher/collapsible shell above: a STATIC branding header,
+// a single flat nav (no group labels, no per-row icons) whose top-level entries
+// are bold `<a>` links each followed by an ALWAYS-VISIBLE (non-collapsible)
+// sub-list, and NO footer. sidebar03 renders it flush (standard variant),
+// sidebar04 renders it as a floating inset card — the only structural difference
+// between the two upstream blocks.
+// ---------------------------------------------------------------------------
+
+/** Bold, rail-collapsible label for a top-level docs nav link. */
+function boldCollapsibleLabel(
+  collapsed: State<boolean>,
+  content: string,
+): DomphyElement<"strong"> {
+  return {
+    strong: content,
+    $: [strong()],
+    style: {
+      display: "inline-flex",
+      overflow: "hidden",
+      whiteSpace: "nowrap",
+      opacity: (listener: Listener) => (collapsed.get(listener) ? 0 : 1),
+      maxWidth: (listener: Listener) => (collapsed.get(listener) ? "0em" : themeSpacing(60)),
+      transition: "opacity 150ms linear, max-width 150ms linear",
+    },
+  };
+}
+
+/** Always-visible sub-list of child links (no left border, no left margin —
+ * upstream's `ml-0 border-l-0 px-1.5`). */
+function docsSubList(
+  children: NonNullable<SidebarNavItem["children"]>,
+  collapsed: State<boolean>,
+): DomphyElement<"ul"> {
+  return {
+    ul: children.map((child) => ({
+      li: [
+        {
+          a: [collapsibleLabel(collapsed, child.label)],
+          href: child.href ?? "#",
+          ariaCurrent: child.active ? ("page" as const) : undefined,
+          $: [listItemButton({ dense: true, accentColor: "primary" })],
+        },
+      ],
+      _key: child.label,
+    })),
+    $: [list()],
+    style: {
+      paddingInline: themeSpacing(1.5),
+      gap: themeSpacing(1),
+      color: (listener: Listener) => themeColor(listener, "shift-9"),
+    },
+  };
+}
+
+function docsNavItemRow(
+  item: SidebarNavItem,
+  collapsed: State<boolean>,
+): DomphyElement<"li"> {
+  const children = item.children ?? [];
+  const rowChildren: DomphyElement[] = [
+    {
+      a: [boldCollapsibleLabel(collapsed, item.label)],
+      href: item.href ?? "#",
+      $: [listItemButton({ color: "neutral" })],
+    },
+  ];
+  if (children.length) rowChildren.push(docsSubList(children, collapsed));
+  return { li: rowChildren, _key: item.label };
+}
+
+function docsNavList(navItems: SidebarNavItem[], collapsed: State<boolean>): DomphyElement<"ul"> {
+  return {
+    ul: navItems.map((item) => docsNavItemRow(item, collapsed)),
+    $: [list()],
+    style: { gap: themeSpacing(2) },
+  };
+}
+
+export interface DocsSidebarOptions {
+  title?: string;
+  subtitle?: string;
+  navItems: SidebarNavItem[];
+  breadcrumb?: SidebarBreadcrumbItem[];
+  defaultCollapsed?: boolean;
+  side?: "left" | "right";
+  /** Floating inset card (sidebar04) vs. flush standard panel (sidebar03). */
+  floating?: boolean;
+}
+
+/** Assembles the docs-style sidebar shared by sidebar03 (flush) and sidebar04
+ * (floating). */
+export function buildDocsSidebarBlock(options: DocsSidebarOptions): DomphyElement<"div"> {
+  const title = options.title ?? "Documentation";
+  const subtitle = options.subtitle ?? "v1.0.0";
+  const navItems = options.navItems;
+  const breadcrumbItems = options.breadcrumb ?? DEFAULT_BREADCRUMB;
+  const side = options.side ?? "left";
+  const floating = options.floating ?? false;
+
+  const collapsed = toState(options.defaultCollapsed ?? false);
+  const mobileOpen = toState(false);
+
+  const contentFacingBorder: ((listener: Listener) => string) | undefined = floating
+    ? undefined
+    : (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`;
+
+  const asideElement: DomphyElement<"aside"> = {
+    aside: [
+      sidebarHeaderStatic(title, subtitle, collapsed),
+      {
+        nav: [docsNavList(navItems, collapsed)],
+        ariaLabel: "Sidebar navigation",
+        $: [scrollArea()],
+        style: {
+          flex: "1 1 auto",
+          paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+        },
+      },
+      // sidebar03 (flush) renders <SidebarRail/>; sidebar04 (floating) does not.
+      ...(floating ? [] : [sidebarRail(collapsed, mobileOpen, side)]),
+    ],
+    dataTone: "shift-1",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      flexShrink: 0,
+      position: "relative",
+      width: (listener: Listener) =>
+        collapsed.get(listener) ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH_FLOATING,
+      transition: "width 200ms linear",
+      overflow: "hidden",
+      backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
+      color: (listener: Listener) => themeColor(listener, "shift-9"),
+      borderInlineEnd: side === "right" ? undefined : contentFacingBorder,
+      borderInlineStart: side === "right" ? contentFacingBorder : undefined,
+      outline: floating ? (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}` : undefined,
+      outlineOffset: floating ? "-1px" : undefined,
+      borderRadius: floating ? themeSpacing(3) : undefined,
+      boxShadow: floating
+        ? (listener: Listener) =>
+            `0 ${themeSpacing(2)} ${themeSpacing(8)} ${themeColor(listener, "shift-3")}`
+        : undefined,
+      margin: floating ? themeSpacing(4) : undefined,
+      "@media (max-width: 47.9375em)": { display: "none" },
+    },
+  };
+
+  const drawerElement: DomphyElement<"dialog"> = {
+    dialog: [
+      sidebarHeaderStatic(title, subtitle, toState(false)),
+      {
+        nav: [docsNavList(navItems, toState(false))],
+        ariaLabel: "Sidebar navigation (mobile)",
+        $: [scrollArea()],
+        style: {
+          flex: "1 1 auto",
+          paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+        },
+      },
+    ],
+    dataTone: "shift-1",
+    $: [drawer({ open: mobileOpen, placement: side === "right" ? "end" : "start", size: SIDEBAR_WIDTH })],
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      padding: "0",
+      backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
+      color: (listener: Listener) => themeColor(listener, "shift-9"),
+    },
+  };
+
+  const mainElement: DomphyElement<"main"> = {
+    main: [contentHeader(breadcrumbItems, collapsed, mobileOpen, false, side), contentTileGrid()],
+    $: [scrollArea()],
+    dataTone: "shift-0",
+    style: {
+      flex: "1 1 auto",
+      minWidth: "0",
+      minHeight: "0",
+      display: "flex",
+      flexDirection: "column",
+      backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
+      color: (listener: Listener) => themeColor(listener, "shift-9"),
+    },
+  };
+
+  return {
+    div:
+      side === "right"
+        ? [mainElement, asideElement, drawerElement]
+        : [asideElement, drawerElement, mainElement],
+    dataTone: "shift-0",
+    style: {
+      display: "flex",
+      width: "100%",
       height: "100dvh",
       position: "relative",
       overflow: "hidden",

@@ -22,7 +22,6 @@ A **Sidebar** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clea
 | `searchPlaceholder` | `string` | — |
 | `navMain` | `SidebarNavMainItem[]` | — |
 | `projects` | `SidebarProject[]` | — |
-| `moreProjectsHref` | `string` | — |
 | `secondaryNav` | `SidebarStickyHeaderSecondaryItem[]` | — |
 | `user` | `SidebarUser` | — |
 | `children` | `DomphyElement \| DomphyElement[]` | — |

@@ -1,5 +1,5 @@
 import type { DomphyElement, Listener, PartialElement } from "@domphy/core";
-import { button, card, heading, icon, label, link, paragraph, small, strong } from "@domphy/ui";
+import { button, card, heading, icon, label, link, paragraph, small } from "@domphy/ui";
 import { themeColor, themeDensity, themeFluidSpacing, themeSize, themeSpacing } from "@domphy/theme";
 
 // Generic monochrome mark — an original, brand-neutral logo glyph placeholder.
@@ -52,13 +52,10 @@ interface FieldConfig {
   labelText: string;
   type?: "text" | "email" | "password";
   placeholder?: string;
-  caption?: string;
-  autoComplete?: string;
-  minLength?: number;
 }
 
 function field(config: FieldConfig): DomphyElement<"div"> {
-  const { id, labelText, type = "text", placeholder, caption, autoComplete, minLength } = config;
+  const { id, labelText, type = "text", placeholder } = config;
   return {
     div: [
       { label: labelText, for: id, $: [label()] },
@@ -69,11 +66,8 @@ function field(config: FieldConfig): DomphyElement<"div"> {
         type,
         placeholder,
         required: true,
-        autocomplete: autoComplete,
-        minlength: minLength,
         $: [authFieldInput()],
       },
-      caption ? { small: caption, $: [small({ color: "neutral" })] } : null,
     ],
     style: {
       display: "flex",
@@ -103,12 +97,15 @@ function logoMark(): DomphyElement<"span"> {
 
 function logoRow(companyName: string, href: string): DomphyElement<"a"> {
   return {
-    a: [logoMark(), { strong: companyName, $: [strong({ color: "neutral" })] }],
+    a: [logoMark(), companyName],
     href,
     $: [link({ color: "neutral" })],
     style: {
       display: "inline-flex",
       alignItems: "center",
+      // Upstream logo link is font-medium (500) across the whole anchor,
+      // including the "Acme Inc." wordmark — not a bold <strong>.
+      fontWeight: 500,
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
     },
   };
@@ -117,14 +114,23 @@ function logoRow(companyName: string, href: string): DomphyElement<"a"> {
 function legalLine(termsHref: string, privacyHref: string): DomphyElement<"small"> {
   return {
     small: [
-      "By continuing, you agree to our ",
+      "By clicking continue, you agree to our ",
       { a: "Terms of Service", href: termsHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
       " and ",
       { a: "Privacy Policy", href: privacyHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
       ".",
     ],
     $: [small({ color: "neutral" })],
-    style: { display: "block", textAlign: "center" },
+    // Upstream legal FieldDescription is `px-6 text-center` — the px-6 inset
+    // keeps the copy narrower than the card above it.
+    style: {
+      display: "block",
+      textAlign: "center",
+      boxSizing: "border-box",
+      width: "100%",
+      maxWidth: themeSpacing(96),
+      paddingInline: themeSpacing(6),
+    },
   };
 }
 
@@ -138,7 +144,6 @@ export interface Signup03Props {
   fullNamePlaceholder?: string;
   emailLabel?: string;
   emailPlaceholder?: string;
-  emailCaption?: string;
   passwordLabel?: string;
   confirmPasswordLabel?: string;
   passwordCaption?: string;
@@ -153,8 +158,8 @@ export interface Signup03Props {
 
 /**
  * shadcn/ui "signup-03" — a single-column signup form centered on a
- * full-viewport muted page background, with a centered logo above an
- * uncarded form block and a legal-links line beneath it.
+ * full-viewport muted page background, with a centered logo above a card
+ * containing the form and a legal-links line beneath it.
  */
 function signup03(props: Signup03Props = {}): DomphyElement<"div"> {
   const {
@@ -166,7 +171,6 @@ function signup03(props: Signup03Props = {}): DomphyElement<"div"> {
     fullNamePlaceholder = "John Doe",
     emailLabel = "Email",
     emailPlaceholder = "m@example.com",
-    emailCaption = "We'll never share your email with anyone else.",
     passwordLabel = "Password",
     confirmPasswordLabel = "Confirm Password",
     passwordCaption = "Must be at least 8 characters long.",
@@ -191,10 +195,20 @@ function signup03(props: Signup03Props = {}): DomphyElement<"div"> {
     },
   };
 
+  const footerLine: DomphyElement<"small"> = {
+    small: [
+      `${signInPrompt} `,
+      { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
+    ],
+    $: [small({ color: "neutral" })],
+    // Upstream FieldDescription for the sign-in line is text-center.
+    style: { textAlign: "center" },
+  };
+
   const passwordGrid: DomphyElement<"div"> = {
     div: [
-      { div: [field({ id: "signup03-password", labelText: passwordLabel, type: "password", autoComplete: "new-password", minLength: 8 })] },
-      { div: [field({ id: "signup03-confirm-password", labelText: confirmPasswordLabel, type: "password", autoComplete: "new-password" })] },
+      { div: [field({ id: "signup03-password", labelText: passwordLabel, type: "password" })] },
+      { div: [field({ id: "signup03-confirm-password", labelText: confirmPasswordLabel, type: "password" })] },
     ],
     style: {
       display: "grid",
@@ -203,20 +217,40 @@ function signup03(props: Signup03Props = {}): DomphyElement<"div"> {
     },
   };
 
+  // Upstream nests the 2-col password grid and its "Must be at least 8
+  // characters long." caption inside ONE <Field> (tight gap-3), so the caption
+  // reads as attached to the grid rather than sitting at the full inter-field
+  // gap. Mirror that with the same tight-group gap used below for submit+sign-in.
+  const passwordGroup: DomphyElement<"div"> = {
+    div: [passwordGrid, { small: passwordCaption, $: [small({ color: "neutral" })] }],
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+    },
+  };
+
+  // Upstream nests the submit Button and the "Sign in" FieldDescription in
+  // their own <Field> (gap-3) — tighter than the FieldGroup gap separating
+  // this cluster from the fields above — and keeps both inside the <form>.
   const formElement: DomphyElement<"form"> = {
     form: [
-      field({ id: "signup03-name", labelText: fullNameLabel, placeholder: fullNamePlaceholder, autoComplete: "name" }),
+      field({ id: "signup03-name", labelText: fullNameLabel, placeholder: fullNamePlaceholder }),
       field({
         id: "signup03-email",
         labelText: emailLabel,
         type: "email",
         placeholder: emailPlaceholder,
-        caption: emailCaption,
-        autoComplete: "email",
       }),
-      passwordGrid,
-      { small: passwordCaption, $: [small({ color: "neutral" })] },
-      submitButton,
+      passwordGroup,
+      {
+        div: [submitButton, footerLine],
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+        },
+      },
     ],
     onSubmit: (event: Event) => {
       event.preventDefault();
@@ -229,23 +263,17 @@ function signup03(props: Signup03Props = {}): DomphyElement<"div"> {
     },
   };
 
-  const footerLine: DomphyElement<"small"> = {
-    small: [
-      `${signInPrompt} `,
-      { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
-    ],
-    $: [small({ color: "neutral" })],
-  };
-
   // Upstream signup-03 wraps its header + form in a visible Card (with a
   // centered header), sitting on the muted page between the logo above and
   // the legal line below — mirror that instead of rendering the form uncarded.
   const cardElement: DomphyElement<"div"> = {
     div: [
-      { h2: title, $: [heading()], style: { textAlign: "center" } },
-      { p: subtitle, $: [paragraph({ color: "neutral" })], style: { textAlign: "center" } },
+      // Upstream CardTitle is text-xl (fontSizes[3]); heading() adds increase-3
+      // to the base size (index 2 → 5), so dataSize decrease-2 pulls it back to 3.
+      { h2: title, $: [heading()], dataSize: "decrease-2", style: { textAlign: "center" } },
+      // Upstream CardDescription is text-sm (fontSizes[1]); decrease-1 from base.
+      { p: subtitle, $: [paragraph({ color: "neutral" })], dataSize: "decrease-1", style: { textAlign: "center" } },
       { div: [formElement] },
-      { footer: [footerLine] },
     ],
     $: [card({ color: "neutral" })],
     style: { width: "100%", maxWidth: themeSpacing(96) },

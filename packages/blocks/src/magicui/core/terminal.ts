@@ -7,8 +7,8 @@
 
 import type { DomphyElement, ElementNode, Listener, State, StyleObject } from "@domphy/core";
 import { hashString, toState } from "@domphy/core";
-import { type MotionKeyframe, motion, small } from "@domphy/ui";
-import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { type MotionKeyframe, motion } from "@domphy/ui";
+import { type ThemeColor, themeColor, themeSize, themeSpacing } from "@domphy/theme";
 
 export interface TerminalTypingLine {
   type: "typing";
@@ -45,22 +45,22 @@ export interface TerminalProps {
   sequence?: boolean;
   /** Only start playback once the window scrolls into view. Defaults to true. */
   startOnView?: boolean;
-  /** Window title shown centered in the header strip. Defaults to "zsh". */
-  title?: string;
   style?: StyleObject;
 }
 
+// Prompt glyphs (e.g. "> ", "$ ") are literal author content per line, not
+// auto-prepended — mirrors upstream TypingAnimation, which types exactly the
+// text it is given (output lines carry no prompt).
 const DEFAULT_LINES: TerminalLine[] = [
-  { type: "typing", text: "npx domphy@latest init" },
+  { type: "typing", text: "> npx domphy@latest init" },
   { type: "fade", text: "Scaffolding your project…" },
   { type: "fade", text: "Installing dependencies…" },
-  { type: "typing", text: "npm run dev" },
+  { type: "typing", text: "> npm run dev" },
   { type: "fade", text: "✔ Ready on http://localhost:3000", color: "success" },
 ];
 
 const DEFAULT_CHARS_PER_SECOND = 1000 / 60; // ~60ms per character
-const FADE_LINE_DURATION_MS = 350;
-const LINE_GAP_MS = 150;
+const FADE_LINE_DURATION_MS = 300;
 
 const CURSOR_KEYFRAMES = { "0%,49%": { opacity: 1 }, "50%,100%": { opacity: 0 } };
 const CURSOR_ANIMATION_NAME = `terminal-cursor-${hashString(JSON.stringify(CURSOR_KEYFRAMES))}`;
@@ -77,7 +77,8 @@ function computeSchedule(lines: TerminalLine[], sequence: boolean): number[] {
       line.type === "typing"
         ? (line.text.length / (line.charsPerSecond ?? DEFAULT_CHARS_PER_SECOND)) * 1000
         : FADE_LINE_DURATION_MS;
-    cumulative = startDelay + duration + LINE_GAP_MS;
+    // Next line advances the instant the previous completes — no inter-line gap.
+    cumulative = startDelay + duration;
   }
   return delays;
 }
@@ -101,8 +102,8 @@ function trafficLightDot(color: ThemeColor): DomphyElement<"span"> {
     _key: color,
     style: {
       display: "inline-block",
-      width: themeSpacing(3),
-      height: themeSpacing(3),
+      width: themeSpacing(2),
+      height: themeSpacing(2),
       color: (listener: Listener) => themeColor(listener, "shift-9", color),
     },
   };
@@ -138,7 +139,6 @@ function typingLineElement(
 
   return {
     [tag]: [
-      { span: "$ ", ariaHidden: "true", style: { color: (listener: Listener) => themeColor(listener, "shift-6") } },
       { span: (listener: Listener) => revealed.get(listener) },
       blinkingCursor(),
     ],
@@ -198,7 +198,7 @@ function fadeLineElement(
     style: {
       color: (listener: Listener) => themeColor(listener, "shift-9", line.color ?? "neutral"),
     },
-    $: [motion({ initial: initialFrame, animate: frame, transition: { duration: FADE_LINE_DURATION_MS, easing: "ease-out" } })],
+    $: [motion({ initial: initialFrame, animate: frame, transition: { duration: FADE_LINE_DURATION_MS, easing: "ease-in-out" } })],
     _onMount: (node: ElementNode) => {
       let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
@@ -229,7 +229,6 @@ function terminal(props: TerminalProps = {}): DomphyElement<"div"> {
   const lines = props.lines ?? DEFAULT_LINES;
   const sequence = props.sequence ?? true;
   const startOnView = props.startOnView ?? true;
-  const title = props.title ?? "zsh";
 
   const started = toState(!startOnView);
   const delays = computeSchedule(lines, sequence);
@@ -244,20 +243,12 @@ function terminal(props: TerminalProps = {}): DomphyElement<"div"> {
   return {
     div: [
       {
-        div: [
-          { div: [trafficLightDot("danger"), trafficLightDot("warning"), trafficLightDot("success")], style: { display: "flex", gap: themeSpacing(2), justifySelf: "start" } },
-          { small: title, $: [small()], style: { justifySelf: "center" } },
-          { div: null, style: { justifySelf: "end" } },
-        ],
-        dataTone: "shift-16",
+        div: [trafficLightDot("danger"), trafficLightDot("warning"), trafficLightDot("success")],
         style: {
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          alignItems: "center",
-          paddingBlock: themeSpacing(2.5),
-          paddingInline: themeSpacing(4),
-          backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
-          color: (listener: Listener) => themeColor(listener, "shift-9"),
+          display: "flex",
+          gap: themeSpacing(2),
+          padding: themeSpacing(4),
+          borderBottom: (listener: Listener) => `1px solid ${themeColor(listener, "shift-14")}`,
         },
       },
       {
@@ -265,10 +256,12 @@ function terminal(props: TerminalProps = {}): DomphyElement<"div"> {
         style: {
           display: "flex",
           flexDirection: "column",
-          gap: themeSpacing(2),
-          paddingBlock: themeSpacing(4),
-          paddingInline: themeSpacing(4),
-          minHeight: themeSpacing(48),
+          gap: themeSpacing(1),
+          padding: themeSpacing(4),
+          overflow: "auto",
+          fontFamily: "monospace",
+          fontSize: (listener: Listener) => themeSize(listener, "decrease-1"),
+          letterSpacing: "-0.025em",
         },
       },
     ],
@@ -282,23 +275,28 @@ function terminal(props: TerminalProps = {}): DomphyElement<"div"> {
         return;
       }
       const element = node.domElement as Element;
-      const observer = new IntersectionObserver((entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          started.set(true);
-          observer.disconnect();
-        }
-      });
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            started.set(true);
+            observer.disconnect();
+          }
+        },
+        { threshold: 0.3 },
+      );
       observer.observe(element);
       node.addHook("Remove", () => observer.disconnect());
     },
     style: {
       overflow: "hidden",
+      height: "100%",
+      maxHeight: themeSpacing(100),
+      maxWidth: themeSpacing(128),
       borderRadius: themeSpacing(3),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-14")}`,
       outlineOffset: "-1px",
-      boxShadow: (listener: Listener) => `0 ${themeSpacing(6)} ${themeSpacing(16)} ${themeColor(listener, "shift-4", "neutral")}`,
       ...(props.style ?? {}),
     },
   };

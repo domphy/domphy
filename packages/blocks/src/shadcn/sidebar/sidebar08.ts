@@ -1,26 +1,26 @@
-// shadcn/ui "sidebar-08" — clean-room reimplementation from the public behavior
-// description only (no upstream source viewed). Same full-featured sidebar as
-// sidebar07 (team switcher, nested nav-main, projects) plus a de-emphasized
-// secondary nav block near the bottom, and a main content area rendered as a
-// rounded, shadowed "inset" card offset from the sidebar and viewport edges —
-// the inset gap shrinks in step with the sidebar's own collapse transition.
+// shadcn/ui "sidebar-08" — same full-featured sidebar as sidebar07 (nested
+// nav-main, projects) minus its team-switcher dropdown (a single static
+// brand link here, matching upstream's app-sidebar.tsx), plus a
+// de-emphasized secondary nav block near the bottom, and a main content area
+// rendered as a rounded, shadowed "inset" card offset from the sidebar and
+// viewport edges — the inset gap shrinks in step with the sidebar's own
+// collapse transition.
 
 import type { DomphyElement, ElementNode, Listener, ReadableState } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { small, tooltip } from "@domphy/ui";
+import { small, strong, tooltip } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   ICON_BAR_CHART,
-  ICON_FOLDER,
   ICON_GRID,
   ICON_INBOX,
   ICON_LIFEBUOY,
+  ICON_MARK,
   ICON_MESSAGE,
   renderExpandableNavRow,
   renderPlainNavRow,
   renderProjectRow,
   renderProjectsMoreRow,
-  renderTeamSwitcher,
   renderUserFooter,
   sidebarBackdrop,
   sidebarIcon,
@@ -33,9 +33,89 @@ import {
   type SidebarUser,
 } from "./sidebar05-08-shared.js";
 
+/** shadcn's real sidebar-08 has no team-switcher dropdown (that's sidebar07's
+ * feature) — just a single static brand link. Hand-authored generic "gear"
+ * glyph for the upstream "Settings" nav-main group (not sourced from any icon
+ * set, same convention as sidebar05-08-shared.ts's icons). */
+const ICON_GEAR =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>';
+
+/** Three distinct project glyphs — upstream nav-projects gives each project its
+ * own icon (Frame / PieChart / Map), not a single shared folder. Hand-authored
+ * generic geometric shapes (frame outline, quarter-slice pie, folded map), not
+ * sourced from any icon set — same convention as ICON_GEAR above. */
+const ICON_FRAME =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M22 6H2M22 18H2M6 2v20M18 2v20"/></svg>';
+
+const ICON_PIE_CHART =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><circle cx="12" cy="12" r="9"/><path d="M12 3v9h9"/></svg>';
+
+const ICON_MAP =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>';
+
 /** A quiet utility link (support/feedback) — no active-state styling, always
  * visible (collapses to just its icon like the other rows). */
 type Sidebar08SecondaryNavItem = { title: string; href?: string; icon?: string };
+
+/** Static brand link at the top of the aside: icon badge + two-line label, no
+ * dropdown/chevron/popover. Upstream's sidebar-08 app-sidebar.tsx renders a
+ * single hardcoded `<a href="#">` here (no TeamSwitcher import at all) —
+ * unlike sidebar07, which genuinely has a team-switcher dropdown that
+ * sidebar05-08-shared.ts's renderTeamSwitcher() models. */
+function renderBrandHeader(team: SidebarTeam): DomphyElement<"div"> {
+  return {
+    div: [
+      {
+        a: [
+          {
+            span: team.logo ?? ICON_MARK,
+            dataTone: "shift-0",
+            style: {
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: themeSpacing(8),
+              height: themeSpacing(8),
+              flexShrink: "0",
+              borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+              backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
+              color: (l: Listener) => themeColor(l, "shift-10", "primary"),
+            },
+          } as unknown as DomphyElement,
+          {
+            div: [
+              { strong: team.name, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
+              { small: team.plan, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+            ],
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(0.5),
+              minWidth: "0",
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+            },
+          } as unknown as DomphyElement,
+        ],
+        href: "#",
+        style: {
+          display: "flex",
+          alignItems: "center",
+          width: "100%",
+          gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+          padding: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+          borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+          textDecoration: () => "none",
+          overflow: "hidden",
+          color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+          backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+        },
+      } as unknown as DomphyElement,
+    ],
+    style: { padding: (l: Listener) => themeSpacing(themeDensity(l) * 2) },
+  } as unknown as DomphyElement<"div">;
+}
 
 type Sidebar08Props = {
   teams?: SidebarTeam[];
@@ -54,11 +134,16 @@ const DEFAULT_TEAMS: SidebarTeam[] = [
 
 const DEFAULT_NAV_MAIN: SidebarNavMainItem[] = [
   {
+    // Upstream marks the parent "Playground" isActive:true — its only effect is
+    // defaultOpen on the collapsible; no nav item is ever highlighted as
+    // current (matches sidebar07's data, and app-sidebar.tsx's `isActive: true`
+    // on the parent rather than any sub-item).
     title: "Playground",
     icon: ICON_GRID,
+    active: true,
     items: [
       { title: "History" },
-      { title: "Starred", active: true },
+      { title: "Starred" },
       { title: "Settings" },
     ],
   },
@@ -67,13 +152,32 @@ const DEFAULT_NAV_MAIN: SidebarNavMainItem[] = [
     icon: ICON_INBOX,
     items: [{ title: "Genesis" }, { title: "Explorer" }, { title: "Quantum" }],
   },
-  { title: "Documentation", icon: ICON_BAR_CHART, href: "#" },
+  {
+    title: "Documentation",
+    icon: ICON_BAR_CHART,
+    items: [
+      { title: "Introduction" },
+      { title: "Get Started" },
+      { title: "Tutorials" },
+      { title: "Changelog" },
+    ],
+  },
+  {
+    title: "Settings",
+    icon: ICON_GEAR,
+    items: [
+      { title: "General" },
+      { title: "Team" },
+      { title: "Billing" },
+      { title: "Limits" },
+    ],
+  },
 ];
 
 const DEFAULT_PROJECTS: SidebarProject[] = [
-  { title: "Design Engineering", icon: ICON_FOLDER, href: "#" },
-  { title: "Sales & Marketing", icon: ICON_FOLDER, href: "#" },
-  { title: "Travel", icon: ICON_FOLDER, href: "#" },
+  { title: "Design Engineering", icon: ICON_FRAME, href: "#" },
+  { title: "Sales & Marketing", icon: ICON_PIE_CHART, href: "#" },
+  { title: "Travel", icon: ICON_MAP, href: "#" },
 ];
 
 const DEFAULT_SECONDARY_NAV: Sidebar08SecondaryNavItem[] = [
@@ -169,7 +273,7 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
 
   const asideElement: DomphyElement<"aside"> = {
     aside: [
-      renderTeamSwitcher(teams),
+      renderBrandHeader(teams[0] ?? DEFAULT_TEAMS[0]),
       {
         nav: [
           {
@@ -300,17 +404,21 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
   // (lighter dataTone than the muted root backdrop) with a margin that
   // shrinks — growing the card into the freed space — in step with the
   // sidebar's own collapse transition, using the same timing/easing.
+  // Upstream sidebar-08's page header is a bare `flex h-16 shrink-0
+  // items-center gap-2` bar with no border-bottom (unlike sidebar05/06, whose
+  // upstream headers carry `border-b`). The shared sidebarStickyHeader always
+  // draws that border, so strip it on this variant's header instance only.
+  const stickyHeader = sidebarStickyHeader({
+    onToggle: () => {
+      sidebarOpen.set(!sidebarOpen.get());
+      collapsed.set(!collapsed.get());
+    },
+    breadcrumbItems,
+  });
+  delete (stickyHeader as unknown as { style: Record<string, unknown> }).style.borderBottom;
+
   const mainElement: DomphyElement<"main"> = {
-    main: [
-      sidebarStickyHeader({
-        onToggle: () => {
-          sidebarOpen.set(!sidebarOpen.get());
-          collapsed.set(!collapsed.get());
-        },
-        breadcrumbItems,
-      }),
-      sidebarMainContent(children),
-    ],
+    main: [stickyHeader, sidebarMainContent(children)],
     dataTone: "shift-0",
     style: {
       display: "flex",

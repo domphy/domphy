@@ -4,12 +4,15 @@
 // pointy-top), with optional solid-filled highlighted cells layered above
 // the tile.
 //
-// Tiling technique: a single repeating `<pattern>` tile packs THREE hexagon
-// instances — one fully inside the tile and two half-instances straddling
-// the tile's seam edge — so the standard "every other row/column offset by
-// half a step" honeycomb interlock reproduces seamlessly once the pattern
-// repeats via `patternUnits="userSpaceOnUse"`. This is a self-derived
-// single-tile hex-grid construction, not copied from any source.
+// Tiling technique: a single repeating `<pattern>` tile carries the two
+// canonical honeycomb hexagons PLUS every seam-straddling copy — each
+// canonical hexagon is replicated onto whichever of its 8 tile-boundary
+// neighbors its body still overlaps. A `<pattern>` clips content to the tile
+// (default `overflow:hidden`), so without those copies every hexagon centered
+// on a seam would lose its tip-sliver on one side and the seam would show
+// repeating gaps. With them, the "every other row/column offset by half a
+// step" honeycomb interlock reproduces seamlessly once the pattern repeats via
+// `patternUnits="userSpaceOnUse"`.
 
 import type { DomphyElement, StyleObject } from "@domphy/core";
 import { heading, paragraph } from "@domphy/ui";
@@ -33,12 +36,11 @@ export interface HexagonPatternProps {
    * above the outline tile. Defaults to a small demo set. */
   hexagons?: Array<[number, number]>;
   /** Switches outline rendering from a closed polygon to per-edge dashed line segments
-   * (e.g. `"4 2"`). Solid closed polygons are used when omitted. */
+   * (e.g. `"4 2"`). The values `"0"`, `"none"`, and `""` count as solid and render closed
+   * polygons; any other value renders dashed per-edge lines. Defaults to `"0"` (solid). */
   strokeDasharray?: string;
   /** Theme color family for the outline stroke. Defaults to `"neutral"`. */
   color?: ThemeColor;
-  /** Theme color family for highlighted cells. Defaults to `"primary"`. */
-  highlightColor?: ThemeColor;
   /** Foreground content layered above the pattern. Defaults to a small demo panel. */
   children?: DomphyElement | DomphyElement[];
   /** Passthrough style merged onto the outer demo wrapper. */
@@ -64,6 +66,42 @@ function pointsAttribute(vertices: HexPoint[]): string {
   return vertices.map((vertex) => `${vertex.x.toFixed(2)},${vertex.y.toFixed(2)}`).join(" ");
 }
 
+// Upstream treats "0"/"none"/"" (and the default "0") as "no dashing" and renders
+// closed <polygon>s; only a real dash spec switches to per-edge <line> segments.
+function isSolidStrokeDasharray(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed === "" || trimmed === "none" || trimmed === "0";
+}
+
+function edgeKey(a: HexPoint, b: HexPoint): string {
+  const aKey = `${a.x.toFixed(2)},${a.y.toFixed(2)}`;
+  const bKey = `${b.x.toFixed(2)},${b.y.toFixed(2)}`;
+  return aKey < bKey ? `${aKey}|${bKey}` : `${bKey}|${aKey}`;
+}
+
+// Adjacent tile centers share an edge (they touch, not just meet at a
+// vertex), so mapping every center's 6 edges independently would draw each
+// shared edge twice -- visible as a doubled dash when strokeDasharray is set.
+function uniqueHexEdges(
+  centers: HexPoint[],
+  radius: number,
+  direction: HexagonPatternDirection,
+): Array<[HexPoint, HexPoint]> {
+  const seen = new Set<string>();
+  const edges: Array<[HexPoint, HexPoint]> = [];
+  for (const center of centers) {
+    const vertices = hexagonVertices(center, radius, direction);
+    vertices.forEach((vertex, edgeIndex) => {
+      const next = vertices[(edgeIndex + 1) % vertices.length];
+      const key = edgeKey(vertex, next);
+      if (seen.has(key)) return;
+      seen.add(key);
+      edges.push([vertex, next]);
+    });
+  }
+  return edges;
+}
+
 let hexagonPatternInstanceCounter = 0;
 
 /**
@@ -80,9 +118,8 @@ function hexagonPattern(props: HexagonPatternProps = {}): DomphyElement<"div"> {
   const originX = props.x ?? -1;
   const originY = props.y ?? -1;
   const direction = props.direction ?? "horizontal";
-  const strokeDasharray = props.strokeDasharray;
+  const strokeDasharray = props.strokeDasharray ?? "0";
   const color = props.color ?? "neutral";
-  const highlightColor = props.highlightColor ?? "primary";
   const hexagons = props.hexagons ?? [
     [2, 1],
     [4, 3],
@@ -92,34 +129,55 @@ function hexagonPattern(props: HexagonPatternProps = {}): DomphyElement<"div"> {
 
   let tileWidth: number;
   let tileHeight: number;
-  let tileCenters: HexPoint[];
   let columnStep: number;
   let rowStep: number;
+  let canonicalCenters: HexPoint[];
 
   if (direction === "horizontal") {
     // Flat-top hexagon: horizontal center-to-center column spacing is
-    // 1.5*radius; vertical spacing within a column is sqrt(3)*radius. A
-    // 2-column-wide, 1-row-tall tile carries the full even/odd column offset.
-    columnStep = 1.5 * radius + gap;
+    // 1.5*radius; vertical spacing within a column is sqrt(3)*radius. Gap is
+    // the visible edge-to-edge spacing, added along each axis's shared-edge
+    // normal (hence the sqrt(3)/2 factor on the column axis) rather than
+    // directly on the raw x/y step, so it distributes evenly around a cell.
+    // A 2-column-wide, 1-row-tall tile carries the full even/odd column offset.
+    columnStep = 1.5 * radius + (Math.sqrt(3) * gap) / 2;
     rowStep = Math.sqrt(3) * radius + gap;
     tileWidth = 2 * columnStep;
     tileHeight = rowStep;
-    tileCenters = [
-      { x: columnStep / 2, y: tileHeight / 2 },
-      { x: 1.5 * columnStep, y: 0 },
-      { x: 1.5 * columnStep, y: tileHeight },
+    canonicalCenters = [
+      { x: columnStep / 2, y: rowStep / 2 },
+      { x: 1.5 * columnStep, y: rowStep },
     ];
   } else {
     // Pointy-top hexagon: mirror of the flat-top case with rows/columns swapped.
-    rowStep = 1.5 * radius + gap;
+    rowStep = 1.5 * radius + (Math.sqrt(3) * gap) / 2;
     columnStep = Math.sqrt(3) * radius + gap;
     tileWidth = columnStep;
     tileHeight = 2 * rowStep;
-    tileCenters = [
-      { x: tileWidth / 2, y: rowStep / 2 },
-      { x: 0, y: 1.5 * rowStep },
-      { x: tileWidth, y: 1.5 * rowStep },
+    canonicalCenters = [
+      { x: columnStep / 2, y: rowStep / 2 },
+      { x: columnStep, y: 1.5 * rowStep },
     ];
+  }
+
+  // The <pattern> clips content to the tile, so a canonical hexagon whose body
+  // crosses a tile edge must be re-emitted at the mirrored position on the
+  // opposite side (and diagonal corners), or that seam repeats a gap where the
+  // clipped tip-sliver should be. Replicate each canonical center onto whichever
+  // of its 8 boundary-neighbor tiles its body still intersects. Mirrors upstream
+  // getTileGeometry (~10 centers/tile), replacing the earlier 3-instance tile
+  // that dropped the horizontal (and, when vertical, the vertical) seam copies.
+  const tileCenters: HexPoint[] = [];
+  for (const { x: cx, y: cy } of canonicalCenters) {
+    tileCenters.push({ x: cx, y: cy });
+    if (cy - radius < 0) tileCenters.push({ x: cx, y: cy + tileHeight });
+    if (cy + radius > tileHeight) tileCenters.push({ x: cx, y: cy - tileHeight });
+    if (cx - radius < 0) tileCenters.push({ x: cx + tileWidth, y: cy });
+    if (cx + radius > tileWidth) tileCenters.push({ x: cx - tileWidth, y: cy });
+    if (cy - radius < 0 && cx - radius < 0) tileCenters.push({ x: cx + tileWidth, y: cy + tileHeight });
+    if (cy - radius < 0 && cx + radius > tileWidth) tileCenters.push({ x: cx - tileWidth, y: cy + tileHeight });
+    if (cy + radius > tileHeight && cx - radius < 0) tileCenters.push({ x: cx + tileWidth, y: cy - tileHeight });
+    if (cy + radius > tileHeight && cx + radius > tileWidth) tileCenters.push({ x: cx - tileWidth, y: cy - tileHeight });
   }
 
   function cellCenter(column: number, row: number): HexPoint {
@@ -137,30 +195,28 @@ function hexagonPattern(props: HexagonPatternProps = {}): DomphyElement<"div"> {
     };
   }
 
-  const tileContent: DomphyElement[] = strokeDasharray
-    ? tileCenters.flatMap((center, centerIndex) => {
-        const vertices = hexagonVertices(center, radius, direction);
-        return vertices.map((vertex, edgeIndex) => {
-          const next = vertices[(edgeIndex + 1) % vertices.length];
-          return {
+  const tileContent: DomphyElement[] = isSolidStrokeDasharray(strokeDasharray)
+    ? tileCenters.map(
+        (center, centerIndex) =>
+          ({
+            polygon: null,
+            _key: `cell-${centerIndex}`,
+            points: pointsAttribute(hexagonVertices(center, radius, direction)),
+            strokeDasharray,
+            style: { stroke: "currentColor", fill: "none", strokeWidth: 1 } as StyleObject,
+          }) as DomphyElement,
+      )
+    : uniqueHexEdges(tileCenters, radius, direction).map(
+        ([vertex, next], edgeIndex) =>
+          ({
             line: null,
-            _key: `edge-${centerIndex}-${edgeIndex}`,
+            _key: `edge-${edgeIndex}`,
             x1: vertex.x,
             y1: vertex.y,
             x2: next.x,
             y2: next.y,
             strokeDasharray,
             style: { stroke: "currentColor", strokeWidth: 1 } as StyleObject,
-          } as DomphyElement;
-        });
-      })
-    : tileCenters.map(
-        (center, centerIndex) =>
-          ({
-            polygon: null,
-            _key: `cell-${centerIndex}`,
-            points: pointsAttribute(hexagonVertices(center, radius, direction)),
-            style: { stroke: "currentColor", fill: "none", strokeWidth: 1 } as StyleObject,
           }) as DomphyElement,
       );
 
@@ -169,13 +225,17 @@ function hexagonPattern(props: HexagonPatternProps = {}): DomphyElement<"div"> {
       ({
         polygon: null,
         _key: `highlight-${instanceId}-${index}`,
-        points: pointsAttribute(hexagonVertices(cellCenter(column, row), radius, direction)),
+        points: pointsAttribute(hexagonVertices(cellCenter(column, row), radius - 1, direction)),
         ariaHidden: "true",
         // Decorative highlight cell with no text of its own — exempt from the
         // missing-color contract (mirrors meteors()/dottedMap() in this package).
         _doctorDisable: "missing-color",
+        // Upstream highlight polygons carry no fill of their own and inherit the
+        // svg's fill-gray-400/30 — the SAME tone as the grid outlines — so they
+        // read as a subtle same-color fill, not a distinct hue. Match the grid's
+        // shift-3/`color`, exactly as the sibling gridPattern does for its squares.
         style: {
-          fill: (listener) => themeColor(listener, "shift-9", highlightColor),
+          fill: (listener) => themeColor(listener, "shift-3", color),
           stroke: "none",
         } as StyleObject,
       }) as DomphyElement,

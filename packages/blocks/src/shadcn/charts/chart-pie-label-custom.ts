@@ -1,10 +1,14 @@
 // shadcn/ui "charts/pie-label-custom" — clean-room reimplementation.
 //
-// A pie chart whose slice label is a custom renderer: the raw numeric value,
-// printed bold and high-contrast, centered at each wedge's own visual
-// midpoint (mid-radius, angular bisector) instead of an outside leader-line
-// label. Implemented purely from the block's public functional/visual spec —
-// no upstream source was viewed.
+// A pie chart whose slice value is printed OUTSIDE the wedge at Recharts'
+// default pie-label anchor: along each slice's mid-angle, just past the outer
+// rim, textAnchor start/end by side, no leader line (upstream
+// `labelLine={false}`). The value is drawn in the theme foreground text color
+// so it reads against the card background, not the wedge fill. The hover
+// tooltip row is relabeled to the metric ("Visitors", upstream
+// `nameKey="visitors" hideLabel`) rather than the per-slice browser name.
+// Implemented purely from the block's public functional/visual spec — no
+// upstream source was viewed.
 
 import type { DomphyElement } from "@domphy/core";
 import { motion } from "@domphy/ui";
@@ -20,8 +24,9 @@ import {
   pieCardFooter,
   pieCardTitle,
   pieChartContainer,
-  pieOnWedgeLabel,
+  pieOutsideLabel,
   pieWedgePath,
+  wedgeTooltipHandlers,
 } from "./pie-chart-shared.js";
 
 export interface ChartPieLabelCustomProps {
@@ -31,16 +36,16 @@ export interface ChartPieLabelCustomProps {
   trendValue?: string;
   trendDirection?: "up" | "down";
   caption?: string;
-  /** Formats the raw value printed on each wedge. Defaults to a plain number. */
+  /** Formats the raw value printed just outside each wedge. Defaults to a plain number. */
   labelFormatter?: (value: number) => string;
-  /** Fraction of the outer radius the label sits at (0 = center, 1 = rim). */
-  labelRadiusFraction?: number;
+  /** Metric label shown as the tooltip row name (upstream `nameKey="visitors"`). */
+  valueLabel?: string;
 }
 
 /**
- * A pie chart with the raw numeric value printed directly on each wedge at
- * its angular bisector, computed from trigonometry rather than a default
- * outside-label anchor. Call with no arguments for a fully working demo.
+ * A pie chart with the raw numeric value printed just outside each wedge along
+ * its mid-angle — the default Recharts pie-label anchor, no leader line — in
+ * the theme foreground color. Call with no arguments for a fully working demo.
  */
 function chartPieLabelCustom(props: ChartPieLabelCustomProps = {}): DomphyElement<"div"> {
   const {
@@ -51,32 +56,33 @@ function chartPieLabelCustom(props: ChartPieLabelCustomProps = {}): DomphyElemen
     trendDirection = "up",
     caption = "Showing total visitors for the last 6 months",
     labelFormatter = defaultValueFormatter,
-    labelRadiusFraction = 0.62,
+    valueLabel = "Visitors",
   } = props;
 
   const slices = layoutPieSlices(data);
   const tooltipState = createPieTooltipState();
   const containerRef = { current: null as HTMLElement | null };
 
-  const wedgeNodes: DomphyElement[] = slices.flatMap((slice) => {
-    const label = pieOnWedgeLabel(slice, labelFormatter(slice.datum.value), {
-      radiusFraction: labelRadiusFraction,
-    });
-    return [
-      pieWedgePath(slice, {
-        outerRadius: PIE_OUTER_RADIUS,
-        // The value is already printed on the wedge — the tooltip only needs
-        // to name the category.
-        tooltip: {
-          containerRef,
-          tooltipState,
-          valueFormatter: () => slice.datum.name,
-          showName: false,
-        },
-      }),
-      ...(label ? [label] : []),
-    ];
-  });
+  const wedgeNodes: DomphyElement[] = slices.flatMap((slice) => [
+    {
+      ...pieWedgePath(slice, { outerRadius: PIE_OUTER_RADIUS }),
+      // Upstream <ChartTooltipContent nameKey="visitors" hideLabel /> shows the
+      // metric label ("Visitors") as the row name, not the browser name — feed
+      // the shared tooltip a name-overridden datum so its name channel carries
+      // the metric label instead of slice.datum.name.
+      ...wedgeTooltipHandlers(
+        { datum: { ...slice.datum, name: valueLabel }, color: slice.color },
+        { containerRef, tooltipState, valueFormatter: labelFormatter },
+      ),
+    },
+    // Value at the default outside anchor (mid-angle, just past the rim,
+    // start/end anchored by side), no leader line, every slice labeled.
+    ...pieOutsideLabel(slice, {
+      text: labelFormatter(slice.datum.value),
+      leaderLine: false,
+      minFraction: 0,
+    }),
+  ]);
 
   return pieCard([
     pieCardTitle(title),

@@ -36,11 +36,24 @@ describe("wordRotate", () => {
     flushSync();
     expect(host.textContent).toBe("One");
 
+    // Upstream drives the swap through `AnimatePresence mode="wait"`: the
+    // outgoing word's exit plays to completion BEFORE the incoming word
+    // mounts. The block reproduces that as two phases on the interval tick:
+    // clear (exit, synchronous here since jsdom has no WAAPI) then, after
+    // the transition's own duration (default 250ms), mount the next word.
     vi.advanceTimersByTime(500);
+    flushSync();
+    expect(host.textContent).toBe("");
+
+    vi.advanceTimersByTime(250);
     flushSync();
     expect(host.textContent).toBe("Two");
 
-    vi.advanceTimersByTime(500);
+    vi.advanceTimersByTime(250);
+    flushSync();
+    expect(host.textContent).toBe("");
+
+    vi.advanceTimersByTime(250);
     flushSync();
     expect(host.textContent).toBe("One");
   });

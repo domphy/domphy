@@ -1,16 +1,16 @@
 // shadcn/ui "charts/line-multiple" block — clean-room reimplementation.
 //
 // Two smoothed lines (two series) plotted on the same six-month chart, each
-// in its own accent color, with no point markers. Hovering shows the
-// engine's default richer tooltip: a color swatch + series label + value per
-// line for the hovered month, with the cursor highlight band suppressed.
+// in its own accent color, with no point markers. Hovering shows a bold
+// month header above a color swatch + series label + value row per line,
+// with the cursor highlight band suppressed.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
-import type { ChartOption } from "@domphy/chart";
+import type { ChartOption, TooltipParams } from "@domphy/chart";
 import {
   DEFAULT_LINE_GRID,
   MONTHLY_VISITOR_DATA,
@@ -19,9 +19,34 @@ import {
   chartPlot,
   computeYDomain,
   hiddenLabelYAxis,
+  lineSwatchLabelValueTooltipFormatter,
   monthCategoryXAxis,
   trendFooter,
 } from "./chart-line-shared.js";
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Prefixes the hovered category's bold header line with one swatch+label+value
+ * row PER series — this recipe's upstream `<ChartTooltipContent/>` is an
+ * axis-trigger tooltip with `hideLabel` unset (unlike chart-line-default's
+ * `hideLabel`), so the month name shows above a row for every line (Desktop
+ * AND Mobile), not just the first. The engine passes the full per-series
+ * params[] for an axis trigger; each row reuses the shared single-row markup. */
+function chartLineMultipleTooltipFormatter(params: TooltipParams | TooltipParams[]): string {
+  const list = Array.isArray(params) ? params : [params];
+  if (list.length === 0) return "";
+  const name = list[0]?.name;
+  const header = name ? `<div style="font-weight:600;margin-bottom:4px;">${escapeHtml(String(name))}</div>` : "";
+  const rows = list.map((point) => lineSwatchLabelValueTooltipFormatter(point)).join("<br>");
+  return `${header}${rows}`;
+}
 
 /** Props for {@link chartLineMultiple}. */
 export interface ChartLineMultipleProps {
@@ -68,6 +93,7 @@ function chartLineMultiple(props: ChartLineMultipleProps = {}): DomphyElement<"d
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "none" },
+      formatter: chartLineMultipleTooltipFormatter,
     },
     series: [
       {

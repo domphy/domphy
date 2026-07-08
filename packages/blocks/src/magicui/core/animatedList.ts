@@ -2,10 +2,12 @@
 // behavior/visual spec only (no upstream source viewed or copied). A
 // vertically stacked feed of notification-style cards that enter one after
 // another on an interval timer, giving a live activity-feed feel. New cards
-// fade/slide/scale in via the Web Animations API (`motion()`), existing cards
-// smoothly shift position as new ones are inserted (`transitionGroup()`'s
-// FLIP reflow), and a bottom gradient mask dissolves cards that scroll past
-// the visible edge instead of clipping them abruptly.
+// zoom in (scale-from-zero + fade, anchored to their top edge) via the Web
+// Animations API (`motion()`), existing cards smoothly shift position as new
+// ones are inserted (`transitionGroup()`'s FLIP reflow), and a bottom gradient
+// mask dissolves cards that scroll past the visible edge instead of clipping
+// them abruptly. By default each source item is revealed once and the feed
+// halts (matching upstream); loop/maxItems opt into a bounded recycling feed.
 
 import type { DomphyElement, Listener } from "@domphy/core";
 import { toState } from "@domphy/core";
@@ -27,11 +29,11 @@ export interface AnimatedListProps {
   items?: AnimatedListItem[];
   /** Milliseconds between each new item's insertion. Defaults to 1000. */
   intervalDelay?: number;
-  /** Max items kept mounted before the oldest are recycled out. Defaults to 5. */
+  /** Cap on mounted cards in the bounded recycling feed. Only applies while looping; setting it turns looping on. Defaults to 5. */
   maxItems?: number;
   /** Insertion edge: "top" pushes new items in above (list grows downward), "bottom" appends below (list grows upward). Defaults to "top". */
   direction?: "top" | "bottom";
-  /** Wrap back to the start of `items` once exhausted. Defaults to true. */
+  /** Recycle the source endlessly as a bounded live feed. When off (the default) each item is revealed once and the feed halts, matching upstream. Defaults to false, or true when `maxItems` is set. */
   loop?: boolean;
   /** Container max-height, in `themeSpacing` units. Defaults to 112 (~28em). */
   maxHeightUnits?: number;
@@ -123,11 +125,19 @@ function notificationEntry(item: AnimatedListItem, renderKey: string): DomphyEle
       },
     ],
     _key: renderKey,
-    style: { width: "100%" },
+    // `mx-auto w-full max-w-[400px]`: a full-width-but-capped card, centered in
+    // the column. `transformOrigin: "top"` mirrors upstream's `originY: 0` so
+    // the zoom grows from the card's top edge, not its center.
+    style: { width: "100%", maxWidth: themeSpacing(100), marginInline: "auto", transformOrigin: "top" },
     $: [
       motion({
-        initial: { opacity: 0, y: -16, scale: 0.92 },
-        animate: { opacity: 1, y: 0, scale: 1 },
+        // Upstream: initial {scale:0,opacity:0} -> animate {scale:1,opacity:1}
+        // (a pop from nothing, no vertical translation); exit {scale:0,opacity:0}
+        // (collapse to nothing). The spring is approximated with a cubic-bezier
+        // ease-out curve (Domphy's motion() has no mass/stiffness/damping).
+        initial: { scale: 0, opacity: 0 },
+        animate: { scale: 1, opacity: 1 },
+        exit: { scale: 0, opacity: 0 },
         transition: { duration: 420, easing: "cubic-bezier(0.16, 1, 0.3, 1)" },
       }),
     ],
@@ -155,16 +165,20 @@ function edgeFadeMask(fadeAtBottom: boolean): DomphyElement<"div"> {
 
 /**
  * Vertically stacked feed of notification-style cards that stream in one at
- * a time on an interval timer, each animating in with a fade/slide/scale
- * entrance while older cards reflow to make room. Call with no arguments for
- * a working demo — a sample activity stream cycling every second.
+ * a time on an interval timer, each zooming in (scale-from-zero + fade) from
+ * its top edge while older cards reflow to make room. Call with no arguments
+ * for a working demo — a sample activity stream revealing one card per second.
  */
 function animatedList(props: AnimatedListProps = {}): DomphyElement<"div"> {
-  const items = props.items ?? DEFAULT_ITEMS;
+  // Upstream's demo repeats its notification set to prolong the once-through
+  // reveal; mirror that for the zero-arg demo so it runs a while before halting.
+  const items = props.items ?? Array.from({ length: 10 }, () => DEFAULT_ITEMS).flat();
   const intervalDelay = props.intervalDelay ?? 1000;
   const maxItems = Math.max(1, props.maxItems ?? 5);
   const direction = props.direction ?? "top";
-  const loop = props.loop ?? true;
+  // Default contract (upstream): reveal each item once, then stop — never loop,
+  // never trim. Passing `loop` or `maxItems` opts into a bounded recycling feed.
+  const loop = props.loop ?? props.maxItems !== undefined;
   const maxHeightUnits = props.maxHeightUnits ?? 112;
 
   interface Entry {
@@ -188,12 +202,13 @@ function animatedList(props: AnimatedListProps = {}): DomphyElement<"div"> {
 
     const current = visibleEntries.get();
     const next = direction === "top" ? [entry, ...current] : [...current, entry];
-    // Keep a small buffer beyond `maxItems` so the oldest card visually
-    // scrolls under the fade mask before being trimmed, instead of popping
-    // abruptly the instant the limit is reached.
+    // Only the bounded recycling feed (loop) trims. The default once-through
+    // reveal keeps every card mounted — old ones just clip under overflow:hidden,
+    // matching upstream. A small buffer beyond `maxItems` lets the oldest card
+    // scroll under the fade mask before it's removed, instead of popping away.
     const bufferedMax = maxItems + 2;
     const trimmed =
-      next.length > bufferedMax
+      loop && next.length > bufferedMax
         ? direction === "top"
           ? next.slice(0, bufferedMax)
           : next.slice(next.length - bufferedMax)
@@ -210,6 +225,7 @@ function animatedList(props: AnimatedListProps = {}): DomphyElement<"div"> {
         style: {
           display: "flex",
           flexDirection: direction === "top" ? "column" : "column-reverse",
+          alignItems: "center",
           gap: (listenerValue: Listener) => themeSpacing(themeDensity(listenerValue) * 3),
           padding: (listenerValue: Listener) => themeSpacing(themeDensity(listenerValue) * 3),
         },
@@ -224,7 +240,12 @@ function animatedList(props: AnimatedListProps = {}): DomphyElement<"div"> {
     },
     _onMount: (node) => {
       pushNext();
-      const timer = setInterval(pushNext, intervalDelay);
+      const timer = setInterval(() => {
+        pushNext();
+        // Once-through reveal (no loop): stop the timer at the last item, like
+        // upstream's `index < childrenArray.length - 1` guard.
+        if (!loop && sourceIndex >= items.length) clearInterval(timer);
+      }, intervalDelay);
       node.addHook("Remove", () => clearInterval(timer));
     },
   };

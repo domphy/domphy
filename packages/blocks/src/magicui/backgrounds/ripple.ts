@@ -43,9 +43,8 @@ const RING_OPACITY_STEP = 0.03;
 const RING_DELAY_STEP_SECONDS = 0.06;
 
 const PULSE_KEYFRAMES = {
-  "0%": { transform: "translate(-50%, -50%) scale(0.92)" },
-  "50%": { transform: "translate(-50%, -50%) scale(1)" },
-  "100%": { transform: "translate(-50%, -50%) scale(0.92)" },
+  "0%, 100%": { transform: "translate(-50%, -50%) scale(1)" },
+  "50%": { transform: "translate(-50%, -50%) scale(0.9)" },
 };
 
 function ringElement(
@@ -56,7 +55,10 @@ function ringElement(
   animationName: string,
 ): DomphyElement {
   const size = mainCircleSize + index * RING_SIZE_STEP;
-  const opacity = Math.max(0.02, mainCircleOpacity - index * RING_OPACITY_STEP);
+  // Upstream applies no lower bound: rings past the opacity budget render at
+  // 0 / negative (invisible), so numCircles >= 9 fades out rather than
+  // holding a visible floor.
+  const opacity = mainCircleOpacity - index * RING_OPACITY_STEP;
   const delaySeconds = index * RING_DELAY_STEP_SECONDS;
 
   return {
@@ -85,9 +87,11 @@ function ringElement(
       borderWidth: "1px",
       borderStyle: "solid",
       borderColor: (listener: Listener) => themeColor(listener, "shift-9", color),
-      boxShadow: (listener: Listener) =>
-        `0 0 ${themeSpacing(6)} ${themeColor(listener, "shift-7", color)}`,
-      animation: `${animationName} 2s ease-in-out ${delaySeconds}s infinite`,
+      // Upstream ring uses Tailwind `shadow-xl` — a two-layer downward
+      // translucent-black elevation drop shadow, not a symmetric colored glow.
+      boxShadow:
+        "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+      animation: `${animationName} 2s ease ${delaySeconds}s infinite`,
       [`@keyframes ${animationName}`]: PULSE_KEYFRAMES,
     } as StyleObject,
   } as DomphyElement;
@@ -133,8 +137,8 @@ function ripple(props: RippleProps = {}): DomphyElement<"div"> {
       inset: 0,
       overflow: "hidden",
       pointerEvents: "none",
-      maskImage: "linear-gradient(to bottom, black 55%, transparent 100%)",
-      WebkitMaskImage: "linear-gradient(to bottom, black 55%, transparent 100%)",
+      maskImage: "linear-gradient(to bottom, black, transparent)",
+      WebkitMaskImage: "linear-gradient(to bottom, black, transparent)",
     } as StyleObject,
   } as DomphyElement;
 

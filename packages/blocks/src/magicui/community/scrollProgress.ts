@@ -1,29 +1,45 @@
-// Magic UI "Scroll Progress" — clean-room reimplementation.
+// Magic UI "Scroll Progress" — verified directly against the real upstream
+// source (registry/magicui/scroll-progress.tsx, MIT-licensed).
 //
-// A thin bar fixed to the top of the viewport that fills left-to-right in
-// proportion to how far the page has scrolled. Implemented purely from the
-// block's public functional/visual spec — no upstream Magic UI source was
-// viewed or copied.
+// Upstream is a single `motion.div` fixed to the top of the viewport whose
+// `scaleX` is bound DIRECTLY to `useScroll().scrollYProgress` — an
+// instantaneous 1:1 track of the scroll fraction, no spring/easing, no lag.
+// It carries NO ARIA attributes.
 //
-// Scroll-linked continuous effects fall outside the declarative `motion()`
-// patch (which drives one-shot enter/exit/re-animate transitions, not a
-// per-frame value tied to an external event), so this follows the package's
-// own guidance for such cases: a `scroll`/`resize` listener wired in
-// `_onMount`, torn down in `_onRemove`, driving a `requestAnimationFrame`
-// loop that lerps the visible fill toward the raw scroll fraction so it
-// reads as fluid rather than jittery — the loop only runs while catching up
-// (rAF-debounced), not continuously.
+// Two upstream details need translation into Domphy conventions:
+//
+//   1. The gradient. Upstream is a three-stop multi-hue sweep
+//      `from-[#A97CF8] via-[#F38CB8] to-[#FDCC92]` (purple -> pink -> peach).
+//      Domphy's doctor rules forbid raw hex literals on style props, so — as
+//      `rainbowButton`/`neonGradientCard` already do for their multi-hue
+//      gradients — each distinct upstream hue maps to the closest distinct
+//      built-in `ThemeColor` family: purple -> "primary" (the theme has no
+//      violet family; primary is the hue-closest cool family), pink ->
+//      "secondary" (the theme's rose/pink family, a near-exact match), peach
+//      -> "warning" (the theme's peach/orange family, a near-exact match).
+//      This keeps the sweep theme-aware (it follows light/dark swaps) at the
+//      cost of not accepting an arbitrary caller hex list.
+//
+//   2. Scroll binding. A scroll-linked value tied to an external event falls
+//      outside the declarative `motion()` patch (one-shot enter/exit
+//      transitions, not a per-frame value). So a `scroll`/`resize` listener is
+//      wired in `_onMount`, torn down in `_onRemove`, and writes `scaleX`
+//      straight from the current scroll fraction on each event — matching
+//      upstream's instantaneous 1:1 track (no smoothing/lerp).
 
 import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 
 export interface ScrollProgressProps {
-  /** Bar thickness, in `themeSpacing` units. Defaults to `1`. */
+  /** Bar thickness, in `themeSpacing` units. Defaults to `0.25` (~1px at the default root font size, matching the spec's `h-px`). */
   thickness?: number;
-  /** Theme color family for the fill gradient. Defaults to `"primary"`. */
-  color?: ThemeColor;
-  /** Lerp factor per animation frame (0–1); higher catches up faster. Defaults to `0.2`. */
-  smoothing?: number;
+  /**
+   * Gradient stops the fill blends through, left-to-right. Defaults to
+   * `["primary", "secondary", "warning"]`, mapping upstream's three-hue
+   * `#A97CF8`/`#F38CB8`/`#FDCC92` (purple/pink/peach) sweep to the closest
+   * distinct theme families.
+   */
+  colors?: ThemeColor[];
   /** Stacking order. Defaults to `50`. */
   zIndex?: number;
   /**
@@ -34,6 +50,8 @@ export interface ScrollProgressProps {
   /** Passthrough style merged onto the bar. */
   style?: StyleObject;
 }
+
+const DEFAULT_COLORS: ThemeColor[] = ["primary", "secondary", "warning"];
 
 /** Current scroll fraction (0–1) of `target`, or of the whole page when `target` is `window`. */
 function readScrollFraction(target: Element | Window): number {
@@ -49,14 +67,13 @@ function readScrollFraction(target: Element | Window): number {
 }
 
 /**
- * A slim, fixed-to-top bar whose fill tracks scroll position (0 at the top
+ * A slim, fixed-to-top bar whose fill tracks scroll position 1:1 (0 at the top
  * of the page, full width at the bottom) — a passive, always-on reading
  * progress indicator. Call with no arguments to track the whole page.
  */
 function scrollProgress(props: ScrollProgressProps = {}): DomphyElement<"div"> {
-  const thickness = props.thickness ?? 1;
-  const color = props.color ?? "primary";
-  const smoothing = props.smoothing ?? 0.2;
+  const thickness = props.thickness ?? 0.25;
+  const colors = props.colors && props.colors.length > 0 ? props.colors : DEFAULT_COLORS;
   const zIndex = props.zIndex ?? 50;
 
   // Built through an untyped literal, then asserted, so `_doctorDisable` (a
@@ -65,11 +82,10 @@ function scrollProgress(props: ScrollProgressProps = {}): DomphyElement<"div"> {
   // return type would otherwise apply to an inline return object.
   const barElement = {
     div: null,
-    role: "progressbar",
-    ariaHidden: "true",
     // A pure fill indicator with no text of its own — exempt from the
     // missing-color contract (same idiom as other decorative-only elements
-    // in this package, e.g. marquee's fade overlay).
+    // in this package, e.g. marquee's fade overlay). Upstream's `motion.div`
+    // carries no ARIA, so none is added here either.
     _doctorDisable: "missing-color",
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined") return;
@@ -78,44 +94,21 @@ function scrollProgress(props: ScrollProgressProps = {}): DomphyElement<"div"> {
 
       const getScrollTarget = (): Element | Window => props.target?.() ?? window;
 
-      let currentFraction = readScrollFraction(getScrollTarget());
-      let targetFraction = currentFraction;
-      let animating = false;
-      let rafHandle = 0;
-
+      // Instantaneous 1:1 track: write scaleX straight from the current scroll
+      // fraction on every scroll/resize — no lerp/spring, matching upstream's
+      // direct `scaleX = scrollYProgress` binding.
       const paint = () => {
-        element.style.transform = `scaleX(${currentFraction})`;
+        element.style.transform = `scaleX(${readScrollFraction(getScrollTarget())})`;
       };
       paint();
 
-      const step = () => {
-        currentFraction += (targetFraction - currentFraction) * smoothing;
-        if (Math.abs(targetFraction - currentFraction) < 0.0008) {
-          currentFraction = targetFraction;
-          paint();
-          animating = false;
-          return;
-        }
-        paint();
-        rafHandle = requestAnimationFrame(step);
-      };
-
-      const handleScroll = () => {
-        targetFraction = readScrollFraction(getScrollTarget());
-        if (!animating) {
-          animating = true;
-          rafHandle = requestAnimationFrame(step);
-        }
-      };
-
-      let listenTarget: Element | Window = getScrollTarget();
-      listenTarget.addEventListener("scroll", handleScroll, { passive: true });
-      window.addEventListener("resize", handleScroll, { passive: true });
+      const listenTarget: Element | Window = getScrollTarget();
+      listenTarget.addEventListener("scroll", paint, { passive: true });
+      window.addEventListener("resize", paint, { passive: true });
 
       node.addHook("Remove", () => {
-        listenTarget.removeEventListener("scroll", handleScroll);
-        window.removeEventListener("resize", handleScroll);
-        if (rafHandle) cancelAnimationFrame(rafHandle);
+        listenTarget.removeEventListener("scroll", paint);
+        window.removeEventListener("resize", paint);
       });
     },
     style: {
@@ -129,7 +122,7 @@ function scrollProgress(props: ScrollProgressProps = {}): DomphyElement<"div"> {
       pointerEvents: "none",
       zIndex,
       backgroundImage: (listener: Listener) =>
-        `linear-gradient(90deg, ${themeColor(listener, "shift-9", color)}, ${themeColor(listener, "shift-6", color)})`,
+        `linear-gradient(90deg, ${colors.map((color) => themeColor(listener, "shift-5", color)).join(", ")})`,
       ...(props.style ?? {}),
     } as StyleObject,
   } as DomphyElement<"div">;

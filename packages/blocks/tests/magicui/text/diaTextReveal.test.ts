@@ -54,8 +54,27 @@ describe("diaTextReveal", () => {
   });
 
   it("reserves a fixed width when `reserveWidth` is set, sized to the longest item", () => {
-    const { node } = render(diaTextReveal({ children: ["Hi", "A much longer phrase"], reserveWidth: true }) as DomphyElement);
-    expect(node.generateCSS()).toContain("20ch");
+    // jsdom never lays out real geometry (getBoundingClientRect() is always
+    // zeroed), so the block's real, upstream-faithful measurement technique —
+    // cloning the span into a hidden ghost and reading its measured PIXEL
+    // width (see `measureWidths`) — needs a stubbed rect to observe here.
+    // Stub by text length so the two items resolve to distinct, checkable
+    // widths and the "sized to the longest item" behavior stays meaningful.
+    const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+    HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+      return { width: (this.textContent ?? "").length * 10, height: 0, top: 0, left: 0, right: 0, bottom: 0, x: 0, y: 0, toJSON() {} } as DOMRect;
+    };
+    try {
+      // reserveWidth is applied imperatively in `_onMount` (`element.style.width
+      // = ...`), not through the declarative `style` object, so it shows up on
+      // the live DOM element rather than in `node.generateCSS()`.
+      const { host } = render(diaTextReveal({ children: ["Hi", "A much longer phrase"], reserveWidth: true }) as DomphyElement);
+      const span = host.querySelector("span") as HTMLElement;
+      // "A much longer phrase" (20 chars) is the longest item -> 200px reserved.
+      expect(span.style.width).toBe("200px");
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+    }
   });
 
   it("removes cleanly without throwing", () => {

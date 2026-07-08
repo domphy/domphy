@@ -34,7 +34,7 @@ export interface CodeComparisonProps {
   filename?: string;
   /** Language identifier — used only to build the default filename. Defaults to `"ts"`. */
   language?: string;
-  /** Theme color family for `[!code highlight]` line tint. Defaults to `"warning"`. */
+  /** Theme color family for `[!code highlight]` line tint. Defaults to `"error"` (red, matching upstream's `#ff3333`). */
   highlightColor?: ThemeColor;
   style?: StyleObject;
 }
@@ -87,7 +87,7 @@ function tokenizeLine(text: string): CodeToken[] {
     else if (punctuation) tokens.push({ text: punctuation, kind: "plain" });
     match = TOKEN_PATTERN.exec(text);
   }
-  return tokens.length > 0 ? tokens : [{ text: " ", kind: "plain" }];
+  return tokens.length > 0 ? tokens : [{ text: " ", kind: "plain" }];
 }
 
 function tokenColor(listener: Listener, kind: TokenKind): string {
@@ -147,12 +147,20 @@ function fileIcon(): DomphyElement<"span"> {
   };
 }
 
-/** One highlighted code panel: a filename/icon header above a token-colored `<pre><code>` block. */
+/**
+ * One half of the unified comparison card: a filename/icon header above a
+ * token-colored `<pre><code>` block. It is a grid cell (no rounding/background
+ * card of its own) — the two halves share a single internal hairline divider:
+ * the left cell draws a right border from the `md` breakpoint up, the right
+ * cell draws a top border below `md` (removed at `md`), matching upstream's
+ * `md:border-r` / `border-t md:border-t-0`.
+ */
 function codePanel(
   code: string,
   filename: string,
   label: string,
   highlightColor: ThemeColor,
+  side: "left" | "right",
 ): DomphyElement<"div"> {
   const parsedLines = code.replace(/\r\n/g, "\n").split("\n").map(parseLine);
   const hasFocusedLine = parsedLines.some((line) => line.emphasis === "focus");
@@ -167,6 +175,10 @@ function codePanel(
     const emphasized = line.emphasis !== "none" && line.emphasis !== "focus";
     const emphasisFamily: ThemeColor =
       line.emphasis === "add" ? "success" : line.emphasis === "remove" ? "error" : highlightColor;
+    // Non-focused rows in a panel that has a `[!code focus]` line are dimmed
+    // (opacity 0.5) AND blurred (0.095rem), reverting on panel hover over 300ms
+    // — matching upstream's `opacity-50 blur-[0.095rem]` + group-hover reveal.
+    const dimmed = hasFocusedLine && line.emphasis !== "focus";
 
     return {
       span: tokenElements,
@@ -174,12 +186,17 @@ function codePanel(
       // Only anchor a new tone surface for actually-tinted rows — plain
       // rows stay untouched (no dataTone, no backgroundColor override).
       ...(emphasized ? { dataTone: "shift-2" as const } : {}),
+      // Marks rows dimmed by a sibling `[!code focus]` line so the panel's
+      // own `&:hover` rule can un-dim (and un-blur) them.
+      ...(dimmed ? { dataCcDim: "true" as const } : {}),
       style: {
         display: "block",
         whiteSpace: "pre",
         paddingInline: themeSpacing(4),
-        opacity: hasFocusedLine ? (line.emphasis === "focus" ? 1 : 0.45) : 1,
-        transition: "opacity 200ms ease, background-color 200ms ease",
+        paddingBlock: themeSpacing(0.5),
+        opacity: dimmed ? 0.5 : 1,
+        filter: dimmed ? "blur(0.095rem)" : "none",
+        transition: "opacity 300ms ease, filter 300ms ease, background-color 300ms ease",
         ...(emphasized
           ? {
               backgroundColor: (listener: Listener) => themeColor(listener, "inherit", emphasisFamily),
@@ -190,6 +207,18 @@ function codePanel(
     } as DomphyElement;
   });
 
+  const dividerStyle: StyleObject =
+    side === "left"
+      ? {
+          "@media (min-width: 768px)": {
+            borderInlineEnd: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          },
+        }
+      : {
+          borderBlockStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          "@media (min-width: 768px)": { borderBlockStart: "none" },
+        };
+
   return {
     div: [
       {
@@ -199,15 +228,20 @@ function codePanel(
           {
             small: label,
             $: [small({ color: "neutral" })],
-            style: { marginInlineStart: "auto" },
+            // Hidden below the `md` breakpoint (768px), shown from md up —
+            // matching upstream's `hidden md:block`.
+            style: {
+              marginInlineStart: "auto",
+              display: "none",
+              "@media (min-width: 768px)": { display: "block" },
+            } as StyleObject,
           },
         ],
         style: {
           display: "flex",
           alignItems: "center",
           gap: themeSpacing(2),
-          paddingBlock: themeSpacing(2),
-          paddingInline: themeSpacing(4),
+          padding: themeSpacing(2),
           // Duplicates what the child `small()` patches already set — the
           // doctor's missing-color check only sees this element's own `style`
           // object, not merged patch styles, so `color` is repeated here to
@@ -230,14 +264,14 @@ function codePanel(
     ],
     dataTone: "shift-1",
     style: {
-      flex: `1 1 ${themeSpacing(80)}`,
       minWidth: 0,
       overflow: "hidden",
-      borderRadius: themeSpacing(3),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
-      outlineOffset: "-1px",
+      // Hovering anywhere in the panel reveals lines dimmed by a focus
+      // marker, matching upstream's group-hover/left|right un-dim behavior.
+      "&:hover [data-cc-dim]": { opacity: 1, filter: "none" },
+      ...dividerStyle,
     } as StyleObject,
   };
 }
@@ -253,44 +287,71 @@ function codeComparison(props: CodeComparisonProps = {}): DomphyElement<"div"> {
   const leftCode = props.leftCode ?? DEFAULT_LEFT_CODE;
   const rightCode = props.rightCode ?? DEFAULT_RIGHT_CODE;
   const filename = props.filename ?? `app.${language}`;
-  const highlightColor = props.highlightColor ?? "warning";
+  const highlightColor = props.highlightColor ?? "error";
 
   return {
+    // Outer wrapper: centered, full width, capped at 64em (upstream
+    // `mx-auto w-full max-w-5xl`).
     div: [
-      codePanel(leftCode, filename, "before", highlightColor),
-      codePanel(rightCode, filename, "after", highlightColor),
-      // Centered "VS" badge floating on the boundary between the two panes.
-      // Hidden once the panes wrap to a single column (mobile), mirroring
-      // upstream's `hidden md:flex`.
       {
-        span: [{ small: "VS", $: [small({ color: "neutral" })] }],
-        ariaHidden: "true",
-        dataTone: "shift-2",
+        // Unified card: ONE rounded, bordered, clipped box (upstream
+        // `overflow-hidden rounded-md border`). Its two halves share a single
+        // internal hairline divider with no gap between them.
+        div: [
+          {
+            // Two columns from `md` up, stacked into one column below it —
+            // a viewport breakpoint (upstream `grid md:grid-cols-2`), not a
+            // content-width wrap.
+            div: [
+              codePanel(leftCode, filename, "before", highlightColor, "left"),
+              codePanel(rightCode, filename, "after", highlightColor, "right"),
+            ],
+            style: {
+              position: "relative",
+              display: "grid",
+              gridTemplateColumns: "1fr",
+              "@media (min-width: 768px)": { gridTemplateColumns: "1fr 1fr" },
+            } as StyleObject,
+          },
+          // Centered "VS" badge floating on the boundary between the two panes.
+          // Hidden below the `md` breakpoint (768px), mirroring upstream's
+          // `hidden md:flex`.
+          {
+            span: [{ small: "VS", $: [small({ color: "neutral" })] }],
+            ariaHidden: "true",
+            dataTone: "shift-2",
+            style: {
+              position: "absolute",
+              top: "50%",
+              insetInlineStart: "50%",
+              transform: "translate(-50%, -50%)",
+              display: "none",
+              alignItems: "center",
+              justifyContent: "center",
+              width: themeSpacing(8),
+              height: themeSpacing(8),
+              borderRadius: themeSpacing(2),
+              zIndex: 1,
+              backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+              color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
+              border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+              "@media (min-width: 768px)": { display: "flex" },
+            } as StyleObject,
+          },
+        ],
         style: {
-          position: "absolute",
-          top: "50%",
-          insetInlineStart: "50%",
-          transform: "translate(-50%, -50%)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: themeSpacing(8),
-          height: themeSpacing(8),
+          position: "relative",
+          width: "100%",
+          overflow: "hidden",
           borderRadius: themeSpacing(2),
-          zIndex: 1,
-          backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
-          color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
           border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
-          "@media (max-width: 640px)": { display: "none" },
         } as StyleObject,
       },
     ],
     style: {
-      position: "relative",
-      display: "flex",
-      flexWrap: "wrap",
-      alignItems: "stretch",
-      gap: themeSpacing(4),
+      marginInline: "auto",
+      width: "100%",
+      maxWidth: themeSpacing(256),
       ...(props.style ?? {}),
     } as StyleObject,
   };

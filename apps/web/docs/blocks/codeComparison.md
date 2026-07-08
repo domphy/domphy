@@ -21,7 +21,7 @@ A **Community** block/component from **[Magic UI](/docs/blocks/magicui)** — cl
 | `rightCode` | `string` | Right/"after" panel source. |
 | `filename` | `string` | Filename shown (once) in BOTH panel headers — the two panes are the same file before/after, distinguished by a `before`/`after` header label rather than by differing filenames. Defaults to `"app.&lt;language&gt;"`. |
 | `language` | `string` | Language identifier — used only to build the default filename. Defaults to `"ts"`. |
-| `highlightColor` | `ThemeColor` | Theme color family for `[!code highlight]` line tint. Defaults to `"warning"`. |
+| `highlightColor` | `ThemeColor` | Theme color family for `[!code highlight]` line tint. Defaults to `"error"` (red, matching upstream's `#ff3333`). |
 | `style` | `StyleObject` | — |
 
 ::: details Implementation notes

@@ -19,7 +19,7 @@ A **Backgrounds** block/component from **[Magic UI](/docs/blocks/magicui)** — 
 |---|---|---|
 | `width` | `number` | Width of each grid square, in SVG user units. Defaults to `40`. |
 | `height` | `number` | Height of each grid square, in SVG user units. Defaults to `40`. |
-| `squares` | `[number, number]` | `[columns, rows]` grid dimensions. Defaults to `[30, 20]`. |
+| `squares` | `[number, number]` | `[columns, rows]` grid dimensions. Defaults to `[24, 24]`. |
 | `hoverColor` | `ThemeColor` | Theme color family for the single hovered/active square's highlight fill. Defaults to `"neutral"`. |
 | `fadeInDuration` | `number` | Fade-in duration in ms when a square becomes active. Defaults to `100`. |
 | `fadeOutDuration` | `number` | Fade-out duration in ms when a square stops being active. Defaults to `1000`. |

@@ -21,12 +21,10 @@ A **Sidebar** block/component from **[shadcn/ui](/docs/blocks/shadcn)** — clea
 | `messages` | `Sidebar09Message[]` | — |
 | `activeFolderId` | `string` | — |
 | `activeMessageId` | `string \| null` | — |
-| `searchQuery` | `string` | — |
 | `user` | `Sidebar09User` | — |
 | `breadcrumbItems` | `SidebarBreadcrumbItem[]` | — |
 | `onFolderSelect` | `(folderId: string) =&gt; void` | — |
 | `onMessageSelect` | `(messageId: string) =&gt; void` | — |
-| `onSearchChange` | `(query: string) =&gt; void` | — |
 | `children` | `DomphyElement \| DomphyElement[]` | — |
 
 ::: details Implementation notes

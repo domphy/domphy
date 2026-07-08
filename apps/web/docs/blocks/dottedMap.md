@@ -21,11 +21,10 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `height` | `number` | SVG viewBox height (user units). Defaults to `75`. |
 | `columns` | `number` | Grid columns sampled across the map width (rows derive from the 2:1 aspect ratio) — more columns = denser dot grid. Defaults to `80`. |
 | `markers` | `DottedMapMarker[]` | — |
-| `dotRadius` | `number` | Background land-dot radius (SVG units). Defaults to `0.3`. |
-| `markerRadius` | `number` | Marker dot radius (SVG units). Defaults to `1.6`. |
+| `dotRadius` | `number` | Land-dot radius, and the default marker radius when a marker has no `size` (SVG units). Defaults to `0.2`. |
 | `dotColor` | `ThemeColor` | Background dot color — dots render with `fill: currentColor`, so this sets the map's `color`. Defaults to `"neutral"`. |
 | `markerColor` | `ThemeColor` | Default marker color, overridable per marker. Defaults to `"primary"`. |
-| `pulse` | `boolean` | Default pulse setting, overridable per marker. Defaults to `true`. |
+| `pulse` | `boolean` | Default pulse setting, overridable per marker. Defaults to `false`. |
 | `staggerRows` | `boolean` | Offsets alternating rows horizontally by half a column width for a more organic dot layout. Defaults to `true`. |
 | `style` | `StyleObject` | — |
 

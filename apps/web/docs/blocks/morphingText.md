@@ -18,9 +18,8 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | Prop | Type | Description |
 |---|---|---|
 | `phrases` | `string[]` | Phrases cycled through in order, looping back to the first. Defaults to a short demo sequence. |
-| `interval` | `number` | Milliseconds each phrase is shown before morphing to the next. Defaults to 2500. |
-| `transitionDuration` | `number` | Milliseconds the morph (opacity cross-animation) itself takes. Defaults to 600. |
-| `easing` | `string` | CSS easing for the morph. Defaults to "ease-in-out". |
+| `morphTime` | `number` | Seconds each phrase spends actively morphing into the next. Upstream `morphTime`. Defaults to 1.5. |
+| `cooldownTime` | `number` | Seconds each phrase rests fully resolved before the next morph begins. Upstream `cooldownTime`. Defaults to 0.5. |
 | `style` | `StyleObject` | Passthrough style merged onto the outer container. |
 
 ::: details Implementation notes

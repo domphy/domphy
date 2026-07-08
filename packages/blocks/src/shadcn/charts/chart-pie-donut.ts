@@ -31,7 +31,12 @@ export interface ChartPieDonutProps {
   trendDirection?: "up" | "down";
   caption?: string;
   valueFormatter?: (value: number) => string;
-  /** Ring thickness control: smaller = thicker ring, larger = thinner ring. */
+  /**
+   * Ring thickness control: smaller = thicker ring, larger = thinner ring.
+   * Default mirrors upstream's `innerRadius={60}` against Recharts' default
+   * `outerRadius='80%'` (~100px on the max-h-[250px] square), i.e. a hole of
+   * ~0.6 of the outer radius (the shared DEFAULT_DONUT_INNER_RADIUS).
+   */
   innerRadius?: number;
 }
 
@@ -59,6 +64,9 @@ function chartPieDonut(props: ChartPieDonutProps = {}): DomphyElement<"div"> {
     pieWedgePath(slice, {
       innerRadius,
       outerRadius: PIE_OUTER_RADIUS,
+      // Upstream Pie sets no `paddingAngle` (default 0): slices are contiguous,
+      // separated only by the sector stroke — not by a tapering angular gap.
+      padAngle: 0,
       tooltip: { containerRef, tooltipState, valueFormatter },
     }),
   );

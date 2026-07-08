@@ -57,8 +57,10 @@ function chartAreaLinear(props: ChartAreaLinearProps = {}): DomphyElement<"div">
   const option: ChartOption = {
     tooltip: {
       trigger: "axis",
-      // Upstream hides the category header on this recipe (hideLabel).
-      formatter: chartAxisTooltipFormatter(categories, (p) => `${p.value} visitors`, true),
+      axisPointer: { type: "none" },
+      // Upstream: `<ChartTooltipContent indicator="dot" hideLabel />` with no
+      // value formatter — bare number, no " visitors" unit.
+      formatter: chartAxisTooltipFormatter(categories, undefined, true),
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     yAxis: CHART_AREA_Y_AXIS_HIDDEN,

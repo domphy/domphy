@@ -17,14 +17,14 @@ A **Core** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 
 | Prop | Type | Description |
 |---|---|---|
-| `diameterUnits` | `number` | Container max diameter, in `themeSpacing` units. Defaults to 90 (~22.5em). |
+| `diameterUnits` | `number` | Container max diameter, in `themeSpacing` units. Defaults to 150 (37.5em ≈ 600px, matching upstream's `max-w-150`). |
 | `dark` | `boolean` | cobe's own dark-mode shading flag (affects the lighting model, independent of the page theme). Defaults to false. |
 | `baseColor` | `[number, number, number]` | Normalized RGB triplet for the sphere's base/land color. Defaults to the theme's neutral "shift-3" token. |
 | `markerColor` | `[number, number, number]` | Normalized RGB triplet for marker dots. Defaults to the theme's "attention" "shift-9" token. |
 | `glowColor` | `[number, number, number]` | Normalized RGB triplet for the atmosphere glow. Defaults to the theme's neutral "shift-1" token. |
 | `mapSamples` | `number` | Dot sample density across the sphere surface. Defaults to 16000. |
-| `mapBrightness` | `number` | Land-dot brightness. Defaults to 6. |
-| `rotationSpeed` | `number` | Auto-rotation speed (phi radians added per frame). Defaults to 0.0035. |
+| `mapBrightness` | `number` | Land-dot brightness. Defaults to 1.2. |
+| `rotationSpeed` | `number` | Auto-rotation speed (phi radians added per frame). Defaults to 0.005. |
 | `initialPhi` | `number` | Initial phi (longitude) rotation offset, radians. Defaults to 0. |
 | `initialTheta` | `number` | Initial theta (latitude) tilt, radians. Defaults to 0.3. |
 | `markers` | `GlobeMarker[]` | Highlighted lat/long locations. Defaults to a handful of major-city reference points. |

@@ -23,9 +23,10 @@ A **Text** block/component from **[Magic UI](/docs/blocks/magicui)** — clean-r
 | `duration` | `number` | Milliseconds the sweep itself takes to travel across the text. Defaults to `1500`. |
 | `delay` | `number` | Milliseconds to wait (after the trigger fires) before the first sweep starts. Defaults to `0`. |
 | `autoStart` | `boolean` | Starts the sweep automatically the first time the element scrolls into view. When `false`, the sweep instead waits for a click (there is no external imperative trigger in this factory-function API, so click is the manual-trigger substitute). Defaults to `true`. |
-| `repeat` | `boolean` | When multiple `children` items are given, loop back to the first after the last instead of stopping there; when a single string is given, keep re-sweeping it on `duration + pauseBetween` cycles instead of sweeping only once. Defaults to `false`. |
+| `repeat` | `boolean` | When multiple `children` items are given, cycle through them (advancing one per sweep, looping back to the first after the last); when a single string is given, keep re-sweeping it. When `false`, sweep only the first item once and stop — the list is not walked. Defaults to `false`. |
 | `pauseBetween` | `number` | Milliseconds paused (settled, solid color) between one item's sweep finishing and the next starting. Defaults to `500`. |
-| `reserveWidth` | `boolean` | Reserves enough inline width for the longest item so cycling text doesn't shift surrounding layout. Defaults to `false`. |
+| `once` | `boolean` | Replays the sweep every time the element re-enters the viewport (only applies when `autoStart` is on). When `true`, the sweep plays a single time on first entry. Defaults to `true`. |
+| `reserveWidth` | `boolean` | Reserves the widest item's measured pixel width (applied as `width`) so cycling text doesn't shift surrounding layout. When `false` and multiple items are given, the width instead animates smoothly to each item's measured width as it rotates. Defaults to `false`. |
 | `style` | `StyleObject` | Passthrough style merged onto the outer wrapper. |
 
 ::: details Implementation notes
