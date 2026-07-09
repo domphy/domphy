@@ -6,6 +6,13 @@ Packages are versioned in lockstep. All packages share the same version number.
 
 ---
 
+## `@domphy/ui` [0.18.15] — 2026-07-09
+
+### Fixed
+- `popover`/`tooltip`/`selectBox`/`combobox`/`datePicker`: the floating trigger stopped opening after its ancestor re-rendered (`createFloating()`'s `reference`/`rootNode` were only ever captured via a one-time `_onMount` hook, which `ElementNode.patch()` correctly does not re-run on a reused DOM node). Now derived lazily from the trigger's own event handlers, which are live-rebound on every patch.
+
+---
+
 ## [0.16.0] — 2026-06-18
 
 ### Changed
