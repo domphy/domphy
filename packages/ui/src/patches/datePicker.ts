@@ -1,5 +1,6 @@
 import {
   type DomphyElement,
+  type ElementNode,
   type Listener,
   merge,
   type PartialElement,
@@ -296,17 +297,17 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     ariaHaspopup: "dialog",
     ariaLabel: "Choose date",
     style: { cursor: "pointer" },
-    onClick: () => {
-      openAndFocus();
+    onClick: (_e, node) => {
+      openAndFocus(node);
     },
-    onFocus: () => {
-      openAndFocus();
+    onFocus: (_e, node) => {
+      openAndFocus(node);
     },
-    onKeyDown: (event) => {
+    onKeyDown: (event, node) => {
       const key = (event as KeyboardEvent).key;
       if (key === "ArrowDown" || key === "Enter") {
         event.preventDefault();
-        openAndFocus();
+        openAndFocus(node);
       }
     },
     _onMount: (node) =>
@@ -315,11 +316,11 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         releaseOnChange();
       }),
   };
-  function openAndFocus(): void {
+  function openAndFocus(node?: ElementNode): void {
     const current = isSelectedPrimary() ?? new Date();
     focused.set(atMidnight(current));
     goToDate(current);
-    show();
+    show(node);
     focusActiveCell();
   }
   function isSelectedPrimary(): Date | null {

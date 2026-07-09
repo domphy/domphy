@@ -76,11 +76,12 @@ function tooltip(
 
   const triggerPartial: PartialElement = {
     ariaDescribedby: tooltipId,
-    onMouseEnter: () => show(),
-    onMouseLeave: () => hide(),
-    onFocus: () => show(),
-    onBlur: () => hide(),
-    onKeyDown: (e) => (e as KeyboardEvent).key === "Escape" && hide(),
+    onMouseEnter: (_e, node) => show(node),
+    onMouseLeave: (_e, node) => hide(node),
+    onFocus: (_e, node) => show(node),
+    onBlur: (_e, node) => hide(node),
+    onKeyDown: (e, node) =>
+      (e as KeyboardEvent).key === "Escape" && hide(node),
   };
 
   merge(anchorPartial, triggerPartial);

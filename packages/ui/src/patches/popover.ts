@@ -63,21 +63,21 @@ function popover(props: {
   const triggerPartial: PartialElement = {
     ariaHaspopup: "dialog",
     ariaExpanded: (listener) => openState.get(listener),
-    onMouseEnter: () => openOn === "hover" && show(),
-    onMouseLeave: () => openOn === "hover" && hide(),
-    onClick: () => {
+    onMouseEnter: (_e, node) => openOn === "hover" && show(node),
+    onMouseLeave: (_e, node) => openOn === "hover" && hide(node),
+    onClick: (_e, node) => {
       if (openOn === "click") {
         if (openState.get()) {
-          hide();
+          hide(node);
         } else {
-          show();
+          show(node);
         }
       }
     },
-    onKeyDown: (e) => {
-      if ((e as KeyboardEvent).key === "Escape" && openState.get()) hide();
+    onKeyDown: (e, node) => {
+      if ((e as KeyboardEvent).key === "Escape" && openState.get()) hide(node);
     },
-    onFocus: () => openOn === "hover" && show(),
+    onFocus: (_e, node) => openOn === "hover" && show(node),
     onBlur: (e, node) => {
       const related = (e as FocusEvent).relatedTarget as Node | null;
       const root = node.getRoot().domElement as Element;
@@ -85,7 +85,7 @@ function popover(props: {
         ? root.querySelector(`#${CSS.escape(popoverId)}`)
         : null;
       if (related && floatingEl?.contains(related)) return;
-      hide();
+      hide(node);
     },
     _onMount: (node) =>
       popoverId && node.attributes.set("ariaControls", popoverId),

@@ -32,6 +32,25 @@ function createFloating(props: {
   let mounted = false;
   const openState = toState(open);
 
+  // `reference`/`rootNode` are normally captured once by anchorPartial's
+  // _onMount — but ElementNode.patch() deliberately does NOT re-run lifecycle
+  // hooks on a reused (already-mounted) DOM node ("hooks already ran"). A
+  // factory like popover()/tooltip() that gets called AGAIN by a reactive
+  // parent (a fresh createFloating() closure, fresh `reference`/`rootNode`
+  // locals) never gets a second _onMount — so show()/hide() silently no-op
+  // forever after any re-render of the trigger's ancestor. Event handlers,
+  // unlike hooks, ARE live-rebound on every patch (see ElementNode._bindEvent)
+  // and already receive the current ElementNode as their 2nd argument — so
+  // show(node)/hide(node) (called from the trigger's onClick/onMouseEnter/…)
+  // re-derive `reference`/`rootNode` from THAT, idempotently, on every call.
+  // This makes each createFloating() instance self-sufficient regardless of
+  // whether its own _onMount ever fired.
+  const ensureReference = (node?: ElementNode) => {
+    if (!node) return;
+    rootNode = node.getRoot();
+    reference = node.domElement as HTMLElement;
+  };
+
   const ensureMounted = () => {
     if (mounted || !rootNode) return;
     mounted = true;
@@ -63,11 +82,13 @@ function createFloating(props: {
     cleanup = null;
     openState.set(false);
   };
-  const show = () => {
+  const show = (node?: ElementNode) => {
+    ensureReference(node);
     timer && clearTimeout(timer);
     timer = setTimeout(instantShow, 100);
   };
-  const hide = () => {
+  const hide = (node?: ElementNode) => {
+    ensureReference(node);
     timer && clearTimeout(timer);
     timer = setTimeout(instantHide, 100);
   };

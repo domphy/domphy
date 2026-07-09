@@ -68,7 +68,7 @@ function selectBox(props: {
   });
 
   const popoverPartial: PartialElement = {
-    onClick: () => !multiple && hide(),
+    onClick: (_e, node) => !multiple && hide(node),
   };
 
   merge(props.content, popoverPartial);
@@ -105,7 +105,7 @@ function selectBox(props: {
       }
     },
     _onInit: (node) => node.children.insert(wrap),
-    onClick: () => (openState.get() ? hide() : show()),
+    onClick: (_e, node) => (openState.get() ? hide(node) : show(node)),
     style: {
       cursor: "pointer",
       display: "flex",

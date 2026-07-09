@@ -66,7 +66,7 @@ function combobox(props: {
   });
 
   const popoverPartial: PartialElement = {
-    onClick: () => !multiple && hide(),
+    onClick: (_e, node) => !multiple && hide(node),
   };
 
   merge(props.content, popoverPartial);
@@ -86,16 +86,17 @@ function combobox(props: {
 
   let inputElement: DomphyElement;
   if (props.input) {
-    merge(props.input, {
-      onFocus: () => show(),
+    const inputPartial: PartialElement = {
+      onFocus: (_e, node) => show(node),
       style: inputStyle,
       _key: "combobox-input",
-    });
+    };
+    merge(props.input, inputPartial);
     inputElement = props.input;
   } else {
     inputElement = {
       input: null,
-      onFocus: () => show(),
+      onFocus: (_e, node) => show(node),
       value: (listener: any) => {
         state.get(listener);
         return "";
