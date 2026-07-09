@@ -16,6 +16,23 @@ import {
   shift,
 } from "@domphy/floating";
 
+// The SAME reused-node gap described below (in createFloating's own comment)
+// also breaks teardown-on-remove, the other direction: `anchorPartial`'s
+// `_onMount` — where the ONE-EVER BeforeRemove hook gets registered, since
+// _onMount by construction only fires on a node's true first mount — closes
+// over THAT FIRST closure's own `cleanup`/`floatingNode` locals. If a LATER
+// re-render's closure (fresh locals, same reused anchor element) is the one
+// whose popover is actually open when the anchor finally gets removed, the
+// first closure's hook tears down ITS OWN (possibly never-shown) state while
+// the real, visible floating panel has no cleanup wired to it at all —
+// orphaned in the #domphy-floating portal at its last screen position.
+// Route "what to tear down on remove" through this WeakMap, keyed by the
+// anchor's live DOM element (stable across reuse, unlike the closure)
+// instead of a closure-local variable: every generation overwrites the same
+// slot on each interaction, so the one hook that does attach always tears
+// down whichever generation is CURRENTLY live.
+const teardownByElement = new WeakMap<Element, () => void>();
+
 function createFloating(props: {
   open?: ValueOrState<boolean>;
   placement: State<Placement>;
@@ -31,6 +48,15 @@ function createFloating(props: {
   let rootNode: ElementNode | null = null;
   let mounted = false;
   const openState = toState(open);
+
+  const teardown = () => {
+    if (timer) clearTimeout(timer);
+    if (cleanup) {
+      cleanup();
+      cleanup = null;
+    }
+    floatingNode && floatingNode.remove();
+  };
 
   // `reference`/`rootNode` are normally captured once by anchorPartial's
   // _onMount — but ElementNode.patch() deliberately does NOT re-run lifecycle
@@ -49,6 +75,7 @@ function createFloating(props: {
     if (!node) return;
     rootNode = node.getRoot();
     reference = node.domElement as HTMLElement;
+    if (reference) teardownByElement.set(reference, teardown);
   };
 
   const ensureMounted = () => {
@@ -142,6 +169,7 @@ function createFloating(props: {
     _onMount: (node) => {
       rootNode = node.getRoot();
       reference = node.domElement as HTMLElement;
+      if (reference) teardownByElement.set(reference, teardown);
 
       const handleOutside = (event: MouseEvent) => {
         if (!openState.get() || !reference || !floating) return;
@@ -152,16 +180,19 @@ function createFloating(props: {
       };
       node.getRoot().domElement!.addEventListener("click", handleOutside);
 
+      // This _onMount only ever fires ONCE per real DOM element (a reused,
+      // patched anchor never gets a second one) — so this is the single
+      // opportunity to attach the BeforeRemove hook for that element's whole
+      // lifetime. It must not tear down THIS closure's own (possibly stale)
+      // `cleanup`/`floatingNode` directly — look up teardownByElement instead,
+      // which always holds whichever generation last interacted with this
+      // anchor (see the WeakMap comment above and ensureReference).
       node.addHook("BeforeRemove", () => {
-        if (timer) clearTimeout(timer);
         // Tear down the @domphy/floating autoUpdate loop (scroll/resize/rAF
-        // listeners). Without this, removing the anchor while the overlay
-        // is open leaks observers that keep positioning a detached node.
-        if (cleanup) {
-          cleanup();
-          cleanup = null;
-        }
-        floatingNode && floatingNode.remove();
+        // listeners) and the floating panel itself. Without this, removing
+        // the anchor while the overlay is open leaks observers that keep
+        // positioning a detached node, or leaves the panel orphaned on screen.
+        if (reference) teardownByElement.get(reference)?.();
         node.getRoot().domElement!.removeEventListener("click", handleOutside);
       });
     },
