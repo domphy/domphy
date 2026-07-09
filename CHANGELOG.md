@@ -6,10 +6,12 @@ Packages are versioned in lockstep. All packages share the same version number.
 
 ---
 
-## `@domphy/ui` [0.18.16] — 2026-07-10
+## `@domphy/ui` [0.18.17] — 2026-07-10
 
 ### Fixed
 - `popover`/`tooltip`/`selectBox`/`combobox`/`datePicker`: removing a floating trigger's anchor while its panel was open (e.g. a settings popover whose row gets deleted) could leave the panel orphaned in the `#domphy-floating` portal instead of closing. Same reused-DOM-node gap as 0.18.15's fix, the other direction — the anchor's one-ever `BeforeRemove` hook (registered only on its true first mount) closed over the FIRST `createFloating()` closure's own state, not whichever later re-render's closure was actually showing the panel. Now routed through a WeakMap keyed by the anchor's live DOM element so the hook always tears down whichever generation is currently live.
+
+Note: 0.18.16 was published with `npm publish` instead of `pnpm publish`, which left its `workspace:*`/`workspace:^` internal deps (`@domphy/core`, `@domphy/theme`, `@domphy/floating`) unresolved — uninstallable by any external consumer. Skip it; 0.18.17 is the same fix, published correctly.
 
 ---
 
