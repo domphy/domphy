@@ -121,6 +121,7 @@ await includeDir(
   resolve(ROOT, "docs/chart"),
   "Chart docs (`@domphy/chart`)",
 );
+await includeDir(resolve(ROOT, "docs/three"), "Three docs (`@domphy/three`)");
 await includeDir(
   resolve(ROOT, "docs/palette"),
   "Palette docs (`@domphy/palette`)",

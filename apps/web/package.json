@@ -37,6 +37,7 @@
     "@domphy/router": "workspace:*",
     "@domphy/table": "workspace:*",
     "@domphy/theme": "workspace:*",
+    "@domphy/three": "workspace:*",
     "@domphy/ui": "workspace:*",
     "@domphy/virtual": "workspace:*",
     "@tanstack/query-core": "^5.90.20",
@@ -56,6 +57,7 @@
     "shiki": "^1.29.2",
     "sortablejs": "^1.15.7",
     "sucrase": "^3.35.1",
+    "three": "^0.180.0",
     "tsx": "^4.19.2",
     "vitest": "^4.0.18",
     "zod": "^4.3.6"

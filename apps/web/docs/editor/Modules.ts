@@ -11,11 +11,15 @@ import * as domphyRouter from "@domphy/router";
 import * as domphyTable from "@domphy/table";
 import * as domphyTableDomphy from "@domphy/table/domphy";
 import * as domphyTheme from "@domphy/theme";
+import * as domphyThree from "@domphy/three";
 import * as domphyUI from "@domphy/ui";
 import * as domphyVirtual from "@domphy/virtual/domphy";
 import * as queryCore from "@tanstack/query-core";
 import page from "page";
 import Sortable from "sortablejs";
+import * as three from "three";
+import * as threeGLTFLoader from "three/addons/loaders/GLTFLoader.js";
+import * as threeOrbitControls from "three/addons/controls/OrbitControls.js";
 import * as zod from "zod";
 
 const moduleMap: Record<string, unknown> = {
@@ -34,9 +38,13 @@ const moduleMap: Record<string, unknown> = {
   "@domphy/dnd": domphyDnd,
   "@domphy/form/domphy": domphyForm,
   "@domphy/virtual/domphy": domphyVirtual,
+  "@domphy/three": domphyThree,
   "@tanstack/query-core": queryCore,
   page,
   sortablejs: Sortable,
+  three,
+  "three/addons/controls/OrbitControls.js": threeOrbitControls,
+  "three/addons/loaders/GLTFLoader.js": threeGLTFLoader,
   zod,
 };
 

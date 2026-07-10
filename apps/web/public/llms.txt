@@ -432,6 +432,8 @@ First key = tag (camelCase of a THREE class, or a name registered via `extend()`
 
 Peer dep: `three >= 0.156`. Never imports from `three/addons` or `three/examples` (not even in tests) — that surface enters user-land via `extend()`. See `packages/three/SPEC.md` for the full locked contract and `packages/three/README.md` for a complete orbitControls recipe.
 
+- [Overview](https://domphy.com/docs/three/) · [Scene Grammar](https://domphy.com/docs/three/grammar) · [Events](https://domphy.com/docs/three/events) · [Animation & Loop](https://domphy.com/docs/three/animation) · [Loading Assets](https://domphy.com/docs/three/assets) · [Recipes](https://domphy.com/docs/three/recipes) · 10 live playground examples under `/docs/three/examples/*` (spinning-cube, interactive-grid, wave-field, galaxy, orbit-viewer, theme-sync, ui-bridge, gltf-viewer, primitive-bridge, starfield-hero)
+
 ## Scaffolder (`create-domphy`)
 
 `npm create domphy@latest <dir>` — scaffolds a runnable Vite + TypeScript starter: `themeApply`, sample patches, and an `AGENTS.md` ready for AI agents. Not scoped as `@domphy/*`; published separately.

@@ -82,6 +82,7 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 | `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `createMarkdown`, `walkMdast`, `splitFrontmatter`; remark/unified under the hood); powers this docs site |
 | `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
 | `@domphy/chart` | canvas chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`hexToRgba`, `seriesHex`, `seriesPaletteFamily`, `colorFromVisualMap`); ECharts-compatible type surface |
+| `@domphy/three` | declarative three.js scene graph — 1-1 functional port of `@react-three/fiber` core (reconciler, raycast pointer events, demand frameloop) on Domphy reactivity; `three(options)` patch mounts a canvas host and renders the scene graph, `extend(classes)` registers custom/version-agnostic tags for `resolve()`, `loadAsset`/`preloadAsset`/`clearAsset` for reactive asset loading (`AssetResult<T>`: `data`/`error`/`promise`) |
 | `@domphy/audit` | **In development — not yet published.** Planned: a11y + layout runtime audit for Domphy element trees. Do NOT import or use; the package directory does not exist yet. |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
 | `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component |
@@ -24527,6 +24528,926 @@ const App = {
 ---
 
 
+## Three docs (`@domphy/three`)
+
+### animation.md
+
+---
+title: "Animation & Loop"
+description: "The @domphy/three render loop — onFrame and priority takeover, frameloop modes (always/demand/never), invalidate(), and when to drive motion with onFrame vs a reactive prop."
+---
+
+# Animation & Loop
+
+Every mounted `three()` root shares one global `requestAnimationFrame` loop. Two mechanisms put things in motion: a per-node `onFrame` callback that runs every rendered frame, and reactive props that only re-run when the `State`/`Computed` they read changes. Which one to reach for depends on whether the motion is continuous (time-based) or event-based (value-based).
+
+## onFrame
+
+`onFrame` is the `useFrame()` analog — a per-frame callback on any scene node:
+
+```ts
+{
+  mesh: [{ boxGeometry: null }, { meshStandardMaterial: null }],
+  onFrame: (root, delta, self) => {
+    self.rotation.y += delta
+  },
+}
+```
+
+| Arg | Type | Notes |
+| --- | --- | --- |
+| `root` | `RootState` | the mounted root — camera, scene, size, `invalidate()`, etc. |
+| `delta` | `number` | seconds since the previous rendered frame (`THREE.Clock` delta) |
+| `self` | `any` | this node's own three.js instance |
+
+`onFrame` registers/unregisters through `root.frame(callback, priority)` behind the scenes: removing the prop, or disposing the node, unregisters it automatically — no manual cleanup needed.
+
+### Priority
+
+A sibling `onFramePriority` prop (default `0`) controls two things:
+
+- **Order** — callbacks run lowest-priority first, so a higher-priority callback always runs after (and can react to) everything a lower one already did.
+- **Render takeover** — as long as *any* `onFrame` on the root has `onFramePriority > 0`, the root stops calling its own `gl.render(scene, camera)` every frame. Rendering becomes that callback's job:
+
+```ts
+{
+  // e.g. a primitive-wrapped EffectComposer registered via extend()
+  effectComposer: [/* ... */],
+  onFrame: (root, delta, self) => self.render(delta),
+  onFramePriority: 1, // root no longer auto-renders — this call is now required
+}
+```
+
+Use priority takeover for post-processing passes or any custom render path; leave it at `0` (the default) for ordinary per-frame updates like calling `self.update()` on `OrbitControls`.
+
+## frameloop modes
+
+`ThreeOptions.frameloop` (default `"always"`) controls when the shared loop actually renders a given root:
+
+| Mode | Behavior |
+| --- | --- |
+| `"always"` | renders every tick of the global rAF loop, unconditionally |
+| `"demand"` | renders only when `invalidate()` has been called since the last frame — an idle scene costs nothing |
+| `"never"` | fully manual — the clock is stopped; only `root.advance(timestamp)` ever renders it |
+
+```ts
+three({ scene: [/* ... */], frameloop: "demand" })
+```
+
+Reactive props (see below) already call `invalidate()` for you, so a `"demand"` scene driven entirely by `State` changes needs no extra wiring. A continuous `onFrame` animation (like the `rotation.y += delta` example above) does **not** self-sustain under `"demand"` — nothing requests the next frame — so either call `root.invalidate()` at the end of that `onFrame`, or stay on `"always"` for anything that must animate every tick regardless of user input.
+
+## invalidate()
+
+`root.invalidate(frames?)` requests a render:
+
+```ts
+onCreated: (root) => {
+  // e.g. after loading an asset outside the reactive system
+  root.invalidate()
+}
+```
+
+- With no argument, requests one frame (two if called from inside a currently-running `onFrame`, since that frame is already spent by the time the callback runs).
+- `invalidate(frames)` with `frames > 1` schedules that many frames in a row — useful for effects that need a couple of extra passes to settle (shadow maps, temporal AA warmup).
+- A no-op on a torn-down root or a `"never"`-mode root (that mode only renders through `advance()`).
+
+In `"always"` mode `invalidate()` is harmless but redundant — the loop already renders every tick regardless.
+
+## advance()
+
+`root.advance(timestamp, runGlobalCallbacks?)` renders a root immediately, bypassing the frameloop/`frames` gate entirely. It's the only way a `"never"`-mode root ever renders, and is otherwise useful for deterministic stepping (tests) or driving the scene from an external clock/rAF you already own instead of the built-in loop.
+
+```ts
+three({ scene: [/* ... */], frameloop: "never" })
+// elsewhere, driven by your own loop:
+root.advance(performance.now())
+```
+
+## onFrame vs. reactive props
+
+Both can move something every render, but for different reasons:
+
+| | Reactive prop (`(l) => state.get(l)`) | `onFrame` |
+| --- | --- | --- |
+| Triggers on | the `State`/`Computed` it reads changing | every rendered frame |
+| Cost when idle | none — nothing runs until the value changes | runs on every tick the root renders |
+| Best for | UI-driven values, data updates, anything expressible as "the current value of X" | continuous per-tick math: physics, controls' `.update()`, time-based motion |
+| Works well in `"demand"` mode | yes — each change is exactly one more render | only if something keeps re-invalidating (see above) |
+
+```ts
+// Reactive prop: only re-applies (and invalidates) when `spin` changes.
+const spin = toState(0)
+const App = {
+  mesh: [{ boxGeometry: null }, { meshStandardMaterial: null }],
+  "rotation-y": (l) => spin.get(l),
+}
+
+// onFrame: runs unconditionally on every rendered frame.
+const Spinning = {
+  mesh: [{ boxGeometry: null }, { meshStandardMaterial: null }],
+  onFrame: (root, delta, self) => {
+    self.rotation.y += delta
+  },
+}
+```
+
+Prefer a reactive prop when the target value already lives in a `State` (slider-controlled rotation, a color driven by app state); reach for `onFrame` when the change is inherently continuous and time-based rather than event-driven.
+
+See [Events](/docs/three/events) for pointer event handlers.
+
+### assets.md
+
+---
+title: "Loading Assets"
+description: "Reactive asset loading for @domphy/three — loadAsset/preloadAsset/clearAsset, AssetResult states, error handling with errorBoundary, and loader configuration for DRACO."
+---
+
+# Loading Assets
+
+Domphy has no Suspense analog. `loadAsset` is the async primitive `@domphy/three` ports from `@react-three/fiber`'s `useLoader` — instead of a component suspending, you get a plain reactive `AssetResult` back immediately and read its `data`/`error` states wherever you need them.
+
+## `loadAsset`
+
+```ts
+function loadAsset<T>(
+  LoaderClass: Constructable,
+  input: string | string[],
+  configure?: (loader: any) => void,
+): AssetResult<T>
+```
+
+| Param | Type | Description |
+|---|---|---|
+| `LoaderClass` | `Constructable` | Any three.js loader class (`GLTFLoader`, `TextureLoader`, ...). Instantiated once and reused for every call with that class. |
+| `input` | `string \| string[]` | One url, or an array resolved in order. |
+| `configure` | `(loader: any) => void` | Runs right before the loader's first `.load()` call for this call — set decoders, paths, `crossOrigin`, etc. |
+
+### `AssetResult<T>`
+
+| Field | Type | Description |
+|---|---|---|
+| `data` | `ReadableState<T \| null>` | `null` until the load resolves, then the loaded value. |
+| `error` | `ReadableState<Error \| null>` | `null` unless the load fails. |
+| `promise` | `Promise<T>` | The underlying load promise. |
+
+Cache key = `LoaderClass` + `input` (an array `input` joins into one key). Call `loadAsset` as many times as you like with the same class/input — inside a reactive scene function, a render loop, wherever — you always get back the exact same `AssetResult`; the network/parse work happens once.
+
+If the resolved value has a `.scene` that's an `Object3D` (a glTF result), `loadAsset` walks it once and assigns `nodes`/`materials`/`meshes` — named lookups onto the result itself, mirroring r3f's `useGLTF`.
+
+### Rendering the result
+
+Read `data` inside `scene`'s listener. Falsy scene children are skipped, so render a placeholder for the slot until the asset resolves:
+
+## `preloadAsset`
+
+```ts
+function preloadAsset(LoaderClass: Constructable, input: string | string[], configure?: (loader: any) => void): Promise<unknown>
+```
+
+Kicks off the same load `loadAsset` would, without handing back the reactive `AssetResult` — warm the cache before a route or page mounts:
+
+```ts
+import { preloadAsset } from "@domphy/three"
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js"
+
+preloadAsset(GLTFLoader, "/models/Duck.glb")
+```
+
+A later `loadAsset(GLTFLoader, "/models/Duck.glb")` call hits the warmed cache and returns the same `AssetResult`, already resolved.
+
+## `clearAsset`
+
+```ts
+function clearAsset(LoaderClass: Constructable, input?: string | string[]): void
+```
+
+| Call | Effect |
+|---|---|
+| `clearAsset(LoaderClass, input)` | Drops the one cached `AssetResult` for that class/input. |
+| `clearAsset(LoaderClass)` | Drops every input cached for that class. |
+
+```ts
+clearAsset(GLTFLoader, "/models/Duck.glb") // drop one cached asset
+clearAsset(GLTFLoader)                      // drop everything GLTFLoader has cached
+```
+
+The loader instance itself is untouched — only the `AssetResult` cache entry is dropped. The next `loadAsset` call for that class/input reloads from scratch and returns a brand-new `AssetResult`.
+
+## Error handling
+
+`result.error` is a `ReadableState<Error | null>`, set when the loader's error callback fires; `result.data` stays `null`. `loadAsset` never throws synchronously, and `data`/`error` live on the `AssetResult` object, not on any DOM node — reading them inside `three()`'s own `scene` function only affects the scene tree, it never reaches `errorBoundary()` (`@domphy/ui`), which catches errors thrown inside a **core** reactive-children function (`div: (l) => [...]`), not inside `@domphy/three`'s own internal reactivity.
+
+Route the check through the surrounding Domphy DOM instead — read `result.error` in a reactive `div` children function that wraps the `three()` mount, and throw there so `errorBoundary()` can catch it:
+
+## `configure` — loader setup and DRACO
+
+`configure(loader)` runs synchronously right before the loader's first `.load()` call for every distinct `(LoaderClass, input)` pair that misses the cache — not once per loader instance. A `LoaderClass` is instantiated once and reused across every subsequent `loadAsset` call with that same class, even with a different `input`, so if two calls each pass their own `configure`, both run against the **same shared instance**. Keep `configure` idempotent (`setDRACOLoader`, `setPath`, `setCrossOrigin`, ...) so a later call doesn't need to differ from an earlier one.
+
+```ts
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js"
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js"
+import { loadAsset } from "@domphy/three"
+
+const result = loadAsset(GLTFLoader, "/models/compressed.glb", (loader) => {
+  const draco = new DRACOLoader()
+  draco.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.6/")
+  loader.setDRACOLoader(draco)
+})
+```
+
+### events.md
+
+---
+title: "Events"
+description: "Raycast pointer events in @domphy/three — the pointer-event prop whitelist, the ThreeEvent shape, stopPropagation, pointer capture, onPointerMissed, and excluding an object from raycasting."
+---
+
+# Events
+
+`@domphy/three` raycasts pointer events against the scene instead of relying on the DOM: any node whose props include one of the whitelisted `onPointer*`/`onClick`/... keys gets raycast on every canvas pointer interaction, and the matching handler receives a `ThreeEvent`, not a raw DOM event. Ported 1-1 from `@react-three/fiber`'s event system — same raycast-through-scene model, translated to plain function props.
+
+## Pointer event props
+
+| Prop | Fires on |
+| --- | --- |
+| `onPointerDown` | native `pointerdown` |
+| `onPointerUp` | native `pointerup` |
+| `onPointerMove` | native `pointermove` |
+| `onPointerCancel` | native `pointercancel` |
+| `onLostPointerCapture` | native `lostpointercapture` |
+| `onWheel` | native `wheel` |
+| `onClick` | native `click`, only when the pointer moved ≤2px between down and up |
+| `onContextMenu` | native `contextmenu`, same ≤2px rule |
+| `onDoubleClick` | native `dblclick`, same ≤2px rule |
+| `onPointerOver` / `onPointerEnter` | derived from `pointermove` — fires once when an object is newly hit |
+| `onPointerOut` / `onPointerLeave` | derived from `pointermove` (or `pointerleave`/`pointercancel`) — fires once when a previously-hit object stops being hit |
+| `onPointerMissed` | fires when a click-type event hits nothing (see below) |
+
+Attach any of these like any other scene prop:
+
+```ts
+{
+  mesh: [{ boxGeometry: null }, { meshStandardMaterial: { color: "orange" } }],
+  onClick: (event) => console.log("hit at", event.point),
+  onPointerOver: (event) => event.eventObject.scale.setScalar(1.2),
+  onPointerOut: (event) => event.eventObject.scale.setScalar(1),
+}
+```
+
+Only mounted `Object3D` instances are ever raycast — attaching a handler to a `BufferGeometry` or `Material` node is a no-op.
+
+## The `ThreeEvent` shape
+
+Every handler receives one argument, `ThreeEvent<PointerEvent | MouseEvent | WheelEvent>` (exported as a type):
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `distance`, `point`, `object`, `face`, `faceIndex`, `uv`, `instanceId`, ... | — | the raw `THREE.Intersection` fields from the raycast hit |
+| `eventObject` | `any` | the object whose handler this event bubbled to — differs from `object` once the event bubbles past the hit object's ancestors |
+| `intersections` | `Intersection[]` | every hit for this pointer this tick, nearest-first |
+| `pointer` | `THREE.Vector2` | pointer position in NDC space |
+| `unprojectedPoint` | `THREE.Vector3` | `pointer` unprojected into world space through the current camera |
+| `ray` | `THREE.Ray` | the raycaster's ray for this tick |
+| `camera` | current camera | `root.camera` |
+| `delta` | `number` | pixels travelled since `pointerdown` — only meaningful on `onClick`/`onContextMenu`/`onDoubleClick` |
+| `stopped` | `boolean` | `true` once `stopPropagation()` has taken effect |
+| `stopPropagation()` | `() => void` | see below |
+| `nativeEvent` | `PointerEvent \| MouseEvent \| WheelEvent` | the original DOM event |
+| `target`, `currentTarget` | `EventCaptureTarget` | `{ hasPointerCapture, setPointerCapture, releasePointerCapture }` — see Capture below |
+
+Every enumerable data property of the native event (`clientX`, `button`, `shiftKey`, `pointerId`, ...) is also copied directly onto the `ThreeEvent`, so `event.clientX` and `event.nativeEvent.clientX` both work.
+
+## stopPropagation
+
+A single pointer interaction can raycast through several interactive objects and, for one hit, bubble up through every ancestor that also declares a handler (nearest object/ancestor first). Calling `event.stopPropagation()` inside a handler stops that entire tick's dispatch immediately — not just this object's own ancestors, but every remaining hit, including unrelated objects farther behind:
+
+```ts
+onClick: (event) => {
+  event.stopPropagation() // nothing else receives this click this tick
+}
+```
+
+## Pointer capture
+
+`target`/`currentTarget` (identical on every event — there is no real DOM-style target/currentTarget split here) expose the standard pointer-capture trio:
+
+```ts
+onPointerDown: (event) => {
+  event.target.setPointerCapture(event.pointerId)
+},
+onPointerUp: (event) => {
+  event.target.releasePointerCapture(event.pointerId)
+},
+```
+
+While an object holds capture for a pointer id, that object's intersection is force-included in every later raycast for that pointer even if the ray no longer actually hits it (drag-to-rotate, drag handles, ...), and **only the capturing object can `stopPropagation()`** for that pointer — every other object's `stopPropagation()` call is silently ignored until capture is released.
+
+## onPointerMissed
+
+Two independent hooks fire when a click-type event (`onClick`/`onContextMenu`/`onDoubleClick`) hits nothing:
+
+- **Per-object**: any interactive object's own `onPointerMissed` prop.
+- **Root-level**: `ThreeOptions.onPointerMissed` on `three({ onPointerMissed: (event) => ... })`, receiving the raw `MouseEvent`.
+
+```ts
+three({
+  scene: [/* ... */],
+  onPointerMissed: (event) => console.log("clicked empty space"),
+})
+```
+
+Both only fire when the pointer travelled ≤2px between `pointerdown` and the click (a drag doesn't count as a miss). A click that DOES land on an object also fires `onPointerMissed` on every *other* interactive object that wasn't hit on the original `pointerdown` — clicking object A tells every other currently-interactive object "you weren't clicked" on the same tick.
+
+## Excluding an object from raycasting
+
+Set `raycast: null` on any node to remove it from ray intersection entirely — it's assigned straight onto `Object3D.raycast` (three's own opt-out convention):
+
+```ts
+{ mesh: [/* ... */], raycast: null } // never hit, never blocks objects behind it
+```
+
+- On an object that itself declares pointer-event props, `raycast: null` additionally deregisters it as an interactive target — its own handlers stop firing.
+- On a plain (non-interactive) descendant of an interactive object, e.g. a decorative helper mesh, it keeps that descendant from ever being the nearest hit reported to the ancestor's handlers, without touching the ancestor's own interactivity.
+
+## Opting out of events entirely
+
+`three({ events: false, scene: [/* ... */] })` skips the pointer-event system altogether — no DOM listeners are bound to the canvas, and every `onClick`/`onPointer*` prop in the scene is inert. Use this for a purely decorative canvas (background scenes, hero animations) to skip the per-frame raycast cost.
+
+See [Animation & Loop](/docs/three/animation) for `onFrame` and the render loop.
+
+### examples/galaxy.md
+
+---
+title: "@domphy/three — Galaxy"
+description: "A 15k-point spiral galaxy built from raw bufferGeometry/bufferAttribute nodes, colored warm-core to cool-rim via vertexColors, with additive blending, a faint background starfield, and slow continuous rotation."
+---
+
+# Galaxy
+
+A `points` cloud of 15,000 particles arranged into spiral branches, colored on a warm-core to cool-rim gradient and blended additively into a deep-space backdrop, with a second sparse `points` layer as a faint distant starfield for scale contrast. Unlike every other example on this site, the geometry isn't built from `args` on a named `THREE` geometry class — it's raw `Float32Array` position/color buffers wired straight onto a `bufferGeometry` through explicit `attach` paths.
+
+## How it works
+
+- **`bufferGeometry` + `bufferAttribute`**: the geometry has no constructor args at all — its `attributes.position`/`attributes.color` are set by two `bufferAttribute` children, each `args: [typedArray, itemSize]` matching `new THREE.BufferAttribute(array, itemSize)`. See [`args` reconstruction](/docs/three/grammar#args-reconstruction).
+- **Explicit `attach` paths**: `bufferAttribute` has no `.isX` flag for [attach inference](/docs/three/grammar#attach-inference) to key off, so `attach: "attributes-position"` / `"attributes-color"` is always explicit — resolved relative to the *direct* parent instance (the `bufferGeometry`), not the grandparent `points`. See [Grammar keys](/docs/three/grammar#grammar-keys).
+- **`vertexColors: true`** on `pointsMaterial` tells the material to read per-vertex color from that `color` attribute instead of a single flat `material.color` — a plain boolean prop applied through the usual [duck-typed props](/docs/three/grammar#duck-typed-props) path.
+- **Additive blending, capped**: `blending: AdditiveBlending` (imported straight from `three`) plus `depthWrite: false` and `transparent: true` is the standard particle-cloud recipe — overlapping points brighten instead of occluding each other, which is what makes the core glow. `opacity: 0.82` caps how far that stacking can climb, so the densest core reads warm instead of blowing out to flat white.
+- **Background starfield**: a second `points` sibling in `scene` (no `vertexColors`, a single flat `color: "#9fb4ff"`, `opacity: 0.35`, no additive blending) scatters ~900 points on a distant shell around the galaxy — a cheap depth cue that needs none of the teaching machinery of the main cloud.
+- **`onFrame: (root, delta, self)`** rotates the galaxy `points` object slowly and continuously (visible arm sweep/parallax against the static starfield) and also drifts `root.camera.position` in a small sine orbit, re-calling `root.camera.lookAt(0, 0, 0)` every frame — see [Animation & Loop](/docs/three/animation#onframe).
+- **Camera angle**: `camera: { position: [0, 3, 6.5] }` sits about 25° above the galactic plane (`atan(3 / 6.5) ≈ 25°`) rather than dead top-down, so both the spiral arms and the disc's thickness read.
+- **`onCreated`** sets `root.scene.background` once, up front — a fixed cinematic backdrop lives inside the canvas, so doctor's DOM theme-color rules don't apply to it. See the [`ThreeOptions` contract](/docs/three/grammar).
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/gltf-viewer.md
+
+---
+title: "@domphy/three — glTF Viewer"
+description: "A loaded glTF duck grounded by a soft contact shadow under hemisphere + directional stage lighting, auto-orbiting into view via extend()-registered OrbitControls, with a spinning wireframe placeholder while the asset loads."
+---
+
+# glTF Viewer
+
+A model loaded with `loadAsset` and adopted via `primitive`, staged under a hemisphere + two-point directional rig on a dark, fog-enveloped backdrop, orbitable via `extend()`-registered OrbitControls. Until the asset resolves, the same scene slot holds a spinning wireframe placeholder instead of a blank canvas.
+
+Duck model © Khronos Group [`glTF-Sample-Assets`](https://github.com/KhronosGroup/glTF-Sample-Assets).
+
+## How it works
+
+- `loadAsset(GLTFLoader, "/models/Duck.glb")` returns an `AssetResult` immediately; `duck.data.get(l)` inside `scene` is `null` until the load resolves — see [Loading Assets](/docs/three/assets#loadasset).
+- **Conditional scene children.** The same array slot is a ternary: a spinning wireframe icosahedron while `gltf` is falsy, the loaded `primitive` once it isn't. A different tag at the same position means the reconciler disposes the placeholder and mounts the model fresh — see [Reconcile semantics](/docs/three/grammar#reconcile-semantics).
+- `{ primitive: null, object: gltf.scene }` adopts the loader's own `Object3D` instead of constructing one — never disposed by the reconciler, so re-loading or unmounting the demo doesn't touch the cached asset. See [`primitive`](/docs/three/grammar#primitive).
+- `onUpdate: fitDuck` (rule 3 of the [function-prop rules](/docs/three/grammar#function-prop-rules)) runs after every props application on the `primitive` node — used here to measure the loaded model's bounding box once and normalize its scale/ground position, since raw glTF assets carry whatever scale they were authored at.
+- `hemisphereLight` + a warm key / cool rim `directionalLight` pair is the "stage" rig — `attach` inference resolves `color`/`fog` at the top of `scene` onto `root.scene.background`/`root.scene.fog` the same way a mesh child's geometry/material infers its `attach`. See [Attach inference](/docs/three/grammar#attach-inference).
+- `args: (l, root) => [root.camera, root.canvas]` on `orbitControls` resolves lazily against the live root — see [`args` reconstruction](/docs/three/grammar#args-reconstruction) — and `onFrame: (root, delta, self) => self.update()` drives its damping every rendered frame, the `useFrame()` analog documented in [Animation & Loop](/docs/three/animation).
+- `frameloop: "always"` (rather than the `"demand"` mode [Orbit Viewer](/docs/three/examples/orbit-viewer) uses) because the loading-state placeholder spins continuously through `onFrame` — a time-based animation that doesn't self-sustain under `"demand"` unless something keeps calling `invalidate()`. See [frameloop modes](/docs/three/animation#frameloop-modes).
+- The starting camera position (`CAMERA_START`) is chosen so the duck's face, not the back of its head, is the resting frame — `FRONT_AZIMUTH` is derived from that same constant with `Math.atan2`, then `orbitControls`' `minAzimuthAngle`/`maxAzimuthAngle` clamp `autoRotate`'s idle drift to ±40° around it, so the camera can never wander around to the shapeless rear view on its own.
+- A small canvas-generated radial-gradient texture (`createContactShadowTexture`) drives a second, transparent `circleGeometry` mesh just above the ground disc — a cheap soft contact shadow that reads as depth/grounding without a real shadow map.
+- The host `div` renders a second child: an absolutely positioned, `pointerEvents: "none"` overlay with a `radial-gradient` `backgroundImage` vignette, painted above the plain (non-positioned) canvas by CSS stacking order alone — same technique as [Starfield Hero](/docs/three/examples/starfield-hero).
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/interactive-grid.md
+
+---
+title: "@domphy/three — Interactive Grid"
+description: "A 5x5 grid of boxes driven by raycast pointer events and per-cell RecordState: hover lifts and tints a cube, click fires a spring-damped scale pulse."
+---
+
+# Interactive Grid
+
+A 5x5 grid of boxes, each one an independent interactive object: hovering lifts it toward the camera and tints it from a monochrome base to an accent hue, clicking fires a spring-damped scale pulse, and the whole wall breathes with a slow per-cell idle offset. Every cell's state — hover flag, pulse trigger — lives in one shared `RecordState`, keyed per cell, so interacting with one box never re-evaluates the other twenty-four.
+
+## How it works
+
+- **Raycast pointer events** — `onPointerOver`/`onPointerOut` toggle each cell's `hover` flag, `onClick` bumps a `pulseId` nonce; all three are ordinary scene props dispatched through the [pointer-event whitelist](/docs/three/events#pointer-event-props).
+- **Per-item state via `RecordState`** — one `RecordState<Record<string, CellState>>` holds all 25 cells; `cells.get(key, l)` inside a cell's own `color` prop subscribes only to that cell's key, so a hover never touches a sibling's material. See [`RecordState`](/docs/core/api/state#recordstatet).
+- **`_key` for reconcile identity** — each grid cell carries `_key: "row-col"`, the same keyed-match semantics as core's `ElementList`, documented in the [grammar keys table](/docs/three/grammar#grammar-keys).
+- **Reactive `color` (function-prop rule 7)** — `color: (l) => (cells.get(key, l).hover ? ACCENT_COLOR : BASE_COLOR)` re-applies and calls `root.invalidate()` only when that cell's own hover flag flips. See [function-prop rules](/docs/three/grammar#function-prop-rules).
+- **`onFrame` spring + idle motion** — a per-cell `onFrame` closure lerps a hover lift, decays a damped-cosine pulse bump from the last `pulseId`, and adds a `Math.sin` idle bob phase-offset by grid position, all read from `root.clock`/`delta`. See [Animation & Loop](/docs/three/animation#onframe).
+- **Duck-typed `position`/`scale`** — the array literal on `position` sets the cell's base XY placement once; `onFrame` then mutates `self.position.z` and `self.scale` directly every tick, the same imperative-inside-`onFrame` pattern as the [quickstart](/docs/three/#quick-start).
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/orbit-viewer.md
+
+---
+title: "@domphy/three — Orbit Viewer"
+description: "A metallic torus knot under three-point studio lighting, orbitable via extend()-registered OrbitControls, rendered on demand."
+---
+
+# Orbit Viewer
+
+A metallic torus knot on a dark, fog-enveloped ground disc, lit by a colored three-point rig. It auto-rotates for a couple seconds after mount, then stops and goes idle — drag to orbit it yourself from there. The scene runs `frameloop: "demand"`, so it only renders while the camera is actually moving: during that opening auto-rotate sweep, or while OrbitControls' damping is still settling a drag.
+
+## How it works
+
+- `OrbitControls` lives outside the `three` core namespace, so it's registered once via [`extend()`](/docs/three/grammar#extend-custom-classes) and used as the `orbitControls` tag.
+- `args: (l, root) => [root.camera, root.canvas]` resolves lazily against the live root — the camera and canvas don't exist until the scene mounts, so `args` can't be a plain array here. See [`args` reconstruction](/docs/three/grammar#args-reconstruction).
+- `onChange` isn't a property on `OrbitControls`, so it dispatches through the [function-prop rules](/docs/three/grammar#function-prop-rules)' `addEventListener` fallback — it fires on every camera move, including the damped tail after a drag ends and every step of the opening auto-rotate sweep.
+- `onFrame: (root, delta, self) => self.update()` is the `useFrame()` analog — it drives the controls' damping and auto-rotate every rendered frame, and flips `autoRotate` back off once `autoRotateElapsed` passes 2.5s. See [Animation & Loop](/docs/three/animation).
+- `frameloop: "demand"` plus `root.invalidate()` inside `onChange` is what keeps the render loop asleep until there's actually camera motion to draw — see [`invalidate()`](/docs/three/animation#invalidate). The brief startup auto-rotate rides that same path; once it turns itself off, the scene is idle again exactly like before.
+- `{ color: null, attach: "background", args: [...] }` and the inferred `fog` attach (`.isFog`) set scene-level state through the same `attach` mechanism used for geometry/material — see [Attach inference](/docs/three/grammar#attach-inference).
+- The ground disc (`circleGeometry` + `meshStandardMaterial`) sits below the knot at `position: [0, -1.5, 0]`; the same `fog` already on the scene dissolves its edge into the backdrop instead of a hard silhouette.
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/primitive-bridge.md
+
+---
+title: "@domphy/three — Primitive Bridge"
+description: "A procedural night-city skyline of 56 boxes built with plain three.js code and adopted whole via primitive, viewed from a low oblique street canyon shot, with declarative lights and fog around it."
+---
+
+# Primitive Bridge
+
+A 56-building skyline (one grid column left empty as a street) where every footprint, height, body color and "lit window" tint is a one-off constructor decision made once — not scene state, not something a re-render would ever touch. That makes it a bad fit for 56 individual `{ mesh: [...] }` scene nodes and a good fit for the imperative escape hatch: build a `THREE.Group` with plain three.js code, then hand the finished object to `primitive`. The camera sits low and looks down the empty column as a street canyon, at a shallow ~12° elevation rather than a flat top-down isometric shot, so the towers read at scale. Lights, fog, and the background stay declarative around it.
+
+## How it works
+
+- The whole skyline is built with plain `new THREE.Mesh(...)` / `THREE.Group.add(...)` calls, outside the scene grammar entirely — nothing about it is expressed as `{ tag: ... }` objects. See [`primitive`](/docs/three/grammar#primitive) for when to reach for this over declaring children.
+- `{ primitive: [], object: city, dispose: null }` adopts the finished group as-is. `dispose: null` is written explicitly even though it's already implied for any `primitive` node — its 56 meshes and materials are owned by this module, not the reconciler, so removal from the scene must never call `.dispose()` on them.
+- `object` is re-checked on every patch; swapping in a different group would reconstruct the node the same way a changed [`args`](/docs/three/grammar#args-reconstruction) does.
+- `onFrame: (root, delta, self) => { self.rotation.y += delta * 0.05 }` is the `useFrame()` analog — `self` here is `city`, the adopted primitive, not a declaratively-created instance. See [Animation & Loop](/docs/three/animation).
+- `{ color: null, attach: "background" }` and `{ fogExp2: null, args: [...] }` set scene-level state through the same [attach inference](/docs/three/grammar#attach-inference) (`.isFog`) a mesh child uses for its own geometry/material — they stay fully declarative even though the buildings around them don't. `FogExp2`'s density (vs. linear `Fog`'s near/far) is what fades distant towers gradually instead of hitting a hard wall.
+- `onCreated: (root) => root.camera.lookAt(2.5, 2, 20)` runs once at mount to aim the camera down the street canyon — nothing here depends on `root`, so it doesn't need `args` as a function the way `orbitControls` does elsewhere.
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/spinning-cube.md
+
+---
+title: "@domphy/three — Spinning Cube"
+description: "Hello-world scene: one mesh, onFrame rotation, two-point lighting — the first thing to read before writing a @domphy/three scene."
+---
+
+# Spinning Cube
+
+The smallest complete `@domphy/three` scene: a single `mesh` built from a tag + `args`, animated every frame with `onFrame`, lit by two lights against a deep slate backdrop. Start here before the [grammar](/docs/three/grammar) reference.
+
+## How it works
+
+- **Tags**: `boxGeometry` and `meshStandardMaterial` are the camelCase names of `THREE.BoxGeometry`/`THREE.MeshStandardMaterial`, resolved by reflection — see [Grammar keys](/docs/three/grammar#grammar-keys). Their `attach` target (`"geometry"`/`"material"`) is inferred automatically from the `.isBufferGeometry`/`.isMaterial` flags.
+- **`args`**: `{ boxGeometry: null, args: [1.4, 1.4, 1.4] }` passes constructor arguments to `new THREE.BoxGeometry(1.4, 1.4, 1.4)` — see [`args` reconstruction](/docs/three/grammar#args-reconstruction).
+- **`onFrame`**: the `useFrame()` analog, called every rendered frame as `(root, delta, self)` — `self` is the mesh's `THREE.Mesh` instance. See [Animation & Loop](/docs/three/animation#onframe).
+- **`root.clock`**: the float bob reads `root.clock.getElapsedTime()` from the shared `RootState` clock instead of a local time accumulator, so it stays correct across re-renders.
+- **`onCreated`**: runs once after the renderer and scene exist, used here to set `root.scene.background`, add a matching `THREE.Fog` for depth (even at this small scale, fog keeps the cube from reading flat), and to `root.camera.lookAt(0, 0, 0)` — the camera never gets an explicit `rotation`, so it must be aimed at the cube by hand. A fixed background color inside the canvas is fine; Domphy's theme/doctor rules govern the DOM around the canvas, not the rendered scene itself.
+- **Two-point lighting**: a warm `directionalLight` key from the front-right and a cool `pointLight` rim from behind separate the cube from the backdrop — `color` and `intensity` on both are applied directly (`color.set(...)` under the hood) — see [Duck-typed props](/docs/three/grammar#duck-typed-props).
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/starfield-hero.md
+
+---
+title: "@domphy/three — Starfield Hero"
+description: "A full-width marketing hero: three depth-layered star shells drifting behind a DOM overlay (heading, copy, CTA) composited straight on top of the canvas via absolute positioning and a shared dark tone context."
+---
+
+# Starfield Hero
+
+A landing-page hero, not a scene demo — three concentric shells of points at increasing radius and decreasing size and speed, so nearer stars visibly slide past farther ones purely from each shell spinning at its own rate. A slow camera float/pan and a subtle fog give it depth without any per-frame geometry rebuilding. On top, an ordinary Domphy DOM tree (heading, copy, CTA button) is absolutely positioned over the canvas — same element tree, no portal, no iframe.
+
+## How it works
+
+- **DOM-over-canvas composition**: the host is a `position: relative` div containing two absolutely-positioned children — the `three()` canvas layer and a DOM overlay layer. Setting `style.position: "absolute"` directly on the canvas-host div wins over the `three()` patch's own `position: relative` default, since a native element's own style always wins over a patch's — see the [`ThreeOptions` contract](/docs/three/grammar).
+- **Layered depth via independent spin rates**: each star shell is its own `points` node with its own `onFrame`, rotating at a different `spinSpeed` — no positions are ever rewritten per frame, only each shell's own rotation. See [`onFrame`](/docs/three/animation#onframe).
+- **Shared dark tone context**: the overlay div sets `dataTone: "shift-16"` (a dark edge anchor), so every descendant patch — `heading()`, `paragraph()`, `small()`, `button()` — resolves its `themeColor()` calls against that dark surface automatically, with no color overrides needed on any of them.
+- **DOM event driving a canvas prop**: the CTA's `onClick` bumps a plain `State<number>`; the near shell's `onFrame` reads it untracked each tick (the same pulse-on-change technique [Interactive Grid](./interactive-grid) uses for its click bump) to fire a brief forward camera "warp" dash that eases back out.
+- **Explicit vertex colors on the near shell**: the closest shell is the only one built with a `bufferAttribute` color channel (`attach: "attributes-color"`) so a scattered minority of points can lean warm or cool against the mostly-white base — see [`attach` inference](/docs/three/grammar#attach-inference) for why `bufferAttribute` always needs an explicit `attach` path.
+- **Glowing points, not flat dots**: each shell's `pointsMaterial` gets a `map` — a soft radial-gradient sprite drawn once onto a `CanvasTexture` — combined with `blending: AdditiveBlending`. `sizeAttenuation: false` keeps each shell's point size fixed in screen pixels (3.6px near, 2px mid, 1px far) instead of shrinking with camera distance, so the far shell fades out via fog rather than just growing small and dim.
+- **`frameloop: "always"`**: the drift is continuous and time-based, not state-driven, so nothing ever calls `invalidate()` — see [frameloop modes](/docs/three/animation#frameloop-modes) for why `"demand"` would freeze this scene on its first frame.
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/theme-sync.md
+
+---
+title: "@domphy/three — Theme Sync"
+description: "One theme system driving both the DOM and a WebGL scene: buttons switch dataTone/color on the demo container, and the same State recolors the mesh, background, and fog via themeColorToken."
+---
+
+# Theme Sync
+
+The unique Domphy story: one theme system, two renderers. `@domphy/ui` buttons switch a color family and a light/dark surface on the demo container's `dataTone` — the exact same `State` is read inside the `three()` scene to recolor the mesh material, the scene background, and the fog through `themeColorToken()`. Edit the code below live.
+
+## How it works
+
+- **One `State`, two consumers.** `activeColor` and `darkSurface` (`toState`) are read by the container's `dataTone` attribute _and_ by the scene's reactive props — that's the actual bridge, not automatic DOM-to-WebGL context propagation. See [Scene Grammar](/docs/three/grammar) for the pierced-prop / reactive-value rules.
+- **`themeColorToken(l, tone, color)`** returns a concrete token string (e.g. `"#4a7ff4"`) instead of a `var(--…)` CSS reference — exactly what a `meshStandardMaterial.color` or a `THREE.Color`/`THREE.Fog` constructor needs, since neither understands CSS custom properties.
+- **Function-prop rule 7.** Any non-event function value on a scene node (`color: (l) => ...`) subscribes a Domphy listener and re-applies the prop on change — see the [function-prop rules](/docs/three/grammar#function-prop-rules) in the grammar doc. That's what makes the mesh recolor the instant a button is clicked.
+- **Reactive `args` reconstructs.** The background `{ color: null, attach: "background" }` and `{ fog: null }` nodes have no nested prop path to poke, so their `args` is a function — a shallow change there tears down and rebuilds the instance (locked in the grammar's reconcile semantics), which is the only way to update them.
+- **The listener has no DOM context.** `themeColorToken()`'s automatic `dataTone`/`dataTheme` tree-walk needs a `Listener` with `.elementNode`, which is how `@domphy/core` wires it for ordinary DOM style/attribute props. The listener a `three()` reactive prop hands your function is a bare `Handler` without `.elementNode`, so it never inherits tone context from an ancestor on its own — sharing one `State` is what actually keeps DOM and scene in sync.
+- **`button({ color })`** ([`@domphy/ui`](/docs/ui/patches/button)) accepts the same `ThemeColor` union `themeColorToken` does, so each swatch button is itself colored by the family it selects.
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/ui-bridge.md
+
+---
+title: "@domphy/three — UI Bridge"
+description: "A DOM control panel (inputNumber/select/inputSwitch) and a torus mesh reading the same RecordState — one reactive graph across DOM and 3D."
+---
+
+# UI Bridge
+
+A left-side `@domphy/ui` control panel (radius/tube inputs, a material-color select, a wireframe switch) drives a `three()` torus on the right through a single `RecordState`. The DOM controls and the scene graph both subscribe to it with the exact same `(l) => state.get(key, l)` contract — Domphy doesn't distinguish "a listener owned by a DOM node" from "a listener owned by a `THREE.Mesh`".
+
+## How it works
+
+- **One `RecordState`, two consumers**: `controls.get("radius", l)` is read both inside an `<input>`'s `value` function and inside the mesh's `args` function — per-key reactivity, so changing `tube` never re-runs the `color` subscription. See [Reactivity](/docs/three/grammar#function-prop-rules).
+- **`args` as a function reconstructs**: the torus's `args: (l) => [radius, tube, 32, 96]` re-reads the state on every change; because `args` shallow-diffs, dragging radius/tube throws away the old `THREE.TorusGeometry` and builds a new one — see [`args` reconstruction](/docs/three/grammar#args-reconstruction).
+- **`color`/`wireframe` are rule-7 reactive props**: unlike `args`, these are ordinary scene props whose value is a function — dispatched as `fn(listener, root)`, re-applied to the *same* `meshStandardMaterial` instance in place, no reconstruction. See [function-prop rules](/docs/three/grammar#function-prop-rules).
+- **Controlled inputs, same as any Domphy form**: `value`/`checked` read through the listener, `onInput` writes back with `.set(...)` — the standard Domphy controlled-input pattern, just feeding a 3D scene instead of another DOM node.
+- **`card()` + `formGroup()`** compose on a plain `fieldset` for the panel: `card()` places a heading/content/footer grid, `formGroup({ layout: "vertical" })` lines up each `<label>` above its control.
+- **`onCreated`**: sets a fixed scene background and `camera.lookAt(0, 0, 0)` once — doctor's theme-color rules govern the DOM around the canvas, not the rendered scene itself.
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/wave-field.md
+
+---
+title: "@domphy/three — Wave Field"
+description: "A 400-box InstancedMesh animated as a traveling sine wave in onFrame, colored by a per-instance blue-to-magenta HSL ramp keyed to wave height, with fog and a dark cinematic backdrop."
+---
+
+# Wave Field
+
+A field of 400 boxes rigged as one `InstancedMesh`, displaced every frame by a traveling sine wave computed in `onFrame` — the kind of per-tick math at scale that only makes sense outside the declarative props grammar. A low, raking camera skims across the grid so the wave reads as motion rather than a static height-map, each instance is tinted by a blue-to-magenta HSL ramp keyed to its current height, and fog matched to the dark backdrop turns it into the classic "wow shot."
+
+## How it works
+
+- **`primitive` adopts an imperative core.** Per-instance matrices at 400-instance granularity aren't expressible through `args`/props, so the `InstancedMesh` is built with three's own API and mounted via [`{ primitive: null, object: field }`](../grammar#primitive) — never disposed by the reconciler, the demo owns its lifecycle.
+- **`onFrame: (root, delta, self) => ...`** runs the wave math every rendered frame, with `self` bound to the adopted instance — see [Animation & Loop](../animation#onframe). Precomputing each instance's x/z once and only touching y (and the color derived from it) per tick keeps the per-frame loop to one `sin`/`cos`/`setHSL` pass per box.
+- **`frameloop: "always"`** is set explicitly, not left to the default: the wave is continuous, time-based motion with no `State` behind it, so `"demand"` would never call `invalidate()` and the field would freeze on the first frame. See [`onFrame` vs. reactive props](../animation#onframe-vs-reactive-props).
+- **A low, raking camera reads the wave as motion.** The camera sits outside one edge of the grid at `[0, 8, 20]`, `lookAt`-ing a point past the far edge — roughly a 17° angle off the horizon — instead of looking straight down. A top-down view of a height field reads as a static bump map; skimming across it low makes the traveling crest and trough visibly move through the frame.
+- **The height ramp is per-instance color, not lighting.** Every tick, each instance's `y` maps to a blue-to-magenta HSL tint (`hsl(200, 70%, 55%)` at the trough to `hsl(320, 80%, 65%)` at the peak) via `InstancedMesh.setColorAt()`. The material is unlit (`MeshBasicMaterial`) on purpose: on a lit material, `setColorAt`'s tint multiplies into the diffuse term, and the cool/dark end of the ramp collapsed toward black at grazing light angles — a real rendering defect, reproduced on GPU hardware, not just headless/CI. An unlit material renders `instanceColor` as-is, so the ramp stays legible everywhere in the field — which is also why this scene carries no lights.
+- **`attach` inference on `fog`.** The `{ fog: null, args: [...] }` node has no explicit `attach` — its `.isFog` flag infers `"fog"`, and since this node sits at the top of `scene`, that attaches straight onto `root.scene.fog`. Same inference rule a mesh's geometry/material children use — see [Attach inference](../grammar#attach-inference). Its color matches `root.scene.background` so the back rows dissolve into the backdrop instead of into a visibly different rectangle.
+- **`onCreated`** points the camera at the field and sets `root.scene.background` — a one-time setup step that runs once the root exists, documented in the [`ThreeOptions`](../grammar) contract.
+
+[← Back to @domphy/three](/docs/three/)
+
+### grammar.md
+
+---
+title: "Scene Grammar"
+description: "The @domphy/three scene grammar — tags, args, attach, primitive, dispose: null, _key, the function-prop dispatch rules, pierced props, and extend()."
+---
+
+# Scene Grammar
+
+A scene is a plain object tree, reconciled the same way a Domphy DOM tree is. The **first key** of a scene object is its tag — the camelCase of a `THREE` class name (`mesh` → `THREE.Mesh`, `boxGeometry` → `THREE.BoxGeometry`), or a name registered with [`extend()`](#extend-custom-classes). Every other key is a prop.
+
+```ts
+{
+  mesh: [ /* children */ ],          // tag: "mesh" — value is children
+  args: [1, 1, 1],                    // constructor arguments
+  position: [0, 1, 0],                // duck-typed prop
+  "rotation-z": (l) => spin.get(l),   // pierced, reactive prop
+  _key: "a",                          // reconcile identity
+}
+```
+
+There is no pre-populated class catalog — a tag resolves by reflection: your `extend()` registry first, then the live `THREE` namespace. This means the package works with whatever three.js version is installed.
+
+## Grammar keys
+
+| Key | Meaning |
+| --- | --- |
+| `<tag>` (first key) | Children: an array of scene objects, `null`, or `(l, root) => children`. Falsy entries (`null`/`undefined`/`false`) are skipped — write `cond && { mesh: ... }` freely inside an array. |
+| `args` | Constructor arguments: an array, or `(l, root) => any[]` when they depend on the live root (camera, canvas). Shallow-changes reconstruct the instance — see [`args` reconstruction](#args-reconstruction). |
+| `attach` | Where the child instance is attached on its parent — a dashed path (`"geometry"`, `"material-0"`, `"geometry-attributes-position"`) or a function `(parentInstance, childInstance) => cleanup`. Omit it and it's inferred — see [Attach inference](#attach-inference). |
+| `dispose: null` | Opts this node's whole subtree out of auto-dispose on removal, regardless of any descendant's own `dispose` prop. |
+| `raycast: null` | Sets the instance's own `.raycast` to `null` (standard three.js convention) — excludes it from pointer raycasting. |
+| `_key` | Reconcile identity for this position in its parent's children — same semantics as core: keyed match wins over positional match by tag. Not DOM id / business identity. |
+| `object` | The adopted `THREE` instance — only valid on a `primitive` tag. See [`primitive`](#primitive). |
+| `onFramePriority` | Sibling of `onFrame` — priority > 0 callbacks take over rendering for that frame (see [Animation & Loop](./animation)). |
+
+Every other key is either a duck-typed value prop (`position`, `intensity`, `color`, ...) or a function dispatched through the [function-prop rules](#function-prop-rules) below.
+
+## Duck-typed props
+
+A static (non-function) prop value is applied against the resolved target using three's own value interface, in this order:
+
+| Value | Applied as |
+| --- | --- |
+| Color representation (string/number/`Color`) onto a `THREE.Color` target | `target.set(value)` |
+| Same-constructor object with `.set`/`.copy` | `target.copy(value)` |
+| Array onto a `.set`-able target | `target.fromArray(value)` (or `target.set(...value)`) |
+| Number onto a `.set`-able target | `target.setScalar(value)` (or `target.set(value)`) |
+| `ShaderMaterial.uniforms` | Merged per-named-uniform in place (keeps the stable reference the compiled program holds) |
+| Anything else | Direct assignment: `root[key] = value` |
+
+A key present in an earlier prop application but missing from the current one resets to that instance's **constructor default** (mirrors core's "attributes present before but absent now are removed").
+
+## Pierced props
+
+A dashed key pierces into a nested path: `"rotation-y"` → `instance.rotation.y`, `"material-color"` → `instance.material.color`. Piercing walks as many segments as the key has (`"geometry-attributes-position"` → 3 levels deep) — unless the whole dashed string is itself a literal property name on the target.
+
+```ts
+{
+  mesh: [...],
+  "rotation-y": (l) => spin.get(l),   // instance.rotation.y = spin.get(l)
+  "material-color": "orange",         // instance.material.color.set("orange")
+}
+```
+
+If a props bag declares both a base key and a pierced override of it (`{ position: [0, 1, 0], "position-x": 5 }`), the pierced key always wins, regardless of which one you wrote first.
+
+## Function-prop rules
+
+A prop whose value is a function is dispatched by key, in this exact order — first match wins:
+
+| # | Match | Behavior |
+| --- | --- | --- |
+| 1 | Pointer event key (`onClick`, `onContextMenu`, `onDoubleClick`, `onWheel`, `onPointerUp`/`Down`/`Over`/`Out`/`Enter`/`Leave`/`Move`/`Missed`/`Cancel`, `onLostPointerCapture`) | Registered with the raycast [event system](./events): `fn(event)`. |
+| 2 | `onFrame` | Registered via `root.frame(callback, priority)` — the `useFrame()` analog. Called as `fn(root, delta, self)` every rendered frame. |
+| 3 | `onUpdate` | Called as `fn(instance)` after every props application (not itself a subscription). |
+| 4 | `/^on[A-Z]/` **and** the key already exists on the instance | Direct property assignment — covers three's own assignable callbacks (`onBeforeRender`, `onBeforeCompile`, ...). |
+| 5 | `/^on[A-Z]/`, not on the instance | `instance.addEventListener(name, fn)`, where `name` is the key minus `on` with its first letter lowercased (`onChange` → `"change"`, `onObjectChange` → `"objectChange"`). Called as `fn(event, root, instance)`. |
+| 6 | `on` (value is a record) | `instance.addEventListener(exactName, fn)` per entry — no name derivation. Called as `fn(event, root, instance)`. |
+| 7 | Anything else | **Reactive value.** Called as `fn(listener, root)`; whatever `State` it reads through `listener` re-invokes it on change, re-applies the resulting value, and calls `root.invalidate()`. |
+
+```ts
+{
+  orbitControls: null,
+  args: (l, root) => [root.camera, root.gl.domElement],   // rule: args function
+  enableDamping: true,
+  onFrame: (root, delta, self) => self.update(),          // rule 2
+  onChange: (event, root, self) => console.log("moved"),  // rule 5 -> "change"
+  on: { "dragging-changed": (e, root, self) => {} },      // rule 6, verbatim name
+  "rotation-y": (l) => spin.get(l),                        // rule 7, reactive
+}
+```
+
+Re-applying a key releases its previous binding first (subscription, frame registration, or event listener) — a key that disappears entirely between two applications is unwound the same way.
+
+## `attach` inference
+
+When `attach` isn't declared, it's inferred from the child instance's three.js flags:
+
+| Flag | Inferred `attach` |
+| --- | --- |
+| `.isBufferGeometry` | `"geometry"` |
+| `.isMaterial` | `"material"` |
+| `.isFog` | `"fog"` |
+| `.isObject3D` (none of the above) | Not attached — added via `parent.add(child)` instead |
+
+```ts
+{
+  mesh: [
+    { boxGeometry: null },              // attach: "geometry" inferred
+    { meshStandardMaterial: null },     // attach: "material" inferred
+  ],
+}
+```
+
+An explicit dashed `attach` string can index into an array (`"material-0"` allocates `parent.material` as an array if needed, then sets index `0`) or pierce further (`"geometry-attributes-position"`). An `attach` function receives `(parentInstance, childInstance)` and its return value becomes the detach cleanup.
+
+## `args` reconstruction
+
+`args` are constructor arguments. Changing them **reconstructs** the instance: a new one is built, children are reattached onto it, the old instance is disposed (respecting `autoDispose`), and it's swapped into the parent in place — the `SceneNode` identity, `_key`, and any live subscriptions on other props survive.
+
+```ts
+{ boxGeometry: null, args: [width, height, depth] }  // resize -> new BoxGeometry
+```
+
+Pass a function when the arguments aren't known until the scene mounts (they need the live `root`):
+
+```ts
+{
+  orbitControls: null,
+  args: (l, root) => [root.camera, root.gl.domElement],
+}
+```
+
+## `primitive`
+
+`primitive` adopts an existing `THREE` instance instead of constructing one — for objects you built yourself, or that came from a loader.
+
+```ts
+{ primitive: [], object: existingObject3D }
+```
+
+- `object` is required and re-checked on every patch; changing it reconstructs the node the same way a changed `args` does.
+- A `primitive`'s instance is **never disposed** by the reconciler (implicit `dispose: null`) — you own its lifecycle.
+- Its children still reconcile and attach normally.
+
+## `extend()` — custom classes
+
+`extend()` registers constructors so their tags resolve the same way built-in `THREE` tags do. This is how anything outside the `three` core namespace enters user-land — `OrbitControls`, custom shader materials, drei-style helpers — without the package importing `three/addons` itself.
+
+```ts
+import { three, extend } from "@domphy/three"
+import { OrbitControls } from "three/addons/controls/OrbitControls.js"
+
+extend({ OrbitControls })
+
+const App = {
+  div: null,
+  style: { width: "100%", height: "420px" },
+  $: [
+    three({
+      camera: { position: [3, 3, 3] },
+      scene: [
+        { mesh: [{ boxGeometry: null }, { meshStandardMaterial: null }] },
+        {
+          orbitControls: null,
+          args: (l, root) => [root.camera, root.gl.domElement],
+          enableDamping: true,
+          onFrame: (root, delta, self) => self.update(),
+        },
+      ],
+    }),
+  ],
+}
+```
+
+`extend({ MyClass })` registers under `MyClass`'s own name — the scene tag is its camelCase form (`myClass`). A tag your registry doesn't define, and that isn't a name on the live `THREE` namespace either, throws at scene-create time.
+
+## Reconcile semantics
+
+Children reconcile like core's `ElementList`: a `_key` match wins when present, else a positional match by identical tag at the same index. A match is patched in place (instance identity, subscriptions, and `_key` preserved); anything else is created; unclaimed leftovers are disposed (releasing subscriptions, detaching, then `dispose()` unless `autoDispose` says otherwise).
+
+## Next steps
+
+- [Events](./events) — the pointer-event whitelist from rule 1, capture, `onPointerMissed`
+- [Animation & Loop](./animation) — `onFrame`/`onFramePriority`, frameloop modes, `invalidate()`
+- [Loading Assets](./assets) — `loadAsset`/`preloadAsset`/`clearAsset`
+
+### index.md
+
+---
+title: "@domphy/three"
+description: "Declarative three.js scene graphs for Domphy — a 1-1 functional port of @react-three/fiber's core (reconciler, raycast pointer events, demand frameloop) with no JSX and no virtual DOM."
+---
+
+# @domphy/three
+
+`@domphy/three` is a declarative three.js scene graph for Domphy — a 1-1 functional port of [`@react-three/fiber`](https://github.com/pmndrs/react-three-fiber)'s core (reconciler, raycast pointer events, demand frameloop), translated from React idioms to Domphy idioms.
+
+A scene is a plain object tree, the same way a Domphy DOM tree is: no JSX, no virtual DOM, no build step required. Reactivity comes from `@domphy/core`'s listener-based `State`, exactly like the rest of Domphy.
+
+It never imports from `three/addons` or `three/examples` — no drei port, no helper wrappers. Anything outside the `three` core namespace (`OrbitControls`, post-processing passes, custom shaders, ...) enters user-land through [`extend()`](./grammar#extend-custom-classes).
+
+## Install
+
+```bash
+npm install @domphy/three three
+```
+
+Peer dependencies: `@domphy/core` and `three >= 0.156.0`.
+
+## Quick start
+
+Apply the `three()` patch to a `div` with an explicit height — it creates the canvas, the renderer, and the render loop, and mounts your `scene` tree into it. `onFrame` on a scene node is the `useFrame()` analog: it runs every rendered frame as `(root, delta, self)`.
+
+The host `div` needs an explicit width and height — the canvas fills its container, and a container with no size renders nothing.
+
+Drive a prop from outside the scene by passing a `State` through a reactive (pierced) prop instead of mutating inside `onFrame`:
+
+```ts
+import { toState } from "@domphy/core"
+import { three } from "@domphy/three"
+
+const spin = toState(0)
+setInterval(() => spin.set(spin.get() + 0.01), 16)
+
+const App = {
+  div: null,
+  style: { width: "100%", height: "420px" },
+  $: [
+    three({
+      scene: [
+        {
+          mesh: [{ boxGeometry: null }, { meshStandardMaterial: { color: "orange" } }],
+          "rotation-y": (l) => spin.get(l),   // pierced prop, reactive
+        },
+        { ambientLight: null, intensity: 0.5 },
+      ],
+    }),
+  ],
+}
+```
+
+## JSX → Domphy
+
+If you know `@react-three/fiber`, the translation is mechanical:
+
+| JSX (`@react-three/fiber`) | Domphy (`@domphy/three`) |
+| --- | --- |
+| `<mesh position={[1, 2, 3]}>...</mesh>` | `{ mesh: [...], position: [1, 2, 3] }` |
+| `<mesh onClick={handleClick} />` | `{ mesh: null, onClick: handleClick }` |
+| `useFrame((state, delta) => { ... })` | `onFrame: (root, delta, self) => { ... }` on a scene node |
+| `<primitive object={existingObject} />` | `{ primitive: [], object: existingObject }` |
+| `extend({ MyClass }); <myClass />` | `extend({ MyClass }); { myClass: null }` |
+| `useLoader(GLTFLoader, url)` | `loadAsset(GLTFLoader, url)` → `{ data, error, promise }` |
+
+The first key of a scene object is its tag (the camelCase of a `THREE` class, or a name registered via `extend()`) — the three.js equivalent of core's "first key = HTML tag". Every other key is a prop.
+
+## Next steps
+
+- [Scene Grammar](./grammar) — tags, `args`, `attach`, `primitive`, `dispose: null`, `_key`, the function-prop rules, pierced props, `extend()`
+- [Events](./events) — raycast pointer events (`onClick`, `onPointerOver`, ...)
+- [Animation & Loop](./animation) — `onFrame`, `frameloop` modes, `invalidate()`
+- [Loading Assets](./assets) — `loadAsset`/`preloadAsset`/`clearAsset`
+- [Recipes](./recipes) — OrbitControls, loaders, and other common patterns
+- [Examples](./examples/spinning-cube) — full running scenes
+
+### recipes.md
+
+---
+title: "Recipes"
+description: "Common @domphy/three patterns — OrbitControls via extend(), injectable createRenderer with a WebGPU sketch, theme-aware material colors via themeColorToken, and primitive for imperative cores."
+---
+
+# Recipes
+
+Patterns for things outside the `three` core namespace, or outside the declarative scene grammar.
+
+## OrbitControls
+
+`OrbitControls` isn't part of `three`'s core namespace, so `@domphy/three` never imports it — it enters user-land through `extend()`:
+
+`args` is a function here (rather than a plain array) because it needs the live root — the camera and canvas don't exist until the scene mounts. `onFrame` calls `self.update()` every rendered frame, which `enableDamping` needs to animate the deceleration.
+
+The same recipe applies to any other `three/addons` helper (`TransformControls`, `DragControls`, ...): `extend({ TheClass })`, then use its camelCase tag.
+
+## Injectable renderer
+
+`three()`'s `createRenderer?: (canvas) => RendererLike` option replaces the default `new THREE.WebGLRenderer({ canvas, antialias: true, ...gl })` entirely — only `render()`/`setSize()` are required, everything else (`setPixelRatio`, `dispose`, `domElement`, `shadowMap`, `toneMapping`, `outputColorSpace`) is optional:
+
+### WebGPU sketch
+
+`RendererLike` is synchronous (`(canvas) => RendererLike`), but `WebGPURenderer` needs an async `.init()` before its first `render()` call. Wrap it so the contract stays synchronous while `render()` no-ops until the GPU adapter is ready:
+
+```ts
+import { WebGPURenderer } from "three/webgpu"
+import type { RendererLike } from "@domphy/three"
+
+function createWebGPURenderer(canvas: HTMLCanvasElement): RendererLike {
+  const renderer = new WebGPURenderer({ canvas, antialias: true })
+  let ready = false
+  renderer.init().then(() => {
+    ready = true
+  })
+
+  return {
+    render(scene, camera) {
+      if (ready) renderer.render(scene as any, camera as any)
+    },
+    setSize(width, height) {
+      renderer.setSize(width, height)
+    },
+    setPixelRatio(ratio) {
+      renderer.setPixelRatio(ratio)
+    },
+    dispose() {
+      renderer.dispose()
+    },
+    domElement: renderer.domElement,
+  }
+}
+```
+
+Pass `createWebGPURenderer` as `three()`'s `createRenderer`. Frames rendered before `.init()` resolves are silently skipped (`root.invalidate()` from resize/prop updates still requests them, so nothing is missed once the adapter comes up) — the loop keeps calling `render()` every tick regardless.
+
+## Theme-aware colors
+
+`themeColorToken(listener, tone, color)` returns a concrete hex string instead of a `var(--…)` CSS reference — exactly what a `THREE.Color`-backed prop like `material.color` needs:
+
+`@domphy/three`'s own listeners (scene functions, reactive props) aren't attached to a DOM node, so passing one to `themeColorToken` can't track a live theme toggle — pass `null` and it resolves against the light theme once, the same idiom `@domphy/chart` uses for its own canvas colors (`seriesHex`/`familyHex`). To follow an actual dark-mode switch, resolve the color from a real DOM listener instead (a reactive `style` callback has one) and push it into an outer `State<ThreeOptions>`'s `scene` — `three()` re-applies `scene` whenever that state changes.
+
+## `primitive` for imperative cores
+
+`{ primitive: null, object: existingInstance }` adopts an object you built yourself — per-instance transforms via `InstancedMesh.setMatrixAt`, a physics engine's rigid-body mesh, anything the declarative `args`/props grammar can't express. It's never disposed by the reconciler (implicit `dispose: null`), so the instance keeps whatever lifecycle its own library gave it:
+
+`onFrame` still works on a `primitive` node exactly like any other scene node — `self` is the adopted instance.
+
+
+
+---
+
+
 ## Palette docs (`@domphy/palette`)
 
 ### accessibility.md
@@ -38998,7 +39919,7 @@ function details(
           `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
       },
       "& > :not(summary)": {
-        maxHeight: "0px",
+        maxHeight: 0,
         opacity: 0,
         overflow: "hidden",
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
@@ -39791,7 +40712,7 @@ function formGroup(
         alignSelf: "start",
         margin: 0,
         paddingBlock: (listener) =>
-          isVertical ? "0px" : themeSpacing(themeDensity(listener) * 1),
+          isVertical ? 0 : themeSpacing(themeDensity(listener) * 1),
       },
       "& > label:has(+ :not(legend, label, p) + p)": {
         gridRow: isVertical ? "auto" : "span 2",
@@ -40664,8 +41585,7 @@ function inputPassword(
       outline: (l) =>
         `1px solid ${themeColor(l, "shift-4", colorState.get(l))}`,
       color: (l) => themeColor(l, "shift-9", colorState.get(l)),
-      backgroundColor: (l) =>
-        themeColor(l, "inherit", colorState.get(l)),
+      backgroundColor: (l) => themeColor(l, "inherit", colorState.get(l)),
       fontSize: (l) => themeSize(l, "inherit"),
       "&:focus-within": {
         outline: (l) =>
@@ -41651,7 +42571,7 @@ function menu(
             if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
             e.preventDefault();
             const keys = items.map((it, i) => it.key ?? i);
-            const idx = keys.findIndex((ki) => ki === key);
+            const idx = keys.indexOf(key);
             let next = idx;
             if (k === "ArrowDown") next = (idx + 1) % keys.length;
             else if (k === "ArrowUp")
@@ -42108,8 +43028,8 @@ export { paragraph };
 ```ts
 import {
   type DomphyElement,
-  merge,
   type Listener,
+  merge,
   type PartialElement,
   toState,
   type ValueOrState,
@@ -42287,7 +43207,7 @@ function popoverArrow(
         width: themeSpacing(1.5),
         height: themeSpacing(1.5),
         backgroundColor: (listener) => themeColor(listener, "inherit", color),
-        borderWidth: bordered ? "1px" : "0px",
+        borderWidth: bordered ? "1px" : 0,
         borderColor: (listener) => themeColor(listener, "inherit", color),
         borderTopStyle: (listener) => {
           const pos = getFlipped(listener);
@@ -42773,7 +43693,7 @@ function segmented(
   } = { items: [] },
 ): PartialElement {
   const { items = [], color = "neutral", accentColor = "primary" } = props;
-  const value = toState(props.value ?? (items[0]?.key ?? ""));
+  const value = toState(props.value ?? items[0]?.key ?? "");
 
   return {
     role: "radiogroup",
@@ -43629,7 +44549,12 @@ import {
   toState,
   type ValueOrState,
 } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSize, themeSpacing } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 
 /** One step entry. */
 type StepItem = {
@@ -43729,8 +44654,7 @@ function steps(
               right: `calc(50% + ${themeSpacing(3)})`,
               left: `calc(-50% + ${themeSpacing(3)})`,
               height: "2px",
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-3", color),
+              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
               zIndex: "0",
             },
             "&[data-status=active]::before": {
@@ -43742,14 +44666,12 @@ function steps(
             },
             "&[data-status=done]::before": {
               content: '"✓"',
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-3", color),
+              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
               borderColor: (l: Listener) => themeColor(l, "shift-3", color),
               color: (l: Listener) => themeColor(l, "shift-9", color),
             },
             "&[data-status=done]:not(:first-child)::after": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-3", color),
+              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
             },
             "&[data-status=active]:not(:first-child)::after": {
               backgroundColor: (l: Listener) =>
@@ -43970,9 +44892,10 @@ function table(
         backgroundColor: (listener) => themeColor(listener, "inherit"),
       },
 
+      // No !important needed: ".scope tbody tr:hover" (two classes + two
+      // elements) already out-specifies any row's own auto-scope class rule.
       "& tbody tr:hover": {
-        backgroundColor: (listener) =>
-          `${themeColor(listener, "shift-2")}!important`,
+        backgroundColor: (listener) => themeColor(listener, "shift-2"),
       },
     },
   };
@@ -44036,7 +44959,7 @@ function tabs(
   } = { items: [] },
 ): PartialElement {
   const { items = [], accentColor = "primary", color = "neutral" } = props;
-  const activeKey = toState(props.activeKey ?? (items[0]?.key ?? 0));
+  const activeKey = toState(props.activeKey ?? items[0]?.key ?? 0);
 
   return {
     _onSchedule: (node, element) => {
@@ -44063,7 +44986,7 @@ function tabs(
             if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(k)) return;
             e.preventDefault();
             const keys = items.map((it, i) => it.key ?? i);
-            const idx = keys.findIndex((ki) => ki === key);
+            const idx = keys.indexOf(key);
             let next = idx;
             if (k === "ArrowRight") next = (idx + 1) % keys.length;
             else if (k === "ArrowLeft")
@@ -44194,7 +45117,7 @@ function tag(
       whiteSpace: "nowrap",
       userSelect: "none",
       height: themeSpacing(6),
-      paddingBlock: "0px",
+      paddingBlock: 0,
       borderRadius: themeSpacing(1),
       paddingInlineStart: themeSpacing(2),
       paddingInlineEnd: removable ? themeSpacing(1) : themeSpacing(2),
@@ -44596,8 +45519,12 @@ function toggleGroup(
     accentColor?: ThemeColor;
   } = { items: [] },
 ): PartialElement {
-  const { items = [], multiple = false, color = "neutral", accentColor = "primary" } =
-    props;
+  const {
+    items = [],
+    multiple = false,
+    color = "neutral",
+    accentColor = "primary",
+  } = props;
   const value = toState(props.value ?? (multiple ? [] : ""));
 
   return {
@@ -44810,8 +45737,7 @@ function tooltip(
     onMouseLeave: (_e, node) => hide(node),
     onFocus: (_e, node) => show(node),
     onBlur: (_e, node) => hide(node),
-    onKeyDown: (e, node) =>
-      (e as KeyboardEvent).key === "Escape" && hide(node),
+    onKeyDown: (e, node) => (e as KeyboardEvent).key === "Escape" && hide(node),
   };
 
   merge(anchorPartial, triggerPartial);

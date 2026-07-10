@@ -22,6 +22,7 @@ export default {
       "tests/search.test.ts",
       "tests/routes.test.ts",
       "tests/theme-builder.test.ts",
+      "tests/transformCode.test.ts",
     ],
     environment: "node",
   },
