@@ -6,6 +6,13 @@ Packages are versioned in lockstep. All packages share the same version number.
 
 ---
 
+## `@domphy/press` [0.20.14] — 2026-07-10
+
+### Fixed
+- `contentDiv`'s markdown table styles emitted ".scope th" twice (once via the "& th, & td" selector list, once via the standalone "& th" block), tripping stylelint's `no-duplicate-selectors` in `@domphy/doctor`'s Layer-4 CSS audit. th/td now declare their shared properties separately; computed styles unchanged (verified byte-equal full-page screenshots of a table-heavy docs page against production).
+
+---
+
 ## `@domphy/press` [0.20.13] — 2026-07-10
 
 ### Fixed

@@ -1039,12 +1039,21 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
         display: "block",
         overflowX: "auto",
       },
-      "& th, & td": {
+      // th and td are declared separately (not "& th, & td" + a second
+      // "& th" block): the selector list would re-emit ".scope th" twice,
+      // tripping stylelint's no-duplicate-selectors on the generated CSS.
+      "& td": {
         border: `1px solid ${border}`,
         padding: `${ts(2)} ${ts(3.5)}`,
         textAlign: "left",
       },
-      "& th": { background: bgSoft, fontWeight: fixed("600") },
+      "& th": {
+        border: `1px solid ${border}`,
+        padding: `${ts(2)} ${ts(3.5)}`,
+        textAlign: "left",
+        background: bgSoft,
+        fontWeight: fixed("600"),
+      },
     },
   } as DomphyElement;
 }
