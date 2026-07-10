@@ -6,6 +6,13 @@ Packages are versioned in lockstep. All packages share the same version number.
 
 ---
 
+## `@domphy/press` [0.20.12] — 2026-07-10
+
+### Fixed
+- 0.20.11 was published with unresolved `workspace:^` peerDependencies (published via `npm publish` instead of `pnpm publish` — the same failure mode as `@domphy/ui` 0.18.16). Republished with real semver peer ranges; no code changes.
+
+---
+
 ## `@domphy/core` [0.18.4] · `@domphy/ui` [0.18.19] — 2026-07-10
 
 Audit wave: a multi-agent bug audit of `@domphy/core` + `@domphy/ui` overlays (every finding adversarially verified, then fixed with regression tests).
