@@ -8,6 +8,8 @@ export interface PageIslandSpec {
   source?: string;
   code?: string;
   storageKey?: string;
+  /** For "preview": mount the element directly (no toolbar/box chrome). */
+  bare?: boolean;
 }
 
 export interface RenderResult {

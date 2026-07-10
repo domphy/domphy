@@ -208,6 +208,8 @@ interface PreviewIslandRef {
   kind: "preview";
   id: string;
   source: string;
+  /** `<DomphyPreview ... bare />` — mount without the preview box chrome. */
+  bare?: boolean;
 }
 
 /**
@@ -243,6 +245,7 @@ function extractPreviewIslands(
     (_match, attrs: string) => {
       const id = `preview-${counter++}`;
       const elementAttr = attrs.match(/:element=["'](\w+)["']/);
+      const bare = /(?:^|\s)bare(?:\s|$|=)/.test(attrs);
       const importPath = elementAttr ? importMap[elementAttr[1]] : undefined;
       if (importPath) {
         let absPath = resolve(fileDir, importPath);
@@ -250,7 +253,7 @@ function extractPreviewIslands(
           const tsPath = `${absPath.slice(0, -3)}.ts`;
           if (existsSync(tsPath)) absPath = tsPath;
         }
-        islands.push({ kind: "preview", id, source: absPath });
+        islands.push({ kind: "preview", id, source: absPath, bare });
       }
       return `<div data-island="${id}"></div>`;
     },
@@ -285,7 +288,14 @@ function pageIslandSpecs(page: BuiltPage): PageIslandSpec[] {
       if (editorIsland.storageKey) spec.storageKey = editorIsland.storageKey;
       specs.push(spec);
     } else {
-      specs.push({ kind: "preview", id: island.id, source: island.source! });
+      const previewIsland = island as unknown as PreviewIslandRef;
+      const spec: PageIslandSpec = {
+        kind: "preview",
+        id: island.id,
+        source: island.source!,
+      };
+      if (previewIsland.bare) spec.bare = true;
+      specs.push(spec);
     }
   }
   return specs;

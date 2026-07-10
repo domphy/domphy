@@ -23,6 +23,12 @@ features:
     details: Query, Router, Table, Virtual, Form, DnD, i18n, Charts — all built in. No stitching third-party libraries together.
 ---
 
+<script setup lang="ts">
+import HomeHero from "./docs/demos/home/hero.js"
+</script>
+
+<DomphyPreview :element="HomeHero" bare />
+
 ## Packages
 
 | Package | Description |

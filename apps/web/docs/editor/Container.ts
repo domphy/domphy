@@ -119,7 +119,13 @@ export function Container(
       overflow: "hidden",
       position: (listener) => (isFull.get(listener) ? "fixed" : "relative"),
       inset: 0,
-      height: (listener) => (isFull.get(listener) ? "100vh" : "760px"),
+      // Non-fullscreen: track the viewport (tall screens get a tall
+      // playground, short ones never overflow the page) instead of a fixed
+      // 760px that read cramped on the /playground page.
+      height: (listener) =>
+        isFull.get(listener)
+          ? "100vh"
+          : "clamp(600px, calc(100vh - 240px), 960px)",
       // Above the site header's own z-index:100 (packages/press/src/layout.ts)
       // so fullscreen genuinely covers the whole page instead of having its
       // toolbar hidden underneath the sticky header.

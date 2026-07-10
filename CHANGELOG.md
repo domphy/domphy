@@ -35,8 +35,12 @@ First npm publish (previously repo-only). Ships the post-QA-wave state: 173 bloc
 ## `domphy-web` [1.0.0] — 2026-07-10
 
 ### Added
+- web: landing "live proof" section — a bare-mounted @domphy/three starfield with the DOM overlay in the same element tree; mid-layer star tint is a live theme token. `<DomphyPreview bare />` island flag mounts elements without the preview box chrome.
 - docs(three): 6 more trend-inspired playground examples — dissolve (shaderMaterial uniforms), cursor particles (pointer-to-world at 6k points), neon bloom (UnrealBloomPass via `extend()` + frame-priority takeover), tunnel (curve flight + onWheel), synthwave terrain (geometry attribute animation), morph particles (attribute morphing with stagger). Playground moduleMap gains the three postprocessing addons.
 - docs(three): concept docs (overview, scene grammar, events, animation & loop, loading assets, recipes) + 10 live playground examples (spinning cube, interactive grid, wave field, galaxy, orbit viewer, theme sync, UI bridge, glTF viewer, primitive bridge, starfield hero) for `@domphy/three` on domphy.com.
+
+### Fixed
+- web: playground/CodeEditor — CodeMirror now scrolls internally instead of being clipped with no scrollbar (bounded `.cm-editor` height), and the workspace height tracks the viewport (`clamp(600px, 100vh - 240px, 960px)`) instead of a fixed 760px.
 
 ---
 

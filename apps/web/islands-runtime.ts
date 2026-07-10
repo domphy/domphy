@@ -25,6 +25,19 @@ export interface IslandSpec {
   code?: string;
   /** For "editor": optional localStorage key to persist edits. */
   storageKey?: string;
+  /** For "preview": mount the element directly (no toolbar/box chrome). */
+  bare?: boolean;
+}
+
+/**
+ * Mounts an element as-is into the host — no toolbar, no shadow root, no
+ * preview box. The element inherits the page's live theme context, so
+ * theme-token colors inside it follow the site theme toggle. Used for
+ * full-width compositions like the landing hero.
+ */
+function mountBare(host: HTMLElement, element: DomphyElement): void {
+  themeApply();
+  new ElementNode(element).render(host);
 }
 
 /** Mounts a live preview (Toolbar + shadow-DOM rendered demo) into a host. */
@@ -86,7 +99,7 @@ async function renderMermaidBlocks(): Promise<void> {
   );
   if (blocks.length === 0) return;
 
-  let mermaidLib: (typeof import("mermaid"))["default"] | null = null;
+  let mermaidLib: typeof import("mermaid")["default"] | null = null;
   let renderIndex = 0;
   const rendered = new WeakSet<HTMLElement>();
 
@@ -160,7 +173,11 @@ export function bootstrap(previewRegistry: PreviewRegistry): void {
         } else if (spec.kind === "preview" && spec.source) {
           const loader = previewRegistry[spec.source];
           if (loader) {
-            loader().then((module) => mountPreview(host, module.default));
+            loader().then((module) =>
+              spec.bare
+                ? mountBare(host, module.default)
+                : mountPreview(host, module.default),
+            );
           }
         }
       } catch (error) {
