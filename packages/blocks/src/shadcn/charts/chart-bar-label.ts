@@ -87,7 +87,7 @@ function chartBarLabel(props: ChartBarLabelProps = {}): DomphyElement<"div"> {
         label: {
           show: true,
           position: "top",
-          fontSize: fixed(12),
+          fontSize: 12,
           formatter: (parameters: LabelParams) =>
             labelFormatter(Number(parameters.value) || 0),
         },

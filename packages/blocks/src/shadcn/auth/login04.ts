@@ -157,12 +157,14 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
         // `heading()` already sets `style.color` — the doctor tool inspects
         // only this element's own inline style, not patch contributions, so
         // it can't see that and flags a false positive here.
+        // (`_doctorDisable` is a doctor-only annotation absent from core's
+        // strict element type — build through an untyped literal + cast.)
         _doctorDisable: "missing-color",
         style: {
           fontSize: (listener: Listener) => themeSize(listener, "increase-2"),
           marginBottom: 0,
         },
-      },
+      } as DomphyElement<"h1">,
       { p: description, $: [paragraph({ color: "neutral" })] },
     ],
     style: {

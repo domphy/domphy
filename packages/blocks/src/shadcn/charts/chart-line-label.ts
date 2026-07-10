@@ -148,7 +148,7 @@ function chartLineLabel(props: ChartLineLabelProps = {}): DomphyElement<"div"> {
         color: seriesColor,
         // Upstream <LabelList className="fill-foreground"> — full card foreground,
         // not the engine's muted default point-label tone.
-        label: { show: true, fontSize: fixed(12), color: "neutral" },
+        label: { show: true, fontSize: 12, color: "neutral" },
       },
     ],
   };

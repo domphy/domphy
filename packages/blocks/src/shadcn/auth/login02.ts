@@ -204,6 +204,8 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
         // always-slightly-muted backdrop visible while the cover photo loads,
         // independent of `dataTone`. Remapping it to `"inherit"` would erase
         // that intentional distinction from the surrounding page background.
+        // (`_doctorDisable` is a doctor-only annotation absent from core's
+        // strict element type — build through an untyped literal + cast.)
         _doctorDisable: "tone-background-inherit",
         style: {
           minWidth: "0",
@@ -217,7 +219,7 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
             themeColor(listener, "shift-11", "neutral"),
           [WIDE_SPLIT_MEDIA_QUERY]: { display: "none" },
         },
-      },
+      } as DomphyElement<"div">,
     ],
     style: {
       display: "grid",

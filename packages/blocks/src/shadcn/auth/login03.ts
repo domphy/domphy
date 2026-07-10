@@ -114,13 +114,15 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
         // `paragraph()` already sets `style.color` — the doctor tool inspects
         // only this element's own inline style, not patch contributions, so
         // it can't see that and flags a false positive here.
+        // (`_doctorDisable` is a doctor-only annotation absent from core's
+        // strict element type — build through an untyped literal + cast.)
         _doctorDisable: "missing-color",
         // Upstream CardDescription is `text-sm` (0.875rem), a step below base.
         style: {
           textAlign: "center",
           fontSize: (listener: Listener) => themeSize(listener, "decrease-1"),
         },
-      },
+      } as DomphyElement<"p">,
       {
         div: [
           {

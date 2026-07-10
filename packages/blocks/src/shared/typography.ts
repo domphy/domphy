@@ -5,4 +5,10 @@
 // Declaring typography through functions is @domphy/doctor's designed marker
 // for intentional, non-token typography (`inline-typography` passes function
 // values); the values themselves are unchanged.
-export const fixed = (value: string | number) => (): string | number => value;
+// Generic so the literal type is preserved: a typed StyleObject property
+// (csstype's FontFamily, LetterSpacing, ...) accepts `() => "0.05em"` but
+// not a widened `() => string | number`.
+export const fixed =
+  <T extends string | number>(value: T) =>
+  (): T =>
+    value;

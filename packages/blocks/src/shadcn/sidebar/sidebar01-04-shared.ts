@@ -349,7 +349,7 @@ function hideChevronWhenCollapsed(collapsed: State<boolean>) {
     // deep-merges with details()'s other properties for the same selector
     // (opacity/overflow/padding/transition), so the collapsed-body behavior is
     // pixel-identical, only the emitted unit changes.
-    "& > :not(summary)": { maxHeight: 0 },
+    "& > :not(summary)": { maxHeight: "0" },
   };
 }
 
