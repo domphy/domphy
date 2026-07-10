@@ -402,6 +402,36 @@ import { hexToRgba, seriesHex, seriesRgba, familyHex, familyRgba, seriesPaletteF
 
 - [Overview](https://domphy.com/docs/chart/) · [Series Reference](https://domphy.com/docs/chart/series) · [Axes & Grid](https://domphy.com/docs/chart/axes) · [Colors & Theme](https://domphy.com/docs/chart/colors) · [ChartEngine API](https://domphy.com/docs/chart/engine)
 
+## Three (`@domphy/three`)
+
+Declarative three.js scene graph for Domphy — a 1-1 functional port of `@react-three/fiber`'s core (reconciler, raycast pointer events, demand frameloop), translated from React idioms to Domphy idioms. No drei port, no helper wrappers, no `extras/` subpath — anything outside the `three` core namespace enters user-land via `extend()`. Version-agnostic: tags resolve by reflection (`registry[Pascal] ?? THREE[Pascal]`), never a hard-coded class catalog.
+
+### Usage
+
+```ts
+import { three } from "@domphy/three";
+
+{ div: null, style: { width: "600px", height: "400px" },
+  $: [three({
+    scene: [{ mesh: [{ boxGeometry: null }, { meshStandardMaterial: null }] }],
+  })] }
+```
+
+### Scene grammar (plain-object scene tree)
+
+First key = tag (camelCase of a THREE class, or a name registered via `extend()`). `args: [...]` — constructor args (shallow-diff change reconstructs the instance). `attach: "geometry" | "material-0"` — explicit attach target, else inferred from `.isBufferGeometry`/`.isMaterial`/`.isObject3D`. `dispose: null` — opts a subtree out of auto-dispose. `_key` — reconcile identity (same semantics as core). Dashed pierced props (`"rotation-z": (l) => spin.get(l)`) are reactive — release-before-rebind on change. `{ primitive: [...], object: existingObject3D }` adopts a user-created instance (never disposed by Domphy). Pointer events (`onClick`, `onPointerDown`, `onPointerOver`, `onPointerMissed`, etc.) are raycast-routed. `onFrame: (root, delta, self) => {}` registers a per-frame callback (priority via `onFramePriority`). `onUpdate: (self) => {}` fires after each props application. `on: { "dragging-changed": (e, root, self) => {} }` binds verbatim `EventDispatcher` event names.
+
+### API surface
+
+- `three(options | ReadableState<options>)` — the patch; mounts a canvas host and owns the renderer, `RootState`, resize observer, and pointer-event wiring.
+- `extend(classes)` — register custom/3rd-party constructors so tags resolve them exactly like built-in THREE classes.
+- `loadAsset<T>(LoaderClass, url, configure?)` — reactive asset loading: `{ data: ReadableState<T|null>, error: ReadableState<Error|null>, promise: Promise<T> }`.
+- `preloadAsset(LoaderClass, url, configure?)` / `clearAsset(LoaderClass, url?)` — cache warm/clear (module-level cache keyed by `LoaderClass` + input, r3f parity).
+- `RootState`: `gl`, `scene`, `camera`, `canvas`, `raycaster`, `pointer`, `clock`, `frameloop`, `size` (reactive `State<SizeState>`), `invalidate(frames?)`, `advance(timestamp, runGlobalCallbacks?)`, `frame(callback, priority?)`, `setFrameloop(mode)`.
+- `ThreeOptions`: `scene`, `camera`, `orthographic`, `createRenderer` (inject a stub/WebGPU renderer), `gl` (default-`WebGLRenderer` ctor params), `frameloop: "always"|"demand"|"never"`, `dpr`, `shadows`, `flat`, `linear`, `raycaster`, `events: false` (disable the pointer-event system), `onCreated`, `onPointerMissed`.
+
+Peer dep: `three >= 0.156`. Never imports from `three/addons` or `three/examples` (not even in tests) — that surface enters user-land via `extend()`. See `packages/three/SPEC.md` for the full locked contract and `packages/three/README.md` for a complete orbitControls recipe.
+
 ## Scaffolder (`create-domphy`)
 
 `npm create domphy@latest <dir>` — scaffolds a runnable Vite + TypeScript starter: `themeApply`, sample patches, and an `AGENTS.md` ready for AI agents. Not scoped as `@domphy/*`; published separately.

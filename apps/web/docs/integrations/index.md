@@ -58,7 +58,7 @@ Domphy ships first-party packages for capabilities that benefit from tight Domph
 | carousel | **vanilla** embla-carousel (its core is framework-agnostic) |
 | dates | **vanilla** dayjs / date-fns / flatpickr |
 | schema validation | **vanilla** zod (works with `@domphy/form` via Standard Schema) — [recipe](/docs/integrations/zod) |
-| maps / 3D | **vanilla** leaflet/maplibre · three.js |
+| maps / 3D | **vanilla** leaflet/maplibre for maps; `@domphy/three` for 3D — declarative three.js scene graph (1-1 `@react-three/fiber` core port) |
 | icons | any SVG string + the `icon()` patch (e.g. lucide icons) |
 
 If a library has a framework-agnostic core (most do — the "React" version is usually a thin wrapper), use that core. No wrapper needed.

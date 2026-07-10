@@ -6,6 +6,14 @@ Packages are versioned in lockstep. All packages share the same version number.
 
 ---
 
+## `@domphy/three` [0.1.0] — 2026-07-10
+
+### Added
+
+- New package: declarative three.js renderer — a 1-1 functional port of `@react-three/fiber`'s core (reconciler, raycast pointer events, demand frameloop, `loadAsset`), translated from React idioms to Domphy idioms. Exports `three(options)` (the `div`-host patch), `extend(classes)` (version-agnostic custom-tag registration), `loadAsset`/`preloadAsset`/`clearAsset` (reactive asset loading). No drei port, no helpers, no `extras/` subpath — anything outside the `three` core namespace enters user-land via `extend()`. See `packages/three/SPEC.md` and `packages/three/README.md`.
+
+---
+
 ## `@domphy/ui` [0.18.20] — 2026-07-10
 
 ### Fixed
