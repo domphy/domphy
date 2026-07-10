@@ -286,11 +286,22 @@ export function passwordField(
 
 /** Full-width solid primary submit button. */
 export function submitButton(buttonLabel: string): DomphyElement<"button"> {
+  // Upstream's submit is a SOLID `bg-primary` (near-black) button. Domphy's
+  // button() patch is tonal by design (inherit background + colored text), so
+  // the solid look comes from anchoring the button on the dark edge tone —
+  // the same recipe signup01's submit button already uses.
   return {
     button: buttonLabel,
     type: "submit",
-    $: [button({ color: "primary" })],
-    style: { width: "100%" },
+    dataTone: "shift-17",
+    $: [button({ color: "neutral" })],
+    style: {
+      width: "100%",
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-9", "neutral"),
+    },
   };
 }
 

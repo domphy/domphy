@@ -6,6 +6,15 @@ Packages are versioned in lockstep. All packages share the same version number.
 
 ---
 
+## `@domphy/blocks` [0.1.0] — 2026-07-10
+
+First npm publish (previously repo-only). Ships the post-QA-wave state: 173 blocks, lifecycle harness clean, doctor clean, 681 tests green. `SOURCES.md` (clean-room methodology + per-block fidelity notes) is included in the package for attribution.
+
+### Fixed
+- Login family (`Login01`–`Login05`): the shared submit button rendered as Domphy's tonal button while upstream (and this port's own `signup01`) uses a SOLID `bg-primary` button — now anchored on the dark edge tone (`dataTone: "shift-17"`), matching upstream. Found during the pre-publish visual pass against the upstream references.
+
+---
+
 ## `@domphy/blocks` QA wave · `@domphy/ui` [0.18.21] — 2026-07-10
 
 ### Added — `@domphy/blocks`
