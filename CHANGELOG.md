@@ -6,6 +6,13 @@ Packages are versioned in lockstep. All packages share the same version number.
 
 ---
 
+## `@domphy/ui` [0.18.18] — 2026-07-10
+
+### Fixed
+- `popover`/`tooltip`/`selectBox`/`combobox`/`datePicker`: an anchor merely RE-RENDERING while its panel was open (no removal at all — e.g. hovering a tooltip, then an unrelated state change re-renders that row) could leave the panel stuck open forever, with no way to close it — not even moving the mouse away. 0.18.17 fixed the removal case (anchor's `BeforeRemove` hook tearing down the wrong generation's state); this fixes the same root cause the other way: a NEW `createFloating()` closure (fresh, reused anchor) never told the OLD one it had taken over, so the old one's actually-visible panel had no live interaction path back to it once event handlers rebound to the new closure. Every generation that touches an anchor now first tears down whatever the previous generation left behind before claiming it for itself.
+
+---
+
 ## `@domphy/ui` [0.18.17] — 2026-07-10
 
 ### Fixed

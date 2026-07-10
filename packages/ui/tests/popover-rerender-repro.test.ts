@@ -11,7 +11,7 @@
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode, flushSync, toState } from "@domphy/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { popover } from "../src/index.ts";
+import { popover, tooltip } from "../src/index.ts";
 
 if (!("ResizeObserver" in globalThis)) {
   (globalThis as any).ResizeObserver = class {
@@ -259,5 +259,81 @@ describe("popover teardown when the anchor is removed while open (repro)", () =>
     items.set([]);
     flushSync();
     expect(host.querySelector("#domphy-floating")!.textContent).not.toContain("Body 1");
+  });
+});
+
+describe("floating teardown when the anchor merely RE-RENDERS while a panel is open, no removal (repro)", () => {
+  it("tooltip: hover shows it, an unrelated re-render happens mid-hover, then mouseleave still closes the VISIBLE (old-generation) panel", () => {
+    // The real-world trigger: a hover tooltip on a row whose OWN unrelated
+    // state change (or a sibling's) re-renders that row while the mouse is
+    // still over it — a fresh tooltip()/createFloating() closure on the SAME
+    // reused button, with a fresh (never-shown) openState. Before this fix,
+    // aria-expanded/aria-describedby on the trigger correctly pointed at the
+    // NEW generation, but the OLD generation's floating content (inserted
+    // via .insert() outside the reactive list) stayed physically visible —
+    // mouseleave (live-rebound to the NEW closure) had no path back to it.
+    vi.useFakeTimers();
+    const refreshTrigger = toState(0);
+    const { host } = render({
+      div: [
+        {
+          div: (l: any) => {
+            refreshTrigger.get(l);
+            return [{ button: "Hover me", $: [tooltip({ content: "Help text" })] }];
+          },
+        },
+      ],
+    } as DomphyElement);
+
+    host.querySelector("button")!.dispatchEvent(new Event("mouseenter"));
+    vi.advanceTimersByTime(150);
+    flushSync();
+    expect(host.querySelector("#domphy-floating")!.textContent).toContain("Help text");
+
+    // Re-render WHILE the tooltip is open (mouse never left) — a fresh
+    // closure on the same reused button.
+    refreshTrigger.set(1);
+    flushSync();
+    // Still visible right after the re-render — this fix does not eagerly
+    // close it, only when the new generation is actually interacted with.
+    expect(host.querySelector("#domphy-floating")!.textContent).toContain("Help text");
+
+    // mouseleave on the (live, rebound to the NEW closure) button.
+    host.querySelector("button")!.dispatchEvent(new Event("mouseleave"));
+    vi.advanceTimersByTime(150);
+    flushSync();
+    expect(host.querySelector("#domphy-floating")!.textContent).not.toContain("Help text");
+  });
+
+  it("popover: opening a NEW generation while an OLD generation's panel is still open closes the old one (no duplicate panels)", () => {
+    vi.useFakeTimers();
+    const refreshTrigger = toState(0);
+    const { host } = render({
+      div: [
+        {
+          div: (l: any) => {
+            refreshTrigger.get(l);
+            return [{ button: "Open", $: [popover({ content: { div: "Body" } })] }];
+          },
+        },
+      ],
+    } as DomphyElement);
+
+    host.querySelector("button")!.click();
+    vi.advanceTimersByTime(150);
+    flushSync();
+    expect(host.querySelectorAll("#domphy-floating [role=dialog]").length).toBe(1);
+
+    // Re-render while open (fresh closure, same reused button), then open
+    // via the new generation.
+    refreshTrigger.set(1);
+    flushSync();
+    host.querySelector("button")!.click();
+    vi.advanceTimersByTime(150);
+    flushSync();
+
+    // Exactly one panel — the stale generation's got torn down when the new
+    // one was interacted with, not left stacked underneath it.
+    expect(host.querySelectorAll("#domphy-floating [role=dialog]").length).toBe(1);
   });
 });

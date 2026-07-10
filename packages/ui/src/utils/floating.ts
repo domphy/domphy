@@ -17,21 +17,42 @@ import {
 } from "@domphy/floating";
 
 // The SAME reused-node gap described below (in createFloating's own comment)
-// also breaks teardown-on-remove, the other direction: `anchorPartial`'s
-// `_onMount` — where the ONE-EVER BeforeRemove hook gets registered, since
-// _onMount by construction only fires on a node's true first mount — closes
-// over THAT FIRST closure's own `cleanup`/`floatingNode` locals. If a LATER
-// re-render's closure (fresh locals, same reused anchor element) is the one
-// whose popover is actually open when the anchor finally gets removed, the
-// first closure's hook tears down ITS OWN (possibly never-shown) state while
-// the real, visible floating panel has no cleanup wired to it at all —
-// orphaned in the #domphy-floating portal at its last screen position.
-// Route "what to tear down on remove" through this WeakMap, keyed by the
-// anchor's live DOM element (stable across reuse, unlike the closure)
-// instead of a closure-local variable: every generation overwrites the same
-// slot on each interaction, so the one hook that does attach always tears
-// down whichever generation is CURRENTLY live.
+// also breaks teardown two OTHER ways, both traced back to the same cause: a
+// factory like popover()/tooltip() called again by a reactive parent creates
+// a brand new createFloating() closure (fresh `cleanup`/`floatingNode`/
+// `openState` locals) on the SAME reused anchor DOM element — but only the
+// FIRST-ever closure's `_onMount` actually fires, so only IT ever registers
+// a BeforeRemove hook, and nothing ever tells an OLDER closure that a NEWER
+// one has taken over.
+//
+// 1. Anchor removed while a LATER generation's panel is the one open: the
+//    first closure's BeforeRemove hook (the only one that exists) tears down
+//    ITS OWN (possibly never-shown) state, while the real, visible panel has
+//    no cleanup wired to it — orphaned in the #domphy-floating portal.
+// 2. Anchor merely RE-RENDERED while a panel is open (no removal at all —
+//    e.g. hovering a tooltip, then an unrelated state change re-renders that
+//    row): the live event handlers (onMouseLeave etc., rebound to the NEWEST
+//    closure on every patch) now only ever reach the NEW closure's own
+//    (never-shown) state. The OLD closure's actually-visible panel has no
+//    live interaction path to it anymore — nothing can ever close it again,
+//    not even moving the mouse away.
+//
+// Fix both by keying "what to tear down" off the anchor's live DOM element
+// (stable across reuse) instead of a closure-local variable: every
+// generation that touches this anchor first tears down whatever the
+// PREVIOUS generation left behind (if it's a different generation — a
+// closure never tears down its own current state on repeat interactions),
+// then claims the slot for itself. Case 1 falls out of whichever hook did
+// attach always reading the CURRENT slot instead of its own stale closure;
+// case 2 falls out of "claiming" running on every real interaction, not just
+// removal.
 const teardownByElement = new WeakMap<Element, () => void>();
+
+function claimTeardownSlot(element: Element, teardown: () => void): void {
+  const previous = teardownByElement.get(element);
+  if (previous && previous !== teardown) previous();
+  teardownByElement.set(element, teardown);
+}
 
 function createFloating(props: {
   open?: ValueOrState<boolean>;
@@ -75,7 +96,7 @@ function createFloating(props: {
     if (!node) return;
     rootNode = node.getRoot();
     reference = node.domElement as HTMLElement;
-    if (reference) teardownByElement.set(reference, teardown);
+    if (reference) claimTeardownSlot(reference, teardown);
   };
 
   const ensureMounted = () => {
@@ -169,7 +190,7 @@ function createFloating(props: {
     _onMount: (node) => {
       rootNode = node.getRoot();
       reference = node.domElement as HTMLElement;
-      if (reference) teardownByElement.set(reference, teardown);
+      if (reference) claimTeardownSlot(reference, teardown);
 
       const handleOutside = (event: MouseEvent) => {
         if (!openState.get() || !reference || !floating) return;
