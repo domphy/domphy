@@ -6,6 +6,13 @@ Packages are versioned in lockstep. All packages share the same version number.
 
 ---
 
+## `@domphy/ui` [0.18.20] — 2026-07-10
+
+### Fixed
+- `segmented()`/`tabs()`/`toggleGroup()`/`menu()`: internally-generated `<button>` elements now carry `type="button"` — inside a `<form>` they were implicit submit buttons, so clicking a tab/segment/menu item could submit the form. (Surfaced by `@domphy/doctor`'s Layer-4 htmlhint audit on a consuming app.)
+
+---
+
 ## `@domphy/press` [0.20.12] — 2026-07-10
 
 ### Fixed

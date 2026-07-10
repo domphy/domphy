@@ -41628,6 +41628,7 @@ function menu(
               ? [{ span: item.label } as DomphyElement<"span">]
               : [item.label],
           _key: key,
+          type: "button",
           id: `menuitem${id}${key}`,
           role: "menuitem",
           ...(selectable
@@ -42789,6 +42790,7 @@ function segmented(
         return {
           button: [labelEl],
           _key: key,
+          type: "button",
           role: "radio",
           ariaChecked: (l: Listener) => value.get(l) === key,
           onClick: () => value.set(key),
@@ -44050,6 +44052,7 @@ function tabs(
         return {
           button: [labelEl],
           _key: key,
+          type: "button",
           role: "tab",
           id: `tab${id}${key}`,
           ariaControls: `panel${id}${key}`,
@@ -44612,6 +44615,7 @@ function toggleGroup(
         return {
           button: [labelEl],
           _key: key,
+          type: "button",
           role: "button",
           ariaPressed: (l: Listener) => {
             const val = value.get(l);

@@ -61,6 +61,7 @@ function segmented(
         return {
           button: [labelEl],
           _key: key,
+          type: "button",
           role: "radio",
           ariaChecked: (l: Listener) => value.get(l) === key,
           onClick: () => value.set(key),

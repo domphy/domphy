@@ -66,6 +66,7 @@ function tabs(
         return {
           button: [labelEl],
           _key: key,
+          type: "button",
           role: "tab",
           id: `tab${id}${key}`,
           ariaControls: `panel${id}${key}`,

@@ -2,4 +2,4 @@
 // Regenerated on every build from packages/{core,theme,ui}/package.json.
 export const CORE_VERSION = "0.18.4";
 export const THEME_VERSION = "0.19.0";
-export const UI_VERSION = "0.18.19";
+export const UI_VERSION = "0.18.20";

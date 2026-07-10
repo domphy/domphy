@@ -63,6 +63,7 @@ function toggleGroup(
         return {
           button: [labelEl],
           _key: key,
+          type: "button",
           role: "button",
           ariaPressed: (l: Listener) => {
             const val = value.get(l);

@@ -75,6 +75,7 @@ function menu(
               ? [{ span: item.label } as DomphyElement<"span">]
               : [item.label],
           _key: key,
+          type: "button",
           id: `menuitem${id}${key}`,
           role: "menuitem",
           ...(selectable
