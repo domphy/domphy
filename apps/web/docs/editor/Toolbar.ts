@@ -19,19 +19,36 @@ export const Toolbar = (props: {
   const toggleGrid: DomphyElement<"span"> = {
     span: (listener) => (hasGrid.get(listener) ? svgGridOff : svgGridOn),
     onClick: () => hasGrid.set(!hasGrid.get()),
-    $: [icon(), tooltip({ content: computed(() => (hasGrid.get() ? "Hide grid" : "Show grid")) })],
+    $: [
+      icon(),
+      tooltip({
+        content: computed(() => (hasGrid.get() ? "Hide grid" : "Show grid")),
+      }),
+    ],
   };
 
   const toggleTheme: DomphyElement<"span"> = {
     span: (listener) => (isDark.get(listener) ? svgLight : svgDark),
     onClick: () => isDark.set(!isDark.get()),
-    $: [icon(), tooltip({ content: computed(() => (isDark.get() ? "Light theme" : "Dark theme")) })],
+    $: [
+      icon(),
+      tooltip({
+        content: computed(() => (isDark.get() ? "Light theme" : "Dark theme")),
+      }),
+    ],
   };
 
   const toggleScreen: DomphyElement<"span"> = {
     span: (listener) => (isFull.get(listener) ? svgExit : svgFullscreen),
     onClick: () => isFull.set(!isFull.get()),
-    $: [icon(), tooltip({ content: computed(() => (isFull.get() ? "Exit fullscreen" : "Fullscreen")) })],
+    $: [
+      icon(),
+      tooltip({
+        content: computed(() =>
+          isFull.get() ? "Exit fullscreen" : "Fullscreen",
+        ),
+      }),
+    ],
   };
 
   return {
@@ -41,7 +58,8 @@ export const Toolbar = (props: {
       alignItems: "center",
       justifyContent: "flex-end",
       gap: themeSpacing(3),
-      borderBottom: (listener) => `1px solid ${themeColor(listener, "shift-3")}`,
+      borderBottom: (listener) =>
+        `1px solid ${themeColor(listener, "shift-3")}`,
       minHeight: "36px",
       paddingRight: themeSpacing(2),
     },
