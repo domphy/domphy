@@ -279,6 +279,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   // --- floating popover ------------------------------------------------------
   const calendar = buildCalendar();
   const { show, hide, anchorPartial } = createFloating({
+    kind: "datePicker",
     open: false,
     placement: placeState,
     content: calendar,

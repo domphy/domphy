@@ -261,14 +261,18 @@ export class ElementNode {
     // Children / content — recurse so grandchildren are reused/patched too.
     // Reactive function always wins: release old binding and re-setup with the
     // new closure so the node reflects the new data source, not the stale one.
+    // Nullish content means "no children declared" — same as the constructor —
+    // NOT "remove all children". Treating it as [] here used to wipe children
+    // that a patch inserted imperatively (node.children.insert in _onInit, e.g.
+    // selectBox/combobox's inner tag list + input) on every ancestor re-render,
+    // since lifecycle hooks don't re-run on a reused node to put them back.
     const content = element[this.tagName];
     if (typeof content === "function") {
       this._childrenRelease?.();
       this._childrenRelease = undefined;
       this._setupFunctionChildren(content);
-    } else {
-      const next =
-        content == null ? [] : Array.isArray(content) ? content : [content];
+    } else if (content != null) {
+      const next = Array.isArray(content) ? content : [content];
       this.children.update(next, !!this.domElement, true);
     }
 

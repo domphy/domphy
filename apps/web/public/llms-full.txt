@@ -37907,13 +37907,14 @@ function combobox(props: {
   const state = toState(props.value);
   const openState = toState(open);
   const { show, hide, anchorPartial } = createFloating({
+    kind: "combobox",
     open: openState,
     placement: toState(placement),
     content: props.content,
   });
 
   const popoverPartial: PartialElement = {
-    onClick: () => !multiple && hide(),
+    onClick: (_e, node) => !multiple && hide(node),
   };
 
   merge(props.content, popoverPartial);
@@ -37933,16 +37934,17 @@ function combobox(props: {
 
   let inputElement: DomphyElement;
   if (props.input) {
-    merge(props.input, {
-      onFocus: () => show(),
+    const inputPartial: PartialElement = {
+      onFocus: (_e, node) => show(node),
       style: inputStyle,
       _key: "combobox-input",
-    });
+    };
+    merge(props.input, inputPartial);
     inputElement = props.input;
   } else {
     inputElement = {
       input: null,
-      onFocus: () => show(),
+      onFocus: (_e, node) => show(node),
       value: (listener: any) => {
         state.get(listener);
         return "";
@@ -38163,6 +38165,7 @@ export { command, commandSearch, commandItem };
 ```ts
 import {
   type DomphyElement,
+  type ElementNode,
   type Listener,
   merge,
   type PartialElement,
@@ -38441,6 +38444,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   // --- floating popover ------------------------------------------------------
   const calendar = buildCalendar();
   const { show, hide, anchorPartial } = createFloating({
+    kind: "datePicker",
     open: false,
     placement: placeState,
     content: calendar,
@@ -38459,17 +38463,17 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     ariaHaspopup: "dialog",
     ariaLabel: "Choose date",
     style: { cursor: "pointer" },
-    onClick: () => {
-      openAndFocus();
+    onClick: (_e, node) => {
+      openAndFocus(node);
     },
-    onFocus: () => {
-      openAndFocus();
+    onFocus: (_e, node) => {
+      openAndFocus(node);
     },
-    onKeyDown: (event) => {
+    onKeyDown: (event, node) => {
       const key = (event as KeyboardEvent).key;
       if (key === "ArrowDown" || key === "Enter") {
         event.preventDefault();
-        openAndFocus();
+        openAndFocus(node);
       }
     },
     _onMount: (node) =>
@@ -38478,11 +38482,11 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         releaseOnChange();
       }),
   };
-  function openAndFocus(): void {
+  function openAndFocus(node?: ElementNode): void {
     const current = isSelectedPrimary() ?? new Date();
     focused.set(atMidnight(current));
     goToDate(current);
-    show();
+    show(node);
     focusActiveCell();
   }
   function isSelectedPrimary(): Date | null {
@@ -42130,6 +42134,7 @@ function popover(props: {
   const placeState = toState(placement);
 
   const { show, hide, anchorPartial } = createFloating({
+    kind: "popover",
     open: openState,
     placement: placeState,
     content: props.content,
@@ -42156,21 +42161,21 @@ function popover(props: {
   const triggerPartial: PartialElement = {
     ariaHaspopup: "dialog",
     ariaExpanded: (listener) => openState.get(listener),
-    onMouseEnter: () => openOn === "hover" && show(),
-    onMouseLeave: () => openOn === "hover" && hide(),
-    onClick: () => {
+    onMouseEnter: (_e, node) => openOn === "hover" && show(node),
+    onMouseLeave: (_e, node) => openOn === "hover" && hide(node),
+    onClick: (_e, node) => {
       if (openOn === "click") {
         if (openState.get()) {
-          hide();
+          hide(node);
         } else {
-          show();
+          show(node);
         }
       }
     },
-    onKeyDown: (e) => {
-      if ((e as KeyboardEvent).key === "Escape" && openState.get()) hide();
+    onKeyDown: (e, node) => {
+      if ((e as KeyboardEvent).key === "Escape" && openState.get()) hide(node);
     },
-    onFocus: () => openOn === "hover" && show(),
+    onFocus: (_e, node) => openOn === "hover" && show(node),
     onBlur: (e, node) => {
       const related = (e as FocusEvent).relatedTarget as Node | null;
       const root = node.getRoot().domElement as Element;
@@ -42178,7 +42183,7 @@ function popover(props: {
         ? root.querySelector(`#${CSS.escape(popoverId)}`)
         : null;
       if (related && floatingEl?.contains(related)) return;
-      hide();
+      hide(node);
     },
     _onMount: (node) =>
       popoverId && node.attributes.set("ariaControls", popoverId),
@@ -42982,13 +42987,14 @@ function selectBox(props: {
   const state = toState(props.value);
   const openState = toState(open);
   const { show, hide, anchorPartial } = createFloating({
+    kind: "selectBox",
     open: openState,
     placement: toState(placement),
     content: props.content,
   });
 
   const popoverPartial: PartialElement = {
-    onClick: () => !multiple && hide(),
+    onClick: (_e, node) => !multiple && hide(node),
   };
 
   merge(props.content, popoverPartial);
@@ -43025,7 +43031,7 @@ function selectBox(props: {
       }
     },
     _onInit: (node) => node.children.insert(wrap),
-    onClick: () => (openState.get() ? hide() : show()),
+    onClick: (_e, node) => (openState.get() ? hide(node) : show(node)),
     style: {
       cursor: "pointer",
       display: "flex",
@@ -44761,6 +44767,7 @@ function tooltip(
   };
 
   const { show, hide, anchorPartial } = createFloating({
+    kind: "tooltip",
     open,
     placement: placeState,
     content: contentElement,
@@ -44785,11 +44792,12 @@ function tooltip(
 
   const triggerPartial: PartialElement = {
     ariaDescribedby: tooltipId,
-    onMouseEnter: () => show(),
-    onMouseLeave: () => hide(),
-    onFocus: () => show(),
-    onBlur: () => hide(),
-    onKeyDown: (e) => (e as KeyboardEvent).key === "Escape" && hide(),
+    onMouseEnter: (_e, node) => show(node),
+    onMouseLeave: (_e, node) => hide(node),
+    onFocus: (_e, node) => show(node),
+    onBlur: (_e, node) => hide(node),
+    onKeyDown: (e, node) =>
+      (e as KeyboardEvent).key === "Escape" && hide(node),
   };
 
   merge(anchorPartial, triggerPartial);

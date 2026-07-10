@@ -37,6 +37,7 @@ function popover(props: {
   const placeState = toState(placement);
 
   const { show, hide, anchorPartial } = createFloating({
+    kind: "popover",
     open: openState,
     placement: placeState,
     content: props.content,

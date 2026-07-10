@@ -62,6 +62,7 @@ function selectBox(props: {
   const state = toState(props.value);
   const openState = toState(open);
   const { show, hide, anchorPartial } = createFloating({
+    kind: "selectBox",
     open: openState,
     placement: toState(placement),
     content: props.content,

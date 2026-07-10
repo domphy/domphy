@@ -46,20 +46,44 @@ import {
 // attach always reading the CURRENT slot instead of its own stale closure;
 // case 2 falls out of "claiming" running on every real interaction, not just
 // removal.
-const teardownByElement = new WeakMap<Element, () => void>();
+//
+// Slots are keyed per `kind` (one per consumer component: popover, tooltip,
+// selectBox, …), not one per element: two DIFFERENT floating components
+// legitimately share one anchor (a button with a tooltip that opens a
+// popover), and a single element-wide slot made every interaction of one
+// tear down the other's live panel. Generational takeover only ever needs
+// to evict the SAME component's previous generation.
+const teardownByElement = new WeakMap<Element, Map<string, () => void>>();
 
-function claimTeardownSlot(element: Element, teardown: () => void): void {
-  const previous = teardownByElement.get(element);
+function claimTeardownSlot(
+  element: Element,
+  kind: string,
+  teardown: () => void,
+): void {
+  let slots = teardownByElement.get(element);
+  if (!slots) {
+    slots = new Map();
+    teardownByElement.set(element, slots);
+  }
+  const previous = slots.get(kind);
   if (previous && previous !== teardown) previous();
-  teardownByElement.set(element, teardown);
+  slots.set(kind, teardown);
+}
+
+function releaseTeardownSlots(element: Element): void {
+  const slots = teardownByElement.get(element);
+  if (!slots) return;
+  teardownByElement.delete(element);
+  slots.forEach((teardown) => teardown());
 }
 
 function createFloating(props: {
+  kind: string;
   open?: ValueOrState<boolean>;
   placement: State<Placement>;
   content: DomphyElement;
 }) {
-  const { open = false, placement } = props;
+  const { kind, open = false, placement } = props;
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let cleanup: (() => void) | null = null;
@@ -70,13 +94,25 @@ function createFloating(props: {
   let mounted = false;
   const openState = toState(open);
 
+  // Teardown must leave the closure RE-MOUNTABLE, not permanently dead: a
+  // still-live instance can get its slot evicted (e.g. a stale generation's
+  // teardown running via a handler that was never rebound) and later be shown
+  // again. Resetting mounted/floatingNode lets ensureMounted re-insert the
+  // panel; leaving them stale made show() position a detached node forever.
   const teardown = () => {
     if (timer) clearTimeout(timer);
+    timer = null;
     if (cleanup) {
       cleanup();
       cleanup = null;
     }
-    floatingNode && floatingNode.remove();
+    if (floatingNode) {
+      floatingNode.remove();
+      floatingNode = null;
+    }
+    floating = null;
+    mounted = false;
+    openState.set(false);
   };
 
   // `reference`/`rootNode` are normally captured once by anchorPartial's
@@ -96,7 +132,7 @@ function createFloating(props: {
     if (!node) return;
     rootNode = node.getRoot();
     reference = node.domElement as HTMLElement;
-    if (reference) claimTeardownSlot(reference, teardown);
+    if (reference) claimTeardownSlot(reference, kind, teardown);
   };
 
   const ensureMounted = () => {
@@ -190,7 +226,7 @@ function createFloating(props: {
     _onMount: (node) => {
       rootNode = node.getRoot();
       reference = node.domElement as HTMLElement;
-      if (reference) claimTeardownSlot(reference, teardown);
+      if (reference) claimTeardownSlot(reference, kind, teardown);
 
       const handleOutside = (event: MouseEvent) => {
         if (!openState.get() || !reference || !floating) return;
@@ -210,10 +246,11 @@ function createFloating(props: {
       // anchor (see the WeakMap comment above and ensureReference).
       node.addHook("BeforeRemove", () => {
         // Tear down the @domphy/floating autoUpdate loop (scroll/resize/rAF
-        // listeners) and the floating panel itself. Without this, removing
-        // the anchor while the overlay is open leaks observers that keep
-        // positioning a detached node, or leaves the panel orphaned on screen.
-        if (reference) teardownByElement.get(reference)?.();
+        // listeners) and the floating panel itself — for EVERY kind anchored
+        // to this element, since the anchor is going away. Without this,
+        // removing the anchor while the overlay is open leaks observers that
+        // keep positioning a detached node, or leaves the panel orphaned.
+        if (reference) releaseTeardownSlots(reference);
         node.getRoot().domElement!.removeEventListener("click", handleOutside);
       });
     },

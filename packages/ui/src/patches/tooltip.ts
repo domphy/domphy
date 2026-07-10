@@ -52,6 +52,7 @@ function tooltip(
   };
 
   const { show, hide, anchorPartial } = createFloating({
+    kind: "tooltip",
     open,
     placement: placeState,
     content: contentElement,
