@@ -6,7 +6,7 @@ Packages are versioned in lockstep. All packages share the same version number.
 
 ---
 
-## Unreleased
+## `@domphy/core` [0.18.4] · `@domphy/ui` [0.18.19] — 2026-07-10
 
 Audit wave: a multi-agent bug audit of `@domphy/core` + `@domphy/ui` overlays (every finding adversarially verified, then fixed with regression tests).
 
