@@ -94,11 +94,16 @@ for (let row = 0; row < GRID_SIZE; row++) {
         }
 
         const targetLift = state.hover ? HOVER_LIFT : 0;
-        currentLift += (targetLift - currentLift) * Math.min(1, delta * LIFT_SMOOTHING);
+        currentLift +=
+          (targetLift - currentLift) * Math.min(1, delta * LIFT_SMOOTHING);
 
-        const idleBob = Math.sin(root.clock.getElapsedTime() * IDLE_SPEED + idlePhase) * IDLE_AMPLITUDE;
+        const idleBob =
+          Math.sin(root.clock.getElapsedTime() * IDLE_SPEED + idlePhase) *
+          IDLE_AMPLITUDE;
         const pulseBump =
-          Math.exp(-pulseElapsed * PULSE_DAMPING) * Math.cos(pulseElapsed * PULSE_FREQUENCY) * PULSE_AMPLITUDE;
+          Math.exp(-pulseElapsed * PULSE_DAMPING) *
+          Math.cos(pulseElapsed * PULSE_FREQUENCY) *
+          PULSE_AMPLITUDE;
 
         self.position.z = idleBob + currentLift;
         self.scale.setScalar(1 + pulseBump);
@@ -109,7 +114,12 @@ for (let row = 0; row < GRID_SIZE; row++) {
 
 const App: DomphyElement<"div"> = {
   div: null,
-  style: { width: "100%", height: "460px", borderRadius: "12px", overflow: "hidden" },
+  style: {
+    width: "100%",
+    height: "460px",
+    borderRadius: "12px",
+    overflow: "hidden",
+  },
   $: [
     three({
       // Elevated 3/4 angle (~34° above the grid plane, offset in x) rather

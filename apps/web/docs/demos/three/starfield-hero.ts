@@ -1,7 +1,7 @@
 import { type DomphyElement, toState } from "@domphy/core";
+import { themeColor, themeFluidSpacing, themeSpacing } from "@domphy/theme";
 import { three } from "@domphy/three";
 import { button, heading, paragraph, small } from "@domphy/ui";
-import { themeColor, themeFluidSpacing, themeSpacing } from "@domphy/theme";
 import { AdditiveBlending, CanvasTexture, Color } from "three";
 
 // Three concentric shells of points at increasing radius/decreasing size —
@@ -30,15 +30,43 @@ const STAR_LAYERS: StarLayer[] = [
   // true drives its base warm-white/twinkle mix instead, see
   // buildTwinkleColors below) — kept here only so every layer shares the
   // same table shape.
-  { count: 700, innerRadius: 9, outerRadius: 22, size: 3.6, color: "#eaf2ff", opacity: 0.95, spinSpeed: 0.02 },
-  { count: 1100, innerRadius: 22, outerRadius: 48, size: 2, color: "#b9c6ff", opacity: 0.85, spinSpeed: 0.011 },
-  { count: 1700, innerRadius: 48, outerRadius: 96, size: 1, color: "#5a6a9a", opacity: 0.65, spinSpeed: 0.005 },
+  {
+    count: 700,
+    innerRadius: 9,
+    outerRadius: 22,
+    size: 3.6,
+    color: "#eaf2ff",
+    opacity: 0.95,
+    spinSpeed: 0.02,
+  },
+  {
+    count: 1100,
+    innerRadius: 22,
+    outerRadius: 48,
+    size: 2,
+    color: "#b9c6ff",
+    opacity: 0.85,
+    spinSpeed: 0.011,
+  },
+  {
+    count: 1700,
+    innerRadius: 48,
+    outerRadius: 96,
+    size: 1,
+    color: "#5a6a9a",
+    opacity: 0.65,
+    spinSpeed: 0.005,
+  },
 ];
 
 // Uniform random point on a spherical shell between innerRadius/outerRadius
 // (acos(2u-1) for the polar angle keeps the distribution even across the
 // sphere's surface, not bunched at the poles).
-function buildShellPositions(count: number, innerRadius: number, outerRadius: number): Float32Array {
+function buildShellPositions(
+  count: number,
+  innerRadius: number,
+  outerRadius: number,
+): Float32Array {
   const positions = new Float32Array(count * 3);
   for (let index = 0; index < count; index++) {
     const stride = index * 3;
@@ -86,7 +114,14 @@ function buildGlowSprite(): CanvasTexture {
   canvas.height = size;
   const context = canvas.getContext("2d");
   if (context) {
-    const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    const gradient = context.createRadialGradient(
+      size / 2,
+      size / 2,
+      0,
+      size / 2,
+      size / 2,
+      size / 2,
+    );
     gradient.addColorStop(0, "rgba(255,255,255,1)");
     gradient.addColorStop(0.4, "rgba(255,255,255,0.4)");
     gradient.addColorStop(1, "rgba(255,255,255,0)");
@@ -98,10 +133,22 @@ function buildGlowSprite(): CanvasTexture {
 
 const glowSprite = buildGlowSprite();
 
-const nearPositions = buildShellPositions(STAR_LAYERS[0].count, STAR_LAYERS[0].innerRadius, STAR_LAYERS[0].outerRadius);
+const nearPositions = buildShellPositions(
+  STAR_LAYERS[0].count,
+  STAR_LAYERS[0].innerRadius,
+  STAR_LAYERS[0].outerRadius,
+);
 const nearColors = buildTwinkleColors(STAR_LAYERS[0].count);
-const midPositions = buildShellPositions(STAR_LAYERS[1].count, STAR_LAYERS[1].innerRadius, STAR_LAYERS[1].outerRadius);
-const farPositions = buildShellPositions(STAR_LAYERS[2].count, STAR_LAYERS[2].innerRadius, STAR_LAYERS[2].outerRadius);
+const midPositions = buildShellPositions(
+  STAR_LAYERS[1].count,
+  STAR_LAYERS[1].innerRadius,
+  STAR_LAYERS[1].outerRadius,
+);
+const farPositions = buildShellPositions(
+  STAR_LAYERS[2].count,
+  STAR_LAYERS[2].innerRadius,
+  STAR_LAYERS[2].outerRadius,
+);
 
 // Clicking the CTA below feeds this — a pierced/reactive prop bridging a DOM
 // event to the canvas, read untracked every frame the same way
@@ -134,8 +181,16 @@ const App: DomphyElement<"div"> = {
               points: [
                 {
                   bufferGeometry: [
-                    { bufferAttribute: null, attach: "attributes-position", args: [nearPositions, 3] },
-                    { bufferAttribute: null, attach: "attributes-color", args: [nearColors, 3] },
+                    {
+                      bufferAttribute: null,
+                      attach: "attributes-position",
+                      args: [nearPositions, 3],
+                    },
+                    {
+                      bufferAttribute: null,
+                      attach: "attributes-color",
+                      args: [nearColors, 3],
+                    },
                   ],
                 },
                 {
@@ -173,12 +228,24 @@ const App: DomphyElement<"div"> = {
                 root.camera.position.x = Math.sin(elapsed * 0.06) * 1.4;
                 root.camera.position.y = Math.cos(elapsed * 0.045) * 0.9;
                 root.camera.position.z = -warpDash;
-                root.camera.lookAt(Math.sin(elapsed * 0.05) * 3.5, Math.cos(elapsed * 0.04) * 1.8, -50);
+                root.camera.lookAt(
+                  Math.sin(elapsed * 0.05) * 3.5,
+                  Math.cos(elapsed * 0.04) * 1.8,
+                  -50,
+                );
               },
             },
             {
               points: [
-                { bufferGeometry: [{ bufferAttribute: null, attach: "attributes-position", args: [midPositions, 3] }] },
+                {
+                  bufferGeometry: [
+                    {
+                      bufferAttribute: null,
+                      attach: "attributes-position",
+                      args: [midPositions, 3],
+                    },
+                  ],
+                },
                 {
                   pointsMaterial: null,
                   map: glowSprite,
@@ -197,7 +264,15 @@ const App: DomphyElement<"div"> = {
             },
             {
               points: [
-                { bufferGeometry: [{ bufferAttribute: null, attach: "attributes-position", args: [farPositions, 3] }] },
+                {
+                  bufferGeometry: [
+                    {
+                      bufferAttribute: null,
+                      attach: "attributes-position",
+                      args: [farPositions, 3],
+                    },
+                  ],
+                },
                 {
                   pointsMaterial: null,
                   map: glowSprite,

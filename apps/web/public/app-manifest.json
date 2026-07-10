@@ -1178,7 +1178,23 @@
   {
     "name": "App",
     "kind": "block",
+    "file": "apps/web/docs/demos/three/cursor-particles.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
     "file": "apps/web/docs/demos/three/CustomRenderer.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/three/dissolve.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
     "exportKind": "default"
@@ -1211,6 +1227,22 @@
     "name": "App",
     "kind": "block",
     "file": "apps/web/docs/demos/three/interactive-grid.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/three/morph-particles.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/three/neon-bloom.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
     "exportKind": "default"
@@ -1266,6 +1298,14 @@
   {
     "name": "App",
     "kind": "block",
+    "file": "apps/web/docs/demos/three/synthwave-terrain.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
     "file": "apps/web/docs/demos/three/theme-sync.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
@@ -1275,6 +1315,14 @@
     "name": "App",
     "kind": "block",
     "file": "apps/web/docs/demos/three/ThemeColor.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/three/tunnel.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
     "exportKind": "default"

@@ -33,7 +33,11 @@ for (let row = 0; row < GRID_SIZE; row++) {
     const height = 1 + Math.random() * 8;
 
     // Desaturated cool-gray body — city concrete/glass under moonlight.
-    const bodyColor = new THREE.Color().lerpColors(BODY_COLOR_A, BODY_COLOR_B, Math.random());
+    const bodyColor = new THREE.Color().lerpColors(
+      BODY_COLOR_A,
+      BODY_COLOR_B,
+      Math.random(),
+    );
 
     // Roughly two-thirds of buildings have their windows lit; the rest sit
     // near-black with only a faint emissive floor. Per-box intensity
@@ -41,7 +45,9 @@ for (let row = 0; row < GRID_SIZE; row++) {
     const lit = Math.random() < 0.65;
     // Kept low so the amber glow reads as windows in a cool-gray tower, not
     // an all-amber city — the body color must survive the emissive layer.
-    const emissiveIntensity = lit ? 0.18 + Math.random() * 0.35 : 0.03 + Math.random() * 0.05;
+    const emissiveIntensity = lit
+      ? 0.18 + Math.random() * 0.35
+      : 0.03 + Math.random() * 0.05;
 
     const building = new THREE.Mesh(
       new THREE.BoxGeometry(width, height, depth),
@@ -113,7 +119,7 @@ const App: DomphyElement<"div"> = {
           // A slow turntable sells the skyline as a scene, not a screenshot.
           // onFrame runs every rendered frame as (root, delta, self) — self
           // is `city` itself here.
-          onFrame: (root, delta, self) => {
+          onFrame: (_root, delta, self) => {
             self.rotation.y += delta * 0.05;
           },
         },
@@ -122,7 +128,12 @@ const App: DomphyElement<"div"> = {
         // and every unseen lit window at once.
         { ambientLight: null, intensity: 0.3, color: "#1a1030" },
         // Moonlight rim: low and grazing, cool against the warm windows.
-        { directionalLight: null, position: [-14, 6, 10], intensity: 1.8, color: "#8fb8ff" },
+        {
+          directionalLight: null,
+          position: [-14, 6, 10],
+          intensity: 1.8,
+          color: "#8fb8ff",
+        },
         // Warm streetlight glow, low in the street canyon (same x as
         // STREET_COLUMN) — physically-correct lighting means intensity here
         // is candela-scale, not the old 0-1 range.

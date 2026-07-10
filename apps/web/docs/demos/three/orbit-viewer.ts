@@ -38,11 +38,26 @@ const App: DomphyElement<"div"> = {
         // Dim ambient fill so unlit facets don't crush to pure black.
         { ambientLight: null, intensity: 0.35, color: "#151822" },
         // Key: warm white, front-top.
-        { directionalLight: null, position: [4, 6, 5], intensity: 2.4, color: "#fff4e0" },
+        {
+          directionalLight: null,
+          position: [4, 6, 5],
+          intensity: 2.4,
+          color: "#fff4e0",
+        },
         // Fill: cool cyan rim from the opposite side.
-        { directionalLight: null, position: [-6, 2, -3], intensity: 0.9, color: "#4fd8ff" },
+        {
+          directionalLight: null,
+          position: [-6, 2, -3],
+          intensity: 0.9,
+          color: "#4fd8ff",
+        },
         // Back/rim: magenta accent light behind the subject.
-        { pointLight: null, position: [-3, 4, -6], intensity: 45, color: "#ff3d94" },
+        {
+          pointLight: null,
+          position: [-3, 4, -6],
+          intensity: 45,
+          color: "#ff3d94",
+        },
 
         // Ground disc so the knot doesn't float in a void — fog does the
         // radial-falloff work, dissolving its edge into the backdrop.
@@ -79,7 +94,7 @@ const App: DomphyElement<"div"> = {
           // aren't known until the scene mounts), so it's a function here
           // rather than a plain array.
           orbitControls: null,
-          args: (l, root) => [root.camera, root.canvas],
+          args: (_l, root) => [root.camera, root.canvas],
           enableDamping: true,
           dampingFactor: 0.08,
           autoRotate: true,
@@ -88,14 +103,14 @@ const App: DomphyElement<"div"> = {
           // addEventListener("change", ...) — fired on every camera move,
           // including the damped tail after a drag ends. That's what
           // keeps "demand" mode rendering until the motion settles.
-          onChange: (event, root, self) => {
+          onChange: (_event, root, _self) => {
             root.invalidate();
           },
           // onFrame is the useFrame() analog: runs every rendered frame
           // as (root, delta, self) — self is this node's THREE instance.
           // self.update() is also what advances autoRotate's spin, and
           // its "change" event is what feeds the invalidate() loop above.
-          onFrame: (root, delta, self) => {
+          onFrame: (_root, delta, self) => {
             self.update();
             if (self.autoRotate) {
               autoRotateElapsed += delta;

@@ -26,7 +26,11 @@ function fitDuck(self: THREE.Object3D) {
   const center = box.getCenter(new THREE.Vector3());
   const scale = 2.6 / (Math.max(size.x, size.y, size.z) || 1);
   self.scale.setScalar(scale);
-  self.position.set(-center.x * scale, -box.min.y * scale - 1, -center.z * scale);
+  self.position.set(
+    -center.x * scale,
+    -box.min.y * scale - 1,
+    -center.z * scale,
+  );
   self.userData.fitted = true;
 }
 
@@ -72,7 +76,8 @@ const App: DomphyElement<"div"> = {
         position: "absolute",
         inset: 0,
         pointerEvents: "none",
-        backgroundImage: "radial-gradient(ellipse at center, transparent 40%, #02030a 100%)",
+        backgroundImage:
+          "radial-gradient(ellipse at center, transparent 40%, #02030a 100%)",
       },
     },
   ],
@@ -108,8 +113,18 @@ const App: DomphyElement<"div"> = {
           // from camera-right-above and a cool rim from camera-left so the
           // silhouette still reads even off-angle.
           { hemisphereLight: null, args: ["#bcd2ff", "#1a140c", 0.85] },
-          { directionalLight: null, position: [4, 6, -1], intensity: 1.6, color: "#fff1c2" },
-          { directionalLight: null, position: [-5, 3, 3], intensity: 0.7, color: "#8ecbff" },
+          {
+            directionalLight: null,
+            position: [4, 6, -1],
+            intensity: 1.6,
+            color: "#fff1c2",
+          },
+          {
+            directionalLight: null,
+            position: [-5, 3, 3],
+            intensity: 0.7,
+            color: "#8ecbff",
+          },
 
           // Ground disc the duck sits on.
           {
@@ -127,7 +142,12 @@ const App: DomphyElement<"div"> = {
           {
             mesh: [
               { circleGeometry: null, args: [1.5, 32] },
-              { meshBasicMaterial: null, map: contactShadowTexture, transparent: true, depthWrite: false },
+              {
+                meshBasicMaterial: null,
+                map: contactShadowTexture,
+                transparent: true,
+                depthWrite: false,
+              },
             ],
             "rotation-x": -Math.PI / 2,
             position: [0, -1.01, 0],
@@ -143,9 +163,13 @@ const App: DomphyElement<"div"> = {
             : {
                 mesh: [
                   { icosahedronGeometry: null, args: [0.9, 0] },
-                  { meshStandardMaterial: null, color: "#8892b0", wireframe: true },
+                  {
+                    meshStandardMaterial: null,
+                    color: "#8892b0",
+                    wireframe: true,
+                  },
                 ],
-                onFrame: (root, delta, self) => {
+                onFrame: (_root, delta, self) => {
                   self.rotation.x += delta * 0.6;
                   self.rotation.y += delta * 0.9;
                 },
@@ -156,7 +180,7 @@ const App: DomphyElement<"div"> = {
             // aren't known until the scene mounts), so it's a function here
             // rather than a plain array.
             orbitControls: null,
-            args: (l, root) => [root.camera, root.canvas],
+            args: (_l, root) => [root.camera, root.canvas],
             enableDamping: true,
             dampingFactor: 0.08,
             minDistance: 2,
@@ -172,7 +196,7 @@ const App: DomphyElement<"div"> = {
             autoRotateSpeed: 0.6,
             minAzimuthAngle: FRONT_AZIMUTH - AZIMUTH_SWING,
             maxAzimuthAngle: FRONT_AZIMUTH + AZIMUTH_SWING,
-            onFrame: (root, delta, self) => {
+            onFrame: (_root, _delta, self) => {
               self.update();
             },
           },

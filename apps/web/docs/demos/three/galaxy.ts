@@ -37,13 +37,17 @@ for (let index = 0; index < COUNT; index++) {
   const branchAngle = (branch / BRANCHES) * Math.PI * 2;
   const spinAngle = radius * SPIN;
 
-  positions[stride] = Math.cos(branchAngle + spinAngle) * radius + scatter(radius);
+  positions[stride] =
+    Math.cos(branchAngle + spinAngle) * radius + scatter(radius);
   positions[stride + 1] = scatter(radius) * 0.4; // flatten into a disc
-  positions[stride + 2] = Math.sin(branchAngle + spinAngle) * radius + scatter(radius);
+  positions[stride + 2] =
+    Math.sin(branchAngle + spinAngle) * radius + scatter(radius);
 
   // Alternate the rim hue by branch (blue/purple) so the arms read as
   // distinct sweeps instead of one flat gradient ring.
-  mixedColor.copy(insideColor).lerp(branch % 2 === 0 ? rimColorA : rimColorB, radius / RADIUS);
+  mixedColor
+    .copy(insideColor)
+    .lerp(branch % 2 === 0 ? rimColorA : rimColorB, radius / RADIUS);
   colors[stride] = mixedColor.r;
   colors[stride + 1] = mixedColor.g;
   colors[stride + 2] = mixedColor.b;
@@ -90,7 +94,11 @@ const App: DomphyElement<"div"> = {
           points: [
             {
               bufferGeometry: [
-                { bufferAttribute: null, attach: "attributes-position", args: [starPositions, 3] },
+                {
+                  bufferAttribute: null,
+                  attach: "attributes-position",
+                  args: [starPositions, 3],
+                },
               ],
             },
             {

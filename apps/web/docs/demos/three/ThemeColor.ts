@@ -24,7 +24,7 @@ const App: DomphyElement<"div"> = {
               color: themeColorToken(null, "shift-9", "primary"),
             },
           ],
-          onFrame: (root, delta, self) => {
+          onFrame: (_root, delta, self) => {
             self.rotation.y += delta;
           },
         },

@@ -1,10 +1,10 @@
 import { type DomphyElement, toState } from "@domphy/core";
 import {
+  type ThemeColor,
   themeColor,
   themeColorToken,
   themeDensity,
   themeSpacing,
-  type ThemeColor,
 } from "@domphy/theme";
 import { three } from "@domphy/three";
 import { button, small } from "@domphy/ui";
@@ -23,7 +23,13 @@ import { button, small } from "@domphy/ui";
 // bridge below is explicit: `activeColor` / `darkSurface` are read on BOTH
 // sides, so DOM and scene update in lockstep because they share one source
 // of truth, not because the scene "sees" the DOM.
-const COLORS: ThemeColor[] = ["primary", "secondary", "success", "warning", "error"];
+const COLORS: ThemeColor[] = [
+  "primary",
+  "secondary",
+  "success",
+  "warning",
+  "error",
+];
 const activeColor = toState<ThemeColor>("primary");
 const darkSurface = toState(false);
 
@@ -69,13 +75,21 @@ const App: DomphyElement<"div"> = {
                   color: null,
                   attach: "background",
                   args: (l) => [
-                    themeColorToken(l, backdropTone(darkSurface.get(l)), activeColor.get(l)),
+                    themeColorToken(
+                      l,
+                      backdropTone(darkSurface.get(l)),
+                      activeColor.get(l),
+                    ),
                   ],
                 },
                 {
                   fog: null,
                   args: (l) => [
-                    themeColorToken(l, backdropTone(darkSurface.get(l)), activeColor.get(l)),
+                    themeColorToken(
+                      l,
+                      backdropTone(darkSurface.get(l)),
+                      activeColor.get(l),
+                    ),
                     4,
                     11,
                   ],
@@ -91,13 +105,14 @@ const App: DomphyElement<"div"> = {
                       // roughness/metalness away from the mirror-flat defaults
                       // so the surface actually shades (specular falloff +
                       // diffuse gradient) instead of reading as a flat fill.
-                      color: (l) => themeColorToken(l, "shift-9", activeColor.get(l)),
+                      color: (l) =>
+                        themeColorToken(l, "shift-9", activeColor.get(l)),
                       roughness: 0.5,
                       metalness: 0.1,
                     },
                   ],
                   // Slow idle spin — just enough to read as alive, not spinning.
-                  onFrame: (root, delta, self) => {
+                  onFrame: (_root, delta, self) => {
                     self.rotation.y += delta * 0.2;
                   },
                 },
@@ -125,7 +140,9 @@ const App: DomphyElement<"div"> = {
             },
             {
               button: (l) =>
-                darkSurface.get(l) ? "Switch to light surface" : "Switch to dark surface",
+                darkSurface.get(l)
+                  ? "Switch to light surface"
+                  : "Switch to dark surface",
               type: "button",
               $: [button({ color: "neutral" })],
               onClick: () => darkSurface.set(!darkSurface.get()),
@@ -149,7 +166,7 @@ const App: DomphyElement<"div"> = {
         display: "flex",
         flexWrap: "wrap",
         alignItems: "flex-start",
-        gap: (l) => themeSpacing(3),
+        gap: (_l) => themeSpacing(3),
       },
     },
   ],
@@ -159,9 +176,9 @@ const App: DomphyElement<"div"> = {
     color: (l) => themeColor(l, "shift-9"),
     display: "flex",
     flexDirection: "column",
-    gap: (l) => themeSpacing(3),
-    padding: (l) => themeSpacing(4),
-    borderRadius: (l) => themeSpacing(3),
+    gap: (_l) => themeSpacing(3),
+    padding: (_l) => themeSpacing(4),
+    borderRadius: (_l) => themeSpacing(3),
   },
 };
 

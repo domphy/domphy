@@ -1,6 +1,7 @@
 import type { DomphyElement } from "@domphy/core";
 import { RecordState } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
+import { three } from "@domphy/three";
 import {
   card,
   formGroup,
@@ -11,7 +12,6 @@ import {
   select,
   small,
 } from "@domphy/ui";
-import { three } from "@domphy/three";
 import { Color } from "three";
 
 // One reactive graph: this RecordState drives both the DOM controls on the
@@ -94,7 +94,10 @@ const panel: DomphyElement<"div"> = {
               type: "checkbox",
               checked: (l) => controls.get("wireframe", l),
               onInput: (e) => {
-                controls.set("wireframe", (e.target as HTMLInputElement).checked);
+                controls.set(
+                  "wireframe",
+                  (e.target as HTMLInputElement).checked,
+                );
               },
               // Decorative track/knob, no text content of its own — the
               // sibling <label> carries the color-bearing text.
@@ -165,7 +168,8 @@ const viewport: DomphyElement<"div"> = {
           ],
           onFrame: (root, delta, self) => {
             self.rotation.y += delta * 0.15;
-            self.rotation.x = Math.sin(root.clock.getElapsedTime() * 0.35) * 0.12;
+            self.rotation.x =
+              Math.sin(root.clock.getElapsedTime() * 0.35) * 0.12;
           },
         },
         // Floor: keeps the torus (and its wireframe state, where the mesh

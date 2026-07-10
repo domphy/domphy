@@ -24875,6 +24875,54 @@ Set `raycast: null` on any node to remove it from ray intersection entirely — 
 
 See [Animation & Loop](/docs/three/animation) for `onFrame` and the render loop.
 
+### examples/cursor-particles.md
+
+---
+title: "@domphy/three — Cursor Particles"
+description: "6000 particles drifting on a flat disc, repelled by the pointer through a spring/damping system stored in Float32Arrays, glowing brighter the further they're displaced, rendered as additive soft-round sprites from a CanvasTexture."
+---
+
+# Cursor Particles
+
+A disc of 6,000 points, each idling in a small slow orbit around its own home position. Move the pointer over the scene and nearby points get pushed away, brightening as they go, then ease back — a damped spring, not a snap — once the pointer moves on. The dots are additive soft-round sprites baked from a `CanvasTexture` radial gradient, colored on a blue-to-violet hue ramp by distance from center, over a deep near-black backdrop.
+
+## How it works
+
+- **Pointer-to-world, without touching `root.raycaster` directly**: an invisible `mesh` (a `planeGeometry` lying flat at `y=0`, `meshBasicMaterial` with `opacity: 0`) sits under the whole disc purely to catch `onPointerMove`. Its `ThreeEvent.point` field is already the world-space raycast hit — no manual NDC/unproject math needed. See [Events](/docs/three/events#the-threeevent-shape).
+- **`onPointerOut`** on that same plane flips a `pointerActive` flag off, so repulsion stops the instant the cursor leaves the disc (or the canvas) instead of freezing the last known position forever.
+- **Per-point damped spring, in plain `Float32Array`s**: `velocityX`/`velocityZ` and `displacementX`/`displacementZ` are module-level typed arrays, one slot per particle. Each frame: the pointer (if active and within `REPEL_RADIUS`) adds an outward velocity kick; a spring term (`-displacement * SPRING`) pulls that velocity back toward zero; a damping multiplier bleeds it off. Integrating velocity into displacement and adding it to a drifting home position is what makes a repelled point ease back instead of snapping.
+- **Glow from displacement**: each point's color is its base hue-ramp color (`#86b1ff` near the center to `#e0aaff` at the rim, via `Color.lerp`) mixed toward white by how far it's currently displaced — no separate "glow" attribute, just the same spring math driving both position and color.
+- **`self.geometry.attributes.position.needsUpdate = true`** (and the matching `color` attribute) every `onFrame`, at 6,000 points — the same `bufferGeometry`/`bufferAttribute` wiring as a static particle cloud (see [`args` reconstruction](/docs/three/grammar#args-reconstruction)), but mutated and re-uploaded every tick instead of written once. See [Animation & Loop](/docs/three/animation#onframe).
+- **Soft round sprites**: `pointsMaterial.map` is a plain `CanvasTexture` — a 64×64 canvas filled with `createRadialGradient`, no image asset. Assigning it is a duck-typed [static prop](/docs/three/grammar#duck-typed-props): `map` has no `.set`/`.copy` on a fresh material, so it falls through to direct assignment.
+- **Additive blending**: `blending: AdditiveBlending`, `depthWrite: false`, `transparent: true` — overlapping sprites brighten instead of occluding, same recipe as the [Galaxy](/docs/three/examples/galaxy) particle cloud.
+- **`frameloop: "always"`**: the idle drift alone requires continuous rendering — nothing here is purely reactive-prop-driven, so `"demand"` would leave the disc static between pointer moves. See [frameloop modes](/docs/three/animation#frameloop-modes).
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/dissolve.md
+
+---
+title: "@domphy/three — Dissolve"
+description: "A torus knot dissolving and reforming in a loop via a custom shaderMaterial — a 3D-noise threshold discards fragments and glows hot along the boundary, with a point cloud hugging the surface that brightens where the edge passes."
+---
+
+# Dissolve
+
+A metallic-dark torus knot that dissolves and reforms on an endless loop, driven entirely by a hand-written `shaderMaterial`: a 3D noise field is compared against an animated threshold uniform — fragments below it vanish (`discard`), fragments near the boundary glow from a warm orange core out to a hot near-white edge. A second `points` layer sits on the exact same geometry, faint everywhere except right where the dissolve line is currently sweeping past, so the effect reads as a boundary traveling through a volume rather than a screen-space wipe.
+
+## How it works
+
+- **`shaderMaterial` via `args`**: neither the mesh nor the points material is a named `THREE` material — `{ shaderMaterial: null, args: [{ vertexShader, fragmentShader, uniforms, ... }] }` passes a single options object straight to `new THREE.ShaderMaterial(...)`, the same [`args` reconstruction](/docs/three/grammar#args-reconstruction) mechanism every other example uses for geometry constructor args.
+- **Uniform objects, not reactive props**: `uniforms` is a plain `{ uTime: { value }, uThreshold: { value }, ... }` map handed to the constructor once. Nothing here goes through a `State` — see [duck-typed props](/docs/three/grammar#duck-typed-props) for the one special case (`ShaderMaterial.uniforms` merges per-named-uniform in place if you *do* re-apply it as a prop, which this example doesn't need).
+- **Driving the threshold from `onFrame`**: `onFrame: (root, delta, self) => { self.material.uniforms.uThreshold.value = ... }` — `self` is this node's own `THREE.Mesh`/`THREE.Points` instance, so `self.material` is the exact `ShaderMaterial` that was attached, and mutating `.uniforms.<name>.value` writes straight into the compiled program without re-creating anything. This is [rule 2](/docs/three/grammar#function-prop-rules) (`onFrame`), the `useFrame()` analog — see [Animation & Loop](/docs/three/animation#onframe).
+- **One threshold formula, two independent `onFrame` callbacks**: the mesh's and the points' `onFrame` each read `root.clock.getElapsedTime()` and compute the same `dissolveThreshold(elapsed)` sine wave independently — no shared mutable state needed, they just agree by construction, which is what keeps the discard boundary and the glowing points in lockstep.
+- **`discard` + edge glow**: the fragment shader samples a 3D value-noise field (hash + trilinear smoothstep, with a cheap 2-octave `fbm` on top) at each fragment's object-space position, compares it to `uThreshold`, and `discard`s anything below it. Fragments that survive but sit close to the boundary blend from `uGlowOuter` (`#ff7a3c`) to `uGlowInner` (`#ffffdd`) over the backdrop `#0a0c14` — a Fresnel-free half-lambert (`dot(normal, lightDir) * 0.5 + 0.5`) keeps the surviving shell reading as a solid past the edge.
+- **Points hugging the surface**: the point cloud reuses the *same* `torusKnotGeometry` `args`, so every point sits exactly on the mesh's surface. Its vertex shader runs the identical noise sample and sets `vGlow = 1 - clamp(abs(density - uThreshold) / uEdgeWidth, 0, 1)` — symmetric around the boundary rather than gated by `discard` — so points brighten and grow (`gl_PointSize`) as the dissolve line sweeps past them from either side, then fade back to a faint base color.
+- **`side: DoubleSide`** on the mesh material keeps the torus knot's inner tube wall visible through the holes `discard` punches in it, instead of showing flat backdrop where a face got backface-culled.
+- **`onCreated`** sets `root.scene.background` once, and calls `root.camera.lookAt(0, 0, 0)` because the camera sits off-axis at `[3.4, 1.8, 3.6]` — same pattern as every other off-center camera on this site.
+
+[← Back to @domphy/three](/docs/three/)
+
 ### examples/galaxy.md
 
 ---
@@ -24946,6 +24994,52 @@ A 5x5 grid of boxes, each one an independent interactive object: hovering lifts 
 - **Reactive `color` (function-prop rule 7)** — `color: (l) => (cells.get(key, l).hover ? ACCENT_COLOR : BASE_COLOR)` re-applies and calls `root.invalidate()` only when that cell's own hover flag flips. See [function-prop rules](/docs/three/grammar#function-prop-rules).
 - **`onFrame` spring + idle motion** — a per-cell `onFrame` closure lerps a hover lift, decays a damped-cosine pulse bump from the last `pulseId`, and adds a `Math.sin` idle bob phase-offset by grid position, all read from `root.clock`/`delta`. See [Animation & Loop](/docs/three/animation#onframe).
 - **Duck-typed `position`/`scale`** — the array literal on `position` sets the cell's base XY placement once; `onFrame` then mutates `self.position.z` and `self.scale` directly every tick, the same imperative-inside-`onFrame` pattern as the [quickstart](/docs/three/#quick-start).
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/morph-particles.md
+
+---
+title: "@domphy/three — Morph Particles"
+description: "An 8000-point cloud that morphs between a sphere, a torus knot, and a 3D spiral, each particle easing on its own staggered delay so the transition ripples across the cloud instead of snapping."
+---
+
+# Morph Particles
+
+An 8000-point `points` cloud that auto-cycles between three target shapes — a sphere and a torus knot sampled straight from real `THREE` geometries' position attributes, and a parametric 3D spiral with no built-in geometry equivalent. Every particle eases toward the new target on its own delay, hashed from its index, so a shape switch ripples outward through the cloud over about a second and a half rather than every point snapping into place on the same frame. Color rides the same per-particle ease, lerping between each shape's assigned hue.
+
+## How it works
+
+- **Sampling real geometry into a fixed-size target**: `sampleGeometryPositions` reads a `THREE.SphereGeometry`/`THREE.TorusKnotGeometry`'s `attributes.position.array` and walks it at evenly-spaced indices (`Math.floor((index / count) * vertexCount)`) rather than a contiguous slice — the sample spreads across the whole surface regardless of how the particle count compares to the source vertex count. The spiral target has no built-in geometry to sample from, so it's generated directly as a parametric shape of the same size.
+- **One `bufferGeometry` with two live typed arrays**: `positions`/`colors` are the exact `Float32Array`s passed as `args` to `bufferAttribute` (`attach: "attributes-position"` / `"attributes-color"`) — `onFrame` mutates them in place and flips `needsUpdate`, the same live-buffer pattern as the [Wave Field](/docs/three/examples/wave-field) recipe's `InstancedMesh` matrix rewrite. See [Attach inference](/docs/three/grammar#attach-inference).
+- **Per-particle stagger**: `hashUnit(index)` derives a deterministic pseudo-random `[0, 1)` value from each index (a cheap `sin`-based hash, no `Math.random` at runtime) and scales it into a delay up to `MAX_STAGGER` seconds. A particle's local progress is `(transitionElapsed - staggerDelays[index]) / EASE_DURATION`, clamped and run through `easeInOutCubic` — nearby indices land close in delay, but since particle index has no spatial meaning here, the "ripple" reads as a staggered shimmer through the cloud rather than a directional wave.
+- **Interruptible transitions**: `beginTransition` snapshots whatever `positions`/`colors` currently hold — not necessarily a settled shape — into `fromPositions`/`fromColors` before retargeting. Clicking mid-transition restarts the ease from wherever the cloud actually is, with no visible snap.
+- **`onFrame: (root, delta, self)`** drives a slow continuous spin (`self.rotation.y += delta * 0.05`, always on) plus the auto-cycle timer (`cycleElapsed >= CYCLE_INTERVAL` triggers the next `beginTransition`) and the per-vertex morph loop itself, only while a transition is in flight. See [Animation & Loop](/docs/three/animation#onframe).
+- **`frameloop: "always"`**: both the idle spin and the auto-cycle timer are free-running, not driven by any `State` change, so `"demand"` (which only renders after `invalidate()`) would leave the cycle frozen. See [frameloop modes](/docs/three/animation#frameloop-modes).
+- **Click-to-advance via an invisible bounds mesh**: a `sphereGeometry` mesh with `meshBasicMaterial({ transparent: true, opacity: 0 })` carries the `onClick` handler instead of the particles themselves — raycasting 8000 individual points on every pointer move would be wasteful, and `points` here has no pointer props at all so it's never registered as an interactive target. See [Excluding an object from raycasting](/docs/three/events#excluding-an-object-from-raycasting) and the [pointer event props](/docs/three/events#pointer-event-props) table for `onClick`.
+- **Additive blending, per-shape hue**: `vertexColors: true` plus `blending: AdditiveBlending`, `depthWrite: false`, and `opacity: 0.85` is the same particle-cloud recipe as [Galaxy](/docs/three/examples/galaxy) — overlapping points brighten instead of occluding, and since color eases through the same staggered per-particle progress as position, the hue shift ripples in lockstep with the shape change.
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/neon-bloom.md
+
+---
+title: "@domphy/three — Neon Bloom"
+description: "Three precessing neon-wireframe rings and a floating icosahedron on a near-black backdrop, post-processed with UnrealBloomPass via a hand-built EffectComposer that takes over the render loop."
+---
+
+# Neon Bloom
+
+Three wireframe torus rings — magenta, cyan, and yellow — precess slowly around a floating low-poly icosahedron on a near-black backdrop, run through `UnrealBloomPass` so their bright, unlit wireframe pixels glow. The composer is built imperatively in `onCreated` and registered with `root.frame(callback, 1)`: priority `1` is **render takeover**, the r3f-parity feature that hands `gl.render` off to your own callback for the rest of the root's life.
+
+## How it works
+
+- **Postprocessing enters through `extend()`**: `EffectComposer`, `RenderPass`, and `UnrealBloomPass` all live under `three/addons/postprocessing/`, outside the package's core namespace, so they're registered with `extend({ EffectComposer, RenderPass, UnrealBloomPass })` — see [`extend()` custom classes](/docs/three/grammar#extend-custom-classes). None of the three ever become a scene *tag* here, though — `EffectComposer` isn't an `Object3D`, so it has no natural place in `scene`; it's built with plain `new` inside `onCreated` instead.
+- **Render takeover via `root.frame(callback, priority)`**: `onCreated` calls `root.frame((root, delta) => composer.render(delta), 1)` directly, rather than going through a scene node's `onFrame`/`onFramePriority` props — the composer has no node of its own to hang them on. Once *any* registered frame callback has `priority > 0`, the root stops calling its own `gl.render(scene, camera)` every tick; `composer.render()` becomes the only thing that draws a pixel. See [Priority / render takeover](/docs/three/animation#priority).
+- **Resize handled with a bare `effect()`**: `root.size` is a reactive `State<SizeState>` — a plain `effect(() => { const { width, height } = root.size.get(); composer.setSize(width, height) })` auto-tracks that read and re-runs on every resize, keeping `UnrealBloomPass`'s internal render targets in step with the canvas, no manual `ResizeObserver` needed. See [`effect()`](/docs/three/animation#onframe-vs-reactive-props) for the same auto-tracking idiom used by reactive props.
+- **Unlit neon, lit everything else**: the rings use `meshBasicMaterial` with `wireframe: true` — deliberately unaffected by scene lighting, so bloom always has clean, saturated pixels to work with regardless of the light rig. The icosahedron is a normally-lit `meshStandardMaterial`, and each ring carries its own colored `pointLight` as a *child* (nested inside its own `mesh` array) so the light rides the ring's transform and spills that hue across the icosahedron and the fog as the rings precess.
+- **Precession, not just spin**: each ring's `onFrame` increments `rotation.x` and `rotation.y` by a different per-ring speed every frame — the ring's own tilt axis keeps drifting over time instead of settling into a flat, predictable spin, the same "wandering gyroscope" look real precessing rings have.
+- **`root.gl` vs. `THREE.WebGLRenderer`**: `three()`'s `RootState.gl` is typed as the minimal [`RendererLike`](/docs/three/recipes#injectable-renderer) contract, not the concrete `WebGLRenderer` class `EffectComposer`'s constructor expects — the demo casts once at that boundary. The default renderer really is a `WebGLRenderer`, so it's safe at runtime; a custom `createRenderer` swapped in for something non-WebGL (WebGPU, a test stub) would need its own composer strategy.
 
 [← Back to @domphy/three](/docs/three/)
 
@@ -25039,6 +25133,30 @@ A landing-page hero, not a scene demo — three concentric shells of points at i
 
 [← Back to @domphy/three](/docs/three/)
 
+### examples/synthwave-terrain.md
+
+---
+title: "@domphy/three — Synthwave Terrain"
+description: "A retro-futuristic wireframe grid with deterministic layered-noise hills that scroll toward the camera by re-sampling instead of moving, under a sliced gradient sun and a fogged, star-scattered sky."
+---
+
+# Synthwave Terrain
+
+A magenta wireframe grid rolls with hills generated from a hand-written, dependency-free layered-noise function, endlessly scrolling toward the camera — not by moving the mesh, but by advancing the coordinate the noise is sampled at every frame and rewriting the geometry's position attribute in place. A gradient sun disc, sliced by a handful of horizontal cutouts, glows on the horizon above a fogged sky scattered with faint stars.
+
+## How it works
+
+- **Deterministic layered noise, no library**: `hash(x, y)` is a pure `Math.sin`-based hash over two integers (no `Math.random`, so it's reproducible), `valueNoise` bilinearly interpolates it across the unit grid, and `fractalNoise` sums three octaves of that at doubling frequency/halving amplitude — the standard fBm recipe, written out by hand instead of pulled from a noise package.
+- **Scrolling by re-sampling, not moving**: the plane's transform never changes. Every `onFrame` advances `scrollOffset` and adds it to each vertex's local-depth coordinate before sampling the noise, so the *pattern* slides under the fixed mesh — no seams, no reset, no per-frame geometry reallocation. See [Animation & Loop](/docs/three/animation#onframe).
+- **`primitive` for imperative geometry**: per-vertex position rewriting every frame isn't expressible through declarative `args`/props, so the animated `THREE.Mesh` is built up front and adopted via `{ primitive: null, object: terrain }` — the same recipe `wave-field.ts` uses for its per-instance matrix rewrites. See [`primitive`](/docs/three/grammar#primitive).
+- **`needsUpdate` without `computeVertexNormals`**: the material is `wireframe: true` and unlit (`MeshBasicMaterial`), so it never reads vertex normals — only `positionAttribute.needsUpdate = true` is set after the rewrite, skipping the normal recompute a lit/shaded mesh would need.
+- **Rotation maps local axes to world axes**: the plane is built flat (`PlaneGeometry`'s local X/Y/Z), then `rotation.x = -Math.PI / 2` on the mesh maps local Z (the axis the noise writes height into) to world Y (up) and local Y to world -Z (depth) — that's why `terrainHeight`'s second argument reads as "distance from camera" rather than a raw local coordinate.
+- **The sun is a `CanvasTexture`, not a shader**: `circleGeometry` gets a `meshBasicMaterial` whose `map` is a 2D canvas — a vertical multi-stop gradient with a handful of growing horizontal bands punched out via `globalCompositeOperation = "destination-out"`, the classic "sliced sun" silhouette, built the same way `starfield-hero.ts` builds its glow sprite.
+- **Selective `fog: false`**: the scene fog (`{ fog: null, args: [...] }`, `.isFog`-inferred attach) fades the terrain into the backdrop as designed, but the sun and star materials set `fog: false` — a light source above the haze and stars in open sky shouldn't dim with ground-level atmospheric distance the way the grid does. See [Attach inference](/docs/three/grammar#attach-inference).
+- **`frameloop: "always"`**: the scroll is a free-running per-tick animation with nothing that ever calls `invalidate()`, so `"demand"` mode would render exactly one frame and freeze — see [frameloop modes](/docs/three/animation#frameloop-modes).
+
+[← Back to @domphy/three](/docs/three/)
+
 ### examples/theme-sync.md
 
 ---
@@ -25058,6 +25176,29 @@ The unique Domphy story: one theme system, two renderers. `@domphy/ui` buttons s
 - **Reactive `args` reconstructs.** The background `{ color: null, attach: "background" }` and `{ fog: null }` nodes have no nested prop path to poke, so their `args` is a function — a shallow change there tears down and rebuilds the instance (locked in the grammar's reconcile semantics), which is the only way to update them.
 - **The listener has no DOM context.** `themeColorToken()`'s automatic `dataTone`/`dataTheme` tree-walk needs a `Listener` with `.elementNode`, which is how `@domphy/core` wires it for ordinary DOM style/attribute props. The listener a `three()` reactive prop hands your function is a bare `Handler` without `.elementNode`, so it never inherits tone context from an ancestor on its own — sharing one `State` is what actually keeps DOM and scene in sync.
 - **`button({ color })`** ([`@domphy/ui`](/docs/ui/patches/button)) accepts the same `ThemeColor` union `themeColorToken` does, so each swatch button is itself colored by the family it selects.
+
+[← Back to @domphy/three](/docs/three/)
+
+### examples/tunnel.md
+
+---
+title: "@domphy/three — Tunnel"
+description: "An infinite flight through a warped CatmullRomCurve3 tube — camera position and orientation driven each frame by curve.getPointAt(), colored point lights seated on the path, a scrolling wireframe overlay for motion legibility, and onWheel-adjustable speed."
+---
+
+# Tunnel
+
+A closed `CatmullRomCurve3` loop — radius and height both wobbling at different frequencies — extruded into a `TubeGeometry` rendered `BackSide` so the camera flies through its interior. There's no orbiting or dragging here: the camera's position and look-at target are both computed from the curve every frame, so it just flies the loop forever. Five point lights seated directly on the path wash the walls in alternating violet/cyan/magenta as the camera passes them, and a second wireframe-only copy of the same tube geometry gives the corridor a scrolling grid so speed and curvature stay legible. Scroll over the canvas to speed up or slow down the flight.
+
+## How it works
+
+- **The path**: `flightPath = new CatmullRomCurve3(pathPoints, true, ...)` — the `true` closes the loop. `pathPoints` isn't a circle; radius and height each vary by a different sine/cosine frequency so the tube reads as an organic warped corridor.
+- **Camera path animation**: the tube mesh's `onFrame: (root, delta) => {...}` advances `flightPosition` (a loop-fraction, `0..1`) by `delta * speed` each frame, places `root.camera.position` at `flightPath.getPointAt(flightPosition)`, and calls `root.camera.lookAt(...)` at a point a little further ahead on the curve (`LOOK_AHEAD`) — that's what keeps the camera always facing its direction of travel through the bends. See [Animation & Loop](/docs/three/animation#onframe).
+- **`onWheel`**: attached to the tube mesh itself, since the camera is always inside it — the tube is the one surface guaranteed to be under the pointer. Per the [function-prop rules](/docs/three/grammar#function-prop-rules), `onWheel` is a raycast pointer event, so the handler receives a `ThreeEvent<WheelEvent>` with `deltaY` copied straight onto it; the handler clamps `speed` into `[SPEED_MIN, SPEED_MAX]` and calls `event.nativeEvent.preventDefault()` so the wheel doesn't also scroll the docs page underneath the canvas. See [Events](/docs/three/events#pointer-event-props).
+- **Two tubes, one geometry shape**: the visible corridor is a `meshStandardMaterial` (`side: BackSide`) tube for the lit surface, and a sibling `mesh` node builds a second `TubeGeometry` from the *same* `args` values with a `wireframe: true, transparent: true` `meshBasicMaterial` layered on top — a cheap way to get a scrolling grid overlay for motion legibility without hand-building line geometry.
+- **Lights on the path**: `tunnelLights` maps 5 colors to `flightPath.getPointAt(index / 5)` positions and spreads them into `scene` — plain `pointLight` nodes at physical intensities (`70`, `distance: 10`, `decay: 2`), so each one only lights the stretch of tube nearby before falling off.
+- **Fog matches the backdrop**: `{ fog: null, args: [BACKDROP_COLOR, 8, 30] }` (inferred `attach` via `.isFog`) uses the same color as `scene.background`, so the tunnel dissolves into the void a short way ahead instead of cutting off hard. See [Attach inference](/docs/three/grammar#attach-inference).
+- **Initial camera framing**: `camera: { position: [...], fov: 80, near: 0.05, far: 60 }` starts the camera at `flightPath.getPointAt(0)` with a wide FOV suited to flying through a tight corridor, and `onCreated` sets the initial `lookAt` so the first rendered frame already faces down the path, before the first `onFrame` tick runs.
 
 [← Back to @domphy/three](/docs/three/)
 

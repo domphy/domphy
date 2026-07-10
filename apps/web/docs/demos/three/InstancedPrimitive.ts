@@ -39,7 +39,7 @@ const App: DomphyElement<"div"> = {
         {
           primitive: null,
           object: spheres,
-          onFrame: (root, delta, self) => {
+          onFrame: (_root, delta, self) => {
             self.rotation.y += delta * 0.3;
           },
         },

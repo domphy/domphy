@@ -24,12 +24,12 @@
         "."
       ],
       "peerDependencies": [
-        "@domphy/core",
-        "@domphy/theme",
-        "@domphy/ui",
         "@domphy/chart",
+        "@domphy/core",
         "@domphy/form",
-        "@domphy/table"
+        "@domphy/table",
+        "@domphy/theme",
+        "@domphy/ui"
       ]
     },
     {

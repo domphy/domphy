@@ -3,7 +3,12 @@ import { three } from "@domphy/three";
 
 const App: DomphyElement<"div"> = {
   div: null,
-  style: { width: "100%", height: "420px", borderRadius: "12px", overflow: "hidden" },
+  style: {
+    width: "100%",
+    height: "420px",
+    borderRadius: "12px",
+    overflow: "hidden",
+  },
   $: [
     three({
       camera: { position: [3, 3, 3] },
@@ -15,7 +20,7 @@ const App: DomphyElement<"div"> = {
           ],
           // onFrame is the useFrame() analog: called every rendered frame
           // with (root, delta, self) — self is this node's THREE instance.
-          onFrame: (root, delta, self) => {
+          onFrame: (_root, delta, self) => {
             self.rotation.y += delta;
             self.rotation.x += delta * 0.4;
           },

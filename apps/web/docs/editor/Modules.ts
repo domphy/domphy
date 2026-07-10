@@ -18,8 +18,11 @@ import * as queryCore from "@tanstack/query-core";
 import page from "page";
 import Sortable from "sortablejs";
 import * as three from "three";
-import * as threeGLTFLoader from "three/addons/loaders/GLTFLoader.js";
 import * as threeOrbitControls from "three/addons/controls/OrbitControls.js";
+import * as threeGLTFLoader from "three/addons/loaders/GLTFLoader.js";
+import * as threeEffectComposer from "three/addons/postprocessing/EffectComposer.js";
+import * as threeRenderPass from "three/addons/postprocessing/RenderPass.js";
+import * as threeUnrealBloomPass from "three/addons/postprocessing/UnrealBloomPass.js";
 import * as zod from "zod";
 
 const moduleMap: Record<string, unknown> = {
@@ -45,6 +48,9 @@ const moduleMap: Record<string, unknown> = {
   three,
   "three/addons/controls/OrbitControls.js": threeOrbitControls,
   "three/addons/loaders/GLTFLoader.js": threeGLTFLoader,
+  "three/addons/postprocessing/EffectComposer.js": threeEffectComposer,
+  "three/addons/postprocessing/RenderPass.js": threeRenderPass,
+  "three/addons/postprocessing/UnrealBloomPass.js": threeUnrealBloomPass,
   zod,
 };
 

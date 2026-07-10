@@ -50,7 +50,11 @@ for (let row = 0; row < GRID_SIZE; row++) {
     field.setMatrixAt(index, dummy.matrix);
 
     const diagonalFraction = (row + column) / (2 * (GRID_SIZE - 1));
-    tint.setHSL(THREE.MathUtils.lerp(HUE_START, HUE_END, diagonalFraction), SATURATION, LIGHTNESS);
+    tint.setHSL(
+      THREE.MathUtils.lerp(HUE_START, HUE_END, diagonalFraction),
+      SATURATION,
+      LIGHTNESS,
+    );
     field.setColorAt(index, tint);
 
     index++;
@@ -92,7 +96,7 @@ const App: DomphyElement<"div"> = {
         {
           primitive: null,
           object: field,
-          onFrame: (root, delta, self) => {
+          onFrame: (_root, delta, self) => {
             self.userData.time = (self.userData.time ?? 0) + delta * WAVE_SPEED;
             const time = self.userData.time;
             for (let point = 0; point < columnPositions.length; point++) {

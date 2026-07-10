@@ -35,6 +35,7 @@ First npm publish (previously repo-only). Ships the post-QA-wave state: 173 bloc
 ## `domphy-web` [1.0.0] — 2026-07-10
 
 ### Added
+- docs(three): 6 more trend-inspired playground examples — dissolve (shaderMaterial uniforms), cursor particles (pointer-to-world at 6k points), neon bloom (UnrealBloomPass via `extend()` + frame-priority takeover), tunnel (curve flight + onWheel), synthwave terrain (geometry attribute animation), morph particles (attribute morphing with stagger). Playground moduleMap gains the three postprocessing addons.
 - docs(three): concept docs (overview, scene grammar, events, animation & loop, loading assets, recipes) + 10 live playground examples (spinning cube, interactive grid, wave field, galaxy, orbit viewer, theme sync, UI bridge, glTF viewer, primitive bridge, starfield hero) for `@domphy/three` on domphy.com.
 
 ---

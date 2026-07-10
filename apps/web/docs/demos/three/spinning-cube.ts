@@ -1,6 +1,6 @@
 import type { DomphyElement } from "@domphy/core";
-import { Color } from "three";
 import { three } from "@domphy/three";
+import { Color } from "three";
 
 const App: DomphyElement<"div"> = {
   div: null,
@@ -28,7 +28,8 @@ const App: DomphyElement<"div"> = {
           onFrame: (root, delta, self) => {
             self.rotation.y += delta * 0.6;
             self.rotation.x = Math.sin(root.clock.getElapsedTime() * 0.8) * 0.3;
-            self.position.y = Math.sin(root.clock.getElapsedTime() * 1.5) * 0.25;
+            self.position.y =
+              Math.sin(root.clock.getElapsedTime() * 1.5) * 0.25;
           },
         },
         { ambientLight: null, intensity: 0.7 },

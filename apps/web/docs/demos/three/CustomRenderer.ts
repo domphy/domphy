@@ -33,7 +33,7 @@ const App: DomphyElement<"div"> = {
             { torusGeometry: null, args: [0.9, 0.3, 16, 48] },
             { meshStandardMaterial: null, color: "orange" },
           ],
-          onFrame: (root, delta, self) => {
+          onFrame: (_root, delta, self) => {
             self.rotation.x += delta;
             self.rotation.y += delta * 0.6;
           },

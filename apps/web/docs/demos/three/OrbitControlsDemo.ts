@@ -18,7 +18,12 @@ const App: DomphyElement<"div"> = {
     three({
       camera: { position: [3, 3, 3] },
       scene: [
-        { mesh: [{ boxGeometry: null }, { meshStandardMaterial: null, color: "orange" }] },
+        {
+          mesh: [
+            { boxGeometry: null },
+            { meshStandardMaterial: null, color: "orange" },
+          ],
+        },
         { ambientLight: null, intensity: 0.5 },
         { directionalLight: null, position: [5, 5, 5] },
         {
@@ -26,11 +31,11 @@ const App: DomphyElement<"div"> = {
           // aren't known until the scene mounts), so it's a function here
           // rather than a plain array.
           orbitControls: null,
-          args: (l, root) => [root.camera, root.gl.domElement],
+          args: (_l, root) => [root.camera, root.gl.domElement],
           enableDamping: true,
           // onFrame is the useFrame() analog: called every rendered frame
           // with (root, delta, self) — self is this node's THREE instance.
-          onFrame: (root, delta, self) => {
+          onFrame: (_root, _delta, self) => {
             self.update();
           },
         },
