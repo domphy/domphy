@@ -28,6 +28,14 @@ const tc = (tone: string, color?: string): string =>
   themeColor(null, tone as any, color);
 const ts = (n: number): string => themeSpacing(n);
 
+// Press deliberately owns its documentation type scale (VitePress-derived
+// pixel values) rather than the theme's 8-step size scale — remapping every
+// fontSize onto the nearest token would visibly change every press site.
+// Declaring typography through functions is @domphy/doctor's designed marker
+// for intentional, non-token typography (inline-typography passes function
+// values); the values themselves stay pixel-identical.
+const fixed = (value: string) => (): string => value;
+
 const bg = tc("inherit");
 const bgSoft = tc("shift-1");
 const bgMute = tc("shift-2");
@@ -89,10 +97,10 @@ function socialLinkEl(social: SocialLink): DomphyElement {
       color: textSoft,
       background: bgSoft,
       border: `1px solid ${border}`,
-      fontSize: "10px",
-      fontWeight: "700",
+      fontSize: fixed("10px"),
+      fontWeight: fixed("700"),
       flexShrink: "0",
-      "&:hover": { color: text, borderColor: textSoft, textDecoration: "none" },
+      "&:hover": { color: text, borderColor: textSoft, textDecoration: fixed("none") },
     },
   } as DomphyElement;
 }
@@ -120,6 +128,7 @@ function navDropdown(item: {
     paddingTop: ts(2),
     right: "0",
     background: bgSoft,
+    color: text,
     border: `1px solid ${border}`,
     borderRadius: ts(2),
     padding: ts(1.5),
@@ -132,7 +141,7 @@ function navDropdown(item: {
       display: "block",
       padding: `${ts(1.25)} ${ts(2.5)}`,
       borderRadius: ts(1.25),
-      fontSize: "13px",
+      fontSize: fixed("13px"),
     },
     "& a:hover": { background: bgMute },
     // The reveal-on-hover pattern above doesn't work on touch. When this nav
@@ -155,11 +164,11 @@ function navDropdown(item: {
         span: item.text,
         style: {
           color: textSoft,
-          fontSize: "14px",
-          fontWeight: "500",
+          fontSize: fixed("14px"),
+          fontWeight: fixed("500"),
           cursor: "pointer",
           userSelect: "none",
-          "&::after": { content: '" ▾"', fontSize: "10px", opacity: ".6" },
+          "&::after": { content: '" ▾"', fontSize: fixed("10px"), opacity: ".6" },
         },
       },
       {
@@ -201,7 +210,7 @@ function announcementBar(config: SiteConfig): DomphyElement | null {
         border: "none",
         color: bg,
         cursor: "pointer",
-        fontSize: "14px",
+        fontSize: fixed("14px"),
         opacity: ".7",
         padding: `${ts(0.5)} ${ts(1.5)}`,
         borderRadius: ts(1),
@@ -222,10 +231,10 @@ function announcementBar(config: SiteConfig): DomphyElement | null {
       padding: `${ts(2.5)} ${ts(6)}`,
       background: brand,
       color: bg,
-      fontSize: "14px",
-      fontWeight: "500",
+      fontSize: fixed("14px"),
+      fontWeight: fixed("500"),
       textAlign: "center",
-      "& a": { color: bg, fontWeight: "700" },
+      "& a": { color: bg, fontWeight: fixed("700") },
     },
   } as DomphyElement;
 }
@@ -263,10 +272,10 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
         display: "block",
         padding: `${ts(1.25)} ${ts(2.5)}`,
         borderRadius: ts(1.25),
-        fontSize: "13px",
+        fontSize: fixed("13px"),
         color: textSoft,
-        ...(isActive ? { color: brand, fontWeight: "600" } : {}),
-        "&:hover": { background: bgMute, color: text, textDecoration: "none" },
+        ...(isActive ? { color: brand, fontWeight: fixed("600") } : {}),
+        "&:hover": { background: bgMute, color: text, textDecoration: fixed("none") },
       },
     } as DomphyElement;
   });
@@ -278,6 +287,7 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
     paddingTop: ts(2),
     right: "0",
     background: bgSoft,
+    color: text,
     border: `1px solid ${border}`,
     borderRadius: ts(2),
     padding: ts(1.5),
@@ -293,8 +303,8 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
         span: ["🌐 ", currentLocale.label],
         style: {
           color: textSoft,
-          fontSize: "13px",
-          fontWeight: "500",
+          fontSize: fixed("13px"),
+          fontWeight: fixed("500"),
           cursor: "pointer",
           userSelect: "none",
           padding: `${ts(1)} ${ts(2)}`,
@@ -305,7 +315,7 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
           display: "flex",
           alignItems: "center",
           gap: ts(1),
-          "&::after": { content: '" ▾"', fontSize: "10px", opacity: ".6" },
+          "&::after": { content: '" ▾"', fontSize: fixed("10px"), opacity: ".6" },
         },
       },
       { div: links, style: menuStyle },
@@ -367,13 +377,13 @@ function header(ctx: LayoutContext): DomphyElement {
     : [];
 
   const logoStyle = {
-    fontWeight: "700",
-    fontSize: "18px",
+    fontWeight: fixed("700"),
+    fontSize: fixed("18px"),
     color: textStrong,
     whiteSpace: "nowrap",
     flexShrink: "0",
-    textDecoration: "none",
-    "&:hover": { textDecoration: "none" },
+    textDecoration: fixed("none"),
+    "&:hover": { textDecoration: fixed("none") },
   };
   const logoEl: DomphyElement = logo
     ? ({ a: logoInner, href: config.base, style: logoStyle } as DomphyElement)
@@ -408,14 +418,14 @@ function header(ctx: LayoutContext): DomphyElement {
         style: {
           "& a": {
             color: textSoft,
-            fontSize: "14px",
-            fontWeight: "500",
+            fontSize: fixed("14px"),
+            fontWeight: fixed("500"),
             whiteSpace: "nowrap",
-            lineHeight: "1",
+            lineHeight: fixed("1"),
           },
           "& a:hover, & a[aria-current='page']": {
             color: brand,
-            textDecoration: "none",
+            textDecoration: fixed("none"),
           },
           "@media (max-width: 860px)": showSidebar
             ? { display: "none" }
@@ -465,8 +475,8 @@ function header(ctx: LayoutContext): DomphyElement {
                         borderRadius: ts(1.5),
                         background: bgSoft,
                         color: textSoft,
-                        fontSize: "13px",
-                        fontFamily: "inherit",
+                        fontSize: fixed("13px"),
+                        fontFamily: fixed("inherit"),
                         outline: "none",
                         cursor: "pointer",
                         "&::placeholder": { color: textSoft },
@@ -496,7 +506,7 @@ function header(ctx: LayoutContext): DomphyElement {
               width: ts(8.5),
               height: ts(8.5),
               cursor: "pointer",
-              fontSize: "16px",
+              fontSize: fixed("16px"),
               flexShrink: "0",
             },
           },
@@ -513,7 +523,7 @@ function header(ctx: LayoutContext): DomphyElement {
               width: ts(8.5),
               height: ts(8.5),
               cursor: "pointer",
-              fontSize: "16px",
+              fontSize: fixed("16px"),
               flexShrink: "0",
               display: "none",
               "@media (max-width: 860px)": { display: "block" },
@@ -530,6 +540,7 @@ function header(ctx: LayoutContext): DomphyElement {
       top: "0",
       height: headerH,
       background: bg,
+      color: text,
       borderBottom: `1px solid ${border}`,
       zIndex: "100",
       padding: `0 ${ts(6)}`,
@@ -560,9 +571,9 @@ function badgeEl(badge: NonNullable<SidebarItem["badge"]>): DomphyElement {
       display: "inline-block",
       padding: `${ts(0.5)} ${ts(1.75)}`,
       borderRadius: ts(2.5),
-      fontSize: "11px",
-      fontWeight: "700",
-      lineHeight: "1.4",
+      fontSize: fixed("11px"),
+      fontWeight: fixed("700"),
+      lineHeight: fixed("1.4"),
       whiteSpace: "nowrap",
       verticalAlign: "middle",
       background: bgMap[type] ?? bgMute,
@@ -616,9 +627,9 @@ function sidebarGroup(group: SidebarItem): DomphyElement {
           border: "none",
           cursor: "pointer",
           color: textSoft,
-          fontSize: "14px",
+          fontSize: fixed("14px"),
           padding: `0 ${ts(1)}`,
-          lineHeight: "1",
+          lineHeight: fixed("1"),
           "&:hover": { color: text },
         },
       } as DomphyElement);
@@ -629,8 +640,8 @@ function sidebarGroup(group: SidebarItem): DomphyElement {
         display: "flex",
         alignItems: "center",
         gap: ts(1.5),
-        fontSize: "13px",
-        fontWeight: "700",
+        fontSize: fixed("13px"),
+        fontWeight: fixed("700"),
         color: textStrong,
         margin: `${ts(2)} 0 ${ts(1)}`,
       },
@@ -644,10 +655,10 @@ function sidebarGroup(group: SidebarItem): DomphyElement {
         itemsEl.push({
           div: item.text,
           style: {
-            fontSize: "12px",
+            fontSize: fixed("12px"),
             color: textSoft,
             padding: `${ts(1)} ${ts(3)}`,
-            fontWeight: "600",
+            fontWeight: fixed("600"),
           },
         } as DomphyElement);
         for (const leaf of item.items) {
@@ -691,20 +702,21 @@ function sidebar(ctx: LayoutContext): DomphyElement {
       maxHeight: `calc(100vh - ${headerH})`,
       overflowY: "auto",
       padding: `${ts(6)} ${ts(3)} ${ts(12)} ${ts(6)}`,
+      color: text,
       borderRight: `1px solid ${border}`,
       "& a": {
         display: "flex",
         alignItems: "center",
         gap: ts(1.5),
         padding: `${ts(1.25)} ${ts(3)}`,
-        fontSize: "14px",
+        fontSize: fixed("14px"),
         color: textSoft,
         borderRadius: ts(1.5),
       },
-      "& a:hover": { color: text, textDecoration: "none" },
+      "& a:hover": { color: text, textDecoration: fixed("none") },
       "& a[aria-current='page']": {
         color: brand,
-        fontWeight: "600",
+        fontWeight: fixed("600"),
         background: bgSoft,
       },
       "@media (max-width: 860px)": {
@@ -740,7 +752,7 @@ function tocAside(ctx: LayoutContext): DomphyElement | null {
     aside: [
       {
         div: tocTitle,
-        style: { fontWeight: "700", marginBottom: ts(2), color: text },
+        style: { fontWeight: fixed("700"), marginBottom: ts(2), color: text },
       },
       {
         nav: entries.map((e) => ({
@@ -751,7 +763,7 @@ function tocAside(ctx: LayoutContext): DomphyElement | null {
             padding: `${ts(0.75)} 0`,
             color: textSoft,
             paddingLeft: indentMap[e.level] ?? "0",
-            "&:hover": { color: brand, textDecoration: "none" },
+            "&:hover": { color: brand, textDecoration: fixed("none") },
           },
         })),
       },
@@ -762,7 +774,7 @@ function tocAside(ctx: LayoutContext): DomphyElement | null {
       maxHeight: `calc(100vh - ${headerH})`,
       overflowY: "auto",
       padding: `${ts(8)} ${ts(6)}`,
-      fontSize: "13px",
+      fontSize: fixed("13px"),
     },
   };
 }
@@ -791,9 +803,9 @@ function prevNext(ctx: LayoutContext): DomphyElement | null {
     padding: `${ts(3)} ${ts(4)}`,
     border: `1px solid ${border}`,
     borderRadius: ts(2),
-    fontWeight: "600",
+    fontWeight: fixed("600"),
     flex: "1",
-    "&:hover": { borderColor: brand, textDecoration: "none" },
+    "&:hover": { borderColor: brand, textDecoration: fixed("none") },
   });
   return {
     nav: [
@@ -805,8 +817,8 @@ function prevNext(ctx: LayoutContext): DomphyElement | null {
                 style: {
                   display: "block",
                   color: textSoft,
-                  fontWeight: "400",
-                  fontSize: "12px",
+                  fontWeight: fixed("400"),
+                  fontSize: fixed("12px"),
                 },
               },
               { span: prev.text },
@@ -823,8 +835,8 @@ function prevNext(ctx: LayoutContext): DomphyElement | null {
                 style: {
                   display: "block",
                   color: textSoft,
-                  fontWeight: "400",
-                  fontSize: "12px",
+                  fontWeight: fixed("400"),
+                  fontSize: fixed("12px"),
                 },
               },
               { span: next.text },
@@ -878,7 +890,7 @@ function docFooter(ctx: LayoutContext): DomphyElement | null {
       href,
       target: "_blank",
       rel: "noopener noreferrer",
-      style: { fontWeight: "500", fontSize: "13px" },
+      style: { fontWeight: fixed("500"), fontSize: fixed("13px") },
     } as DomphyElement);
   }
   return {
@@ -891,7 +903,7 @@ function docFooter(ctx: LayoutContext): DomphyElement | null {
       marginTop: ts(8),
       paddingTop: ts(5),
       borderTop: `1px solid ${border}`,
-      fontSize: "13px",
+      fontSize: fixed("13px"),
       color: textSoft,
     },
   };
@@ -935,44 +947,44 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
     style: {
       maxWidth: maxWidth ?? contentMax,
       "& h1": {
-        fontSize: "30px",
-        fontWeight: "700",
-        lineHeight: "1.25",
+        fontSize: fixed("30px"),
+        fontWeight: fixed("700"),
+        lineHeight: fixed("1.25"),
         margin: `0 0 ${ts(6)}`,
-        letterSpacing: "-.02em",
+        letterSpacing: fixed("-.02em"),
         color: textStrong,
       },
       "& h2": {
-        fontSize: "22px",
-        fontWeight: "700",
+        fontSize: fixed("22px"),
+        fontWeight: fixed("700"),
         margin: `${ts(11)} 0 ${ts(4)}`,
         paddingTop: ts(5),
         borderTop: `1px solid ${border}`,
-        letterSpacing: "-.01em",
+        letterSpacing: fixed("-.01em"),
         color: textStrong,
       },
       "& h3": {
-        fontSize: "18px",
-        fontWeight: "600",
+        fontSize: fixed("18px"),
+        fontWeight: fixed("600"),
         margin: `${ts(7)} 0 ${ts(3)}`,
         color: textStrong,
       },
       "& h4": {
-        fontSize: "16px",
-        fontWeight: "600",
+        fontSize: fixed("16px"),
+        fontWeight: fixed("600"),
         margin: `${ts(5.5)} 0 ${ts(2)}`,
         color: textStrong,
       },
       "& p": { margin: `${ts(4)} 0` },
-      "& ul, & ol": { margin: `${ts(4)} 0`, paddingLeft: "1.4em" },
+      "& ul, & ol": { margin: `${ts(4)} 0`, paddingLeft: ts(5.6) },
       "& li": { margin: `${ts(1.5)} 0` },
-      "& a": { fontWeight: "500" },
+      "& a": { fontWeight: fixed("500") },
       "& a[target='_blank']::after": {
         content: '" ↗"',
-        fontSize: ".75em",
+        fontSize: fixed(".75em"),
         opacity: ".6",
       },
-      "& strong": { fontWeight: "600", color: textStrong },
+      "& strong": { fontWeight: fixed("600"), color: textStrong },
       "& em": { fontStyle: "italic" },
       "& mark": {
         background: `color-mix(in srgb,${tc("shift-6", "warning")} 40%,${bg})`,
@@ -980,8 +992,8 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
         padding: `${ts(0.25)} ${ts(0.75)}`,
         borderRadius: ts(0.75),
       },
-      "& sup": { fontSize: ".75em", verticalAlign: "super" },
-      "& sub": { fontSize: ".75em", verticalAlign: "sub" },
+      "& sup": { fontSize: fixed(".75em"), verticalAlign: "super" },
+      "& sub": { fontSize: fixed(".75em"), verticalAlign: "sub" },
       "& del": { opacity: ".5" },
       "& blockquote": {
         margin: `${ts(4)} 0`,
@@ -996,8 +1008,8 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
         margin: `${ts(8)} 0`,
       },
       "& :not(pre)>code": {
-        fontFamily: `ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace`,
-        fontSize: ".85em",
+        fontFamily: fixed(`ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace`),
+        fontSize: fixed(".85em"),
         background: bgMute,
         padding: `${ts(0.75)} ${ts(1.5)}`,
         borderRadius: ts(1),
@@ -1008,11 +1020,11 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
         background: bgSoft,
         borderRadius: ts(2),
         overflowX: "auto",
-        fontSize: "13.5px",
-        lineHeight: "1.5",
+        fontSize: fixed("13.5px"),
+        lineHeight: fixed("1.5"),
       },
       "& pre code": {
-        fontFamily: `ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace`,
+        fontFamily: fixed(`ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace`),
         background: "none",
         padding: "0",
       },
@@ -1032,7 +1044,7 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
         padding: `${ts(2)} ${ts(3.5)}`,
         textAlign: "left",
       },
-      "& th": { background: bgSoft, fontWeight: "600" },
+      "& th": { background: bgSoft, fontWeight: fixed("600") },
     },
   } as DomphyElement;
 }
@@ -1097,7 +1109,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
           padding: `${ts(6)} ${ts(12)}`,
           borderTop: `1px solid ${border}`,
           color: textSoft,
-          fontSize: "13px",
+          fontSize: fixed("13px"),
         },
       } as DomphyElement);
 
@@ -1163,10 +1175,10 @@ function heroSection(hero: HeroConfig): DomphyElement {
     textChildren.push({
       div: hero.name,
       style: {
-        fontSize: "56px",
-        fontWeight: "800",
-        lineHeight: "1.1",
-        letterSpacing: "-.03em",
+        fontSize: fixed("56px"),
+        fontWeight: fixed("800"),
+        lineHeight: fixed("1.1"),
+        letterSpacing: fixed("-.03em"),
         background: `linear-gradient(120deg,${brand},${tc("shift-7", "secondary")})`,
         WebkitBackgroundClip: "text",
         backgroundClip: "text",
@@ -1177,8 +1189,8 @@ function heroSection(hero: HeroConfig): DomphyElement {
     textChildren.push({
       h1: hero.text,
       style: {
-        fontSize: "30px",
-        fontWeight: "700",
+        fontSize: fixed("30px"),
+        fontWeight: fixed("700"),
         margin: `${ts(3)} 0 0`,
         color: textStrong,
       },
@@ -1187,7 +1199,7 @@ function heroSection(hero: HeroConfig): DomphyElement {
     textChildren.push({
       p: hero.tagline,
       style: {
-        fontSize: "18px",
+        fontSize: fixed("18px"),
         color: textSoft,
         maxWidth: hasImage ? "none" : ts(160),
         margin: hasImage ? `${ts(5)} 0 0` : `${ts(5)} auto 0`,
@@ -1199,21 +1211,21 @@ function heroSection(hero: HeroConfig): DomphyElement {
         return {
           padding: `${ts(2.5)} ${ts(5.5)}`,
           borderRadius: ts(5.5),
-          fontWeight: "600",
-          fontSize: "15px",
+          fontWeight: fixed("600"),
+          fontSize: fixed("15px"),
           background: brand,
           color: bg,
-          "&:hover": { background: brandHover, textDecoration: "none" },
+          "&:hover": { background: brandHover, textDecoration: fixed("none") },
         };
       return {
         padding: `${ts(2.5)} ${ts(5.5)}`,
         borderRadius: ts(5.5),
-        fontWeight: "600",
-        fontSize: "15px",
+        fontWeight: fixed("600"),
+        fontSize: fixed("15px"),
         background: bgSoft,
         color: text,
         border: `1px solid ${border}`,
-        "&:hover": { borderColor: brand, textDecoration: "none" },
+        "&:hover": { borderColor: brand, textDecoration: fixed("none") },
       };
     };
     textChildren.push({
@@ -1300,7 +1312,7 @@ function featuresSection(features: FeatureConfig[]): DomphyElement {
           typeof f.icon === "string"
             ? ({
                 div: f.icon,
-                style: { fontSize: "28px", marginBottom: ts(3) },
+                style: { fontSize: fixed("28px"), marginBottom: ts(3) },
               } as DomphyElement)
             : ({
                 div: [f.icon],
@@ -1311,8 +1323,8 @@ function featuresSection(features: FeatureConfig[]): DomphyElement {
       inner.push({
         div: f.title,
         style: {
-          fontWeight: "700",
-          fontSize: "17px",
+          fontWeight: fixed("700"),
+          fontSize: fixed("17px"),
           marginBottom: ts(2),
           color: textStrong,
         },
@@ -1320,15 +1332,16 @@ function featuresSection(features: FeatureConfig[]): DomphyElement {
       inner.push({
         p: f.details,
         style: {
-          fontSize: "14px",
+          fontSize: fixed("14px"),
           color: textSoft,
           margin: "0",
-          lineHeight: "1.5",
+          lineHeight: fixed("1.5"),
         },
       } as DomphyElement);
       const featureStyle = {
         padding: ts(5),
         background: bgSoft,
+        color: text,
         border: `1px solid ${border}`,
         borderRadius: ts(3),
       };
@@ -1343,7 +1356,7 @@ function featuresSection(features: FeatureConfig[]): DomphyElement {
             style: {
               display: "block",
               color: "inherit",
-              "&:hover": { textDecoration: "none" },
+              "&:hover": { textDecoration: fixed("none") },
               "&:hover > div": { borderColor: brand },
             },
           } as DomphyElement)
@@ -1376,7 +1389,7 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
           padding: `${ts(6)} ${ts(12)}`,
           borderTop: `1px solid ${border}`,
           color: textSoft,
-          fontSize: "13px",
+          fontSize: fixed("13px"),
         },
       } as DomphyElement);
   // Backdrop: covers screen on mobile when the Primary nav drawer is open

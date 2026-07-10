@@ -6,6 +6,13 @@ Packages are versioned in lockstep. All packages share the same version number.
 
 ---
 
+## `@domphy/press` [0.20.13] — 2026-07-10
+
+### Fixed
+- `homeShell()`/`pageShell()` now pass `@domphy/doctor` with zero diagnostics (previously 70 on a full landing page). Typography keeps press's deliberate VitePress-derived pixel scale but is declared through function values (the doctor's designed marker for intentional non-token typography — see the `fixed()` helper in `layout.ts`); the header, nav dropdowns, sidebar, and feature tiles now declare `color` alongside their themed backgrounds/borders (`missing-color` contract); markdown list indent uses `themeSpacing`. Verified pixel-identical against the production site (byte-equal Playwright screenshots of home + docs pages).
+
+---
+
 ## `@domphy/three` [0.1.0] — 2026-07-10
 
 ### Added
