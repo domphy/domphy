@@ -300,6 +300,87 @@ describe("two floating components sharing ONE anchor element", () => {
   });
 });
 
+describe("floating a11y and theming", () => {
+  it("Escape pressed while focus is INSIDE the panel closes the popover", () => {
+    vi.useFakeTimers();
+    const { host } = render({
+      div: [
+        {
+          button: "trigger",
+          class: "anchor",
+          $: [popover({ content: { div: [{ button: "Inside" }] } })],
+        },
+      ],
+    } as DomphyElement);
+    const trigger = host.querySelector(".anchor") as HTMLElement;
+
+    trigger.click();
+    vi.advanceTimersByTime(OPEN_DELAY);
+    flushSync();
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+
+    // Keydown on the inner button — the panel is a portaled DOM SIBLING of
+    // the anchor, so this never bubbles to the anchor's own Escape handler.
+    const inner = Array.from(overlay(host)!.querySelectorAll("button")).find(
+      (candidate) => candidate.textContent === "Inside",
+    )!;
+    inner.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    vi.advanceTimersByTime(OPEN_DELAY);
+    flushSync();
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("each panel inherits data-theme from ITS OWN anchor's scope, not from whichever anchor opened first", () => {
+    vi.useFakeTimers();
+    const { host } = render({
+      div: [
+        {
+          div: [
+            {
+              button: "dark trigger",
+              class: "dark-anchor",
+              $: [popover({ content: { div: "DARK_PANEL" } })],
+            },
+          ],
+          dataTheme: "dark",
+        },
+        {
+          div: [
+            {
+              button: "light trigger",
+              class: "light-anchor",
+              $: [popover({ content: { div: "LIGHT_PANEL" } })],
+            },
+          ],
+          dataTheme: "light",
+        },
+      ],
+    } as DomphyElement);
+
+    (host.querySelector(".dark-anchor") as HTMLElement).click();
+    vi.advanceTimersByTime(OPEN_DELAY);
+    flushSync();
+    const darkPanel = Array.from(overlay(host)!.children).find((child) =>
+      child.textContent?.includes("DARK_PANEL"),
+    )!;
+    expect(darkPanel.closest("[data-theme]")?.getAttribute("data-theme")).toBe(
+      "dark",
+    );
+
+    (host.querySelector(".light-anchor") as HTMLElement).click();
+    vi.advanceTimersByTime(OPEN_DELAY);
+    flushSync();
+    const lightPanel = Array.from(overlay(host)!.children).find((child) =>
+      child.textContent?.includes("LIGHT_PANEL"),
+    )!;
+    expect(
+      lightPanel.closest("[data-theme]")?.getAttribute("data-theme"),
+    ).toBe("light");
+  });
+});
+
 describe("floating listener hygiene", () => {
   it("popover: every root-level click listener added is removed when the anchor is removed", () => {
     vi.useFakeTimers();

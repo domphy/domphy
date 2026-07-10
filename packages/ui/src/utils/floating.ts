@@ -151,7 +151,11 @@ function createFloating(props: {
           middleware: [offset(12), flip(), shift()],
           strategy: "fixed",
         }).then(({ x, y, placement: resolved }) => {
-          Object.assign((floating as HTMLElement).style, {
+          // Teardown can run while computePosition's async work is in
+          // flight (it nulls `floating` and removes the panel) — skip the
+          // late positioning instead of dereferencing null.
+          if (!floating) return;
+          Object.assign(floating.style, {
             left: `${x}px`,
             top: `${y}px`,
           });
@@ -184,7 +188,29 @@ function createFloating(props: {
       visibility: (listener) =>
         openState.get(listener) ? "visible" : "hidden",
     },
-    _onMount: (node) => (floating = node.domElement as HTMLElement),
+    // Escape must dismiss the panel from INSIDE it too: the content is
+    // portaled as a DOM sibling of the anchor, so a keydown on a focused
+    // element within the panel (menu item, calendar cell, footer button)
+    // never bubbles to the anchor's own Escape handler.
+    onKeyDown: (event) => {
+      if ((event as KeyboardEvent).key === "Escape") hide();
+    },
+    _onMount: (node) => {
+      floating = node.domElement as HTMLElement;
+      // Propagate data-theme from the trigger's ancestor so floating content
+      // inherits CSS variable scope. Stamped on the PANEL, not the shared
+      // overlay: the one overlay serves every floating component under the
+      // root, so an overlay-level stamp would let whichever anchor opened
+      // FIRST permanently impose its theme on later panels anchored under a
+      // different [data-theme] scope. Skipped when the content declares its
+      // own data-theme.
+      if (reference && floating && !floating.hasAttribute("data-theme")) {
+        const dataTheme = reference
+          .closest("[data-theme]")
+          ?.getAttribute("data-theme");
+        if (dataTheme) floating.setAttribute("data-theme", dataTheme);
+      }
+    },
     _portal: (rNode) => {
       let overlay = rNode.domElement!.querySelector(`#domphy-floating`);
       if (!overlay) {
@@ -200,20 +226,6 @@ function createFloating(props: {
         };
         const overlayNode = rNode.children!.insert(overlayEle) as ElementNode;
         overlay = overlayNode.domElement!;
-      }
-      // Propagate data-theme from the trigger's ancestor so floating content
-      // inherits CSS variable scope. The portal is inserted as a sibling of
-      // [data-theme] page components — without explicit propagation, themeColor()
-      // vars are undefined inside the portal → transparent popover backgrounds.
-      if (
-        reference &&
-        overlay instanceof HTMLElement &&
-        !overlay.hasAttribute("data-theme")
-      ) {
-        const dataTheme = reference
-          .closest("[data-theme]")
-          ?.getAttribute("data-theme");
-        if (dataTheme) overlay.setAttribute("data-theme", dataTheme);
       }
       return overlay;
     },

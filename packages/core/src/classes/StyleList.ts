@@ -57,13 +57,20 @@ export class StyleList {
           this.items.push(rule);
           for (const [k, v] of Object.entries(value)) {
             if (typeof v === "object" && v != null) {
+              // A further-nested selector block (whether it starts with '&'
+              // or is a plain descendant selector like ".icon") must be
+              // flattened as a sibling rule at THIS level, not re-processed
+              // as a rule nested inside `rule` -- `rule.styleList` is never
+              // rendered for a plain (non-@) selector (see StyleRule.render()),
+              // so inserting there silently drops the rule from the live
+              // stylesheet on client render, and re-running addCSS against the
+              // same already-fully-resolved `newSelector` duplicated the
+              // selector text inside itself. `getSelector` already joins `k`
+              // onto `currentSelector` correctly for both cases (concat for
+              // '&', descendant-space otherwise), so both cases resolve the
+              // same way: recurse on `this` with the fully-resolved selector.
               const newSelector = getSelector(k, currentSelector);
-              if (k.startsWith("&")) {
-                this.addCSS(v, newSelector);
-              } else {
-                const r = rule.styleList!.insertRule(newSelector);
-                r.styleList!.addCSS(v, newSelector);
-              }
+              this.addCSS(v, newSelector);
             } else {
               rule.insertStyle(k, v);
             }

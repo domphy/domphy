@@ -1,4 +1,8 @@
-import { BooleanAttributes, CamelAttributes } from "../constants.js";
+import {
+  BooleanAttributes,
+  CamelAttributes,
+  HtmlAttributeNames,
+} from "../constants.js";
 import { camelToKebab, escapeHTML } from "../helpers.js";
 import type { AttributeValue } from "../types.js";
 import type { ElementNode } from "./ElementNode.js";
@@ -19,12 +23,25 @@ export class ElementAttribute {
   readonly isBoolean: boolean;
   private readonly enumeratedBoolean?: readonly [string, string];
   value: any;
+  // The value exactly as declared by the caller, kept verbatim (a reactive
+  // function stays a function here) — unlike `value`, which always holds the
+  // current RESOLVED primitive. AttributeList.addClass() reads this to detect
+  // whether the existing "class" binding is reactive and, if so, to compose
+  // with the original function instead of freezing at its last-resolved
+  // string.
+  declaredValue: AttributeValue = undefined;
   parent: ElementNode;
   _notifier = new Notifier();
   // Release handles for the reactive listener's state subscriptions, so a
   // re-set (e.g. patch() replacing a reactive value) can drop the old listener
   // instead of leaking it on the long-lived State until node removal.
   private _releases: (() => void)[] = [];
+  // Whether the BeforeRemove hook that drains _releases has been registered.
+  // It must register at most ONCE per attribute: patch() re-sets every
+  // reactive attribute on every reuse, and ElementNode.addHook COMPOSES hooks,
+  // so an unguarded registration would grow the node's BeforeRemove chain by
+  // one closure per subscription per patch for the node's whole life.
+  private _removeHooked = false;
 
   constructor(name: string, value: any, parent: any) {
     this.parent = parent;
@@ -32,6 +49,8 @@ export class ElementAttribute {
     this.enumeratedBoolean = EnumeratedBooleanAttributes[name];
     if (CamelAttributes.includes(name)) {
       this.name = name;
+    } else if (Object.hasOwn(HtmlAttributeNames, name)) {
+      this.name = HtmlAttributeNames[name];
     } else {
       this.name = camelToKebab(name);
     }
@@ -71,6 +90,7 @@ export class ElementAttribute {
 
   set(value: AttributeValue): void {
     const prev = this.value;
+    this.declaredValue = value;
 
     // Drop any previous reactive subscription before (re)binding.
     if (this._releases.length) {
@@ -98,9 +118,16 @@ export class ElementAttribute {
 
       listener.onSubscribe = (release: () => void) => {
         this._releases.push(release);
-        if (this.parent) {
+        // One hook per attribute (see _removeHooked) — it drains whatever the
+        // CURRENT release list holds at removal time, so a single registration
+        // covers every later re-set/subscription.
+        if (this.parent && !this._removeHooked) {
+          this._removeHooked = true;
           this.parent.addHook("BeforeRemove", () => {
-            release();
+            for (const releaseSubscription of this._releases) {
+              releaseSubscription();
+            }
+            this._releases = [];
             listener = null;
           });
         }
@@ -132,6 +159,11 @@ export class ElementAttribute {
   }
 
   _dispose(): void {
+    // Release state subscriptions immediately — an attribute removed
+    // individually (AttributeList.remove) must not stay subscribed until the
+    // whole node's eventual removal.
+    for (const releaseSubscription of this._releases) releaseSubscription();
+    this._releases = [];
     this._notifier._dispose();
     this.value = null;
     this.parent = null as any;

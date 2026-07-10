@@ -32,6 +32,25 @@ export class ElementList {
       : new TextNode(element == null ? "" : String(element), this.owner);
   }
 
+  // Resolve the first item at or after `index` whose DOM node is an ACTUAL
+  // child of the owner's DOM element, for use as an insertBefore reference.
+  // The logical `items` array and the real DOM child list diverge: a portal
+  // item occupies a logical slot while its DOM lives wherever _portal() routed
+  // it, so a positional `childNodes[i]` (or a blind `items[i].domElement`)
+  // reference either points outside the owner (insertBefore throws
+  // NotFoundError) or drifts by the number of preceding portals (silently
+  // misplacing the node). Returns null when no such item exists (append).
+  _domReferenceAfter(index: number): Node | null {
+    const dom = this.owner.domElement;
+    if (!dom) return null;
+    for (let i = index; i < this.items.length; i++) {
+      const item = this.items[i];
+      const el = item instanceof ElementNode ? item.domElement : item.domText;
+      if (el && el.parentNode === dom) return el;
+    }
+    return null;
+  }
+
   _moveDomElement(node: NodeItem, index: number) {
     if (!this.owner || !this.owner.domElement) return;
     const dom = this.owner.domElement;
@@ -43,14 +62,8 @@ export class ElementList {
     // the node that should FOLLOW `el` in the new logical order by identity
     // instead — direction-agnostic and correct for forward and backward moves
     // (and for a move to the last slot, where there is no following node).
-    const following = this.items[index + 1];
-    const ref =
-      following instanceof ElementNode
-        ? following.domElement
-        : following instanceof TextNode
-          ? following.domText
-          : null;
-    if (el !== ref) dom.insertBefore(el, ref ?? null);
+    const ref = this._domReferenceAfter(index + 1);
+    if (el !== ref) dom.insertBefore(el, ref);
   }
 
   _swapDomElement(aNode: NodeItem, bNode: NodeItem) {
@@ -69,15 +82,37 @@ export class ElementList {
   }
 
   update(inputs: ElementInput[], updateDom = true, silent = false): void {
+    // Imperatively-inserted nodes (a direct children.insert() by app/patch
+    // code — e.g. a floating panel portaled under the root, or selectBox's
+    // inner tag list) are NOT part of the declared `inputs` and must survive
+    // reconciliation: from this method's point of view they'd otherwise be
+    // indistinguishable from stale leftovers and get pruned by the extras
+    // cleanup below on the very next unrelated re-render. Park them at the
+    // logical tail so positional reuse and the extras slice only ever see
+    // declared nodes (their real DOM position is untouched — logical order is
+    // an internal bookkeeping detail for them).
+    if (this.items.some((item) => item._imperative)) {
+      const declared = this.items.filter((item) => !item._imperative);
+      const imperative = this.items.filter((item) => item._imperative);
+      this.items = declared.concat(imperative);
+    }
+
     const oldItems = this.items.slice(); // snapshot for cleanup
 
-    // keyed lookup from old list
+    // Keyed lookup from old list. Skip imperative nodes (never reconciled) and
+    // nodes whose async removal is still in flight (_beforeRemoveFired — an
+    // exit animation awaiting done()): "resurrecting" a mid-removal node by
+    // key would let the original deferred done() later rip the reused node out
+    // of the live list and dispose it. A re-added key gets a FRESH node while
+    // the old one finishes exiting.
     const keyed = new Map<string | number, NodeItem>();
     for (const item of oldItems) {
       if (
         item instanceof ElementNode &&
         item.key !== null &&
-        item.key !== undefined
+        item.key !== undefined &&
+        !item._imperative &&
+        !item._beforeRemoveFired
       ) {
         keyed.set(item.key, item);
       }
@@ -134,7 +169,9 @@ export class ElementList {
           at.key == null &&
           at.tagName === tag &&
           oldSet.has(at) &&
-          !claimed.has(at)
+          !claimed.has(at) &&
+          !at._imperative &&
+          !at._beforeRemoveFired
         ) {
           at.parent = this.owner as any;
           at.patch(input as DomphyElement);
@@ -147,21 +184,30 @@ export class ElementList {
         // the DOM text node — this keeps reactive text like `(l) => "n:" +
         // s.get(l)` cheap and stable across updates.
         const at = this.items[i];
-        if (at instanceof TextNode && oldSet.has(at) && !claimed.has(at)) {
+        if (
+          at instanceof TextNode &&
+          oldSet.has(at) &&
+          !claimed.has(at) &&
+          !at._imperative
+        ) {
           at.setText(input == null ? "" : (input as string | number));
           claimed.add(at);
           continue;
         }
       }
 
-      claimed.add(this.insert(input, i, updateDom, true));
+      claimed.add(this.insert(input, i, updateDom, true, true));
     }
 
     // Remove leftover nodes beyond the new length. Iterate a SNAPSHOT (not a
     // `while length > inputs.length` loop): a removal may defer (async exit
     // animation), leaving the node in `items`, so a length-based loop would spin.
+    // Imperative nodes (parked at the tail above) are exempt — they are managed
+    // by whoever inserted them, not by this declared-inputs reconciliation.
     const extras = this.items.slice(inputs.length);
-    for (const node of extras) this.remove(node, updateDom, true);
+    for (const node of extras) {
+      if (!node._imperative) this.remove(node, updateDom, true);
+    }
     keyed.forEach((node) => this.remove(node, updateDom, true));
 
     // Warn (once per call-site) when an unkeyed list changes length — positional
@@ -190,6 +236,7 @@ export class ElementList {
     index?: number,
     updateDom = true,
     silent = false,
+    declared = false,
   ): NodeItem {
     const length = this.items.length;
     const finalIndex =
@@ -200,6 +247,11 @@ export class ElementList {
         ? length
         : index;
     const item = this._createNode(input);
+    // A node inserted by anything other than update()'s declared-inputs
+    // reconciliation (`declared` is only ever passed by update) is imperative:
+    // reconciliation must neither positionally reuse it nor prune it as a
+    // stale extra — see update().
+    item._imperative = !declared;
     this.items.splice(finalIndex, 0, item);
 
     if (item instanceof ElementNode) {
@@ -213,7 +265,10 @@ export class ElementList {
           domElement && item.render(domElement);
         } else {
           const domNode = item._createDOMNode();
-          const ref = domElement.childNodes[finalIndex] ?? null;
+          // Reference by logical successor, not childNodes[finalIndex] — a
+          // portal item earlier in `items` has no DOM slot here, so a raw
+          // positional index drifts and silently misplaces the new node.
+          const ref = this._domReferenceAfter(finalIndex + 1);
           domElement.insertBefore(domNode, ref);
           const root = domElement.getRootNode();
           const styleParent = root instanceof ShadowRoot ? root : document.head;
@@ -234,7 +289,7 @@ export class ElementList {
       const domElement = this.owner.domElement;
       if (updateDom && domElement) {
         const domNode = item._createDOMNode();
-        const ref = domElement.childNodes[finalIndex] ?? null;
+        const ref = this._domReferenceAfter(finalIndex + 1);
         domElement.insertBefore(domNode, ref);
       }
     }

@@ -3,6 +3,9 @@ import type { ElementNode } from "./ElementNode.js";
 
 export class TextNode {
   type = "TextNode";
+  // True when inserted imperatively (a direct children.insert()) rather than
+  // by declared-inputs reconciliation — see ElementList.update()/insert().
+  _imperative = false;
   parent: ElementNode;
   text: string;
   domText?: ChildNode;

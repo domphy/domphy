@@ -6,6 +6,22 @@ import { afterEach, describe, expect, it } from "vitest";
 import { confetti, confettiButton } from "../../../src/magicui/effects/confetti.js";
 import type { ConfettiHandle } from "../../../src/magicui/effects/confetti.js";
 
+// jsdom ships no canvas implementation: getContext() returns null, and
+// canvas-confetti's animation loop (started by confetti()'s default
+// autoFire: true the moment the canvas mounts) crashes on context.clearRect
+// as an unhandled async error AFTER the tests pass. Hand it a no-op 2D
+// context so the real default path runs harmlessly.
+const noopCanvasContext = new Proxy(
+  {},
+  {
+    get: (_target, property) =>
+      property === "canvas" ? undefined : () => {},
+    set: () => true,
+  },
+);
+HTMLCanvasElement.prototype.getContext = (() =>
+  noopCanvasContext) as typeof HTMLCanvasElement.prototype.getContext;
+
 function render(app: DomphyElement) {
   const host = document.createElement("div");
   document.body.appendChild(host);

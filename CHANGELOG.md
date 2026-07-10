@@ -6,6 +6,41 @@ Packages are versioned in lockstep. All packages share the same version number.
 
 ---
 
+## Unreleased
+
+Audit wave: a multi-agent bug audit of `@domphy/core` + `@domphy/ui` overlays (every finding adversarially verified, then fixed with regression tests).
+
+### Fixed — `@domphy/core`
+
+- `ElementNode.patch()` treated nullish declared content (`{ div: null }`) as "remove all children" while construction treats it as "no children declared" — any ancestor re-render silently wiped children a patch inserted imperatively in `_onInit` (selectBox's tag list, combobox's tags + input). Nullish content now leaves children alone in both paths.
+- `ElementList`: nodes inserted imperatively via `children.insert()` (floating panels, `_onInit` subtrees) were pruned as "stale extras" by the next declared-children reconciliation of the same list, and portal items (logical slot in `items`, DOM elsewhere) made positional DOM references drift — keyed reorders next to a portal threw `NotFoundError`, and `insert()` silently misplaced nodes. Imperative nodes are now exempt from reconciliation (`_imperative`), and DOM references resolve via the first logical successor actually parented under the owner.
+- `ElementList`: re-adding a `_key` while the old node's async `_onBeforeRemove` exit animation was still awaiting `done()` "resurrected" the exiting node — then the stale `done()` destroyed the live, freshly-patched node. A re-added key now gets a fresh node; the ghost finishes exiting independently.
+- `computed()`: a plain untracked `.get()` between a dependency write and the deferred reaction (trivially reachable via a state listener that reads the computed, or `flushSync`) recomputed silently and turned the queued notify-job into a no-op — already-subscribed downstream listeners (DOM bindings) never learned the value changed, permanently. A dirty read with subscribers now notifies through the normal equality-short-circuited path.
+- `ElementNode._setupFunctionChildren()`: re-setup on every `patch()` re-registered the children-release `BeforeRemove` hook (hook chain grew one closure per re-render for the node's life) and kept only the LAST dependency's release handle — stale subscriptions kept re-running an old generation's children closure. One hook per node; all releases accumulated and released together.
+- `ElementAttribute`: same unbounded `BeforeRemove` hook growth for reactive (function-valued) attributes on every `patch()` of a reused node.
+- Multi-word HTML attributes (`contentEditable`, `maxLength`, `tabIndex`, …) were kebab-cased into nonexistent attribute names (`content-editable`); `aria-*`/`data-*` stay kebab. `AttributeList.remove()` also removed the un-kebab-cased name, leaving the real DOM attribute stuck.
+- `AttributeList.addClass()` over a reactive class froze it (the "current class is reactive" branch was dead code).
+- `StyleList`: a doubly-nested non-`&` selector emitted malformed/duplicated CSS and never reached the live stylesheet on client render.
+- `StyleProperty`: only the last reactive subscription's release handle was kept — a style function reading multiple states leaked all earlier subscriptions.
+- `Notifier`: state/event names colliding with `Object.prototype` properties (`constructor`, `hasOwnProperty`, …) crashed `addListener`.
+- `effectScope()`: `run()` after `stop()` silently created permanently-inert effects (disposed before their first run). They now register to the enclosing scope, with a dev warning.
+- `sanitizeHTMLString()` stripped `on*` handlers and `javascript:` URLs but not `<script>` tags — reachable XSS in SSR output for inline-HTML strings. `isHTML()` missed multi-line single-element strings (no dotAll), silently escaping intended markup.
+- `deepClone()`: the class-instance bailout ran before the `Date`/`RegExp`/`Map`/`Set`/typed-array branches, making them dead code — those built-ins were shared by reference instead of cloned.
+- `removeClass()`/`toggleClass()` on an element with no class stringified `undefined` into a literal `"undefined"` class token.
+
+### Fixed — `@domphy/ui`
+
+- Floating (popover/tooltip/selectBox/combobox/datePicker): two DIFFERENT floating components sharing one anchor (a button with a tooltip that opens a popover) evicted each other's live panel on every interaction, and the evicted instance was left permanently dead (`mounted` stuck true with its panel removed). Teardown slots are now keyed per component kind, and teardown leaves the closure re-mountable.
+- Floating: Escape pressed while focus was INSIDE the panel (menu item, calendar cell) was silently swallowed — the panel is a portaled sibling of the anchor, so the keydown never reached the anchor's handler. The panel now handles Escape itself.
+- Floating: `data-theme` was stamped once on the shared `#domphy-floating` overlay by whichever anchor opened FIRST, permanently imposing that theme on later panels anchored under a different `[data-theme]` scope. The theme is now stamped per panel from its own anchor's scope.
+
+### Added
+
+- `packages/ui/tests/floating-lifecycle-matrix.test.ts`: lifecycle matrix driving every `createFloating()` consumer through mount / re-render / mid-open re-render / anchor removal / shared-anchor transitions, plus listener-hygiene and Escape/theming coverage.
+- `AGENTS.md`: "Reused-node lifecycle — the gotchas" section documenting the reuse contract that produced this bug class.
+
+---
+
 ## `@domphy/ui` [0.18.18] — 2026-07-10
 
 ### Fixed

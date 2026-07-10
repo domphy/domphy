@@ -91,6 +91,18 @@ export function hashString(str: string = ""): string {
   return String.fromCharCode(97 + (hash % 26)) + hash.toString(16);
 }
 
+// Normalizes `val` into a State-like object exposing `.get()`.
+//
+// WARNING: if `val` is already a State or any ReadableState (including the
+// output of `readonly()`/`computed()`), it is returned UNCHANGED — even
+// though the return type says `State<T>`. A ReadableState that isn't
+// actually a `State` instance has no `.set()` method at runtime; calling
+// `.set()` on the value returned by `toState()` is only safe when you know
+// `val` was not already a read-only source. This is by design — a
+// read-only source must stay read-only — so `toState` never fabricates a
+// `.set()`. Callers that need to write must either accept a plain value (so
+// `toState` allocates a fresh, writable `State`) or check `isState`/inspect
+// the source before calling `.set()`.
 export function toState<T>(
   val: T | State<T> | ReadableState<T>,
   name?: string,

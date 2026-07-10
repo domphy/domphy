@@ -57,9 +57,6 @@ export function deepClone(value: any, seen = new WeakMap()): any {
   if (typeof value === "function") return value;
   if (seen.has(value)) return seen.get(value);
 
-  const proto = Object.getPrototypeOf(value);
-  if (proto !== Object.prototype && !Array.isArray(value)) return value; // ignore class instance
-
   let clone: any;
 
   if (Array.isArray(value)) {
@@ -69,6 +66,9 @@ export function deepClone(value: any, seen = new WeakMap()): any {
     return clone;
   }
 
+  // These built-in types must be checked BEFORE the class-instance bailout
+  // below, otherwise their prototype (not Object.prototype) makes the
+  // bailout return them by reference and these branches become dead code.
   if (value instanceof Date) return new Date(value);
   if (value instanceof RegExp) return new RegExp(value);
   if (value instanceof Map) {
@@ -90,6 +90,9 @@ export function deepClone(value: any, seen = new WeakMap()): any {
   if (value instanceof ArrayBuffer) {
     return value.slice(0);
   }
+
+  const proto = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype) return value; // ignore class instance (State, ElementNode, ...)
 
   clone = Object.create(proto);
   seen.set(value, clone);
@@ -153,20 +156,33 @@ export function validate(
 }
 
 export function isHTML(str: string): boolean {
-  return /<([a-z][\w-]*)(\s[^>]*)?>.*<\/\1>|<([a-z][\w-]*)(\s[^>]*)?\/>/i.test(
+  // `s` (dotAll) flag: `.` must also match newlines, otherwise a paired-tag
+  // string with content spanning multiple lines (e.g. "<div>\nfoo\n</div>")
+  // fails to match and falls through to the plain-text/escaped path.
+  return /<([a-z][\w-]*)(\s[^>]*)?>.*<\/\1>|<([a-z][\w-]*)(\s[^>]*)?\/>/is.test(
     str.trim(),
   );
 }
 
-// Strip event-handler attributes and javascript: URLs from an HTML string.
-// Works in both SSR (no DOM) and client contexts. Not a full sanitizer — it
-// removes the most common XSS vectors so user-generated strings passed as
-// inline HTML content can't execute arbitrary code.
+// Strip <script> elements, event-handler attributes, and javascript: URLs
+// from an HTML string. Works in both SSR (no DOM) and client contexts. Not a
+// full sanitizer — it removes the most common XSS vectors so user-generated
+// strings passed as inline HTML content can't execute arbitrary code.
 export function sanitizeHTMLString(html: string): string {
+  // Remove <script>...</script> elements entirely (paired form), including
+  // multi-line bodies. Case-insensitive: the tag name is case-insensitive.
+  let result = html.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
+  // Self-closing form (e.g. <script src="evil.js"/>) — not valid HTML5 but
+  // strip it defensively before the unclosed catch-all below, otherwise the
+  // catch-all would swallow everything after it too.
+  result = result.replace(/<script\b[^>]*\/>/gi, "");
+  // Unclosed form (opening tag with no matching </script>) — strip from the
+  // tag to the end of the string since the real extent is unknowable.
+  result = result.replace(/<script\b[^>]*>[\s\S]*$/gi, "");
   // Remove on* event handler attributes (onclick, onerror, onload, …).
   // Case-insensitive: HTML attribute names are case-insensitive, so
   // ONERROR=/OnClick= must be stripped too, not just lowercase.
-  let result = html.replace(
+  result = result.replace(
     /\s+on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi,
     "",
   );
@@ -212,8 +228,10 @@ export function removeClass(element: PartialElement, className: string): void {
       return split.filter((e) => e !== className).join(" ");
     };
   } else {
-    const split = String(element.class).split(" ");
+    // Normalize BEFORE stringifying, otherwise a missing `class` stringifies
+    // to the literal "undefined" and pollutes the resulting class list.
     element.class ||= "";
+    const split = String(element.class).split(" ");
     element.class = split.filter((e) => e !== className).join(" ");
   }
 }
@@ -228,8 +246,10 @@ export function toggleClass(element: PartialElement, className: string): void {
         : split.concat([className]).join(" ");
     };
   } else {
-    const split = String(element.class).split(" ");
+    // Normalize BEFORE stringifying, otherwise a missing `class` stringifies
+    // to the literal "undefined" and pollutes the resulting class list.
     element.class ||= "";
+    const split = String(element.class).split(" ");
     element.class = split.includes(className)
       ? split.filter((e) => e !== className).join(" ")
       : split.concat([className]).join(" ");

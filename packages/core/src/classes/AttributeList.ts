@@ -48,6 +48,12 @@ export class AttributeList {
   remove(name: string): void {
     if (!this.items) return;
 
+    // Resolve the canonical DOM-facing name (e.g. "ariaCurrent" -> "aria-current")
+    // BEFORE disposing the ElementAttribute — removeAttribute() must use the
+    // same name render()/setAttribute() used, or the real DOM attribute is
+    // left stuck forever for any name camelToKebab()/HtmlAttributeNames changed.
+    const domName = this.items[name]?.name ?? name;
+
     if (this.items[name]) {
       this.items[name]._dispose();
       delete this.items[name];
@@ -58,7 +64,7 @@ export class AttributeList {
       this.parent.domElement &&
       this.parent.domElement instanceof Element
     ) {
-      this.parent.domElement.removeAttribute(name);
+      this.parent.domElement.removeAttribute(domName);
     }
   }
 
@@ -97,8 +103,14 @@ export class AttributeList {
       return list.join(" ");
     };
 
-    const current = this.get("class");
-    const currentIsFn = typeof current === "function";
+    // Read the declared value (not the resolved `.value`) to detect whether
+    // the existing "class" binding is reactive — ElementAttribute.set()
+    // always invokes a function value immediately and stores only the
+    // resolved string as `.value`, so `.get("class")` can never itself be a
+    // function; `declaredValue` preserves the original reactive function.
+    const declared = this.items?.["class"]?.declaredValue;
+    const currentIsFn = typeof declared === "function";
+    const current = currentIsFn ? declared : this.get("class");
     const nextIsFn = typeof className === "function";
 
     // Neither side is reactive — merge as a plain string, same as before.

@@ -8,11 +8,16 @@ export class StyleProperty {
   cssName: string;
   value: StyleValue = "";
   parentRule: StyleRule;
-  // Release handle for the reactive listener's state subscription, so a re-set
-  // (e.g. StyleList.patchCSS() replacing a reactive value on a reused node) can
-  // drop the old listener instead of leaking it on the long-lived State until
-  // node removal. Mirrors ElementAttribute's `_releases` pattern.
-  private _release: (() => void) | null = null;
+  // Release handles for the reactive listener's state subscriptions, so a
+  // re-set (e.g. StyleList.patchCSS() replacing a reactive value on a reused
+  // node) can drop the old listener(s) instead of leaking them on the
+  // long-lived State(s) until node removal. A single reactive style function
+  // can subscribe to MULTIPLE states in one evaluation (e.g.
+  // `transform: (l) => \`translate(${x.get(l)}px, ${y.get(l)}px)\``), so
+  // onSubscribe can fire more than once per set() call -- every release must
+  // be kept, not just the last one. Mirrors ElementAttribute's `_releases`
+  // array pattern.
+  private _releases: (() => void)[] = [];
 
   constructor(name: string, value: StyleValue, parentRule: StyleRule) {
     this.name = name;
@@ -42,16 +47,20 @@ export class StyleProperty {
     }
   }
   _dispose(): void {
-    this._release?.();
-    this._release = null;
+    if (this._releases.length) {
+      for (const release of this._releases) release();
+      this._releases = [];
+    }
     this.value = "";
     this.parentRule = null as any;
   }
 
   set(value: StyleValue): void {
-    // Drop any previous reactive subscription before (re)binding.
-    this._release?.();
-    this._release = null;
+    // Drop any previous reactive subscription(s) before (re)binding.
+    if (this._releases.length) {
+      for (const release of this._releases) release();
+      this._releases = [];
+    }
 
     if (typeof value === "function") {
       let listener = (() => {
@@ -61,7 +70,7 @@ export class StyleProperty {
       }) as unknown as Listener;
 
       listener.onSubscribe = (release: () => void) => {
-        this._release = release;
+        this._releases.push(release);
       };
 
       listener.elementNode = this.parentRule!.root!;

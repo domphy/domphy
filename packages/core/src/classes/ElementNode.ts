@@ -24,9 +24,19 @@ import { StyleList } from "./StyleList.js";
 export class ElementNode {
   _disposed = false;
   _beforeRemoveFired = false;
+  // True when inserted imperatively (a direct children.insert() by app/patch
+  // code, e.g. a floating panel or an _onInit-inserted subtree) rather than by
+  // declared-inputs reconciliation — see ElementList.update()/insert().
+  _imperative = false;
   type = "ElementNode";
   parent: ElementNode | null = null;
   _childrenRelease?: () => void;
+  // Whether the BeforeRemove hook that releases `_childrenRelease` has been
+  // registered for this node. It must register at most ONCE per node: patch()
+  // re-runs _setupFunctionChildren on every reuse, and addHook COMPOSES hooks,
+  // so an unguarded registration would grow the hook chain by one closure per
+  // patch for the node's whole life.
+  _childrenReleaseHooked = false;
   _portal?: (root: ElementNode) => HTMLElement;
   tagName: TagName;
   children = new ElementList(this);
@@ -95,15 +105,30 @@ export class ElementNode {
     };
     listener!.elementNode = this;
     listener!.debug = `class:${this.tagName}_${this.nodeId} children`;
+    // onSubscribe fires once per Notifier the listener subscribes to — a
+    // children function reading N states yields N release handles. Keeping
+    // only the last one leaked the others: the stale subscriptions kept
+    // re-running an OLD generation's closure after patch() re-setup.
+    const releases: Array<() => void> = [];
     listener!.onSubscribe = (release: () => void) => {
+      releases.push(release);
       this._childrenRelease = () => {
-        release();
+        for (const releaseSubscription of releases) releaseSubscription();
+        releases.length = 0;
         listener = null;
       };
-      this.addHook("BeforeRemove", () => {
-        this._childrenRelease?.();
-        this._childrenRelease = undefined;
-      });
+      // Register the releasing hook once per NODE, not once per subscription
+      // or per patch() re-setup — addHook composes, so repeats would grow the
+      // BeforeRemove chain unboundedly on frequently re-rendered nodes. The
+      // hook body reads the CURRENT _childrenRelease dynamically, so one
+      // registration covers every later re-setup.
+      if (!this._childrenReleaseHooked) {
+        this._childrenReleaseHooked = true;
+        this.addHook("BeforeRemove", () => {
+          this._childrenRelease?.();
+          this._childrenRelease = undefined;
+        });
+      }
     };
     listener();
   }

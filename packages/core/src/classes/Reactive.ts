@@ -4,6 +4,7 @@ import {
   runUntracked,
   runWithCollector,
 } from "./Collector.js";
+import { __DEV__ } from "../dev.js";
 import {
   _microtask,
   flushPendingNotifiers,
@@ -130,6 +131,21 @@ class EffectScope implements EffectScopeHandle {
   }
 
   run<T>(fn: () => T): T {
+    if (this._stopped) {
+      // The scope is already stopped: pushing it back onto SCOPE_STACK would
+      // make every effect/computed created inside `fn` register into `_add`,
+      // which disposes late resources immediately (see above) BEFORE their
+      // first run — a permanently inert effect that never executes even once,
+      // with no error or warning. Instead, run `fn` without pushing this scope
+      // so any reactive resource created inside registers to whatever scope is
+      // currently enclosing (or the global/no scope), staying disposable.
+      if (__DEV__) {
+        console.warn(
+          "[Domphy] effectScope.run() called after stop() — resources created inside are registered to the enclosing scope instead of this stopped one.",
+        );
+      }
+      return fn();
+    }
     SCOPE_STACK.push(this);
     try {
       return fn();
@@ -279,7 +295,20 @@ export function computed<T>(fn: () => T): Computed<T> {
       const outer = activeCollector();
       if (outer) notifier.addListener(EVENT, outer.handler);
     }
-    if (dirty) recompute();
+    if (dirty) {
+      // A dirty read while downstream listeners exist must notify them, not
+      // just refresh the cache: a plain recompute() here flips `dirty` off, so
+      // the queued job() becomes a no-op and already-subscribed listeners
+      // (e.g. a DOM binding) would NEVER learn the value changed — any code
+      // reading the computed between a dependency write and the reaction
+      // drain (an untracked .get() in a state listener, or flushSync) would
+      // permanently swallow the update. recomputeAndNotify keeps the equality
+      // short-circuit, so an unchanged value still stays silent. The initial
+      // lazy compute (hasValue === false) must NOT notify — subscribers
+      // already receive the value as this call's return.
+      if (hasValue && notifier.listenerCount(EVENT) > 0) recomputeAndNotify();
+      else recompute();
+    }
     return cachedValue;
   };
 
