@@ -221,6 +221,14 @@ function three(
         return { width: rect.width, height: rect.height };
       };
       const initialSize = measureSize();
+      // The single most common integration mistake: a host div with no
+      // explicit height collapses to 0 and the canvas renders nothing, with
+      // no error anywhere. Warn once — a 0-height host is never intentional.
+      if (initialSize.height === 0) {
+        console.warn(
+          "[@domphy/three] three() host element has zero height — nothing will be visible. Give the host div an explicit height (e.g. style: { height: \"400px\" }).",
+        );
+      }
       root.setSize(initialSize.width, initialSize.height);
 
       const resizeObserver = new ResizeObserver((entries) => {
