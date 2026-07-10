@@ -160,9 +160,17 @@ describe("three() — renderer config (upstream: shadows/tonemapping/colorSpace)
 });
 
 describe("exports (upstream: 'matches public API')", () => {
-  it("matches SPEC.md Definition of done #6 exactly: three, extend, loadAsset, preloadAsset, clearAsset", () => {
+  it("matches SPEC.md Definition of done #6 exactly: three, extend, loadAsset, preloadAsset, clearAsset, diagnose, validate", () => {
     expect(Object.keys(ThreeBarrel).sort()).toEqual(
-      ["clearAsset", "extend", "loadAsset", "preloadAsset", "three"].sort(),
+      [
+        "clearAsset",
+        "diagnose",
+        "extend",
+        "loadAsset",
+        "preloadAsset",
+        "three",
+        "validate",
+      ].sort(),
     );
   });
 });

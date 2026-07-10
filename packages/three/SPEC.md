@@ -304,4 +304,17 @@ precedent — read `packages/chart/src/patch.ts` and follow its shape):
 4. `tests/PORT-NOTES.md` accounts for every reference test case not ported.
 5. No import from `three/addons` or `three/examples` anywhere in `src/`.
 6. Public exports exactly: `three`, `extend`, `loadAsset`, `preloadAsset`,
-   `clearAsset`, plus public types.
+   `clearAsset`, `diagnose`, `validate`, plus public types.
+
+## Scene diagnose (added 0.2.0)
+
+`diagnose(options)` / `validate(options)` — doctor's contract shape applied to
+the three() option object (which @domphy/doctor cannot see). Built-in rules,
+each from a real silent failure: `unknown-tag` (error — typo'd/unregistered
+tag throws at runtime), `legacy-light-intensity` (warning — point/spot
+intensity in the 0-1 legacy range; three r155+ physical units), `additive-blowout`
+(warning — additive points with size ≥ 4 and opacity ≥ 0.6),
+`camera-missing-lookat` (warning — off-axis camera position with no
+onCreated). Per-node suppression via `_doctorDisable: true | "rule-id" |
+string[]` — same convention as core elements. Reactive values are resolved
+with a no-op listener; values needing a live root are skipped, never guessed.

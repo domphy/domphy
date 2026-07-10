@@ -80,5 +80,31 @@ Mount `App` the same way you mount any Domphy tree (`new ElementNode(App).render
 | `<primitive object={existingObject} />` | `{ primitive: [], object: existingObject }` |
 | `extend({ MyClass }); <myClass />` | `extend({ MyClass }); { myClass: null }` |
 
+## Scene diagnose
+
+`@domphy/doctor` cannot see inside a `three()` option object, so the package
+carries its own analyzer with the same contract shape — built for AI
+self-correction: generate a scene, run `diagnose`, fix what it reports.
+
+```ts
+import { diagnose, validate } from "@domphy/three";
+
+const issues = diagnose({
+  camera: { position: [3, 8, -9] },              // camera-missing-lookat
+  scene: [
+    { pointLight: null, intensity: 0.8 },        // legacy-light-intensity
+    { boxGeometyr: null },                       // unknown-tag (error)
+  ],
+});
+validate(options).ok; // false only when error-severity issues exist
+```
+
+Every built-in rule comes from a real silent failure: `unknown-tag` (typo'd
+or unregistered tag throws at runtime), `legacy-light-intensity` (three
+r155+ physical units — a 0-1 point light is nearly invisible),
+`additive-blowout` (large bright additive points stack into white blobs),
+`camera-missing-lookat` (off-axis camera never aimed at its subject).
+Suppress per node with `_doctorDisable: true | "rule-id" | string[]`.
+
 See [`SPEC.md`](./SPEC.md) for the full locked scene grammar, function-prop
 dispatch rules, and module map.

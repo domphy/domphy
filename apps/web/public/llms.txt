@@ -432,6 +432,8 @@ First key = tag (camelCase of a THREE class, or a name registered via `extend()`
 
 Peer dep: `three >= 0.156`. Never imports from `three/addons` or `three/examples` (not even in tests) — that surface enters user-land via `extend()`. See `packages/three/SPEC.md` for the full locked contract and `packages/three/README.md` for a complete orbitControls recipe.
 
+Scene diagnose (0.2.0): `diagnose(options)` / `validate(options)` — doctor's contract shape applied to the three() option object (which @domphy/doctor cannot see). Rules from real silent failures: `unknown-tag` (error), `legacy-light-intensity` (three r155+ physical units), `additive-blowout`, `camera-missing-lookat`. Per-node suppression: `_doctorDisable: true | "rule-id" | string[]`. Built for AI self-correction: generate a scene → diagnose → fix what it reports.
+
 - [Overview](https://domphy.com/docs/three/) · [Scene Grammar](https://domphy.com/docs/three/grammar) · [Events](https://domphy.com/docs/three/events) · [Animation & Loop](https://domphy.com/docs/three/animation) · [Loading Assets](https://domphy.com/docs/three/assets) · [Recipes](https://domphy.com/docs/three/recipes) · 16 live playground examples under `/docs/three/examples/*` (spinning-cube, interactive-grid, wave-field, galaxy, orbit-viewer, theme-sync, ui-bridge, gltf-viewer, primitive-bridge, starfield-hero, dissolve, cursor-particles, neon-bloom, tunnel, synthwave-terrain, morph-particles)
 
 ## Scaffolder (`create-domphy`)

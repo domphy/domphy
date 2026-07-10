@@ -226,7 +226,7 @@ function three(
       // no error anywhere. Warn once — a 0-height host is never intentional.
       if (initialSize.height === 0) {
         console.warn(
-          "[@domphy/three] three() host element has zero height — nothing will be visible. Give the host div an explicit height (e.g. style: { height: \"400px\" }).",
+          '[@domphy/three] three() host element has zero height — nothing will be visible. Give the host div an explicit height (e.g. style: { height: "400px" }).',
         );
       }
       root.setSize(initialSize.width, initialSize.height);

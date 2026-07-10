@@ -1,6 +1,6 @@
 // Public barrel — SPEC.md "Definition of done" #6: exactly `three`, `extend`,
-// `loadAsset`, `preloadAsset`, `clearAsset`, plus the public types userland
-// code needs to author/type a scene (ThreeOptions/SceneNode grammar,
+// `loadAsset`, `preloadAsset`, `clearAsset`, `diagnose`, `validate`, plus the
+// public types userland code needs to author/type a scene (ThreeOptions/SceneNode grammar,
 // RootState, the renderer contract, and the pointer-event shapes onClick/
 // onPointerMove etc. hand back). Internal primitives (reconciler.ts's
 // create/patch/dispose, props.ts's applyProps/attach/detach, loop.ts's
@@ -10,6 +10,14 @@
 // its public surface.
 
 export { extend } from "./catalog.js";
+export type {
+  SceneDiagnoseOptions,
+  SceneDiagnostic,
+  SceneSeverity,
+  SceneValidationReport,
+  SceneValidationSummary,
+} from "./diagnose.js";
+export { diagnose, validate } from "./diagnose.js";
 export type {
   DomEvent,
   EventCaptureTarget,

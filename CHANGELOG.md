@@ -32,6 +32,14 @@ First npm publish (previously repo-only). Ships the post-QA-wave state: 173 bloc
 
 ---
 
+## `@domphy/three` [0.2.0] — 2026-07-10
+
+### Added
+- Scene-level static analyzer: `diagnose(options)` / `validate(options)` — @domphy/doctor's contract shape applied to the three() option object (which doctor cannot see). Built-in rules, each from a real silent failure in the domphy.com example gallery: `unknown-tag` (error — throws at runtime), `legacy-light-intensity` (three r155+ physical units), `additive-blowout` (additive points stacking to white), `camera-missing-lookat` (off-axis camera never aimed). Per-node suppression via `_doctorDisable`, `only`/`exclude` filtering, reactive values resolved with a no-op listener.
+- `three()` warns at mount when the host element has zero height (the most common blank-canvas mistake).
+
+---
+
 ## `domphy-web` [1.0.0] — 2026-07-10
 
 ### Added
