@@ -27,7 +27,12 @@
 //      straight from the current scroll fraction on each event — matching
 //      upstream's instantaneous 1:1 track (no smoothing/lerp).
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 
 export interface ScrollProgressProps {
@@ -63,7 +68,9 @@ function readScrollFraction(target: Element | Window): number {
   }
   const element = target as HTMLElement;
   const scrollable = element.scrollHeight - element.clientHeight;
-  return scrollable > 0 ? Math.min(1, Math.max(0, element.scrollTop / scrollable)) : 0;
+  return scrollable > 0
+    ? Math.min(1, Math.max(0, element.scrollTop / scrollable))
+    : 0;
 }
 
 /**
@@ -73,7 +80,8 @@ function readScrollFraction(target: Element | Window): number {
  */
 function scrollProgress(props: ScrollProgressProps = {}): DomphyElement<"div"> {
   const thickness = props.thickness ?? 0.25;
-  const colors = props.colors && props.colors.length > 0 ? props.colors : DEFAULT_COLORS;
+  const colors =
+    props.colors && props.colors.length > 0 ? props.colors : DEFAULT_COLORS;
   const zIndex = props.zIndex ?? 50;
 
   // Built through an untyped literal, then asserted, so `_doctorDisable` (a
@@ -92,7 +100,8 @@ function scrollProgress(props: ScrollProgressProps = {}): DomphyElement<"div"> {
       const element = node.domElement as HTMLElement | null;
       if (!element) return;
 
-      const getScrollTarget = (): Element | Window => props.target?.() ?? window;
+      const getScrollTarget = (): Element | Window =>
+        props.target?.() ?? window;
 
       // Instantaneous 1:1 track: write scaleX straight from the current scroll
       // fraction on every scroll/resize — no lerp/spring, matching upstream's

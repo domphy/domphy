@@ -19,12 +19,16 @@ function render(app: DomphyElement) {
 
 beforeEach(() => {
   if (!(HTMLDialogElement.prototype as any).showModal) {
-    (HTMLDialogElement.prototype as any).showModal = function (this: HTMLDialogElement) {
+    (HTMLDialogElement.prototype as any).showModal = function (
+      this: HTMLDialogElement,
+    ) {
       this.open = true;
     };
   }
   if (!(HTMLDialogElement.prototype as any).close) {
-    (HTMLDialogElement.prototype as any).close = function (this: HTMLDialogElement) {
+    (HTMLDialogElement.prototype as any).close = function (
+      this: HTMLDialogElement,
+    ) {
       this.open = false;
     };
   }
@@ -46,8 +50,12 @@ describe("sidebarOnRight", () => {
   it("renders the main content column before the sidebar in DOM order (mirrored to the right)", () => {
     const { host } = render(sidebarOnRight());
     const root = host.firstElementChild!;
-    const mainIndex = Array.from(root.children).findIndex((child) => child.tagName === "MAIN");
-    const asideIndex = Array.from(root.children).findIndex((child) => child.tagName === "ASIDE");
+    const mainIndex = Array.from(root.children).findIndex(
+      (child) => child.tagName === "MAIN",
+    );
+    const asideIndex = Array.from(root.children).findIndex(
+      (child) => child.tagName === "ASIDE",
+    );
 
     expect(mainIndex).toBeGreaterThanOrEqual(0);
     expect(asideIndex).toBeGreaterThan(mainIndex);
@@ -79,18 +87,28 @@ describe("sidebarOnRight", () => {
 
   it("marks active top-level and nested child links with aria-current=page", () => {
     const { host } = render(sidebarOnRight());
-    const activeLinks = Array.from(host.querySelectorAll('a[aria-current="page"]'));
+    const activeLinks = Array.from(
+      host.querySelectorAll('a[aria-current="page"]'),
+    );
     const activeLabels = activeLinks.map((link) => link.textContent);
 
-    expect(activeLabels.some((label) => label?.includes("Dashboard"))).toBe(true);
-    expect(activeLabels.some((label) => label?.includes("Explorer"))).toBe(true);
+    expect(activeLabels.some((label) => label?.includes("Dashboard"))).toBe(
+      true,
+    );
+    expect(activeLabels.some((label) => label?.includes("Explorer"))).toBe(
+      true,
+    );
   });
 
   it("accepts side: 'left' to fall back to the standard left-docked layout", () => {
     const { host } = render(sidebarOnRight({ side: "left" }));
     const root = host.firstElementChild!;
-    const mainIndex = Array.from(root.children).findIndex((child) => child.tagName === "MAIN");
-    const asideIndex = Array.from(root.children).findIndex((child) => child.tagName === "ASIDE");
+    const mainIndex = Array.from(root.children).findIndex(
+      (child) => child.tagName === "MAIN",
+    );
+    const asideIndex = Array.from(root.children).findIndex(
+      (child) => child.tagName === "ASIDE",
+    );
 
     expect(asideIndex).toBeLessThan(mainIndex);
   });

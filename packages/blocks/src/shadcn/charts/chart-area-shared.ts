@@ -26,18 +26,23 @@
 //     resolves the category itself from `dataIndex` against the caller's own
 //     data array instead of relying on it.
 
-import type { DomphyElement, Listener, PartialElement, ReadableState } from "@domphy/core";
+import type { ChartOption, GradientObject, TooltipParams } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type {
+  DomphyElement,
+  Listener,
+  PartialElement,
+  ReadableState,
+} from "@domphy/core";
 import { toState } from "@domphy/core";
 import {
+  type ThemeColor,
   themeColor,
   themeColorToken,
   themeSpacing,
-  type ThemeColor,
 } from "@domphy/theme";
-import { card, heading, icon, paragraph, small } from "@domphy/ui";
-import { chart } from "@domphy/chart";
-import type { ChartOption, GradientObject, TooltipParams } from "@domphy/chart";
-import { motion } from "@domphy/ui";
+import { card, heading, icon, motion, paragraph, small } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 
 // ─── Data shapes ───────────────────────────────────────────────────────────
 
@@ -111,10 +116,16 @@ export function generateChartAreaDailyData(
     date.setUTCDate(date.getUTCDate() - offset);
     const dayNumber = days - offset;
     const desktop = Math.round(
-      180 + 60 * Math.sin(dayNumber / 6) + 40 * Math.sin(dayNumber / 17) + dayNumber * 0.6,
+      180 +
+        60 * Math.sin(dayNumber / 6) +
+        40 * Math.sin(dayNumber / 17) +
+        dayNumber * 0.6,
     );
     const mobile = Math.round(
-      90 + 30 * Math.sin(dayNumber / 5 + 1.2) + 20 * Math.sin(dayNumber / 13) + dayNumber * 0.35,
+      90 +
+        30 * Math.sin(dayNumber / 5 + 1.2) +
+        20 * Math.sin(dayNumber / 13) +
+        dayNumber * 0.35,
     );
     points.push({
       date: date.toISOString().slice(0, 10),
@@ -125,7 +136,8 @@ export function generateChartAreaDailyData(
   return points;
 }
 
-export const CHART_AREA_DAILY_DATA: ChartAreaDailyPoint[] = generateChartAreaDailyData();
+export const CHART_AREA_DAILY_DATA: ChartAreaDailyPoint[] =
+  generateChartAreaDailyData();
 
 export interface ChartRangePreset {
   label: string;
@@ -164,7 +176,11 @@ function hexToRgbTriple(hex: string): [number, number, number] {
 // ECharts-compatible literal color strings, not reactive theme functions, so
 // this is the closest a chart-option value can get to "theme token, not a
 // hardcoded literal".
-export function chartColorRgba(role: ThemeColor, alpha: number, tone = "shift-9"): string {
+export function chartColorRgba(
+  role: ThemeColor,
+  alpha: number,
+  tone = "shift-9",
+): string {
   const [r, g, b] = hexToRgbTriple(themeColorToken(null, tone, role));
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
@@ -216,7 +232,11 @@ export const CHART_AREA_Y_AXIS_HIDDEN = {
 
 export function formatShortMonthDay(isoDate: string): string {
   const date = new Date(`${isoDate}T00:00:00Z`);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 // ─── Tooltip formatter ─────────────────────────────────────────────────────
@@ -241,7 +261,11 @@ function escapeHtml(text: string): string {
 const TOOLTIP_MUTED_COLOR = themeColorToken(null, "shift-9", "neutral");
 
 /** One tooltip series row: swatch + muted name (left), mono value (right). */
-export function chartAreaTooltipRow(swatch: string, label: string, value: string): string {
+export function chartAreaTooltipRow(
+  swatch: string,
+  label: string,
+  value: string,
+): string {
   return (
     `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">` +
     `<span style="display:flex;align-items:center;">${swatch}` +
@@ -285,7 +309,9 @@ export function chartAxisTooltipFormatter(
   return (paramsInput) => {
     const params = Array.isArray(paramsInput) ? paramsInput : [paramsInput];
     if (params.length === 0) return "";
-    const category = escapeHtml(categories[params[0].dataIndex] ?? params[0].name ?? "");
+    const category = escapeHtml(
+      categories[params[0].dataIndex] ?? params[0].name ?? "",
+    );
     const rows = params
       .map((p) => {
         const swatch =
@@ -360,8 +386,10 @@ export function chartLegendSwatch(color: ThemeColor): PartialElement {
       height: themeSpacing(2),
       borderRadius: themeSpacing(0.5),
       flexShrink: "0",
-      backgroundColor: (listener: Listener) => themeColor(listener, "shift-9", colorState.get(listener)),
-      color: (listener: Listener) => themeColor(listener, "shift-9", colorState.get(listener)),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "shift-9", colorState.get(listener)),
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-9", colorState.get(listener)),
     },
   };
 }
@@ -383,8 +411,17 @@ export interface ChartCardShellProps {
   color?: ThemeColor;
 }
 
-export function chartCardShell(props: ChartCardShellProps): DomphyElement<"div"> {
-  const { title, description, content, headerAside, footer, color = "neutral" } = props;
+export function chartCardShell(
+  props: ChartCardShellProps,
+): DomphyElement<"div"> {
+  const {
+    title,
+    description,
+    content,
+    headerAside,
+    footer,
+    color = "neutral",
+  } = props;
   const children: DomphyElement[] = [
     { h3: title, $: [heading()] },
     { p: description, $: [paragraph({ color: "neutral" })] },
@@ -410,7 +447,9 @@ export interface ChartTrendFooterProps {
 }
 
 /** Two-line footer: bold trend sentence + trailing trend icon, then a muted caption line. */
-export function chartTrendFooter(props: ChartTrendFooterProps): DomphyElement<"footer"> {
+export function chartTrendFooter(
+  props: ChartTrendFooterProps,
+): DomphyElement<"footer"> {
   const {
     trendText,
     direction,
@@ -427,7 +466,7 @@ export function chartTrendFooter(props: ChartTrendFooterProps): DomphyElement<"f
     {
       span: trendText,
       style: {
-        fontWeight: "500",
+        fontWeight: fixed("500"),
         color: (listener: Listener) => themeColor(listener, "shift-11", color),
       },
     },
@@ -441,7 +480,12 @@ export function chartTrendFooter(props: ChartTrendFooterProps): DomphyElement<"f
     // icons. icon() bakes in shift-9 (muted); restore full foreground here.
     trendIcon.$ = [
       ...(trendIcon.$ ?? []),
-      { style: { color: (listener: Listener) => themeColor(listener, "shift-11", color) } },
+      {
+        style: {
+          color: (listener: Listener) =>
+            themeColor(listener, "shift-11", color),
+        },
+      },
     ];
     trendRow.push(trendIcon);
   }
@@ -449,7 +493,11 @@ export function chartTrendFooter(props: ChartTrendFooterProps): DomphyElement<"f
     footer: [
       {
         div: trendRow,
-        style: { display: "flex", alignItems: "center", gap: themeSpacing(1.5) },
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: themeSpacing(1.5),
+        },
       },
       { small: captionText, $: [small({ color: "neutral" })] },
     ],
@@ -464,21 +512,33 @@ export interface ChartLegendEntry {
 }
 
 /** Centered swatch/icon + label row shown below the chart plot. */
-export function chartLegendRow(entries: ChartLegendEntry[]): DomphyElement<"div"> {
+export function chartLegendRow(
+  entries: ChartLegendEntry[],
+): DomphyElement<"div"> {
   return {
     div: entries.map((entry) => ({
       span: [
         entry.icon
           ? chartTrendIcon(entry.icon, entry.color)
-          : ({ span: null, $: [chartLegendSwatch(entry.color)] } as DomphyElement<"span">),
+          : ({
+              span: null,
+              $: [chartLegendSwatch(entry.color)],
+            } as DomphyElement<"span">),
         // Upstream ChartLegendContent label is plain inherited-size FULL
         // foreground text (chart.tsx line 322) — not muted, not shrunk.
         {
           span: entry.label,
-          style: { color: (listener: Listener) => themeColor(listener, "shift-11", "neutral") },
+          style: {
+            color: (listener: Listener) =>
+              themeColor(listener, "shift-11", "neutral"),
+          },
         },
       ],
-      style: { display: "inline-flex", alignItems: "center", gap: themeSpacing(1.5) },
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: themeSpacing(1.5),
+      },
       _key: entry.label,
     })),
     style: {

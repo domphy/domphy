@@ -38,6 +38,7 @@
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
+import { fixed } from "../../shared/typography.js";
 
 export interface DiaTextRevealProps {
   /** Text to display, or a list of strings to cycle through (one sweep per item). Defaults to a demo phrase. */
@@ -72,7 +73,13 @@ export interface DiaTextRevealProps {
   style?: StyleObject;
 }
 
-const DEFAULT_COLORS: ThemeColor[] = ["primary", "secondary", "info", "success", "warning"];
+const DEFAULT_COLORS: ThemeColor[] = [
+  "primary",
+  "secondary",
+  "info",
+  "success",
+  "warning",
+];
 
 // Percentage-space band half-width and travel range, matching upstream
 // exactly: the band starts fully off the left edge and ends fully off the
@@ -91,21 +98,34 @@ function sweepEase(t: number): number {
  * behind the band (already revealed), the color band itself, transparent
  * ahead of the band (not yet revealed) — or, once the band has fully passed
  * (`bandStart >= 100`), a single solid color covering the whole text. */
-function buildGradient(position: number, colorHexes: string[], textColorHex: string): string {
+function buildGradient(
+  position: number,
+  colorHexes: string[],
+  textColorHex: string,
+): string {
   const bandStart = position - BAND_HALF;
   const bandEnd = position + BAND_HALF;
-  if (bandStart >= 100) return `linear-gradient(90deg, ${textColorHex}, ${textColorHex})`;
+  if (bandStart >= 100)
+    return `linear-gradient(90deg, ${textColorHex}, ${textColorHex})`;
 
   const stops: string[] = [];
-  if (bandStart > 0) stops.push(`${textColorHex} 0%`, `${textColorHex} ${bandStart.toFixed(2)}%`);
+  if (bandStart > 0)
+    stops.push(
+      `${textColorHex} 0%`,
+      `${textColorHex} ${bandStart.toFixed(2)}%`,
+    );
 
   const count = colorHexes.length;
   colorHexes.forEach((hex, index) => {
-    const percent = count === 1 ? position : bandStart + (index / (count - 1)) * BAND_HALF * 2;
+    const percent =
+      count === 1
+        ? position
+        : bandStart + (index / (count - 1)) * BAND_HALF * 2;
     stops.push(`${hex} ${percent.toFixed(2)}%`);
   });
 
-  if (bandEnd < 100) stops.push(`transparent ${bandEnd.toFixed(2)}%`, "transparent 100%");
+  if (bandEnd < 100)
+    stops.push(`transparent ${bandEnd.toFixed(2)}%`, "transparent 100%");
   return `linear-gradient(90deg, ${stops.join(", ")})`;
 }
 
@@ -165,7 +185,7 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
     style: {
       position: "relative",
       verticalAlign: "bottom",
-      lineHeight: "100%",
+      lineHeight: fixed("100%"),
       transform: "translateY(-2px)",
       color: "transparent",
       backgroundClip: "text",
@@ -174,7 +194,9 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
       // Multi-item wrapper clips during the width transition (upstream's
       // `overflow: hidden`); the concrete pixel width is measured and applied
       // in `_onMount`, not reserved here as a character count.
-      ...(isMulti ? { display: "inline-block", overflow: "hidden", whiteSpace: "nowrap" } : {}),
+      ...(isMulti
+        ? { display: "inline-block", overflow: "hidden", whiteSpace: "nowrap" }
+        : {}),
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
@@ -219,14 +241,22 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
         typeof window.matchMedia === "function" &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (prefersReducedMotion) {
-        element.style.backgroundImage = buildGradient(SWEEP_END, colorHexes, textColorHex);
+        element.style.backgroundImage = buildGradient(
+          SWEEP_END,
+          colorHexes,
+          textColorHex,
+        );
         return;
       }
 
       // Not yet revealed: paint the resting (pre-trigger) frame immediately,
       // rather than leaving the browser's own gradient-less default (which
       // would render as plain solid text, defeating the whole reveal).
-      element.style.backgroundImage = buildGradient(SWEEP_START, colorHexes, textColorHex);
+      element.style.backgroundImage = buildGradient(
+        SWEEP_START,
+        colorHexes,
+        textColorHex,
+      );
 
       const hasRaf = typeof requestAnimationFrame === "function";
 
@@ -269,7 +299,11 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
 
       const runSweep = () => {
         if (!hasRaf) {
-          element.style.backgroundImage = buildGradient(SWEEP_END, colorHexes, textColorHex);
+          element.style.backgroundImage = buildGradient(
+            SWEEP_END,
+            colorHexes,
+            textColorHex,
+          );
           onSweepComplete();
           return;
         }
@@ -283,8 +317,13 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
           if (startTime === null) startTime = now;
           const elapsed = now - startTime;
           const t = Math.min(1, duration <= 0 ? 1 : elapsed / duration);
-          const position = SWEEP_START + sweepEase(t) * (SWEEP_END - SWEEP_START);
-          element.style.backgroundImage = buildGradient(position, colorHexes, textColorHex);
+          const position =
+            SWEEP_START + sweepEase(t) * (SWEEP_END - SWEEP_START);
+          element.style.backgroundImage = buildGradient(
+            position,
+            colorHexes,
+            textColorHex,
+          );
           if (t < 1) {
             animationFrameId = requestAnimationFrame(step);
             return;
@@ -299,7 +338,11 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
       // repeat cycle, and each scroll-back replay — matching upstream's
       // `animate(..., { delay })` being re-supplied on every `playRef` call.
       const play = () => {
-        element.style.backgroundImage = buildGradient(SWEEP_START, colorHexes, textColorHex);
+        element.style.backgroundImage = buildGradient(
+          SWEEP_START,
+          colorHexes,
+          textColorHex,
+        );
         if (delay > 0) {
           pendingTimeout = setTimeout(() => {
             pendingTimeout = null;

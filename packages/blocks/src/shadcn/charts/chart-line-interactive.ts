@@ -11,16 +11,16 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
+import type { ChartOption, TooltipParams } from "@domphy/chart";
+import { chart } from "@domphy/chart";
 import type { DomphyElement, Listener } from "@domphy/core";
 import { toState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { card, heading, paragraph, small } from "@domphy/ui";
-import { chart } from "@domphy/chart";
-import type { ChartOption, TooltipParams } from "@domphy/chart";
 import {
+  computeYDomain,
   DAILY_VISITOR_DATA,
   type DailyPoint,
-  computeYDomain,
   hiddenLabelYAxis,
 } from "./chart-line-shared.js";
 
@@ -73,7 +73,9 @@ export interface ChartLineInteractiveProps {
  * header stat tiles double as a series switcher. Call with no arguments for
  * a fully working demo.
  */
-function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElement<"div"> {
+function chartLineInteractive(
+  props: ChartLineInteractiveProps = {},
+): DomphyElement<"div"> {
   const {
     title = "Line Chart - Interactive",
     description = "Showing daily visitors for the last 3 months",
@@ -102,7 +104,9 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
 
   const activeSeriesKey = toState<SeriesKey>(initialSeries);
 
-  const tooltipFormatter = (params: TooltipParams | TooltipParams[]): string => {
+  const tooltipFormatter = (
+    params: TooltipParams | TooltipParams[],
+  ): string => {
     const point = Array.isArray(params) ? params[0] : params;
     if (!point) return "";
     const day = data[point.dataIndex];
@@ -178,7 +182,9 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
         {
           small: meta.label,
           $: [small({ color: "neutral" })],
-          style: { color: (l: Listener) => themeColor(l, "shift-11", "neutral") },
+          style: {
+            color: (l: Listener) => themeColor(l, "shift-11", "neutral"),
+          },
         } as DomphyElement<"small">,
         // Upstream: bold `text-lg` scaling to `sm:text-3xl` with `leading-none`
         // and no margin — a prominent stat number, not a heading. Rendered as a
@@ -198,7 +204,8 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
         } as DomphyElement<"span">,
       ],
       type: "button",
-      dataActive: (listener: Listener) => (activeSeriesKey.get(listener) === key ? "true" : "false"),
+      dataActive: (listener: Listener) =>
+        activeSeriesKey.get(listener) === key ? "true" : "false",
       onClick: () => selectSeries(key),
       style: {
         display: "flex",
@@ -214,7 +221,8 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
         paddingInline: themeSpacing(4),
         textAlign: "left",
         "&[data-active=true]": {
-          backgroundColor: (listener: Listener) => themeColor(listener, "increase-1", "neutral"),
+          backgroundColor: (listener: Listener) =>
+            themeColor(listener, "increase-1", "neutral"),
         },
       },
     } as DomphyElement<"button">;
@@ -229,14 +237,18 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
       // header stacks, `sm:border-t-0 sm:border-l` when it goes row): a top rule
       // above the tiles on narrow viewports, a left rule between the title block
       // and the first tile at >=640px.
-      borderBlockStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+      borderBlockStart: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+      color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
       "@media (min-width: 640px)": {
         width: "auto",
         borderBlockStart: "none",
-        borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+        borderInlineStart: (listener: Listener) =>
+          `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
       },
       "& > button + button": {
-        borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+        borderInlineStart: (listener: Listener) =>
+          `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
       },
     },
   } as DomphyElement<"aside">;
@@ -259,7 +271,10 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
   return {
     div: [
       { h3: title, $: [heading()] } as DomphyElement<"h3">,
-      { p: description, $: [paragraph({ color: "neutral" })] } as DomphyElement<"p">,
+      {
+        p: description,
+        $: [paragraph({ color: "neutral" })],
+      } as DomphyElement<"p">,
       asideElement,
       {
         // Full-width rule under the header (upstream CardHeader `border-b`): the
@@ -267,7 +282,10 @@ function chartLineInteractive(props: ChartLineInteractiveProps = {}): DomphyElem
         // separates the title/desc/tile header row from the chart below.
         div: [plotWrapper],
         style: {
-          borderBlockStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+          borderBlockStart: (listener: Listener) =>
+            `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+          color: (listener: Listener) =>
+            themeColor(listener, "shift-9", "neutral"),
         },
       } as DomphyElement<"div">,
     ],

@@ -18,8 +18,8 @@
 
 import type { DomphyElement, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export interface MeteorsProps {
   /** Number of meteors rendered. Defaults to `20`. */
@@ -66,63 +66,74 @@ function meteors(props: MeteorsProps = {}): DomphyElement<"div"> {
   const keyframes = {
     "0%": { transform: `rotate(${-angle}deg) translateX(0)`, opacity: 1 },
     "70%": { opacity: 1 },
-    "100%": { transform: `rotate(${-angle}deg) translateX(-100vmax)`, opacity: 0 },
+    "100%": {
+      transform: `rotate(${-angle}deg) translateX(-100vmax)`,
+      opacity: 0,
+    },
   };
   const animationName = `meteor-fall-${hashString(JSON.stringify({ keyframes, instanceId }))}`;
 
   // Upstream spreads meteors across the FULL viewport width (window.innerWidth),
   // not the container — so inside a narrow container many meteors land past the
   // right edge and are clipped, which is the intended (lower) visible density.
-  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1920;
+  const viewportWidth =
+    typeof window !== "undefined" ? window.innerWidth : 1920;
 
-  const meteorElements: DomphyElement[] = Array.from({ length: count }, (_unused, index) => {
-    const leftOffset = Math.floor(Math.random() * viewportWidth);
-    const delaySeconds = minDelay + Math.random() * Math.max(0, maxDelay - minDelay);
-    // Upstream floors to whole integer seconds (Math.floor of the full sum).
-    const durationSeconds = Math.floor(Math.random() * Math.max(0, maxDuration - minDuration) + minDuration);
+  const meteorElements: DomphyElement[] = Array.from(
+    { length: count },
+    (_unused, index) => {
+      const leftOffset = Math.floor(Math.random() * viewportWidth);
+      const delaySeconds =
+        minDelay + Math.random() * Math.max(0, maxDelay - minDelay);
+      // Upstream floors to whole integer seconds (Math.floor of the full sum).
+      const durationSeconds = Math.floor(
+        Math.random() * Math.max(0, maxDuration - minDuration) + minDuration,
+      );
 
-    return {
-      span: null,
-      _key: `meteor-${instanceId}-${index}`,
-      ariaHidden: "true",
-      // Decorative streak with no text of its own — exempt from the
-      // missing-color contract (mirrors fadeOverlay() in the marquee block).
-      // Also exempt from tone-background-inherit: a meteor's glow is
-      // intentionally a fixed bright accent, not a surface that should track
-      // the ambient dataTone context.
-      _doctorDisable: ["missing-color", "tone-background-inherit"],
-      style: {
-        position: "absolute",
-        top: "-5%",
-        left: `${leftOffset}px`,
-        width: themeSpacing(0.5),
-        height: themeSpacing(0.5),
-        borderRadius: "50%",
-        pointerEvents: "none",
-        // shift-11 (not a small shift-1/-2) so the head/tail read as a bright
-        // streak against the dark shift-15 container surface — a small shift
-        // only nudges toward the opposite edge by a couple of ramp steps and
-        // would barely be distinguishable from the background.
-        backgroundColor: (listener) => themeColor(listener, "shift-11", color),
-        // Upstream: shadow-[0_0_0_1px_#ffffff10] — a hard 1px white-10% ring
-        // with NO blur/glow. Kept as the literal so the head stays a thin
-        // streak with a faint outline, not a glowing halo.
-        boxShadow: "0 0 0 1px #ffffff10",
-        animation: `${animationName} ${durationSeconds}s linear ${delaySeconds}s infinite`,
-        "&::before": {
-          content: `""`,
+      return {
+        span: null,
+        _key: `meteor-${instanceId}-${index}`,
+        ariaHidden: "true",
+        // Decorative streak with no text of its own — exempt from the
+        // missing-color contract (mirrors fadeOverlay() in the marquee block).
+        // Also exempt from tone-background-inherit: a meteor's glow is
+        // intentionally a fixed bright accent, not a surface that should track
+        // the ambient dataTone context.
+        _doctorDisable: ["missing-color", "tone-background-inherit"],
+        style: {
           position: "absolute",
-          top: "50%",
-          left: 0,
-          width: themeSpacing(12.5),
-          height: themeSpacing(0.25),
-          transform: "translateY(-50%)",
-          background: (listener) =>
-            `linear-gradient(to right, ${themeColor(listener, "shift-11", color)}, transparent)`,
-        },
-      } as StyleObject,
-    } as DomphyElement;
-  });
+          top: "-5%",
+          left: `${leftOffset}px`,
+          width: themeSpacing(0.5),
+          height: themeSpacing(0.5),
+          borderRadius: "50%",
+          pointerEvents: "none",
+          // shift-11 (not a small shift-1/-2) so the head/tail read as a bright
+          // streak against the dark shift-15 container surface — a small shift
+          // only nudges toward the opposite edge by a couple of ramp steps and
+          // would barely be distinguishable from the background.
+          backgroundColor: (listener) =>
+            themeColor(listener, "shift-11", color),
+          // Upstream: shadow-[0_0_0_1px_#ffffff10] — a hard 1px white-10% ring
+          // with NO blur/glow. Kept as the literal so the head stays a thin
+          // streak with a faint outline, not a glowing halo.
+          boxShadow: "0 0 0 1px #ffffff10",
+          animation: `${animationName} ${durationSeconds}s linear ${delaySeconds}s infinite`,
+          "&::before": {
+            content: `""`,
+            position: "absolute",
+            top: "50%",
+            left: 0,
+            width: themeSpacing(12.5),
+            height: themeSpacing(0.25),
+            transform: "translateY(-50%)",
+            background: (listener) =>
+              `linear-gradient(to right, ${themeColor(listener, "shift-11", color)}, transparent)`,
+          },
+        } as StyleObject,
+      } as DomphyElement;
+    },
+  );
 
   const defaultChildren: DomphyElement[] = [
     { h2: "Meteor Shower", $: [heading()] } as DomphyElement,

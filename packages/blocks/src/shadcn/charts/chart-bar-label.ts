@@ -8,19 +8,20 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption, LabelParams, TooltipParams } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
+import { fixed } from "../../shared/typography.js";
 import {
   CHART_BAR_MONTHLY_DATA,
+  type ChartBarPoint,
+  type ChartTrendDirection,
   chartBarCardShell,
   chartBarCategoryXAxis,
   chartBarFrame,
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
-  type ChartBarPoint,
-  type ChartTrendDirection,
 } from "./chart-bar-shared.js";
 
 export interface ChartBarLabelProps {
@@ -86,8 +87,9 @@ function chartBarLabel(props: ChartBarLabelProps = {}): DomphyElement<"div"> {
         label: {
           show: true,
           position: "top",
-          fontSize: 12,
-          formatter: (parameters: LabelParams) => labelFormatter(Number(parameters.value) || 0),
+          fontSize: fixed(12),
+          formatter: (parameters: LabelParams) =>
+            labelFormatter(Number(parameters.value) || 0),
         },
         data: values,
       },
@@ -98,16 +100,27 @@ function chartBarLabel(props: ChartBarLabelProps = {}): DomphyElement<"div"> {
     title,
     subtitle,
     content: { div: [chartBarFrame(option, { height })] },
-    footer: chartBarTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartBarTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 
 function escapeTooltipHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
-function chartBarLabelTooltipFormatter(parametersInput: TooltipParams | TooltipParams[]): string {
-  const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
+function chartBarLabelTooltipFormatter(
+  parametersInput: TooltipParams | TooltipParams[],
+): string {
+  const parameters = Array.isArray(parametersInput)
+    ? parametersInput
+    : [parametersInput];
   if (parameters.length === 0) return "";
   const item = parameters[0];
   // Upstream ChartTooltipContent's default 'dot' indicator is a 10px rounded

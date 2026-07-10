@@ -11,15 +11,18 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
 import {
-  RADAR_SINGLE_SERIES,
-  RADAR_MONTHLY_SINGLE_DATA,
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
+import {
   createRadarTooltip,
-  radarCardShell,
-  renderRadarChart,
+  RADAR_MONTHLY_SINGLE_DATA,
+  RADAR_SINGLE_SERIES,
   type RadarPoint,
   type RadarSeriesConfig,
+  radarCardShell,
+  renderRadarChart,
 } from "./chart-radar-shared.js";
 
 export interface ChartRadarGridCircleFillProps {
@@ -39,7 +42,9 @@ export interface ChartRadarGridCircleFillProps {
  * chart over a tinted circular grid, with the standard labeled tooltip.
  * Call with no arguments for a working demo.
  */
-function chartRadarGridCircleFill(props: ChartRadarGridCircleFillProps = {}): DomphyElement<"div"> {
+function chartRadarGridCircleFill(
+  props: ChartRadarGridCircleFillProps = {},
+): DomphyElement<"div"> {
   const {
     data = RADAR_MONTHLY_SINGLE_DATA,
     series = RADAR_SINGLE_SERIES,
@@ -52,7 +57,10 @@ function chartRadarGridCircleFill(props: ChartRadarGridCircleFillProps = {}): Do
     seriesFillOpacity = 0.5,
   } = props;
 
-  const resolvedSeries: RadarSeriesConfig[] = series.map((entry) => ({ ...entry, fillOpacity: seriesFillOpacity }));
+  const resolvedSeries: RadarSeriesConfig[] = series.map((entry) => ({
+    ...entry,
+    fillOpacity: seriesFillOpacity,
+  }));
   const tooltip = createRadarTooltip();
 
   return radarCardShell({
@@ -65,13 +73,20 @@ function chartRadarGridCircleFill(props: ChartRadarGridCircleFillProps = {}): Do
           series: resolvedSeries,
           tooltip,
           gridShape: "circle",
-          gridFill: { color: resolvedSeries[0].color, opacity: gridFillOpacity },
+          gridFill: {
+            color: resolvedSeries[0].color,
+            opacity: gridFillOpacity,
+          },
           tooltipShowLabel: true,
           tooltipIndicator: "swatch",
         }),
       ],
     },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

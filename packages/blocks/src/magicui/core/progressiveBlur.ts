@@ -13,8 +13,8 @@
 // (thickness is ignored, as upstream forces the overlay height to 100%).
 
 import type { DomphyElement, StyleObject } from "@domphy/core";
-import { paragraph, strong } from "@domphy/ui";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { paragraph, strong } from "@domphy/ui";
 
 export type ProgressiveBlurEdge = "top" | "bottom";
 
@@ -66,7 +66,8 @@ function blurBand(
       insetInlineEnd: 0,
       insetBlockStart: edge === "top" ? 0 : undefined,
       insetBlockEnd: edge === "bottom" ? 0 : undefined,
-      height: typeof thickness === "number" ? themeSpacing(thickness) : thickness,
+      height:
+        typeof thickness === "number" ? themeSpacing(thickness) : thickness,
       pointerEvents: "none",
       backdropFilter: blurFilter,
       WebkitBackdropFilter: blurFilter,
@@ -78,12 +79,16 @@ function blurBand(
 
 /** Upstream `position="both"`: every layer shares this single mask window, so the
  * whole element reads as a near-uniform heavy blur that fades only at the 5% edges. */
-const BOTH_MASK = "linear-gradient(rgba(0,0,0,0) 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, rgba(0,0,0,0) 100%)";
+const BOTH_MASK =
+  "linear-gradient(rgba(0,0,0,0) 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, rgba(0,0,0,0) 100%)";
 
 /** One full-height blur layer for `both` mode. Fills the container (thickness is
  * ignored, matching upstream forcing the overlay height to 100%) with
  * `blur(blurPixels)`, all N layers sharing `BOTH_MASK`. */
-function uniformBlurBand(index: number, blurPixels: number): DomphyElement<"div"> {
+function uniformBlurBand(
+  index: number,
+  blurPixels: number,
+): DomphyElement<"div"> {
   const blurFilter = `blur(${blurPixels}px)`;
   return {
     div: null,
@@ -142,12 +147,20 @@ function defaultContent(): DomphyElement[] {
  * edges of a container. Call with no arguments for a working demo — a short
  * text panel with a progressive blur fading its bottom edge.
  */
-function progressiveBlur(props: ProgressiveBlurProps = {}): DomphyElement<"div"> {
-  const edges = props.edges && props.edges.length ? props.edges : (["bottom"] as ProgressiveBlurEdge[]);
+function progressiveBlur(
+  props: ProgressiveBlurProps = {},
+): DomphyElement<"div"> {
+  const edges =
+    props.edges && props.edges.length
+      ? props.edges
+      : (["bottom"] as ProgressiveBlurEdge[]);
   const thickness = props.thickness ?? DEFAULT_THICKNESS;
   // Caller order is preserved (upstream never sorts blurLevels): entry 0 is the
   // innermost layer, the last entry the outermost/edge layer.
-  const blurSteps = props.blurSteps && props.blurSteps.length ? props.blurSteps : DEFAULT_BLUR_STEPS;
+  const blurSteps =
+    props.blurSteps && props.blurSteps.length
+      ? props.blurSteps
+      : DEFAULT_BLUR_STEPS;
   const content = props.content ?? defaultContent();
 
   // Both edges present == upstream position="both": a single full-height overlay
@@ -162,7 +175,9 @@ function progressiveBlur(props: ProgressiveBlurProps = {}): DomphyElement<"div">
   } else {
     const edge: ProgressiveBlurEdge = edges.includes("top") ? "top" : "bottom";
     for (let index = 0; index < blurSteps.length; index += 1) {
-      bands.push(blurBand(edge, index, blurSteps.length, blurSteps[index], thickness));
+      bands.push(
+        blurBand(edge, index, blurSteps.length, blurSteps[index], thickness),
+      );
     }
   }
 
@@ -176,7 +191,10 @@ function progressiveBlur(props: ProgressiveBlurProps = {}): DomphyElement<"div">
             insetInlineStart: 0,
             insetInlineEnd: 0,
             insetBlockEnd: edges.includes("bottom") ? 0 : undefined,
-            insetBlockStart: !edges.includes("bottom") && edges.includes("top") ? 0 : undefined,
+            insetBlockStart:
+              !edges.includes("bottom") && edges.includes("top")
+                ? 0
+                : undefined,
             // sit above every blur band (both-mode bands carry z-index up to N)
             zIndex: blurSteps.length + 1,
             pointerEvents: "none",
@@ -188,7 +206,15 @@ function progressiveBlur(props: ProgressiveBlurProps = {}): DomphyElement<"div">
 
   return {
     div: [
-      { div: content, style: { position: "relative", zIndex: 0, height: "100%", overflow: "hidden" } },
+      {
+        div: content,
+        style: {
+          position: "relative",
+          zIndex: 0,
+          height: "100%",
+          overflow: "hidden",
+        },
+      },
       ...bands,
       ...overlay,
     ],

@@ -32,7 +32,9 @@ describe("gridPattern", () => {
   });
 
   it("renders no highlighted squares when squares is empty, without throwing", () => {
-    const { host } = render(gridPattern({ squares: [], width: 24, height: 24 }));
+    const { host } = render(
+      gridPattern({ squares: [], width: 24, height: 24 }),
+    );
 
     const container = host.firstElementChild!;
     const svg = container.querySelector("svg")!;

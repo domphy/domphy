@@ -28,9 +28,13 @@ afterEach(() => {
 describe("chartAreaStackedExpand", () => {
   it("renders a working demo tree with zero args: three-series card shell and chart frame", () => {
     const { host } = render(chartAreaStackedExpand() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Area Chart - Stacked Expand");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Area Chart - Stacked Expand",
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts custom three-series data without throwing", () => {

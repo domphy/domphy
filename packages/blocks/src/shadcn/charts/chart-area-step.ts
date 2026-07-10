@@ -9,21 +9,21 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption, TooltipParams } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_AREA_MONTHLY_DATA,
   CHART_AREA_X_AXIS_BARE,
   CHART_AREA_Y_AXIS_HIDDEN,
+  type ChartAreaSinglePoint,
+  type ChartTrendDirection,
   chartAreaFrame,
   chartAreaTooltipRow,
   chartCardShell,
   chartTrendFooter,
   chartTrendIcon,
   wrapChartAreaTooltip,
-  type ChartAreaSinglePoint,
-  type ChartTrendDirection,
 } from "./chart-area-shared.js";
 
 // Upstream's chartConfig assigns this series `icon: Activity`, and shadcn's
@@ -39,19 +39,28 @@ const ACTIVITY_TOOLTIP_ICON =
   '<polyline points="2,12 7,12 10,5 14,19 17,12 22,12"></polyline></svg>';
 
 function escapeTooltipText(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 // Axis-trigger tooltip: no category header (upstream `hideLabel`), one
 // activity-icon + muted series-name (left) + mono value (right) row per
 // series. Value is the bare number — upstream uses no value formatter here.
-function stepTooltipFormatter(paramsInput: TooltipParams | TooltipParams[]): string {
+function stepTooltipFormatter(
+  paramsInput: TooltipParams | TooltipParams[],
+): string {
   const params = Array.isArray(paramsInput) ? paramsInput : [paramsInput];
   if (params.length === 0) return "";
   const rows = params
     .map((p) => {
       const label = escapeTooltipText(String(p.seriesName ?? p.name ?? ""));
-      return chartAreaTooltipRow(ACTIVITY_TOOLTIP_ICON, label, escapeTooltipText(String(p.value ?? "")));
+      return chartAreaTooltipRow(
+        ACTIVITY_TOOLTIP_ICON,
+        label,
+        escapeTooltipText(String(p.value ?? "")),
+      );
     })
     .join("");
   return wrapChartAreaTooltip(rows);

@@ -19,11 +19,17 @@
 // no upstream shadcn/ui source was viewed or copied. Sample numbers below are
 // original placeholder data, not sourced from upstream.
 
-import type { DomphyElement, PartialElement } from "@domphy/core";
-import { type ThemeColor, themeColor, themeColorToken, themeSpacing } from "@domphy/theme";
-import { card, heading, icon, motion, paragraph, small } from "@domphy/ui";
+import type { AxisOption, ChartOption, TooltipParams } from "@domphy/chart";
 import { chart, createLinearScale, createOrdinalScale } from "@domphy/chart";
-import type { ChartOption, AxisOption, TooltipParams } from "@domphy/chart";
+import type { DomphyElement, PartialElement } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeColorToken,
+  themeSpacing,
+} from "@domphy/theme";
+import { card, heading, icon, motion, paragraph, small } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 
 // ─── Sample datasets ──────────────────────────────────────────────────────────
 
@@ -115,15 +121,30 @@ export interface FixedGrid {
 
 /** Default plot margins (px) — enough bottom room for month-abbreviation
  * x-axis labels, no left/right room needed since the y-axis is hidden. */
-export const DEFAULT_LINE_GRID: FixedGrid = { left: 12, right: 12, top: 12, bottom: 28 };
+export const DEFAULT_LINE_GRID: FixedGrid = {
+  left: 12,
+  right: 12,
+  top: 12,
+  bottom: 28,
+};
 
 /** Extra top margin so a value label sitting above the topmost point isn't
  * clipped by the card edge. */
-export const LABELED_LINE_GRID: FixedGrid = { left: 12, right: 12, top: 28, bottom: 28 };
+export const LABELED_LINE_GRID: FixedGrid = {
+  left: 12,
+  right: 12,
+  top: 28,
+  bottom: 28,
+};
 
 /** Extra top/side margin and no bottom room — used when the x-axis is fully
  * hidden (categorical recipes with per-point colored markers). */
-export const HIDDEN_AXIS_LINE_GRID: FixedGrid = { left: 24, right: 24, top: 28, bottom: 12 };
+export const HIDDEN_AXIS_LINE_GRID: FixedGrid = {
+  left: 24,
+  right: 24,
+  top: 28,
+  bottom: 12,
+};
 
 /** Pads a value domain by 15% on both ends so the line never touches the
  * plot's top/bottom edge. Pass the SAME numbers to both the chart()'s
@@ -134,7 +155,10 @@ export function computeYDomain(values: number[]): [number, number] {
   const min = Math.min(...values);
   const max = Math.max(...values);
   const span = max - min || max || 1;
-  return [Math.max(0, Math.floor(min - span * 0.15)), Math.ceil(max + span * 0.15)];
+  return [
+    Math.max(0, Math.floor(min - span * 0.15)),
+    Math.ceil(max + span * 0.15),
+  ];
 }
 
 /** A y-axis that reserves no visible ink (no line/ticks/labels) but still
@@ -189,10 +213,20 @@ export interface ChartCardProps {
  * footer/aside (aside sits beside the title — used by the interactive
  * recipe's stat-tile row). */
 export function chartCard(props: ChartCardProps): DomphyElement<"div"> {
-  const { title, description, plot, footer, aside, width = CHART_CARD_WIDTH } = props;
+  const {
+    title,
+    description,
+    plot,
+    footer,
+    aside,
+    width = CHART_CARD_WIDTH,
+  } = props;
   const children: DomphyElement[] = [
     { h3: title, $: [heading()] } as DomphyElement<"h3">,
-    { p: description, $: [paragraph({ color: "neutral" })] } as DomphyElement<"p">,
+    {
+      p: description,
+      $: [paragraph({ color: "neutral" })],
+    } as DomphyElement<"p">,
   ];
   if (aside) children.push(aside);
   children.push({ div: [plot] } as DomphyElement<"div">);
@@ -222,7 +256,10 @@ const TREND_GLYPH: Record<"up" | "down", DomphyElement[]> = {
 // semantic tint and NOT the muted point-label tone. `icon()` sizes/centers the
 // box but always paints the muted `shift-9` tone, so override the span's own
 // color to the `shift-11` foreground tone (native style wins over the patch).
-function trendGlyphIcon(direction: "up" | "down", color?: ThemeColor): DomphyElement<"span"> {
+function trendGlyphIcon(
+  direction: "up" | "down",
+  color?: ThemeColor,
+): DomphyElement<"span"> {
   return {
     span: [
       {
@@ -265,17 +302,28 @@ export function trendFooter(props: TrendFooterProps): DomphyElement<"footer"> {
           {
             span: headline,
             style: {
-              fontWeight: 500,
+              fontWeight: fixed(500),
               color: (listener) => themeColor(listener, "shift-11", "neutral"),
             },
           } as DomphyElement<"span">,
           trendGlyphIcon(direction),
         ],
-        style: { display: "flex", alignItems: "center", gap: themeSpacing(1.5) },
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: themeSpacing(1.5),
+        },
       } as DomphyElement<"div">,
-      { small: subtitle, $: [small({ color: "neutral" })] } as DomphyElement<"small">,
+      {
+        small: subtitle,
+        $: [small({ color: "neutral" })],
+      } as DomphyElement<"small">,
     ],
-    style: { flexDirection: "column", alignItems: "flex-start", gap: themeSpacing(1) },
+    style: {
+      flexDirection: "column",
+      alignItems: "flex-start",
+      gap: themeSpacing(1),
+    },
   } as DomphyElement<"footer">;
 }
 
@@ -297,7 +345,9 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function firstTooltipParam(params: TooltipParams | TooltipParams[]): TooltipParams | undefined {
+function firstTooltipParam(
+  params: TooltipParams | TooltipParams[],
+): TooltipParams | undefined {
   return Array.isArray(params) ? params[0] : params;
 }
 
@@ -313,7 +363,11 @@ const TOOLTIP_MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
  * ~L243-262): swatch, then the series NAME on the LEFT in muted foreground at
  * normal weight, and the VALUE pushed to the RIGHT edge as monospace / medium /
  * tabular-nums in FULL foreground. */
-export function tooltipRow(swatch: string, label: string, valueText: string): string {
+export function tooltipRow(
+  swatch: string,
+  label: string,
+  valueText: string,
+): string {
   return (
     `<span style="display:flex;align-items:center;gap:8px;">${swatch}` +
     `<span style="display:flex;flex:1;justify-content:space-between;align-items:center;gap:16px;">` +
@@ -325,14 +379,18 @@ export function tooltipRow(swatch: string, label: string, valueText: string): st
 }
 
 /** Bare numeric value, no swatch, no series/date label. */
-export function bareValueTooltipFormatter(params: TooltipParams | TooltipParams[]): string {
+export function bareValueTooltipFormatter(
+  params: TooltipParams | TooltipParams[],
+): string {
   const point = firstTooltipParam(params);
   if (!point) return "";
   return escapeHtml(String(point.value ?? ""));
 }
 
 /** A small vertical-line color swatch + the bare numeric value. */
-export function lineSwatchValueTooltipFormatter(params: TooltipParams | TooltipParams[]): string {
+export function lineSwatchValueTooltipFormatter(
+  params: TooltipParams | TooltipParams[],
+): string {
   const point = firstTooltipParam(params);
   if (!point) return "";
   const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${point.color};margin-right:6px;vertical-align:middle;"></span>`;
@@ -341,7 +399,9 @@ export function lineSwatchValueTooltipFormatter(params: TooltipParams | TooltipP
 
 /** A small vertical-line color swatch + muted series label on the left + the
  * value pushed right (monospace/medium/foreground) — the upstream row. */
-export function lineSwatchLabelValueTooltipFormatter(params: TooltipParams | TooltipParams[]): string {
+export function lineSwatchLabelValueTooltipFormatter(
+  params: TooltipParams | TooltipParams[],
+): string {
   const point = firstTooltipParam(params);
   if (!point) return "";
   const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${point.color};"></span>`;
@@ -406,7 +466,12 @@ export interface StaticPointMarkersProps {
   values: number[];
   yDomain: [number, number];
   grid: FixedGrid;
-  renderMarker: (params: { index: number; cx: number; cy: number; group: SVGGElement }) => void;
+  renderMarker: (params: {
+    index: number;
+    cx: number;
+    cy: number;
+    group: SVGGElement;
+  }) => void;
 }
 
 /** Draws one static SVG marker per data point at the exact pixel position the
@@ -414,14 +479,19 @@ export interface StaticPointMarkersProps {
  * same explicit grid/domain). Used for per-point colored dots and custom icon
  * markers — things @domphy/chart's built-in line-symbol renderer cannot do
  * (it draws one uniform circle color per series, ignoring per-item styling). */
-export function staticPointMarkersOverlay(props: StaticPointMarkersProps): PartialElement {
+export function staticPointMarkersOverlay(
+  props: StaticPointMarkersProps,
+): PartialElement {
   const { categories, values, yDomain, grid, renderMarker } = props;
   return {
     style: { position: "absolute", inset: "0", pointerEvents: "none" },
     _onMount(node) {
       const container = node.domElement as HTMLElement;
       const svgNamespace = "http://www.w3.org/2000/svg";
-      const svg = document.createElementNS(svgNamespace, "svg") as SVGSVGElement;
+      const svg = document.createElementNS(
+        svgNamespace,
+        "svg",
+      ) as SVGSVGElement;
       svg.setAttribute("width", "100%");
       svg.setAttribute("height", "100%");
       svg.style.position = "absolute";
@@ -434,12 +504,21 @@ export function staticPointMarkersOverlay(props: StaticPointMarkersProps): Parti
         const height = container.clientHeight;
         svg.textContent = "";
         if (!width || !height) return;
-        const xScale = createOrdinalScale(categories, [grid.left, width - grid.right]);
-        const yScale = createLinearScale(yDomain, [height - grid.bottom, grid.top]);
+        const xScale = createOrdinalScale(categories, [
+          grid.left,
+          width - grid.right,
+        ]);
+        const yScale = createLinearScale(yDomain, [
+          height - grid.bottom,
+          grid.top,
+        ]);
         values.forEach((value, index) => {
           const cx = xScale.map(index);
           const cy = yScale.map(value);
-          const group = document.createElementNS(svgNamespace, "g") as SVGGElement;
+          const group = document.createElementNS(
+            svgNamespace,
+            "g",
+          ) as SVGGElement;
           renderMarker({ index, cx, cy, group });
           svg.appendChild(group);
         });
@@ -481,7 +560,10 @@ export function hoverDotOverlay(props: HoverDotOverlayProps): PartialElement {
       if (!wrapper) return;
 
       const svgNamespace = "http://www.w3.org/2000/svg";
-      const svg = document.createElementNS(svgNamespace, "svg") as SVGSVGElement;
+      const svg = document.createElementNS(
+        svgNamespace,
+        "svg",
+      ) as SVGSVGElement;
       svg.setAttribute("width", "100%");
       svg.setAttribute("height", "100%");
       svg.style.position = "absolute";
@@ -489,7 +571,10 @@ export function hoverDotOverlay(props: HoverDotOverlayProps): PartialElement {
       svg.style.overflow = "visible";
       container.appendChild(svg);
 
-      const dot = document.createElementNS(svgNamespace, "circle") as SVGCircleElement;
+      const dot = document.createElementNS(
+        svgNamespace,
+        "circle",
+      ) as SVGCircleElement;
       dot.setAttribute("r", String(radius));
       dot.setAttribute("fill", themeColorToken(null, "shift-9", color));
       // recharts activeDot defaults: fill=seriesColor, stroke=#fff, strokeWidth=2.
@@ -515,7 +600,10 @@ export function hoverDotOverlay(props: HoverDotOverlayProps): PartialElement {
         if (!width || !height || !wrapper) return;
         const rect = wrapper.getBoundingClientRect();
         const mouseX = event.clientX - rect.left;
-        const xScale = createOrdinalScale(categories, [grid.left, width - grid.right]);
+        const xScale = createOrdinalScale(categories, [
+          grid.left,
+          width - grid.right,
+        ]);
         let nearestIndex = 0;
         let nearestDistance = Infinity;
         for (let index = 0; index < categories.length; index++) {
@@ -525,7 +613,10 @@ export function hoverDotOverlay(props: HoverDotOverlayProps): PartialElement {
             nearestIndex = index;
           }
         }
-        const yScale = createLinearScale(yDomain, [height - grid.bottom, grid.top]);
+        const yScale = createLinearScale(yDomain, [
+          height - grid.bottom,
+          grid.top,
+        ]);
         dot.setAttribute("cx", String(xScale.map(nearestIndex)));
         dot.setAttribute("cy", String(yScale.map(values[nearestIndex])));
         dot.style.opacity = "1";
@@ -546,4 +637,3 @@ export function hoverDotOverlay(props: HoverDotOverlayProps): PartialElement {
     },
   };
 }
-

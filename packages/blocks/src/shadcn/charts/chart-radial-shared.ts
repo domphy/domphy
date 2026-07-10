@@ -25,10 +25,15 @@
 // tooltip + label overlay on top — no WebGL/ResizeObserver dependency needed.
 
 import type { DomphyElement, Listener } from "@domphy/core";
-import { State, toState } from "@domphy/core";
-import { themeColor, themeDensity, themeSpacing, type ThemeColor } from "@domphy/theme";
-import { card, heading, paragraph, small } from "@domphy/ui";
-import { motion } from "@domphy/ui";
+import { type State, toState } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSpacing,
+} from "@domphy/theme";
+import { card, heading, motion, paragraph, small } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 
 // ─── Data shapes ───────────────────────────────────────────────────────────
 
@@ -53,7 +58,12 @@ export const RADIAL_CHANNEL_DATA: RadialSeriesDatum[] = [
 
 export const RADIAL_STACKED_SEGMENTS: RadialSeriesDatum[] = [
   { key: "new", label: "New customers", value: 682, color: "primary" },
-  { key: "returning", label: "Returning customers", value: 419, color: "secondary" },
+  {
+    key: "returning",
+    label: "Returning customers",
+    value: 419,
+    color: "secondary",
+  },
 ];
 
 // ─── Color rotation ────────────────────────────────────────────────────────
@@ -70,8 +80,13 @@ export const RADIAL_ACCENT_PALETTE: ThemeColor[] = [
   "info",
 ];
 
-export function radialSeriesColor(index: number, explicit?: ThemeColor): ThemeColor {
-  return explicit ?? RADIAL_ACCENT_PALETTE[index % RADIAL_ACCENT_PALETTE.length];
+export function radialSeriesColor(
+  index: number,
+  explicit?: ThemeColor,
+): ThemeColor {
+  return (
+    explicit ?? RADIAL_ACCENT_PALETTE[index % RADIAL_ACCENT_PALETTE.length]
+  );
 }
 
 // ─── Geometry ──────────────────────────────────────────────────────────────
@@ -92,7 +107,10 @@ export function polarPoint(
   angleDeg: number,
 ): { x: number; y: number } {
   const angleRad = ((angleDeg - 90) * Math.PI) / 180;
-  return { x: cx + radius * Math.cos(angleRad), y: cy + radius * Math.sin(angleRad) };
+  return {
+    x: cx + radius * Math.cos(angleRad),
+    y: cy + radius * Math.sin(angleRad),
+  };
 }
 
 /** Converts an SVG user-space coordinate (0..RADIAL_VIEW_SIZE) to a CSS percent. */
@@ -119,7 +137,10 @@ export function describeRadialArc(
   let segmentStart = startAngleDeg;
   let consumed = 0;
   while (consumed < totalSweep - 0.001) {
-    const segmentSweep = Math.min(ARC_SEGMENT_MAX_DEGREES, totalSweep - consumed);
+    const segmentSweep = Math.min(
+      ARC_SEGMENT_MAX_DEGREES,
+      totalSweep - consumed,
+    );
     segments.push([segmentStart, segmentStart + segmentSweep]);
     segmentStart += segmentSweep;
     consumed += segmentSweep;
@@ -134,7 +155,11 @@ export function describeRadialArc(
 }
 
 /** Geometric stroke length of a circular arc, in SVG user units. */
-export function radialArcLength(radius: number, startAngleDeg: number, endAngleDeg: number): number {
+export function radialArcLength(
+  radius: number,
+  startAngleDeg: number,
+  endAngleDeg: number,
+): number {
   return radius * ((Math.max(0, endAngleDeg - startAngleDeg) * Math.PI) / 180);
 }
 
@@ -173,7 +198,10 @@ export function computeRingLayout(
 // path) and dashoffset animates from that same length (fully hidden) down to
 // 0 (fully revealed).
 
-export const RADIAL_GROW_TRANSITION = { duration: 600, easing: "ease-out" } as const;
+export const RADIAL_GROW_TRANSITION = {
+  duration: 600,
+  easing: "ease-out",
+} as const;
 
 // ─── Arc / track / grid primitives ─────────────────────────────────────────
 
@@ -193,7 +221,9 @@ export interface RadialArcPathProps {
 }
 
 /** One ring/segment's colored arc, stroked and grow-in animated. */
-export function radialArcPath(props: RadialArcPathProps): DomphyElement<"path"> {
+export function radialArcPath(
+  props: RadialArcPathProps,
+): DomphyElement<"path"> {
   const {
     cx,
     cy,
@@ -208,7 +238,13 @@ export function radialArcPath(props: RadialArcPathProps): DomphyElement<"path"> 
     tooltipValue,
     seriesKey,
   } = props;
-  const pathData = describeRadialArc(cx, cy, radius, startAngleDeg, endAngleDeg);
+  const pathData = describeRadialArc(
+    cx,
+    cy,
+    radius,
+    startAngleDeg,
+    endAngleDeg,
+  );
   const length = radialArcLength(radius, startAngleDeg, endAngleDeg) || 0.0001;
 
   const element: DomphyElement<"path"> = {
@@ -231,7 +267,12 @@ export function radialArcPath(props: RadialArcPathProps): DomphyElement<"path"> 
   };
 
   if (tooltip && tooltipLabel) {
-    element.onMouseEnter = (event) => tooltip.show(event as MouseEvent, { label: tooltipLabel, color, value: tooltipValue });
+    element.onMouseEnter = (event) =>
+      tooltip.show(event as MouseEvent, {
+        label: tooltipLabel,
+        color,
+        value: tooltipValue,
+      });
     element.onMouseMove = (event) => tooltip.move(event as MouseEvent);
     element.onMouseLeave = () => tooltip.hide();
   }
@@ -270,7 +311,10 @@ export function radialThinCircle(
     cy,
     r: radius,
     fill: "none",
-    stroke: (listener: Listener) => (tone === "muted" ? themeColor(listener, "shift-3") : themeColor(listener, "inherit")),
+    stroke: (listener: Listener) =>
+      tone === "muted"
+        ? themeColor(listener, "shift-3")
+        : themeColor(listener, "inherit"),
     strokeWidth: 1,
   };
 }
@@ -326,7 +370,13 @@ export function createRadialTooltip(): RadialTooltipController {
       container = element;
     },
     show: (event, entry) => {
-      state.set({ visible: true, label: entry.label, color: entry.color, value: entry.value, ...positionFromEvent(event) });
+      state.set({
+        visible: true,
+        label: entry.label,
+        color: entry.color,
+        value: entry.value,
+        ...positionFromEvent(event),
+      });
     },
     move: (event) => {
       const current = state.get();
@@ -341,7 +391,9 @@ export function createRadialTooltip(): RadialTooltipController {
 }
 
 /** Floating swatch + label tooltip, positioned near the cursor via a live transform. */
-export function radialTooltipLayer(tooltip: RadialTooltipController): DomphyElement<"div"> {
+export function radialTooltipLayer(
+  tooltip: RadialTooltipController,
+): DomphyElement<"div"> {
   return {
     div: [
       {
@@ -358,10 +410,14 @@ export function radialTooltipLayer(tooltip: RadialTooltipController): DomphyElem
           height: themeSpacing(2.5),
           borderRadius: themeSpacing(1),
           flexShrink: "0",
-          backgroundColor: (listener: Listener) => themeColor(listener, "shift-9", tooltip.state.get(listener).color),
+          backgroundColor: (listener: Listener) =>
+            themeColor(listener, "shift-9", tooltip.state.get(listener).color),
         },
       } as DomphyElement<"span">,
-      { small: (listener: Listener) => tooltip.state.get(listener).label, $: [small({ color: "neutral" })] } as DomphyElement<"small">,
+      {
+        small: (listener: Listener) => tooltip.state.get(listener).label,
+        $: [small({ color: "neutral" })],
+      } as DomphyElement<"small">,
       // Right-aligned numeric value — upstream ChartTooltipContent renders
       // `item.value.toLocaleString()` in `font-mono font-medium
       // text-foreground tabular-nums`, pushed to the row's end via the parent
@@ -377,8 +433,8 @@ export function radialTooltipLayer(tooltip: RadialTooltipController): DomphyElem
         style: {
           marginInlineStart: "auto",
           color: (listener: Listener) => themeColor(listener, "shift-9"),
-          fontFamily: "ui-monospace, monospace",
-          fontWeight: "500",
+          fontFamily: fixed("ui-monospace, monospace"),
+          fontWeight: fixed("500"),
           fontVariantNumeric: "tabular-nums",
         },
       } as DomphyElement<"small">,
@@ -392,14 +448,18 @@ export function radialTooltipLayer(tooltip: RadialTooltipController): DomphyElem
       display: "flex",
       alignItems: "center",
       gap: themeSpacing(1.5),
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 2.5),
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2.5),
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
       backgroundColor: (listener: Listener) => themeColor(listener),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       pointerEvents: "none",
       whiteSpace: "nowrap",
-      opacity: (listener: Listener) => (tooltip.state.get(listener).visible ? "1" : "0"),
+      opacity: (listener: Listener) =>
+        tooltip.state.get(listener).visible ? "1" : "0",
       transform: (listener: Listener) => {
         const current = tooltip.state.get(listener);
         return `translate(${current.x + 14}px, ${current.y - 14}px)`;
@@ -419,11 +479,17 @@ export interface RadialCardShellProps {
   footer?: DomphyElement<"footer">;
 }
 
-export function radialCardShell(props: RadialCardShellProps): DomphyElement<"div"> {
+export function radialCardShell(
+  props: RadialCardShellProps,
+): DomphyElement<"div"> {
   const { title, description, content, footer } = props;
   const children: DomphyElement[] = [
     { h3: title, $: [heading()], style: { textAlign: "center" } },
-    { p: description, $: [paragraph({ color: "neutral" })], style: { textAlign: "center" } },
+    {
+      p: description,
+      $: [paragraph({ color: "neutral" })],
+      style: { textAlign: "center" },
+    },
     content,
   ];
   if (footer) children.push(footer);
@@ -436,12 +502,23 @@ export function radialCardShell(props: RadialCardShellProps): DomphyElement<"div
 
 // ─── Center value/caption label (HTML overlay, so it can reuse ui typography) ─
 
-export function radialCenterLabel(props: { valueText: string; captionText: string; topPercent?: number }): DomphyElement<"div"> {
+export function radialCenterLabel(props: {
+  valueText: string;
+  captionText: string;
+  topPercent?: number;
+}): DomphyElement<"div"> {
   const { valueText, captionText, topPercent = 50 } = props;
   return {
     div: [
-      { h2: valueText, $: [heading({ color: "neutral" })], style: { marginBottom: 0 } } as DomphyElement<"h2">,
-      { small: captionText, $: [small({ color: "neutral" })] } as DomphyElement<"small">,
+      {
+        h2: valueText,
+        $: [heading({ color: "neutral" })],
+        style: { marginBottom: 0 },
+      } as DomphyElement<"h2">,
+      {
+        small: captionText,
+        $: [small({ color: "neutral" })],
+      } as DomphyElement<"small">,
     ],
     style: {
       position: "absolute",
@@ -480,7 +557,9 @@ export interface RadialRingsChartProps {
 }
 
 /** The `svg` + label overlay + tooltip layer shared by the ring-chart recipes. */
-export function renderRadialRingsChart(props: RadialRingsChartProps): DomphyElement<"div"> {
+export function renderRadialRingsChart(
+  props: RadialRingsChartProps,
+): DomphyElement<"div"> {
   const {
     data,
     tooltip,
@@ -498,7 +577,12 @@ export function renderRadialRingsChart(props: RadialRingsChartProps): DomphyElem
     heightUnits = 72,
   } = props;
 
-  const rings = computeRingLayout(data.length, outerRadius, innerRadius, ringGap);
+  const rings = computeRingLayout(
+    data.length,
+    outerRadius,
+    innerRadius,
+    ringGap,
+  );
   const maxValue = Math.max(...data.map((point) => point.value), 1);
   const cx = RADIAL_CENTER;
   const cy = RADIAL_CENTER;
@@ -510,8 +594,13 @@ export function renderRadialRingsChart(props: RadialRingsChartProps): DomphyElem
 
   if (showGridCircles) {
     for (let index = 0; index < gridCircleCount; index++) {
-      const radius = innerRadius + ((outerRadius - innerRadius) / (gridCircleCount - 1)) * index;
-      backgroundElements.push({ ...radialThinCircle(cx, cy, radius, "muted"), _key: `grid-${index}` });
+      const radius =
+        innerRadius +
+        ((outerRadius - innerRadius) / (gridCircleCount - 1)) * index;
+      backgroundElements.push({
+        ...radialThinCircle(cx, cy, radius, "muted"),
+        _key: `grid-${index}`,
+      });
     }
   }
 
@@ -520,13 +609,18 @@ export function renderRadialRingsChart(props: RadialRingsChartProps): DomphyElem
     const color = radialSeriesColor(index, point.color);
 
     if (showBackgroundTrack) {
-      backgroundElements.push({ ...radialBackgroundTrack(cx, cy, ring.radius, ring.thickness), _key: `track-${point.key}` });
+      backgroundElements.push({
+        ...radialBackgroundTrack(cx, cy, ring.radius, ring.thickness),
+        _key: `track-${point.key}`,
+      });
     }
 
     const startAngle = sweepMode === "extended" ? extendedStartAngle : 0;
-    const domainSweep = sweepMode === "extended" ? maxSweepDegrees - extendedStartAngle : 360;
+    const domainSweep =
+      sweepMode === "extended" ? maxSweepDegrees - extendedStartAngle : 360;
     const rawSweep = (point.value / maxValue) * domainSweep;
-    const sweep = sweepMode === "extended" ? Math.max(minSweepDegrees, rawSweep) : rawSweep;
+    const sweep =
+      sweepMode === "extended" ? Math.max(minSweepDegrees, rawSweep) : rawSweep;
     const endAngle = startAngle + sweep;
 
     arcElements.push(
@@ -572,7 +666,12 @@ export function renderRadialRingsChart(props: RadialRingsChartProps): DomphyElem
       {
         svg: [...backgroundElements, ...arcElements],
         viewBox: `0 0 ${RADIAL_VIEW_SIZE} ${RADIAL_VIEW_SIZE}`,
-        style: { width: "100%", height: "100%", display: "block", overflow: "visible" },
+        style: {
+          width: "100%",
+          height: "100%",
+          display: "block",
+          overflow: "visible",
+        },
       } as DomphyElement<"svg">,
       ...labelElements,
       radialTooltipLayer(tooltip),
@@ -610,7 +709,9 @@ export interface RadialGaugeProps {
 }
 
 /** Static single-arc gauge with two decorative framing circles + a centered value/caption. */
-export function renderRadialGauge(props: RadialGaugeProps): DomphyElement<"div"> {
+export function renderRadialGauge(
+  props: RadialGaugeProps,
+): DomphyElement<"div"> {
   const {
     color,
     sweepDegrees,
@@ -631,12 +732,21 @@ export function renderRadialGauge(props: RadialGaugeProps): DomphyElement<"div">
   const children: DomphyElement[] = [];
 
   if (showBackgroundTrack) {
-    children.push({ ...radialBackgroundTrack(cx, cy, ringRadius, thickness), _key: "track" });
+    children.push({
+      ...radialBackgroundTrack(cx, cy, ringRadius, thickness),
+      _key: "track",
+    });
   }
   if (showDecorativeCircles) {
     children.push(
-      { ...radialThinCircle(cx, cy, ringRadius + thickness / 2 + 3, "muted"), _key: "decorative-outer" },
-      { ...radialThinCircle(cx, cy, ringRadius - thickness / 2 - 3, "surface"), _key: "decorative-inner" },
+      {
+        ...radialThinCircle(cx, cy, ringRadius + thickness / 2 + 3, "muted"),
+        _key: "decorative-outer",
+      },
+      {
+        ...radialThinCircle(cx, cy, ringRadius - thickness / 2 - 3, "surface"),
+        _key: "decorative-inner",
+      },
     );
   }
   children.push(
@@ -658,7 +768,12 @@ export function renderRadialGauge(props: RadialGaugeProps): DomphyElement<"div">
       {
         svg: children,
         viewBox: `0 0 ${RADIAL_VIEW_SIZE} ${RADIAL_VIEW_SIZE}`,
-        style: { width: "100%", height: "100%", display: "block", overflow: "visible" },
+        style: {
+          width: "100%",
+          height: "100%",
+          display: "block",
+          overflow: "visible",
+        },
       } as DomphyElement<"svg">,
       radialCenterLabel({ valueText, captionText }),
     ],
@@ -688,7 +803,9 @@ export interface RadialStackedGaugeProps {
 }
 
 /** Two-or-more segments sharing one thick band, stacked end-to-end with a small separating gap. */
-export function renderRadialStackedGauge(props: RadialStackedGaugeProps): DomphyElement<"div"> {
+export function renderRadialStackedGauge(
+  props: RadialStackedGaugeProps,
+): DomphyElement<"div"> {
   const {
     segments,
     tooltip,
@@ -705,7 +822,8 @@ export function renderRadialStackedGauge(props: RadialStackedGaugeProps): Domphy
   const cy = RADIAL_CENTER;
   const thickness = outerRadius * (1 - innerRadiusRatio);
   const ringRadius = outerRadius - thickness / 2;
-  const totalValue = segments.reduce((sum, segment) => sum + segment.value, 0) || 1;
+  const totalValue =
+    segments.reduce((sum, segment) => sum + segment.value, 0) || 1;
 
   let cursor = startAngle;
   const arcElements: DomphyElement[] = [];
@@ -713,7 +831,10 @@ export function renderRadialStackedGauge(props: RadialStackedGaugeProps): Domphy
     const color = radialSeriesColor(index, segment.color);
     const segmentSweep = (segment.value / totalValue) * sweepDegrees;
     const segmentStart = cursor + (index === 0 ? 0 : segmentGapDegrees / 2);
-    const segmentEnd = cursor + segmentSweep - (index === segments.length - 1 ? 0 : segmentGapDegrees / 2);
+    const segmentEnd =
+      cursor +
+      segmentSweep -
+      (index === segments.length - 1 ? 0 : segmentGapDegrees / 2);
     arcElements.push(
       radialArcPath({
         cx,
@@ -738,7 +859,12 @@ export function renderRadialStackedGauge(props: RadialStackedGaugeProps): Domphy
       {
         svg: arcElements,
         viewBox: `0 0 ${RADIAL_VIEW_SIZE} ${RADIAL_VIEW_SIZE}`,
-        style: { width: "100%", height: "100%", display: "block", overflow: "visible" },
+        style: {
+          width: "100%",
+          height: "100%",
+          display: "block",
+          overflow: "visible",
+        },
       } as DomphyElement<"svg">,
       // Center total/caption at the chart's true vertical center (topPercent
       // defaults to 50 / cy), matching renderRadialGauge — the previous

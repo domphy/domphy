@@ -30,11 +30,15 @@ describe("chartAreaStep", () => {
     const { host } = render(chartAreaStep() as DomphyElement);
     expect(host.querySelector("h3")?.textContent).toBe("Area Chart - Step");
     expect(host.querySelector("canvas")).toBeTruthy();
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts a custom series icon override in the footer", () => {
-    const { host } = render(chartAreaStep({ seriesIcon: "down" }) as DomphyElement);
+    const { host } = render(
+      chartAreaStep({ seriesIcon: "down" }) as DomphyElement,
+    );
     expect(host.querySelector("footer svg")).toBeTruthy();
   });
 });

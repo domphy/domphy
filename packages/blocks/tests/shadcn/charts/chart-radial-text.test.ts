@@ -25,11 +25,15 @@ describe("chartRadialText", () => {
     expect(arc).toBeTruthy();
     expect(arc?.getAttribute("stroke-linecap")).toBe("round");
     expect(host.querySelector("h2")?.textContent).toBe("1,125");
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts a custom value/color", () => {
-    const { host } = render(chartRadialText({ value: 7500, color: "success" }) as DomphyElement);
+    const { host } = render(
+      chartRadialText({ value: 7500, color: "success" }) as DomphyElement,
+    );
     expect(host.querySelector("h2")?.textContent).toBe("7,500");
   });
 });

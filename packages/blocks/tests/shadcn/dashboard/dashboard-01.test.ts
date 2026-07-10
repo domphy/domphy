@@ -33,12 +33,16 @@ beforeEach(() => {
   // fallback-close timer) never throws "close is not a function" (mirrors
   // packages/blocks/tests/shadcn/sidebar/sidebar01.test.ts).
   if (!(HTMLDialogElement.prototype as any).showModal) {
-    (HTMLDialogElement.prototype as any).showModal = function (this: HTMLDialogElement) {
+    (HTMLDialogElement.prototype as any).showModal = function (
+      this: HTMLDialogElement,
+    ) {
       this.open = true;
     };
   }
   if (!(HTMLDialogElement.prototype as any).close) {
-    (HTMLDialogElement.prototype as any).close = function (this: HTMLDialogElement) {
+    (HTMLDialogElement.prototype as any).close = function (
+      this: HTMLDialogElement,
+    ) {
       this.open = false;
     };
   }
@@ -80,7 +84,9 @@ describe("dashboard01", () => {
 
   it("filters the table to a status view via the tab/select control", async () => {
     const { host } = render(dashboard01() as DomphyElement);
-    const viewSelect = host.querySelector('select[aria-label="Select view"]') as HTMLSelectElement;
+    const viewSelect = host.querySelector(
+      'select[aria-label="Select view"]',
+    ) as HTMLSelectElement;
     expect(viewSelect).toBeTruthy();
     viewSelect.value = "Done";
     viewSelect.dispatchEvent(new Event("change", { bubbles: true }));
@@ -92,9 +98,9 @@ describe("dashboard01", () => {
 
   it("clicking a row title opens the row-editing drawer", async () => {
     const { host } = render(dashboard01() as DomphyElement);
-    const titleButtons = Array.from(host.querySelectorAll("table tbody button")).filter(
-      (button) => button.textContent?.includes("Project Brief"),
-    );
+    const titleButtons = Array.from(
+      host.querySelectorAll("table tbody button"),
+    ).filter((button) => button.textContent?.includes("Project Brief"));
     expect(titleButtons.length).toBeGreaterThan(0);
     (titleButtons[0] as HTMLButtonElement).click();
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -107,10 +113,25 @@ describe("dashboard01", () => {
     const { host } = render(
       dashboard01({
         tableRows: [
-          { id: 1, header: "Custom Row", sectionType: "Custom", status: "Done", target: 1, limit: 1, reviewer: "Test Reviewer" },
+          {
+            id: 1,
+            header: "Custom Row",
+            sectionType: "Custom",
+            status: "Done",
+            target: 1,
+            limit: 1,
+            reviewer: "Test Reviewer",
+          },
         ],
         metricCards: [
-          { label: "Custom Metric", value: "42", badgeDelta: "+1%", trendDirection: "up", footerHeadline: "Up", footerSubtext: "Sub" },
+          {
+            label: "Custom Metric",
+            value: "42",
+            badgeDelta: "+1%",
+            trendDirection: "up",
+            footerHeadline: "Up",
+            footerSubtext: "Sub",
+          },
         ],
       }) as DomphyElement,
     );

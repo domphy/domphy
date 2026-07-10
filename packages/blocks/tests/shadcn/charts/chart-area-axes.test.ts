@@ -30,11 +30,15 @@ describe("chartAreaAxes", () => {
     const { host } = render(chartAreaAxes() as DomphyElement);
     expect(host.querySelector("h3")?.textContent).toBe("Area Chart - Axes");
     expect(host.querySelector("canvas")).toBeTruthy();
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts a custom y-axis tick count without throwing", () => {
-    const { host } = render(chartAreaAxes({ yAxisTickCount: 5 }) as DomphyElement);
+    const { host } = render(
+      chartAreaAxes({ yAxisTickCount: 5 }) as DomphyElement,
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
   });
 });

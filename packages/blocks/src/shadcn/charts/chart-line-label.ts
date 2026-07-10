@@ -7,17 +7,18 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
+import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
-import type { ChartOption, TooltipParams } from "@domphy/chart";
+import { fixed } from "../../shared/typography.js";
 import {
-  MONTHLY_VISITOR_DATA,
-  type MonthlyPoint,
   chartCard,
   chartPlot,
   computeYDomain,
   hiddenLabelYAxis,
   hoverDotOverlay,
+  MONTHLY_VISITOR_DATA,
+  type MonthlyPoint,
   monthCategoryXAxis,
   staticPointMarkersOverlay,
   trendFooter,
@@ -67,7 +68,9 @@ function nestLabelTooltipFormatter(categories: string[]) {
   return (params: TooltipParams | TooltipParams[]): string => {
     const point = Array.isArray(params) ? params[0] : params;
     if (!point) return "";
-    const month = escapeHtml(String(categories[point.dataIndex] ?? point.name ?? ""));
+    const month = escapeHtml(
+      String(categories[point.dataIndex] ?? point.name ?? ""),
+    );
     const series = escapeHtml(String(point.seriesName ?? ""));
     const value = escapeHtml(String(point.value ?? ""));
     const swatch = `<span style="display:inline-block;width:3px;align-self:stretch;border-radius:2px;background:${point.color};margin-right:8px;"></span>`;
@@ -145,7 +148,7 @@ function chartLineLabel(props: ChartLineLabelProps = {}): DomphyElement<"div"> {
         color: seriesColor,
         // Upstream <LabelList className="fill-foreground"> — full card foreground,
         // not the engine's muted default point-label tone.
-        label: { show: true, fontSize: 12, color: "neutral" },
+        label: { show: true, fontSize: fixed(12), color: "neutral" },
       },
     ],
   };
@@ -162,7 +165,10 @@ function chartLineLabel(props: ChartLineLabelProps = {}): DomphyElement<"div"> {
           yDomain,
           grid: PLOT_GRID,
           renderMarker({ cx, cy, group }) {
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle") as SVGCircleElement;
+            const circle = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "circle",
+            ) as SVGCircleElement;
             circle.setAttribute("cx", String(cx));
             circle.setAttribute("cy", String(cy));
             circle.setAttribute("r", String(REST_DOT_RADIUS));

@@ -23,7 +23,13 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { type ThemeColor, themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 
 export interface ShimmerButtonProps {
   /** Button label content. Defaults to `"Shimmer Button"`. */
@@ -50,7 +56,9 @@ let shimmerButtonInstanceCounter = 0;
 /** Normalizes a `DomphyElement | DomphyElement[] | string` prop into the flat
  * `(string | DomphyElement)[]` shape `DomphyElement<T>`'s content field expects — a
  * bare single element isn't part of that type, only primitives/arrays/functions are. */
-function asContent(value: DomphyElement | DomphyElement[] | string): (string | DomphyElement)[] {
+function asContent(
+  value: DomphyElement | DomphyElement[] | string,
+): (string | DomphyElement)[] {
   return Array.isArray(value) ? value : [value];
 }
 
@@ -62,7 +70,9 @@ function asContent(value: DomphyElement | DomphyElement[] | string): (string | D
  * nudges 1px down (matching upstream — no hover scale/brightness). Call with no
  * arguments for a working demo button.
  */
-function shimmerButton(props: ShimmerButtonProps = {}): DomphyElement<"button"> {
+function shimmerButton(
+  props: ShimmerButtonProps = {},
+): DomphyElement<"button"> {
   const label = props.children ?? "Shimmer Button";
   const background = props.background ?? "neutral";
   const shimmerColor = props.shimmerColor ?? "neutral";
@@ -113,7 +123,8 @@ function shimmerButton(props: ShimmerButtonProps = {}): DomphyElement<"button"> 
       position: "absolute",
       inset: shimmerSize,
       borderRadius: "inherit",
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", background),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", background),
     } as StyleObject,
   } as DomphyElement<"span">;
 
@@ -169,10 +180,13 @@ function shimmerButton(props: ShimmerButtonProps = {}): DomphyElement<"button"> 
       whiteSpace: "nowrap",
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
       fontSize: (listener: Listener) => themeSize(listener, "inherit"),
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 3),
       borderRadius: `${borderRadius}px`,
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", background),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", background),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       opacity: props.disabled ? 0.6 : 1,
       // Upstream: `transform-gpu transition-transform duration-300 ease-in-out`.

@@ -19,11 +19,11 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
+import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { themeSpacing, type ThemeColor } from "@domphy/theme";
-import { chart } from "@domphy/chart";
-import type { ChartOption } from "@domphy/chart";
+import { type ThemeColor, themeSpacing } from "@domphy/theme";
 import { motion, select } from "@domphy/ui";
 import {
   CHART_AREA_DAILY_DATA,
@@ -32,13 +32,13 @@ import {
   CHART_AREA_SERIES_PALETTE,
   CHART_AREA_X_AXIS_BARE,
   CHART_AREA_Y_AXIS_HIDDEN,
+  type ChartAreaDailyPoint,
+  type ChartRangePreset,
   chartAreaGradientFill,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartLegendRow,
   formatShortMonthDay,
-  type ChartAreaDailyPoint,
-  type ChartRangePreset,
 } from "./chart-area-shared.js";
 
 export interface ChartAreaInteractiveSeries {
@@ -72,7 +72,9 @@ const DEFAULT_SERIES: ChartAreaInteractiveSeries[] = [
  * chart over a long daily range, with a trailing-window range select in the
  * header. Call with no arguments for a working demo.
  */
-function chartAreaInteractive(props: ChartAreaInteractiveProps = {}): DomphyElement<"div"> {
+function chartAreaInteractive(
+  props: ChartAreaInteractiveProps = {},
+): DomphyElement<"div"> {
   const {
     data = CHART_AREA_DAILY_DATA,
     series = DEFAULT_SERIES,
@@ -89,7 +91,9 @@ function chartAreaInteractive(props: ChartAreaInteractiveProps = {}): DomphyElem
 
   function buildOption(days: number): ChartOption {
     const sliced = data.slice(-days);
-    const tooltipCategories = sliced.map((point) => formatShortMonthDay(point.date));
+    const tooltipCategories = sliced.map((point) =>
+      formatShortMonthDay(point.date),
+    );
     return {
       tooltip: {
         trigger: "axis",
@@ -119,9 +123,13 @@ function chartAreaInteractive(props: ChartAreaInteractiveProps = {}): DomphyElem
   const optionState = toState(buildOption(defaultRangeDays));
 
   function replayReveal(): void {
-    if (!chartFrameElement || typeof chartFrameElement.animate !== "function") return;
+    if (!chartFrameElement || typeof chartFrameElement.animate !== "function")
+      return;
     chartFrameElement.animate(
-      [{ clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)" }],
+      [
+        { clipPath: "inset(0% 100% 0% 0%)" },
+        { clipPath: "inset(0% 0% 0% 0%)" },
+      ],
       { ...CHART_AREA_REVEAL_TRANSITION, fill: "both" },
     );
   }

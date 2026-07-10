@@ -23,19 +23,25 @@ describe("interactiveHoverButton", () => {
 
     const button = host.querySelector("button")!;
     expect(button).toBeTruthy();
-    expect(button.querySelector('[data-ihb-dot]')).toBeTruthy();
-    expect(button.querySelector('[data-ihb-label]')?.textContent).toBe("Get Started");
-    const overlay = button.querySelector('[data-ihb-overlay]')!;
+    expect(button.querySelector("[data-ihb-dot]")).toBeTruthy();
+    expect(button.querySelector("[data-ihb-label]")?.textContent).toBe(
+      "Get Started",
+    );
+    const overlay = button.querySelector("[data-ihb-overlay]")!;
     expect(overlay.textContent).toContain("Get Started");
     expect(overlay.querySelector("svg")).toBeTruthy();
   });
 
   it("respects a custom label and forwards onClick", () => {
     const onClick = vi.fn();
-    const { host } = render(interactiveHoverButton({ children: "Join now", onClick }));
+    const { host } = render(
+      interactiveHoverButton({ children: "Join now", onClick }),
+    );
 
     const button = host.querySelector("button")!;
-    expect(button.querySelector('[data-ihb-label]')?.textContent).toBe("Join now");
+    expect(button.querySelector("[data-ihb-label]")?.textContent).toBe(
+      "Join now",
+    );
     button.click();
     expect(onClick).toHaveBeenCalledTimes(1);
   });

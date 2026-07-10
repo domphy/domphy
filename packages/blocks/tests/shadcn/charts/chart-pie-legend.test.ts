@@ -29,10 +29,15 @@ describe("chartPieLegend", () => {
   });
 
   it("honors a custom legend column count without throwing", () => {
-    const { host } = render(chartPieLegend({ legendColumns: 2, data: [
-      { key: "a", name: "Alpha", value: 1 },
-      { key: "b", name: "Beta", value: 2 },
-    ] }));
+    const { host } = render(
+      chartPieLegend({
+        legendColumns: 2,
+        data: [
+          { key: "a", name: "Alpha", value: 1 },
+          { key: "b", name: "Beta", value: 2 },
+        ],
+      }),
+    );
 
     expect(host.textContent).toContain("Alpha");
     expect(host.textContent).toContain("Beta");

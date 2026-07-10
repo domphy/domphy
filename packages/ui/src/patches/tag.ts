@@ -57,7 +57,7 @@ function tag(
       whiteSpace: "nowrap",
       userSelect: "none",
       height: themeSpacing(6),
-      paddingBlock: "0px",
+      paddingBlock: 0,
       borderRadius: themeSpacing(1),
       paddingInlineStart: themeSpacing(2),
       paddingInlineEnd: removable ? themeSpacing(1) : themeSpacing(2),

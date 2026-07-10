@@ -6,6 +6,7 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { type ElementTone, themeColor } from "@domphy/theme";
+import { fixed } from "../../shared/typography.js";
 
 export interface IphoneProps {
   /** Screenshot shown in the screen area. */
@@ -28,9 +29,19 @@ interface SideButton {
 // Mute switch + two separate volume buttons on the left edge, one power button
 // on the right edge — mirrors a modern Pro-style iPhone's button layout.
 const SIDE_BUTTONS: SideButton[] = [
-  { key: "mute-switch", side: "insetInlineStart", top: "19.28%", height: "3.85%" },
+  {
+    key: "mute-switch",
+    side: "insetInlineStart",
+    top: "19.28%",
+    height: "3.85%",
+  },
   { key: "volume-up", side: "insetInlineStart", top: "26.42%", height: "7.6%" },
-  { key: "volume-down", side: "insetInlineStart", top: "36.17%", height: "7.48%" },
+  {
+    key: "volume-down",
+    side: "insetInlineStart",
+    top: "36.17%",
+    height: "7.48%",
+  },
   { key: "power", side: "insetInlineEnd", top: "31.63%", height: "12.02%" },
 ];
 
@@ -56,7 +67,16 @@ function frameGlyph(
   return {
     span: [
       {
-        svg: [{ rect: null, x: 0, y: 0, width: shapeWidth, height: shapeHeight, rx: 999 }],
+        svg: [
+          {
+            rect: null,
+            x: 0,
+            y: 0,
+            width: shapeWidth,
+            height: shapeHeight,
+            rx: 999,
+          },
+        ],
         viewBox: `0 0 ${shapeWidth} ${shapeHeight}`,
         fill: "currentColor",
         ariaHidden: "true",
@@ -77,7 +97,11 @@ function frameGlyph(
 
 /** The screen-area media layer: a video overlay wins over a static image; renders nothing
  * (bare screen) when neither is supplied. */
-function screenMedia(src: string | undefined, videoSrc: string | undefined, label: string): DomphyElement | null {
+function screenMedia(
+  src: string | undefined,
+  videoSrc: string | undefined,
+  label: string,
+): DomphyElement | null {
   if (videoSrc) {
     return {
       video: null,
@@ -88,7 +112,14 @@ function screenMedia(src: string | undefined, videoSrc: string | undefined, labe
       playsInline: true,
       preload: "metadata",
       "aria-label": label,
-      style: { position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", objectFit: "cover" },
+      style: {
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        display: "block",
+        objectFit: "cover",
+      },
     } as DomphyElement;
   }
   if (src) {
@@ -197,7 +228,7 @@ function iphone(props: IphoneProps = {}): DomphyElement<"div"> {
       position: "relative",
       display: "inline-block",
       verticalAlign: "middle",
-      lineHeight: 1,
+      lineHeight: fixed(1),
       width: "100%",
       aspectRatio: "433 / 882",
       borderRadius: "16.86% / 8.28%",

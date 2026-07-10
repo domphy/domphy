@@ -34,7 +34,9 @@ afterEach(() => {
   // `<style>` sheet across renders, so a stale rule from a previous test can
   // otherwise be reused (and its reactive display checked here) by a later
   // test with an identical style shape. Clear it between tests for isolation.
-  document.head.querySelectorAll("style").forEach((styleElement) => styleElement.remove());
+  document.head
+    .querySelectorAll("style")
+    .forEach((styleElement) => styleElement.remove());
 });
 
 describe("animatedThemeToggler", () => {
@@ -71,7 +73,9 @@ describe("animatedThemeToggler", () => {
 
   it("writes through to an externally-supplied State so the caller's own store stays in sync", () => {
     const themeState = toState<"light" | "dark">("light");
-    const { host } = render(animatedThemeToggler({ theme: themeState }) as DomphyElement);
+    const { host } = render(
+      animatedThemeToggler({ theme: themeState }) as DomphyElement,
+    );
     flushSync();
     const button = host.querySelector("button") as HTMLButtonElement;
     button.click();

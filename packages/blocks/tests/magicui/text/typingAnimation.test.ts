@@ -20,7 +20,9 @@ function render(app: DomphyElement) {
 
 /** The revealed-substring span, distinct from the (always-rendered) trailing cursor glyph. */
 function revealedTextOf(host: HTMLElement): string {
-  const span = host.querySelector('[data-typing-revealed="true"]') as HTMLElement;
+  const span = host.querySelector(
+    '[data-typing-revealed="true"]',
+  ) as HTMLElement;
   return (span?.textContent ?? "").replaceAll(ZERO_WIDTH_SPACE, "");
 }
 
@@ -42,7 +44,9 @@ describe("typingAnimation", () => {
 
   it("types a single string one character per tick, then stops (no delete/cycle)", () => {
     vi.useFakeTimers();
-    const { host } = render(typingAnimation({ text: "Hi", typingSpeed: 10 }) as DomphyElement);
+    const { host } = render(
+      typingAnimation({ text: "Hi", typingSpeed: 10 }) as DomphyElement,
+    );
     flushSync();
 
     vi.advanceTimersByTime(10);
@@ -62,7 +66,12 @@ describe("typingAnimation", () => {
   it("cycles type → pause → delete → next phrase across a phrase list", () => {
     vi.useFakeTimers();
     const { host } = render(
-      typingAnimation({ text: ["Ab", "Cd"], typingSpeed: 10, deletingSpeed: 10, pauseDuration: 10 }) as DomphyElement,
+      typingAnimation({
+        text: ["Ab", "Cd"],
+        typingSpeed: 10,
+        deletingSpeed: 10,
+        pauseDuration: 10,
+      }) as DomphyElement,
     );
     flushSync();
 
@@ -82,12 +91,22 @@ describe("typingAnimation", () => {
   });
 
   it("accepts a custom cursor style without throwing", () => {
-    expect(() => render(typingAnimation({ text: "Hi", cursorStyle: "block", cursorBlink: false }) as DomphyElement)).not.toThrow();
+    expect(() =>
+      render(
+        typingAnimation({
+          text: "Hi",
+          cursorStyle: "block",
+          cursorBlink: false,
+        }) as DomphyElement,
+      ),
+    ).not.toThrow();
   });
 
   it("removes cleanly and stops the typing timer", () => {
     vi.useFakeTimers();
-    const { node } = render(typingAnimation({ text: "Hi", typingSpeed: 10 }) as DomphyElement);
+    const { node } = render(
+      typingAnimation({ text: "Hi", typingSpeed: 10 }) as DomphyElement,
+    );
     flushSync();
     node.remove();
     expect(() => vi.advanceTimersByTime(1000)).not.toThrow();

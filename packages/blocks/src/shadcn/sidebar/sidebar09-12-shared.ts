@@ -31,15 +31,10 @@ export {
   ICON_PLUS,
   ICON_SEARCH,
   ICON_USERS,
-  sidebarBackdrop,
-  sidebarBreadcrumb,
-  sidebarMainContent,
-  sidebarStickyHeader,
   placeholderCard,
   placeholderPanel,
-  verticalDivider,
-  renderPlainNavRow,
   renderExpandableNavRow,
+  renderPlainNavRow,
   renderTeamSwitcher,
   renderUserFooter,
   type SidebarBreadcrumbItem,
@@ -47,6 +42,12 @@ export {
   type SidebarNavMainItem,
   type SidebarTeam,
   type SidebarUser,
+  sidebarBackdrop,
+  sidebarBreadcrumb,
+  sidebarMainContent,
+  sidebarStickyHeader,
+  srOnlyLabel,
+  verticalDivider,
 } from "./sidebar05-08-shared.js";
 
 export { sidebarIcon };
@@ -106,7 +107,8 @@ function interactiveRowStyle(dense = false) {
     alignItems: "center",
     width: "100%",
     gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-    paddingBlock: (l: Listener) => themeSpacing(dense ? 1.5 : themeDensity(l) * 2),
+    paddingBlock: (l: Listener) =>
+      themeSpacing(dense ? 1.5 : themeDensity(l) * 2),
     paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
     borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
     border: "none",
@@ -118,7 +120,9 @@ function interactiveRowStyle(dense = false) {
     whiteSpace: "nowrap",
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+    "&:hover": {
+      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+    },
     "&[aria-current=page], &[aria-current=true]": {
       backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary"),
       color: (l: Listener) => themeColor(l, "shift-12", "primary"),
@@ -162,7 +166,10 @@ function sidebarStyledPopoverContent(
       div: group.items.map((item, itemIndex) => ({
         button: [
           ...(item.icon ? [sidebarIcon(item.icon)] : []),
-          { span: item.label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+          {
+            span: item.label,
+            style: { flex: "1", textAlign: "left" },
+          } as unknown as DomphyElement,
         ],
         type: "button",
         role: "menuitem",
@@ -182,7 +189,8 @@ function sidebarStyledPopoverContent(
         paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 1),
         borderBottom:
           groupIndex < groups.length - 1
-            ? (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`
+            ? (l: Listener) =>
+                `1px solid ${themeColor(l, "shift-3", "neutral")}`
             : undefined,
       },
       _key: groupIndex,
@@ -194,7 +202,8 @@ function sidebarStyledPopoverContent(
       flexDirection: "column",
       minWidth: themeSpacing(56),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-      border: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      border: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       boxShadow: (l: Listener) =>
         `0 ${themeSpacing(2)} ${themeSpacing(8)} ${themeColor(l, "shift-4", "neutral")}`,
       overflow: "hidden",
@@ -212,7 +221,10 @@ export { interactiveRowStyle, emojiGlyph, sidebarStyledPopoverContent };
 // reveals the rest, rather than a fixed/inert placeholder row.
 // ---------------------------------------------------------------------------
 
-function useShowMore<T>(items: T[], initialCount: number): { visible: State<boolean>; slice: (listener: Listener) => T[] } {
+function useShowMore<T>(
+  items: T[],
+  initialCount: number,
+): { visible: State<boolean>; slice: (listener: Listener) => T[] } {
   const expanded = toState(false);
   return {
     visible: expanded,

@@ -38,9 +38,27 @@ describe("animatedList", () => {
         intervalDelay: 100,
         maxItems: 2,
         items: [
-          { icon: "🔔", color: "info", title: "One", time: "1m", description: "First" },
-          { icon: "🔔", color: "success", title: "Two", time: "2m", description: "Second" },
-          { icon: "🔔", color: "warning", title: "Three", time: "3m", description: "Third" },
+          {
+            icon: "🔔",
+            color: "info",
+            title: "One",
+            time: "1m",
+            description: "First",
+          },
+          {
+            icon: "🔔",
+            color: "success",
+            title: "Two",
+            time: "2m",
+            description: "Second",
+          },
+          {
+            icon: "🔔",
+            color: "warning",
+            title: "Three",
+            time: "3m",
+            description: "Third",
+          },
         ],
       }),
     );
@@ -56,6 +74,8 @@ describe("animatedList", () => {
   });
 
   it("accepts a custom insertion direction without throwing", () => {
-    expect(() => render(animatedList({ direction: "bottom", intervalDelay: 10_000 }))).not.toThrow();
+    expect(() =>
+      render(animatedList({ direction: "bottom", intervalDelay: 10_000 })),
+    ).not.toThrow();
   });
 });

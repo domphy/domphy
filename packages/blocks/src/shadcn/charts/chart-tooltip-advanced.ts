@@ -36,13 +36,13 @@ import {
   ACTIVITY_ENERGY_UNIT,
   ACTIVITY_SERIES_CONFIG,
   ACTIVITY_TOOLTIP_DATA,
+  type ActivityDayPoint,
+  type ActivitySeriesEntry,
   activityBarOption,
   activityTooltipCard,
   activityTooltipFormatter,
   activityTooltipPlot,
   formatWeekdayShort,
-  type ActivityDayPoint,
-  type ActivitySeriesEntry,
   type TooltipValueContext,
 } from "./chart-tooltip-shared.js";
 
@@ -56,9 +56,14 @@ import {
  * The value is always numeric (safe to interpolate); the unit is a caller
  * prop, so its text is escaped before it reaches innerHTML.
  */
-function advancedValueRenderer(unit: string): (context: TooltipValueContext) => string {
+function advancedValueRenderer(
+  unit: string,
+): (context: TooltipValueContext) => string {
   const mutedColor = themeColorToken(null, "shift-9", "neutral");
-  const safeUnit = unit.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safeUnit = unit
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
   return (context) =>
     `<span style="font-variant-numeric:tabular-nums;font-family:ui-monospace,monospace;font-weight:500;">${String(context.value)}</span>` +
     `<span style="margin-left:2px;font-weight:400;color:${mutedColor};">${safeUnit}</span>`;
@@ -82,7 +87,9 @@ export interface ChartTooltipAdvancedProps {
  * values, no header, and a computed grand-total row on every column. Call
  * with no arguments for a working demo.
  */
-function chartTooltipAdvanced(props: ChartTooltipAdvancedProps = {}): DomphyElement<"div"> {
+function chartTooltipAdvanced(
+  props: ChartTooltipAdvancedProps = {},
+): DomphyElement<"div"> {
   const {
     data = ACTIVITY_TOOLTIP_DATA,
     series = ACTIVITY_SERIES_CONFIG,
@@ -108,7 +115,13 @@ function chartTooltipAdvanced(props: ChartTooltipAdvancedProps = {}): DomphyElem
     showTotal,
     totalLabel,
   });
-  const option = activityBarOption({ data, categories, series, showCursor, formatter });
+  const option = activityBarOption({
+    data,
+    categories,
+    series,
+    showCursor,
+    formatter,
+  });
 
   return activityTooltipCard({
     title,

@@ -11,15 +11,18 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
 import {
-  RADAR_SINGLE_SERIES,
-  RADAR_MONTHLY_SINGLE_DATA,
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
+import {
   createRadarTooltip,
-  radarCardShell,
-  renderRadarChart,
+  RADAR_MONTHLY_SINGLE_DATA,
+  RADAR_SINGLE_SERIES,
   type RadarPoint,
   type RadarSeriesConfig,
+  radarCardShell,
+  renderRadarChart,
 } from "./chart-radar-shared.js";
 
 export interface ChartRadarGridFillProps {
@@ -38,7 +41,9 @@ export interface ChartRadarGridFillProps {
  * shadcn/ui "charts/radar-grid-fill" recipe — a single-series radar chart
  * with a tinted grid backdrop. Call with no arguments for a working demo.
  */
-function chartRadarGridFill(props: ChartRadarGridFillProps = {}): DomphyElement<"div"> {
+function chartRadarGridFill(
+  props: ChartRadarGridFillProps = {},
+): DomphyElement<"div"> {
   const {
     data = RADAR_MONTHLY_SINGLE_DATA,
     series = RADAR_SINGLE_SERIES,
@@ -51,7 +56,10 @@ function chartRadarGridFill(props: ChartRadarGridFillProps = {}): DomphyElement<
     seriesFillOpacity = 0.5,
   } = props;
 
-  const resolvedSeries: RadarSeriesConfig[] = series.map((entry) => ({ ...entry, fillOpacity: seriesFillOpacity }));
+  const resolvedSeries: RadarSeriesConfig[] = series.map((entry) => ({
+    ...entry,
+    fillOpacity: seriesFillOpacity,
+  }));
   const tooltip = createRadarTooltip();
 
   return radarCardShell({
@@ -63,13 +71,20 @@ function chartRadarGridFill(props: ChartRadarGridFillProps = {}): DomphyElement<
           data,
           series: resolvedSeries,
           tooltip,
-          gridFill: { color: resolvedSeries[0].color, opacity: gridFillOpacity },
+          gridFill: {
+            color: resolvedSeries[0].color,
+            opacity: gridFillOpacity,
+          },
           tooltipShowLabel: false,
           tooltipIndicator: "swatch",
         }),
       ],
     },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

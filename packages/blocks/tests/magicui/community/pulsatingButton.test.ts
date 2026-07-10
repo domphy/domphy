@@ -31,7 +31,10 @@ describe("pulsatingButton", () => {
   it("fires the click handler", () => {
     const handleClick = vi.fn();
     const { host } = render(
-      pulsatingButton({ children: "Go", onClick: handleClick }) as DomphyElement,
+      pulsatingButton({
+        children: "Go",
+        onClick: handleClick,
+      }) as DomphyElement,
     );
     flushSync();
 
@@ -40,7 +43,9 @@ describe("pulsatingButton", () => {
   });
 
   it("renders the ripple variant without throwing", () => {
-    expect(() => render(pulsatingButton({ variant: "ripple" }) as DomphyElement)).not.toThrow();
+    expect(() =>
+      render(pulsatingButton({ variant: "ripple" }) as DomphyElement),
+    ).not.toThrow();
   });
 
   it("removes cleanly without throwing", () => {

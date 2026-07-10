@@ -98,7 +98,7 @@ function menu(
             if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
             e.preventDefault();
             const keys = items.map((it, i) => it.key ?? i);
-            const idx = keys.findIndex((ki) => ki === key);
+            const idx = keys.indexOf(key);
             let next = idx;
             if (k === "ArrowDown") next = (idx + 1) % keys.length;
             else if (k === "ArrowUp")

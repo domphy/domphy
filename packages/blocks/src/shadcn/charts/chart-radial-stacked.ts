@@ -10,13 +10,16 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
 import {
-  RADIAL_STACKED_SEGMENTS,
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
+import {
   createRadialTooltip,
+  RADIAL_STACKED_SEGMENTS,
+  type RadialSeriesDatum,
   radialCardShell,
   renderRadialStackedGauge,
-  type RadialSeriesDatum,
 } from "./chart-radial-shared.js";
 
 export interface ChartRadialStackedProps {
@@ -35,7 +38,9 @@ export interface ChartRadialStackedProps {
  * shadcn/ui "chart-radial-stacked" recipe — a half-circle two-segment gauge
  * with a centered total. Call with no arguments for a working demo.
  */
-function chartRadialStacked(props: ChartRadialStackedProps = {}): DomphyElement<"div"> {
+function chartRadialStacked(
+  props: ChartRadialStackedProps = {},
+): DomphyElement<"div"> {
   const {
     segments = RADIAL_STACKED_SEGMENTS,
     totalCaptionText = "Total customers",
@@ -65,9 +70,17 @@ function chartRadialStacked(props: ChartRadialStackedProps = {}): DomphyElement<
           innerRadiusRatio,
         }),
       ],
-      style: { display: "flex", alignItems: "center", justifyContent: "center" },
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      },
     },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText: footerCaptionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText: footerCaptionText,
+    }),
   });
 }
 

@@ -34,7 +34,9 @@ describe("shineBorder", () => {
   });
 
   it("emits one gradient stop per configured color, flanked by transparent stops", () => {
-    const { host } = render(shineBorder({ colors: ["primary", "warning"] }) as DomphyElement);
+    const { host } = render(
+      shineBorder({ colors: ["primary", "warning"] }) as DomphyElement,
+    );
     const stops = host.querySelectorAll("stop");
     // Transparent start + one stop per color + transparent end, matching
     // upstream's `radial-gradient(transparent, transparent, ...shineColor, transparent, transparent)`.

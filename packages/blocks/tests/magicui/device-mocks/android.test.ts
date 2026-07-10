@@ -44,7 +44,9 @@ describe("android", () => {
   });
 
   it("renders an image inside the screen area", () => {
-    const { host } = render(android({ src: "https://example.com/shot.png", alt: "Home screen" }));
+    const { host } = render(
+      android({ src: "https://example.com/shot.png", alt: "Home screen" }),
+    );
     const image = host.querySelector("img");
     expect(image).toBeTruthy();
     expect(image!.getAttribute("alt")).toBe("Home screen");
@@ -52,7 +54,10 @@ describe("android", () => {
 
   it("renders a video inside the screen area, preferred over an image", () => {
     const { host } = render(
-      android({ src: "https://example.com/shot.png", videoSrc: "https://example.com/demo.mp4" }),
+      android({
+        src: "https://example.com/shot.png",
+        videoSrc: "https://example.com/demo.mp4",
+      }),
     );
     expect(host.querySelector("video")).toBeTruthy();
     expect(host.querySelector("img")).toBeNull();

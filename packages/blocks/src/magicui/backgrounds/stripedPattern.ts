@@ -10,8 +10,8 @@
 // geometry stays exact for both slants.
 
 import type { DomphyElement, StyleObject } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export type StripedPatternDirection = "left" | "right";
 
@@ -34,7 +34,11 @@ export interface StripedPatternProps {
 
 let stripedPatternInstanceCounter = 0;
 
-function mirrorX(x: number, tileWidth: number, direction: StripedPatternDirection): number {
+function mirrorX(
+  x: number,
+  tileWidth: number,
+  direction: StripedPatternDirection,
+): number {
   return direction === "right" ? tileWidth - x : x;
 }
 
@@ -58,7 +62,12 @@ function stripedPattern(props: StripedPatternProps = {}): DomphyElement<"div"> {
   const rawSegments: Array<[number, number, number, number]> = [
     [0, tileHeight, tileWidth, 0],
     [-cornerOffsetX, cornerOffsetY, cornerOffsetX, -cornerOffsetY],
-    [tileWidth - cornerOffsetX, tileHeight + cornerOffsetY, tileWidth + cornerOffsetX, tileHeight - cornerOffsetY],
+    [
+      tileWidth - cornerOffsetX,
+      tileHeight + cornerOffsetY,
+      tileWidth + cornerOffsetX,
+      tileHeight - cornerOffsetY,
+    ],
   ];
 
   const stripeLines: DomphyElement[] = rawSegments.map(

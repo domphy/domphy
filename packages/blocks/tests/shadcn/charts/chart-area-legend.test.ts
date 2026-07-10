@@ -30,7 +30,9 @@ describe("chartAreaLegend", () => {
     const { host } = render(chartAreaLegend() as DomphyElement);
     expect(host.querySelector("h3")?.textContent).toBe("Area Chart - Legend");
     expect(host.querySelector("canvas")).toBeTruthy();
-    const legendText = Array.from(host.querySelectorAll("span")).map((el) => el.textContent);
+    const legendText = Array.from(host.querySelectorAll("span")).map(
+      (el) => el.textContent,
+    );
     expect(legendText).toContain("Desktop");
     expect(legendText).toContain("Mobile");
   });

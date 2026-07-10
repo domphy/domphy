@@ -18,8 +18,8 @@
 // matching motion's `useTransform` 3-point range [-distance, 0, distance].
 
 import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
-import { tooltip } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import { tooltip } from "@domphy/ui";
 
 export type DockIconName =
   | "home"
@@ -137,7 +137,8 @@ function dockSeparator(index: number): DomphyElement<"div"> {
     _doctorDisable: "missing-color",
     style: {
       alignSelf: "stretch",
-      borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4")}`,
+      borderInlineStart: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-4")}`,
     },
   };
   return element as DomphyElement<"div">;
@@ -181,7 +182,12 @@ function dockIconButton(
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       ...(disableMagnification
-        ? { "&:hover": { backgroundColor: (listener: Listener) => themeColor(listener, "increase-1") } }
+        ? {
+            "&:hover": {
+              backgroundColor: (listener: Listener) =>
+                themeColor(listener, "increase-1"),
+            },
+          }
         : {}),
     },
     $: [tooltip({ content: item.label, placement: tooltipPlacement })],
@@ -241,7 +247,8 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
       const threshold = baseSize * proximityMultiplier;
       // Piecewise-linear falloff — matches motion useTransform's 3-point
       // range [-distance, 0, distance] -> [base, target, base].
-      const falloff = threshold > 0 ? 1 - Math.min(distance, threshold) / threshold : 0;
+      const falloff =
+        threshold > 0 ? 1 - Math.min(distance, threshold) / threshold : 0;
       // Interpolate the size in PIXELS (a layout property), not a transform,
       // so the flex row reflows and neighbouring icons spread apart.
       const size = baseSize + baseSize * (magnification - 1) * falloff;
@@ -251,13 +258,21 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
   };
 
   const scheduleUpdate = () => {
-    if (animationFrame === null) animationFrame = requestAnimationFrame(applyMagnification);
+    if (animationFrame === null)
+      animationFrame = requestAnimationFrame(applyMagnification);
   };
 
   const children: DomphyElement[] = entries.map((entry, index) =>
     "separator" in entry
       ? dockSeparator(index)
-      : dockIconButton(entry, index, iconSizeUnits, anchor, disableMagnification, iconRefs),
+      : dockIconButton(
+          entry,
+          index,
+          iconSizeUnits,
+          anchor,
+          disableMagnification,
+          iconRefs,
+        ),
   );
 
   return {
@@ -271,7 +286,12 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
       // the bar's top edge (grow down), bottom to the bottom (grow up), middle
       // centres them (overflow both edges) — mirrors upstream items-start/
       // center/end. Must not be `stretch`, or icons would stretch to fill.
-      alignItems: anchor === "top" ? "flex-start" : anchor === "bottom" ? "flex-end" : "center",
+      alignItems:
+        anchor === "top"
+          ? "flex-start"
+          : anchor === "bottom"
+            ? "flex-end"
+            : "center",
       width: "fit-content",
       marginInline: "auto",
       // Fixed height (base icon + block padding on both sides), so a magnified
@@ -280,17 +300,20 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
       height: (listener: Listener) =>
         `calc(${themeSpacing(iconSizeUnits)} + 2 * ${themeSpacing(themeDensity(listener) * 2)})`,
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 3),
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
       // Upstream rounded-2xl (16px rounded rectangle), not a fully-rounded pill.
       borderRadius: themeSpacing(4),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
+      outline: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3")}`,
       outlineOffset: "-1px",
       boxShadow: (listener: Listener) =>
         `0 ${themeSpacing(2)} ${themeSpacing(10)} ${themeColor(listener, "shift-4")}`,
-      backdropFilter: (listener: Listener) => `blur(${themeSpacing(4)})`,
+      backdropFilter: (_listener: Listener) => `blur(${themeSpacing(4)})`,
     },
     _onMount: (node: ElementNode) => {
       const container = node.domElement as HTMLElement | null;

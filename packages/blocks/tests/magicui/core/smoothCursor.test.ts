@@ -24,7 +24,9 @@ afterEach(() => {
 describe("smoothCursor", () => {
   it("renders a working demo tree with zero args: fixed-position glyph and global cursor:none", () => {
     const { host, node } = render(smoothCursor() as DomphyElement);
-    const wrapper = host.querySelector('[data-smooth-cursor="true"]') as HTMLElement;
+    const wrapper = host.querySelector(
+      '[data-smooth-cursor="true"]',
+    ) as HTMLElement;
     expect(wrapper).toBeTruthy();
     expect(node.generateCSS()).toContain("position: fixed");
     expect(wrapper.querySelector("svg")).toBeTruthy();
@@ -33,10 +35,16 @@ describe("smoothCursor", () => {
 
   it("moves toward the mouse position on mousemove without throwing", () => {
     const { host, node } = render(smoothCursor() as DomphyElement);
-    const wrapper = host.querySelector('[data-smooth-cursor="true"]') as HTMLElement;
+    const wrapper = host.querySelector(
+      '[data-smooth-cursor="true"]',
+    ) as HTMLElement;
     expect(() => {
       window.dispatchEvent(
-        new PointerEvent("pointermove", { clientX: 120, clientY: 80, pointerType: "mouse" }),
+        new PointerEvent("pointermove", {
+          clientX: 120,
+          clientY: 80,
+          pointerType: "mouse",
+        }),
       );
     }).not.toThrow();
     expect(wrapper.style.opacity).toBe("1");
@@ -51,7 +59,9 @@ describe("smoothCursor", () => {
   });
 
   it("accepts a custom cursor glyph via `children`", () => {
-    const { host } = render(smoothCursor({ children: { span: "cursor" } }) as DomphyElement);
+    const { host } = render(
+      smoothCursor({ children: { span: "cursor" } }) as DomphyElement,
+    );
     expect(host.textContent).toContain("cursor");
   });
 });

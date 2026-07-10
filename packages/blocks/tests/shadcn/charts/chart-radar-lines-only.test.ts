@@ -20,12 +20,16 @@ describe("chartRadarLinesOnly", () => {
   it("renders two zero-fill stroke-only outlines with radial spokes suppressed", () => {
     const { host } = render(chartRadarLinesOnly() as DomphyElement);
 
-    expect(host.querySelector("h3")?.textContent).toBe("Radar Chart - Lines Only");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Radar Chart - Lines Only",
+    );
     // Four default grid rings + two data-series outlines, all <polygon> elements —
     // only the series outlines carry an explicit fill-opacity="0".
     const polygons = host.querySelectorAll("svg polygon");
     expect(polygons.length).toBe(6);
-    const seriesOutlines = Array.from(polygons).filter((polygon) => polygon.hasAttribute("fill-opacity"));
+    const seriesOutlines = Array.from(polygons).filter((polygon) =>
+      polygon.hasAttribute("fill-opacity"),
+    );
     expect(seriesOutlines.length).toBe(2);
     for (const polygon of seriesOutlines) {
       expect(polygon.getAttribute("fill-opacity")).toBe("0");

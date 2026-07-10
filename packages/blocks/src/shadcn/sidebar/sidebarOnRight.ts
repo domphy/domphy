@@ -10,8 +10,8 @@
 
 import type { DomphyElement } from "@domphy/core";
 import {
-  DEFAULT_NAV_GROUPS_WITH_CHILDREN,
   buildSidebarBlock,
+  DEFAULT_NAV_GROUPS_WITH_CHILDREN,
   type SidebarBlockOptions,
 } from "./sidebar01-04-shared.js";
 

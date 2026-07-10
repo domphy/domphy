@@ -5,12 +5,12 @@ import { ElementNode } from "@domphy/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { chartPieDonutActive } from "../../../src/shadcn/charts/chart-pie-donut-active.js";
 import {
+  arcSlicePath,
   DEFAULT_DONUT_INNER_RADIUS,
   DEFAULT_PAD_ANGLE,
   DEFAULT_PIE_DATA,
-  PIE_OUTER_RADIUS,
-  arcSlicePath,
   layoutPieSlices,
+  PIE_OUTER_RADIUS,
 } from "../../../src/shadcn/charts/pie-chart-shared.js";
 
 function render(app: DomphyElement) {
@@ -33,15 +33,27 @@ describe("chartPieDonutActive", () => {
 
     // Upstream applies a single strokeWidth={5} to the whole <Pie>; the active
     // sector only grows outward, it never gets a distinct outline weight.
-    const strokeWidths = new Set(wedges.map((wedge) => wedge.getAttribute("stroke-width")));
+    const strokeWidths = new Set(
+      wedges.map((wedge) => wedge.getAttribute("stroke-width")),
+    );
     expect(strokeWidths.size).toBe(1);
 
     const slices = layoutPieSlices(DEFAULT_PIE_DATA);
     const baseD = slices.map((slice) =>
-      arcSlicePath(slice, DEFAULT_DONUT_INNER_RADIUS, PIE_OUTER_RADIUS, DEFAULT_PAD_ANGLE),
+      arcSlicePath(
+        slice,
+        DEFAULT_DONUT_INNER_RADIUS,
+        PIE_OUTER_RADIUS,
+        DEFAULT_PAD_ANGLE,
+      ),
     );
     const enlargedD = slices.map((slice) =>
-      arcSlicePath(slice, DEFAULT_DONUT_INNER_RADIUS, PIE_OUTER_RADIUS + 10, DEFAULT_PAD_ANGLE),
+      arcSlicePath(
+        slice,
+        DEFAULT_DONUT_INNER_RADIUS,
+        PIE_OUTER_RADIUS + 10,
+        DEFAULT_PAD_ANGLE,
+      ),
     );
 
     const actualD = wedges.map((wedge) => wedge.getAttribute("d"));
@@ -64,10 +76,20 @@ describe("chartPieDonutActive", () => {
 
     const slices = layoutPieSlices(data);
     const baseD = slices.map((slice) =>
-      arcSlicePath(slice, DEFAULT_DONUT_INNER_RADIUS, PIE_OUTER_RADIUS, DEFAULT_PAD_ANGLE),
+      arcSlicePath(
+        slice,
+        DEFAULT_DONUT_INNER_RADIUS,
+        PIE_OUTER_RADIUS,
+        DEFAULT_PAD_ANGLE,
+      ),
     );
     const enlargedD = slices.map((slice) =>
-      arcSlicePath(slice, DEFAULT_DONUT_INNER_RADIUS, PIE_OUTER_RADIUS + 10, DEFAULT_PAD_ANGLE),
+      arcSlicePath(
+        slice,
+        DEFAULT_DONUT_INNER_RADIUS,
+        PIE_OUTER_RADIUS + 10,
+        DEFAULT_PAD_ANGLE,
+      ),
     );
 
     const actualD = wedges.map((wedge) => wedge.getAttribute("d"));

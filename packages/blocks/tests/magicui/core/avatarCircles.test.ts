@@ -31,7 +31,11 @@ describe("avatarCircles", () => {
     const { host } = render(
       avatarCircles({
         avatars: [
-          { imageUrl: "alice.png", profileUrl: "https://example.com/alice", name: "Alice" },
+          {
+            imageUrl: "alice.png",
+            profileUrl: "https://example.com/alice",
+            name: "Alice",
+          },
           { imageUrl: "bob.png", name: "Bob" },
         ],
         overflowCount: 0,

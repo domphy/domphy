@@ -13,15 +13,17 @@ import { button, inputText, menu, popover, small, strong } from "@domphy/ui";
  * @domphy/floating's full `Placement` union — narrowed locally so this
  * package doesn't need a direct dependency on @domphy/floating). */
 type DropdownPlacement = "right-start" | "bottom-end";
+
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   ICON_MARK,
   ICON_MORE,
+  type SidebarBreadcrumbItem,
   sidebarBackdrop,
   sidebarIcon,
   sidebarMainContent,
   sidebarStickyHeader,
-  type SidebarBreadcrumbItem,
+  srOnlyLabel,
 } from "./sidebar05-08-shared.js";
 
 /** A child row inside a top-level item's floating dropdown; navigates to
@@ -139,7 +141,10 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
       li: [
         {
           button: [
-            { span: item.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+            {
+              span: item.title,
+              style: { flex: "1", textAlign: "left" },
+            } as unknown as DomphyElement,
             sidebarIcon(ICON_MORE),
           ],
           type: "button",
@@ -155,15 +160,18 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
             border: "none",
             cursor: "pointer",
             color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-            backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "inherit", "neutral"),
             "&:hover": {
-              backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-2", "neutral"),
             },
             // Upstream: data-[state=open]:bg-sidebar-accent /
             // text-sidebar-accent-foreground — the neutral gray accent, not a
             // brand-tinted highlight.
             "&[aria-expanded=true]": {
-              backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral"),
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-3", "neutral"),
               color: (l: Listener) => themeColor(l, "shift-12", "neutral"),
             },
           },
@@ -183,12 +191,20 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
   const optInCardElement: DomphyElement<"div"> | null = optInCard
     ? ({
         div: [
-          { strong: optInCard.title, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
-          { small: optInCard.description, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+          {
+            strong: optInCard.title,
+            $: [strong({ color: "neutral" })],
+          } as unknown as DomphyElement,
+          {
+            small: optInCard.description,
+            $: [small({ color: "neutral" })],
+          } as unknown as DomphyElement,
           {
             form: [
+              srOnlyLabel("Email", "sidebar06-optin-email"),
               {
                 input: null,
+                id: "sidebar06-optin-email",
                 type: "email",
                 ariaLabel: "Email",
                 placeholder: "Email",
@@ -199,7 +215,10 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
                 $: [
                   inputText({ color: "neutral", accentColor: "primary" }),
                   {
-                    _onSchedule: (_node: ElementNode, element: HTMLInputElement) => {
+                    _onSchedule: (
+                      _node: ElementNode,
+                      element: HTMLInputElement,
+                    ) => {
                       element.type = "email";
                     },
                   },
@@ -232,7 +251,8 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
           margin: (l: Listener) => themeSpacing(themeDensity(l) * 3),
           padding: (l: Listener) => themeSpacing(themeDensity(l) * 3),
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-          outline: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+          outline: (l: Listener) =>
+            `1px solid ${themeColor(l, "shift-3", "neutral")}`,
           outlineOffset: "-1px",
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
@@ -261,17 +281,30 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
                   width: themeSpacing(8),
                   height: themeSpacing(8),
                   flexShrink: "0",
-                  borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-                  backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
+                  borderRadius: (l: Listener) =>
+                    themeSpacing(themeDensity(l) * 2),
+                  backgroundColor: (l: Listener) =>
+                    themeColor(l, "inherit", "primary"),
                   color: (l: Listener) => themeColor(l, "shift-10", "primary"),
                 },
               } as unknown as DomphyElement,
               {
                 div: [
-                  { strong: header.title ?? "Acme Inc", $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
-                  { small: header.subtitle ?? "v1.0.0", $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+                  {
+                    strong: header.title ?? "Acme Inc",
+                    $: [strong({ color: "neutral" })],
+                  } as unknown as DomphyElement,
+                  {
+                    small: header.subtitle ?? "v1.0.0",
+                    $: [small({ color: "neutral" })],
+                  } as unknown as DomphyElement,
                 ],
-                style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5), minWidth: "0" },
+                style: {
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: themeSpacing(0.5),
+                  minWidth: "0",
+                },
               } as unknown as DomphyElement,
             ],
             href: "#",
@@ -286,7 +319,8 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
               overflow: "hidden",
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
               "&:hover": {
-                backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+                backgroundColor: (l: Listener) =>
+                  themeColor(l, "shift-2", "neutral"),
               },
             },
           } as unknown as DomphyElement,
@@ -297,7 +331,19 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
         },
       } as unknown as DomphyElement,
       {
-        nav: [{ ul: navRows, style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) } } as unknown as DomphyElement],
+        nav: [
+          {
+            ul: navRows,
+            style: {
+              listStyle: "none",
+              margin: "0",
+              padding: "0",
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(0.5),
+            },
+          } as unknown as DomphyElement,
+        ],
         style: {
           flex: "1",
           minHeight: "0",
@@ -326,21 +372,25 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined" || !window.matchMedia) return;
       const media = window.matchMedia("(max-width: 768px)");
-      const apply = () => placement.set(media.matches ? "bottom-end" : "right-start");
+      const apply = () =>
+        placement.set(media.matches ? "bottom-end" : "right-start");
       apply();
       const listener = () => apply();
       media.addEventListener("change", listener);
-      node.addHook("Remove", () => media.removeEventListener("change", listener));
+      node.addHook("Remove", () =>
+        media.removeEventListener("change", listener),
+      );
     },
     style: {
       position: "relative",
       display: "flex",
       flexDirection: "column",
       flexShrink: "0",
-      width: (l: Listener) => (sidebarOpen.get(l) ? themeSpacing(64) : "0px"),
+      width: (l: Listener) => (sidebarOpen.get(l) ? themeSpacing(64) : "0"),
       overflow: "hidden",
       transition: "width 0.2s linear",
-      borderInlineEnd: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderInlineEnd: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       "@media (max-width: 768px)": {
@@ -349,9 +399,11 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
         insetInlineStart: "0",
         zIndex: "15",
         width: themeSpacing(72),
-        transform: (l: Listener) => (sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)"),
+        transform: (l: Listener) =>
+          sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
         transition: "transform 0.2s ease",
-        boxShadow: (l: Listener) => `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
+        boxShadow: (l: Listener) =>
+          `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
       },
     },
   } as unknown as DomphyElement<"aside">;
@@ -375,7 +427,11 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
   } as unknown as DomphyElement<"main">;
 
   return {
-    div: [asideElement, mainElement, sidebarBackdrop(sidebarOpen, () => sidebarOpen.set(false))],
+    div: [
+      asideElement,
+      mainElement,
+      sidebarBackdrop(sidebarOpen, () => sidebarOpen.set(false)),
+    ],
     style: {
       display: "flex",
       height: "100dvh",
@@ -386,4 +442,9 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
 }
 
 export { sidebar06 };
-export type { Sidebar06ChildLink, Sidebar06NavItem, Sidebar06OptInCard, Sidebar06Props };
+export type {
+  Sidebar06ChildLink,
+  Sidebar06NavItem,
+  Sidebar06OptInCard,
+  Sidebar06Props,
+};

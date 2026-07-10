@@ -7,11 +7,13 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption, TooltipParams } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_SERIES_PALETTE,
+  type ChartBarTwoSeriesPoint,
+  type ChartTrendDirection,
   chartBarCardShell,
   chartBarCategoryXAxis,
   chartBarFrame,
@@ -19,8 +21,6 @@ import {
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
-  type ChartBarTwoSeriesPoint,
-  type ChartTrendDirection,
 } from "./chart-bar-shared.js";
 
 export interface ChartBarMultipleSeries {
@@ -63,7 +63,9 @@ const DEFAULT_DATA: ChartBarTwoSeriesPoint[] = [
  * shadcn/ui "chart-bar" multiple recipe — a two-series grouped bar chart.
  * Call with no arguments for a working demo.
  */
-function chartBarMultiple(props: ChartBarMultipleProps = {}): DomphyElement<"div"> {
+function chartBarMultiple(
+  props: ChartBarMultipleProps = {},
+): DomphyElement<"div"> {
   const {
     data = DEFAULT_DATA,
     series = DEFAULT_SERIES,
@@ -94,7 +96,11 @@ function chartBarMultiple(props: ChartBarMultipleProps = {}): DomphyElement<"div
       formatter: chartBarMultipleTooltipFormatter(categories),
     },
     xAxis: chartBarCategoryXAxis(axisCategories),
-    yAxis: chartBarHiddenValueYAxis({ splitLine: true, min: 0, max: domainMax }),
+    yAxis: chartBarHiddenValueYAxis({
+      splitLine: true,
+      min: 0,
+      max: domainMax,
+    }),
     grid: { left: 8, right: 8, top: 16, bottom: 24 },
     series: series.map((s) => ({
       type: "bar",
@@ -109,21 +115,32 @@ function chartBarMultiple(props: ChartBarMultipleProps = {}): DomphyElement<"div
     title,
     subtitle,
     content: { div: [chartBarFrame(option, { height })] },
-    footer: chartBarTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartBarTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 
 function escapeTooltipHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function chartBarMultipleTooltipFormatter(
   categories: string[],
 ): (parametersInput: TooltipParams | TooltipParams[]) => string {
   return (parametersInput) => {
-    const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
+    const parameters = Array.isArray(parametersInput)
+      ? parametersInput
+      : [parametersInput];
     if (parameters.length === 0) return "";
-    const category = escapeTooltipHtml(categories[parameters[0].dataIndex] ?? parameters[0].name ?? "");
+    const category = escapeTooltipHtml(
+      categories[parameters[0].dataIndex] ?? parameters[0].name ?? "",
+    );
     const rows = parameters
       .map((p) => {
         const indicator = `<span style="display:inline-block;width:0;height:12px;border-left:1.5px dashed ${p.color};margin-right:6px;vertical-align:middle;"></span>`;

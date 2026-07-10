@@ -31,8 +31,8 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export interface RetroGridProps {
   /** Floor tilt, in degrees. Defaults to `65`. */
@@ -65,15 +65,15 @@ function buildScrollKeyframes(cellSize: number) {
   const tilesPerCycle = Math.max(1, Math.round(SCROLL_DISTANCE_PX / cellSize));
   const distance = tilesPerCycle * cellSize;
   return {
-    "0%": { backgroundPosition: "0px 0px" },
-    "100%": { backgroundPosition: `0px ${distance}px` },
+    "0%": { backgroundPosition: "0 0" },
+    "100%": { backgroundPosition: `0 ${distance}px` },
   };
 }
 
 /** Two layered `repeating-linear-gradient`s (horizontal + vertical hairlines) standing in for a tiled grid-line background image. */
 function buildGridBackgroundImage(lineColor: string, cellSize: number): string {
-  const vertical = `repeating-linear-gradient(90deg, ${lineColor} 0px, ${lineColor} 1px, transparent 1px, transparent ${cellSize}px)`;
-  const horizontal = `repeating-linear-gradient(0deg, ${lineColor} 0px, ${lineColor} 1px, transparent 1px, transparent ${cellSize}px)`;
+  const vertical = `repeating-linear-gradient(90deg, ${lineColor} 0, ${lineColor} 1px, transparent 1px, transparent ${cellSize}px)`;
+  const horizontal = `repeating-linear-gradient(0deg, ${lineColor} 0, ${lineColor} 1px, transparent 1px, transparent ${cellSize}px)`;
   return `${vertical}, ${horizontal}`;
 }
 
@@ -122,15 +122,23 @@ function retroGrid(props: RetroGridProps = {}): DomphyElement<"div"> {
       transform: `rotateX(${angle}deg)`,
       transformOrigin: "top",
       backgroundImage: (listener: Listener) =>
-        buildGridBackgroundImage(themeColor(listener, "shift-6", lightLineColor), cellSize),
+        buildGridBackgroundImage(
+          themeColor(listener, "shift-6", lightLineColor),
+          cellSize,
+        ),
       backgroundSize: `${cellSize}px ${cellSize}px`,
       animation: `${scrollAnimationName} 15s linear infinite`,
       [`@keyframes ${scrollAnimationName}`]: scrollKeyframes,
       "@media (prefers-color-scheme: dark)": {
         backgroundImage: (listener: Listener) =>
-          buildGridBackgroundImage(themeColor(listener, "shift-9", darkLineColor), cellSize),
+          buildGridBackgroundImage(
+            themeColor(listener, "shift-9", darkLineColor),
+            cellSize,
+          ),
       },
-      "@media (prefers-reduced-motion: reduce)": { animationPlayState: "paused" },
+      "@media (prefers-reduced-motion: reduce)": {
+        animationPlayState: "paused",
+      },
     } as StyleObject,
   } as DomphyElement;
 

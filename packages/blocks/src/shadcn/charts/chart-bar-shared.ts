@@ -54,12 +54,27 @@
 //     recipes below pass `categories`/`values` in reverse-chronological order
 //     so the on-screen reading order (top-to-bottom) ends up chronological.
 
-import type { DomphyElement, Listener, PartialElement, ReadableState } from "@domphy/core";
-import { themeColor, themeColorToken, themeSpacing, type ThemeColor } from "@domphy/theme";
-import { card, heading, icon, paragraph, small } from "@domphy/ui";
-import { motion } from "@domphy/ui";
-import { chart, createLinearScale, createOrdinalScale, familyHex } from "@domphy/chart";
 import type { AxisOption, ChartOption, TooltipParams } from "@domphy/chart";
+import {
+  chart,
+  createLinearScale,
+  createOrdinalScale,
+  familyHex,
+} from "@domphy/chart";
+import type {
+  DomphyElement,
+  Listener,
+  PartialElement,
+  ReadableState,
+} from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeColorToken,
+  themeSpacing,
+} from "@domphy/theme";
+import { card, heading, icon, motion, paragraph, small } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 
 // ─── Data shapes ───────────────────────────────────────────────────────────
 
@@ -162,14 +177,21 @@ export function generateChartBarDailyData(
     mobileLevel = Math.max(59, mobileLevel + (random() - 0.5) * 24);
     points.push({
       date: date.toISOString().slice(0, 10),
-      desktop: Math.min(520, Math.round(desktopLevel + Math.sin(dayNumber / 8) * 60)),
-      mobile: Math.min(260, Math.round(mobileLevel + Math.sin(dayNumber / 10) * 30)),
+      desktop: Math.min(
+        520,
+        Math.round(desktopLevel + Math.sin(dayNumber / 8) * 60),
+      ),
+      mobile: Math.min(
+        260,
+        Math.round(mobileLevel + Math.sin(dayNumber / 10) * 30),
+      ),
     });
   }
   return points;
 }
 
-export const CHART_BAR_DAILY_DATA: ChartBarDailyPoint[] = generateChartBarDailyData();
+export const CHART_BAR_DAILY_DATA: ChartBarDailyPoint[] =
+  generateChartBarDailyData();
 
 // ─── Color helpers ─────────────────────────────────────────────────────────
 
@@ -197,7 +219,10 @@ export function chartBarColorHex(role: ThemeColor, tone = "shift-9"): string {
 // ─── Axis presets ──────────────────────────────────────────────────────────
 
 /** Vertical-bar category (x) axis: labels only, no line/ticks. */
-export function chartBarCategoryXAxis(categories: string[], options: { splitLine?: boolean } = {}): AxisOption {
+export function chartBarCategoryXAxis(
+  categories: string[],
+  options: { splitLine?: boolean } = {},
+): AxisOption {
   return {
     type: "category",
     data: categories,
@@ -209,7 +234,9 @@ export function chartBarCategoryXAxis(categories: string[], options: { splitLine
 }
 
 /** Vertical-bar value (y) axis: no visible ink, optional gridlines. */
-export function chartBarHiddenValueYAxis(options: { splitLine?: boolean; min?: number; max?: number } = {}): AxisOption {
+export function chartBarHiddenValueYAxis(
+  options: { splitLine?: boolean; min?: number; max?: number } = {},
+): AxisOption {
   return {
     type: "value",
     min: options.min,
@@ -234,7 +261,9 @@ export function chartBarCategoryYAxis(categories: string[]): AxisOption {
 }
 
 /** Horizontal-bar value (x) axis: no visible ink, optional gridlines. */
-export function chartBarHiddenValueXAxis(options: { splitLine?: boolean; min?: number; max?: number } = {}): AxisOption {
+export function chartBarHiddenValueXAxis(
+  options: { splitLine?: boolean; min?: number; max?: number } = {},
+): AxisOption {
   return {
     type: "value",
     min: options.min ?? 0,
@@ -251,17 +280,26 @@ export function chartBarHiddenValueXAxis(options: { splitLine?: boolean; min?: n
 /** A zero-anchored, padded value domain — pass the SAME numbers to both the
  * chart()'s axis.min/max and any companion overlay's scale so bar geometry
  * (real WebGL bar + SVG overlay) stays pixel-in-sync. */
-export function chartBarValueDomain(values: number[], padFraction = 0.12): [number, number] {
+export function chartBarValueDomain(
+  values: number[],
+  padFraction = 0.12,
+): [number, number] {
   const max = Math.max(0, ...values);
   return [0, Math.ceil(max * (1 + padFraction)) || 1];
 }
 
 /** A signed, padded value domain for diverging (positive/negative) bars. */
-export function chartBarSignedDomain(values: number[], padFraction = 0.2): [number, number] {
+export function chartBarSignedDomain(
+  values: number[],
+  padFraction = 0.2,
+): [number, number] {
   const max = Math.max(0, ...values);
   const min = Math.min(0, ...values);
   const span = max - min || 1;
-  return [Math.floor(min - span * padFraction), Math.ceil(max + span * padFraction)];
+  return [
+    Math.floor(min - span * padFraction),
+    Math.ceil(max + span * padFraction),
+  ];
 }
 
 // ─── Tooltip formatters ─────────────────────────────────────────────────────
@@ -283,7 +321,11 @@ function escapeHtml(text: string): string {
  * `name`/`value` must already be escaped. Pass `""` for the swatch to omit the
  * indicator (upstream `hideIndicator`).
  */
-export function chartBarTooltipRow(swatch: string, name: string, value: string): string {
+export function chartBarTooltipRow(
+  swatch: string,
+  name: string,
+  value: string,
+): string {
   const muted = themeColorToken(null, "shift-9", "neutral");
   const foreground = themeColorToken(null, "shift-11", "neutral");
   return (
@@ -305,12 +347,15 @@ export function chartBarTooltipRow(swatch: string, name: string, value: string):
  */
 export function chartBarAxisTooltipFormatter(
   categories: string[],
-  valueLabel: (parameters: TooltipParams) => string = (p) => String(p.value ?? ""),
+  valueLabel: (parameters: TooltipParams) => string = (p) =>
+    String(p.value ?? ""),
   options: { hideLabel?: boolean } = {},
 ): (parameters: TooltipParams | TooltipParams[]) => string {
   const { hideLabel = false } = options;
   return (parametersInput) => {
-    const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
+    const parameters = Array.isArray(parametersInput)
+      ? parametersInput
+      : [parametersInput];
     if (parameters.length === 0) return "";
     const rows = parameters
       .map((p) => {
@@ -320,7 +365,9 @@ export function chartBarAxisTooltipFormatter(
       })
       .join("");
     if (hideLabel) return rows;
-    const category = escapeHtml(categories[parameters[0].dataIndex] ?? parameters[0].name ?? "");
+    const category = escapeHtml(
+      categories[parameters[0].dataIndex] ?? parameters[0].name ?? "",
+    );
     return `<strong>${category}</strong>${rows}`;
   };
 }
@@ -337,16 +384,23 @@ export function chartBarStackedTooltipFormatter(
   showTotal = true,
 ): (parameters: TooltipParams | TooltipParams[]) => string {
   return (parametersInput) => {
-    const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
+    const parameters = Array.isArray(parametersInput)
+      ? parametersInput
+      : [parametersInput];
     if (parameters.length === 0) return "";
-    const category = escapeHtml(categories[parameters[0].dataIndex] ?? parameters[0].name ?? "");
+    const category = escapeHtml(
+      categories[parameters[0].dataIndex] ?? parameters[0].name ?? "",
+    );
     const rows = parameters.map((p) => {
       const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
       const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
       return chartBarTooltipRow(dot, label, escapeHtml(String(p.value ?? "")));
     });
     if (showTotal) {
-      const total = parameters.reduce((sum, p) => sum + (Number(p.value) || 0), 0);
+      const total = parameters.reduce(
+        (sum, p) => sum + (Number(p.value) || 0),
+        0,
+      );
       rows.push(chartBarTooltipRow("", "Total", escapeHtml(String(total))));
     }
     return `<strong>${category}</strong>${rows.join("")}`;
@@ -359,13 +413,21 @@ export function chartBarSignedTooltipFormatter(
   categories: string[],
 ): (parameters: TooltipParams | TooltipParams[]) => string {
   return (parametersInput) => {
-    const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
+    const parameters = Array.isArray(parametersInput)
+      ? parametersInput
+      : [parametersInput];
     if (parameters.length === 0) return "";
     const point = parameters[0];
-    const category = escapeHtml(categories[point.dataIndex] ?? point.name ?? "");
+    const category = escapeHtml(
+      categories[point.dataIndex] ?? point.name ?? "",
+    );
     const value = Number(point.value) || 0;
     const sign = value > 0 ? "+" : "";
-    return chartBarTooltipRow("", category, `${sign}${escapeHtml(String(value))}`);
+    return chartBarTooltipRow(
+      "",
+      category,
+      `${sign}${escapeHtml(String(value))}`,
+    );
   };
 }
 
@@ -417,7 +479,8 @@ export function chartBarLegendSwatch(color: ThemeColor): PartialElement {
       height: themeSpacing(2.5),
       borderRadius: themeSpacing(1),
       flexShrink: "0",
-      backgroundColor: (listener: Listener) => themeColor(listener, "shift-9", color),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "shift-9", color),
       color: (listener: Listener) => themeColor(listener, "shift-9", color),
     },
   };
@@ -429,14 +492,23 @@ export interface ChartBarLegendEntry {
 }
 
 /** Centered swatch + label row shown below a chart's plot. */
-export function chartBarLegendRow(entries: ChartBarLegendEntry[]): DomphyElement<"div"> {
+export function chartBarLegendRow(
+  entries: ChartBarLegendEntry[],
+): DomphyElement<"div"> {
   return {
     div: entries.map((entry) => ({
       span: [
-        { span: null, $: [chartBarLegendSwatch(entry.color)] } as DomphyElement<"span">,
+        {
+          span: null,
+          $: [chartBarLegendSwatch(entry.color)],
+        } as DomphyElement<"span">,
         { small: entry.label, $: [small({ color: "neutral" })] },
       ],
-      style: { display: "inline-flex", alignItems: "center", gap: themeSpacing(1.5) },
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: themeSpacing(1.5),
+      },
       _key: entry.label,
     })),
     style: {
@@ -467,8 +539,17 @@ export interface ChartBarCardShellProps {
   color?: ThemeColor;
 }
 
-export function chartBarCardShell(props: ChartBarCardShellProps): DomphyElement<"div"> {
-  const { title, subtitle, content, headerAside, footer, color = "neutral" } = props;
+export function chartBarCardShell(
+  props: ChartBarCardShellProps,
+): DomphyElement<"div"> {
+  const {
+    title,
+    subtitle,
+    content,
+    headerAside,
+    footer,
+    color = "neutral",
+  } = props;
   const children: DomphyElement[] = [
     { h3: title, $: [heading()] },
     { p: subtitle, $: [paragraph({ color: "neutral" })] },
@@ -498,11 +579,20 @@ export interface ChartBarTrendFooterProps {
  * inheriting that SAME full-foreground currentColor (no success/danger tint,
  * and NOT the muted 'neutral'/shift-9 tone icon() paints by default — only the
  * caption line below is muted). */
-export function chartBarTrendFooter(props: ChartBarTrendFooterProps): DomphyElement<"footer"> {
-  const { trendText, direction, captionText, color = "neutral", showIcon = true } = props;
-  const foreground = (listener: Listener) => themeColor(listener, "shift-11", "neutral");
+export function chartBarTrendFooter(
+  props: ChartBarTrendFooterProps,
+): DomphyElement<"footer"> {
+  const {
+    trendText,
+    direction,
+    captionText,
+    color = "neutral",
+    showIcon = true,
+  } = props;
+  const foreground = (listener: Listener) =>
+    themeColor(listener, "shift-11", "neutral");
   const trendRow: DomphyElement[] = [
-    { span: trendText, style: { fontWeight: "500", color: foreground } },
+    { span: trendText, style: { fontWeight: fixed("500"), color: foreground } },
   ];
   if (showIcon) {
     const trendIcon = chartBarTrendIcon(direction, color);
@@ -514,7 +604,14 @@ export function chartBarTrendFooter(props: ChartBarTrendFooterProps): DomphyElem
   }
   return {
     footer: [
-      { div: trendRow, style: { display: "flex", alignItems: "center", gap: themeSpacing(1.5) } },
+      {
+        div: trendRow,
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: themeSpacing(1.5),
+        },
+      },
       { small: captionText, $: [small({ color: "neutral" })] },
     ],
     style: { display: "flex", flexDirection: "column", gap: themeSpacing(1) },
@@ -562,7 +659,11 @@ export function chartBarFrame(
   });
   return {
     div: children,
-    style: { position: "relative", width: "100%", height: themeSpacing(height) },
+    style: {
+      position: "relative",
+      width: "100%",
+      height: themeSpacing(height),
+    },
     $: [
       motion({
         initial: { clipPath: "inset(0% 100% 0% 0%)" },
@@ -585,17 +686,29 @@ export interface ChartBarGrid {
 
 // ─── SVG overlay helpers ────────────────────────────────────────────────────
 
-function svgTextNode(content: string, x: number, y: number, attributes: Record<string, string | number>): SVGTextElement {
-  const element = document.createElementNS("http://www.w3.org/2000/svg", "text") as SVGTextElement;
+function svgTextNode(
+  content: string,
+  x: number,
+  y: number,
+  attributes: Record<string, string | number>,
+): SVGTextElement {
+  const element = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "text",
+  ) as SVGTextElement;
   element.textContent = content;
   element.setAttribute("x", String(x));
   element.setAttribute("y", String(y));
-  for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
+  for (const [key, value] of Object.entries(attributes))
+    element.setAttribute(key, String(value));
   return element;
 }
 
 function createOverlaySvg(container: HTMLElement): SVGSVGElement {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
+  const svg = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "svg",
+  ) as SVGSVGElement;
   svg.setAttribute("width", "100%");
   svg.setAttribute("height", "100%");
   svg.style.position = "absolute";
@@ -619,7 +732,9 @@ export interface ChartBarHorizontalHoverOverlayProps {
  * resolve hover position correctly for that orientation (see the file-level
  * fidelity note above).
  */
-export function chartBarHorizontalHoverOverlay(props: ChartBarHorizontalHoverOverlayProps): PartialElement {
+export function chartBarHorizontalHoverOverlay(
+  props: ChartBarHorizontalHoverOverlayProps,
+): PartialElement {
   const { categories, grid, showCategoryTitle = false, valueLabel } = props;
   return {
     style: { position: "absolute", inset: "0", pointerEvents: "none" },
@@ -653,7 +768,12 @@ export function chartBarHorizontalHoverOverlay(props: ChartBarHorizontalHoverOve
         const mouseY = event.clientY - rect.top;
         const gridTop = grid.top;
         const gridBottom = rect.height - grid.bottom;
-        if (mouseX < grid.left || mouseX > rect.width - grid.right || mouseY < gridTop || mouseY > gridBottom) {
+        if (
+          mouseX < grid.left ||
+          mouseX > rect.width - grid.right ||
+          mouseY < gridTop ||
+          mouseY > gridBottom
+        ) {
           tooltip.style.opacity = "0";
           return;
         }
@@ -710,7 +830,9 @@ export interface ChartBarActiveOverlayProps {
  * never applies a per-item stroke/dash to the real WebGL geometry (see the
  * file-level fidelity note above).
  */
-export function chartBarActiveOverlay(props: ChartBarActiveOverlayProps): PartialElement {
+export function chartBarActiveOverlay(
+  props: ChartBarActiveOverlayProps,
+): PartialElement {
   const { categories, values, valueDomain, grid, activeIndex, color } = props;
   return {
     style: { position: "absolute", inset: "0", pointerEvents: "none" },
@@ -724,8 +846,14 @@ export function chartBarActiveOverlay(props: ChartBarActiveOverlayProps): Partia
         svg.textContent = "";
         if (!width || !height) return;
 
-        const xScale = createOrdinalScale(categories, [grid.left, width - grid.right]);
-        const yScale = createLinearScale(valueDomain, [height - grid.bottom, grid.top]);
+        const xScale = createOrdinalScale(categories, [
+          grid.left,
+          width - grid.right,
+        ]);
+        const yScale = createLinearScale(valueDomain, [
+          height - grid.bottom,
+          grid.top,
+        ]);
         const barWidth = xScale.bandwidth() * 0.65;
         const xCenter = xScale.map(activeIndex);
         const yTop = yScale.map(values[activeIndex] ?? 0);
@@ -733,7 +861,10 @@ export function chartBarActiveOverlay(props: ChartBarActiveOverlayProps): Partia
         const rectY = Math.min(yTop, baselineY);
         const rectHeight = Math.abs(baselineY - yTop);
 
-        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        const rect = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect",
+        );
         rect.setAttribute("x", String(xCenter - barWidth / 2));
         rect.setAttribute("y", String(rectY));
         rect.setAttribute("width", String(barWidth));
@@ -778,8 +909,18 @@ export interface ChartBarInsideOutsideLabelOverlayProps {
  * (overlay/labels.ts renderBarLabels) only positions labels correctly for
  * vertical bars — see the file-level fidelity note above.
  */
-export function chartBarInsideOutsideLabelOverlay(props: ChartBarInsideOutsideLabelOverlayProps): PartialElement {
-  const { categories, values, valueDomain, grid, insideColor, insideLabel, outsideLabel } = props;
+export function chartBarInsideOutsideLabelOverlay(
+  props: ChartBarInsideOutsideLabelOverlayProps,
+): PartialElement {
+  const {
+    categories,
+    values,
+    valueDomain,
+    grid,
+    insideColor,
+    insideLabel,
+    outsideLabel,
+  } = props;
   return {
     style: { position: "absolute", inset: "0", pointerEvents: "none" },
     _onMount(node) {
@@ -794,8 +935,14 @@ export function chartBarInsideOutsideLabelOverlay(props: ChartBarInsideOutsideLa
         svg.textContent = "";
         if (!width || !height) return;
 
-        const yScale = createOrdinalScale(categories, [height - grid.bottom, grid.top]);
-        const xScale = createLinearScale(valueDomain, [grid.left, width - grid.right]);
+        const yScale = createOrdinalScale(categories, [
+          height - grid.bottom,
+          grid.top,
+        ]);
+        const xScale = createLinearScale(valueDomain, [
+          grid.left,
+          width - grid.right,
+        ]);
         const baselineX = xScale.map(0);
 
         categories.forEach((_category, index) => {
@@ -804,18 +951,22 @@ export function chartBarInsideOutsideLabelOverlay(props: ChartBarInsideOutsideLa
           const insideX = Math.min(baselineX, xRight) + 8;
           const outsideX = Math.max(baselineX, xRight) + 8;
 
-          svg.appendChild(svgTextNode(insideLabel(index), insideX, yCenter, {
-            fill: insideTextColor,
-            "font-size": 12,
-            "text-anchor": "start",
-            "dominant-baseline": "middle",
-          }));
-          svg.appendChild(svgTextNode(outsideLabel(index), outsideX, yCenter, {
-            fill: outsideTextColor,
-            "font-size": 12,
-            "text-anchor": "start",
-            "dominant-baseline": "middle",
-          }));
+          svg.appendChild(
+            svgTextNode(insideLabel(index), insideX, yCenter, {
+              fill: insideTextColor,
+              "font-size": 12,
+              "text-anchor": "start",
+              "dominant-baseline": "middle",
+            }),
+          );
+          svg.appendChild(
+            svgTextNode(outsideLabel(index), outsideX, yCenter, {
+              fill: outsideTextColor,
+              "font-size": 12,
+              "text-anchor": "start",
+              "dominant-baseline": "middle",
+            }),
+          );
         });
       }
 
@@ -843,7 +994,9 @@ export interface ChartBarSignedLabelOverlayProps {
  * as a companion overlay (rather than the engine's `label` option) so the
  * offset direction can flip per data point's sign.
  */
-export function chartBarSignedLabelOverlay(props: ChartBarSignedLabelOverlayProps): PartialElement {
+export function chartBarSignedLabelOverlay(
+  props: ChartBarSignedLabelOverlayProps,
+): PartialElement {
   const { categories, values, valueDomain, grid } = props;
   return {
     style: { position: "absolute", inset: "0", pointerEvents: "none" },
@@ -858,8 +1011,14 @@ export function chartBarSignedLabelOverlay(props: ChartBarSignedLabelOverlayProp
         svg.textContent = "";
         if (!width || !height) return;
 
-        const xScale = createOrdinalScale(categories, [grid.left, width - grid.right]);
-        const yScale = createLinearScale(valueDomain, [height - grid.bottom, grid.top]);
+        const xScale = createOrdinalScale(categories, [
+          grid.left,
+          width - grid.right,
+        ]);
+        const yScale = createLinearScale(valueDomain, [
+          height - grid.bottom,
+          grid.top,
+        ]);
 
         categories.forEach((category, index) => {
           const value = values[index] ?? 0;
@@ -867,11 +1026,13 @@ export function chartBarSignedLabelOverlay(props: ChartBarSignedLabelOverlayProp
           const yTip = yScale.map(value);
           const isPositive = value >= 0;
           const labelY = isPositive ? yTip - 8 : yTip + 16;
-          svg.appendChild(svgTextNode(category, xCenter, labelY, {
-            fill: labelColor,
-            "font-size": 11,
-            "text-anchor": "middle",
-          }));
+          svg.appendChild(
+            svgTextNode(category, xCenter, labelY, {
+              fill: labelColor,
+              "font-size": 11,
+              "text-anchor": "middle",
+            }),
+          );
         });
       }
 

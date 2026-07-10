@@ -16,9 +16,9 @@
 // technique substitution for upstream's CSS `animate-shine` (see SOURCES.md).
 
 import type { DomphyElement } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
-import { themeColor, themeSpacing } from "@domphy/theme";
 import type { ThemeColor } from "@domphy/theme";
+import { themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export interface ShineBorderProps {
   /** Ring thickness in pixels. Defaults to `1`. */
@@ -79,14 +79,20 @@ function shineBorder(props: ShineBorderProps = {}): DomphyElement<"div"> {
     ...(colors.map((color, index) => ({
       stop: null,
       offset: `${((index + 1) / (colors.length + 1)) * 100}%`,
-      style: { stopColor: (listener) => themeColor(listener, "shift-9", color) },
+      style: {
+        stopColor: (listener) => themeColor(listener, "shift-9", color),
+      },
       _doctorDisable: "missing-color",
       _key: `stop-${index}`,
     })) as DomphyElement[]),
     transparentStop("100%", "stop-end"),
   ];
 
-  const ringRect = (strokeWidth: number, blur: number, opacity: number): DomphyElement =>
+  const ringRect = (
+    strokeWidth: number,
+    blur: number,
+    opacity: number,
+  ): DomphyElement =>
     ({
       rect: null,
       x: "1",

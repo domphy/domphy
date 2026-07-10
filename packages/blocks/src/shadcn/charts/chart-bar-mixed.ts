@@ -8,12 +8,15 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_BROWSER_DATA,
   CHART_BAR_SERIES_PALETTE,
+  type ChartBarCategoryPoint,
+  type ChartBarGrid,
+  type ChartTrendDirection,
   chartBarCardShell,
   chartBarCategoryYAxis,
   chartBarColorHex,
@@ -23,9 +26,6 @@ import {
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
-  type ChartBarCategoryPoint,
-  type ChartBarGrid,
-  type ChartTrendDirection,
 } from "./chart-bar-shared.js";
 
 export interface ChartBarMixedProps {
@@ -64,8 +64,13 @@ function chartBarMixed(props: ChartBarMixedProps = {}): DomphyElement<"div"> {
   const orderedData = [...data].reverse();
   const categories = orderedData.map((point) => point.category);
   const values = orderedData.map((point) => point.value);
-  const colorHexes = orderedData.map(
-    (point, index) => chartBarColorHex(point.color ?? CHART_BAR_SERIES_PALETTE[index % CHART_BAR_SERIES_PALETTE.length] as ThemeColor),
+  const colorHexes = orderedData.map((point, index) =>
+    chartBarColorHex(
+      point.color ??
+        (CHART_BAR_SERIES_PALETTE[
+          index % CHART_BAR_SERIES_PALETTE.length
+        ] as ThemeColor),
+    ),
   );
   const [, domainMax] = chartBarValueDomain(values);
 
@@ -109,7 +114,11 @@ function chartBarMixed(props: ChartBarMixedProps = {}): DomphyElement<"div"> {
         }),
       ],
     },
-    footer: chartBarTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartBarTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

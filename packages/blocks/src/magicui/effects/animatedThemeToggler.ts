@@ -30,8 +30,8 @@ import type {
   ValueOrState,
 } from "@domphy/core";
 import { flushSync, toState } from "@domphy/core";
-import { buttonGhost } from "@domphy/ui";
 import { themeSpacing } from "@domphy/theme";
+import { buttonGhost } from "@domphy/ui";
 
 export type ThemeTogglerTheme = "light" | "dark";
 
@@ -134,7 +134,10 @@ function moonGlyph(maskId: string): DomphyElement {
 /** Repeats the origin point `vertexCount` times to build the fully-collapsed
  * (zero-area) polygon the wipe grows from. Ported from Magic UI upstream. */
 function polygonCollapsed(cx: number, cy: number, vertexCount: number): string {
-  const pairs = Array.from({ length: vertexCount }, () => `${cx}px ${cy}px`).join(", ");
+  const pairs = Array.from(
+    { length: vertexCount },
+    () => `${cx}px ${cy}px`,
+  ).join(", ");
   return `polygon(${pairs})`;
 }
 
@@ -152,7 +155,7 @@ function getThemeTransitionClipPaths(
   switch (variant) {
     case "circle":
       return [
-        `circle(0px at ${cx}px ${cy}px)`,
+        `circle(0 at ${cx}px ${cy}px)`,
         `circle(${maxRadius}px at ${cx}px ${cy}px)`,
       ];
     case "square": {
@@ -193,7 +196,9 @@ function getThemeTransitionClipPaths(
       const verts: string[] = [];
       for (let i = 0; i < 6; i++) {
         const angle = -Math.PI / 2 + (i * Math.PI) / 3;
-        verts.push(`${cx + radius * Math.cos(angle)}px ${cy + radius * Math.sin(angle)}px`);
+        verts.push(
+          `${cx + radius * Math.cos(angle)}px ${cy + radius * Math.sin(angle)}px`,
+        );
       }
       return [polygonCollapsed(cx, cy, 6), `polygon(${verts.join(", ")})`];
     }
@@ -232,7 +237,7 @@ function getThemeTransitionClipPaths(
     }
     default:
       return [
-        `circle(0px at ${cx}px ${cy}px)`,
+        `circle(0 at ${cx}px ${cy}px)`,
         `circle(${maxRadius}px at ${cx}px ${cy}px)`,
       ];
   }
@@ -295,7 +300,8 @@ function animatedThemeToggler(
   let themeObserver: MutationObserver | null = null;
 
   function handleToggle(): void {
-    const nextTheme: ThemeTogglerTheme = theme.get() === "dark" ? "light" : "dark";
+    const nextTheme: ThemeTogglerTheme =
+      theme.get() === "dark" ? "light" : "dark";
 
     const applyTheme = () => {
       // Drive the whole page: flip the `.dark` class on <html> itself so the
@@ -359,7 +365,10 @@ function animatedThemeToggler(
     const root = document.documentElement;
     root.setAttribute("data-magicui-theme-vt", "active");
     // Sync the ::view-transition-group(root) animation-duration to `duration`.
-    root.style.setProperty("--magicui-theme-toggle-vt-duration", `${duration}ms`);
+    root.style.setProperty(
+      "--magicui-theme-toggle-vt-duration",
+      `${duration}ms`,
+    );
     // Pin the collapsed clip so Firefox does not paint the new theme unclipped
     // between the snapshot and the ready.then() JS animation starting.
     root.style.setProperty("--magicui-theme-vt-clip-from", fromClipPath);
@@ -402,7 +411,8 @@ function animatedThemeToggler(
   const iconStyle = (visibleWhen: ThemeTogglerTheme): StyleObject => ({
     position: "absolute",
     inset: 0,
-    display: (listener: Listener) => (theme.get(listener) === visibleWhen ? "flex" : "none"),
+    display: (listener: Listener) =>
+      theme.get(listener) === visibleWhen ? "flex" : "none",
     alignItems: "center",
     justifyContent: "center",
   });
@@ -436,7 +446,11 @@ function animatedThemeToggler(
         typeof MutationObserver !== "undefined"
       ) {
         const syncFromDocument = () => {
-          theme.set(document.documentElement.classList.contains("dark") ? "dark" : "light");
+          theme.set(
+            document.documentElement.classList.contains("dark")
+              ? "dark"
+              : "light",
+          );
         };
         syncFromDocument();
         themeObserver = new MutationObserver(() => {

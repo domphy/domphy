@@ -41,7 +41,14 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { type ThemeColor, themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
+import { fixed } from "../../shared/typography.js";
 
 export type RainbowButtonVariant = "default" | "outline";
 export type RainbowButtonSize = "sm" | "default" | "lg" | "icon";
@@ -68,7 +75,13 @@ export interface RainbowButtonProps {
   style?: StyleObject;
 }
 
-const DEFAULT_RAINBOW_COLORS: ThemeColor[] = ["error", "success", "primary", "info", "secondary"];
+const DEFAULT_RAINBOW_COLORS: ThemeColor[] = [
+  "error",
+  "success",
+  "primary",
+  "info",
+  "secondary",
+];
 
 interface RainbowButtonSizing {
   paddingBlockUnits: number;
@@ -83,10 +96,31 @@ interface RainbowButtonSizing {
 // use the extra-rounded `rounded-xl`, while `default`/`icon` inherit the base
 // `rounded-sm` — hence the doubled `radiusUnits` on `sm`/`lg`.
 const RAINBOW_BUTTON_SIZES: Record<RainbowButtonSize, RainbowButtonSizing> = {
-  sm: { paddingBlockUnits: 0.75, paddingInlineUnits: 2.5, fontSizeTone: "decrease-1", radiusUnits: 2 },
-  default: { paddingBlockUnits: 1, paddingInlineUnits: 3, fontSizeTone: "inherit", radiusUnits: 1 },
-  lg: { paddingBlockUnits: 1.5, paddingInlineUnits: 5, fontSizeTone: "inherit", radiusUnits: 2 },
-  icon: { paddingBlockUnits: 1, paddingInlineUnits: 1, fontSizeTone: "inherit", square: true, radiusUnits: 1 },
+  sm: {
+    paddingBlockUnits: 0.75,
+    paddingInlineUnits: 2.5,
+    fontSizeTone: "decrease-1",
+    radiusUnits: 2,
+  },
+  default: {
+    paddingBlockUnits: 1,
+    paddingInlineUnits: 3,
+    fontSizeTone: "inherit",
+    radiusUnits: 1,
+  },
+  lg: {
+    paddingBlockUnits: 1.5,
+    paddingInlineUnits: 5,
+    fontSizeTone: "inherit",
+    radiusUnits: 2,
+  },
+  icon: {
+    paddingBlockUnits: 1,
+    paddingInlineUnits: 1,
+    fontSizeTone: "inherit",
+    square: true,
+    radiusUnits: 1,
+  },
 };
 
 let rainbowButtonInstanceCounter = 0;
@@ -94,7 +128,9 @@ let rainbowButtonInstanceCounter = 0;
 /** Normalizes a `DomphyElement | DomphyElement[] | string` prop into the flat
  * `(string | DomphyElement)[]` shape `DomphyElement<T>`'s content field expects — a
  * bare single element isn't part of that type, only primitives/arrays/functions are. */
-function asContent(value: DomphyElement | DomphyElement[] | string): (string | DomphyElement)[] {
+function asContent(
+  value: DomphyElement | DomphyElement[] | string,
+): (string | DomphyElement)[] {
   return Array.isArray(value) ? value : [value];
 }
 
@@ -110,7 +146,10 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
   const label = props.children ?? "Get unlimited access";
   const variant = props.variant ?? "default";
   const size = props.size ?? "default";
-  const colors = props.colors && props.colors.length > 0 ? props.colors : DEFAULT_RAINBOW_COLORS;
+  const colors =
+    props.colors && props.colors.length > 0
+      ? props.colors
+      : DEFAULT_RAINBOW_COLORS;
   const duration = props.duration ?? 2;
   const sizing = RAINBOW_BUTTON_SIZES[size];
 
@@ -180,9 +219,12 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
     // never a visible stroke).
     ...(isOutline
       ? {
-          borderBlockStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
-          borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
-          borderInlineEnd: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          borderBlockStart: (listener: Listener) =>
+            `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          borderInlineStart: (listener: Listener) =>
+            `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          borderInlineEnd: (listener: Listener) =>
+            `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
           borderBlockEnd: "1px solid transparent",
         }
       : { border: "2px solid transparent" }),
@@ -209,7 +251,8 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
       transform: "translateX(-50%)",
       width: "60%",
       height: "20%",
-      backgroundImage: (listener: Listener) => `linear-gradient(90deg, ${gradientStops(listener)})`,
+      backgroundImage: (listener: Listener) =>
+        `linear-gradient(90deg, ${gradientStops(listener)})`,
       backgroundSize: "200% 100%",
       filter: "blur(12px)",
       zIndex: -1,
@@ -225,7 +268,9 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
   // own bespoke container chrome). The density-aware padding/radius formula and
   // interaction states are reproduced by hand below to stay consistent with it.
   const buttonElement: DomphyElement<"button"> = {
-    button: [{ span: asContent(label), style: { position: "relative", zIndex: 1 } }],
+    button: [
+      { span: asContent(label), style: { position: "relative", zIndex: 1 } },
+    ],
     type: "button",
     disabled: props.disabled,
     style: {
@@ -242,14 +287,18 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
       flexShrink: 0,
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
       // Upstream `font-medium` (weight 500), not the default 400.
-      fontWeight: 500,
-      fontSize: (listener: Listener) => themeSize(listener, sizing.fontSizeTone),
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * sizing.paddingBlockUnits),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * sizing.paddingInlineUnits),
+      fontWeight: fixed(500),
+      fontSize: (listener: Listener) =>
+        themeSize(listener, sizing.fontSizeTone),
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * sizing.paddingBlockUnits),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * sizing.paddingInlineUnits),
       ...(sizing.square ? { aspectRatio: "1" } : {}),
       // Per-size radius: base `rounded-sm` for default/icon, extra-rounded
       // `rounded-xl` for sm/lg — driven by `sizing.radiusUnits`.
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * sizing.radiusUnits),
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * sizing.radiusUnits),
       // Upstream `disabled:opacity-50`.
       opacity: props.disabled ? 0.5 : 1,
       // Upstream is inert `transition-all group` with NO hover/press visual
@@ -259,7 +308,8 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
       transition: "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
       outline: "none",
       "&:focus-visible": {
-        boxShadow: (listener: Listener) => `0 0 0 3px ${themeColor(listener, "shift-6", "neutral")}`,
+        boxShadow: (listener: Listener) =>
+          `0 0 0 3px ${themeColor(listener, "shift-6", "neutral")}`,
       },
       ...fillStyle,
       ...(props.style ?? {}),

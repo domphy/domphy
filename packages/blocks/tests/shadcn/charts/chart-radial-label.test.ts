@@ -23,14 +23,22 @@ describe("chartRadialLabel", () => {
     expect(host.querySelector("h3")?.textContent).toBe("Radial Chart - Label");
     expect(host.querySelectorAll("svg path")).toHaveLength(5);
     // Inline category labels render as always-visible <small> overlays.
-    const labelTexts = Array.from(host.querySelectorAll("small")).map((el) => el.textContent);
+    const labelTexts = Array.from(host.querySelectorAll("small")).map(
+      (el) => el.textContent,
+    );
     expect(labelTexts).toContain("Organic Search");
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("can hide inline labels via props", () => {
-    const { host } = render(chartRadialLabel({ showInlineLabels: false }) as DomphyElement);
-    const labelTexts = Array.from(host.querySelectorAll("small")).map((el) => el.textContent);
+    const { host } = render(
+      chartRadialLabel({ showInlineLabels: false }) as DomphyElement,
+    );
+    const labelTexts = Array.from(host.querySelectorAll("small")).map(
+      (el) => el.textContent,
+    );
     expect(labelTexts).not.toContain("Organic Search");
   });
 });

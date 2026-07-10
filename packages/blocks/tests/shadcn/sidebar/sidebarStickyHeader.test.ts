@@ -64,7 +64,9 @@ describe("sidebarStickyHeader", () => {
 
   it("marks no nav sub-item active (upstream applies isActive to the parent, not a SidebarMenuSubButton)", () => {
     const { host } = render(sidebarStickyHeader() as DomphyElement);
-    const activeLinks = Array.from(host.querySelectorAll('a[aria-current="page"]'));
+    const activeLinks = Array.from(
+      host.querySelectorAll('a[aria-current="page"]'),
+    );
     expect(activeLinks.length).toBe(0);
   });
 

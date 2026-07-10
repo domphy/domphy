@@ -9,15 +9,18 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
 import {
-  RADAR_MULTI_SERIES,
-  RADAR_MONTHLY_TIGHT_DATA,
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
+import {
   createRadarTooltip,
-  radarCardShell,
-  renderRadarChart,
+  RADAR_MONTHLY_TIGHT_DATA,
+  RADAR_MULTI_SERIES,
   type RadarPoint,
   type RadarSeriesConfig,
+  radarCardShell,
+  renderRadarChart,
 } from "./chart-radar-shared.js";
 
 export interface ChartRadarLinesOnlyProps {
@@ -37,7 +40,9 @@ export interface ChartRadarLinesOnlyProps {
  * outlines with no fill and no radial spokes. Call with no arguments for a
  * working demo.
  */
-function chartRadarLinesOnly(props: ChartRadarLinesOnlyProps = {}): DomphyElement<"div"> {
+function chartRadarLinesOnly(
+  props: ChartRadarLinesOnlyProps = {},
+): DomphyElement<"div"> {
   const {
     data = RADAR_MONTHLY_TIGHT_DATA,
     series = RADAR_MULTI_SERIES,
@@ -68,7 +73,11 @@ function chartRadarLinesOnly(props: ChartRadarLinesOnlyProps = {}): DomphyElemen
         }),
       ],
     },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

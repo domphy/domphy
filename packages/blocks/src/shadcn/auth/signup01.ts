@@ -6,6 +6,13 @@ import type {
 } from "@domphy/core";
 import { toState } from "@domphy/core";
 import {
+  themeColor,
+  themeDensity,
+  themeFluidSpacing,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
+import {
   alert,
   button,
   card,
@@ -16,13 +23,7 @@ import {
   small,
   spinner,
 } from "@domphy/ui";
-import {
-  themeColor,
-  themeDensity,
-  themeFluidSpacing,
-  themeSize,
-  themeSpacing,
-} from "@domphy/theme";
+import { fixed } from "../../shared/typography.js";
 
 /**
  * Visual formula for a bounded text-like `<input>`, matching @domphy/ui's
@@ -34,8 +35,8 @@ import {
 function authFieldInput(): PartialElement {
   return {
     style: {
-      fontFamily: "inherit",
-      lineHeight: "inherit",
+      fontFamily: fixed("inherit"),
+      lineHeight: fixed("inherit"),
       width: "100%",
       boxSizing: "border-box",
       paddingInline: (listener: Listener) =>
@@ -53,7 +54,8 @@ function authFieldInput(): PartialElement {
       backgroundColor: (listener: Listener) =>
         themeColor(listener, "inherit", "neutral"),
       "&::placeholder": {
-        color: (listener: Listener) => themeColor(listener, "shift-7", "neutral"),
+        color: (listener: Listener) =>
+          themeColor(listener, "shift-7", "neutral"),
       },
       "&:hover:not([disabled]), &:focus-visible": {
         outline: (listener: Listener) =>
@@ -79,8 +81,14 @@ interface FieldConfig {
 }
 
 function field(config: FieldConfig): DomphyElement<"div"> {
-  const { id, labelText, type = "text", placeholder, caption, autoComplete } =
-    config;
+  const {
+    id,
+    labelText,
+    type = "text",
+    placeholder,
+    caption,
+    autoComplete,
+  } = config;
 
   return {
     div: [
@@ -171,11 +179,13 @@ function signup01(props: Signup01Props = {}): DomphyElement<"div"> {
     type: "submit",
     dataTone: "shift-17",
     disabled: (listener: Listener) => loadingState.get(listener),
-    ariaBusy: (listener: Listener) => (loadingState.get(listener) ? "true" : "false"),
+    ariaBusy: (listener: Listener) =>
+      loadingState.get(listener) ? "true" : "false",
     $: [button({ color: "neutral" })],
     style: {
       width: "100%",
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },
   };
@@ -196,7 +206,12 @@ function signup01(props: Signup01Props = {}): DomphyElement<"div"> {
   const signInLine: DomphyElement<"small"> = {
     small: [
       `${signInPrompt} `,
-      { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
+      {
+        a: signInLinkText,
+        href: signInHref,
+        style: { textDecoration: fixed("underline") },
+        $: [link({ color: "primary" })],
+      },
     ],
     $: [small({ color: "neutral" })],
     style: { display: "block", textAlign: "center" },
@@ -263,7 +278,11 @@ function signup01(props: Signup01Props = {}): DomphyElement<"div"> {
   };
 
   const cardElement: DomphyElement<"div"> = {
-    div: [{ h2: title, $: [heading()] }, { p: subtitle, $: [paragraph({ color: "neutral" })] }, cardBody],
+    div: [
+      { h2: title, $: [heading()] },
+      { p: subtitle, $: [paragraph({ color: "neutral" })] },
+      cardBody,
+    ],
     style: {
       width: "100%",
       maxWidth: themeSpacing(96),

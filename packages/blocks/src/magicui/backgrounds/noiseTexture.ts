@@ -25,8 +25,8 @@
 // this package).
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { paragraph, strong } from "@domphy/ui";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { paragraph, strong } from "@domphy/ui";
 import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
 
 export interface NoiseTextureProps {
@@ -64,7 +64,13 @@ function createSeededRandom(seed: number): () => number {
 /** Draws one static grayscale grain field into the canvas, sized to its current bounding box.
  * Multi-octave value noise (not Perlin) summed with halving amplitude per octave, approximating
  * the layered-detail read of a real fractal-noise filter without needing one. */
-function drawNoise(canvas: HTMLCanvasElement, frequency: number, octaves: number, slope: number, seed: number): void {
+function drawNoise(
+  canvas: HTMLCanvasElement,
+  frequency: number,
+  octaves: number,
+  slope: number,
+  seed: number,
+): void {
   const context = canvas.getContext("2d");
   if (!context) return;
 
@@ -74,7 +80,10 @@ function drawNoise(canvas: HTMLCanvasElement, frequency: number, octaves: number
   canvas.height = height;
 
   // Higher frequency → smaller grain cells (finer speckle); lower → coarser blobs.
-  const cellSize = Math.max(1, Math.min(40, Math.round(2 / Math.max(0.02, frequency))));
+  const cellSize = Math.max(
+    1,
+    Math.min(40, Math.round(2 / Math.max(0.02, frequency))),
+  );
   const random = createSeededRandom(seed);
   const octaveCount = Math.max(1, Math.round(octaves));
 
@@ -89,7 +98,10 @@ function drawNoise(canvas: HTMLCanvasElement, frequency: number, octaves: number
         amplitude *= 0.5;
       }
       const normalized = amplitudeTotal > 0 ? value / amplitudeTotal : 0;
-      const gray = Math.max(0, Math.min(255, Math.round(normalized * 255 * slope * 4)));
+      const gray = Math.max(
+        0,
+        Math.min(255, Math.round(normalized * 255 * slope * 4)),
+      );
       // Equal R/G/B by construction — fully desaturated grayscale, no separate
       // feColorMatrix desaturation step needed.
       context.fillStyle = `rgb(${gray}, ${gray}, ${gray})`;
@@ -185,7 +197,15 @@ function noiseTexture(props: NoiseTextureProps = {}): DomphyElement<"div"> {
         // "layered over cards/buttons/backgrounds for texture" intent rather
         // than watering down the effect just to protect one caption.
         div: contentChildren,
-        style: { position: "relative", zIndex: 1, ...demoContentScrimStyle() } as StyleObject,
+        style: {
+          position: "relative",
+          zIndex: 1,
+          ...demoContentScrimStyle(),
+          // demoContentScrimStyle() only sets backgroundColor — declare the
+          // matching text color explicitly so it re-evaluates with the tone
+          // context instead of relying on inherited computed color.
+          color: (listener) => themeColor(listener, "shift-9"),
+        } as StyleObject,
       } as DomphyElement,
       canvasElement,
     ],

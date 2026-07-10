@@ -34,7 +34,9 @@ describe("sidebar07", () => {
 
   it("renders the Platform nav-group label and the trailing projects 'More' row", () => {
     const { host } = render(sidebar07() as DomphyElement);
-    const labels = Array.from(host.querySelectorAll("aside nav small")).map((el) => el.textContent);
+    const labels = Array.from(host.querySelectorAll("aside nav small")).map(
+      (el) => el.textContent,
+    );
     expect(labels).toContain("Platform");
     expect(labels).toContain("Projects");
     const moreRow = Array.from(host.querySelectorAll("aside nav button")).find(

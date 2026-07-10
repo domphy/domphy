@@ -6,10 +6,23 @@
 // self-contained trigger+dialog pair, not a page shell like the other
 // sidebar-0N blocks.
 
-import type { DomphyElement, ElementNode, Listener, ValueOrState } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  ValueOrState,
+} from "@domphy/core";
 import { toState } from "@domphy/core";
-import { breadcrumb, button, dialog, icon, skeleton, small, strong } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import {
+  breadcrumb,
+  button,
+  dialog,
+  icon,
+  skeleton,
+  small,
+  strong,
+} from "@domphy/ui";
 
 /** One row in the settings category list. */
 interface SettingsCategory {
@@ -114,7 +127,10 @@ function defaultCategoryContent(): DomphyElement<"div">[] {
     div: null,
     _key: `field-${index}`,
     $: [skeleton()],
-    style: { height: themeSpacing(10), width: index % 3 === 2 ? "60%" : "100%" },
+    style: {
+      height: themeSpacing(10),
+      width: index % 3 === 2 ? "60%" : "100%",
+    },
   })) as DomphyElement<"div">[];
 }
 
@@ -128,11 +144,18 @@ function categoryRow(
     li: [
       {
         button: [
-          { span: category.icon, $: [icon({ color: "neutral" })] } as unknown as DomphyElement,
-          { span: category.label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+          {
+            span: category.icon,
+            $: [icon({ color: "neutral" })],
+          } as unknown as DomphyElement,
+          {
+            span: category.label,
+            style: { flex: "1", textAlign: "left" },
+          } as unknown as DomphyElement,
         ],
         type: "button",
-        ariaCurrent: (l: Listener) => (activeCategoryId.get(l) === category.id ? "true" : undefined),
+        ariaCurrent: (l: Listener) =>
+          activeCategoryId.get(l) === category.id ? "true" : undefined,
         onClick: () => onSelect(category.id),
         style: {
           display: "flex",
@@ -148,9 +171,13 @@ function categoryRow(
           transition: "background-color 100ms ease",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
           "&[aria-current=true]": {
-            backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral"),
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-3", "neutral"),
             color: (l: Listener) => themeColor(l, "shift-11", "neutral"),
           },
         },
@@ -167,7 +194,9 @@ function categoryRow(
  * navigation, no content-swap animation). Call with no arguments for a fully
  * working demo (trigger button + dialog, 12 default categories).
  */
-function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div"> {
+function sidebarInDialog(
+  props: SidebarInDialogProps = {},
+): DomphyElement<"div"> {
   const {
     categories = DEFAULT_CATEGORIES,
     title = "Settings",
@@ -175,19 +204,27 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
     triggerLabel = "Open settings",
   } = props;
   const defaultCategoryId =
-    props.defaultCategoryId ?? categories.find((category) => category.id === "messages")?.id ?? categories[0]?.id ?? "";
+    props.defaultCategoryId ??
+    categories.find((category) => category.id === "messages")?.id ??
+    categories[0]?.id ??
+    "";
   const renderContent = props.renderContent ?? (() => defaultCategoryContent());
 
   const open = toState(props.open ?? true);
   const activeCategoryId = toState(defaultCategoryId);
 
   const currentLabel = (l: Listener): string =>
-    categories.find((category) => category.id === activeCategoryId.get(l))?.label ?? "";
+    categories.find((category) => category.id === activeCategoryId.get(l))
+      ?.label ?? "";
 
   const navColumn: DomphyElement<"nav"> = {
     nav: [
       {
-        ul: categories.map((category) => categoryRow(category, activeCategoryId, (id) => activeCategoryId.set(id))),
+        ul: categories.map((category) =>
+          categoryRow(category, activeCategoryId, (id) =>
+            activeCategoryId.set(id),
+          ),
+        ),
         style: {
           listStyle: "none",
           margin: "0",
@@ -205,7 +242,8 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
       width: themeSpacing(64),
       overflowY: "auto",
       padding: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-      borderInlineEnd: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderInlineEnd: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       "@media (min-width: 768px)": { display: "flex", flexDirection: "column" },
@@ -230,7 +268,10 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
         $: [breadcrumb({ color: "neutral", separator: "›" })],
       } as unknown as DomphyElement,
       {
-        button: { span: ICON_CLOSE, $: [icon({ color: "neutral" })] } as unknown as DomphyElement,
+        button: {
+          span: ICON_CLOSE,
+          $: [icon({ color: "neutral" })],
+        } as unknown as DomphyElement,
         type: "button",
         ariaLabel: "Close settings",
         onClick: () => open.set(false),
@@ -246,7 +287,10 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
       } as unknown as DomphyElement,
     ],
@@ -258,7 +302,8 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
       gap: (l: Listener) => themeSpacing(themeDensity(l) * 3),
       height: themeSpacing(16),
       paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
-      borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderBottom: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
     },
@@ -269,7 +314,8 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
       div: renderContent(category.id),
       _key: category.id,
       style: {
-        display: (l: Listener) => (activeCategoryId.get(l) === category.id ? "flex" : "none"),
+        display: (l: Listener) =>
+          activeCategoryId.get(l) === category.id ? "flex" : "none",
         flexDirection: "column",
         gap: (l: Listener) => themeSpacing(themeDensity(l) * 3),
       },
@@ -289,17 +335,33 @@ function sidebarInDialog(props: SidebarInDialogProps = {}): DomphyElement<"div">
 
   const contentColumn: DomphyElement<"div"> = {
     div: [headerBar, bodyScroll],
-    style: { display: "flex", flexDirection: "column", flex: "1", minWidth: "0", overflow: "hidden" },
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      flex: "1",
+      minWidth: "0",
+      overflow: "hidden",
+    },
   } as unknown as DomphyElement<"div">;
 
   const paneRow: DomphyElement<"div"> = {
     div: [navColumn, contentColumn],
-    style: { display: "flex", flexDirection: "row", flex: "1", minHeight: "0", overflow: "hidden" },
+    style: {
+      display: "flex",
+      flexDirection: "row",
+      flex: "1",
+      minHeight: "0",
+      overflow: "hidden",
+    },
   } as unknown as DomphyElement<"div">;
 
   const dialogElement: DomphyElement<"dialog"> = {
     dialog: [
-      { p: description, id: DESCRIPTION_ID, style: SR_ONLY_STYLE } as unknown as DomphyElement,
+      {
+        p: description,
+        id: DESCRIPTION_ID,
+        style: SR_ONLY_STYLE,
+      } as unknown as DomphyElement,
       paneRow,
     ],
     ariaLabel: title,

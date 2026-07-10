@@ -20,12 +20,14 @@ describe("chartRadarGridFill", () => {
   it("renders a tinted grid backdrop and a reduced-opacity data polygon", () => {
     const { host } = render(chartRadarGridFill() as DomphyElement);
 
-    expect(host.querySelector("h3")?.textContent).toBe("Radar Chart - Grid Filled");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Radar Chart - Grid Filled",
+    );
     // Four polygon grid rings + one tinted fill layer + one data-series outline.
     expect(host.querySelectorAll("svg polygon").length).toBe(6);
-    const opacities = Array.from(host.querySelectorAll("svg polygon[fill-opacity]")).map((polygon) =>
-      polygon.getAttribute("fill-opacity"),
-    );
+    const opacities = Array.from(
+      host.querySelectorAll("svg polygon[fill-opacity]"),
+    ).map((polygon) => polygon.getAttribute("fill-opacity"));
     expect(opacities.sort()).toEqual(["0.2", "0.5"]);
   });
 });

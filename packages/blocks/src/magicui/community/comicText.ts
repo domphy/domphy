@@ -34,8 +34,9 @@
 // as a constant, while only `scale`/`rotate` actually animate.
 
 import type { DomphyElement, StyleObject } from "@domphy/core";
-import { motion } from "@domphy/ui";
 import { type ThemeColor, themeColor } from "@domphy/theme";
+import { motion } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 
 export interface ComicTextProps {
   /** Text content. Forced to uppercase regardless of casing. Defaults to `"BOOM!"`. */
@@ -87,13 +88,14 @@ function comicText(props: ComicTextProps = {}): DomphyElement<"div"> {
       // A blocky comic display face is the entire premise of this component;
       // browsers fall through 'Bangers' (if loaded) to the system 'Impact'/
       // 'Comic Sans MS' display fonts before the generic sans-serif.
-      fontFamily: "'Bangers', 'Comic Sans MS', 'Impact', sans-serif",
+      fontFamily: fixed("'Bangers', 'Comic Sans MS', 'Impact', sans-serif"),
       // Halftone fill: base paper tone + tiled dot pattern, both clipped to
       // the glyphs. `_doctorDisable`d below for `tone-background-inherit`
       // (this fixed-shift backgroundColor is the glyphs' own ink fill, not
       // an ambient surface — same reasoning `meteors.ts` documents for its
       // fixed-accent dot color).
-      backgroundColor: (listener) => themeColor(listener, "shift-9", backgroundFill),
+      backgroundColor: (listener) =>
+        themeColor(listener, "shift-9", backgroundFill),
       backgroundImage: (listener) =>
         `radial-gradient(circle at 1px 1px, ${themeColor(listener, "shift-9", dotColor)} 1px, transparent 0)`,
       backgroundSize: "8px 8px",
@@ -103,22 +105,32 @@ function comicText(props: ComicTextProps = {}): DomphyElement<"div"> {
       WebkitTextFillColor: "transparent",
       // Thick outline traced around each glyph, composing cleanly with the
       // clipped-background fill above (a real SVG-style `stroke` cannot).
-      WebkitTextStroke: (listener) => `${fontSize * 0.35}px ${themeColor(listener, "shift-17", outlineColor)}`,
+      WebkitTextStroke: (listener) =>
+        `${fontSize * 0.35}px ${themeColor(listener, "shift-17", outlineColor)}`,
       // Two stacked drop shadows via `filter` (matching upstream): the larger
       // black one is applied first, then the smaller red one on top of it.
       // Offsets are fixed 5px/3px and do NOT scale with fontSize. Using
       // `filter` drop-shadow (not `text-shadow`) means the shadow silhouette
       // includes the thick outline stroke — the layered pop-art sticker look.
       filter: (listener) =>
-        `drop-shadow(5px 5px 0px ${themeColor(listener, "shift-17", outlineColor)}) ` +
-        `drop-shadow(3px 3px 0px ${themeColor(listener, "shift-9", dotColor)})`,
+        `drop-shadow(5px 5px 0 ${themeColor(listener, "shift-17", outlineColor)}) ` +
+        `drop-shadow(3px 3px 0 ${themeColor(listener, "shift-9", dotColor)})`,
       ...(props.style ?? {}),
     } as StyleObject,
     $: [
       motion({
-        initial: { opacity: 0, transform: `${STATIC_SKEW} scale(0.8) rotate(-2deg)` },
-        animate: { opacity: 1, transform: `${STATIC_SKEW} scale(1) rotate(0deg)` },
-        transition: { duration: 600, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
+        initial: {
+          opacity: 0,
+          transform: `${STATIC_SKEW} scale(0.8) rotate(-2deg)`,
+        },
+        animate: {
+          opacity: 1,
+          transform: `${STATIC_SKEW} scale(1) rotate(0deg)`,
+        },
+        transition: {
+          duration: 600,
+          easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        },
       }),
     ],
     _doctorDisable: "tone-background-inherit",

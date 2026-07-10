@@ -7,19 +7,19 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_AREA_MONTHLY_DATA,
   CHART_AREA_X_AXIS_BARE,
   CHART_AREA_Y_AXIS_HIDDEN,
+  type ChartAreaSinglePoint,
+  type ChartTrendDirection,
   chartAreaFrame,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartTrendFooter,
-  type ChartAreaSinglePoint,
-  type ChartTrendDirection,
 } from "./chart-area-shared.js";
 
 export interface ChartAreaLinearProps {
@@ -39,7 +39,9 @@ export interface ChartAreaLinearProps {
  * straight point-to-point segments. Call with no arguments for a working
  * demo.
  */
-function chartAreaLinear(props: ChartAreaLinearProps = {}): DomphyElement<"div"> {
+function chartAreaLinear(
+  props: ChartAreaLinearProps = {},
+): DomphyElement<"div"> {
   const {
     data = CHART_AREA_MONTHLY_DATA,
     seriesLabel = "Visitors",
@@ -83,7 +85,11 @@ function chartAreaLinear(props: ChartAreaLinearProps = {}): DomphyElement<"div">
     title,
     description,
     content: { div: [chartAreaFrame(option, height)] },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

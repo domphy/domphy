@@ -42,7 +42,9 @@ describe("sidebar08", () => {
 
   it("renders the Platform nav-group label and the trailing projects 'More' row", () => {
     const { host } = render(sidebar08() as DomphyElement);
-    const labels = Array.from(host.querySelectorAll("aside nav small")).map((el) => el.textContent);
+    const labels = Array.from(host.querySelectorAll("aside nav small")).map(
+      (el) => el.textContent,
+    );
     expect(labels).toContain("Platform");
     expect(labels).toContain("Projects");
     const moreRow = Array.from(host.querySelectorAll("aside nav button")).find(
@@ -53,11 +55,15 @@ describe("sidebar08", () => {
 
   it("secondary nav links carry no aria-current active-state marker", () => {
     const { host } = render(sidebar08() as DomphyElement);
-    const secondaryLinks = Array.from(host.querySelectorAll("aside a")).filter((a) =>
-      a.textContent?.includes("Support") || a.textContent?.includes("Feedback"),
+    const secondaryLinks = Array.from(host.querySelectorAll("aside a")).filter(
+      (a) =>
+        a.textContent?.includes("Support") ||
+        a.textContent?.includes("Feedback"),
     );
     expect(secondaryLinks.length).toBeGreaterThan(0);
-    secondaryLinks.forEach((a) => expect(a.hasAttribute("aria-current")).toBe(false));
+    secondaryLinks.forEach((a) =>
+      expect(a.hasAttribute("aria-current")).toBe(false),
+    );
   });
 
   it("clicking the header toggle does not throw", () => {

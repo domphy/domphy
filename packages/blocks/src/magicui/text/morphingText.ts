@@ -19,6 +19,7 @@
 // not routed through reactive State.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
+import { fixed } from "../../shared/typography.js";
 
 export interface MorphingTextProps {
   /** Phrases cycled through in order, looping back to the first. Defaults to a short demo sequence. */
@@ -50,8 +51,7 @@ function thresholdFilterDefs(filterId: string): DomphyElement<"svg"> {
                 feColorMatrix: null,
                 in: "SourceGraphic",
                 type: "matrix",
-                values:
-                  "1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 255 -140",
+                values: "1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 255 -140",
               },
             ],
             id: filterId,
@@ -137,13 +137,13 @@ function morphingText(props: MorphingTextProps = {}): DomphyElement<"div"> {
       width: "100%",
       maxWidth: "48rem",
       textAlign: "center",
-      fontFamily: "ui-sans-serif, system-ui, sans-serif",
-      fontSize: "40pt",
-      lineHeight: "1",
-      fontWeight: "700",
+      fontFamily: fixed("ui-sans-serif, system-ui, sans-serif"),
+      fontSize: fixed("40pt"),
+      lineHeight: fixed("1"),
+      fontWeight: fixed("700"),
       filter: `url(#${filterId}) blur(0.6px)`,
       "@media (min-width: 768px)": { height: "6rem" },
-      "@media (min-width: 1024px)": { fontSize: "6rem" },
+      "@media (min-width: 1024px)": { fontSize: fixed("6rem") },
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
@@ -163,11 +163,11 @@ function morphingText(props: MorphingTextProps = {}): DomphyElement<"div"> {
         if (!current || !next) return;
 
         next.style.filter = `blur(${Math.min(8 / fraction - 8, 100)}px)`;
-        next.style.opacity = `${Math.pow(fraction, 0.4) * 100}%`;
+        next.style.opacity = `${fraction ** 0.4 * 100}%`;
 
         const invertedFraction = 1 - fraction;
         current.style.filter = `blur(${Math.min(8 / invertedFraction - 8, 100)}px)`;
-        current.style.opacity = `${Math.pow(invertedFraction, 0.4) * 100}%`;
+        current.style.opacity = `${invertedFraction ** 0.4 * 100}%`;
 
         current.textContent = phrases[textIndex % count];
         next.textContent = phrases[(textIndex + 1) % count];

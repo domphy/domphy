@@ -20,7 +20,9 @@ describe("chartRadarGridCircleFill", () => {
   it("renders a tinted circular grid and keeps the standard labeled tooltip content", () => {
     const { host } = render(chartRadarGridCircleFill() as DomphyElement);
 
-    expect(host.querySelector("h3")?.textContent).toBe("Radar Chart - Grid Circle Filled");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Radar Chart - Grid Circle Filled",
+    );
     // Four circular grid rings + one tinted fill circle layer (no dots requested).
     expect(host.querySelectorAll("svg circle").length).toBe(5);
     expect(host.querySelectorAll("svg polygon").length).toBe(1);

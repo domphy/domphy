@@ -28,7 +28,9 @@ afterEach(() => {
 describe("chartAreaInteractive", () => {
   it("renders a working demo tree with zero args: card shell, range select, and chart frame (no footer)", () => {
     const { host } = render(chartAreaInteractive() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Area Chart - Interactive");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Area Chart - Interactive",
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
     const select = host.querySelector("select") as HTMLSelectElement;
     expect(select).toBeTruthy();

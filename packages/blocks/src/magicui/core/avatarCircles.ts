@@ -11,8 +11,8 @@
 // real user avatars for a demo.
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
-import { small } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { small } from "@domphy/ui";
 
 export interface AvatarCirclesItem {
   /** Avatar image URL. */
@@ -75,7 +75,12 @@ function avatarLink(
         img: null,
         src: item.imageUrl,
         alt: item.name ?? `Member ${index + 1}`,
-        style: { display: "block", width: "100%", height: "100%", objectFit: "cover" },
+        style: {
+          display: "block",
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+        },
       },
     ],
     href: item.profileUrl ?? "#",
@@ -99,7 +104,8 @@ function avatarLink(
       overflow: "hidden",
       marginInlineStart: index === 0 ? undefined : themeSpacing(-overlapUnits),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
-      outline: (listener: Listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "inherit", ringColor)}`,
+      outline: (listener: Listener) =>
+        `${themeSpacing(0.5)} solid ${themeColor(listener, "inherit", ringColor)}`,
       outlineOffset: "0",
     } as StyleObject,
   };
@@ -133,12 +139,14 @@ function overflowBadge(
       marginInlineStart: count === 0 ? undefined : themeSpacing(-overlapUnits),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
-      outline: (listener: Listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "inherit", ringColor)}`,
+      outline: (listener: Listener) =>
+        `${themeSpacing(0.5)} solid ${themeColor(listener, "inherit", ringColor)}`,
       // Upstream `hover:bg-gray-600`: a small lighten off the shift-17 surface
       // reads as the same hover cue in both themes (black disc → gray, white
       // disc → light-gray). Mirrors animatedShinyText's nested-hover idiom.
       "&:hover": {
-        backgroundColor: (listener: Listener) => themeColor(listener, "shift-2"),
+        backgroundColor: (listener: Listener) =>
+          themeColor(listener, "shift-2"),
       },
     } as StyleObject,
   };
@@ -160,7 +168,15 @@ function avatarCircles(props: AvatarCirclesProps = {}): DomphyElement<"div"> {
     avatarLink(item, index, diameterUnits, overlapUnits, ringColor),
   );
   if (overflowCount > 0) {
-    children.push(overflowBadge(overflowCount, avatars.length, diameterUnits, overlapUnits, ringColor));
+    children.push(
+      overflowBadge(
+        overflowCount,
+        avatars.length,
+        diameterUnits,
+        overlapUnits,
+        ringColor,
+      ),
+    );
   }
 
   return {

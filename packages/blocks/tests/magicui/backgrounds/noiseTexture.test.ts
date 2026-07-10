@@ -32,7 +32,9 @@ describe("noiseTexture", () => {
   });
 
   it("accepts custom content via children and tears down cleanly on remove", () => {
-    const { host, node } = render(noiseTexture({ children: { span: "Custom overlay" } }) as DomphyElement);
+    const { host, node } = render(
+      noiseTexture({ children: { span: "Custom overlay" } }) as DomphyElement,
+    );
     expect(host.textContent).toContain("Custom overlay");
     expect(() => node.remove()).not.toThrow();
   });

@@ -31,13 +31,17 @@ describe("borderBeam", () => {
     expect(css).toContain("mask-composite: intersect");
     // Comet rides a rounded-rect offset-path and fades head-to-transparent-tail.
     expect(css).toContain("offset-path: rect(0 auto auto 0 round 50px)");
-    expect(css).toContain("linear-gradient(to left, var(--warning-9), var(--secondary-9), transparent)");
+    expect(css).toContain(
+      "linear-gradient(to left, var(--warning-9), var(--secondary-9), transparent)",
+    );
     expect(css).toMatch(/@keyframes border-beam-move-\d+/);
   });
 
   it("renders custom children content instead of the default demo body", () => {
     const { host } = render(
-      borderBeam({ children: [{ p: "Custom body" } as DomphyElement] }) as DomphyElement,
+      borderBeam({
+        children: [{ p: "Custom body" } as DomphyElement],
+      }) as DomphyElement,
     );
     expect(host.textContent).toContain("Custom body");
     expect(host.querySelector("h3")).toBeNull();

@@ -23,7 +23,9 @@ describe("signup03", () => {
     expect(host.querySelector("h2")?.textContent).toBe("Create your account");
     expect(host.querySelectorAll("form input").length).toBe(4);
     expect(host.querySelectorAll("form button").length).toBe(1);
-    expect(host.querySelector("form button")?.getAttribute("type")).toBe("submit");
+    expect(host.querySelector("form button")?.getAttribute("type")).toBe(
+      "submit",
+    );
   });
 
   it("lays out password and confirm-password side by side in a two-column grid", () => {
@@ -36,10 +38,19 @@ describe("signup03", () => {
 
   it("renders the legal links with the provided hrefs", () => {
     const { host } = render(
-      signup03({ termsHref: "/terms", privacyHref: "/privacy" }) as DomphyElement,
+      signup03({
+        termsHref: "/terms",
+        privacyHref: "/privacy",
+      }) as DomphyElement,
     );
-    const links = Array.from(host.querySelectorAll("small a")) as HTMLAnchorElement[];
-    const legalLinks = links.filter((a) => a.getAttribute("href") === "/terms" || a.getAttribute("href") === "/privacy");
+    const links = Array.from(
+      host.querySelectorAll("small a"),
+    ) as HTMLAnchorElement[];
+    const legalLinks = links.filter(
+      (a) =>
+        a.getAttribute("href") === "/terms" ||
+        a.getAttribute("href") === "/privacy",
+    );
     expect(legalLinks.length).toBe(2);
   });
 

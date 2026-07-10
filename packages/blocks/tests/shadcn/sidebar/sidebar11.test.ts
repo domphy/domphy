@@ -36,11 +36,15 @@ describe("sidebar11", () => {
 
   it("renders the Changes group and both group labels above the tree", () => {
     const { host } = render(sidebar11() as DomphyElement);
-    const labels = Array.from(host.querySelectorAll("aside nav > div small")).map((el) => el.textContent);
+    const labels = Array.from(
+      host.querySelectorAll("aside nav > div small"),
+    ).map((el) => el.textContent);
     expect(labels).toContain("Changes");
     expect(labels).toContain("Files");
     // The three default changed files, each with a git-status badge (M/U/M).
-    const badges = Array.from(host.querySelectorAll("aside [data-slot='badge']")).map((el) => el.textContent);
+    const badges = Array.from(
+      host.querySelectorAll("aside [data-slot='badge']"),
+    ).map((el) => el.textContent);
     expect(badges).toEqual(["M", "U", "M"]);
     expect(host.textContent).toContain("api/hello/route.ts");
   });
@@ -48,8 +52,12 @@ describe("sidebar11", () => {
   it("pre-expands the ancestor folders of the active file", () => {
     const { host } = render(sidebar11() as DomphyElement);
     const detailsElements = Array.from(host.querySelectorAll("aside details"));
-    const openSummaries = detailsElements.filter((el) => el.hasAttribute("open")).map((el) => el.querySelector("summary")?.textContent ?? "");
-    expect(openSummaries.some((text) => text.includes("components"))).toBe(true);
+    const openSummaries = detailsElements
+      .filter((el) => el.hasAttribute("open"))
+      .map((el) => el.querySelector("summary")?.textContent ?? "");
+    expect(openSummaries.some((text) => text.includes("components"))).toBe(
+      true,
+    );
     expect(openSummaries.some((text) => text.includes("ui"))).toBe(true);
   });
 
@@ -61,7 +69,9 @@ describe("sidebar11", () => {
 
   it("clicking a file row makes it active and updates the header breadcrumb", async () => {
     const { host } = render(sidebar11() as DomphyElement);
-    const cardButton = Array.from(host.querySelectorAll("aside button")).find((button) => button.textContent?.includes("card.tsx")) as HTMLButtonElement;
+    const cardButton = Array.from(host.querySelectorAll("aside button")).find(
+      (button) => button.textContent?.includes("card.tsx"),
+    ) as HTMLButtonElement;
     expect(cardButton).toBeTruthy();
     cardButton.click();
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -78,7 +88,13 @@ describe("sidebar11", () => {
   it("accepts a custom tree and active file path", () => {
     const { host } = render(
       sidebar11({
-        tree: [{ type: "folder", name: "src", children: [{ type: "file", name: "index.ts" }] }],
+        tree: [
+          {
+            type: "folder",
+            name: "src",
+            children: [{ type: "file", name: "index.ts" }],
+          },
+        ],
         activeFilePath: "src/index.ts",
       }) as DomphyElement,
     );

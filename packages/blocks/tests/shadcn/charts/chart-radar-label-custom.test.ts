@@ -20,7 +20,9 @@ describe("chartRadarLabelCustom", () => {
   it("renders a two-line value/month label at each of the six spokes", () => {
     const { host } = render(chartRadarLabelCustom() as DomphyElement);
 
-    expect(host.querySelector("h3")?.textContent).toBe("Radar Chart - Custom Label");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Radar Chart - Custom Label",
+    );
     expect(host.querySelectorAll("svg polygon[fill-opacity]").length).toBe(2);
     // Two <text> lines per category (value/value, then month name) x six categories.
     expect(host.querySelectorAll("svg text").length).toBe(12);

@@ -11,9 +11,12 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement, Listener } from "@domphy/core";
-import { themeColor, themeSpacing, type ThemeColor } from "@domphy/theme";
+import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { motion } from "@domphy/ui";
-import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
+import {
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
 import {
   polarPoint,
   RADIAL_CENTER,
@@ -59,7 +62,15 @@ function renderShapeGauge(props: {
   valueText: string;
   captionText: string;
 }): DomphyElement<"div"> {
-  const { color, sweepDegrees, innerRadiusRatio, showDecorativeCircles, showBackgroundTrack, valueText, captionText } = props;
+  const {
+    color,
+    sweepDegrees,
+    innerRadiusRatio,
+    showDecorativeCircles,
+    showBackgroundTrack,
+    valueText,
+    captionText,
+  } = props;
   const outerRadius = 90;
   const cx = RADIAL_CENTER;
   const cy = RADIAL_CENTER;
@@ -82,12 +93,21 @@ function renderShapeGauge(props: {
 
   const children: DomphyElement[] = [];
   if (showBackgroundTrack) {
-    children.push({ ...radialBackgroundTrack(cx, cy, ringRadius, thickness), _key: "track" });
+    children.push({
+      ...radialBackgroundTrack(cx, cy, ringRadius, thickness),
+      _key: "track",
+    });
   }
   if (showDecorativeCircles) {
     children.push(
-      { ...radialThinCircle(cx, cy, ringRadius + thickness / 2 + 3, "muted"), _key: "decorative-outer" },
-      { ...radialThinCircle(cx, cy, ringRadius - thickness / 2 - 3, "surface"), _key: "decorative-inner" },
+      {
+        ...radialThinCircle(cx, cy, ringRadius + thickness / 2 + 3, "muted"),
+        _key: "decorative-outer",
+      },
+      {
+        ...radialThinCircle(cx, cy, ringRadius - thickness / 2 - 3, "surface"),
+        _key: "decorative-inner",
+      },
     );
   }
   children.push({
@@ -113,7 +133,12 @@ function renderShapeGauge(props: {
       {
         svg: children,
         viewBox: `0 0 ${RADIAL_VIEW_SIZE} ${RADIAL_VIEW_SIZE}`,
-        style: { width: "100%", height: "100%", display: "block", overflow: "visible" },
+        style: {
+          width: "100%",
+          height: "100%",
+          display: "block",
+          overflow: "visible",
+        },
       } as DomphyElement<"svg">,
       radialCenterLabel({ valueText, captionText }),
     ],
@@ -132,7 +157,9 @@ function renderShapeGauge(props: {
  * with a short flat-capped arc and a large centered number. Call with no
  * arguments for a working demo.
  */
-function chartRadialShape(props: ChartRadialShapeProps = {}): DomphyElement<"div"> {
+function chartRadialShape(
+  props: ChartRadialShapeProps = {},
+): DomphyElement<"div"> {
   const {
     value = 1125,
     color = "secondary",
@@ -164,7 +191,11 @@ function chartRadialShape(props: ChartRadialShapeProps = {}): DomphyElement<"div
         }),
       ],
     },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText: footerCaptionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText: footerCaptionText,
+    }),
   });
 }
 

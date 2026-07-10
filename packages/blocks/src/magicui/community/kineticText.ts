@@ -25,10 +25,24 @@
 // the real string once — the same sr-only-text + aria-hidden-decoration
 // pattern `auroraText` uses in this package.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
-import { themeSize } from "@domphy/theme";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
+import { themeColor, themeSize } from "@domphy/theme";
 
-export type KineticTextTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "p" | "div" | "span";
+export type KineticTextTag =
+  | "h1"
+  | "h2"
+  | "h3"
+  | "h4"
+  | "h5"
+  | "h6"
+  | "p"
+  | "div"
+  | "span";
 
 export interface KineticTextProps {
   /** Text content. Defaults to a short demo phrase. */
@@ -75,32 +89,37 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
   const tag = props.tag ?? "h1";
 
   const characters = Array.from(text);
-  const characterElementRefs: (HTMLElement | null)[] = new Array(characters.length).fill(null);
+  const characterElementRefs: (HTMLElement | null)[] = new Array(
+    characters.length,
+  ).fill(null);
 
-  const characterSpans: DomphyElement<"span">[] = characters.map((character, index) => ({
-    span: character === " " ? " " : character,
-    _key: `character-${index}`,
-    ariaHidden: "true",
-    style: {
-      // Function-form escape hatch (see file header) — the thin resting
-      // weight is the entire premise of this component, not something a
-      // typography patch can express.
-      fontWeight: () => BASE_WEIGHT,
-      // Match upstream's transition list exactly: font-weight, stroke-color,
-      // and padding (each 0.4s). Stroke-width and shadow are intentionally
-      // not transitioned upstream.
-      transition: "font-weight 0.4s, -webkit-text-stroke-color 0.4s, padding 0.4s",
-      willChange: "font-weight, -webkit-text-stroke-width, padding",
-      WebkitTextStrokeColor: "transparent",
-      WebkitTextStrokeWidth: `${STROKE_WIDTH_EM}em`,
-    },
-    _onMount: (node: ElementNode) => {
-      characterElementRefs[index] = node.domElement as HTMLElement;
-    },
-    _onRemove: () => {
-      characterElementRefs[index] = null;
-    },
-  }));
+  const characterSpans: DomphyElement<"span">[] = characters.map(
+    (character, index) => ({
+      span: character === " " ? " " : character,
+      _key: `character-${index}`,
+      ariaHidden: "true",
+      style: {
+        // Function-form escape hatch (see file header) — the thin resting
+        // weight is the entire premise of this component, not something a
+        // typography patch can express.
+        fontWeight: () => BASE_WEIGHT,
+        // Match upstream's transition list exactly: font-weight, stroke-color,
+        // and padding (each 0.4s). Stroke-width and shadow are intentionally
+        // not transitioned upstream.
+        transition:
+          "font-weight 0.4s, -webkit-text-stroke-color 0.4s, padding 0.4s",
+        willChange: "font-weight, -webkit-text-stroke-width, padding",
+        WebkitTextStrokeColor: "transparent",
+        WebkitTextStrokeWidth: `${STROKE_WIDTH_EM}em`,
+      },
+      _onMount: (node: ElementNode) => {
+        characterElementRefs[index] = node.domElement as HTMLElement;
+      },
+      _onRemove: () => {
+        characterElementRefs[index] = null;
+      },
+    }),
+  );
 
   const srOnlyText: DomphyElement<"span"> = {
     span: text,
@@ -120,6 +139,10 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
       // it inherits whatever tiny ambient font-size the caller's context
       // happens to have, which reads as plain unstyled body text.
       fontSize: (listener: Listener) => themeSize(listener, "increase-6"),
+      // Declared explicitly (not just inherited) so it re-evaluates with the
+      // tone context, satisfying the doctor's missing-color contract for the
+      // reactive fontSize above.
+      color: (listener: Listener) => themeColor(listener, "shift-9"),
       ...(props.style ?? {}),
     } as StyleObject,
     class: props.className,
@@ -128,7 +151,8 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
       const element = node.domElement as HTMLElement;
 
       const supportsHover =
-        typeof window.matchMedia !== "function" || window.matchMedia("(hover: hover)").matches;
+        typeof window.matchMedia !== "function" ||
+        window.matchMedia("(hover: hover)").matches;
       if (!supportsHover) return;
 
       let animationFrame: number | null = null;
@@ -151,17 +175,22 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
           // ±1, ±2 neighbors; past ±2 the lookup is undefined and reverts to
           // the 300 baseline.
           const weight = NEIGHBOR_WEIGHTS[distance];
-          characterElement.style.fontWeight = weight === undefined ? "" : String(weight);
+          characterElement.style.fontWeight =
+            weight === undefined ? "" : String(weight);
           // padding-inline nudges the hovered letter AND both immediate ±1
           // neighbors apart (upstream hover: / has-[+span:hover] / [:hover+&]).
-          characterElement.style.paddingInline = distance <= 1 ? HOVER_PADDING : "";
-          characterElement.style.webkitTextStrokeColor = distance === 0 ? "currentColor" : "";
-          characterElement.style.webkitTextStrokeWidth = distance === 0 ? `${STROKE_WIDTH_EM * 2}em` : "";
+          characterElement.style.paddingInline =
+            distance <= 1 ? HOVER_PADDING : "";
+          characterElement.style.webkitTextStrokeColor =
+            distance === 0 ? "currentColor" : "";
+          characterElement.style.webkitTextStrokeWidth =
+            distance === 0 ? `${STROKE_WIDTH_EM * 2}em` : "";
         }
       };
 
       const scheduleUpdate = () => {
-        if (animationFrame === null) animationFrame = window.requestAnimationFrame(applyWeights);
+        if (animationFrame === null)
+          animationFrame = window.requestAnimationFrame(applyWeights);
       };
 
       const handlePointerMove = (event: PointerEvent) => {
@@ -193,7 +222,8 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
       node.addHook("Remove", () => {
         element.removeEventListener("pointermove", handlePointerMove);
         element.removeEventListener("pointerleave", handlePointerLeave);
-        if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+        if (animationFrame !== null)
+          window.cancelAnimationFrame(animationFrame);
       });
     },
     // The host tag is caller-configurable (`props.tag`), so it can't be

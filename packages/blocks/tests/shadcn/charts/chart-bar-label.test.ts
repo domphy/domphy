@@ -30,12 +30,16 @@ describe("chartBarLabel", () => {
     const { host } = render(chartBarLabel() as DomphyElement);
     expect(host.querySelector("h3")?.textContent).toBe("Bar Chart - Label");
     expect(host.querySelector("canvas")).toBeTruthy();
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts a custom label formatter without throwing", () => {
     const { host } = render(
-      chartBarLabel({ labelFormatter: (value) => `${value}k` }) as DomphyElement,
+      chartBarLabel({
+        labelFormatter: (value) => `${value}k`,
+      }) as DomphyElement,
     );
     expect(host.querySelector("canvas")).toBeTruthy();
   });

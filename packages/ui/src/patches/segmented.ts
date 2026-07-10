@@ -44,7 +44,7 @@ function segmented(
   } = { items: [] },
 ): PartialElement {
   const { items = [], color = "neutral", accentColor = "primary" } = props;
-  const value = toState(props.value ?? (items[0]?.key ?? ""));
+  const value = toState(props.value ?? items[0]?.key ?? "");
 
   return {
     role: "radiogroup",

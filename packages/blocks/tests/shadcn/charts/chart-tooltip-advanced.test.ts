@@ -28,13 +28,19 @@ afterEach(() => {
 describe("chartTooltipAdvanced", () => {
   it("renders a working demo tree with zero args: card shell + chart canvas", () => {
     const { host } = render(chartTooltipAdvanced() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Bar Chart - Tooltip Advanced");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Bar Chart - Tooltip Advanced",
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
   });
 
   it("accepts a custom unit, panel width and disabled total row without throwing", () => {
     const { host } = render(
-      chartTooltipAdvanced({ unit: "cal", panelMinWidthPx: 260, showTotal: false }) as DomphyElement,
+      chartTooltipAdvanced({
+        unit: "cal",
+        panelMinWidthPx: 260,
+        showTotal: false,
+      }) as DomphyElement,
     );
     expect(host.querySelector("canvas")).toBeTruthy();
   });

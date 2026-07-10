@@ -36,7 +36,9 @@ describe("comicText", () => {
   });
 
   it("applies an extra class name onto the container", () => {
-    const { host } = render(comicText({ className: "hero-word" }) as DomphyElement);
+    const { host } = render(
+      comicText({ className: "hero-word" }) as DomphyElement,
+    );
     flushSync();
 
     const container = host.firstElementChild as HTMLElement;

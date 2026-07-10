@@ -33,7 +33,12 @@ describe("animatedGridPattern", () => {
 
   it("accepts a custom numSquares/duration without throwing", () => {
     const { host } = render(
-      animatedGridPattern({ numSquares: 12, duration: 2, repeatDelay: 0.2, color: "primary" }),
+      animatedGridPattern({
+        numSquares: 12,
+        duration: 2,
+        repeatDelay: 0.2,
+        color: "primary",
+      }),
     );
 
     const container = host.firstElementChild!;

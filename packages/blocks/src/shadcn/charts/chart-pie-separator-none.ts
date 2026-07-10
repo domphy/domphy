@@ -11,12 +11,12 @@
 import type { DomphyElement } from "@domphy/core";
 import { motion } from "@domphy/ui";
 import {
-  type PieDatum,
-  DEFAULT_PIE_DATA,
-  PIE_OUTER_RADIUS,
   createPieTooltipState,
+  DEFAULT_PIE_DATA,
   defaultValueFormatter,
   layoutPieSlices,
+  PIE_OUTER_RADIUS,
+  type PieDatum,
   pieCard,
   pieCardDescription,
   pieCardFooter,
@@ -43,7 +43,9 @@ export interface ChartPieSeparatorNoneProps {
  * A seamless pie chart with no stroke and no angular gap between wedges.
  * Call with no arguments for a fully working demo.
  */
-function chartPieSeparatorNone(props: ChartPieSeparatorNoneProps = {}): DomphyElement<"div"> {
+function chartPieSeparatorNone(
+  props: ChartPieSeparatorNoneProps = {},
+): DomphyElement<"div"> {
   const {
     data = DEFAULT_PIE_DATA,
     title = "Pie Chart - Separator None",

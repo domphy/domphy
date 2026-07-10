@@ -25,10 +25,20 @@
 // cannot be used here). It does not re-resolve on a later runtime theme
 // swap; see this component's `fidelityNotes`.
 
-import type { DomphyElement, ElementNode, StyleObject, ValueOrState } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  StyleObject,
+  ValueOrState,
+} from "@domphy/core";
 import { toState } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeColorToken,
+  themeSpacing,
+} from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
-import { type ThemeColor, themeColor, themeColorToken, themeSpacing } from "@domphy/theme";
 
 export interface ParticlesProps {
   /** Number of particles. Defaults to `100`. */
@@ -70,7 +80,8 @@ function hexTokenToRgba(hexToken: string, alpha: number): string {
   const hex = hexToken.replace("#", "");
   const isShort = hex.length === 3;
   const red = parseInt(isShort ? hex[0] + hex[0] : hex.slice(0, 2), 16) || 255;
-  const green = parseInt(isShort ? hex[1] + hex[1] : hex.slice(2, 4), 16) || 255;
+  const green =
+    parseInt(isShort ? hex[1] + hex[1] : hex.slice(2, 4), 16) || 255;
   const blue = parseInt(isShort ? hex[2] + hex[2] : hex.slice(4, 6), 16) || 255;
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
@@ -157,7 +168,7 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
       // window.devicePixelRatio`). Clamping to 2 would render a lower-res
       // backing store on >2× displays. `|| 1` guards a 0/undefined ratio so
       // the width/scale math below can't collapse.
-      let devicePixelRatio = window.devicePixelRatio || 1;
+      const devicePixelRatio = window.devicePixelRatio || 1;
       let canvasWidth = 0;
       let canvasHeight = 0;
       let mouseX = 0;
@@ -182,7 +193,10 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
         canvasWidth = rect.width;
         canvasHeight = rect.height;
         canvas!.width = Math.max(1, Math.floor(canvasWidth * devicePixelRatio));
-        canvas!.height = Math.max(1, Math.floor(canvasHeight * devicePixelRatio));
+        canvas!.height = Math.max(
+          1,
+          Math.floor(canvasHeight * devicePixelRatio),
+        );
         context!.scale(devicePixelRatio, devicePixelRatio);
       }
 
@@ -197,7 +211,13 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
       }
 
       function respawnParticle(particle: ParticleInstance): void {
-        const respawned = createParticle(canvasWidth, canvasHeight, baseSize, vx, vy);
+        const respawned = createParticle(
+          canvasWidth,
+          canvasHeight,
+          baseSize,
+          vx,
+          vy,
+        );
         Object.assign(particle, respawned);
       }
 
@@ -219,7 +239,10 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
           );
           const closestEdgeAlpha = Math.max(0, closestEdge / 20);
           if (closestEdgeAlpha > 1) {
-            particle.alpha = Math.min(particle.alpha + 0.02, particle.targetAlpha);
+            particle.alpha = Math.min(
+              particle.alpha + 0.02,
+              particle.targetAlpha,
+            );
           } else {
             particle.alpha = particle.targetAlpha * closestEdgeAlpha;
           }
@@ -228,9 +251,11 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
           particle.y += particle.driftY;
 
           particle.translateX +=
-            (mouseX * (particle.magnetism / staticity) - particle.translateX) / ease;
+            (mouseX * (particle.magnetism / staticity) - particle.translateX) /
+            ease;
           particle.translateY +=
-            (mouseY * (particle.magnetism / staticity) - particle.translateY) / ease;
+            (mouseY * (particle.magnetism / staticity) - particle.translateY) /
+            ease;
 
           context!.beginPath();
           context!.arc(
@@ -282,7 +307,8 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
       });
 
       node.addHook("Remove", () => {
-        if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId);
+        if (animationFrameId !== null)
+          window.cancelAnimationFrame(animationFrameId);
         resizeObserver?.disconnect();
         containerElement.removeEventListener("pointermove", handlePointerMove);
         releaseRefreshListener();

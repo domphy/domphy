@@ -13,14 +13,14 @@ import type { DomphyElement } from "@domphy/core";
 import {
   ACTIVITY_SERIES_CONFIG,
   ACTIVITY_TOOLTIP_DATA,
+  type ActivityDayPoint,
+  type ActivitySeriesEntry,
   activityBarOption,
   activityTooltipCard,
   activityTooltipFormatter,
   activityTooltipPlot,
   formatLongDate,
   formatWeekdayShort,
-  type ActivityDayPoint,
-  type ActivitySeriesEntry,
 } from "./chart-tooltip-shared.js";
 
 export interface ChartTooltipLabelFormatterProps {
@@ -41,7 +41,9 @@ export interface ChartTooltipLabelFormatterProps {
  * via a callback, independent from the x-axis's own short tick formatter.
  * Call with no arguments for a working demo.
  */
-function chartTooltipLabelFormatter(props: ChartTooltipLabelFormatterProps = {}): DomphyElement<"div"> {
+function chartTooltipLabelFormatter(
+  props: ChartTooltipLabelFormatterProps = {},
+): DomphyElement<"div"> {
   const {
     data = ACTIVITY_TOOLTIP_DATA,
     series = ACTIVITY_SERIES_CONFIG,
@@ -58,7 +60,13 @@ function chartTooltipLabelFormatter(props: ChartTooltipLabelFormatterProps = {})
     labelMode: "custom",
     labelFormatter,
   });
-  const option = activityBarOption({ data, categories, series, showCursor, formatter });
+  const option = activityBarOption({
+    data,
+    categories,
+    series,
+    showCursor,
+    formatter,
+  });
 
   return activityTooltipCard({
     title,

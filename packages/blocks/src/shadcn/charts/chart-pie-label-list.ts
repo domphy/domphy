@@ -10,20 +10,20 @@ import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor } from "@domphy/theme";
 import { motion } from "@domphy/ui";
 import {
-  type PieDatum,
-  type PieSlice,
-  DEFAULT_PIE_DATA,
-  PIE_OUTER_RADIUS,
   createPieTooltipState,
+  DEFAULT_PIE_DATA,
   defaultValueFormatter,
   layoutPieSlices,
+  PIE_OUTER_RADIUS,
+  type PieDatum,
+  type PieSlice,
   pieCard,
   pieCardDescription,
   pieCardFooter,
   pieCardTitle,
   pieChartContainer,
-  polarPoint,
   pieWedgePath,
+  polarPoint,
 } from "./pie-chart-shared.js";
 
 // On-wedge display-name label: sits at each wedge's own mid-radius/bisector
@@ -31,7 +31,11 @@ import {
 // slice color, matching the "printed on the fill" spec this block calls for.
 // Upstream's <LabelList> labels every sector regardless of size, so there is
 // no minimum-fraction cutoff here.
-function pieWedgeNameLabel(slice: PieSlice, text: string, fontSize: string): DomphyElement<"text"> {
+function pieWedgeNameLabel(
+  slice: PieSlice,
+  text: string,
+  fontSize: string,
+): DomphyElement<"text"> {
   const [x, y] = polarPoint(PIE_OUTER_RADIUS * 0.62, slice.midAngle);
   return {
     text,
@@ -76,7 +80,9 @@ export interface ChartPieLabelListProps {
  * A pie chart labeling every wedge with a compact display name resolved from
  * a lookup table. Call with no arguments for a fully working demo.
  */
-function chartPieLabelList(props: ChartPieLabelListProps = {}): DomphyElement<"div"> {
+function chartPieLabelList(
+  props: ChartPieLabelListProps = {},
+): DomphyElement<"div"> {
   const {
     data = DEFAULT_PIE_DATA,
     title = "Pie Chart - Label List",

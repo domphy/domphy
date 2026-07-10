@@ -30,7 +30,9 @@ describe("rainbowButton", () => {
   });
 
   it("renders custom label content instead of the default demo text", () => {
-    const { host } = render(rainbowButton({ children: "Upgrade now" }) as DomphyElement);
+    const { host } = render(
+      rainbowButton({ children: "Upgrade now" }) as DomphyElement,
+    );
     expect(host.querySelector("button")!.textContent).toBe("Upgrade now");
   });
 
@@ -43,19 +45,25 @@ describe("rainbowButton", () => {
   });
 
   it("outline variant uses the dual-layer border trick instead of a solid fill", () => {
-    const { node } = render(rainbowButton({ variant: "outline" }) as DomphyElement);
+    const { node } = render(
+      rainbowButton({ variant: "outline" }) as DomphyElement,
+    );
     const css = node.generateCSS();
     expect(css).toContain("background-clip: padding-box, border-box");
   });
 
   it("icon size applies a square aspect ratio", () => {
-    const { node } = render(rainbowButton({ size: "icon", children: "★" }) as DomphyElement);
+    const { node } = render(
+      rainbowButton({ size: "icon", children: "★" }) as DomphyElement,
+    );
     expect(node.generateCSS()).toContain("aspect-ratio: 1");
   });
 
   it("fires the provided onClick handler when clicked", () => {
     const handleClick = vi.fn();
-    const { host } = render(rainbowButton({ onClick: handleClick }) as DomphyElement);
+    const { host } = render(
+      rainbowButton({ onClick: handleClick }) as DomphyElement,
+    );
     host.querySelector("button")!.click();
     expect(handleClick).toHaveBeenCalledTimes(1);
   });

@@ -21,7 +21,9 @@ describe("Login05", () => {
   it("renders a working demo tree with zero args: single email field, no password field", () => {
     const { host } = render(Login05() as DomphyElement);
     expect(host.querySelector("form")).toBeTruthy();
-    expect(host.querySelector('input[name="email"][type="email"]')).toBeTruthy();
+    expect(
+      host.querySelector('input[name="email"][type="email"]'),
+    ).toBeTruthy();
     expect(host.querySelector('input[type="password"]')).toBeFalsy();
     expect(host.textContent).toContain("Continue with Apple");
     expect(host.textContent).toContain("Continue with Google");
@@ -30,7 +32,9 @@ describe("Login05", () => {
   it("renders the header row (logo/title + sign-up link) and legal footer", () => {
     const { host } = render(Login05() as DomphyElement);
     expect(host.textContent).toContain("Welcome to Acme Inc.");
-    const links = Array.from(host.querySelectorAll("a")).map((a) => a.textContent);
+    const links = Array.from(host.querySelectorAll("a")).map(
+      (a) => a.textContent,
+    );
     expect(links).toContain("Sign up");
     expect(links).toContain("Terms of Service");
     expect(links).toContain("Privacy Policy");
@@ -44,7 +48,9 @@ describe("Login05", () => {
     const form = host.querySelector("form") as HTMLFormElement;
     const email = host.querySelector('input[name="email"]') as HTMLInputElement;
     email.value = "user@example.com";
-    form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    form.dispatchEvent(
+      new Event("submit", { cancelable: true, bubbles: true }),
+    );
     expect(values).toEqual([{ email: "user@example.com" }]);
   });
 });

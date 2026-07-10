@@ -18,8 +18,8 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export interface GridPatternProps {
   /** Grid cell width, in px. Defaults to `40`. */
@@ -81,7 +81,8 @@ function gridPattern(props: GridPatternProps = {}): DomphyElement<"div"> {
         // Decorative line path, no text of its own.
         _doctorDisable: "missing-color",
         style: {
-          stroke: (listener: Listener) => themeColor(listener, "shift-4", color),
+          stroke: (listener: Listener) =>
+            themeColor(listener, "shift-4", color),
           strokeDasharray,
         } as StyleObject,
       } as DomphyElement,
@@ -94,22 +95,25 @@ function gridPattern(props: GridPatternProps = {}): DomphyElement<"div"> {
     y,
   } as DomphyElement;
 
-  const squareElements: DomphyElement[] = squares.map(([column, row]) => ({
-    rect: null,
-    _key: `square-${column}-${row}`,
-    x: column * width + x + 1,
-    y: row * height + y + 1,
-    width: width - 1,
-    height: height - 1,
-    ariaHidden: "true",
-    _doctorDisable: "missing-color",
-    style: {
-      // Same tone as the grid lines (upstream uses one `gray-400/30` for both
-      // `fill-` squares and `stroke-` lines), so highlighted cells read as the
-      // same subtle tint rather than standing out brighter than the lines.
-      fill: (listener: Listener) => themeColor(listener, "shift-4", color),
-    } as StyleObject,
-  } as DomphyElement));
+  const squareElements: DomphyElement[] = squares.map(
+    ([column, row]) =>
+      ({
+        rect: null,
+        _key: `square-${column}-${row}`,
+        x: column * width + x + 1,
+        y: row * height + y + 1,
+        width: width - 1,
+        height: height - 1,
+        ariaHidden: "true",
+        _doctorDisable: "missing-color",
+        style: {
+          // Same tone as the grid lines (upstream uses one `gray-400/30` for both
+          // `fill-` squares and `stroke-` lines), so highlighted cells read as the
+          // same subtle tint rather than standing out brighter than the lines.
+          fill: (listener: Listener) => themeColor(listener, "shift-4", color),
+        } as StyleObject,
+      }) as DomphyElement,
+  );
 
   const gridSvg: DomphyElement = {
     svg: [

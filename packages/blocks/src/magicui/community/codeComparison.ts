@@ -17,9 +17,8 @@
 // for Python/shell-style comments) — parsed and stripped before rendering.
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
-import { small } from "@domphy/ui";
-import { preformated } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { preformated, small } from "@domphy/ui";
 
 export interface CodeComparisonProps {
   /** Left/"before" panel source. */
@@ -46,21 +45,88 @@ type ParsedLine = { text: string; emphasis: LineEmphasis };
 
 const KEYWORDS = new Set([
   // JS/TS
-  "const", "let", "var", "function", "return", "if", "else", "for", "while",
-  "class", "extends", "new", "import", "from", "export", "default", "async",
-  "await", "try", "catch", "finally", "throw", "switch", "case", "break",
-  "continue", "typeof", "instanceof", "in", "of", "null", "undefined", "true",
-  "false", "this", "super", "void", "yield", "interface", "type", "enum",
-  "implements", "public", "private", "protected", "readonly", "static",
+  "const",
+  "let",
+  "var",
+  "function",
+  "return",
+  "if",
+  "else",
+  "for",
+  "while",
+  "class",
+  "extends",
+  "new",
+  "import",
+  "from",
+  "export",
+  "default",
+  "async",
+  "await",
+  "try",
+  "catch",
+  "finally",
+  "throw",
+  "switch",
+  "case",
+  "break",
+  "continue",
+  "typeof",
+  "instanceof",
+  "in",
+  "of",
+  "null",
+  "undefined",
+  "true",
+  "false",
+  "this",
+  "super",
+  "void",
+  "yield",
+  "interface",
+  "type",
+  "enum",
+  "implements",
+  "public",
+  "private",
+  "protected",
+  "readonly",
+  "static",
   // Python
-  "def", "elif", "pass", "lambda", "as", "with", "None", "True", "False",
-  "self", "raise", "except", "not", "and", "or", "is",
+  "def",
+  "elif",
+  "pass",
+  "lambda",
+  "as",
+  "with",
+  "None",
+  "True",
+  "False",
+  "self",
+  "raise",
+  "except",
+  "not",
+  "and",
+  "or",
+  "is",
   // Rust/Go-ish
-  "fn", "impl", "struct", "trait", "match", "mut", "pub", "use", "package",
-  "func", "chan", "go", "defer",
+  "fn",
+  "impl",
+  "struct",
+  "trait",
+  "match",
+  "mut",
+  "pub",
+  "use",
+  "package",
+  "func",
+  "chan",
+  "go",
+  "defer",
 ]);
 
-const MARKER_PATTERN = /[ \t]*(?:\/\/|#)\s*\[!code\s+(highlight|\+\+|--|focus)\]\s*$/;
+const MARKER_PATTERN =
+  /[ \t]*(?:\/\/|#)\s*\[!code\s+(highlight|\+\+|--|focus)\]\s*$/;
 const TOKEN_PATTERN =
   /(\/\/[^\n]*|#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_$][\w$]*)|(\s+)|([^\sA-Za-z0-9_$]+)/g;
 
@@ -69,7 +135,13 @@ function parseLine(rawLine: string): ParsedLine {
   if (!match) return { text: rawLine, emphasis: "none" };
   const marker = match[1];
   const emphasis: LineEmphasis =
-    marker === "highlight" ? "highlight" : marker === "++" ? "add" : marker === "--" ? "remove" : "focus";
+    marker === "highlight"
+      ? "highlight"
+      : marker === "++"
+        ? "add"
+        : marker === "--"
+          ? "remove"
+          : "focus";
   return { text: rawLine.slice(0, match.index).replace(/\s+$/, ""), emphasis };
 }
 
@@ -82,7 +154,11 @@ function tokenizeLine(text: string): CodeToken[] {
     if (comment) tokens.push({ text: comment, kind: "comment" });
     else if (string) tokens.push({ text: string, kind: "string" });
     else if (number) tokens.push({ text: number, kind: "number" });
-    else if (word) tokens.push({ text: word, kind: KEYWORDS.has(word) ? "keyword" : "plain" });
+    else if (word)
+      tokens.push({
+        text: word,
+        kind: KEYWORDS.has(word) ? "keyword" : "plain",
+      });
     else if (space) tokens.push({ text: space, kind: "plain" });
     else if (punctuation) tokens.push({ text: punctuation, kind: "plain" });
     match = TOKEN_PATTERN.exec(text);
@@ -114,7 +190,7 @@ const DEFAULT_LEFT_CODE = [
 
 const DEFAULT_RIGHT_CODE = [
   "function greet(name: string): void {",
-  '  const message = `Hello ${name}`; // [!code ++]',
+  "  const message = `Hello ${name}`; // [!code ++]",
   '  console.log("Hello " + name); // [!code --]',
   "  console.log(message);",
   "}",
@@ -128,7 +204,10 @@ function fileIcon(): DomphyElement<"span"> {
     span: [
       {
         svg: [
-          { path: null, d: "M7 3h6l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" },
+          {
+            path: null,
+            d: "M7 3h6l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z",
+          },
           { polyline: null, points: "13 3 13 7 17 7" },
         ],
         viewBox: "0 0 24 24",
@@ -143,7 +222,12 @@ function fileIcon(): DomphyElement<"span"> {
       } as DomphyElement<"svg">,
     ],
     ariaHidden: "true",
-    style: { display: "inline-flex", flex: "0 0 auto", width: themeSpacing(4), height: themeSpacing(4) },
+    style: {
+      display: "inline-flex",
+      flex: "0 0 auto",
+      width: themeSpacing(4),
+      height: themeSpacing(4),
+    },
   };
 }
 
@@ -166,15 +250,23 @@ function codePanel(
   const hasFocusedLine = parsedLines.some((line) => line.emphasis === "focus");
 
   const lineElements: DomphyElement[] = parsedLines.map((line, lineIndex) => {
-    const tokenElements: DomphyElement[] = tokenizeLine(line.text).map((token, tokenIndex) => ({
-      span: token.text,
-      _key: `token-${tokenIndex}`,
-      style: { color: (listener: Listener) => tokenColor(listener, token.kind) },
-    }));
+    const tokenElements: DomphyElement[] = tokenizeLine(line.text).map(
+      (token, tokenIndex) => ({
+        span: token.text,
+        _key: `token-${tokenIndex}`,
+        style: {
+          color: (listener: Listener) => tokenColor(listener, token.kind),
+        },
+      }),
+    );
 
     const emphasized = line.emphasis !== "none" && line.emphasis !== "focus";
     const emphasisFamily: ThemeColor =
-      line.emphasis === "add" ? "success" : line.emphasis === "remove" ? "error" : highlightColor;
+      line.emphasis === "add"
+        ? "success"
+        : line.emphasis === "remove"
+          ? "error"
+          : highlightColor;
     // Non-focused rows in a panel that has a `[!code focus]` line are dimmed
     // (opacity 0.5) AND blurred (0.095rem), reverting on panel hover over 300ms
     // — matching upstream's `opacity-50 blur-[0.095rem]` + group-hover reveal.
@@ -196,11 +288,14 @@ function codePanel(
         paddingBlock: themeSpacing(0.5),
         opacity: dimmed ? 0.5 : 1,
         filter: dimmed ? "blur(0.095rem)" : "none",
-        transition: "opacity 300ms ease, filter 300ms ease, background-color 300ms ease",
+        transition:
+          "opacity 300ms ease, filter 300ms ease, background-color 300ms ease",
         ...(emphasized
           ? {
-              backgroundColor: (listener: Listener) => themeColor(listener, "inherit", emphasisFamily),
-              color: (listener: Listener) => themeColor(listener, "shift-9", emphasisFamily),
+              backgroundColor: (listener: Listener) =>
+                themeColor(listener, "inherit", emphasisFamily),
+              color: (listener: Listener) =>
+                themeColor(listener, "shift-9", emphasisFamily),
             }
           : {}),
       } as StyleObject,
@@ -211,11 +306,13 @@ function codePanel(
     side === "left"
       ? {
           "@media (min-width: 768px)": {
-            borderInlineEnd: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+            borderInlineEnd: (listener: Listener) =>
+              `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
           },
         }
       : {
-          borderBlockStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          borderBlockStart: (listener: Listener) =>
+            `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
           "@media (min-width: 768px)": { borderBlockStart: "none" },
         };
 
@@ -247,8 +344,10 @@ function codePanel(
           // object, not merged patch styles, so `color` is repeated here to
           // satisfy the surface contract for the themed `borderBottom` below
           // (and to color the currentColor-stroked file glyph).
-          color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
-          borderBottom: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          color: (listener: Listener) =>
+            themeColor(listener, "shift-9", "neutral"),
+          borderBottom: (listener: Listener) =>
+            `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
         },
       },
       {
@@ -266,7 +365,8 @@ function codePanel(
     style: {
       minWidth: 0,
       overflow: "hidden",
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
       // Hovering anywhere in the panel reveals lines dimmed by a focus
       // marker, matching upstream's group-hover/left|right un-dim behavior.
@@ -332,9 +432,12 @@ function codeComparison(props: CodeComparisonProps = {}): DomphyElement<"div"> {
               height: themeSpacing(8),
               borderRadius: themeSpacing(2),
               zIndex: 1,
-              backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
-              color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
-              border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+              backgroundColor: (listener: Listener) =>
+                themeColor(listener, "inherit", "neutral"),
+              color: (listener: Listener) =>
+                themeColor(listener, "shift-9", "neutral"),
+              border: (listener: Listener) =>
+                `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
               "@media (min-width: 768px)": { display: "flex" },
             } as StyleObject,
           },
@@ -344,7 +447,10 @@ function codeComparison(props: CodeComparisonProps = {}): DomphyElement<"div"> {
           width: "100%",
           overflow: "hidden",
           borderRadius: themeSpacing(2),
-          border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          border: (listener: Listener) =>
+            `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          color: (listener: Listener) =>
+            themeColor(listener, "shift-9", "neutral"),
         } as StyleObject,
       },
     ],

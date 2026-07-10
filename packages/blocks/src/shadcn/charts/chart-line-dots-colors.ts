@@ -13,16 +13,16 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
+import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
-import type { ChartOption, TooltipParams } from "@domphy/chart";
 import {
   BROWSER_CATEGORY_DATA,
   type CategoryPoint,
-  HIDDEN_AXIS_LINE_GRID,
   chartCard,
   chartPlot,
   computeYDomain,
+  HIDDEN_AXIS_LINE_GRID,
   hiddenLabelYAxis,
   hiddenXAxis,
   staticPointMarkersOverlay,
@@ -57,7 +57,9 @@ export interface ChartLineDotsColorsProps {
  * individually colored per-point dots and a fully hidden x-axis. Call with
  * no arguments for a fully working demo.
  */
-function chartLineDotsColors(props: ChartLineDotsColorsProps = {}): DomphyElement<"div"> {
+function chartLineDotsColors(
+  props: ChartLineDotsColorsProps = {},
+): DomphyElement<"div"> {
   const {
     title = "Line Chart - Dots Colors",
     description = "Browser share for the last 6 months",
@@ -77,7 +79,9 @@ function chartLineDotsColors(props: ChartLineDotsColorsProps = {}): DomphyElemen
   // matches that point's colored dot. The engine's TooltipParams.color is the
   // uniform series color instead, so resolve the point's own color by
   // dataIndex here, exactly as renderMarker below does.
-  function perPointSwatchTooltipFormatter(params: TooltipParams | TooltipParams[]): string {
+  function perPointSwatchTooltipFormatter(
+    params: TooltipParams | TooltipParams[],
+  ): string {
     const point = Array.isArray(params) ? params[0] : params;
     if (!point) return "";
     const pointColor = data[point.dataIndex]?.color ?? seriesColor;
@@ -120,11 +124,17 @@ function chartLineDotsColors(props: ChartLineDotsColorsProps = {}): DomphyElemen
           yDomain,
           grid: HIDDEN_AXIS_LINE_GRID,
           renderMarker({ index, cx, cy, group }) {
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle") as SVGCircleElement;
+            const circle = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "circle",
+            ) as SVGCircleElement;
             circle.setAttribute("cx", String(cx));
             circle.setAttribute("cy", String(cy));
             circle.setAttribute("r", String(DOT_RADIUS));
-            circle.setAttribute("fill", themeColorToken(null, "shift-9", data[index].color));
+            circle.setAttribute(
+              "fill",
+              themeColorToken(null, "shift-9", data[index].color),
+            );
             group.appendChild(circle);
           },
         }),

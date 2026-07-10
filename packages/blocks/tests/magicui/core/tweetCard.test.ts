@@ -3,7 +3,10 @@
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode, flushSync } from "@domphy/core";
 import { afterEach, describe, expect, it } from "vitest";
-import { tweetCard, type TweetData } from "../../../src/magicui/core/tweetCard.js";
+import {
+  type TweetData,
+  tweetCard,
+} from "../../../src/magicui/core/tweetCard.js";
 
 function render(app: DomphyElement) {
   const host = document.createElement("div");
@@ -51,7 +54,10 @@ describe("tweetCard", () => {
 
   it("falls back to the unavailable state when the fetcher rejects", async () => {
     const { host } = render(
-      tweetCard({ tweetId: "missing", fetchTweet: () => Promise.reject(new Error("not found")) }),
+      tweetCard({
+        tweetId: "missing",
+        fetchTweet: () => Promise.reject(new Error("not found")),
+      }),
     );
     flushSync();
 

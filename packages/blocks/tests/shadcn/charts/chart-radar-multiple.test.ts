@@ -20,9 +20,13 @@ describe("chartRadarMultiple", () => {
   it("renders two overlapping data polygons over one shared grid", () => {
     const { host } = render(chartRadarMultiple() as DomphyElement);
 
-    expect(host.querySelector("h3")?.textContent).toBe("Radar Chart - Multiple");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Radar Chart - Multiple",
+    );
     expect(host.querySelectorAll("svg polygon[fill-opacity]").length).toBe(2);
     expect(host.querySelectorAll("svg text").length).toBe(6);
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 });

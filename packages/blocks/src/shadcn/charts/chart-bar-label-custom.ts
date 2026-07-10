@@ -9,11 +9,14 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_TWO_SERIES_DATA,
+  type ChartBarGrid,
+  type ChartBarTwoSeriesPoint,
+  type ChartTrendDirection,
   chartBarCardShell,
   chartBarColorHex,
   chartBarFrame,
@@ -22,9 +25,6 @@ import {
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
-  type ChartBarGrid,
-  type ChartBarTwoSeriesPoint,
-  type ChartTrendDirection,
 } from "./chart-bar-shared.js";
 
 export interface ChartBarLabelCustomProps {
@@ -48,9 +48,18 @@ const DEFAULT_GRID: ChartBarGrid = { left: 8, right: 48, top: 8, bottom: 8 };
 // them for display here; any custom label that isn't a month abbreviation
 // falls through unchanged.
 const MONTH_NAMES: Record<string, string> = {
-  Jan: "January", Feb: "February", Mar: "March", Apr: "April",
-  May: "May", Jun: "June", Jul: "July", Aug: "August",
-  Sep: "September", Oct: "October", Nov: "November", Dec: "December",
+  Jan: "January",
+  Feb: "February",
+  Mar: "March",
+  Apr: "April",
+  May: "May",
+  Jun: "June",
+  Jul: "July",
+  Aug: "August",
+  Sep: "September",
+  Oct: "October",
+  Nov: "November",
+  Dec: "December",
 };
 
 /**
@@ -58,7 +67,9 @@ const MONTH_NAMES: Record<string, string> = {
  * outside value label, no visible axes. Call with no arguments for a
  * working demo.
  */
-function chartBarLabelCustom(props: ChartBarLabelCustomProps = {}): DomphyElement<"div"> {
+function chartBarLabelCustom(
+  props: ChartBarLabelCustomProps = {},
+): DomphyElement<"div"> {
   const {
     data = CHART_BAR_TWO_SERIES_DATA,
     seriesLabel = "Desktop",
@@ -75,7 +86,9 @@ function chartBarLabelCustom(props: ChartBarLabelCustomProps = {}): DomphyElemen
   // Category (y) axes render bottom-to-top — reverse so the on-screen
   // reading order stays chronological.
   const orderedData = [...data].reverse();
-  const categories = orderedData.map((point) => MONTH_NAMES[point.label] ?? point.label);
+  const categories = orderedData.map(
+    (point) => MONTH_NAMES[point.label] ?? point.label,
+  );
   const values = orderedData.map((point) => point.desktop);
   const valueDomain = chartBarValueDomain(values);
   const seriesColorHex = chartBarColorHex(seriesColor);
@@ -144,7 +157,11 @@ function chartBarLabelCustom(props: ChartBarLabelCustomProps = {}): DomphyElemen
         }),
       ],
     },
-    footer: chartBarTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartBarTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

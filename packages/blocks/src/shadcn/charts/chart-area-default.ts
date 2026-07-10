@@ -7,19 +7,19 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_AREA_MONTHLY_DATA,
   CHART_AREA_X_AXIS_BARE,
   CHART_AREA_Y_AXIS_HIDDEN,
+  type ChartAreaSinglePoint,
+  type ChartTrendDirection,
   chartAreaFrame,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartTrendFooter,
-  type ChartAreaSinglePoint,
-  type ChartTrendDirection,
 } from "./chart-area-shared.js";
 
 export interface ChartAreaDefaultProps {
@@ -38,7 +38,9 @@ export interface ChartAreaDefaultProps {
  * shadcn/ui "chart-area" default recipe — a single-series monthly area
  * chart with a trend footer. Call with no arguments for a working demo.
  */
-function chartAreaDefault(props: ChartAreaDefaultProps = {}): DomphyElement<"div"> {
+function chartAreaDefault(
+  props: ChartAreaDefaultProps = {},
+): DomphyElement<"div"> {
   const {
     data = CHART_AREA_MONTHLY_DATA,
     seriesLabel = "Visitors",
@@ -59,7 +61,12 @@ function chartAreaDefault(props: ChartAreaDefaultProps = {}): DomphyElement<"div
       axisPointer: { type: "none" },
       // Upstream passes `<ChartTooltipContent indicator="line" />` and no value
       // formatter, so the tooltip shows the bare number (no " visitors" unit).
-      formatter: chartAxisTooltipFormatter(categories, undefined, false, "line"),
+      formatter: chartAxisTooltipFormatter(
+        categories,
+        undefined,
+        false,
+        "line",
+      ),
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     yAxis: CHART_AREA_Y_AXIS_HIDDEN,
@@ -87,7 +94,12 @@ function chartAreaDefault(props: ChartAreaDefaultProps = {}): DomphyElement<"div
     content: { div: [chartAreaFrame(option, height)] },
     // Upstream's <TrendingUp/> has no color class — it inherits the neutral
     // foreground, not a green/red trend tint.
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText, color: "neutral" }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+      color: "neutral",
+    }),
   });
 }
 

@@ -10,17 +10,17 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
+import type { ChartOption, TooltipParams } from "@domphy/chart";
+import { chart } from "@domphy/chart";
 import type { DomphyElement, Listener } from "@domphy/core";
 import { toState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { card, heading, paragraph, small } from "@domphy/ui";
-import { chart } from "@domphy/chart";
-import type { ChartOption, TooltipParams } from "@domphy/chart";
 import {
   CHART_BAR_DAILY_DATA,
+  type ChartBarDailyPoint,
   chartBarTooltipRow,
   chartBarValueDomain,
-  type ChartBarDailyPoint,
 } from "./chart-bar-shared.js";
 
 type SeriesKey = "desktop" | "mobile";
@@ -37,7 +37,12 @@ function escapeHtml(text: string): string {
 function formatLongDate(isoDate: string): string {
   const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return isoDate;
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
 }
 
 // @domphy/chart's axis renderer never reads `axisLabel.formatter` (verified
@@ -47,7 +52,11 @@ function formatLongDate(isoDate: string): string {
 function formatShortDate(isoDate: string): string {
   const date = new Date(`${isoDate}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return isoDate;
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(date);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
 }
 
 export interface ChartBarInteractiveProps {
@@ -66,7 +75,9 @@ export interface ChartBarInteractiveProps {
  * header stat tiles double as a series switcher. Call with no arguments for
  * a fully working demo.
  */
-function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElement<"div"> {
+function chartBarInteractive(
+  props: ChartBarInteractiveProps = {},
+): DomphyElement<"div"> {
   const {
     title = "Bar Chart - Interactive",
     subtitle = "Showing total visitors for the last 3 months",
@@ -94,12 +105,19 @@ function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElemen
     desktop: data.reduce((sum, point) => sum + point.desktop, 0),
     mobile: data.reduce((sum, point) => sum + point.mobile, 0),
   };
-  const [, domainMax] = chartBarValueDomain([...data.map((p) => p.desktop), ...data.map((p) => p.mobile)]);
+  const [, domainMax] = chartBarValueDomain([
+    ...data.map((p) => p.desktop),
+    ...data.map((p) => p.mobile),
+  ]);
 
   const activeSeriesKey = toState<SeriesKey>(initialSeries);
 
-  const tooltipFormatter = (parametersInput: TooltipParams | TooltipParams[]): string => {
-    const point = Array.isArray(parametersInput) ? parametersInput[0] : parametersInput;
+  const tooltipFormatter = (
+    parametersInput: TooltipParams | TooltipParams[],
+  ): string => {
+    const point = Array.isArray(parametersInput)
+      ? parametersInput[0]
+      : parametersInput;
     if (!point) return "";
     const day = data[point.dataIndex];
     const dateLabel = day ? formatLongDate(day.date) : "";
@@ -152,7 +170,10 @@ function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElemen
   function sweepReveal(): void {
     if (!plotElement || typeof plotElement.animate !== "function") return;
     plotElement.animate(
-      [{ clipPath: "inset(0% 100% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)" }],
+      [
+        { clipPath: "inset(0% 100% 0% 0%)" },
+        { clipPath: "inset(0% 0% 0% 0%)" },
+      ],
       { duration: 550, easing: "ease-out", fill: "both" },
     );
   }
@@ -176,12 +197,18 @@ function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElemen
         {
           small: meta.label,
           $: [small({ color: "neutral" })],
-          style: { color: (l: Listener) => themeColor(l, "shift-11", "neutral") },
+          style: {
+            color: (l: Listener) => themeColor(l, "shift-11", "neutral"),
+          },
         } as DomphyElement<"small">,
-        { h4: totals[key].toLocaleString("en-US"), $: [heading({ color: "neutral" })] } as DomphyElement<"h4">,
+        {
+          h4: totals[key].toLocaleString("en-US"),
+          $: [heading({ color: "neutral" })],
+        } as DomphyElement<"h4">,
       ],
       type: "button",
-      dataActive: (listener: Listener) => (activeSeriesKey.get(listener) === key ? "true" : "false"),
+      dataActive: (listener: Listener) =>
+        activeSeriesKey.get(listener) === key ? "true" : "false",
       onClick: () => selectSeries(key),
       style: {
         display: "flex",
@@ -197,7 +224,8 @@ function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElemen
         paddingInline: themeSpacing(4),
         textAlign: "left",
         "&[data-active=true]": {
-          backgroundColor: (listener: Listener) => themeColor(listener, "increase-1", "neutral"),
+          backgroundColor: (listener: Listener) =>
+            themeColor(listener, "increase-1", "neutral"),
         },
       },
     } as DomphyElement<"button">;
@@ -212,14 +240,18 @@ function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElemen
       // header stacks, `sm:border-t-0 sm:border-l` when it goes row): a top rule
       // above the tiles on narrow viewports, a left rule between the title block
       // and the tiles at >=640px.
-      borderBlockStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+      borderBlockStart: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+      color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
       "@media (min-width: 640px)": {
         width: "auto",
         borderBlockStart: "none",
-        borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+        borderInlineStart: (listener: Listener) =>
+          `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
       },
       "& > button + button": {
-        borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+        borderInlineStart: (listener: Listener) =>
+          `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
       },
     },
   } as DomphyElement<"aside">;
@@ -242,7 +274,10 @@ function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElemen
   return {
     div: [
       { h3: title, $: [heading()] } as DomphyElement<"h3">,
-      { p: subtitle, $: [paragraph({ color: "neutral" })] } as DomphyElement<"p">,
+      {
+        p: subtitle,
+        $: [paragraph({ color: "neutral" })],
+      } as DomphyElement<"p">,
       asideElement,
       {
         // Full-width rule under the header (upstream CardHeader `border-b`): the
@@ -250,7 +285,10 @@ function chartBarInteractive(props: ChartBarInteractiveProps = {}): DomphyElemen
         // separates the title/desc/tile header row from the chart below.
         div: [plotWrapper],
         style: {
-          borderBlockStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+          borderBlockStart: (listener: Listener) =>
+            `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+          color: (listener: Listener) =>
+            themeColor(listener, "shift-9", "neutral"),
         },
       } as DomphyElement<"div">,
     ],

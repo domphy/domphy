@@ -49,8 +49,16 @@ interface SideButton {
 // a TALL upper button (y153→251) then a SHORT lower one (y301→353). Values are
 // percentages of the 378×830 body these buttons are children of.
 const SIDE_BUTTONS: SideButton[] = [
-  { key: "button-top", top: `${(153 / BODY_HEIGHT) * 100}%`, height: `${(98 / BODY_HEIGHT) * 100}%` },
-  { key: "button-bottom", top: `${(301 / BODY_HEIGHT) * 100}%`, height: `${(52 / BODY_HEIGHT) * 100}%` },
+  {
+    key: "button-top",
+    top: `${(153 / BODY_HEIGHT) * 100}%`,
+    height: `${(98 / BODY_HEIGHT) * 100}%`,
+  },
+  {
+    key: "button-bottom",
+    top: `${(301 / BODY_HEIGHT) * 100}%`,
+    height: `${(52 / BODY_HEIGHT) * 100}%`,
+  },
 ];
 
 /** A solid decorative shape (button notch, punch-hole camera) painted via `fill:
@@ -94,12 +102,26 @@ function frameGlyph(
 function sideButtonGlyph(button: SideButton): DomphyElement<"span"> {
   // Buttons straddle the body's right edge (x376→380 vs body right edge 378), so they
   // stick out ~2px into the transparent canvas padding. Widths/insets in body percentages.
-  return frameGlyph(button.key, { rect: null, x: 0, y: 0, width: 20, height: 100, rx: 999 } as DomphyElement, 20, 100, "shift-15", {
-    insetInlineEnd: `${(-2 / BODY_WIDTH) * 100}%`,
-    insetBlockStart: button.top,
-    width: `${(4 / BODY_WIDTH) * 100}%`,
-    height: button.height,
-  });
+  return frameGlyph(
+    button.key,
+    {
+      rect: null,
+      x: 0,
+      y: 0,
+      width: 20,
+      height: 100,
+      rx: 999,
+    } as DomphyElement,
+    20,
+    100,
+    "shift-15",
+    {
+      insetInlineEnd: `${(-2 / BODY_WIDTH) * 100}%`,
+      insetBlockStart: button.top,
+      width: `${(4 / BODY_WIDTH) * 100}%`,
+      height: button.height,
+    },
+  );
 }
 
 /** Front camera punch-hole: two concentric circles at the body-center x (upstream cx=189 =
@@ -116,21 +138,39 @@ function punchHoleCamera(): DomphyElement<"span">[] {
   };
   return [
     // Outer ring / disc: r=9 → diameter 18 of the 378-wide body.
-    frameGlyph("camera-ring", { circle: null, cx: 50, cy: 50, r: 50 } as DomphyElement, 100, 100, "shift-17", {
-      ...center,
-      width: `${(18 / BODY_WIDTH) * 100}%`,
-    }),
+    frameGlyph(
+      "camera-ring",
+      { circle: null, cx: 50, cy: 50, r: 50 } as DomphyElement,
+      100,
+      100,
+      "shift-17",
+      {
+        ...center,
+        width: `${(18 / BODY_WIDTH) * 100}%`,
+      },
+    ),
     // Inner lens dot: r=4 → diameter 8, a touch greyer than the ring.
-    frameGlyph("camera-lens", { circle: null, cx: 50, cy: 50, r: 50 } as DomphyElement, 100, 100, "shift-15", {
-      ...center,
-      width: `${(8 / BODY_WIDTH) * 100}%`,
-    }),
+    frameGlyph(
+      "camera-lens",
+      { circle: null, cx: 50, cy: 50, r: 50 } as DomphyElement,
+      100,
+      100,
+      "shift-15",
+      {
+        ...center,
+        width: `${(8 / BODY_WIDTH) * 100}%`,
+      },
+    ),
   ];
 }
 
 /** The screen-area media layer: a video overlay wins over a static image; renders nothing
  * (bare screen) when neither is supplied. */
-function screenMedia(src: string | undefined, videoSrc: string | undefined, label: string): DomphyElement | null {
+function screenMedia(
+  src: string | undefined,
+  videoSrc: string | undefined,
+  label: string,
+): DomphyElement | null {
   if (videoSrc) {
     return {
       video: null,
@@ -140,7 +180,14 @@ function screenMedia(src: string | undefined, videoSrc: string | undefined, labe
       muted: true,
       playsInline: true,
       "aria-label": label,
-      style: { position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", objectFit: "cover" },
+      style: {
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        display: "block",
+        objectFit: "cover",
+      },
     } as DomphyElement;
   }
   if (src) {
@@ -148,7 +195,14 @@ function screenMedia(src: string | undefined, videoSrc: string | undefined, labe
       img: null,
       src,
       alt: label,
-      style: { position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", objectFit: "cover" },
+      style: {
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        display: "block",
+        objectFit: "cover",
+      },
     } as DomphyElement;
   }
   return null;

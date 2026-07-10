@@ -20,7 +20,9 @@ describe("chartRadarGridNone", () => {
   it("renders only the month labels and the dotted data polygon, no ring/spoke grid lines", () => {
     const { host } = render(chartRadarGridNone() as DomphyElement);
 
-    expect(host.querySelector("h3")?.textContent).toBe("Radar Chart - Grid None");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Radar Chart - Grid None",
+    );
     // No PolarGrid at all, but upstream's <PolarAngleAxis> still defaults to
     // axisLine=true / axisLineType="polygon", so its own outer boundary
     // hexagon remains as a second <polygon> alongside the data series.

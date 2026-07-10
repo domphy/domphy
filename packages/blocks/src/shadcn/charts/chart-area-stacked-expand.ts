@@ -19,19 +19,19 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption, TooltipParams } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_AREA_SERIES_PALETTE,
   CHART_AREA_THREE_SERIES_DATA,
   CHART_AREA_X_AXIS_BARE,
+  type ChartAreaThreeSeriesPoint,
+  type ChartTrendDirection,
   chartAreaFrame,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartTrendFooter,
-  type ChartAreaThreeSeriesPoint,
-  type ChartTrendDirection,
 } from "./chart-area-shared.js";
 
 export interface ChartAreaStackedExpandSeries {
@@ -62,9 +62,24 @@ export interface ChartAreaStackedExpandProps {
 // consequence of that, see chart-area-shared.ts's tooltip note.
 const DEFAULT_SERIES: ChartAreaStackedExpandSeries[] = [
   // Minor category recedes visually at a lower opacity, per spec.
-  { key: "other", label: "Other", color: CHART_AREA_SERIES_PALETTE[2], opacity: 0.1 },
-  { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[1], opacity: 0.4 },
-  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0], opacity: 0.4 },
+  {
+    key: "other",
+    label: "Other",
+    color: CHART_AREA_SERIES_PALETTE[2],
+    opacity: 0.1,
+  },
+  {
+    key: "mobile",
+    label: "Mobile",
+    color: CHART_AREA_SERIES_PALETTE[1],
+    opacity: 0.4,
+  },
+  {
+    key: "desktop",
+    label: "Desktop",
+    color: CHART_AREA_SERIES_PALETTE[0],
+    opacity: 0.4,
+  },
 ];
 
 /**
@@ -72,7 +87,9 @@ const DEFAULT_SERIES: ChartAreaStackedExpandSeries[] = [
  * normalized to a percent-of-total stack. Call with no arguments for a
  * working demo.
  */
-function chartAreaStackedExpand(props: ChartAreaStackedExpandProps = {}): DomphyElement<"div"> {
+function chartAreaStackedExpand(
+  props: ChartAreaStackedExpandProps = {},
+): DomphyElement<"div"> {
   const {
     data = CHART_AREA_THREE_SERIES_DATA,
     series = DEFAULT_SERIES,
@@ -88,10 +105,16 @@ function chartAreaStackedExpand(props: ChartAreaStackedExpandProps = {}): Domphy
 
   // Raw counts per category, in series order — used to reconstitute the true
   // values in the tooltip since the plotted `data` below is normalized.
-  const rawByIndex: number[][] = data.map((point) => series.map((s) => point[s.key]));
-  const totalsByIndex = rawByIndex.map((row) => row.reduce((sum, value) => sum + value, 0) || 1);
-  const percentData = series.map((s, seriesIndex) =>
-    data.map((point, dataIndex) => (point[s.key] / totalsByIndex[dataIndex]) * 100),
+  const rawByIndex: number[][] = data.map((point) =>
+    series.map((s) => point[s.key]),
+  );
+  const totalsByIndex = rawByIndex.map(
+    (row) => row.reduce((sum, value) => sum + value, 0) || 1,
+  );
+  const percentData = series.map((s, _seriesIndex) =>
+    data.map(
+      (point, dataIndex) => (point[s.key] / totalsByIndex[dataIndex]) * 100,
+    ),
   );
 
   const valueLabel = (p: TooltipParams) => {
@@ -104,7 +127,12 @@ function chartAreaStackedExpand(props: ChartAreaStackedExpandProps = {}): Domphy
       trigger: "axis",
       axisPointer: { type: "none" },
       // Upstream passes `<ChartTooltipContent indicator="line" />`.
-      formatter: chartAxisTooltipFormatter(categories, valueLabel, false, "line"),
+      formatter: chartAxisTooltipFormatter(
+        categories,
+        valueLabel,
+        false,
+        "line",
+      ),
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     // Fixed 0–100 domain — the stack always fills the plot exactly. Chrome is
@@ -137,7 +165,11 @@ function chartAreaStackedExpand(props: ChartAreaStackedExpandProps = {}): Domphy
     title,
     description,
     content: { div: [chartAreaFrame(option, height)] },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

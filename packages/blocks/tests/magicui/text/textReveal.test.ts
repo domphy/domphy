@@ -43,7 +43,12 @@ describe("textReveal", () => {
 
   it("accepts custom text and wrapper height without throwing", () => {
     expect(() =>
-      render(textReveal({ children: "Short scroll demo text here", wrapperHeightVh: 150 }) as DomphyElement),
+      render(
+        textReveal({
+          children: "Short scroll demo text here",
+          wrapperHeightVh: 150,
+        }) as DomphyElement,
+      ),
     ).not.toThrow();
   });
 

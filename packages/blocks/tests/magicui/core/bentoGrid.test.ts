@@ -29,12 +29,20 @@ describe("bentoGrid", () => {
 
   it("accepts custom cards with column/row spans and hrefs", () => {
     const cards = [
-      { title: "Alpha", description: "First card", href: "/alpha", columnSpan: 2 },
+      {
+        title: "Alpha",
+        description: "First card",
+        href: "/alpha",
+        columnSpan: 2,
+      },
       { title: "Beta", description: "Second card", href: "/beta" },
     ];
     const { host } = render(bentoGrid({ cards, columns: 2 }));
     expect(host.querySelectorAll("h3").length).toBe(2);
     const links = Array.from(host.querySelectorAll("a"));
-    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/alpha", "/beta"]);
+    expect(links.map((a) => a.getAttribute("href"))).toEqual([
+      "/alpha",
+      "/beta",
+    ]);
   });
 });

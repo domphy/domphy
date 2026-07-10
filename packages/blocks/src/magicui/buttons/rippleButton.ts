@@ -22,8 +22,8 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString, toState } from "@domphy/core";
-import { button } from "@domphy/ui";
 import { type ThemeColor, themeColor } from "@domphy/theme";
+import { button } from "@domphy/ui";
 
 export interface RippleButtonProps {
   /** Button label content. Defaults to `"Click me"`. */
@@ -54,7 +54,9 @@ let rippleButtonInstanceCounter = 0;
 /** Normalizes a `DomphyElement | DomphyElement[] | string` prop into the flat
  * `(string | DomphyElement)[]` shape `DomphyElement<T>`'s content field expects — a
  * bare single element isn't part of that type, only primitives/arrays/functions are. */
-function asContent(value: DomphyElement | DomphyElement[] | string): (string | DomphyElement)[] {
+function asContent(
+  value: DomphyElement | DomphyElement[] | string,
+): (string | DomphyElement)[] {
   return Array.isArray(value) ? value : [value];
 }
 
@@ -103,7 +105,8 @@ function rippleButton(props: RippleButtonProps = {}): DomphyElement<"button"> {
         height: `${ripple.size}px`,
         borderRadius: "50%",
         pointerEvents: "none",
-        backgroundColor: (listener: Listener) => themeColor(listener, "shift-0", rippleColor),
+        backgroundColor: (listener: Listener) =>
+          themeColor(listener, "shift-0", rippleColor),
         animation: `${rippleAnimationName} ${duration}ms ease-out forwards`,
         [`@keyframes ${rippleAnimationName}`]: rippleKeyframes,
       } as StyleObject,
@@ -116,7 +119,10 @@ function rippleButton(props: RippleButtonProps = {}): DomphyElement<"button"> {
   };
 
   const buttonElement: DomphyElement<"button"> = {
-    button: [{ span: asContent(label), style: { position: "relative", zIndex: 1 } }, rippleLayer],
+    button: [
+      { span: asContent(label), style: { position: "relative", zIndex: 1 } },
+      rippleLayer,
+    ],
     type: "button",
     disabled: props.disabled,
     $: [button({ color })],
@@ -140,7 +146,9 @@ function rippleButton(props: RippleButtonProps = {}): DomphyElement<"button"> {
 
         const cleanupTimer = setTimeout(() => {
           ripples.set(ripples.get().filter((entry) => entry.id !== id));
-          pendingTimers = pendingTimers.filter((timer) => timer !== cleanupTimer);
+          pendingTimers = pendingTimers.filter(
+            (timer) => timer !== cleanupTimer,
+          );
         }, duration);
         pendingTimers.push(cleanupTimer);
       }

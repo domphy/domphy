@@ -30,8 +30,8 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { card, heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { card, heading, paragraph } from "@domphy/ui";
 
 export type WarpBackgroundPlaneSide = "top" | "bottom" | "left" | "right";
 
@@ -71,7 +71,12 @@ const DEFAULT_BEAM_COLORS: ThemeColor[] = [
 // Order matches upstream (top first). "top" carries z-index 20 so it paints
 // above the other three walls at their overlap, exactly as upstream's ceiling
 // plane does.
-const PLANE_SIDES: WarpBackgroundPlaneSide[] = ["top", "bottom", "left", "right"];
+const PLANE_SIDES: WarpBackgroundPlaneSide[] = [
+  "top",
+  "bottom",
+  "left",
+  "right",
+];
 
 /**
  * Per-plane geometry, matching upstream's Tailwind classes 1:1:
@@ -87,22 +92,43 @@ const PLANE_GEOMETRY: Record<
   top: {
     origin: "50% 0%",
     transform: "rotateX(-90deg)",
-    layout: { insetBlockStart: 0, insetInlineStart: 0, width: "100cqi", height: "100cqmax", zIndex: 20 },
+    layout: {
+      insetBlockStart: 0,
+      insetInlineStart: 0,
+      width: "100cqi",
+      height: "100cqmax",
+      zIndex: 20,
+    },
   },
   bottom: {
     origin: "50% 0%",
     transform: "rotateX(-90deg)",
-    layout: { insetBlockStart: "100%", insetInlineStart: 0, width: "100cqi", height: "100cqmax" },
+    layout: {
+      insetBlockStart: "100%",
+      insetInlineStart: 0,
+      width: "100cqi",
+      height: "100cqmax",
+    },
   },
   left: {
     origin: "0% 0%",
     transform: "rotate(90deg) rotateX(-90deg)",
-    layout: { insetBlockStart: 0, insetInlineStart: 0, width: "100cqh", height: "100cqmax" },
+    layout: {
+      insetBlockStart: 0,
+      insetInlineStart: 0,
+      width: "100cqh",
+      height: "100cqmax",
+    },
   },
   right: {
     origin: "100% 0%",
     transform: "rotate(-90deg) rotateX(-90deg)",
-    layout: { insetBlockStart: 0, insetInlineEnd: 0, width: "100cqh", height: "100cqmax" },
+    layout: {
+      insetBlockStart: 0,
+      insetInlineEnd: 0,
+      width: "100cqh",
+      height: "100cqmax",
+    },
   },
 };
 
@@ -176,7 +202,10 @@ function warpPlane(
     const cellIndex = Math.floor(index * stepSize);
     const leftPercent = cellIndex * beamSize; // 0%, 30%, 65% for the defaults
     const aspectRatio = Math.floor(Math.random() * 10) + 1;
-    const delaySeconds = (delayMin + Math.random() * Math.max(0, delayMax - delayMin)).toFixed(2);
+    const delaySeconds = (
+      delayMin +
+      Math.random() * Math.max(0, delayMax - delayMin)
+    ).toFixed(2);
     return warpBeam(
       side,
       index,
@@ -255,7 +284,10 @@ function warpBackground(props: WarpBackgroundProps = {}): DomphyElement<"div"> {
   const beamDelayMax = props.beamDelayMax ?? 3;
   const beamDuration = props.beamDuration ?? 3;
   const gridColor = props.gridColor ?? "neutral";
-  const beamColors = props.beamColors && props.beamColors.length > 0 ? props.beamColors : DEFAULT_BEAM_COLORS;
+  const beamColors =
+    props.beamColors && props.beamColors.length > 0
+      ? props.beamColors
+      : DEFAULT_BEAM_COLORS;
 
   const driftAnimationName = `warp-background-drift-${hashString(
     JSON.stringify({ instanceId, beamDuration, beamDelayMin, beamDelayMax }),
@@ -322,7 +354,8 @@ function warpBackground(props: WarpBackgroundProps = {}): DomphyElement<"div"> {
       // Upstream root: `relative rounded border p-20`.
       position: "relative",
       borderRadius: themeSpacing(1),
-      border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", gridColor)}`,
+      border: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3", gridColor)}`,
       padding: themeSpacing(20),
       backgroundColor: (listener) => themeColor(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-9"),

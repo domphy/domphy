@@ -21,6 +21,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { button, divider, icon, image, label, link, small } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 
 // ---------------------------------------------------------------------------
 // Layout constants (all resolved through themeSpacing — never literal units)
@@ -108,7 +109,8 @@ export function brandBadge(): DomphyElement<"div"> {
         themeSpacing(themeDensity(listener) * 1),
       backgroundColor: (listener: Listener) =>
         themeColor(listener, "inherit", "primary"),
-      color: (listener: Listener) => themeColor(listener, "shift-11", "primary"),
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-11", "primary"),
     },
   };
 }
@@ -130,8 +132,8 @@ export function brandBadge(): DomphyElement<"div"> {
 function fieldInputStyle(): PartialElement {
   return {
     style: {
-      fontFamily: "inherit",
-      lineHeight: "inherit",
+      fontFamily: fixed("inherit"),
+      lineHeight: fixed("inherit"),
       width: "100%",
       boxSizing: "border-box",
       paddingInline: (listener: Listener) =>
@@ -149,7 +151,8 @@ function fieldInputStyle(): PartialElement {
       backgroundColor: (listener: Listener) =>
         themeColor(listener, "inherit", "neutral"),
       "&::placeholder": {
-        color: (listener: Listener) => themeColor(listener, "shift-7", "neutral"),
+        color: (listener: Listener) =>
+          themeColor(listener, "shift-7", "neutral"),
       },
       "&:hover:not([disabled]), &:focus-visible": {
         outline: (listener: Listener) =>
@@ -162,7 +165,8 @@ function fieldInputStyle(): PartialElement {
           themeColor(listener, "shift-2", "neutral"),
         outline: (listener: Listener) =>
           `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
-        color: (listener: Listener) => themeColor(listener, "shift-8", "neutral"),
+        color: (listener: Listener) =>
+          themeColor(listener, "shift-8", "neutral"),
       },
     },
   };
@@ -233,11 +237,15 @@ export function passwordField(
       // rule (WCAG 1.4.1) needs this link visually distinguishable from
       // surrounding text at rest too, not just by its color.
       style: {
-        textDecoration: "underline",
+        textDecoration: fixed("underline"),
         // Upstream forgot-password link is text-sm.
         fontSize: (listener: Listener) => themeSize(listener, "decrease-1"),
       },
       $: [link({ color: "neutral" })],
+      // `link()` already sets `style.color` — the doctor tool inspects only
+      // this element's own inline style, not patch contributions, so it
+      // can't see that and flags a false positive here.
+      _doctorDisable: "missing-color",
     } as DomphyElement<"a">);
   }
 
@@ -344,7 +352,12 @@ export function signUpLine(
       // Upstream renders the "Sign up" link as a bare <a> inside
       // FieldDescription, inheriting its text-muted-foreground at rest (not a
       // primary tone). Match that with the neutral link tone; keep underline.
-      { a: linkLabel, href, style: { textDecoration: "underline" }, $: [link({ color: "neutral" })] },
+      {
+        a: linkLabel,
+        href,
+        style: { textDecoration: fixed("underline") },
+        $: [link({ color: "neutral" })],
+      },
     ],
     $: [small()],
     style: { display: "block", textAlign: align },
@@ -373,9 +386,19 @@ export function legalFooter(
   return {
     small: [
       `${prefix} `,
-      { a: termsLabel, href: termsHref, style: { textDecoration: "underline" }, $: [link({ color: "neutral" })] },
+      {
+        a: termsLabel,
+        href: termsHref,
+        style: { textDecoration: fixed("underline") },
+        $: [link({ color: "neutral" })],
+      },
       " and ",
-      { a: privacyLabel, href: privacyHref, style: { textDecoration: "underline" }, $: [link({ color: "neutral" })] },
+      {
+        a: privacyLabel,
+        href: privacyHref,
+        style: { textDecoration: fixed("underline") },
+        $: [link({ color: "neutral" })],
+      },
       ".",
     ],
     $: [small()],
@@ -400,14 +423,17 @@ export function coverImage(options: CoverImageOptions): DomphyElement<"img"> {
   return {
     img: null,
     src,
-    alt,
-    // `@domphy/core`'s `merge()` treats an empty string the same as
+    // `@domphy/core`'s `merge()` treats a literal empty string the same as
     // undefined/null and drops it — so `alt: ""` (the deliberate,
     // decorative-image pattern this component's callers default to) never
-    // actually reaches the DOM `alt` attribute, and axe-core's `image-alt`
-    // rule then sees a genuinely MISSING alt and fails it. `aria-hidden`
-    // isn't affected by that merge quirk (non-empty string), so it reliably
-    // marks the image as decorative/skip-in-AT regardless.
+    // actually reaches the DOM `alt` attribute, and htmlhint's `alt-require`
+    // rule then sees a genuinely MISSING attribute and fails it. Wrapping it
+    // in a function bypasses that string-equality check (merge() only special-
+    // cases the literal `""`, not a function that resolves to it) so the
+    // attribute — even when empty — always reaches the DOM.
+    alt: () => alt,
+    // `aria-hidden` isn't affected by that merge quirk (non-empty string), so
+    // it reliably marks the image as decorative/skip-in-AT regardless.
     ...(alt === "" ? { ariaHidden: "true" } : {}),
     $: [image()],
     style: {

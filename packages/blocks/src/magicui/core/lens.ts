@@ -92,7 +92,12 @@ function defaultLensContent(): DomphyElement<"img"> {
     img: null,
     src: `data:image/svg+xml,${encodeURIComponent(markup)}`,
     alt: "Placeholder photo",
-    style: { display: "block", width: "100%", height: "auto", maxWidth: themeSpacing(90) },
+    style: {
+      display: "block",
+      width: "100%",
+      height: "auto",
+      maxWidth: themeSpacing(90),
+    },
   } as DomphyElement<"img">;
 }
 
@@ -144,8 +149,17 @@ function lens(props: LensProps = {}): DomphyElement<"div"> {
       const scaleWrapper = zoomLayer?.parentElement ?? null;
       const overlay = scaleWrapper?.parentElement ?? null;
       const wrapper = overlay?.parentElement ?? null;
-      if (!zoomLayer || !scaleWrapper || !overlay || !wrapper || typeof window === "undefined") return;
-      const baseContent = wrapper.querySelector('[data-lens-content="true"]') as HTMLElement | null;
+      if (
+        !zoomLayer ||
+        !scaleWrapper ||
+        !overlay ||
+        !wrapper ||
+        typeof window === "undefined"
+      )
+        return;
+      const baseContent = wrapper.querySelector(
+        '[data-lens-content="true"]',
+      ) as HTMLElement | null;
       if (!baseContent) return;
 
       // Duplicate the already-rendered base content once for the magnified layer.
@@ -211,7 +225,8 @@ function lens(props: LensProps = {}): DomphyElement<"div"> {
         // snap back on leave. No fade — opacity/scale stay at their shown values.
         applyLensPosition(defaultPosition.x, defaultPosition.y);
         handleMove = positionFromEvent;
-        handleLeave = () => applyLensPosition(defaultPosition.x, defaultPosition.y);
+        handleLeave = () =>
+          applyLensPosition(defaultPosition.x, defaultPosition.y);
         wrapper.addEventListener("mousemove", handleMove);
         wrapper.addEventListener("mouseleave", handleLeave);
       } else {
@@ -296,7 +311,9 @@ function lens(props: LensProps = {}): DomphyElement<"div"> {
     tabindex: 0,
     onKeyDown: (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      (event.currentTarget as HTMLElement | null)?.dispatchEvent(new MouseEvent("mouseleave"));
+      (event.currentTarget as HTMLElement | null)?.dispatchEvent(
+        new MouseEvent("mouseleave"),
+      );
     },
     style: {
       position: "relative",

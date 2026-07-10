@@ -30,6 +30,8 @@ describe("chartAreaLinear", () => {
     const { host } = render(chartAreaLinear() as DomphyElement);
     expect(host.querySelector("h3")?.textContent).toBe("Area Chart - Linear");
     expect(host.querySelector("canvas")).toBeTruthy();
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 });

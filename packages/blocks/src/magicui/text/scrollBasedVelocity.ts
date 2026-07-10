@@ -108,19 +108,22 @@ function rowElement(
     // Copy count is reactive: it starts at a viewport-agnostic minimum and is
     // recomputed from measured container/content widths on mount and resize.
     div: (listener) =>
-      Array.from({ length: runtime.copies.get(listener) }, (_unused, copyIndex) => ({
-        div: [{ ...content }],
-        _key: `copy-${copyIndex}`,
-        // Only the first copy is real content — the rest exist purely to make
-        // the loop seamless and should not be announced twice.
-        ariaHidden: copyIndex === 0 ? undefined : "true",
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          flexShrink: 0,
-          whiteSpace: "nowrap",
-        },
-      })) as DomphyElement[],
+      Array.from(
+        { length: runtime.copies.get(listener) },
+        (_unused, copyIndex) => ({
+          div: [{ ...content }],
+          _key: `copy-${copyIndex}`,
+          // Only the first copy is real content — the rest exist purely to make
+          // the loop seamless and should not be announced twice.
+          ariaHidden: copyIndex === 0 ? undefined : "true",
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            flexShrink: 0,
+            whiteSpace: "nowrap",
+          },
+        }),
+      ) as DomphyElement[],
     dataSize: "increase-6",
     _key: "track",
     style: {
@@ -290,8 +293,7 @@ function scrollBasedVelocity(
         const currentScrollY = window.scrollY;
         const scrollDelta = currentScrollY - lastScrollY;
         lastScrollY = currentScrollY;
-        const rawVelocity =
-          deltaSeconds > 0 ? scrollDelta / deltaSeconds : 0;
+        const rawVelocity = deltaSeconds > 0 ? scrollDelta / deltaSeconds : 0;
         // Overdamped spring: tracks fresh scroll velocity, settles smoothly
         // back to zero once scrolling stops (semi-implicit Euler).
         const acceleration =

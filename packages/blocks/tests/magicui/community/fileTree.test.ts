@@ -53,7 +53,10 @@ describe("fileTree", () => {
     (folderRow as HTMLElement).click();
     await flush();
     expect(folderRow.getAttribute("aria-expanded")).toBe("true");
-    expect(onToggle).toHaveBeenCalledWith(expect.objectContaining({ id: "docs" }), true);
+    expect(onToggle).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "docs" }),
+      true,
+    );
   });
 
   it("renders an indicator guide-rail for each folder by default", () => {
@@ -65,7 +68,9 @@ describe("fileTree", () => {
 
   it("omits the indicator rail when indicator is false", () => {
     const { host } = render(fileTree({ indicator: false }) as DomphyElement);
-    expect(host.querySelectorAll('[data-slot="tree-indicator"]').length).toBe(0);
+    expect(host.querySelectorAll('[data-slot="tree-indicator"]').length).toBe(
+      0,
+    );
   });
 
   it("clicking a file row selects it and calls onSelect", async () => {
@@ -81,6 +86,8 @@ describe("fileTree", () => {
     (fileRow as HTMLElement).click();
     await flush();
     expect(fileRow.getAttribute("aria-selected")).toBe("true");
-    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "a.ts" }));
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "a.ts" }),
+    );
   });
 });

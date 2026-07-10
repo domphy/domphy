@@ -9,12 +9,12 @@
 import type { DomphyElement } from "@domphy/core";
 import { motion } from "@domphy/ui";
 import {
-  type PieDatum,
-  DONUT_SEPARATOR_STROKE_WIDTH,
-  PIE_OUTER_RADIUS,
   createPieTooltipState,
+  DONUT_SEPARATOR_STROKE_WIDTH,
   defaultValueFormatter,
   layoutPieSlices,
+  PIE_OUTER_RADIUS,
+  type PieDatum,
   pieCard,
   pieCardDescription,
   pieCardFooter,
@@ -60,7 +60,9 @@ export interface ChartPieDonutTextProps {
  * A donut chart whose hollow center shows the aggregate total plus a muted
  * caption. Call with no arguments for a fully working demo.
  */
-function chartPieDonutText(props: ChartPieDonutTextProps = {}): DomphyElement<"div"> {
+function chartPieDonutText(
+  props: ChartPieDonutTextProps = {},
+): DomphyElement<"div"> {
   const {
     data = DEFAULT_DONUT_TEXT_DATA,
     title = "Pie Chart - Donut with Text",
@@ -70,7 +72,8 @@ function chartPieDonutText(props: ChartPieDonutTextProps = {}): DomphyElement<"d
     caption = "Showing total visitors for the last 6 months",
     valueFormatter = defaultValueFormatter,
     innerRadius = DONUT_TEXT_INNER_RADIUS,
-    totalGetter = (records: PieDatum[]) => records.reduce((sum, record) => sum + record.value, 0),
+    totalGetter = (records: PieDatum[]) =>
+      records.reduce((sum, record) => sum + record.value, 0),
     centerCaption = "Visitors",
   } = props;
 

@@ -40,7 +40,10 @@ describe("iconCloud", () => {
       render(
         iconCloud({
           size: 240,
-          icons: [{ image: "https://example.com/icon.png", label: "Example" }, { glyphMarkup: "<svg/>" }],
+          icons: [
+            { image: "https://example.com/icon.png", label: "Example" },
+            { glyphMarkup: "<svg/>" },
+          ],
         }) as DomphyElement,
       ),
     ).not.toThrow();
@@ -117,7 +120,8 @@ describe("iconCloud click-to-focus wiring", () => {
     };
     canvasProto.getContext = () => fakeContext;
     // Keep the render loop from actually spinning under the test runner.
-    globalThis.requestAnimationFrame = (() => 1) as typeof requestAnimationFrame;
+    globalThis.requestAnimationFrame = (() =>
+      1) as typeof requestAnimationFrame;
     globalThis.cancelAnimationFrame = (() => {}) as typeof cancelAnimationFrame;
 
     try {
@@ -125,8 +129,16 @@ describe("iconCloud click-to-focus wiring", () => {
       const canvas = host.querySelector("canvas");
       expect(canvas).toBeTruthy();
 
-      const down = new MouseEvent("pointerdown", { clientX: 150, clientY: 150, bubbles: true });
-      const up = new MouseEvent("pointerup", { clientX: 150, clientY: 150, bubbles: true });
+      const down = new MouseEvent("pointerdown", {
+        clientX: 150,
+        clientY: 150,
+        bubbles: true,
+      });
+      const up = new MouseEvent("pointerup", {
+        clientX: 150,
+        clientY: 150,
+        bubbles: true,
+      });
       expect(() => {
         canvas?.dispatchEvent(down);
         window.dispatchEvent(up);

@@ -28,7 +28,9 @@ afterEach(() => {
 describe("chartLineDotsCustom", () => {
   it("renders a working demo tree with zero args: titled card, chart plot, custom-marker overlay, trend footer", () => {
     const { host } = render(chartLineDotsCustom() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Line Chart - Custom Dots");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Line Chart - Custom Dots",
+    );
     expect(host.querySelector("footer")).toBeTruthy();
     expect(host.querySelector("canvas")).toBeTruthy();
     expect(host.querySelectorAll("svg").length).toBeGreaterThanOrEqual(3);

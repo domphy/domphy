@@ -21,8 +21,12 @@ describe("Login04", () => {
   it("renders a working demo tree with zero args: two-column card frame, cover image, three OAuth buttons", () => {
     const { host } = render(Login04() as DomphyElement);
     expect(host.querySelector("form")).toBeTruthy();
-    expect(host.querySelector('input[name="email"][type="email"]')).toBeTruthy();
-    expect(host.querySelector('input[name="password"][type="password"]')).toBeTruthy();
+    expect(
+      host.querySelector('input[name="email"][type="email"]'),
+    ).toBeTruthy();
+    expect(
+      host.querySelector('input[name="password"][type="password"]'),
+    ).toBeTruthy();
     expect(host.querySelector("img")).toBeTruthy();
     // Submit + Apple + Google + Meta = 4 buttons.
     expect(host.querySelectorAll("button")).toHaveLength(4);
@@ -30,7 +34,9 @@ describe("Login04", () => {
 
   it("renders the legal disclaimer footer below the card", () => {
     const { host } = render(Login04() as DomphyElement);
-    const links = Array.from(host.querySelectorAll("a")).map((a) => a.textContent);
+    const links = Array.from(host.querySelectorAll("a")).map(
+      (a) => a.textContent,
+    );
     expect(links).toContain("Terms of Service");
     expect(links).toContain("Privacy Policy");
   });
@@ -42,10 +48,14 @@ describe("Login04", () => {
     );
     const form = host.querySelector("form") as HTMLFormElement;
     const email = host.querySelector('input[name="email"]') as HTMLInputElement;
-    const password = host.querySelector('input[name="password"]') as HTMLInputElement;
+    const password = host.querySelector(
+      'input[name="password"]',
+    ) as HTMLInputElement;
     email.value = "user@example.com";
     password.value = "secret";
-    form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    form.dispatchEvent(
+      new Event("submit", { cancelable: true, bubbles: true }),
+    );
     expect(values).toEqual([{ email: "user@example.com", password: "secret" }]);
   });
 

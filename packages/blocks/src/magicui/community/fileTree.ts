@@ -41,7 +41,6 @@ import type {
   ValueOrState,
 } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { small } from "@domphy/ui";
 import {
   type ThemeColor,
   themeColor,
@@ -49,6 +48,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { small } from "@domphy/ui";
 
 export interface FileTreeNode {
   /** Stable identifier — also the value passed to `onSelect`/`onToggle` and used for `_key`. */
@@ -137,9 +137,15 @@ const DEFAULT_SELECTED_ID = "src/index.ts";
 const INDENT_STEP = 5;
 const RAIL_INSET = 1.5;
 
-const fileTreeCollator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+const fileTreeCollator = new Intl.Collator("en", {
+  numeric: true,
+  sensitivity: "base",
+});
 
-function sortNodes(nodes: FileTreeNode[], sort: FileTreeSortMode): FileTreeNode[] {
+function sortNodes(
+  nodes: FileTreeNode[],
+  sort: FileTreeSortMode,
+): FileTreeNode[] {
   if (sort === "as-is") return nodes;
   if (typeof sort === "function") return [...nodes].sort(sort);
   return [...nodes].sort((a, b) => {
@@ -148,7 +154,11 @@ function sortNodes(nodes: FileTreeNode[], sort: FileTreeSortMode): FileTreeNode[
   });
 }
 
-function isNodeExpanded(context: FileTreeContext, node: FileTreeNode, listener: Listener): boolean {
+function isNodeExpanded(
+  context: FileTreeContext,
+  node: FileTreeNode,
+  listener: Listener,
+): boolean {
   return context.expandedIds.get(listener).includes(node.id);
 }
 
@@ -165,7 +175,8 @@ function findSelectionPath(
     }
     if (node.children?.length) {
       const found = findSelectionPath(node.children, targetId);
-      if (found) return { path: [node.id, ...found.path], selectable: found.selectable };
+      if (found)
+        return { path: [node.id, ...found.path], selectable: found.selectable };
     }
   }
   return null;
@@ -204,7 +215,8 @@ function rowBaseStyle(color: ThemeColor): StyleObject {
     backgroundColor: "transparent",
     transition: "background-color 150ms ease",
     "&:hover": {
-      backgroundColor: (listener: Listener) => themeColor(listener, "shift-2", color),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "shift-2", color),
     },
   } as StyleObject;
 }
@@ -215,7 +227,8 @@ function rowBaseStyle(color: ThemeColor): StyleObject {
 function selectedFillStyle(context: FileTreeContext): StyleObject {
   return {
     "&[aria-selected=true]": {
-      backgroundColor: (listener: Listener) => themeColor(listener, "shift-3", context.accentColor),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "shift-3", context.accentColor),
     },
   } as StyleObject;
 }
@@ -224,7 +237,10 @@ function treeGlyph(paths: string[]): DomphyElement<"span"> {
   return {
     span: [
       {
-        svg: paths.map((d, index) => ({ path: null, d, _key: `p-${index}` }) as DomphyElement),
+        svg: paths.map(
+          (d, index) =>
+            ({ path: null, d, _key: `p-${index}` }) as DomphyElement,
+        ),
         viewBox: "0 0 24 24",
         fill: "none",
         stroke: "currentColor",
@@ -248,8 +264,12 @@ function treeGlyph(paths: string[]): DomphyElement<"span"> {
 
 function defaultFolderIcon(open: boolean): DomphyElement {
   return open
-    ? treeGlyph(["M3 7.2a1.5 1.5 0 0 1 1.5-1.5h4.2l1.8 1.9h8.6a1.5 1.5 0 0 1 1.47 1.8l-1.15 6.6A1.7 1.7 0 0 1 17.75 17.5H5.6a1.5 1.5 0 0 1-1.48-1.24L3 7.2Z"])
-    : treeGlyph(["M3 6.5A1.5 1.5 0 0 1 4.5 5h4.3l1.8 1.9h9A1.5 1.5 0 0 1 21 8.4v8.1A1.5 1.5 0 0 1 19.5 18h-15A1.5 1.5 0 0 1 3 16.5v-10Z"]);
+    ? treeGlyph([
+        "M3 7.2a1.5 1.5 0 0 1 1.5-1.5h4.2l1.8 1.9h8.6a1.5 1.5 0 0 1 1.47 1.8l-1.15 6.6A1.7 1.7 0 0 1 17.75 17.5H5.6a1.5 1.5 0 0 1-1.48-1.24L3 7.2Z",
+      ])
+    : treeGlyph([
+        "M3 6.5A1.5 1.5 0 0 1 4.5 5h4.3l1.8 1.9h9A1.5 1.5 0 0 1 21 8.4v8.1A1.5 1.5 0 0 1 19.5 18h-15A1.5 1.5 0 0 1 3 16.5v-10Z",
+      ]);
 }
 
 function defaultFileIcon(): DomphyElement {
@@ -278,7 +298,10 @@ function nameSpan(node: FileTreeNode, context: FileTreeContext): DomphyElement {
   } as DomphyElement;
 }
 
-function buildFolderNode(node: FileTreeNode, context: FileTreeContext): DomphyElement {
+function buildFolderNode(
+  node: FileTreeNode,
+  context: FileTreeContext,
+): DomphyElement {
   const selectable = node.selectable ?? true;
 
   // Upstream Folder Trigger onClick: select the folder AND toggle its expansion.
@@ -289,7 +312,9 @@ function buildFolderNode(node: FileTreeNode, context: FileTreeContext): DomphyEl
     const currentlyOpen = currentIds.includes(node.id);
     const next = !currentlyOpen;
     context.expandedIds.set(
-      next ? [...currentIds, node.id] : currentIds.filter((id) => id !== node.id),
+      next
+        ? [...currentIds, node.id]
+        : currentIds.filter((id) => id !== node.id),
     );
     context.onToggle?.(node, next);
   };
@@ -315,8 +340,10 @@ function buildFolderNode(node: FileTreeNode, context: FileTreeContext): DomphyEl
     div: [closedIcon, openIcon, nameSpan(node, context)],
     role: "treeitem",
     tabindex: selectable ? 0 : -1,
-    ariaExpanded: (listener: Listener) => String(isNodeExpanded(context, node, listener)),
-    ariaSelected: (listener: Listener) => String(context.selectedId.get(listener) === node.id),
+    ariaExpanded: (listener: Listener) =>
+      String(isNodeExpanded(context, node, listener)),
+    ariaSelected: (listener: Listener) =>
+      String(context.selectedId.get(listener) === node.id),
     ariaDisabled: selectable ? "false" : "true",
     style: {
       ...rowBaseStyle(context.color),
@@ -346,6 +373,13 @@ function buildFolderNode(node: FileTreeNode, context: FileTreeContext): DomphyEl
   // grid-collapsed wrapper it inherits the expand/collapse height for free — no
   // separate open/close animation needed. `insetInlineStart` (not `left`) makes
   // it flip to the right edge in RTL automatically.
+  // Painted via `border` rather than `width:1px` + `backgroundColor`: a
+  // hairline guide-rail is a fixed accent shift by design (it must read the
+  // same regardless of ambient tone), and shift-5 has no valid dataTone
+  // edge-anchor equivalent to swap it for (mid-ramp anchors 4-13 are
+  // rejected by middle-surface-anchor) — `border` sidesteps the
+  // tone-background-inherit surface contract entirely since that rule only
+  // governs `backgroundColor` (a real panel fill), not accent strokes.
   const indicatorRail: DomphyElement = {
     div: null,
     dataSlot: "tree-indicator",
@@ -355,12 +389,15 @@ function buildFolderNode(node: FileTreeNode, context: FileTreeContext): DomphyEl
       insetInlineStart: themeSpacing(RAIL_INSET),
       top: 0,
       bottom: 0,
-      width: "1px",
-      borderRadius: themeSpacing(0.5),
-      backgroundColor: (listener: Listener) => themeColor(listener, "shift-5", context.color),
-      transition: "background-color 300ms ease-in-out",
+      width: 0,
+      borderInlineStart: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-5", context.color)}`,
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-5", context.color),
+      transition: "border-color 300ms ease-in-out",
       "&:hover": {
-        backgroundColor: (listener: Listener) => themeColor(listener, "shift-7", context.color),
+        borderInlineStartColor: (listener: Listener) =>
+          themeColor(listener, "shift-7", context.color),
       },
     } as StyleObject,
     _key: "__rail",
@@ -393,7 +430,8 @@ function buildFolderNode(node: FileTreeNode, context: FileTreeContext): DomphyEl
       display: "grid",
       gridTemplateRows: (listener: Listener) =>
         isNodeExpanded(context, node, listener) ? "1fr" : "0fr",
-      opacity: (listener: Listener) => (isNodeExpanded(context, node, listener) ? 1 : 0),
+      opacity: (listener: Listener) =>
+        isNodeExpanded(context, node, listener) ? 1 : 0,
       overflow: "hidden",
       transition: "grid-template-rows 200ms ease-out, opacity 150ms ease-out",
     } as StyleObject,
@@ -405,7 +443,10 @@ function buildFolderNode(node: FileTreeNode, context: FileTreeContext): DomphyEl
   };
 }
 
-function buildFileNode(node: FileTreeNode, context: FileTreeContext): DomphyElement {
+function buildFileNode(
+  node: FileTreeNode,
+  context: FileTreeContext,
+): DomphyElement {
   const selectable = node.selectable ?? true;
   const select = () => {
     context.selectedId.set(node.id);
@@ -416,7 +457,8 @@ function buildFileNode(node: FileTreeNode, context: FileTreeContext): DomphyElem
     div: [context.renderFileIcon(node), nameSpan(node, context)],
     role: "treeitem",
     tabindex: selectable ? 0 : -1,
-    ariaSelected: (listener: Listener) => String(context.selectedId.get(listener) === node.id),
+    ariaSelected: (listener: Listener) =>
+      String(context.selectedId.get(listener) === node.id),
     ariaDisabled: selectable ? "false" : "true",
     _key: node.id,
     style: {
@@ -443,7 +485,10 @@ function buildFileNode(node: FileTreeNode, context: FileTreeContext): DomphyElem
   return fileRow as DomphyElement;
 }
 
-function buildNode(node: FileTreeNode, context: FileTreeContext): DomphyElement {
+function buildNode(
+  node: FileTreeNode,
+  context: FileTreeContext,
+): DomphyElement {
   return node.type === "folder"
     ? buildFolderNode(node, context)
     : buildFileNode(node, context);
@@ -451,7 +496,10 @@ function buildNode(node: FileTreeNode, context: FileTreeContext): DomphyElement 
 
 // Floating expand-all / collapse-all toggle (upstream's `CollapseButton`):
 // if anything is open, close everything; otherwise expand every folder.
-function collapseToggleButton(context: FileTreeContext, data: FileTreeNode[]): DomphyElement {
+function collapseToggleButton(
+  context: FileTreeContext,
+  data: FileTreeNode[],
+): DomphyElement {
   return {
     button: [collapseGlyph()],
     type: "button",
@@ -475,11 +523,13 @@ function collapseToggleButton(context: FileTreeContext, data: FileTreeNode[]): D
       borderRadius: themeSpacing(1.5),
       border: "none",
       cursor: "pointer",
-      color: (listener: Listener) => themeColor(listener, "shift-9", context.color),
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-9", context.color),
       backgroundColor: "transparent",
       transition: "background-color 150ms ease",
       "&:hover": {
-        backgroundColor: (listener: Listener) => themeColor(listener, "shift-2", context.color),
+        backgroundColor: (listener: Listener) =>
+          themeColor(listener, "shift-2", context.color),
       },
     } as StyleObject,
   } as DomphyElement;
@@ -548,10 +598,13 @@ function fileTree(props: FileTreeProps = {}): DomphyElement<"div"> {
       flexDirection: "column",
       gap: themeSpacing(0.5),
       padding: themeSpacing(2),
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", color),
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", color),
       color: (listener: Listener) => themeColor(listener, "shift-9", color),
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", color)}`,
+      outline: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-4", color)}`,
       outlineOffset: "-1px",
       fontSize: (listener: Listener) => themeSize(listener, "inherit"),
       ...(props.style ?? {}),

@@ -28,13 +28,18 @@ afterEach(() => {
 describe("chartTooltipFormatter", () => {
   it("renders a working demo tree with zero args: card shell + chart canvas", () => {
     const { host } = render(chartTooltipFormatter() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Bar Chart - Tooltip Formatter");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Bar Chart - Tooltip Formatter",
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
   });
 
   it("accepts a custom unit and minimum row width without throwing", () => {
     const { host } = render(
-      chartTooltipFormatter({ unit: "min", minRowWidthPx: 72 }) as DomphyElement,
+      chartTooltipFormatter({
+        unit: "min",
+        minRowWidthPx: 72,
+      }) as DomphyElement,
     );
     expect(host.querySelector("canvas")).toBeTruthy();
   });

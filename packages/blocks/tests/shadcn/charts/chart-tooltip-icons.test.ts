@@ -28,7 +28,9 @@ afterEach(() => {
 describe("chartTooltipIcons", () => {
   it("renders a working demo tree with zero args: card shell + chart canvas", () => {
     const { host } = render(chartTooltipIcons() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Bar Chart - Tooltip Icons");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Bar Chart - Tooltip Icons",
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
   });
 

@@ -26,7 +26,9 @@ describe("auroraText", () => {
     const spans = wrapper.querySelectorAll(":scope > span");
     expect(spans).toHaveLength(2);
     expect(wrapper.textContent).toContain("Aurora Text");
-    const decorativeCopy = wrapper.querySelector('[aria-hidden="true"]') as HTMLElement;
+    const decorativeCopy = wrapper.querySelector(
+      '[aria-hidden="true"]',
+    ) as HTMLElement;
     expect(decorativeCopy).toBeTruthy();
     expect(decorativeCopy.textContent).toBe("Aurora Text");
   });
@@ -34,7 +36,12 @@ describe("auroraText", () => {
   it("accepts custom text, colors, speed, and wrapping tag without throwing", () => {
     expect(() =>
       render(
-        auroraText({ children: "Ship it", colors: ["success", "info"], speed: 2, as: "h2" }) as DomphyElement,
+        auroraText({
+          children: "Ship it",
+          colors: ["success", "info"],
+          speed: 2,
+          as: "h2",
+        }) as DomphyElement,
       ),
     ).not.toThrow();
   });

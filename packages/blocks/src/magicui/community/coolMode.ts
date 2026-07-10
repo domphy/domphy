@@ -27,8 +27,8 @@
 // theme-token-driven instead of a raw color literal.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { button } from "@domphy/ui";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
+import { button } from "@domphy/ui";
 
 export type CoolModeParticleAppearance =
   | { kind: "circle" }
@@ -86,7 +86,7 @@ const COLOR_FAMILIES: ThemeColor[] = [
 
 let sharedOverlayElement: HTMLDivElement | null = null;
 let sharedMountedInstanceCount = 0;
-let sharedParticles: CoolModeParticleInstance[] = [];
+const sharedParticles: CoolModeParticleInstance[] = [];
 let sharedAnimationFrame: number | null = null;
 let sharedColorFamilyCursor = 0;
 
@@ -118,7 +118,10 @@ function ensureSharedLoop(): void {
   if (sharedAnimationFrame !== null) return;
   const tick = () => {
     sharedAnimationFrame = null;
-    const viewportBottom = Math.max(window.innerHeight, document.body.clientHeight);
+    const viewportBottom = Math.max(
+      window.innerHeight,
+      document.body.clientHeight,
+    );
     for (let index = sharedParticles.length - 1; index >= 0; index -= 1) {
       const particle = sharedParticles[index];
       particle.left -= particle.speedHorz * particle.direction;
@@ -145,7 +148,8 @@ function ensureSharedLoop(): void {
 
 function nextParticleColorToken(node: ElementNode): string {
   try {
-    const family = COLOR_FAMILIES[sharedColorFamilyCursor % COLOR_FAMILIES.length];
+    const family =
+      COLOR_FAMILIES[sharedColorFamilyCursor % COLOR_FAMILIES.length];
     sharedColorFamilyCursor += 1;
     return themeColorToken(node, "shift-9", family);
   } catch {
@@ -168,9 +172,12 @@ function spawnParticle(
   const sizePool = sizes.length > 0 ? sizes : DEFAULT_SIZES;
   // Upstream: `options?.size || sizes[...]` — a fixed `size` forces every
   // particle to one px size, overriding the random pool.
-  const size = fixedSize || (sizePool[Math.floor(Math.random() * sizePool.length)] ?? 24);
+  const size =
+    fixedSize || (sizePool[Math.floor(Math.random() * sizePool.length)] ?? 24);
 
-  const element = document.createElement(appearance.kind === "image" ? "img" : "div");
+  const element = document.createElement(
+    appearance.kind === "image" ? "img" : "div",
+  );
   element.style.position = "absolute";
   element.style.left = "0";
   element.style.top = "0";
@@ -239,8 +246,10 @@ function defaultDemoTrigger(): DomphyElement<"button"> {
  * bottom of the viewport. Call with no arguments for a working demo button.
  */
 function coolMode(props: CoolModeProps = {}): DomphyElement<"span"> {
-  const appearance = props.particle ?? ({ kind: "circle" } as CoolModeParticleAppearance);
-  const sizes = props.sizes && props.sizes.length > 0 ? props.sizes : DEFAULT_SIZES;
+  const appearance =
+    props.particle ?? ({ kind: "circle" } as CoolModeParticleAppearance);
+  const sizes =
+    props.sizes && props.sizes.length > 0 ? props.sizes : DEFAULT_SIZES;
   const children: DomphyElement[] = props.children
     ? Array.isArray(props.children)
       ? props.children
@@ -268,7 +277,16 @@ function coolMode(props: CoolModeProps = {}): DomphyElement<"span"> {
           stopEmitting();
           return;
         }
-        spawnParticle(node, lastPointerX, lastPointerY, appearance, sizes, props.size, props.driftSpeed, props.launchSpeed);
+        spawnParticle(
+          node,
+          lastPointerX,
+          lastPointerY,
+          appearance,
+          sizes,
+          props.size,
+          props.driftSpeed,
+          props.launchSpeed,
+        );
       };
 
       const trackPointer = (event: PointerEvent) => {

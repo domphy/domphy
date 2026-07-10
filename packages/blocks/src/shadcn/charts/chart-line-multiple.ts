@@ -8,18 +8,18 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
+import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
-import type { ChartOption, TooltipParams } from "@domphy/chart";
 import {
-  DEFAULT_LINE_GRID,
-  MONTHLY_VISITOR_DATA,
-  type MonthlyPoint,
   chartCard,
   chartPlot,
   computeYDomain,
+  DEFAULT_LINE_GRID,
   hiddenLabelYAxis,
   lineSwatchLabelValueTooltipFormatter,
+  MONTHLY_VISITOR_DATA,
+  type MonthlyPoint,
   monthCategoryXAxis,
   trendFooter,
 } from "./chart-line-shared.js";
@@ -39,12 +39,18 @@ function escapeHtml(text: string): string {
  * `hideLabel`), so the month name shows above a row for every line (Desktop
  * AND Mobile), not just the first. The engine passes the full per-series
  * params[] for an axis trigger; each row reuses the shared single-row markup. */
-function chartLineMultipleTooltipFormatter(params: TooltipParams | TooltipParams[]): string {
+function chartLineMultipleTooltipFormatter(
+  params: TooltipParams | TooltipParams[],
+): string {
   const list = Array.isArray(params) ? params : [params];
   if (list.length === 0) return "";
   const name = list[0]?.name;
-  const header = name ? `<div style="font-weight:600;margin-bottom:4px;">${escapeHtml(String(name))}</div>` : "";
-  const rows = list.map((point) => lineSwatchLabelValueTooltipFormatter(point)).join("<br>");
+  const header = name
+    ? `<div style="font-weight:600;margin-bottom:4px;">${escapeHtml(String(name))}</div>`
+    : "";
+  const rows = list
+    .map((point) => lineSwatchLabelValueTooltipFormatter(point))
+    .join("<br>");
   return `${header}${rows}`;
 }
 
@@ -67,7 +73,9 @@ export interface ChartLineMultipleProps {
  * six-month category axis, with a richer per-series hover tooltip. Call with
  * no arguments for a fully working demo.
  */
-function chartLineMultiple(props: ChartLineMultipleProps = {}): DomphyElement<"div"> {
+function chartLineMultiple(
+  props: ChartLineMultipleProps = {},
+): DomphyElement<"div"> {
   const {
     title = "Line Chart - Multiple",
     description = "January - June 2026",

@@ -43,7 +43,9 @@ describe("chartPieInteractive", () => {
   it("calls onSelectionChange with the newly picked category key", () => {
     let lastSelection = "";
     const { host } = render(
-      chartPieInteractive({ onSelectionChange: (key) => (lastSelection = key) }),
+      chartPieInteractive({
+        onSelectionChange: (key) => (lastSelection = key),
+      }),
     );
     const select = host.querySelector("select") as HTMLSelectElement;
 

@@ -28,12 +28,16 @@ afterEach(() => {
 describe("chartTooltipLabelNone", () => {
   it("renders a working demo tree with zero args: card shell + chart canvas", () => {
     const { host } = render(chartTooltipLabelNone() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Bar Chart - Tooltip Label None");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Bar Chart - Tooltip Label None",
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
   });
 
   it("accepts custom data without throwing", () => {
-    const { host } = render(chartTooltipLabelNone({ showCursor: true }) as DomphyElement);
+    const { host } = render(
+      chartTooltipLabelNone({ showCursor: true }) as DomphyElement,
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
   });
 });

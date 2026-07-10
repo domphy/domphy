@@ -8,11 +8,14 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption, TooltipParams } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_NEGATIVE_DATA,
+  type ChartBarGrid,
+  type ChartBarPoint,
+  type ChartTrendDirection,
   chartBarCardShell,
   chartBarColorHex,
   chartBarFrame,
@@ -20,9 +23,6 @@ import {
   chartBarSignedLabelOverlay,
   chartBarTooltipRow,
   chartBarTrendFooter,
-  type ChartBarGrid,
-  type ChartBarPoint,
-  type ChartTrendDirection,
 } from "./chart-bar-shared.js";
 
 export interface ChartBarNegativeProps {
@@ -44,7 +44,9 @@ const GRID: ChartBarGrid = { left: 8, right: 8, top: 28, bottom: 28 };
  * shadcn/ui "chart-bar" negative recipe — bars diverge above/below a zero
  * baseline, colored by sign. Call with no arguments for a working demo.
  */
-function chartBarNegative(props: ChartBarNegativeProps = {}): DomphyElement<"div"> {
+function chartBarNegative(
+  props: ChartBarNegativeProps = {},
+): DomphyElement<"div"> {
   const {
     data = CHART_BAR_NEGATIVE_DATA,
     seriesLabel = "Visitors",
@@ -115,23 +117,39 @@ function chartBarNegative(props: ChartBarNegativeProps = {}): DomphyElement<"div
       div: [
         chartBarFrame(option, {
           height,
-          overlays: [chartBarSignedLabelOverlay({ categories, values, valueDomain, grid: GRID })],
+          overlays: [
+            chartBarSignedLabelOverlay({
+              categories,
+              values,
+              valueDomain,
+              grid: GRID,
+            }),
+          ],
         }),
       ],
     },
-    footer: chartBarTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartBarTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 
 function escapeTooltipHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function chartBarNegativeTooltipFormatter(
   seriesLabel: string,
 ): (parametersInput: TooltipParams | TooltipParams[]) => string {
   return (parametersInput) => {
-    const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
+    const parameters = Array.isArray(parametersInput)
+      ? parametersInput
+      : [parametersInput];
     if (parameters.length === 0) return "";
     const value = escapeTooltipHtml(String(parameters[0].value ?? ""));
     // Upstream negative chart: <ChartTooltipContent hideLabel hideIndicator />

@@ -6,10 +6,15 @@
 // viewport edges — the inset gap shrinks in step with the sidebar's own
 // collapse transition.
 
-import type { DomphyElement, ElementNode, Listener, ReadableState } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  ReadableState,
+} from "@domphy/core";
 import { toState } from "@domphy/core";
-import { small, strong, tooltip } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import { small, strong, tooltip } from "@domphy/ui";
 import {
   ICON_BAR_CHART,
   ICON_GRID,
@@ -22,15 +27,15 @@ import {
   renderProjectRow,
   renderProjectsMoreRow,
   renderUserFooter,
-  sidebarBackdrop,
-  sidebarIcon,
-  sidebarMainContent,
-  sidebarStickyHeader,
   type SidebarBreadcrumbItem,
   type SidebarNavMainItem,
   type SidebarProject,
   type SidebarTeam,
   type SidebarUser,
+  sidebarBackdrop,
+  sidebarIcon,
+  sidebarMainContent,
+  sidebarStickyHeader,
 } from "./sidebar05-08-shared.js";
 
 /** shadcn's real sidebar-08 has no team-switcher dropdown (that's sidebar07's
@@ -55,7 +60,11 @@ const ICON_MAP =
 
 /** A quiet utility link (support/feedback) — no active-state styling, always
  * visible (collapses to just its icon like the other rows). */
-type Sidebar08SecondaryNavItem = { title: string; href?: string; icon?: string };
+type Sidebar08SecondaryNavItem = {
+  title: string;
+  href?: string;
+  icon?: string;
+};
 
 /** Static brand link at the top of the aside: icon badge + two-line label, no
  * dropdown/chevron/popover. Upstream's sidebar-08 app-sidebar.tsx renders a
@@ -78,14 +87,21 @@ function renderBrandHeader(team: SidebarTeam): DomphyElement<"div"> {
               height: themeSpacing(8),
               flexShrink: "0",
               borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-              backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "inherit", "primary"),
               color: (l: Listener) => themeColor(l, "shift-10", "primary"),
             },
           } as unknown as DomphyElement,
           {
             div: [
-              { strong: team.name, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
-              { small: team.plan, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+              {
+                strong: team.name,
+                $: [strong({ color: "neutral" })],
+              } as unknown as DomphyElement,
+              {
+                small: team.plan,
+                $: [small({ color: "neutral" })],
+              } as unknown as DomphyElement,
             ],
             style: {
               display: "flex",
@@ -109,7 +125,10 @@ function renderBrandHeader(team: SidebarTeam): DomphyElement<"div"> {
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
       } as unknown as DomphyElement,
     ],
@@ -141,11 +160,7 @@ const DEFAULT_NAV_MAIN: SidebarNavMainItem[] = [
     title: "Playground",
     icon: ICON_GRID,
     active: true,
-    items: [
-      { title: "History" },
-      { title: "Starred" },
-      { title: "Settings" },
-    ],
+    items: [{ title: "History" }, { title: "Starred" }, { title: "Settings" }],
   },
   {
     title: "Models",
@@ -212,7 +227,9 @@ function renderSecondaryNavRow(
     whiteSpace: "nowrap",
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+    "&:hover": {
+      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+    },
   };
 
   return {
@@ -227,7 +244,10 @@ function renderSecondaryNavRow(
           } as unknown as DomphyElement,
         ],
         href: item.href ?? "#",
-        style: { ...rowStyle, display: (l: Listener) => (collapsed.get(l) ? "none" : "flex") },
+        style: {
+          ...rowStyle,
+          display: (l: Listener) => (collapsed.get(l) ? "none" : "flex"),
+        },
       } as unknown as DomphyElement,
       {
         a: [item.icon ? sidebarIcon(item.icon) : { span: item.title[0] }],
@@ -300,14 +320,17 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
               {
                 small: "Projects",
                 style: {
-                  display: (l: Listener) => (collapsed.get(l) ? "none" : "block"),
+                  display: (l: Listener) =>
+                    collapsed.get(l) ? "none" : "block",
                   paddingInline: themeSpacing(3),
                 },
                 $: [small({ color: "neutral" })],
               } as unknown as DomphyElement,
               {
                 ul: [
-                  ...projects.map((project) => renderProjectRow(project, collapsed)),
+                  ...projects.map((project) =>
+                    renderProjectRow(project, collapsed),
+                  ),
                   renderProjectsMoreRow(),
                 ],
                 style: {
@@ -369,20 +392,26 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
     ],
     _onMount: (node: ElementNode) => {
       const onKeyDown = (event: KeyboardEvent) => {
-        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
+        if (
+          (event.metaKey || event.ctrlKey) &&
+          event.key.toLowerCase() === "b"
+        ) {
           event.preventDefault();
           collapsed.set(!collapsed.get());
         }
       };
       window.addEventListener("keydown", onKeyDown);
-      node.addHook("Remove", () => window.removeEventListener("keydown", onKeyDown));
+      node.addHook("Remove", () =>
+        window.removeEventListener("keydown", onKeyDown),
+      );
     },
     style: {
       position: "relative",
       display: "flex",
       flexDirection: "column",
       flexShrink: "0",
-      width: (l: Listener) => (collapsed.get(l) ? themeSpacing(12) : themeSpacing(64)),
+      width: (l: Listener) =>
+        collapsed.get(l) ? themeSpacing(12) : themeSpacing(64),
       overflow: "hidden",
       transition: "width 0.2s linear",
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
@@ -393,9 +422,11 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
         insetInlineStart: "0",
         zIndex: "15",
         width: themeSpacing(72),
-        transform: (l: Listener) => (sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)"),
+        transform: (l: Listener) =>
+          sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
         transition: "transform 0.2s ease",
-        boxShadow: (l: Listener) => `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-4", "neutral")}`,
+        boxShadow: (l: Listener) =>
+          `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-4", "neutral")}`,
       },
     },
   } as unknown as DomphyElement<"aside">;
@@ -415,7 +446,8 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
     },
     breadcrumbItems,
   });
-  delete (stickyHeader as unknown as { style: Record<string, unknown> }).style.borderBottom;
+  delete (stickyHeader as unknown as { style: Record<string, unknown> }).style
+    .borderBottom;
 
   const mainElement: DomphyElement<"main"> = {
     main: [stickyHeader, sidebarMainContent(children)],
@@ -427,9 +459,11 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
       minWidth: "0",
       minHeight: "0",
       overflow: "hidden",
-      margin: (l: Listener) => (collapsed.get(l) ? themeSpacing(2) : themeSpacing(3)),
+      margin: (l: Listener) =>
+        collapsed.get(l) ? themeSpacing(2) : themeSpacing(3),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-      boxShadow: (l: Listener) => `0 ${themeSpacing(1)} ${themeSpacing(6)} ${themeColor(l, "shift-4", "neutral")}`,
+      boxShadow: (l: Listener) =>
+        `0 ${themeSpacing(1)} ${themeSpacing(6)} ${themeColor(l, "shift-4", "neutral")}`,
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       transition: "margin 0.2s linear",
@@ -437,7 +471,11 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
   } as unknown as DomphyElement<"main">;
 
   return {
-    div: [asideElement, mainElement, sidebarBackdrop(sidebarOpen, () => sidebarOpen.set(false))],
+    div: [
+      asideElement,
+      mainElement,
+      sidebarBackdrop(sidebarOpen, () => sidebarOpen.set(false)),
+    ],
     dataTone: "shift-2",
     style: {
       display: "flex",

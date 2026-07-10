@@ -13,13 +13,13 @@ import type { DomphyElement } from "@domphy/core";
 import {
   ACTIVITY_SERIES_CONFIG,
   ACTIVITY_TOOLTIP_DATA,
+  type ActivityDayPoint,
+  type ActivitySeriesEntry,
   activityBarOption,
   activityTooltipCard,
   activityTooltipFormatter,
   activityTooltipPlot,
   formatWeekdayShort,
-  type ActivityDayPoint,
-  type ActivitySeriesEntry,
 } from "./chart-tooltip-shared.js";
 
 export interface ChartTooltipIndicatorNoneProps {
@@ -35,7 +35,9 @@ export interface ChartTooltipIndicatorNoneProps {
  * shadcn/ui "charts/tooltip" indicator-none recipe — no leading swatch, just
  * series name + value. Call with no arguments for a working demo.
  */
-function chartTooltipIndicatorNone(props: ChartTooltipIndicatorNoneProps = {}): DomphyElement<"div"> {
+function chartTooltipIndicatorNone(
+  props: ChartTooltipIndicatorNoneProps = {},
+): DomphyElement<"div"> {
   const {
     data = ACTIVITY_TOOLTIP_DATA,
     series = ACTIVITY_SERIES_CONFIG,
@@ -56,7 +58,13 @@ function chartTooltipIndicatorNone(props: ChartTooltipIndicatorNoneProps = {}): 
     // Value cell (mono/medium/tabular + toLocaleString) comes from the shared
     // default plainValueRenderer, which matches upstream ChartTooltipContent.
   });
-  const option = activityBarOption({ data, categories, series, showCursor, formatter });
+  const option = activityBarOption({
+    data,
+    categories,
+    series,
+    showCursor,
+    formatter,
+  });
 
   return activityTooltipCard({
     title,

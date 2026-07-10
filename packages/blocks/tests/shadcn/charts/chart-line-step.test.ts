@@ -34,7 +34,9 @@ describe("chartLineStep", () => {
   });
 
   it("accepts a custom stepMode prop", () => {
-    const { host } = render(chartLineStep({ stepMode: "end" }) as DomphyElement);
+    const { host } = render(
+      chartLineStep({ stepMode: "end" }) as DomphyElement,
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
   });
 });

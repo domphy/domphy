@@ -10,16 +10,16 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
+import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
-import type { ChartOption, TooltipParams } from "@domphy/chart";
 import {
   BROWSER_CATEGORY_DATA,
   type CategoryPoint,
-  HIDDEN_AXIS_LINE_GRID,
   chartCard,
   chartPlot,
   computeYDomain,
+  HIDDEN_AXIS_LINE_GRID,
   hiddenLabelYAxis,
   hiddenXAxis,
   hoverDotOverlay,
@@ -57,7 +57,9 @@ export interface ChartLineLabelCustomProps {
  * with an always-on display-name label above each point. Call with no
  * arguments for a fully working demo.
  */
-function chartLineLabelCustom(props: ChartLineLabelCustomProps = {}): DomphyElement<"div"> {
+function chartLineLabelCustom(
+  props: ChartLineLabelCustomProps = {},
+): DomphyElement<"div"> {
   const {
     title = "Line Chart - Custom Label",
     description = "Browser share for the last 6 months",
@@ -79,7 +81,9 @@ function chartLineLabelCustom(props: ChartLineLabelCustomProps = {}): DomphyElem
   // beside the value (chart.tsx L251-253). The engine's TooltipParams.color is
   // the uniform series color, so resolve the point's own color by dataIndex
   // here (matching renderMarker below), and keep the series name in the line.
-  function perPointSwatchTooltipFormatter(params: TooltipParams | TooltipParams[]): string {
+  function perPointSwatchTooltipFormatter(
+    params: TooltipParams | TooltipParams[],
+  ): string {
     const point = Array.isArray(params) ? params[0] : params;
     if (!point) return "";
     const pointColor = data[point.dataIndex]?.color ?? seriesColor;
@@ -131,7 +135,10 @@ function chartLineLabelCustom(props: ChartLineLabelCustomProps = {}): DomphyElem
           yDomain,
           grid: HIDDEN_AXIS_LINE_GRID,
           renderMarker({ cx, cy, group }) {
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle") as SVGCircleElement;
+            const circle = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "circle",
+            ) as SVGCircleElement;
             circle.setAttribute("cx", String(cx));
             circle.setAttribute("cy", String(cy));
             circle.setAttribute("r", String(REST_DOT_RADIUS));

@@ -30,11 +30,15 @@ describe("chartBarActive", () => {
     const { host } = render(chartBarActive() as DomphyElement);
     expect(host.querySelector("h3")?.textContent).toBe("Bar Chart - Active");
     expect(host.querySelector("canvas")).toBeTruthy();
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("clamps an out-of-range activeIndex without throwing", () => {
-    const { host } = render(chartBarActive({ activeIndex: 99 }) as DomphyElement);
+    const { host } = render(
+      chartBarActive({ activeIndex: 99 }) as DomphyElement,
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
   });
 });

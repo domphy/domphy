@@ -110,8 +110,7 @@ function inputPassword(
       outline: (l) =>
         `1px solid ${themeColor(l, "shift-4", colorState.get(l))}`,
       color: (l) => themeColor(l, "shift-9", colorState.get(l)),
-      backgroundColor: (l) =>
-        themeColor(l, "inherit", colorState.get(l)),
+      backgroundColor: (l) => themeColor(l, "inherit", colorState.get(l)),
       fontSize: (l) => themeSize(l, "inherit"),
       "&:focus-within": {
         outline: (l) =>

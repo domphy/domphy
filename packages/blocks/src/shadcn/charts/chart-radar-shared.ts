@@ -30,9 +30,15 @@
 // Radar (single svg path/polygon with fill+stroke)").
 
 import type { DomphyElement, Listener } from "@domphy/core";
-import { State, toState } from "@domphy/core";
-import { themeColor, themeDensity, themeSpacing, type ThemeColor } from "@domphy/theme";
+import { type State, toState } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSpacing,
+} from "@domphy/theme";
 import { card, heading, motion, paragraph, small } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 import { type ChartLegendEntry, chartLegendRow } from "./chart-area-shared.js";
 
 // ─── Data shapes ────────────────────────────────────────────────────────────
@@ -99,8 +105,20 @@ export const RADAR_SINGLE_SERIES: RadarSeriesConfig[] = [
 // path render — neither sets one), so the mobile polygon paints at the SVG
 // default of 1.0, fully opaque on top of the translucent desktop layer.
 export const RADAR_MULTI_SERIES: RadarSeriesConfig[] = [
-  { key: "desktop", label: "Desktop", color: "primary", fillOpacity: 0.6, icon: "down" },
-  { key: "mobile", label: "Mobile", color: "secondary", fillOpacity: 1, icon: "up" },
+  {
+    key: "desktop",
+    label: "Desktop",
+    color: "primary",
+    fillOpacity: 0.6,
+    icon: "down",
+  },
+  {
+    key: "mobile",
+    label: "Mobile",
+    color: "secondary",
+    fillOpacity: 1,
+    icon: "up",
+  },
 ];
 
 // ─── Geometry ───────────────────────────────────────────────────────────────
@@ -115,9 +133,15 @@ export const RADAR_CENTER = RADAR_VIEW_SIZE / 2;
 export const RADAR_PLOT_RADIUS = 62;
 
 /** Point on the radar's own polar grid. Angle 0 = top (12 o'clock), increasing clockwise. */
-export function radarPolarPoint(radius: number, angleDeg: number): { x: number; y: number } {
+export function radarPolarPoint(
+  radius: number,
+  angleDeg: number,
+): { x: number; y: number } {
   const angleRad = ((angleDeg - 90) * Math.PI) / 180;
-  return { x: RADAR_CENTER + radius * Math.cos(angleRad), y: RADAR_CENTER + radius * Math.sin(angleRad) };
+  return {
+    x: RADAR_CENTER + radius * Math.cos(angleRad),
+    y: RADAR_CENTER + radius * Math.sin(angleRad),
+  };
 }
 
 /** Spoke angle (degrees, clockwise from top) for category `index` of `count`. */
@@ -127,7 +151,10 @@ export function radarCategoryAngle(index: number, count: number): number {
 
 function ringPoints(categoryCount: number, radius: number): string {
   return Array.from({ length: categoryCount }, (_, index) => {
-    const point = radarPolarPoint(radius, radarCategoryAngle(index, categoryCount));
+    const point = radarPolarPoint(
+      radius,
+      radarCategoryAngle(index, categoryCount),
+    );
     return `${point.x},${point.y}`;
   }).join(" ");
 }
@@ -144,7 +171,10 @@ export function radarAngleFromCenter(localX: number, localY: number): number {
 /** Resolves a cursor angle back to the nearest category index — hover detection is
  * keyed to the nearest spoke, not to the filled area, so it still works on
  * stroke-only/no-fill recipes. */
-export function radarNearestCategoryIndex(angleDeg: number, count: number): number {
+export function radarNearestCategoryIndex(
+  angleDeg: number,
+  count: number,
+): number {
   const step = 360 / count;
   return Math.round(angleDeg / step) % count;
 }
@@ -156,7 +186,9 @@ function textAnchorForAngle(angleDeg: number): "start" | "middle" | "end" {
   return "middle";
 }
 
-function dominantBaselineForAngle(angleDeg: number): "auto" | "hanging" | "middle" {
+function dominantBaselineForAngle(
+  angleDeg: number,
+): "auto" | "hanging" | "middle" {
   const normalized = ((angleDeg % 360) + 360) % 360;
   if (normalized < 30 || normalized > 330) return "auto";
   if (normalized > 150 && normalized < 210) return "hanging";
@@ -190,7 +222,9 @@ export function renderRadarGrid(props: RadarGridProps): DomphyElement[] {
     plotRadius = RADAR_PLOT_RADIUS,
   } = props;
 
-  const fractions = ringFractions ?? Array.from({ length: ringCount }, (_, index) => (index + 1) / ringCount);
+  const fractions =
+    ringFractions ??
+    Array.from({ length: ringCount }, (_, index) => (index + 1) / ringCount);
   const elements: DomphyElement[] = [];
 
   if (fill) {
@@ -246,7 +280,10 @@ export function renderRadarGrid(props: RadarGridProps): DomphyElement[] {
 
   if (showSpokes) {
     for (let index = 0; index < categoryCount; index++) {
-      const point = radarPolarPoint(plotRadius, radarCategoryAngle(index, categoryCount));
+      const point = radarPolarPoint(
+        plotRadius,
+        radarCategoryAngle(index, categoryCount),
+      );
       elements.push({
         line: null,
         x1: RADAR_CENTER,
@@ -265,7 +302,10 @@ export function renderRadarGrid(props: RadarGridProps): DomphyElement[] {
 
 /** Faint straight reference line from the center out to the plot radius at one fixed
  * angle — a "radius axis" reference, not a full symmetric cross (chartRadarRadius only). */
-export function radarRadiusAxisLine(plotRadius: number, angleDeg: number): DomphyElement<"line"> {
+export function radarRadiusAxisLine(
+  plotRadius: number,
+  angleDeg: number,
+): DomphyElement<"line"> {
   const point = radarPolarPoint(plotRadius, angleDeg);
   return {
     line: null,
@@ -289,8 +329,15 @@ export interface RadarAngleLabelsProps {
   topExtraOffset?: number;
 }
 
-export function renderRadarAngleLabels(props: RadarAngleLabelsProps): DomphyElement[] {
-  const { categories, plotRadius = RADAR_PLOT_RADIUS, labelOffset = 16, topExtraOffset = 0 } = props;
+export function renderRadarAngleLabels(
+  props: RadarAngleLabelsProps,
+): DomphyElement[] {
+  const {
+    categories,
+    plotRadius = RADAR_PLOT_RADIUS,
+    labelOffset = 16,
+    topExtraOffset = 0,
+  } = props;
   const count = categories.length;
   return categories.map((label, index) => {
     const angle = radarCategoryAngle(index, count);
@@ -301,7 +348,7 @@ export function renderRadarAngleLabels(props: RadarAngleLabelsProps): DomphyElem
       x: point.x,
       y: point.y,
       fill: (l: Listener) => themeColor(l, "shift-7"),
-      fontSize: "10",
+      fontSize: fixed("10"),
       textAnchor: textAnchorForAngle(angle),
       dominantBaseline: dominantBaselineForAngle(angle),
       _key: `axis-label-${label}`,
@@ -322,8 +369,16 @@ export interface RadarCustomLabelsProps {
  * foreground — three tspans, matching upstream's custom tick), then a muted
  * month-name line offset below it — replaces the plain axis label
  * (chartRadarLabelCustom only). */
-export function renderRadarCustomLabels(props: RadarCustomLabelsProps): DomphyElement[] {
-  const { data, series, plotRadius = RADAR_PLOT_RADIUS, labelOffset = 20, topExtraOffset = 8 } = props;
+export function renderRadarCustomLabels(
+  props: RadarCustomLabelsProps,
+): DomphyElement[] {
+  const {
+    data,
+    series,
+    plotRadius = RADAR_PLOT_RADIUS,
+    labelOffset = 20,
+    topExtraOffset = 8,
+  } = props;
   const count = data.length;
   const [first, second] = series;
   const elements: DomphyElement[] = [];
@@ -339,9 +394,14 @@ export function renderRadarCustomLabels(props: RadarCustomLabelsProps): DomphyEl
     // Three tspans: desktop value (inherits the text's foreground fill), a
     // muted "/" separator, mobile value (foreground again) — matching upstream's
     // <tspan>desktop</tspan><tspan class="fill-muted-foreground">/</tspan><tspan>mobile</tspan>.
-    const valueSpans: DomphyElement[] = [{ tspan: String(firstValue) } as DomphyElement<"tspan">];
+    const valueSpans: DomphyElement[] = [
+      { tspan: String(firstValue) } as DomphyElement<"tspan">,
+    ];
     if (second) {
-      valueSpans.push({ tspan: "/", fill: (l: Listener) => themeColor(l, "shift-6") } as DomphyElement<"tspan">);
+      valueSpans.push({
+        tspan: "/",
+        fill: (l: Listener) => themeColor(l, "shift-6"),
+      } as DomphyElement<"tspan">);
       valueSpans.push({ tspan: String(secondValue) } as DomphyElement<"tspan">);
     }
 
@@ -350,8 +410,8 @@ export function renderRadarCustomLabels(props: RadarCustomLabelsProps): DomphyEl
       x: anchor.x,
       y: anchor.y,
       fill: (l: Listener) => themeColor(l, "shift-11"),
-      fontSize: "11",
-      fontWeight: "500",
+      fontSize: fixed("11"),
+      fontWeight: fixed("500"),
       textAnchor,
       dominantBaseline: "middle",
       _key: `custom-label-value-${point.category}`,
@@ -361,7 +421,7 @@ export function renderRadarCustomLabels(props: RadarCustomLabelsProps): DomphyEl
       x: anchor.x,
       y: anchor.y + 12,
       fill: (l: Listener) => themeColor(l, "shift-6"),
-      fontSize: "9",
+      fontSize: fixed("9"),
       textAnchor,
       dominantBaseline: "middle",
       _key: `custom-label-name-${point.category}`,
@@ -380,7 +440,10 @@ export function renderRadarCustomLabels(props: RadarCustomLabelsProps): DomphyEl
 // not the shape's own bounding box), so `transformOrigin: "center"` lands
 // exactly on RADAR_CENTER regardless of the polygon's own asymmetric shape.
 
-export const RADAR_GROW_TRANSITION = { duration: 900, easing: "ease-out" } as const;
+export const RADAR_GROW_TRANSITION = {
+  duration: 900,
+  easing: "ease-out",
+} as const;
 
 // ─── Data series shape (filled/stroked polygon + optional corner dots) ────
 
@@ -396,7 +459,9 @@ export interface RadarSeriesShapeProps {
   strokeOnly?: boolean;
 }
 
-export function renderRadarSeriesShape(props: RadarSeriesShapeProps): DomphyElement<"g"> {
+export function renderRadarSeriesShape(
+  props: RadarSeriesShapeProps,
+): DomphyElement<"g"> {
   const {
     data,
     series,
@@ -411,7 +476,10 @@ export function renderRadarSeriesShape(props: RadarSeriesShapeProps): DomphyElem
   const points = data.map((point, index) => {
     const raw = Number(point[series.key]) || 0;
     const fraction = Math.max(0, Math.min(1, raw / maxValue));
-    return radarPolarPoint(plotRadius * fraction, radarCategoryAngle(index, count));
+    return radarPolarPoint(
+      plotRadius * fraction,
+      radarCategoryAngle(index, count),
+    );
   });
   const fillOpacity = strokeOnly ? 0 : (series.fillOpacity ?? 0.6);
 
@@ -443,7 +511,13 @@ export function renderRadarSeriesShape(props: RadarSeriesShapeProps): DomphyElem
   return {
     g: [shapeElement, ...dotElements],
     style: { transformOrigin: "center" },
-    $: [motion({ initial: { scale: 0 }, animate: { scale: 1 }, transition: RADAR_GROW_TRANSITION })],
+    $: [
+      motion({
+        initial: { scale: 0 },
+        animate: { scale: 1 },
+        transition: RADAR_GROW_TRANSITION,
+      }),
+    ],
     _key: series.key,
   };
 }
@@ -468,7 +542,11 @@ interface RadarTooltipStateShape {
 export interface RadarTooltipController {
   state: State<RadarTooltipStateShape>;
   bindContainer: (element: HTMLElement | null) => void;
-  show: (event: MouseEvent, categoryLabel: string, entries: RadarTooltipEntry[]) => void;
+  show: (
+    event: MouseEvent,
+    categoryLabel: string,
+    entries: RadarTooltipEntry[],
+  ) => void;
   hide: () => void;
 }
 
@@ -477,7 +555,13 @@ export interface RadarTooltipController {
  * whole plot area, so there is no per-shape `.move()` — `.show()` is simply re-called
  * with a freshly resolved category on every mousemove. */
 export function createRadarTooltip(): RadarTooltipController {
-  const state = toState<RadarTooltipStateShape>({ visible: false, categoryLabel: "", entries: [], x: 0, y: 0 });
+  const state = toState<RadarTooltipStateShape>({
+    visible: false,
+    categoryLabel: "",
+    entries: [],
+    x: 0,
+    y: 0,
+  });
   let container: HTMLElement | null = null;
 
   const positionFromEvent = (event: MouseEvent) => {
@@ -492,7 +576,12 @@ export function createRadarTooltip(): RadarTooltipController {
       container = element;
     },
     show: (event, categoryLabel, entries) => {
-      state.set({ visible: true, categoryLabel, entries, ...positionFromEvent(event) });
+      state.set({
+        visible: true,
+        categoryLabel,
+        entries,
+        ...positionFromEvent(event),
+      });
     },
     hide: () => {
       const current = state.get();
@@ -516,7 +605,10 @@ export interface RadarTooltipLayerOptions {
 // Exempt from tone-background-inherit: this chip must show the series' own
 // fixed accent color (the whole point of a legend/tooltip swatch), not the
 // ambient surface tone it would get from "inherit".
-function radarIndicatorMark(color: ThemeColor, style: "swatch" | "line"): DomphyElement<"span"> {
+function radarIndicatorMark(
+  color: ThemeColor,
+  style: "swatch" | "line",
+): DomphyElement<"span"> {
   const element = {
     span: null,
     _doctorDisable: "tone-background-inherit",
@@ -562,17 +654,24 @@ export function radarTooltipLayer(
     children.push({
       small: (l: Listener) => tooltip.state.get(l).categoryLabel,
       $: [small({ color: "neutral" })],
-      style: { color: (l: Listener) => themeColor(l, "shift-9"), fontWeight: "500" },
+      style: {
+        color: (l: Listener) => themeColor(l, "shift-9"),
+        fontWeight: fixed("500"),
+      },
     } as DomphyElement<"small">);
   }
 
   series.forEach((entry, index) => {
     const row: DomphyElement[] = [];
-    if (indicator !== "none") row.push(radarIndicatorMark(entry.color, indicator));
+    if (indicator !== "none")
+      row.push(radarIndicatorMark(entry.color, indicator));
     if (indicator !== "none" || series.length > 1) {
       // Series name: left-aligned, muted-foreground, normal weight (upstream's
       // `<span className="text-muted-foreground">`).
-      row.push({ small: entry.label, $: [small({ color: "neutral" })] } as DomphyElement<"small">);
+      row.push({
+        small: entry.label,
+        $: [small({ color: "neutral" })],
+      } as DomphyElement<"small">);
     }
     // Value: pushed to the row's trailing edge (ml-auto), rendered `font-mono
     // font-medium text-foreground tabular-nums` per upstream ChartTooltipContent,
@@ -586,8 +685,8 @@ export function radarTooltipLayer(
       style: {
         marginInlineStart: "auto",
         color: (l: Listener) => themeColor(l, "shift-9"),
-        fontFamily: "ui-monospace, monospace",
-        fontWeight: "500",
+        fontFamily: fixed("ui-monospace, monospace"),
+        fontWeight: fixed("500"),
         fontVariantNumeric: "tabular-nums",
       },
     } as DomphyElement<"small">);
@@ -684,28 +783,56 @@ export function renderRadarChart(props: RadarChartProps): DomphyElement<"div"> {
 
   const categories = data.map((point) => String(point.category));
   const count = categories.length;
-  const maxValue = Math.max(1, ...data.flatMap((point) => series.map((entry) => Number(point[entry.key]) || 0)));
+  const maxValue = Math.max(
+    1,
+    ...data.flatMap((point) =>
+      series.map((entry) => Number(point[entry.key]) || 0),
+    ),
+  );
 
-  const gridElements = gridShape === "none" ? [] : renderRadarGrid({
-    categoryCount: count,
-    shape: gridShape,
-    ringCount: gridRingCount,
-    ringFractions: gridRingFractions,
-    showSpokes: gridShowSpokes,
-    fill: gridFill ?? undefined,
-    plotRadius,
-  });
+  const gridElements =
+    gridShape === "none"
+      ? []
+      : renderRadarGrid({
+          categoryCount: count,
+          shape: gridShape,
+          ringCount: gridRingCount,
+          ringFractions: gridRingFractions,
+          showSpokes: gridShowSpokes,
+          fill: gridFill ?? undefined,
+          plotRadius,
+        });
 
-  const radiusAxisElements: DomphyElement[] = showRadiusAxisLine ? [radarRadiusAxisLine(plotRadius, radiusAxisAngle)] : [];
+  const radiusAxisElements: DomphyElement[] = showRadiusAxisLine
+    ? [radarRadiusAxisLine(plotRadius, radiusAxisAngle)]
+    : [];
 
   const labelElements = customLabels
-    ? renderRadarCustomLabels({ data, series, plotRadius, topExtraOffset: labelTopExtraOffset })
+    ? renderRadarCustomLabels({
+        data,
+        series,
+        plotRadius,
+        topExtraOffset: labelTopExtraOffset,
+      })
     : showAngleLabels
-      ? renderRadarAngleLabels({ categories, plotRadius, topExtraOffset: labelTopExtraOffset })
+      ? renderRadarAngleLabels({
+          categories,
+          plotRadius,
+          topExtraOffset: labelTopExtraOffset,
+        })
       : [];
 
   const seriesGroups = series.map((entry) =>
-    renderRadarSeriesShape({ data, series: entry, count, maxValue, plotRadius, showDots, dotRadius, strokeOnly }),
+    renderRadarSeriesShape({
+      data,
+      series: entry,
+      count,
+      maxValue,
+      plotRadius,
+      showDots,
+      dotRadius,
+      strokeOnly,
+    }),
   );
 
   let containerElement: HTMLElement | null = null;
@@ -716,7 +843,10 @@ export function renderRadarChart(props: RadarChartProps): DomphyElement<"div"> {
     const scale = RADAR_VIEW_SIZE / rect.width;
     const localX = (event.clientX - rect.left) * scale;
     const localY = (event.clientY - rect.top) * scale;
-    const categoryIndex = radarNearestCategoryIndex(radarAngleFromCenter(localX, localY), count);
+    const categoryIndex = radarNearestCategoryIndex(
+      radarAngleFromCenter(localX, localY),
+      count,
+    );
     const point = data[categoryIndex];
     const entries: RadarTooltipEntry[] = series.map((entry) => ({
       key: entry.key,
@@ -742,11 +872,24 @@ export function renderRadarChart(props: RadarChartProps): DomphyElement<"div"> {
   const plotBox: DomphyElement<"div"> = {
     div: [
       {
-        svg: [...gridElements, ...radiusAxisElements, ...labelElements, ...seriesGroups],
+        svg: [
+          ...gridElements,
+          ...radiusAxisElements,
+          ...labelElements,
+          ...seriesGroups,
+        ],
         viewBox: `0 0 ${RADAR_VIEW_SIZE} ${RADAR_VIEW_SIZE}`,
-        style: { width: "100%", height: "100%", display: "block", overflow: "visible" },
+        style: {
+          width: "100%",
+          height: "100%",
+          display: "block",
+          overflow: "visible",
+        },
       } as DomphyElement<"svg">,
-      radarTooltipLayer(tooltip, series, { indicator: tooltipIndicator, showLabel: tooltipShowLabel }),
+      radarTooltipLayer(tooltip, series, {
+        indicator: tooltipIndicator,
+        showLabel: tooltipShowLabel,
+      }),
     ],
     style: plotBoxStyle,
     onMouseMove: (event) => handleHover(event as MouseEvent),
@@ -769,7 +912,10 @@ export function renderRadarChart(props: RadarChartProps): DomphyElement<"div"> {
       plotBox,
       {
         ...legendRow,
-        style: { ...(legendRow.style as Record<string, unknown>), paddingBlockStart: themeSpacing(5) },
+        style: {
+          ...(legendRow.style as Record<string, unknown>),
+          paddingBlockStart: themeSpacing(5),
+        },
       },
     ],
   };
@@ -790,14 +936,25 @@ export interface RadarCardShellProps {
   headerPaddingBottom?: boolean;
 }
 
-export function radarCardShell(props: RadarCardShellProps): DomphyElement<"div"> {
-  const { title, description, content, footer, headerPaddingBottom = true } = props;
+export function radarCardShell(
+  props: RadarCardShellProps,
+): DomphyElement<"div"> {
+  const {
+    title,
+    description,
+    content,
+    footer,
+    headerPaddingBottom = true,
+  } = props;
   const children: DomphyElement[] = [
     { h3: title, $: [heading()], style: { textAlign: "center" } },
     {
       p: description,
       $: [paragraph({ color: "neutral" })],
-      style: { textAlign: "center", ...(headerPaddingBottom ? { marginBottom: themeSpacing(4) } : {}) },
+      style: {
+        textAlign: "center",
+        ...(headerPaddingBottom ? { marginBottom: themeSpacing(4) } : {}),
+      },
     },
     content,
   ];

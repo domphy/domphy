@@ -28,12 +28,16 @@ afterEach(() => {
 describe("chartTooltipIndicatorLine", () => {
   it("renders a working demo tree with zero args: card shell + chart canvas", () => {
     const { host } = render(chartTooltipIndicatorLine() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Bar Chart - Tooltip Indicator Line");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Bar Chart - Tooltip Indicator Line",
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
   });
 
   it("accepts a custom series list without throwing", () => {
-    const { host } = render(chartTooltipIndicatorLine({ showCursor: true }) as DomphyElement);
+    const { host } = render(
+      chartTooltipIndicatorLine({ showCursor: true }) as DomphyElement,
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
   });
 });

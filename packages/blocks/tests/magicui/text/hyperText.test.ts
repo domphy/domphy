@@ -37,7 +37,13 @@ describe("hyperText", () => {
 
   it("scrambles then resolves back to the true text on hover", () => {
     vi.useFakeTimers();
-    const { host } = render(hyperText({ children: "Hi", duration: 200, hoverTrigger: true }) as DomphyElement);
+    const { host } = render(
+      hyperText({
+        children: "Hi",
+        duration: 200,
+        hoverTrigger: true,
+      }) as DomphyElement,
+    );
     flushSync();
 
     const container = host.firstElementChild as HTMLElement;
@@ -49,7 +55,9 @@ describe("hyperText", () => {
   });
 
   it("renders with a custom tag without throwing", () => {
-    expect(() => render(hyperText({ children: "Div Tag", tag: "div" }) as DomphyElement)).not.toThrow();
+    expect(() =>
+      render(hyperText({ children: "Div Tag", tag: "div" }) as DomphyElement),
+    ).not.toThrow();
   });
 
   it("removes cleanly without throwing", () => {

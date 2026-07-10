@@ -37,7 +37,18 @@ import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSize } from "@domphy/theme";
 
-export type LineShadowTextTag = "span" | "div" | "p" | "article" | "section" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+export type LineShadowTextTag =
+  | "span"
+  | "div"
+  | "p"
+  | "article"
+  | "section"
+  | "h1"
+  | "h2"
+  | "h3"
+  | "h4"
+  | "h5"
+  | "h6";
 
 export interface LineShadowTextProps {
   /** Text content. Defaults to `"Line Shadow"`. */
@@ -64,7 +75,10 @@ function lineShadowText(props: LineShadowTextProps = {}): DomphyElement {
 
   const instanceId = ++lineShadowTextInstanceCounter;
   const animationName = `line-shadow-text-crawl-${hashString(JSON.stringify({ instanceId, shadowColor }))}`;
-  const keyframes = { from: { backgroundPosition: "0 0" }, to: { backgroundPosition: "100% -100%" } };
+  const keyframes = {
+    from: { backgroundPosition: "0 0" },
+    to: { backgroundPosition: "100% -100%" },
+  };
 
   const outer = {
     [wrapperTag]: text,
@@ -83,7 +97,8 @@ function lineShadowText(props: LineShadowTextProps = {}): DomphyElement {
       // context happens to have, which reads as plain unstyled text.
       fontSize: (listener: Listener) => themeSize(listener, "increase-7"),
       fontWeight: () => "800",
-      color: (listener: Listener) => themeColor(listener, "shift-9", shadowColor),
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-9", shadowColor),
       "&::after": {
         content: "attr(data-shadow-text)",
         position: "absolute",

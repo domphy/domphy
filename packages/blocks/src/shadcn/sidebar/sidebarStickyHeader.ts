@@ -18,8 +18,15 @@
 
 import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { breadcrumb, buttonGhost, inputSearch, link, small, strong } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import {
+  breadcrumb,
+  buttonGhost,
+  inputSearch,
+  link,
+  small,
+  strong,
+} from "@domphy/ui";
 import {
   ICON_BAR_CHART,
   ICON_FOLDER,
@@ -35,19 +42,24 @@ import {
   renderProjectRow,
   renderProjectsMoreRow,
   renderUserFooter,
-  sidebarBackdrop,
-  sidebarIcon,
-  sidebarMainContent,
-  verticalDivider,
   type SidebarBreadcrumbItem,
   type SidebarNavMainItem,
   type SidebarProject,
   type SidebarTeam,
   type SidebarUser,
+  sidebarBackdrop,
+  sidebarIcon,
+  sidebarMainContent,
+  srOnlyLabel,
+  verticalDivider,
 } from "./sidebar05-08-shared.js";
 
 /** A quiet utility link (Support/Feedback) — no active-state styling, always visible. */
-type SidebarStickyHeaderSecondaryItem = { title: string; href?: string; icon?: string };
+type SidebarStickyHeaderSecondaryItem = {
+  title: string;
+  href?: string;
+  icon?: string;
+};
 
 type SidebarStickyHeaderProps = {
   /** Brand icon/name/plan-caption shown at the top of the sidebar. */
@@ -63,7 +75,11 @@ type SidebarStickyHeaderProps = {
 
 const SITE_HEADER_HEIGHT = themeSpacing(16);
 
-const DEFAULT_BRAND: SidebarTeam = { name: "Acme Inc", plan: "Enterprise", logo: ICON_MARK };
+const DEFAULT_BRAND: SidebarTeam = {
+  name: "Acme Inc",
+  plan: "Enterprise",
+  logo: ICON_MARK,
+};
 
 const DEFAULT_NAV_MAIN: SidebarNavMainItem[] = [
   {
@@ -82,12 +98,22 @@ const DEFAULT_NAV_MAIN: SidebarNavMainItem[] = [
   {
     title: "Documentation",
     icon: ICON_BAR_CHART,
-    items: [{ title: "Introduction" }, { title: "Get Started" }, { title: "Tutorials" }, { title: "Changelog" }],
+    items: [
+      { title: "Introduction" },
+      { title: "Get Started" },
+      { title: "Tutorials" },
+      { title: "Changelog" },
+    ],
   },
   {
     title: "Settings",
     icon: ICON_FOLDER,
-    items: [{ title: "General" }, { title: "Team" }, { title: "Billing" }, { title: "Limits" }],
+    items: [
+      { title: "General" },
+      { title: "Team" },
+      { title: "Billing" },
+      { title: "Limits" },
+    ],
   },
 ];
 
@@ -106,13 +132,18 @@ const DEFAULT_USER: SidebarUser = { name: "shadcn", email: "m@example.com" };
 
 /** A de-emphasized secondary-nav row (upstream `SidebarMenuButton size="sm"`):
  * a small icon + label link, no active-state styling, no tooltip. */
-function renderSecondaryNavRow(item: SidebarStickyHeaderSecondaryItem): DomphyElement<"li"> {
+function renderSecondaryNavRow(
+  item: SidebarStickyHeaderSecondaryItem,
+): DomphyElement<"li"> {
   return {
     li: [
       {
         a: [
           ...(item.icon ? [sidebarIcon(item.icon)] : []),
-          { span: item.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+          {
+            span: item.title,
+            style: { flex: "1", textAlign: "left" },
+          } as unknown as DomphyElement,
         ],
         href: item.href ?? "#",
         style: {
@@ -128,7 +159,10 @@ function renderSecondaryNavRow(item: SidebarStickyHeaderSecondaryItem): DomphyEl
           whiteSpace: "nowrap",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
       } as unknown as DomphyElement,
     ],
@@ -154,14 +188,21 @@ function renderBrandHeader(brand: SidebarTeam): DomphyElement<"div"> {
               height: themeSpacing(8),
               flexShrink: "0",
               borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-              backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "inherit", "primary"),
               color: (l: Listener) => themeColor(l, "shift-10", "primary"),
             },
           } as unknown as DomphyElement,
           {
             div: [
-              { strong: brand.name, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
-              { small: brand.plan, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+              {
+                strong: brand.name,
+                $: [strong({ color: "neutral" })],
+              } as unknown as DomphyElement,
+              {
+                small: brand.plan,
+                $: [small({ color: "neutral" })],
+              } as unknown as DomphyElement,
             ],
             style: {
               display: "flex",
@@ -187,7 +228,10 @@ function renderBrandHeader(brand: SidebarTeam): DomphyElement<"div"> {
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
       } as unknown as DomphyElement,
     ],
@@ -197,7 +241,9 @@ function renderBrandHeader(brand: SidebarTeam): DomphyElement<"div"> {
 
 /** Breadcrumb trail; the whole nav hides below a breakpoint, matching
  * upstream's `<Breadcrumb className="hidden sm:block">`. */
-function stickyHeaderBreadcrumb(items: SidebarBreadcrumbItem[]): DomphyElement<"nav"> {
+function stickyHeaderBreadcrumb(
+  items: SidebarBreadcrumbItem[],
+): DomphyElement<"nav"> {
   const crumbs: DomphyElement[] = items.map((item, index) => {
     const isLast = index === items.length - 1;
     if (isLast) {
@@ -230,10 +276,15 @@ function stickyHeaderBreadcrumb(items: SidebarBreadcrumbItem[]): DomphyElement<"
  * rest of the page through a `--siteHeaderHeight` custom property. Call with
  * no arguments for a fully working demo.
  */
-function sidebarStickyHeader(props: SidebarStickyHeaderProps = {}): DomphyElement<"div"> {
+function sidebarStickyHeader(
+  props: SidebarStickyHeaderProps = {},
+): DomphyElement<"div"> {
   const {
     brand = DEFAULT_BRAND,
-    breadcrumbItems = [{ label: "Build Your Application" }, { label: "Data Fetching" }],
+    breadcrumbItems = [
+      { label: "Build Your Application" },
+      { label: "Data Fetching" },
+    ],
     searchPlaceholder = "Type to search...",
     navMain = DEFAULT_NAV_MAIN,
     projects = DEFAULT_PROJECTS,
@@ -250,7 +301,9 @@ function sidebarStickyHeader(props: SidebarStickyHeaderProps = {}): DomphyElemen
   const collapsed = toState(false);
 
   const navMainRows = navMain.map((item) =>
-    item.items && item.items.length > 0 ? renderExpandableNavRow(item, collapsed) : renderPlainNavRow(item, collapsed),
+    item.items && item.items.length > 0
+      ? renderExpandableNavRow(item, collapsed)
+      : renderPlainNavRow(item, collapsed),
   );
 
   const siteHeader: DomphyElement<"header"> = {
@@ -279,8 +332,10 @@ function sidebarStickyHeader(props: SidebarStickyHeaderProps = {}): DomphyElemen
               color: (l: Listener) => themeColor(l, "shift-6", "neutral"),
             },
           } as unknown as DomphyElement,
+          srOnlyLabel("Search", "sidebar16-search"),
           {
             input: null,
+            id: "sidebar16-search",
             type: "search",
             placeholder: searchPlaceholder,
             ariaLabel: "Search",
@@ -310,7 +365,8 @@ function sidebarStickyHeader(props: SidebarStickyHeaderProps = {}): DomphyElemen
       gap: (l: Listener) => themeSpacing(themeDensity(l) * 3),
       height: "var(--siteHeaderHeight)",
       paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
-      borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderBottom: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
@@ -345,7 +401,12 @@ function sidebarStickyHeader(props: SidebarStickyHeaderProps = {}): DomphyElemen
                 $: [small({ color: "neutral" })],
               } as unknown as DomphyElement,
               {
-                ul: [...projects.map((project) => renderProjectRow(project, collapsed)), renderProjectsMoreRow()],
+                ul: [
+                  ...projects.map((project) =>
+                    renderProjectRow(project, collapsed),
+                  ),
+                  renderProjectsMoreRow(),
+                ],
                 style: {
                   listStyle: "none",
                   margin: "0",
@@ -408,13 +469,18 @@ function sidebarStickyHeader(props: SidebarStickyHeaderProps = {}): DomphyElemen
     dataTone: "shift-2",
     _onMount: (node: ElementNode) => {
       const onKeyDown = (event: KeyboardEvent) => {
-        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
+        if (
+          (event.metaKey || event.ctrlKey) &&
+          event.key.toLowerCase() === "b"
+        ) {
           event.preventDefault();
           sidebarOpen.set(!sidebarOpen.get());
         }
       };
       window.addEventListener("keydown", onKeyDown);
-      node.addHook("Remove", () => window.removeEventListener("keydown", onKeyDown));
+      node.addHook("Remove", () =>
+        window.removeEventListener("keydown", onKeyDown),
+      );
     },
     // Offcanvas panel: a fixed-position sibling of the layout spacer below.
     // Toggling `sidebarOpen` slides the whole panel off the left edge (upstream
@@ -430,14 +496,17 @@ function sidebarStickyHeader(props: SidebarStickyHeaderProps = {}): DomphyElemen
       flexDirection: "column",
       width: themeSpacing(64),
       overflow: "hidden",
-      transform: (l: Listener) => (sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)"),
+      transform: (l: Listener) =>
+        sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
       transition: "transform 0.2s ease",
-      borderInlineEnd: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderInlineEnd: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       "@media (max-width: 768px)": {
         width: themeSpacing(72),
-        boxShadow: (l: Listener) => `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
+        boxShadow: (l: Listener) =>
+          `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
       },
     },
   } as unknown as DomphyElement<"aside">;
@@ -471,7 +540,12 @@ function sidebarStickyHeader(props: SidebarStickyHeaderProps = {}): DomphyElemen
     div: [
       siteHeader,
       {
-        div: [sidebarSpacer, asideElement, mainElement, sidebarBackdrop(sidebarOpen, () => sidebarOpen.set(false))],
+        div: [
+          sidebarSpacer,
+          asideElement,
+          mainElement,
+          sidebarBackdrop(sidebarOpen, () => sidebarOpen.set(false)),
+        ],
         // Layout-only row (aside + main manage their own color/background) —
         // the `var(--siteHeaderHeight)` reference in height/marginBlockStart is
         // a plain CSS custom property, not a themeColor() call; the doctor's

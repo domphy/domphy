@@ -31,7 +31,9 @@ describe("chartAreaGradient", () => {
     expect(host.querySelector("h3")?.textContent).toBe("Area Chart - Gradient");
     expect(host.querySelector("canvas")).toBeTruthy();
     expect(host.querySelectorAll("svg").length).toBeGreaterThanOrEqual(2);
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts custom two-series data and title", () => {

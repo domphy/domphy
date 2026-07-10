@@ -41,12 +41,20 @@ function defaultBacklightMedia(): DomphyElement<"img"> {
     img: null,
     src: `data:image/svg+xml,${encodeURIComponent(markup)}`,
     alt: "Colorful placeholder graphic",
-    style: { display: "block", width: "100%", height: "auto", maxWidth: "20em" },
+    style: {
+      display: "block",
+      width: "100%",
+      height: "auto",
+      maxWidth: "20em",
+    },
   } as DomphyElement<"img">;
 }
 
 /** Hidden SVG holding the shared blur → saturate → recomposite filter definition. */
-function backlightFilterDefs(filterId: string, blur: number): DomphyElement<"svg"> {
+function backlightFilterDefs(
+  filterId: string,
+  blur: number,
+): DomphyElement<"svg"> {
   return {
     svg: [
       {

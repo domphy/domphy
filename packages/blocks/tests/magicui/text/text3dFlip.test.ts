@@ -29,7 +29,9 @@ describe("text3dFlip", () => {
 
     // The full phrase is exposed to screen readers via an sr-only label, so the
     // decorative per-character cells can stay aria-hidden.
-    expect(paragraph?.firstElementChild?.textContent).toBe("Fortune favors the bold");
+    expect(paragraph?.firstElementChild?.textContent).toBe(
+      "Fortune favors the bold",
+    );
 
     const flipChars = host.querySelectorAll("[data-flip-char]");
     const frontFaces = Array.from(host.querySelectorAll('[data-face="front"]'));
@@ -65,11 +67,12 @@ describe("text3dFlip", () => {
     // group settles, then cancels every animation together (does not hold
     // indefinitely on pointer-over).
     const animations: { keyframes: unknown; options: unknown }[] = [];
-    const original = (HTMLElement.prototype as unknown as { animate?: unknown }).animate;
-    (HTMLElement.prototype as unknown as { animate: unknown }).animate = function (
+    const original = (HTMLElement.prototype as unknown as { animate?: unknown })
+      .animate;
+    (HTMLElement.prototype as unknown as { animate: unknown }).animate = (
       keyframes: unknown,
       options: unknown,
-    ) {
+    ) => {
       animations.push({ keyframes, options });
       // Minimal Animation-like stub: only `.finished` (a resolved promise) and
       // `.cancel()` are used by the block.
@@ -103,9 +106,11 @@ describe("text3dFlip", () => {
       expect(animations.length).toBe(countAfterFirst);
     } finally {
       if (original === undefined) {
-        delete (HTMLElement.prototype as unknown as { animate?: unknown }).animate;
+        delete (HTMLElement.prototype as unknown as { animate?: unknown })
+          .animate;
       } else {
-        (HTMLElement.prototype as unknown as { animate: unknown }).animate = original;
+        (HTMLElement.prototype as unknown as { animate: unknown }).animate =
+          original;
       }
     }
   });

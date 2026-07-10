@@ -2,8 +2,12 @@
 
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode } from "@domphy/core";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { sidebar10 } from "../../../src/shadcn/sidebar/sidebar10.ts";
+
+// Full sidebar trees are legitimately slow under jsdom when many sibling
+// test files share the worker pool — same raised timeout as sidebar01-04.
+vi.setConfig({ testTimeout: 20000 });
 
 function render(app: DomphyElement) {
   const host = document.createElement("div");
@@ -38,16 +42,22 @@ describe("sidebar10", () => {
     // Mirrors upstream nav-workspaces.tsx: each workspace is wrapped in a bare
     // <Collapsible> with no `defaultOpen` — every workspace starts collapsed.
     const { host } = render(sidebar10() as DomphyElement);
-    const toggles = Array.from(host.querySelectorAll('aside button[data-slot="chevron-toggle"]'));
+    const toggles = Array.from(
+      host.querySelectorAll('aside button[data-slot="chevron-toggle"]'),
+    );
     expect(toggles.length).toBe(5);
-    const expandedOnes = toggles.filter((toggle) => toggle.getAttribute("aria-expanded") === "true");
+    const expandedOnes = toggles.filter(
+      (toggle) => toggle.getAttribute("aria-expanded") === "true",
+    );
     expect(expandedOnes.length).toBe(0);
   });
 
   it("clicking the Favorites 'More' row reveals the rest of the favorites", async () => {
     const { host } = render(sidebar10() as DomphyElement);
     expect(host.textContent).not.toContain("Security");
-    const moreButtons = Array.from(host.querySelectorAll("button")).filter((button) => button.textContent === "More");
+    const moreButtons = Array.from(host.querySelectorAll("button")).filter(
+      (button) => button.textContent === "More",
+    );
     expect(moreButtons.length).toBeGreaterThan(0);
     (moreButtons[0] as HTMLButtonElement).click();
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -66,7 +76,9 @@ describe("sidebar10", () => {
     const { host } = render(sidebar10() as DomphyElement);
     const toggle = host.querySelector("header button") as HTMLButtonElement;
     expect(() => toggle.click()).not.toThrow();
-    const moreActions = host.querySelector('header button[aria-label="More actions"]') as HTMLButtonElement;
+    const moreActions = host.querySelector(
+      'header button[aria-label="More actions"]',
+    ) as HTMLButtonElement;
     expect(moreActions).toBeTruthy();
     expect(() => moreActions.click()).not.toThrow();
     // Let the popover's open/close debounce timer settle before the test ends —
@@ -78,7 +90,9 @@ describe("sidebar10", () => {
 
   it("opens the Notion-style page-actions menu with the upstream grouped items", async () => {
     const { host } = render(sidebar10() as DomphyElement);
-    const moreActions = host.querySelector('header button[aria-label="More actions"]') as HTMLButtonElement;
+    const moreActions = host.querySelector(
+      'header button[aria-label="More actions"]',
+    ) as HTMLButtonElement;
     moreActions.click();
     // Popover content mounts on a ~100ms open timer.
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -102,7 +116,9 @@ describe("sidebar10", () => {
     const { host } = render(
       sidebar10({
         teams: [{ name: "Custom Team", plan: "Free" }],
-        workspaces: [{ name: "Solo Workspace", emoji: "🧑", pages: [{ title: "Notes" }] }],
+        workspaces: [
+          { name: "Solo Workspace", emoji: "🧑", pages: [{ title: "Notes" }] },
+        ],
         workspacesVisibleCount: 1,
       }) as DomphyElement,
     );

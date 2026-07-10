@@ -25,6 +25,8 @@ describe("chartRadarGrid", () => {
     // Four circular grid rings + six vertex dots, no radial spoke <line>s.
     expect(host.querySelectorAll("svg circle").length).toBe(10);
     expect(host.querySelectorAll("svg line").length).toBe(0);
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 });

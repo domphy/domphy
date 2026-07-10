@@ -13,13 +13,13 @@ import type { DomphyElement } from "@domphy/core";
 import {
   ACTIVITY_SERIES_CONFIG,
   ACTIVITY_TOOLTIP_DATA,
+  type ActivityDayPoint,
+  type ActivitySeriesEntry,
   activityBarOption,
   activityTooltipCard,
   activityTooltipFormatter,
   activityTooltipPlot,
   formatWeekdayShort,
-  type ActivityDayPoint,
-  type ActivitySeriesEntry,
 } from "./chart-tooltip-shared.js";
 
 export interface ChartTooltipIconsProps {
@@ -35,7 +35,9 @@ export interface ChartTooltipIconsProps {
  * shadcn/ui "charts/tooltip" icons recipe — per-series icon glyph instead of
  * a color dot, no date header. Call with no arguments for a working demo.
  */
-function chartTooltipIcons(props: ChartTooltipIconsProps = {}): DomphyElement<"div"> {
+function chartTooltipIcons(
+  props: ChartTooltipIconsProps = {},
+): DomphyElement<"div"> {
   const {
     data = ACTIVITY_TOOLTIP_DATA,
     series = ACTIVITY_SERIES_CONFIG,
@@ -52,7 +54,13 @@ function chartTooltipIcons(props: ChartTooltipIconsProps = {}): DomphyElement<"d
     // Value cell (mono/medium/tabular + toLocaleString) comes from the shared
     // default plainValueRenderer, which matches upstream ChartTooltipContent.
   });
-  const option = activityBarOption({ data, categories, series, showCursor, formatter });
+  const option = activityBarOption({
+    data,
+    categories,
+    series,
+    showCursor,
+    formatter,
+  });
 
   return activityTooltipCard({
     title,

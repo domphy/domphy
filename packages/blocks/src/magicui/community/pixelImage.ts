@@ -22,7 +22,12 @@
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
 
-export type PixelImageGridPreset = "default" | "fine" | "portrait" | "tallStrip" | "wideStrip";
+export type PixelImageGridPreset =
+  | "default"
+  | "fine"
+  | "portrait"
+  | "tallStrip"
+  | "wideStrip";
 
 export interface PixelImageProps {
   /** Image URL. Defaults to a generic inline placeholder graphic (no network fetch). */
@@ -51,7 +56,10 @@ export interface PixelImageProps {
   style?: StyleObject;
 }
 
-const GRID_PRESETS: Record<PixelImageGridPreset, { rows: number; cols: number }> = {
+const GRID_PRESETS: Record<
+  PixelImageGridPreset,
+  { rows: number; cols: number }
+> = {
   default: { rows: 4, cols: 6 },
   fine: { rows: 8, cols: 8 },
   portrait: { rows: 6, cols: 4 },
@@ -82,13 +90,20 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
   const src = props.src ?? PLACEHOLDER_IMAGE_URI;
   const alt = props.alt ?? "Pixel reveal image";
   const preset = GRID_PRESETS[props.grid ?? "default"];
-  const rows = Math.min(MAX_GRID_LINES, Math.max(1, Math.round(props.rows ?? preset.rows)));
-  const cols = Math.min(MAX_GRID_LINES, Math.max(1, Math.round(props.cols ?? preset.cols)));
+  const rows = Math.min(
+    MAX_GRID_LINES,
+    Math.max(1, Math.round(props.rows ?? preset.rows)),
+  );
+  const cols = Math.min(
+    MAX_GRID_LINES,
+    Math.max(1, Math.round(props.cols ?? preset.cols)),
+  );
   const colorSweep = props.colorSweep ?? true;
   const fadeDuration = props.fadeDuration ?? 1000;
   const maxStagger = props.maxStagger ?? 1200;
   const colorSweepDelay = props.colorSweepDelay ?? 1300;
-  const hasSizeOverride = props.width !== undefined || props.aspectRatio !== undefined;
+  const hasSizeOverride =
+    props.width !== undefined || props.aspectRatio !== undefined;
   const width = props.width ?? "18rem";
 
   const revealed = toState(false);
@@ -129,7 +144,8 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
           clipPath: `polygon(${leftPercent}% ${topPercent}%, ${rightPercent}% ${topPercent}%, ${rightPercent}% ${bottomPercent}%, ${leftPercent}% ${bottomPercent}%)`,
           opacity: (listener) => (revealed.get(listener) ? 1 : 0),
           filter: colorSweep
-            ? (listener) => (colorRevealed.get(listener) ? "grayscale(0)" : "grayscale(1)")
+            ? (listener) =>
+                colorRevealed.get(listener) ? "grayscale(0)" : "grayscale(1)"
             : "none",
           transition,
         } as StyleObject,
@@ -150,8 +166,12 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
       position: "relative",
       userSelect: "none",
       width,
-      ...(props.aspectRatio ? { aspectRatio: props.aspectRatio } : { height: width }),
-      ...(hasSizeOverride ? {} : { "@media (min-width: 768px)": { width: "24rem", height: "24rem" } }),
+      ...(props.aspectRatio
+        ? { aspectRatio: props.aspectRatio }
+        : { height: width }),
+      ...(hasSizeOverride
+        ? {}
+        : { "@media (min-width: 768px)": { width: "24rem", height: "24rem" } }),
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
@@ -163,7 +183,10 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
       const revealTimeout = setTimeout(() => revealed.set(true), 0);
       let colorTimeout: ReturnType<typeof setTimeout> | null = null;
       if (colorSweep) {
-        colorTimeout = setTimeout(() => colorRevealed.set(true), colorSweepDelay);
+        colorTimeout = setTimeout(
+          () => colorRevealed.set(true),
+          colorSweepDelay,
+        );
       }
       node.addHook("Remove", () => {
         clearTimeout(revealTimeout);

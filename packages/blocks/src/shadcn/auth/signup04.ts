@@ -1,6 +1,22 @@
 import type { DomphyElement, Listener, PartialElement } from "@domphy/core";
-import { button, divider, heading, icon, label, link, paragraph, small } from "@domphy/ui";
-import { themeColor, themeDensity, themeFluidSpacing, themeSize, themeSpacing } from "@domphy/theme";
+import {
+  themeColor,
+  themeDensity,
+  themeFluidSpacing,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
+import {
+  button,
+  divider,
+  heading,
+  icon,
+  label,
+  link,
+  paragraph,
+  small,
+} from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 
 // Generic monochrome letter-badge glyphs — original, brand-neutral placeholders.
 // Swap for official brand SVGs in production.
@@ -24,21 +40,27 @@ function letterBadgeIcon(letter: string): string {
 function authFieldInput(): PartialElement {
   return {
     style: {
-      fontFamily: "inherit",
-      lineHeight: "inherit",
+      fontFamily: fixed("inherit"),
+      lineHeight: fixed("inherit"),
       width: "100%",
       boxSizing: "border-box",
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 3),
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
       fontSize: (listener: Listener) => themeSize(listener, "inherit"),
       border: "none",
       outlineOffset: "-1px",
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+      outline: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       "&::placeholder": {
-        color: (listener: Listener) => themeColor(listener, "shift-7", "neutral"),
+        color: (listener: Listener) =>
+          themeColor(listener, "shift-7", "neutral"),
       },
       "&:hover:not([disabled]), &:focus-visible": {
         outline: (listener: Listener) =>
@@ -47,7 +69,8 @@ function authFieldInput(): PartialElement {
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
-        backgroundColor: (listener: Listener) => themeColor(listener, "shift-2", "neutral"),
+        backgroundColor: (listener: Listener) =>
+          themeColor(listener, "shift-2", "neutral"),
       },
     },
   };
@@ -85,13 +108,26 @@ function field(config: FieldConfig): DomphyElement<"div"> {
   };
 }
 
-function legalLine(termsHref: string, privacyHref: string): DomphyElement<"small"> {
+function legalLine(
+  termsHref: string,
+  privacyHref: string,
+): DomphyElement<"small"> {
   return {
     small: [
       "By continuing, you agree to our ",
-      { a: "Terms of Service", href: termsHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
+      {
+        a: "Terms of Service",
+        href: termsHref,
+        style: { textDecoration: fixed("underline") },
+        $: [link({ color: "primary" })],
+      },
       " and ",
-      { a: "Privacy Policy", href: privacyHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
+      {
+        a: "Privacy Policy",
+        href: privacyHref,
+        style: { textDecoration: fixed("underline") },
+        $: [link({ color: "primary" })],
+      },
       ".",
     ],
     $: [small({ color: "neutral" })],
@@ -110,7 +146,12 @@ export interface SocialProvider {
 
 function providerButton(provider: SocialProvider): DomphyElement<"button"> {
   return {
-    button: [{ span: provider.iconSvg ?? letterBadgeIcon(provider.label.charAt(0)), $: [icon({ color: "inherit" })] }],
+    button: [
+      {
+        span: provider.iconSvg ?? letterBadgeIcon(provider.label.charAt(0)),
+        $: [icon({ color: "inherit" })],
+      },
+    ],
     type: "button",
     ariaLabel: `Sign up with ${provider.label}`,
     // Only attach onClick when a handler is given — Domphy requires event
@@ -183,15 +224,32 @@ function signup04(props: Signup04Props = {}): DomphyElement<"div"> {
     $: [button({ color: "neutral" })],
     style: {
       width: "100%",
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },
   };
 
   const passwordGrid: DomphyElement<"div"> = {
     div: [
-      { div: [field({ id: "signup04-password", labelText: passwordLabel, type: "password" })] },
-      { div: [field({ id: "signup04-confirm-password", labelText: confirmPasswordLabel, type: "password" })] },
+      {
+        div: [
+          field({
+            id: "signup04-password",
+            labelText: passwordLabel,
+            type: "password",
+          }),
+        ],
+      },
+      {
+        div: [
+          field({
+            id: "signup04-confirm-password",
+            labelText: confirmPasswordLabel,
+            type: "password",
+          }),
+        ],
+      },
     ],
     style: {
       display: "grid",
@@ -238,7 +296,12 @@ function signup04(props: Signup04Props = {}): DomphyElement<"div"> {
   const footerLine: DomphyElement<"small"> = {
     small: [
       `${signInPrompt} `,
-      { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
+      {
+        a: signInLinkText,
+        href: signInHref,
+        style: { textDecoration: fixed("underline") },
+        $: [link({ color: "primary" })],
+      },
     ],
     $: [small({ color: "neutral" })],
     style: { display: "block", textAlign: "center" },
@@ -247,7 +310,11 @@ function signup04(props: Signup04Props = {}): DomphyElement<"div"> {
   const formSide: DomphyElement<"div"> = {
     div: [
       { h1: title, $: [heading()], style: { textAlign: "center" } },
-      { p: subtitle, $: [paragraph({ color: "neutral" })], style: { textAlign: "center" } },
+      {
+        p: subtitle,
+        $: [paragraph({ color: "neutral" })],
+        style: { textAlign: "center" },
+      },
       formElement,
       footerLine,
     ],
@@ -291,9 +358,12 @@ function signup04(props: Signup04Props = {}): DomphyElement<"div"> {
       display: "grid",
       gridTemplateColumns: "1fr",
       overflow: "hidden",
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
+      outline: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
       "@media(min-width:768px)": { gridTemplateColumns: "1fr 1fr" },
     },
@@ -320,7 +390,8 @@ function signup04(props: Signup04Props = {}): DomphyElement<"div"> {
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 5),
       paddingInline: themeFluidSpacing(4, 12),
       paddingBlock: themeFluidSpacing(4, 12),
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },
   };

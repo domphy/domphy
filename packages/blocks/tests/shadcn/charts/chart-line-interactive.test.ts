@@ -28,7 +28,9 @@ afterEach(() => {
 describe("chartLineInteractive", () => {
   it("renders a working demo tree with zero args: header title/description, two stat tiles, chart plot, no footer", () => {
     const { host } = render(chartLineInteractive() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Line Chart - Interactive");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Line Chart - Interactive",
+    );
     expect(host.querySelectorAll("aside button")).toHaveLength(2);
     expect(host.querySelector("canvas")).toBeTruthy();
     expect(host.querySelector("footer")).toBeFalsy();
@@ -36,11 +38,15 @@ describe("chartLineInteractive", () => {
 
   it("clicking a stat tile marks it active and clears the other", () => {
     const { host } = render(chartLineInteractive() as DomphyElement);
-    const [desktopTile, mobileTile] = Array.from(host.querySelectorAll("aside button"));
+    const [desktopTile, mobileTile] = Array.from(
+      host.querySelectorAll("aside button"),
+    );
     expect(desktopTile.getAttribute("data-active")).toBe("true");
     expect(mobileTile.getAttribute("data-active")).toBe("false");
 
-    mobileTile.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    mobileTile.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true }),
+    );
     flushSync();
 
     expect(mobileTile.getAttribute("data-active")).toBe("true");

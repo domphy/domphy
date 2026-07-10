@@ -20,7 +20,9 @@ describe("chartRadarGridCircle", () => {
   it("renders circular grid rings with the radial spokes kept, plus corner dots", () => {
     const { host } = render(chartRadarGridCircle() as DomphyElement);
 
-    expect(host.querySelector("h3")?.textContent).toBe("Radar Chart - Grid Circle");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Radar Chart - Grid Circle",
+    );
     expect(host.querySelectorAll("svg polygon").length).toBe(1);
     // Four circular grid rings + six vertex dots.
     expect(host.querySelectorAll("svg circle").length).toBe(10);

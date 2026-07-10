@@ -26,11 +26,15 @@ describe("chartRadialGrid", () => {
     expect(host.querySelectorAll("svg circle")).toHaveLength(5);
     // recharts PolarGrid radialLines default: four evenly spaced spokes.
     expect(host.querySelectorAll("svg line")).toHaveLength(4);
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts a custom grid circle count", () => {
-    const { host } = render(chartRadialGrid({ gridCircleCount: 6 }) as DomphyElement);
+    const { host } = render(
+      chartRadialGrid({ gridCircleCount: 6 }) as DomphyElement,
+    );
     expect(host.querySelectorAll("svg circle")).toHaveLength(6);
   });
 });

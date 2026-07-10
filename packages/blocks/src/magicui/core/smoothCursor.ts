@@ -6,7 +6,12 @@
 // rather than snapping or easing linearly, and rotates to lean into the
 // current direction of travel.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 
 export interface SmoothCursorSpring {
@@ -108,7 +113,9 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
       const element = node.domElement as HTMLElement;
       const previousCursor = document.body.style.cursor;
       const pointerQuery =
-        typeof window.matchMedia === "function" ? window.matchMedia(DESKTOP_POINTER_QUERY) : null;
+        typeof window.matchMedia === "function"
+          ? window.matchMedia(DESKTOP_POINTER_QUERY)
+          : null;
 
       let positionX = 0;
       let positionY = 0;
@@ -153,8 +160,14 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
         lastTime = time;
 
         // Spring-damper: force = -stiffness * displacement - damping * velocity.
-        const accelerationX = (-spring.stiffness * (positionX - targetX) - spring.damping * velocityX) / spring.mass;
-        const accelerationY = (-spring.stiffness * (positionY - targetY) - spring.damping * velocityY) / spring.mass;
+        const accelerationX =
+          (-spring.stiffness * (positionX - targetX) -
+            spring.damping * velocityX) /
+          spring.mass;
+        const accelerationY =
+          (-spring.stiffness * (positionY - targetY) -
+            spring.damping * velocityY) /
+          spring.mass;
 
         velocityX += accelerationX * deltaSeconds;
         velocityY += accelerationY * deltaSeconds;
@@ -163,9 +176,15 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
         positionX += velocityX * deltaSeconds;
         positionY += velocityY * deltaSeconds;
 
-        const travelDistance = Math.hypot(positionX - previousX, positionY - previousY);
+        const travelDistance = Math.hypot(
+          positionX - previousX,
+          positionY - previousY,
+        );
         if (travelDistance > 0.05) {
-          const directionAngle = (Math.atan2(positionY - previousY, positionX - previousX) * 180) / Math.PI + 90;
+          const directionAngle =
+            (Math.atan2(positionY - previousY, positionX - previousX) * 180) /
+              Math.PI +
+            90;
           // Accumulate the shortest signed turn rather than jumping straight to
           // directionAngle, so the rotation spring never whips the long way
           // around when the heading crosses the -180/180 wraparound.
@@ -177,14 +196,18 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
         }
 
         const angleAcceleration =
-          (-ROTATION_STIFFNESS * (angle - targetAngle) - ROTATION_DAMPING * angleVelocity) / spring.mass;
+          (-ROTATION_STIFFNESS * (angle - targetAngle) -
+            ROTATION_DAMPING * angleVelocity) /
+          spring.mass;
         angleVelocity += angleAcceleration * deltaSeconds;
         angle += angleVelocity * deltaSeconds;
 
         // Release the squish once the pointer has been idle past the rest window.
         if (time - lastMoveTime > SCALE_REST_MS) targetScale = 1;
         const scaleAcceleration =
-          (-SCALE_STIFFNESS * (scale - targetScale) - SCALE_DAMPING * scaleVelocity) / spring.mass;
+          (-SCALE_STIFFNESS * (scale - targetScale) -
+            SCALE_DAMPING * scaleVelocity) /
+          spring.mass;
         scaleVelocity += scaleAcceleration * deltaSeconds;
         scale += scaleVelocity * deltaSeconds;
 

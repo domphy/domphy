@@ -31,13 +31,18 @@ describe("chartBarDefault", () => {
     expect(host.querySelector("h3")?.textContent).toBe("Bar Chart");
     expect(host.querySelector("p")?.textContent).toBe("January - June 2026");
     expect(host.querySelector("canvas")).toBeTruthy();
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts custom data and colors without throwing", () => {
     const { host } = render(
       chartBarDefault({
-        data: [{ label: "Q1", value: 40 }, { label: "Q2", value: 90 }],
+        data: [
+          { label: "Q1", value: 40 },
+          { label: "Q2", value: 90 },
+        ],
         seriesColor: "success",
         cornerRadius: 4,
       }) as DomphyElement,

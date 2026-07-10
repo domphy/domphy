@@ -14,8 +14,8 @@
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { type MotionKeyframe, heading, motion, paragraph } from "@domphy/ui";
 import { themeSpacing } from "@domphy/theme";
+import { heading, type MotionKeyframe, motion, paragraph } from "@domphy/ui";
 
 export type BlurFadeDirection = "up" | "down" | "left" | "right";
 
@@ -65,7 +65,10 @@ export interface BlurFadeProps {
   style?: StyleObject;
 }
 
-function offsetForDirection(direction: BlurFadeDirection, offset: number): { x: number; y: number } {
+function offsetForDirection(
+  direction: BlurFadeDirection,
+  offset: number,
+): { x: number; y: number } {
   // `direction` is the direction the content *travels* as it reveals, matching
   // upstream: "down" starts above (y = -offset) and slides down into place,
   // "up" starts below and slides up, etc. The hidden offset is therefore the
@@ -98,7 +101,12 @@ function defaultThumbnail(index: number): DomphyElement {
     // A purely decorative gradient tile with no text of its own — exempt from the
     // missing-color contract, same idiom as `parallaxScroll.ts`'s photo tiles.
     _doctorDisable: "missing-color",
-    style: { display: "block", width: "100%", height: "auto", borderRadius: themeSpacing(3) },
+    style: {
+      display: "block",
+      width: "100%",
+      height: "auto",
+      borderRadius: themeSpacing(3),
+    },
   } as DomphyElement;
 }
 
@@ -154,7 +162,7 @@ function blurFade(props: BlurFadeProps = {}): DomphyElement<"div"> {
     opacity: 1,
     x: 0,
     y: 0,
-    filter: "blur(0px)",
+    filter: "blur(0)",
   };
 
   const frame = toState<MotionKeyframe>(hiddenFrame);
@@ -173,7 +181,10 @@ function blurFade(props: BlurFadeProps = {}): DomphyElement<"div"> {
       let observer: IntersectionObserver | null = null;
 
       const reveal = () => {
-        timeoutHandle = setTimeout(() => frame.set(visibleFrame), REVEAL_BASELINE_DELAY + delay);
+        timeoutHandle = setTimeout(
+          () => frame.set(visibleFrame),
+          REVEAL_BASELINE_DELAY + delay,
+        );
       };
 
       if (trigger === "view") {

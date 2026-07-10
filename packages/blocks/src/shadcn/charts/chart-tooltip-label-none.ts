@@ -11,13 +11,13 @@ import type { DomphyElement } from "@domphy/core";
 import {
   ACTIVITY_SERIES_CONFIG,
   ACTIVITY_TOOLTIP_DATA,
+  type ActivityDayPoint,
+  type ActivitySeriesEntry,
   activityBarOption,
   activityTooltipCard,
   activityTooltipFormatter,
   activityTooltipPlot,
   formatWeekdayShort,
-  type ActivityDayPoint,
-  type ActivitySeriesEntry,
 } from "./chart-tooltip-shared.js";
 
 export interface ChartTooltipLabelNoneProps {
@@ -34,7 +34,9 @@ export interface ChartTooltipLabelNoneProps {
  * combining both minimal-content flags at once. Call with no arguments for a
  * working demo.
  */
-function chartTooltipLabelNone(props: ChartTooltipLabelNoneProps = {}): DomphyElement<"div"> {
+function chartTooltipLabelNone(
+  props: ChartTooltipLabelNoneProps = {},
+): DomphyElement<"div"> {
   const {
     data = ACTIVITY_TOOLTIP_DATA,
     series = ACTIVITY_SERIES_CONFIG,
@@ -49,7 +51,13 @@ function chartTooltipLabelNone(props: ChartTooltipLabelNoneProps = {}): DomphyEl
     indicator: "none",
     showLabel: false,
   });
-  const option = activityBarOption({ data, categories, series, showCursor, formatter });
+  const option = activityBarOption({
+    data,
+    categories,
+    series,
+    showCursor,
+    formatter,
+  });
 
   return activityTooltipCard({
     title,

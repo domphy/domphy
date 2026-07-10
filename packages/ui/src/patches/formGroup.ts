@@ -67,7 +67,7 @@ function formGroup(
         alignSelf: "start",
         margin: 0,
         paddingBlock: (listener) =>
-          isVertical ? "0px" : themeSpacing(themeDensity(listener) * 1),
+          isVertical ? 0 : themeSpacing(themeDensity(listener) * 1),
       },
       "& > label:has(+ :not(legend, label, p) + p)": {
         gridRow: isVertical ? "auto" : "span 2",

@@ -23,9 +23,9 @@ describe("signup05", () => {
     expect(host.querySelector("h1")?.textContent).toBe("Welcome to Acme Inc.");
     expect(host.querySelectorAll("form input").length).toBe(1);
     expect(host.querySelector('input[type="email"]')).toBeTruthy();
-    const providerButtons = Array.from(host.querySelectorAll("form button")).filter(
-      (el) => el.getAttribute("type") === "button",
-    );
+    const providerButtons = Array.from(
+      host.querySelectorAll("form button"),
+    ).filter((el) => el.getAttribute("type") === "button");
     expect(providerButtons.length).toBe(2);
   });
 
@@ -41,10 +41,12 @@ describe("signup05", () => {
     )!;
     expect(signInLink).toBeTruthy();
     expect(
-      heading.compareDocumentPosition(signInLink) & Node.DOCUMENT_POSITION_FOLLOWING,
+      heading.compareDocumentPosition(signInLink) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      signInLink.compareDocumentPosition(emailInput) & Node.DOCUMENT_POSITION_FOLLOWING,
+      signInLink.compareDocumentPosition(emailInput) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

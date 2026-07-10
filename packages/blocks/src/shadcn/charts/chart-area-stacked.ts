@@ -7,20 +7,20 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_AREA_SERIES_PALETTE,
   CHART_AREA_TWO_SERIES_DATA,
   CHART_AREA_X_AXIS_BARE,
   CHART_AREA_Y_AXIS_HIDDEN,
+  type ChartAreaTwoSeriesPoint,
+  type ChartTrendDirection,
   chartAreaFrame,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartTrendFooter,
-  type ChartAreaTwoSeriesPoint,
-  type ChartTrendDirection,
 } from "./chart-area-shared.js";
 
 export interface ChartAreaStackedSeries {
@@ -52,7 +52,9 @@ const DEFAULT_SERIES: ChartAreaStackedSeries[] = [
  * layered mountain silhouette, sharing a stack group so the visible top
  * edge is the cumulative total. Call with no arguments for a working demo.
  */
-function chartAreaStacked(props: ChartAreaStackedProps = {}): DomphyElement<"div"> {
+function chartAreaStacked(
+  props: ChartAreaStackedProps = {},
+): DomphyElement<"div"> {
   const {
     data = CHART_AREA_TWO_SERIES_DATA,
     series = DEFAULT_SERIES,
@@ -94,7 +96,11 @@ function chartAreaStacked(props: ChartAreaStackedProps = {}): DomphyElement<"div
     title,
     description,
     content: { div: [chartAreaFrame(option, height)] },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

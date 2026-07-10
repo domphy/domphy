@@ -46,7 +46,9 @@ describe("magicCard", () => {
     const card = host.firstElementChild as HTMLElement;
     const glow = card.firstElementChild as HTMLElement;
 
-    card.dispatchEvent(new MouseEvent("mousemove", { clientX: 10, clientY: 10, bubbles: true }));
+    card.dispatchEvent(
+      new MouseEvent("mousemove", { clientX: 10, clientY: 10, bubbles: true }),
+    );
     expect(glow.style.opacity).toBe("0.8");
 
     card.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
@@ -59,7 +61,9 @@ describe("magicCard", () => {
     const card = host.firstElementChild as HTMLElement;
     const glow = card.firstElementChild as HTMLElement;
 
-    card.dispatchEvent(new MouseEvent("mousemove", { clientX: 10, clientY: 10, bubbles: true }));
+    card.dispatchEvent(
+      new MouseEvent("mousemove", { clientX: 10, clientY: 10, bubbles: true }),
+    );
     expect(glow.style.opacity).toBe("0.8");
 
     window.dispatchEvent(new Event("blur"));
@@ -67,30 +71,42 @@ describe("magicCard", () => {
   });
 
   it("orb variant renders a blurred, blend-mode gradient blob", () => {
-    const { host, node } = render(magicCard({ variant: "orb" }) as DomphyElement);
+    const { host, node } = render(
+      magicCard({ variant: "orb" }) as DomphyElement,
+    );
     const card = host.firstElementChild as HTMLElement;
     // Static visual styles land in Domphy's generated CSS, not inline.
-    const css = (node as unknown as { generateCSS: () => string }).generateCSS();
+    const css = (
+      node as unknown as { generateCSS: () => string }
+    ).generateCSS();
     expect(css).toContain("blur(60px)");
     expect(css).toContain("mix-blend-mode: multiply");
     expect(css).toContain("mix-blend-mode: screen"); // dark-scheme override
     // The border spotlight still tracks the raw pointer in orb mode.
-    card.dispatchEvent(new MouseEvent("mousemove", { clientX: 5, clientY: 5, bubbles: true }));
+    card.dispatchEvent(
+      new MouseEvent("mousemove", { clientX: 5, clientY: 5, bubbles: true }),
+    );
     expect(card.style.getPropertyValue("--magic-card-x")).toBe("5px");
   });
 
   it("orb visibility eases toward orbOpacity via a spring on enter", () => {
     // Drive the rAF loop synchronously so the spring can settle inside the test.
     const frames: FrameRequestCallback[] = [];
-    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => frames.push(cb));
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) =>
+      frames.push(cb),
+    );
     vi.stubGlobal("cancelAnimationFrame", () => {});
 
-    const { host } = render(magicCard({ variant: "orb", orbOpacity: 0.65 }) as DomphyElement);
+    const { host } = render(
+      magicCard({ variant: "orb", orbOpacity: 0.65 }) as DomphyElement,
+    );
     const card = host.firstElementChild as HTMLElement;
     const orb = card.firstElementChild as HTMLElement;
 
     card.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
-    card.dispatchEvent(new MouseEvent("mousemove", { clientX: 5, clientY: 5, bubbles: true }));
+    card.dispatchEvent(
+      new MouseEvent("mousemove", { clientX: 5, clientY: 5, bubbles: true }),
+    );
 
     let time = performance.now();
     for (let i = 0; i < 2000 && frames.length > 0; i++) {

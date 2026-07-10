@@ -21,8 +21,12 @@ describe("Login02", () => {
   it("renders a working demo tree with zero args: split grid, form column, cover image column", () => {
     const { host } = render(Login02() as DomphyElement);
     expect(host.querySelector("form")).toBeTruthy();
-    expect(host.querySelector('input[name="email"][type="email"]')).toBeTruthy();
-    expect(host.querySelector('input[name="password"][type="password"]')).toBeTruthy();
+    expect(
+      host.querySelector('input[name="email"][type="email"]'),
+    ).toBeTruthy();
+    expect(
+      host.querySelector('input[name="password"][type="password"]'),
+    ).toBeTruthy();
     expect(host.querySelector("img")).toBeTruthy();
   });
 
@@ -40,16 +44,23 @@ describe("Login02", () => {
     );
     const form = host.querySelector("form") as HTMLFormElement;
     const email = host.querySelector('input[name="email"]') as HTMLInputElement;
-    const password = host.querySelector('input[name="password"]') as HTMLInputElement;
+    const password = host.querySelector(
+      'input[name="password"]',
+    ) as HTMLInputElement;
     email.value = "user@example.com";
     password.value = "secret";
-    form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    form.dispatchEvent(
+      new Event("submit", { cancelable: true, bubbles: true }),
+    );
     expect(values).toEqual([{ email: "user@example.com", password: "secret" }]);
   });
 
   it("accepts a custom cover image source/alt", () => {
     const { host } = render(
-      Login02({ coverImageSrc: "https://example.com/photo.jpg", coverImageAlt: "Office" }) as DomphyElement,
+      Login02({
+        coverImageSrc: "https://example.com/photo.jpg",
+        coverImageAlt: "Office",
+      }) as DomphyElement,
     );
     const img = host.querySelector("img") as HTMLImageElement;
     expect(img.getAttribute("src")).toBe("https://example.com/photo.jpg");

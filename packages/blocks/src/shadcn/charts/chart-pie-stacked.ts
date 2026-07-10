@@ -9,20 +9,20 @@
 // `innerRadius={70} outerRadius={90}`.
 
 import type { DomphyElement } from "@domphy/core";
-import { motion } from "@domphy/ui";
 import type { ThemeColor } from "@domphy/theme";
+import { motion } from "@domphy/ui";
 import {
-  PIE_OUTER_RADIUS,
   createPieTooltipState,
   defaultValueFormatter,
   layoutPieSlices,
+  PIE_OUTER_RADIUS,
+  type PieDatum,
   pieCard,
   pieCardDescription,
   pieCardFooter,
   pieCardTitle,
   pieChartContainer,
   pieWedgePath,
-  type PieDatum,
 } from "./pie-chart-shared.js";
 
 export interface PieStackedDatum {
@@ -67,7 +67,9 @@ export interface ChartPieStackedProps {
  * categorical color mapping, each layer driven by its own metric. Call with
  * no arguments for a fully working demo.
  */
-function chartPieStacked(props: ChartPieStackedProps = {}): DomphyElement<"div"> {
+function chartPieStacked(
+  props: ChartPieStackedProps = {},
+): DomphyElement<"div"> {
   const {
     data = DEFAULT_STACKED_DATA,
     title = "Pie Chart - Stacked",

@@ -10,13 +10,16 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
 import {
-  RADIAL_CHANNEL_DATA,
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
+import {
   createRadialTooltip,
+  RADIAL_CHANNEL_DATA,
+  type RadialSeriesDatum,
   radialCardShell,
   renderRadialRingsChart,
-  type RadialSeriesDatum,
 } from "./chart-radial-shared.js";
 
 export interface ChartRadialSimpleProps {
@@ -35,7 +38,9 @@ export interface ChartRadialSimpleProps {
  * shadcn/ui "chart-radial" default recipe — a five-ring radial bar chart
  * with a trend footer. Call with no arguments for a working demo.
  */
-function chartRadialSimple(props: ChartRadialSimpleProps = {}): DomphyElement<"div"> {
+function chartRadialSimple(
+  props: ChartRadialSimpleProps = {},
+): DomphyElement<"div"> {
   const {
     data = RADIAL_CHANNEL_DATA,
     title = "Radial Chart",
@@ -65,7 +70,11 @@ function chartRadialSimple(props: ChartRadialSimpleProps = {}): DomphyElement<"d
         }),
       ],
     },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

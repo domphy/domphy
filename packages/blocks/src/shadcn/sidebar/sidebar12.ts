@@ -6,8 +6,20 @@
 
 import type { DomphyElement, Listener, State } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { avatar, icon, inputCheckbox, popover, small, strong } from "@domphy/ui";
-import { type ThemeColor, themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSpacing,
+} from "@domphy/theme";
+import {
+  avatar,
+  icon,
+  inputCheckbox,
+  popover,
+  small,
+  strong,
+} from "@domphy/ui";
 import {
   ICON_CHEVRON_RIGHT,
   ICON_CHEVRONS_UPDOWN,
@@ -21,18 +33,28 @@ import {
 
 type Sidebar12User = { name: string; email: string; avatarUrl?: string };
 type Sidebar12CalendarEntry = { id: string; name: string; color: ThemeColor };
-type Sidebar12CalendarGroup = { label: string; entries: Sidebar12CalendarEntry[] };
+type Sidebar12CalendarGroup = {
+  label: string;
+  entries: Sidebar12CalendarEntry[];
+};
 
 type Sidebar12Props = {
   user?: Sidebar12User;
   selectedDate?: Date;
   groups?: Sidebar12CalendarGroup[];
   onDateChange?: (date: Date) => void;
-  onCalendarToggle?: (groupLabel: string, entryId: string, checked: boolean) => void;
+  onCalendarToggle?: (
+    groupLabel: string,
+    entryId: string,
+    checked: boolean,
+  ) => void;
   children?: DomphyElement | DomphyElement[];
 };
 
-const DEFAULT_USER: Sidebar12User = { name: "Shad Cn", email: "shadcn@example.com" };
+const DEFAULT_USER: Sidebar12User = {
+  name: "Shad Cn",
+  email: "shadcn@example.com",
+};
 
 // Fixed reference date (not "today") so the zero-arg demo is deterministic —
 // matches the spec's own example month/year.
@@ -98,18 +120,33 @@ function initialsOf(name: string): string {
 function accountAvatar(user: Sidebar12User): DomphyElement<"span"> {
   return user.avatarUrl
     ? ({
-        span: [{ img: null, src: user.avatarUrl, alt: user.name } as unknown as DomphyElement],
+        span: [
+          {
+            img: null,
+            src: user.avatarUrl,
+            alt: user.name,
+          } as unknown as DomphyElement,
+        ],
         $: [avatar({ color: "primary" })],
       } as unknown as DomphyElement<"span">)
-    : ({ span: initialsOf(user.name), $: [avatar({ color: "primary" })] } as unknown as DomphyElement<"span">);
+    : ({
+        span: initialsOf(user.name),
+        $: [avatar({ color: "primary" })],
+      } as unknown as DomphyElement<"span">);
 }
 
 /** Two-line label (bold name + muted email) that clips instead of wrapping. */
 function twoLineLabel(title: string, caption: string): DomphyElement<"div"> {
   return {
     div: [
-      { strong: title, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
-      { small: caption, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+      {
+        strong: title,
+        $: [strong({ color: "neutral" })],
+      } as unknown as DomphyElement,
+      {
+        small: caption,
+        $: [small({ color: "neutral" })],
+      } as unknown as DomphyElement,
     ],
     style: {
       display: "flex",
@@ -153,7 +190,8 @@ function accountDropdownContent(user: Sidebar12User): DomphyElement<"div"> {
           gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
           paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
           paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-          borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+          borderBottom: (l: Listener) =>
+            `1px solid ${themeColor(l, "shift-3", "neutral")}`,
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
         },
       } as unknown as DomphyElement,
@@ -162,7 +200,10 @@ function accountDropdownContent(user: Sidebar12User): DomphyElement<"div"> {
           div: entries.map((entry, itemIndex) => ({
             button: [
               sidebarIcon(entry.icon),
-              { span: entry.label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+              {
+                span: entry.label,
+                style: { flex: "1", textAlign: "left" },
+              } as unknown as DomphyElement,
             ],
             type: "button",
             role: "menuitem",
@@ -179,7 +220,8 @@ function accountDropdownContent(user: Sidebar12User): DomphyElement<"div"> {
             // upstream's DropdownMenuSeparator between every group.
             borderBottom:
               groupIndex < ACCOUNT_MENU_GROUPS.length - 1
-                ? (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`
+                ? (l: Listener) =>
+                    `1px solid ${themeColor(l, "shift-3", "neutral")}`
                 : undefined,
           },
           _key: groupIndex,
@@ -194,8 +236,10 @@ function accountDropdownContent(user: Sidebar12User): DomphyElement<"div"> {
       flexDirection: "column",
       minWidth: themeSpacing(56),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-      border: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
-      boxShadow: (l: Listener) => `0 ${themeSpacing(2)} ${themeSpacing(8)} ${themeColor(l, "shift-4", "neutral")}`,
+      border: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      boxShadow: (l: Listener) =>
+        `0 ${themeSpacing(2)} ${themeSpacing(8)} ${themeColor(l, "shift-4", "neutral")}`,
       overflow: "hidden",
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
@@ -210,7 +254,11 @@ function renderAccountFooter(user: Sidebar12User): DomphyElement<"div"> {
   return {
     div: [
       {
-        button: [accountAvatar(user), twoLineLabel(user.name, user.email), sidebarIcon(ICON_CHEVRONS_UPDOWN)],
+        button: [
+          accountAvatar(user),
+          twoLineLabel(user.name, user.email),
+          sidebarIcon(ICON_CHEVRONS_UPDOWN),
+        ],
         type: "button",
         ariaLabel: "Account menu",
         style: {
@@ -225,9 +273,17 @@ function renderAccountFooter(user: Sidebar12User): DomphyElement<"div"> {
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
-        $: [popover({ placement: "right-start", content: accountDropdownContent(user) })],
+        $: [
+          popover({
+            placement: "right-start",
+            content: accountDropdownContent(user),
+          }),
+        ],
       } as unknown as DomphyElement,
     ],
     style: {
@@ -240,7 +296,8 @@ function renderAccountFooter(user: Sidebar12User): DomphyElement<"div"> {
       height: themeSpacing(16),
       boxSizing: "border-box",
       padding: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-      borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderBottom: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
   } as unknown as DomphyElement<"div">;
@@ -256,16 +313,29 @@ function addDays(date: Date, count: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + count);
 }
 function sameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 function isoOf(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
 /** Compact always-visible month-grid date picker (Sunday-first, no popover). */
-function monthDatePicker(viewMonth: State<Date>, selectedDate: State<Date>, onSelect: (date: Date) => void): DomphyElement<"div"> {
-  const monthFormatter = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
-  const fullDateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "full" });
+function monthDatePicker(
+  viewMonth: State<Date>,
+  selectedDate: State<Date>,
+  onSelect: (date: Date) => void,
+): DomphyElement<"div"> {
+  const monthFormatter = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+  const fullDateFormatter = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "full",
+  });
 
   const header: DomphyElement<"div"> = {
     div: [
@@ -279,7 +349,11 @@ function monthDatePicker(viewMonth: State<Date>, selectedDate: State<Date>, onSe
       {
         div: (l: Listener) => monthFormatter.format(viewMonth.get(l)),
         ariaLive: "polite",
-        style: { flex: "1", textAlign: "center", color: (l: Listener) => themeColor(l, "shift-9", "neutral") },
+        style: {
+          flex: "1",
+          textAlign: "center",
+          color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+        },
       } as unknown as DomphyElement,
       {
         button: "›",
@@ -289,7 +363,12 @@ function monthDatePicker(viewMonth: State<Date>, selectedDate: State<Date>, onSe
         style: navButtonStyle(),
       } as unknown as DomphyElement,
     ],
-    style: { display: "flex", alignItems: "center", gap: themeSpacing(1), marginBottom: themeSpacing(2) },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: themeSpacing(1),
+      marginBottom: themeSpacing(2),
+    },
   } as unknown as DomphyElement<"div">;
 
   const weekdayHeader: DomphyElement<"div"> = {
@@ -336,10 +415,19 @@ function monthDatePicker(viewMonth: State<Date>, selectedDate: State<Date>, onSe
               aspectRatio: "1",
               borderRadius: "50%",
               opacity: outside ? 0.4 : 1,
-              color: (l: Listener) => (isSelected ? themeColor(l, "shift-9", "primary") : themeColor(l, "shift-9", "neutral")),
-              backgroundColor: (l: Listener) => (isSelected ? themeColor(l, "inherit", "primary") : themeColor(l, "inherit", "neutral")),
+              color: (l: Listener) =>
+                isSelected
+                  ? themeColor(l, "shift-9", "primary")
+                  : themeColor(l, "shift-9", "neutral"),
+              backgroundColor: (l: Listener) =>
+                isSelected
+                  ? themeColor(l, "inherit", "primary")
+                  : themeColor(l, "inherit", "neutral"),
               "&:hover:not(:disabled)": {
-                backgroundColor: (l: Listener) => (isSelected ? themeColor(l, "inherit", "primary") : themeColor(l, "shift-2", "neutral")),
+                backgroundColor: (l: Listener) =>
+                  isSelected
+                    ? themeColor(l, "inherit", "primary")
+                    : themeColor(l, "shift-2", "neutral"),
               },
             },
           } as unknown as DomphyElement);
@@ -360,7 +448,10 @@ function monthDatePicker(viewMonth: State<Date>, selectedDate: State<Date>, onSe
 
   return {
     div: [header, weekdayHeader, grid],
-    style: { padding: (l: Listener) => themeSpacing(themeDensity(l) * 3), color: (l: Listener) => themeColor(l, "shift-9", "neutral") },
+    style: {
+      padding: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+    },
   } as unknown as DomphyElement<"div">;
 }
 
@@ -375,12 +466,18 @@ function navButtonStyle() {
     borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral") },
+    "&:hover": {
+      backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral"),
+    },
   };
 }
 
 function gridRowStyle() {
-  return { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: themeSpacing(0.5) };
+  return {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)",
+    gap: themeSpacing(0.5),
+  };
 }
 
 /** One calendar entry row: colored square checkbox + name. */
@@ -390,12 +487,14 @@ function calendarEntryRow(
   checked: State<boolean>,
   onToggle?: (groupLabel: string, entryId: string, checked: boolean) => void,
 ): DomphyElement<"li"> {
+  const inputId = `sidebar12-calendar-${entry.id}`;
   return {
     li: [
       {
         label: [
           {
             input: null,
+            id: inputId,
             type: "checkbox",
             checked: (l: Listener) => checked.get(l),
             onChange: (e: Event) => {
@@ -405,8 +504,12 @@ function calendarEntryRow(
             },
             $: [inputCheckbox({ color: "neutral", accentColor: entry.color })],
           } as unknown as DomphyElement,
-          { span: entry.name, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+          {
+            span: entry.name,
+            style: { flex: "1", textAlign: "left" },
+          } as unknown as DomphyElement,
         ],
+        htmlFor: inputId,
         style: {
           display: "flex",
           alignItems: "center",
@@ -418,7 +521,10 @@ function calendarEntryRow(
           cursor: "pointer",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
       } as unknown as DomphyElement,
     ],
@@ -434,7 +540,9 @@ function calendarGroupSection(
   groupIndex: number,
   onToggle?: (groupLabel: string, entryId: string, checked: boolean) => void,
 ): DomphyElement<"li"> {
-  const entryStates = group.entries.map((_entry, entryIndex) => toState(entryIndex < 2));
+  const entryStates = group.entries.map((_entry, entryIndex) =>
+    toState(entryIndex < 2),
+  );
 
   return {
     li: [
@@ -442,7 +550,10 @@ function calendarGroupSection(
         details: [
           {
             summary: [
-              { span: group.label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+              {
+                span: group.label,
+                style: { flex: "1", textAlign: "left" },
+              } as unknown as DomphyElement,
               {
                 span: ICON_CHEVRON_RIGHT,
                 dataSlot: "chevron",
@@ -457,17 +568,33 @@ function calendarGroupSection(
               display: "flex",
               alignItems: "center",
               width: "100%",
-              paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
+              paddingBlock: (l: Listener) =>
+                themeSpacing(themeDensity(l) * 1.5),
               paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-              backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "inherit", "neutral"),
               "&::-webkit-details-marker": { display: "none" },
               "&::marker": { content: `""` },
             },
           } as unknown as DomphyElement,
           {
-            ul: group.entries.map((entry, index) => calendarEntryRow(group.label, entry, entryStates[index]!, onToggle)),
-            style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
+            ul: group.entries.map((entry, index) =>
+              calendarEntryRow(
+                group.label,
+                entry,
+                entryStates[index]!,
+                onToggle,
+              ),
+            ),
+            style: {
+              listStyle: "none",
+              margin: "0",
+              padding: "0",
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(0.5),
+            },
           } as unknown as DomphyElement,
         ],
         open: groupIndex === 0,
@@ -495,7 +622,8 @@ function groupSeparator(): DomphyElement<"div"> {
       height: "0",
       width: "100%",
       marginBlockStart: themeSpacing(2),
-      borderBlockStart: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderBlockStart: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-3", "neutral"),
     },
   } as unknown as DomphyElement<"div">;
@@ -533,7 +661,13 @@ function eventGridPlaceholder(): DomphyElement<"div"> {
  * independently. Call with no arguments for a fully working demo.
  */
 function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
-  const { user = DEFAULT_USER, groups = DEFAULT_GROUPS, onDateChange, onCalendarToggle, children } = props;
+  const {
+    user = DEFAULT_USER,
+    groups = DEFAULT_GROUPS,
+    onDateChange,
+    onCalendarToggle,
+    children,
+  } = props;
 
   const initialDate = props.selectedDate ?? DEFAULT_DATE;
   const selectedDate = toState(initialDate);
@@ -546,7 +680,9 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
     onDateChange?.(date);
   };
   const periodLabel = (listener: Listener) =>
-    new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(viewMonth.get(listener));
+    new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(
+      viewMonth.get(listener),
+    );
 
   const asideElement: DomphyElement<"aside"> = {
     aside: [
@@ -558,7 +694,9 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
       // header/content divider is already the renderAccountFooter border-b.)
       groupSeparator(),
       {
-        ul: groups.map((group, groupIndex) => calendarGroupSection(group, groupIndex, onCalendarToggle)),
+        ul: groups.map((group, groupIndex) =>
+          calendarGroupSection(group, groupIndex, onCalendarToggle),
+        ),
         style: {
           listStyle: "none",
           margin: "0",
@@ -572,7 +710,13 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
       {
         div: [
           {
-            button: [sidebarIcon(ICON_PLUS), { span: "New Calendar", style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement],
+            button: [
+              sidebarIcon(ICON_PLUS),
+              {
+                span: "New Calendar",
+                style: { flex: "1", textAlign: "left" },
+              } as unknown as DomphyElement,
+            ],
             type: "button",
             style: {
               display: "flex",
@@ -584,13 +728,18 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
               border: "none",
               cursor: "pointer",
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-              backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-              "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "inherit", "neutral"),
+              "&:hover": {
+                backgroundColor: (l: Listener) =>
+                  themeColor(l, "shift-2", "neutral"),
+              },
             },
           } as unknown as DomphyElement,
         ],
         style: {
-          borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+          borderTop: (l: Listener) =>
+            `1px solid ${themeColor(l, "shift-3", "neutral")}`,
           padding: (l: Listener) => themeSpacing(themeDensity(l) * 1),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
         },
@@ -621,10 +770,11 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
       top: "0",
       height: "100dvh",
       overflowY: "auto",
-      width: (l: Listener) => (collapsed.get(l) ? "0px" : themeSpacing(70)),
+      width: (l: Listener) => (collapsed.get(l) ? "0" : themeSpacing(70)),
       overflowX: "hidden",
       transition: "width 180ms ease-out",
-      borderInlineEnd: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderInlineEnd: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       "@media (max-width: 768px)": {
@@ -633,7 +783,8 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
         insetInlineStart: "0",
         zIndex: "15",
         width: themeSpacing(70),
-        transform: (l: Listener) => (mobileOpen.get(l) ? "translateX(0)" : "translateX(-100%)"),
+        transform: (l: Listener) =>
+          mobileOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
         transition: "transform 180ms ease-out",
       },
     },
@@ -658,7 +809,10 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
         },
       } as unknown as DomphyElement,
       verticalDivider(),
-      { strong: periodLabel, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
+      {
+        strong: periodLabel,
+        $: [strong({ color: "neutral" })],
+      } as unknown as DomphyElement,
       {
         div: [
           {
@@ -685,7 +839,12 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
             style: navButtonStyle(),
           } as unknown as DomphyElement,
         ],
-        style: { marginInlineStart: "auto", display: "flex", alignItems: "center", gap: themeSpacing(1) },
+        style: {
+          marginInlineStart: "auto",
+          display: "flex",
+          alignItems: "center",
+          gap: themeSpacing(1),
+        },
       } as unknown as DomphyElement,
     ],
     style: {
@@ -695,7 +854,8 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
       height: themeSpacing(16),
       flexShrink: "0",
       paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
-      borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderBottom: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
@@ -743,11 +903,19 @@ function todayButtonStyle() {
     borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    outline: (l: Listener) => `1px solid ${themeColor(l, "shift-4", "neutral")}`,
+    outline: (l: Listener) =>
+      `1px solid ${themeColor(l, "shift-4", "neutral")}`,
     outlineOffset: "-1px",
-    "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+    "&:hover": {
+      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+    },
   };
 }
 
 export { sidebar12 };
-export type { Sidebar12CalendarEntry, Sidebar12CalendarGroup, Sidebar12Props, Sidebar12User };
+export type {
+  Sidebar12CalendarEntry,
+  Sidebar12CalendarGroup,
+  Sidebar12Props,
+  Sidebar12User,
+};

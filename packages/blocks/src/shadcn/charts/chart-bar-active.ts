@@ -9,10 +9,13 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption, TooltipParams } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
+  type ChartBarCategoryPoint,
+  type ChartBarGrid,
+  type ChartTrendDirection,
   chartBarActiveOverlay,
   chartBarCardShell,
   chartBarCategoryXAxis,
@@ -22,9 +25,6 @@ import {
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
-  type ChartBarCategoryPoint,
-  type ChartBarGrid,
-  type ChartTrendDirection,
 } from "./chart-bar-shared.js";
 
 export interface ChartBarActiveProps {
@@ -78,8 +78,12 @@ function chartBarActive(props: ChartBarActiveProps = {}): DomphyElement<"div"> {
   const categories = data.map((point) => point.category);
   const values = data.map((point) => point.value);
   const valueDomain = chartBarValueDomain(values);
-  const clampedActiveIndex = Math.max(0, Math.min(data.length - 1, activeIndex));
-  const barColor = (index: number): ThemeColor => data[index]?.color ?? seriesColor;
+  const clampedActiveIndex = Math.max(
+    0,
+    Math.min(data.length - 1, activeIndex),
+  );
+  const barColor = (index: number): ThemeColor =>
+    data[index]?.color ?? seriesColor;
 
   const option: ChartOption = {
     tooltip: {
@@ -93,7 +97,10 @@ function chartBarActive(props: ChartBarActiveProps = {}): DomphyElement<"div"> {
       formatter: chartBarActiveTooltipFormatter,
     },
     xAxis: chartBarCategoryXAxis(categories),
-    yAxis: chartBarHiddenValueYAxis({ min: valueDomain[0], max: valueDomain[1] }),
+    yAxis: chartBarHiddenValueYAxis({
+      min: valueDomain[0],
+      max: valueDomain[1],
+    }),
     grid: GRID,
     // Every bar carries its own accent color — upstream's active recipe is a
     // multi-color chart, not a single-hue one; one bar is then singled out by
@@ -130,20 +137,31 @@ function chartBarActive(props: ChartBarActiveProps = {}): DomphyElement<"div"> {
         }),
       ],
     },
-    footer: chartBarTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartBarTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 
 function escapeTooltipHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 // hideLabel formatter: omits the category header line, printing only the
 // single series' color dot + name + value (mirrors chart-bar-default's
 // chartBarDefaultTooltipFormatter and upstream's <ChartTooltipContent
 // hideLabel />).
-function chartBarActiveTooltipFormatter(parametersInput: TooltipParams | TooltipParams[]): string {
-  const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
+function chartBarActiveTooltipFormatter(
+  parametersInput: TooltipParams | TooltipParams[],
+): string {
+  const parameters = Array.isArray(parametersInput)
+    ? parametersInput
+    : [parametersInput];
   if (parameters.length === 0) return "";
   const item = parameters[0];
   const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${item.color};margin-right:6px;"></span>`;

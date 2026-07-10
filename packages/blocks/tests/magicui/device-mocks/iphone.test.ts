@@ -32,7 +32,9 @@ describe("iphone", () => {
   });
 
   it("renders an image inside the screen cutout", () => {
-    const { host } = render(iphone({ src: "https://example.com/shot.png", alt: "Onboarding screen" }));
+    const { host } = render(
+      iphone({ src: "https://example.com/shot.png", alt: "Onboarding screen" }),
+    );
     const image = host.querySelector("img");
     expect(image).toBeTruthy();
     expect(image!.getAttribute("src")).toBe("https://example.com/shot.png");
@@ -41,7 +43,10 @@ describe("iphone", () => {
 
   it("renders a video inside the screen cutout, preferred over an image", () => {
     const { host } = render(
-      iphone({ src: "https://example.com/shot.png", videoSrc: "https://example.com/demo.mp4" }),
+      iphone({
+        src: "https://example.com/shot.png",
+        videoSrc: "https://example.com/demo.mp4",
+      }),
     );
     expect(host.querySelector("video")).toBeTruthy();
     expect(host.querySelector("img")).toBeNull();

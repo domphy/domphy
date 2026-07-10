@@ -32,7 +32,9 @@ describe("wordRotate", () => {
 
   it("rotates to the next word on the interval timer, wrapping back to the first", () => {
     vi.useFakeTimers();
-    const { host } = render(wordRotate({ words: ["One", "Two"], duration: 500 }) as DomphyElement);
+    const { host } = render(
+      wordRotate({ words: ["One", "Two"], duration: 500 }) as DomphyElement,
+    );
     flushSync();
     expect(host.textContent).toBe("One");
 
@@ -59,7 +61,9 @@ describe("wordRotate", () => {
   });
 
   it("accepts a single word without throwing (no timer needed)", () => {
-    expect(() => render(wordRotate({ words: ["Solo"] }) as DomphyElement)).not.toThrow();
+    expect(() =>
+      render(wordRotate({ words: ["Solo"] }) as DomphyElement),
+    ).not.toThrow();
   });
 
   it("removes cleanly without throwing", () => {

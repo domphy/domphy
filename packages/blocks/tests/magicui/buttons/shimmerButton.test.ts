@@ -28,13 +28,17 @@ describe("shimmerButton", () => {
   });
 
   it("renders custom label content instead of the default demo text", () => {
-    const { host } = render(shimmerButton({ children: "Join now" }) as DomphyElement);
+    const { host } = render(
+      shimmerButton({ children: "Join now" }) as DomphyElement,
+    );
     expect(host.querySelector("button")!.textContent).toBe("Join now");
   });
 
   it("uses a dark edge tone anchor so the fill is fixed regardless of page context", () => {
     const { host } = render(shimmerButton() as DomphyElement);
-    expect(host.querySelector("button")!.getAttribute("data-tone")).toBe("shift-15");
+    expect(host.querySelector("button")!.getAttribute("data-tone")).toBe(
+      "shift-15",
+    );
   });
 
   it("continuously spins the highlight sliver via a conic-gradient keyframe loop", () => {
@@ -54,7 +58,9 @@ describe("shimmerButton", () => {
 
   it("fires the provided onClick handler when clicked", () => {
     const handleClick = vi.fn();
-    const { host } = render(shimmerButton({ onClick: handleClick }) as DomphyElement);
+    const { host } = render(
+      shimmerButton({ onClick: handleClick }) as DomphyElement,
+    );
     host.querySelector("button")!.click();
     expect(handleClick).toHaveBeenCalledTimes(1);
   });

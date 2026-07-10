@@ -12,8 +12,8 @@ import type { DomphyElement } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
 import { button, card, heading, paragraph } from "@domphy/ui";
 import {
-  NARROW_CARD_WIDTH,
   emailField,
+  NARROW_CARD_WIDTH,
   passwordField,
   signUpLine,
   submitButton,
@@ -99,9 +99,17 @@ function Login01(props: Login01Props = {}): DomphyElement<"div"> {
                         $: [button({ color: "neutral" })],
                         style: { width: "100%" },
                       } as DomphyElement<"button">,
-                      signUpLine({ promptText: signUpPrompt, linkLabel: signUpLabel, href: signUpHref }),
+                      signUpLine({
+                        promptText: signUpPrompt,
+                        linkLabel: signUpLabel,
+                        href: signUpHref,
+                      }),
                     ],
-                    style: { display: "flex", flexDirection: "column", gap: themeSpacing(3) },
+                    style: {
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: themeSpacing(3),
+                    },
                   },
                 ],
                 onSubmit: (event: Event) => {
@@ -112,7 +120,11 @@ function Login01(props: Login01Props = {}): DomphyElement<"div"> {
                     password: String(data.get("password") ?? ""),
                   });
                 },
-                style: { display: "flex", flexDirection: "column", gap: themeSpacing(7) },
+                style: {
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: themeSpacing(7),
+                },
               } as DomphyElement<"form">,
             ],
           },

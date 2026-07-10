@@ -17,6 +17,7 @@
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { hashString, toState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { fixed } from "../../shared/typography.js";
 
 export interface SparklesTextProps {
   /** Text content. Defaults to a short demo phrase. */
@@ -139,9 +140,9 @@ function sparklesText(props: SparklesTextProps = {}): DomphyElement<"div"> {
     ],
     // Upstream root carries `text-6xl font-bold`.
     style: {
-      fontSize: "3.75rem",
-      lineHeight: "1",
-      fontWeight: 700,
+      fontSize: fixed("3.75rem"),
+      lineHeight: fixed("1"),
+      fontWeight: fixed(700),
       [`@keyframes ${animationName}`]: keyframes,
       ...(props.style ?? {}),
     } as StyleObject,

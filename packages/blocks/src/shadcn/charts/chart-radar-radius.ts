@@ -14,17 +14,21 @@
 
 import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor } from "@domphy/theme";
-import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
+import { fixed } from "../../shared/typography.js";
 import {
-  RADAR_MULTI_SERIES,
-  RADAR_MONTHLY_MULTI_DATA,
-  RADAR_PLOT_RADIUS,
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
+import {
   createRadarTooltip,
+  RADAR_MONTHLY_MULTI_DATA,
+  RADAR_MULTI_SERIES,
+  RADAR_PLOT_RADIUS,
+  type RadarPoint,
+  type RadarSeriesConfig,
   radarCardShell,
   radarPolarPoint,
   renderRadarChart,
-  type RadarPoint,
-  type RadarSeriesConfig,
 } from "./chart-radar-shared.js";
 
 export interface ChartRadarRadiusProps {
@@ -51,24 +55,30 @@ function renderRadiusAxisTicks(
 ): DomphyElement[] {
   const maxValue = Math.max(
     1,
-    ...data.flatMap((point) => series.map((entry) => Number(point[entry.key]) || 0)),
+    ...data.flatMap((point) =>
+      series.map((entry) => Number(point[entry.key]) || 0),
+    ),
   );
   const rawStep = maxValue / 4;
   const magnitude = 10 ** Math.floor(Math.log10(rawStep));
   const normalized = rawStep / magnitude;
-  const niceUnit = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  const niceUnit =
+    normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
   const step = niceUnit * magnitude;
 
   const ticks: DomphyElement[] = [];
   for (let value = 0; value <= maxValue + 1e-9; value += step) {
     const rounded = Math.round(value);
-    const point = radarPolarPoint(RADAR_PLOT_RADIUS * (rounded / maxValue), angleDeg);
+    const point = radarPolarPoint(
+      RADAR_PLOT_RADIUS * (rounded / maxValue),
+      angleDeg,
+    );
     ticks.push({
       text: String(rounded),
       x: point.x,
       y: point.y,
       fill: (l: Listener) => themeColor(l, "shift-11"),
-      fontSize: "10",
+      fontSize: fixed("10"),
       textAnchor: "middle",
       dominantBaseline: "middle",
       _key: `radius-tick-${rounded}`,
@@ -82,7 +92,9 @@ function renderRadiusAxisTicks(
  * numeric radius-axis scale (tick numbers along a 60° direction, no axis line).
  * Call with no arguments for a working demo.
  */
-function chartRadarRadius(props: ChartRadarRadiusProps = {}): DomphyElement<"div"> {
+function chartRadarRadius(
+  props: ChartRadarRadiusProps = {},
+): DomphyElement<"div"> {
   const {
     data = RADAR_MONTHLY_MULTI_DATA,
     series = RADAR_MULTI_SERIES,
@@ -112,13 +124,19 @@ function chartRadarRadius(props: ChartRadarRadiusProps = {}): DomphyElement<"div
   // ponytail: coupled to that return order; the alternative is duplicating the
   // whole svg + tooltip assembly here just to add four <text> nodes.
   const svgElement = (chart.div as DomphyElement[])[0] as DomphyElement<"svg">;
-  (svgElement.svg as DomphyElement[]).push(...renderRadiusAxisTicks(data, series, radiusAxisAngle));
+  (svgElement.svg as DomphyElement[]).push(
+    ...renderRadiusAxisTicks(data, series, radiusAxisAngle),
+  );
 
   return radarCardShell({
     title,
     description,
     content: { div: [chart] },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

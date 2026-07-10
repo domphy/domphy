@@ -11,8 +11,8 @@
 import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 import {
-  WIDE_SPLIT_MEDIA_QUERY,
   brandBadge,
   coverImage,
   dividerRow,
@@ -21,6 +21,7 @@ import {
   passwordField,
   signUpLine,
   submitButton,
+  WIDE_SPLIT_MEDIA_QUERY,
 } from "./login01-05-shared.js";
 
 /** Props for {@link Login02}. */
@@ -84,9 +85,9 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
       alignItems: "center",
       justifyContent: "center",
       gap: themeSpacing(2),
-      fontWeight: "500",
+      fontWeight: fixed("500"),
       color: "inherit",
-      textDecoration: "none",
+      textDecoration: fixed("none"),
       "@media (min-width: 48em)": { justifyContent: "flex-start" },
     },
   };
@@ -109,8 +110,16 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
           gap: themeSpacing(1),
         },
       },
-      emailField({ id: "login02-email", fieldLabel: emailLabel, placeholder: emailPlaceholder }),
-      passwordField({ id: "login02-password", fieldLabel: passwordLabel, forgotPasswordHref }),
+      emailField({
+        id: "login02-email",
+        fieldLabel: emailLabel,
+        placeholder: emailPlaceholder,
+      }),
+      passwordField({
+        id: "login02-password",
+        fieldLabel: passwordLabel,
+        forgotPasswordHref,
+      }),
       submitButton(primaryButtonLabel),
       dividerRow(dividerText),
       // Upstream keeps the GitHub button and the sign-up line inside a single
@@ -124,9 +133,17 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
             accessibleLabel: githubButtonLabel,
             onClick: onGithubClick,
           }),
-          signUpLine({ promptText: signUpPrompt, linkLabel: signUpLabel, href: signUpHref }),
+          signUpLine({
+            promptText: signUpPrompt,
+            linkLabel: signUpLabel,
+            href: signUpHref,
+          }),
         ],
-        style: { display: "flex", flexDirection: "column", gap: themeSpacing(3) },
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: themeSpacing(3),
+        },
       },
     ],
     onSubmit: (event) => {
@@ -175,11 +192,29 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
         },
       },
       {
-        div: [coverImage({ src: coverImageSrc, alt: coverImageAlt, dimInDarkMode: dimCoverInDarkMode })],
+        div: [
+          coverImage({
+            src: coverImageSrc,
+            alt: coverImageAlt,
+            dimInDarkMode: dimCoverInDarkMode,
+          }),
+        ],
+        // Upstream image container carries `bg-muted` (a fixed mid-ramp tone,
+        // not the ambient page surface) behind the photo — a deliberate,
+        // always-slightly-muted backdrop visible while the cover photo loads,
+        // independent of `dataTone`. Remapping it to `"inherit"` would erase
+        // that intentional distinction from the surrounding page background.
+        _doctorDisable: "tone-background-inherit",
         style: {
           minWidth: "0",
-          // Upstream image container carries `bg-muted` behind the photo.
-          backgroundColor: (listener: Listener) => themeColor(listener, "shift-2", "neutral"),
+          backgroundColor: (listener: Listener) =>
+            themeColor(listener, "shift-2", "neutral"),
+          // shift-11 (not the usual shift-9) to clear the doctor's ≥9-step
+          // contrast minimum against this container's shift-2 background —
+          // moot in practice since the cover photo fills 100% of the box and
+          // no text renders here, but keeps the reactive `color` legitimate.
+          color: (listener: Listener) =>
+            themeColor(listener, "shift-11", "neutral"),
           [WIDE_SPLIT_MEDIA_QUERY]: { display: "none" },
         },
       },

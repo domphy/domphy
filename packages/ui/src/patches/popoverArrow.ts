@@ -75,7 +75,7 @@ function popoverArrow(
         width: themeSpacing(1.5),
         height: themeSpacing(1.5),
         backgroundColor: (listener) => themeColor(listener, "inherit", color),
-        borderWidth: bordered ? "1px" : "0px",
+        borderWidth: bordered ? "1px" : 0,
         borderColor: (listener) => themeColor(listener, "inherit", color),
         borderTopStyle: (listener) => {
           const pos = getFlipped(listener);

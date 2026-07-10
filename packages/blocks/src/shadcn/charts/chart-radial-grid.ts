@@ -14,20 +14,23 @@
 
 import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
-import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
 import {
-  RADIAL_CENTER,
-  RADIAL_CHANNEL_DATA,
-  RADIAL_VIEW_SIZE,
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
+import {
   computeRingLayout,
   createRadialTooltip,
   polarPoint,
+  RADIAL_CENTER,
+  RADIAL_CHANNEL_DATA,
+  RADIAL_VIEW_SIZE,
+  type RadialSeriesDatum,
   radialArcPath,
   radialCardShell,
   radialSeriesColor,
   radialThinCircle,
   radialTooltipLayer,
-  type RadialSeriesDatum,
 } from "./chart-radial-shared.js";
 
 export interface ChartRadialGridProps {
@@ -49,7 +52,9 @@ export interface ChartRadialGridProps {
  * (concentric band circles + radial spokes) instead of solid background
  * tracks. Call with no arguments for a working demo.
  */
-function chartRadialGrid(props: ChartRadialGridProps = {}): DomphyElement<"div"> {
+function chartRadialGrid(
+  props: ChartRadialGridProps = {},
+): DomphyElement<"div"> {
   const {
     data = RADIAL_CHANNEL_DATA,
     title = "Radial Chart - Grid",
@@ -67,7 +72,12 @@ function chartRadialGrid(props: ChartRadialGridProps = {}): DomphyElement<"div">
   const cx = RADIAL_CENTER;
   const cy = RADIAL_CENTER;
 
-  const rings = computeRingLayout(data.length, outerRadius, innerRadius, ringGap);
+  const rings = computeRingLayout(
+    data.length,
+    outerRadius,
+    innerRadius,
+    ringGap,
+  );
   const maxValue = Math.max(...data.map((point) => point.value), 1);
   const tooltip = createRadialTooltip();
 
@@ -81,10 +91,15 @@ function chartRadialGrid(props: ChartRadialGridProps = {}): DomphyElement<"div">
       ? rings.map((ring) => ring.radius)
       : Array.from({ length: gridCircleCount }, (_, index) => {
           const denominator = Math.max(1, gridCircleCount - 1);
-          return innerRadius + ((outerRadius - innerRadius) / denominator) * index;
+          return (
+            innerRadius + ((outerRadius - innerRadius) / denominator) * index
+          );
         });
   gridRadii.forEach((radius, index) => {
-    gridElements.push({ ...radialThinCircle(cx, cy, radius, "muted"), _key: `grid-ring-${index}` });
+    gridElements.push({
+      ...radialThinCircle(cx, cy, radius, "muted"),
+      _key: `grid-ring-${index}`,
+    });
   });
 
   // radialLines={true} default: evenly spaced spokes from inner to outer radius.
@@ -132,7 +147,12 @@ function chartRadialGrid(props: ChartRadialGridProps = {}): DomphyElement<"div">
       {
         svg: [...gridElements, ...arcElements],
         viewBox: `0 0 ${RADIAL_VIEW_SIZE} ${RADIAL_VIEW_SIZE}`,
-        style: { width: "100%", height: "100%", display: "block", overflow: "visible" },
+        style: {
+          width: "100%",
+          height: "100%",
+          display: "block",
+          overflow: "visible",
+        },
       } as DomphyElement<"svg">,
       radialTooltipLayer(tooltip),
     ],
@@ -155,7 +175,11 @@ function chartRadialGrid(props: ChartRadialGridProps = {}): DomphyElement<"div">
     title,
     description,
     content: { div: [chart] },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

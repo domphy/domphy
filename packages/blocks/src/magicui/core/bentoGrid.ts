@@ -8,8 +8,8 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { heading, link, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { heading, link, paragraph } from "@domphy/ui";
 
 export interface BentoCardSpec {
   title: string;
@@ -56,58 +56,68 @@ function lineIcon(children: DomphyElement[]): DomphyElement<"span"> {
     ],
     ariaHidden: "true",
     // Upstream Icon is `h-12 w-12` (3rem).
-    style: { display: "inline-flex", width: themeSpacing(12), height: themeSpacing(12) },
+    style: {
+      display: "inline-flex",
+      width: themeSpacing(12),
+      height: themeSpacing(12),
+    },
   };
 }
 
-const boltIcon = () => lineIcon([{ polyline: null, points: "13,3 4,14 12,14 11,21 20,10 12,10" }]);
-const syncIcon = () => lineIcon([
-  { path: null, d: "M4 11a8 8 0 0 1 14-5" },
-  { polyline: null, points: "18,3 18,7 14,7" },
-  { path: null, d: "M20 13a8 8 0 0 1-14 5" },
-  { polyline: null, points: "6,21 6,17 10,17" },
-]);
-const globeIcon = () => lineIcon([
-  { circle: null, cx: "12", cy: "12", r: "9" },
-  { ellipse: null, cx: "12", cy: "12", rx: "4", ry: "9" },
-  { line: null, x1: "3", y1: "12", x2: "21", y2: "12" },
-]);
-const chartIcon = () => lineIcon([
-  { line: null, x1: "4", y1: "20", x2: "4", y2: "10" },
-  { line: null, x1: "12", y1: "20", x2: "12", y2: "4" },
-  { line: null, x1: "20", y1: "20", x2: "20", y2: "14" },
-]);
-const shieldIcon = () => lineIcon([
-  { path: null, d: "M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" },
-  { polyline: null, points: "9,12 11,14 15,10" },
-]);
-const arrowRightIcon = () => ({
-  span: [
-    {
-      svg: [
-        { line: null, x1: "4", y1: "12", x2: "18", y2: "12" },
-        { polyline: null, points: "12,6 18,12 12,18" },
-      ],
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      strokeWidth: "2",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      role: "img",
-      ariaHidden: "true",
-      style: { width: "100%", height: "100%" },
-    } as DomphyElement<"svg">,
-  ],
-  ariaHidden: "true",
-  dataBentoArrow: "true",
-  style: {
-    display: "inline-flex",
-    width: themeSpacing(4),
-    height: themeSpacing(4),
-    transition: "transform 200ms ease",
-  },
-}) as DomphyElement<"span">;
+const boltIcon = () =>
+  lineIcon([{ polyline: null, points: "13,3 4,14 12,14 11,21 20,10 12,10" }]);
+const syncIcon = () =>
+  lineIcon([
+    { path: null, d: "M4 11a8 8 0 0 1 14-5" },
+    { polyline: null, points: "18,3 18,7 14,7" },
+    { path: null, d: "M20 13a8 8 0 0 1-14 5" },
+    { polyline: null, points: "6,21 6,17 10,17" },
+  ]);
+const globeIcon = () =>
+  lineIcon([
+    { circle: null, cx: "12", cy: "12", r: "9" },
+    { ellipse: null, cx: "12", cy: "12", rx: "4", ry: "9" },
+    { line: null, x1: "3", y1: "12", x2: "21", y2: "12" },
+  ]);
+const chartIcon = () =>
+  lineIcon([
+    { line: null, x1: "4", y1: "20", x2: "4", y2: "10" },
+    { line: null, x1: "12", y1: "20", x2: "12", y2: "4" },
+    { line: null, x1: "20", y1: "20", x2: "20", y2: "14" },
+  ]);
+const shieldIcon = () =>
+  lineIcon([
+    { path: null, d: "M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" },
+    { polyline: null, points: "9,12 11,14 15,10" },
+  ]);
+const arrowRightIcon = () =>
+  ({
+    span: [
+      {
+        svg: [
+          { line: null, x1: "4", y1: "12", x2: "18", y2: "12" },
+          { polyline: null, points: "12,6 18,12 12,18" },
+        ],
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: "2",
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        role: "img",
+        ariaHidden: "true",
+        style: { width: "100%", height: "100%" },
+      } as DomphyElement<"svg">,
+    ],
+    ariaHidden: "true",
+    dataBentoArrow: "true",
+    style: {
+      display: "inline-flex",
+      width: themeSpacing(4),
+      height: themeSpacing(4),
+      transition: "transform 200ms ease",
+    },
+  }) as DomphyElement<"span">;
 
 /** Soft drifting gradient blob — the default, generic "pluggable background widget". */
 function gradientBlob(color: ThemeColor): DomphyElement<"div"> {
@@ -144,7 +154,8 @@ function gradientBlob(color: ThemeColor): DomphyElement<"div"> {
 const DEFAULT_CARDS: BentoCardSpec[] = [
   {
     title: "Ship faster",
-    description: "A component library and a design system that stay in lockstep, so nothing drifts.",
+    description:
+      "A component library and a design system that stay in lockstep, so nothing drifts.",
     href: "#",
     icon: boltIcon(),
     background: gradientBlob("primary"),
@@ -153,14 +164,16 @@ const DEFAULT_CARDS: BentoCardSpec[] = [
   },
   {
     title: "Stay in sync",
-    description: "Every change propagates instantly across your team's workspace.",
+    description:
+      "Every change propagates instantly across your team's workspace.",
     href: "#",
     icon: syncIcon(),
     background: gradientBlob("secondary"),
   },
   {
     title: "Global by default",
-    description: "Edge-rendered everywhere, with locale-aware content out of the box.",
+    description:
+      "Edge-rendered everywhere, with locale-aware content out of the box.",
     href: "#",
     icon: globeIcon(),
     background: gradientBlob("info"),
@@ -240,7 +253,8 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
                   dataBentoIcon: "true",
                   style: {
                     display: "inline-flex",
-                    color: (listener: Listener) => themeColor(listener, "shift-10"),
+                    color: (listener: Listener) =>
+                      themeColor(listener, "shift-10"),
                     transformOrigin: "left",
                     transition: "transform 300ms ease",
                   },
@@ -290,6 +304,11 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
     div: [...(backgroundLayer ? [backgroundLayer] : []), content, overlay],
     _key: card.title,
     dataTone: "shift-1",
+    // The `&:hover [data-bento-overlay]` rgba(0,0,0,0.03) tint below (and its
+    // dark-mode rgba(38,38,38,0.1) counterpart) is diffed byte-for-byte from
+    // upstream's own literal `rgba()` hover wash — it's the effect's identity,
+    // not a themeable surface color, so it stays untokenized.
+    _doctorDisable: "raw-theme-value",
     style: {
       position: "relative",
       overflow: "hidden",
@@ -311,18 +330,26 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
       // retroGrid/noiseTexture use). The card's border/shadow stay STATIC on
       // hover — upstream's only hover surface feedback is the tint overlay, not
       // an animated ring/shadow.
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
+      outline: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3")}`,
       outlineOffset: "-1px",
       boxShadow: (listener: Listener) =>
         `0 ${themeSpacing(1)} ${themeSpacing(2)} ${themeColor(listener, "shift-3")}, 0 ${themeSpacing(6)} ${themeSpacing(12)} ${themeColor(listener, "shift-2")}`,
       "&:hover [data-bento-overlay]": { backgroundColor: "rgba(0,0,0,0.03)" },
-      "&:hover [data-bento-background]": { transform: "scale(1.08)", filter: "blur(20px)" },
-      "&:hover [data-bento-arrow]": { transform: `translateX(${themeSpacing(1)})` },
+      "&:hover [data-bento-background]": {
+        transform: "scale(1.08)",
+        filter: "blur(20px)",
+      },
+      "&:hover [data-bento-arrow]": {
+        transform: `translateX(${themeSpacing(1)})`,
+      },
       "&:hover [data-bento-icon]": { transform: "scale(0.75)" },
       "@media (prefers-color-scheme: dark)": {
         outlineColor: "rgba(255,255,255,0.1)",
         boxShadow: "0 -20px 80px -20px rgba(255,255,255,0.12) inset",
-        "&:hover [data-bento-overlay]": { backgroundColor: "rgba(38,38,38,0.1)" },
+        "&:hover [data-bento-overlay]": {
+          backgroundColor: "rgba(38,38,38,0.1)",
+        },
       },
       "@media (min-width: 64em)": {
         // `& [descendant]` (not a bare `[descendant]`) so the key matches
@@ -336,10 +363,12 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
           transform: `translateY(${themeSpacing(10)})`,
         },
         "&:hover [data-bento-cta]": { opacity: 1, transform: "translateY(0)" },
-        "&:hover [data-bento-text]": { transform: `translateY(-${themeSpacing(10)})` },
+        "&:hover [data-bento-text]": {
+          transform: `translateY(-${themeSpacing(10)})`,
+        },
       },
     },
-  };
+  } as DomphyElement<"div">;
 }
 
 /**

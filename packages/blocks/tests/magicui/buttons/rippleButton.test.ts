@@ -54,7 +54,9 @@ describe("rippleButton", () => {
   });
 
   it("renders custom label content instead of the default demo text", () => {
-    const { host } = render(rippleButton({ children: "Submit" }) as DomphyElement);
+    const { host } = render(
+      rippleButton({ children: "Submit" }) as DomphyElement,
+    );
     expect(host.querySelector("button")!.textContent).toBe("Submit");
   });
 
@@ -63,7 +65,9 @@ describe("rippleButton", () => {
     const button = host.querySelector("button")!;
     stubBoundingBox(button, { left: 10, top: 20, width: 100, height: 40 });
 
-    button.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 60, clientY: 40 }));
+    button.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, clientX: 60, clientY: 40 }),
+    );
     await wait(0);
 
     expect(rippleLayer(button).children).toHaveLength(1);
@@ -77,7 +81,9 @@ describe("rippleButton", () => {
     const button = host.querySelector("button")!;
     stubBoundingBox(button, { left: 0, top: 0, width: 80, height: 40 });
 
-    button.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 10, clientY: 10 }));
+    button.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, clientX: 10, clientY: 10 }),
+    );
     await wait(0);
     expect(rippleLayer(button).children).toHaveLength(1);
 
@@ -90,8 +96,12 @@ describe("rippleButton", () => {
     const button = host.querySelector("button")!;
     stubBoundingBox(button, { left: 0, top: 0, width: 80, height: 40 });
 
-    button.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 5, clientY: 5 }));
-    button.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 15, clientY: 15 }));
+    button.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, clientX: 5, clientY: 5 }),
+    );
+    button.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, clientX: 15, clientY: 15 }),
+    );
     await wait(0);
 
     expect(rippleLayer(button).children).toHaveLength(2);
@@ -99,7 +109,9 @@ describe("rippleButton", () => {
 
   it("fires the provided onClick handler alongside the ripple spawn", () => {
     const handleClick = vi.fn();
-    const { host } = render(rippleButton({ onClick: handleClick }) as DomphyElement);
+    const { host } = render(
+      rippleButton({ onClick: handleClick }) as DomphyElement,
+    );
     host.querySelector("button")!.click();
     expect(handleClick).toHaveBeenCalledTimes(1);
   });

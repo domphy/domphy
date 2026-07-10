@@ -25,10 +25,15 @@
 // one shared "there and back" scale+opacity `@keyframes`, so no two dots
 // twinkle in sync.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export interface DotPatternProps {
   /** Horizontal spacing between dots, in px. Defaults to `16`. */
@@ -111,7 +116,10 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
               // matching upstream where BOTH stops are stopColor="currentColor"
               // — the glow core is the same color as the static dots, not a
               // brighter/more-extreme shade.
-              style: { stopColor: "currentColor", stopOpacity: "1" } as StyleObject,
+              style: {
+                stopColor: "currentColor",
+                stopOpacity: "1",
+              } as StyleObject,
             } as DomphyElement,
             {
               stop: null,
@@ -212,7 +220,10 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
   } as DomphyElement;
 
   const gridSvg: DomphyElement = {
-    svg: [...(glowDefs.length ? [{ defs: glowDefs } as DomphyElement] : []), dotLayer],
+    svg: [
+      ...(glowDefs.length ? [{ defs: glowDefs } as DomphyElement] : []),
+      dotLayer,
+    ],
     ariaHidden: "true",
     style: {
       position: "absolute",

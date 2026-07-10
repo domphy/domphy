@@ -28,8 +28,12 @@ afterEach(() => {
 describe("chartBarLabelCustom", () => {
   it("renders a working demo tree with zero args: card shell, chart frame with inside/outside label overlay, trend footer", () => {
     const { host } = render(chartBarLabelCustom() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Bar Chart - Custom Label");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Bar Chart - Custom Label",
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 });

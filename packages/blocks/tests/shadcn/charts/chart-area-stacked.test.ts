@@ -30,12 +30,17 @@ describe("chartAreaStacked", () => {
     const { host } = render(chartAreaStacked() as DomphyElement);
     expect(host.querySelector("h3")?.textContent).toBe("Area Chart - Stacked");
     expect(host.querySelector("canvas")).toBeTruthy();
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts a custom stack id and fill opacity without throwing", () => {
     const { host } = render(
-      chartAreaStacked({ stackId: "custom", fillOpacity: 0.6 }) as DomphyElement,
+      chartAreaStacked({
+        stackId: "custom",
+        fillOpacity: 0.6,
+      }) as DomphyElement,
     );
     expect(host.querySelector("canvas")).toBeTruthy();
   });

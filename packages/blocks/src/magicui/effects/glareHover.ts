@@ -18,8 +18,8 @@
 // at the cost of not accepting an arbitrary caller-supplied hex value.
 
 import type { DomphyElement, StyleObject } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export interface GlareHoverProps {
   /** Content wrapped by the glare surface. Defaults to a small demo panel. */
@@ -143,7 +143,8 @@ function glareHover(props: GlareHoverProps = {}): DomphyElement<"div"> {
       height: "fit-content",
       cursor: "pointer",
       overflow: "hidden",
-      backgroundColor: (listener) => themeColor(listener, "inherit", background),
+      backgroundColor: (listener) =>
+        themeColor(listener, "inherit", background),
       color: (listener) => themeColor(listener, "shift-9"),
       // On hover the streak slides corner-to-corner. playOnce re-adds the
       // transition here (band base is `none`) so only the inbound sweep eases;

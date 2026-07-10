@@ -30,16 +30,22 @@ describe("dock", () => {
   });
 
   it("magnifies the nearest icon on pointermove and relaxes on pointerleave", () => {
-    const { host } = render(dock({ items: [{ icon: "home", label: "Home", href: "#" }] }));
+    const { host } = render(
+      dock({ items: [{ icon: "home", label: "Home", href: "#" }] }),
+    );
     const nav = host.querySelector("nav")!;
     const anchor = nav.querySelector("a")!;
 
     // jsdom's getBoundingClientRect is all-zero by default, which still
     // exercises the falloff math without throwing.
     expect(() =>
-      nav.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: 50 })),
+      nav.dispatchEvent(
+        new PointerEvent("pointermove", { bubbles: true, clientX: 50 }),
+      ),
     ).not.toThrow();
-    expect(() => nav.dispatchEvent(new PointerEvent("pointerleave", { bubbles: true }))).not.toThrow();
+    expect(() =>
+      nav.dispatchEvent(new PointerEvent("pointerleave", { bubbles: true })),
+    ).not.toThrow();
     expect(anchor.getAttribute("href")).toBe("#");
   });
 

@@ -25,12 +25,16 @@ beforeEach(() => {
   // fallback-close timer) never throws "close is not a function" (mirrors
   // packages/ui/tests/overlay.test.ts's drawer suite).
   if (!(HTMLDialogElement.prototype as any).showModal) {
-    (HTMLDialogElement.prototype as any).showModal = function (this: HTMLDialogElement) {
+    (HTMLDialogElement.prototype as any).showModal = function (
+      this: HTMLDialogElement,
+    ) {
       this.open = true;
     };
   }
   if (!(HTMLDialogElement.prototype as any).close) {
-    (HTMLDialogElement.prototype as any).close = function (this: HTMLDialogElement) {
+    (HTMLDialogElement.prototype as any).close = function (
+      this: HTMLDialogElement,
+    ) {
       this.open = false;
     };
   }
@@ -55,12 +59,16 @@ describe("sidebar01", () => {
     const aside = host.querySelector("aside")!;
 
     // Upstream sidebar-01 header is a VersionSwitcher (Documentation / v{ver}).
-    expect(aside.querySelector('button[aria-label="Select a version"]')).toBeTruthy();
+    expect(
+      aside.querySelector('button[aria-label="Select a version"]'),
+    ).toBeTruthy();
     // Nav groups render as labeled <ul> lists with plain text rows.
     expect(aside.querySelectorAll("nav ul li a").length).toBeGreaterThan(0);
     expect(aside.querySelectorAll("small").length).toBeGreaterThan(0);
     // Non-floating shell renders a <SidebarRail/> toggle; upstream has no footer.
-    expect(aside.querySelector('button[aria-label="Toggle Sidebar"]')).toBeTruthy();
+    expect(
+      aside.querySelector('button[aria-label="Toggle Sidebar"]'),
+    ).toBeTruthy();
   });
 
   it("renders the docs search field in the header (aside + mobile drawer)", () => {

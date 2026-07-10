@@ -7,21 +7,21 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_AREA_SERIES_PALETTE,
   CHART_AREA_TWO_SERIES_DATA,
   CHART_AREA_X_AXIS_BARE,
   CHART_AREA_Y_AXIS_HIDDEN,
+  type ChartAreaTwoSeriesPoint,
+  type ChartTrendDirection,
   chartAreaFrame,
   chartAreaGradientFill,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartTrendFooter,
-  type ChartAreaTwoSeriesPoint,
-  type ChartTrendDirection,
 } from "./chart-area-shared.js";
 
 export interface ChartAreaGradientSeries {
@@ -51,7 +51,9 @@ const DEFAULT_SERIES: ChartAreaGradientSeries[] = [
  * each filled with a top-to-baseline fading gradient. Call with no
  * arguments for a working demo.
  */
-function chartAreaGradient(props: ChartAreaGradientProps = {}): DomphyElement<"div"> {
+function chartAreaGradient(
+  props: ChartAreaGradientProps = {},
+): DomphyElement<"div"> {
   const {
     data = CHART_AREA_TWO_SERIES_DATA,
     series = DEFAULT_SERIES,
@@ -91,7 +93,11 @@ function chartAreaGradient(props: ChartAreaGradientProps = {}): DomphyElement<"d
     title,
     description,
     content: { div: [chartAreaFrame(option, height)] },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

@@ -14,10 +14,15 @@
 // unaffected, and the frame's background-position is looped via a CSS
 // keyframe for the "slow pulsing light" motion the spec describes.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export interface NeonGradientCardNeonColors {
   /** First gradient hue. Defaults to `"secondary"` (a magenta/pink family in the default theme). */
@@ -47,7 +52,9 @@ let neonGradientCardInstanceCounter = 0;
  * A card framed by a thick, animated two-color neon gradient border with a
  * blurred halo behind it. Call with no arguments for a working demo card.
  */
-function neonGradientCard(props: NeonGradientCardProps = {}): DomphyElement<"div"> {
+function neonGradientCard(
+  props: NeonGradientCardProps = {},
+): DomphyElement<"div"> {
   const borderSize = props.borderSize ?? 2;
   const borderRadius = props.borderRadius ?? 20;
   const firstColor = props.neonColors?.firstColor ?? "secondary";
@@ -162,13 +169,18 @@ function neonGradientCard(props: NeonGradientCardProps = {}): DomphyElement<"div
       overflowWrap: "break-word",
       borderRadius: `${Math.max(borderRadius - borderSize, 0)}px`,
       padding: themeSpacing(6),
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
-      color: (listener: Listener) => themeColor(listener, "shift-10", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-10", "neutral"),
     } as StyleObject,
   };
 
   return {
     div: [glowLayer, frameLayer, contentLayer],
+    // `padding` below is a literal pixel value by design (see its own
+    // comment) — exempt from raw-spacing-value, not overlooked.
+    _doctorDisable: "raw-spacing-value",
     style: {
       position: "relative",
       // Lift the whole card above sibling content (upstream `z-10`).
@@ -183,11 +195,12 @@ function neonGradientCard(props: NeonGradientCardProps = {}): DomphyElement<"div
       // `inset: 0` absolutely positioned sibling filling the wrapper's whole
       // padding box — shows through as the visible neon ring. Its width is
       // `borderSize` in pixels (upstream's `--border-size`): a fixed thin
-      // hairline, not an em-scaled band.
+      // hairline, not an em-scaled band — themeSpacing() would tie it to the
+      // caller's font-size/density instead of staying a constant ring width.
       padding: `${borderSize}px`,
       ...(props.style ?? {}),
     } as StyleObject,
-  };
+  } as DomphyElement<"div">;
 }
 
 export { neonGradientCard };

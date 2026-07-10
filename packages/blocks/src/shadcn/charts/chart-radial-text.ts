@@ -14,7 +14,10 @@
 
 import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
-import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
+import {
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
 import { radialCardShell, renderRadialGauge } from "./chart-radial-shared.js";
 
 export interface ChartRadialTextProps {
@@ -37,7 +40,9 @@ export interface ChartRadialTextProps {
  * with a thin, near-full-circle rounded-cap arc and a large centered number.
  * Call with no arguments for a working demo.
  */
-function chartRadialText(props: ChartRadialTextProps = {}): DomphyElement<"div"> {
+function chartRadialText(
+  props: ChartRadialTextProps = {},
+): DomphyElement<"div"> {
   const {
     value = 1125,
     color = "secondary",
@@ -71,7 +76,11 @@ function chartRadialText(props: ChartRadialTextProps = {}): DomphyElement<"div">
         }),
       ],
     },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText: footerCaptionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText: footerCaptionText,
+    }),
   });
 }
 

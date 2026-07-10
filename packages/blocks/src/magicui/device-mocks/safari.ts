@@ -5,8 +5,8 @@
 // static presentational frame — it just contains whatever media is passed in.
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
-import { small } from "@domphy/ui";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { small } from "@domphy/ui";
 
 export type SafariMode = "default" | "simple";
 
@@ -59,7 +59,11 @@ function trafficLightDot(key: string): DomphyElement<"span"> {
 // path drops in unchanged. Painted via `fill: currentColor` + a fixed neutral
 // shift (upstream paints every toolbar glyph the same `#A3A3A3` gray under
 // mix-blend-luminosity), so it reads as a chrome icon without a `backgroundColor`.
-function toolbarIcon(viewBox: string, d: string, key?: string): DomphyElement<"span"> {
+function toolbarIcon(
+  viewBox: string,
+  d: string,
+  key?: string,
+): DomphyElement<"span"> {
   const glyph: DomphyElement<"span"> = {
     span: [
       {
@@ -149,7 +153,11 @@ const RIGHT_NAV_ICONS: readonly NavGlyph[] = [
 
 /** The screen-area media layer: a video overlay wins over a static image; renders nothing
  * (bare frame) when neither is supplied. */
-function screenMedia(imageSrc: string | undefined, videoSrc: string | undefined, label: string): DomphyElement | null {
+function screenMedia(
+  imageSrc: string | undefined,
+  videoSrc: string | undefined,
+  label: string,
+): DomphyElement | null {
   if (videoSrc) {
     return {
       video: null,
@@ -200,7 +208,11 @@ function screenMedia(imageSrc: string | undefined, videoSrc: string | undefined,
 function safari(props: SafariProps = {}): DomphyElement<"div"> {
   const url = props.url ?? "domphy.com";
   const mode = props.mode ?? "default";
-  const media = screenMedia(props.imageSrc, props.videoSrc, `Preview of ${url}`);
+  const media = screenMedia(
+    props.imageSrc,
+    props.videoSrc,
+    `Preview of ${url}`,
+  );
 
   const addressBar: DomphyElement = {
     div: [lockIcon(), { small: url, $: [small()] }],
@@ -229,14 +241,34 @@ function safari(props: SafariProps = {}): DomphyElement<"div"> {
   const leftGroup: DomphyElement = {
     div: [
       ...TRAFFIC_LIGHT_KEYS.map((key) => trafficLightDot(key)),
-      ...(mode === "default" ? LEFT_NAV_ICONS.map(([key, viewBox, d]) => toolbarIcon(viewBox, d, key)) : []),
+      ...(mode === "default"
+        ? LEFT_NAV_ICONS.map(([key, viewBox, d]) =>
+            toolbarIcon(viewBox, d, key),
+          )
+        : []),
     ],
-    style: { display: "flex", alignItems: "center", gap: themeSpacing(2), flex: "1 0 0" },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: themeSpacing(2),
+      flex: "1 0 0",
+    },
   };
 
   const rightGroup: DomphyElement = {
-    div: mode === "default" ? RIGHT_NAV_ICONS.map(([key, viewBox, d]) => toolbarIcon(viewBox, d, key)) : null,
-    style: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: themeSpacing(2), flex: "1 0 0" },
+    div:
+      mode === "default"
+        ? RIGHT_NAV_ICONS.map(([key, viewBox, d]) =>
+            toolbarIcon(viewBox, d, key),
+          )
+        : null,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      gap: themeSpacing(2),
+      flex: "1 0 0",
+    },
   };
 
   const toolbar: DomphyElement = {
@@ -280,7 +312,8 @@ function safari(props: SafariProps = {}): DomphyElement<"div"> {
       aspectRatio: "1203 / 753",
       overflow: "hidden",
       borderRadius: themeSpacing(4),
-      border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4")}`,
+      border: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-4")}`,
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       ...(props.style ?? {}),
     },

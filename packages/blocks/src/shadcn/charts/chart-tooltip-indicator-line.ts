@@ -14,13 +14,13 @@ import type { DomphyElement } from "@domphy/core";
 import {
   ACTIVITY_SERIES_CONFIG,
   ACTIVITY_TOOLTIP_DATA,
+  type ActivityDayPoint,
+  type ActivitySeriesEntry,
   activityBarOption,
   activityTooltipCard,
   activityTooltipFormatter,
   activityTooltipPlot,
   formatWeekdayShort,
-  type ActivityDayPoint,
-  type ActivitySeriesEntry,
 } from "./chart-tooltip-shared.js";
 
 export interface ChartTooltipIndicatorLineProps {
@@ -37,7 +37,9 @@ export interface ChartTooltipIndicatorLineProps {
  * indicator instead of a round dot. Call with no arguments for a working
  * demo.
  */
-function chartTooltipIndicatorLine(props: ChartTooltipIndicatorLineProps = {}): DomphyElement<"div"> {
+function chartTooltipIndicatorLine(
+  props: ChartTooltipIndicatorLineProps = {},
+): DomphyElement<"div"> {
   const {
     data = ACTIVITY_TOOLTIP_DATA,
     series = ACTIVITY_SERIES_CONFIG,
@@ -58,7 +60,13 @@ function chartTooltipIndicatorLine(props: ChartTooltipIndicatorLineProps = {}): 
     // Value cell (mono/medium/tabular + toLocaleString) comes from the shared
     // default plainValueRenderer, which matches upstream ChartTooltipContent.
   });
-  const option = activityBarOption({ data, categories, series, showCursor, formatter });
+  const option = activityBarOption({
+    data,
+    categories,
+    series,
+    showCursor,
+    formatter,
+  });
 
   return activityTooltipCard({
     title,

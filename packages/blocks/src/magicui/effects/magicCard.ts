@@ -22,10 +22,15 @@
 // `visibilitychange` reset the glow when the pointer leaves the window or the
 // tab is hidden, matching upstream's global reset handlers.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
-import { themeColor, themeSpacing } from "@domphy/theme";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
+import { themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export interface MagicCardProps {
   /** `"border"` keeps a gradient ring on the edge and adds a soft interior glow that tracks the cursor; `"orb"` is a larger blurred blob that spring-lags behind the pointer and blends into the content. Defaults to `"border"`. */
@@ -134,7 +139,8 @@ function magicCard(props: MagicCardProps = {}): DomphyElement<"div"> {
               `linear-gradient(${ORB_ANGLE}deg, ${themeColor(listener, "shift-9", glowColor)}, ${themeColor(listener, "shift-6", glowColor)})`,
             // No text is rendered (div: null) — `color` only satisfies doctor's
             // missing-color heuristic for a themed, text-less decorative layer.
-            color: (listener: Listener) => themeColor(listener, "shift-9", glowColor),
+            color: (listener: Listener) =>
+              themeColor(listener, "shift-9", glowColor),
             zIndex: 1,
           } as StyleObject,
         } as DomphyElement)
@@ -151,7 +157,8 @@ function magicCard(props: MagicCardProps = {}): DomphyElement<"div"> {
             transition: `opacity ${GRADIENT_FADE_MS}ms ease`,
             background: (listener: Listener) =>
               `radial-gradient(${spotlightSize}px circle at var(--magic-card-x, ${offCard}) var(--magic-card-y, ${offCard}), ${themeColor(listener, "shift-9", glowColor)}, transparent 100%)`,
-            color: (listener: Listener) => themeColor(listener, "shift-9", glowColor),
+            color: (listener: Listener) =>
+              themeColor(listener, "shift-9", glowColor),
             zIndex: 1,
           } as StyleObject,
         } as DomphyElement);
@@ -177,8 +184,14 @@ function magicCard(props: MagicCardProps = {}): DomphyElement<"div"> {
     const onMove = (event: MouseEvent) => {
       if (!rootElement) return;
       const rect = rootElement.getBoundingClientRect();
-      rootElement.style.setProperty("--magic-card-x", `${event.clientX - rect.left}px`);
-      rootElement.style.setProperty("--magic-card-y", `${event.clientY - rect.top}px`);
+      rootElement.style.setProperty(
+        "--magic-card-x",
+        `${event.clientX - rect.left}px`,
+      );
+      rootElement.style.setProperty(
+        "--magic-card-y",
+        `${event.clientY - rect.top}px`,
+      );
       if (glowElement) glowElement.style.opacity = String(GRADIENT_OPACITY);
     };
     // Reset: park the spotlight off-card and fade the interior glow out.
@@ -244,8 +257,12 @@ function magicCard(props: MagicCardProps = {}): DomphyElement<"div"> {
       lastTime = time;
 
       // Position spring-damper: the orb eases toward and lags behind the cursor.
-      const accelerationX = (-ORB_STIFFNESS * (positionX - targetX) - ORB_DAMPING * velocityX) / ORB_MASS;
-      const accelerationY = (-ORB_STIFFNESS * (positionY - targetY) - ORB_DAMPING * velocityY) / ORB_MASS;
+      const accelerationX =
+        (-ORB_STIFFNESS * (positionX - targetX) - ORB_DAMPING * velocityX) /
+        ORB_MASS;
+      const accelerationY =
+        (-ORB_STIFFNESS * (positionY - targetY) - ORB_DAMPING * velocityY) /
+        ORB_MASS;
       velocityX += accelerationX * deltaSeconds;
       velocityY += accelerationY * deltaSeconds;
       positionX += velocityX * deltaSeconds;
@@ -253,7 +270,8 @@ function magicCard(props: MagicCardProps = {}): DomphyElement<"div"> {
 
       // Visibility spring (mass 1): fades the orb in on enter, out on leave.
       const visibleAcceleration =
-        -ORB_VISIBLE_STIFFNESS * (visible - targetVisible) - ORB_VISIBLE_DAMPING * visibleVelocity;
+        -ORB_VISIBLE_STIFFNESS * (visible - targetVisible) -
+        ORB_VISIBLE_DAMPING * visibleVelocity;
       visibleVelocity += visibleAcceleration * deltaSeconds;
       visible += visibleVelocity * deltaSeconds;
 

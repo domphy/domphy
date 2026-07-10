@@ -21,6 +21,7 @@
 // numberTicker/dock use elsewhere in this package).
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
+import { fixed } from "../../shared/typography.js";
 
 export interface HyperTextProps {
   /** Text content to animate. Defaults to a short demo phrase. */
@@ -60,28 +61,33 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
 
   const characters = Array.from(text);
 
-  const characterElementRefs: (HTMLElement | null)[] = new Array(characters.length).fill(null);
+  const characterElementRefs: (HTMLElement | null)[] = new Array(
+    characters.length,
+  ).fill(null);
 
-  const characterSpans: DomphyElement<"span">[] = characters.map((character, index) => ({
-    // Upstream renders every character via `letter.toUpperCase()`, so the
-    // initial (pre-scramble) glyph reads uppercase too.
-    span: character === " " ? " " : character.toUpperCase(),
-    _key: `character-${index}`,
-    // Space cells get upstream's fixed `w-3` (0.75rem) width so gaps don't
-    // depend on the font's space-glyph width.
-    style:
-      character === " "
-        ? { display: "inline-block", width: "0.75rem" }
-        : { display: "inline-block" },
-    _onMount: (node: ElementNode) => {
-      characterElementRefs[index] = node.domElement as HTMLElement;
-    },
-    _onRemove: () => {
-      characterElementRefs[index] = null;
-    },
-  }));
+  const characterSpans: DomphyElement<"span">[] = characters.map(
+    (character, index) => ({
+      // Upstream renders every character via `letter.toUpperCase()`, so the
+      // initial (pre-scramble) glyph reads uppercase too.
+      span: character === " " ? " " : character.toUpperCase(),
+      _key: `character-${index}`,
+      // Space cells get upstream's fixed `w-3` (0.75rem) width so gaps don't
+      // depend on the font's space-glyph width.
+      style:
+        character === " "
+          ? { display: "inline-block", width: "0.75rem" }
+          : { display: "inline-block" },
+      _onMount: (node: ElementNode) => {
+        characterElementRefs[index] = node.domElement as HTMLElement;
+      },
+      _onRemove: () => {
+        characterElementRefs[index] = null;
+      },
+    }),
+  );
 
-  const randomCharacterGlyph = () => characterPool.charAt(Math.floor(Math.random() * characterPool.length));
+  const randomCharacterGlyph = () =>
+    characterPool.charAt(Math.floor(Math.random() * characterPool.length));
 
   return {
     [tag]: characterSpans,
@@ -89,13 +95,20 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
     // Monospace (upstream's per-span `font-mono`) is hoisted to the container
     // so it cascades to every character cell, keeping each cell a fixed width
     // so random glyphs swapped in mid-scramble don't reflow their neighbours.
+    //
+    // paddingTop/paddingBottom stay upstream's literal 0.5rem (root-relative)
+    // rather than themeSpacing(2) (0.5em, relative to THIS element's own
+    // font-size) — this container's own font-size is pinned to a fixed
+    // 2.25rem two lines below, so an em-based padding would resolve against
+    // that (18px) instead of upstream's constant 8px, breaking pixel fidelity.
+    _doctorDisable: "raw-spacing-value",
     style: {
       overflow: "hidden",
       paddingTop: "0.5rem",
       paddingBottom: "0.5rem",
-      fontFamily: "monospace",
-      fontSize: "2.25rem",
-      fontWeight: "700",
+      fontFamily: fixed("monospace"),
+      fontSize: fixed("2.25rem"),
+      fontWeight: fixed("700"),
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
@@ -131,7 +144,8 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
             if (characters[index] === " ") continue;
             const characterElement = characterElementRefs[index];
             if (!characterElement) continue;
-            const resolved = index <= iteration ? characters[index] : randomCharacterGlyph();
+            const resolved =
+              index <= iteration ? characters[index] : randomCharacterGlyph();
             characterElement.textContent = resolved.toUpperCase();
           }
 
@@ -168,7 +182,7 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
               }
             },
             // Upstream only fires once the element is ~30% into the viewport.
-            { threshold: 0.1, rootMargin: "-30% 0px -30% 0px" },
+            { threshold: 0.1, rootMargin: "-30% 0 -30% 0" },
           );
           intersectionObserver.observe(element);
         }
@@ -182,12 +196,14 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
       const handleMouseEnter = () => {
         if (!isAnimating) runScramble();
       };
-      if (hoverTrigger) element.addEventListener("mouseenter", handleMouseEnter);
+      if (hoverTrigger)
+        element.addEventListener("mouseenter", handleMouseEnter);
 
       node.addHook("Remove", () => {
         stopAnimationFrame();
         if (startTimeoutId !== null) clearTimeout(startTimeoutId);
-        if (hoverTrigger) element.removeEventListener("mouseenter", handleMouseEnter);
+        if (hoverTrigger)
+          element.removeEventListener("mouseenter", handleMouseEnter);
         intersectionObserver?.disconnect();
       });
     },

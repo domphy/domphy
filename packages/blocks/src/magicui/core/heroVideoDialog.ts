@@ -11,10 +11,15 @@
 // `&:hover [data-*]` selectors on the trigger, mirroring bentoGrid /
 // interactiveHoverButton.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
 import { toState } from "@domphy/core";
-import { dialog, small } from "@domphy/ui";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { dialog, small } from "@domphy/ui";
 
 export type HeroVideoAnimationStyle =
   | "from-center"
@@ -42,15 +47,24 @@ export interface HeroVideoDialogProps {
 // Offsets match upstream: edge slides start a full 100% of the dialog's own
 // size off-screen (a dramatic slide-in, not a small nudge), and "from-center"
 // grows from scale(0.5) rather than a barely-perceptible 0.92.
-const ANIMATION_TRANSFORMS: Record<HeroVideoAnimationStyle, { enterFrom: string; exitTo: string }> = {
+const ANIMATION_TRANSFORMS: Record<
+  HeroVideoAnimationStyle,
+  { enterFrom: string; exitTo: string }
+> = {
   "from-center": { enterFrom: "scale(0.5)", exitTo: "scale(0.5)" },
   "from-top": { enterFrom: "translateY(-100%)", exitTo: "translateY(-100%)" },
   "from-bottom": { enterFrom: "translateY(100%)", exitTo: "translateY(100%)" },
   "from-left": { enterFrom: "translateX(-100%)", exitTo: "translateX(-100%)" },
   "from-right": { enterFrom: "translateX(100%)", exitTo: "translateX(100%)" },
   fade: { enterFrom: "none", exitTo: "none" },
-  "top-in-bottom-out": { enterFrom: "translateY(-100%)", exitTo: "translateY(100%)" },
-  "left-in-right-out": { enterFrom: "translateX(-100%)", exitTo: "translateX(100%)" },
+  "top-in-bottom-out": {
+    enterFrom: "translateY(-100%)",
+    exitTo: "translateY(100%)",
+  },
+  "left-in-right-out": {
+    enterFrom: "translateX(-100%)",
+    exitTo: "translateX(100%)",
+  },
 };
 
 /** White play triangle (upstream `size-8 fill-white text-white`) with the same
@@ -111,7 +125,11 @@ function closeGlyph(): DomphyElement<"span"> {
     ],
     ariaHidden: "true",
     // Upstream lucide `XIcon` at `size-5` (20px == themeSpacing(5)).
-    style: { display: "inline-flex", width: themeSpacing(5), height: themeSpacing(5) },
+    style: {
+      display: "inline-flex",
+      width: themeSpacing(5),
+      height: themeSpacing(5),
+    },
   };
 }
 
@@ -186,7 +204,7 @@ function playButton(): DomphyElement<"div"> {
       height: themeSpacing(28),
       borderRadius: "50%",
       // `backdrop-blur-md` (12px == themeSpacing(3)).
-      backdropFilter: (listener: Listener) => `blur(${themeSpacing(3)})`,
+      backdropFilter: (_listener: Listener) => `blur(${themeSpacing(3)})`,
       // `bg-primary/10`.
       backgroundColor: (listener: Listener) =>
         `color-mix(in srgb, ${themeColor(listener, "shift-9", "primary")} 10%, transparent)`,
@@ -218,7 +236,9 @@ function playButton(): DomphyElement<"div"> {
  * modal above a dimmed backdrop. Call with no arguments for a working demo
  * (placeholder thumbnail, "from-center" grow animation).
  */
-function heroVideoDialog(props: HeroVideoDialogProps = {}): DomphyElement<"div"> {
+function heroVideoDialog(
+  props: HeroVideoDialogProps = {},
+): DomphyElement<"div"> {
   const thumbnailAlt = props.thumbnailAlt ?? "Product preview";
   // Caller-supplied embeddable video URL expected (e.g. a YouTube/Vimeo embed
   // link) — defaults to a harmless blank frame so the demo's dialog mechanics
@@ -245,7 +265,8 @@ function heroVideoDialog(props: HeroVideoDialogProps = {}): DomphyElement<"div">
           aspectRatio: "16 / 9",
           objectFit: "cover",
           transition: "filter 200ms ease-out",
-          border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+          border: (listener: Listener) =>
+            `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
           boxShadow: (listener: Listener) =>
             `0 ${themeSpacing(2.5)} ${themeSpacing(3.75)} ${themeColor(listener, "shift-3", "neutral")}`,
         },
@@ -275,22 +296,28 @@ function heroVideoDialog(props: HeroVideoDialogProps = {}): DomphyElement<"div">
       border: "none",
       cursor: "pointer",
       zIndex: 1,
-      backdropFilter: (listener: Listener) => `blur(${themeSpacing(3)})`,
+      backdropFilter: (_listener: Listener) => `blur(${themeSpacing(3)})`,
       backgroundColor: (listener: Listener) =>
         `color-mix(in srgb, ${themeColor(listener, "shift-15", "neutral")} 50%, transparent)`,
       color: (listener: Listener) => themeColor(listener, "shift-0", "neutral"),
-      boxShadow: (listener: Listener) => `0 0 0 1px ${themeColor(listener, "shift-6", "neutral")}`,
+      boxShadow: (listener: Listener) =>
+        `0 0 0 1px ${themeColor(listener, "shift-6", "neutral")}`,
       "@media (prefers-color-scheme: dark)": {
         backgroundColor: (listener: Listener) =>
           `color-mix(in srgb, ${themeColor(listener, "shift-1", "neutral")} 50%, transparent)`,
-        color: (listener: Listener) => themeColor(listener, "shift-17", "neutral"),
+        color: (listener: Listener) =>
+          themeColor(listener, "shift-17", "neutral"),
       },
     } as StyleObject,
   } as DomphyElement<"button">;
 
   const videoFrame: DomphyElement<"iframe"> = {
     iframe: null,
-    src: (listener: Listener) => (open.get(listener) ? videoSrc : ""),
+    // Blank (not empty) while closed — the video genuinely stops loading on
+    // close (matches upstream), but the attribute itself must always have a
+    // value (an empty `src` is invalid markup per htmlhint's src-not-empty).
+    src: (listener: Listener) =>
+      open.get(listener) ? videoSrc : "about:blank",
     title: "Hero Video player",
     allow:
       "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
@@ -318,7 +345,8 @@ function heroVideoDialog(props: HeroVideoDialogProps = {}): DomphyElement<"div">
       height: "100%",
       overflow: "hidden",
       borderRadius: themeSpacing(4),
-      border: (listener: Listener) => `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-0", "neutral")}`,
+      border: (listener: Listener) =>
+        `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-0", "neutral")}`,
     } as StyleObject,
   } as DomphyElement<"div">;
 
@@ -329,7 +357,9 @@ function heroVideoDialog(props: HeroVideoDialogProps = {}): DomphyElement<"div">
     _onMount: (node: ElementNode) => {
       const element = node.domElement as HTMLElement;
       const update = (isOpen: boolean) => {
-        element.style.transform = isOpen ? transforms.enterFrom : transforms.exitTo;
+        element.style.transform = isOpen
+          ? transforms.enterFrom
+          : transforms.exitTo;
         if (isOpen) {
           requestAnimationFrame(() => {
             element.style.transform = "none";

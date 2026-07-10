@@ -30,6 +30,8 @@ describe("chartBarMixed", () => {
     const { host } = render(chartBarMixed() as DomphyElement);
     expect(host.querySelector("h3")?.textContent).toBe("Bar Chart - Mixed");
     expect(host.querySelector("canvas")).toBeTruthy();
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 });

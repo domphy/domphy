@@ -54,14 +54,18 @@ describe("sidebarLeftRight", () => {
 
   it("clicking a favorite's more button opens its action menu without throwing", () => {
     const { host } = render(sidebarLeftRight() as DomphyElement);
-    const moreButtons = Array.from(host.querySelectorAll('button[aria-label*="actions"]'));
+    const moreButtons = Array.from(
+      host.querySelectorAll('button[aria-label*="actions"]'),
+    );
     expect(moreButtons.length).toBeGreaterThan(0);
     expect(() => (moreButtons[0] as HTMLButtonElement).click()).not.toThrow();
   });
 
   it("toggling a calendar checkbox updates its checked state", () => {
     const { host } = render(sidebarLeftRight() as DomphyElement);
-    const checkbox = host.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    const checkbox = host.querySelector(
+      'input[type="checkbox"]',
+    ) as HTMLInputElement;
     expect(checkbox).toBeTruthy();
     const initial = checkbox.checked;
     checkbox.click();
@@ -71,14 +75,18 @@ describe("sidebarLeftRight", () => {
 
   it("clicking a date in the inline calendar selects it without throwing", () => {
     const { host } = render(sidebarLeftRight() as DomphyElement);
-    const dayButtons = Array.from(host.querySelectorAll('aside button[aria-selected]'));
+    const dayButtons = Array.from(
+      host.querySelectorAll("aside button[aria-selected]"),
+    );
     expect(dayButtons.length).toBeGreaterThan(0);
     expect(() => (dayButtons[10] as HTMLButtonElement).click()).not.toThrow();
   });
 
   it("clicking the header toggle collapses the left sidebar without throwing", () => {
     const { host } = render(sidebarLeftRight() as DomphyElement);
-    const toggle = host.querySelector("main header button") as HTMLButtonElement;
+    const toggle = host.querySelector(
+      "main header button",
+    ) as HTMLButtonElement;
     expect(() => toggle.click()).not.toThrow();
   });
 

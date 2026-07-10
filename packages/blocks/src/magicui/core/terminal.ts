@@ -5,10 +5,22 @@
 // a marketing/decorative widget, not a real shell — no input is read and
 // nothing is executed.
 
-import type { DomphyElement, ElementNode, Listener, State, StyleObject } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  State,
+  StyleObject,
+} from "@domphy/core";
 import { hashString, toState } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 import { type MotionKeyframe, motion } from "@domphy/ui";
-import { type ThemeColor, themeColor, themeSize, themeSpacing } from "@domphy/theme";
+import { fixed } from "../../shared/typography.js";
 
 export interface TerminalTypingLine {
   type: "typing";
@@ -62,7 +74,10 @@ const DEFAULT_LINES: TerminalLine[] = [
 const DEFAULT_CHARS_PER_SECOND = 1000 / 60; // ~60ms per character
 const FADE_LINE_DURATION_MS = 300;
 
-const CURSOR_KEYFRAMES = { "0%,49%": { opacity: 1 }, "50%,100%": { opacity: 0 } };
+const CURSOR_KEYFRAMES = {
+  "0%,49%": { opacity: 1 },
+  "50%,100%": { opacity: 0 },
+};
 const CURSOR_ANIMATION_NAME = `terminal-cursor-${hashString(JSON.stringify(CURSOR_KEYFRAMES))}`;
 
 /** Computes each line's start delay (ms): explicit `delay` wins, otherwise the
@@ -75,7 +90,9 @@ function computeSchedule(lines: TerminalLine[], sequence: boolean): number[] {
     delays.push(startDelay);
     const duration =
       line.type === "typing"
-        ? (line.text.length / (line.charsPerSecond ?? DEFAULT_CHARS_PER_SECOND)) * 1000
+        ? (line.text.length /
+            (line.charsPerSecond ?? DEFAULT_CHARS_PER_SECOND)) *
+          1000
         : FADE_LINE_DURATION_MS;
     // Next line advances the instant the previous completes — no inter-line gap.
     cumulative = startDelay + duration;
@@ -146,7 +163,8 @@ function typingLineElement(
       display: "flex",
       alignItems: "center",
       whiteSpace: "pre",
-      color: (listener: Listener) => themeColor(listener, "shift-9", line.color ?? "neutral"),
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-9", line.color ?? "neutral"),
     },
     _onMount: (node: ElementNode) => {
       let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
@@ -196,9 +214,16 @@ function fadeLineElement(
   return {
     [tag]: line.text,
     style: {
-      color: (listener: Listener) => themeColor(listener, "shift-9", line.color ?? "neutral"),
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-9", line.color ?? "neutral"),
     },
-    $: [motion({ initial: initialFrame, animate: frame, transition: { duration: FADE_LINE_DURATION_MS, easing: "ease-in-out" } })],
+    $: [
+      motion({
+        initial: initialFrame,
+        animate: frame,
+        transition: { duration: FADE_LINE_DURATION_MS, easing: "ease-in-out" },
+      }),
+    ],
     _onMount: (node: ElementNode) => {
       let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
@@ -243,12 +268,18 @@ function terminal(props: TerminalProps = {}): DomphyElement<"div"> {
   return {
     div: [
       {
-        div: [trafficLightDot("danger"), trafficLightDot("warning"), trafficLightDot("success")],
+        div: [
+          trafficLightDot("danger"),
+          trafficLightDot("warning"),
+          trafficLightDot("success"),
+        ],
         style: {
           display: "flex",
           gap: themeSpacing(2),
           padding: themeSpacing(4),
-          borderBottom: (listener: Listener) => `1px solid ${themeColor(listener, "shift-14")}`,
+          borderBottom: (listener: Listener) =>
+            `1px solid ${themeColor(listener, "shift-14")}`,
+          color: (listener: Listener) => themeColor(listener, "shift-9"),
         },
       },
       {
@@ -259,9 +290,10 @@ function terminal(props: TerminalProps = {}): DomphyElement<"div"> {
           gap: themeSpacing(1),
           padding: themeSpacing(4),
           overflow: "auto",
-          fontFamily: "monospace",
+          fontFamily: fixed("monospace"),
           fontSize: (listener: Listener) => themeSize(listener, "decrease-1"),
-          letterSpacing: "-0.025em",
+          letterSpacing: fixed("-0.025em"),
+          color: (listener: Listener) => themeColor(listener, "shift-9"),
         },
       },
     ],
@@ -295,7 +327,8 @@ function terminal(props: TerminalProps = {}): DomphyElement<"div"> {
       borderRadius: themeSpacing(3),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-14")}`,
+      outline: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-14")}`,
       outlineOffset: "-1px",
       ...(props.style ?? {}),
     },

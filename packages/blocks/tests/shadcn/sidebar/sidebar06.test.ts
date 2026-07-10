@@ -27,7 +27,9 @@ describe("sidebar06", () => {
 
   it("renders one dropdown-trigger button per top-level nav item, none open by default", () => {
     const { host } = render(sidebar06() as DomphyElement);
-    const triggers = host.querySelectorAll('aside nav button[aria-haspopup="dialog"]');
+    const triggers = host.querySelectorAll(
+      'aside nav button[aria-haspopup="dialog"]',
+    );
     expect(triggers.length).toBe(4);
     triggers.forEach((trigger) => {
       expect(trigger.getAttribute("aria-expanded")).toBe("false");
@@ -36,7 +38,9 @@ describe("sidebar06", () => {
 
   it("clicking a nav row's trigger flips aria-expanded to true", async () => {
     const { host } = render(sidebar06() as DomphyElement);
-    const trigger = host.querySelector('aside nav button[aria-haspopup="dialog"]') as HTMLButtonElement;
+    const trigger = host.querySelector(
+      'aside nav button[aria-haspopup="dialog"]',
+    ) as HTMLButtonElement;
     trigger.click();
     await new Promise((r) => setTimeout(r, 150));
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
@@ -47,7 +51,9 @@ describe("sidebar06", () => {
     expect(host.textContent).toContain("Subscribe");
     // Upstream's <SidebarFooter> renders as `<div data-slot="sidebar-footer">`,
     // not a semantic <footer> element.
-    expect(host.querySelector("aside [data-slot='sidebar-footer']")).toBeTruthy();
+    expect(
+      host.querySelector("aside [data-slot='sidebar-footer']"),
+    ).toBeTruthy();
   });
 
   it("renders the opt-in card as a form with an email input above the button", () => {
@@ -71,7 +77,9 @@ describe("sidebar06", () => {
         breadcrumbItems: [{ label: "Home", href: "/" }, { label: "Custom" }],
       }) as DomphyElement,
     );
-    expect(host.querySelectorAll('aside nav button[aria-haspopup="dialog"]').length).toBe(1);
+    expect(
+      host.querySelectorAll('aside nav button[aria-haspopup="dialog"]').length,
+    ).toBe(1);
     expect(host.textContent).toContain("Custom");
   });
 });

@@ -23,8 +23,13 @@
 // component's `fidelityNotes` for that tradeoff.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeColorToken,
+  themeSpacing,
+} from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
-import { type ThemeColor, themeColorToken, themeColor, themeSpacing } from "@domphy/theme";
 
 export interface FlickeringGridProps {
   /** Side length of each square, in canvas px. Defaults to `4`. */
@@ -144,7 +149,12 @@ function flickeringGrid(props: FlickeringGridProps = {}): DomphyElement<"div"> {
         // device-pixel-ratio scale factor onto itself.
         context!.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
 
-        const dimensions = computeGridDimensions(cssWidth, cssHeight, squareSize, gridGap);
+        const dimensions = computeGridDimensions(
+          cssWidth,
+          cssHeight,
+          squareSize,
+          gridGap,
+        );
         columns = dimensions.columns;
         rows = dimensions.rows;
         const nextOpacities = new Float32Array(Math.max(1, columns * rows));
@@ -162,7 +172,12 @@ function flickeringGrid(props: FlickeringGridProps = {}): DomphyElement<"div"> {
           for (let column = 0; column < columns; column += 1) {
             const index = row * columns + column;
             context!.globalAlpha = opacities[index] ?? 0;
-            context!.fillRect(column * cellSpan, row * cellSpan, squareSize, squareSize);
+            context!.fillRect(
+              column * cellSpan,
+              row * cellSpan,
+              squareSize,
+              squareSize,
+            );
           }
         }
         context!.globalAlpha = 1;

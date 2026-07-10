@@ -7,11 +7,13 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption, TooltipParams } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_MONTHLY_DATA,
+  type ChartBarPoint,
+  type ChartTrendDirection,
   chartBarCardShell,
   chartBarCategoryXAxis,
   chartBarFrame,
@@ -19,8 +21,6 @@ import {
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
-  type ChartBarPoint,
-  type ChartTrendDirection,
 } from "./chart-bar-shared.js";
 
 export interface ChartBarDefaultProps {
@@ -46,7 +46,9 @@ export interface ChartBarDefaultProps {
  * shadcn/ui "chart-bar" default recipe — a single-series monthly bar chart
  * with a trend footer. Call with no arguments for a working demo.
  */
-function chartBarDefault(props: ChartBarDefaultProps = {}): DomphyElement<"div"> {
+function chartBarDefault(
+  props: ChartBarDefaultProps = {},
+): DomphyElement<"div"> {
   const {
     data = CHART_BAR_MONTHLY_DATA,
     seriesLabel = "Desktop",
@@ -90,16 +92,28 @@ function chartBarDefault(props: ChartBarDefaultProps = {}): DomphyElement<"div">
     title,
     subtitle,
     content: { div: [chartBarFrame(option, { height })] },
-    footer: chartBarTrendFooter({ trendText, direction: trendDirection, captionText, showIcon: showTrendIcon }),
+    footer: chartBarTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+      showIcon: showTrendIcon,
+    }),
   });
 }
 
 function escapeTooltipHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
-function chartBarDefaultTooltipFormatter(parametersInput: TooltipParams | TooltipParams[]): string {
-  const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
+function chartBarDefaultTooltipFormatter(
+  parametersInput: TooltipParams | TooltipParams[],
+): string {
+  const parameters = Array.isArray(parametersInput)
+    ? parametersInput
+    : [parametersInput];
   if (parameters.length === 0) return "";
   const item = parameters[0];
   // Upstream ChartTooltipContent's default 'dot' indicator is a 10px rounded
@@ -110,7 +124,10 @@ function chartBarDefaultTooltipFormatter(parametersInput: TooltipParams | Toolti
   return chartBarTooltipRow(dot, label, value);
 }
 
-function chartBarValueDomainOptions(values: number[]): { min: number; max: number } {
+function chartBarValueDomainOptions(values: number[]): {
+  min: number;
+  max: number;
+} {
   const [min, max] = chartBarValueDomain(values);
   return { min, max };
 }

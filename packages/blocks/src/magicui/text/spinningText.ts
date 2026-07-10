@@ -58,7 +58,7 @@ const SR_ONLY_STYLE: StyleObject = {
 function spinningText(props: SpinningTextProps = {}): DomphyElement<"div"> {
   const phrase = Array.isArray(props.children)
     ? props.children.join("")
-    : props.children ?? "learn more";
+    : (props.children ?? "learn more");
   const durationSeconds = props.transition?.duration ?? props.duration ?? 10;
   const easing = props.transition?.easing ?? "linear";
   const radius = props.radius ?? 5;

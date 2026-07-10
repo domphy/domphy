@@ -31,7 +31,11 @@ describe("chartAreaIcons", () => {
     expect(host.querySelector("h3")?.textContent).toBe("Area Chart - Icons");
     expect(host.querySelector("canvas")).toBeTruthy();
     // Two legend icon glyphs + one footer trend glyph.
-    expect(host.querySelectorAll("svg[aria-hidden='true']").length).toBeGreaterThanOrEqual(3);
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(
+      host.querySelectorAll("svg[aria-hidden='true']").length,
+    ).toBeGreaterThanOrEqual(3);
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 });

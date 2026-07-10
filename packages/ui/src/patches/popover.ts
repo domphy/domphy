@@ -1,7 +1,7 @@
 import {
   type DomphyElement,
-  merge,
   type Listener,
+  merge,
   type PartialElement,
   toState,
   type ValueOrState,

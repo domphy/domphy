@@ -8,18 +8,18 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
+import type { ChartOption, LineSeriesOption } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
-import type { ChartOption, LineSeriesOption } from "@domphy/chart";
 import {
-  DEFAULT_LINE_GRID,
-  MONTHLY_VISITOR_DATA,
-  type MonthlyPoint,
   chartCard,
   chartPlot,
   computeYDomain,
+  DEFAULT_LINE_GRID,
   hiddenLabelYAxis,
   lineSwatchLabelValueTooltipFormatter,
+  MONTHLY_VISITOR_DATA,
+  type MonthlyPoint,
   monthCategoryXAxis,
   trendFooter,
 } from "./chart-line-shared.js";

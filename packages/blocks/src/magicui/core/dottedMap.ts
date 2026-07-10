@@ -59,10 +59,34 @@ const DEFAULT_COLUMNS = 80;
 const DEFAULT_DOT_RADIUS = 0.2;
 
 const DEFAULT_MARKERS: DottedMapMarker[] = [
-  { latitude: 40.7128, longitude: -74.006, label: "New York", size: 0.8, pulse: true },
-  { latitude: 51.5072, longitude: -0.1276, label: "London", size: 0.8, pulse: true },
-  { latitude: 35.6762, longitude: 139.6503, label: "Tokyo", size: 0.8, pulse: true },
-  { latitude: -33.8688, longitude: 151.2093, label: "Sydney", size: 0.8, pulse: true },
+  {
+    latitude: 40.7128,
+    longitude: -74.006,
+    label: "New York",
+    size: 0.8,
+    pulse: true,
+  },
+  {
+    latitude: 51.5072,
+    longitude: -0.1276,
+    label: "London",
+    size: 0.8,
+    pulse: true,
+  },
+  {
+    latitude: 35.6762,
+    longitude: 139.6503,
+    label: "Tokyo",
+    size: 0.8,
+    pulse: true,
+  },
+  {
+    latitude: -33.8688,
+    longitude: 151.2093,
+    label: "Sydney",
+    size: 0.8,
+    pulse: true,
+  },
 ];
 
 interface LandRegion {
@@ -119,9 +143,13 @@ function pseudoRandom(seed: number): number {
  * jittered boundary (0.85–1.15 instead of a hard 1.0 cutoff) so edges look stippled. */
 function isLandApprox(latitude: number, longitude: number): boolean {
   for (const region of LAND_REGIONS) {
-    const normalizedLongitude = (longitude - region.longitude) / region.radiusLongitude;
-    const normalizedLatitude = (latitude - region.latitude) / region.radiusLatitude;
-    const distance = normalizedLongitude * normalizedLongitude + normalizedLatitude * normalizedLatitude;
+    const normalizedLongitude =
+      (longitude - region.longitude) / region.radiusLongitude;
+    const normalizedLatitude =
+      (latitude - region.latitude) / region.radiusLatitude;
+    const distance =
+      normalizedLongitude * normalizedLongitude +
+      normalizedLatitude * normalizedLatitude;
     const jitter = 0.85 + pseudoRandom(latitude * 1000 + longitude) * 0.3;
     if (distance <= jitter) return true;
   }
@@ -129,8 +157,16 @@ function isLandApprox(latitude: number, longitude: number): boolean {
 }
 
 /** Equirectangular projection: lat/long → SVG (x, y) in the map's viewBox space. */
-function projectLatLong(latitude: number, longitude: number, width: number, height: number): { x: number; y: number } {
-  return { x: ((longitude + 180) / 360) * width, y: ((90 - latitude) / 180) * height };
+function projectLatLong(
+  latitude: number,
+  longitude: number,
+  width: number,
+  height: number,
+): { x: number; y: number } {
+  return {
+    x: ((longitude + 180) / 360) * width,
+    y: ((90 - latitude) / 180) * height,
+  };
 }
 
 interface DotPoint {
@@ -140,7 +176,12 @@ interface DotPoint {
 
 /** Pre-computes the static background dot grid once: samples an equirectangular grid,
  * keeps only points classified as land, and (optionally) staggers alternating rows. */
-function buildDotGrid(columns: number, width: number, height: number, staggerRows: boolean): DotPoint[] {
+function buildDotGrid(
+  columns: number,
+  width: number,
+  height: number,
+  staggerRows: boolean,
+): DotPoint[] {
   const rows = Math.max(1, Math.round(columns / 2));
   const columnStep = width / columns;
   const rowStep = height / rows;
@@ -178,7 +219,11 @@ function snapToNearestDot(x: number, y: number, dots: DotPoint[]): DotPoint {
   return best;
 }
 
-function dotElement(point: DotPoint, index: number, radius: number): DomphyElement {
+function dotElement(
+  point: DotPoint,
+  index: number,
+  radius: number,
+): DomphyElement {
   return {
     circle: null,
     _key: `dot-${index}`,
@@ -191,7 +236,12 @@ function dotElement(point: DotPoint, index: number, radius: number): DomphyEleme
 
 /** Two concentric, hollow (fill:none) stroked rings expanding from `r` to `r * PULSE_SCALE`
  * while fading out — an expanding radar ring, staggered into a repeating double-ping. */
-function pulseRings(x: number, y: number, radius: number, color: ThemeColor): DomphyElement {
+function pulseRings(
+  x: number,
+  y: number,
+  radius: number,
+  color: ThemeColor,
+): DomphyElement {
   const targetRadius = radius * PULSE_SCALE;
   const keyframesA = {
     "0%": { r: `${radius}px`, opacity: 1 },
@@ -248,7 +298,12 @@ function markerElement(
   defaultPulse: boolean,
   dotRadius: number,
 ): DomphyElement {
-  const projected = projectLatLong(marker.latitude, marker.longitude, width, height);
+  const projected = projectLatLong(
+    marker.latitude,
+    marker.longitude,
+    width,
+    height,
+  );
   const { x, y } = snapToNearestDot(projected.x, projected.y, dots);
   const radius = marker.size ?? dotRadius;
   const color = marker.color ?? defaultColor;
@@ -280,7 +335,13 @@ function markerElement(
       foreignObject: [
         {
           div: [marker.renderOverlay()],
-          style: { width: "100%", height: "100%", overflow: "hidden", borderRadius: "50%", clipPath: "circle(50%)" },
+          style: {
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            borderRadius: "50%",
+            clipPath: "circle(50%)",
+          },
         },
       ],
       _key: "overlay",
@@ -322,10 +383,22 @@ function dottedMap(props: DottedMapProps = {}): DomphyElement<"svg"> {
 
   return {
     svg: [
-      { g: dots.map((point, index) => dotElement(point, index, dotRadius)), _key: "dot-layer" } as DomphyElement,
+      {
+        g: dots.map((point, index) => dotElement(point, index, dotRadius)),
+        _key: "dot-layer",
+      } as DomphyElement,
       {
         g: markers.map((marker, index) =>
-          markerElement(marker, index, width, height, dots, markerColor, globalPulse, dotRadius),
+          markerElement(
+            marker,
+            index,
+            width,
+            height,
+            dots,
+            markerColor,
+            globalPulse,
+            dotRadius,
+          ),
         ),
         _key: "marker-layer",
       } as DomphyElement,

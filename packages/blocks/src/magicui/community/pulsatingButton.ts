@@ -20,10 +20,15 @@
 // element's own reactive `color` and referencing `currentColor` is what lets
 // the loop stay theme-reactive without ever needing a non-static keyframe.
 
-import type { DomphyElement, Listener, StyleObject, ValueOrState } from "@domphy/core";
+import type {
+  DomphyElement,
+  Listener,
+  StyleObject,
+  ValueOrState,
+} from "@domphy/core";
 import { hashString, toState } from "@domphy/core";
-import { button } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { button } from "@domphy/ui";
 
 export type PulsatingButtonVariant = "pulse" | "ripple";
 
@@ -55,7 +60,9 @@ let pulsatingButtonInstanceCounter = 0;
  * ping) behind it, drawing attention without needing hover/click. Call with
  * no arguments for a working demo.
  */
-function pulsatingButton(props: PulsatingButtonProps = {}): DomphyElement<"button"> {
+function pulsatingButton(
+  props: PulsatingButtonProps = {},
+): DomphyElement<"button"> {
   const label = props.children ?? "Pulsating Button";
   const disabled = props.disabled ?? false;
   const colorState = toState(props.color ?? "primary", "color");
@@ -63,7 +70,8 @@ function pulsatingButton(props: PulsatingButtonProps = {}): DomphyElement<"butto
   const expandDistanceUnits = props.expandDistance ?? 2;
   const variant = props.variant ?? "pulse";
 
-  const glowFamily = (listener: Listener): ThemeColor => props.pulseColor ?? colorState.get(listener);
+  const glowFamily = (listener: Listener): ThemeColor =>
+    props.pulseColor ?? colorState.get(listener);
 
   const instanceId = ++pulsatingButtonInstanceCounter;
   const expandLength = themeSpacing(expandDistanceUnits);
@@ -71,13 +79,21 @@ function pulsatingButton(props: PulsatingButtonProps = {}): DomphyElement<"butto
     variant === "ripple"
       ? {
           "0%": { boxShadow: "0 0 0 0 currentColor" },
-          "100%": { boxShadow: `0 0 0 ${expandLength} color-mix(in srgb, currentColor 0%, transparent)` },
+          "100%": {
+            boxShadow: `0 0 0 ${expandLength} color-mix(in srgb, currentColor 0%, transparent)`,
+          },
         }
       : {
-          "0%,100%": { boxShadow: "0 0 0 0 color-mix(in srgb, currentColor 50%, transparent)" },
-          "50%": { boxShadow: `0 0 0 ${expandLength} color-mix(in srgb, currentColor 50%, transparent)` },
+          "0%,100%": {
+            boxShadow:
+              "0 0 0 0 color-mix(in srgb, currentColor 50%, transparent)",
+          },
+          "50%": {
+            boxShadow: `0 0 0 ${expandLength} color-mix(in srgb, currentColor 50%, transparent)`,
+          },
         };
-  const easing = variant === "ripple" ? "cubic-bezier(0.16, 1, 0.3, 1)" : "ease-out";
+  const easing =
+    variant === "ripple" ? "cubic-bezier(0.16, 1, 0.3, 1)" : "ease-out";
   const animationName = `pulsating-button-${variant}-${hashString(
     JSON.stringify({ instanceId, duration, expandDistanceUnits, variant }),
   )}`;
@@ -91,14 +107,19 @@ function pulsatingButton(props: PulsatingButtonProps = {}): DomphyElement<"butto
       borderRadius: "inherit",
       pointerEvents: "none",
       zIndex: 0,
-      color: (listener: Listener) => themeColor(listener, "inherit", glowFamily(listener)),
+      color: (listener: Listener) =>
+        themeColor(listener, "inherit", glowFamily(listener)),
       animation: `${animationName} ${duration}ms ${easing} infinite`,
       [`@keyframes ${animationName}`]: keyframes,
     } as StyleObject,
   } as DomphyElement<"span">;
 
   const labelChildren: (string | DomphyElement)[] =
-    typeof label === "string" ? [label] : Array.isArray(label) ? label : [label];
+    typeof label === "string"
+      ? [label]
+      : Array.isArray(label)
+        ? label
+        : [label];
 
   const labelLayer: DomphyElement<"span"> = {
     span: labelChildren,

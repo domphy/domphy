@@ -17,9 +17,19 @@
 // inner container plus the outer wrapper's oversized `min-height` is what
 // creates the "pinned while scrolling past" room for a progressive reveal.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
 import { toState } from "@domphy/core";
-import { type ThemeColor, themeColor, themeFluidSpacing, themeSpacing } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeFluidSpacing,
+  themeSpacing,
+} from "@domphy/theme";
 
 export interface TextRevealProps {
   /** Text content to reveal, split into words on whitespace. Defaults to a short demo paragraph. */
@@ -49,11 +59,18 @@ const RESTING_LAYER_OPACITY = 0.18;
  * slice of the range — 0 before its slice starts (fully transparent, so only
  * the muted background layer shows through) up to 1 once its slice ends.
  */
-function wordOpacityForProgress(progress: number, wordIndex: number, wordCount: number): number {
+function wordOpacityForProgress(
+  progress: number,
+  wordIndex: number,
+  wordCount: number,
+): number {
   if (wordCount <= 0) return 1;
   const sliceStart = wordIndex / wordCount;
   const sliceEnd = (wordIndex + 1) / wordCount;
-  const sliceProgress = wordCount === 1 ? progress : (progress - sliceStart) / (sliceEnd - sliceStart);
+  const sliceProgress =
+    wordCount === 1
+      ? progress
+      : (progress - sliceStart) / (sliceEnd - sliceStart);
   return Math.min(1, Math.max(0, sliceProgress));
 }
 
@@ -67,7 +84,10 @@ function textReveal(props: TextRevealProps = {}): DomphyElement<"div"> {
   const text = props.children ?? DEFAULT_TEXT;
   const mutedColor = props.mutedColor ?? "neutral";
   const activeColor = props.activeColor ?? "neutral";
-  const wrapperHeightVh = Math.max(120, Math.round(props.wrapperHeightVh ?? 200));
+  const wrapperHeightVh = Math.max(
+    120,
+    Math.round(props.wrapperHeightVh ?? 200),
+  );
 
   const words = text.split(/\s+/).filter((word) => word.length > 0);
   const wordCount = words.length;
@@ -82,15 +102,18 @@ function textReveal(props: TextRevealProps = {}): DomphyElement<"div"> {
     // foreground layer's per-word spans override it with their own
     // scroll-driven opacity, but the paragraph should still resolve a
     // themed color on its own rather than relying on CSS inheritance.
-    color: (listener: Listener) => themeColor(listener, "shift-11", activeColor),
+    color: (listener: Listener) =>
+      themeColor(listener, "shift-11", activeColor),
   };
 
   const foregroundWords: DomphyElement<"span">[] = words.map((word, index) => ({
     span: index < wordCount - 1 ? `${word} ` : word,
     _key: `word-${index}`,
     style: {
-      opacity: (listener: Listener) => wordOpacityForProgress(progress.get(listener), index, wordCount),
-      color: (listener: Listener) => themeColor(listener, "shift-11", activeColor),
+      opacity: (listener: Listener) =>
+        wordOpacityForProgress(progress.get(listener), index, wordCount),
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-11", activeColor),
     },
   }));
 
@@ -108,7 +131,8 @@ function textReveal(props: TextRevealProps = {}): DomphyElement<"div"> {
                   position: "absolute",
                   inset: 0,
                   opacity: RESTING_LAYER_OPACITY,
-                  color: (listener: Listener) => themeColor(listener, "shift-6", mutedColor),
+                  color: (listener: Listener) =>
+                    themeColor(listener, "shift-6", mutedColor),
                 },
               },
               {
@@ -137,7 +161,11 @@ function textReveal(props: TextRevealProps = {}): DomphyElement<"div"> {
     ],
     style: { position: "relative", minHeight: `${wrapperHeightVh}vh` },
     _onMount: (node: ElementNode) => {
-      if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") return;
+      if (
+        typeof window === "undefined" ||
+        typeof window.requestAnimationFrame !== "function"
+      )
+        return;
       const element = node.domElement as HTMLElement;
       let frameHandle: number | null = null;
 
@@ -150,7 +178,12 @@ function textReveal(props: TextRevealProps = {}): DomphyElement<"div"> {
         // begins); 1 = the wrapper's bottom has reached the viewport bottom
         // (sticky pin is about to release). Falls back to the nearer clamp
         // bound when the wrapper is shorter than the viewport.
-        const raw = scrollableDistance > 0 ? -rect.top / scrollableDistance : rect.top <= 0 ? 1 : 0;
+        const raw =
+          scrollableDistance > 0
+            ? -rect.top / scrollableDistance
+            : rect.top <= 0
+              ? 1
+              : 0;
         const clamped = Math.min(1, Math.max(0, raw));
         if (clamped !== progress.get()) progress.set(clamped);
       };

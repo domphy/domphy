@@ -85,7 +85,12 @@ function defaultItems(): OrbitingCircleItem[] {
 /** Small hub glyph pinned at the shared center — a generic 4-point sparkle. */
 function defaultCenterGlyph(): DomphyElement<"svg"> {
   return {
-    svg: [{ path: null, d: "M12 2c0 5.5 4.5 10 10 10-5.5 0-10 4.5-10 10 0-5.5-4.5-10-10-10 5.5 0 10-4.5 10-10z" }],
+    svg: [
+      {
+        path: null,
+        d: "M12 2c0 5.5 4.5 10 10 10-5.5 0-10 4.5-10 10 0-5.5-4.5-10-10-10 5.5 0 10-4.5 10-10z",
+      },
+    ],
     viewBox: "0 0 24 24",
     fill: "currentColor",
     role: "presentation",
@@ -94,16 +99,23 @@ function defaultCenterGlyph(): DomphyElement<"svg"> {
   } as DomphyElement<"svg">;
 }
 
-function isOrbitingCircleItem(entry: DomphyElement | OrbitingCircleItem): entry is OrbitingCircleItem {
+function isOrbitingCircleItem(
+  entry: DomphyElement | OrbitingCircleItem,
+): entry is OrbitingCircleItem {
   return typeof entry === "object" && entry !== null && "content" in entry;
 }
 
 /** Builds the shared `@keyframes` for one ring — same radius means the same
  * rule can be reused by every item on that ring (browser dedupes by name). */
-function buildOrbitKeyframes(radius: number): { name: string; rules: Record<string, StyleObject> } {
+function buildOrbitKeyframes(radius: number): {
+  name: string;
+  rules: Record<string, StyleObject>;
+} {
   const rules = {
     "0%": { transform: `rotate(0deg) translateX(${radius}px) rotate(0deg)` },
-    "100%": { transform: `rotate(360deg) translateX(${radius}px) rotate(-360deg)` },
+    "100%": {
+      transform: `rotate(360deg) translateX(${radius}px) rotate(-360deg)`,
+    },
   };
   return { name: `orbit-${hashString(JSON.stringify(rules))}`, rules };
 }
@@ -170,14 +182,18 @@ function orbitPathElement(radius: number): DomphyElement<"div"> {
       width: `${radius * 2}px`,
       height: `${radius * 2}px`,
       borderRadius: "50%",
-      border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
+      border: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3")}`,
       pointerEvents: "none",
     },
   };
   return element as DomphyElement<"div">;
 }
 
-function centerElement(content: DomphyElement, iconSizeUnits: number): DomphyElement<"div"> {
+function centerElement(
+  content: DomphyElement,
+  iconSizeUnits: number,
+): DomphyElement<"div"> {
   return {
     div: [content],
     _key: "orbit-center",
@@ -211,9 +227,12 @@ function centerElement(content: DomphyElement, iconSizeUnits: number): DomphyEle
  * no reduced-motion pause). Call with no arguments for a working demo — a hub
  * glyph with 6 icons orbiting it.
  */
-function orbitingCircles(props: OrbitingCirclesProps = {}): DomphyElement<"div"> {
+function orbitingCircles(
+  props: OrbitingCirclesProps = {},
+): DomphyElement<"div"> {
   const items = props.items ?? defaultItems();
-  const center = props.center === undefined ? defaultCenterGlyph() : props.center;
+  const center =
+    props.center === undefined ? defaultCenterGlyph() : props.center;
   const iconSizeUnits = props.iconSizeUnits ?? DEFAULT_ICON_SIZE_UNITS;
   const radius = props.radius ?? DEFAULT_RADIUS;
   const duration = props.duration ?? DEFAULT_DURATION;
@@ -222,14 +241,24 @@ function orbitingCircles(props: OrbitingCirclesProps = {}): DomphyElement<"div">
   const showPath = props.path ?? true;
 
   const effectiveDuration = duration / speed;
-  const { name: keyframeName, rules: keyframeRules } = buildOrbitKeyframes(radius);
+  const { name: keyframeName, rules: keyframeRules } =
+    buildOrbitKeyframes(radius);
 
   const children: DomphyElement[] = [];
   if (showPath) children.push(orbitPathElement(radius));
   if (center) children.push(centerElement(center, iconSizeUnits));
   items.forEach((entry, index) => {
     children.push(
-      orbitItemElement(entry, index, items.length, iconSizeUnits, effectiveDuration, reverse, keyframeName, keyframeRules),
+      orbitItemElement(
+        entry,
+        index,
+        items.length,
+        iconSizeUnits,
+        effectiveDuration,
+        reverse,
+        keyframeName,
+        keyframeRules,
+      ),
     );
   });
 

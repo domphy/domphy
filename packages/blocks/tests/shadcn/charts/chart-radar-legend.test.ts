@@ -27,7 +27,9 @@ describe("chartRadarLegend", () => {
   });
 
   it("can omit the legend row via showLegend: false without breaking the chart", () => {
-    const { host } = render(chartRadarLegend({ showLegend: false }) as DomphyElement);
+    const { host } = render(
+      chartRadarLegend({ showLegend: false }) as DomphyElement,
+    );
     expect(host.querySelectorAll("svg polygon[fill-opacity]").length).toBe(2);
   });
 });

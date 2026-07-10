@@ -12,12 +12,13 @@
 import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor, themeSize, themeSpacing } from "@domphy/theme";
 import { link } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 import {
-  NARROW_CARD_WIDTH,
   brandBadge,
   dividerRow,
   emailField,
   legalFooter,
+  NARROW_CARD_WIDTH,
   oauthButton,
   signUpLine,
   submitButton,
@@ -115,7 +116,12 @@ function Login05(props: Login05Props = {}): DomphyElement<"div"> {
       {
         a: [badge, { span: brandName, style: SR_ONLY_STYLE }],
         href: "#",
-        style: { display: "flex", flexDirection: "column", alignItems: "center", gap: themeSpacing(2) },
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: themeSpacing(2),
+        },
         $: [link()],
       } as DomphyElement<"a">,
       // Upstream h1 is a deliberately small card title: text-xl (1.25rem =
@@ -126,11 +132,17 @@ function Login05(props: Login05Props = {}): DomphyElement<"div"> {
         style: {
           margin: 0,
           fontSize: (listener: Listener) => themeSize(listener, "increase-1"),
-          fontWeight: 700,
-          color: (listener: Listener) => themeColor(listener, "shift-11", "neutral"),
+          fontWeight: fixed(700),
+          color: (listener: Listener) =>
+            themeColor(listener, "shift-11", "neutral"),
         },
       },
-      signUpLine({ promptText: signUpPrompt, linkLabel: signUpLabel, href: signUpHref, align: "center" }),
+      signUpLine({
+        promptText: signUpPrompt,
+        linkLabel: signUpLabel,
+        href: signUpHref,
+        align: "center",
+      }),
     ],
     style: {
       display: "flex",
@@ -151,8 +163,18 @@ function Login05(props: Login05Props = {}): DomphyElement<"div"> {
   // stacked on mobile, side by side from the `sm` breakpoint up.
   const oauthRow: DomphyElement<"div"> = {
     div: [
-      oauthButton({ brand: "apple", visibleLabel: appleButtonLabel, accessibleLabel: appleButtonLabel, onClick: onAppleClick }),
-      oauthButton({ brand: "google", visibleLabel: googleButtonLabel, accessibleLabel: googleButtonLabel, onClick: onGoogleClick }),
+      oauthButton({
+        brand: "apple",
+        visibleLabel: appleButtonLabel,
+        accessibleLabel: appleButtonLabel,
+        onClick: onAppleClick,
+      }),
+      oauthButton({
+        brand: "google",
+        visibleLabel: googleButtonLabel,
+        accessibleLabel: googleButtonLabel,
+        onClick: onGoogleClick,
+      }),
     ],
     style: {
       display: "grid",
@@ -179,11 +201,20 @@ function Login05(props: Login05Props = {}): DomphyElement<"div"> {
               const data = new FormData(event.target as HTMLFormElement);
               onSubmit?.({ email: String(data.get("email") ?? "") });
             },
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(7) },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(7),
+            },
           },
           {
-            div: [legalFooter({ termsLabel, termsHref, privacyLabel, privacyHref })],
-            style: { marginBlockStart: themeSpacing(6), paddingInline: themeSpacing(6) },
+            div: [
+              legalFooter({ termsLabel, termsHref, privacyLabel, privacyHref }),
+            ],
+            style: {
+              marginBlockStart: themeSpacing(6),
+              paddingInline: themeSpacing(6),
+            },
           },
         ],
         style: { width: "100%", maxWidth: NARROW_CARD_WIDTH },

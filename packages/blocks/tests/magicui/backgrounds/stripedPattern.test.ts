@@ -33,15 +33,29 @@ describe("stripedPattern", () => {
   });
 
   it("mirrors line endpoints when direction is 'left'", () => {
-    const { host: rightHost } = render(stripedPattern({ direction: "right", width: 10, height: 10 }) as DomphyElement);
+    const { host: rightHost } = render(
+      stripedPattern({
+        direction: "right",
+        width: 10,
+        height: 10,
+      }) as DomphyElement,
+    );
     const rightLine = rightHost.querySelector("pattern line") as SVGLineElement;
-    const { host: leftHost } = render(stripedPattern({ direction: "left", width: 10, height: 10 }) as DomphyElement);
+    const { host: leftHost } = render(
+      stripedPattern({
+        direction: "left",
+        width: 10,
+        height: 10,
+      }) as DomphyElement,
+    );
     const leftLine = leftHost.querySelector("pattern line") as SVGLineElement;
     expect(leftLine.getAttribute("x1")).not.toBe(rightLine.getAttribute("x1"));
   });
 
   it("accepts custom content via children", () => {
-    const { host } = render(stripedPattern({ children: { span: "Custom overlay" } }) as DomphyElement);
+    const { host } = render(
+      stripedPattern({ children: { span: "Custom overlay" } }) as DomphyElement,
+    );
     expect(host.textContent).toContain("Custom overlay");
   });
 });

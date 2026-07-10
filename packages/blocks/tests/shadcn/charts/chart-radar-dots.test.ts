@@ -23,11 +23,15 @@ describe("chartRadarDots", () => {
     expect(host.querySelector("h3")?.textContent).toBe("Radar Chart - Dots");
     expect(host.querySelectorAll("svg polygon[fill-opacity]").length).toBe(1);
     expect(host.querySelectorAll("svg circle").length).toBe(6);
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("can hide the dots via showDots: false", () => {
-    const { host } = render(chartRadarDots({ showDots: false }) as DomphyElement);
+    const { host } = render(
+      chartRadarDots({ showDots: false }) as DomphyElement,
+    );
     expect(host.querySelectorAll("svg circle").length).toBe(0);
   });
 });

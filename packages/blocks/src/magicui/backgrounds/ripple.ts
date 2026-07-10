@@ -18,8 +18,8 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export interface RippleProps {
   /** Diameter of the innermost ring, in px. Defaults to `210`. */
@@ -86,7 +86,8 @@ function ringElement(
         `color-mix(in srgb, ${themeColor(listener, "shift-9", color)} 25%, transparent)`,
       borderWidth: "1px",
       borderStyle: "solid",
-      borderColor: (listener: Listener) => themeColor(listener, "shift-9", color),
+      borderColor: (listener: Listener) =>
+        themeColor(listener, "shift-9", color),
       // Upstream ring uses Tailwind `shadow-xl` — a two-layer downward
       // translucent-black elevation drop shadow, not a symmetric colored glow.
       boxShadow:
@@ -113,8 +114,16 @@ function ripple(props: RippleProps = {}): DomphyElement<"div"> {
     JSON.stringify({ instanceId, PULSE_KEYFRAMES }),
   )}`;
 
-  const rings: DomphyElement[] = Array.from({ length: numCircles }, (_unused, index) =>
-    ringElement(index, mainCircleSize, mainCircleOpacity, color, animationName),
+  const rings: DomphyElement[] = Array.from(
+    { length: numCircles },
+    (_unused, index) =>
+      ringElement(
+        index,
+        mainCircleSize,
+        mainCircleOpacity,
+        color,
+        animationName,
+      ),
   );
 
   const contentChildren: DomphyElement[] = props.children

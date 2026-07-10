@@ -17,12 +17,16 @@ beforeEach(() => {
   // jsdom's <dialog> support is partial — stub showModal/close so dialog()'s
   // `_onMount` never throws (mirrors packages/blocks/tests/shadcn/sidebar/*).
   if (!(HTMLDialogElement.prototype as any).showModal) {
-    (HTMLDialogElement.prototype as any).showModal = function (this: HTMLDialogElement) {
+    (HTMLDialogElement.prototype as any).showModal = function (
+      this: HTMLDialogElement,
+    ) {
       this.open = true;
     };
   }
   if (!(HTMLDialogElement.prototype as any).close) {
-    (HTMLDialogElement.prototype as any).close = function (this: HTMLDialogElement) {
+    (HTMLDialogElement.prototype as any).close = function (
+      this: HTMLDialogElement,
+    ) {
       this.open = false;
     };
   }
@@ -40,13 +44,17 @@ describe("heroVideoDialog", () => {
     const trigger = host.querySelector('[role="button"]')!;
     expect(trigger).toBeTruthy();
     expect(trigger.getAttribute("aria-label")).toContain("Play video");
-    // Closed by default — the iframe's src is intentionally blank.
+    // Closed by default — the iframe's src is intentionally blank (not
+    // empty: an empty `src` attribute is invalid markup, so a real "about:blank"
+    // value is used to keep the video from loading while closed).
     const iframe = host.querySelector("iframe")!;
-    expect(iframe.getAttribute("src")).toBe("");
+    expect(iframe.getAttribute("src")).toBe("about:blank");
   });
 
   it("clicking the play trigger opens the dialog and loads the video src", async () => {
-    const { host } = render(heroVideoDialog({ videoSrc: "https://example.com/embed/demo" }));
+    const { host } = render(
+      heroVideoDialog({ videoSrc: "https://example.com/embed/demo" }),
+    );
     const trigger = host.querySelector('[role="button"]') as HTMLElement;
     trigger.click();
     await new Promise((resolve) => setTimeout(resolve, 0));

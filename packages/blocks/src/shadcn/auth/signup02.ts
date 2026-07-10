@@ -1,6 +1,23 @@
 import type { DomphyElement, Listener, PartialElement } from "@domphy/core";
-import { button, divider, heading, icon, label, link, paragraph, small, strong } from "@domphy/ui";
-import { themeColor, themeDensity, themeFluidSpacing, themeSize, themeSpacing } from "@domphy/theme";
+import {
+  themeColor,
+  themeDensity,
+  themeFluidSpacing,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
+import {
+  button,
+  divider,
+  heading,
+  icon,
+  label,
+  link,
+  paragraph,
+  small,
+  strong,
+} from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 
 // Generic monochrome letter-badge glyphs — original, brand-neutral placeholders.
 // Swap for official brand SVGs in production.
@@ -26,21 +43,27 @@ const LOGO_ICON =
 function authFieldInput(): PartialElement {
   return {
     style: {
-      fontFamily: "inherit",
-      lineHeight: "inherit",
+      fontFamily: fixed("inherit"),
+      lineHeight: fixed("inherit"),
       width: "100%",
       boxSizing: "border-box",
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 3),
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
       fontSize: (listener: Listener) => themeSize(listener, "inherit"),
       border: "none",
       outlineOffset: "-1px",
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+      outline: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       "&::placeholder": {
-        color: (listener: Listener) => themeColor(listener, "shift-7", "neutral"),
+        color: (listener: Listener) =>
+          themeColor(listener, "shift-7", "neutral"),
       },
       "&:hover:not([disabled]), &:focus-visible": {
         outline: (listener: Listener) =>
@@ -49,7 +72,8 @@ function authFieldInput(): PartialElement {
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
-        backgroundColor: (listener: Listener) => themeColor(listener, "shift-2", "neutral"),
+        backgroundColor: (listener: Listener) =>
+          themeColor(listener, "shift-2", "neutral"),
       },
     },
   };
@@ -98,9 +122,11 @@ function logoMark(): DomphyElement<"span"> {
       justifyContent: "center",
       width: (listener: Listener) => themeSpacing(themeDensity(listener) * 5),
       height: (listener: Listener) => themeSpacing(themeDensity(listener) * 5),
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
       flexShrink: 0,
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "primary"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "primary"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "primary"),
     },
   };
@@ -181,7 +207,8 @@ function signup02(props: Signup02Props = {}): DomphyElement<"div"> {
     $: [button({ color: "neutral" })],
     style: {
       width: "100%",
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },
   };
@@ -199,7 +226,12 @@ function signup02(props: Signup02Props = {}): DomphyElement<"div"> {
   const footerLine: DomphyElement<"small"> = {
     small: [
       `${signInPrompt} `,
-      { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "primary" })] },
+      {
+        a: signInLinkText,
+        href: signInHref,
+        style: { textDecoration: fixed("underline") },
+        $: [link({ color: "primary" })],
+      },
     ],
     $: [small({ color: "neutral" })],
     style: { display: "block", textAlign: "center" },
@@ -218,14 +250,21 @@ function signup02(props: Signup02Props = {}): DomphyElement<"div"> {
 
   // Upstream nests this header as the first child inside the form's FieldGroup.
   const headerBlock: DomphyElement<"div"> = {
-    div: [{ h1: title, $: [heading()] }, { p: subtitle, $: [paragraph({ color: "neutral" })] }],
+    div: [
+      { h1: title, $: [heading()] },
+      { p: subtitle, $: [paragraph({ color: "neutral" })] },
+    ],
     style: { textAlign: "center" },
   };
 
   const formElement: DomphyElement<"form"> = {
     form: [
       headerBlock,
-      field({ id: "signup02-name", labelText: fullNameLabel, placeholder: fullNamePlaceholder }),
+      field({
+        id: "signup02-name",
+        labelText: fullNameLabel,
+        placeholder: fullNamePlaceholder,
+      }),
       field({
         id: "signup02-email",
         labelText: emailLabel,

@@ -8,12 +8,14 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption, TooltipParams } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_SERIES_PALETTE,
   CHART_BAR_TWO_SERIES_DATA,
+  type ChartBarTwoSeriesPoint,
+  type ChartTrendDirection,
   chartBarCardShell,
   chartBarCategoryXAxis,
   chartBarFrame,
@@ -22,8 +24,6 @@ import {
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
-  type ChartBarTwoSeriesPoint,
-  type ChartTrendDirection,
 } from "./chart-bar-shared.js";
 
 // Upstream's ChartTooltipContent is rendered with `hideLabel`, so the hover
@@ -38,8 +38,12 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function chartBarStackedTooltip(parametersInput: TooltipParams | TooltipParams[]): string {
-  const parameters = Array.isArray(parametersInput) ? parametersInput : [parametersInput];
+function chartBarStackedTooltip(
+  parametersInput: TooltipParams | TooltipParams[],
+): string {
+  const parameters = Array.isArray(parametersInput)
+    ? parametersInput
+    : [parametersInput];
   if (parameters.length === 0) return "";
   return parameters
     .map((p) => {
@@ -79,7 +83,9 @@ const DEFAULT_SERIES: ChartBarStackedSeries[] = [
  * per month, with a legend row below. Call with no arguments for a working
  * demo.
  */
-function chartBarStacked(props: ChartBarStackedProps = {}): DomphyElement<"div"> {
+function chartBarStacked(
+  props: ChartBarStackedProps = {},
+): DomphyElement<"div"> {
   const {
     data = CHART_BAR_TWO_SERIES_DATA,
     series = DEFAULT_SERIES,
@@ -94,7 +100,9 @@ function chartBarStacked(props: ChartBarStackedProps = {}): DomphyElement<"div">
   } = props;
 
   const categories = data.map((point) => point.label);
-  const totals = data.map((point) => series.reduce((sum, s) => sum + point[s.key], 0));
+  const totals = data.map((point) =>
+    series.reduce((sum, s) => sum + point[s.key], 0),
+  );
   const [, domainMax] = chartBarValueDomain(totals);
 
   const option: ChartOption = {
@@ -104,7 +112,11 @@ function chartBarStacked(props: ChartBarStackedProps = {}): DomphyElement<"div">
       formatter: chartBarStackedTooltip,
     },
     xAxis: chartBarCategoryXAxis(categories),
-    yAxis: chartBarHiddenValueYAxis({ splitLine: true, min: 0, max: domainMax }),
+    yAxis: chartBarHiddenValueYAxis({
+      splitLine: true,
+      min: 0,
+      max: domainMax,
+    }),
     grid: { left: 8, right: 8, top: 16, bottom: 24 },
     series: series.map((s) => ({
       type: "bar",
@@ -118,7 +130,13 @@ function chartBarStacked(props: ChartBarStackedProps = {}): DomphyElement<"div">
   const content: DomphyElement<"div"> = {
     div: [
       chartBarFrame(option, { height }),
-      ...(showLegend ? [chartBarLegendRow(series.map((s) => ({ label: s.label, color: s.color })))] : []),
+      ...(showLegend
+        ? [
+            chartBarLegendRow(
+              series.map((s) => ({ label: s.label, color: s.color })),
+            ),
+          ]
+        : []),
     ],
   };
 
@@ -126,7 +144,11 @@ function chartBarStacked(props: ChartBarStackedProps = {}): DomphyElement<"div">
     title,
     subtitle,
     content,
-    footer: chartBarTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartBarTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

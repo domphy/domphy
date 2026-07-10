@@ -21,6 +21,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { card, heading, icon, small } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 
 // ---------------------------------------------------------------------------
 // Data shapes + sample dataset
@@ -206,7 +207,10 @@ export interface WireTooltipOptions {
 export function wedgeTooltipHandlers(
   slice: Pick<PieSlice, "datum" | "color">,
   options: WireTooltipOptions,
-): Pick<DomphyElement<"path">, "onMouseEnter" | "onMouseMove" | "onMouseLeave"> {
+): Pick<
+  DomphyElement<"path">,
+  "onMouseEnter" | "onMouseMove" | "onMouseLeave"
+> {
   const {
     containerRef,
     tooltipState,
@@ -243,30 +247,43 @@ export function wedgeTooltipHandlers(
 }
 
 /** The floating tooltip card itself — one instance shared by every wedge. */
-export function pieTooltipLayer(tooltipState: State<PieTooltipInfo>): DomphyElement<"div"> {
+export function pieTooltipLayer(
+  tooltipState: State<PieTooltipInfo>,
+): DomphyElement<"div"> {
   return {
     div: [
       {
         svg: [
           {
             rect: null,
-            x: (l: Listener) => (tooltipState.get(l).markerShape === "line" ? "3" : "1"),
-            y: (l: Listener) => (tooltipState.get(l).markerShape === "line" ? "0" : "1"),
-            width: (l: Listener) => (tooltipState.get(l).markerShape === "line" ? "4" : "8"),
-            height: (l: Listener) => (tooltipState.get(l).markerShape === "line" ? "10" : "8"),
-            rx: (l: Listener) => (tooltipState.get(l).markerShape === "line" ? "1" : "2"),
-            fill: (l: Listener) => themeColor(l, "shift-9", tooltipState.get(l).swatchColor),
+            x: (l: Listener) =>
+              tooltipState.get(l).markerShape === "line" ? "3" : "1",
+            y: (l: Listener) =>
+              tooltipState.get(l).markerShape === "line" ? "0" : "1",
+            width: (l: Listener) =>
+              tooltipState.get(l).markerShape === "line" ? "4" : "8",
+            height: (l: Listener) =>
+              tooltipState.get(l).markerShape === "line" ? "10" : "8",
+            rx: (l: Listener) =>
+              tooltipState.get(l).markerShape === "line" ? "1" : "2",
+            fill: (l: Listener) =>
+              themeColor(l, "shift-9", tooltipState.get(l).swatchColor),
           } as DomphyElement<"rect">,
         ],
         viewBox: "0 0 10 10",
         ariaHidden: "true",
-        style: { width: themeSpacing(2.5), height: themeSpacing(2.5), flexShrink: "0" },
+        style: {
+          width: themeSpacing(2.5),
+          height: themeSpacing(2.5),
+          flexShrink: "0",
+        },
       } as DomphyElement<"svg">,
       {
         small: (l: Listener) => tooltipState.get(l).name,
         $: [small()],
         style: {
-          display: (l: Listener) => (tooltipState.get(l).name ? "block" : "none"),
+          display: (l: Listener) =>
+            tooltipState.get(l).name ? "block" : "none",
         },
       },
       // Right-aligned value — upstream ChartTooltipContent renders each item's
@@ -281,8 +298,8 @@ export function pieTooltipLayer(tooltipState: State<PieTooltipInfo>): DomphyElem
         style: {
           marginInlineStart: "auto",
           color: (l: Listener) => themeColor(l, "shift-11"),
-          fontFamily: "ui-monospace, monospace",
-          fontWeight: "500",
+          fontFamily: fixed("ui-monospace, monospace"),
+          fontWeight: fixed("500"),
           fontVariantNumeric: "tabular-nums",
         },
       },
@@ -303,7 +320,8 @@ export function pieTooltipLayer(tooltipState: State<PieTooltipInfo>): DomphyElem
       color: (l: Listener) => themeColor(l, "shift-9"),
       outline: (l: Listener) => `1px solid ${themeColor(l, "shift-3")}`,
       outlineOffset: "-1px",
-      boxShadow: (l: Listener) => `0 ${themeSpacing(1)} ${themeSpacing(4)} ${themeColor(l, "shift-4")}`,
+      boxShadow: (l: Listener) =>
+        `0 ${themeSpacing(1)} ${themeSpacing(4)} ${themeColor(l, "shift-4")}`,
       pointerEvents: "none",
       zIndex: "10",
       whiteSpace: "nowrap",
@@ -334,7 +352,10 @@ export interface WedgePathOptions {
 }
 
 /** One pie/ring wedge `<path>`, wired to the shared tooltip layer when `tooltip` is passed. */
-export function pieWedgePath(slice: PieSlice, options: WedgePathOptions = {}): DomphyElement<"path"> {
+export function pieWedgePath(
+  slice: PieSlice,
+  options: WedgePathOptions = {},
+): DomphyElement<"path"> {
   const {
     innerRadius = 0,
     outerRadius = PIE_OUTER_RADIUS,
@@ -361,7 +382,9 @@ export function pieWedgePath(slice: PieSlice, options: WedgePathOptions = {}): D
 }
 
 /** Small inline color chip (an `<svg><rect>`, not a `style.backgroundColor` surface) for legends/selects. */
-export function colorSwatch(color: ThemeColor | ((listener: Listener) => ThemeColor)): DomphyElement<"svg"> {
+export function colorSwatch(
+  color: ThemeColor | ((listener: Listener) => ThemeColor),
+): DomphyElement<"svg"> {
   const resolve = typeof color === "function" ? color : () => color;
   return {
     svg: [
@@ -377,7 +400,11 @@ export function colorSwatch(color: ThemeColor | ((listener: Listener) => ThemeCo
     ],
     viewBox: "0 0 10 10",
     ariaHidden: "true",
-    style: { width: themeSpacing(2.5), height: themeSpacing(2.5), flexShrink: "0" },
+    style: {
+      width: themeSpacing(2.5),
+      height: themeSpacing(2.5),
+      flexShrink: "0",
+    },
   };
 }
 
@@ -394,7 +421,10 @@ export interface OutsideLabelOptions {
 }
 
 /** Leader-line + label pair anchored just outside a wedge's outer edge. */
-export function pieOutsideLabel(slice: PieSlice, options: OutsideLabelOptions): DomphyElement[] {
+export function pieOutsideLabel(
+  slice: PieSlice,
+  options: OutsideLabelOptions,
+): DomphyElement[] {
   const {
     text,
     outerRadius = PIE_OUTER_RADIUS,
@@ -437,9 +467,17 @@ export function pieOutsideLabel(slice: PieSlice, options: OutsideLabelOptions): 
 export function pieRimLabel(
   slice: PieSlice,
   text: string,
-  options: { outerRadius?: number; fontSize?: string; minFraction?: number } = {},
+  options: {
+    outerRadius?: number;
+    fontSize?: string;
+    minFraction?: number;
+  } = {},
 ): DomphyElement<"text"> | null {
-  const { outerRadius = PIE_OUTER_RADIUS, fontSize = "9", minFraction = 0.02 } = options;
+  const {
+    outerRadius = PIE_OUTER_RADIUS,
+    fontSize = "9",
+    minFraction = 0.02,
+  } = options;
   if (slice.fraction < minFraction) return null;
   const isRightSide = Math.cos(slice.midAngle) >= 0;
   const [x, y] = polarPoint(outerRadius * 1.05, slice.midAngle);
@@ -459,9 +497,17 @@ export function pieRimLabel(
 export function pieOnWedgeLabel(
   slice: PieSlice,
   text: string,
-  options: { radiusFraction?: number; fontSize?: string; minFraction?: number } = {},
+  options: {
+    radiusFraction?: number;
+    fontSize?: string;
+    minFraction?: number;
+  } = {},
 ): DomphyElement<"text"> | null {
-  const { radiusFraction = 0.62, fontSize = "12", minFraction = 0.04 } = options;
+  const {
+    radiusFraction = 0.62,
+    fontSize = "12",
+    minFraction = 0.04,
+  } = options;
   if (slice.fraction < minFraction) return null;
   const [x, y] = polarPoint(PIE_OUTER_RADIUS * radiusFraction, slice.midAngle);
   return {
@@ -470,7 +516,7 @@ export function pieOnWedgeLabel(
     y: String(y),
     fill: (l: Listener) => themeColor(l, "shift-0", "neutral"),
     fontSize,
-    fontWeight: "700",
+    fontWeight: fixed("700"),
     textAnchor: "middle",
     dominantBaseline: "middle",
     _key: `${slice.datum.key}-on-wedge-label`,
@@ -490,8 +536,8 @@ export function pieCenterText(
         y: String(PIE_CENTER - 4),
         textAnchor: "middle",
         dominantBaseline: "middle",
-        fontSize: "22",
-        fontWeight: "700",
+        fontSize: fixed("22"),
+        fontWeight: fixed("700"),
         fill: (l: Listener) => themeColor(l, "shift-11"),
       } as DomphyElement<"text">,
       {
@@ -500,7 +546,7 @@ export function pieCenterText(
         y: String(PIE_CENTER + 17),
         textAnchor: "middle",
         dominantBaseline: "middle",
-        fontSize: "11",
+        fontSize: fixed("11"),
         fill: (l: Listener) => themeColor(l, "shift-6"),
       } as DomphyElement<"text">,
     ],
@@ -512,11 +558,22 @@ export function pieCenterText(
 // Legend
 // ---------------------------------------------------------------------------
 
-export function pieLegendRow(data: PieDatum[], columns = 4): DomphyElement<"div"> {
+export function pieLegendRow(
+  data: PieDatum[],
+  columns = 4,
+): DomphyElement<"div"> {
   const items: DomphyElement<"div">[] = data.map((datum, index) => ({
-    div: [colorSwatch(resolveSliceColor(datum, index)), { small: datum.name, $: [small()] }],
+    div: [
+      colorSwatch(resolveSliceColor(datum, index)),
+      { small: datum.name, $: [small()] },
+    ],
     _key: datum.key,
-    style: { display: "flex", alignItems: "center", gap: themeSpacing(1.5), justifyContent: "center" },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: themeSpacing(1.5),
+      justifyContent: "center",
+    },
   }));
 
   return {
@@ -537,11 +594,21 @@ export function pieLegendRow(data: PieDatum[], columns = 4): DomphyElement<"div"
 // Card chrome (title / description / chart container / footer trend line)
 // ---------------------------------------------------------------------------
 
-export function pieCardTitle(title: string, centered = true): DomphyElement<"h3"> {
-  return { h3: title, $: [heading()], style: { textAlign: centered ? "center" : "start" } };
+export function pieCardTitle(
+  title: string,
+  centered = true,
+): DomphyElement<"h3"> {
+  return {
+    h3: title,
+    $: [heading()],
+    style: { textAlign: centered ? "center" : "start" },
+  };
 }
 
-export function pieCardDescription(description: string, centered = true): DomphyElement<"p"> {
+export function pieCardDescription(
+  description: string,
+  centered = true,
+): DomphyElement<"p"> {
   return {
     p: [{ small: description, $: [small()] }],
     style: { textAlign: centered ? "center" : "start" },
@@ -591,7 +658,9 @@ export interface PieFooterOptions {
   caption: string;
 }
 
-export function pieCardFooter(options: PieFooterOptions): DomphyElement<"footer"> {
+export function pieCardFooter(
+  options: PieFooterOptions,
+): DomphyElement<"footer"> {
   const { trendValue, trendDirection, caption } = options;
   return {
     footer: [
@@ -606,17 +675,26 @@ export function pieCardFooter(options: PieFooterOptions): DomphyElement<"footer"
               {
                 span: `Trending ${trendDirection} by ${trendValue} this month`,
                 style: {
-                  fontWeight: "500",
+                  fontWeight: fixed("500"),
                   color: (l: Listener) => themeColor(l, "shift-10"),
                 },
               },
               pieTrendIcon(trendDirection),
             ],
-            style: { display: "flex", alignItems: "center", gap: themeSpacing(1.5) },
+            style: {
+              display: "flex",
+              alignItems: "center",
+              gap: themeSpacing(1.5),
+            },
           },
           { small: caption, $: [small()] },
         ],
-        style: { display: "flex", flexDirection: "column", gap: themeSpacing(1), width: "100%" },
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: themeSpacing(1),
+          width: "100%",
+        },
       },
     ],
   };

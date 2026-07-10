@@ -9,15 +9,19 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import { chartTrendFooter, type ChartLegendEntry, type ChartTrendDirection } from "./chart-area-shared.js";
 import {
-  RADAR_MULTI_SERIES,
-  RADAR_MONTHLY_MULTI_DATA,
+  type ChartLegendEntry,
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
+import {
   createRadarTooltip,
-  radarCardShell,
-  renderRadarChart,
+  RADAR_MONTHLY_MULTI_DATA,
+  RADAR_MULTI_SERIES,
   type RadarPoint,
   type RadarSeriesConfig,
+  radarCardShell,
+  renderRadarChart,
 } from "./chart-radar-shared.js";
 
 export interface ChartRadarLegendProps {
@@ -35,7 +39,9 @@ export interface ChartRadarLegendProps {
  * shadcn/ui "charts/radar-legend" recipe — the multi-series radar chart with
  * a swatch legend row underneath. Call with no arguments for a working demo.
  */
-function chartRadarLegend(props: ChartRadarLegendProps = {}): DomphyElement<"div"> {
+function chartRadarLegend(
+  props: ChartRadarLegendProps = {},
+): DomphyElement<"div"> {
   const {
     data = RADAR_MONTHLY_MULTI_DATA,
     series = RADAR_MULTI_SERIES,
@@ -48,7 +54,10 @@ function chartRadarLegend(props: ChartRadarLegendProps = {}): DomphyElement<"div
   } = props;
 
   const tooltip = createRadarTooltip();
-  const legendEntries: ChartLegendEntry[] = series.map((entry) => ({ label: entry.label, color: entry.color }));
+  const legendEntries: ChartLegendEntry[] = series.map((entry) => ({
+    label: entry.label,
+    color: entry.color,
+  }));
 
   return radarCardShell({
     title,
@@ -66,7 +75,11 @@ function chartRadarLegend(props: ChartRadarLegendProps = {}): DomphyElement<"div
         }),
       ],
     },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

@@ -37,7 +37,12 @@ import type {
 import { type ThemeColor, themeColor } from "@domphy/theme";
 
 export type Text3dFlipEdge = "top" | "bottom" | "left" | "right";
-export type Text3dFlipStaggerFrom = "first" | "last" | "center" | "random" | number;
+export type Text3dFlipStaggerFrom =
+  | "first"
+  | "last"
+  | "center"
+  | "random"
+  | number;
 
 export interface Text3dFlipProps {
   /** Text to flip. Defaults to a short demo phrase. */
@@ -135,18 +140,28 @@ const SECOND_FACE_TRANSFORMS: Record<Text3dFlipEdge, string> = {
  * flags, combining marks) stay one animated cell. Mirrors upstream's
  * Intl.Segmenter-with-Array.from-fallback. */
 function splitIntoCharacters(text: string): string[] {
-  if (typeof Intl !== "undefined" && typeof (Intl as unknown as { Segmenter?: unknown }).Segmenter === "function") {
-    const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  if (
+    typeof Intl !== "undefined" &&
+    typeof (Intl as unknown as { Segmenter?: unknown }).Segmenter === "function"
+  ) {
+    const segmenter = new Intl.Segmenter(undefined, {
+      granularity: "grapheme",
+    });
     return Array.from(segmenter.segment(text), (entry) => entry.segment);
   }
   return Array.from(text);
 }
 
 /** Distance (in stagger units) of character `index` from the wave origin. */
-function staggerDistance(index: number, totalCharacters: number, from: Text3dFlipStaggerFrom): number {
+function staggerDistance(
+  index: number,
+  totalCharacters: number,
+  from: Text3dFlipStaggerFrom,
+): number {
   if (from === "first") return index;
   if (from === "last") return totalCharacters - 1 - index;
-  if (from === "center") return Math.abs(Math.floor(totalCharacters / 2) - index);
+  if (from === "center")
+    return Math.abs(Math.floor(totalCharacters / 2) - index);
   if (from === "random") {
     const randomIndex = Math.floor(Math.random() * totalCharacters);
     return Math.abs(randomIndex - index);
@@ -185,7 +200,8 @@ function characterCell(
           ...faceBase,
           position: "relative",
           transform: FRONT_FACE_TRANSFORMS[options.edge],
-          color: (listener: Listener) => themeColor(listener, "shift-11", options.color),
+          color: (listener: Listener) =>
+            themeColor(listener, "shift-11", options.color),
           ...(options.frontStyle ?? {}),
         } as StyleObject,
       },
@@ -199,7 +215,8 @@ function characterCell(
           top: 0,
           left: 0,
           transform: SECOND_FACE_TRANSFORMS[options.edge],
-          color: (listener: Listener) => themeColor(listener, "shift-11", options.flippedColor),
+          color: (listener: Listener) =>
+            themeColor(listener, "shift-11", options.flippedColor),
           ...(options.flippedStyle ?? {}),
         } as StyleObject,
       },
@@ -249,17 +266,21 @@ function text3dFlip(props: Text3dFlipProps = {}): DomphyElement<"p"> {
   const children: DomphyElement[] = [];
   words.forEach((word, wordIndex) => {
     const frontCharacters = splitIntoCharacters(word);
-    const flippedCharacters = splitIntoCharacters(flippedWords[wordIndex] ?? word);
-    const cells: DomphyElement[] = frontCharacters.map((character, charIndex) => {
-      const cell = characterCell(
-        character,
-        flippedCharacters[charIndex] ?? character,
-        keyIndex,
-        cellOptions,
-      );
-      keyIndex += 1;
-      return cell;
-    });
+    const flippedCharacters = splitIntoCharacters(
+      flippedWords[wordIndex] ?? word,
+    );
+    const cells: DomphyElement[] = frontCharacters.map(
+      (character, charIndex) => {
+        const cell = characterCell(
+          character,
+          flippedCharacters[charIndex] ?? character,
+          keyIndex,
+          cellOptions,
+        );
+        keyIndex += 1;
+        return cell;
+      },
+    );
     if (wordIndex !== words.length - 1) {
       // The trailing space is its own cell nested INSIDE the word's own
       // inline-flex span (matching upstream), not a sibling flex item in the
@@ -316,12 +337,15 @@ function text3dFlip(props: Text3dFlipProps = {}): DomphyElement<"p"> {
         if (isAnimating) return;
         // Queried lazily at hover time, not at mount: the parent's _onMount
         // fires before the character cells are attached to the DOM.
-        const boxes = Array.from(element.querySelectorAll<HTMLElement>("[data-flip-char]"));
+        const boxes = Array.from(
+          element.querySelectorAll<HTMLElement>("[data-flip-char]"),
+        );
         if (boxes.length === 0) return;
         const total = boxes.length;
         isAnimating = true;
         running = boxes.map((box, index) => {
-          const delayMs = staggerDistance(index, total, staggerFrom) * staggerDelay;
+          const delayMs =
+            staggerDistance(index, total, staggerFrom) * staggerDelay;
           // Roll from the resting cube-corner transform to the 90° face swap
           // and HOLD there ("forwards"): upstream awaits the whole staggered
           // group before firing its own zero-duration reset, so an early
@@ -331,15 +355,17 @@ function text3dFlip(props: Text3dFlipProps = {}): DomphyElement<"p"> {
             { duration, delay: delayMs, easing, fill: "forwards" },
           );
         });
-        Promise.allSettled(running.map((animation) => animation.finished)).then(() => {
-          // Only once every character's roll has settled: cancel every hold
-          // at once, so each box reverts to its resting `transform` in the
-          // same instant — the synchronized snap-back upstream's own
-          // zero-duration group reset produces.
-          for (const animation of running) animation.cancel();
-          isAnimating = false;
-          running = [];
-        });
+        Promise.allSettled(running.map((animation) => animation.finished)).then(
+          () => {
+            // Only once every character's roll has settled: cancel every hold
+            // at once, so each box reverts to its resting `transform` in the
+            // same instant — the synchronized snap-back upstream's own
+            // zero-duration group reset produces.
+            for (const animation of running) animation.cancel();
+            isAnimating = false;
+            running = [];
+          },
+        );
       };
 
       // Upstream plays the ripple unconditionally on mouseenter (no

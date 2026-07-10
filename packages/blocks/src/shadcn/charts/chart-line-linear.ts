@@ -8,18 +8,18 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
+import type { ChartOption } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
-import type { ChartOption } from "@domphy/chart";
 import {
-  DEFAULT_LINE_GRID,
-  MONTHLY_VISITOR_DATA,
-  type MonthlyPoint,
   chartCard,
   chartPlot,
   computeYDomain,
+  DEFAULT_LINE_GRID,
   hiddenLabelYAxis,
   lineSwatchLabelValueTooltipFormatter,
+  MONTHLY_VISITOR_DATA,
+  type MonthlyPoint,
   monthCategoryXAxis,
   trendFooter,
 } from "./chart-line-shared.js";
@@ -41,7 +41,9 @@ export interface ChartLineLinearProps {
  * straight segments between points instead of a smoothed curve. Call with no
  * arguments for a fully working demo.
  */
-function chartLineLinear(props: ChartLineLinearProps = {}): DomphyElement<"div"> {
+function chartLineLinear(
+  props: ChartLineLinearProps = {},
+): DomphyElement<"div"> {
   const {
     title = "Line Chart - Linear",
     description = "January - June 2026",

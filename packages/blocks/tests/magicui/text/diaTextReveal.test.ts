@@ -39,7 +39,12 @@ describe("diaTextReveal", () => {
   it("cycles through a list of strings, swapping the reveal span's text", () => {
     vi.useFakeTimers();
     const { host } = render(
-      diaTextReveal({ children: ["One", "Two"], duration: 200, pauseBetween: 50, repeat: true }) as DomphyElement,
+      diaTextReveal({
+        children: ["One", "Two"],
+        duration: 200,
+        pauseBetween: 50,
+        repeat: true,
+      }) as DomphyElement,
     );
     flushSync();
     expect(host.textContent).toContain("One");
@@ -60,20 +65,37 @@ describe("diaTextReveal", () => {
     // width (see `measureWidths`) — needs a stubbed rect to observe here.
     // Stub by text length so the two items resolve to distinct, checkable
     // widths and the "sized to the longest item" behavior stays meaningful.
-    const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+    const originalGetBoundingClientRect =
+      HTMLElement.prototype.getBoundingClientRect;
     HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
-      return { width: (this.textContent ?? "").length * 10, height: 0, top: 0, left: 0, right: 0, bottom: 0, x: 0, y: 0, toJSON() {} } as DOMRect;
+      return {
+        width: (this.textContent ?? "").length * 10,
+        height: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        x: 0,
+        y: 0,
+        toJSON() {},
+      } as DOMRect;
     };
     try {
       // reserveWidth is applied imperatively in `_onMount` (`element.style.width
       // = ...`), not through the declarative `style` object, so it shows up on
       // the live DOM element rather than in `node.generateCSS()`.
-      const { host } = render(diaTextReveal({ children: ["Hi", "A much longer phrase"], reserveWidth: true }) as DomphyElement);
+      const { host } = render(
+        diaTextReveal({
+          children: ["Hi", "A much longer phrase"],
+          reserveWidth: true,
+        }) as DomphyElement,
+      );
       const span = host.querySelector("span") as HTMLElement;
       // "A much longer phrase" (20 chars) is the longest item -> 200px reserved.
       expect(span.style.width).toBe("200px");
     } finally {
-      HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+      HTMLElement.prototype.getBoundingClientRect =
+        originalGetBoundingClientRect;
     }
   });
 

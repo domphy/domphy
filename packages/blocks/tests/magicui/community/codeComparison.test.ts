@@ -45,7 +45,8 @@ describe("codeComparison", () => {
         filename: "middleware.ts",
       }) as DomphyElement,
     );
-    const filenameMatches = (host.textContent ?? "").match(/middleware\.ts/g) ?? [];
+    const filenameMatches =
+      (host.textContent ?? "").match(/middleware\.ts/g) ?? [];
     expect(filenameMatches.length).toBe(2);
     const [leftPre] = Array.from(host.querySelectorAll("pre"));
     const lineSpans = leftPre.querySelectorAll("code > span");

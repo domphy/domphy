@@ -15,7 +15,9 @@ function render(app: DomphyElement) {
 
 afterEach(() => {
   document.body.innerHTML = "";
-  document.head.querySelectorAll("style").forEach((styleElement) => styleElement.remove());
+  document.head
+    .querySelectorAll("style")
+    .forEach((styleElement) => styleElement.remove());
 });
 
 describe("lineShadowText", () => {
@@ -33,7 +35,13 @@ describe("lineShadowText", () => {
 
   it("accepts custom text, shadow color, and wrapping tag without throwing", () => {
     expect(() =>
-      render(lineShadowText({ children: "Domphy", shadowColor: "primary", as: "h1" }) as DomphyElement),
+      render(
+        lineShadowText({
+          children: "Domphy",
+          shadowColor: "primary",
+          as: "h1",
+        }) as DomphyElement,
+      ),
     ).not.toThrow();
   });
 });

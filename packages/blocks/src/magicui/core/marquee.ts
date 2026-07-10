@@ -10,8 +10,8 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { avatar, paragraph, small, strong } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { avatar, paragraph, small, strong } from "@domphy/ui";
 
 export interface MarqueeReviewItem {
   name: string;
@@ -88,13 +88,20 @@ function reviewChip(item: MarqueeReviewItem): DomphyElement<"div"> {
     div: [
       {
         div: [
-          { span: item.initials, $: [avatar({ color: item.color ?? "primary" })] },
+          {
+            span: item.initials,
+            $: [avatar({ color: item.color ?? "primary" })],
+          },
           {
             div: [
               { strong: item.name, $: [strong({ color: "neutral" })] },
               { small: item.username, $: [small()] },
             ],
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(0.5),
+            },
           },
         ],
         style: { display: "flex", alignItems: "center", gap: themeSpacing(2) },
@@ -174,7 +181,8 @@ function marquee(props: MarqueeProps = {}): DomphyElement<"div"> {
   const repeatCount = Math.max(2, Math.round(props.repeat ?? 4));
   const gapUnits = props.gap ?? 4;
   const fade = props.fade ?? false;
-  const sourceItems = props.items ?? DEFAULT_REVIEWS.map((review) => reviewChip(review));
+  const sourceItems =
+    props.items ?? DEFAULT_REVIEWS.map((review) => reviewChip(review));
 
   const axis = orientation === "vertical" ? "Y" : "X";
   // One group-pitch = the group's own extent (100%) + one inter-group gap.
@@ -183,7 +191,9 @@ function marquee(props: MarqueeProps = {}): DomphyElement<"div"> {
   // discontinuity at the reset (the gap between groups never divides evenly).
   const keyframes = {
     from: { transform: `translate${axis}(0)` },
-    to: { transform: `translate${axis}(calc(-100% - ${themeSpacing(gapUnits)}))` },
+    to: {
+      transform: `translate${axis}(calc(-100% - ${themeSpacing(gapUnits)}))`,
+    },
   };
   const animationName = `marquee-track-${hashString(JSON.stringify(keyframes))}`;
   const animation = `${animationName} ${duration}s linear infinite ${reverse ? "reverse" : "normal"}`;
@@ -223,7 +233,9 @@ function marquee(props: MarqueeProps = {}): DomphyElement<"div"> {
   return {
     div: [
       ...groups,
-      ...(fade ? [fadeOverlay(orientation, "start"), fadeOverlay(orientation, "end")] : []),
+      ...(fade
+        ? [fadeOverlay(orientation, "start"), fadeOverlay(orientation, "end")]
+        : []),
     ],
     style: {
       display: "flex",
@@ -235,7 +247,9 @@ function marquee(props: MarqueeProps = {}): DomphyElement<"div"> {
       height: orientation === "vertical" ? themeSpacing(96) : undefined,
       // Only needed to anchor the opt-in, absolutely-positioned fade scrims.
       ...(fade ? { position: "relative" } : {}),
-      ...(pauseOnHover ? { "&:hover > div": { animationPlayState: "paused" } } : {}),
+      ...(pauseOnHover
+        ? { "&:hover > div": { animationPlayState: "paused" } }
+        : {}),
       ...(props.style ?? {}),
     },
   };

@@ -27,7 +27,9 @@ describe("chartPieStacked", () => {
     const { host } = render(chartPieStacked());
     const wedges = host.querySelectorAll("svg path");
 
-    wedges[0].dispatchEvent(new MouseEvent("mouseenter", { bubbles: true, clientX: 5, clientY: 5 }));
+    wedges[0].dispatchEvent(
+      new MouseEvent("mouseenter", { bubbles: true, clientX: 5, clientY: 5 }),
+    );
     flushSync();
     expect(host.textContent).toContain("Desktop");
   });

@@ -20,15 +20,20 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement, Listener } from "@domphy/core";
-import { themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme";
+import {
+  themeColor,
+  themeDensity,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
 import {
-  MOBILE_MEDIA_QUERY,
-  NARROW_CARD_WIDTH,
   coverImage,
   dividerRow,
   emailField,
   legalFooter,
+  MOBILE_MEDIA_QUERY,
+  NARROW_CARD_WIDTH,
   oauthButton,
   passwordField,
   signUpLine,
@@ -102,9 +107,21 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
 
   const oauthRow: DomphyElement<"div"> = {
     div: [
-      oauthButton({ brand: "apple", accessibleLabel: appleAccessibleLabel, onClick: onAppleClick }),
-      oauthButton({ brand: "google", accessibleLabel: googleAccessibleLabel, onClick: onGoogleClick }),
-      oauthButton({ brand: "meta", accessibleLabel: metaAccessibleLabel, onClick: onMetaClick }),
+      oauthButton({
+        brand: "apple",
+        accessibleLabel: appleAccessibleLabel,
+        onClick: onAppleClick,
+      }),
+      oauthButton({
+        brand: "google",
+        accessibleLabel: googleAccessibleLabel,
+        onClick: onGoogleClick,
+      }),
+      oauthButton({
+        brand: "meta",
+        accessibleLabel: metaAccessibleLabel,
+        onClick: onMetaClick,
+      }),
     ],
     style: {
       display: "grid",
@@ -137,6 +154,10 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
         // so the group's gap-2 is the only title->description spacing.
         h1: headingText,
         $: [heading()],
+        // `heading()` already sets `style.color` — the doctor tool inspects
+        // only this element's own inline style, not patch contributions, so
+        // it can't see that and flags a false positive here.
+        _doctorDisable: "missing-color",
         style: {
           fontSize: (listener: Listener) => themeSize(listener, "increase-2"),
           marginBottom: 0,
@@ -163,7 +184,11 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
           submitButton(primaryButtonLabel),
           dividerRow(dividerText),
           oauthRow,
-          signUpLine({ promptText: signUpPrompt, linkLabel: signUpLabel, href: signUpHref }),
+          signUpLine({
+            promptText: signUpPrompt,
+            linkLabel: signUpLabel,
+            href: signUpHref,
+          }),
         ],
         onSubmit: (event) => {
           event.preventDefault();
@@ -173,7 +198,11 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
             password: String(data.get("password") ?? ""),
           });
         },
-        style: { display: "flex", flexDirection: "column", gap: themeSpacing(7) },
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: themeSpacing(7),
+        },
       },
     ],
     style: {
@@ -186,7 +215,13 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
   };
 
   const imageColumn: DomphyElement<"div"> = {
-    div: [coverImage({ src: coverImageSrc, alt: coverImageAlt, dimInDarkMode: dimCoverInDarkMode })],
+    div: [
+      coverImage({
+        src: coverImageSrc,
+        alt: coverImageAlt,
+        dimInDarkMode: dimCoverInDarkMode,
+      }),
+    ],
     style: {
       minWidth: "0",
       [MOBILE_MEDIA_QUERY]: { display: "none" },
@@ -199,19 +234,31 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
       overflow: "hidden",
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
+      outline: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
       outlineOffset: "-1px",
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
-      color: (listener: Listener) => themeColor(listener, "shift-10", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-10", "neutral"),
       width: "100%",
       [MOBILE_MEDIA_QUERY]: { gridTemplateColumns: "1fr" },
     },
   };
 
-  const legalFooterNode = legalFooter({ termsLabel, termsHref, privacyLabel, privacyHref });
+  const legalFooterNode = legalFooter({
+    termsLabel,
+    termsHref,
+    privacyLabel,
+    privacyHref,
+  });
   // Upstream footer FieldDescription is px-6 text-center.
-  legalFooterNode.style = { ...legalFooterNode.style, paddingInline: themeSpacing(6) };
+  legalFooterNode.style = {
+    ...legalFooterNode.style,
+    paddingInline: themeSpacing(6),
+  };
 
   return {
     div: [
@@ -240,7 +287,8 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
       minHeight: "100dvh",
       padding: themeSpacing(6),
       "@media (min-width: 48em)": { padding: themeSpacing(10) },
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },
   };

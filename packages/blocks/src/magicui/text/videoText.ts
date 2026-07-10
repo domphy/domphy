@@ -117,7 +117,11 @@ function videoText(props: VideoTextProps = {}): DomphyElement<"div"> {
     height: "100%",
     xmlns: "http://www.w3.org/2000/svg",
     ariaHidden: "true",
-    style: { position: "absolute", inset: 0, pointerEvents: "none" } as StyleObject,
+    style: {
+      position: "absolute",
+      inset: 0,
+      pointerEvents: "none",
+    } as StyleObject,
   };
 
   const maskedFillStyle: StyleObject = {

@@ -10,19 +10,19 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
+import type { ChartOption } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
-import type { ChartOption } from "@domphy/chart";
 import {
-  DEFAULT_LINE_GRID,
-  MONTHLY_VISITOR_DATA,
-  type MonthlyPoint,
   chartCard,
   chartPlot,
   computeYDomain,
+  DEFAULT_LINE_GRID,
   hiddenLabelYAxis,
   hoverDotOverlay,
   lineSwatchLabelValueTooltipFormatter,
+  MONTHLY_VISITOR_DATA,
+  type MonthlyPoint,
   monthCategoryXAxis,
   staticPointMarkersOverlay,
   trendFooter,
@@ -110,7 +110,10 @@ function chartLineDots(props: ChartLineDotsProps = {}): DomphyElement<"div"> {
           yDomain,
           grid: DEFAULT_LINE_GRID,
           renderMarker({ cx, cy, group }) {
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle") as SVGCircleElement;
+            const circle = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "circle",
+            ) as SVGCircleElement;
             circle.setAttribute("cx", String(cx));
             circle.setAttribute("cy", String(cy));
             circle.setAttribute("r", String(dotRadius));

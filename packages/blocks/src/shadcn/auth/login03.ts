@@ -11,12 +11,13 @@
 import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor, themeSize, themeSpacing } from "@domphy/theme";
 import { card, heading, paragraph } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 import {
-  NARROW_CARD_WIDTH,
   brandBadge,
   dividerRow,
   emailField,
   legalFooter,
+  NARROW_CARD_WIDTH,
   oauthButton,
   passwordField,
   signUpLine,
@@ -86,7 +87,7 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
       justifyContent: "center",
       // Upstream logo link is `font-medium` (500) over the whole wordmark —
       // not bold. `strong()` would render it at 700 and read as a heading.
-      fontWeight: "500",
+      fontWeight: fixed("500"),
       gap: themeSpacing(2),
       marginBlockEnd: themeSpacing(6),
     },
@@ -110,8 +111,15 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
       {
         p: subheading,
         $: [paragraph({ color: "neutral" })],
+        // `paragraph()` already sets `style.color` — the doctor tool inspects
+        // only this element's own inline style, not patch contributions, so
+        // it can't see that and flags a false positive here.
+        _doctorDisable: "missing-color",
         // Upstream CardDescription is `text-sm` (0.875rem), a step below base.
-        style: { textAlign: "center", fontSize: (listener: Listener) => themeSize(listener, "decrease-1") },
+        style: {
+          textAlign: "center",
+          fontSize: (listener: Listener) => themeSize(listener, "decrease-1"),
+        },
       },
       {
         div: [
@@ -119,10 +127,24 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
             form: [
               {
                 div: [
-                  oauthButton({ brand: "apple", visibleLabel: appleButtonLabel, accessibleLabel: appleButtonLabel, onClick: onAppleClick }),
-                  oauthButton({ brand: "google", visibleLabel: googleButtonLabel, accessibleLabel: googleButtonLabel, onClick: onGoogleClick }),
+                  oauthButton({
+                    brand: "apple",
+                    visibleLabel: appleButtonLabel,
+                    accessibleLabel: appleButtonLabel,
+                    onClick: onAppleClick,
+                  }),
+                  oauthButton({
+                    brand: "google",
+                    visibleLabel: googleButtonLabel,
+                    accessibleLabel: googleButtonLabel,
+                    onClick: onGoogleClick,
+                  }),
                 ],
-                style: { display: "flex", flexDirection: "column", gap: themeSpacing(3) },
+                style: {
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: themeSpacing(3),
+                },
               },
               dividerRow(dividerText),
               emailFieldRow,
@@ -130,9 +152,17 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
               {
                 div: [
                   submitButton(primaryButtonLabel),
-                  signUpLine({ promptText: signUpPrompt, linkLabel: signUpLabel, href: signUpHref }),
+                  signUpLine({
+                    promptText: signUpPrompt,
+                    linkLabel: signUpLabel,
+                    href: signUpHref,
+                  }),
                 ],
-                style: { display: "flex", flexDirection: "column", gap: themeSpacing(3) },
+                style: {
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: themeSpacing(3),
+                },
               },
             ],
             onSubmit: (event: Event) => {
@@ -143,7 +173,11 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
                 password: String(data.get("password") ?? ""),
               });
             },
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(7) },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(7),
+            },
           } as DomphyElement<"form">,
         ],
       },
@@ -159,11 +193,22 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
           logoRow,
           cardElement,
           {
-            div: [legalFooter({ termsLabel, termsHref, privacyLabel, privacyHref })],
-            style: { marginBlockStart: themeSpacing(6), width: "100%", maxWidth: NARROW_CARD_WIDTH },
+            div: [
+              legalFooter({ termsLabel, termsHref, privacyLabel, privacyHref }),
+            ],
+            style: {
+              marginBlockStart: themeSpacing(6),
+              width: "100%",
+              maxWidth: NARROW_CARD_WIDTH,
+            },
           },
         ],
-        style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" },
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: "100%",
+        },
       },
     ],
     dataTone: "shift-2",
@@ -176,7 +221,8 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
       // rather than scaling it continuously.
       padding: themeSpacing(6),
       "@media (min-width: 48em)": { padding: themeSpacing(10) },
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },
   };

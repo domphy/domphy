@@ -45,7 +45,9 @@ describe("sidebarInDialog", () => {
       const { host } = render(sidebarInDialog() as DomphyElement);
       const dialogElement = host.querySelector("dialog") as HTMLDialogElement;
       expect(dialogElement.open).toBe(true);
-      const closeButton = host.querySelector('button[aria-label="Close settings"]') as HTMLButtonElement;
+      const closeButton = host.querySelector(
+        'button[aria-label="Close settings"]',
+      ) as HTMLButtonElement;
       expect(closeButton).toBeTruthy();
       closeButton.click();
       flushSync();
@@ -68,11 +70,15 @@ describe("sidebarInDialog", () => {
   it("clicking another category row swaps the active category without throwing", () => {
     const { host } = render(sidebarInDialog() as DomphyElement);
     const rows = Array.from(host.querySelectorAll("nav ul button"));
-    const notificationsRow = rows.find((rowButton) => rowButton.textContent?.includes("Notifications"));
+    const notificationsRow = rows.find((rowButton) =>
+      rowButton.textContent?.includes("Notifications"),
+    );
     expect(notificationsRow).toBeTruthy();
     expect(() => (notificationsRow as HTMLButtonElement).click()).not.toThrow();
     flushSync();
-    expect((notificationsRow as HTMLElement).getAttribute("aria-current")).toBe("true");
+    expect((notificationsRow as HTMLElement).getAttribute("aria-current")).toBe(
+      "true",
+    );
   });
 
   it("accepts custom categories and a custom default", () => {

@@ -165,7 +165,11 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
       }));
 
       const baseColor = resolveColor(props.baseColor, "shift-3", "neutral");
-      const markerColor = resolveColor(props.markerColor, "shift-9", "attention");
+      const markerColor = resolveColor(
+        props.markerColor,
+        "shift-9",
+        "attention",
+      );
       const glowColor = resolveColor(props.glowColor, "shift-1", "neutral");
 
       // Upstream hardcodes `devicePixelRatio: 2` (always supersamples, even on
@@ -202,7 +206,9 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
             // Ease the drag spring toward its target (semi-implicit Euler).
             // dt is clamped so a backgrounded tab can't destabilize it.
             const now =
-              typeof performance !== "undefined" ? performance.now() : Date.now();
+              typeof performance !== "undefined"
+                ? performance.now()
+                : Date.now();
             let dt = lastFrameTime ? (now - lastFrameTime) / 1000 : 1 / 60;
             lastFrameTime = now;
             if (dt > 1 / 30) dt = 1 / 30;
@@ -256,10 +262,12 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
         dragTarget += delta / MOVEMENT_DAMPING;
       };
 
-      const handlePointerDown = (event: PointerEvent) => startDrag(event.clientX);
+      const handlePointerDown = (event: PointerEvent) =>
+        startDrag(event.clientX);
       const handlePointerUp = () => endDrag();
       const handlePointerOut = () => endDrag();
-      const handleMouseMove = (event: MouseEvent) => applyMovement(event.clientX);
+      const handleMouseMove = (event: MouseEvent) =>
+        applyMovement(event.clientX);
       const handleTouchMove = (event: TouchEvent) => {
         const touch = event.touches[0];
         if (touch) applyMovement(touch.clientX);

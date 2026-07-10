@@ -16,8 +16,8 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { toState, type ValueOrState } from "@domphy/core";
-import { strong } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { strong } from "@domphy/ui";
 
 export interface AnimatedCircularProgressBarProps {
   /** Current progress value. Accepts a value or reactive state. When omitted, the
@@ -75,12 +75,14 @@ function animatedCircularProgressBar(
   const radius = VIEWBOX_CENTER - strokeWidth / 2;
   const circumference = 2 * Math.PI * radius;
 
-  const percent = (listener: Listener) => clampPercent(value.get(listener), min, max);
+  const percent = (listener: Listener) =>
+    clampPercent(value.get(listener), min, max);
   // Upstream caps the background track at a 90%-of-circumference arc (never a
   // fully closed ring) and hides it past 90%, leaving a fixed gap before the
   // progress arc's start — reproduced here as an offset fraction rather than
   // upstream's scaleY(-1)-flipped dash technique.
-  const trackFraction = (listener: Listener) => Math.max(0, (90 - percent(listener)) / 100);
+  const trackFraction = (listener: Listener) =>
+    Math.max(0, (90 - percent(listener)) / 100);
 
   const trackCircle: DomphyElement<"circle"> = {
     circle: null,
@@ -95,7 +97,8 @@ function animatedCircularProgressBar(
     // missing-color contract, matching meteors.ts's tail-gradient spans.
     _doctorDisable: "missing-color",
     style: {
-      stroke: (listener: Listener) => themeColor(listener, "shift-3", secondaryColor),
+      stroke: (listener: Listener) =>
+        themeColor(listener, "shift-3", secondaryColor),
       transform: "rotate(-18deg)",
       strokeDasharray: `${circumference} ${circumference}`,
       strokeDashoffset: (listener: Listener) =>
@@ -115,7 +118,8 @@ function animatedCircularProgressBar(
     ariaHidden: "true",
     _doctorDisable: "missing-color",
     style: {
-      stroke: (listener: Listener) => themeColor(listener, "shift-9", primaryColor),
+      stroke: (listener: Listener) =>
+        themeColor(listener, "shift-9", primaryColor),
       strokeDasharray: `${circumference} ${circumference}`,
       strokeDashoffset: (listener: Listener) =>
         `${(circumference - (percent(listener) / 100) * circumference).toFixed(2)}`,
@@ -135,7 +139,10 @@ function animatedCircularProgressBar(
       const element = node.domElement as HTMLElement | null;
       if (!element || typeof element.animate !== "function") return;
       const release = value.addListener(() => {
-        element.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 250, easing: "ease-out" });
+        element.animate([{ opacity: 0.35 }, { opacity: 1 }], {
+          duration: 250,
+          easing: "ease-out",
+        });
       });
       node.addHook("Remove", () => release());
     },
@@ -149,7 +156,12 @@ function animatedCircularProgressBar(
         ariaHidden: "true",
         // Rotates the arc's start point from SVG's default 3 o'clock to 12
         // o'clock, matching ringProgress()'s `from -90deg` conic-gradient start.
-        style: { display: "block", width: "100%", height: "100%", transform: "rotate(-90deg)" } as StyleObject,
+        style: {
+          display: "block",
+          width: "100%",
+          height: "100%",
+          transform: "rotate(-90deg)",
+        } as StyleObject,
       } as DomphyElement<"svg">,
       {
         div: [percentReadout],
@@ -163,7 +175,8 @@ function animatedCircularProgressBar(
       } as DomphyElement<"div">,
     ],
     role: "progressbar",
-    ariaValuenow: (listener: Listener) => String(Math.round(value.get(listener))),
+    ariaValuenow: (listener: Listener) =>
+      String(Math.round(value.get(listener))),
     ariaValuemin: String(min),
     ariaValuemax: String(max),
     ariaLabel: label,

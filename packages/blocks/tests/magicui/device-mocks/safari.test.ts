@@ -33,7 +33,9 @@ describe("safari", () => {
   });
 
   it("renders an image inside the screen area", () => {
-    const { host } = render(safari({ url: "example.com", imageSrc: "https://example.com/shot.png" }));
+    const { host } = render(
+      safari({ url: "example.com", imageSrc: "https://example.com/shot.png" }),
+    );
     const image = host.querySelector("img");
     expect(image).toBeTruthy();
     expect(image!.getAttribute("src")).toBe("https://example.com/shot.png");
@@ -41,7 +43,10 @@ describe("safari", () => {
 
   it("renders a video inside the screen area, preferred over an image", () => {
     const { host } = render(
-      safari({ imageSrc: "https://example.com/shot.png", videoSrc: "https://example.com/demo.mp4" }),
+      safari({
+        imageSrc: "https://example.com/shot.png",
+        videoSrc: "https://example.com/demo.mp4",
+      }),
     );
     expect(host.querySelector("video")).toBeTruthy();
     expect(host.querySelector("img")).toBeNull();

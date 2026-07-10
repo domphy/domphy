@@ -6,6 +6,30 @@ Packages are versioned in lockstep. All packages share the same version number.
 
 ---
 
+## `@domphy/blocks` QA wave · `@domphy/ui` [0.18.21] — 2026-07-10
+
+### Added — `@domphy/blocks`
+- `tests/lifecycle-harness.test.ts`: mechanical sweep of every exported block factory (mount → reactive ancestor re-render → unmount → post-unmount hygiene) recording construct/render errors, console errors, window/document listener leaks, re-arming timers/rAF, and DOM residue into `.lifecycle-report.json`. Baseline: 173/173 clean.
+- `shared/typography.ts` `fixed()` helper + a "QA layers" section in the README documenting the four QA tiers and the recurring fix recipes.
+
+### Fixed — `@domphy/blocks`
+- `@domphy/doctor` conformance across the package: 51 errors + 336 warnings + 10 info → 0. Typography stays pixel-identical to upstream via `fixed()`; zero lengths drop their units; non-submit buttons declare `type="button"`; every input gains a real associated `<label>` (visually hidden where upstream has none); themed surfaces declare `color`; effect-identity values outside the tone system carry justified `_doctorDisable`s. Family-wide issues were fixed once in the `*-shared.ts` helpers (sidebar search form, version switcher, login cover image).
+- `heroVideoDialog`: the closed-state iframe carried an empty `src` (invalid HTML) — now `about:blank`.
+- `login02`/`login04` cover images: `alt: ""` never reached the DOM (`@domphy/core`'s `merge()` drops empty-string values — worked around with a function value; core-side semantics left for a dedicated pass).
+
+### Fixed — `@domphy/ui` [0.18.21]
+- `table()`: dropped an unjustified `!important` on the row-hover background (`.scope tbody tr:hover` already out-specifies row-scope rules).
+- `details()`/`formGroup()`/`popoverArrow()`/`tag()`: zero lengths emitted with units (`"0px"`) now emit unitless `0` (stylelint `length-zero-no-unit`).
+
+---
+
+## `domphy-web` [1.0.0] — 2026-07-10
+
+### Added
+- docs(three): concept docs (overview, scene grammar, events, animation & loop, loading assets, recipes) + 10 live playground examples (spinning cube, interactive grid, wave field, galaxy, orbit viewer, theme sync, UI bridge, glTF viewer, primitive bridge, starfield hero) for `@domphy/three` on domphy.com.
+
+---
+
 ## `@domphy/press` [0.20.14] — 2026-07-10
 
 ### Fixed

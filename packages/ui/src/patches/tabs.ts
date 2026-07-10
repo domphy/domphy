@@ -50,7 +50,7 @@ function tabs(
   } = { items: [] },
 ): PartialElement {
   const { items = [], accentColor = "primary", color = "neutral" } = props;
-  const activeKey = toState(props.activeKey ?? (items[0]?.key ?? 0));
+  const activeKey = toState(props.activeKey ?? items[0]?.key ?? 0);
 
   return {
     _onSchedule: (node, element) => {
@@ -77,7 +77,7 @@ function tabs(
             if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(k)) return;
             e.preventDefault();
             const keys = items.map((it, i) => it.key ?? i);
-            const idx = keys.findIndex((ki) => ki === key);
+            const idx = keys.indexOf(key);
             let next = idx;
             if (k === "ArrowRight") next = (idx + 1) % keys.length;
             else if (k === "ArrowLeft")

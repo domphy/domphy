@@ -29,7 +29,10 @@ describe("progressiveBlur", () => {
 
   it("stacks blur bands for both edges when edges: ['top', 'bottom']", () => {
     const { node } = render(
-      progressiveBlur({ edges: ["top", "bottom"], blurSteps: [1, 2, 4] }) as DomphyElement,
+      progressiveBlur({
+        edges: ["top", "bottom"],
+        blurSteps: [1, 2, 4],
+      }) as DomphyElement,
     );
     const css = node.generateCSS();
     expect(css).toContain("blur(1px)");
@@ -39,7 +42,9 @@ describe("progressiveBlur", () => {
 
   it("accepts custom content", () => {
     const { host } = render(
-      progressiveBlur({ content: [{ p: "Custom body copy" }] }) as DomphyElement,
+      progressiveBlur({
+        content: [{ p: "Custom body copy" }],
+      }) as DomphyElement,
     );
     expect(host.textContent).toContain("Custom body copy");
   });

@@ -5,6 +5,7 @@
 
 import type { DomphyElement, Listener, ReadableState } from "@domphy/core";
 import { toState } from "@domphy/core";
+import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   avatar,
   breadcrumb,
@@ -17,11 +18,6 @@ import {
   strong,
   tooltip,
 } from "@domphy/ui";
-import {
-  themeColor,
-  themeDensity,
-  themeSpacing,
-} from "@domphy/theme";
 
 // ---------------------------------------------------------------------------
 // Icons — hand-authored generic line glyphs (24x24, stroke=currentColor).
@@ -149,6 +145,30 @@ function sidebarIcon(
   return { span: svg, $: [icon({ color })] } as DomphyElement<"span">;
 }
 
+/**
+ * A `<label for>` visually clipped to a 1px box (the standard "sr-only"
+ * pattern) — pairs with an input upstream renders with no visible label text
+ * of its own (icon + placeholder only), so htmlhint's input-requires-label
+ * has a real match without adding on-screen chrome upstream doesn't have.
+ */
+function srOnlyLabel(text: string, htmlFor: string): DomphyElement<"label"> {
+  return {
+    label: text,
+    htmlFor,
+    style: {
+      position: "absolute",
+      width: "1px",
+      height: "1px",
+      padding: "0",
+      margin: "-1px",
+      overflow: "hidden",
+      clip: "rect(0, 0, 0, 0)",
+      whiteSpace: "nowrap",
+      border: "0",
+    },
+  } as unknown as DomphyElement<"label">;
+}
+
 /** Muted rounded video-aspect placeholder card (edge dataTone surface). */
 function placeholderCard(key: string | number): DomphyElement<"div"> {
   return {
@@ -235,7 +255,10 @@ function sidebarBreadcrumb(
     // elements) — but only when a later crumb still anchors the trail.
     const hideBelowMd =
       index === 0 && items.length > 1
-        ? { display: "inline-flex", "@media (max-width: 47.9375em)": { display: "none" } }
+        ? {
+            display: "inline-flex",
+            "@media (max-width: 47.9375em)": { display: "none" },
+          }
         : undefined;
     if (isLast) {
       return {
@@ -344,6 +367,7 @@ function sidebarBackdrop(
 
 export {
   sidebarIcon,
+  srOnlyLabel,
   placeholderCard,
   placeholderPanel,
   sidebarMainContent,
@@ -436,8 +460,14 @@ function iconBadge(svg: string): DomphyElement<"span"> {
 function twoLineLabel(title: string, caption: string): DomphyElement<"div"> {
   return {
     div: [
-      { strong: title, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
-      { small: caption, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+      {
+        strong: title,
+        $: [strong({ color: "neutral" })],
+      } as unknown as DomphyElement,
+      {
+        small: caption,
+        $: [small({ color: "neutral" })],
+      } as unknown as DomphyElement,
     ],
     style: {
       display: "flex",
@@ -489,7 +519,10 @@ function renderTeamSwitcher(teams: SidebarTeam[]): DomphyElement<"div"> {
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
         $: [popover({ placement: "bottom", content: dropdown })],
       } as unknown as DomphyElement,
@@ -519,7 +552,9 @@ function renderPlainNavRow(
     whiteSpace: "nowrap",
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+    "&:hover": {
+      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+    },
     "&[aria-current=page]": {
       backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary"),
       color: (l: Listener) => themeColor(l, "shift-12", "primary"),
@@ -534,12 +569,18 @@ function renderPlainNavRow(
       {
         a: [
           ...(item.icon ? [sidebarIcon(item.icon)] : []),
-          { span: item.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+          {
+            span: item.title,
+            style: { flex: "1", textAlign: "left" },
+          } as unknown as DomphyElement,
           ...(badge != null ? [navBadgePill(badge)] : []),
         ],
         href: item.href ?? "#",
         ariaCurrent: active ? "page" : undefined,
-        style: { ...rowStyle, display: (l: Listener) => (collapsed.get(l) ? "none" : "flex") },
+        style: {
+          ...rowStyle,
+          display: (l: Listener) => (collapsed.get(l) ? "none" : "flex"),
+        },
       } as unknown as DomphyElement,
       {
         a: [item.icon ? sidebarIcon(item.icon) : { span: item.title[0] }],
@@ -572,7 +613,10 @@ function renderExpandableNavRow(
     style: { minWidth: themeSpacing(40) },
     $: [
       menu({
-        items: children.map((child, index) => ({ label: child.title, key: `${item.title}-flyout-${index}` })),
+        items: children.map((child, index) => ({
+          label: child.title,
+          key: `${item.title}-flyout-${index}`,
+        })),
       }),
     ],
   } as unknown as DomphyElement<"div">;
@@ -584,7 +628,10 @@ function renderExpandableNavRow(
           {
             summary: [
               ...(item.icon ? [sidebarIcon(item.icon)] : []),
-              { span: item.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+              {
+                span: item.title,
+                style: { flex: "1", textAlign: "left" },
+              } as unknown as DomphyElement,
               {
                 span: ICON_CHEVRON_RIGHT,
                 dataSlot: "nav-chevron",
@@ -604,10 +651,14 @@ function renderExpandableNavRow(
               paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
               borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-              backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "inherit", "neutral"),
               "&::-webkit-details-marker": { display: "none" },
               "&::marker": { content: `""` },
-              "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+              "&:hover": {
+                backgroundColor: (l: Listener) =>
+                  themeColor(l, "shift-2", "neutral"),
+              },
             },
           } as unknown as DomphyElement,
           {
@@ -615,21 +666,34 @@ function renderExpandableNavRow(
               li: [
                 {
                   a: child.active
-                    ? ([{ strong: child.title, $: [strong({ color: "neutral" })] }] as unknown as DomphyElement)
+                    ? ([
+                        {
+                          strong: child.title,
+                          $: [strong({ color: "neutral" })],
+                        },
+                      ] as unknown as DomphyElement)
                     : child.title,
                   href: child.href ?? "#",
                   ariaCurrent: child.active ? "page" : undefined,
                   style: {
                     display: "flex",
-                    paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
-                    paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-                    borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+                    paddingBlock: (l: Listener) =>
+                      themeSpacing(themeDensity(l) * 1.5),
+                    paddingInline: (l: Listener) =>
+                      themeSpacing(themeDensity(l) * 3),
+                    borderRadius: (l: Listener) =>
+                      themeSpacing(themeDensity(l) * 1),
                     textDecoration: () => "none",
                     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-                    "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+                    "&:hover": {
+                      backgroundColor: (l: Listener) =>
+                        themeColor(l, "shift-2", "neutral"),
+                    },
                     "&[aria-current=page]": {
-                      backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary"),
-                      color: (l: Listener) => themeColor(l, "shift-12", "primary"),
+                      backgroundColor: (l: Listener) =>
+                        themeColor(l, "shift-3", "primary"),
+                      color: (l: Listener) =>
+                        themeColor(l, "shift-12", "primary"),
                     },
                   },
                 } as unknown as DomphyElement,
@@ -646,9 +710,10 @@ function renderExpandableNavRow(
               paddingInlineStart: themeSpacing(3),
               paddingBlock: "0",
               paddingInlineEnd: "0",
-              borderInlineStart: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+              borderInlineStart: (l: Listener) =>
+                `1px solid ${themeColor(l, "shift-3", "neutral")}`,
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-              maxHeight: "0px",
+              maxHeight: "0",
               overflow: "hidden",
               opacity: "0",
               transition: "max-height 180ms linear, opacity 180ms linear",
@@ -666,8 +731,14 @@ function renderExpandableNavRow(
           // selector would also match the icon/title spans in the same
           // summary and rotate the visible label text into unreadable
           // vertical text.
-          "&[open] summary [data-slot=nav-chevron]": { transform: "rotate(90deg)" },
-          "&[open] > ul": { maxHeight: themeSpacing(240), opacity: "1", paddingBlock: themeSpacing(1) },
+          "&[open] summary [data-slot=nav-chevron]": {
+            transform: "rotate(90deg)",
+          },
+          "&[open] > ul": {
+            maxHeight: themeSpacing(240),
+            opacity: "1",
+            paddingBlock: themeSpacing(1),
+          },
         },
       } as unknown as DomphyElement,
       {
@@ -685,13 +756,23 @@ function renderExpandableNavRow(
           cursor: "pointer",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
           "&[aria-expanded=true]": {
-            backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary"),
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-3", "primary"),
             color: (l: Listener) => themeColor(l, "shift-12", "primary"),
           },
         },
-        $: [popover({ open: flyoutOpen, placement: "right-start", content: flyoutContent })],
+        $: [
+          popover({
+            open: flyoutOpen,
+            placement: "right-start",
+            content: flyoutContent,
+          }),
+        ],
       } as unknown as DomphyElement,
     ],
     _key: item.title,
@@ -711,7 +792,10 @@ function dropdownRow(item: DropdownItem): DomphyElement<"button"> {
   return {
     button: [
       ...(item.icon ? [sidebarIcon(item.icon)] : []),
-      { span: item.label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+      {
+        span: item.label,
+        style: { flex: "1", textAlign: "left" },
+      } as unknown as DomphyElement,
     ],
     type: "button",
     role: "menuitem",
@@ -729,7 +813,9 @@ function dropdownRow(item: DropdownItem): DomphyElement<"button"> {
       textAlign: "left",
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-      "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+      "&:hover": {
+        backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+      },
     },
   } as unknown as DomphyElement<"button">;
 }
@@ -743,7 +829,11 @@ function dropdownSeparator(): DomphyElement<"div"> {
     style: {
       height: "0",
       marginBlock: themeSpacing(1),
-      borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderTop: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      // Decorative rule, no text of its own — match the border's own tone
+      // (same convention as this file's verticalDivider() above).
+      color: (l: Listener) => themeColor(l, "shift-3", "neutral"),
     },
   } as unknown as DomphyElement<"div">;
 }
@@ -759,7 +849,11 @@ function dropdownContent(
 ): DomphyElement<"div"> {
   const children: DomphyElement[] = [];
   if (header) {
-    children.push({ div: [header], role: "none", style: { padding: themeSpacing(1) } } as unknown as DomphyElement);
+    children.push({
+      div: [header],
+      role: "none",
+      style: { padding: themeSpacing(1) },
+    } as unknown as DomphyElement);
     children.push(dropdownSeparator());
   }
   sections.forEach((section, index) => {
@@ -824,7 +918,10 @@ function renderProjectRow(
           {
             a: [
               ...(project.icon ? [sidebarIcon(project.icon)] : []),
-              { span: project.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+              {
+                span: project.title,
+                style: { flex: "1", textAlign: "left" },
+              } as unknown as DomphyElement,
             ],
             href: project.href ?? "#",
             style: linkStyle,
@@ -835,14 +932,21 @@ function renderProjectRow(
             dataSlot: "row-more",
             ariaLabel: `${project.title} actions`,
             style: {
-              display: (l: Listener) => (moreOpen.get(l) ? "inline-flex" : "none"),
+              display: (l: Listener) =>
+                moreOpen.get(l) ? "inline-flex" : "none",
               flexShrink: "0",
               border: "none",
               background: "none",
               cursor: "pointer",
               color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
             },
-            $: [popover({ open: moreOpen, placement: "right-start", content: moreMenu })],
+            $: [
+              popover({
+                open: moreOpen,
+                placement: "right-start",
+                content: moreMenu,
+              }),
+            ],
           } as unknown as DomphyElement,
         ],
         style: {
@@ -855,14 +959,19 @@ function renderProjectRow(
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
           "&:hover [data-slot=row-more], &:focus-within [data-slot=row-more]": {
             display: "inline-flex",
           },
         },
       } as unknown as DomphyElement,
       {
-        a: [project.icon ? sidebarIcon(project.icon) : { span: project.title[0] }],
+        a: [
+          project.icon ? sidebarIcon(project.icon) : { span: project.title[0] },
+        ],
         href: project.href ?? "#",
         ariaLabel: project.title,
         style: {
@@ -875,7 +984,10 @@ function renderProjectRow(
           textDecoration: () => "none",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
         $: [tooltip({ content: project.title, placement: "right" })],
       } as unknown as DomphyElement,
@@ -891,7 +1003,10 @@ function renderProjectsMoreRow(): DomphyElement<"li"> {
       {
         button: [
           sidebarIcon(ICON_MORE),
-          { span: "More", style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+          {
+            span: "More",
+            style: { flex: "1", textAlign: "left" },
+          } as unknown as DomphyElement,
         ],
         type: "button",
         style: {
@@ -908,7 +1023,10 @@ function renderProjectsMoreRow(): DomphyElement<"li"> {
           textAlign: "left",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
       } as unknown as DomphyElement,
     ],
@@ -920,17 +1038,35 @@ function renderProjectsMoreRow(): DomphyElement<"li"> {
 function renderUserFooter(user: SidebarUser): DomphyElement<"div"> {
   const avatarChild: DomphyElement<"span"> = user.avatarUrl
     ? ({
-        span: [{ img: null, src: user.avatarUrl, alt: user.name } as unknown as DomphyElement],
+        span: [
+          {
+            img: null,
+            src: user.avatarUrl,
+            alt: user.name,
+          } as unknown as DomphyElement,
+        ],
         $: [avatar({ color: "primary" })],
       } as unknown as DomphyElement<"span">)
-    : ({ span: initialsOf(user.name), $: [avatar({ color: "primary" })] } as unknown as DomphyElement<"span">);
+    : ({
+        span: initialsOf(user.name),
+        $: [avatar({ color: "primary" })],
+      } as unknown as DomphyElement<"span">);
 
   const dropdownAvatar: DomphyElement<"span"> = user.avatarUrl
     ? ({
-        span: [{ img: null, src: user.avatarUrl, alt: user.name } as unknown as DomphyElement],
+        span: [
+          {
+            img: null,
+            src: user.avatarUrl,
+            alt: user.name,
+          } as unknown as DomphyElement,
+        ],
         $: [avatar({ color: "primary" })],
       } as unknown as DomphyElement<"span">)
-    : ({ span: initialsOf(user.name), $: [avatar({ color: "primary" })] } as unknown as DomphyElement<"span">);
+    : ({
+        span: initialsOf(user.name),
+        $: [avatar({ color: "primary" })],
+      } as unknown as DomphyElement<"span">);
 
   // Upstream nav-user.tsx dropdown: a header block (avatar + name + email),
   // then Upgrade to Pro, then Account/Billing/Notifications, then Log out —
@@ -962,7 +1098,11 @@ function renderUserFooter(user: SidebarUser): DomphyElement<"div"> {
   return {
     div: [
       {
-        button: [avatarChild, twoLineLabel(user.name, user.email), sidebarIcon(ICON_CHEVRONS_UPDOWN)],
+        button: [
+          avatarChild,
+          twoLineLabel(user.name, user.email),
+          sidebarIcon(ICON_CHEVRONS_UPDOWN),
+        ],
         type: "button",
         ariaLabel: "Account menu",
         style: {
@@ -977,14 +1117,18 @@ function renderUserFooter(user: SidebarUser): DomphyElement<"div"> {
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
         $: [popover({ placement: "top", content: dropdown })],
       } as unknown as DomphyElement,
     ],
     style: {
       padding: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-      borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderTop: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
   } as unknown as DomphyElement<"div">;

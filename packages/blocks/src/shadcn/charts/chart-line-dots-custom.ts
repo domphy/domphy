@@ -11,18 +11,18 @@
 // companion SVG overlay positioned with the exact same public scale
 // factories the engine itself uses.
 
+import type { ChartOption } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
-import type { ChartOption } from "@domphy/chart";
 import {
-  DEFAULT_LINE_GRID,
-  MONTHLY_VISITOR_DATA,
-  type MonthlyPoint,
   chartCard,
   chartPlot,
   computeYDomain,
+  DEFAULT_LINE_GRID,
   hiddenLabelYAxis,
   lineSwatchLabelValueTooltipFormatter,
+  MONTHLY_VISITOR_DATA,
+  type MonthlyPoint,
   monthCategoryXAxis,
   staticPointMarkersOverlay,
   trendFooter,
@@ -50,7 +50,9 @@ export interface ChartLineDotsCustomProps {
  * custom hollow pin-glyph marker at every point instead of a plain circle.
  * Call with no arguments for a fully working demo.
  */
-function chartLineDotsCustom(props: ChartLineDotsCustomProps = {}): DomphyElement<"div"> {
+function chartLineDotsCustom(
+  props: ChartLineDotsCustomProps = {},
+): DomphyElement<"div"> {
   const {
     title = "Line Chart - Custom Dots",
     description = "January - June 2026",
@@ -115,7 +117,10 @@ function chartLineDotsCustom(props: ChartLineDotsCustomProps = {}): DomphyElemen
               [cy - halfHeight, cy - radius],
               [cy + radius, cy + halfHeight],
             ]) {
-              const tick = document.createElementNS(svgNamespace, "line") as SVGLineElement;
+              const tick = document.createElementNS(
+                svgNamespace,
+                "line",
+              ) as SVGLineElement;
               tick.setAttribute("x1", String(cx));
               tick.setAttribute("y1", String(y1));
               tick.setAttribute("x2", String(cx));
@@ -125,7 +130,10 @@ function chartLineDotsCustom(props: ChartLineDotsCustomProps = {}): DomphyElemen
               tick.setAttribute("stroke-linecap", "round");
               group.appendChild(tick);
             }
-            const node = document.createElementNS(svgNamespace, "circle") as SVGCircleElement;
+            const node = document.createElementNS(
+              svgNamespace,
+              "circle",
+            ) as SVGCircleElement;
             node.setAttribute("cx", String(cx));
             node.setAttribute("cy", String(cy));
             node.setAttribute("r", String(radius));

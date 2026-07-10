@@ -17,7 +17,13 @@
 // washing over the whole face rather than a visibly growing circle.
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSize, themeSpacing } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
+import { fixed } from "../../shared/typography.js";
 
 export interface InteractiveHoverButtonProps {
   /** Button label. Defaults to `"Get Started"`. */
@@ -53,7 +59,11 @@ function arrowGlyph(): DomphyElement<"span"> {
     ariaHidden: "true",
     // Upstream renders lucide's `<ArrowRight />` at its default 24px size
     // (`themeSpacing(6)` == 1.5em == 24px at the root em).
-    style: { display: "inline-flex", width: themeSpacing(6), height: themeSpacing(6) },
+    style: {
+      display: "inline-flex",
+      width: themeSpacing(6),
+      height: themeSpacing(6),
+    },
   };
 }
 
@@ -76,7 +86,8 @@ function accentDot(color: ThemeColor): DomphyElement<"span"> {
       borderRadius: "50%",
       transformOrigin: "center",
       transform: "scale(1)",
-      backgroundColor: (listener: Listener) => themeColor(listener, "shift-9", color),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "shift-9", color),
       transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1)",
       pointerEvents: "none",
       zIndex: 0,
@@ -89,7 +100,9 @@ function accentDot(color: ThemeColor): DomphyElement<"span"> {
  * hover while a small accent dot scales up into a full-face color flood.
  * Call with no arguments for a working demo button.
  */
-function interactiveHoverButton(props: InteractiveHoverButtonProps = {}): DomphyElement<"button"> {
+function interactiveHoverButton(
+  props: InteractiveHoverButtonProps = {},
+): DomphyElement<"button"> {
   const label = props.children ?? "Get Started";
   const color = props.color ?? "primary";
 
@@ -99,7 +112,8 @@ function interactiveHoverButton(props: InteractiveHoverButtonProps = {}): Domphy
     style: {
       position: "relative",
       zIndex: 1,
-      transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+      transition:
+        "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)",
     } as StyleObject,
   };
 
@@ -114,7 +128,10 @@ function interactiveHoverButton(props: InteractiveHoverButtonProps = {}): Domphy
   };
 
   const hoverOverlay: DomphyElement<"span"> = {
-    span: [{ span: label, style: { position: "relative" } } as DomphyElement<"span">, arrowGlyph()],
+    span: [
+      { span: label, style: { position: "relative" } } as DomphyElement<"span">,
+      arrowGlyph(),
+    ],
     dataIhbOverlay: "true",
     ariaHidden: "true",
     style: {
@@ -136,7 +153,8 @@ function interactiveHoverButton(props: InteractiveHoverButtonProps = {}): Domphy
       color: (listener: Listener) => themeColor(listener, "shift-0", color),
       // Upstream's initial offset is `translate-x-12` == 48px == themeSpacing(12).
       transform: `translate(${themeSpacing(12)}, -50%)`,
-      transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+      transition:
+        "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)",
     } as StyleObject,
   };
 
@@ -155,7 +173,7 @@ function interactiveHoverButton(props: InteractiveHoverButtonProps = {}): Domphy
       cursor: props.disabled ? "not-allowed" : "pointer",
       fontSize: (listener: Listener) => themeSize(listener, "inherit"),
       // Upstream `font-semibold`.
-      fontWeight: 600,
+      fontWeight: fixed(600),
       // Upstream `p-2 px-6`: 8px block / 24px inline == themeSpacing(2)/themeSpacing(6).
       paddingBlock: themeSpacing(2),
       paddingInline: themeSpacing(6),
@@ -168,9 +186,11 @@ function interactiveHoverButton(props: InteractiveHoverButtonProps = {}): Domphy
       // (theme `--border` gray) and default `--foreground` text on the
       // `bg-background` surface. Only the dot + hover overlay carry the accent
       // `color` family. Neutral tones here mirror sibling `shinyButton.ts`.
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+      outline: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
       outlineOffset: "-1px",
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
       opacity: props.disabled ? 0.6 : 1,
       // Upstream `group-hover:scale-[100.8]`.

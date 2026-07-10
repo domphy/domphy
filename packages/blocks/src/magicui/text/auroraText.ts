@@ -25,7 +25,15 @@ import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor } from "@domphy/theme";
 
-export type AuroraTextTag = "span" | "div" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+export type AuroraTextTag =
+  | "span"
+  | "div"
+  | "h1"
+  | "h2"
+  | "h3"
+  | "h4"
+  | "h5"
+  | "h6";
 
 export interface AuroraTextProps {
   /** Text content. Defaults to `"Aurora Text"`. */
@@ -61,7 +69,9 @@ let auroraTextInstanceCounter = 0;
  */
 function auroraText(props: AuroraTextProps = {}): DomphyElement {
   const text = props.children ?? "Aurora Text";
-  const colors = props.colors ?? (["secondary", "highlight", "primary", "info"] as ThemeColor[]);
+  const colors =
+    props.colors ??
+    (["secondary", "highlight", "primary", "info"] as ThemeColor[]);
   const speed = Math.max(props.speed ?? 1, 0.01);
   const wrapperTag = props.as ?? "span";
 
@@ -72,7 +82,9 @@ function auroraText(props: AuroraTextProps = {}): DomphyElement {
     const roles = colors.length > 0 ? colors : (["primary"] as ThemeColor[]);
     // Repeat the first stop at the end so the alternating pan never shows a seam.
     const stops = [...roles, roles[0]];
-    return stops.map((role) => themeColor(listener, "shift-8", role)).join(", ");
+    return stops
+      .map((role) => themeColor(listener, "shift-8", role))
+      .join(", ");
   };
 
   const animationName = `aurora-text-sweep-${hashString(JSON.stringify({ instanceId, colors }))}`;
@@ -80,11 +92,26 @@ function auroraText(props: AuroraTextProps = {}): DomphyElement {
   // themselves wobble with a subtle rotate/scale — that shimmer is what makes
   // the effect read as an "aurora" rather than a plain horizontal gradient pan.
   const keyframes = {
-    "0%": { backgroundPosition: "0% 50%", transform: "rotate(-5deg) scale(0.9)" },
-    "25%": { backgroundPosition: "50% 100%", transform: "rotate(5deg) scale(1.1)" },
-    "50%": { backgroundPosition: "100% 50%", transform: "rotate(-3deg) scale(0.95)" },
-    "75%": { backgroundPosition: "50% 0%", transform: "rotate(3deg) scale(1.05)" },
-    "100%": { backgroundPosition: "0% 50%", transform: "rotate(-5deg) scale(0.9)" },
+    "0%": {
+      backgroundPosition: "0% 50%",
+      transform: "rotate(-5deg) scale(0.9)",
+    },
+    "25%": {
+      backgroundPosition: "50% 100%",
+      transform: "rotate(5deg) scale(1.1)",
+    },
+    "50%": {
+      backgroundPosition: "100% 50%",
+      transform: "rotate(-3deg) scale(0.95)",
+    },
+    "75%": {
+      backgroundPosition: "50% 0%",
+      transform: "rotate(3deg) scale(1.05)",
+    },
+    "100%": {
+      backgroundPosition: "0% 50%",
+      transform: "rotate(-5deg) scale(0.9)",
+    },
   };
 
   const auroraSpan: DomphyElement<"span"> = {
@@ -92,7 +119,8 @@ function auroraText(props: AuroraTextProps = {}): DomphyElement {
     ariaHidden: "true",
     _key: "aurora-fill",
     style: {
-      backgroundImage: (listener: Listener) => `linear-gradient(135deg, ${gradientStops(listener)})`,
+      backgroundImage: (listener: Listener) =>
+        `linear-gradient(135deg, ${gradientStops(listener)})`,
       backgroundSize: "200% auto",
       backgroundClip: "text",
       WebkitBackgroundClip: "text",
@@ -104,7 +132,10 @@ function auroraText(props: AuroraTextProps = {}): DomphyElement {
   };
 
   const outer = {
-    [wrapperTag]: [{ span: text, _key: "sr-only-text", style: SR_ONLY_STYLE }, auroraSpan],
+    [wrapperTag]: [
+      { span: text, _key: "sr-only-text", style: SR_ONLY_STYLE },
+      auroraSpan,
+    ],
     style: {
       position: "relative",
       display: "inline-block",

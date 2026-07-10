@@ -5,7 +5,12 @@ import {
   toState,
   type ValueOrState,
 } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSize, themeSpacing } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 
 /** One step entry. */
 type StepItem = {
@@ -105,8 +110,7 @@ function steps(
               right: `calc(50% + ${themeSpacing(3)})`,
               left: `calc(-50% + ${themeSpacing(3)})`,
               height: "2px",
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-3", color),
+              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
               zIndex: "0",
             },
             "&[data-status=active]::before": {
@@ -118,14 +122,12 @@ function steps(
             },
             "&[data-status=done]::before": {
               content: '"✓"',
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-3", color),
+              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
               borderColor: (l: Listener) => themeColor(l, "shift-3", color),
               color: (l: Listener) => themeColor(l, "shift-9", color),
             },
             "&[data-status=done]:not(:first-child)::after": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-3", color),
+              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
             },
             "&[data-status=active]:not(:first-child)::after": {
               backgroundColor: (l: Listener) =>

@@ -92,7 +92,7 @@ function details(
           `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
       },
       "& > :not(summary)": {
-        maxHeight: "0px",
+        maxHeight: 0,
         opacity: 0,
         overflow: "hidden",
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),

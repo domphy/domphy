@@ -24,7 +24,8 @@ describe("chartPieDonut", () => {
     expect(wedges.length).toBe(5);
     // A donut wedge's path draws two arcs (inner + outer) — a full pie wedge
     // draws only one — so counting "A " occurrences distinguishes them.
-    const arcCount = (wedges[0].getAttribute("d") ?? "").split(" A ").length - 1;
+    const arcCount =
+      (wedges[0].getAttribute("d") ?? "").split(" A ").length - 1;
     expect(arcCount).toBe(2);
   });
 });

@@ -25,12 +25,16 @@ beforeEach(() => {
   // fallback-close timer) never throws "close is not a function" (mirrors
   // packages/ui/tests/overlay.test.ts's drawer suite).
   if (!(HTMLDialogElement.prototype as any).showModal) {
-    (HTMLDialogElement.prototype as any).showModal = function (this: HTMLDialogElement) {
+    (HTMLDialogElement.prototype as any).showModal = function (
+      this: HTMLDialogElement,
+    ) {
       this.open = true;
     };
   }
   if (!(HTMLDialogElement.prototype as any).close) {
-    (HTMLDialogElement.prototype as any).close = function (this: HTMLDialogElement) {
+    (HTMLDialogElement.prototype as any).close = function (
+      this: HTMLDialogElement,
+    ) {
       this.open = false;
     };
   }
@@ -79,9 +83,13 @@ describe("sidebar03", () => {
 
   it("marks the active child link with aria-current=page", () => {
     const { host } = render(sidebar03());
-    const activeLinks = Array.from(host.querySelectorAll('a[aria-current="page"]'));
+    const activeLinks = Array.from(
+      host.querySelectorAll('a[aria-current="page"]'),
+    );
     const activeLabels = activeLinks.map((link) => link.textContent);
 
-    expect(activeLabels.some((label) => label?.includes("Data Fetching"))).toBe(true);
+    expect(activeLabels.some((label) => label?.includes("Data Fetching"))).toBe(
+      true,
+    );
   });
 });

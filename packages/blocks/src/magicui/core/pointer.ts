@@ -11,10 +11,15 @@
 // upstream binds top/left straight to the raw pointer coords via a Framer
 // motion value, which has no spring on it.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { paragraph, strong } from "@domphy/ui";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { paragraph, strong } from "@domphy/ui";
 
 export interface PointerOffset {
   x: number;
@@ -61,7 +66,8 @@ function defaultCursorGlyph(): DomphyElement<"span"> {
       height: themeSpacing(6),
       borderRadius: "50%",
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
-      border: (listener: Listener) => `${themeSpacing(1.5)} solid ${themeColor(listener, "shift-9", "primary")}`,
+      border: (listener: Listener) =>
+        `${themeSpacing(1.5)} solid ${themeColor(listener, "shift-9", "primary")}`,
       animation: `${GLYPH_LOOP_ANIMATION_NAME} 1.1s ease-in-out infinite`,
       [`@keyframes ${GLYPH_LOOP_ANIMATION_NAME}`]: GLYPH_LOOP_KEYFRAMES,
     },

@@ -34,10 +34,15 @@ describe("coolMode", () => {
 
     const wrapper = host.firstElementChild as HTMLElement;
     wrapper.dispatchEvent(
-      new MouseEvent("pointerdown", { clientX: 50, clientY: 50 } as MouseEventInit),
+      new MouseEvent("pointerdown", {
+        clientX: 50,
+        clientY: 50,
+      } as MouseEventInit),
     );
 
-    const overlay = document.body.querySelector(":scope > div[aria-hidden='true']");
+    const overlay = document.body.querySelector(
+      ":scope > div[aria-hidden='true']",
+    );
     expect(overlay).not.toBeNull();
     expect(wrapper.contains(overlay)).toBe(false);
 
@@ -50,7 +55,10 @@ describe("coolMode", () => {
     flushSync();
     const wrapper = host.firstElementChild as HTMLElement;
     wrapper.dispatchEvent(
-      new MouseEvent("pointerdown", { clientX: 10, clientY: 10 } as MouseEventInit),
+      new MouseEvent("pointerdown", {
+        clientX: 10,
+        clientY: 10,
+      } as MouseEventInit),
     );
     expect(() => node.remove()).not.toThrow();
   });

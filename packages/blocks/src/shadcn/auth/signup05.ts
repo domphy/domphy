@@ -1,6 +1,13 @@
 import type { DomphyElement, Listener, PartialElement } from "@domphy/core";
+import {
+  themeColor,
+  themeDensity,
+  themeFluidSpacing,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 import { button, divider, heading, icon, label, link, small } from "@domphy/ui";
-import { themeColor, themeDensity, themeFluidSpacing, themeSize, themeSpacing } from "@domphy/theme";
+import { fixed } from "../../shared/typography.js";
 
 // Visually-hidden but screen-reader-visible text — same recipe as this
 // package's other `sr-only` usages (see shadcn/auth/login05.ts).
@@ -43,21 +50,27 @@ const LOGO_ICON =
 function authFieldInput(): PartialElement {
   return {
     style: {
-      fontFamily: "inherit",
-      lineHeight: "inherit",
+      fontFamily: fixed("inherit"),
+      lineHeight: fixed("inherit"),
       width: "100%",
       boxSizing: "border-box",
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 3),
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
       fontSize: (listener: Listener) => themeSize(listener, "inherit"),
       border: "none",
       outlineOffset: "-1px",
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+      outline: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       "&::placeholder": {
-        color: (listener: Listener) => themeColor(listener, "shift-7", "neutral"),
+        color: (listener: Listener) =>
+          themeColor(listener, "shift-7", "neutral"),
       },
       "&:hover:not([disabled]), &:focus-visible": {
         outline: (listener: Listener) =>
@@ -66,7 +79,8 @@ function authFieldInput(): PartialElement {
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
-        backgroundColor: (listener: Listener) => themeColor(listener, "shift-2", "neutral"),
+        backgroundColor: (listener: Listener) =>
+          themeColor(listener, "shift-2", "neutral"),
       },
     },
   };
@@ -83,7 +97,8 @@ function logoMark(): DomphyElement<"span"> {
       justifyContent: "center",
       width: (listener: Listener) => themeSpacing(themeDensity(listener) * 5),
       height: (listener: Listener) => themeSpacing(themeDensity(listener) * 5),
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
       flexShrink: 0,
     },
   };
@@ -105,19 +120,36 @@ function logoRow(companyName: string, href: string): DomphyElement<"a"> {
   };
 }
 
-function legalLine(termsHref: string, privacyHref: string): DomphyElement<"small"> {
+function legalLine(
+  termsHref: string,
+  privacyHref: string,
+): DomphyElement<"small"> {
   return {
     small: [
       "By clicking continue, you agree to our ",
-      { a: "Terms of Service", href: termsHref, style: { textDecoration: "underline" }, $: [link({ color: "neutral" })] },
+      {
+        a: "Terms of Service",
+        href: termsHref,
+        style: { textDecoration: fixed("underline") },
+        $: [link({ color: "neutral" })],
+      },
       " and ",
-      { a: "Privacy Policy", href: privacyHref, style: { textDecoration: "underline" }, $: [link({ color: "neutral" })] },
+      {
+        a: "Privacy Policy",
+        href: privacyHref,
+        style: { textDecoration: fixed("underline") },
+        $: [link({ color: "neutral" })],
+      },
       ".",
     ],
     $: [small({ color: "neutral" })],
     // Upstream: FieldDescription `px-6 text-center`, nested inside the narrow
     // `max-w-sm` column so it wraps within ~24rem rather than spanning full width.
-    style: { display: "block", textAlign: "center", paddingInline: themeSpacing(6) },
+    style: {
+      display: "block",
+      textAlign: "center",
+      paddingInline: themeSpacing(6),
+    },
   };
 }
 
@@ -133,7 +165,10 @@ export interface SocialProvider {
 function providerButton(provider: SocialProvider): DomphyElement<"button"> {
   return {
     button: [
-      { span: provider.iconSvg ?? letterBadgeIcon(provider.label.charAt(0)), $: [icon({ color: "inherit" })] },
+      {
+        span: provider.iconSvg ?? letterBadgeIcon(provider.label.charAt(0)),
+        $: [icon({ color: "inherit" })],
+      },
       // Upstream renders the full CTA text ("Continue with Apple/Google") as the
       // visible label; that text is the button's accessible name, so no aria-label.
       { span: `Continue with ${provider.label}` },
@@ -200,7 +235,8 @@ function signup05(props: Signup05Props = {}): DomphyElement<"div"> {
     $: [button({ color: "neutral" })],
     style: {
       width: "100%",
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit", "neutral"),
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },
   };
@@ -234,20 +270,31 @@ function signup05(props: Signup05Props = {}): DomphyElement<"div"> {
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
       // Upstream stacks the provider buttons on mobile and only splits into
       // columns from the `sm` breakpoint up (`grid gap-4 sm:grid-cols-2`).
-      "@media (min-width: 40em)": { gridTemplateColumns: `repeat(${providers.length}, 1fr)` },
+      "@media (min-width: 40em)": {
+        gridTemplateColumns: `repeat(${providers.length}, 1fr)`,
+      },
     },
   };
 
   const signInLine: DomphyElement<"small"> = {
     small: [
       `${signInPrompt} `,
-      { a: signInLinkText, href: signInHref, style: { textDecoration: "underline" }, $: [link({ color: "neutral" })] },
+      {
+        a: signInLinkText,
+        href: signInHref,
+        style: { textDecoration: fixed("underline") },
+        $: [link({ color: "neutral" })],
+      },
     ],
     $: [small({ color: "neutral" })],
   };
 
   const header: DomphyElement<"div"> = {
-    div: [logoRow(companyName, logoHref), { h1: greeting, $: [heading()] }, signInLine],
+    div: [
+      logoRow(companyName, logoHref),
+      { h1: greeting, $: [heading()] },
+      signInLine,
+    ],
     style: {
       display: "flex",
       flexDirection: "column",

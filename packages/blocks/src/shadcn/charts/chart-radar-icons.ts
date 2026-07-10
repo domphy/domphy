@@ -9,15 +9,19 @@
 // own accent color.
 
 import type { DomphyElement } from "@domphy/core";
-import { chartTrendFooter, type ChartLegendEntry, type ChartTrendDirection } from "./chart-area-shared.js";
 import {
-  RADAR_MULTI_SERIES,
-  RADAR_MONTHLY_MULTI_DATA,
+  type ChartLegendEntry,
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
+import {
   createRadarTooltip,
-  radarCardShell,
-  renderRadarChart,
+  RADAR_MONTHLY_MULTI_DATA,
+  RADAR_MULTI_SERIES,
   type RadarPoint,
   type RadarSeriesConfig,
+  radarCardShell,
+  renderRadarChart,
 } from "./chart-radar-shared.js";
 
 export interface ChartRadarIconsProps {
@@ -35,7 +39,9 @@ export interface ChartRadarIconsProps {
  * arrow icons instead of plain swatches. Call with no arguments for a
  * working demo.
  */
-function chartRadarIcons(props: ChartRadarIconsProps = {}): DomphyElement<"div"> {
+function chartRadarIcons(
+  props: ChartRadarIconsProps = {},
+): DomphyElement<"div"> {
   const {
     data = RADAR_MONTHLY_MULTI_DATA,
     series = RADAR_MULTI_SERIES,
@@ -70,7 +76,11 @@ function chartRadarIcons(props: ChartRadarIconsProps = {}): DomphyElement<"div">
         }),
       ],
     },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

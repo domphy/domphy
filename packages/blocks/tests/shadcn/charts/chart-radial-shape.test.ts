@@ -26,11 +26,15 @@ describe("chartRadialShape", () => {
     expect(host.querySelectorAll("svg circle")).toHaveLength(3);
     expect(host.querySelector("h2")?.textContent).toBe("1,125");
     expect(host.querySelectorAll("small")[0]?.textContent).toBe("Visitors");
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts a custom value/caption", () => {
-    const { host } = render(chartRadialShape({ value: 42, captionText: "Signups" }) as DomphyElement);
+    const { host } = render(
+      chartRadialShape({ value: 42, captionText: "Signups" }) as DomphyElement,
+    );
     expect(host.querySelector("h2")?.textContent).toBe("42");
     expect(host.querySelectorAll("small")[0]?.textContent).toBe("Signups");
   });

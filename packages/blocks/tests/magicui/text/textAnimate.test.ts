@@ -39,12 +39,22 @@ describe("textAnimate", () => {
     const hiddenText = Array.from(hiddenSegments)
       .map((segment) => segment.textContent)
       .join("");
-    expect(hiddenText).toBe("Domphy renders exactly what you write, nothing more.");
-    expect(wrapper.textContent).toContain("Domphy renders exactly what you write, nothing more.");
+    expect(hiddenText).toBe(
+      "Domphy renders exactly what you write, nothing more.",
+    );
+    expect(wrapper.textContent).toContain(
+      "Domphy renders exactly what you write, nothing more.",
+    );
   });
 
   it("splits into one span per grapheme when by: 'character', preserving order", () => {
-    const { host } = render(textAnimate({ text: "Hi", by: "character", accessibility: false }) as DomphyElement);
+    const { host } = render(
+      textAnimate({
+        text: "Hi",
+        by: "character",
+        accessibility: false,
+      }) as DomphyElement,
+    );
     flushSync();
 
     const wrapper = host.firstElementChild as HTMLElement;
@@ -55,31 +65,55 @@ describe("textAnimate", () => {
 
   it("plays each segment's enter tween on mount when startOnView is not set", () => {
     const animateSpy = vi.fn().mockReturnValue({ finished: Promise.resolve() });
-    (HTMLElement.prototype as unknown as { animate: typeof animateSpy }).animate = animateSpy;
+    (
+      HTMLElement.prototype as unknown as { animate: typeof animateSpy }
+    ).animate = animateSpy;
 
-    render(textAnimate({ text: "Hi", by: "character", accessibility: false }) as DomphyElement);
+    render(
+      textAnimate({
+        text: "Hi",
+        by: "character",
+        accessibility: false,
+      }) as DomphyElement,
+    );
     flushSync();
 
     expect(animateSpy).toHaveBeenCalledTimes(2); // one per character
   });
 
   it("defers entrance tweens until scrolled into view when startOnView is set (no IntersectionObserver in jsdom)", () => {
-    const originalIntersectionObserver = (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver;
-    (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver = undefined;
+    const originalIntersectionObserver = (
+      globalThis as { IntersectionObserver?: unknown }
+    ).IntersectionObserver;
+    (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver =
+      undefined;
 
     // No IntersectionObserver support fails open and plays immediately rather
     // than never playing — same guard convention as this package's other
     // view-triggered blocks (blurFade, terminal, numberTicker).
     expect(() =>
-      render(textAnimate({ text: "Hi", startOnView: true, accessibility: false }) as DomphyElement),
+      render(
+        textAnimate({
+          text: "Hi",
+          startOnView: true,
+          accessibility: false,
+        }) as DomphyElement,
+      ),
     ).not.toThrow();
 
-    (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver = originalIntersectionObserver;
+    (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver =
+      originalIntersectionObserver;
   });
 
   it("replays with fresh segments when `text` is a reactive State that changes", () => {
     const textState = toState("Hi");
-    const { host } = render(textAnimate({ text: textState, by: "character", accessibility: false }) as DomphyElement);
+    const { host } = render(
+      textAnimate({
+        text: textState,
+        by: "character",
+        accessibility: false,
+      }) as DomphyElement,
+    );
     flushSync();
     expect((host.firstElementChild as HTMLElement).textContent).toBe("Hi");
 

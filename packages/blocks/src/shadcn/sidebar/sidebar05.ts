@@ -6,17 +6,25 @@
 
 import type { DomphyElement, Listener } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { icon, inputSearch, list, listItemButton, small, strong } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import {
+  icon,
+  inputSearch,
+  list,
+  listItemButton,
+  small,
+  strong,
+} from "@domphy/ui";
 import {
   ICON_MARK,
   ICON_MINUS,
   ICON_PLUS,
   ICON_SEARCH,
+  type SidebarBreadcrumbItem,
   sidebarBackdrop,
   sidebarMainContent,
   sidebarStickyHeader,
-  type SidebarBreadcrumbItem,
+  srOnlyLabel,
 } from "./sidebar05-08-shared.js";
 
 /** One nested link under a top-level nav group. */
@@ -96,16 +104,27 @@ const DEFAULT_NAV_GROUPS: Sidebar05NavGroup[] = [
 ];
 
 /** A single sub-link row: plain text, or bold + accent-tinted when active. */
-function renderSubItem(item: Sidebar05SubItem, key: string | number): DomphyElement<"li"> {
+function renderSubItem(
+  item: Sidebar05SubItem,
+  key: string | number,
+): DomphyElement<"li"> {
   return {
     li: [
       {
         a: item.active
-          ? ([{ strong: item.title, $: [strong({ color: "neutral" })] }] as unknown as DomphyElement)
+          ? ([
+              { strong: item.title, $: [strong({ color: "neutral" })] },
+            ] as unknown as DomphyElement)
           : item.title,
         href: item.href ?? "#",
         ariaCurrent: item.active ? "page" : undefined,
-        $: [listItemButton({ color: "neutral", accentColor: "primary", dense: true })],
+        $: [
+          listItemButton({
+            color: "neutral",
+            accentColor: "primary",
+            dense: true,
+          }),
+        ],
       } as unknown as DomphyElement,
     ],
     _key: key,
@@ -115,8 +134,13 @@ function renderSubItem(item: Sidebar05SubItem, key: string | number): DomphyElem
 /** A collapsible top-level group: native <details> disclosure with a
  * plus/minus toggle glyph swapped purely via the `[open]` CSS attribute
  * selector (no JS, no rotating chevron). */
-function renderNavGroup(group: Sidebar05NavGroup, key: string | number): DomphyElement<"li"> {
-  const subItems = group.items.map((item, index) => renderSubItem(item, `${group.title}-${index}`));
+function renderNavGroup(
+  group: Sidebar05NavGroup,
+  key: string | number,
+): DomphyElement<"li"> {
+  const subItems = group.items.map((item, index) =>
+    renderSubItem(item, `${group.title}-${index}`),
+  );
 
   return {
     li: [
@@ -124,9 +148,20 @@ function renderNavGroup(group: Sidebar05NavGroup, key: string | number): DomphyE
         details: [
           {
             summary: [
-              { span: group.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
-              { span: ICON_PLUS, dataSlot: "toggle-plus", $: [icon({ color: "neutral" })] } as unknown as DomphyElement,
-              { span: ICON_MINUS, dataSlot: "toggle-minus", $: [icon({ color: "neutral" })] } as unknown as DomphyElement,
+              {
+                span: group.title,
+                style: { flex: "1", textAlign: "left" },
+              } as unknown as DomphyElement,
+              {
+                span: ICON_PLUS,
+                dataSlot: "toggle-plus",
+                $: [icon({ color: "neutral" })],
+              } as unknown as DomphyElement,
+              {
+                span: ICON_MINUS,
+                dataSlot: "toggle-minus",
+                $: [icon({ color: "neutral" })],
+              } as unknown as DomphyElement,
             ],
             style: {
               listStyle: "none",
@@ -140,11 +175,13 @@ function renderNavGroup(group: Sidebar05NavGroup, key: string | number): DomphyE
               paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
               borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-              backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "inherit", "neutral"),
               "&::-webkit-details-marker": { display: "none" },
               "&::marker": { content: `""` },
               "&:hover": {
-                backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+                backgroundColor: (l: Listener) =>
+                  themeColor(l, "shift-2", "neutral"),
               },
             },
           } as unknown as DomphyElement,
@@ -160,9 +197,10 @@ function renderNavGroup(group: Sidebar05NavGroup, key: string | number): DomphyE
               paddingInlineStart: themeSpacing(3),
               paddingBlock: "0",
               paddingInlineEnd: "0",
-              borderInlineStart: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+              borderInlineStart: (l: Listener) =>
+                `1px solid ${themeColor(l, "shift-3", "neutral")}`,
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-              maxHeight: "0px",
+              maxHeight: "0",
               overflow: "hidden",
               opacity: "0",
               transition: "max-height 180ms linear, opacity 180ms linear",
@@ -195,7 +233,10 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
     header = { icon: ICON_MARK, title: "Documentation", subtitle: "v1.0.0" },
     searchPlaceholder = "Search the docs...",
     navGroups = DEFAULT_NAV_GROUPS,
-    breadcrumbItems = [{ label: "Build Your Application" }, { label: "Data Fetching" }],
+    breadcrumbItems = [
+      { label: "Build Your Application" },
+      { label: "Data Fetching" },
+    ],
     children,
   } = props;
 
@@ -217,17 +258,30 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
                   width: themeSpacing(8),
                   height: themeSpacing(8),
                   flexShrink: "0",
-                  borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-                  backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
+                  borderRadius: (l: Listener) =>
+                    themeSpacing(themeDensity(l) * 2),
+                  backgroundColor: (l: Listener) =>
+                    themeColor(l, "inherit", "primary"),
                   color: (l: Listener) => themeColor(l, "shift-10", "primary"),
                 },
               } as unknown as DomphyElement,
               {
                 div: [
-                  { strong: header.title ?? "Documentation", $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
-                  { small: header.subtitle ?? "v1.0.0", $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+                  {
+                    strong: header.title ?? "Documentation",
+                    $: [strong({ color: "neutral" })],
+                  } as unknown as DomphyElement,
+                  {
+                    small: header.subtitle ?? "v1.0.0",
+                    $: [small({ color: "neutral" })],
+                  } as unknown as DomphyElement,
                 ],
-                style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5), minWidth: "0" },
+                style: {
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: themeSpacing(0.5),
+                  minWidth: "0",
+                },
               } as unknown as DomphyElement,
             ],
             href: "#",
@@ -239,7 +293,10 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
               paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 2),
               paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
               textDecoration: () => "none",
-              "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+              "&:hover": {
+                backgroundColor: (l: Listener) =>
+                  themeColor(l, "shift-2", "neutral"),
+              },
             },
           } as unknown as DomphyElement,
           {
@@ -256,8 +313,10 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
                   color: (l: Listener) => themeColor(l, "shift-6", "neutral"),
                 },
               } as unknown as DomphyElement,
+              srOnlyLabel("Search", "sidebar05-search"),
               {
                 input: null,
+                id: "sidebar05-search",
                 type: "search",
                 ariaLabel: "Search",
                 placeholder: searchPlaceholder,
@@ -265,7 +324,11 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
                 $: [inputSearch({ color: "neutral", accentColor: "primary" })],
               } as unknown as DomphyElement,
             ],
-            style: { position: "relative", display: "flex", alignItems: "center" },
+            style: {
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+            },
           } as unknown as DomphyElement,
         ],
         style: {
@@ -279,7 +342,9 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
       {
         nav: [
           {
-            ul: navGroups.map((group, index) => renderNavGroup(group, group.title ?? index)),
+            ul: navGroups.map((group, index) =>
+              renderNavGroup(group, group.title ?? index),
+            ),
             $: [list()],
           } as unknown as DomphyElement,
         ],
@@ -297,10 +362,11 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
       display: "flex",
       flexDirection: "column",
       flexShrink: "0",
-      width: (l: Listener) => (sidebarOpen.get(l) ? themeSpacing(64) : "0px"),
+      width: (l: Listener) => (sidebarOpen.get(l) ? themeSpacing(64) : "0"),
       overflow: "hidden",
       transition: "width 0.2s linear",
-      borderInlineEnd: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderInlineEnd: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       "@media (max-width: 768px)": {
@@ -309,9 +375,11 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
         insetInlineStart: "0",
         zIndex: "15",
         width: themeSpacing(72),
-        transform: (l: Listener) => (sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)"),
+        transform: (l: Listener) =>
+          sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
         transition: "transform 0.2s ease",
-        boxShadow: (l: Listener) => `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
+        boxShadow: (l: Listener) =>
+          `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
       },
     },
   } as unknown as DomphyElement<"aside">;
@@ -335,7 +403,11 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
   } as unknown as DomphyElement<"main">;
 
   return {
-    div: [asideElement, mainElement, sidebarBackdrop(sidebarOpen, () => sidebarOpen.set(false))],
+    div: [
+      asideElement,
+      mainElement,
+      sidebarBackdrop(sidebarOpen, () => sidebarOpen.set(false)),
+    ],
     style: {
       display: "flex",
       height: "100dvh",

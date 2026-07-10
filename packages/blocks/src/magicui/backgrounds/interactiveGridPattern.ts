@@ -12,8 +12,8 @@
 // elements involved.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export interface InteractiveGridPatternProps {
   /** Width of each grid square, in SVG user units. Defaults to `40`. */
@@ -42,7 +42,9 @@ let interactiveGridPatternInstanceCounter = 0;
  * a time. Call with no arguments for a working demo — hover the panel to
  * light up one cell at a time.
  */
-function interactiveGridPattern(props: InteractiveGridPatternProps = {}): DomphyElement<"div"> {
+function interactiveGridPattern(
+  props: InteractiveGridPatternProps = {},
+): DomphyElement<"div"> {
   const instanceId = ++interactiveGridPatternInstanceCounter;
   const cellWidth = Math.max(4, props.width ?? 40);
   const cellHeight = Math.max(4, props.height ?? 40);
@@ -57,7 +59,9 @@ function interactiveGridPattern(props: InteractiveGridPatternProps = {}): Domphy
   // Populated by each cell's own `_onMount` — the grid's `_onMount` reads it
   // once mouse tracking starts, so it must be a plain array captured by both
   // closures, not a reactive value.
-  const cellElements: (SVGRectElement | null)[] = new Array(columns * rows).fill(null);
+  const cellElements: (SVGRectElement | null)[] = new Array(
+    columns * rows,
+  ).fill(null);
 
   const squareElements: DomphyElement[] = [];
   for (let row = 0; row < rows; row += 1) {
@@ -133,7 +137,8 @@ function interactiveGridPattern(props: InteractiveGridPatternProps = {}): Domphy
 
           const indexFromEvent = (event: MouseEvent): number | null => {
             const boundingBox = svgElement.getBoundingClientRect();
-            if (boundingBox.width === 0 || boundingBox.height === 0) return null;
+            if (boundingBox.width === 0 || boundingBox.height === 0)
+              return null;
             // No viewBox: user units == CSS px 1:1, so the pointer maps directly
             // to grid coordinates with no aspect scaling. Cells outside the
             // container (grid overflow) are simply unreachable, and pointer over
@@ -143,7 +148,8 @@ function interactiveGridPattern(props: InteractiveGridPatternProps = {}): Domphy
             const localY = event.clientY - boundingBox.top;
             const column = Math.floor(localX / cellWidth);
             const row = Math.floor(localY / cellHeight);
-            if (column < 0 || column >= columns || row < 0 || row >= rows) return null;
+            if (column < 0 || column >= columns || row < 0 || row >= rows)
+              return null;
             return row * columns + column;
           };
 

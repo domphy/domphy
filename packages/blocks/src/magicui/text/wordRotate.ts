@@ -14,10 +14,15 @@
 // finishes), then — after the exit duration — set the next word (which plays
 // its enter). This is deliberately NOT a concurrent crossfade.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
 import { toState } from "@domphy/core";
-import { motion } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSize } from "@domphy/theme";
+import { motion } from "@domphy/ui";
 
 export interface WordRotateTransition {
   /** Milliseconds the slide/fade itself takes. Defaults to `250` (upstream 0.25s). */
@@ -86,7 +91,8 @@ function wordLayer(
  * required. Call with no arguments for a working demo cycling a short list.
  */
 function wordRotate(props: WordRotateProps = {}): DomphyElement<"div"> {
-  const words = props.words && props.words.length > 0 ? props.words : DEFAULT_WORDS;
+  const words =
+    props.words && props.words.length > 0 ? props.words : DEFAULT_WORDS;
   const holdDuration = props.duration ?? 2500;
   const color = props.color ?? "neutral";
   const transitionDurationMs = props.transition?.duration ?? 250;
@@ -113,11 +119,20 @@ function wordRotate(props: WordRotateProps = {}): DomphyElement<"div"> {
   return {
     // Reactive one-item (or empty, mid-swap) keyed list of the current word.
     div: (listener: Listener) =>
-      layers.get(listener).map((entry) => wordLayer(entry, color, transitionDurationMs, easing)),
+      layers
+        .get(listener)
+        .map((entry) => wordLayer(entry, color, transitionDurationMs, easing)),
     // Upstream outer `<div className="overflow-hidden py-2">`: block-level,
     // clips the slide, and the 0.5rem block padding gives the sliding word
     // clearance top and bottom inside the clip. The exiting/entering h1 stays
     // mounted throughout its animation, so the block never collapses mid-swap.
+    //
+    // paddingTop/paddingBottom stay upstream's literal 0.5rem (root-relative)
+    // rather than themeSpacing(2) (0.5em, relative to THIS element's own
+    // font-size) — this block can be embedded anywhere, and an em-based
+    // padding would track whatever ambient font-size it lands in instead of
+    // upstream's constant 8px clip clearance, breaking pixel fidelity.
+    _doctorDisable: "raw-spacing-value",
     style: {
       overflow: "hidden",
       paddingTop: "0.5rem",

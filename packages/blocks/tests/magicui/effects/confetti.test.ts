@@ -3,8 +3,11 @@
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode } from "@domphy/core";
 import { afterEach, describe, expect, it } from "vitest";
-import { confetti, confettiButton } from "../../../src/magicui/effects/confetti.js";
 import type { ConfettiHandle } from "../../../src/magicui/effects/confetti.js";
+import {
+  confetti,
+  confettiButton,
+} from "../../../src/magicui/effects/confetti.js";
 
 // jsdom ships no canvas implementation: getContext() returns null, and
 // canvas-confetti's animation loop (started by confetti()'s default
@@ -14,8 +17,7 @@ import type { ConfettiHandle } from "../../../src/magicui/effects/confetti.js";
 const noopCanvasContext = new Proxy(
   {},
   {
-    get: (_target, property) =>
-      property === "canvas" ? undefined : () => {},
+    get: (_target, property) => (property === "canvas" ? undefined : () => {}),
     set: () => true,
   },
 );
@@ -37,7 +39,9 @@ afterEach(() => {
 describe("confetti", () => {
   it("renders a bare, inert canvas and hands back a ready handle", () => {
     let readyHandle: ConfettiHandle | null = null;
-    const { host } = render(confetti({ onReady: (handle) => (readyHandle = handle) }));
+    const { host } = render(
+      confetti({ onReady: (handle) => (readyHandle = handle) }),
+    );
 
     const canvasElement = host.querySelector("canvas")!;
     expect(canvasElement).toBeTruthy();
@@ -59,7 +63,9 @@ describe("confettiButton", () => {
   });
 
   it("accepts a custom label and color", () => {
-    const { host } = render(confettiButton({ children: "Launch", color: "success" }));
+    const { host } = render(
+      confettiButton({ children: "Launch", color: "success" }),
+    );
 
     const buttonElement = host.querySelector("button")!;
     expect(buttonElement.textContent).toContain("Launch");

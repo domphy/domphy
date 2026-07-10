@@ -28,7 +28,9 @@ afterEach(() => {
 describe("chartTooltipLabelFormatter", () => {
   it("renders a working demo tree with zero args: card shell + chart canvas", () => {
     const { host } = render(chartTooltipLabelFormatter() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Bar Chart - Tooltip Label Formatter");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Bar Chart - Tooltip Label Formatter",
+    );
     expect(host.querySelector("canvas")).toBeTruthy();
   });
 

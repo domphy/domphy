@@ -13,13 +13,13 @@
 // a copy of any UI framework's component source.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { button } from "@domphy/ui";
 import type { ThemeColor } from "@domphy/theme";
-import confettiLib from "canvas-confetti";
+import { button } from "@domphy/ui";
 import type {
   GlobalOptions as ConfettiLibGlobalOptions,
   Options as ConfettiLibOptions,
 } from "canvas-confetti";
+import confettiLib from "canvas-confetti";
 
 export type ConfettiFireOptions = ConfettiLibOptions;
 /** Instance-creation options passed to `canvas-confetti`'s `confetti.create(...)`. */
@@ -72,7 +72,10 @@ const DEFAULT_FIRE_OPTIONS: ConfettiFireOptions = {
 };
 
 // Matches upstream's `globalOptions` default.
-const DEFAULT_GLOBAL_OPTIONS: ConfettiGlobalOptions = { resize: true, useWorker: true };
+const DEFAULT_GLOBAL_OPTIONS: ConfettiGlobalOptions = {
+  resize: true,
+  useWorker: true,
+};
 
 function createConfettiHandle(
   canvasElement: HTMLCanvasElement,
@@ -82,7 +85,10 @@ function createConfettiHandle(
   let instanceFire: ReturnType<typeof confettiLib.create> | null = null;
   try {
     // `resize` is forced on regardless of the passed options — mirrors upstream.
-    instanceFire = confettiLib.create(canvasElement, { ...globalOptions, resize: true });
+    instanceFire = confettiLib.create(canvasElement, {
+      ...globalOptions,
+      resize: true,
+    });
   } catch {
     instanceFire = null;
   }
@@ -106,7 +112,10 @@ function createConfettiHandle(
  * through the `onReady` handle).
  */
 function confetti(props: ConfettiProps = {}): DomphyElement {
-  const baseOptions: ConfettiFireOptions = { ...DEFAULT_FIRE_OPTIONS, ...(props.options ?? {}) };
+  const baseOptions: ConfettiFireOptions = {
+    ...DEFAULT_FIRE_OPTIONS,
+    ...(props.options ?? {}),
+  };
   const globalOptions: ConfettiGlobalOptions = {
     ...DEFAULT_GLOBAL_OPTIONS,
     ...(props.globalOptions ?? {}),
@@ -136,7 +145,11 @@ function confetti(props: ConfettiProps = {}): DomphyElement {
       const canvasElement = node.domElement as HTMLCanvasElement | null;
       if (!canvasElement || typeof document === "undefined") return;
 
-      const handle = createConfettiHandle(canvasElement, baseOptions, globalOptions);
+      const handle = createConfettiHandle(
+        canvasElement,
+        baseOptions,
+        globalOptions,
+      );
       if (!handle) return;
 
       // Fire the moment the canvas mounts (no delay) — mirrors upstream's mount
@@ -181,10 +194,15 @@ export interface ConfettiButtonProps {
  * own position on click. Call with no arguments for a working "🎉 Celebrate"
  * demo button.
  */
-function confettiButton(props: ConfettiButtonProps = {}): DomphyElement<"button"> {
+function confettiButton(
+  props: ConfettiButtonProps = {},
+): DomphyElement<"button"> {
   const label: DomphyElement | string = props.children ?? "🎉 Celebrate";
   const color = props.color ?? "primary";
-  const baseOptions: ConfettiFireOptions = { ...DEFAULT_FIRE_OPTIONS, ...(props.options ?? {}) };
+  const baseOptions: ConfettiFireOptions = {
+    ...DEFAULT_FIRE_OPTIONS,
+    ...(props.options ?? {}),
+  };
 
   let handle: ConfettiHandle | null = null;
 
@@ -207,7 +225,11 @@ function confettiButton(props: ConfettiButtonProps = {}): DomphyElement<"button"
     _onMount: (node: ElementNode) => {
       const canvasElement = node.domElement as HTMLCanvasElement | null;
       if (!canvasElement || typeof document === "undefined") return;
-      handle = createConfettiHandle(canvasElement, baseOptions, DEFAULT_GLOBAL_OPTIONS);
+      handle = createConfettiHandle(
+        canvasElement,
+        baseOptions,
+        DEFAULT_GLOBAL_OPTIONS,
+      );
       node.addHook("Remove", () => {
         handle?.reset();
         handle = null;
@@ -224,8 +246,10 @@ function confettiButton(props: ConfettiButtonProps = {}): DomphyElement<"button"
       if (!handle || typeof window === "undefined") return;
       const targetElement = event.currentTarget as HTMLElement;
       const buttonRect = targetElement.getBoundingClientRect();
-      const originX = (buttonRect.left + buttonRect.width / 2) / window.innerWidth;
-      const originY = (buttonRect.top + buttonRect.height / 2) / window.innerHeight;
+      const originX =
+        (buttonRect.left + buttonRect.width / 2) / window.innerWidth;
+      const originY =
+        (buttonRect.top + buttonRect.height / 2) / window.innerHeight;
       handle.fire({ origin: { x: originX, y: originY } });
     },
   } as DomphyElement<"button">;

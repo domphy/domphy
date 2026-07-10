@@ -23,7 +23,13 @@
 // bookkeeping. `by`/`animation`/other props are fixed at construction, same
 // as this package's other split-text effects (`spinningText`).
 
-import type { DomphyElement, ElementNode, Listener, StyleObject, ValueOrState } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+  ValueOrState,
+} from "@domphy/core";
 import { toState } from "@domphy/core";
 
 export type TextAnimateBy = "character" | "word" | "line" | "text";
@@ -40,7 +46,19 @@ export type TextAnimatePreset =
   | "scaleUp"
   | "scaleDown";
 
-export type TextAnimateTag = "span" | "div" | "p" | "article" | "section" | "li" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+export type TextAnimateTag =
+  | "span"
+  | "div"
+  | "p"
+  | "article"
+  | "section"
+  | "li"
+  | "h1"
+  | "h2"
+  | "h3"
+  | "h4"
+  | "h5"
+  | "h6";
 
 export interface TextAnimateProps {
   /** Text content. Pass a `State<string>` for automatic replay when it changes.
@@ -97,17 +115,31 @@ const SPRING_EASING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
 
 const PRESET_KEYFRAMES: Record<
   TextAnimatePreset,
-  { hidden: Record<string, string | number>; visible: Record<string, string | number>; exit?: Record<string, string | number> }
+  {
+    hidden: Record<string, string | number>;
+    visible: Record<string, string | number>;
+    exit?: Record<string, string | number>;
+  }
 > = {
-  fadeIn: { hidden: { opacity: 0, transform: "translateY(20px)" }, visible: { opacity: 1, transform: "translateY(0)" } },
-  blurIn: { hidden: { opacity: 0, filter: "blur(10px)" }, visible: { opacity: 1, filter: "blur(0px)" } },
+  fadeIn: {
+    hidden: { opacity: 0, transform: "translateY(20px)" },
+    visible: { opacity: 1, transform: "translateY(0)" },
+  },
+  blurIn: {
+    hidden: { opacity: 0, filter: "blur(10px)" },
+    visible: { opacity: 1, filter: "blur(0)" },
+  },
   blurInUp: {
     hidden: { opacity: 0, filter: "blur(10px)", transform: "translateY(20px)" },
-    visible: { opacity: 1, filter: "blur(0px)", transform: "translateY(0)" },
+    visible: { opacity: 1, filter: "blur(0)", transform: "translateY(0)" },
   },
   blurInDown: {
-    hidden: { opacity: 0, filter: "blur(10px)", transform: "translateY(-20px)" },
-    visible: { opacity: 1, filter: "blur(0px)", transform: "translateY(0)" },
+    hidden: {
+      opacity: 0,
+      filter: "blur(10px)",
+      transform: "translateY(-20px)",
+    },
+    visible: { opacity: 1, filter: "blur(0)", transform: "translateY(0)" },
   },
   slideUp: {
     hidden: { opacity: 0, transform: "translateY(20px)" },
@@ -129,8 +161,14 @@ const PRESET_KEYFRAMES: Record<
     visible: { opacity: 1, transform: "translateX(0)" },
     exit: { opacity: 0, transform: "translateX(20px)" },
   },
-  scaleUp: { hidden: { opacity: 0, transform: "scale(0.5)" }, visible: { opacity: 1, transform: "scale(1)" } },
-  scaleDown: { hidden: { opacity: 0, transform: "scale(1.5)" }, visible: { opacity: 1, transform: "scale(1)" } },
+  scaleUp: {
+    hidden: { opacity: 0, transform: "scale(0.5)" },
+    visible: { opacity: 1, transform: "scale(1)" },
+  },
+  scaleDown: {
+    hidden: { opacity: 0, transform: "scale(1.5)" },
+    visible: { opacity: 1, transform: "scale(1)" },
+  },
 };
 
 const SR_ONLY_STYLE = {
@@ -147,8 +185,13 @@ const SR_ONLY_STYLE = {
 
 /** Grapheme-safe split so multi-byte characters/emoji stay whole in `"character"` mode. */
 function toGraphemes(text: string): string[] {
-  if (typeof Intl !== "undefined" && typeof (Intl as unknown as { Segmenter?: unknown }).Segmenter === "function") {
-    const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  if (
+    typeof Intl !== "undefined" &&
+    typeof (Intl as unknown as { Segmenter?: unknown }).Segmenter === "function"
+  ) {
+    const segmenter = new Intl.Segmenter(undefined, {
+      granularity: "grapheme",
+    });
     return Array.from(segmenter.segment(text), (entry) => entry.segment);
   }
   return Array.from(text);
@@ -172,7 +215,10 @@ function splitIntoSegments(text: string, by: TextAnimateBy): string[] {
  * re-entry unless `once` is set. Call with no arguments for a working demo.
  */
 function textAnimate(props: TextAnimateProps = {}): DomphyElement {
-  const textState = toState(props.text ?? "Domphy renders exactly what you write, nothing more.", "text-animate-text");
+  const textState = toState(
+    props.text ?? "Domphy renders exactly what you write, nothing more.",
+    "text-animate-text",
+  );
   const by = props.by ?? "word";
   const animationPreset = props.animation ?? "fadeIn";
   // The `duration` prop sizes the stagger window (upstream `duration`), not the
@@ -185,12 +231,15 @@ function textAnimate(props: TextAnimateProps = {}): DomphyElement {
   const accessibility = props.accessibility ?? true;
 
   const preset = PRESET_KEYFRAMES[animationPreset] ?? PRESET_KEYFRAMES.fadeIn;
-  const isSpringScale = animationPreset === "scaleUp" || animationPreset === "scaleDown";
+  const isSpringScale =
+    animationPreset === "scaleUp" || animationPreset === "scaleDown";
   const enterEasing = isSpringScale ? SPRING_EASING : DEFAULT_EASING;
   const hiddenKeyframe = { ...preset.hidden, ...(props.initialStyle ?? {}) };
   const visibleKeyframe = { ...preset.visible, ...(props.animateStyle ?? {}) };
   const presetExitKeyframe = preset.exit ?? preset.hidden;
-  const exitKeyframe = props.exitStyle ? { ...presetExitKeyframe, ...props.exitStyle } : presetExitKeyframe;
+  const exitKeyframe = props.exitStyle
+    ? { ...presetExitKeyframe, ...props.exitStyle }
+    : presetExitKeyframe;
 
   // Shared, instance-scoped runtime state — persists across reactive
   // re-renders of the segment list (e.g. when `text` is a State and changes).
@@ -223,12 +272,15 @@ function textAnimate(props: TextAnimateProps = {}): DomphyElement {
         const enterDelayMs = startDelayMs + index * staggerMs;
         const play = () => {
           if (typeof element.animate !== "function") return;
-          element.animate([hiddenKeyframe as Keyframe, visibleKeyframe as Keyframe], {
-            duration: SEGMENT_TWEEN_MS,
-            delay: enterDelayMs,
-            easing: enterEasing,
-            fill: "both",
-          });
+          element.animate(
+            [hiddenKeyframe as Keyframe, visibleKeyframe as Keyframe],
+            {
+              duration: SEGMENT_TWEEN_MS,
+              delay: enterDelayMs,
+              easing: enterEasing,
+              fill: "both",
+            },
+          );
         };
         segmentPlayers.push(play);
         if (viewState.hasEntered) play();
@@ -246,13 +298,19 @@ function textAnimate(props: TextAnimateProps = {}): DomphyElement {
         // Reversed order (upstream `staggerDirection: -1`, exit `delayChildren`
         // is 0): the last segment to enter is the first to leave.
         const exitDelayMs = (count - 1 - index) * staggerMs;
-        const animation = element.animate([visibleKeyframe as Keyframe, exitKeyframe as Keyframe], {
-          duration: SEGMENT_TWEEN_MS,
-          delay: exitDelayMs,
-          easing: DEFAULT_EASING,
-          fill: "both",
-        });
-        animation.finished.then(() => done(), () => done());
+        const animation = element.animate(
+          [visibleKeyframe as Keyframe, exitKeyframe as Keyframe],
+          {
+            duration: SEGMENT_TWEEN_MS,
+            delay: exitDelayMs,
+            easing: DEFAULT_EASING,
+            fill: "both",
+          },
+        );
+        animation.finished.then(
+          () => done(),
+          () => done(),
+        );
       },
     };
   }
@@ -260,8 +318,17 @@ function textAnimate(props: TextAnimateProps = {}): DomphyElement {
   function buildSegments(currentText: string): DomphyElement[] {
     const segments = splitIntoSegments(currentText, by);
     // Whole reveal spans `staggerWindowMs`, independent of segment count.
-    const staggerMs = segments.length > 0 ? staggerWindowMs / segments.length : 0;
-    return segments.map((segment, index) => buildSegmentElement(segment, index, currentText, segments.length, staggerMs));
+    const staggerMs =
+      segments.length > 0 ? staggerWindowMs / segments.length : 0;
+    return segments.map((segment, index) =>
+      buildSegmentElement(
+        segment,
+        index,
+        currentText,
+        segments.length,
+        staggerMs,
+      ),
+    );
   }
 
   const outer = {
@@ -269,9 +336,14 @@ function textAnimate(props: TextAnimateProps = {}): DomphyElement {
       const currentText = textState.get(listener);
       const segmentElements = buildSegments(currentText);
       if (!accessibility) return segmentElements;
-      return [{ span: currentText, _key: "sr-only-text", style: SR_ONLY_STYLE }, ...segmentElements];
+      return [
+        { span: currentText, _key: "sr-only-text", style: SR_ONLY_STYLE },
+        ...segmentElements,
+      ];
     },
-    ...(accessibility ? { ariaLabel: (listener: Listener) => textState.get(listener) } : {}),
+    ...(accessibility
+      ? { ariaLabel: (listener: Listener) => textState.get(listener) }
+      : {}),
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined" || !startOnView) return;
       if (typeof IntersectionObserver !== "function") {

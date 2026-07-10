@@ -17,6 +17,7 @@
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { type ThemeColor, themeColor } from "@domphy/theme";
+import { fixed } from "../../shared/typography.js";
 
 export interface NumberTickerSpring {
   /** How fast oscillation dies out. Defaults to `60`. */
@@ -95,9 +96,9 @@ function numberTicker(props: NumberTickerProps = {}): DomphyElement<"span"> {
       // text-8xl (fixed 96px) + tracking-wider (0.05em) from the upstream
       // component class + demo; no fluid clamp (upstream sets no responsive
       // shrink) and no bold — the demos use font-medium (500).
-      fontSize: "6rem",
-      fontWeight: "500",
-      letterSpacing: "0.05em",
+      fontSize: fixed("6rem"),
+      fontWeight: fixed("500"),
+      letterSpacing: fixed("0.05em"),
       color: (listener) => themeColor(listener, "shift-11", color),
       ...(props.style ?? {}),
     },
@@ -162,7 +163,7 @@ function numberTicker(props: NumberTickerProps = {}): DomphyElement<"span"> {
               }
             }
           },
-          // Upstream useInView({ margin: "0px" }) fires the moment any part of
+          // Upstream useInView({ margin: "0" }) fires the moment any part of
           // the element edge enters the viewport — threshold 0, not 0.1.
           { threshold: 0 },
         );

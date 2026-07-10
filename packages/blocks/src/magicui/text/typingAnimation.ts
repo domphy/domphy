@@ -9,12 +9,27 @@
 // `terminal()` block uses for its own typed command lines, generalized to
 // support delete/cycle through multiple phrases.
 
-import type { DomphyElement, ElementNode, State, StyleObject } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  State,
+  StyleObject,
+} from "@domphy/core";
 import { hashString, toState } from "@domphy/core";
 import { themeColor } from "@domphy/theme";
+import { fixed } from "../../shared/typography.js";
 
 export type TypingCursorStyle = "line" | "block" | "underscore";
-export type TypingAnimationTag = "span" | "div" | "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+export type TypingAnimationTag =
+  | "span"
+  | "div"
+  | "p"
+  | "h1"
+  | "h2"
+  | "h3"
+  | "h4"
+  | "h5"
+  | "h6";
 
 export interface TypingAnimationProps {
   /** Text to type, or a list of phrases to cycle through. Defaults to a short demo phrase. */
@@ -43,13 +58,21 @@ export interface TypingAnimationProps {
   style?: StyleObject;
 }
 
-const CURSOR_KEYFRAMES = { "0%,49%": { opacity: 1 }, "50%,100%": { opacity: 0 } };
+const CURSOR_KEYFRAMES = {
+  "0%,49%": { opacity: 1 },
+  "50%,100%": { opacity: 0 },
+};
 const CURSOR_ANIMATION_NAME = `typing-animation-cursor-${hashString(JSON.stringify(CURSOR_KEYFRAMES))}`;
 
 /** Grapheme-safe split so multi-byte characters/emoji don't break mid-glyph. */
 function toGraphemes(text: string): string[] {
-  if (typeof Intl !== "undefined" && typeof (Intl as unknown as { Segmenter?: unknown }).Segmenter === "function") {
-    const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  if (
+    typeof Intl !== "undefined" &&
+    typeof (Intl as unknown as { Segmenter?: unknown }).Segmenter === "function"
+  ) {
+    const segmenter = new Intl.Segmenter(undefined, {
+      granularity: "grapheme",
+    });
     return Array.from(segmenter.segment(text), (entry) => entry.segment);
   }
   return Array.from(text);
@@ -66,15 +89,23 @@ const CURSOR_GLYPH_BY_STYLE: Record<TypingCursorStyle, string> = {
   underscore: "_",
 };
 
-function cursorGlyph(cursorStyle: TypingCursorStyle, blink: boolean, visible: State<boolean>): DomphyElement<"span"> {
+function cursorGlyph(
+  cursorStyle: TypingCursorStyle,
+  blink: boolean,
+  visible: State<boolean>,
+): DomphyElement<"span"> {
   return {
     span: CURSOR_GLYPH_BY_STYLE[cursorStyle],
     ariaHidden: "true",
     style: {
       display: (listener) => (visible.get(listener) ? "inline-block" : "none"),
       color: (listener) => themeColor(listener, "shift-9"),
-      animation: blink ? `${CURSOR_ANIMATION_NAME} 1.2s step-end infinite` : undefined,
-      [`@keyframes ${CURSOR_ANIMATION_NAME}`]: blink ? CURSOR_KEYFRAMES : undefined,
+      animation: blink
+        ? `${CURSOR_ANIMATION_NAME} 1.2s step-end infinite`
+        : undefined,
+      [`@keyframes ${CURSOR_ANIMATION_NAME}`]: blink
+        ? CURSOR_KEYFRAMES
+        : undefined,
     } as StyleObject,
   } as DomphyElement<"span">;
 }
@@ -92,7 +123,8 @@ function typingAnimation(props: TypingAnimationProps = {}): DomphyElement {
       : [props.text]
     : ["Build with Domphy.", "No JSX. No virtual DOM.", "Just plain objects."];
   const typingSpeed = props.typingSpeed ?? 100;
-  const deletingSpeed = props.deletingSpeed ?? Math.max(1, Math.round(typingSpeed / 2));
+  const deletingSpeed =
+    props.deletingSpeed ?? Math.max(1, Math.round(typingSpeed / 2));
   const pauseDuration = props.pauseDuration ?? 1000;
   const startDelay = props.startDelay ?? 0;
   const loop = props.loop ?? false;
@@ -112,7 +144,14 @@ function typingAnimation(props: TypingAnimationProps = {}): DomphyElement {
       _key: "revealed",
       dataTypingRevealed: "true",
     },
-    ...(showCursor ? [{ ...cursorGlyph(cursorStyle, cursorBlink, cursorVisible), _key: "cursor" }] : []),
+    ...(showCursor
+      ? [
+          {
+            ...cursorGlyph(cursorStyle, cursorBlink, cursorVisible),
+            _key: "cursor",
+          },
+        ]
+      : []),
   ];
 
   const hasMultipleWords = phrases.length > 1;
@@ -123,8 +162,8 @@ function typingAnimation(props: TypingAnimationProps = {}): DomphyElement {
       // Upstream always applies `leading-20` (line-height 5rem) and
       // `tracking-[-0.02em]`, plus `inline-block` only when `as === "span"`
       // (block/inline tags keep their native display). Passthrough style wins.
-      lineHeight: "5rem",
-      letterSpacing: "-0.02em",
+      lineHeight: fixed("5rem"),
+      letterSpacing: fixed("-0.02em"),
       ...(wrapperTag === "span" ? { display: "inline-block" } : {}),
       ...(props.style ?? {}),
     } as StyleObject,
@@ -185,7 +224,8 @@ function typingAnimation(props: TypingAnimationProps = {}): DomphyElement {
           charIndex >= activeGraphemes.length &&
           phase !== "deleting";
         cursorVisible.set(
-          !isComplete && (hasMultipleWords || loop || charIndex < activeGraphemes.length),
+          !isComplete &&
+            (hasMultipleWords || loop || charIndex < activeGraphemes.length),
         );
         // No transition means the terminal freeze (single/last word done, no
         // loop) — stop scheduling, matching upstream's effect no longer re-running.

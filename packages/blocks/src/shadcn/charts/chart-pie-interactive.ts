@@ -12,14 +12,14 @@ import { toState } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { motion, select } from "@domphy/ui";
 import {
-  type PieDatum,
-  DEFAULT_PIE_DATA,
-  DONUT_SEPARATOR_STROKE_WIDTH,
   arcSlicePath,
   colorSwatch,
   createPieTooltipState,
+  DEFAULT_PIE_DATA,
+  DONUT_SEPARATOR_STROKE_WIDTH,
   defaultValueFormatter,
   layoutPieSlices,
+  type PieDatum,
   pieCard,
   pieCardDescription,
   pieCardTitle,
@@ -56,7 +56,9 @@ export interface ChartPieInteractiveProps {
  * value fills the donut's hollow center. Call with no arguments for a fully
  * working demo.
  */
-function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElement<"div"> {
+function chartPieInteractive(
+  props: ChartPieInteractiveProps = {},
+): DomphyElement<"div"> {
   const {
     data = DEFAULT_PIE_DATA,
     title = "Pie Chart - Interactive",
@@ -93,7 +95,9 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
       path: null,
       style: {
         d: (l: Listener) => {
-          const outerRadius = isSelected(l) ? BASE_OUTER_RADIUS + activeRadiusDelta : BASE_OUTER_RADIUS;
+          const outerRadius = isSelected(l)
+            ? BASE_OUTER_RADIUS + activeRadiusDelta
+            : BASE_OUTER_RADIUS;
           return `path("${arcSlicePath(slice, innerRadius, outerRadius, 0)}")`;
         },
         transition: "d 260ms ease-out",
@@ -108,14 +112,19 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
       strokeLinejoin: "round",
       cursor: "pointer",
       _key: slice.datum.key,
-      ...wedgeTooltipHandlers(slice, { containerRef, tooltipState, valueFormatter }),
+      ...wedgeTooltipHandlers(slice, {
+        containerRef,
+        tooltipState,
+        valueFormatter,
+      }),
     } as DomphyElement<"path">;
   });
 
   // One detached "pop-out" ring per slice, faded in only for the selected
   // one — the arc floats just beyond the enlarged active wedge, mirroring the
   // second stacked <Sector> in upstream's active-sector shape renderer.
-  const activeRingInner = BASE_OUTER_RADIUS + activeRadiusDelta + ACTIVE_RING_GAP;
+  const activeRingInner =
+    BASE_OUTER_RADIUS + activeRadiusDelta + ACTIVE_RING_GAP;
   const activeRingOuter = activeRingInner + ACTIVE_RING_THICKNESS;
   const activeRings: DomphyElement<"path">[] = slices.map((slice) => ({
     path: null,
@@ -126,7 +135,8 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
     _key: `${slice.datum.key}-active-ring`,
     style: {
       pointerEvents: "none",
-      opacity: (l: Listener) => (selectedKey.get(l) === slice.datum.key ? 1 : 0),
+      opacity: (l: Listener) =>
+        selectedKey.get(l) === slice.datum.key ? 1 : 0,
       transition: "opacity 260ms ease-out",
     },
   }));
@@ -138,7 +148,10 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
     // the option's own text color is the closest in-grammar approximation of
     // "each option carries its own color swatch" (see this block's fidelity
     // note in the port report).
-    style: { color: (l: Listener) => themeColor(l, "shift-9", resolveSliceColor(datum, index)) },
+    style: {
+      color: (l: Listener) =>
+        themeColor(l, "shift-9", resolveSliceColor(datum, index)),
+    },
     _key: datum.key,
   }));
 
@@ -154,7 +167,10 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
       data.findIndex((record) => record.key === key),
       0,
     );
-    return resolveSliceColor(data[index] ?? { key: "", name: "", value: 0 }, index);
+    return resolveSliceColor(
+      data[index] ?? { key: "", name: "", value: 0 },
+      index,
+    );
   };
 
   return pieCard([
@@ -166,7 +182,8 @@ function chartPieInteractive(props: ChartPieInteractiveProps = {}): DomphyElemen
         {
           select: options,
           value: (l: Listener) => selectedKey.get(l),
-          onChange: (e: Event) => setSelection((e.target as HTMLSelectElement).value),
+          onChange: (e: Event) =>
+            setSelection((e.target as HTMLSelectElement).value),
           ariaLabel: "Select a value",
           $: [select()],
         },

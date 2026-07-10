@@ -10,23 +10,45 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement, ElementNode, Listener, ReadableState, State } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  ReadableState,
+  State,
+} from "@domphy/core";
 import { RecordState, toState } from "@domphy/core";
-import { avatar, breadcrumb, buttonGhost, icon, inputCheckbox, menu, popover, small, strong, tooltip } from "@domphy/ui";
-import { type ThemeColor, themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
-  ICON_CHEVRONS_UPDOWN,
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSpacing,
+} from "@domphy/theme";
+import {
+  avatar,
+  breadcrumb,
+  buttonGhost,
+  icon,
+  inputCheckbox,
+  menu,
+  popover,
+  small,
+  strong,
+} from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
+import {
   ICON_CHEVRON_RIGHT,
+  ICON_CHEVRONS_UPDOWN,
   ICON_MARK,
   ICON_MORE,
   ICON_PANEL_TOGGLE,
   ICON_PLUS,
   ICON_SEARCH,
+  type SidebarTeam,
   sidebarBackdrop,
   sidebarIcon,
   sidebarMainContent,
   verticalDivider,
-  type SidebarTeam,
 } from "./sidebar05-08-shared.js";
 
 // ---------------------------------------------------------------------------
@@ -67,10 +89,20 @@ const ICON_HELP =
 
 type FavoriteItem = { id: string; label: string; emoji: string; href?: string };
 type WorkspacePage = { label: string; emoji: string; href?: string };
-type WorkspaceGroup = { id: string; label: string; emoji: string; pages: WorkspacePage[] };
+type WorkspaceGroup = {
+  id: string;
+  label: string;
+  emoji: string;
+  pages: WorkspacePage[];
+};
 type FooterLink = { label: string; icon: string; href?: string };
 type CurrentUser = { name: string; email: string; avatarUrl?: string };
-type CalendarEntry = { id: string; name: string; color: ThemeColor; checked?: boolean };
+type CalendarEntry = {
+  id: string;
+  name: string;
+  color: ThemeColor;
+  checked?: boolean;
+};
 type CalendarGroup = { label: string; entries: CalendarEntry[] };
 
 type SidebarLeftRightProps = {
@@ -163,7 +195,10 @@ const DEFAULT_FOOTER_LINKS: FooterLink[] = [
   { label: "Help", icon: ICON_HELP },
 ];
 
-const DEFAULT_USER: CurrentUser = { name: "Shad Cn", email: "shadcn@example.com" };
+const DEFAULT_USER: CurrentUser = {
+  name: "Shad Cn",
+  email: "shadcn@example.com",
+};
 
 // Upstream `Calendars` marks exactly the first two items of every group active
 // (`data-active={index < 2}`) and colors every active indicator with the single
@@ -213,7 +248,11 @@ function addDays(date: Date, count: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + count);
 }
 function sameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 function isoOf(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
@@ -228,7 +267,10 @@ function isoOf(date: Date): string {
 // ---------------------------------------------------------------------------
 
 /** Row label that fades/collapses away in icon-rail mode. */
-function collapsibleLabel(collapsed: ReadableState<boolean>, content: string): DomphyElement<"span"> {
+function collapsibleLabel(
+  collapsed: ReadableState<boolean>,
+  content: string,
+): DomphyElement<"span"> {
   return {
     span: content,
     style: {
@@ -238,14 +280,17 @@ function collapsibleLabel(collapsed: ReadableState<boolean>, content: string): D
       flex: "1",
       textAlign: "left",
       opacity: (l: Listener) => (collapsed.get(l) ? 0 : 1),
-      maxWidth: (l: Listener) => (collapsed.get(l) ? "0em" : themeSpacing(56)),
+      maxWidth: (l: Listener) => (collapsed.get(l) ? "0" : themeSpacing(56)),
       transition: "opacity 150ms linear, max-width 150ms linear",
     },
   } as unknown as DomphyElement<"span">;
 }
 
 /** Uppercase muted section heading, hidden in icon-rail mode. */
-function sectionLabel(collapsed: ReadableState<boolean>, text: string): DomphyElement<"small"> {
+function sectionLabel(
+  collapsed: ReadableState<boolean>,
+  text: string,
+): DomphyElement<"small"> {
   return {
     small: text,
     $: [small({ color: "neutral" })],
@@ -255,7 +300,7 @@ function sectionLabel(collapsed: ReadableState<boolean>, text: string): DomphyEl
       overflow: "hidden",
       whiteSpace: "nowrap",
       opacity: (l: Listener) => (collapsed.get(l) ? 0 : 1),
-      maxHeight: (l: Listener) => (collapsed.get(l) ? "0em" : themeSpacing(6)),
+      maxHeight: (l: Listener) => (collapsed.get(l) ? "0" : themeSpacing(6)),
       transition: "opacity 150ms linear, max-height 150ms linear",
     },
   } as unknown as DomphyElement<"small">;
@@ -282,20 +327,30 @@ function quickLinkRow(
     textDecoration: () => "none",
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+    "&:hover": {
+      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+    },
     "&[aria-current=page]": {
       backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary"),
       color: (l: Listener) => themeColor(l, "shift-12", "primary"),
     },
   };
 
-  const content = [sidebarIcon(emojiOrIcon), collapsibleLabel(collapsed, label)];
+  const content = [
+    sidebarIcon(emojiOrIcon),
+    collapsibleLabel(collapsed, label),
+  ];
   const ariaCurrent = options.active ? "page" : undefined;
 
   // A no-href "More" row has no action — omit `onClick` entirely rather than
   // passing `undefined`, which Domphy rejects (`on*` must be a function).
   const row = options.href
-    ? ({ a: content, href: options.href, ariaCurrent, style: rowStyle } as unknown as DomphyElement)
+    ? ({
+        a: content,
+        href: options.href,
+        ariaCurrent,
+        style: rowStyle,
+      } as unknown as DomphyElement)
     : ({
         button: content,
         type: "button",
@@ -309,7 +364,10 @@ function quickLinkRow(
 
 /** Favorites row: emoji + label, hover-revealed "more" icon-button with a
  * remove/copy/open/delete dropdown. */
-function favoriteRow(item: FavoriteItem, collapsed: ReadableState<boolean>): DomphyElement<"li"> {
+function favoriteRow(
+  item: FavoriteItem,
+  collapsed: ReadableState<boolean>,
+): DomphyElement<"li"> {
   const moreOpen = toState(false);
   const moreMenu: DomphyElement<"div"> = {
     div: null,
@@ -331,7 +389,10 @@ function favoriteRow(item: FavoriteItem, collapsed: ReadableState<boolean>): Dom
       {
         div: [
           {
-            a: [sidebarIcon(item.emoji), collapsibleLabel(collapsed, item.label)],
+            a: [
+              sidebarIcon(item.emoji),
+              collapsibleLabel(collapsed, item.label),
+            ],
             href: item.href ?? "#",
             title: item.label,
             style: {
@@ -351,14 +412,21 @@ function favoriteRow(item: FavoriteItem, collapsed: ReadableState<boolean>): Dom
             dataSlot: "row-more",
             ariaLabel: `${item.label} actions`,
             style: {
-              display: (l: Listener) => (moreOpen.get(l) || collapsed.get(l) ? "none" : "inline-flex"),
+              display: (l: Listener) =>
+                moreOpen.get(l) || collapsed.get(l) ? "none" : "inline-flex",
               flexShrink: "0",
               border: "none",
               background: "none",
               cursor: "pointer",
               color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
             },
-            $: [popover({ open: moreOpen, placement: "right-start", content: moreMenu })],
+            $: [
+              popover({
+                open: moreOpen,
+                placement: "right-start",
+                content: moreMenu,
+              }),
+            ],
           } as unknown as DomphyElement,
         ],
         style: {
@@ -371,9 +439,13 @@ function favoriteRow(item: FavoriteItem, collapsed: ReadableState<boolean>): Dom
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
           "&:hover [data-slot=row-more], &:focus-within [data-slot=row-more]": {
-            display: (l: Listener) => (collapsed.get(l) ? "none" : "inline-flex"),
+            display: (l: Listener) =>
+              collapsed.get(l) ? "none" : "inline-flex",
           },
         },
       } as unknown as DomphyElement,
@@ -386,7 +458,10 @@ function favoriteRow(item: FavoriteItem, collapsed: ReadableState<boolean>): Dom
  * `<a>` navigates, while a hover-revealed accent-tinted `ChevronRight` sitting
  * at `left-2` (over the emoji) is the ONLY thing that toggles the nested page
  * list, and a hover-revealed `Plus` on the right is an add-page action. */
-function workspaceGroupRow(group: WorkspaceGroup, collapsed: ReadableState<boolean>): DomphyElement<"li"> {
+function workspaceGroupRow(
+  group: WorkspaceGroup,
+  collapsed: ReadableState<boolean>,
+): DomphyElement<"li"> {
   const open = toState(false);
 
   // Absolutely-positioned SidebarMenuAction buttons hidden until row hover
@@ -397,14 +472,18 @@ function workspaceGroupRow(group: WorkspaceGroup, collapsed: ReadableState<boole
       {
         div: [
           {
-            a: [sidebarIcon(group.emoji), collapsibleLabel(collapsed, group.label)],
+            a: [
+              sidebarIcon(group.emoji),
+              collapsibleLabel(collapsed, group.label),
+            ],
             href: "#",
             style: {
               display: "flex",
               alignItems: "center",
               width: "100%",
               gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-              paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
+              paddingBlock: (l: Listener) =>
+                themeSpacing(themeDensity(l) * 1.5),
               paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
               borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
               textDecoration: () => "none",
@@ -418,12 +497,21 @@ function workspaceGroupRow(group: WorkspaceGroup, collapsed: ReadableState<boole
               style: {
                 display: "inline-flex",
                 transition: "transform 150ms ease",
-                transform: (l: Listener) => (open.get(l) ? "rotate(90deg)" : "rotate(0deg)"),
+                transform: (l: Listener) =>
+                  open.get(l) ? "rotate(90deg)" : "rotate(0deg)",
               },
               $: [icon({ color: "neutral" })],
             } as unknown as DomphyElement,
             type: "button",
             dataSlot: "workspace-toggle",
+            // Edge-anchor the button's own surface (shift-3) instead of a fixed
+            // backgroundColor tone, so backgroundColor can stay "inherit"
+            // (tone-background-inherit) — same recipe as this file's other
+            // badge chips. Text color moved from a flat shift-11 to shift-9
+            // *relative to this anchor* (absolute shift-12): pixel-identical
+            // background, and the resulting shift-12-on-shift-3 gap (9) clears
+            // the low-contrast floor the flat shift-11 (gap 8) fell just short of.
+            dataTone: "shift-3",
             ariaLabel: `Toggle ${group.label}`,
             ariaExpanded: (l: Listener) => open.get(l),
             onClick: () => open.set(!open.get()),
@@ -439,9 +527,11 @@ function workspaceGroupRow(group: WorkspaceGroup, collapsed: ReadableState<boole
               cursor: "pointer",
               borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
               // Revealed on row hover, or kept on-screen while the group is open.
-              display: (l: Listener) => (collapsed.get(l) ? "none" : open.get(l) ? "flex" : "none"),
-              backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral"),
-              color: (l: Listener) => themeColor(l, "shift-11", "neutral"),
+              display: (l: Listener) =>
+                collapsed.get(l) ? "none" : open.get(l) ? "flex" : "none",
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "inherit", "neutral"),
+              color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
             },
           } as unknown as DomphyElement,
           {
@@ -463,7 +553,10 @@ function workspaceGroupRow(group: WorkspaceGroup, collapsed: ReadableState<boole
               borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
               display: "none",
               color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
-              "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral") },
+              "&:hover": {
+                backgroundColor: (l: Listener) =>
+                  themeColor(l, "shift-3", "neutral"),
+              },
             },
           } as unknown as DomphyElement,
         ],
@@ -471,31 +564,45 @@ function workspaceGroupRow(group: WorkspaceGroup, collapsed: ReadableState<boole
           position: "relative",
           display: (l: Listener) => (collapsed.get(l) ? "none" : "block"),
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
-          "&:hover [data-slot=workspace-toggle], &:focus-within [data-slot=workspace-toggle]": {
-            display: (l: Listener) => (collapsed.get(l) ? "none" : "flex"),
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
           },
-          "&:hover [data-slot=workspace-add], &:focus-within [data-slot=workspace-add]": {
-            display: (l: Listener) => (collapsed.get(l) ? "none" : "flex"),
-          },
+          "&:hover [data-slot=workspace-toggle], &:focus-within [data-slot=workspace-toggle]":
+            {
+              display: (l: Listener) => (collapsed.get(l) ? "none" : "flex"),
+            },
+          "&:hover [data-slot=workspace-add], &:focus-within [data-slot=workspace-add]":
+            {
+              display: (l: Listener) => (collapsed.get(l) ? "none" : "flex"),
+            },
         },
       } as unknown as DomphyElement,
       {
         ul: group.pages.map((page, index) => ({
           li: [
             {
-              a: [sidebarIcon(page.emoji), { span: page.label, style: { flex: "1", textAlign: "left" } }],
+              a: [
+                sidebarIcon(page.emoji),
+                { span: page.label, style: { flex: "1", textAlign: "left" } },
+              ],
               href: page.href ?? "#",
               style: {
                 display: "flex",
                 alignItems: "center",
                 gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-                paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
-                paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-                borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+                paddingBlock: (l: Listener) =>
+                  themeSpacing(themeDensity(l) * 1.5),
+                paddingInline: (l: Listener) =>
+                  themeSpacing(themeDensity(l) * 3),
+                borderRadius: (l: Listener) =>
+                  themeSpacing(themeDensity(l) * 1),
                 textDecoration: () => "none",
                 color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-                "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+                "&:hover": {
+                  backgroundColor: (l: Listener) =>
+                    themeColor(l, "shift-2", "neutral"),
+                },
               },
             } as unknown as DomphyElement,
           ],
@@ -510,10 +617,12 @@ function workspaceGroupRow(group: WorkspaceGroup, collapsed: ReadableState<boole
           paddingInlineStart: themeSpacing(3),
           paddingBlock: "0",
           paddingInlineEnd: "0",
-          borderInlineStart: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+          borderInlineStart: (l: Listener) =>
+            `1px solid ${themeColor(l, "shift-3", "neutral")}`,
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           // Only the chevron toggles this; hidden until the group is open.
-          display: (l: Listener) => (open.get(l) && !collapsed.get(l) ? "flex" : "none"),
+          display: (l: Listener) =>
+            open.get(l) && !collapsed.get(l) ? "flex" : "none",
         },
       } as unknown as DomphyElement,
     ],
@@ -522,8 +631,13 @@ function workspaceGroupRow(group: WorkspaceGroup, collapsed: ReadableState<boole
 }
 
 /** Footer utility link (Calendar/Settings/Templates/Trash/Help). */
-function footerLinkRow(item: FooterLink, collapsed: ReadableState<boolean>): DomphyElement<"li"> {
-  return quickLinkRow(item.icon, item.label, collapsed, { href: item.href ?? "#" });
+function footerLinkRow(
+  item: FooterLink,
+  collapsed: ReadableState<boolean>,
+): DomphyElement<"li"> {
+  return quickLinkRow(item.icon, item.label, collapsed, {
+    href: item.href ?? "#",
+  });
 }
 
 /** Compact `size-5` primary logo badge shown in the team-switcher trigger. */
@@ -538,7 +652,9 @@ function teamTriggerBadge(glyph: string): DomphyElement<"span"> {
       width: themeSpacing(5),
       height: themeSpacing(5),
       flexShrink: "0",
-      fontSize: themeSpacing(3),
+      // Sizes the glyph's own `1em` SVG box, not body text — intentional,
+      // non-token typography (fixed() marks it for the doctor).
+      fontSize: fixed(themeSpacing(3)),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
       color: (l: Listener) => themeColor(l, "shift-10", "primary"),
@@ -558,9 +674,12 @@ function teamMenuBadge(glyph: string): DomphyElement<"span"> {
       width: themeSpacing(6),
       height: themeSpacing(6),
       flexShrink: "0",
-      fontSize: themeSpacing(4),
+      // Sizes the glyph's own `1em` SVG box, not body text — see
+      // teamTriggerBadge()'s matching fontSize above.
+      fontSize: fixed(themeSpacing(4)),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
-      border: (l: Listener) => `1px solid ${themeColor(l, "shift-4", "neutral")}`,
+      border: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-4", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
     },
@@ -575,7 +694,10 @@ function teamMenuBadge(glyph: string): DomphyElement<"span"> {
  * "Add team" row (Plus badge + muted label). Not the two-line/ChevronsUpDown
  * switcher the sidebar05-08 family shares.
  */
-function localTeamSwitcher(teams: SidebarTeam[], collapsed: ReadableState<boolean>): DomphyElement<"div"> {
+function localTeamSwitcher(
+  teams: SidebarTeam[],
+  collapsed: ReadableState<boolean>,
+): DomphyElement<"div"> {
   const active = teams[0] ?? { name: "Acme Inc", plan: "Enterprise" };
 
   const rowLabelStyle = {
@@ -608,7 +730,13 @@ function localTeamSwitcher(teams: SidebarTeam[], collapsed: ReadableState<boolea
                     teamMenuBadge(team.logo ?? ICON_MARK),
                     {
                       span: team.name,
-                      style: { flex: "1", textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+                      style: {
+                        flex: "1",
+                        textAlign: "left",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      },
                     } as unknown as DomphyElement,
                     {
                       small: `⌘${index + 1}`,
@@ -622,7 +750,13 @@ function localTeamSwitcher(teams: SidebarTeam[], collapsed: ReadableState<boolea
               {
                 key: "__add-team",
                 label: {
-                  div: [teamMenuBadge(ICON_PLUS), { span: "Add team", $: [small({ color: "neutral" })] } as unknown as DomphyElement],
+                  div: [
+                    teamMenuBadge(ICON_PLUS),
+                    {
+                      span: "Add team",
+                      $: [small({ color: "neutral" })],
+                    } as unknown as DomphyElement,
+                  ],
                   style: rowLabelStyle,
                 } as unknown as DomphyElement,
               },
@@ -642,8 +776,18 @@ function localTeamSwitcher(teams: SidebarTeam[], collapsed: ReadableState<boolea
           collapsibleLabel(collapsed, active.name),
           {
             span: ICON_CHEVRON_DOWN,
-            style: { display: (l: Listener) => (collapsed.get(l) ? "none" : "inline-flex"), opacity: "0.5" },
+            style: {
+              display: (l: Listener) =>
+                collapsed.get(l) ? "none" : "inline-flex",
+              opacity: "0.5",
+            },
             $: [icon({ color: "neutral" })],
+            // Upstream ChevronDown dim indicator is a fixed opacity-50 glyph
+            // (matches shadcn's convention for this trigger's down-only
+            // affordance) — kept for fidelity rather than brightened to the
+            // doctor's ≥0.6 floor; it's a decorative indicator riding inside
+            // an already aria-labelled trigger button, not a standalone control.
+            _doctorDisable: "low-opacity",
           } as unknown as DomphyElement,
         ],
         type: "button",
@@ -661,7 +805,10 @@ function localTeamSwitcher(teams: SidebarTeam[], collapsed: ReadableState<boolea
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
         $: [popover({ placement: "bottom-start", content: dropdown })],
       } as unknown as DomphyElement,
@@ -682,14 +829,38 @@ function currentUserHeader(user: CurrentUser): DomphyElement<"div"> {
       {
         div: [
           user.avatarUrl
-            ? ({ span: [{ img: null, src: user.avatarUrl, alt: user.name } as unknown as DomphyElement], $: [avatar({ color: "primary" })] } as unknown as DomphyElement)
-            : ({ span: user.name.slice(0, 1).toUpperCase(), $: [avatar({ color: "primary" })] } as unknown as DomphyElement),
+            ? ({
+                span: [
+                  {
+                    img: null,
+                    src: user.avatarUrl,
+                    alt: user.name,
+                  } as unknown as DomphyElement,
+                ],
+                $: [avatar({ color: "primary" })],
+              } as unknown as DomphyElement)
+            : ({
+                span: user.name.slice(0, 1).toUpperCase(),
+                $: [avatar({ color: "primary" })],
+              } as unknown as DomphyElement),
           {
             div: [
-              { strong: user.name, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
-              { small: user.email, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+              {
+                strong: user.name,
+                $: [strong({ color: "neutral" })],
+              } as unknown as DomphyElement,
+              {
+                small: user.email,
+                $: [small({ color: "neutral" })],
+              } as unknown as DomphyElement,
             ],
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5), minWidth: "0", overflow: "hidden" },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(0.5),
+              minWidth: "0",
+              overflow: "hidden",
+            },
           } as unknown as DomphyElement,
         ],
         style: {
@@ -718,8 +889,20 @@ function currentUserHeader(user: CurrentUser): DomphyElement<"div"> {
   } as unknown as DomphyElement<"div">;
 
   const avatarChild: DomphyElement<"span"> = user.avatarUrl
-    ? ({ span: [{ img: null, src: user.avatarUrl, alt: user.name } as unknown as DomphyElement], $: [avatar({ color: "primary" })] } as unknown as DomphyElement<"span">)
-    : ({ span: user.name.slice(0, 1).toUpperCase(), $: [avatar({ color: "primary" })] } as unknown as DomphyElement<"span">);
+    ? ({
+        span: [
+          {
+            img: null,
+            src: user.avatarUrl,
+            alt: user.name,
+          } as unknown as DomphyElement,
+        ],
+        $: [avatar({ color: "primary" })],
+      } as unknown as DomphyElement<"span">)
+    : ({
+        span: user.name.slice(0, 1).toUpperCase(),
+        $: [avatar({ color: "primary" })],
+      } as unknown as DomphyElement<"span">);
 
   return {
     div: [
@@ -728,10 +911,22 @@ function currentUserHeader(user: CurrentUser): DomphyElement<"div"> {
           avatarChild,
           {
             div: [
-              { strong: user.name, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
-              { small: user.email, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+              {
+                strong: user.name,
+                $: [strong({ color: "neutral" })],
+              } as unknown as DomphyElement,
+              {
+                small: user.email,
+                $: [small({ color: "neutral" })],
+              } as unknown as DomphyElement,
             ],
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(0.5), minWidth: "0", overflow: "hidden" },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(0.5),
+              minWidth: "0",
+              overflow: "hidden",
+            },
           } as unknown as DomphyElement,
           sidebarIcon(ICON_CHEVRONS_UPDOWN),
         ],
@@ -749,14 +944,18 @@ function currentUserHeader(user: CurrentUser): DomphyElement<"div"> {
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
         $: [popover({ placement: "bottom", content: accountMenu })],
       } as unknown as DomphyElement,
     ],
     style: {
       padding: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-      borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderBottom: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
   } as unknown as DomphyElement<"div">;
@@ -773,19 +972,33 @@ function calendarNavButtonStyle() {
     borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral") },
+    "&:hover": {
+      backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral"),
+    },
   };
 }
 
 function calendarGridRowStyle() {
-  return { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: themeSpacing(0.5) };
+  return {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)",
+    gap: themeSpacing(0.5),
+  };
 }
 
 /** Compact always-visible month-grid calendar (Sunday-first, no popover),
  * styled with the primary accent color on the selected day. */
-function inlineMonthCalendar(viewMonth: State<Date>, selectedDate: State<Date>): DomphyElement<"div"> {
-  const monthFormatter = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
-  const fullDateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "full" });
+function inlineMonthCalendar(
+  viewMonth: State<Date>,
+  selectedDate: State<Date>,
+): DomphyElement<"div"> {
+  const monthFormatter = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+  const fullDateFormatter = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "full",
+  });
 
   const header: DomphyElement<"div"> = {
     div: [
@@ -810,7 +1023,12 @@ function inlineMonthCalendar(viewMonth: State<Date>, selectedDate: State<Date>):
         style: calendarNavButtonStyle(),
       } as unknown as DomphyElement,
     ],
-    style: { display: "flex", alignItems: "center", gap: themeSpacing(1), marginBottom: themeSpacing(2) },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: themeSpacing(1),
+      marginBottom: themeSpacing(2),
+    },
   } as unknown as DomphyElement<"div">;
 
   const weekdayHeader: DomphyElement<"div"> = {
@@ -860,10 +1078,19 @@ function inlineMonthCalendar(viewMonth: State<Date>, selectedDate: State<Date>):
               aspectRatio: "1",
               borderRadius: "50%",
               opacity: outside ? 0.4 : 1,
-              color: (l: Listener) => (isSelected ? themeColor(l, "shift-0", "primary") : themeColor(l, "shift-9", "neutral")),
-              backgroundColor: (l: Listener) => (isSelected ? themeColor(l, "shift-9", "primary") : themeColor(l, "inherit", "neutral")),
+              color: (l: Listener) =>
+                isSelected
+                  ? themeColor(l, "shift-0", "primary")
+                  : themeColor(l, "shift-9", "neutral"),
+              backgroundColor: (l: Listener) =>
+                isSelected
+                  ? themeColor(l, "shift-9", "primary")
+                  : themeColor(l, "inherit", "neutral"),
               "&:hover:not(:disabled)": {
-                backgroundColor: (l: Listener) => (isSelected ? themeColor(l, "shift-9", "primary") : themeColor(l, "shift-2", "neutral")),
+                backgroundColor: (l: Listener) =>
+                  isSelected
+                    ? themeColor(l, "shift-9", "primary")
+                    : themeColor(l, "shift-2", "neutral"),
               },
             },
           } as unknown as DomphyElement);
@@ -893,20 +1120,30 @@ function inlineMonthCalendar(viewMonth: State<Date>, selectedDate: State<Date>):
 
 /** One calendar-visibility row: colored checkbox (the swatch itself, via
  * `accentColor`) + name — clicking anywhere in the row toggles visibility. */
-function calendarEntryRow(entry: CalendarEntry, visibility: RecordState<Record<string, boolean>>): DomphyElement<"li"> {
+function calendarEntryRow(
+  entry: CalendarEntry,
+  visibility: RecordState<Record<string, boolean>>,
+): DomphyElement<"li"> {
+  const inputId = `sidebar-left-right-calendar-${entry.id}`;
   return {
     li: [
       {
         label: [
           {
             input: null,
+            id: inputId,
             type: "checkbox",
             checked: (l: Listener) => visibility.get(entry.id, l),
-            onChange: (e: Event) => visibility.set(entry.id, (e.target as HTMLInputElement).checked),
+            onChange: (e: Event) =>
+              visibility.set(entry.id, (e.target as HTMLInputElement).checked),
             $: [inputCheckbox({ color: "neutral", accentColor: entry.color })],
           } as unknown as DomphyElement,
-          { span: entry.name, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+          {
+            span: entry.name,
+            style: { flex: "1", textAlign: "left" },
+          } as unknown as DomphyElement,
         ],
+        htmlFor: inputId,
         style: {
           display: "flex",
           alignItems: "center",
@@ -918,7 +1155,10 @@ function calendarEntryRow(entry: CalendarEntry, visibility: RecordState<Record<s
           cursor: "pointer",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
       } as unknown as DomphyElement,
     ],
@@ -937,7 +1177,11 @@ function calendarGroupSection(
         details: [
           {
             summary: [
-              { small: group.label, style: { flex: "1", textTransform: "uppercase" }, $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+              {
+                small: group.label,
+                style: { flex: "1", textTransform: "uppercase" },
+                $: [small({ color: "neutral" })],
+              } as unknown as DomphyElement,
               {
                 span: ICON_CHEVRON_RIGHT,
                 dataSlot: "calendar-chevron",
@@ -958,12 +1202,25 @@ function calendarGroupSection(
             },
           } as unknown as DomphyElement,
           {
-            ul: group.entries.map((entry) => calendarEntryRow(entry, visibility)),
-            style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
+            ul: group.entries.map((entry) =>
+              calendarEntryRow(entry, visibility),
+            ),
+            style: {
+              listStyle: "none",
+              margin: "0",
+              padding: "0",
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(0.5),
+            },
           } as unknown as DomphyElement,
         ],
         open: defaultOpen,
-        style: { "&[open] summary [data-slot=calendar-chevron]": { transform: "rotate(90deg)" } },
+        style: {
+          "&[open] summary [data-slot=calendar-chevron]": {
+            transform: "rotate(90deg)",
+          },
+        },
       } as unknown as DomphyElement,
     ],
     style: { display: "flex", flexDirection: "column", gap: themeSpacing(1) },
@@ -982,7 +1239,8 @@ function calendarSeparator(key: string): DomphyElement<"div"> {
       height: "0",
       marginBlock: themeSpacing(2),
       marginInline: "0",
-      borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderTop: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
     },
     _doctorDisable: "missing-color",
   } as unknown as DomphyElement<"div">;
@@ -999,7 +1257,9 @@ function calendarSeparator(key: string): DomphyElement<"div"> {
  * header, inline calendar, togglable calendar list) sandwiching a scrollable
  * main column. Call with no arguments for a fully working demo.
  */
-function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div"> {
+function sidebarLeftRight(
+  props: SidebarLeftRightProps = {},
+): DomphyElement<"div"> {
   const {
     organizations = DEFAULT_ORGANIZATIONS,
     favorites = DEFAULT_FAVORITES,
@@ -1021,9 +1281,12 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
 
   const initialVisibility: Record<string, boolean> = {};
   for (const group of calendarGroups) {
-    for (const entry of group.entries) initialVisibility[entry.id] = entry.checked ?? true;
+    for (const entry of group.entries)
+      initialVisibility[entry.id] = entry.checked ?? true;
   }
-  const calendarVisibility = new RecordState<Record<string, boolean>>(initialVisibility);
+  const calendarVisibility = new RecordState<Record<string, boolean>>(
+    initialVisibility,
+  );
 
   const leftAside: DomphyElement<"aside"> = {
     aside: [
@@ -1032,7 +1295,10 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
         ul: [
           quickLinkRow(ICON_SEARCH, "Search", leftCollapsed, { href: "#" }),
           quickLinkRow(ICON_SPARKLE, "Ask AI", leftCollapsed, { href: "#" }),
-          quickLinkRow(ICON_HOME, "Home", leftCollapsed, { href: "#", active: true }),
+          quickLinkRow(ICON_HOME, "Home", leftCollapsed, {
+            href: "#",
+            active: true,
+          }),
           quickLinkRow(ICON_INBOX, "Inbox", leftCollapsed, { href: "#" }),
         ],
         style: {
@@ -1051,21 +1317,52 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
             div: [
               sectionLabel(leftCollapsed, "Favorites"),
               {
-                ul: [...favorites.map((item) => favoriteRow(item, leftCollapsed)), quickLinkRow(ICON_MORE, "More", leftCollapsed)],
-                style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
+                ul: [
+                  ...favorites.map((item) => favoriteRow(item, leftCollapsed)),
+                  quickLinkRow(ICON_MORE, "More", leftCollapsed),
+                ],
+                style: {
+                  listStyle: "none",
+                  margin: "0",
+                  padding: "0",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: themeSpacing(0.5),
+                },
               } as unknown as DomphyElement,
             ],
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(1) },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(1),
+            },
           } as unknown as DomphyElement,
           {
             div: [
               sectionLabel(leftCollapsed, "Workspaces"),
               {
-                ul: [...workspaces.map((group) => workspaceGroupRow(group, leftCollapsed)), quickLinkRow(ICON_MORE, "More", leftCollapsed)],
-                style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
+                ul: [
+                  ...workspaces.map((group) =>
+                    workspaceGroupRow(group, leftCollapsed),
+                  ),
+                  quickLinkRow(ICON_MORE, "More", leftCollapsed),
+                ],
+                style: {
+                  listStyle: "none",
+                  margin: "0",
+                  padding: "0",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: themeSpacing(0.5),
+                },
               } as unknown as DomphyElement,
             ],
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(1), marginTop: themeSpacing(4) },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(1),
+              marginTop: themeSpacing(4),
+            },
           } as unknown as DomphyElement,
           // NavSecondary (Calendar/Settings/Templates/Trash/Help). Upstream
           // renders this INSIDE the scrollable content with `mt-auto` — it
@@ -1100,7 +1397,13 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
         div: null,
         ariaHidden: "true",
         onClick: () => leftCollapsed.set(!leftCollapsed.get()),
-        style: { position: "absolute", insetBlock: "0", insetInlineEnd: "0", width: themeSpacing(1), cursor: "col-resize" },
+        style: {
+          position: "absolute",
+          insetBlock: "0",
+          insetInlineEnd: "0",
+          width: themeSpacing(1),
+          cursor: "col-resize",
+        },
       } as unknown as DomphyElement,
     ],
     // `rightAside` below is also a plain `<aside>` with no name — without a
@@ -1110,20 +1413,26 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
     dataTone: "shift-2",
     _onMount: (node: ElementNode) => {
       const onKeyDown = (event: KeyboardEvent) => {
-        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
+        if (
+          (event.metaKey || event.ctrlKey) &&
+          event.key.toLowerCase() === "b"
+        ) {
           event.preventDefault();
           leftCollapsed.set(!leftCollapsed.get());
         }
       };
       window.addEventListener("keydown", onKeyDown);
-      node.addHook("Remove", () => window.removeEventListener("keydown", onKeyDown));
+      node.addHook("Remove", () =>
+        window.removeEventListener("keydown", onKeyDown),
+      );
     },
     style: {
       position: "relative",
       display: "flex",
       flexDirection: "column",
       flexShrink: "0",
-      width: (l: Listener) => (leftCollapsed.get(l) ? themeSpacing(14) : themeSpacing(64)),
+      width: (l: Listener) =>
+        leftCollapsed.get(l) ? themeSpacing(14) : themeSpacing(64),
       overflow: "hidden",
       transition: "width 0.2s linear",
       // Upstream `<SidebarLeft className="border-r-0">` deliberately removes the
@@ -1136,9 +1445,11 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
         insetInlineStart: "0",
         zIndex: "15",
         width: themeSpacing(72),
-        transform: (l: Listener) => (leftSidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)"),
+        transform: (l: Listener) =>
+          leftSidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
         transition: "transform 0.2s ease",
-        boxShadow: (l: Listener) => `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
+        boxShadow: (l: Listener) =>
+          `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
       },
     },
   } as unknown as DomphyElement<"aside">;
@@ -1159,7 +1470,13 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
           } as unknown as DomphyElement,
           verticalDivider(),
           {
-            nav: [{ strong: breadcrumbLabel, ariaCurrent: "page", $: [strong({ color: "neutral" })] } as unknown as DomphyElement],
+            nav: [
+              {
+                strong: breadcrumbLabel,
+                ariaCurrent: "page",
+                $: [strong({ color: "neutral" })],
+              } as unknown as DomphyElement,
+            ],
             $: [breadcrumb({ color: "neutral" })],
           } as unknown as DomphyElement,
         ],
@@ -1173,14 +1490,22 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
           height: themeSpacing(16),
           flexShrink: "0",
           paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
-          borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+          borderBottom: (l: Listener) =>
+            `1px solid ${themeColor(l, "shift-3", "neutral")}`,
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
         },
       } as unknown as DomphyElement,
       sidebarMainContent(children),
     ],
-    style: { display: "flex", flexDirection: "column", flex: "1", minWidth: "0", minHeight: "0", overflow: "auto" },
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      flex: "1",
+      minWidth: "0",
+      minHeight: "0",
+      overflow: "auto",
+    },
   } as unknown as DomphyElement<"main">;
 
   const rightAside: DomphyElement<"aside"> = {
@@ -1191,7 +1516,10 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
         // `Calendars` which emits a `mx-0` SidebarSeparator after EACH of the
         // three groups.
         div: [
-          { ...inlineMonthCalendar(viewMonthState, selectedDateState), _key: "datepicker" } as unknown as DomphyElement,
+          {
+            ...inlineMonthCalendar(viewMonthState, selectedDateState),
+            _key: "datepicker",
+          } as unknown as DomphyElement,
           calendarSeparator("sep-datepicker"),
           ...calendarGroups.flatMap((group, index) => [
             calendarGroupSection(group, calendarVisibility, index === 0),
@@ -1208,7 +1536,10 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
       {
         div: [
           {
-            button: [sidebarIcon(ICON_PLUS), { span: "New Calendar", style: { flex: "1", textAlign: "left" } }],
+            button: [
+              sidebarIcon(ICON_PLUS),
+              { span: "New Calendar", style: { flex: "1", textAlign: "left" } },
+            ],
             type: "button",
             style: {
               display: "flex",
@@ -1222,15 +1553,20 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
               cursor: "pointer",
               textDecoration: () => "none",
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-              backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-              "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "inherit", "neutral"),
+              "&:hover": {
+                backgroundColor: (l: Listener) =>
+                  themeColor(l, "shift-2", "neutral"),
+              },
             },
           } as unknown as DomphyElement,
         ],
         style: {
           flexShrink: "0",
           padding: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-          borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+          borderTop: (l: Listener) =>
+            `1px solid ${themeColor(l, "shift-3", "neutral")}`,
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
         },
       } as unknown as DomphyElement,
@@ -1245,7 +1581,8 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
       flexDirection: "column",
       flexShrink: "0",
       width: themeSpacing(72),
-      borderInlineStart: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderInlineStart: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       // Always visible on desktop, never an animated drawer on mobile — it
@@ -1255,8 +1592,18 @@ function sidebarLeftRight(props: SidebarLeftRightProps = {}): DomphyElement<"div
   } as unknown as DomphyElement<"aside">;
 
   return {
-    div: [leftAside, mainElement, rightAside, sidebarBackdrop(leftSidebarOpen, () => leftSidebarOpen.set(false))],
-    style: { display: "flex", height: "100dvh", overflow: "hidden", position: "relative" },
+    div: [
+      leftAside,
+      mainElement,
+      rightAside,
+      sidebarBackdrop(leftSidebarOpen, () => leftSidebarOpen.set(false)),
+    ],
+    style: {
+      display: "flex",
+      height: "100dvh",
+      overflow: "hidden",
+      position: "relative",
+    },
   } as unknown as DomphyElement<"div">;
 }
 

@@ -10,13 +10,16 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
 import {
-  RADIAL_CHANNEL_DATA,
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
+import {
   createRadialTooltip,
+  RADIAL_CHANNEL_DATA,
+  type RadialSeriesDatum,
   radialCardShell,
   renderRadialRingsChart,
-  type RadialSeriesDatum,
 } from "./chart-radial-shared.js";
 
 export interface ChartRadialLabelProps {
@@ -36,7 +39,9 @@ export interface ChartRadialLabelProps {
  * shadcn/ui "chart-radial-label" recipe — five rings with inline category
  * labels near each arc's start. Call with no arguments for a working demo.
  */
-function chartRadialLabel(props: ChartRadialLabelProps = {}): DomphyElement<"div"> {
+function chartRadialLabel(
+  props: ChartRadialLabelProps = {},
+): DomphyElement<"div"> {
   const {
     data = RADIAL_CHANNEL_DATA,
     title = "Radial Chart - Label",
@@ -68,7 +73,11 @@ function chartRadialLabel(props: ChartRadialLabelProps = {}): DomphyElement<"div
         }),
       ],
     },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

@@ -28,7 +28,9 @@ afterEach(() => {
 describe("chartLineLabelCustom", () => {
   it("renders a working demo tree with zero args: titled card, categorical chart plot, colored-dot overlay, trend footer", () => {
     const { host } = render(chartLineLabelCustom() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Line Chart - Custom Label");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Line Chart - Custom Label",
+    );
     expect(host.querySelector("footer")).toBeTruthy();
     expect(host.querySelector("canvas")).toBeTruthy();
     expect(host.querySelectorAll("svg").length).toBeGreaterThanOrEqual(3);

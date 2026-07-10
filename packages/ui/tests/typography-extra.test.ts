@@ -312,7 +312,7 @@ describe("popoverArrow", () => {
       div: "panel",
       $: [popoverArrow({ bordered: false })],
     } as DomphyElement);
-    expect(css).toContain("border-width: 0px");
+    expect(css).toContain("border-width: 0");
   });
 
   it("renders the host content", () => {

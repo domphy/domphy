@@ -24,7 +24,11 @@ describe("backlight", () => {
     const container = host.firstElementChild!;
     const filterElement = container.querySelector("filter")!;
     expect(filterElement).toBeTruthy();
-    expect(filterElement.querySelectorAll("feGaussianBlur, feColorMatrix, feComposite").length).toBe(3);
+    expect(
+      filterElement.querySelectorAll(
+        "feGaussianBlur, feColorMatrix, feComposite",
+      ).length,
+    ).toBe(3);
 
     const filterId = filterElement.getAttribute("id")!;
     expect(filterId).toBeTruthy();
@@ -34,7 +38,11 @@ describe("backlight", () => {
   });
 
   it("wraps custom media content instead of the default placeholder", () => {
-    const { host } = render(backlight({ children: { video: null, src: "movie.mp4" } as DomphyElement }));
+    const { host } = render(
+      backlight({
+        children: { video: null, src: "movie.mp4" } as DomphyElement,
+      }),
+    );
 
     const container = host.firstElementChild!;
     expect(container.querySelector("img")).toBeFalsy();

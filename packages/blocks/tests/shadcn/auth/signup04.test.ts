@@ -23,9 +23,9 @@ describe("signup04", () => {
     expect(host.querySelector("h1")?.textContent).toBe("Create your account");
     expect(host.querySelectorAll("form input").length).toBe(3);
     expect(host.querySelectorAll('input[type="password"]').length).toBe(2);
-    const providerButtons = Array.from(host.querySelectorAll("form button")).filter(
-      (el) => el.getAttribute("type") === "button",
-    );
+    const providerButtons = Array.from(
+      host.querySelectorAll("form button"),
+    ).filter((el) => el.getAttribute("type") === "button");
     expect(providerButtons.length).toBe(3);
   });
 
@@ -38,11 +38,13 @@ describe("signup04", () => {
         ],
       }) as DomphyElement,
     );
-    const providerButtons = Array.from(host.querySelectorAll("form button")).filter(
-      (el) => el.getAttribute("type") === "button",
-    );
+    const providerButtons = Array.from(
+      host.querySelectorAll("form button"),
+    ).filter((el) => el.getAttribute("type") === "button");
     expect(providerButtons.length).toBe(2);
-    expect(providerButtons[0].getAttribute("aria-label")).toBe("Sign up with Provider X");
+    expect(providerButtons[0].getAttribute("aria-label")).toBe(
+      "Sign up with Provider X",
+    );
   });
 
   it("renders the decorative image and legal links", () => {

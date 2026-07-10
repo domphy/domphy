@@ -33,14 +33,18 @@ describe("hexagonPattern", () => {
   });
 
   it("switches to dashed per-edge line segments when strokeDasharray is set", () => {
-    const { host } = render(hexagonPattern({ strokeDasharray: "4 2", hexagons: [] }) as DomphyElement);
+    const { host } = render(
+      hexagonPattern({ strokeDasharray: "4 2", hexagons: [] }) as DomphyElement,
+    );
     const svg = host.querySelector("svg") as SVGSVGElement;
     expect(svg.querySelector("pattern polygon")).toBeNull();
     expect(svg.querySelector("pattern line")).toBeTruthy();
   });
 
   it("accepts custom content via children", () => {
-    const { host } = render(hexagonPattern({ children: { span: "Custom overlay" } }) as DomphyElement);
+    const { host } = render(
+      hexagonPattern({ children: { span: "Custom overlay" } }) as DomphyElement,
+    );
     expect(host.textContent).toContain("Custom overlay");
   });
 });

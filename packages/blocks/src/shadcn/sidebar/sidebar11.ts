@@ -6,23 +6,29 @@
 
 import type { DomphyElement, Listener, State } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { breadcrumb, buttonGhost, icon, link, small, strong } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import { breadcrumb, buttonGhost, icon, link, small, strong } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 import {
   ICON_CHEVRON_RIGHT,
   ICON_FILE,
   ICON_FOLDER,
   ICON_PANEL_TOGGLE,
   renderUserFooter,
+  type SidebarUser,
   sidebarIcon,
   sidebarMainContent,
   verticalDivider,
-  type SidebarUser,
 } from "./sidebar09-12-shared.js";
 
 /** A recursive tree node: either a folder with children, or a leaf file. */
 type Sidebar11TreeNode =
-  | { type: "folder"; name: string; children: Sidebar11TreeNode[]; icon?: string }
+  | {
+      type: "folder";
+      name: string;
+      children: Sidebar11TreeNode[];
+      icon?: string;
+    }
   | { type: "file"; name: string; icon?: string };
 
 /** A changed file shown in the "Changes" group with a git-status badge. */
@@ -83,7 +89,10 @@ const DEFAULT_CHANGES: Sidebar11Change[] = [
 
 const DEFAULT_ACTIVE_PATH = "components/ui/button.tsx";
 
-const DEFAULT_USER: SidebarUser = { name: "Shad Cn", email: "shadcn@example.com" };
+const DEFAULT_USER: SidebarUser = {
+  name: "Shad Cn",
+  email: "shadcn@example.com",
+};
 
 function joinPath(parent: string, name: string): string {
   return parent ? `${parent}/${name}` : name;
@@ -94,16 +103,25 @@ function isAncestorOrSelf(path: string, activePath: string): boolean {
   return activePath === path || activePath.startsWith(`${path}/`);
 }
 
-function fileRow(path: string, node: Extract<Sidebar11TreeNode, { type: "file" }>, activeFilePath: State<string>, onSelect: (path: string) => void): DomphyElement<"li"> {
+function fileRow(
+  path: string,
+  node: Extract<Sidebar11TreeNode, { type: "file" }>,
+  activeFilePath: State<string>,
+  onSelect: (path: string) => void,
+): DomphyElement<"li"> {
   return {
     li: [
       {
         button: [
           sidebarIcon(node.icon ?? ICON_FILE),
-          { span: node.name, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+          {
+            span: node.name,
+            style: { flex: "1", textAlign: "left" },
+          } as unknown as DomphyElement,
         ],
         type: "button",
-        ariaCurrent: (l: Listener) => (activeFilePath.get(l) === path ? "true" : undefined),
+        ariaCurrent: (l: Listener) =>
+          activeFilePath.get(l) === path ? "true" : undefined,
         onClick: () => onSelect(path),
         style: {
           display: "flex",
@@ -121,12 +139,15 @@ function fileRow(path: string, node: Extract<Sidebar11TreeNode, { type: "file" }
           whiteSpace: "nowrap",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
           // Upstream's active leaf button carries `data-[active=true]:bg-transparent`,
           // suppressing the accent fill: the active file gets NO background, only
           // font-medium plus the subtle accent-foreground text color.
           "&[aria-current=true]": {
-            fontWeight: "500",
+            fontWeight: fixed("500"),
             color: (l: Listener) => themeColor(l, "shift-12", "neutral"),
           },
         },
@@ -157,7 +178,10 @@ function folderRow(
                 $: [icon({ color: "neutral" })],
               } as unknown as DomphyElement,
               sidebarIcon(node.icon ?? ICON_FOLDER),
-              { span: node.name, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+              {
+                span: node.name,
+                style: { flex: "1", textAlign: "left" },
+              } as unknown as DomphyElement,
             ],
             style: {
               listStyle: "none",
@@ -167,18 +191,30 @@ function folderRow(
               alignItems: "center",
               gap: (l: Listener) => themeSpacing(themeDensity(l) * 2),
               width: "100%",
-              paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
+              paddingBlock: (l: Listener) =>
+                themeSpacing(themeDensity(l) * 1.5),
               paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
               borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-              backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "inherit", "neutral"),
               "&::-webkit-details-marker": { display: "none" },
               "&::marker": { content: `""` },
-              "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+              "&:hover": {
+                backgroundColor: (l: Listener) =>
+                  themeColor(l, "shift-2", "neutral"),
+              },
             },
           } as unknown as DomphyElement,
           {
-            ul: buildTreeList(path, node.children, activeFilePath, initialActivePath, onFolderToggle, onSelect),
+            ul: buildTreeList(
+              path,
+              node.children,
+              activeFilePath,
+              initialActivePath,
+              onFolderToggle,
+              onSelect,
+            ),
             style: {
               listStyle: "none",
               margin: "0",
@@ -189,13 +225,15 @@ function folderRow(
               paddingInlineStart: themeSpacing(2),
               paddingBlock: "0",
               paddingInlineEnd: "0",
-              borderInlineStart: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+              borderInlineStart: (l: Listener) =>
+                `1px solid ${themeColor(l, "shift-3", "neutral")}`,
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
             },
           } as unknown as DomphyElement,
         ],
         open: isAncestorOrSelf(path, initialActivePath) || undefined,
-        onToggle: (event: Event) => onFolderToggle?.(path, (event.target as HTMLDetailsElement).open),
+        onToggle: (event: Event) =>
+          onFolderToggle?.(path, (event.target as HTMLDetailsElement).open),
         style: {
           "&[open] summary [data-slot=chevron]": { transform: "rotate(90deg)" },
         },
@@ -216,7 +254,14 @@ function buildTreeList(
   return nodes.map((node) => {
     const path = joinPath(parentPath, node.name);
     return node.type === "folder"
-      ? folderRow(path, node, activeFilePath, initialActivePath, onFolderToggle, onSelect)
+      ? folderRow(
+          path,
+          node,
+          activeFilePath,
+          initialActivePath,
+          onFolderToggle,
+          onSelect,
+        )
       : fileRow(path, node, activeFilePath, onSelect);
   });
 }
@@ -224,7 +269,12 @@ function buildTreeList(
 /** Uppercase muted section heading (mirrors upstream's `SidebarGroupLabel`). */
 function groupLabel(text: string): DomphyElement<"div"> {
   return {
-    div: [{ small: text, $: [small({ color: "neutral" })] } as unknown as DomphyElement],
+    div: [
+      {
+        small: text,
+        $: [small({ color: "neutral" })],
+      } as unknown as DomphyElement,
+    ],
     style: {
       textTransform: "uppercase",
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
@@ -243,13 +293,22 @@ function changeRow(change: Sidebar11Change): DomphyElement<"li"> {
           sidebarIcon(ICON_FILE),
           {
             span: change.file,
-            style: { flex: "1", textAlign: "left", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" },
+            style: {
+              flex: "1",
+              textAlign: "left",
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              textOverflow: "ellipsis",
+            },
           } as unknown as DomphyElement,
           {
             span: change.state,
             dataSlot: "badge",
             ariaLabel: `status ${change.state}`,
-            style: { flexShrink: "0", color: (l: Listener) => themeColor(l, "shift-7", "neutral") },
+            style: {
+              flexShrink: "0",
+              color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
+            },
           } as unknown as DomphyElement,
         ],
         type: "button",
@@ -267,7 +326,10 @@ function changeRow(change: Sidebar11Change): DomphyElement<"li"> {
           textAlign: "left",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
         },
       } as unknown as DomphyElement,
     ],
@@ -347,15 +409,30 @@ function sidebar11(props: Sidebar11Props = {}): DomphyElement<"div"> {
                     display: "flex",
                     flexDirection: "column",
                     gap: themeSpacing(0.5),
-                    marginBlockEnd: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+                    marginBlockEnd: (l: Listener) =>
+                      themeSpacing(themeDensity(l) * 2),
                   },
                 } as unknown as DomphyElement,
               ]
             : []),
           groupLabel("Files"),
           {
-            ul: buildTreeList("", tree, activeFilePath, initialActivePath, onFolderToggle, selectFile),
-            style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
+            ul: buildTreeList(
+              "",
+              tree,
+              activeFilePath,
+              initialActivePath,
+              onFolderToggle,
+              selectFile,
+            ),
+            style: {
+              listStyle: "none",
+              margin: "0",
+              padding: "0",
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(0.5),
+            },
           } as unknown as DomphyElement,
         ],
         style: {
@@ -387,10 +464,11 @@ function sidebar11(props: Sidebar11Props = {}): DomphyElement<"div"> {
       display: "flex",
       flexDirection: "column",
       flexShrink: "0",
-      width: (l: Listener) => (collapsed.get(l) ? "0px" : themeSpacing(64)),
+      width: (l: Listener) => (collapsed.get(l) ? "0" : themeSpacing(64)),
       overflow: "hidden",
       transition: "width 180ms ease-out",
-      borderInlineEnd: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderInlineEnd: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
     },
@@ -418,7 +496,8 @@ function sidebar11(props: Sidebar11Props = {}): DomphyElement<"div"> {
       height: themeSpacing(14),
       flexShrink: "0",
       paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
-      borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderBottom: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },

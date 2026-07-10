@@ -43,7 +43,9 @@ describe("sidebar09", () => {
 
   it("renders one folder button per folder and the default active folder's messages", () => {
     const { host } = render(sidebar09() as DomphyElement);
-    const folderButtons = host.querySelectorAll("aside:first-of-type ul button[aria-label]");
+    const folderButtons = host.querySelectorAll(
+      "aside:first-of-type ul button[aria-label]",
+    );
     expect(folderButtons.length).toBe(5);
     expect(host.textContent).toContain("William Smith");
     expect(host.textContent).toContain("Meeting Tomorrow");
@@ -51,7 +53,9 @@ describe("sidebar09", () => {
 
   it("shows the active folder's title in the message-list header", () => {
     const { host } = render(sidebar09() as DomphyElement);
-    const listHeaderTitle = host.querySelectorAll("aside")[1].querySelector("strong");
+    const listHeaderTitle = host
+      .querySelectorAll("aside")[1]
+      .querySelector("strong");
     expect(listHeaderTitle?.textContent).toBe("Inbox");
   });
 
@@ -64,11 +68,15 @@ describe("sidebar09", () => {
     draftsButton.click();
     await new Promise((resolve) => setTimeout(resolve, 50));
     // The message-list header title tracks the active folder (upstream parity).
-    expect(host.querySelectorAll("aside")[1].querySelector("strong")?.textContent).toBe("Drafts");
+    expect(
+      host.querySelectorAll("aside")[1].querySelector("strong")?.textContent,
+    ).toBe("Drafts");
     // Upstream has no per-folder mailboxes: every folder click reshuffles the
     // SAME shared mail pool and slices a random 5-10 of it. Assert the
     // invariant rather than a specific message, since the exact subset is random.
-    const messageRows = host.querySelectorAll("aside:nth-of-type(2) ul[role=listbox] > li[role=presentation]");
+    const messageRows = host.querySelectorAll(
+      "aside:nth-of-type(2) ul[role=listbox] > li[role=presentation]",
+    );
     expect(messageRows.length).toBeGreaterThanOrEqual(5);
     expect(messageRows.length).toBeLessThanOrEqual(10);
     for (const row of Array.from(messageRows)) {
@@ -78,12 +86,18 @@ describe("sidebar09", () => {
 
   it("toggling the Unreads switch does not filter the list (decorative, matching upstream)", async () => {
     const { host } = render(sidebar09() as DomphyElement);
-    const unreadSwitch = host.querySelector('input[type=checkbox][role=switch]') as HTMLInputElement;
+    const unreadSwitch = host.querySelector(
+      "input[type=checkbox][role=switch]",
+    ) as HTMLInputElement;
     expect(unreadSwitch).toBeTruthy();
-    const messageTextBefore = host.querySelector("aside:nth-of-type(2) ul[role=listbox]")?.textContent;
+    const messageTextBefore = host.querySelector(
+      "aside:nth-of-type(2) ul[role=listbox]",
+    )?.textContent;
     unreadSwitch.click();
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(host.querySelector("aside:nth-of-type(2) ul[role=listbox]")?.textContent).toBe(messageTextBefore);
+    expect(
+      host.querySelector("aside:nth-of-type(2) ul[role=listbox]")?.textContent,
+    ).toBe(messageTextBefore);
   });
 
   it("clicking the header toggle does not throw", () => {

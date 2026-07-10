@@ -7,8 +7,16 @@
 
 import type { DomphyElement, Listener, State } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { avatar, buttonGhost, inputSearch, inputSwitch, popover, small, strong } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import {
+  avatar,
+  buttonGhost,
+  inputSearch,
+  inputSwitch,
+  popover,
+  small,
+  strong,
+} from "@domphy/ui";
 import {
   ICON_DRAFTS,
   ICON_INBOX,
@@ -18,10 +26,11 @@ import {
   ICON_SPARKLE,
   ICON_TRASH,
   interactiveRowStyle,
+  type SidebarBreadcrumbItem,
   sidebarIcon,
   sidebarMainContent,
   sidebarStickyHeader,
-  type SidebarBreadcrumbItem,
+  srOnlyLabel,
 } from "./sidebar09-12-shared.js";
 
 type Sidebar09Folder = { id: string; label: string; icon: string };
@@ -79,7 +88,8 @@ const DEFAULT_MESSAGES: Sidebar09Message[] = [
     sender: "Alice Smith",
     timestamp: "Yesterday",
     subject: "Re: Project Update",
-    preview: "Thanks for the update. The progress looks great so far.\nLet's schedule a call to discuss the next steps.",
+    preview:
+      "Thanks for the update. The progress looks great so far.\nLet's schedule a call to discuss the next steps.",
   },
   {
     id: "m3",
@@ -147,7 +157,10 @@ const DEFAULT_MESSAGES: Sidebar09Message[] = [
   },
 ];
 
-const DEFAULT_USER: Sidebar09User = { name: "Shad Cn", email: "shadcn@example.com" };
+const DEFAULT_USER: Sidebar09User = {
+  name: "Shad Cn",
+  email: "shadcn@example.com",
+};
 
 /** Upstream's folder click: reshuffle the shared pool and take a random 5–10. */
 function shuffledSlice(pool: Sidebar09Message[]): Sidebar09Message[] {
@@ -169,16 +182,30 @@ function railLogo(): DomphyElement<"div"> {
             div: [
               {
                 strong: "Acme Inc",
-                style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+                style: {
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                },
                 $: [strong({ color: "neutral" })],
               } as unknown as DomphyElement,
               {
                 small: "Enterprise",
-                style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+                style: {
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                },
                 $: [small({ color: "neutral" })],
               } as unknown as DomphyElement,
             ],
-            style: { display: "flex", flexDirection: "column", minWidth: "0", overflow: "hidden", textAlign: "left" },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              minWidth: "0",
+              overflow: "hidden",
+              textAlign: "left",
+            },
           } as unknown as DomphyElement,
         ],
         style: {
@@ -197,7 +224,8 @@ function railLogo(): DomphyElement<"div"> {
       justifyContent: "center",
       height: themeSpacing(14),
       flexShrink: "0",
-      borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderBottom: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
   } as unknown as DomphyElement<"div">;
@@ -214,7 +242,8 @@ function folderRailButton(
         button: [sidebarIcon(folder.icon)],
         type: "button",
         ariaLabel: folder.label,
-        ariaCurrent: (l: Listener) => (activeFolderId.get(l) === folder.id ? "true" : undefined),
+        ariaCurrent: (l: Listener) =>
+          activeFolderId.get(l) === folder.id ? "true" : undefined,
         onClick: () => onSelect(folder.id),
         style: {
           display: "flex",
@@ -227,9 +256,13 @@ function folderRailButton(
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
           "&[aria-current=true]": {
-            backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary"),
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-3", "primary"),
             color: (l: Listener) => themeColor(l, "shift-12", "primary"),
           },
         },
@@ -242,7 +275,13 @@ function folderRailButton(
 /** One icon + label row inside the account dropdown (upstream DropdownMenuItem). */
 function accountMenuItem(icon: string, label: string): DomphyElement {
   return {
-    button: [sidebarIcon(icon), { span: label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement],
+    button: [
+      sidebarIcon(icon),
+      {
+        span: label,
+        style: { flex: "1", textAlign: "left" },
+      } as unknown as DomphyElement,
+    ],
     type: "button",
     role: "menuitem",
     style: interactiveRowStyle(true),
@@ -267,21 +306,38 @@ function accountDropdown(user: Sidebar09User): DomphyElement<"div"> {
 
   const header: DomphyElement = {
     div: [
-      { span: user.name.slice(0, 1).toUpperCase(), $: [avatar({ color: "primary" })] } as unknown as DomphyElement,
+      {
+        span: user.name.slice(0, 1).toUpperCase(),
+        $: [avatar({ color: "primary" })],
+      } as unknown as DomphyElement,
       {
         div: [
           {
             strong: user.name,
-            style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+            style: {
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            },
             $: [strong({ color: "neutral" })],
           } as unknown as DomphyElement,
           {
             small: user.email,
-            style: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+            style: {
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            },
             $: [small({ color: "neutral" })],
           } as unknown as DomphyElement,
         ],
-        style: { display: "flex", flexDirection: "column", minWidth: "0", overflow: "hidden", textAlign: "left" },
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          minWidth: "0",
+          overflow: "hidden",
+          textAlign: "left",
+        },
       } as unknown as DomphyElement,
     ],
     style: {
@@ -290,7 +346,8 @@ function accountDropdown(user: Sidebar09User): DomphyElement<"div"> {
       gap: themeSpacing(2),
       paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
       paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
-      borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderBottom: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
     },
   } as unknown as DomphyElement;
 
@@ -322,8 +379,10 @@ function accountDropdown(user: Sidebar09User): DomphyElement<"div"> {
       flexDirection: "column",
       minWidth: themeSpacing(56),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-      border: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
-      boxShadow: (l: Listener) => `0 ${themeSpacing(2)} ${themeSpacing(8)} ${themeColor(l, "shift-4", "neutral")}`,
+      border: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      boxShadow: (l: Listener) =>
+        `0 ${themeSpacing(2)} ${themeSpacing(8)} ${themeColor(l, "shift-4", "neutral")}`,
       overflow: "hidden",
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
@@ -337,12 +396,23 @@ function railFooter(user: Sidebar09User): DomphyElement<"div"> {
     div: [
       {
         button: [
-          { span: user.name.slice(0, 1).toUpperCase(), $: [avatar({ color: "primary" })] } as unknown as DomphyElement,
+          {
+            span: user.name.slice(0, 1).toUpperCase(),
+            $: [avatar({ color: "primary" })],
+          } as unknown as DomphyElement,
         ],
         type: "button",
         ariaLabel: "Account menu",
-        style: { display: "flex", border: "none", background: "none", cursor: "pointer", padding: "0" },
-        $: [popover({ placement: "right-end", content: accountDropdown(user) })],
+        style: {
+          display: "flex",
+          border: "none",
+          background: "none",
+          cursor: "pointer",
+          padding: "0",
+        },
+        $: [
+          popover({ placement: "right-end", content: accountDropdown(user) }),
+        ],
       } as unknown as DomphyElement,
     ],
     style: {
@@ -351,30 +421,50 @@ function railFooter(user: Sidebar09User): DomphyElement<"div"> {
       justifyContent: "center",
       paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 3),
       flexShrink: "0",
-      borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderTop: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
   } as unknown as DomphyElement<"div">;
 }
 
-function messageListHeader(title: (listener: Listener) => string, onCloseMobile: () => void): DomphyElement<"div"> {
+function messageListHeader(
+  title: (listener: Listener) => string,
+  onCloseMobile: () => void,
+): DomphyElement<"div"> {
   return {
     div: [
       {
         div: [
           // Upstream's second-sidebar header shows the active folder's title
           // (it re-renders on folder switch), not a static workspace name.
-          { strong: (l: Listener) => title(l), $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
+          {
+            strong: (l: Listener) => title(l),
+            $: [strong({ color: "neutral" })],
+          } as unknown as DomphyElement,
           {
             div: [
               {
                 label: [
-                  { small: "Unreads", $: [small({ color: "neutral" })] } as unknown as DomphyElement,
+                  {
+                    small: "Unreads",
+                    $: [small({ color: "neutral" })],
+                  } as unknown as DomphyElement,
                   // Decorative switch (upstream <Switch className="shadow-none" />
                   // has no handler/state and does not filter the list).
-                  { input: null, type: "checkbox", $: [inputSwitch()] } as unknown as DomphyElement,
+                  {
+                    input: null,
+                    id: "sidebar09-unreads-toggle",
+                    type: "checkbox",
+                    $: [inputSwitch()],
+                  } as unknown as DomphyElement,
                 ],
-                style: { display: "flex", alignItems: "center", gap: themeSpacing(2) },
+                htmlFor: "sidebar09-unreads-toggle",
+                style: {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: themeSpacing(2),
+                },
               } as unknown as DomphyElement,
               {
                 button: "×",
@@ -388,7 +478,12 @@ function messageListHeader(title: (listener: Listener) => string, onCloseMobile:
                 $: [buttonGhost({ color: "neutral" })],
               } as unknown as DomphyElement,
             ],
-            style: { display: "flex", alignItems: "center", gap: themeSpacing(2), flexShrink: "0" },
+            style: {
+              display: "flex",
+              alignItems: "center",
+              gap: themeSpacing(2),
+              flexShrink: "0",
+            },
           } as unknown as DomphyElement,
         ],
         style: {
@@ -403,8 +498,10 @@ function messageListHeader(title: (listener: Listener) => string, onCloseMobile:
         div: [
           // Decorative search box (upstream <SidebarInput placeholder="Type to
           // search..." /> is uncontrolled and does not filter the list).
+          srOnlyLabel("Search", "sidebar09-message-search"),
           {
             input: null,
+            id: "sidebar09-message-search",
             type: "search",
             placeholder: "Type to search...",
             style: { width: "100%" },
@@ -421,31 +518,50 @@ function messageListHeader(title: (listener: Listener) => string, onCloseMobile:
       display: "flex",
       flexDirection: "column",
       flexShrink: "0",
-      borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderBottom: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
   } as unknown as DomphyElement<"div">;
 }
 
-function messageRow(message: Sidebar09Message, selected: boolean, onSelect: (id: string) => void): DomphyElement<"li"> {
+function messageRow(
+  message: Sidebar09Message,
+  selected: boolean,
+  onSelect: (id: string) => void,
+): DomphyElement<"li"> {
   return {
     li: [
       {
         button: [
           {
             div: [
-              { strong: message.sender, $: [strong({ color: "neutral" })] } as unknown as DomphyElement,
+              {
+                strong: message.sender,
+                $: [strong({ color: "neutral" })],
+              } as unknown as DomphyElement,
               {
                 small: message.timestamp,
                 style: { marginInlineStart: "auto", flexShrink: "0" },
                 $: [small({ color: "neutral" })],
               } as unknown as DomphyElement,
             ],
-            style: { display: "flex", alignItems: "center", gap: themeSpacing(2), width: "100%" },
+            style: {
+              display: "flex",
+              alignItems: "center",
+              gap: themeSpacing(2),
+              width: "100%",
+            },
           } as unknown as DomphyElement,
           {
             strong: message.subject,
-            style: { display: "block", width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+            style: {
+              display: "block",
+              width: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            },
             $: [strong({ color: "neutral" })],
           } as unknown as DomphyElement,
           {
@@ -474,11 +590,18 @@ function messageRow(message: Sidebar09Message, selected: boolean, onSelect: (id:
           cursor: "pointer",
           paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 3),
           paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
-          borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-2", "neutral")}`,
+          borderBottom: (l: Listener) =>
+            `1px solid ${themeColor(l, "shift-2", "neutral")}`,
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
-          "&[aria-selected=true]": { backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary") },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
+          "&[aria-selected=true]": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-3", "primary"),
+          },
         },
       } as unknown as DomphyElement,
     ],
@@ -508,21 +631,38 @@ function buildMessageList(
       if (list.length === 0) {
         return [
           {
-            li: [{ small: "No messages", $: [small({ color: "neutral" })] } as unknown as DomphyElement],
+            li: [
+              {
+                small: "No messages",
+                $: [small({ color: "neutral" })],
+              } as unknown as DomphyElement,
+            ],
             // Same reasoning as `messageRow`'s `<li>` — the parent `<ul>`
             // carries `role="listbox"`, so a native listitem role here would
             // fail axe-core's `listitem` check the same way.
             role: "presentation",
             _key: "empty",
-            style: { padding: (l: Listener) => themeSpacing(themeDensity(l) * 4), listStyle: "none" },
+            style: {
+              padding: (l: Listener) => themeSpacing(themeDensity(l) * 4),
+              listStyle: "none",
+            },
           } as unknown as DomphyElement,
         ];
       }
-      return list.map((message) => messageRow(message, message.id === selected, onSelect));
+      return list.map((message) =>
+        messageRow(message, message.id === selected, onSelect),
+      );
     },
     role: "listbox",
     ariaLabel: "Messages",
-    style: { listStyle: "none", margin: "0", padding: "0", flex: "1", minHeight: "0", overflowY: "auto" },
+    style: {
+      listStyle: "none",
+      margin: "0",
+      padding: "0",
+      flex: "1",
+      minHeight: "0",
+      overflowY: "auto",
+    },
   } as unknown as DomphyElement<"ul">;
 }
 
@@ -543,7 +683,9 @@ function sidebar09(props: Sidebar09Props = {}): DomphyElement<"div"> {
   } = props;
 
   const railCollapsed = toState(false);
-  const activeFolderId = toState(props.activeFolderId ?? folders[0]?.id ?? "inbox");
+  const activeFolderId = toState(
+    props.activeFolderId ?? folders[0]?.id ?? "inbox",
+  );
   const activeMessageId = toState<string | null>(props.activeMessageId ?? null);
   // Upstream seeds the list with the full pool, then reshuffles it on each
   // folder click — folders are triggers over one shared mailbox, not scopes.
@@ -565,7 +707,9 @@ function sidebar09(props: Sidebar09Props = {}): DomphyElement<"div"> {
     aside: [
       railLogo(),
       {
-        ul: folders.map((folder) => folderRailButton(folder, activeFolderId, selectFolder)),
+        ul: folders.map((folder) =>
+          folderRailButton(folder, activeFolderId, selectFolder),
+        ),
         style: {
           listStyle: "none",
           margin: "0",
@@ -589,10 +733,11 @@ function sidebar09(props: Sidebar09Props = {}): DomphyElement<"div"> {
       display: "flex",
       flexDirection: "column",
       flexShrink: "0",
-      width: (l: Listener) => (railCollapsed.get(l) ? "0px" : themeSpacing(14)),
+      width: (l: Listener) => (railCollapsed.get(l) ? "0" : themeSpacing(14)),
       overflow: "hidden",
       transition: "width 180ms ease-out",
-      borderInlineEnd: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderInlineEnd: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
   } as unknown as DomphyElement<"aside">;
@@ -600,7 +745,9 @@ function sidebar09(props: Sidebar09Props = {}): DomphyElement<"div"> {
   const listPanel: DomphyElement<"aside"> = {
     aside: [
       messageListHeader(
-        (l: Listener) => folders.find((folder) => folder.id === activeFolderId.get(l))?.label ?? "",
+        (l: Listener) =>
+          folders.find((folder) => folder.id === activeFolderId.get(l))
+            ?.label ?? "",
         () => mobileListOpen.set(false),
       ),
       buildMessageList(displayedMessages, activeMessageId, selectMessage),
@@ -613,24 +760,30 @@ function sidebar09(props: Sidebar09Props = {}): DomphyElement<"div"> {
       width: themeSpacing(84),
       minHeight: "0",
       overflow: "hidden",
-      borderInlineEnd: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderInlineEnd: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       "@media (max-width: 768px)": {
         display: (l: Listener) => (mobileListOpen.get(l) ? "flex" : "none"),
         position: "fixed",
         insetBlock: "0",
-        insetInlineStart: (l: Listener) => (railCollapsed.get(l) ? "0" : themeSpacing(14)),
+        insetInlineStart: (l: Listener) =>
+          railCollapsed.get(l) ? "0" : themeSpacing(14),
         zIndex: "16",
         width: themeSpacing(84),
-        boxShadow: (l: Listener) => `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-4", "neutral")}`,
+        boxShadow: (l: Listener) =>
+          `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-4", "neutral")}`,
       },
     },
   } as unknown as DomphyElement<"aside">;
 
   const mainElement: DomphyElement<"main"> = {
     main: [
-      sidebarStickyHeader({ onToggle: () => railCollapsed.set(!railCollapsed.get()), breadcrumbItems }),
+      sidebarStickyHeader({
+        onToggle: () => railCollapsed.set(!railCollapsed.get()),
+        breadcrumbItems,
+      }),
       sidebarMainContent(children),
     ],
     style: {
@@ -660,4 +813,9 @@ function sidebar09(props: Sidebar09Props = {}): DomphyElement<"div"> {
 }
 
 export { sidebar09 };
-export type { Sidebar09Folder, Sidebar09Message, Sidebar09Props, Sidebar09User };
+export type {
+  Sidebar09Folder,
+  Sidebar09Message,
+  Sidebar09Props,
+  Sidebar09User,
+};

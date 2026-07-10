@@ -13,12 +13,12 @@
 import type { DomphyElement } from "@domphy/core";
 import { motion } from "@domphy/ui";
 import {
-  type PieDatum,
-  DEFAULT_PIE_DATA,
-  PIE_OUTER_RADIUS,
   createPieTooltipState,
+  DEFAULT_PIE_DATA,
   defaultValueFormatter,
   layoutPieSlices,
+  PIE_OUTER_RADIUS,
+  type PieDatum,
   pieCard,
   pieCardDescription,
   pieCardFooter,
@@ -47,7 +47,9 @@ export interface ChartPieLabelCustomProps {
  * its mid-angle — the default Recharts pie-label anchor, no leader line — in
  * the theme foreground color. Call with no arguments for a fully working demo.
  */
-function chartPieLabelCustom(props: ChartPieLabelCustomProps = {}): DomphyElement<"div"> {
+function chartPieLabelCustom(
+  props: ChartPieLabelCustomProps = {},
+): DomphyElement<"div"> {
   const {
     data = DEFAULT_PIE_DATA,
     title = "Pie Chart - Custom Label",

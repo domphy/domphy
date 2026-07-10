@@ -67,9 +67,10 @@ function table(
         backgroundColor: (listener) => themeColor(listener, "inherit"),
       },
 
+      // No !important needed: ".scope tbody tr:hover" (two classes + two
+      // elements) already out-specifies any row's own auto-scope class rule.
       "& tbody tr:hover": {
-        backgroundColor: (listener) =>
-          `${themeColor(listener, "shift-2")}!important`,
+        backgroundColor: (listener) => themeColor(listener, "shift-2"),
       },
     },
   };

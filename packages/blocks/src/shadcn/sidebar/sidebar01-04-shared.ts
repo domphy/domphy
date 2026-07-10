@@ -39,6 +39,7 @@ import {
   toolbar,
   toolbarSpacer,
 } from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 
 // ---------------------------------------------------------------------------
 // Data shapes
@@ -95,6 +96,23 @@ export interface SidebarBreadcrumbItem {
   label: string;
   current?: boolean;
 }
+
+/**
+ * Visually-hidden but screen-reader-visible style (the standard "sr-only"
+ * clip pattern) — used to pair a real `<label for>` with an input that
+ * upstream renders with no visible label text of its own.
+ */
+const SR_ONLY_STYLE = {
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  padding: "0",
+  margin: "-1px",
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  border: "0",
+} as const;
 
 // ---------------------------------------------------------------------------
 // Layout constants (all resolved through themeSpacing — never literal units)
@@ -234,7 +252,7 @@ export function collapsibleLabel(
       whiteSpace: "nowrap",
       opacity: (listener: Listener) => (collapsed.get(listener) ? 0 : 1),
       maxWidth: (listener: Listener) =>
-        collapsed.get(listener) ? "0em" : themeSpacing(60),
+        collapsed.get(listener) ? "0" : themeSpacing(60),
       transition: "opacity 150ms linear, max-width 150ms linear",
     },
   };
@@ -251,18 +269,22 @@ export function navGroupLabel(
     style: {
       // Upstream SidebarGroupLabel is `text-xs font-medium text-sidebar-foreground/70`
       // with NO uppercase.
-      fontWeight: 500,
+      fontWeight: fixed(500),
       // shift-6 ("muted section heading," matching the theme's own "muted
       // text" convention) measured a real WCAG contrast failure here —
       // bumped to shift-9 (~70% foreground).
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 3),
       overflow: "hidden",
       whiteSpace: "nowrap",
       opacity: (listener: Listener) => (collapsed.get(listener) ? 0 : 1),
-      maxHeight: (listener: Listener) => (collapsed.get(listener) ? "0em" : themeSpacing(6)),
-      paddingBlock: (listener: Listener) => (collapsed.get(listener) ? "0em" : themeSpacing(1)),
-      transition: "opacity 150ms linear, max-height 150ms linear, padding 150ms linear",
+      maxHeight: (listener: Listener) =>
+        collapsed.get(listener) ? "0" : themeSpacing(6),
+      paddingBlock: (listener: Listener) =>
+        collapsed.get(listener) ? "0" : themeSpacing(1),
+      transition:
+        "opacity 150ms linear, max-height 150ms linear, padding 150ms linear",
     },
   };
 }
@@ -306,7 +328,8 @@ export function verticalDivider(): DomphyElement<"div"> {
       // — a ~16px hairline vertically centered, not full header height.
       alignSelf: "center",
       height: themeSpacing(4),
-      borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
+      borderInlineStart: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3")}`,
     },
     // Decorative separator bar — no text content of its own.
     _doctorDisable: "missing-color",
@@ -318,8 +341,15 @@ export function verticalDivider(): DomphyElement<"div"> {
 function hideChevronWhenCollapsed(collapsed: State<boolean>) {
   return {
     "& > summary::after": {
-      display: (listener: Listener) => (collapsed.get(listener) ? "none" : "inline-block"),
+      display: (listener: Listener) =>
+        collapsed.get(listener) ? "none" : "inline-block",
     },
+    // details()'s own default for this selector is a literal "0px" (stylelint
+    // length-zero-no-unit). Override just `maxHeight` with a unitless 0 — this
+    // deep-merges with details()'s other properties for the same selector
+    // (opacity/overflow/padding/transition), so the collapsed-body behavior is
+    // pixel-identical, only the emitted unit changes.
+    "& > :not(summary)": { maxHeight: 0 },
   };
 }
 
@@ -372,7 +402,11 @@ function navItemWithChildrenRow(
               navIcon(item.iconName ?? "folder"),
               {
                 ...itemLabel,
-                style: { ...itemLabel.style, color: (listener: Listener) => themeColor(listener, "shift-11", "neutral") },
+                style: {
+                  ...itemLabel.style,
+                  color: (listener: Listener) =>
+                    themeColor(listener, "shift-11", "neutral"),
+                },
               } as DomphyElement,
             ],
           },
@@ -392,7 +426,8 @@ function navItemWithChildrenRow(
             style: {
               marginInlineStart: themeSpacing(5),
               paddingInlineStart: themeSpacing(2),
-              borderInlineStart: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
+              borderInlineStart: (listener: Listener) =>
+                `1px solid ${themeColor(listener, "shift-3")}`,
               color: (listener: Listener) => themeColor(listener, "shift-9"),
             },
           },
@@ -436,14 +471,20 @@ function navGroupSection(
             summary: [
               {
                 ...groupLabel,
-                style: { ...groupLabel.style, color: (listener: Listener) => themeColor(listener, "shift-11", "neutral") },
+                style: {
+                  ...groupLabel.style,
+                  color: (listener: Listener) =>
+                    themeColor(listener, "shift-11", "neutral"),
+                },
               } as DomphyElement,
             ],
           },
           {
             ul: itemRows,
             $: [list()],
-            style: { color: (listener: Listener) => themeColor(listener, "shift-9") },
+            style: {
+              color: (listener: Listener) => themeColor(listener, "shift-9"),
+            },
           },
         ],
         open: group.defaultOpen === false ? undefined : true,
@@ -465,7 +506,9 @@ export function navGroupList(
 ): DomphyElement<"ul"> {
   if (collapsibleSections) {
     return {
-      ul: navGroups.map((group) => navGroupSection(group, collapsed, supportsChildren, showIcons)),
+      ul: navGroups.map((group) =>
+        navGroupSection(group, collapsed, supportsChildren, showIcons),
+      ),
       $: [list()],
       style: { gap: themeSpacing(1) },
     };
@@ -482,7 +525,9 @@ export function navGroupList(
               : navItemRow(item, collapsed, showIcons),
           ),
           $: [list()],
-          style: { color: (listener: Listener) => themeColor(listener, "shift-9") },
+          style: {
+            color: (listener: Listener) => themeColor(listener, "shift-9"),
+          },
         },
       ],
       _key: group.label,
@@ -516,10 +561,12 @@ export function sidebarHeaderSwitcher(
             span: [navIcon("chevronsUpDown")],
             style: {
               marginInlineStart: "auto",
-              display: (listener: Listener) => (collapsed.get(listener) ? "none" : "inline-flex"),
+              display: (listener: Listener) =>
+                collapsed.get(listener) ? "none" : "inline-flex",
             },
           },
         ],
+        type: "button",
         ariaLabel: `${header.workspaceName} — switch workspace`,
         style: { width: "100%" },
         $: [
@@ -532,8 +579,10 @@ export function sidebarHeaderSwitcher(
       },
     ],
     style: {
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
     },
   };
 }
@@ -564,7 +613,7 @@ function headerTwoLine(
         span: title,
         style: {
           // Upstream span is `font-medium`.
-          fontWeight: 500,
+          fontWeight: fixed(500),
           fontSize: (listener: Listener) => themeSize(listener, "inherit"),
           color: (listener: Listener) => themeColor(listener, "shift-10"),
         },
@@ -576,10 +625,11 @@ function headerTwoLine(
       flexDirection: "column",
       // Upstream: `gap-0.5 leading-none`.
       gap: themeSpacing(0.5),
-      lineHeight: 1,
+      lineHeight: fixed(1),
       overflow: "hidden",
       opacity: (listener: Listener) => (collapsed.get(listener) ? 0 : 1),
-      maxWidth: (listener: Listener) => (collapsed.get(listener) ? "0em" : themeSpacing(44)),
+      maxWidth: (listener: Listener) =>
+        collapsed.get(listener) ? "0" : themeSpacing(44),
       transition: "opacity 150ms linear, max-width 150ms linear",
     },
   };
@@ -611,6 +661,7 @@ export function sidebarHeaderVersionSwitcher(
           },
         },
       ],
+      type: "button",
       _key: version,
       role: "menuitem",
       onClick: () => selected.set(version),
@@ -620,12 +671,17 @@ export function sidebarHeaderVersionSwitcher(
         alignItems: "center",
         gap: themeSpacing(2),
         width: "100%",
-        paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
-        paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 1.5),
+        paddingInline: (listener: Listener) =>
+          themeSpacing(themeDensity(listener) * 3),
+        paddingBlock: (listener: Listener) =>
+          themeSpacing(themeDensity(listener) * 1.5),
         border: "none",
         background: "none",
         color: (listener: Listener) => themeColor(listener, "shift-9"),
-        "&:hover": { backgroundColor: (listener: Listener) => themeColor(listener, "shift-2") },
+        "&:hover": {
+          backgroundColor: (listener: Listener) =>
+            themeColor(listener, "shift-2"),
+        },
       },
     })) as DomphyElement[],
     role: "menu",
@@ -634,7 +690,8 @@ export function sidebarHeaderVersionSwitcher(
       display: "flex",
       flexDirection: "column",
       minWidth: themeSpacing(48),
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
     },
   };
@@ -653,10 +710,12 @@ export function sidebarHeaderVersionSwitcher(
             span: [navIcon("chevronsUpDown")],
             style: {
               marginInlineStart: "auto",
-              display: (listener: Listener) => (collapsed.get(listener) ? "none" : "inline-flex"),
+              display: (listener: Listener) =>
+                collapsed.get(listener) ? "none" : "inline-flex",
             },
           },
         ],
+        type: "button",
         ariaLabel: "Select a version",
         style: { width: "100%" },
         $: [
@@ -666,8 +725,10 @@ export function sidebarHeaderVersionSwitcher(
       },
     ],
     style: {
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
     },
   };
 }
@@ -691,8 +752,10 @@ export function sidebarHeaderStatic(
       },
     ],
     style: {
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
     },
   };
 }
@@ -701,8 +764,17 @@ export function sidebarHeaderStatic(
  * Docs-style search field shown in the sidebar header (sidebar01/02 mirror
  * upstream's `SearchForm`: a labeled search input with a leading icon). Hidden
  * in icon-rail mode, where a full-width text field has nowhere to render.
+ *
+ * `instanceId` distinguishes the id/label pair between the docked aside and
+ * the mobile drawer's duplicate copy of this same field — both can be present
+ * in the DOM at once (the drawer is off-canvas, not removed), so a shared id
+ * would collide.
  */
-export function sidebarSearchForm(collapsed: State<boolean>): DomphyElement<"form"> {
+export function sidebarSearchForm(
+  collapsed: State<boolean>,
+  instanceId: string,
+): DomphyElement<"form"> {
+  const inputId = `sidebar-search-${instanceId}`;
   return {
     form: [
       {
@@ -721,8 +793,18 @@ export function sidebarSearchForm(collapsed: State<boolean>): DomphyElement<"for
               display: "inline-flex",
             },
           },
+          // Upstream renders no visible label for this field (icon + placeholder
+          // only) — a visually-hidden label still gives htmlhint's
+          // input-requires-label a real `<label for>` to match, without adding
+          // on-screen chrome upstream doesn't have.
+          {
+            label: "Search",
+            htmlFor: inputId,
+            style: SR_ONLY_STYLE,
+          } as DomphyElement<"label">,
           {
             input: null,
+            id: inputId,
             type: "search",
             ariaLabel: "Search",
             placeholder: "Search the docs...",
@@ -734,9 +816,12 @@ export function sidebarSearchForm(collapsed: State<boolean>): DomphyElement<"for
       },
     ],
     style: {
-      display: (listener: Listener) => (collapsed.get(listener) ? "none" : "block"),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
-      paddingBlockEnd: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+      display: (listener: Listener) =>
+        collapsed.get(listener) ? "none" : "block",
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
+      paddingBlockEnd: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
     },
   };
 }
@@ -768,8 +853,10 @@ export function sidebarFooterUser(
               {
                 span: user.name,
                 style: {
-                  fontSize: (listener: Listener) => themeSize(listener, "inherit"),
-                  color: (listener: Listener) => themeColor(listener, "shift-10"),
+                  fontSize: (listener: Listener) =>
+                    themeSize(listener, "inherit"),
+                  color: (listener: Listener) =>
+                    themeColor(listener, "shift-10"),
                 },
               },
               { small: user.email, $: [small()] },
@@ -778,8 +865,10 @@ export function sidebarFooterUser(
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
-              opacity: (listener: Listener) => (collapsed.get(listener) ? 0 : 1),
-              maxWidth: (listener: Listener) => (collapsed.get(listener) ? "0em" : themeSpacing(44)),
+              opacity: (listener: Listener) =>
+                collapsed.get(listener) ? 0 : 1,
+              maxWidth: (listener: Listener) =>
+                collapsed.get(listener) ? "0" : themeSpacing(44),
               transition: "opacity 150ms linear, max-width 150ms linear",
             },
           },
@@ -787,10 +876,12 @@ export function sidebarFooterUser(
             span: [navIcon("chevronsUpDown")],
             style: {
               marginInlineStart: "auto",
-              display: (listener: Listener) => (collapsed.get(listener) ? "none" : "inline-flex"),
+              display: (listener: Listener) =>
+                collapsed.get(listener) ? "none" : "inline-flex",
             },
           },
         ],
+        type: "button",
         ariaLabel: `${user.name} account menu`,
         style: { width: "100%" },
         $: [
@@ -803,9 +894,12 @@ export function sidebarFooterUser(
       },
     ],
     style: {
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
-      borderTop: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
+      borderTop: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3")}`,
       color: (listener: Listener) => themeColor(listener, "shift-9"),
     },
   };
@@ -817,7 +911,10 @@ export function sidebarFooterUser(
 
 /** Toggle fn shared by the header toggle button and the edge rail: flips the
  * mobile drawer under the mobile breakpoint, otherwise the icon-rail collapse. */
-export function makeSidebarToggle(collapsed: State<boolean>, mobileOpen: State<boolean>) {
+export function makeSidebarToggle(
+  collapsed: State<boolean>,
+  mobileOpen: State<boolean>,
+) {
   return () => {
     const isMobile =
       typeof window !== "undefined" &&
@@ -867,7 +964,8 @@ export function sidebarRail(
         transition: "background-color 150ms linear",
       },
       "&:hover::after": {
-        backgroundColor: (listener: Listener) => themeColor(listener, "shift-5"),
+        backgroundColor: (listener: Listener) =>
+          themeColor(listener, "shift-5"),
       },
       // No edge affordance under the mobile breakpoint (drawer takes over).
       "@media (max-width: 47.9375em)": { display: "none" },
@@ -883,18 +981,24 @@ export function sidebarToggleButton(
 
   return {
     button: [navIcon("panel")],
+    type: "button",
     ariaLabel: "Toggle sidebar",
     onClick: toggle,
     $: [buttonGhost()],
     _onMount: (node) => {
       const handleKeydown = (event: KeyboardEvent) => {
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b") {
+        if (
+          (event.ctrlKey || event.metaKey) &&
+          event.key.toLowerCase() === "b"
+        ) {
           event.preventDefault();
           toggle();
         }
       };
       document.addEventListener("keydown", handleKeydown);
-      node.addHook("Remove", () => document.removeEventListener("keydown", handleKeydown));
+      node.addHook("Remove", () =>
+        document.removeEventListener("keydown", handleKeydown),
+      );
     },
   };
 }
@@ -923,7 +1027,8 @@ export function contentHeader(
           // rule (now moot for this grandchild — see the note above) rather
           // than just reusing its too-weak shift-8/shift-9 non-current step.
           style: {
-            color: (l: Listener) => themeColor(l, crumb.current ? "shift-10" : "shift-9", "neutral"),
+            color: (l: Listener) =>
+              themeColor(l, crumb.current ? "shift-10" : "shift-9", "neutral"),
           },
         } as DomphyElement,
       ],
@@ -936,7 +1041,10 @@ export function contentHeader(
       // later crumb still visible to anchor the trail.
       style:
         index === 0 && breadcrumbItems.length > 1
-          ? { display: "inline-flex", "@media (max-width: 47.9375em)": { display: "none" } }
+          ? {
+              display: "inline-flex",
+              "@media (max-width: 47.9375em)": { display: "none" },
+            }
           : undefined,
     })),
     $: [breadcrumb()],
@@ -959,8 +1067,10 @@ export function contentHeader(
       zIndex: 10,
       flexShrink: 0,
       height: themeSpacing(14),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 4),
-      borderBottom: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 4),
+      borderBottom: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3")}`,
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
     },
@@ -989,7 +1099,11 @@ export function contentTileGrid(): DomphyElement<"div"> {
           gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 4),
         },
       },
-      { div: null, $: [skeleton()], style: { height: themeSpacing(160), flex: "1 1 auto" } },
+      {
+        div: null,
+        $: [skeleton()],
+        style: { height: themeSpacing(160), flex: "1 1 auto" },
+      },
     ],
     style: {
       display: "flex",
@@ -1046,9 +1160,13 @@ export interface SidebarShellOptions {
 }
 
 /** Header element for the shell, chosen by `headerVariant`. */
-function shellHeader(options: SidebarShellOptions, collapsed: State<boolean>): DomphyElement {
+function shellHeader(
+  options: SidebarShellOptions,
+  collapsed: State<boolean>,
+): DomphyElement {
   const variant = options.headerVariant ?? "switcher";
-  if (variant === "version") return sidebarHeaderVersionSwitcher(options.header, collapsed);
+  if (variant === "version")
+    return sidebarHeaderVersionSwitcher(options.header, collapsed);
   if (variant === "static")
     return sidebarHeaderStatic(
       options.header.workspaceName,
@@ -1058,8 +1176,17 @@ function shellHeader(options: SidebarShellOptions, collapsed: State<boolean>): D
   return sidebarHeaderSwitcher(options.header, collapsed);
 }
 
-export function sidebarAside(options: SidebarShellOptions): DomphyElement<"aside"> {
-  const { navGroups, user, collapsed, collapsibleSections, supportsChildren, floating } = options;
+export function sidebarAside(
+  options: SidebarShellOptions,
+): DomphyElement<"aside"> {
+  const {
+    navGroups,
+    user,
+    collapsed,
+    collapsibleSections,
+    supportsChildren,
+    floating,
+  } = options;
   const showSearch = options.showSearch ?? false;
   const showFooter = options.showFooter ?? true;
   const showIcons = options.showIcons ?? true;
@@ -1067,17 +1194,26 @@ export function sidebarAside(options: SidebarShellOptions): DomphyElement<"aside
   const expandedWidth = floating ? SIDEBAR_WIDTH_FLOATING : SIDEBAR_WIDTH;
   // The edge facing the main content: for a left-docked sidebar that's its own
   // inline-end edge; mirrored to the right, it's the inline-start edge.
-  const contentFacingBorder: ((listener: Listener) => string) | undefined = floating
-    ? undefined
-    : (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`;
+  const contentFacingBorder: ((listener: Listener) => string) | undefined =
+    floating
+      ? undefined
+      : (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`;
   const contentFacingMargin: string | undefined = floating ? "0" : undefined;
 
   return {
     aside: [
       shellHeader(options, collapsed),
-      ...(showSearch ? [sidebarSearchForm(collapsed)] : []),
+      ...(showSearch ? [sidebarSearchForm(collapsed, "desktop")] : []),
       {
-        nav: [navGroupList(navGroups, collapsed, collapsibleSections, supportsChildren, showIcons)],
+        nav: [
+          navGroupList(
+            navGroups,
+            collapsed,
+            collapsibleSections,
+            supportsChildren,
+            showIcons,
+          ),
+        ],
         // The mobile drawer below renders a second, structurally-identical
         // `<nav>` (shown off-canvas rather than removed from the DOM) —
         // without distinct names both collide as duplicate "navigation"
@@ -1086,12 +1222,15 @@ export function sidebarAside(options: SidebarShellOptions): DomphyElement<"aside
         $: [scrollArea()],
         style: {
           flex: "1 1 auto",
-          paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+          paddingBlock: (listener: Listener) =>
+            themeSpacing(themeDensity(listener) * 2),
         },
       },
       ...(showFooter ? [sidebarFooterUser(user, collapsed)] : []),
       // Floating variant renders no edge rail upstream; docked shells do.
-      ...(options.mobileOpen && !floating ? [sidebarRail(collapsed, options.mobileOpen, side)] : []),
+      ...(options.mobileOpen && !floating
+        ? [sidebarRail(collapsed, options.mobileOpen, side)]
+        : []),
     ],
     dataTone: "shift-1",
     style: {
@@ -1099,14 +1238,17 @@ export function sidebarAside(options: SidebarShellOptions): DomphyElement<"aside
       flexDirection: "column",
       flexShrink: 0,
       position: "relative",
-      width: (listener: Listener) => (collapsed.get(listener) ? SIDEBAR_WIDTH_ICON : expandedWidth),
+      width: (listener: Listener) =>
+        collapsed.get(listener) ? SIDEBAR_WIDTH_ICON : expandedWidth,
       transition: "width 200ms linear",
       overflow: "hidden",
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       borderInlineEnd: side === "right" ? undefined : contentFacingBorder,
       borderInlineStart: side === "right" ? contentFacingBorder : undefined,
-      outline: floating ? (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}` : undefined,
+      outline: floating
+        ? (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`
+        : undefined,
       outlineOffset: floating ? "-1px" : undefined,
       borderRadius: floating ? themeSpacing(3) : undefined,
       boxShadow: floating
@@ -1127,7 +1269,8 @@ export function sidebarAside(options: SidebarShellOptions): DomphyElement<"aside
 export function sidebarMobileDrawer(
   options: SidebarShellOptions & { mobileOpen: State<boolean> },
 ): DomphyElement<"dialog"> {
-  const { navGroups, user, collapsibleSections, supportsChildren, mobileOpen } = options;
+  const { navGroups, user, collapsibleSections, supportsChildren, mobileOpen } =
+    options;
   const showSearch = options.showSearch ?? false;
   const showFooter = options.showFooter ?? true;
   const showIcons = options.showIcons ?? true;
@@ -1139,20 +1282,35 @@ export function sidebarMobileDrawer(
   return {
     dialog: [
       shellHeader(options, alwaysExpanded),
-      ...(showSearch ? [sidebarSearchForm(alwaysExpanded)] : []),
+      ...(showSearch ? [sidebarSearchForm(alwaysExpanded, "mobile")] : []),
       {
-        nav: [navGroupList(navGroups, alwaysExpanded, collapsibleSections, supportsChildren, showIcons)],
+        nav: [
+          navGroupList(
+            navGroups,
+            alwaysExpanded,
+            collapsibleSections,
+            supportsChildren,
+            showIcons,
+          ),
+        ],
         ariaLabel: "Sidebar navigation (mobile)",
         $: [scrollArea()],
         style: {
           flex: "1 1 auto",
-          paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+          paddingBlock: (listener: Listener) =>
+            themeSpacing(themeDensity(listener) * 2),
         },
       },
       ...(showFooter ? [sidebarFooterUser(user, alwaysExpanded)] : []),
     ],
     dataTone: "shift-1",
-    $: [drawer({ open: mobileOpen, placement: side === "right" ? "end" : "start", size: SIDEBAR_WIDTH })],
+    $: [
+      drawer({
+        open: mobileOpen,
+        placement: side === "right" ? "end" : "start",
+        size: SIDEBAR_WIDTH,
+      }),
+    ],
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1297,7 +1455,9 @@ export const DEFAULT_NAV_GROUPS_WITH_CHILDREN: SidebarNavGroup[] = [
 ];
 
 /** Assembles the full root tree shared by every sidebar-NN variant. */
-export function buildSidebarBlock(options: SidebarVariantOptions): DomphyElement<"div"> {
+export function buildSidebarBlock(
+  options: SidebarVariantOptions,
+): DomphyElement<"div"> {
   const header = options.header ?? DEFAULT_HEADER;
   const navGroups = options.navGroups ?? options.defaultNavGroups;
   const user = options.user ?? DEFAULT_USER;
@@ -1334,7 +1494,10 @@ export function buildSidebarBlock(options: SidebarVariantOptions): DomphyElement
   };
 
   const asideElement = sidebarAside(shellOptions);
-  const mobileDrawerElement = sidebarMobileDrawer({ ...shellOptions, mobileOpen });
+  const mobileDrawerElement = sidebarMobileDrawer({
+    ...shellOptions,
+    mobileOpen,
+  });
   const mainElement: DomphyElement<"main"> = {
     main: [
       contentHeader(breadcrumbItems, collapsed, mobileOpen, stickyHeader, side),
@@ -1357,8 +1520,13 @@ export function buildSidebarBlock(options: SidebarVariantOptions): DomphyElement
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       // Inset-card treatment: rounded/shadowed card whose margin shrinks in
       // step with the sidebar's own width-collapse transition (sidebar08-style).
-      margin: insetMain ? (listener: Listener) => (collapsed.get(listener) ? themeSpacing(2) : themeSpacing(3)) : undefined,
-      borderRadius: insetMain ? (listener: Listener) => themeSpacing(themeDensity(listener) * 3) : undefined,
+      margin: insetMain
+        ? (listener: Listener) =>
+            collapsed.get(listener) ? themeSpacing(2) : themeSpacing(3)
+        : undefined,
+      borderRadius: insetMain
+        ? (listener: Listener) => themeSpacing(themeDensity(listener) * 3)
+        : undefined,
       boxShadow: insetMain
         ? (listener: Listener) =>
             `0 ${themeSpacing(1)} ${themeSpacing(6)} ${themeColor(listener, "shift-4")}`
@@ -1415,7 +1583,8 @@ function boldCollapsibleLabel(
       overflow: "hidden",
       whiteSpace: "nowrap",
       opacity: (listener: Listener) => (collapsed.get(listener) ? 0 : 1),
-      maxWidth: (listener: Listener) => (collapsed.get(listener) ? "0em" : themeSpacing(60)),
+      maxWidth: (listener: Listener) =>
+        collapsed.get(listener) ? "0" : themeSpacing(60),
       transition: "opacity 150ms linear, max-width 150ms linear",
     },
   };
@@ -1464,7 +1633,10 @@ function docsNavItemRow(
   return { li: rowChildren, _key: item.label };
 }
 
-function docsNavList(navItems: SidebarNavItem[], collapsed: State<boolean>): DomphyElement<"ul"> {
+function docsNavList(
+  navItems: SidebarNavItem[],
+  collapsed: State<boolean>,
+): DomphyElement<"ul"> {
   return {
     ul: navItems.map((item) => docsNavItemRow(item, collapsed)),
     $: [list()],
@@ -1485,7 +1657,9 @@ export interface DocsSidebarOptions {
 
 /** Assembles the docs-style sidebar shared by sidebar03 (flush) and sidebar04
  * (floating). */
-export function buildDocsSidebarBlock(options: DocsSidebarOptions): DomphyElement<"div"> {
+export function buildDocsSidebarBlock(
+  options: DocsSidebarOptions,
+): DomphyElement<"div"> {
   const title = options.title ?? "Documentation";
   const subtitle = options.subtitle ?? "v1.0.0";
   const navItems = options.navItems;
@@ -1496,9 +1670,10 @@ export function buildDocsSidebarBlock(options: DocsSidebarOptions): DomphyElemen
   const collapsed = toState(options.defaultCollapsed ?? false);
   const mobileOpen = toState(false);
 
-  const contentFacingBorder: ((listener: Listener) => string) | undefined = floating
-    ? undefined
-    : (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`;
+  const contentFacingBorder: ((listener: Listener) => string) | undefined =
+    floating
+      ? undefined
+      : (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`;
 
   const asideElement: DomphyElement<"aside"> = {
     aside: [
@@ -1509,7 +1684,8 @@ export function buildDocsSidebarBlock(options: DocsSidebarOptions): DomphyElemen
         $: [scrollArea()],
         style: {
           flex: "1 1 auto",
-          paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+          paddingBlock: (listener: Listener) =>
+            themeSpacing(themeDensity(listener) * 2),
         },
       },
       // sidebar03 (flush) renders <SidebarRail/>; sidebar04 (floating) does not.
@@ -1529,7 +1705,9 @@ export function buildDocsSidebarBlock(options: DocsSidebarOptions): DomphyElemen
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       borderInlineEnd: side === "right" ? undefined : contentFacingBorder,
       borderInlineStart: side === "right" ? contentFacingBorder : undefined,
-      outline: floating ? (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}` : undefined,
+      outline: floating
+        ? (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`
+        : undefined,
       outlineOffset: floating ? "-1px" : undefined,
       borderRadius: floating ? themeSpacing(3) : undefined,
       boxShadow: floating
@@ -1550,12 +1728,19 @@ export function buildDocsSidebarBlock(options: DocsSidebarOptions): DomphyElemen
         $: [scrollArea()],
         style: {
           flex: "1 1 auto",
-          paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+          paddingBlock: (listener: Listener) =>
+            themeSpacing(themeDensity(listener) * 2),
         },
       },
     ],
     dataTone: "shift-1",
-    $: [drawer({ open: mobileOpen, placement: side === "right" ? "end" : "start", size: SIDEBAR_WIDTH })],
+    $: [
+      drawer({
+        open: mobileOpen,
+        placement: side === "right" ? "end" : "start",
+        size: SIDEBAR_WIDTH,
+      }),
+    ],
     style: {
       display: "flex",
       flexDirection: "column",
@@ -1566,7 +1751,10 @@ export function buildDocsSidebarBlock(options: DocsSidebarOptions): DomphyElemen
   };
 
   const mainElement: DomphyElement<"main"> = {
-    main: [contentHeader(breadcrumbItems, collapsed, mobileOpen, false, side), contentTileGrid()],
+    main: [
+      contentHeader(breadcrumbItems, collapsed, mobileOpen, false, side),
+      contentTileGrid(),
+    ],
     $: [scrollArea()],
     dataTone: "shift-0",
     style: {

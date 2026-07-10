@@ -34,7 +34,11 @@ describe("textHighlighter", () => {
     vi.useFakeTimers();
     expect(() =>
       render(
-        textHighlighter({ type: "underline", color: "primary", children: "Underlined" }) as DomphyElement,
+        textHighlighter({
+          type: "underline",
+          color: "primary",
+          children: "Underlined",
+        }) as DomphyElement,
       ),
     ).not.toThrow();
     // The draw-in animation depends on SVGGeometryElement.getTotalLength(), which

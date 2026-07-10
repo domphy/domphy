@@ -20,11 +20,15 @@ afterEach(() => {
 describe("chartRadialStacked", () => {
   it("renders a working demo tree with zero args: card, two stacked segments, and a centered total", () => {
     const { host } = render(chartRadialStacked() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Radial Chart - Stacked");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Radial Chart - Stacked",
+    );
     expect(host.querySelectorAll("svg path")).toHaveLength(2);
     // 682 + 419 = 1101, formatted with a thousands separator.
     expect(host.querySelector("h2")?.textContent).toBe("1,101");
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts custom segments and sums the total", () => {

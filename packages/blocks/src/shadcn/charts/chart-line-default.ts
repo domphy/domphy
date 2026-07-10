@@ -9,17 +9,17 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
+import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
-import type { ChartOption, TooltipParams } from "@domphy/chart";
 import {
-  DEFAULT_LINE_GRID,
-  MONTHLY_VISITOR_DATA,
-  type MonthlyPoint,
   chartCard,
   chartPlot,
   computeYDomain,
+  DEFAULT_LINE_GRID,
   hiddenLabelYAxis,
+  MONTHLY_VISITOR_DATA,
+  type MonthlyPoint,
   monthCategoryXAxis,
   tooltipRow,
   trendFooter,
@@ -39,13 +39,16 @@ function escapeHtml(text: string): string {
  * and the value formatted with thousands separators via `toLocaleString()`.
  * Defined locally rather than via the shared line-swatch formatter because
  * that one draws a line-style bar and stringifies the value raw. */
-function chartLineDefaultTooltipFormatter(params: TooltipParams | TooltipParams[]): string {
+function chartLineDefaultTooltipFormatter(
+  params: TooltipParams | TooltipParams[],
+): string {
   const point = Array.isArray(params) ? params[0] : params;
   if (!point) return "";
   const swatch = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${point.color};"></span>`;
   const label = escapeHtml(String(point.seriesName ?? point.name ?? ""));
   const value = point.value;
-  const valueText = typeof value === "number" ? value.toLocaleString() : String(value ?? "");
+  const valueText =
+    typeof value === "number" ? value.toLocaleString() : String(value ?? "");
   return tooltipRow(swatch, label, escapeHtml(valueText));
 }
 
@@ -66,7 +69,9 @@ export interface ChartLineDefaultProps {
  * single-series line chart with a trend callout footer. Call with no
  * arguments for a fully working demo.
  */
-function chartLineDefault(props: ChartLineDefaultProps = {}): DomphyElement<"div"> {
+function chartLineDefault(
+  props: ChartLineDefaultProps = {},
+): DomphyElement<"div"> {
   const {
     title = "Line Chart",
     description = "January - June 2026",

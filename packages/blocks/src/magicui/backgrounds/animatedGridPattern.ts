@@ -28,10 +28,15 @@
 // the column/row count and snaps every square onto the new grid whenever the
 // container resizes.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export interface AnimatedGridPatternProps {
   /** Grid cell width, in px. Defaults to `40`. */
@@ -65,7 +70,10 @@ let animatedGridPatternInstanceCounter = 0;
 const FALLBACK_CONTAINER_WIDTH = 1024;
 const FALLBACK_CONTAINER_HEIGHT = 600;
 
-function pickRandomCell(columns: number, rows: number): { column: number; row: number } {
+function pickRandomCell(
+  columns: number,
+  rows: number,
+): { column: number; row: number } {
   return {
     column: Math.floor(Math.random() * Math.max(1, columns)),
     row: Math.floor(Math.random() * Math.max(1, rows)),
@@ -77,7 +85,9 @@ function pickRandomCell(columns: number, rows: number): { column: number; row: n
  * jump to a new random cell each cycle. Call with no arguments for a working
  * demo — a dark panel with 50 staggered pulsing cells behind a heading.
  */
-function animatedGridPattern(props: AnimatedGridPatternProps = {}): DomphyElement<"div"> {
+function animatedGridPattern(
+  props: AnimatedGridPatternProps = {},
+): DomphyElement<"div"> {
   const width = props.width ?? 40;
   const height = props.height ?? 40;
   const x = props.x ?? -1;
@@ -100,7 +110,10 @@ function animatedGridPattern(props: AnimatedGridPatternProps = {}): DomphyElemen
 
   const totalCycleSeconds = duration * 2 + repeatDelay;
   const fadeInEndPercent = ((duration / totalCycleSeconds) * 100).toFixed(4);
-  const holdEndPercent = (((duration + repeatDelay) / totalCycleSeconds) * 100).toFixed(4);
+  const holdEndPercent = (
+    ((duration + repeatDelay) / totalCycleSeconds) *
+    100
+  ).toFixed(4);
   const keyframes = {
     "0%": { opacity: 0 },
     [`${fadeInEndPercent}%`]: { opacity: maxOpacity },
@@ -120,7 +133,8 @@ function animatedGridPattern(props: AnimatedGridPatternProps = {}): DomphyElemen
         // Decorative line path, no text of its own.
         _doctorDisable: "missing-color",
         style: {
-          stroke: (listener: Listener) => themeColor(listener, "shift-4", color),
+          stroke: (listener: Listener) =>
+            themeColor(listener, "shift-4", color),
           strokeDasharray,
         } as StyleObject,
       } as DomphyElement,
@@ -133,42 +147,45 @@ function animatedGridPattern(props: AnimatedGridPatternProps = {}): DomphyElemen
     y,
   } as DomphyElement;
 
-  const squareElements: DomphyElement[] = Array.from({ length: numSquares }, (_unused, index) => {
-    const cell = pickRandomCell(currentColumns, currentRows);
-    const staggerDelaySeconds = (index * totalCycleSeconds) / numSquares;
+  const squareElements: DomphyElement[] = Array.from(
+    { length: numSquares },
+    (_unused, index) => {
+      const cell = pickRandomCell(currentColumns, currentRows);
+      const staggerDelaySeconds = (index * totalCycleSeconds) / numSquares;
 
-    return {
-      rect: null,
-      _key: `square-${instanceId}-${index}`,
-      dataAnimatedSquare: "true",
-      x: cell.column * width + x + 1,
-      y: cell.row * height + y + 1,
-      width: width - 1,
-      height: height - 1,
-      ariaHidden: "true",
-      // Decorative fill-only rect, no text of its own.
-      _doctorDisable: "missing-color",
-      style: {
-        fill: (listener: Listener) => themeColor(listener, "shift-9", color),
-        animation: `${animationName} ${totalCycleSeconds}s ease-in-out ${staggerDelaySeconds}s infinite`,
-        [`@keyframes ${animationName}`]: keyframes,
-      } as StyleObject,
-      _onMount: (node: ElementNode) => {
-        const element = node.domElement as SVGRectElement | null;
-        if (!element || typeof window === "undefined") return;
+      return {
+        rect: null,
+        _key: `square-${instanceId}-${index}`,
+        dataAnimatedSquare: "true",
+        x: cell.column * width + x + 1,
+        y: cell.row * height + y + 1,
+        width: width - 1,
+        height: height - 1,
+        ariaHidden: "true",
+        // Decorative fill-only rect, no text of its own.
+        _doctorDisable: "missing-color",
+        style: {
+          fill: (listener: Listener) => themeColor(listener, "shift-9", color),
+          animation: `${animationName} ${totalCycleSeconds}s ease-in-out ${staggerDelaySeconds}s infinite`,
+          [`@keyframes ${animationName}`]: keyframes,
+        } as StyleObject,
+        _onMount: (node: ElementNode) => {
+          const element = node.domElement as SVGRectElement | null;
+          if (!element || typeof window === "undefined") return;
 
-        const handleIteration = () => {
-          const nextCell = pickRandomCell(currentColumns, currentRows);
-          element.setAttribute("x", String(nextCell.column * width + x + 1));
-          element.setAttribute("y", String(nextCell.row * height + y + 1));
-        };
-        element.addEventListener("animationiteration", handleIteration);
-        node.addHook("Remove", () => {
-          element.removeEventListener("animationiteration", handleIteration);
-        });
-      },
-    } as DomphyElement;
-  });
+          const handleIteration = () => {
+            const nextCell = pickRandomCell(currentColumns, currentRows);
+            element.setAttribute("x", String(nextCell.column * width + x + 1));
+            element.setAttribute("y", String(nextCell.row * height + y + 1));
+          };
+          element.addEventListener("animationiteration", handleIteration);
+          node.addHook("Remove", () => {
+            element.removeEventListener("animationiteration", handleIteration);
+          });
+        },
+      } as DomphyElement;
+    },
+  );
 
   const gridSvg: DomphyElement = {
     svg: [
@@ -207,7 +224,9 @@ function animatedGridPattern(props: AnimatedGridPatternProps = {}): DomphyElemen
             currentRows = Math.max(1, Math.ceil(rect.height / height));
             // Snap every animated square onto the freshly measured grid so
             // none sit outside the now-known visible area.
-            const squareNodes = svgElement.querySelectorAll("[data-animated-square]");
+            const squareNodes = svgElement.querySelectorAll(
+              "[data-animated-square]",
+            );
             for (const squareNode of Array.from(squareNodes)) {
               const cell = pickRandomCell(currentColumns, currentRows);
               squareNode.setAttribute("x", String(cell.column * width + x + 1));

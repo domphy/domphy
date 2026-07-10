@@ -41,11 +41,11 @@
 // no upstream shadcn/ui source was viewed or copied. Sample numbers below are
 // original placeholder data, not sourced from upstream.
 
-import type { DomphyElement, PartialElement } from "@domphy/core";
-import { themeColorToken, themeSpacing, type ThemeColor } from "@domphy/theme";
-import { card, heading, paragraph } from "@domphy/ui";
-import { chart, createOrdinalScale } from "@domphy/chart";
 import type { ChartOption, TooltipParams } from "@domphy/chart";
+import { chart, createOrdinalScale } from "@domphy/chart";
+import type { DomphyElement, PartialElement } from "@domphy/core";
+import { type ThemeColor, themeColorToken, themeSpacing } from "@domphy/theme";
+import { card, heading, paragraph } from "@domphy/ui";
 
 // ─── Sample dataset ───────────────────────────────────────────────────────────
 
@@ -86,8 +86,18 @@ export interface ActivitySeriesEntry {
  * engine-controlled tooltip swatch color stay visually consistent (same
  * precedent documented in chart-area-shared.ts). */
 export const ACTIVITY_SERIES_CONFIG: ActivitySeriesEntry[] = [
-  { key: "running", name: "Running", color: "primary", iconMarkup: FOOTPRINT_ICON_MARKUP },
-  { key: "swimming", name: "Swimming", color: "secondary", iconMarkup: WAVE_ICON_MARKUP },
+  {
+    key: "running",
+    name: "Running",
+    color: "primary",
+    iconMarkup: FOOTPRINT_ICON_MARKUP,
+  },
+  {
+    key: "swimming",
+    name: "Swimming",
+    color: "secondary",
+    iconMarkup: WAVE_ICON_MARKUP,
+  },
 ];
 
 // ─── Date formatters ──────────────────────────────────────────────────────────
@@ -127,7 +137,12 @@ export interface FixedGrid {
 
 /** Default plot margins (px) — enough bottom room for the weekday x-axis
  * ticks, no left/right room needed since the y-axis is hidden. */
-export const ACTIVITY_CHART_GRID: FixedGrid = { left: 12, right: 12, top: 16, bottom: 28 };
+export const ACTIVITY_CHART_GRID: FixedGrid = {
+  left: 12,
+  right: 12,
+  top: 16,
+  bottom: 28,
+};
 
 // ─── Chart option builder ─────────────────────────────────────────────────────
 
@@ -144,7 +159,14 @@ export interface ActivityBarOptionProps {
  * family shares — only the tooltip's `formatter`/`axisPointer` differ per
  * recipe, per the family's own spec. */
 export function activityBarOption(props: ActivityBarOptionProps): ChartOption {
-  const { data, categories, series, showCursor, formatter, grid = ACTIVITY_CHART_GRID } = props;
+  const {
+    data,
+    categories,
+    series,
+    showCursor,
+    formatter,
+    grid = ACTIVITY_CHART_GRID,
+  } = props;
   return {
     tooltip: {
       trigger: "axis",
@@ -154,7 +176,13 @@ export function activityBarOption(props: ActivityBarOptionProps): ChartOption {
       axisPointer: { type: showCursor ? "shadow" : "none" },
       formatter,
     },
-    grid: { left: grid.left, right: grid.right, top: grid.top, bottom: grid.bottom, containLabel: false },
+    grid: {
+      left: grid.left,
+      right: grid.right,
+      top: grid.top,
+      bottom: grid.bottom,
+      containLabel: false,
+    },
     xAxis: {
       type: "category",
       data: categories,
@@ -272,7 +300,9 @@ export function plainValueRenderer(context: TooltipValueContext): string {
  * abbreviation — shared by the "formatter" and "advanced" recipes, which the
  * family's own research note calls out as two independently composable
  * tooltip capabilities layered on the SAME value-cell renderer. */
-export function monoUnitValueRenderer(unit: string): (context: TooltipValueContext) => string {
+export function monoUnitValueRenderer(
+  unit: string,
+): (context: TooltipValueContext) => string {
   return (context) =>
     `<span style="font-variant-numeric:tabular-nums;font-family:ui-monospace,monospace;">${escapeHtml(String(context.value))}</span>` +
     // Not `opacity:0.6` — that measured a real WCAG contrast failure (axe-
@@ -291,15 +321,24 @@ function renderTooltipRow(params: {
   isTotal?: boolean;
   mutedLabel?: boolean;
 }): string {
-  const { indicator, colorHex, entry, label, valueHtml, isTotal = false, mutedLabel = true } = params;
+  const {
+    indicator,
+    colorHex,
+    entry,
+    label,
+    valueHtml,
+    isTotal = false,
+    mutedLabel = true,
+  } = params;
   // Upstream: a series name is `text-muted-foreground` at normal weight; the
   // total row's label is `text-foreground text-xs font-medium` (weight 500).
   // Recipes whose upstream renders the label bare (advanced) pass
   // `mutedLabel: false` so it stays full-foreground like the total row.
   const rowStyle = isTotal ? "font-size:0.75rem;font-weight:500;" : "";
-  const labelHtml = isTotal || !mutedLabel
-    ? escapeHtml(label)
-    : `<span style="color:${TOOLTIP_MUTED_COLOR};">${escapeHtml(label)}</span>`;
+  const labelHtml =
+    isTotal || !mutedLabel
+      ? escapeHtml(label)
+      : `<span style="color:${TOOLTIP_MUTED_COLOR};">${escapeHtml(label)}</span>`;
   return (
     `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;${rowStyle}">` +
     `<span style="display:flex;align-items:center;">${renderIndicator(indicator, colorHex, entry)}${labelHtml}</span>` +
@@ -313,12 +352,14 @@ function renderHeaderLabel(
   dataIndex: number,
   dataset: ActivityDayPoint[],
 ): string {
-  if (options.labelMode === "static") return escapeHtml(options.staticLabel ?? "");
+  if (options.labelMode === "static")
+    return escapeHtml(options.staticLabel ?? "");
   const isoDate = dataset[dataIndex]?.date ?? "";
   if (options.labelMode === "custom" && options.labelFormatter) {
     return escapeHtml(options.labelFormatter(isoDate));
   }
-  if (options.labelMode === "long-date") return escapeHtml(formatLongDate(isoDate));
+  if (options.labelMode === "long-date")
+    return escapeHtml(formatLongDate(isoDate));
   return escapeHtml(formatMediumDate(isoDate));
 }
 
@@ -362,7 +403,12 @@ export function activityTooltipFormatter(
         const entry = resolveSeriesEntry(seriesConfig, point.seriesName);
         const value = Number(point.value ?? 0);
         const valueHtml = wrapValue(
-          renderValue({ value, seriesKey: entry?.key ?? "running", entry, rowIndex }),
+          renderValue({
+            value,
+            seriesKey: entry?.key ?? "running",
+            entry,
+            rowIndex,
+          }),
         );
         return renderTooltipRow({
           indicator,
@@ -377,9 +423,17 @@ export function activityTooltipFormatter(
 
     let totalHtml = "";
     if (showTotal) {
-      const sum = params.reduce((total, point) => total + Number(point.value ?? 0), 0);
+      const sum = params.reduce(
+        (total, point) => total + Number(point.value ?? 0),
+        0,
+      );
       const totalValueHtml = wrapValue(
-        renderValue({ value: sum, seriesKey: "total", entry: undefined, rowIndex: params.length }),
+        renderValue({
+          value: sum,
+          seriesKey: "total",
+          entry: undefined,
+          rowIndex: params.length,
+        }),
       );
       totalHtml =
         `<div style="margin:6px 0;border-top:1px solid ${TOOLTIP_DIVIDER_COLOR};"></div>` +
@@ -401,7 +455,9 @@ export function activityTooltipFormatter(
 
     // Upstream wraps the series rows in `grid gap-1.5` (6px vertical rhythm).
     const body = `<div>${header}<div style="display:grid;gap:6px;">${rows}</div>${totalHtml}</div>`;
-    return panelMinWidthPx ? `<div style="min-width:${panelMinWidthPx}px;">${body}</div>` : body;
+    return panelMinWidthPx
+      ? `<div style="min-width:${panelMinWidthPx}px;">${body}</div>`
+      : body;
   };
 }
 
@@ -416,12 +472,17 @@ export interface ActivityTooltipCardProps {
   width?: string;
 }
 
-export function activityTooltipCard(props: ActivityTooltipCardProps): DomphyElement<"div"> {
+export function activityTooltipCard(
+  props: ActivityTooltipCardProps,
+): DomphyElement<"div"> {
   const { title, description, plot, width = ACTIVITY_CARD_WIDTH } = props;
   return {
     div: [
       { h3: title, $: [heading()] } as DomphyElement<"h3">,
-      { p: description, $: [paragraph({ color: "neutral" })] } as DomphyElement<"p">,
+      {
+        p: description,
+        $: [paragraph({ color: "neutral" })],
+      } as DomphyElement<"p">,
       { div: [plot] } as DomphyElement<"div">,
     ],
     $: [card({ color: "neutral" })],
@@ -453,7 +514,9 @@ export interface PinTooltipOpenProps {
  * that hasn't attached its mousemove listener yet — this retries on
  * `requestAnimationFrame` for a bounded number of frames, then stops.
  */
-export function pinTooltipOpenPatch(props: PinTooltipOpenProps): PartialElement {
+export function pinTooltipOpenPatch(
+  props: PinTooltipOpenProps,
+): PartialElement {
   const { index, categories, grid, maxAttempts = 45 } = props;
   return {
     _onMount(node) {
@@ -466,7 +529,10 @@ export function pinTooltipOpenPatch(props: PinTooltipOpenProps): PartialElement 
       function dispatch(): void {
         const rect = container.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
-        const xScale = createOrdinalScale(categories, [grid.left, rect.width - grid.right]);
+        const xScale = createOrdinalScale(categories, [
+          grid.left,
+          rect.width - grid.right,
+        ]);
         const targetX = xScale.map(index);
         const targetY = grid.top + (rect.height - grid.top - grid.bottom) / 2;
         container.dispatchEvent(
@@ -503,11 +569,21 @@ export interface ActivityTooltipPlotProps {
 
 /** The positioned box that hosts the `chart()` canvas, optionally pinning
  * its tooltip open on a given column on mount for documentation previews. */
-export function activityTooltipPlot(props: ActivityTooltipPlotProps): DomphyElement<"div"> {
-  const { option, categories, grid = ACTIVITY_CHART_GRID, defaultOpenIndex = null, height = "240px" } = props;
+export function activityTooltipPlot(
+  props: ActivityTooltipPlotProps,
+): DomphyElement<"div"> {
+  const {
+    option,
+    categories,
+    grid = ACTIVITY_CHART_GRID,
+    defaultOpenIndex = null,
+    height = "240px",
+  } = props;
   const patches: PartialElement[] = [chart(option)];
   if (defaultOpenIndex !== null && defaultOpenIndex !== undefined) {
-    patches.push(pinTooltipOpenPatch({ index: defaultOpenIndex, categories, grid }));
+    patches.push(
+      pinTooltipOpenPatch({ index: defaultOpenIndex, categories, grid }),
+    );
   }
   return {
     div: null,

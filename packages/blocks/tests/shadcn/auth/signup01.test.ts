@@ -23,8 +23,12 @@ describe("signup01", () => {
     expect(host.querySelector("h2")?.textContent).toBe("Create an account");
     expect(host.querySelectorAll("form input").length).toBe(4);
     expect(host.querySelector('input[name="signup01-name"]')).toBeTruthy();
-    expect(host.querySelector('input[name="signup01-email"][type="email"]')).toBeTruthy();
-    expect(host.querySelector('input[name="signup01-password"][type="password"]')).toBeTruthy();
+    expect(
+      host.querySelector('input[name="signup01-email"][type="email"]'),
+    ).toBeTruthy();
+    expect(
+      host.querySelector('input[name="signup01-password"][type="password"]'),
+    ).toBeTruthy();
   });
 
   it("renders the primary submit button and, by default, the Google button", () => {
@@ -37,7 +41,9 @@ describe("signup01", () => {
   });
 
   it("hides the Google button when showGoogleButton is false", () => {
-    const { host } = render(signup01({ showGoogleButton: false }) as DomphyElement);
+    const { host } = render(
+      signup01({ showGoogleButton: false }) as DomphyElement,
+    );
     expect(host.querySelectorAll("form button").length).toBe(1);
   });
 

@@ -20,7 +20,9 @@ describe("chartRadarGridCustom", () => {
   it("renders exactly one thin custom ring and no radial spokes", () => {
     const { host } = render(chartRadarGridCustom() as DomphyElement);
 
-    expect(host.querySelector("h3")?.textContent).toBe("Radar Chart - Grid Custom");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Radar Chart - Grid Custom",
+    );
     // One custom ring + one data-series outline.
     expect(host.querySelectorAll("svg polygon").length).toBe(2);
     expect(host.querySelectorAll("svg polygon[fill-opacity]").length).toBe(1);

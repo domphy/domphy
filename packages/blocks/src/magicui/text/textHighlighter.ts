@@ -21,7 +21,11 @@
 // integration, not a copy of any UI framework's component source.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { type ElementTone, type ThemeColor, themeColorToken } from "@domphy/theme";
+import {
+  type ElementTone,
+  type ThemeColor,
+  themeColorToken,
+} from "@domphy/theme";
 import { annotate } from "rough-notation";
 
 /** Matches rough-notation's own `RoughAnnotationType` literal set. */
@@ -37,7 +41,10 @@ export type TextHighlighterAnnotationType =
 /** Matches rough-notation's own `BracketType` literal set. */
 export type TextHighlighterBracketSide = "left" | "right" | "top" | "bottom";
 
-export type TextHighlighterPadding = number | [number, number] | [number, number, number, number];
+export type TextHighlighterPadding =
+  | number
+  | [number, number]
+  | [number, number, number, number];
 
 export interface TextHighlighterProps {
   /** Text (or arbitrary content) the annotation wraps. Defaults to a short demo phrase. */
@@ -89,7 +96,9 @@ const DEFAULT_TEXT = "a hand-drawn highlighter annotation";
  * with no arguments for a working demo — a pastel highlight swipe behind a
  * short phrase.
  */
-function textHighlighter(props: TextHighlighterProps = {}): DomphyElement<"span"> {
+function textHighlighter(
+  props: TextHighlighterProps = {},
+): DomphyElement<"span"> {
   const children = props.children ?? DEFAULT_TEXT;
   const type = props.type ?? "highlight";
   const colorRole = props.color ?? "highlight";
@@ -117,7 +126,8 @@ function textHighlighter(props: TextHighlighterProps = {}): DomphyElement<"span"
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
-      if (typeof window === "undefined" || typeof document === "undefined") return;
+      if (typeof window === "undefined" || typeof document === "undefined")
+        return;
       const targetElement = node.domElement as HTMLElement | null;
       if (!targetElement) return;
 

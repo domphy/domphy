@@ -10,16 +10,19 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import { chartTrendFooter, type ChartTrendDirection } from "./chart-area-shared.js";
 import {
-  RADAR_MULTI_SERIES,
-  RADAR_MONTHLY_MULTI_DATA,
+  type ChartTrendDirection,
+  chartTrendFooter,
+} from "./chart-area-shared.js";
+import {
   createRadarTooltip,
-  radarCardShell,
-  renderRadarChart,
+  RADAR_MONTHLY_MULTI_DATA,
+  RADAR_MULTI_SERIES,
   type RadarPoint,
   type RadarSeriesConfig,
   type RadarTooltipIndicator,
+  radarCardShell,
+  renderRadarChart,
 } from "./chart-radar-shared.js";
 
 export interface ChartRadarMultipleProps {
@@ -37,7 +40,9 @@ export interface ChartRadarMultipleProps {
  * shadcn/ui "charts/radar-multiple" recipe — two overlapping radar series
  * for direct comparison. Call with no arguments for a working demo.
  */
-function chartRadarMultiple(props: ChartRadarMultipleProps = {}): DomphyElement<"div"> {
+function chartRadarMultiple(
+  props: ChartRadarMultipleProps = {},
+): DomphyElement<"div"> {
   const {
     data = RADAR_MONTHLY_MULTI_DATA,
     series = RADAR_MULTI_SERIES,
@@ -65,7 +70,11 @@ function chartRadarMultiple(props: ChartRadarMultipleProps = {}): DomphyElement<
         }),
       ],
     },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

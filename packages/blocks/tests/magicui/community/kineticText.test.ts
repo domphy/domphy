@@ -41,18 +41,37 @@ describe("kineticText", () => {
     flushSync();
 
     const container = host.firstElementChild as HTMLElement;
-    const characterSpans = Array.from(container.querySelectorAll(":scope > span")).slice(1) as HTMLElement[];
+    const characterSpans = Array.from(
+      container.querySelectorAll(":scope > span"),
+    ).slice(1) as HTMLElement[];
     for (const span of characterSpans) {
-      span.getBoundingClientRect = () => ({ left: 0, right: 10, top: 0, bottom: 10, width: 10, height: 10, x: 0, y: 0, toJSON() {} }) as DOMRect;
+      span.getBoundingClientRect = () =>
+        ({
+          left: 0,
+          right: 10,
+          top: 0,
+          bottom: 10,
+          width: 10,
+          height: 10,
+          x: 0,
+          y: 0,
+          toJSON() {},
+        }) as DOMRect;
     }
 
-    container.dispatchEvent(new MouseEvent("pointermove", { clientX: 1 } as MouseEventInit));
+    container.dispatchEvent(
+      new MouseEvent("pointermove", { clientX: 1 } as MouseEventInit),
+    );
     flushSync();
 
     container.dispatchEvent(new MouseEvent("pointerleave"));
     flushSync();
 
-    expect(() => container.dispatchEvent(new MouseEvent("pointermove", { clientX: 1 } as MouseEventInit))).not.toThrow();
+    expect(() =>
+      container.dispatchEvent(
+        new MouseEvent("pointermove", { clientX: 1 } as MouseEventInit),
+      ),
+    ).not.toThrow();
   });
 
   it("removes cleanly without throwing", () => {

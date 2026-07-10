@@ -22,7 +22,8 @@ export function demoContentScrimStyle(): StyleObject {
     flexDirection: "column",
     alignItems: "center",
     gap: themeSpacing(2),
-    backgroundColor: (listener: Listener) => `color-mix(in srgb, ${themeColor(listener, "inherit")} 94%, transparent)`,
+    backgroundColor: (listener: Listener) =>
+      `color-mix(in srgb, ${themeColor(listener, "inherit")} 94%, transparent)`,
     backdropFilter: "blur(8px)",
     WebkitBackdropFilter: "blur(8px)",
     borderRadius: themeSpacing(4),

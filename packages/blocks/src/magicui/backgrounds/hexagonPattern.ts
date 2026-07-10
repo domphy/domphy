@@ -15,8 +15,8 @@
 // `patternUnits="userSpaceOnUse"`.
 
 import type { DomphyElement, StyleObject } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export type HexagonPatternDirection = "horizontal" | "vertical";
 
@@ -52,18 +52,27 @@ interface HexPoint {
   y: number;
 }
 
-function hexagonVertices(center: HexPoint, radius: number, direction: HexagonPatternDirection): HexPoint[] {
+function hexagonVertices(
+  center: HexPoint,
+  radius: number,
+  direction: HexagonPatternDirection,
+): HexPoint[] {
   // "horizontal" = flat-top (vertex at angle 0 → left/right points); "vertical" =
   // pointy-top (vertex at angle -90 → a point straight up).
   const angleOffset = direction === "vertical" ? -90 : 0;
   return Array.from({ length: 6 }, (_unused, index) => {
     const angle = ((60 * index + angleOffset) * Math.PI) / 180;
-    return { x: center.x + radius * Math.cos(angle), y: center.y + radius * Math.sin(angle) };
+    return {
+      x: center.x + radius * Math.cos(angle),
+      y: center.y + radius * Math.sin(angle),
+    };
   });
 }
 
 function pointsAttribute(vertices: HexPoint[]): string {
-  return vertices.map((vertex) => `${vertex.x.toFixed(2)},${vertex.y.toFixed(2)}`).join(" ");
+  return vertices
+    .map((vertex) => `${vertex.x.toFixed(2)},${vertex.y.toFixed(2)}`)
+    .join(" ");
 }
 
 // Upstream treats "0"/"none"/"" (and the default "0") as "no dashing" and renders
@@ -171,13 +180,18 @@ function hexagonPattern(props: HexagonPatternProps = {}): DomphyElement<"div"> {
   for (const { x: cx, y: cy } of canonicalCenters) {
     tileCenters.push({ x: cx, y: cy });
     if (cy - radius < 0) tileCenters.push({ x: cx, y: cy + tileHeight });
-    if (cy + radius > tileHeight) tileCenters.push({ x: cx, y: cy - tileHeight });
+    if (cy + radius > tileHeight)
+      tileCenters.push({ x: cx, y: cy - tileHeight });
     if (cx - radius < 0) tileCenters.push({ x: cx + tileWidth, y: cy });
     if (cx + radius > tileWidth) tileCenters.push({ x: cx - tileWidth, y: cy });
-    if (cy - radius < 0 && cx - radius < 0) tileCenters.push({ x: cx + tileWidth, y: cy + tileHeight });
-    if (cy - radius < 0 && cx + radius > tileWidth) tileCenters.push({ x: cx - tileWidth, y: cy + tileHeight });
-    if (cy + radius > tileHeight && cx - radius < 0) tileCenters.push({ x: cx + tileWidth, y: cy - tileHeight });
-    if (cy + radius > tileHeight && cx + radius > tileWidth) tileCenters.push({ x: cx - tileWidth, y: cy - tileHeight });
+    if (cy - radius < 0 && cx - radius < 0)
+      tileCenters.push({ x: cx + tileWidth, y: cy + tileHeight });
+    if (cy - radius < 0 && cx + radius > tileWidth)
+      tileCenters.push({ x: cx - tileWidth, y: cy + tileHeight });
+    if (cy + radius > tileHeight && cx - radius < 0)
+      tileCenters.push({ x: cx + tileWidth, y: cy - tileHeight });
+    if (cy + radius > tileHeight && cx + radius > tileWidth)
+      tileCenters.push({ x: cx - tileWidth, y: cy - tileHeight });
   }
 
   function cellCenter(column: number, row: number): HexPoint {
@@ -185,12 +199,20 @@ function hexagonPattern(props: HexagonPatternProps = {}): DomphyElement<"div"> {
       const isOddColumn = ((column % 2) + 2) % 2 === 1;
       return {
         x: column * columnStep + columnStep / 2 + originX,
-        y: row * rowStep + rowStep / 2 + (isOddColumn ? rowStep / 2 : 0) + originY,
+        y:
+          row * rowStep +
+          rowStep / 2 +
+          (isOddColumn ? rowStep / 2 : 0) +
+          originY,
       };
     }
     const isOddRow = ((row % 2) + 2) % 2 === 1;
     return {
-      x: column * columnStep + columnStep / 2 + (isOddRow ? columnStep / 2 : 0) + originX,
+      x:
+        column * columnStep +
+        columnStep / 2 +
+        (isOddRow ? columnStep / 2 : 0) +
+        originX,
       y: row * rowStep + rowStep / 2 + originY,
     };
   }
@@ -203,7 +225,11 @@ function hexagonPattern(props: HexagonPatternProps = {}): DomphyElement<"div"> {
             _key: `cell-${centerIndex}`,
             points: pointsAttribute(hexagonVertices(center, radius, direction)),
             strokeDasharray,
-            style: { stroke: "currentColor", fill: "none", strokeWidth: 1 } as StyleObject,
+            style: {
+              stroke: "currentColor",
+              fill: "none",
+              strokeWidth: 1,
+            } as StyleObject,
           }) as DomphyElement,
       )
     : uniqueHexEdges(tileCenters, radius, direction).map(
@@ -225,7 +251,9 @@ function hexagonPattern(props: HexagonPatternProps = {}): DomphyElement<"div"> {
       ({
         polygon: null,
         _key: `highlight-${instanceId}-${index}`,
-        points: pointsAttribute(hexagonVertices(cellCenter(column, row), radius - 1, direction)),
+        points: pointsAttribute(
+          hexagonVertices(cellCenter(column, row), radius - 1, direction),
+        ),
         ariaHidden: "true",
         // Decorative highlight cell with no text of its own — exempt from the
         // missing-color contract (mirrors meteors()/dottedMap() in this package).

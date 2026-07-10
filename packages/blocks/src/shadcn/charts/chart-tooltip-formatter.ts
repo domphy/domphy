@@ -17,13 +17,13 @@ import {
   ACTIVITY_ENERGY_UNIT,
   ACTIVITY_SERIES_CONFIG,
   ACTIVITY_TOOLTIP_DATA,
+  type ActivityDayPoint,
+  type ActivitySeriesEntry,
   activityBarOption,
   activityTooltipCard,
   activityTooltipFormatter,
   activityTooltipPlot,
   formatWeekdayShort,
-  type ActivityDayPoint,
-  type ActivitySeriesEntry,
   type TooltipValueContext,
 } from "./chart-tooltip-shared.js";
 
@@ -43,7 +43,9 @@ const TOOLTIP_MUTED_COLOR = themeColorToken(null, "shift-8", "neutral");
 // the tooltip panel's minimum width.
 const TOOLTIP_PANEL_MIN_WIDTH_PX = 130;
 
-function mutedMonoUnitValueRenderer(unit: string): (context: TooltipValueContext) => string {
+function mutedMonoUnitValueRenderer(
+  unit: string,
+): (context: TooltipValueContext) => string {
   const safeUnit = unit
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -75,7 +77,9 @@ export interface ChartTooltipFormatterProps {
  * muted unit suffix per row, enforcing a minimum row width. Call with no
  * arguments for a working demo.
  */
-function chartTooltipFormatter(props: ChartTooltipFormatterProps = {}): DomphyElement<"div"> {
+function chartTooltipFormatter(
+  props: ChartTooltipFormatterProps = {},
+): DomphyElement<"div"> {
   const {
     data = ACTIVITY_TOOLTIP_DATA,
     series = ACTIVITY_SERIES_CONFIG,
@@ -95,7 +99,13 @@ function chartTooltipFormatter(props: ChartTooltipFormatterProps = {}): DomphyEl
     minRowWidthPx,
     panelMinWidthPx: TOOLTIP_PANEL_MIN_WIDTH_PX,
   });
-  const option = activityBarOption({ data, categories, series, showCursor, formatter });
+  const option = activityBarOption({
+    data,
+    categories,
+    series,
+    showCursor,
+    formatter,
+  });
 
   return activityTooltipCard({
     title,

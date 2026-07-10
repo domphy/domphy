@@ -27,7 +27,12 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { themeColor, themeDensity, themeSize, themeSpacing } from "@domphy/theme";
+import {
+  themeColor,
+  themeDensity,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 
 export interface ShinyButtonProps {
   /** Label content. Plain text or a full element (e.g. text + icon). Defaults to `"Shiny Button"`. */
@@ -58,7 +63,9 @@ const SWEEP_PAUSE_MS = 1000;
 
 /** Normalizes the `string | DomphyElement | DomphyElement[]` label into the flat
  * `(string | DomphyElement)[]` shape a `span`'s content field expects. */
-function asContent(value: string | DomphyElement | DomphyElement[]): (string | DomphyElement)[] {
+function asContent(
+  value: string | DomphyElement | DomphyElement[],
+): (string | DomphyElement)[] {
   return Array.isArray(value) ? value : [value];
 }
 
@@ -84,7 +91,9 @@ function shinyButton(props: ShinyButtonProps = {}): DomphyElement<"button"> {
   // so 1% of box = 0.4% of gradient → half-width = shimmerWidth / 5).
   const halfBandGrad = shimmerWidth / 5;
 
-  const hash = hashString(JSON.stringify({ instanceId, shimmerWidth, holdPercent }));
+  const hash = hashString(
+    JSON.stringify({ instanceId, shimmerWidth, holdPercent }),
+  );
   const labelSweepName = `shiny-button-label-${hash}`;
   const ringSweepName = `shiny-button-ring-${hash}`;
   const popName = `shiny-button-pop-${hash}`;
@@ -95,7 +104,10 @@ function shinyButton(props: ShinyButtonProps = {}): DomphyElement<"button"> {
   // for the pause, matching upstream's off-glyph rest between sweeps.
   const labelSweepKeyframes = {
     "0%": { WebkitMaskPosition: "0% 0", maskPosition: "0% 0" },
-    [`${holdPercent}%`]: { WebkitMaskPosition: "100% 0", maskPosition: "100% 0" },
+    [`${holdPercent}%`]: {
+      WebkitMaskPosition: "100% 0",
+      maskPosition: "100% 0",
+    },
     "100%": { WebkitMaskPosition: "100% 0", maskPosition: "100% 0" },
   };
   const ringSweepKeyframes = {
@@ -157,7 +169,8 @@ function shinyButton(props: ShinyButtonProps = {}): DomphyElement<"button"> {
       borderRadius: "inherit",
       padding: "1px",
       boxSizing: "border-box",
-      WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+      WebkitMask:
+        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
       WebkitMaskComposite: "xor",
       mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
       maskComposite: "exclude",
@@ -188,7 +201,8 @@ function shinyButton(props: ShinyButtonProps = {}): DomphyElement<"button"> {
       appearance: "none",
       // Upstream `border` (1px). Function value so the border shorthand isn't
       // read as a literal color by the doctor.
-      border: (listener: Listener) => `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+      border: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
       cursor: disabled ? "not-allowed" : "pointer",
       display: "inline-flex",
       alignItems: "center",
@@ -199,15 +213,19 @@ function shinyButton(props: ShinyButtonProps = {}): DomphyElement<"button"> {
       // Upstream `backdrop-blur-xl`.
       WebkitBackdropFilter: "blur(24px)",
       backdropFilter: "blur(24px)",
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
-      paddingBlock: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
-      paddingInline: (listener: Listener) => themeSpacing(themeDensity(listener) * 4),
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
+      paddingBlock: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 1),
+      paddingInline: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 4),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
       // Upstream light theme has no fill (outlined button); dark theme adds the
       // radial glow below. Keep the base transparent so backdrop-blur shows.
       backgroundColor: "transparent",
       opacity: disabled ? 0.6 : 1,
-      transition: "transform 150ms ease, box-shadow 300ms ease-in-out, opacity 150ms ease",
+      transition:
+        "transform 150ms ease, box-shadow 300ms ease-in-out, opacity 150ms ease",
       // Mount pop (scale 0.8 → 1). Default fill mode (none) so that once it ends
       // the transform reverts to base and `:active`'s scale(0.95) can apply.
       animation: `${popName} 600ms ${POP_EASING}`,

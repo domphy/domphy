@@ -112,7 +112,9 @@ function buildGlyphMarkup(innerShape: string, colorHex: string): string {
 }
 
 function defaultIcons(colorHex: string): IconCloudItem[] {
-  return DEFAULT_GLYPH_INNER_SHAPES.map((shape) => ({ glyphMarkup: buildGlyphMarkup(shape, colorHex) }));
+  return DEFAULT_GLYPH_INNER_SHAPES.map((shape) => ({
+    glyphMarkup: buildGlyphMarkup(shape, colorHex),
+  }));
 }
 
 interface SpherePoint {
@@ -129,12 +131,20 @@ function buildFibonacciSpherePoints(count: number): SpherePoint[] {
     const y = count === 1 ? 0 : 1 - (index / (count - 1)) * 2;
     const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
     const theta = GOLDEN_ANGLE * index;
-    points.push({ x: Math.cos(theta) * radiusAtY, y, z: Math.sin(theta) * radiusAtY });
+    points.push({
+      x: Math.cos(theta) * radiusAtY,
+      y,
+      z: Math.sin(theta) * radiusAtY,
+    });
   }
   return points;
 }
 
-function rotatePoint(point: SpherePoint, yaw: number, pitch: number): SpherePoint {
+function rotatePoint(
+  point: SpherePoint,
+  yaw: number,
+  pitch: number,
+): SpherePoint {
   // Matches upstream's projection exactly: yaw (spin about the vertical axis)
   // is applied first and alone determines depth (z), then pitch only slides the
   // point vertically (y) reusing that pre-pitch depth — a deliberately partial,
@@ -167,7 +177,10 @@ function easeOutCubic(t: number): number {
  * formula (yaw = atan2(x, z), pitch = -atan2(y, r_xz)); under the partial
  * rotation the focused point lands at x=0, y=0 with depth r_xz — upstream does
  * not renormalize it to the front pole, so neither do we. */
-function focusRotationForPoint(point: SpherePoint): { yaw: number; pitch: number } {
+function focusRotationForPoint(point: SpherePoint): {
+  yaw: number;
+  pitch: number;
+} {
   const radiusInXZ = Math.sqrt(point.x * point.x + point.z * point.z);
   return {
     yaw: Math.atan2(point.x, point.z),
@@ -185,12 +198,14 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
   const autoRotateSpeed = props.autoRotateSpeed ?? DEFAULT_AUTO_ROTATE_SPEED;
   const dragSensitivity = props.dragSensitivity ?? DEFAULT_DRAG_SENSITIVITY;
   const [nearSize, farSize] = props.iconScaleRange ?? DEFAULT_ICON_SCALE_RANGE;
-  const [nearOpacity, farOpacity] = props.iconOpacityRange ?? DEFAULT_ICON_OPACITY_RANGE;
+  const [nearOpacity, farOpacity] =
+    props.iconOpacityRange ?? DEFAULT_ICON_OPACITY_RANGE;
 
   return {
     div: [],
     role: "img",
-    ariaLabel: props.ariaLabel ?? "Interactive rotating cloud of icons — drag to spin",
+    ariaLabel:
+      props.ariaLabel ?? "Interactive rotating cloud of icons — drag to spin",
     style: {
       position: "relative",
       width: `${size}px`,
@@ -302,7 +317,8 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
       let resizeObserver: ResizeObserver | null = null;
 
       const now = () =>
-        typeof performance !== "undefined" && typeof performance.now === "function"
+        typeof performance !== "undefined" &&
+        typeof performance.now === "function"
           ? performance.now()
           : Date.now();
 
@@ -340,7 +356,13 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
           const iconSize = lerp(farSize, nearSize, entry.depth);
           const opacity = lerp(farOpacity, nearOpacity, entry.depth);
           context.globalAlpha = opacity;
-          context.drawImage(source, entry.x - iconSize / 2, entry.y - iconSize / 2, iconSize, iconSize);
+          context.drawImage(
+            source,
+            entry.x - iconSize / 2,
+            entry.y - iconSize / 2,
+            iconSize,
+            iconSize,
+          );
         }
         context.globalAlpha = 1;
       };
@@ -348,15 +370,24 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
       // Maps a client-space point onto the canvas's own drawing coordinates
       // (the `width`-px space `draw` uses), tolerating any CSS scaling from the
       // responsive `maxWidth: 100%`.
-      const toCanvasPoint = (clientX: number, clientY: number): { x: number; y: number } => {
+      const toCanvasPoint = (
+        clientX: number,
+        clientY: number,
+      ): { x: number; y: number } => {
         const rect = canvas.getBoundingClientRect();
         const scale = rect.width > 0 ? width / rect.width : 1;
-        return { x: (clientX - rect.left) * scale, y: (clientY - rect.top) * scale };
+        return {
+          x: (clientX - rect.left) * scale,
+          y: (clientY - rect.top) * scale,
+        };
       };
 
       // Front-most icon (largest depth) whose rendered disc contains the point,
       // or null if the click landed on empty space between icons.
-      const iconIndexAtPoint = (canvasX: number, canvasY: number): number | null => {
+      const iconIndexAtPoint = (
+        canvasX: number,
+        canvasY: number,
+      ): number | null => {
         const sphereRadius = width * SPHERE_RADIUS_RATIO;
         const centerX = width / 2;
         const centerY = width / 2;
@@ -383,7 +414,10 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
         const distance = Math.hypot(target.yaw - yaw, target.pitch - pitch);
         const duration = Math.min(
           FOCUS_MAX_DURATION_MS,
-          Math.max(FOCUS_MIN_DURATION_MS, distance * FOCUS_DURATION_PER_RADIAN_MS),
+          Math.max(
+            FOCUS_MIN_DURATION_MS,
+            distance * FOCUS_DURATION_PER_RADIAN_MS,
+          ),
         );
         focusTarget = {
           yaw: target.yaw,
@@ -408,11 +442,18 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
             // idle drift until it completes.
             const progress =
               focusTarget.duration > 0
-                ? Math.min(1, (now() - focusTarget.startTime) / focusTarget.duration)
+                ? Math.min(
+                    1,
+                    (now() - focusTarget.startTime) / focusTarget.duration,
+                  )
                 : 1;
             const eased = easeOutCubic(progress);
-            yaw = focusTarget.startYaw + (focusTarget.yaw - focusTarget.startYaw) * eased;
-            pitch = focusTarget.startPitch + (focusTarget.pitch - focusTarget.startPitch) * eased;
+            yaw =
+              focusTarget.startYaw +
+              (focusTarget.yaw - focusTarget.startYaw) * eased;
+            pitch =
+              focusTarget.startPitch +
+              (focusTarget.pitch - focusTarget.startPitch) * eased;
             if (progress >= 1) focusTarget = null;
           } else if (!prefersReducedMotion) {
             // Idle drift: no separate momentum/coasting phase (matching the
@@ -423,8 +464,12 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
             const offsetX = pointerCanvasX - centerOffset;
             const offsetY = pointerCanvasY - centerOffset;
             const maxOffsetDistance = Math.hypot(centerOffset, centerOffset);
-            const offsetRatio = maxOffsetDistance > 0 ? Math.hypot(offsetX, offsetY) / maxOffsetDistance : 0;
-            const speed = autoRotateSpeed + offsetRatio * AUTO_ROTATE_HOVER_SPEED_BOOST;
+            const offsetRatio =
+              maxOffsetDistance > 0
+                ? Math.hypot(offsetX, offsetY) / maxOffsetDistance
+                : 0;
+            const speed =
+              autoRotateSpeed + offsetRatio * AUTO_ROTATE_HOVER_SPEED_BOOST;
             yaw += (offsetX / width) * speed;
             pitch += (offsetY / width) * speed;
           }
@@ -459,7 +504,10 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
         if (!pointerMovedFar) {
           const totalX = event.clientX - pointerDownX;
           const totalY = event.clientY - pointerDownY;
-          if (totalX * totalX + totalY * totalY > DRAG_CLICK_THRESHOLD_PX * DRAG_CLICK_THRESHOLD_PX) {
+          if (
+            totalX * totalX + totalY * totalY >
+            DRAG_CLICK_THRESHOLD_PX * DRAG_CLICK_THRESHOLD_PX
+          ) {
             pointerMovedFar = true;
           }
         }

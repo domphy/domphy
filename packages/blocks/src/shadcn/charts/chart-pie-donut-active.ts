@@ -10,14 +10,14 @@
 import type { DomphyElement } from "@domphy/core";
 import { motion } from "@domphy/ui";
 import {
-  type PieDatum,
+  createPieTooltipState,
   DEFAULT_DONUT_INNER_RADIUS,
   DEFAULT_PIE_DATA,
   DONUT_SEPARATOR_STROKE_WIDTH,
-  PIE_OUTER_RADIUS,
-  createPieTooltipState,
   defaultValueFormatter,
   layoutPieSlices,
+  PIE_OUTER_RADIUS,
+  type PieDatum,
   pieCard,
   pieCardDescription,
   pieCardFooter,
@@ -45,7 +45,9 @@ export interface ChartPieDonutActiveProps {
  * A donut chart with one wedge statically drawn enlarged to demonstrate an
  * "active slice" treatment. Call with no arguments for a fully working demo.
  */
-function chartPieDonutActive(props: ChartPieDonutActiveProps = {}): DomphyElement<"div"> {
+function chartPieDonutActive(
+  props: ChartPieDonutActiveProps = {},
+): DomphyElement<"div"> {
   const {
     data = DEFAULT_PIE_DATA,
     title = "Pie Chart - Donut Active",
@@ -67,7 +69,9 @@ function chartPieDonutActive(props: ChartPieDonutActiveProps = {}): DomphyElemen
     const isActive = slice.datum.key === activeKey;
     return pieWedgePath(slice, {
       innerRadius,
-      outerRadius: isActive ? PIE_OUTER_RADIUS + activeRadiusDelta : PIE_OUTER_RADIUS,
+      outerRadius: isActive
+        ? PIE_OUTER_RADIUS + activeRadiusDelta
+        : PIE_OUTER_RADIUS,
       // Upstream applies a uniform strokeWidth={5} to the whole <Pie>; the
       // active sector only grows its radius, it keeps the same outline weight.
       strokeWidth: DONUT_SEPARATOR_STROKE_WIDTH,

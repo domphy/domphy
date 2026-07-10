@@ -10,8 +10,8 @@
 // upstream Magic UI source was viewed or copied.
 
 import type { DomphyElement, ElementNode } from "@domphy/core";
-import { themeColor, themeSpacing } from "@domphy/theme";
 import type { ThemeColor } from "@domphy/theme";
+import { themeColor, themeSpacing } from "@domphy/theme";
 
 /** A circular badge node placed inside the diagram canvas. */
 export interface AnimatedBeamNode {
@@ -91,7 +91,9 @@ function beamNodeElement(
   registerNode: (id: string, element: HTMLElement | null) => void,
 ): DomphyElement {
   return {
-    div: [nodeSpec.content ?? defaultBeamGlyph(nodeSpec.accentColor ?? "primary")],
+    div: [
+      nodeSpec.content ?? defaultBeamGlyph(nodeSpec.accentColor ?? "primary"),
+    ],
     _key: nodeSpec.id,
     _onMount: (node: ElementNode) => {
       registerNode(nodeSpec.id, node.domElement as HTMLElement);
@@ -110,7 +112,8 @@ function beamNodeElement(
       borderRadius: "50%",
       backgroundColor: (listener) => themeColor(listener, "inherit", "neutral"),
       color: (listener) => themeColor(listener, "shift-9", "neutral"),
-      outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+      outline: (listener) =>
+        `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
       outlineOffset: "-1px",
       boxShadow: (listener) =>
         `0 ${themeSpacing(1)} ${themeSpacing(4)} ${themeColor(listener, "shift-3", "neutral")}`,
@@ -217,13 +220,25 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       const toRect = toElement.getBoundingClientRect();
 
       runtime.startX =
-        fromRect.left - containerRect.left + fromRect.width / 2 + (connection.startXOffset ?? 0);
+        fromRect.left -
+        containerRect.left +
+        fromRect.width / 2 +
+        (connection.startXOffset ?? 0);
       runtime.startY =
-        fromRect.top - containerRect.top + fromRect.height / 2 + (connection.startYOffset ?? 0);
+        fromRect.top -
+        containerRect.top +
+        fromRect.height / 2 +
+        (connection.startYOffset ?? 0);
       runtime.endX =
-        toRect.left - containerRect.left + toRect.width / 2 + (connection.endXOffset ?? 0);
+        toRect.left -
+        containerRect.left +
+        toRect.width / 2 +
+        (connection.endXOffset ?? 0);
       runtime.endY =
-        toRect.top - containerRect.top + toRect.height / 2 + (connection.endYOffset ?? 0);
+        toRect.top -
+        containerRect.top +
+        toRect.height / 2 +
+        (connection.endYOffset ?? 0);
       runtime.hasGeometry = true;
 
       const d = quadraticPathData(
@@ -248,7 +263,7 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
   // easeOutExpo (https://easings.net/#easeOutExpo) — matches upstream's
   // motion/react transition easing ([0.16, 1, 0.3, 1]) for the sweep.
   function easeOutExpo(t: number): number {
-    return t >= 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    return t >= 1 ? 1 : 1 - 2 ** (-10 * t);
   }
 
   function tick(timestamp: number): void {
@@ -274,8 +289,12 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       const progress = easeOutExpo((elapsed % duration) / duration);
       // Upstream keyframes (fractions of viewport width): non-reverse sweeps
       // x1 10%->110% / x2 0%->100%; reverse sweeps x1 90%->-10% / x2 100%->0%.
-      const x1Fraction = connection.reverse ? lerp(0.9, -0.1, progress) : lerp(0.1, 1.1, progress);
-      const x2Fraction = connection.reverse ? lerp(1.0, 0.0, progress) : lerp(0.0, 1.0, progress);
+      const x1Fraction = connection.reverse
+        ? lerp(0.9, -0.1, progress)
+        : lerp(0.1, 1.1, progress);
+      const x2Fraction = connection.reverse
+        ? lerp(1.0, 0.0, progress)
+        : lerp(0.0, 1.0, progress);
       gradient.setAttribute("x1", String(x1Fraction * svgWidth));
       gradient.setAttribute("x2", String(x2Fraction * svgWidth));
       gradient.setAttribute("y1", "0");
@@ -302,13 +321,15 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       strokeLinecap: "round",
       _key: `static-${index}`,
       _onMount: (node: ElementNode) => {
-        runtimes[index].staticPathElement = node.domElement as unknown as SVGPathElement;
+        runtimes[index].staticPathElement =
+          node.domElement as unknown as SVGPathElement;
       },
       _onRemove: () => {
         runtimes[index].staticPathElement = null;
       },
       style: {
-        color: (listener) => themeColor(listener, "shift-3", connection.pathColor ?? "neutral"),
+        color: (listener) =>
+          themeColor(listener, "shift-3", connection.pathColor ?? "neutral"),
         opacity: connection.pathOpacity ?? 0.2,
       },
     } as DomphyElement;
@@ -329,7 +350,8 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       strokeLinecap: "round",
       _key: `glow-${index}`,
       _onMount: (node: ElementNode) => {
-        runtimes[index].glowPathElement = node.domElement as unknown as SVGPathElement;
+        runtimes[index].glowPathElement =
+          node.domElement as unknown as SVGPathElement;
       },
       _onRemove: () => {
         runtimes[index].glowPathElement = null;
@@ -345,7 +367,11 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
     const stopColor = connection.gradientStopColor ?? "#9c40ff";
     // `<stop>` is a paint-server node, not text — it has no `color` to follow the
     // tone context, so the `missing-color` doctor rule is a false positive here.
-    const stop = (offset: string, color: string, opacity: number): DomphyElement =>
+    const stop = (
+      offset: string,
+      color: string,
+      opacity: number,
+    ): DomphyElement =>
       ({
         stop: null,
         offset,
@@ -369,7 +395,8 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       y2: "0",
       _key: `gradient-${index}`,
       _onMount: (node: ElementNode) => {
-        runtimes[index].gradientElement = node.domElement as unknown as SVGLinearGradientElement;
+        runtimes[index].gradientElement =
+          node.domElement as unknown as SVGLinearGradientElement;
       },
       _onRemove: () => {
         runtimes[index].gradientElement = null;
@@ -378,7 +405,11 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
   }
 
   const svgChildren: DomphyElement[] = [
-    { defs: connections.map((connection, index) => gradientDefinition(connection, index)) } as DomphyElement,
+    {
+      defs: connections.map((connection, index) =>
+        gradientDefinition(connection, index),
+      ),
+    } as DomphyElement,
     ...connections.flatMap((connection, index) => [
       staticPathElement(connection, index),
       glowPathElement(connection, index),
@@ -405,7 +436,10 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
     ],
     _onMount: (node: ElementNode) => {
       containerElement = node.domElement as HTMLElement;
-      if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
+      if (
+        typeof window === "undefined" ||
+        typeof window.requestAnimationFrame !== "function"
+      ) {
         return;
       }
 
@@ -428,8 +462,10 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       };
     },
     _onRemove: () => {
-      if (recomputeFrameId !== null) window.cancelAnimationFrame(recomputeFrameId);
-      if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId);
+      if (recomputeFrameId !== null)
+        window.cancelAnimationFrame(recomputeFrameId);
+      if (animationFrameId !== null)
+        window.cancelAnimationFrame(animationFrameId);
       resizeObserver?.disconnect();
       resizeObserver = null;
       removeWindowListeners?.();

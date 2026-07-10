@@ -40,7 +40,9 @@ describe("chartPieSimple", () => {
     const wedges = host.querySelectorAll("svg path");
     expect(wedges.length).toBe(2);
 
-    wedges[0].dispatchEvent(new MouseEvent("mouseenter", { bubbles: true, clientX: 10, clientY: 10 }));
+    wedges[0].dispatchEvent(
+      new MouseEvent("mouseenter", { bubbles: true, clientX: 10, clientY: 10 }),
+    );
     flushSync();
     expect(host.textContent).toContain("Alpha");
 

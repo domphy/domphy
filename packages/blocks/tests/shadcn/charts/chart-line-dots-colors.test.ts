@@ -28,7 +28,9 @@ afterEach(() => {
 describe("chartLineDotsColors", () => {
   it("renders a working demo tree with zero args: titled card, chart plot, colored-dot overlay, trend footer", () => {
     const { host } = render(chartLineDotsColors() as DomphyElement);
-    expect(host.querySelector("h3")?.textContent).toBe("Line Chart - Dots Colors");
+    expect(host.querySelector("h3")?.textContent).toBe(
+      "Line Chart - Dots Colors",
+    );
     expect(host.querySelector("footer")).toBeTruthy();
     expect(host.querySelector("canvas")).toBeTruthy();
     // Two chart-owned <svg> layers plus the custom per-point marker overlay's own <svg>.

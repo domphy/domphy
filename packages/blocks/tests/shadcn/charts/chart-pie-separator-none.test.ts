@@ -29,7 +29,9 @@ describe("chartPieSeparatorNone", () => {
   });
 
   it("lets a caller re-enable the separator via props", () => {
-    const { host } = render(chartPieSeparatorNone({ strokeWidth: "2", padAngle: 0.02 }));
+    const { host } = render(
+      chartPieSeparatorNone({ strokeWidth: "2", padAngle: 0.02 }),
+    );
     const wedge = host.querySelector("svg path")!;
     expect(wedge.getAttribute("stroke-width")).toBe("2");
     expect(wedge.hasAttribute("stroke")).toBe(true);

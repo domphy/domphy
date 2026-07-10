@@ -29,9 +29,13 @@ describe("pointer", () => {
   it("tracks mousemove position and fades in/out on enter/leave", () => {
     const { host } = render(pointer() as DomphyElement);
     const zone = host.firstElementChild as HTMLElement;
-    const cursor = zone.querySelector('[data-pointer-cursor="true"]') as HTMLElement;
+    const cursor = zone.querySelector(
+      '[data-pointer-cursor="true"]',
+    ) as HTMLElement;
 
-    zone.dispatchEvent(new MouseEvent("mouseenter", { clientX: 20, clientY: 30 }));
+    zone.dispatchEvent(
+      new MouseEvent("mouseenter", { clientX: 20, clientY: 30 }),
+    );
     expect(cursor.style.opacity).toBe("1");
 
     zone.dispatchEvent(new MouseEvent("mouseleave"));
@@ -39,7 +43,9 @@ describe("pointer", () => {
   });
 
   it("accepts a custom cursor glyph via `children`", () => {
-    const { host } = render(pointer({ children: { span: "👍" } }) as DomphyElement);
+    const { host } = render(
+      pointer({ children: { span: "👍" } }) as DomphyElement,
+    );
     expect(host.textContent).toContain("👍");
   });
 });

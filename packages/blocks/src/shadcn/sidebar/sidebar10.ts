@@ -8,36 +8,38 @@
 
 import type { DomphyElement, Listener, State } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { buttonGhost, icon, popover, small } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import { buttonGhost, icon, popover, small } from "@domphy/ui";
 import {
+  emojiGlyph,
   ICON_BAR_CHART,
+  ICON_CALENDAR,
   ICON_CHEVRON_RIGHT,
   ICON_FILE,
-  ICON_FOLDER,
   ICON_GRID,
+  ICON_HOME,
   ICON_INBOX,
   ICON_LIFEBUOY,
   ICON_MORE,
   ICON_PANEL_TOGGLE,
   ICON_PLUS,
   ICON_SEARCH,
+  ICON_SETTINGS,
+  ICON_SPARKLE,
   ICON_TRASH,
-  emojiGlyph,
   interactiveRowStyle,
   renderPlainNavRow,
   renderTeamSwitcher,
+  type SidebarBreadcrumbItem,
+  type SidebarNavMainItem,
+  type SidebarTeam,
   sidebarBreadcrumb,
   sidebarIcon,
   sidebarMainContent,
   sidebarStyledPopoverContent,
   useShowMore,
   verticalDivider,
-  type SidebarBreadcrumbItem,
-  type SidebarNavMainItem,
-  type SidebarTeam,
 } from "./sidebar09-12-shared.js";
-import { ICON_CALENDAR, ICON_HOME, ICON_SETTINGS, ICON_SPARKLE } from "./sidebar09-12-shared.js";
 
 type Sidebar10FavoriteItem = { emoji: string; label: string; href?: string };
 type Sidebar10Page = { title: string; href?: string; emoji?: string };
@@ -57,7 +59,12 @@ const ICON_EXPORT = `${SVG_OPEN}<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></
 const ICON_STAR = `${SVG_OPEN}<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
 const ICON_STAR_OFF = `${SVG_OPEN}<path d="M8.34 8.34 2 9.27l5 4.87L5.82 21 12 17.77l1.28.67"/><path d="M18.42 12.76 22 9.27l-6.91-1.01L12 2l-1.44 2.91"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`;
 const ICON_ARROW_UP_RIGHT = `${SVG_OPEN}<path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>`;
-type Sidebar10Workspace = { name: string; emoji: string; expanded?: boolean; pages: Sidebar10Page[] };
+type Sidebar10Workspace = {
+  name: string;
+  emoji: string;
+  expanded?: boolean;
+  pages: Sidebar10Page[];
+};
 type Sidebar10SecondaryLink = { title: string; icon: string; href?: string };
 
 type Sidebar10Props = {
@@ -156,7 +163,10 @@ const DEFAULT_SECONDARY_LINKS: Sidebar10SecondaryLink[] = [
 ];
 
 /** Uppercase muted section heading (hidden in icon-rail mode). */
-function sectionLabel(text: string, collapsed: State<boolean>): DomphyElement<"small"> {
+function sectionLabel(
+  text: string,
+  collapsed: State<boolean>,
+): DomphyElement<"small"> {
   return {
     small: text,
     style: {
@@ -170,10 +180,18 @@ function sectionLabel(text: string, collapsed: State<boolean>): DomphyElement<"s
 }
 
 /** A favorite row: emoji + label + hover-revealed "more" popover trigger. */
-function favoriteRow(item: Sidebar10FavoriteItem, collapsed: State<boolean>): DomphyElement<"li"> {
+function favoriteRow(
+  item: Sidebar10FavoriteItem,
+  collapsed: State<boolean>,
+): DomphyElement<"li"> {
   const actionsMenu = sidebarStyledPopoverContent([
     { items: [{ icon: ICON_STAR_OFF, label: "Remove from Favorites" }] },
-    { items: [{ icon: ICON_LINK, label: "Copy Link" }, { icon: ICON_ARROW_UP_RIGHT, label: "Open in New Tab" }] },
+    {
+      items: [
+        { icon: ICON_LINK, label: "Copy Link" },
+        { icon: ICON_ARROW_UP_RIGHT, label: "Open in New Tab" },
+      ],
+    },
     { items: [{ icon: ICON_TRASH, label: "Delete" }] },
   ]);
 
@@ -182,9 +200,25 @@ function favoriteRow(item: Sidebar10FavoriteItem, collapsed: State<boolean>): Do
       {
         div: [
           {
-            a: [emojiGlyph(item.emoji), { span: item.label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement],
+            a: [
+              emojiGlyph(item.emoji),
+              {
+                span: item.label,
+                style: { flex: "1", textAlign: "left" },
+              } as unknown as DomphyElement,
+            ],
             href: item.href ?? "#",
-            style: { display: "flex", alignItems: "center", flex: "1", minWidth: "0", gap: themeSpacing(2), textDecoration: () => "none", overflow: "hidden", whiteSpace: "nowrap", color: (l: Listener) => themeColor(l, "shift-9", "neutral") },
+            style: {
+              display: "flex",
+              alignItems: "center",
+              flex: "1",
+              minWidth: "0",
+              gap: themeSpacing(2),
+              textDecoration: () => "none",
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+            },
           } as unknown as DomphyElement,
           {
             button: sidebarIcon(ICON_MORE),
@@ -212,8 +246,13 @@ function favoriteRow(item: Sidebar10FavoriteItem, collapsed: State<boolean>): Do
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
-          "&:hover [data-slot=row-more], &:focus-within [data-slot=row-more]": { display: "inline-flex" },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
+          "&:hover [data-slot=row-more], &:focus-within [data-slot=row-more]": {
+            display: "inline-flex",
+          },
         },
       } as unknown as DomphyElement,
       {
@@ -241,7 +280,10 @@ function favoriteRow(item: Sidebar10FavoriteItem, collapsed: State<boolean>): Do
  * name stays an independent navigable link. All workspaces start collapsed
  * (upstream wraps each in a bare `<Collapsible>` with no `defaultOpen`).
  */
-function workspaceNode(workspace: Sidebar10Workspace, collapsed: State<boolean>): DomphyElement<"li"> {
+function workspaceNode(
+  workspace: Sidebar10Workspace,
+  collapsed: State<boolean>,
+): DomphyElement<"li"> {
   const open = toState(workspace.expanded ?? false);
 
   return {
@@ -256,7 +298,8 @@ function workspaceNode(workspace: Sidebar10Workspace, collapsed: State<boolean>)
                 style: {
                   display: "inline-flex",
                   transition: "transform 150ms ease",
-                  transform: (l: Listener) => (open.get(l) ? "rotate(90deg)" : "none"),
+                  transform: (l: Listener) =>
+                    open.get(l) ? "rotate(90deg)" : "none",
                 },
                 $: [icon({ color: "neutral" })],
               } as unknown as DomphyElement,
@@ -284,7 +327,10 @@ function workspaceNode(workspace: Sidebar10Workspace, collapsed: State<boolean>)
           {
             a: [
               emojiGlyph(workspace.emoji),
-              { span: workspace.name, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+              {
+                span: workspace.name,
+                style: { flex: "1", textAlign: "left" },
+              } as unknown as DomphyElement,
             ],
             href: "#",
             style: {
@@ -328,9 +374,15 @@ function workspaceNode(workspace: Sidebar10Workspace, collapsed: State<boolean>)
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
-          "&:hover [data-slot=chevron-toggle], &:focus-within [data-slot=chevron-toggle]": { display: "inline-flex" },
-          "&:hover [data-slot=row-add], &:focus-within [data-slot=row-add]": { display: "inline-flex" },
+          "&:hover": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-2", "neutral"),
+          },
+          "&:hover [data-slot=chevron-toggle], &:focus-within [data-slot=chevron-toggle]":
+            { display: "inline-flex" },
+          "&:hover [data-slot=row-add], &:focus-within [data-slot=row-add]": {
+            display: "inline-flex",
+          },
         },
       } as unknown as DomphyElement,
       {
@@ -339,20 +391,30 @@ function workspaceNode(workspace: Sidebar10Workspace, collapsed: State<boolean>)
             {
               a: [
                 ...(page.emoji ? [emojiGlyph(page.emoji)] : []),
-                { span: page.title, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement,
+                {
+                  span: page.title,
+                  style: { flex: "1", textAlign: "left" },
+                } as unknown as DomphyElement,
               ],
               href: page.href ?? "#",
               style: {
                 display: "flex",
                 alignItems: "center",
                 gap: themeSpacing(2),
-                paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
-                paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-                borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
+                paddingBlock: (l: Listener) =>
+                  themeSpacing(themeDensity(l) * 1.5),
+                paddingInline: (l: Listener) =>
+                  themeSpacing(themeDensity(l) * 3),
+                borderRadius: (l: Listener) =>
+                  themeSpacing(themeDensity(l) * 1),
                 textDecoration: () => "none",
                 color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-                backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-                "&:hover": { backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral") },
+                backgroundColor: (l: Listener) =>
+                  themeColor(l, "inherit", "neutral"),
+                "&:hover": {
+                  backgroundColor: (l: Listener) =>
+                    themeColor(l, "shift-2", "neutral"),
+                },
               },
             } as unknown as DomphyElement,
           ],
@@ -367,10 +429,11 @@ function workspaceNode(workspace: Sidebar10Workspace, collapsed: State<boolean>)
           marginInlineStart: themeSpacing(5),
           paddingInlineStart: themeSpacing(3),
           paddingInlineEnd: "0",
-          borderInlineStart: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+          borderInlineStart: (l: Listener) =>
+            `1px solid ${themeColor(l, "shift-3", "neutral")}`,
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           overflow: "hidden",
-          maxHeight: (l: Listener) => (open.get(l) ? themeSpacing(240) : "0px"),
+          maxHeight: (l: Listener) => (open.get(l) ? themeSpacing(240) : "0"),
           opacity: (l: Listener) => (open.get(l) ? "1" : "0"),
           paddingBlock: (l: Listener) => (open.get(l) ? themeSpacing(1) : "0"),
           transition: "max-height 180ms linear, opacity 180ms linear",
@@ -383,14 +446,27 @@ function workspaceNode(workspace: Sidebar10Workspace, collapsed: State<boolean>)
 }
 
 /** A real "show more" toggle row — reveals the rest of an overflowed list. */
-function moreRow(label: string, onClick: () => void, collapsed: State<boolean>): DomphyElement<"li"> {
+function moreRow(
+  label: string,
+  onClick: () => void,
+  collapsed: State<boolean>,
+): DomphyElement<"li"> {
   return {
     li: [
       {
-        button: [sidebarIcon(ICON_MORE), { span: label, style: { flex: "1", textAlign: "left" } } as unknown as DomphyElement],
+        button: [
+          sidebarIcon(ICON_MORE),
+          {
+            span: label,
+            style: { flex: "1", textAlign: "left" },
+          } as unknown as DomphyElement,
+        ],
         type: "button",
         onClick,
-        style: { ...interactiveRowStyle(true), color: (l: Listener) => themeColor(l, "shift-9", "neutral") },
+        style: {
+          ...interactiveRowStyle(true),
+          color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+        },
       } as unknown as DomphyElement,
     ],
     _key: "show-more",
@@ -403,7 +479,10 @@ function moreRow(label: string, onClick: () => void, collapsed: State<boolean>):
  * `absolute right-1`, hidden in the collapsed icon rail). The row it decorates
  * must be `position: relative`.
  */
-function navRowBadge(text: string, collapsed: State<boolean>): DomphyElement<"span"> {
+function navRowBadge(
+  text: string,
+  collapsed: State<boolean>,
+): DomphyElement<"span"> {
   return {
     span: text,
     ariaHidden: "true",
@@ -425,7 +504,10 @@ function navRowBadge(text: string, collapsed: State<boolean>): DomphyElement<"sp
 }
 
 /** A quick-link nav row, optionally carrying a right-aligned count badge. */
-function quickLinkRow(item: SidebarNavMainItem & { badge?: string }, collapsed: State<boolean>): DomphyElement<"li"> {
+function quickLinkRow(
+  item: SidebarNavMainItem & { badge?: string },
+  collapsed: State<boolean>,
+): DomphyElement<"li"> {
   const row = renderPlainNavRow(item, collapsed) as unknown as {
     li: DomphyElement[];
     style?: Record<string, unknown>;
@@ -450,7 +532,9 @@ function centeredBox(fill: boolean): DomphyElement<"div"> {
       marginInline: "auto",
       width: "100%",
       maxWidth: themeSpacing(192),
-      ...(fill ? { flex: "1", minHeight: themeSpacing(24) } : { height: themeSpacing(24) }),
+      ...(fill
+        ? { flex: "1", minHeight: themeSpacing(24) }
+        : { height: themeSpacing(24) }),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
@@ -560,7 +644,12 @@ function mainHeader(props: {
             $: [popover({ placement: "bottom-end", content: actionsMenu })],
           } as unknown as DomphyElement,
         ],
-        style: { marginInlineStart: "auto", display: "flex", alignItems: "center", gap: themeSpacing(3) },
+        style: {
+          marginInlineStart: "auto",
+          display: "flex",
+          alignItems: "center",
+          gap: themeSpacing(3),
+        },
       } as unknown as DomphyElement,
     ],
     style: {
@@ -573,7 +662,8 @@ function mainHeader(props: {
       height: themeSpacing(14),
       flexShrink: "0",
       paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
-      borderBottom: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderBottom: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
@@ -630,32 +720,78 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
               sectionLabel("Favorites", collapsed),
               {
                 ul: (listener: Listener) => {
-                  const rows: DomphyElement[] = favoritesShowMore.slice(listener).map((item) => favoriteRow(item, collapsed));
-                  if (!favoritesShowMore.visible.get(listener) && favorites.length > favoritesVisibleCount) {
-                    rows.push(moreRow("More", () => favoritesShowMore.visible.set(true), collapsed));
+                  const rows: DomphyElement[] = favoritesShowMore
+                    .slice(listener)
+                    .map((item) => favoriteRow(item, collapsed));
+                  if (
+                    !favoritesShowMore.visible.get(listener) &&
+                    favorites.length > favoritesVisibleCount
+                  ) {
+                    rows.push(
+                      moreRow(
+                        "More",
+                        () => favoritesShowMore.visible.set(true),
+                        collapsed,
+                      ),
+                    );
                   }
                   return rows;
                 },
-                style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
+                style: {
+                  listStyle: "none",
+                  margin: "0",
+                  padding: "0",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: themeSpacing(0.5),
+                },
               } as unknown as DomphyElement,
             ],
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(1), marginTop: themeSpacing(3) },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(1),
+              marginTop: themeSpacing(3),
+            },
           } as unknown as DomphyElement,
           {
             div: [
               sectionLabel("Workspaces", collapsed),
               {
                 ul: (listener: Listener) => {
-                  const rows: DomphyElement[] = workspacesShowMore.slice(listener).map((workspace) => workspaceNode(workspace, collapsed));
-                  if (!workspacesShowMore.visible.get(listener) && workspaces.length > workspacesVisibleCount) {
-                    rows.push(moreRow("More", () => workspacesShowMore.visible.set(true), collapsed));
+                  const rows: DomphyElement[] = workspacesShowMore
+                    .slice(listener)
+                    .map((workspace) => workspaceNode(workspace, collapsed));
+                  if (
+                    !workspacesShowMore.visible.get(listener) &&
+                    workspaces.length > workspacesVisibleCount
+                  ) {
+                    rows.push(
+                      moreRow(
+                        "More",
+                        () => workspacesShowMore.visible.set(true),
+                        collapsed,
+                      ),
+                    );
                   }
                   return rows;
                 },
-                style: { listStyle: "none", margin: "0", padding: "0", display: "flex", flexDirection: "column", gap: themeSpacing(0.5) },
+                style: {
+                  listStyle: "none",
+                  margin: "0",
+                  padding: "0",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: themeSpacing(0.5),
+                },
               } as unknown as DomphyElement,
             ],
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(1), marginTop: themeSpacing(3) },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(1),
+              marginTop: themeSpacing(3),
+            },
           } as unknown as DomphyElement,
         ],
         style: {
@@ -667,7 +803,12 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
         },
       } as unknown as DomphyElement,
       {
-        ul: secondaryLinks.map((link) => renderPlainNavRow({ title: link.title, icon: link.icon, href: link.href }, collapsed)),
+        ul: secondaryLinks.map((link) =>
+          renderPlainNavRow(
+            { title: link.title, icon: link.icon, href: link.href },
+            collapsed,
+          ),
+        ),
         style: {
           listStyle: "none",
           margin: "0",
@@ -676,7 +817,8 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
           flexDirection: "column",
           gap: themeSpacing(0.5),
           flexShrink: "0",
-          borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+          borderTop: (l: Listener) =>
+            `1px solid ${themeColor(l, "shift-3", "neutral")}`,
           paddingTop: (l: Listener) => themeSpacing(themeDensity(l) * 2),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
         },
@@ -701,10 +843,12 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
       display: "flex",
       flexDirection: "column",
       flexShrink: "0",
-      width: (l: Listener) => (collapsed.get(l) ? themeSpacing(12) : themeSpacing(64)),
+      width: (l: Listener) =>
+        collapsed.get(l) ? themeSpacing(12) : themeSpacing(64),
       overflow: "hidden",
       transition: "width 0.2s linear",
-      borderInlineEnd: (l: Listener) => `1px solid ${themeColor(l, "shift-3", "neutral")}`,
+      borderInlineEnd: (l: Listener) =>
+        `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
     },

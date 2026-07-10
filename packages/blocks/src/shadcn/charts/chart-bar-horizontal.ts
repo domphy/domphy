@@ -7,11 +7,14 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_MONTHLY_DATA,
+  type ChartBarGrid,
+  type ChartBarPoint,
+  type ChartTrendDirection,
   chartBarCardShell,
   chartBarCategoryYAxis,
   chartBarColorHex,
@@ -21,9 +24,6 @@ import {
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
-  type ChartBarGrid,
-  type ChartBarPoint,
-  type ChartTrendDirection,
 } from "./chart-bar-shared.js";
 
 export interface ChartBarHorizontalProps {
@@ -48,7 +48,9 @@ const DEFAULT_GRID: ChartBarGrid = { left: 44, right: 16, top: 8, bottom: 8 };
  * rotated into rightward-extending rows against a left category axis. Call
  * with no arguments for a working demo.
  */
-function chartBarHorizontal(props: ChartBarHorizontalProps = {}): DomphyElement<"div"> {
+function chartBarHorizontal(
+  props: ChartBarHorizontalProps = {},
+): DomphyElement<"div"> {
   const {
     data = CHART_BAR_MONTHLY_DATA,
     seriesLabel = "Desktop",
@@ -67,7 +69,9 @@ function chartBarHorizontal(props: ChartBarHorizontalProps = {}): DomphyElement<
   // on-screen reading order (top-to-bottom) stays chronological. See the
   // file-level fidelity note in chart-bar-shared.ts.
   const orderedData = [...data].reverse();
-  const categories = orderedData.map((point) => point.label.slice(0, categoryTruncateLength));
+  const categories = orderedData.map((point) =>
+    point.label.slice(0, categoryTruncateLength),
+  );
   const values = orderedData.map((point) => point.value);
   const [, domainMax] = chartBarValueDomain(values);
   const seriesColorHex = chartBarColorHex(seriesColor);
@@ -110,7 +114,11 @@ function chartBarHorizontal(props: ChartBarHorizontalProps = {}): DomphyElement<
         }),
       ],
     },
-    footer: chartBarTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartBarTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

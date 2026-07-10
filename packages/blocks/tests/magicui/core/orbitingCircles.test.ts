@@ -28,14 +28,21 @@ describe("orbitingCircles", () => {
   });
 
   it("omits the guide path and center hub when disabled", () => {
-    const { host } = render(orbitingCircles({ path: false, center: null }) as DomphyElement);
+    const { host } = render(
+      orbitingCircles({ path: false, center: null }) as DomphyElement,
+    );
     const container = host.firstElementChild as HTMLElement;
     expect(container.children.length).toBe(6);
   });
 
   it("accepts custom items and reverses direction", () => {
-    const items = [{ content: { span: "A" } }, { content: { span: "B" }, delay: 2 }];
-    const { host } = render(orbitingCircles({ items, reverse: true, radius: 80 }) as DomphyElement);
+    const items = [
+      { content: { span: "A" } },
+      { content: { span: "B" }, delay: 2 },
+    ];
+    const { host } = render(
+      orbitingCircles({ items, reverse: true, radius: 80 }) as DomphyElement,
+    );
     expect(host.textContent).toContain("A");
     expect(host.textContent).toContain("B");
   });

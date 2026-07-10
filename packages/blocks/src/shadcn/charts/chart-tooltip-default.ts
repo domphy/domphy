@@ -13,13 +13,13 @@ import type { DomphyElement } from "@domphy/core";
 import {
   ACTIVITY_SERIES_CONFIG,
   ACTIVITY_TOOLTIP_DATA,
+  type ActivityDayPoint,
+  type ActivitySeriesEntry,
   activityBarOption,
   activityTooltipCard,
   activityTooltipFormatter,
   activityTooltipPlot,
   formatWeekdayShort,
-  type ActivityDayPoint,
-  type ActivitySeriesEntry,
 } from "./chart-tooltip-shared.js";
 
 export interface ChartTooltipDefaultProps {
@@ -36,7 +36,9 @@ export interface ChartTooltipDefaultProps {
  * bold date header and a color-dot row per series. Call with no arguments
  * for a working demo.
  */
-function chartTooltipDefault(props: ChartTooltipDefaultProps = {}): DomphyElement<"div"> {
+function chartTooltipDefault(
+  props: ChartTooltipDefaultProps = {},
+): DomphyElement<"div"> {
   const {
     data = ACTIVITY_TOOLTIP_DATA,
     series = ACTIVITY_SERIES_CONFIG,
@@ -51,7 +53,13 @@ function chartTooltipDefault(props: ChartTooltipDefaultProps = {}): DomphyElemen
     labelMode: "custom",
     labelFormatter: (isoDate) => isoDate,
   });
-  const option = activityBarOption({ data, categories, series, showCursor, formatter });
+  const option = activityBarOption({
+    data,
+    categories,
+    series,
+    showCursor,
+    formatter,
+  });
 
   return activityTooltipCard({
     title,

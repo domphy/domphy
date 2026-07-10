@@ -30,7 +30,9 @@ function styleOf(element: Element, property: string): string | undefined {
 
 afterEach(() => {
   document.body.innerHTML = "";
-  document.head.querySelectorAll("style").forEach((styleElement) => styleElement.remove());
+  document.head
+    .querySelectorAll("style")
+    .forEach((styleElement) => styleElement.remove());
   vi.useRealTimers();
 });
 
@@ -46,7 +48,9 @@ describe("blurFade", () => {
 
   it("passes custom children through unchanged instead of the default demo body", () => {
     const { host } = render(
-      blurFade({ children: [{ p: "Custom body" } as DomphyElement] }) as DomphyElement,
+      blurFade({
+        children: [{ p: "Custom body" } as DomphyElement],
+      }) as DomphyElement,
     );
     expect(host.textContent).toContain("Custom body");
     expect(host.querySelector("h3")).toBeNull();
@@ -60,11 +64,15 @@ describe("blurFade", () => {
   });
 
   it("waits for scroll-into-view when trigger is 'view' (falls open without IntersectionObserver)", () => {
-    const originalIntersectionObserver = (globalThis as { IntersectionObserver?: unknown })
-      .IntersectionObserver;
-    (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver = undefined;
+    const originalIntersectionObserver = (
+      globalThis as { IntersectionObserver?: unknown }
+    ).IntersectionObserver;
+    (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver =
+      undefined;
 
-    expect(() => render(blurFade({ trigger: "view" }) as DomphyElement)).not.toThrow();
+    expect(() =>
+      render(blurFade({ trigger: "view" }) as DomphyElement),
+    ).not.toThrow();
 
     (globalThis as { IntersectionObserver?: unknown }).IntersectionObserver =
       originalIntersectionObserver;

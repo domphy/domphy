@@ -14,21 +14,21 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement } from "@domphy/core";
 import type { ChartOption } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_AREA_SERIES_PALETTE,
   CHART_AREA_TWO_SERIES_DATA,
   CHART_AREA_X_AXIS_BARE,
   CHART_AREA_Y_AXIS_HIDDEN,
+  type ChartAreaTwoSeriesPoint,
+  type ChartTrendDirection,
   chartAreaFrame,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartLegendRow,
   chartTrendFooter,
-  type ChartAreaTwoSeriesPoint,
-  type ChartTrendDirection,
 } from "./chart-area-shared.js";
 
 export interface ChartAreaLegendSeries {
@@ -60,7 +60,9 @@ const DEFAULT_SERIES: ChartAreaLegendSeries[] = [
  * with a swatch + label legend row below the plot. Call with no arguments
  * for a working demo.
  */
-function chartAreaLegend(props: ChartAreaLegendProps = {}): DomphyElement<"div"> {
+function chartAreaLegend(
+  props: ChartAreaLegendProps = {},
+): DomphyElement<"div"> {
   const {
     data = CHART_AREA_TWO_SERIES_DATA,
     series = DEFAULT_SERIES,
@@ -81,7 +83,12 @@ function chartAreaLegend(props: ChartAreaLegendProps = {}): DomphyElement<"div">
       trigger: "axis",
       axisPointer: { type: "none" },
       // Upstream passes `<ChartTooltipContent indicator="line" />`.
-      formatter: chartAxisTooltipFormatter(categories, undefined, false, "line"),
+      formatter: chartAxisTooltipFormatter(
+        categories,
+        undefined,
+        false,
+        "line",
+      ),
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     yAxis: CHART_AREA_Y_AXIS_HIDDEN,
@@ -108,7 +115,11 @@ function chartAreaLegend(props: ChartAreaLegendProps = {}): DomphyElement<"div">
         chartLegendRow(series.map((s) => ({ label: s.label, color: s.color }))),
       ],
     },
-    footer: chartTrendFooter({ trendText, direction: trendDirection, captionText }),
+    footer: chartTrendFooter({
+      trendText,
+      direction: trendDirection,
+      captionText,
+    }),
   });
 }
 

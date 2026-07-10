@@ -9,10 +9,24 @@
 // independently designed shape to build against, not lifted from any
 // existing fetching library.
 
-import type { DomphyElement, ElementNode, Listener, StyleObject } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
 import { toState } from "@domphy/core";
-import { avatar, empty, icon, paragraph, skeleton, small, strong } from "@domphy/ui";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import {
+  avatar,
+  empty,
+  icon,
+  paragraph,
+  skeleton,
+  small,
+  strong,
+} from "@domphy/ui";
+import { fixed } from "../../shared/typography.js";
 
 export interface TweetAuthor {
   name: string;
@@ -68,14 +82,20 @@ type TweetPhase = "loading" | "loaded" | "error";
 
 const DEFAULT_TWEET: TweetData = {
   id: "domphy-demo-1",
-  author: { name: "Ada Byte", handle: "adabyte", verified: true, profileUrl: "https://domphy.com/@adabyte" },
+  author: {
+    name: "Ada Byte",
+    handle: "adabyte",
+    verified: true,
+    profileUrl: "https://domphy.com/@adabyte",
+  },
   text: "Shipping a whole design system as plain objects keyed by HTML tag. No JSX, no virtual DOM. @domphy #buildinpublic https://domphy.com",
   createdAt: "2026-06-18T15:32:00Z",
   url: "https://domphy.com/@adabyte/posts/domphy-demo-1",
   linkPreview: {
     url: "https://domphy.com",
     title: "Domphy — the AI-friendly UI framework",
-    description: "Patch-based UI for native elements, with a runtime built for reactivity and theming.",
+    description:
+      "Patch-based UI for native elements, with a runtime built for reactivity and theming.",
   },
 };
 
@@ -143,10 +163,12 @@ const SR_ONLY_STYLE: StyleObject = {
  * transition-colors`) — the reverse of an emphasized accent link. */
 const ENTITY_STYLE: StyleObject = {
   color: (listener: Listener) => themeColor(listener, "shift-8", "neutral"),
-  textDecoration: "none",
-  fontWeight: 400,
+  textDecoration: fixed("none"),
+  fontWeight: fixed(400),
   transition: "color 150ms ease",
-  "&:hover": { color: (listener: Listener) => themeColor(listener, "shift-10", "neutral") },
+  "&:hover": {
+    color: (listener: Listener) => themeColor(listener, "shift-10", "neutral"),
+  },
 };
 
 /** Small outline checkmark badge shown next to a verified author's name. */
@@ -206,7 +228,11 @@ function platformLogoIcon(): DomphyElement<"span"> {
       flexShrink: "0",
       // Upstream: `hover:text-foreground hover:scale-105 transition-all`.
       transition: "color 150ms ease, transform 150ms ease",
-      "&:hover": { color: (listener: Listener) => themeColor(listener, "shift-10", "neutral"), transform: "scale(1.05)" },
+      "&:hover": {
+        color: (listener: Listener) =>
+          themeColor(listener, "shift-10", "neutral"),
+        transform: "scale(1.05)",
+      },
     },
   };
 }
@@ -226,7 +252,14 @@ function tweetHeader(data: TweetData): DomphyElement<"div"> {
   // `<img>` in `<a href={tweet.user.url}>`), otherwise the bare avatar span.
   const avatarSpan: DomphyElement<"span"> = {
     span: author.avatarUrl
-      ? [{ img: null, src: author.avatarUrl, alt: author.name, loading: "lazy" as const }]
+      ? [
+          {
+            img: null,
+            src: author.avatarUrl,
+            alt: author.name,
+            loading: "lazy" as const,
+          },
+        ]
       : initials,
     $: [avatar({ color: "primary" })],
   };
@@ -236,12 +269,18 @@ function tweetHeader(data: TweetData): DomphyElement<"div"> {
         href: profileUrl,
         target: "_blank",
         rel: "noreferrer",
-        style: { display: "inline-flex", flexShrink: "0", textDecoration: "none" },
+        style: {
+          display: "inline-flex",
+          flexShrink: "0",
+          textDecoration: fixed("none"),
+        },
       }
     : avatarSpan;
 
   // Name row (name + verified badge) — truncated to 20 chars like upstream.
-  const nameRowChildren: DomphyElement[] = [{ strong: truncate(author.name, 20), $: [strong()] }];
+  const nameRowChildren: DomphyElement[] = [
+    { strong: truncate(author.name, 20), $: [strong()] },
+  ];
   if (author.verified) nameRowChildren.push(verifiedBadgeIcon());
   const nameNode: DomphyElement = profileUrl
     ? {
@@ -254,13 +293,16 @@ function tweetHeader(data: TweetData): DomphyElement<"div"> {
           alignItems: "center",
           gap: themeSpacing(1),
           whiteSpace: "nowrap",
-          textDecoration: "none",
+          textDecoration: fixed("none"),
           color: "inherit",
           transition: "opacity 150ms ease",
           "&:hover": { opacity: "0.8" },
         },
       }
-    : { div: nameRowChildren, style: { display: "flex", alignItems: "center", gap: themeSpacing(1) } };
+    : {
+        div: nameRowChildren,
+        style: { display: "flex", alignItems: "center", gap: themeSpacing(1) },
+      };
 
   // Handle — truncated to 16 chars; a muted profile anchor (upstream
   // `text-muted-foreground hover:text-foreground text-sm transition-colors`)
@@ -274,10 +316,14 @@ function tweetHeader(data: TweetData): DomphyElement<"div"> {
         rel: "noreferrer",
         dataSize: "decrease-1",
         style: {
-          color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
-          textDecoration: "none",
+          color: (listener: Listener) =>
+            themeColor(listener, "shift-9", "neutral"),
+          textDecoration: fixed("none"),
           transition: "color 150ms ease",
-          "&:hover": { color: (listener: Listener) => themeColor(listener, "shift-10", "neutral") },
+          "&:hover": {
+            color: (listener: Listener) =>
+              themeColor(listener, "shift-10", "neutral"),
+          },
         },
       }
     : { small: handleText, $: [small()] };
@@ -296,18 +342,26 @@ function tweetHeader(data: TweetData): DomphyElement<"div"> {
           alignItems: "flex-start",
           flexShrink: "0",
           marginInlineStart: "auto",
-          textDecoration: "none",
+          textDecoration: fixed("none"),
           color: "inherit",
         },
       }
-    : { ...platformIcon, style: { ...platformIcon.style, marginInlineStart: "auto" } };
+    : {
+        ...platformIcon,
+        style: { ...platformIcon.style, marginInlineStart: "auto" },
+      };
 
   return {
     div: [
       avatarNode,
       {
         div: [nameNode, handleNode],
-        style: { display: "flex", flexDirection: "column", minWidth: "0", overflow: "hidden" },
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          minWidth: "0",
+          overflow: "hidden",
+        },
       },
       platformNode,
     ],
@@ -318,27 +372,29 @@ function tweetHeader(data: TweetData): DomphyElement<"div"> {
 /** Splits the tweet body into plain text runs and clickable @mention / #hashtag / URL entities. */
 function tweetTextBody(text: string): DomphyElement<"p"> {
   const tokens = text.split(/(\s+)/);
-  const children: (string | DomphyElement<"a">)[] = tokens.map((token, index) => {
-    if (/^https?:\/\/\S+/.test(token)) {
-      return {
-        a: token,
-        href: token,
-        target: "_blank",
-        rel: "noopener noreferrer",
-        _key: `entity-${index}`,
-        style: ENTITY_STYLE,
-      };
-    }
-    if (/^[@#]\w+/.test(token)) {
-      return {
-        a: token,
-        href: "#",
-        _key: `entity-${index}`,
-        style: ENTITY_STYLE,
-      };
-    }
-    return token;
-  });
+  const children: (string | DomphyElement<"a">)[] = tokens.map(
+    (token, index) => {
+      if (/^https?:\/\/\S+/.test(token)) {
+        return {
+          a: token,
+          href: token,
+          target: "_blank",
+          rel: "noopener noreferrer",
+          _key: `entity-${index}`,
+          style: ENTITY_STYLE,
+        };
+      }
+      if (/^[@#]\w+/.test(token)) {
+        return {
+          a: token,
+          href: "#",
+          _key: `entity-${index}`,
+          style: ENTITY_STYLE,
+        };
+      }
+      return token;
+    },
+  );
 
   return { p: children as DomphyElement<"p">["p"], $: [paragraph()] };
 }
@@ -366,10 +422,12 @@ function mediaGrid(media: TweetMedia[]): DomphyElement<"div"> {
       display: "grid",
       gridTemplateColumns: `repeat(${columns}, 1fr)`,
       gap: themeSpacing(0.5),
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 3),
       overflow: "hidden",
       color: (listener: Listener) => themeColor(listener, "shift-9"),
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
+      outline: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3")}`,
       outlineOffset: "-1px",
     },
   };
@@ -383,8 +441,11 @@ function linkPreviewCard(preview: TweetLinkPreview): DomphyElement<"a"> {
     // Malformed preview URL — fall back to showing the raw string.
   }
 
-  const detailChildren: DomphyElement[] = [{ strong: preview.title, $: [strong()] }];
-  if (preview.description) detailChildren.push({ small: preview.description, $: [small()] });
+  const detailChildren: DomphyElement[] = [
+    { strong: preview.title, $: [strong()] },
+  ];
+  if (preview.description)
+    detailChildren.push({ small: preview.description, $: [small()] });
   detailChildren.push({ small: hostname, $: [small()] });
 
   const cardChildren: DomphyElement[] = [];
@@ -394,7 +455,12 @@ function linkPreviewCard(preview: TweetLinkPreview): DomphyElement<"a"> {
       src: preview.thumbnailUrl,
       alt: "",
       loading: "lazy",
-      style: { width: "100%", display: "block", objectFit: "cover", aspectRatio: "2 / 1" },
+      style: {
+        width: "100%",
+        display: "block",
+        objectFit: "cover",
+        aspectRatio: "2 / 1",
+      },
     });
   }
   cardChildren.push({
@@ -415,13 +481,18 @@ function linkPreviewCard(preview: TweetLinkPreview): DomphyElement<"a"> {
     style: {
       display: "block",
       textDecoration: () => "none",
-      borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
+      borderRadius: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 3),
       overflow: "hidden",
-      outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
+      outline: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3")}`,
       outlineOffset: "-1px",
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
-      "&:hover": { backgroundColor: (listener: Listener) => themeColor(listener, "increase-1") },
+      "&:hover": {
+        backgroundColor: (listener: Listener) =>
+          themeColor(listener, "increase-1"),
+      },
     },
   };
 }
@@ -432,8 +503,10 @@ function tweetFooter(createdAt: TweetData["createdAt"]): DomphyElement<"div"> {
     style: {
       display: "flex",
       color: (listener: Listener) => themeColor(listener, "shift-9"),
-      borderTop: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
-      paddingTop: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
+      borderTop: (listener: Listener) =>
+        `1px solid ${themeColor(listener, "shift-3")}`,
+      paddingTop: (listener: Listener) =>
+        themeSpacing(themeDensity(listener) * 2),
     },
   };
 }
@@ -445,10 +518,17 @@ interface TweetBodyOptions {
   depth: number;
 }
 
-function tweetBody(data: TweetData, options: TweetBodyOptions): DomphyElement<"div"> {
-  const children: DomphyElement[] = [tweetHeader(data), tweetTextBody(data.text)];
+function tweetBody(
+  data: TweetData,
+  options: TweetBodyOptions,
+): DomphyElement<"div"> {
+  const children: DomphyElement[] = [
+    tweetHeader(data),
+    tweetTextBody(data.text),
+  ];
 
-  if (options.showMedia && data.media?.length) children.push(mediaGrid(data.media));
+  if (options.showMedia && data.media?.length)
+    children.push(mediaGrid(data.media));
   if (data.linkPreview) children.push(linkPreviewCard(data.linkPreview));
   if (options.showQuotedTweet && data.quotedTweet && options.depth < 1) {
     children.push({
@@ -461,11 +541,15 @@ function tweetBody(data: TweetData, options: TweetBodyOptions): DomphyElement<"d
       ],
       dataTone: "shift-2",
       style: {
-        borderRadius: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
-        padding: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
-        backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
+        borderRadius: (listener: Listener) =>
+          themeSpacing(themeDensity(listener) * 3),
+        padding: (listener: Listener) =>
+          themeSpacing(themeDensity(listener) * 3),
+        backgroundColor: (listener: Listener) =>
+          themeColor(listener, "inherit"),
         color: (listener: Listener) => themeColor(listener, "shift-10"),
-        outline: (listener: Listener) => `1px solid ${themeColor(listener, "shift-3")}`,
+        outline: (listener: Listener) =>
+          `1px solid ${themeColor(listener, "shift-3")}`,
         outlineOffset: "-1px",
       },
     });
@@ -487,13 +571,26 @@ function tweetSkeleton(): DomphyElement<"div"> {
     div: [
       {
         div: [
-          { span: null, $: [skeleton()], style: { width: themeSpacing(9), height: themeSpacing(9), borderRadius: "50%" } },
+          {
+            span: null,
+            $: [skeleton()],
+            style: {
+              width: themeSpacing(9),
+              height: themeSpacing(9),
+              borderRadius: "50%",
+            },
+          },
           {
             div: [
               { span: null, $: [skeleton()], style: { width: "40%" } },
               { span: null, $: [skeleton()], style: { width: "25%" } },
             ],
-            style: { display: "flex", flexDirection: "column", gap: themeSpacing(1), flex: "1 1 auto" },
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: themeSpacing(1),
+              flex: "1 1 auto",
+            },
           },
         ],
         style: { display: "flex", gap: themeSpacing(3), alignItems: "center" },
@@ -539,10 +636,17 @@ function tweetCard(props: TweetCardProps = {}): DomphyElement<"div"> {
       // without this, stale attributes/nodes from the previous phase can
       // leak through (e.g. the skeleton's `aria-label` surviving onto the
       // loaded body).
-      if (currentPhase === "loading") return [{ ...tweetSkeleton(), _key: "skeleton" }];
+      if (currentPhase === "loading")
+        return [{ ...tweetSkeleton(), _key: "skeleton" }];
       const data = tweetState.get(listener);
-      if (currentPhase === "error" || !data) return [{ ...tweetFallback(), _key: "error" }];
-      return [{ ...tweetBody(data, { showMedia, showQuotedTweet, depth: 0 }), _key: `body-${data.id}` }];
+      if (currentPhase === "error" || !data)
+        return [{ ...tweetFallback(), _key: "error" }];
+      return [
+        {
+          ...tweetBody(data, { showMedia, showQuotedTweet, depth: 0 }),
+          _key: `body-${data.id}`,
+        },
+      ];
     },
     role: "article",
     dataTheme: props.theme,
@@ -551,11 +655,15 @@ function tweetCard(props: TweetCardProps = {}): DomphyElement<"div"> {
       display: "block",
       width: "100%",
       maxWidth: themeSpacing(120),
-      borderRadius: (listenerValue: Listener) => themeSpacing(themeDensity(listenerValue) * 3),
-      padding: (listenerValue: Listener) => themeSpacing(themeDensity(listenerValue) * 4),
-      backgroundColor: (listenerValue: Listener) => themeColor(listenerValue, "inherit"),
+      borderRadius: (listenerValue: Listener) =>
+        themeSpacing(themeDensity(listenerValue) * 3),
+      padding: (listenerValue: Listener) =>
+        themeSpacing(themeDensity(listenerValue) * 4),
+      backgroundColor: (listenerValue: Listener) =>
+        themeColor(listenerValue, "inherit"),
       color: (listenerValue: Listener) => themeColor(listenerValue, "shift-10"),
-      outline: (listenerValue: Listener) => `1px solid ${themeColor(listenerValue, "shift-3")}`,
+      outline: (listenerValue: Listener) =>
+        `1px solid ${themeColor(listenerValue, "shift-3")}`,
       outlineOffset: "-1px",
     },
     _onMount: (node: ElementNode) => {

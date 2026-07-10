@@ -25,7 +25,9 @@ describe("chartRadialSimple", () => {
     expect(host.querySelectorAll("svg path")).toHaveLength(5);
     // One background-track circle per ring.
     expect(host.querySelectorAll("svg circle")).toHaveLength(5);
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts custom data/title/trend props", () => {

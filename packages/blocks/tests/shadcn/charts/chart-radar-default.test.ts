@@ -27,7 +27,9 @@ describe("chartRadarDefault", () => {
     expect(host.querySelectorAll("svg polygon[fill-opacity]").length).toBe(1);
     expect(host.querySelectorAll("svg text").length).toBe(6);
     expect(host.textContent).toContain("January");
-    expect(host.querySelector("footer")?.textContent).toContain("Trending up by 5.2%");
+    expect(host.querySelector("footer")?.textContent).toContain(
+      "Trending up by 5.2%",
+    );
   });
 
   it("accepts custom data/title/trend props", () => {

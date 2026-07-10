@@ -24,17 +24,26 @@ describe("lightRays", () => {
     expect(wrapper).toBeTruthy();
     expect(wrapper.getAttribute("data-tone")).toBe("shift-15");
 
-    const raysAndGlows = wrapper.querySelectorAll(':scope > div[aria-hidden="true"]');
+    const raysAndGlows = wrapper.querySelectorAll(
+      ':scope > div[aria-hidden="true"]',
+    );
     // 2 glow blobs + 7 default rays.
     expect(raysAndGlows.length).toBe(9);
     expect(node.generateCSS()).toContain("@keyframes");
   });
 
   it("renders `count` rays and accepts custom content via children", () => {
-    const { host } = render(lightRays({ count: 3, children: { span: "Custom overlay" } }) as DomphyElement);
+    const { host } = render(
+      lightRays({
+        count: 3,
+        children: { span: "Custom overlay" },
+      }) as DomphyElement,
+    );
     expect(host.textContent).toContain("Custom overlay");
     const wrapper = host.firstElementChild as HTMLElement;
-    const raysAndGlows = wrapper.querySelectorAll(':scope > div[aria-hidden="true"]');
+    const raysAndGlows = wrapper.querySelectorAll(
+      ':scope > div[aria-hidden="true"]',
+    );
     expect(raysAndGlows.length).toBe(5); // 2 glows + 3 rays
   });
 });

@@ -24,9 +24,9 @@
 // documents), not `primary` (a cool/blue tone that weakened the endpoint hue).
 
 import type { DomphyElement, StyleObject } from "@domphy/core";
-import { heading, paragraph } from "@domphy/ui";
-import { themeColor, themeSpacing } from "@domphy/theme";
 import type { ThemeColor } from "@domphy/theme";
+import { themeColor, themeSpacing } from "@domphy/theme";
+import { heading, paragraph } from "@domphy/ui";
 
 export interface BorderBeamProps {
   /** Diameter of the traveling comet in pixels; also the corner radius of its orbit path. Defaults to `50` (upstream `size`). */
@@ -84,8 +84,14 @@ function borderBeam(props: BorderBeamProps = {}): DomphyElement<"div"> {
   // Upstream animate range: `${initialOffset}%`→`${100+initialOffset}%`
   // clockwise, mirrored `${100-initialOffset}%`→`${-initialOffset}%` reverse.
   const keyframes = {
-    from: { offsetDistance: reverse ? `${100 - initialOffset}%` : `${initialOffset}%` },
-    to: { offsetDistance: reverse ? `${-initialOffset}%` : `${100 + initialOffset}%` },
+    from: {
+      offsetDistance: reverse ? `${100 - initialOffset}%` : `${initialOffset}%`,
+    },
+    to: {
+      offsetDistance: reverse
+        ? `${-initialOffset}%`
+        : `${100 + initialOffset}%`,
+    },
   };
 
   // The comet: a small square riding a rounded-rect `offset-path`, painted with
@@ -128,7 +134,8 @@ function borderBeam(props: BorderBeamProps = {}): DomphyElement<"div"> {
       pointerEvents: "none",
       borderRadius: "inherit",
       border: `${thickness}px solid transparent`,
-      maskImage: "linear-gradient(transparent, transparent), linear-gradient(#000, #000)",
+      maskImage:
+        "linear-gradient(transparent, transparent), linear-gradient(#000, #000)",
       maskClip: "padding-box, border-box",
       maskComposite: "intersect",
     } as StyleObject,
@@ -152,7 +159,8 @@ function borderBeam(props: BorderBeamProps = {}): DomphyElement<"div"> {
       borderRadius: `${borderRadius}px`,
       backgroundColor: (listener) => themeColor(listener, "inherit", "neutral"),
       color: (listener) => themeColor(listener, "shift-10", "neutral"),
-      outline: (listener) => `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
+      outline: (listener) =>
+        `1px solid ${themeColor(listener, "shift-3", "neutral")}`,
       outlineOffset: "-1px",
     },
   };
