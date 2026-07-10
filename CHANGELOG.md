@@ -32,6 +32,13 @@ First npm publish (previously repo-only). Ships the post-QA-wave state: 173 bloc
 
 ---
 
+## `@domphy/press` [0.20.15] — 2026-07-10
+
+### Changed
+- homeShell landing polish: home body now spans the full main column (hero/features/body were misaligned at two different widths); hero scales up on imageless layouts (`clamp()` type sizes) with a soft brand radial glow and an optional `hero.command` install pill; feature cards gain hover lift/glow and equal heights; home-only table styling (full width, hidden header, row hover) turns a markdown package table into a presentable index.
+
+---
+
 ## `@domphy/three` [0.2.0] — 2026-07-10
 
 ### Added

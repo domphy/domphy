@@ -6,6 +6,7 @@ hero:
   name: Domphy
   text: UI as plain objects.
   tagline: No JSX. No virtual DOM. No compiler. Just JS objects that become real DOM.
+  command: npm create domphy@latest
   actions:
     - theme: brand
       text: Get Started
@@ -15,12 +16,18 @@ hero:
       link: /docs/ai
 
 features:
-  - title: No compiler, no syntax tax
+  - icon: ⚡
+    title: No compiler, no syntax tax
     details: Elements are plain JS objects. Works in a script tag, Vite, browser extension — anywhere JS runs. ~15 kB core + theme gzip.
-  - title: AI generates it correctly
+    link: /docs/quickstart
+  - icon: 🤖
+    title: AI generates it correctly
     details: Plain objects are what LLMs produce naturally. @domphy/doctor catches mistakes and tells the model exactly what to fix — self-corrects without you debugging.
-  - title: Complete stack included
+    link: /docs/ai
+  - icon: 📦
+    title: Complete stack included
     details: Query, Router, Table, Virtual, Form, DnD, i18n, Charts — all built in. No stitching third-party libraries together.
+    link: /docs/integrations/
 ---
 
 <script setup lang="ts">

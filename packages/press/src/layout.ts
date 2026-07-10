@@ -12,7 +12,6 @@ import type {
   SidebarItem,
   SiteConfig,
   SocialLink,
-  TocEntry,
 } from "./types.js";
 
 // types.ts is the single source of truth for LayoutContext (LayoutSlots
@@ -100,7 +99,11 @@ function socialLinkEl(social: SocialLink): DomphyElement {
       fontSize: fixed("10px"),
       fontWeight: fixed("700"),
       flexShrink: "0",
-      "&:hover": { color: text, borderColor: textSoft, textDecoration: fixed("none") },
+      "&:hover": {
+        color: text,
+        borderColor: textSoft,
+        textDecoration: fixed("none"),
+      },
     },
   } as DomphyElement;
 }
@@ -168,7 +171,11 @@ function navDropdown(item: {
           fontWeight: fixed("500"),
           cursor: "pointer",
           userSelect: "none",
-          "&::after": { content: '" ▾"', fontSize: fixed("10px"), opacity: ".6" },
+          "&::after": {
+            content: '" ▾"',
+            fontSize: fixed("10px"),
+            opacity: ".6",
+          },
         },
       },
       {
@@ -275,7 +282,11 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
         fontSize: fixed("13px"),
         color: textSoft,
         ...(isActive ? { color: brand, fontWeight: fixed("600") } : {}),
-        "&:hover": { background: bgMute, color: text, textDecoration: fixed("none") },
+        "&:hover": {
+          background: bgMute,
+          color: text,
+          textDecoration: fixed("none"),
+        },
       },
     } as DomphyElement;
   });
@@ -315,7 +326,11 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
           display: "flex",
           alignItems: "center",
           gap: ts(1),
-          "&::after": { content: '" ▾"', fontSize: fixed("10px"), opacity: ".6" },
+          "&::after": {
+            content: '" ▾"',
+            fontSize: fixed("10px"),
+            opacity: ".6",
+          },
         },
       },
       { div: links, style: menuStyle },
@@ -1008,7 +1023,9 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
         margin: `${ts(8)} 0`,
       },
       "& :not(pre)>code": {
-        fontFamily: fixed(`ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace`),
+        fontFamily: fixed(
+          `ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace`,
+        ),
         fontSize: fixed(".85em"),
         background: bgMute,
         padding: `${ts(0.75)} ${ts(1.5)}`,
@@ -1024,7 +1041,9 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
         lineHeight: fixed("1.5"),
       },
       "& pre code": {
-        fontFamily: fixed(`ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace`),
+        fontFamily: fixed(
+          `ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace`,
+        ),
         background: "none",
         padding: "0",
       },
@@ -1162,6 +1181,8 @@ interface HeroConfig {
   tagline?: string;
   actions?: Array<{ theme?: string; text: string; link: string }>;
   image?: { src: string; alt?: string } | string;
+  /** Install one-liner rendered as a monospace pill under the actions. */
+  command?: string;
 }
 
 export interface FeatureConfig {
@@ -1184,9 +1205,9 @@ function heroSection(hero: HeroConfig): DomphyElement {
     textChildren.push({
       div: hero.name,
       style: {
-        fontSize: fixed("56px"),
+        fontSize: hasImage ? fixed("56px") : fixed("clamp(56px, 7vw, 82px)"),
         fontWeight: fixed("800"),
-        lineHeight: fixed("1.1"),
+        lineHeight: fixed("1.08"),
         letterSpacing: fixed("-.03em"),
         background: `linear-gradient(120deg,${brand},${tc("shift-7", "secondary")})`,
         WebkitBackgroundClip: "text",
@@ -1198,8 +1219,9 @@ function heroSection(hero: HeroConfig): DomphyElement {
     textChildren.push({
       h1: hero.text,
       style: {
-        fontSize: fixed("30px"),
+        fontSize: hasImage ? fixed("30px") : fixed("clamp(26px, 3vw, 38px)"),
         fontWeight: fixed("700"),
+        letterSpacing: fixed("-.02em"),
         margin: `${ts(3)} 0 0`,
         color: textStrong,
       },
@@ -1255,11 +1277,48 @@ function heroSection(hero: HeroConfig): DomphyElement {
       },
     } as DomphyElement);
   }
+  if (hero.command) {
+    textChildren.push({
+      div: [
+        { span: "$", style: { color: brand, userSelect: "none" } },
+        { span: hero.command },
+      ] as DomphyElement[],
+      style: {
+        display: "inline-flex",
+        gap: ts(2),
+        alignSelf: "center",
+        marginTop: ts(6),
+        padding: `${ts(2)} ${ts(4.5)}`,
+        borderRadius: ts(2),
+        border: `1px solid ${border}`,
+        background: bgSoft,
+        color: textSoft,
+        fontFamily: fixed("var(--dp-font-mono, ui-monospace, monospace)"),
+        fontSize: fixed("13.5px"),
+      },
+    } as DomphyElement);
+  }
 
   if (!hasImage) {
     return {
       section: textChildren,
-      style: { textAlign: "center", padding: `${ts(10)} 0 ${ts(6)}` },
+      style: {
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        textAlign: "center",
+        padding: `${ts(16)} 0 ${ts(10)}`,
+        // Soft brand glow behind the headline — the one visual cue that this
+        // is a landing, not a doc page. color-mix keeps it theme-aware since
+        // the tokens are var() references, not literals.
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: `-${ts(14)} -${ts(20)} 0`,
+          pointerEvents: "none",
+          background: `radial-gradient(46% 55% at 50% 28%, color-mix(in srgb, ${brand} 13%, transparent), transparent 70%)`,
+        },
+      },
     };
   }
 
@@ -1348,11 +1407,19 @@ function featuresSection(features: FeatureConfig[]): DomphyElement {
         },
       } as DomphyElement);
       const featureStyle = {
-        padding: ts(5),
+        height: "100%",
+        padding: ts(6),
         background: bgSoft,
         color: text,
         border: `1px solid ${border}`,
-        borderRadius: ts(3),
+        borderRadius: ts(4),
+        transition:
+          "border-color .18s ease, transform .18s ease, box-shadow .18s ease",
+        "&:hover": {
+          borderColor: `color-mix(in srgb, ${brand} 55%, ${border})`,
+          transform: "translateY(-2px)",
+          boxShadow: `0 6px 24px -12px color-mix(in srgb, ${brand} 35%, transparent)`,
+        },
       };
       const el: DomphyElement = {
         div: inner,
@@ -1386,7 +1453,34 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
   const features = ctx.frontmatter.features as FeatureConfig[] | undefined;
   if (hero) main.push(heroSection(hero));
   if (features?.length) main.push(featuresSection(features));
-  main.push(contentDiv(ctx.body));
+  // Home body spans the full main column (doc pages keep their reading
+  // width) — hero/features above are 1100px wide, so a ~710px left-aligned
+  // body reads as broken alignment. Table/hr polish is home-only: the
+  // markdown package/feature tables on a landing are presentation, not
+  // reference reading.
+  main.push({
+    div: [contentDiv(ctx.body, "none")],
+    style: {
+      "& hr": {
+        border: "none",
+        borderTop: `1px solid ${border}`,
+        margin: `${ts(12)} 0`,
+      },
+      "& table": {
+        width: "100%",
+        borderCollapse: "collapse",
+        fontSize: fixed("14.5px"),
+      },
+      "& thead": { display: "none" },
+      "& td": {
+        padding: `${ts(3)} ${ts(4)}`,
+        borderBottom: `1px solid color-mix(in srgb, ${border} 60%, transparent)`,
+      },
+      "& tbody tr": { transition: "background .15s ease" },
+      "& tbody tr:hover": { background: bgSoft },
+      "& td:first-child": { whiteSpace: "nowrap", width: "1%" },
+    },
+  } as DomphyElement);
   const bar = announcementBar(ctx.config);
   const headerEl = resolveSlot(ctx, "header", header);
   const slots = ctx.config.themeConfig.slots;
