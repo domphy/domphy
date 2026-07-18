@@ -228,7 +228,7 @@
     },
     {
       "name": "@domphy/ui",
-      "version": "0.18.23",
+      "version": "0.20.0",
       "description": "Domphy UI",
       "subpaths": [
         "."
@@ -1535,6 +1535,34 @@
       "source": "packages/ui/src/patches/pagination.ts"
     },
     {
+      "name": "panelSection",
+      "hostTag": null,
+      "signature": "panelSection(props: { padding?: number; divider?: boolean; color?: ValueOrState<ThemeColor>; } = {})",
+      "props": [
+        {
+          "name": "padding",
+          "type": "number",
+          "optional": true,
+          "doc": "Spacing multiplier for padding on all sides (default 4 = 1em at density 1)."
+        },
+        {
+          "name": "divider",
+          "type": "boolean",
+          "optional": true,
+          "doc": "Adds a bottom border, for sections stacked one after another. Defaults to `false`."
+        },
+        {
+          "name": "color",
+          "type": "ValueOrState<ThemeColor>",
+          "optional": true,
+          "doc": "Theme color tone for the divider border. Defaults to `\"neutral\"`."
+        }
+      ],
+      "doc": "A padded section for side-panel/inspector UIs — density-aware padding on all sides, with an optional bottom divider for sections stacked one after another. A thin wrapper: it does not impose flex layout on its children — pair it with `stack()` or `row()` for that. No host-tag check; apply to any block element.",
+      "example": "{ div: [{ h3: \"Parameters\" }, { p: \"...\" }], $: [panelSection()] }",
+      "source": "packages/ui/src/patches/panelSection.ts"
+    },
+    {
       "name": "paragraph",
       "hostTag": "p",
       "signature": "paragraph(props: { color?: ValueOrState<ThemeColor> } = {})",
@@ -1735,6 +1763,40 @@
       "doc": "Circular ring progress indicator rendered via CSS `conic-gradient` and a circular `mask`. Progress starts at 12 o'clock and advances clockwise. Exposes `role=\"progressbar\"` with `aria-valuenow/min/max`. Apply to a `<div>`.",
       "example": "{ div: null, $: [ringProgress({ value: 65 })] }",
       "source": "packages/ui/src/patches/ringProgress.ts"
+    },
+    {
+      "name": "row",
+      "hostTag": null,
+      "signature": "row(props: { gap?: number; align?: FlexAlign; justify?: FlexJustify; wrap?: boolean; } = {})",
+      "props": [
+        {
+          "name": "gap",
+          "type": "number",
+          "optional": true,
+          "doc": "Spacing multiplier for gap between items (default 4 = 1em at density 1)."
+        },
+        {
+          "name": "align",
+          "type": "FlexAlign",
+          "optional": true,
+          "doc": "Cross-axis alignment (`alignItems`). Defaults to `\"center\"`."
+        },
+        {
+          "name": "justify",
+          "type": "FlexJustify",
+          "optional": true,
+          "doc": "Main-axis distribution (`justifyContent`). Unset by default (flex-start)."
+        },
+        {
+          "name": "wrap",
+          "type": "boolean",
+          "optional": true,
+          "doc": "Allow items to wrap onto multiple lines. Defaults to `false`."
+        }
+      ],
+      "doc": "A horizontal flex row with spacing between children, vertically centered by default. The general-purpose primitive for icon+label rows, field rows, and button groups — instead of hand-rolling `display: flex; alignItems: center; gap: ...`. `toolbar()` is a semantic alias of this same shape for headers/nav bars. Styles the host only; apply to any block element.",
+      "example": "{ div: [{ span: \"Icon\" }, { span: \"Label\" }], $: [row()] }",
+      "source": "packages/ui/src/patches/row.ts"
     },
     {
       "name": "scrollArea",
@@ -2021,6 +2083,28 @@
       "doc": "The resizable panel inside a `splitter`. Reads the `splitter` context and binds its width (horizontal) or height (vertical) to the context `size` state, updating reactively as the handle is dragged. Intended for exactly two panels either side of one `splitterHandle`: the first `splitterPanel` mounted takes `size`%, and the second takes the complementary `100 - size`% — so the pair always sums to the full width/height instead of both tracking the same number (which would make them grow and shrink together instead of trading space). Warns if used outside a `splitter`. Takes no props.",
       "example": "{ div: [...], $: [splitterPanel()] }",
       "source": "packages/ui/src/patches/splitter.ts"
+    },
+    {
+      "name": "stack",
+      "hostTag": null,
+      "signature": "stack(props: { gap?: number; align?: FlexAlign } = {})",
+      "props": [
+        {
+          "name": "gap",
+          "type": "number",
+          "optional": true,
+          "doc": "Spacing multiplier for gap between children (default 3 = 0.75em at density 1)."
+        },
+        {
+          "name": "align",
+          "type": "FlexAlign",
+          "optional": true,
+          "doc": "Cross-axis alignment (`alignItems`). Unset by default (flex default, stretch)."
+        }
+      ],
+      "doc": "A vertical flex column with spacing between children. The general-purpose primitive for stacking blocks — form sections, panel content, card bodies — instead of hand-rolling `display: flex; flexDirection: column; gap: ...`. Styles the host only; apply to any block element.",
+      "example": "{ div: [{ h3: \"Title\" }, { p: \"Body\" }], $: [stack()] }",
+      "source": "packages/ui/src/patches/stack.ts"
     },
     {
       "name": "steps",
@@ -2327,7 +2411,7 @@
           "doc": "Spacing multiplier for gap between items (default 4 = 1em)."
         }
       ],
-      "doc": "A horizontal flex row with vertically centered items. Useful for headers, toolbars, navigation bars, and action strips.",
+      "doc": "A horizontal flex row with vertically centered items. Useful for headers, toolbars, navigation bars, and action strips. A semantic alias of `row()` at its default alignment — reach for `row()` directly for `justify`/`wrap`/ `align` beyond this shape.",
       "example": "{ header: [...], $: [toolbar()] }",
       "source": "packages/ui/src/patches/toolbar.ts"
     },

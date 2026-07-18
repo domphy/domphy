@@ -44,6 +44,7 @@ const App = {
   - Literal color → `color: (l) => themeColor(l, "base", "colorName")`
   - `fontFamily` → remove entirely (theme owns the font stack)
 - **Theme, not hard-coded values:** `themeColor()`, `themeSpacing()`, `themeSize()`, `themeDensity()`; tones are `inherit`/`base`/`shift-N`/`increase-N`/`decrease-N`, or the semantic aliases `surface`/`hover`/`border`/`border-strong`/`muted`/`text` — prefer aliases over raw `shift-N`.
+- **Layout, not hand-rolled flex styles:** reach for `stack()` (vertical flex column + gap), `row()` (horizontal flex + gap, centered by default, with `align`/`justify`/`wrap`), and `panelSection()` (density-aware padding + optional bottom divider — a thin wrapper, compose it with `stack()`/`row()` for the flex itself) before writing `style: { display: "flex", flexDirection: ..., gap: ... }` inline. `toolbar()` is a semantic alias of `row()` for headers/nav bars.
 - **`_key`** on dynamic/reordered child lists (identity for reconcile). It is not DOM id / business identity.
 - **CSP nonce:** if the app has a Content-Security-Policy requiring nonces on inline styles, call `configure({ cspNonce: "..." })` from `@domphy/core` before mounting. This stamps the nonce on every Domphy-injected `<style>` element.
 - **Error boundaries:** use the `errorBoundary()` patch (`@domphy/ui`) to catch errors thrown in reactive children. It invokes `_onError` on the nearest ancestor; call `reset()` to swap in a fallback element.
@@ -69,7 +70,7 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 | --- | --- |
 | `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code; `behavior(key, attach, props)` — per-node imperative state that survives reactive re-renders, see "Reused-node lifecycle" below) |
 | `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`); `generateTheme(baseColors, opts?)` builds a full `ThemeInput` from one base hex per semantic role via `@domphy/palette`'s ramp generator (see `DESIGN.md`) |
-| `@domphy/ui` | 93 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, …) |
+| `@domphy/ui` | 95 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, `stack`, `row`, `panelSection`, …) |
 | `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery`/`bindResult` at `@domphy/query/domphy`; `bindResult` connects an observer to Domphy reactivity so result fields are readable with a listener |
 | `@domphy/table` | headless tables — adapter `createDomphyTable` at `@domphy/table/domphy` |
 | `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
@@ -43352,6 +43353,59 @@ function pagination(props: {
 export { pagination };
 ```
 
+### panelSection
+
+```ts
+import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type ThemeColor,
+  themeColor,
+  themeDensity,
+  themeSpacing,
+} from "@domphy/theme";
+
+/**
+ * A padded section for side-panel/inspector UIs — density-aware padding on
+ * all sides, with an optional bottom divider for sections stacked one after
+ * another. A thin wrapper: it does not impose flex layout on its children —
+ * pair it with `stack()` or `row()` for that. No host-tag check; apply to
+ * any block element.
+ *
+ * @param props.padding - Spacing multiplier for padding on all sides (default 4 = 1em at density 1).
+ * @param props.divider - Adds a bottom border, for sections stacked one after another. Defaults to `false`.
+ * @param props.color - Theme color tone for the divider border. Defaults to `"neutral"`.
+ * @example { div: [{ h3: "Parameters" }, { p: "..." }], $: [panelSection()] }
+ * @example
+ * { div: [
+ *   { div: "Section A", $: [panelSection({ divider: true })] },
+ *   { div: "Section B", $: [panelSection()] },
+ * ], $: [stack({ gap: 0 })] }
+ */
+function panelSection(
+  props: {
+    padding?: number;
+    divider?: boolean;
+    color?: ValueOrState<ThemeColor>;
+  } = {},
+): PartialElement {
+  const { padding = 4, divider = false } = props;
+  const color = toState(props.color ?? "neutral", "color");
+  return {
+    style: {
+      padding: (listener) => themeSpacing(themeDensity(listener) * padding),
+      ...(divider
+        ? {
+            borderBottom: (listener) =>
+              `1px solid ${themeColor(listener, "border", color.get(listener))}`,
+          }
+        : {}),
+    },
+  };
+}
+
+export { panelSection };
+```
+
 ### paragraph
 
 ```ts
@@ -43970,6 +44024,59 @@ function ringProgress(
 }
 
 export { ringProgress };
+```
+
+### row
+
+```ts
+import type { PartialElement } from "@domphy/core";
+import { themeDensity, themeSpacing } from "@domphy/theme";
+import type { FlexAlign } from "./stack.js";
+
+type FlexJustify =
+  | "flex-start"
+  | "center"
+  | "flex-end"
+  | "space-between"
+  | "space-around"
+  | "space-evenly";
+
+/**
+ * A horizontal flex row with spacing between children, vertically centered by
+ * default. The general-purpose primitive for icon+label rows, field rows,
+ * and button groups — instead of hand-rolling `display: flex; alignItems:
+ * center; gap: ...`. `toolbar()` is a semantic alias of this same shape for
+ * headers/nav bars. Styles the host only; apply to any block element.
+ *
+ * @param props.gap - Spacing multiplier for gap between items (default 4 = 1em at density 1).
+ * @param props.align - Cross-axis alignment (`alignItems`). Defaults to `"center"`.
+ * @param props.justify - Main-axis distribution (`justifyContent`). Unset by default (flex-start).
+ * @param props.wrap - Allow items to wrap onto multiple lines. Defaults to `false`.
+ * @example { div: [{ span: "Icon" }, { span: "Label" }], $: [row()] }
+ * @example { div: [...], $: [row({ justify: "space-between", wrap: true })] }
+ */
+function row(
+  props: {
+    gap?: number;
+    align?: FlexAlign;
+    justify?: FlexJustify;
+    wrap?: boolean;
+  } = {},
+): PartialElement {
+  const { gap = 4, align = "center", justify, wrap = false } = props;
+  return {
+    style: {
+      display: "flex",
+      alignItems: align,
+      gap: (listener) => themeSpacing(themeDensity(listener) * gap),
+      ...(justify ? { justifyContent: justify } : {}),
+      ...(wrap ? { flexWrap: "wrap" } : {}),
+    },
+  };
+}
+
+export { row };
+export type { FlexJustify };
 ```
 
 ### scrollArea
@@ -44929,6 +45036,41 @@ function splitterHandle(): PartialElement {
 }
 
 export { splitter, splitterPanel, splitterHandle };
+```
+
+### stack
+
+```ts
+import type { PartialElement } from "@domphy/core";
+import { themeDensity, themeSpacing } from "@domphy/theme";
+
+type FlexAlign = "flex-start" | "center" | "flex-end" | "stretch" | "baseline";
+
+/**
+ * A vertical flex column with spacing between children. The general-purpose
+ * primitive for stacking blocks — form sections, panel content, card bodies —
+ * instead of hand-rolling `display: flex; flexDirection: column; gap: ...`.
+ * Styles the host only; apply to any block element.
+ *
+ * @param props.gap - Spacing multiplier for gap between children (default 3 = 0.75em at density 1).
+ * @param props.align - Cross-axis alignment (`alignItems`). Unset by default (flex default, stretch).
+ * @example { div: [{ h3: "Title" }, { p: "Body" }], $: [stack()] }
+ * @example { div: [...], $: [stack({ gap: 2, align: "center" })] }
+ */
+function stack(props: { gap?: number; align?: FlexAlign } = {}): PartialElement {
+  const { gap = 3, align } = props;
+  return {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: (listener) => themeSpacing(themeDensity(listener) * gap),
+      ...(align ? { alignItems: align } : {}),
+    },
+  };
+}
+
+export { stack };
+export type { FlexAlign };
 ```
 
 ### steps
@@ -46010,25 +46152,20 @@ export type { ToggleItem };
 
 ```ts
 import type { DomphyElement, PartialElement } from "@domphy/core";
-import { themeDensity, themeSpacing } from "@domphy/theme";
+import { row } from "./row.js";
 
 /**
  * A horizontal flex row with vertically centered items. Useful for headers,
- * toolbars, navigation bars, and action strips.
+ * toolbars, navigation bars, and action strips. A semantic alias of `row()`
+ * at its default alignment — reach for `row()` directly for `justify`/`wrap`/
+ * `align` beyond this shape.
  *
  * @param props.gap - Spacing multiplier for gap between items (default 4 = 1em).
  * @example { header: [...], $: [toolbar()] }
  * @example { nav: [...], $: [toolbar({ gap: 3 })] }
  */
 function toolbar(props: { gap?: number } = {}): PartialElement {
-  const gap = props.gap ?? 4;
-  return {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: (listener) => themeSpacing(themeDensity(listener) * gap),
-    },
-  };
+  return row({ gap: props.gap });
 }
 
 /**

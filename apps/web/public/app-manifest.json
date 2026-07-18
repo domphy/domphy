@@ -762,6 +762,14 @@
   {
     "name": "App",
     "kind": "block",
+    "file": "apps/web/docs/demos/patches/PanelSection.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
     "file": "apps/web/docs/demos/patches/Paragraph.ts",
     "signature": "App: DomphyElement<\"p\">",
     "jsdoc": "",
@@ -811,6 +819,14 @@
     "name": "App",
     "kind": "block",
     "file": "apps/web/docs/demos/patches/RingProgress.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/patches/Row.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
     "exportKind": "default"
@@ -891,6 +907,14 @@
     "name": "App",
     "kind": "block",
     "file": "apps/web/docs/demos/patches/Splitter.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/patches/Stack.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
     "exportKind": "default"
