@@ -123,6 +123,15 @@ function drawer(
         if (!closing) return;
         closing = false;
         dlg.close();
+        // Same fix as dialog.ts: the closed state was only ever represented
+        // by an off-screen `transform`, never visibility/pointer-events — a
+        // closed drawer stayed fully reachable by Tab and exposed to the
+        // accessibility tree (a CSS transform, like opacity, does neither),
+        // and a consumer's own `style: { display: ... }` overrides the UA
+        // stylesheet's `dialog:not([open])` rule anyway. Set INLINE so it
+        // always wins.
+        dlg.style.visibility = "hidden";
+        dlg.style.pointerEvents = "none";
         if (scrollLocked) {
           unlockScroll();
           scrollLocked = false;
@@ -139,6 +148,8 @@ function drawer(
       const update = (val: boolean) => {
         if (val) {
           closing = false;
+          dlg.style.visibility = "visible";
+          dlg.style.pointerEvents = "auto";
           dlg.showModal();
           if (!scrollLocked) {
             lockScroll();
@@ -171,6 +182,12 @@ function drawer(
     },
     style: {
       transform: translateOut[physicalFallback],
+      // Matches finishClose's inline defaults — a drawer that mounts
+      // already-closed (the common case) must start out of the tab
+      // order/accessibility tree from first paint, not just after its first
+      // open->close cycle runs finishClose.
+      visibility: "hidden",
+      pointerEvents: "none",
       transition: "transform 0.25s ease",
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-10", color),

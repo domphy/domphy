@@ -5,6 +5,7 @@ import { ElementNode, flushSync, toState } from "@domphy/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   alert,
+  dialog,
   drawer,
   errorBoundary,
   popover,
@@ -124,6 +125,104 @@ describe("drawer", () => {
     open.set(true);
     flushSync();
     expect(dlg.open).toBe(true);
+  });
+
+  // 2026-07-19 fix: a closed drawer was only ever represented by an off-screen
+  // `transform` — never visibility/pointer-events, which a CSS transform
+  // (like opacity) doesn't affect either way. That left every closed drawer's
+  // content fully reachable by Tab and exposed to the accessibility tree.
+  it("removes closed content from the tab order/a11y tree via visibility, not just an off-screen transform", () => {
+    const open = toState(false);
+    const { host } = render({
+      div: [{ dialog: [{ button: "Action" }], $: [drawer({ open })] }],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+    // Mounting already-closed runs the SAME close path as a real close (the
+    // 350ms fallback timer, since there's no real opacity/transform change to
+    // fire transitionend) — drain it to reach the settled inline state; the
+    // static style block's own "hidden"/"none" defaults (asserted via
+    // getComputedStyle, since jsdom resolves Domphy's compiled CSS class
+    // there, not on the bare inline `.style`) cover the gap before that timer
+    // fires.
+    expect(getComputedStyle(dlg).visibility).toBe("hidden");
+    expect(getComputedStyle(dlg).pointerEvents).toBe("none");
+    vi.runAllTimers();
+    expect(dlg.style.visibility).toBe("hidden");
+    expect(dlg.style.pointerEvents).toBe("none");
+
+    open.set(true);
+    flushSync();
+    expect(dlg.style.visibility).toBe("visible");
+    expect(dlg.style.pointerEvents).toBe("auto");
+
+    open.set(false);
+    flushSync();
+    vi.runAllTimers();
+    expect(dlg.style.visibility).toBe("hidden");
+    expect(dlg.style.pointerEvents).toBe("none");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dialog
+// Same 350ms fallback-timer shape as drawer above — fake timers for the same reason.
+// ---------------------------------------------------------------------------
+
+describe("dialog", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.runAllTimers());
+
+  it("sets aria-modal on the dialog element", () => {
+    const { host } = render({
+      div: [{ dialog: [], $: [dialog()] }],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog");
+    expect(dlg?.getAttribute("aria-modal")).toBe("true");
+  });
+
+  it("calls showModal when opened", () => {
+    const open = toState(false);
+    const { host } = render({
+      div: [{ dialog: [], $: [dialog({ open })] }],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+    expect(dlg.open).toBe(false);
+    open.set(true);
+    flushSync();
+    expect(dlg.open).toBe(true);
+  });
+
+  // 2026-07-19 fix: a closed dialog was only ever represented by `opacity:
+  // 0` — opacity, unlike visibility, never removes an element from the tab
+  // order or the accessibility tree, so a closed dialog's buttons/inputs
+  // stayed fully focusable and screen-reader-visible (confirmed live on
+  // parashape.com: a "Delete account" confirm dialog that was never opened
+  // still had a Tab-reachable button positioned off-screen).
+  it("removes closed content from the tab order/a11y tree via visibility, not just opacity", () => {
+    const open = toState(false);
+    const { host } = render({
+      div: [{ dialog: [{ button: "Delete account" }], $: [dialog({ open })] }],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+    // See the equivalent drawer test above for why this checks computed style
+    // first (the static default) and drains the fallback timer before
+    // checking the imperative inline style.
+    expect(getComputedStyle(dlg).visibility).toBe("hidden");
+    expect(getComputedStyle(dlg).pointerEvents).toBe("none");
+    vi.runAllTimers();
+    expect(dlg.style.visibility).toBe("hidden");
+    expect(dlg.style.pointerEvents).toBe("none");
+
+    open.set(true);
+    flushSync();
+    expect(dlg.style.visibility).toBe("visible");
+    expect(dlg.style.pointerEvents).toBe("auto");
+
+    open.set(false);
+    flushSync();
+    vi.runAllTimers();
+    expect(dlg.style.visibility).toBe("hidden");
+    expect(dlg.style.pointerEvents).toBe("none");
   });
 });
 

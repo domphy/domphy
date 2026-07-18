@@ -35,6 +35,17 @@ function dialog(
   const finalizeClose = (dlg: HTMLDialogElement) => {
     closing = false;
     dlg.close();
+    // visibility/pointer-events (not just opacity) must reflect the closed
+    // state: opacity alone leaves a closed dialog's content fully reachable
+    // by Tab and exposed to the accessibility tree (opacity, unlike
+    // visibility, never removes an element from either) — and a consumer
+    // that sets its own `style: { display: ... }` on the dialog (a common
+    // pattern for centering content) overrides the UA stylesheet's
+    // `dialog:not([open]) { display: none }`, so `dlg.close()` alone doesn't
+    // reliably hide it either. Set INLINE so it always wins regardless of
+    // what the consumer's own style object declares.
+    dlg.style.visibility = "hidden";
+    dlg.style.pointerEvents = "none";
     if (scrollLocked) {
       unlockScroll();
       scrollLocked = false;
@@ -112,6 +123,8 @@ function dialog(
       const update = (val: boolean) => {
         if (val) {
           previousFocus = document.activeElement as HTMLElement;
+          dlg.style.visibility = "visible";
+          dlg.style.pointerEvents = "auto";
           dlg.showModal();
           if (!scrollLocked) {
             lockScroll();
@@ -156,6 +169,12 @@ function dialog(
     },
     style: {
       opacity: "0",
+      // Matches finalizeClose's inline defaults — a dialog that mounts
+      // already-closed (the common case: `open` defaults to false) must
+      // start out of the tab order/accessibility tree from first paint, not
+      // just after its first open->close cycle runs finalizeClose.
+      visibility: "hidden",
+      pointerEvents: "none",
       transition: "opacity 200ms ease",
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-10", color),
