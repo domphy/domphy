@@ -45,7 +45,6 @@ export const config = defineConfig({
           { text: "i18n", link: "/docs/i18n/" },
           { text: "Markdown", link: "/docs/markdown/" },
           { text: "Mermaid", link: "/docs/mermaid/" },
-          { text: "Audit", link: "/docs/audit/" },
         ],
       },
       { text: "AI", link: "/docs/ai" },
@@ -355,15 +354,6 @@ export const config = defineConfig({
         { text: "Configuration & API", link: "/docs/doctor/configuration" },
         { text: "Agent Loop", link: "/docs/doctor/agent-loop" },
       ],
-      "/docs/audit/": [
-        { text: "Overview", link: "/docs/audit/" },
-        {
-          text: "Interpreting Audit Results",
-          link: "/docs/audit/interpreting-results",
-        },
-        { text: "CI Integration", link: "/docs/audit/ci-integration" },
-        { text: "checkLayout API", link: "/docs/audit/check-layout" },
-      ],
       "/docs/palette/": [
         { text: "Overview", link: "/docs/palette/" },
         { text: "Paper — Measuring Quality", link: "/docs/palette/measuring" },
@@ -534,7 +524,6 @@ export const config = defineConfig({
         { text: "Palette", link: "/docs/palette/" },
         { text: "App", link: "/docs/app/" },
         { text: "Doctor", link: "/docs/doctor/" },
-        { text: "Audit", link: "/docs/audit/" },
         { text: "i18n", link: "/docs/i18n/" },
         { text: "Press", link: "/docs/press/" },
         { text: "MCP", link: "/docs/mcp/" },

@@ -139,7 +139,6 @@ await includeDir(
   resolve(ROOT, "docs/doctor"),
   "Doctor docs (`@domphy/doctor`)",
 );
-await includeDir(resolve(ROOT, "docs/audit"), "Audit docs (`@domphy/audit`)");
 await includeDir(resolve(ROOT, "docs/i18n"), "i18n docs (`@domphy/i18n`)");
 await includeDir(resolve(ROOT, "docs/press"), "Press docs (`@domphy/press`)");
 await includeDir(resolve(ROOT, "docs/mcp"), "MCP docs (`@domphy/mcp`)");

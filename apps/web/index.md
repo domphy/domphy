@@ -58,7 +58,6 @@ import HomeHero from "./docs/demos/home/hero.js"
 | [`@domphy/i18n`](/docs/i18n/) | i18next wrapper with reactive `t(listener, key)` |
 | [`@domphy/doctor`](/docs/doctor/) | Static analyzer — flags non-idiomatic code, auto-fixes |
 | [`@domphy/mcp`](/docs/mcp/) | MCP server — 10 tools for AI agents to explore the framework |
-| [`@domphy/audit`](/docs/audit/) | Layout verification via Playwright — overlap, contrast, geometry |
 | [`create-domphy`](https://www.npmjs.com/package/create-domphy) | Scaffolder — `npm create domphy@latest` Vite + TS starter |
 
 ## Installation

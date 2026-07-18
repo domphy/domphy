@@ -191,23 +191,6 @@ Or in CSS:
 :root[data-theme="light"] { color-scheme: light; }
 ```
 
-## Contrast checking
-
-Use `@domphy/audit`'s `checkContrast` to verify all text elements have sufficient contrast in both themes:
-
-```ts
-import { checkContrast } from "@domphy/audit"
-
-// Run in CI for both themes
-document.documentElement.setAttribute("data-theme", "light")
-const lightResults = await checkContrast(page)
-
-document.documentElement.setAttribute("data-theme", "dark")
-const darkResults = await checkContrast(page)
-
-const failures = [...lightResults, ...darkResults].filter(r => !r.ok)
-```
-
 ## TypeScript: typed theme state
 
 ```ts
