@@ -186,13 +186,14 @@ import { themeDensity, themeSpacing } from "@domphy/theme"
 - `"shift-N"` where N is 0–17 — absolute position in the 18-step ramp
 - `"increase-N"` where N is 0–17 — lighter relative to the current context
 - `"decrease-N"` where N is 0–17 — darker relative to the current context
+- A semantic alias from `@domphy/theme` — `"surface"`, `"hover"`, `"border"`, `"border-strong"`, `"muted"`, `"text"` — each resolves to its underlying `shift-N` before grammar/range checks (see [Tone Aliases](/docs/theme/tone#semantic-aliases))
 
-Anything else is flagged, including words like `"surface"`, `"text"`, `"light"`, `"dark"`, and out-of-range offsets like `"shift-25"`.
+Anything else is flagged, including made-up words like `"light"` or `"dark"`, and out-of-range offsets like `"shift-25"`.
 
 ```ts
 // Bad
-{ div: "Card", dataTone: "surface" }   // not a tone
 { div: "Card", dataTone: "light" }     // not a tone
+{ div: "Card", dataTone: "dark" }      // not a tone
 { div: "Card", dataTone: "shift-25" }  // out of range (max 17)
 { div: "Card", dataTone: "increase-18" } // out of range
 ```
@@ -204,6 +205,8 @@ Anything else is flagged, including words like `"surface"`, `"text"`, `"light"`,
 { div: "Card", dataTone: "shift-17" }     // darkest
 { div: "Card", dataTone: "increase-2" }   // 2 steps lighter than context
 { div: "Card", dataTone: "decrease-3" }   // 3 steps darker than context
+{ div: "Card", dataTone: "surface" }      // semantic alias, same as "shift-1"
+{ div: "Card", dataTone: "border-strong" } // semantic alias, same as "shift-4"
 ```
 
 **Note:** bare integer strings like `"999"` or `"-5"` pass this rule — the parser accepts them without range-checking. Only the `shift-N` / `increase-N` / `decrease-N` families have N ≤ 17 enforced.
@@ -229,7 +232,7 @@ A `shift-N` tone where N is 4–13 places the surface in the middle of the ramp.
 
 Mid-ramp anchors (`shift-4` through `shift-13`) are intentionally valid grammar — the rule only warns, not errors. They are correct for highlighted or inverted regions where the contrast collapse is the intended effect. Suppress the warning mentally in those cases; the rule exists to catch accidental mid-anchoring, not deliberate use.
 
-Only `shift-N` triggers this rule. `increase-N` and `decrease-N` express relative tone offsets, not surface anchors, so they are never flagged by `middle-surface-anchor`.
+Only `shift-N` triggers this rule — `increase-N` and `decrease-N` express relative tone offsets, not surface anchors, so they are never flagged. Semantic aliases resolve to their underlying `shift-N` first, so mid-ramp aliases (`border-strong` = `shift-4`, `muted` = `shift-8`, `text` = `shift-9`) do trigger this rule the same as their numeric equivalent; edge-safe aliases (`surface` = `shift-1`, `hover` = `shift-2`, `border` = `shift-3`) do not.
 
 ---
 

@@ -209,12 +209,27 @@ const SPACING_STYLE = new Set([
 // "inherit", "0" (unitless zero is fine), or computed values.
 const LITERAL_SPACING = /^(\d+(?:\.\d+)?)(rem|em|px)$/;
 
-// Parses "increase-N" / "decrease-N" / "shift-N" into family + numeric offset.
-// Returns null when the pattern doesn't match (grammar error).
+// Semantic tone aliases, mirrored from @domphy/theme's `ToneAliases`
+// (packages/theme/src/tone.ts). Doctor has no runtime dependency on
+// @domphy/theme — this is a static duplicate kept in sync by hand, since the
+// doctor only needs the grammar (name -> underlying shift-N), not resolution.
+const TONE_ALIASES: Record<string, string> = {
+  surface: "shift-1",
+  hover: "shift-2",
+  border: "shift-3",
+  "border-strong": "shift-4",
+  muted: "shift-8",
+  text: "shift-9",
+};
+
+// Parses "increase-N" / "decrease-N" / "shift-N" — or a semantic alias that
+// resolves to one of those — into family + numeric offset. Returns null when
+// the pattern doesn't match (grammar error).
 function parseOffset(
   value: string,
 ): { family: "increase" | "decrease" | "shift"; n: number } | null {
-  const m = value.match(/^(increase|decrease|shift)-(\d+)$/);
+  const resolved = TONE_ALIASES[value] ?? value;
+  const m = resolved.match(/^(increase|decrease|shift)-(\d+)$/);
   if (!m) return null;
   return {
     family: m[1] as "increase" | "decrease" | "shift",
@@ -223,7 +238,8 @@ function parseOffset(
 }
 
 // Valid `dataTone` grammar AND range:
-//   "inherit", "base", a bare integer, or shift-N/increase-N/decrease-N where N ≤ 17.
+//   "inherit", "base", a bare integer, a semantic alias (surface/hover/border/
+//   border-strong/muted/text), or shift-N/increase-N/decrease-N where N ≤ 17.
 //   The default Domphy theme has 18 tone steps (0–17). Values with valid grammar
 //   but N > 17 are also rejected here so they surface as `unknown-tone` errors.
 function isValidTone(value: string): boolean {
@@ -809,7 +825,7 @@ function walk(
         category: "data-attr",
         path: here,
         message: `\`dataTone\` "${dataTone}" is not a valid tone.`,
-        hint: 'Use "inherit", "base", a number, or "shift-N"/"increase-N"/"decrease-N" with N ≤ 17 (the ramp has 18 steps). Words like "surface"/"text" are not tones.',
+        hint: 'Use "inherit", "base", a number, "shift-N"/"increase-N"/"decrease-N" (N ≤ 17), or a semantic alias: "surface", "hover", "border", "border-strong", "muted", "text".',
       });
     } else {
       // middle-surface-anchor: shift-4 through shift-13 sets a mid-ramp surface

@@ -32,7 +32,7 @@ const App = {
   - Error / colored text → `{ small: "...", $: [small({ color: "error" })] }`
   - Literal color → `color: (l) => themeColor(l, "base", "colorName")`
   - `fontFamily` → remove entirely (theme owns the font stack)
-- **Theme, not hard-coded values:** `themeColor()`, `themeSpacing()`, `themeSize()`, `themeDensity()`; tones are `inherit`/`base`/`shift-N` (not `surface`/`text`).
+- **Theme, not hard-coded values:** `themeColor()`, `themeSpacing()`, `themeSize()`, `themeDensity()`; tones are `inherit`/`base`/`shift-N`/`increase-N`/`decrease-N`, or the semantic aliases `surface`/`hover`/`border`/`border-strong`/`muted`/`text` — prefer aliases over raw `shift-N`.
 - **`_key`** on dynamic/reordered child lists (identity for reconcile). It is not DOM id / business identity.
 - **CSP nonce:** if the app has a Content-Security-Policy requiring nonces on inline styles, call `configure({ cspNonce: "..." })` from `@domphy/core` before mounting. This stamps the nonce on every Domphy-injected `<style>` element.
 - **Error boundaries:** use the `errorBoundary()` patch (`@domphy/ui`) to catch errors thrown in reactive children. It invokes `_onError` on the nearest ancestor; call `reset()` to swap in a fallback element.
@@ -95,6 +95,7 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 ```ts
 themeColor(listener, tone?, color?)
 // tone: "inherit" | "base" | "shift-N" | "increase-N" | "decrease-N"  (N ≤ 17)
+//       | "surface" | "hover" | "border" | "border-strong" | "muted" | "text"  (semantic aliases, prefer these)
 // color: "neutral" | "primary" | "secondary" | "info" | "success" | "warning"
 //        | "attention" | "error" | "danger" | "highlight"
 // Returns a var(--…) CSS reference — reactive, resolves at paint time.
@@ -109,16 +110,18 @@ Tone semantics (three-layer model):
 - **Semantic zone** (the element's own tone in `themeColor`): distance from surface encodes meaning: `+0` default/resting, `+3` indicator/active-item, `+6` strong accent.
 - **Interactive delta** (hover/press in `:hover`/`:active` CSS or reactive): transient `±1` hover, `±2` pressed.
 
-Common role mappings from an edge surface (`shift-0`):
-| Role | Tone | Example |
-|------|------|---------|
-| Background / surface | `"inherit"` | container bg |
-| Stroke / outline / divider | `"shift-3"` | border |
-| Muted text / placeholder | `"shift-6"` or `"shift-7"` | hint |
-| Body text | `"shift-9"` | paragraph |
-| Heading / strong text | `"shift-11"` | h2 |
-| Hover bg | `"increase-1"` | button:hover |
-| Active/pressed bg | `"increase-2"` | button:active |
+Common role mappings from an edge surface (`shift-0`). Prefer the alias column when one exists:
+| Role | Alias | Tone | Example |
+|------|-------|------|---------|
+| Background / surface | `"surface"` | `"inherit"` / `"shift-1"` | container bg |
+| Hover bg | `"hover"` | `"shift-2"` (or `"increase-1"` for a relative bump) | button:hover |
+| Stroke / divider | `"border"` | `"shift-3"` | subtle separator |
+| Control outline | `"border-strong"` | `"shift-4"` | button/input/card border |
+| Placeholder | — | `"shift-7"` | input placeholder |
+| Muted / disabled text | `"muted"` | `"shift-8"` | secondary text |
+| Body text | `"text"` | `"shift-9"` | paragraph |
+| Heading / strong text | — | `"shift-11"` | h2 |
+| Active/pressed bg | — | `"increase-2"` | button:active |
 
 ### Spacing (`themeSpacing`, `themeDensity`, `themeFluidSpacing`)
 ```ts

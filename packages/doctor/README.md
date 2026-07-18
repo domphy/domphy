@@ -71,7 +71,7 @@ The doctor implements 18 rules:
 | `low-contrast` | warning | `style.color` and `style.backgroundColor` are both reactive theme vars but their shift-step gap is < 9 (insufficient contrast) |
 | `dataTone-surface-contract` | warning | element sets `dataTone` but is missing `backgroundColor` and/or `color` — a tone context surface must declare both so children can guarantee readable contrast |
 | `color-shift-minimum` | warning | element with `dataTone` sets `style.color` to a tone step < 9 — below the minimum for legible body text |
-| `unknown-tone` | warning | a `dataTone` that isn't valid tone grammar, or whose offset is out of the 18-step ramp (0–17) |
+| `unknown-tone` | warning | a `dataTone` that isn't valid tone grammar, or whose offset is out of the 18-step ramp (0–17). Valid grammar includes the semantic aliases `surface`/`hover`/`border`/`border-strong`/`muted`/`text` |
 | `middle-surface-anchor` | warning | a `dataTone` of `shift-4`…`shift-13` (mid-ramp surface anchor) that may collapse child contrast |
 | `unknown-density` | warning/error | a `dataDensity` that isn't valid grammar, or whose offset is out of the 5-step range (0–4) |
 | `unknown-size` | warning/error | a `dataSize` that isn't valid grammar, or whose offset is out of the 8-step range (0–7) |

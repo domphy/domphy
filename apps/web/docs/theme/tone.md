@@ -196,6 +196,7 @@ Valid tone keys:
 - `"decrease-N"`
 - `"inherit"`
 - `"base"`
+- a semantic alias (see below)
 
 `dataTone` accepts the same keys.
 
@@ -214,6 +215,27 @@ backgroundColor: (l) => themeColor(l, "shift-0", "primary")
 color: (l) => themeColor(l, "shift-9", "primary")
 outline: (l) => `1px solid ${themeColor(l, "shift-3", "primary")}`
 ```
+
+## Semantic Aliases
+
+Raw `shift-N` indices work, but they force every caller to remember the numeric mapping. Prefer these aliases — they read as intent, resolve through the same shift machinery (so `dataTone` context and dark theme still work correctly), and match the tone roles derived above (`text = tone + K`, `stroke = tone + K/3`).
+
+| Alias | Resolves to | Use for |
+| --- | --- | --- |
+| `surface` | `shift-1` | subtle raised background |
+| `hover` | `shift-2` | hover/active background |
+| `border` | `shift-3` | default hairline divider (the `K/3` stroke role) |
+| `border-strong` | `shift-4` | control outline (button/input/card boundary) |
+| `muted` | `shift-8` | secondary/disabled text |
+| `text` | `shift-9` | default/primary text (the `K` text role) |
+
+```ts
+backgroundColor: (l) => themeColor(l, "inherit", "primary")
+color: (l) => themeColor(l, "text", "primary")
+outline: (l) => `1px solid ${themeColor(l, "border-strong", "primary")}`
+```
+
+This is identical to writing `themeColor(l, "shift-9", "primary")` and `themeColor(l, "shift-4", "primary")` — the alias is just sugar.
 
 ## Full Example
 

@@ -195,7 +195,7 @@ For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
 | `ThemeVars` | Object of `var(--…)` CSS variable references returned by `themeVars()`. |
 | `ThemeColor` | `ColorRole \| (string & {})` — the 10 built-in role names rank first in editor autocomplete/hover, but any string still type-checks (custom themes may register their own role names via `setTheme`/`generateTheme`). This is intentionally NOT a strict union — see `ColorRole` below for the exhaustive list. |
 | `ColorRole` | Strict union of the 10 built-in semantic role names: `"neutral" \| "primary" \| "secondary" \| "info" \| "success" \| "warning" \| "attention" \| "error" \| "danger" \| "highlight"`. Derived from `COLOR_ROLES` below. |
-| `ElementTone` | Valid tone descriptor strings: `"inherit"`, `"base"`, `"shift-N"`, `"increase-N"`, `"decrease-N"`. |
+| `ElementTone` | Valid tone descriptor strings: `"inherit"`, `"base"`, `"shift-N"`, `"increase-N"`, `"decrease-N"`, or a semantic alias (`"surface"`, `"hover"`, `"border"`, `"border-strong"`, `"muted"`, `"text"`) — see [Semantic Aliases](./tone#semantic-aliases). |
 | `ElementTones` | Runtime array of all valid tone strings (exported as a value for validation tooling). |
 | `ElementSize` | Valid size descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–7). |
 | `ElementDensity` | Valid density descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–4). |

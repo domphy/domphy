@@ -11,7 +11,7 @@ import {
   themeTokens,
   themeVars,
 } from "../src/theme.ts";
-import { themeColor, themeColorToken } from "../src/tone.ts";
+import { ElementTones, themeColor, themeColorToken } from "../src/tone.ts";
 
 function createAttributes(values: Record<string, string> = {}) {
   return {
@@ -195,6 +195,74 @@ describe("theme CSS generation hygiene", () => {
     expect(vars.darkBias).toBeUndefined();
     expect(vars.primary).toBeDefined();
     expect(vars.fontSizes).toBeDefined();
+  });
+});
+
+// Semantic tone aliases (surface/hover/border/border-strong/muted/text) are
+// sugar over the existing shift-N machinery — see packages/theme/src/tone.ts
+// for the mapping and the evidence behind each choice.
+describe("semantic tone aliases", () => {
+  const ALIASES: Record<string, string> = {
+    surface: "shift-1",
+    hover: "shift-2",
+    border: "shift-3",
+    "border-strong": "shift-4",
+    muted: "shift-8",
+    text: "shift-9",
+  };
+
+  it("ElementTones includes every alias name", () => {
+    for (const alias of Object.keys(ALIASES)) {
+      expect(ElementTones).toContain(alias);
+    }
+  });
+
+  it("resolves each alias to the same value as its shift-N equivalent (no node context, light theme)", () => {
+    for (const [alias, shift] of Object.entries(ALIASES)) {
+      expect(themeColor(null, alias as any, "primary")).toBe(
+        themeColor(null, shift as any, "primary"),
+      );
+    }
+  });
+
+  it("resolves each alias to the same value as its shift-N equivalent (with a dataTone node context)", () => {
+    const toneRoot = createNode({ dataTone: "increase-2" });
+    for (const [alias, shift] of Object.entries(ALIASES)) {
+      const aliasNode = createNode({}, toneRoot);
+      const shiftNode = createNode({}, toneRoot);
+      expect(themeColor(aliasNode as any, alias as any, "primary")).toBe(
+        themeColor(shiftNode as any, shift as any, "primary"),
+      );
+    }
+  });
+
+  it("resolves identically in the dark theme too", () => {
+    const themeRoot = createNode({ dataTheme: "dark" });
+    for (const [alias, shift] of Object.entries(ALIASES)) {
+      const aliasNode = createNode({}, themeRoot);
+      const shiftNode = createNode({}, themeRoot);
+      expect(themeColor(aliasNode as any, alias as any, "primary")).toBe(
+        themeColor(shiftNode as any, shift as any, "primary"),
+      );
+    }
+  });
+
+  it("themeColorToken resolves aliases identically to their shift-N equivalent", () => {
+    for (const [alias, shift] of Object.entries(ALIASES)) {
+      expect(themeColorToken(null, alias as any, "primary")).toBe(
+        themeColorToken(null, shift as any, "primary"),
+      );
+    }
+  });
+
+  it("dataTone itself accepts an alias (context-shift, not just color/token calls)", () => {
+    const aliasRoot = createNode({ dataTone: "border-strong" });
+    const shiftRoot = createNode({ dataTone: "shift-4" });
+    const aliasChild = createNode({}, aliasRoot);
+    const shiftChild = createNode({}, shiftRoot);
+    expect(themeColor(aliasChild as any, "inherit", "primary")).toBe(
+      themeColor(shiftChild as any, "inherit", "primary"),
+    );
   });
 });
 

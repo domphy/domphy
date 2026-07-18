@@ -51,7 +51,7 @@ describe("rule coverage (all 18 rules fire and no extras exist)", () => {
     "inline-typography": { p: "x", style: { fontSize: "20px" } },
     "raw-theme-value": { div: "x", style: { color: "#ff0000" } },
     "raw-spacing-value": { div: "x", style: { padding: "16px" } },
-    "unknown-tone": { div: "x", dataTone: "surface" },
+    "unknown-tone": { div: "x", dataTone: "invalid-tone-word" },
     "middle-surface-anchor": { div: "x", dataTone: "shift-9" },
     "unknown-density": { div: "x", dataDensity: "compact" },
     "unknown-size": { div: "x", dataSize: "large" },
@@ -112,8 +112,25 @@ describe("isValidTone characterization (current behavior, do not change)", () =>
     expect(rules({ div: "x", dataTone: "-5" })).not.toContain("unknown-tone");
   });
 
-  it("still rejects non-numeric, non-grammar words like 'surface'", () => {
-    expect(rules({ div: "x", dataTone: "surface" })).toContain("unknown-tone");
+  it("still rejects non-numeric, non-grammar words like 'invalid-tone-word'", () => {
+    expect(rules({ div: "x", dataTone: "invalid-tone-word" })).toContain(
+      "unknown-tone",
+    );
+  });
+
+  it("accepts the semantic tone aliases (surface/hover/border/border-strong/muted/text)", () => {
+    for (const alias of [
+      "surface",
+      "hover",
+      "border",
+      "border-strong",
+      "muted",
+      "text",
+    ]) {
+      expect(rules({ div: "x", dataTone: alias })).not.toContain(
+        "unknown-tone",
+      );
+    }
   });
 });
 
@@ -215,7 +232,7 @@ describe("rule filtering: only / exclude options", () => {
   const mixed = {
     p: "x",
     style: { fontSize: "20px", color: "#ff0000" },
-    dataTone: "surface",
+    dataTone: "invalid-tone-word",
   };
 
   it("only: emits just the listed rules", () => {
@@ -276,7 +293,7 @@ describe("_doctorDisable suppress annotation", () => {
   it("_doctorDisable: true suppresses ALL element-level diagnostics", () => {
     // unknown-tone would normally fire
     expect(
-      rules({ div: "x", dataTone: "surface", _doctorDisable: true }),
+      rules({ div: "x", dataTone: "invalid-tone-word", _doctorDisable: true }),
     ).not.toContain("unknown-tone");
     // inline-typography would normally fire
     expect(
@@ -292,7 +309,7 @@ describe("_doctorDisable suppress annotation", () => {
     const d = diagnose({
       p: "x",
       style: { fontSize: "20px" },
-      dataTone: "surface",
+      dataTone: "invalid-tone-word",
       _doctorDisable: ["unknown-tone"],
     });
     // unknown-tone suppressed
@@ -303,7 +320,7 @@ describe("_doctorDisable suppress annotation", () => {
 
   it("_doctorDisable: 'rule-id' (string) works like single-element array", () => {
     expect(
-      rules({ div: "x", dataTone: "surface", _doctorDisable: "unknown-tone" }),
+      rules({ div: "x", dataTone: "invalid-tone-word", _doctorDisable: "unknown-tone" }),
     ).not.toContain("unknown-tone");
   });
 
@@ -329,13 +346,13 @@ describe("_doctorDisable suppress annotation", () => {
   it("_doctorDisable: false / null / undefined is a no-op", () => {
     // Should still fire normally
     expect(
-      rules({ div: "x", dataTone: "surface", _doctorDisable: false }),
+      rules({ div: "x", dataTone: "invalid-tone-word", _doctorDisable: false }),
     ).toContain("unknown-tone");
     expect(
-      rules({ div: "x", dataTone: "surface", _doctorDisable: null }),
+      rules({ div: "x", dataTone: "invalid-tone-word", _doctorDisable: null }),
     ).toContain("unknown-tone");
     expect(
-      rules({ div: "x", dataTone: "surface", _doctorDisable: undefined }),
+      rules({ div: "x", dataTone: "invalid-tone-word", _doctorDisable: undefined }),
     ).toContain("unknown-tone");
   });
 });
@@ -478,7 +495,7 @@ describe("Diagnostic.category field", () => {
   });
 
   it("unknown-tone has category 'data-attr'", () => {
-    const d = diagnose({ div: "x", dataTone: "surface" });
+    const d = diagnose({ div: "x", dataTone: "invalid-tone-word" });
     expect(d[0].category).toBe("data-attr");
   });
 
@@ -504,7 +521,7 @@ describe("fix() is a no-op for non-void-content issues", () => {
       div: [
         { p: "x", style: { fontSize: "20px" } }, // inline-typography (warning)
         { span: "y", style: { color: "#ff0000" } }, // raw-theme-value (info)
-        { div: "z", dataTone: "surface" }, // unknown-tone (warning)
+        { div: "z", dataTone: "invalid-tone-word" }, // unknown-tone (warning)
       ],
     };
     const result = fix(input);

@@ -4,9 +4,28 @@ import { getTheme, themeName, themeTokens, themeVars } from "./theme.js";
 
 const TONE_STEPS = light.colors.neutral.length;
 
+// Semantic tone aliases, resolved through the shift-N machinery below so they
+// stay context-aware (dataTone) and correct in both light and dark themes.
+// Mapping derived from stock @domphy/ui patch usage (packages/ui/src/patches)
+// and cross-checked against consumer usage frequency:
+//   surface        -> shift-1  subtle raised background (e.g. inputFile drop zone)
+//   hover          -> shift-2  hover/active background (e.g. button, menu, list)
+//   border         -> shift-3  subtle hairline divider (e.g. card footer separator)
+//   border-strong  -> shift-4  control outline (e.g. button, input, card boundary)
+//   muted          -> shift-8  secondary/disabled text
+//   text           -> shift-9  default/primary text
+const ToneAliases: Record<string, string> = {
+  surface: "shift-1",
+  hover: "shift-2",
+  border: "shift-3",
+  "border-strong": "shift-4",
+  muted: "shift-8",
+  text: "shift-9",
+};
+
 // Exported as a value (not just a type) so tooling — @domphy/doctor, the MCP
 // server, generated `tones.json` — can validate tone names without parsing TS.
-export const ElementTones = ["inherit", "base"];
+export const ElementTones = ["inherit", "base", ...Object.keys(ToneAliases)];
 
 [...Array(TONE_STEPS).keys()].forEach((i) => {
   ElementTones.push(`decrease-${i}`);
@@ -41,6 +60,10 @@ function offsetTone(originTone: number, tone: ElementTone = "inherit"): number {
 
   if (!ElementTones.includes(tone!)) {
     throw Error(`tone name "${tone}" invalid`);
+  }
+
+  if (tone in ToneAliases) {
+    tone = ToneAliases[tone];
   }
 
   if (tone.startsWith("increase-")) {

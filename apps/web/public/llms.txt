@@ -79,10 +79,11 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 ### Theme quick-reference
 
 **Color** — `themeColor(object, tone?, color?)`:
-- `tone`: `"inherit"` | `"base"` | `"shift-N"` | `"increase-N"` | `"decrease-N"` (N ≤ 17, 18-step ramp)
+- `tone`: `"inherit"` | `"base"` | `"shift-N"` | `"increase-N"` | `"decrease-N"` (N ≤ 17, 18-step ramp), or a semantic alias — prefer aliases over raw `shift-N`
 - `color`: built-in families: `"neutral"` | `"primary"` | `"secondary"` | `"info"` | `"success"` | `"warning"` | `"attention"` | `"error"` | `"danger"` | `"highlight"` — or any custom family registered via `setTheme()`; default `"inherit"`
-- Surface roles from edge anchor: bg=`"inherit"`, stroke=`"shift-3"`, muted=`"shift-6"`, body text=`"shift-9"`, heading=`"shift-11"`, hover=`"increase-1"`, pressed=`"increase-2"`
-- **dataTone**: edge anchors `shift-0`–`shift-3` (light) or `shift-14`–`shift-17` (dark). Mid-ramp `shift-4`–`shift-13` → `middle-surface-anchor` warning (collapses contrast).
+- Semantic aliases (resolve through the same `shift-N` machinery): `"surface"`=`shift-1`, `"hover"`=`shift-2`, `"border"`=`shift-3`, `"border-strong"`=`shift-4`, `"muted"`=`shift-8`, `"text"`=`shift-9`
+- Surface roles from edge anchor: bg=`"inherit"`, border=`"border"`, muted text=`"muted"`, body text=`"text"`, heading=`"shift-11"`, hover bg=`"hover"`, pressed=`"increase-2"`
+- **dataTone**: edge anchors `shift-0`–`shift-3` (light) or `shift-14`–`shift-17` (dark). Mid-ramp `shift-4`–`shift-13` → `middle-surface-anchor` warning (collapses contrast). Aliases resolve to their underlying `shift-N` before this check.
 - `themeColorToken(object, tone?, color?)` — same signature as `themeColor` but returns the resolved token value (e.g. `"#4a7ff4"`) instead of a `var(--…)` CSS reference. Use at design-time or when a third-party API requires a concrete hex/rgb string.
 
 **Spacing** — `themeSpacing(n)` returns `"calc(n/4 em)"` as a CSS string (e.g. `themeSpacing(4)` → `"calc(1em)"`). Always wrapped in `calc()` for composability:

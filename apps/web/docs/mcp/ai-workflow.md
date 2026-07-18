@@ -83,13 +83,15 @@ inputText <input> — inputText(props?: { … })
 
 ### Step 3 — Check tones before calling themeColor()
 
-`themeColor(l, tone, colorFamily)` only accepts valid tones. Inventing a tone name like `"surface"` or `"text"` silently produces the wrong color. Before using `themeColor()`, call:
+`themeColor(l, tone, colorFamily)` only accepts valid tones. Inventing an untested tone name silently produces the wrong color. Before using `themeColor()`, call:
 
 ```json
 { "name": "domphy_tones", "arguments": {} }
 ```
 
-The response is the raw JSON from `tones.json` — a list of valid tone identifiers (e.g. `"base"`, `"inherit"`, `"shift-0"` through `"shift-17"`, `"increase-N"`, `"decrease-N"`) and the available color family names (`"primary"`, `"neutral"`, `"error"`, `"warning"`, `"success"`, …).
+The response is the raw JSON from `tones.json` — a list of valid tone identifiers (e.g. `"base"`, `"inherit"`, `"shift-0"` through `"shift-17"`, `"increase-N"`, `"decrease-N"`, and the semantic aliases `"surface"`, `"hover"`, `"border"`, `"border-strong"`, `"muted"`, `"text"`) and the available color family names (`"primary"`, `"neutral"`, `"error"`, `"warning"`, `"success"`, …).
+
+Prefer the semantic aliases over raw `shift-N` indices — `themeColor(l, "text", "primary")` reads as intent and resolves identically to `themeColor(l, "shift-9", "primary")`.
 
 ### Step 4 — Validate the generated tree
 
@@ -221,7 +223,7 @@ Here is the complete sequence an agent follows to generate a themed card section
 Without the validate/fix loop:
 
 - `{ input: "placeholder text" }` renders nothing — void tags ignore content silently in some environments.
-- `themeColor(l, "surface", "primary")` picks the wrong color — `"surface"` is not a tone.
+- `themeColor(l, "soft", "primary")` picks the wrong color — `"soft"` is not a tone (the real semantic aliases are `"surface"`, `"hover"`, `"border"`, `"border-strong"`, `"muted"`, `"text"`).
 - Inline `fontSize: "16px"` bypasses the theme's type scale — dark mode, density scaling, and custom themes all break.
 
 The doctor catches all of these. Running it adds one extra tool call and prevents an entire class of silent bugs from reaching the user.

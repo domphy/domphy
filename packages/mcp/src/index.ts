@@ -60,7 +60,7 @@ const tools = [
   {
     name: "domphy_tones",
     description:
-      'Get the valid tone names and theme color names for themeColor()/dataTone (e.g. themeColor(l, "shift-9", "primary")). Use this to avoid invented tones like "surface"/"text".',
+      'Get the valid tone names and theme color names for themeColor()/dataTone (e.g. themeColor(l, "text", "primary"), same as themeColor(l, "shift-9", "primary")). Includes the semantic aliases (surface/hover/border/border-strong/muted/text) — prefer those over invented tone words.',
     inputSchema: { type: "object", properties: {} },
   },
   {

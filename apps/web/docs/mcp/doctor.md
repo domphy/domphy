@@ -221,7 +221,7 @@ The tree's `input` is now `null`; the `p`'s inline `fontSize` is reported but no
 | `inline-typography` | warning | `fontSize`, `lineHeight`, `fontWeight`, `letterSpacing`, `fontFamily`, or `textDecoration` is set inline instead of via a typography patch |
 | `raw-theme-value` | info | A color-bearing style prop (`color`, `backgroundColor`, `border`, …) uses a hex, `rgb()`/`rgba()`, or `hsl()`/`hsla()` literal instead of `themeColor()` |
 | `raw-spacing-value` | info | A spacing prop (`padding`, `margin`, `gap`, …) uses a literal `px`/`rem`/`em` value instead of `themeSpacing()` |
-| `unknown-tone` | warning | `dataTone` is not valid grammar, or the offset `N` exceeds 17 (the ramp has 18 steps, 0–17) |
+| `unknown-tone` | warning | `dataTone` is not valid grammar, or the offset `N` exceeds 17 (the ramp has 18 steps, 0–17). Valid grammar includes the semantic aliases `surface`/`hover`/`border`/`border-strong`/`muted`/`text` |
 | `middle-surface-anchor` | warning | `dataTone: "shift-N"` where 4 ≤ N ≤ 13 — a mid-ramp anchor where child tones may collapse contrast |
 | `unknown-density` | warning/error | `dataDensity` uses invalid grammar, `"shift-"` (which is reserved for tone), or N > 4 |
 | `unknown-size` | warning/error | `dataSize` uses invalid grammar, `"shift-"`, or N > 7 |

@@ -24,27 +24,26 @@ const best = { span: "Error", $: [small({ color: "error" })] }
 
 ## Surface roles
 
-Use shift scale anchors for backgrounds and borders:
+Use shift scale anchors for backgrounds and borders — prefer the semantic alias when one exists:
 
-| Role | Tone | Use |
-|------|------|-----|
-| Page background | `"inherit"` | Root background |
-| Card background | `"shift-1"` | Slightly elevated surface |
-| Input background | `"shift-2"` | Form fields, code blocks |
-| Border | `"shift-3"` | Dividers, input borders |
-| Muted border | `"shift-4"` | Subtle separators |
-| Placeholder text | `"shift-6"` | Disabled / hint text |
-| Secondary text | `"shift-8"` | Labels, captions |
-| Body text | `"shift-10"` | Primary readable content |
-| Heading text | `"shift-12"` | High-contrast headings |
-| Icon | `"shift-9"` | Action icons |
+| Role | Alias | Tone | Use |
+|------|-------|------|-----|
+| Page background | — | `"inherit"` | Root background |
+| Card background | `"surface"` | `"shift-1"` | Slightly elevated surface |
+| Hover / input background | `"hover"` | `"shift-2"` | Form fields, hover backgrounds, code blocks |
+| Border | `"border"` | `"shift-3"` | Dividers, subtle separators |
+| Control outline | `"border-strong"` | `"shift-4"` | Button/input/card boundary |
+| Placeholder text | — | `"shift-7"` | Hint text |
+| Secondary / disabled text | `"muted"` | `"shift-8"` | Labels, captions |
+| Body text / icon | `"text"` | `"shift-9"` | Primary readable content, action icons |
+| Heading text | — | `"shift-11"` | High-contrast headings |
 
 ```ts
 const Card = {
   div: CardContent,
   style: {
-    background: (l) => themeColor(l, "shift-1"),
-    border: (l) => `1px solid ${themeColor(l, "shift-3")}`,
+    background: (l) => themeColor(l, "surface"),
+    border: (l) => `1px solid ${themeColor(l, "border")}`,
     borderRadius: (l) => themeSpacing(2),
     padding: (l) => themeSpacing(4),
   },

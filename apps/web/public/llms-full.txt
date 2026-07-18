@@ -43,7 +43,7 @@ const App = {
   - Error / colored text → `{ small: "...", $: [small({ color: "error" })] }`
   - Literal color → `color: (l) => themeColor(l, "base", "colorName")`
   - `fontFamily` → remove entirely (theme owns the font stack)
-- **Theme, not hard-coded values:** `themeColor()`, `themeSpacing()`, `themeSize()`, `themeDensity()`; tones are `inherit`/`base`/`shift-N` (not `surface`/`text`).
+- **Theme, not hard-coded values:** `themeColor()`, `themeSpacing()`, `themeSize()`, `themeDensity()`; tones are `inherit`/`base`/`shift-N`/`increase-N`/`decrease-N`, or the semantic aliases `surface`/`hover`/`border`/`border-strong`/`muted`/`text` — prefer aliases over raw `shift-N`.
 - **`_key`** on dynamic/reordered child lists (identity for reconcile). It is not DOM id / business identity.
 - **CSP nonce:** if the app has a Content-Security-Policy requiring nonces on inline styles, call `configure({ cspNonce: "..." })` from `@domphy/core` before mounting. This stamps the nonce on every Domphy-injected `<style>` element.
 - **Error boundaries:** use the `errorBoundary()` patch (`@domphy/ui`) to catch errors thrown in reactive children. It invokes `_onError` on the nearest ancestor; call `reset()` to swap in a fallback element.
@@ -106,6 +106,7 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 ```ts
 themeColor(listener, tone?, color?)
 // tone: "inherit" | "base" | "shift-N" | "increase-N" | "decrease-N"  (N ≤ 17)
+//       | "surface" | "hover" | "border" | "border-strong" | "muted" | "text"  (semantic aliases, prefer these)
 // color: "neutral" | "primary" | "secondary" | "info" | "success" | "warning"
 //        | "attention" | "error" | "danger" | "highlight"
 // Returns a var(--…) CSS reference — reactive, resolves at paint time.
@@ -120,16 +121,18 @@ Tone semantics (three-layer model):
 - **Semantic zone** (the element's own tone in `themeColor`): distance from surface encodes meaning: `+0` default/resting, `+3` indicator/active-item, `+6` strong accent.
 - **Interactive delta** (hover/press in `:hover`/`:active` CSS or reactive): transient `±1` hover, `±2` pressed.
 
-Common role mappings from an edge surface (`shift-0`):
-| Role | Tone | Example |
-|------|------|---------|
-| Background / surface | `"inherit"` | container bg |
-| Stroke / outline / divider | `"shift-3"` | border |
-| Muted text / placeholder | `"shift-6"` or `"shift-7"` | hint |
-| Body text | `"shift-9"` | paragraph |
-| Heading / strong text | `"shift-11"` | h2 |
-| Hover bg | `"increase-1"` | button:hover |
-| Active/pressed bg | `"increase-2"` | button:active |
+Common role mappings from an edge surface (`shift-0`). Prefer the alias column when one exists:
+| Role | Alias | Tone | Example |
+|------|-------|------|---------|
+| Background / surface | `"surface"` | `"inherit"` / `"shift-1"` | container bg |
+| Hover bg | `"hover"` | `"shift-2"` (or `"increase-1"` for a relative bump) | button:hover |
+| Stroke / divider | `"border"` | `"shift-3"` | subtle separator |
+| Control outline | `"border-strong"` | `"shift-4"` | button/input/card border |
+| Placeholder | — | `"shift-7"` | input placeholder |
+| Muted / disabled text | `"muted"` | `"shift-8"` | secondary text |
+| Body text | `"text"` | `"shift-9"` | paragraph |
+| Heading / strong text | — | `"shift-11"` | h2 |
+| Active/pressed bg | — | `"increase-2"` | button:active |
 
 ### Spacing (`themeSpacing`, `themeDensity`, `themeFluidSpacing`)
 ```ts
@@ -5174,7 +5177,7 @@ For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
 | `ThemeVars` | Object of `var(--…)` CSS variable references returned by `themeVars()`. |
 | `ThemeColor` | `ColorRole \| (string & {})` — the 10 built-in role names rank first in editor autocomplete/hover, but any string still type-checks (custom themes may register their own role names via `setTheme`/`generateTheme`). This is intentionally NOT a strict union — see `ColorRole` below for the exhaustive list. |
 | `ColorRole` | Strict union of the 10 built-in semantic role names: `"neutral" \| "primary" \| "secondary" \| "info" \| "success" \| "warning" \| "attention" \| "error" \| "danger" \| "highlight"`. Derived from `COLOR_ROLES` below. |
-| `ElementTone` | Valid tone descriptor strings: `"inherit"`, `"base"`, `"shift-N"`, `"increase-N"`, `"decrease-N"`. |
+| `ElementTone` | Valid tone descriptor strings: `"inherit"`, `"base"`, `"shift-N"`, `"increase-N"`, `"decrease-N"`, or a semantic alias (`"surface"`, `"hover"`, `"border"`, `"border-strong"`, `"muted"`, `"text"`) — see [Semantic Aliases](./tone#semantic-aliases). |
 | `ElementTones` | Runtime array of all valid tone strings (exported as a value for validation tooling). |
 | `ElementSize` | Valid size descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–7). |
 | `ElementDensity` | Valid density descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–4). |
@@ -5270,27 +5273,26 @@ const best = { span: "Error", $: [small({ color: "error" })] }
 
 ## Surface roles
 
-Use shift scale anchors for backgrounds and borders:
+Use shift scale anchors for backgrounds and borders — prefer the semantic alias when one exists:
 
-| Role | Tone | Use |
-|------|------|-----|
-| Page background | `"inherit"` | Root background |
-| Card background | `"shift-1"` | Slightly elevated surface |
-| Input background | `"shift-2"` | Form fields, code blocks |
-| Border | `"shift-3"` | Dividers, input borders |
-| Muted border | `"shift-4"` | Subtle separators |
-| Placeholder text | `"shift-6"` | Disabled / hint text |
-| Secondary text | `"shift-8"` | Labels, captions |
-| Body text | `"shift-10"` | Primary readable content |
-| Heading text | `"shift-12"` | High-contrast headings |
-| Icon | `"shift-9"` | Action icons |
+| Role | Alias | Tone | Use |
+|------|-------|------|-----|
+| Page background | — | `"inherit"` | Root background |
+| Card background | `"surface"` | `"shift-1"` | Slightly elevated surface |
+| Hover / input background | `"hover"` | `"shift-2"` | Form fields, hover backgrounds, code blocks |
+| Border | `"border"` | `"shift-3"` | Dividers, subtle separators |
+| Control outline | `"border-strong"` | `"shift-4"` | Button/input/card boundary |
+| Placeholder text | — | `"shift-7"` | Hint text |
+| Secondary / disabled text | `"muted"` | `"shift-8"` | Labels, captions |
+| Body text / icon | `"text"` | `"shift-9"` | Primary readable content, action icons |
+| Heading text | — | `"shift-11"` | High-contrast headings |
 
 ```ts
 const Card = {
   div: CardContent,
   style: {
-    background: (l) => themeColor(l, "shift-1"),
-    border: (l) => `1px solid ${themeColor(l, "shift-3")}`,
+    background: (l) => themeColor(l, "surface"),
+    border: (l) => `1px solid ${themeColor(l, "border")}`,
     borderRadius: (l) => themeSpacing(2),
     padding: (l) => themeSpacing(4),
   },
@@ -7125,6 +7127,7 @@ Valid tone keys:
 - `"decrease-N"`
 - `"inherit"`
 - `"base"`
+- a semantic alias (see below)
 
 `dataTone` accepts the same keys.
 
@@ -7143,6 +7146,27 @@ backgroundColor: (l) => themeColor(l, "shift-0", "primary")
 color: (l) => themeColor(l, "shift-9", "primary")
 outline: (l) => `1px solid ${themeColor(l, "shift-3", "primary")}`
 ```
+
+## Semantic Aliases
+
+Raw `shift-N` indices work, but they force every caller to remember the numeric mapping. Prefer these aliases — they read as intent, resolve through the same shift machinery (so `dataTone` context and dark theme still work correctly), and match the tone roles derived above (`text = tone + K`, `stroke = tone + K/3`).
+
+| Alias | Resolves to | Use for |
+| --- | --- | --- |
+| `surface` | `shift-1` | subtle raised background |
+| `hover` | `shift-2` | hover/active background |
+| `border` | `shift-3` | default hairline divider (the `K/3` stroke role) |
+| `border-strong` | `shift-4` | control outline (button/input/card boundary) |
+| `muted` | `shift-8` | secondary/disabled text |
+| `text` | `shift-9` | default/primary text (the `K` text role) |
+
+```ts
+backgroundColor: (l) => themeColor(l, "inherit", "primary")
+color: (l) => themeColor(l, "text", "primary")
+outline: (l) => `1px solid ${themeColor(l, "border-strong", "primary")}`
+```
+
+This is identical to writing `themeColor(l, "shift-9", "primary")` and `themeColor(l, "shift-4", "primary")` — the alias is just sugar.
 
 ## Full Example
 
@@ -32803,13 +32827,14 @@ import { themeDensity, themeSpacing } from "@domphy/theme"
 - `"shift-N"` where N is 0–17 — absolute position in the 18-step ramp
 - `"increase-N"` where N is 0–17 — lighter relative to the current context
 - `"decrease-N"` where N is 0–17 — darker relative to the current context
+- A semantic alias from `@domphy/theme` — `"surface"`, `"hover"`, `"border"`, `"border-strong"`, `"muted"`, `"text"` — each resolves to its underlying `shift-N` before grammar/range checks (see [Tone Aliases](/docs/theme/tone#semantic-aliases))
 
-Anything else is flagged, including words like `"surface"`, `"text"`, `"light"`, `"dark"`, and out-of-range offsets like `"shift-25"`.
+Anything else is flagged, including made-up words like `"light"` or `"dark"`, and out-of-range offsets like `"shift-25"`.
 
 ```ts
 // Bad
-{ div: "Card", dataTone: "surface" }   // not a tone
 { div: "Card", dataTone: "light" }     // not a tone
+{ div: "Card", dataTone: "dark" }      // not a tone
 { div: "Card", dataTone: "shift-25" }  // out of range (max 17)
 { div: "Card", dataTone: "increase-18" } // out of range
 ```
@@ -32821,6 +32846,8 @@ Anything else is flagged, including words like `"surface"`, `"text"`, `"light"`,
 { div: "Card", dataTone: "shift-17" }     // darkest
 { div: "Card", dataTone: "increase-2" }   // 2 steps lighter than context
 { div: "Card", dataTone: "decrease-3" }   // 3 steps darker than context
+{ div: "Card", dataTone: "surface" }      // semantic alias, same as "shift-1"
+{ div: "Card", dataTone: "border-strong" } // semantic alias, same as "shift-4"
 ```
 
 **Note:** bare integer strings like `"999"` or `"-5"` pass this rule — the parser accepts them without range-checking. Only the `shift-N` / `increase-N` / `decrease-N` families have N ≤ 17 enforced.
@@ -32846,7 +32873,7 @@ A `shift-N` tone where N is 4–13 places the surface in the middle of the ramp.
 
 Mid-ramp anchors (`shift-4` through `shift-13`) are intentionally valid grammar — the rule only warns, not errors. They are correct for highlighted or inverted regions where the contrast collapse is the intended effect. Suppress the warning mentally in those cases; the rule exists to catch accidental mid-anchoring, not deliberate use.
 
-Only `shift-N` triggers this rule. `increase-N` and `decrease-N` express relative tone offsets, not surface anchors, so they are never flagged by `middle-surface-anchor`.
+Only `shift-N` triggers this rule — `increase-N` and `decrease-N` express relative tone offsets, not surface anchors, so they are never flagged. Semantic aliases resolve to their underlying `shift-N` first, so mid-ramp aliases (`border-strong` = `shift-4`, `muted` = `shift-8`, `text` = `shift-9`) do trigger this rule the same as their numeric equivalent; edge-safe aliases (`surface` = `shift-1`, `hover` = `shift-2`, `border` = `shift-3`) do not.
 
 ---
 
@@ -37210,13 +37237,15 @@ inputText <input> — inputText(props?: { … })
 
 ### Step 3 — Check tones before calling themeColor()
 
-`themeColor(l, tone, colorFamily)` only accepts valid tones. Inventing a tone name like `"surface"` or `"text"` silently produces the wrong color. Before using `themeColor()`, call:
+`themeColor(l, tone, colorFamily)` only accepts valid tones. Inventing an untested tone name silently produces the wrong color. Before using `themeColor()`, call:
 
 ```json
 { "name": "domphy_tones", "arguments": {} }
 ```
 
-The response is the raw JSON from `tones.json` — a list of valid tone identifiers (e.g. `"base"`, `"inherit"`, `"shift-0"` through `"shift-17"`, `"increase-N"`, `"decrease-N"`) and the available color family names (`"primary"`, `"neutral"`, `"error"`, `"warning"`, `"success"`, …).
+The response is the raw JSON from `tones.json` — a list of valid tone identifiers (e.g. `"base"`, `"inherit"`, `"shift-0"` through `"shift-17"`, `"increase-N"`, `"decrease-N"`, and the semantic aliases `"surface"`, `"hover"`, `"border"`, `"border-strong"`, `"muted"`, `"text"`) and the available color family names (`"primary"`, `"neutral"`, `"error"`, `"warning"`, `"success"`, …).
+
+Prefer the semantic aliases over raw `shift-N` indices — `themeColor(l, "text", "primary")` reads as intent and resolves identically to `themeColor(l, "shift-9", "primary")`.
 
 ### Step 4 — Validate the generated tree
 
@@ -37348,7 +37377,7 @@ Here is the complete sequence an agent follows to generate a themed card section
 Without the validate/fix loop:
 
 - `{ input: "placeholder text" }` renders nothing — void tags ignore content silently in some environments.
-- `themeColor(l, "surface", "primary")` picks the wrong color — `"surface"` is not a tone.
+- `themeColor(l, "soft", "primary")` picks the wrong color — `"soft"` is not a tone (the real semantic aliases are `"surface"`, `"hover"`, `"border"`, `"border-strong"`, `"muted"`, `"text"`).
 - Inline `fontSize: "16px"` bypasses the theme's type scale — dark mode, density scaling, and custom themes all break.
 
 The doctor catches all of these. Running it adds one extra tool call and prevents an entire class of silent bugs from reaching the user.
@@ -37898,7 +37927,7 @@ The tree's `input` is now `null`; the `p`'s inline `fontSize` is reported but no
 | `inline-typography` | warning | `fontSize`, `lineHeight`, `fontWeight`, `letterSpacing`, `fontFamily`, or `textDecoration` is set inline instead of via a typography patch |
 | `raw-theme-value` | info | A color-bearing style prop (`color`, `backgroundColor`, `border`, …) uses a hex, `rgb()`/`rgba()`, or `hsl()`/`hsla()` literal instead of `themeColor()` |
 | `raw-spacing-value` | info | A spacing prop (`padding`, `margin`, `gap`, …) uses a literal `px`/`rem`/`em` value instead of `themeSpacing()` |
-| `unknown-tone` | warning | `dataTone` is not valid grammar, or the offset `N` exceeds 17 (the ramp has 18 steps, 0–17) |
+| `unknown-tone` | warning | `dataTone` is not valid grammar, or the offset `N` exceeds 17 (the ramp has 18 steps, 0–17). Valid grammar includes the semantic aliases `surface`/`hover`/`border`/`border-strong`/`muted`/`text` |
 | `middle-surface-anchor` | warning | `dataTone: "shift-N"` where 4 ≤ N ≤ 13 — a mid-ramp anchor where child tones may collapse contrast |
 | `unknown-density` | warning/error | `dataDensity` uses invalid grammar, `"shift-"` (which is reserved for tone), or N > 4 |
 | `unknown-size` | warning/error | `dataSize` uses invalid grammar, `"shift-"`, or N > 7 |

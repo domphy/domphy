@@ -111,8 +111,16 @@ describe("diagnose", () => {
   });
 
   it("flags unknown dataTone words, allows valid tone grammar and range", () => {
-    expect(rules({ div: "x", dataTone: "surface" })).toContain("unknown-tone");
-    expect(rules({ div: "x", dataTone: "text" })).toContain("unknown-tone");
+    expect(rules({ div: "x", dataTone: "invalid-tone-word" })).toContain(
+      "unknown-tone",
+    );
+    // semantic aliases resolve through the shift-N grammar and are valid
+    expect(rules({ div: "x", dataTone: "surface" })).not.toContain(
+      "unknown-tone",
+    );
+    expect(rules({ div: "x", dataTone: "text" })).not.toContain(
+      "unknown-tone",
+    );
     // out-of-range but valid grammar
     expect(rules({ div: "x", dataTone: "shift-25" })).toContain("unknown-tone");
     expect(rules({ div: "x", dataTone: "increase-18" })).toContain(
@@ -158,6 +166,27 @@ describe("diagnose", () => {
     );
     // increase/decrease don't trigger middle-surface-anchor (not a surface anchor)
     expect(rules({ div: "x", dataTone: "increase-9" })).not.toContain(
+      "middle-surface-anchor",
+    );
+    // semantic aliases resolve to their underlying shift-N first: mid-ramp
+    // aliases (border-strong=shift-4, muted=shift-8, text=shift-9) warn too
+    expect(rules({ div: "x", dataTone: "border-strong" })).toContain(
+      "middle-surface-anchor",
+    );
+    expect(rules({ div: "x", dataTone: "muted" })).toContain(
+      "middle-surface-anchor",
+    );
+    expect(rules({ div: "x", dataTone: "text" })).toContain(
+      "middle-surface-anchor",
+    );
+    // edge-safe aliases (surface=shift-1, hover=shift-2, border=shift-3) don't
+    expect(rules({ div: "x", dataTone: "surface" })).not.toContain(
+      "middle-surface-anchor",
+    );
+    expect(rules({ div: "x", dataTone: "hover" })).not.toContain(
+      "middle-surface-anchor",
+    );
+    expect(rules({ div: "x", dataTone: "border" })).not.toContain(
       "middle-surface-anchor",
     );
   });

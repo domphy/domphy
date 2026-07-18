@@ -53,6 +53,27 @@ const button = {
 }
 ```
 
+## Tone Aliases
+
+Prefer semantic aliases over raw `shift-N` indices — they read as intent and keep usage consistent across a codebase. Aliases are sugar over the existing `shift-N` machinery, so they stay context-aware (`dataTone`) and resolve correctly in both light and dark themes.
+
+| Alias | Resolves to | Use for |
+| --- | --- | --- |
+| `surface` | `shift-1` | subtle raised background |
+| `hover` | `shift-2` | hover/active background |
+| `border` | `shift-3` | default hairline divider |
+| `border-strong` | `shift-4` | control outline (button/input/card boundary) |
+| `muted` | `shift-8` | secondary/disabled text |
+| `text` | `shift-9` | default/primary text |
+
+```ts
+color: (listener) => themeColor(listener, "text", "primary")
+// identical result to:
+color: (listener) => themeColor(listener, "shift-9", "primary")
+```
+
+Aliases work everywhere a tone is accepted: `themeColor()`, `themeColorToken()`, and `dataTone`.
+
 ## Theme Registry
 
 ```ts

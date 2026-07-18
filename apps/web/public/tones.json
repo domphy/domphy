@@ -4,6 +4,12 @@
   "tones": [
     "inherit",
     "base",
+    "surface",
+    "hover",
+    "border",
+    "border-strong",
+    "muted",
+    "text",
     "decrease-0",
     "increase-0",
     "shift-0",
