@@ -65,6 +65,39 @@ Use `merge()` when composing patches or mutating a raw element in `_onSchedule`.
 
 ---
 
+## `behavior(key, attach, props)`
+
+Declares a per-node behavior (Svelte-action-like) inside a patch factory. `attach(node, props)` runs once for the real DOM node the returned partial lands on, no matter how many times the factory itself is re-invoked by a reactive parent — every later call routes its `props` into the SAME instance via `update()` instead of creating a new, disconnected one. `destroy()` fires exactly once when the node is removed.
+
+```ts
+import { behavior } from "@domphy/core"
+
+function draggable(props: { onMove(dx: number, dy: number): void }) {
+  return behavior("draggable", (node, props) => {
+    const onPointerMove = (e: PointerEvent) => props.onMove(e.movementX, e.movementY)
+    node.domElement!.addEventListener("pointermove", onPointerMove)
+    return {
+      update: (next) => { props = next },
+      destroy: () => node.domElement!.removeEventListener("pointermove", onPointerMove),
+    }
+  }, props)
+}
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `key` | `string` | Identifies this concern on the element. Two DIFFERENT patches sharing one element (e.g. a tooltip and a popover on the same button) should use distinct keys so their instances stay independent. |
+| `attach` | `(node: ElementNode, props: P) => { update?(props: P): void; destroy?(): void } \| void` | Runs once for the real node. Returns the instance's `update`/`destroy` callbacks. |
+| `props` | `P` | Passed to `attach` on first attach, and to `update` on every later re-declaration of the same `key`. |
+
+Returns a `PartialElement` fragment (`{ _behaviors: { [key]: { attach, props } } }`) — compose it like any other patch field via object spread, `merge()`, or `$`.
+
+Read a node's own attached instance with `node.getBehavior(key)` — it walks up through ancestors (like `getContext`/`getMetadata`), since the event that needs it often fires on a descendant of the element that declared the behavior (e.g. an inner `<input>`'s `onFocus` needing a behavior declared on its outer wrapper).
+
+Use `behavior()` instead of a raw `_onMount` whenever a patch needs imperative state that must survive a reactive parent re-rendering the node it's attached to — document/window listeners, `ResizeObserver`/`IntersectionObserver`, non-Domphy library instances. See [Reused-node lifecycle](https://github.com/domphy/domphy/blob/main/AGENTS.md#reused-node-lifecycle--the-gotchas-behind-most-real-bugs) for why this matters, and [Common Patterns → Per-node behavior](../patterns#per-node-behavior-imperative-state-that-survives-re-renders) for a fuller example.
+
+---
+
 ## `hashString(str?)`
 
 Generates a deterministic string hash. The result always starts with a lowercase letter, so it is safe to use as a CSS identifier.

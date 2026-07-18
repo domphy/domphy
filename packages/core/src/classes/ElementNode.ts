@@ -9,6 +9,8 @@ import {
   validate,
 } from "../helpers.js";
 import type {
+  BehaviorInstance,
+  BehaviorSpec,
   DomphyElement,
   EventName,
   HookMap,
@@ -38,6 +40,14 @@ export class ElementNode {
   // patch for the node's whole life.
   _childrenReleaseHooked = false;
   _portal?: (root: ElementNode) => HTMLElement;
+  // Per-node behavior contract (see `behavior()` in utils.ts). Attached
+  // instances, keyed the same as their declaring `_behaviors` record.
+  _behaviorInstances = new Map<string, BehaviorInstance>();
+  // Specs declared before the DOM element exists (construction-time merge()),
+  // held until the Mount hook can actually attach them.
+  _pendingBehaviors = new Map<string, BehaviorSpec>();
+  _behaviorMountHooked = false;
+  _behaviorTeardownHooked = false;
   tagName: TagName;
   children = new ElementList(this);
   styles = new StyleList(this);
@@ -205,6 +215,7 @@ export class ElementNode {
   merge(part: PartialElement) {
     merge(this._context, part._context);
     merge(this._metadata, part._metadata);
+    this._processBehaviors(part._behaviors);
 
     const keys = Object.keys(part);
     for (let i = 0; i < keys.length; i++) {
@@ -217,6 +228,7 @@ export class ElementNode {
           "_key",
           "_context",
           "_metadata",
+          "_behaviors",
           "style",
           this.tagName,
         ].includes(originalKey)
@@ -303,6 +315,7 @@ export class ElementNode {
 
     if (element._context) merge(this._context, element._context);
     if (element._metadata) merge(this._metadata, element._metadata);
+    this._processBehaviors(element._behaviors);
 
     this.styles.patchCSS(element.style || {}, `.${this.tagName}_${this.nodeId}`);
 
@@ -316,6 +329,7 @@ export class ElementNode {
       "_key",
       "_context",
       "_metadata",
+      "_behaviors",
       "style",
       this.tagName,
     ];
@@ -447,6 +461,81 @@ export class ElementNode {
       root = root.parent;
     }
     return root;
+  }
+
+  // Route a `_behaviors` record declared by THIS generation's PartialElement
+  // into their per-node instances: an already-attached key gets its fresh
+  // `props` forwarded via update() (the cross-generation fix — the instance,
+  // not the closure that declared it, is what persists); a not-yet-attached
+  // key attaches immediately if the DOM element already exists (the patch()/
+  // reused-node path), or is queued for the node's one-time Mount hook
+  // (the merge()/construction path, where domElement doesn't exist yet).
+  _processBehaviors(behaviors?: Record<string, BehaviorSpec>): void {
+    if (!behaviors) return;
+    for (const key of Object.keys(behaviors)) {
+      const spec = behaviors[key];
+      const instance = this._behaviorInstances.get(key);
+      if (instance) {
+        instance.update?.(spec.props);
+      } else if (this.domElement) {
+        this._attachBehaviorNow(key, spec);
+      } else {
+        this._pendingBehaviors.set(key, spec);
+        this._ensureBehaviorMountHook();
+      }
+    }
+  }
+
+  _attachBehaviorNow(key: string, spec: BehaviorSpec): void {
+    const instance = spec.attach(this, spec.props) || {};
+    this._behaviorInstances.set(key, instance);
+    this._ensureBehaviorTeardownHook();
+  }
+
+  // Registered at most once per node (Mount itself only ever fires once per
+  // real DOM node) — flushes whatever was queued by merge() at construction,
+  // by then reading domElement/getRoot() safely.
+  _ensureBehaviorMountHook(): void {
+    if (this._behaviorMountHooked) return;
+    this._behaviorMountHooked = true;
+    this.addHook("Mount", () => {
+      if (this._pendingBehaviors.size === 0) return;
+      const pending = this._pendingBehaviors;
+      this._pendingBehaviors = new Map();
+      pending.forEach((spec, key) => this._attachBehaviorNow(key, spec));
+    });
+  }
+
+  // Registered at most once per node — addHook COMPOSES, so a per-attach
+  // registration would grow the BeforeRemove chain by one closure per
+  // behavior key. The body reads the CURRENT instance map dynamically, so
+  // one registration covers every key attached over the node's whole life.
+  _ensureBehaviorTeardownHook(): void {
+    if (this._behaviorTeardownHooked) return;
+    this._behaviorTeardownHooked = true;
+    this.addHook("BeforeRemove", () => {
+      this._behaviorInstances.forEach((instance) => instance.destroy?.());
+      this._behaviorInstances.clear();
+    });
+  }
+
+  // Look up a behavior instance by key, walking up from this node through its
+  // ancestors (same pattern as getContext/getMetadata) — a behavior is
+  // declared on the element that owns the concern (e.g. a combobox's outer
+  // anchor), but the event that needs it often fires on a DESCENDANT (e.g.
+  // the combobox's inner input on focus). Returns undefined if the key was
+  // never declared on this node or an ancestor, or was declared but hasn't
+  // attached yet (construction-time, pre-Mount).
+  getBehavior<T extends BehaviorInstance = BehaviorInstance>(
+    key: string,
+  ): T | undefined {
+    let node: ElementNode | null = this;
+    while (node) {
+      const instance = node._behaviorInstances.get(key);
+      if (instance) return instance as T;
+      node = node.parent;
+    }
+    return undefined;
   }
 
   getContext(name: string): any {

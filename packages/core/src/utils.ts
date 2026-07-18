@@ -1,6 +1,13 @@
 import { type ReadableState, State, type ValueListener } from "./classes/State.js";
 import { addEvent, addHook, deepClone } from "./helpers.js";
-import type { DomphyElement, EventName, Handler, HookMap } from "./types.js";
+import type {
+  BehaviorAttach,
+  DomphyElement,
+  EventName,
+  Handler,
+  HookMap,
+  PartialElement,
+} from "./types.js";
 
 export function merge(
   source: Record<string, any> = {},
@@ -142,4 +149,35 @@ export function readonly<T>(source: ReadableState<T>): ReadableState<T> {
       return source.get(listener);
     },
   };
+}
+
+// Declares a per-node behavior (Svelte-action-like) inside a patch factory.
+// `attach` runs once for the real DOM node the returned partial lands on, no
+// matter how many times the factory itself is re-invoked by a reactive
+// parent; every later call routes its `props` into the SAME instance via
+// `update()` instead of creating a new, disconnected one. Compose with other
+// patch fields normally (spread, `merge()`, or via `$`):
+//
+//   function draggable(props: { onMove(dx: number, dy: number): void }) {
+//     return behavior("draggable", (node, props) => {
+//       const onPointerMove = (e: PointerEvent) => props.onMove(e.movementX, e.movementY)
+//       node.domElement!.addEventListener("pointermove", onPointerMove)
+//       return {
+//         update: (next) => { props = next },
+//         destroy: () => node.domElement!.removeEventListener("pointermove", onPointerMove),
+//       }
+//     }, props)
+//   }
+//
+// `key` must be unique per concern on one element (not per patch instance) —
+// two DIFFERENT patches sharing an element (e.g. a tooltip AND a popover on
+// the same button) should use distinct keys so their instances stay
+// independent; re-declaring the SAME key from a later generation is exactly
+// the "route props into the existing instance" case this exists for.
+export function behavior<P>(
+  key: string,
+  attach: BehaviorAttach<P>,
+  props: P,
+): PartialElement {
+  return { _behaviors: { [key]: { attach, props } } };
 }

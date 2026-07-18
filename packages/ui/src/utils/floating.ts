@@ -1,4 +1,6 @@
 import {
+  behavior,
+  type BehaviorInstance,
   type DomphyElement,
   type ElementNode,
   merge,
@@ -16,170 +18,54 @@ import {
   shift,
 } from "@domphy/floating";
 
-// The SAME reused-node gap described below (in createFloating's own comment)
-// also breaks teardown two OTHER ways, both traced back to the same cause: a
-// factory like popover()/tooltip() called again by a reactive parent creates
-// a brand new createFloating() closure (fresh `cleanup`/`floatingNode`/
-// `openState` locals) on the SAME reused anchor DOM element — but only the
-// FIRST-ever closure's `_onMount` actually fires, so only IT ever registers
-// a BeforeRemove hook, and nothing ever tells an OLDER closure that a NEWER
-// one has taken over.
-//
-// 1. Anchor removed while a LATER generation's panel is the one open: the
-//    first closure's BeforeRemove hook (the only one that exists) tears down
-//    ITS OWN (possibly never-shown) state, while the real, visible panel has
-//    no cleanup wired to it — orphaned in the #domphy-floating portal.
-// 2. Anchor merely RE-RENDERED while a panel is open (no removal at all —
-//    e.g. hovering a tooltip, then an unrelated state change re-renders that
-//    row): the live event handlers (onMouseLeave etc., rebound to the NEWEST
-//    closure on every patch) now only ever reach the NEW closure's own
-//    (never-shown) state. The OLD closure's actually-visible panel has no
-//    live interaction path to it anymore — nothing can ever close it again,
-//    not even moving the mouse away.
-//
-// Fix both by keying "what to tear down" off the anchor's live DOM element
-// (stable across reuse) instead of a closure-local variable: every
-// generation that touches this anchor first tears down whatever the
-// PREVIOUS generation left behind (if it's a different generation — a
-// closure never tears down its own current state on repeat interactions),
-// then claims the slot for itself. Case 1 falls out of whichever hook did
-// attach always reading the CURRENT slot instead of its own stale closure;
-// case 2 falls out of "claiming" running on every real interaction, not just
-// removal.
-//
-// Slots are keyed per `kind` (one per consumer component: popover, tooltip,
-// selectBox, …), not one per element: two DIFFERENT floating components
-// legitimately share one anchor (a button with a tooltip that opens a
-// popover), and a single element-wide slot made every interaction of one
-// tear down the other's live panel. Generational takeover only ever needs
-// to evict the SAME component's previous generation.
-const teardownByElement = new WeakMap<Element, Map<string, () => void>>();
-
-function claimTeardownSlot(
-  element: Element,
-  kind: string,
-  teardown: () => void,
-): void {
-  let slots = teardownByElement.get(element);
-  if (!slots) {
-    slots = new Map();
-    teardownByElement.set(element, slots);
-  }
-  const previous = slots.get(kind);
-  if (previous && previous !== teardown) previous();
-  slots.set(kind, teardown);
-}
-
-function releaseTeardownSlots(element: Element): void {
-  const slots = teardownByElement.get(element);
-  if (!slots) return;
-  teardownByElement.delete(element);
-  slots.forEach((teardown) => teardown());
-}
-
-function createFloating(props: {
-  kind: string;
-  open?: ValueOrState<boolean>;
+type FloatingProps = {
+  openState: State<boolean>;
   placement: State<Placement>;
   content: DomphyElement;
-}) {
-  const { kind, open = false, placement } = props;
+  // popover's openOn === "hover" case: hovering the floating PANEL itself
+  // (not just the anchor) must keep it open, so the pointer can travel from
+  // trigger to panel without the debounced hide() firing first.
+  keepOpenOnContentHover: boolean;
+};
+
+type FloatingInstance = BehaviorInstance<FloatingProps> & {
+  show: () => void;
+  hide: () => void;
+};
+
+// The per-anchor persistent state a floating component needs (position
+// cleanup, the inserted panel node, debounce timer) used to live in
+// createFloating()'s own closure — but that closure is recreated fresh every
+// time a reactive ancestor re-renders the anchor (popover()/tooltip() called
+// again on the SAME reused DOM element). Only the FIRST-ever generation's
+// _onMount ever fires (ElementNode hooks run once per node), so imperative,
+// document-level listeners (outside-click, Escape-inside-panel) that closed
+// over that generation's `openState`/`reference`/`floating` kept acting on an
+// orphaned copy forever, while live-rebound trigger events (onClick etc.)
+// moved on to whatever generation was actually current — the trigger opened
+// the panel, but nothing could ever close it again from outside.
+//
+// Fixed by moving all of this into ONE `behavior()` instance per (anchor,
+// kind): `attach` runs once, and every later generation's `show`/`hide`
+// calls and `_behaviors` re-declaration route into that SAME instance via
+// `getBehavior`/`update()` — so there is exactly one canonical `openState`/
+// `reference`/`floating` for the anchor's whole lifetime, not one per
+// generation.
+function attachFloating(
+  node: ElementNode,
+  initialProps: FloatingProps,
+): FloatingInstance {
+  let { openState, placement, content, keepOpenOnContentHover } =
+    initialProps;
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let cleanup: (() => void) | null = null;
-  let reference: HTMLElement | null = null;
   let floating: HTMLElement | null = null;
   let floatingNode: ElementNode | null = null;
-  let rootNode: ElementNode | null = null;
   let mounted = false;
-  const openState = toState(open);
 
-  // Teardown must leave the closure RE-MOUNTABLE, not permanently dead: a
-  // still-live instance can get its slot evicted (e.g. a stale generation's
-  // teardown running via a handler that was never rebound) and later be shown
-  // again. Resetting mounted/floatingNode lets ensureMounted re-insert the
-  // panel; leaving them stale made show() position a detached node forever.
-  const teardown = () => {
-    if (timer) clearTimeout(timer);
-    timer = null;
-    if (cleanup) {
-      cleanup();
-      cleanup = null;
-    }
-    if (floatingNode) {
-      floatingNode.remove();
-      floatingNode = null;
-    }
-    floating = null;
-    mounted = false;
-    openState.set(false);
-  };
-
-  // `reference`/`rootNode` are normally captured once by anchorPartial's
-  // _onMount — but ElementNode.patch() deliberately does NOT re-run lifecycle
-  // hooks on a reused (already-mounted) DOM node ("hooks already ran"). A
-  // factory like popover()/tooltip() that gets called AGAIN by a reactive
-  // parent (a fresh createFloating() closure, fresh `reference`/`rootNode`
-  // locals) never gets a second _onMount — so show()/hide() silently no-op
-  // forever after any re-render of the trigger's ancestor. Event handlers,
-  // unlike hooks, ARE live-rebound on every patch (see ElementNode._bindEvent)
-  // and already receive the current ElementNode as their 2nd argument — so
-  // show(node)/hide(node) (called from the trigger's onClick/onMouseEnter/…)
-  // re-derive `reference`/`rootNode` from THAT, idempotently, on every call.
-  // This makes each createFloating() instance self-sufficient regardless of
-  // whether its own _onMount ever fired.
-  const ensureReference = (node?: ElementNode) => {
-    if (!node) return;
-    rootNode = node.getRoot();
-    reference = node.domElement as HTMLElement;
-    if (reference) claimTeardownSlot(reference, kind, teardown);
-  };
-
-  const ensureMounted = () => {
-    if (mounted || !rootNode) return;
-    mounted = true;
-    floatingNode = rootNode.children!.insert(props.content) as ElementNode;
-  };
-
-  const instantShow = () => {
-    ensureMounted();
-    if (reference && floating) {
-      cleanup && cleanup();
-      cleanup = autoUpdate(reference, floating, () => {
-        computePosition(reference as HTMLElement, floating as HTMLElement, {
-          placement: placement.get() as Placement,
-          middleware: [offset(12), flip(), shift()],
-          strategy: "fixed",
-        }).then(({ x, y, placement: resolved }) => {
-          // Teardown can run while computePosition's async work is in
-          // flight (it nulls `floating` and removes the panel) — skip the
-          // late positioning instead of dereferencing null.
-          if (!floating) return;
-          Object.assign(floating.style, {
-            left: `${x}px`,
-            top: `${y}px`,
-          });
-          placement.set(resolved);
-        });
-      });
-      openState.set(true);
-    }
-  };
-  const instantHide = () => {
-    cleanup && cleanup();
-    cleanup = null;
-    openState.set(false);
-  };
-  const show = (node?: ElementNode) => {
-    ensureReference(node);
-    timer && clearTimeout(timer);
-    timer = setTimeout(instantShow, 100);
-  };
-  const hide = (node?: ElementNode) => {
-    ensureReference(node);
-    timer && clearTimeout(timer);
-    timer = setTimeout(instantHide, 100);
-  };
+  const reference = node.domElement as HTMLElement;
+  const rootNode = node.getRoot();
 
   const floatingPartial: PartialElement = {
     style: {
@@ -195,8 +81,10 @@ function createFloating(props: {
     onKeyDown: (event) => {
       if ((event as KeyboardEvent).key === "Escape") hide();
     },
-    _onMount: (node) => {
-      floating = node.domElement as HTMLElement;
+    onMouseEnter: () => keepOpenOnContentHover && show(),
+    onMouseLeave: () => keepOpenOnContentHover && hide(),
+    _onMount: (mountedNode) => {
+      floating = mountedNode.domElement as HTMLElement;
       // Propagate data-theme from the trigger's ancestor so floating content
       // inherits CSS variable scope. Stamped on the PANEL, not the shared
       // overlay: the one overlay serves every floating component under the
@@ -231,41 +119,133 @@ function createFloating(props: {
     },
   };
 
-  merge(props.content, floatingPartial);
+  // Later generations declare their OWN fresh `content` object (a new object
+  // literal at the popover()/tooltip() call site) — wire it every time, not
+  // just at attach, so the panel wiring (theming, portal, dismiss handlers)
+  // is present regardless of which generation's content ends up mounted.
+  const wireContent = (target: DomphyElement) => merge(target, floatingPartial);
+  wireContent(content);
 
-  const anchorPartial: PartialElement = {
-    onKeyDown: (e) => (e as KeyboardEvent).key === "Escape" && hide(),
-    _onMount: (node) => {
-      rootNode = node.getRoot();
-      reference = node.domElement as HTMLElement;
-      if (reference) claimTeardownSlot(reference, kind, teardown);
+  const ensureMounted = () => {
+    if (mounted) return;
+    mounted = true;
+    floatingNode = rootNode.children!.insert(content) as ElementNode;
+  };
 
-      const handleOutside = (event: MouseEvent) => {
-        if (!openState.get() || !reference || !floating) return;
-        const target = event.target as Node;
-        if (!reference.contains(target) && !floating.contains(target)) {
-          hide();
-        }
-      };
-      node.getRoot().domElement!.addEventListener("click", handleOutside);
-
-      // This _onMount only ever fires ONCE per real DOM element (a reused,
-      // patched anchor never gets a second one) — so this is the single
-      // opportunity to attach the BeforeRemove hook for that element's whole
-      // lifetime. It must not tear down THIS closure's own (possibly stale)
-      // `cleanup`/`floatingNode` directly — look up teardownByElement instead,
-      // which always holds whichever generation last interacted with this
-      // anchor (see the WeakMap comment above and ensureReference).
-      node.addHook("BeforeRemove", () => {
-        // Tear down the @domphy/floating autoUpdate loop (scroll/resize/rAF
-        // listeners) and the floating panel itself — for EVERY kind anchored
-        // to this element, since the anchor is going away. Without this,
-        // removing the anchor while the overlay is open leaks observers that
-        // keep positioning a detached node, or leaves the panel orphaned.
-        if (reference) releaseTeardownSlots(reference);
-        node.getRoot().domElement!.removeEventListener("click", handleOutside);
+  const instantShow = () => {
+    ensureMounted();
+    if (reference && floating) {
+      cleanup?.();
+      cleanup = autoUpdate(reference, floating, () => {
+        computePosition(reference as HTMLElement, floating as HTMLElement, {
+          placement: placement.get() as Placement,
+          middleware: [offset(12), flip(), shift()],
+          strategy: "fixed",
+        }).then(({ x, y, placement: resolved }) => {
+          // Teardown can run while computePosition's async work is in
+          // flight (it nulls `floating` and removes the panel) — skip the
+          // late positioning instead of dereferencing null.
+          if (!floating) return;
+          Object.assign(floating.style, {
+            left: `${x}px`,
+            top: `${y}px`,
+          });
+          placement.set(resolved);
+        });
       });
+      openState.set(true);
+    }
+  };
+  // Fully unmounts (not just CSS-hides) the panel — mirrors show()'s own
+  // insert-on-demand: a closed floating component holds no DOM/listeners.
+  // ensureMounted() re-inserts a fresh panel node next time show() runs.
+  const instantHide = () => {
+    cleanup?.();
+    cleanup = null;
+    if (floatingNode) {
+      floatingNode.remove();
+      floatingNode = null;
+    }
+    floating = null;
+    mounted = false;
+    openState.set(false);
+  };
+  const show = () => {
+    timer && clearTimeout(timer);
+    timer = setTimeout(instantShow, 100);
+  };
+  const hide = () => {
+    timer && clearTimeout(timer);
+    timer = setTimeout(instantHide, 100);
+  };
+
+  const handleOutside = (event: MouseEvent) => {
+    if (!openState.get() || !reference || !floating) return;
+    const target = event.target as Node;
+    if (!reference.contains(target) && !floating.contains(target)) hide();
+  };
+  rootNode.domElement?.addEventListener("click", handleOutside);
+
+  return {
+    show,
+    hide,
+    update(props) {
+      openState = props.openState;
+      placement = props.placement;
+      content = props.content;
+      keepOpenOnContentHover = props.keepOpenOnContentHover;
+      wireContent(content);
+      // Reflect the new generation's declared content into the already-
+      // mounted panel in place (same DOM node, no flicker/teardown) — the
+      // ordinary reused-node "patch, don't recreate" contract, applied to
+      // the imperatively-inserted panel too.
+      if (floatingNode) floatingNode.patch(content);
     },
+    destroy() {
+      if (timer) clearTimeout(timer);
+      cleanup?.();
+      floatingNode?.remove();
+      rootNode.domElement?.removeEventListener("click", handleOutside);
+    },
+  };
+}
+
+function createFloating(props: {
+  kind: string;
+  open?: ValueOrState<boolean>;
+  placement: State<Placement>;
+  content: DomphyElement;
+  keepOpenOnContentHover?: boolean;
+}) {
+  const { kind, open = false, placement } = props;
+  const openState = toState(open);
+  const behaviorKey = `floating:${kind}`;
+
+  // Trigger event handlers ARE live-rebound on every patch and already
+  // receive the current ElementNode as their 2nd argument (unlike lifecycle
+  // hooks) — so show(node)/hide(node) just forward to whatever instance is
+  // attached there, regardless of which generation's closure is calling.
+  const show = (node?: ElementNode) =>
+    node?.getBehavior<FloatingInstance>(behaviorKey)?.show();
+  const hide = (node?: ElementNode) =>
+    node?.getBehavior<FloatingInstance>(behaviorKey)?.hide();
+
+  // Plain spread, NOT merge(): merge() defensively deep-clones its `target`
+  // argument, which would snapshot `props.content` right now — but the
+  // caller (popover()/tooltip()) hasn't finished mutating it yet (it pushes
+  // its OWN partial onto `content.$` right after this call returns). A
+  // premature clone silently drops that later mutation, so the panel loses
+  // its role/style/dismiss wiring. Spread keeps the `_behaviors` record's
+  // `props.content` a live reference to the SAME object the caller mutates.
+  const anchorPartial: PartialElement = {
+    onKeyDown: (e: Event, node: ElementNode) =>
+      (e as KeyboardEvent).key === "Escape" && hide(node),
+    ...behavior<FloatingProps>(behaviorKey, attachFloating, {
+      openState,
+      placement,
+      content: props.content,
+      keepOpenOnContentHover: !!props.keepOpenOnContentHover,
+    }),
   };
 
   return { show, hide, anchorPartial };

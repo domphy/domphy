@@ -1,6 +1,6 @@
 {
   "name": "domphy",
-  "version": "0.18.4",
+  "version": "0.19.0",
   "generated": "auto",
   "rules": "https://domphy.com/llms.txt",
   "tones": "https://domphy.com/tones.json",
@@ -46,7 +46,7 @@
     },
     {
       "name": "@domphy/core",
-      "version": "0.18.4",
+      "version": "0.19.0",
       "description": "Domphy Core UI Framework",
       "subpaths": [
         "."
@@ -163,7 +163,7 @@
     },
     {
       "name": "@domphy/press",
-      "version": "0.20.14",
+      "version": "0.20.15",
       "description": "Domphy Press — VitePress-baseline static doc site framework built on @domphy/app + @domphy/markdown",
       "subpaths": [
         ".",
@@ -227,20 +227,8 @@
       ]
     },
     {
-      "name": "@domphy/three",
-      "version": "0.1.0",
-      "description": "Declarative three.js renderer for Domphy — a react-three-fiber-grade scene graph on Domphy reactivity.",
-      "subpaths": [
-        "."
-      ],
-      "peerDependencies": [
-        "@domphy/core",
-        "three"
-      ]
-    },
-    {
       "name": "@domphy/ui",
-      "version": "0.18.21",
+      "version": "0.18.22",
       "description": "Domphy UI",
       "subpaths": [
         "."

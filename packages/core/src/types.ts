@@ -90,12 +90,38 @@ export type PropertyHookMap = {
   Remove?: () => void;
 };
 
+// Per-node behavior contract (Svelte "action"-like): `attach` runs ONCE for a
+// real DOM node no matter how many times a reactive parent re-renders it (a
+// patch factory gets a fresh closure per re-render, but the ElementNode is
+// reused) — see the `behavior()` helper in utils.ts and ElementNode's
+// `_processBehaviors`. Later re-renders route their fresh `props` into the
+// SAME instance via `update`, so imperative state (document-level listeners,
+// timers) never binds to an orphaned generation. `destroy` runs exactly once
+// when the node leaves the DOM (composed onto BeforeRemove).
+export type BehaviorInstance<P = any> = {
+  update?: (props: P) => void;
+  destroy?: () => void;
+};
+
+export type BehaviorAttach<P = any> = (
+  node: ElementNode,
+  props: P,
+) => BehaviorInstance<P> | void;
+
+export type BehaviorSpec<P = any> = {
+  attach: BehaviorAttach<P>;
+  props: P;
+};
+
 export type PartialElement<T extends TagName = never> = {
   _key?: string | number;
   _portal?: (root: ElementNode) => Element;
   style?: StyleObject;
   _context?: Record<string, unknown>;
   _metadata?: Record<string, unknown>;
+  // Keyed so multiple patches ($-composed) can each attach their own behavior
+  // on one element without colliding — see `behavior()` in utils.ts.
+  _behaviors?: Record<string, BehaviorSpec<any>>;
   $?: PartialElement<T>[];
 } & {
   [K in keyof HookMap as `_on${K}`]?: HookMap[K];

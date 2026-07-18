@@ -149,6 +149,21 @@ node.setMetadata("id", "user-123")
 node.getMetadata("id") // "user-123"
 ```
 
+### `getBehavior(key)`
+
+Looks up a per-node behavior instance attached via `behavior()`, walking up through ancestors (same pattern as `getContext`/`getMetadata`) — a behavior is declared on the element that owns the concern, but the event that needs it often fires on a descendant.
+
+```ts
+import { behavior } from "@domphy/core"
+
+const anchorPartial = behavior("floating", attachFloating, { open: openState })
+
+// later, from a live-rebound trigger event handler:
+onClick: (e, node) => node.getBehavior("floating")?.show()
+```
+
+Returns `undefined` if the key was never declared on this node or an ancestor, or was declared but hasn't attached yet (construction-time, before `Mount`).
+
 ### `generateHTML()`
 
 Generates HTML string. Used for SSR.

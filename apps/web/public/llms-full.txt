@@ -56,7 +56,9 @@ const App = {
 List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed lists) and patches them in place. Nearly every hard framework bug found to date (the 0.18.15–0.18.19 fix series) came from code assuming otherwise. The contract:
 
 - **Lifecycle hooks run ONCE per real DOM node.** `_onInit`/`_onInsert`/`_onMount` do NOT re-run when a reactive parent re-renders and the node is reused — even though your factory/patch function was called again and created a fresh closure. Never capture things in `_onMount` that later interactions depend on; event handlers ARE live-rebound on every patch and receive the current `ElementNode` as their 2nd argument — re-derive from that instead (`onClick: (e, node) => ...`).
-- **A fresh closure on a reused node is the default, not the exception.** A patch factory called inside a reactive parent gets a brand-new closure per re-render, all bound to the SAME DOM node. Closure-local state (open flags, cached elements) silently resets/diverges per generation. Keep cross-generation state either in caller-owned `State` passed as props, or keyed off the live DOM element (e.g. a `WeakMap<Element, ...>`).
+- **A fresh closure on a reused node is the default, not the exception.** A patch factory called inside a reactive parent gets a brand-new closure per re-render, all bound to the SAME DOM node. Closure-local state (open flags, cached elements) silently resets/diverges per generation — and it is worse than just "resets": an imperative, node-scoped side effect wired from `_onMount` (a document-level outside-click/Escape listener, a `ResizeObserver`) only EVER gets registered by the first-ever generation, since `_onMount` doesn't re-run. That listener keeps closing over generation 1's state forever, while live-rebound trigger events (`onClick` etc.) move on to whatever generation is actually current — the trigger can open a panel that its own dismiss listener can no longer see.
+  - **The prescribed fix: `behavior(key, attach, props)`** (`@domphy/core`, Svelte-action-like). `attach(node, props)` runs ONCE for the real DOM node no matter how many times the factory re-runs; every later re-render's `props` are routed into that SAME instance via `update(props)` instead of creating a disconnected one; `destroy()` fires exactly once on removal (composed onto `BeforeRemove`, same guarantee as other hook composition). Use it any time a patch needs imperative, cross-generation state — document/window listeners, `ResizeObserver`/`IntersectionObserver`, non-Domphy library instances. See [Common Patterns → Per-node behavior](https://domphy.com/docs/core/patterns#per-node-behavior) and `packages/ui/src/utils/floating.ts` (the popover/tooltip/selectBox/combobox/datePicker shared implementation) for the reference migration off the old hand-rolled `WeakMap<Element, ...>` generation-eviction pattern.
+  - A `WeakMap<Element, ...>` keyed off the live DOM element is still a valid escape hatch for code that isn't a patch factory (no `attach`/`update`/`destroy` shape available), but prefer `behavior()` wherever the state is scoped to one ElementNode's lifetime.
 - **Imperatively-inserted children survive reconciliation.** Children added via `node.children.insert(...)` (a floating panel, an `_onInit`-inserted subtree) are exempt from declared-children reconciliation: a re-render neither prunes nor repositions them, and declared content `null` means "no children declared" — not "remove all children".
 - **No resurrection during exit animations.** Re-adding a `_key` while the old node's async `_onBeforeRemove(node, done)` is still awaiting `done()` creates a FRESH node; the exiting one finishes its animation and is disposed. Don't cache references to exiting nodes.
 - **`_beforeRemoveFired`, `getRoot()`, `_portal` are internals** — patches composing overlays should go through `@domphy/ui`'s existing utilities rather than reimplementing teardown.
@@ -65,7 +67,7 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 
 | Package | Use |
 | --- | --- |
-| `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code) |
+| `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code; `behavior(key, attach, props)` — per-node imperative state that survives reactive re-renders, see "Reused-node lifecycle" below) |
 | `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`); `generateTheme(baseColors, opts?)` builds a full `ThemeInput` from one base hex per semantic role via `@domphy/palette`'s ramp generator (see `DESIGN.md`) |
 | `@domphy/ui` | 93 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, …) |
 | `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery`/`bindResult` at `@domphy/query/domphy`; `bindResult` connects an observer to Domphy reactivity so result fields are readable with a listener |
@@ -1140,6 +1142,21 @@ node.setMetadata("id", "user-123")
 node.getMetadata("id") // "user-123"
 ```
 
+### `getBehavior(key)`
+
+Looks up a per-node behavior instance attached via `behavior()`, walking up through ancestors (same pattern as `getContext`/`getMetadata`) — a behavior is declared on the element that owns the concern, but the event that needs it often fires on a descendant.
+
+```ts
+import { behavior } from "@domphy/core"
+
+const anchorPartial = behavior("floating", attachFloating, { open: openState })
+
+// later, from a live-rebound trigger event handler:
+onClick: (e, node) => node.getBehavior("floating")?.show()
+```
+
+Returns `undefined` if the key was never declared on this node or an ancestor, or was declared but hasn't attached yet (construction-time, before `Mount`).
+
 ### `generateHTML()`
 
 Generates HTML string. Used for SSR.
@@ -1538,6 +1555,39 @@ Key merge behaviors:
 - Most other keys are overwritten by `target`.
 
 Use `merge()` when composing patches or mutating a raw element in `_onSchedule`.
+
+---
+
+## `behavior(key, attach, props)`
+
+Declares a per-node behavior (Svelte-action-like) inside a patch factory. `attach(node, props)` runs once for the real DOM node the returned partial lands on, no matter how many times the factory itself is re-invoked by a reactive parent — every later call routes its `props` into the SAME instance via `update()` instead of creating a new, disconnected one. `destroy()` fires exactly once when the node is removed.
+
+```ts
+import { behavior } from "@domphy/core"
+
+function draggable(props: { onMove(dx: number, dy: number): void }) {
+  return behavior("draggable", (node, props) => {
+    const onPointerMove = (e: PointerEvent) => props.onMove(e.movementX, e.movementY)
+    node.domElement!.addEventListener("pointermove", onPointerMove)
+    return {
+      update: (next) => { props = next },
+      destroy: () => node.domElement!.removeEventListener("pointermove", onPointerMove),
+    }
+  }, props)
+}
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `key` | `string` | Identifies this concern on the element. Two DIFFERENT patches sharing one element (e.g. a tooltip and a popover on the same button) should use distinct keys so their instances stay independent. |
+| `attach` | `(node: ElementNode, props: P) => { update?(props: P): void; destroy?(): void } \| void` | Runs once for the real node. Returns the instance's `update`/`destroy` callbacks. |
+| `props` | `P` | Passed to `attach` on first attach, and to `update` on every later re-declaration of the same `key`. |
+
+Returns a `PartialElement` fragment (`{ _behaviors: { [key]: { attach, props } } }`) — compose it like any other patch field via object spread, `merge()`, or `$`.
+
+Read a node's own attached instance with `node.getBehavior(key)` — it walks up through ancestors (like `getContext`/`getMetadata`), since the event that needs it often fires on a descendant of the element that declared the behavior (e.g. an inner `<input>`'s `onFocus` needing a behavior declared on its outer wrapper).
+
+Use `behavior()` instead of a raw `_onMount` whenever a patch needs imperative state that must survive a reactive parent re-rendering the node it's attached to — document/window listeners, `ResizeObserver`/`IntersectionObserver`, non-Domphy library instances. See [Reused-node lifecycle](https://github.com/domphy/domphy/blob/main/AGENTS.md#reused-node-lifecycle--the-gotchas-behind-most-real-bugs) for why this matters, and [Common Patterns → Per-node behavior](../patterns#per-node-behavior-imperative-state-that-survives-re-renders) for a fuller example.
 
 ---
 
@@ -2600,6 +2650,8 @@ For a declarative error boundary, use the `errorBoundary()` patch from `@domphy/
 
 `_onSchedule` is the right place to apply context-aware patches. Unlike inline `$: [patches]`, it can read parent context before parsing begins.
 
+**Hooks fire once per real DOM node**, not once per patch-factory call. A patch factory invoked again by a reactive ancestor (the node is reused, not recreated) gets a brand-new closure, but `_onInit`/`_onMount`/etc. do NOT re-run on that reused node — so imperative state wired inside them (a document listener, a `ResizeObserver`) stays bound to whichever generation attached it first. For per-node imperative state that must track the CURRENT generation's props across re-renders, use `behavior(key, attach, props)` instead of a raw `_onMount` — see [Common Patterns → Per-node behavior](./patterns#per-node-behavior-imperative-state-that-survives-re-renders).
+
 See also [ElementNode API](./api/element-node).
 
 ### migration.md
@@ -2977,6 +3029,44 @@ const ErrorBadge = badge("error")
 // Usage
 { div: [SuccessBadge("Active"), ErrorBadge("Failed")] }
 ```
+
+## Per-node behavior (imperative state that survives re-renders)
+
+A patch factory called inside a reactive parent gets a brand-new closure every time that parent re-renders — even though the DOM node it patches is reused. Lifecycle hooks like `_onMount` only fire ONCE for that real node, so imperative side effects wired there (a document-level listener, a `ResizeObserver`) stay bound to the FIRST-ever generation's closure forever, while live-rebound event handlers (`onClick`) move on to whatever generation is current. See [Reused-node lifecycle](https://github.com/domphy/domphy/blob/main/AGENTS.md#reused-node-lifecycle--the-gotchas-behind-most-real-bugs) for the full failure mode.
+
+`behavior(key, attach, props)` fixes this: `attach(node, props)` runs once for the real node; every later re-render's `props` are routed into that SAME instance via `update()`, not lost with the discarded closure; `destroy()` fires exactly once when the node is removed.
+
+```ts
+import { behavior, toState, type PartialElement } from "@domphy/core"
+
+function clickOutside(props: { onOutside: () => void }): PartialElement {
+  return behavior(
+    "click-outside",
+    (node, props) => {
+      // Runs ONCE for this node, no matter how many re-renders happen.
+      const handler = (event: MouseEvent) => {
+        if (!node.domElement?.contains(event.target as Node)) props.onOutside()
+      }
+      document.addEventListener("click", handler)
+      return {
+        update: (nextProps) => { props = nextProps }, // fresh onOutside every re-render
+        destroy: () => document.removeEventListener("click", handler),
+      }
+    },
+    props,
+  )
+}
+
+const isOpen = toState(false)
+
+const Menu = {
+  div: [{ p: "Menu content" }],
+  $: [clickOutside({ onOutside: () => isOpen.set(false) })],
+  hidden: (l) => !isOpen.get(l),
+}
+```
+
+Compose it with other patch fields via object spread, `merge()`, or `$` — `behavior()` just returns a `{ _behaviors: {...} }` fragment keyed so multiple concerns on one element ($-composed patches) don't collide. See `@domphy/ui`'s `packages/ui/src/utils/floating.ts` (shared by `popover`/`tooltip`/`selectBox`/`combobox`/`datePicker`) for a full real-world instance: a persistent per-anchor "floating panel" state (position cleanup, outside-click dismissal, Escape-to-close) that used to be a hand-rolled `WeakMap<Element, ...>` generation-eviction workaround.
 
 ## Compound component pattern
 
@@ -43210,6 +43300,9 @@ function popover(props: {
     open: openState,
     placement: placeState,
     content: props.content,
+    // Hovering the panel itself (not just the trigger) must keep it open —
+    // handled generically inside floating.ts's behavior instance.
+    keepOpenOnContentHover: openOn === "hover",
   });
 
   const popoverPartial: PartialElement = {
@@ -43218,8 +43311,6 @@ function popover(props: {
     style: {
       backgroundColor: (l: Listener) => themeColor(l, "inherit"),
     },
-    onMouseEnter: () => openOn === "hover" && show(),
-    onMouseLeave: () => openOn === "hover" && hide(),
     _onInsert: (node) => {
       const id = node.attributes.get("id");
       popoverId = id || node.nodeId;

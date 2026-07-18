@@ -41,6 +41,9 @@ function popover(props: {
     open: openState,
     placement: placeState,
     content: props.content,
+    // Hovering the panel itself (not just the trigger) must keep it open —
+    // handled generically inside floating.ts's behavior instance.
+    keepOpenOnContentHover: openOn === "hover",
   });
 
   const popoverPartial: PartialElement = {
@@ -49,8 +52,6 @@ function popover(props: {
     style: {
       backgroundColor: (l: Listener) => themeColor(l, "inherit"),
     },
-    onMouseEnter: () => openOn === "hover" && show(),
-    onMouseLeave: () => openOn === "hover" && hide(),
     _onInsert: (node) => {
       const id = node.attributes.get("id");
       popoverId = id || node.nodeId;

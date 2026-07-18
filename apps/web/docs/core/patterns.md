@@ -124,6 +124,44 @@ const ErrorBadge = badge("error")
 { div: [SuccessBadge("Active"), ErrorBadge("Failed")] }
 ```
 
+## Per-node behavior (imperative state that survives re-renders)
+
+A patch factory called inside a reactive parent gets a brand-new closure every time that parent re-renders — even though the DOM node it patches is reused. Lifecycle hooks like `_onMount` only fire ONCE for that real node, so imperative side effects wired there (a document-level listener, a `ResizeObserver`) stay bound to the FIRST-ever generation's closure forever, while live-rebound event handlers (`onClick`) move on to whatever generation is current. See [Reused-node lifecycle](https://github.com/domphy/domphy/blob/main/AGENTS.md#reused-node-lifecycle--the-gotchas-behind-most-real-bugs) for the full failure mode.
+
+`behavior(key, attach, props)` fixes this: `attach(node, props)` runs once for the real node; every later re-render's `props` are routed into that SAME instance via `update()`, not lost with the discarded closure; `destroy()` fires exactly once when the node is removed.
+
+```ts
+import { behavior, toState, type PartialElement } from "@domphy/core"
+
+function clickOutside(props: { onOutside: () => void }): PartialElement {
+  return behavior(
+    "click-outside",
+    (node, props) => {
+      // Runs ONCE for this node, no matter how many re-renders happen.
+      const handler = (event: MouseEvent) => {
+        if (!node.domElement?.contains(event.target as Node)) props.onOutside()
+      }
+      document.addEventListener("click", handler)
+      return {
+        update: (nextProps) => { props = nextProps }, // fresh onOutside every re-render
+        destroy: () => document.removeEventListener("click", handler),
+      }
+    },
+    props,
+  )
+}
+
+const isOpen = toState(false)
+
+const Menu = {
+  div: [{ p: "Menu content" }],
+  $: [clickOutside({ onOutside: () => isOpen.set(false) })],
+  hidden: (l) => !isOpen.get(l),
+}
+```
+
+Compose it with other patch fields via object spread, `merge()`, or `$` — `behavior()` just returns a `{ _behaviors: {...} }` fragment keyed so multiple concerns on one element ($-composed patches) don't collide. See `@domphy/ui`'s `packages/ui/src/utils/floating.ts` (shared by `popover`/`tooltip`/`selectBox`/`combobox`/`datePicker`) for a full real-world instance: a persistent per-anchor "floating panel" state (position cleanup, outside-click dismissal, Escape-to-close) that used to be a hand-rolled `WeakMap<Element, ...>` generation-eviction workaround.
+
 ## Compound component pattern
 
 Build components that share state without prop-drilling:

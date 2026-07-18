@@ -71,4 +71,6 @@ For a declarative error boundary, use the `errorBoundary()` patch from `@domphy/
 
 `_onSchedule` is the right place to apply context-aware patches. Unlike inline `$: [patches]`, it can read parent context before parsing begins.
 
+**Hooks fire once per real DOM node**, not once per patch-factory call. A patch factory invoked again by a reactive ancestor (the node is reused, not recreated) gets a brand-new closure, but `_onInit`/`_onMount`/etc. do NOT re-run on that reused node — so imperative state wired inside them (a document listener, a `ResizeObserver`) stays bound to whichever generation attached it first. For per-node imperative state that must track the CURRENT generation's props across re-renders, use `behavior(key, attach, props)` instead of a raw `_onMount` — see [Common Patterns → Per-node behavior](./patterns#per-node-behavior-imperative-state-that-survives-re-renders).
+
 See also [ElementNode API](./api/element-node).
