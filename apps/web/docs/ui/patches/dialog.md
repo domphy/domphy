@@ -10,6 +10,8 @@ Apply the `dialog` patch to a `<dialog>` element. It drives open/close via the n
 
 The patch handles accessibility automatically: it sets `aria-modal="true"`, traps Tab focus within the dialog while open (cycling between first and last focusable elements), restores focus to the previously focused element when closed, and locks page scroll while open.
 
+The dialog surface uses a high `elevation()` box-shadow (no outline — shadow-only, the modern modal look) and a density-scaled border-radius.
+
 ## Props
 
 | Prop | Type | Default | Description |

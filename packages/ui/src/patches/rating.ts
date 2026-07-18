@@ -6,6 +6,7 @@ import {
   type ValueOrState,
 } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 const STAR_FILLED =
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="1em" height="1em">` +
@@ -57,7 +58,7 @@ function rating(
       gap: themeSpacing(0.5),
       fontSize: "1.5rem",
       cursor: readOnly ? "default" : "pointer",
-      color: (listener) => themeColor(listener, "shift-8", color),
+      color: (listener) => themeColor(listener, "muted", color),
     },
     // Build stars as real child elements (not imperative DOM mutation in
     // _onMount) so generateHTML()/SSR emits the actual star markup.
@@ -104,12 +105,18 @@ function rating(
           style: {
             background: "none",
             border: "none",
+            outline: "none",
+            borderRadius: themeSpacing(1),
             padding: 0,
             cursor: "inherit",
             color: "inherit",
             fontSize: "inherit",
             display: "flex",
             alignItems: "center",
+            transition: "box-shadow 140ms ease",
+            "&:focus-visible": {
+              boxShadow: (listener) => focusRing(listener, color),
+            },
           },
         };
         node.children.insert(star);

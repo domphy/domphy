@@ -8,6 +8,8 @@ import Toast from "../../demos/patches/Toast.ts?raw"
 
 Portal a transient notification into a fixed-position corner stack. The toast animates in on mount (opacity + slide) and out before removal — Domphy holds the DOM until the exit transition finishes via `_onBeforeRemove`. No host-tag restriction; apply to any `<div>`.
 
+The toast surface uses a medium `elevation()` box-shadow so it visibly floats above page content.
+
 <CodeEditor :code="Toast" />
 
 ::: details Customization

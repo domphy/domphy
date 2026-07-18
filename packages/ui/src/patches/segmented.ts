@@ -11,12 +11,13 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /** One item inside a segmented control. */
 type SegmentedItem = {
   /** Button label — plain string (auto-wrapped) or any DomphyElement. */
   label: string | DomphyElement;
-  /** Stable key. Defaults to the item's zero-based index as a string. */
+  /** Stable key. Defaults to the item's zero-based index. */
   key?: string;
 };
 
@@ -73,9 +74,10 @@ function segmented(
             paddingInline: themeSpacing(3),
             border: "none",
             borderRadius: themeSpacing(10),
-            color: (l: Listener) => themeColor(l, "shift-9", color),
+            color: (l: Listener) => themeColor(l, "text", color),
             backgroundColor: "transparent",
-            transition: "background-color 300ms ease",
+            transition:
+              "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
             "&:hover:not([disabled]):not([aria-checked=true])": {
               backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
             },
@@ -85,9 +87,7 @@ function segmented(
               color: (l: Listener) => themeColor(l, "shift-10", accentColor),
             },
             "&:focus-visible": {
-              outline: (l: Listener) =>
-                `${themeSpacing(0.5)} solid ${themeColor(l, "shift-6", accentColor)}`,
-              outlineOffset: `-${themeSpacing(0.5)}`,
+              boxShadow: (l: Listener) => focusRing(l, accentColor),
             },
             "&[disabled]": {
               opacity: 0.7,

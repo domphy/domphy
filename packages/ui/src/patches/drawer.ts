@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
 import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 type PhysicalPlacement = "left" | "right" | "top" | "bottom";
@@ -181,8 +182,7 @@ function drawer(
       height: isVertical(physicalFallback) ? "100dvh" : drawerSize,
       maxWidth: "100dvw",
       maxHeight: "100dvh",
-      boxShadow: (listener) =>
-        `0 ${themeSpacing(4)} ${themeSpacing(12)} ${themeColor(listener, "shift-4", "neutral")}`,
+      boxShadow: elevation("high"),
       "&::backdrop": {
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),

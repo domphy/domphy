@@ -85,12 +85,12 @@ function listItemButton(
         themeSpacing(dense ? 1 : themeDensity(listener) * 2),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       transition: "background-color 150ms ease",
       "&:hover:not([disabled])": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-2", color.get(listener)),
+          themeColor(listener, "hover", color.get(listener)),
       },
       "&[aria-current=page], &[aria-selected=true]": {
         backgroundColor: (listener) =>

@@ -8,6 +8,8 @@ import Fab from "../../demos/patches/Fab.ts?raw"
 
 Apply `fab` to a `<button>` to render a circular elevated button — the standard Material-style primary-action button. Three size presets and full theme-color support.
 
+Uses a low `elevation()` box-shadow at rest, rising to medium on hover.
+
 ## Props
 
 | Prop | Type | Default |

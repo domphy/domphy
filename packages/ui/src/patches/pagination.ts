@@ -11,6 +11,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 function getPages(current: number, total: number): (number | "...")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -53,15 +54,18 @@ function pagination(props: {
     minWidth: (listener: any) => themeSpacing(6 + themeDensity(listener) * 2),
     height: (listener: any) => themeSpacing(6 + themeDensity(listener) * 2),
     paddingInline: (listener: any) => themeSpacing(themeDensity(listener) * 2),
-    borderRadius: (listener: any) => themeSpacing(themeDensity(listener) * 1),
+    borderRadius: (listener: any) => themeSpacing(themeDensity(listener) * 1.5),
     border: "none",
     cursor: "pointer",
     fontSize: (listener: any) => themeSize(listener, "inherit"),
     backgroundColor: "transparent",
-    color: (listener: any) => themeColor(listener, "shift-9", color),
+    color: (listener: any) => themeColor(listener, "text", color),
+    transition: "background-color 140ms ease, box-shadow 140ms ease",
     "&:hover:not([disabled])": {
-      backgroundColor: (listener: any) =>
-        themeColor(listener, "shift-2", color),
+      backgroundColor: (listener: any) => themeColor(listener, "hover", color),
+    },
+    "&:focus-visible": {
+      boxShadow: (listener: any) => focusRing(listener, accentColor),
     },
     "&[disabled]": {
       opacity: 0.4,

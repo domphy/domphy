@@ -7,6 +7,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 // Tabler Icons (MIT) — eye and eye-off outlines.
 const EYE_SVG =
@@ -104,17 +105,21 @@ function inputPassword(
       gap: (l) => themeSpacing(themeDensity(l) * 1),
       paddingBlock: (l) => themeSpacing(themeDensity(l) * 1),
       paddingInline: (l) => themeSpacing(themeDensity(l) * 3),
-      borderRadius: (l) => themeSpacing(themeDensity(l) * 1),
+      borderRadius: (l) => themeSpacing(themeDensity(l) * 1.5),
       border: "none",
       outlineOffset: "-1px",
       outline: (l) =>
-        `1px solid ${themeColor(l, "shift-4", colorState.get(l))}`,
-      color: (l) => themeColor(l, "shift-9", colorState.get(l)),
+        `1px solid ${themeColor(l, "border-strong", colorState.get(l))}`,
+      color: (l) => themeColor(l, "text", colorState.get(l)),
       backgroundColor: (l) => themeColor(l, "inherit", colorState.get(l)),
       fontSize: (l) => themeSize(l, "inherit"),
-      "&:focus-within": {
+      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      "&:hover:not(:has([disabled])):not(:focus-within)": {
         outline: (l) =>
-          `${themeSpacing(0.5)} solid ${themeColor(l, "shift-6", accentState.get(l))}`,
+          `1px solid ${themeColor(l, "shift-5", accentState.get(l))}`,
+      },
+      "&:focus-within": {
+        boxShadow: (l) => focusRing(l, accentState.get(l)),
       },
     } as StyleObject,
   };

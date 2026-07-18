@@ -46,7 +46,7 @@ function inputColor(
         padding: 0,
       },
       "&::-webkit-color-swatch": {
-        borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+        borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -54,7 +54,7 @@ function inputColor(
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
         outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
       },
     },
   };

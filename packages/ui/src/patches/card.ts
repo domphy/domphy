@@ -31,7 +31,7 @@ function card(
       color: (listener) =>
         themeColor(listener, "shift-10", color.get(listener)),
       outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       outlineOffset: "-1px",
       overflow: "hidden",
       "& > img": {
@@ -50,8 +50,7 @@ function card(
       "& > p": {
         gridArea: "desc",
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
-        color: (listener) =>
-          themeColor(listener, "shift-9", color.get(listener)),
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
         margin: 0,
       },
       "& > aside": {
@@ -73,7 +72,7 @@ function card(
         paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
         borderTop: (listener) =>
-          `1px solid ${themeColor(listener, "shift-3", color.get(listener))}`,
+          `1px solid ${themeColor(listener, "border", color.get(listener))}`,
       },
     },
   };

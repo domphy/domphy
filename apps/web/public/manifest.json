@@ -130,7 +130,7 @@
     },
     {
       "name": "@domphy/mcp",
-      "version": "0.19.1",
+      "version": "0.19.2",
       "description": "Domphy MCP server - exposes patches, packages, rules, and the doctor to MCP-capable AI agents",
       "subpaths": [
         ".",
@@ -413,13 +413,25 @@
     {
       "name": "button",
       "hostTag": "button",
-      "signature": "button(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "signature": "button(props: { color?: ValueOrState<ThemeColor>; variant?: ButtonVariant; size?: ButtonSize; } = {})",
       "props": [
         {
           "name": "color",
           "type": "ValueOrState<ThemeColor>",
           "optional": true,
           "doc": "Button color tone. Optional `ValueOrState<ThemeColor>`, default \"primary\"."
+        },
+        {
+          "name": "variant",
+          "type": "ButtonVariant",
+          "optional": true,
+          "doc": "Visual style: `\"outline\"` (tinted background + outline, default, backward compatible), `\"solid\"` (filled background, readable contrast text), or `\"ghost\"` (no background/border — delegates to `buttonGhost()` so the two stay visually identical)."
+        },
+        {
+          "name": "size",
+          "type": "ButtonSize",
+          "optional": true,
+          "doc": "Button size preset. Optional `\"small\" | \"medium\" | \"large\"`, defaults to `\"medium\"`."
         }
       ],
       "doc": "A themed button control with density-aware padding/radius and hover, focus-visible, `[disabled]`, and `[aria-busy=true]` states. Apply to a `<button>` element.",
@@ -429,13 +441,19 @@
     {
       "name": "buttonGhost",
       "hostTag": "button",
-      "signature": "buttonGhost(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "signature": "buttonGhost(props: { color?: ValueOrState<ThemeColor>; size?: ButtonSize } = {})",
       "props": [
         {
           "name": "color",
           "type": "ValueOrState<ThemeColor>",
           "optional": true,
           "doc": "Text color tone. Optional `ValueOrState<ThemeColor>`, defaults to `\"neutral\"`."
+        },
+        {
+          "name": "size",
+          "type": "ButtonSize",
+          "optional": true,
+          "doc": "Button size preset. Optional `\"small\" | \"medium\" | \"large\"`, defaults to `\"medium\"`."
         }
       ],
       "doc": "A transparent button with no border or background — suitable for icon actions, inline controls, and delete/close triggers. Apply to a `<button>` element.",

@@ -35,7 +35,7 @@ function spinner(
     style: {
       fontSize: (listener) => themeSize(listener),
       backgroundColor: (listener) => themeColor(listener),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       display: "inline-block",
       margin: 0,
       flexShrink: 0,
@@ -43,7 +43,7 @@ function spinner(
       height: themeSpacing(6),
       borderRadius: "50%",
       border: (listener) =>
-        `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+        `${themeSpacing(0.5)} solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       borderTopColor: (listener) =>
         themeColor(listener, "shift-9", color.get(listener)),
       boxSizing: "border-box",

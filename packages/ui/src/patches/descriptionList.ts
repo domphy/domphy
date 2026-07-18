@@ -41,8 +41,7 @@ function descriptionList(
       "& dd": {
         margin: 0,
         fontSize: (listener) => themeSize(listener, "inherit"),
-        color: (listener) =>
-          themeColor(listener, "shift-9", color.get(listener)),
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
       },
     },
   };

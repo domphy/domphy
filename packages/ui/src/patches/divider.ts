@@ -34,13 +34,13 @@ function divider(
       gap: themeSpacing(2),
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) => themeColor(listener),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       minHeight: "1lh",
       "&::before": {
         content: `""`,
         flex: 1,
         borderColor: (listener) =>
-          themeColor(listener, "shift-4", color.get(listener)),
+          themeColor(listener, "border-strong", color.get(listener)),
         borderWidth: "1px",
         borderBottomStyle: "solid",
       },
@@ -48,7 +48,7 @@ function divider(
         content: `""`,
         flex: 1,
         borderColor: (listener) =>
-          themeColor(listener, "shift-4", color.get(listener)),
+          themeColor(listener, "border-strong", color.get(listener)),
         borderWidth: "1px",
         borderBottomStyle: "solid",
       },

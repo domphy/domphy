@@ -37,7 +37,7 @@ function icon(
       flexShrink: "0",
       fontSize: (listener) => themeSize(listener),
       backgroundColor: "transparent",
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
     },
   };
 }

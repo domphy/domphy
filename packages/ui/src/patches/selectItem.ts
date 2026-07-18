@@ -62,10 +62,10 @@ function selectItem(
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       border: "none",
       outline: "none",
-      color: (listener) => themeColor(listener, "shift-9", color),
+      color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       "&:hover:not([disabled]):not([aria-selected=true])": {
-        backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+        backgroundColor: (listener) => themeColor(listener, "hover", color),
       },
       "&[aria-selected=true]": {
         backgroundColor: (listener) =>

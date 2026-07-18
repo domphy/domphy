@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a native file input with a themed upload button, border, hover, focus
@@ -40,16 +41,17 @@ function inputFile(
       fontFamily: "inherit",
       fontSize: (listener) => themeSize(listener, "inherit"),
       lineHeight: "inherit",
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       border: "none",
       outlineOffset: "-1px",
       outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
+      transition: "outline-color 140ms ease, box-shadow 140ms ease",
       "&::-webkit-file-upload-button": {
         marginTop: (listener) => themeSpacing(themeDensity(listener)),
         fontFamily: "inherit",
@@ -62,24 +64,27 @@ function inputFile(
         color: (listener) =>
           themeColor(listener, "shift-11", color.get(listener)),
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-1", color.get(listener)),
+          themeColor(listener, "surface", color.get(listener)),
       },
-      "&:hover:not([disabled]):not([aria-busy=true]), &:focus-visible": {
+      "&:hover:not([disabled]):not([aria-busy=true])": {
         outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+          `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
+      },
+      "&:focus-visible": {
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         opacity: 0.8,
         cursor: "not-allowed",
-        color: (listener) => themeColor(listener, "shift-8", "neutral"),
+        color: (listener) => themeColor(listener, "muted", "neutral"),
         outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-1", "neutral"),
+          themeColor(listener, "surface", "neutral"),
       },
       "&[disabled]::-webkit-file-upload-button": {
         cursor: "not-allowed",
-        color: (listener) => themeColor(listener, "shift-8", "neutral"),
+        color: (listener) => themeColor(listener, "muted", "neutral"),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-3", "neutral"),
       },

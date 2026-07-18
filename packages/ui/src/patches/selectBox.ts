@@ -14,6 +14,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
 import { createFloating } from "../utils/floating.js";
 import { tag } from "./tag.js";
 
@@ -70,6 +71,15 @@ function selectBox(props: {
 
   const popoverPartial: PartialElement = {
     onClick: (_e, node) => !multiple && hide(node),
+    dataTone: "shift-14",
+    style: {
+      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
+      outline: (listener) =>
+        `1px solid ${themeColor(listener, "border-strong")}`,
+      outlineOffset: "-1px",
+      boxShadow: elevation("medium"),
+    },
   };
 
   merge(props.content, popoverPartial);
@@ -115,11 +125,11 @@ function selectBox(props: {
       minWidth: themeSpacing(32),
       outlineOffset: "-1px",
       outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+        `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "shift-9", color),
+      color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
     },
   };

@@ -57,8 +57,7 @@ function formGroup(
         fontWeight: 600,
         paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
-        color: (listener) =>
-          themeColor(listener, "shift-9", color.get(listener)),
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
         backgroundColor: (listener) =>
           themeColor(listener, "inherit", color.get(listener)),
       },
@@ -84,8 +83,7 @@ function formGroup(
         margin: 0,
         marginBlockStart: `calc(${themeSpacing(2)} * -1)`,
         fontSize: (listener) => themeSize(listener, "decrease-1"),
-        color: (listener) =>
-          themeColor(listener, "shift-9", color.get(listener)),
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
       },
     },
   };

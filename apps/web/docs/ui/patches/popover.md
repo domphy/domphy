@@ -12,6 +12,8 @@ The patch wires accessibility automatically: `aria-haspopup="dialog"`, `aria-exp
 
 When `openOn` is `"hover"`, the popover also opens on focus and closes on blur. When `openOn` is `"click"`, focus has no effect.
 
+The panel surface carries a `"border-strong"` outline plus a medium `elevation()` box-shadow, so it reads as a raised layer above the page.
+
 ## Props
 
 | Prop | Type | Default | Description |

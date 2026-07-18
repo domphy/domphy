@@ -96,9 +96,9 @@ function steps(
               fontWeight: "600",
               flexShrink: "0",
               border: (l: Listener) =>
-                `2px solid ${themeColor(l, "shift-4", color)}`,
+                `2px solid ${themeColor(l, "border-strong", color)}`,
               backgroundColor: (l: Listener) => themeColor(l, "inherit"),
-              color: (l: Listener) => themeColor(l, "shift-8"),
+              color: (l: Listener) => themeColor(l, "muted"),
               transition:
                 "background-color 200ms ease, color 200ms ease, border-color 200ms ease",
               zIndex: "1",
@@ -123,8 +123,8 @@ function steps(
             "&[data-status=done]::before": {
               content: '"✓"',
               backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
-              borderColor: (l: Listener) => themeColor(l, "shift-3", color),
-              color: (l: Listener) => themeColor(l, "shift-9", color),
+              borderColor: (l: Listener) => themeColor(l, "border", color),
+              color: (l: Listener) => themeColor(l, "text", color),
             },
             "&[data-status=done]:not(:first-child)::after": {
               backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
@@ -141,7 +141,7 @@ function steps(
               fontWeight: "600",
             },
             "&[data-status=done]": {
-              color: (l: Listener) => themeColor(l, "shift-8"),
+              color: (l: Listener) => themeColor(l, "muted"),
             },
           },
         } as DomphyElement<"li">;

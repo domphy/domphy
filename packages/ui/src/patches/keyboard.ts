@@ -28,14 +28,14 @@ function keyboard(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       paddingBlock: themeSpacing(0.5),
       paddingInline: themeSpacing(1.5),
       borderRadius: themeSpacing(1),
       outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
     },
   };
 }

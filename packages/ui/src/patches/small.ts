@@ -24,7 +24,7 @@ function small(
     dataSize: "decrease-1",
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
     },
   };
 }

@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Themed single-line text input primitive. Sets `type="text"` and styles the
@@ -43,24 +44,28 @@ function inputText(
       minWidth: themeSpacing(10),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       fontSize: (listener) => themeSize(listener, "inherit"),
       border: "none",
       outlineOffset: "-1px",
       outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
+      transition: "outline-color 140ms ease, box-shadow 140ms ease",
       "&::placeholder": {
         color: (listener) => themeColor(listener, "shift-7"),
       },
       "&:not(:placeholder-shown)": {
         color: (listener) => themeColor(listener, "shift-10"),
       },
-      "&:hover:not([disabled]):not([aria-busy=true]), &:focus-visible": {
+      "&:hover:not([disabled]):not([aria-busy=true])": {
         outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+          `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
+      },
+      "&:focus-visible": {
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -68,8 +73,8 @@ function inputText(
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
         outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
-        color: (listener) => themeColor(listener, "shift-8", "neutral"),
+          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        color: (listener) => themeColor(listener, "muted", "neutral"),
       },
       "&:invalid:not(:placeholder-shown)": {
         outline: (listener) =>

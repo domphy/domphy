@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 type InputDateTimeMode = "date" | "time" | "week" | "month" | "datetime-local";
 
@@ -43,32 +44,36 @@ function inputDateTime(
       fontFamily: "inherit",
       fontSize: (listener) => themeSize(listener, "inherit"),
       lineHeight: "inherit",
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       border: "none",
       outlineOffset: "-1px",
       outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
+      transition: "outline-color 140ms ease, box-shadow 140ms ease",
       "&::-webkit-calendar-picker-indicator": {
         cursor: "pointer",
         opacity: 0.85,
       },
-      "&:hover:not([disabled]):not([aria-busy=true]), &:focus-visible": {
+      "&:hover:not([disabled]):not([aria-busy=true])": {
         outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+          `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
+      },
+      "&:focus-visible": {
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
-        color: (listener) => themeColor(listener, "shift-8", "neutral"),
+        color: (listener) => themeColor(listener, "muted", "neutral"),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
         outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
       },
       "&:invalid": {
         outline: (listener) =>

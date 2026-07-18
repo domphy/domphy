@@ -36,13 +36,13 @@ function breadcrumbEllipsis(
       border: "none",
       background: "none",
       cursor: "pointer",
-      color: (listener) => themeColor(listener, "shift-8", color.get(listener)),
+      color: (listener) => themeColor(listener, "muted", color.get(listener)),
       borderRadius: themeSpacing(1),
       "&:hover": {
         color: (listener) =>
           themeColor(listener, "shift-10", color.get(listener)),
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-2", color.get(listener)),
+          themeColor(listener, "hover", color.get(listener)),
       },
       "&:focus-visible": {
         outline: (listener) =>

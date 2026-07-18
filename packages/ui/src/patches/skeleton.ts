@@ -36,7 +36,7 @@ function skeleton(
     dataTone: "shift-2",
     style: {
       fontSize: (listener) => themeSize(listener),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       height: themeSpacing(6),
       display: "block",
       borderRadius: themeSpacing(1),

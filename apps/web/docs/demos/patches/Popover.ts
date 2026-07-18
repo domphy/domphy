@@ -8,7 +8,7 @@ const content: DomphyElement<"div"> = {
   style: {
     paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
     paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
-    borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+    borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
     backgroundColor: (listener) => themeColor(listener, "inherit", "neutral"),
     color: (listener) => themeColor(listener, "shift-9", "neutral"),
   },

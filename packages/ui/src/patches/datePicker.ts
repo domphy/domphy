@@ -11,9 +11,11 @@ import type { Placement } from "@domphy/floating";
 import {
   type ThemeColor,
   themeColor,
+  themeDensity,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
 import { createFloating } from "../utils/floating.js";
 
 /** A single date selection, or a `[start, end]` tuple in range mode. */
@@ -415,11 +417,12 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
       style: {
         minWidth: themeSpacing(70),
         padding: themeSpacing(3),
-        borderRadius: themeSpacing(2),
+        borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
         backgroundColor: (listener) => themeColor(listener, "base"),
         color: (listener) => themeColor(listener, "shift-10"),
-        border: (listener) => `1px solid ${themeColor(listener, "shift-4")}`,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+        border: (listener) =>
+          `1px solid ${themeColor(listener, "border-strong")}`,
+        boxShadow: elevation("medium"),
       },
     };
   }
@@ -482,12 +485,12 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
           selected
             ? themeColor(l, "shift-7", accentColor.get(l))
             : within
-              ? themeColor(l, "shift-2", accentColor.get(l))
+              ? themeColor(l, "hover", accentColor.get(l))
               : "transparent",
         color: (l: Listener) =>
           selected
             ? themeColor(l, "shift-0", accentColor.get(l))
-            : themeColor(l, "shift-9"),
+            : themeColor(l, "text"),
         outline: isToday
           ? (l: Listener) =>
               `1px solid ${themeColor(l, "shift-6", accentColor.get(l))}`
@@ -556,7 +559,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: (l: Listener) => themeSize(l, "decrease-1"),
-        color: (l: Listener) => themeColor(l, "shift-8", accentColor.get(l)),
+        color: (l: Listener) => themeColor(l, "muted", accentColor.get(l)),
         padding: themeSpacing(1),
       },
     });
@@ -578,7 +581,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         justifyContent: "space-between",
         marginTop: themeSpacing(2),
         paddingTop: themeSpacing(2),
-        borderTop: (l: Listener) => `1px solid ${themeColor(l, "shift-3")}`,
+        borderTop: (l: Listener) => `1px solid ${themeColor(l, "border")}`,
       },
     };
   }
@@ -645,7 +648,7 @@ function navButtonStyle() {
     cursor: "pointer",
     fontFamily: "inherit",
     fontSize: (l: Listener) => themeSize(l),
-    color: (l: Listener) => themeColor(l, "shift-8"),
+    color: (l: Listener) => themeColor(l, "muted"),
     width: themeSpacing(7),
     height: themeSpacing(7),
     borderRadius: themeSpacing(1),
@@ -661,9 +664,9 @@ function timeSelectStyle() {
     fontSize: (l: Listener) => themeSize(l),
     padding: themeSpacing(1),
     borderRadius: themeSpacing(1),
-    border: (l: Listener) => `1px solid ${themeColor(l, "shift-4")}`,
+    border: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
     backgroundColor: (l: Listener) => themeColor(l, "base"),
-    color: (l: Listener) => themeColor(l, "shift-9"),
+    color: (l: Listener) => themeColor(l, "text"),
   };
 }
 

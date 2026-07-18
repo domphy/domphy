@@ -5,6 +5,8 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
+import { focusRing } from "../utils/focusRing.js";
 
 const SIZE_MAP = { small: 8, medium: 10, large: 14 } as const;
 
@@ -48,19 +50,16 @@ function fab(
       backgroundColor: (listener) =>
         themeColor(listener, "shift-9", color.get(listener)),
       color: (listener) => themeColor(listener, "shift-0", color.get(listener)),
-      boxShadow: (listener) =>
-        `0 ${themeSpacing(1)} ${themeSpacing(4)} ${themeColor(listener, "shift-4", "neutral")}`,
+      boxShadow: elevation("low"),
       transition: "background-color 200ms ease, box-shadow 200ms ease",
       "&:hover:not([disabled])": {
         backgroundColor: (listener) =>
           themeColor(listener, "shift-10", color.get(listener)),
-        boxShadow: (listener) =>
-          `0 ${themeSpacing(2)} ${themeSpacing(6)} ${themeColor(listener, "shift-5", "neutral")}`,
+        boxShadow: elevation("medium"),
       },
       "&:focus-visible": {
-        outline: (listener) =>
-          `2px solid ${themeColor(listener, "shift-6", color.get(listener))}`,
-        outlineOffset: "2px",
+        boxShadow: (listener) =>
+          `${elevation("medium")}, ${focusRing(listener, color.get(listener))}`,
       },
       "&[disabled]": { opacity: 0.5, cursor: "not-allowed" },
     },

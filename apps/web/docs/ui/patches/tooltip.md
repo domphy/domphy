@@ -8,6 +8,8 @@ import Tooltip from "../../demos/patches/Tooltip.ts?raw"
 
 Use the tooltip patch to customize this element.
 
+The tooltip surface uses a low `elevation()` box-shadow (no outline, kept compact and border-free — the arrow is unbordered too).
+
 ## Props
 
 | Prop | Type | Default | Description |

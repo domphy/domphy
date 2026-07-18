@@ -47,7 +47,7 @@ function buttonSwitch(
       border: "none",
       outlineWidth: "1px",
       outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-3", color.get(listener))}`,
+        `1px solid ${themeColor(listener, "border", color.get(listener))}`,
       minWidth: themeSpacing(12),
       minHeight: themeSpacing(6),
       borderRadius: themeSpacing(999),
@@ -68,7 +68,7 @@ function buttonSwitch(
         width: themeSpacing(5),
         height: themeSpacing(5),
         borderRadius: themeSpacing(999),
-        color: (listener) => themeColor(listener, "shift-9"),
+        color: (listener) => themeColor(listener, "text"),
         backgroundColor: (listener) =>
           themeColor(listener, "decrease-2", color.get(listener)),
       },

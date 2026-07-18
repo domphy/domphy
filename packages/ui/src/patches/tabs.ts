@@ -12,6 +12,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /** One tab entry: a trigger label and its panel content. */
 type TabItem = {
@@ -93,10 +94,11 @@ function tabs(
             paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
             border: "none",
             outline: "none",
-            color: (l: Listener) => themeColor(l, "shift-9"),
+            color: (l: Listener) => themeColor(l, "text"),
             backgroundColor: (l: Listener) => themeColor(l, "inherit"),
             boxShadow: (l: Listener) =>
               `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-1", color)}`,
+            transition: "box-shadow 140ms ease, color 140ms ease",
             "&:hover:not([disabled])": {
               boxShadow: (l: Listener) =>
                 `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-2", color)}`,
@@ -106,8 +108,7 @@ function tabs(
                 `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
             },
             "&:focus-visible": {
-              boxShadow: (l: Listener) =>
-                `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
+              boxShadow: (l: Listener) => focusRing(l, accentColor),
             },
           },
         } as DomphyElement<"button">;

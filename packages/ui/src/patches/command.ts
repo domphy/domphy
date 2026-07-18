@@ -71,7 +71,7 @@ function commandSearch(
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
       border: "none",
       borderBottom: (listener) =>
-        `1px solid ${themeColor(listener, "shift-3", color)}`,
+        `1px solid ${themeColor(listener, "border", color)}`,
       outline: "none",
       color: (listener) => themeColor(listener, "shift-10", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
@@ -128,10 +128,10 @@ function commandItem(
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       border: "none",
       outline: "none",
-      color: (listener) => themeColor(listener, "shift-9", color),
+      color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       "&:hover:not([disabled])": {
-        backgroundColor: (listener) => themeColor(listener, "shift-2", color),
+        backgroundColor: (listener) => themeColor(listener, "hover", color),
       },
       "&:focus-visible": {
         outline: (listener) =>

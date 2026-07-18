@@ -16,6 +16,8 @@ const App: DomphyElement<"div"> = {
       button: "× Remove",
       $: [buttonGhost({ color: "danger" })],
     },
+    { button: "Small", $: [buttonGhost({ color: "primary", size: "small" })] },
+    { button: "Large", $: [buttonGhost({ color: "primary", size: "large" })] },
   ],
   style: {
     display: "flex",

@@ -14,6 +14,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
 import { createFloating } from "../utils/floating.js";
 import { tag } from "./tag.js";
 
@@ -68,6 +69,15 @@ function combobox(props: {
 
   const popoverPartial: PartialElement = {
     onClick: (_e, node) => !multiple && hide(node),
+    dataTone: "shift-14",
+    style: {
+      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
+      outline: (listener) =>
+        `1px solid ${themeColor(listener, "border-strong")}`,
+      outlineOffset: "-1px",
+      boxShadow: elevation("medium"),
+    },
   };
 
   merge(props.content, popoverPartial);
@@ -81,7 +91,7 @@ function combobox(props: {
     height: themeSpacing(6),
     marginInlineStart: themeSpacing(2),
     fontSize: (listener: any) => themeSize(listener, "inherit"),
-    color: (listener: any) => themeColor(listener, "shift-9", color),
+    color: (listener: any) => themeColor(listener, "text", color),
     backgroundColor: (listener: any) => themeColor(listener, "inherit", color),
   };
 
@@ -146,12 +156,12 @@ function combobox(props: {
       minWidth: themeSpacing(32),
       outlineOffset: "-1px",
       outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+        `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "shift-9", color),
+      color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
     },
   };

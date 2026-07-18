@@ -299,7 +299,7 @@ three lines, never a hard-coded pixel value:
 ```
 paddingBlock  = themeSpacing(themeDensity(l) · 1)
 paddingInline = themeSpacing(themeDensity(l) · 3)
-borderRadius  = themeSpacing(themeDensity(l) · 1)
+borderRadius  = themeSpacing(themeDensity(l) · 1.5)
 // height = (6 + 2d) · U — at d = 1.5, that's 9U = 36px, Domphy's canonical button height
 ```
 

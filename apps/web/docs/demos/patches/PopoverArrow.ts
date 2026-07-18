@@ -11,7 +11,7 @@ const App: DomphyElement<"div"> = {
     justifyContent: "center",
     paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
     paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
-    borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+    borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
     color: (listener) => themeColor(listener, "shift-9", "neutral"),
     backgroundColor: (listener) => themeColor(listener, "inherit", "neutral"),
   },

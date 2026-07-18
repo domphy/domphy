@@ -33,11 +33,11 @@ function link(
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) => themeColor(listener),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       textDecoration: "none",
       "&:visited": {
         color: (listener) =>
-          themeColor(listener, "shift-9", accentColor.get(listener)),
+          themeColor(listener, "text", accentColor.get(listener)),
       },
       "&:hover:not([disabled])": {
         color: (listener) =>
@@ -53,7 +53,7 @@ function link(
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
-        color: (listener) => themeColor(listener, "shift-8", "neutral"),
+        color: (listener) => themeColor(listener, "muted", "neutral"),
       },
     },
   };

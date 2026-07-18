@@ -90,6 +90,54 @@ describe("button", () => {
     node.remove();
     expect(listenerCount(color)).toBe(0);
   });
+
+  it("defaults to the outline variant (backward compatible: tinted bg + outline)", () => {
+    const { node } = render({
+      button: "Save",
+      $: [button()],
+    } as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toContain("outline: 1px solid");
+    expect(css).not.toContain("outline: none");
+  });
+
+  it("solid variant fills the background and removes the outline", () => {
+    const { node } = render({
+      button: "Save",
+      $: [button({ variant: "solid" })],
+    } as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toContain("outline: none");
+  });
+
+  it("ghost variant delegates to buttonGhost (no background/border)", () => {
+    const { node } = render({
+      button: "Save",
+      $: [button({ variant: "ghost" })],
+    } as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toContain("background: none");
+    expect(css).toContain("border: none");
+  });
+
+  it("size preset changes padding-inline: small < medium < large", () => {
+    const cssValues: string[] = [];
+    const sizes = ["small", "medium", "large"] as const;
+    for (const size of sizes) {
+      const { node } = render({
+        button: "Save",
+        $: [button({ size })],
+      } as DomphyElement);
+      const css = node.generateCSS();
+      const match = css.match(/padding-inline: ([^;]+)/);
+      cssValues.push(match ? match[1].trim() : "");
+      document.body.innerHTML = "";
+    }
+    expect(new Set(cssValues).size).toBe(3);
+    const nums = cssValues.map((v) => parseFloat(v.match(/[\d.]+/)?.[0] ?? ""));
+    expect(nums[0]).toBeLessThan(nums[1]);
+    expect(nums[1]).toBeLessThan(nums[2]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -139,6 +187,25 @@ describe("buttonGhost", () => {
     expect(listenerCount(color)).toBeGreaterThanOrEqual(1);
     node.remove();
     expect(listenerCount(color)).toBe(0);
+  });
+
+  it("size preset changes padding-inline: small < medium < large", () => {
+    const cssValues: string[] = [];
+    const sizes = ["small", "medium", "large"] as const;
+    for (const size of sizes) {
+      const { node } = render({
+        button: "×",
+        $: [buttonGhost({ size })],
+      } as DomphyElement);
+      const css = node.generateCSS();
+      const match = css.match(/padding-inline: ([^;]+)/);
+      cssValues.push(match ? match[1].trim() : "");
+      document.body.innerHTML = "";
+    }
+    expect(new Set(cssValues).size).toBe(3);
+    const nums = cssValues.map((v) => parseFloat(v.match(/[\d.]+/)?.[0] ?? ""));
+    expect(nums[0]).toBeLessThan(nums[1]);
+    expect(nums[1]).toBeLessThan(nums[2]);
   });
 });
 
@@ -367,7 +434,12 @@ describe("toggleGroup", () => {
   it("multiple mode: clicking two toggles selects both simultaneously", async () => {
     const { host } = render({
       div: null,
-      $: [toggleGroup({ multiple: true, items: [{ label: "A" }, { label: "B" }] })],
+      $: [
+        toggleGroup({
+          multiple: true,
+          items: [{ label: "A" }, { label: "B" }],
+        }),
+      ],
     } as DomphyElement);
     const [btnA, btnB] = Array.from(host.querySelectorAll("button"));
     btnA.click();

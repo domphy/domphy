@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * An `<a>` element styled to look like a button — same visual appearance as
@@ -32,7 +33,7 @@ function linkButton(
       textDecoration: "none",
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       width: "fit-content",
       display: "inline-flex",
       justifyContent: "center",
@@ -43,19 +44,20 @@ function linkButton(
       outlineOffset: "-1px",
       outlineWidth: "1px",
       outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
+      transition:
+        "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
       "&:hover": {
         color: (listener) =>
           themeColor(listener, "shift-10", color.get(listener)),
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-2", color.get(listener)),
+          themeColor(listener, "hover", color.get(listener)),
       },
       "&:focus-visible": {
-        boxShadow: (listener) =>
-          `inset 0 0 0 ${themeSpacing(0.5)} ${themeColor(listener, "shift-6", color.get(listener))}`,
+        boxShadow: (listener) => focusRing(listener, color.get(listener)),
       },
       "&[aria-disabled=true]": {
         opacity: 0.7,
@@ -64,8 +66,8 @@ function linkButton(
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
         outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
-        color: (listener) => themeColor(listener, "shift-8", "neutral"),
+          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        color: (listener) => themeColor(listener, "muted", "neutral"),
       },
     },
   };

@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
 import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 const FOCUSABLE =
@@ -160,9 +161,9 @@ function dialog(
       color: (listener) => themeColor(listener, "shift-10", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       border: "none",
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
       padding: (listener) => themeSpacing(themeDensity(listener) * 3),
-      boxShadow: (listener) =>
-        `0 ${themeSpacing(9)} ${themeSpacing(16)} ${themeColor(listener, "shift-4", "neutral")}`,
+      boxShadow: elevation("high"),
       "&::backdrop": {
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),

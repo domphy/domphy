@@ -35,14 +35,13 @@ function breadcrumb(
       flexWrap: "wrap",
       fontSize: (listener) => themeSize(listener, "inherit"),
       gap: themeSpacing(1),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       "& > *": {
         display: "inline-flex",
         alignItems: "center",
-        color: (listener) =>
-          themeColor(listener, "shift-8", color.get(listener)),
+        color: (listener) => themeColor(listener, "muted", color.get(listener)),
       },
       "& > *:not(:last-child)::after": {
         content: `"${separator}"`,

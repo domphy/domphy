@@ -12,6 +12,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
 import { createFloating } from "../utils/floating.js";
 import { popoverArrow } from "./popoverArrow.js";
 
@@ -65,10 +66,11 @@ function tooltip(
     style: {
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
-      color: (listener) => themeColor(listener, "shift-9"),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
+      color: (listener) => themeColor(listener, "text"),
       backgroundColor: (listener) => themeColor(listener),
       fontSize: (listener) => themeSize(listener, "inherit"),
+      boxShadow: elevation("low"),
     },
     $: [popoverArrow({ placement: placeState, bordered: false })],
   };

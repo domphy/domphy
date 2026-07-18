@@ -10,6 +10,8 @@ Use `drawer` on a `<dialog>` element to create an edge-anchored modal drawer. It
 
 > **Note:** The patch automatically sets `aria-modal="true"` on the `<dialog>` element and closes the drawer via the animated state path when Escape is pressed (intercepting the native `cancel` event). Focus restoration on `close()` is handled natively by the `<dialog>` API.
 
+The drawer surface uses a high `elevation()` box-shadow (no outline — it's edge-flush against the viewport, so a border would look out of place).
+
 ## Props
 
 | Prop | Type | Default | Description |

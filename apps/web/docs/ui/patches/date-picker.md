@@ -7,6 +7,8 @@ import DatePicker from "../../demos/patches/DatePicker.ts?raw"
 
 The `datePicker` patch turns a native `<input>` into a calendar date picker — single date, date range, or date + time. The calendar is rendered entirely with Domphy elements (no third-party calendar library), positioned with `@domphy/floating`, themed via the theme tokens, and keyboard accessible. Compose it with `inputText()` for the input's look.
 
+The calendar popup carries a `"border-strong"` border, density-scaled radius, and a medium `elevation()` box-shadow.
+
 <CodeEditor :code="DatePicker" />
 
 ## Props

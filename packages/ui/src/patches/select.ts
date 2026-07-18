@@ -7,6 +7,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a native `<select>` control: removes the default appearance, applies themed
@@ -34,13 +35,13 @@ function select(
       fontFamily: "inherit",
       fontSize: (listener) => themeSize(listener, "inherit"),
       lineHeight: "inherit",
-      color: (listener) => themeColor(listener, "shift-9", color),
+      color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       border: "none",
       outlineOffset: "-1px",
       outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-4", color)}`,
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+        `1px solid ${themeColor(listener, "border-strong", color)}`,
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingLeft: (listener) => themeSpacing(themeDensity(listener) * 3),
       paddingRight: (listener) => themeSpacing(themeDensity(listener) * 5),
@@ -51,16 +52,16 @@ function select(
       backgroundRepeat: "no-repeat",
       backgroundPosition: `right ${themeSpacing(2)} center`,
       backgroundSize: `${themeSpacing(2.5)} ${themeSpacing(1.5)}`,
+      transition: "outline-color 140ms ease, box-shadow 140ms ease",
       "&:not([multiple])": {
         height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
       },
       "&:hover:not([disabled]):not([aria-busy=true])": {
         outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", accentColor)}`,
+          `1px solid ${themeColor(listener, "shift-5", accentColor)}`,
       },
       "&:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
+        boxShadow: (listener) => focusRing(listener, accentColor),
       },
       "& optgroup": {
         color: (listener) => themeColor(listener, "shift-11", color),
@@ -71,9 +72,9 @@ function select(
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
-        color: (listener) => themeColor(listener, "shift-8", "neutral"),
+        color: (listener) => themeColor(listener, "muted", "neutral"),
         outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
+          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
       },

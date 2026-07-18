@@ -67,7 +67,7 @@ function popoverArrow(
     style: {
       fontSize: (listener) => themeSize(listener),
       backgroundColor: (listener) => themeColor(listener),
-      color: (listener) => themeColor(listener, "shift-9", color),
+      color: (listener) => themeColor(listener, "text", color),
       position: "relative",
       "&::after": {
         content: `""`,

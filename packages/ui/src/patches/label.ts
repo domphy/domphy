@@ -37,7 +37,7 @@ function label(
       alignItems: "center",
       gap: themeSpacing(2),
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       cursor: "pointer",
       "&:focus-within": {
         color: (listener) =>
@@ -46,7 +46,7 @@ function label(
       "&[aria-disabled=true]": {
         opacity: 0.7,
         cursor: "not-allowed",
-        color: (listener) => themeColor(listener, "shift-8", "neutral"),
+        color: (listener) => themeColor(listener, "muted", "neutral"),
       },
     },
   };

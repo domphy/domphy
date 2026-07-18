@@ -32,7 +32,7 @@ function mark(
       alignItems: "center",
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) =>
-        themeColor(listener, "shift-9", accentColor.get(listener)),
+        themeColor(listener, "text", accentColor.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", accentColor.get(listener)),
       height: themeSpacing(6),

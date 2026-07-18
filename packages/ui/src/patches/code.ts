@@ -31,7 +31,7 @@ function code(
       alignItems: "center",
       whiteSpace: "nowrap",
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       height: themeSpacing(6),

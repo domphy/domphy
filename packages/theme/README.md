@@ -46,7 +46,7 @@ const button = {
     fontSize: (listener) => themeSize(listener, "inherit"),
     paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
     paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
-    borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+    borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
     backgroundColor: (listener) => themeColor(listener, "inherit", "primary"),
     color: (listener) => themeColor(listener, "shift-9", "primary"),
   },

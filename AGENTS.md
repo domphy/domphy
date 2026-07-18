@@ -147,10 +147,14 @@ For bounded controls (`w=1`, density `d`, line count `n=1`):
 ```ts
 paddingBlock: (l) => themeSpacing(themeDensity(l) * 1),
 paddingInline: (l) => themeSpacing(themeDensity(l) * 3),
-borderRadius: (l) => themeSpacing(themeDensity(l) * 1),
+borderRadius: (l) => themeSpacing(themeDensity(l) * 1.5),
 // height = (6 + 2d) * U — at d=1.5 → 9U = 36px (canonical button height)
 ```
 Use `outline` not `border` — a 1px border on both sides adds 2px to height and deviates from the formula.
+
+### Elevation and focus ring
+- **Elevation**: floating/raised surfaces (popover, menu, dialog, drawer, toast, tooltip, combobox/selectBox dropdown, datePicker popup, fab) use the shared `elevation(level)` helper (`packages/ui/src/utils/elevation.ts`, internal) — 3 levels (`"low" | "medium" | "high"`), layered black-alpha box-shadows that read correctly on both themes. Combined with a `border-strong` outline for the "shadow + border" look on panel-style surfaces (popover, menu, combobox/selectBox dropdown, datePicker); shadow-only (no outline) on dialog/drawer/toast/tooltip.
+- **Focus ring**: interactive patches (button, buttonGhost, linkButton, inputs, select, textarea, segmented, tabs, toggleGroup, rating, pagination) unify on the shared `focusRing(listener, color)` helper (`packages/ui/src/utils/focusRing.ts`, internal) — a 2px accent-tone halo via `box-shadow` on `:focus-visible`, layered on top of (not replacing) the control's own resting outline.
 
 ### Doctor rules (complete list — 18 built-in)
 `inline-typography`, `raw-theme-value` (hex/rgb + CSS named colors), `raw-spacing-value`, `low-opacity` (style.opacity < 0.6 on interactive controls — too dim to be discoverable; info if hover-restore pattern detected), `tone-background-inherit` (backgroundColor must resolve to themeColor(l, "inherit") — detected by running the reactive fn at context=0: var(--X-N) with N>0 means a fixed shifted tone; shift the surface via dataTone instead), `missing-color` (element uses themeColor for bg/border but has no style.color — text won't re-evaluate on tone shift), `low-contrast` (text `color` and `backgroundColor` are both reactive theme vars but their shift numbers differ by < 9 — insufficient contrast; extracted from the `var(--X-N)` string that `themeColor()` returns), `dataTone-surface-contract` (dataTone set but missing backgroundColor and/or color — a tone context surface must declare both so children can guarantee readable contrast), `color-shift-minimum` (style.color on a dataTone element resolves to tone step < 9 — below the minimum for legible body text), `unknown-tone`, `middle-surface-anchor`, `unknown-density`, `unknown-size`, `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. Extend with project rules via `options.rules: CustomRule[]`. Suppress on an element with `_doctorDisable`.

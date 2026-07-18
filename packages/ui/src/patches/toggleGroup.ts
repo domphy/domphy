@@ -11,6 +11,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /** One item inside a toggle group. */
 type ToggleItem = {
@@ -93,12 +94,13 @@ function toggleGroup(
             paddingBlock: themeSpacing(1),
             paddingInline: themeSpacing(2),
             border: "none",
-            borderRadius: themeSpacing(1),
-            color: (l: Listener) => themeColor(l, "shift-9", color),
+            borderRadius: themeSpacing(1.5),
+            color: (l: Listener) => themeColor(l, "text", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
-            transition: "background-color 300ms ease",
+            transition:
+              "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
             "&:hover:not([disabled])": {
-              backgroundColor: (l: Listener) => themeColor(l, "shift-2", color),
+              backgroundColor: (l: Listener) => themeColor(l, "hover", color),
             },
             "&[aria-pressed=true]": {
               backgroundColor: (l: Listener) =>
@@ -106,9 +108,7 @@ function toggleGroup(
               color: (l: Listener) => themeColor(l, "shift-12", accentColor),
             },
             "&:focus-visible": {
-              outline: (l: Listener) =>
-                `${themeSpacing(0.5)} solid ${themeColor(l, "shift-6", accentColor)}`,
-              outlineOffset: `-${themeSpacing(0.5)}`,
+              boxShadow: (l: Listener) => focusRing(l, accentColor),
             },
             "&[disabled]": {
               opacity: 0.7,
@@ -128,7 +128,7 @@ function toggleGroup(
       borderRadius: themeSpacing(2),
       fontSize: (l: Listener) => themeSize(l, "inherit"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
-      outline: (l: Listener) => `1px solid ${themeColor(l, "shift-3", color)}`,
+      outline: (l: Listener) => `1px solid ${themeColor(l, "border", color)}`,
       outlineOffset: "-1px",
     },
   };

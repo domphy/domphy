@@ -12,6 +12,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
 
 /** One item inside a menu. */
 type MenuItem = {
@@ -122,10 +123,11 @@ function menu(
             paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
             border: "none",
             outline: "none",
-            color: (l: Listener) => themeColor(l, "shift-9", color),
+            color: (l: Listener) => themeColor(l, "text", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
+            transition: "background-color 140ms ease",
             "&:hover:not([disabled]):not([aria-current=true])": {
-              backgroundColor: (l: Listener) => themeColor(l, "shift-2", color),
+              backgroundColor: (l: Listener) => themeColor(l, "hover", color),
             },
             "&[aria-current=true]": {
               backgroundColor: (l: Listener) =>
@@ -150,6 +152,11 @@ function menu(
       paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
       fontSize: (l: Listener) => themeSize(l, "inherit"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
+      borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      outline: (l: Listener) =>
+        `1px solid ${themeColor(l, "border-strong", color)}`,
+      outlineOffset: "-1px",
+      boxShadow: elevation("medium"),
     },
   };
 }

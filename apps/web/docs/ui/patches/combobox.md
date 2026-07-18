@@ -8,6 +8,8 @@ import Combobox from "../../demos/patches/Combobox.ts?raw"
 
 Use `combobox` on a `div` element. It displays selected values as removable tags and an input field. The dropdown `content` is supplied by the caller — typically built with `selectList` and `selectItem`, which provide their own context-based state flow (context is a feature of those patches, not of `combobox` itself).
 
+`combobox` gives the dropdown panel a default surface (background, `"border-strong"` outline, density-scaled radius, medium `elevation()` shadow) so it's usable without the caller styling `content` itself — `selectList`/`selectItem` (or any custom content) render on top of that surface.
+
 ## Props
 
 | Prop | Type | Default | Description |

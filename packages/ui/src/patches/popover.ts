@@ -7,7 +7,8 @@ import {
   type ValueOrState,
 } from "@domphy/core";
 import type { Placement } from "@domphy/floating";
-import { themeColor } from "@domphy/theme";
+import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
 import { createFloating } from "../utils/floating.js";
 
 /**
@@ -51,6 +52,10 @@ function popover(props: {
     dataTone: "shift-14",
     style: {
       backgroundColor: (l: Listener) => themeColor(l, "inherit"),
+      borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      outline: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
+      outlineOffset: "-1px",
+      boxShadow: elevation("medium"),
     },
     _onInsert: (node) => {
       const id = node.attributes.get("id");

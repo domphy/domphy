@@ -7,6 +7,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
 
 type ToastPosition =
   | "top-left"
@@ -75,10 +76,9 @@ function toast(
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "shift-9", color),
+      color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
-      boxShadow: (listener) =>
-        `0 ${themeSpacing(2)} ${themeSpacing(9)} ${themeColor(listener, "shift-4", "neutral")}`,
+      boxShadow: elevation("medium"),
       opacity: (listener) => Number(state.get(listener)),
       transform: (listener) =>
         state.get(listener)

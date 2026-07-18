@@ -28,7 +28,7 @@ function table(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       width: "100%",
       borderCollapse: "collapse",
       "& caption": {
@@ -47,8 +47,7 @@ function table(
         textAlign: "left",
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
         paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
-        color: (listener) =>
-          themeColor(listener, "shift-9", color.get(listener)),
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
         boxShadow: (listener) =>
           `inset 0 1px 0 ${themeColor(listener, "shift-3", color.get(listener))}`,
         fontSize: (listener) => themeSize(listener, "inherit"),
@@ -70,7 +69,7 @@ function table(
       // No !important needed: ".scope tbody tr:hover" (two classes + two
       // elements) already out-specifies any row's own auto-scope class rule.
       "& tbody tr:hover": {
-        backgroundColor: (listener) => themeColor(listener, "shift-2"),
+        backgroundColor: (listener) => themeColor(listener, "hover"),
       },
     },
   };

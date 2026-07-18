@@ -29,7 +29,7 @@ function orderedList(
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) => themeColor(listener),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       marginTop: 0,
       marginBottom: 0,
       paddingLeft: themeSpacing(3),

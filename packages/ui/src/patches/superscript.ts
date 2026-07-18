@@ -23,7 +23,7 @@ function superscript(
       fontSize: (listener) => themeSize(listener, "decrease-1"),
       verticalAlign: "super",
       lineHeight: 0,
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
     },
   };
 }

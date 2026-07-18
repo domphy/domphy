@@ -10,6 +10,8 @@ Use `selectBox` on a `div` element. It displays selected values as tags and open
 
 Unlike `combobox`, `selectBox` has no input field — it is suited for fixed option lists without search.
 
+`selectBox` gives the dropdown panel a default surface (background, `"border-strong"` outline, density-scaled radius, medium `elevation()` shadow) so it's usable without the caller styling `content` itself.
+
 ## Props
 
 | Prop | Type | Default | Description |

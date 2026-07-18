@@ -55,14 +55,14 @@ function accordion(
     style: {
       display: "flex",
       flexDirection: "column",
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       outlineOffset: "-1px",
       overflow: "hidden",
       "& > details": {
         borderBottom: (listener) =>
-          `1px solid ${themeColor(listener, "shift-4", color.get(listener))}`,
+          `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       },
       "& > details:last-child": {
         borderBottom: "none",

@@ -32,7 +32,7 @@ function figure(
       marginInline: 0,
       marginTop: themeSpacing(3),
       marginBottom: themeSpacing(3),
-      color: (listener) => themeColor(listener, "shift-9", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       "& img, & svg, & video, & canvas": {
         display: "block",
         maxWidth: "100%",
@@ -40,8 +40,7 @@ function figure(
       },
       "& figcaption": {
         fontSize: (listener) => themeSize(listener, "decrease-1"),
-        color: (listener) =>
-          themeColor(listener, "shift-8", color.get(listener)),
+        color: (listener) => themeColor(listener, "muted", color.get(listener)),
         lineHeight: 1.45,
       },
     },

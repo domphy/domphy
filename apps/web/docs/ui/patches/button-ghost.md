@@ -13,6 +13,7 @@ A transparent button with no border or background — suitable for icon actions,
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Text color tone. |
+| `size` | `"small" \| "medium" \| "large"` | `"medium"` | Button size preset — scales padding and font size via the density/size tokens. Also reachable via `button({ variant: "ghost", size })`. |
 
 <CodeEditor :code="ButtonGhost" />
 

@@ -37,7 +37,7 @@ const Button = {
   style: {
     paddingBlock:  (l) => themeSpacing(themeDensity(l) * 1),  // 4px × density
     paddingInline: (l) => themeSpacing(themeDensity(l) * 3),  // 12px × density
-    borderRadius:  (l) => themeSpacing(themeDensity(l) * 1),
+    borderRadius:  (l) => themeSpacing(themeDensity(l) * 1.5),
   },
 }
 ```
