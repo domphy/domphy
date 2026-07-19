@@ -1,5 +1,5 @@
 import { computed, type DomphyElement, type State } from "@domphy/core";
-import { themeColor, themeSpacing } from "@domphy/theme";
+import { themeColor, themeSize, themeSpacing } from "@domphy/theme";
 import { icon, tooltip } from "@domphy/ui";
 
 const svgDark = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12h1m8 -9v1m8 8h1m-15.4 -6.4l.7 .7m12.1 -.7l-.7 .7" /><path d="M11.089 7.083a5 5 0 0 1 5.826 5.84m-1.378 2.611a5.012 5.012 0 0 1 -.537 .466a3.5 3.5 0 0 0 -1 3a2 2 0 1 1 -4 0a3.5 3.5 0 0 0 -1 -3a5 5 0 0 1 -.528 -7.544" /><path d="M9.7 17h4.6" /><path d="M3 3l18 18" /></svg>`;
@@ -13,8 +13,10 @@ export const Toolbar = (props: {
   isDark: State<boolean>;
   isFull: State<boolean>;
   hasGrid: State<boolean>;
+  /** Strip label on the left — "Playground" for the editor, "Preview" for the bare preview panel. */
+  title?: string;
 }): DomphyElement<"div"> => {
-  const { isDark, isFull, hasGrid } = props;
+  const { isDark, isFull, hasGrid, title = "Playground" } = props;
 
   const toggleGrid: DomphyElement<"span"> = {
     span: (listener) => (hasGrid.get(listener) ? svgGridOff : svgGridOn),
@@ -52,16 +54,36 @@ export const Toolbar = (props: {
   };
 
   return {
-    div: [toggleGrid, toggleTheme, toggleScreen],
+    div: [
+      {
+        span: title,
+        style: {
+          color: (listener) => themeColor(listener, "muted"),
+          fontSize: (listener) => themeSize(listener, "decrease-1"),
+          userSelect: "none",
+        },
+      },
+      {
+        div: [toggleGrid, toggleTheme, toggleScreen],
+        style: { display: "flex", alignItems: "center", gap: themeSpacing(2) },
+      },
+    ],
+    // Slightly raised strip above the code/preview surfaces.
+    dataTone: "shift-1",
     style: {
       display: "flex",
       alignItems: "center",
-      justifyContent: "flex-end",
-      gap: themeSpacing(3),
+      justifyContent: "space-between",
+      // Narrow viewports: the icon group wraps under the label instead of
+      // crushing it.
+      flexWrap: "wrap",
+      rowGap: themeSpacing(1),
+      paddingBlock: themeSpacing(1),
+      paddingInline: themeSpacing(3),
       borderBottom: (listener) =>
-        `1px solid ${themeColor(listener, "shift-3")}`,
-      minHeight: "36px",
-      paddingRight: themeSpacing(2),
+        `1px solid ${themeColor(listener, "border")}`,
+      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      color: (listener) => themeColor(listener, "shift-10"),
     },
   };
 };

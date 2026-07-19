@@ -25,6 +25,10 @@ export default {
       "tests/transformCode.test.ts",
     ],
     environment: "node",
+    // theme-builder.test.ts re-imports the whole demo module graph per test
+    // (vi.resetModules + dynamic import in mountFresh) — on a busy or
+    // AV-scanned machine that transform alone can exceed the 5s default.
+    testTimeout: 20000,
   },
   resolve: {
     alias: [

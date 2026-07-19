@@ -25,7 +25,12 @@ export function Container(
   const error = toState("");
   const logs = toState<string[]>([]);
   const copied = toState(false);
-  const isDark = toState(false);
+  // Start the preview on the site's own theme — a light preview box in the
+  // middle of dark-mode docs reads as a bug. The toolbar toggle still
+  // flips it independently afterwards.
+  const isDark = toState(
+    document.documentElement.getAttribute("data-theme") === "dark",
+  );
   const isFull = toState(false);
   const hasGrid = toState(false);
 
@@ -96,9 +101,10 @@ export function Container(
   const handle: DomphyElement<"div"> = {
     div: null,
     class: "dp-splitter-handle",
-    // Decorative drag grip, no text content of its own.
+    // Decorative drag grip, no text content of its own. Tall enough to be a
+    // usable touch target on mobile.
     _doctorDisable: "missing-color",
-    style: { height: themeSpacing(1.5) },
+    style: { height: themeSpacing(2.5) },
     $: [splitterHandle()],
   };
 
@@ -109,33 +115,40 @@ export function Container(
     $: [splitter({ direction: "vertical", defaultSize: 30, min: 15, max: 70 })],
   };
 
+  // One rounded card owns the whole playground: toolbar, code/preview split,
+  // console output, and the tip footer all live inside the same border
+  // instead of hanging below it as disconnected strips.
   const workspace: DomphyElement<"div"> = {
-    div: [Toolbar({ isDark, isFull, hasGrid }), stack],
+    div: [
+      Toolbar({ isDark, isFull, hasGrid }),
+      stack,
+      Console(logs, copied),
+      TipBar,
+    ],
     class: "dp-playground",
     style: {
       display: "flex",
       flexDirection: "column",
-      border: (listener) => `1px solid ${themeColor(listener, "shift-3")}`,
+      border: (listener) => `1px solid ${themeColor(listener, "border")}`,
+      borderRadius: (listener) => (isFull.get(listener) ? "0" : themeSpacing(2)),
       overflow: "hidden",
       position: (listener) => (isFull.get(listener) ? "fixed" : "relative"),
       inset: 0,
       // Non-fullscreen: track the viewport (tall screens get a tall
-      // playground, short ones never overflow the page) instead of a fixed
-      // 760px that read cramped on the /playground page.
+      // playground, short ones never overflow the page). svh keeps mobile
+      // browser chrome from eating the bottom of the card.
       height: (listener) =>
         isFull.get(listener)
           ? "100vh"
-          : "clamp(600px, calc(100vh - 240px), 960px)",
+          : "clamp(420px, calc(100svh - 220px), 900px)",
       // Above the site header's own z-index:100 (packages/press/src/layout.ts)
       // so fullscreen genuinely covers the whole page instead of having its
       // toolbar hidden underneath the sticky header.
       zIndex: (listener) => (isFull.get(listener) ? 300 : 10),
       backgroundColor: (listener) => themeColor(listener, "inherit"),
+      color: (listener) => themeColor(listener, "text"),
     },
   };
 
-  return {
-    div: [workspace, TipBar, Console(logs, copied)],
-    style: { display: "flex", flexDirection: "column" },
-  };
+  return workspace;
 }
