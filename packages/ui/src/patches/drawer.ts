@@ -122,7 +122,9 @@ function drawer(
         closeTimer = null;
         if (!closing) return;
         closing = false;
-        dlg.close();
+        // Guard for environments with HTMLDialogElement but no close()
+        // implementation (e.g. jsdom in tests).
+        if (typeof dlg.close === "function") dlg.close();
         // Same fix as dialog.ts: the closed state was only ever represented
         // by an off-screen `transform`, never visibility/pointer-events — a
         // closed drawer stayed fully reachable by Tab and exposed to the
@@ -150,7 +152,9 @@ function drawer(
           closing = false;
           dlg.style.visibility = "visible";
           dlg.style.pointerEvents = "auto";
-          dlg.showModal();
+          // Guard for environments with HTMLDialogElement but no showModal()
+          // implementation (e.g. jsdom in tests).
+          if (typeof dlg.showModal === "function") dlg.showModal();
           if (!scrollLocked) {
             lockScroll();
             scrollLocked = true;

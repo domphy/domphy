@@ -34,7 +34,9 @@ function dialog(
 
   const finalizeClose = (dlg: HTMLDialogElement) => {
     closing = false;
-    dlg.close();
+    // Guard for environments with HTMLDialogElement but no close()
+    // implementation (e.g. jsdom in tests).
+    if (typeof dlg.close === "function") dlg.close();
     // visibility/pointer-events (not just opacity) must reflect the closed
     // state: opacity alone leaves a closed dialog's content fully reachable
     // by Tab and exposed to the accessibility tree (opacity, unlike
@@ -125,7 +127,9 @@ function dialog(
           previousFocus = document.activeElement as HTMLElement;
           dlg.style.visibility = "visible";
           dlg.style.pointerEvents = "auto";
-          dlg.showModal();
+          // Guard for environments with HTMLDialogElement but no showModal()
+          // implementation (e.g. jsdom in tests).
+          if (typeof dlg.showModal === "function") dlg.showModal();
           if (!scrollLocked) {
             lockScroll();
             scrollLocked = true;
