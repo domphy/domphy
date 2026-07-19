@@ -1,4 +1,4 @@
-﻿# Domphy
+# Domphy
 
 **[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/) · [Quickstart](https://domphy.com/docs/quickstart/) · [npm](https://www.npmjs.com/package/@domphy/core)
 
@@ -17,7 +17,7 @@ const App = {
 
 `{ button: 'Save', $: [button()] }` — that's a Domphy component. Paste it in a script tag and it runs. No build step, no framework overhead, no wrappers around your DOM.
 
-**Good fit for tool apps** (plugins, extensions, dashboards, panels): you get reactivity + 87 polished UI patches + a full design system without shipping a 40 kB runtime or setting up a JSX compiler.
+**Good fit for tool apps** (plugins, extensions, dashboards, panels): you get reactivity + 95 polished UI patches + a full design system without shipping a 40 kB runtime or setting up a JSX compiler.
 
 **Works well with AI**: plain objects are what LLMs generate naturally, and `@domphy/doctor` validates the output — the model reads the report and self-corrects (see [Building with AI](#building-with-ai)).
 
@@ -27,7 +27,8 @@ Core runtime + design system:
 
 - `@domphy/core` — rendering, reactivity (`toState`/`RecordState`/`computed`/`effect`/`effectScope`/`batch`/`untrack`/`flushSync`), lifecycle, SSR, CSS-in-JS; exports `ReadableState<T>`, `ValueOrState<T>`, `configure({ cspNonce })`
 - `@domphy/theme` — context-aware color, size, and spacing tokens
-- `@domphy/ui` — 87 ready-made patches (`button`, `card`, `dialog`, `motion`, `errorBoundary`, …) built on core + theme
+- `@domphy/ui` — 95 ready-made patches (`button`, `card`, `dialog`, `motion`, `errorBoundary`, …) built on core + theme
+- `@domphy/blocks` — 173 composed blocks/effect components: sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes (from shadcn/ui), and marketing/effect components (from Magic UI)
 
 Data & logic — framework-agnostic API at the main entry + a thin Domphy adapter at the `/domphy` subpath:
 
@@ -40,9 +41,12 @@ Data & logic — framework-agnostic API at the main entry + a thin Domphy adapte
 App layer & tools:
 
 - `@domphy/palette` — color-science toolkit: measure & validate palette quality (5 CIELAB metrics); the design-time companion to `@domphy/theme`
+- `@domphy/chart` — canvas chart engine: line, bar, pie, scatter, gauge… (`chart(option)` patch, ECharts-compatible type surface)
+- `@domphy/i18n` — i18next wrapper with Domphy reactivity: reactive `t(listener, key)` re-renders on `setLocale()`
+- `@domphy/press` — SSG docs engine: markdown, search, islands, routing (VitePress-baseline; built on `@domphy/app` + `@domphy/markdown`)
 - `@domphy/dnd` — drag & drop / sortable lists (`dragDrop`, wraps `@formkit/drag-and-drop`)
 - `@domphy/app` — Next.js App Router-style framework: nested routes/layouts, loaders with stale-while-revalidate, metadata, middleware, parallel + intercepting routes, lazy code-split routes, SSR + streaming, API routes
-- `@domphy/markdown` — parse Markdown into Domphy element trees for SSR/SSG (markdown-it → Domphy; frontmatter, TOC, anchors). This docs site is built on it.
+- `@domphy/markdown` — parse Markdown into Domphy element trees for SSR/SSG (remark/unified under the hood; frontmatter, TOC, anchors). This docs site is built on it.
 - `@domphy/mermaid` — render Mermaid diagrams (build-time inline SVG via mermaid-cli + a client patch)
 - `@domphy/doctor` — static analyzer that flags non-idiomatic element trees (`diagnose`/`validate`) and applies lossless autofixes (`fix`); powers AI self-correction
 - `@domphy/mcp` — MCP server exposing patches/packages/rules + the doctor + the app-block registry to AI agents
@@ -98,4 +102,4 @@ Full docs: [domphy.com](https://domphy.com) — [Core](https://domphy.com/docs/c
 
 ## Monorepo
 
-`packages/{core,theme,ui,query,table,router,virtual,form,dnd,palette,doctor,mcp,floating,app,markdown,mermaid,three,create-domphy}` + `apps/web` (`domphy-web` — docs site, DomphyPress) + `bench` (benchmarks).
+`packages/{core,theme,ui,blocks,query,table,router,virtual,form,dnd,palette,chart,doctor,mcp,floating,app,markdown,mermaid,three,i18n,press,create-domphy}` + `apps/web` (`domphy-web` — docs site, DomphyPress) + `bench` (benchmarks).

@@ -1,6 +1,6 @@
 {
   "name": "@domphy/chart",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "ECharts-grade chart library for Domphy. SVG-native, tone/density cascade.",
   "type": "module",
   "sideEffects": false,

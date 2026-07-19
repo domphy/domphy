@@ -1,7 +1,7 @@
 // Generates an app-block registry — a machine-readable index of an APP's OWN
 // exported Domphy "blocks" (functions/consts that return a Domphy element tree),
 // so AI agents can discover and reuse the app's building blocks the same way
-// `manifest.json` exposes the framework's 16 packages and `@domphy/ui` patches.
+// `manifest.json` exposes the framework's 22 packages and `@domphy/ui` patches.
 //
 // Unlike `manifest.mjs` (which indexes the framework surface), this script scans
 // arbitrary app source. It parses every `.ts` file with the TypeScript compiler

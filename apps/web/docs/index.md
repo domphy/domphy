@@ -12,7 +12,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 
 - `@domphy/core` — runtime: rendering, reactivity, lifecycle, SSR, CSS-in-JS (≈ `react-dom` + SSR + CSS-in-JS in one)
 - `@domphy/theme` — context-aware color/size/spacing tokens
-- `@domphy/ui` — 87 patches for native HTML (≈ MUI)
+- `@domphy/ui` — 95 patches for native HTML (≈ MUI)
 
 **Data & logic** — framework-agnostic API + a Domphy adapter at the `/domphy` subpath:
 

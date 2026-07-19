@@ -42,5 +42,9 @@ node_modules/.cache/domphy-mermaid/
 # npm pack artifacts
 *.tgz
 
+# Chart demo/debug artifacts (screenshots, ad-hoc bundles)
+packages/chart/*.png
+packages/chart/*-bundle.js
+
 # Claude Code local state / agent worktrees
 .claude/
