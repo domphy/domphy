@@ -1,7 +1,7 @@
 {
   "name": "@domphy/ui",
-  "version": "0.20.1",
-  "description": "Domphy UI",
+  "version": "0.20.2",
+  "description": "95 dependency-free UI patches for the Domphy runtime — buttons, dialogs, forms, overlays, motion",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -28,11 +28,17 @@
   },
   "keywords": [
     "domphy",
-    "theme",
     "ui",
-    "patch"
+    "components",
+    "patches",
+    "button",
+    "dialog",
+    "form",
+    "overlay",
+    "motion",
+    "zero-dependency"
   ],
-  "author": "Khanh Nguyen",
+  "author": "Huu Khanh Nguyen",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -1,7 +1,7 @@
 {
   "name": "@domphy/theme",
-  "version": "0.20.0",
-  "description": "Domphy Design System",
+  "version": "0.20.1",
+  "description": "Domphy design system — reactive color/spacing/size tokens, tone ramps, and theme generation from a single base color per role",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -27,7 +27,12 @@
     "test:watch": "vitest"
   },
   "keywords": [
-    "domphy"
+    "domphy",
+    "theme",
+    "design-system",
+    "design-tokens",
+    "color",
+    "dark-mode"
   ],
   "author": "Huu Khanh Nguyen",
   "license": "MIT",

@@ -1,5 +1,8 @@
 # @domphy/ui Changelog
 
+## 0.20.2
+- fix(dialog, drawer): guard `close()`/`showModal()` calls for environments where `HTMLDialogElement` exists but its methods are unimplemented (jsdom) — an unguarded `dlg.close()` in the close fallback timer crashed the test process with an unhandled async error. Metadata: fuller description/keywords, consistent author name.
+
 ## 0.1.9
 - Initial release
 ## 0.1.11

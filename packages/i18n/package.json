@@ -1,7 +1,7 @@
 {
   "name": "@domphy/i18n",
-  "version": "0.19.1",
-  "description": "Domphy i18n â€” generic i18next wrapper with reactive Domphy integration (globalThis dedup, typed keys, t(listener, key) overload)",
+  "version": "0.19.2",
+  "description": "Domphy i18n — generic i18next wrapper with reactive Domphy integration (globalThis dedup, typed keys, t(listener, key) overload)",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",

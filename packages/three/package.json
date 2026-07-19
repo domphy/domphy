@@ -1,6 +1,6 @@
-﻿{
+{
   "name": "@domphy/three",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Declarative three.js renderer for Domphy — a react-three-fiber-grade scene graph on Domphy reactivity.",
   "type": "module",
   "sideEffects": false,

@@ -1,6 +1,6 @@
 {
   "name": "@domphy/blocks",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, independently reimplemented (clean-room) from the public behavior of shadcn/ui and Magic UI.",
   "type": "module",
   "sideEffects": false,

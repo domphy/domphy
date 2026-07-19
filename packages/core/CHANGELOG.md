@@ -1,5 +1,8 @@
 # @domphy/core Changelog
 
+## 0.19.1
+- Metadata only: fuller package description/keywords for npm. No runtime change.
+
 ## 0.1.5
 - Initial release
 ## 0.1.7

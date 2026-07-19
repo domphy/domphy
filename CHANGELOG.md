@@ -2,7 +2,85 @@
 
 All notable changes to Domphy are documented here.
 
-Packages are versioned in lockstep. All packages share the same version number.
+Packages are versioned independently — each package has its own version number (see `packages/*/package.json`). Entries below are grouped by release date.
+
+---
+
+## Repo-wide audit + release wave — 2026-07-19
+
+Full-repo audit (health, docs consistency, packaging, design) followed by a fix/polish wave. `@domphy/press` gains features; everything else is fixes, metadata, or packaging hygiene.
+
+### `@domphy/press` [0.21.0]
+- Font hooks: generated CSS reads `var(--dp-font-sans/mono/display, …)` — sites can re-skin typography via `head` without fighting source order; `--dp-font-mono` (previously referenced but never emitted) now defined.
+- `fullBleed: true` frontmatter for the home layout — bare islands (e.g. a WebGL hero) can span edge-to-edge while prose keeps the landing width.
+- Hero de-clichéd: gradient headline text + radial glow removed (solid `textStrong`); hero action buttons render through the real `@domphy/ui` `button()`/`buttonGhost()` patches; feature cards no longer lift/shadow on hover.
+
+### `@domphy/ui` [0.20.2]
+- `dialog()`/`drawer()`: guard `close()`/`showModal()` for environments where `HTMLDialogElement` exists but its methods are unimplemented (jsdom) — fixes an unhandled async error that failed the package's own test run.
+
+### `@domphy/doctor` [0.18.15]
+- `htmlhint`/`stylelint` → optional `peerDependencies` (they were always documented as optional; `auditOutput` imports them lazily). Installing the CLI no longer drags in stylelint.
+
+### Metadata / packaging (no runtime change)
+- `@domphy/core` [0.19.1], `@domphy/theme` [0.20.1]: fuller descriptions/keywords for npm.
+- `@domphy/i18n` [0.19.2]: fixed a double-encoded em-dash (mojibake) in the package description shown on npm.
+- `@domphy/blocks` [0.1.1], `@domphy/chart` [0.2.2], `@domphy/three` [0.2.1]: MIT `LICENSE` file now ships in the tarball; removed dead `globalName` tsup options (chart/three), stripped a UTF-8 BOM (three's package.json).
+- `create-domphy` [0.18.2]: regenerated embedded core/theme/ui versions.
+
+---
+
+### Fixed
+- `dialog()`/`drawer()`: a closed dialog/drawer represented its state with ONLY `opacity` (dialog) or an off-screen `transform` (drawer) — neither removes an element from the tab order or the accessibility tree the way `visibility` does, and a consumer's own `style: { display: ... }` on the dialog element overrides the UA stylesheet's `dialog:not([open])` rule too. Both patches now also set `visibility`/`pointerEvents` inline (open = visible/auto, closed = hidden/none), so a closed dialog/drawer's content is never Tab-reachable or screen-reader-visible regardless of what the consumer's own style declares.
+
+---
+
+## `@domphy/ui` [0.20.0] — 2026-07-18
+
+### Added
+- Layout primitives — `stack()` (vertical flex column + density-aware gap), `row()` (horizontal flex + gap, centered by default, with `align`/`justify`/`wrap`), and `panelSection()` (density-aware padding + optional bottom divider — a thin wrapper meant to compose with `stack()`/`row()`). Added after an audit of a consumer app found 409 raw `style: {}` blocks re-implementing the same handful of flex shapes across 30 files.
+
+### Changed
+- `toolbar()` now delegates to `row({ gap, align: "center" })` instead of duplicating the same flex style object — no change to its props or output.
+
+---
+
+## `@domphy/ui` [0.19.0] — 2026-07-18
+
+### Added
+- Polished patch defaults — the DEFAULT look of every patch is the de-facto design system, and it was reading "wireframe". No breaking changes to DOM structure, tags, or props:
+  - `button()`: `variant?: "solid" | "outline" | "ghost"` (default `"outline"`, the existing look) and `size?: "small" | "medium" | "large"`; `variant: "ghost"` shares one implementation with `buttonGhost()` (which gains the same `size` presets).
+  - Elevation for floating/raised surfaces via a shared internal `elevation(level)` helper (`"low" | "medium" | "high"`, layered black-alpha box-shadows that work on both themes): popover/menu/combobox/selectBox-dropdown/datePicker-popup (border + medium shadow), dialog/drawer (high, shadow-only), toast (medium), tooltip (low), fab (low at rest, medium on hover). `combobox`/`selectBox` dropdowns previously had NO default surface at all.
+  - Unified `:focus-visible` ring via a shared internal `focusRing(listener, color)` helper (2px accent-tone `box-shadow` halo) across `button`, `buttonGhost`, `linkButton`, all `input*` patches, `select`, `textarea`, `segmented`, `tabs`, `toggleGroup`, `rating`, `pagination` (the last two previously had no visible focus indicator).
+  - Hover/press transitions (~140ms ease) on interactive patches instead of snapping between states.
+
+### Changed
+- Control `borderRadius` formula bumped from `density × 1` to `density × 1.5` across every bounded-control/floating-panel patch.
+- Adopted `@domphy/theme` 0.20's semantic tone aliases (`surface`/`hover`/`border`/`border-strong`/`muted`/`text`) across patches whose raw `shift-N` usage matched an alias's role.
+
+---
+
+## `@domphy/theme` [0.20.0] · `@domphy/doctor` [0.18.14] · `@domphy/mcp` [0.19.2] — 2026-07-18
+
+### Added — `@domphy/theme` [0.20.0]
+- Semantic tone aliases (`surface`, `hover`, `border`, `border-strong`, `muted`, `text`) — sugar over the existing `shift-N` machinery in `themeColor`/`themeColorToken`/`dataTone`, so intent can be written instead of raw ramp indices. Additive only; existing `shift-N`/`increase-N`/`decrease-N`/`base`/`inherit` behavior is unchanged.
+
+### Fixed — `@domphy/doctor` [0.18.14]
+- `unknown-tone` and `middle-surface-anchor` now accept the semantic tone aliases as valid `dataTone` grammar — they resolve to their underlying `shift-N` before grammar/range checks, so `dataTone: "border-strong"` is treated identically to `dataTone: "shift-4"`.
+
+### Changed — `@domphy/mcp` [0.19.2]
+- `domphy_tones` tool description updated: the semantic tone aliases are now valid and recommended over raw `shift-N` — the description no longer tells agents to avoid them.
+
+---
+
+## `@domphy/core` [0.19.0] · `@domphy/ui` [0.18.22 / 0.18.23] — 2026-07-18
+
+### Added — `@domphy/core` [0.19.0]
+- `behavior(key, attach, props)` and `ElementNode.getBehavior(key)`: a per-node behavior contract (Svelte-action-like) for imperative state that must survive a reactive parent re-rendering a reused node — `attach` runs once per real DOM node, `update(props)` routes every later re-render's fresh props into that same instance, `destroy()` fires exactly once on removal.
+
+### Fixed — `@domphy/ui` [0.18.22]
+- `popover`/`tooltip`/`selectBox`/`combobox`/`datePicker` (via `utils/floating.ts`) no longer lose outside-click/Escape dismissal after a reactive ancestor re-renders the trigger — migrated off the hand-rolled `WeakMap<Element, ...>` generation-eviction workaround onto `@domphy/core`'s new per-node `behavior()` contract (requires `@domphy/core` ^0.19.0).
+
+Note: 0.18.22 was published with `npm publish`, leaking the raw `workspace:^` protocol into the tarball's dependency ranges (`ERR_PNPM_WORKSPACE_PKG_NOT_FOUND` for external consumers). 0.18.23 is the same code republished with `pnpm publish`.
 
 ---
 
@@ -150,6 +228,37 @@ Note: 0.18.16 was published with `npm publish` instead of `pnpm publish`, which 
 
 ### Fixed
 - `popover`/`tooltip`/`selectBox`/`combobox`/`datePicker`: the floating trigger stopped opening after its ancestor re-rendered (`createFloating()`'s `reference`/`rootNode` were only ever captured via a one-time `_onMount` hook, which `ElementNode.patch()` correctly does not re-run on a reused DOM node). Now derived lazily from the trigger's own event handlers, which are live-rebound on every patch.
+
+---
+
+## `@domphy/chart` [0.2.1] — 2026-07-04
+
+### Fixed
+- Horizontal bar bandwidth sign and stacked-area baseline/extent.
+- Tooltip listener leak, tooltip XSS, WebGL device teardown, and the wrong cartesian-axis set (2026-07-02).
+
+---
+
+## `@domphy/i18n` [0.19.1] · `@domphy/markdown` [0.19.1] · `@domphy/palette` [0.19.0] · `@domphy/dnd` [0.18.3] — 2026-07-02
+
+### Fixed — `@domphy/i18n` [0.19.1]
+- Stopped force-disabling i18next's HTML escaping (interpolation is escaped again by default) and fixed an init/`setLocale` race.
+
+### Fixed — `@domphy/markdown` [0.19.1]
+- Double-escaped fenced code blocks and a non-unique slugger (duplicate headings now get stable unique anchors).
+
+### Added — `@domphy/palette` [0.19.0]
+- `generateRamp(baseColors, steps)` opened as public API — builds a WCAG-optimized sequential ramp from one or more anchor colors via warped Oklab interpolation; paired with `@domphy/theme`'s `generateTheme()` for one-command theme generation. Also: NaN guards and a `generateRamp([])` footgun fix.
+
+### Fixed — `@domphy/dnd` [0.18.3]
+- A mount/remove race leaked the FormKit registration; `multiList` no longer spams `console.warn`.
+
+---
+
+## `@domphy/chart` [0.2.0] — 2026-06-27
+
+### Added
+- DataZoom, series labels, boxplot/funnel/treemap series, visualMap, and legend interactivity.
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "name": "@domphy/core",
-  "version": "0.19.0",
-  "description": "Domphy Core UI Framework",
+  "version": "0.19.1",
+  "description": "Domphy core runtime — patch-based, framework-agnostic UI with plain-object element trees, listener-based reactivity, and SSR + hydration (no JSX, no virtual DOM)",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -28,7 +28,14 @@
   },
   "keywords": [
     "domphy",
-    "core"
+    "core",
+    "ui",
+    "framework",
+    "reactivity",
+    "no-jsx",
+    "no-vdom",
+    "vanilla",
+    "ssr"
   ],
   "author": "Huu Khanh Nguyen",
   "license": "MIT",
