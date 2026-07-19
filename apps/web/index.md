@@ -1,40 +1,17 @@
 ---
 layout: home
 title: Domphy
-
-hero:
-  name: Domphy
-  text: UI as plain objects.
-  tagline: No JSX. No virtual DOM. No compiler. Just JS objects that become real DOM.
-  command: npm create domphy@latest
-  actions:
-    - theme: brand
-      text: Get Started
-      link: /docs/quickstart
-    - theme: alt
-      text: Building with AI
-      link: /docs/ai
-
-features:
-  - icon: ⚡
-    title: No compiler, no syntax tax
-    details: Elements are plain JS objects. Works in a script tag, Vite, browser extension — anywhere JS runs. ~15 kB core + theme gzip.
-    link: /docs/quickstart
-  - icon: 🤖
-    title: AI generates it correctly
-    details: Plain objects are what LLMs produce naturally. @domphy/doctor catches mistakes and tells the model exactly what to fix — self-corrects without you debugging.
-    link: /docs/ai
-  - icon: 📦
-    title: Complete stack included
-    details: Query, Router, Table, Virtual, Form, DnD, i18n, Charts — all built in. No stitching third-party libraries together.
-    link: /docs/integrations/
+fullBleed: true
 ---
 
 <script setup lang="ts">
 import HomeHero from "./docs/demos/home/hero.js"
+import HomeFeatures from "./docs/demos/home/features.js"
 </script>
 
 <DomphyPreview :element="HomeHero" bare />
+
+<DomphyPreview :element="HomeFeatures" bare />
 
 ## Packages
 
@@ -42,7 +19,7 @@ import HomeHero from "./docs/demos/home/hero.js"
 |---|---|
 | [`@domphy/core`](/docs/core/) | Runtime — elements, reactivity, lifecycle, SSR |
 | [`@domphy/theme`](/docs/theme/) | Design tokens — color, spacing, size, dark mode |
-| [`@domphy/ui`](/docs/ui/) | 87 UI patches — button, dialog, table, form controls… |
+| [`@domphy/ui`](/docs/ui/) | 95 UI patches — button, dialog, table, form controls… |
 | [`@domphy/app`](/docs/app/) | App layer — file-based routing, layouts, SSR, lazy routes |
 | [`@domphy/query`](/docs/query/) | Async data fetching, caching, mutations, infinite queries |
 | [`@domphy/router`](/docs/router/) | Type-safe client-side router with search params and loaders |

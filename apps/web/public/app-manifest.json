@@ -298,6 +298,14 @@
   {
     "name": "App",
     "kind": "block",
+    "file": "apps/web/docs/demos/home/features.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
     "file": "apps/web/docs/demos/home/hero.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",

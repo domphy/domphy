@@ -5,7 +5,7 @@
 import { navLink } from "@domphy/app";
 import type { DomphyElement, StyleObject } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
-import { toolbar, toolbarSpacer } from "@domphy/ui";
+import { button, buttonGhost, toolbar, toolbarSpacer } from "@domphy/ui";
 import { prevNextForRoute, sidebarForRoute } from "./routes-browser.js";
 import type {
   LayoutContext,
@@ -35,6 +35,14 @@ const ts = (n: number): string => themeSpacing(n);
 // values); the values themselves stay pixel-identical.
 const fixed = (value: string) => (): string => value;
 
+// Font hooks — sites inject these vars (e.g. a Google Fonts <link> plus a
+// small :root <style> in `head`) to re-skin typography without fighting the
+// generated stylesheet: the var() reference lives inside press's own CSS, so
+// source order does not matter. Unset vars fall back to the previous stacks.
+// --dp-font-sans / --dp-font-mono are consumed in theme.ts; --dp-font-display
+// marks the hero headline and content h1/h2 (falls back to the body face).
+const fontDisplay = fixed("var(--dp-font-display, inherit)");
+
 const bg = tc("inherit");
 const bgSoft = tc("shift-1");
 const bgMute = tc("shift-2");
@@ -43,7 +51,6 @@ const textSoft = tc("shift-6");
 const text = tc("shift-9");
 const textStrong = tc("shift-11");
 const brand = tc("shift-9", "primary");
-const brandHover = tc("shift-10", "primary");
 
 const headerH = ts(14);
 const sidebarW = ts(62);
@@ -967,6 +974,7 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
         lineHeight: fixed("1.25"),
         margin: `0 0 ${ts(6)}`,
         letterSpacing: fixed("-.02em"),
+        fontFamily: fontDisplay,
         color: textStrong,
       },
       "& h2": {
@@ -976,6 +984,7 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
         paddingTop: ts(5),
         borderTop: `1px solid ${border}`,
         letterSpacing: fixed("-.01em"),
+        fontFamily: fontDisplay,
         color: textStrong,
       },
       "& h3": {
@@ -1024,7 +1033,7 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
       },
       "& :not(pre)>code": {
         fontFamily: fixed(
-          `ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace`,
+          `var(--dp-font-mono, ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace)`,
         ),
         fontSize: fixed(".85em"),
         background: bgMute,
@@ -1042,7 +1051,7 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
       },
       "& pre code": {
         fontFamily: fixed(
-          `ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace`,
+          `var(--dp-font-mono, ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace)`,
         ),
         background: "none",
         padding: "0",
@@ -1209,10 +1218,8 @@ function heroSection(hero: HeroConfig): DomphyElement {
         fontWeight: fixed("800"),
         lineHeight: fixed("1.08"),
         letterSpacing: fixed("-.03em"),
-        background: `linear-gradient(120deg,${brand},${tc("shift-7", "secondary")})`,
-        WebkitBackgroundClip: "text",
-        backgroundClip: "text",
-        color: "transparent",
+        fontFamily: fontDisplay,
+        color: textStrong,
       },
     } as DomphyElement);
   if (hero.text)
@@ -1222,6 +1229,7 @@ function heroSection(hero: HeroConfig): DomphyElement {
         fontSize: hasImage ? fixed("30px") : fixed("clamp(26px, 3vw, 38px)"),
         fontWeight: fixed("700"),
         letterSpacing: fixed("-.02em"),
+        fontFamily: fontDisplay,
         margin: `${ts(3)} 0 0`,
         color: textStrong,
       },
@@ -1237,35 +1245,24 @@ function heroSection(hero: HeroConfig): DomphyElement {
       },
     } as DomphyElement);
   if (hero.actions?.length) {
-    const actionStyle = (theme?: string): Record<string, unknown> => {
-      if (!theme || theme === "brand")
-        return {
-          padding: `${ts(2.5)} ${ts(5.5)}`,
-          borderRadius: ts(5.5),
-          fontWeight: fixed("600"),
-          fontSize: fixed("15px"),
-          background: brand,
-          color: bg,
-          "&:hover": { background: brandHover, textDecoration: fixed("none") },
-        };
-      return {
-        padding: `${ts(2.5)} ${ts(5.5)}`,
-        borderRadius: ts(5.5),
-        fontWeight: fixed("600"),
-        fontSize: fixed("15px"),
-        background: bgSoft,
-        color: text,
-        border: `1px solid ${border}`,
-        "&:hover": { borderColor: brand, textDecoration: fixed("none") },
-      };
-    };
+    // Rendered through the real @domphy/ui button patches (dogfooding) —
+    // geometry/hover/focus all come from the design system. The only local
+    // override is killing the global `a:hover` underline from the reset.
     textChildren.push({
       div: hero.actions.map(
         (a) =>
           ({
             a: a.text,
             href: a.link,
-            style: actionStyle(a.theme),
+            $: [
+              !a.theme || a.theme === "brand"
+                ? button({ color: "primary" })
+                : buttonGhost(),
+            ],
+            style: {
+              textDecoration: fixed("none"),
+              "&:hover": { textDecoration: fixed("none") },
+            },
           }) as DomphyElement,
       ),
       style: {
@@ -1303,21 +1300,10 @@ function heroSection(hero: HeroConfig): DomphyElement {
     return {
       section: textChildren,
       style: {
-        position: "relative",
         display: "flex",
         flexDirection: "column",
         textAlign: "center",
         padding: `${ts(16)} 0 ${ts(10)}`,
-        // Soft brand glow behind the headline — the one visual cue that this
-        // is a landing, not a doc page. color-mix keeps it theme-aware since
-        // the tokens are var() references, not literals.
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          inset: `-${ts(14)} -${ts(20)} 0`,
-          pointerEvents: "none",
-          background: `radial-gradient(46% 55% at 50% 28%, color-mix(in srgb, ${brand} 13%, transparent), transparent 70%)`,
-        },
       },
     };
   }
@@ -1413,12 +1399,9 @@ function featuresSection(features: FeatureConfig[]): DomphyElement {
         color: text,
         border: `1px solid ${border}`,
         borderRadius: ts(4),
-        transition:
-          "border-color .18s ease, transform .18s ease, box-shadow .18s ease",
+        transition: "border-color .18s ease",
         "&:hover": {
           borderColor: `color-mix(in srgb, ${brand} 55%, ${border})`,
-          transform: "translateY(-2px)",
-          boxShadow: `0 6px 24px -12px color-mix(in srgb, ${brand} 35%, transparent)`,
         },
       };
       const el: DomphyElement = {
@@ -1451,8 +1434,27 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
   const main: DomphyElement[] = [];
   const hero = ctx.frontmatter.hero as HeroConfig | undefined;
   const features = ctx.frontmatter.features as FeatureConfig[] | undefined;
-  if (hero) main.push(heroSection(hero));
-  if (features?.length) main.push(featuresSection(features));
+  // fullBleed (frontmatter opt-in): the fixed 1100px main column is dropped
+  // and each top-level prose block centers itself instead, so bare island
+  // placeholders (live demos — e.g. a WebGL hero) can span edge-to-edge.
+  const fullBleed = ctx.frontmatter.fullBleed === true;
+  if (hero || features?.length) {
+    const blocks: DomphyElement[] = [];
+    if (hero) blocks.push(heroSection(hero));
+    if (features?.length) blocks.push(featuresSection(features));
+    if (fullBleed) {
+      main.push({
+        div: blocks,
+        style: {
+          maxWidth: "1100px",
+          margin: "0 auto",
+          padding: `${ts(12)} ${ts(6)} 0`,
+        },
+      } as DomphyElement);
+    } else {
+      main.push(...blocks);
+    }
+  }
   // Home body spans the full main column (doc pages keep their reading
   // width) — hero/features above are 1100px wide, so a ~710px left-aligned
   // body reads as broken alignment. Table/hr polish is home-only: the
@@ -1461,6 +1463,18 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
   main.push({
     div: [contentDiv(ctx.body, "none")],
     style: {
+      ...(fullBleed
+        ? {
+            // Per-block centering replaces the main column. The :not() bumps
+            // specificity past contentDiv's own `.scope h2`-style rules so
+            // marginInline:auto survives their margin shorthands.
+            "& > div > :not([data-island])": {
+              maxWidth: "1100px",
+              marginInline: "auto",
+              paddingInline: ts(6),
+            },
+          }
+        : {}),
       "& hr": {
         border: "none",
         borderTop: `1px solid ${border}`,
@@ -1508,11 +1522,13 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
       backdrop,
       {
         main,
-        style: {
-          maxWidth: "1100px",
-          margin: "0 auto",
-          padding: `${ts(12)} ${ts(6)} ${ts(20)}`,
-        },
+        style: fullBleed
+          ? { padding: `0 0 ${ts(20)}` }
+          : {
+              maxWidth: "1100px",
+              margin: "0 auto",
+              padding: `${ts(12)} ${ts(6)} ${ts(20)}`,
+            },
       },
       ...(footerContent ? [footerContent] : []),
     ],

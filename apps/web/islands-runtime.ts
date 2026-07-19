@@ -10,6 +10,10 @@
 import { type DomphyElement, ElementNode } from "@domphy/core";
 import { mountSearch } from "@domphy/press/browser";
 import { themeApply } from "@domphy/theme";
+// Side effect: registers the site's brand palette into the client theme
+// registry, so the themeApply() calls below re-inject the SAME themeCSS()
+// the SSG build baked into the page (see site-theme.ts for why both need it).
+import "./site-theme.js";
 
 // The editor and preview Containers are dynamically imported so a page with only
 // the (lightweight) search island does not pull the CodeMirror/transform editor

@@ -15,10 +15,22 @@ export const config = defineConfig({
   outDir: join(here, ".vitepress", "dist"),
   head: [
     `<link rel="icon" href="/favicon.svg">`,
+    // Site typefaces: Space Grotesk (display), Inter (body), JetBrains Mono
+    // (code). The vars are consumed INSIDE the generated press stylesheet
+    // (var(--dp-font-*) indirection) — defining them here works even though
+    // extraHead is emitted before the generated <style>, because the var()
+    // reference, not a competing font-family rule, carries the override.
+    `<link rel="preconnect" href="https://fonts.googleapis.com">`,
+    `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`,
+    `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">`,
+    `<style>:root{--dp-font-sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--dp-font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;--dp-font-display:"Space Grotesk","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}</style>`,
     `<script async src="https://www.googletagmanager.com/gtag/js?id=G-NKPX3DHXWE"></script>`,
     `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NKPX3DHXWE');</script>`,
   ],
   themeConfig: {
+    // The orange mark doubles as the header logo — same asset as the favicon,
+    // so favicon / header / primary palette all tell one brand story.
+    logo: "/favicon.svg",
     footerMessage: 'Released under the MIT License. Made by <a href="https://khanhhuu.com" target="_blank">Nguyen Huu Khanh</a>.',
     nav: [
       { text: "Docs", link: "/docs/" },
@@ -179,6 +191,7 @@ export const config = defineConfig({
             { text: "FAB", link: "/docs/ui/patches/fab" },
             { text: "Label", link: "/docs/ui/patches/label" },
             { text: "Link", link: "/docs/ui/patches/link" },
+            { text: "Link Button", link: "/docs/ui/patches/link-button" },
             { text: "List", link: "/docs/ui/patches/list" },
             { text: "Mark", link: "/docs/ui/patches/mark" },
             { text: "Menu", link: "/docs/ui/patches/menu" },

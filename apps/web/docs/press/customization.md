@@ -85,6 +85,7 @@ Add these to the frontmatter of any `.md` file to control per-page behavior.
 | `draft` | `true` | Exclude the page from the build output |
 | `hero` | `HeroConfig` | Enable the home page hero section |
 | `features` | `FeatureConfig[]` | Enable the home page features grid |
+| `fullBleed` | `true` | Home layout only: drop the fixed-width main column — prose blocks center themselves, bare island placeholders span edge-to-edge |
 
 ### Example
 

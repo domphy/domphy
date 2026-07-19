@@ -3,15 +3,17 @@ import {
   themeColor,
   themeColorToken,
   themeFluidSpacing,
+  themeSize,
   themeSpacing,
 } from "@domphy/theme";
 import { three } from "@domphy/three";
 import { button, buttonGhost, heading, paragraph, small } from "@domphy/ui";
 import { AdditiveBlending, CanvasTexture, Color } from "three";
 
-// Landing hero: the starfield-hero example's shell pattern (three point
-// layers at increasing radius, camera drift, DOM overlay in the same element
-// tree) with the landing's copy — and one Domphy-specific twist: the mid
+// Landing hero: the starfield IS the hero — a full-bleed WebGL canvas with
+// the site's headline, CTAs and install command overlaid in the same element
+// tree (three point layers at increasing radius, camera drift — the
+// starfield-hero example's shell pattern). One Domphy-specific twist: the mid
 // star layer's tint is a live theme token, so toggling the site theme
 // re-colors the WebGL scene through the exact same reactive path that
 // re-colors the DOM around it.
@@ -140,8 +142,13 @@ const HeroBackdrop: DomphyElement<"div"> = {
       camera: { position: [0, 0, 0] },
       frameloop: "always",
       onCreated: (root) => {
-        // Fixed cinematic backdrop inside the canvas — doctor's theme rules
-        // govern style props, not three.js scene content.
+        // Deliberate fixed deep-space backdrop — the hero is a "space"
+        // section on BOTH site themes: full-bleed, tall, and visually
+        // self-contained, so the dark panel reads as intentional rather
+        // than accidental. (Deriving it from the theme surface was the
+        // alternative; rejected — stars need a dark sky, and the DOM
+        // overlay already carries its own dataTone="shift-16" context.)
+        // Doctor's theme rules govern style props, not three.js scene content.
         root.scene.background = new Color("#03040c");
       },
       scene: [
@@ -259,25 +266,21 @@ const App: DomphyElement<"div"> = {
       div: [
         {
           div: [
+            { h1: "UI as plain objects.", $: [heading()] },
             {
-              small: "Live proof — this section is one Domphy element",
-              $: [small({ color: "primary" })],
-            },
-            { h2: "DOM and WebGL, one reactive graph", $: [heading()] },
-            {
-              p: "The stars are three.js points, the buttons are native elements — same plain-object tree, no portal, no iframe. The mid-layer star tint is a live theme token: flip the site theme and the WebGL scene follows.",
+              p: "No JSX. No virtual DOM. No compiler. Just JS objects that become real DOM — reactive, SSR-ready, and themeable down to the WebGL layer.",
               $: [paragraph()],
             },
             {
               div: [
                 {
-                  a: "Explore @domphy/three",
-                  href: "/docs/three/",
+                  a: "Get Started",
+                  href: "/docs/quickstart",
                   $: [button({ color: "primary" })],
                 },
                 {
-                  a: "How this is built",
-                  href: "/docs/three/examples/starfield-hero",
+                  a: "Building with AI",
+                  href: "/docs/ai",
                   $: [buttonGhost()],
                 },
               ],
@@ -287,6 +290,37 @@ const App: DomphyElement<"div"> = {
                 flexWrap: "wrap",
                 justifyContent: "center",
               },
+            },
+            {
+              // Install one-liner. The mono face comes from the site's
+              // --dp-font-mono hook (see press.config.ts head); a function
+              // value keeps this a var() reference, not a literal font stack.
+              div: [
+                {
+                  span: "$",
+                  style: {
+                    color: (l) => themeColor(l, "shift-9", "primary"),
+                    userSelect: "none",
+                  },
+                },
+                { span: "npm create domphy@latest" },
+              ],
+              style: {
+                display: "inline-flex",
+                gap: themeSpacing(2),
+                padding: `${themeSpacing(2)} ${themeSpacing(4.5)}`,
+                borderRadius: themeSpacing(2),
+                border: (l) => `1px solid ${themeColor(l, "shift-3")}`,
+                backgroundColor: (l) => themeColor(l, "inherit"),
+                color: (l) => themeColor(l, "shift-9"),
+                fontFamily: () =>
+                  "var(--dp-font-mono, ui-monospace, monospace)",
+              },
+            },
+            {
+              small:
+                "Live proof — the starfield behind this text is three.js, mounted from the same element tree.",
+              $: [small({ color: "primary" })],
             },
           ],
           style: {
@@ -300,6 +334,14 @@ const App: DomphyElement<"div"> = {
         },
       ],
       dataTone: "shift-16",
+      // The canvas behind this overlay is FIXED deep-space dark on both site
+      // themes, so the overlay's tone context must come from the light
+      // theme's ramp (where shift-16 is a dark surface) no matter which site
+      // theme is active — otherwise the dark theme's reversed ramp resolves
+      // shift-16 to a near-white surface and the headline turns gray on the
+      // dark canvas. The starfield backdrop is a sibling, not a descendant,
+      // so its live site-theme tint is unaffected.
+      dataTheme: "light",
       style: {
         position: "absolute",
         inset: 0,
@@ -310,16 +352,16 @@ const App: DomphyElement<"div"> = {
         backgroundColor: "transparent",
         color: (l) => themeColor(l, "shift-9"),
         // This element mounts bare in the page (no shadow root), so press's
-        // content typography CSS (`.dp-content h2`: divider border, heading
-        // color) outranks the per-node patch classes. Matching its
-        // specificity here wins the tie because Domphy's style element is
-        // injected after the page stylesheet.
-        "& h2": {
+        // content typography CSS (`.dp-content h1`: size, margin) outranks
+        // the per-node patch classes. Matching its specificity here wins the
+        // tie because Domphy's style element is injected after the page
+        // stylesheet. The display typeface itself is inherited from press's
+        // h1 rule (var(--dp-font-display)) — no local fontFamily needed.
+        "& h1": {
+          fontSize: (l) => themeSize(l, "increase-6"),
           color: (l) => themeColor(l, "shift-12"),
-          borderTop: "none",
           marginTop: 0,
           marginBottom: 0,
-          paddingTop: 0,
         },
         "& p": {
           color: (l) => themeColor(l, "shift-10"),
@@ -336,9 +378,11 @@ const App: DomphyElement<"div"> = {
   style: {
     position: "relative",
     width: "100%",
-    height: "clamp(440px, 62vh, 580px)",
+    // Full-bleed hero: no radius, no containing box — the canvas runs
+    // edge-to-edge under the site header (homeShell's fullBleed mode grants
+    // island placeholders the full viewport width).
+    height: "clamp(480px, 72vh, 640px)",
     overflow: "hidden",
-    borderRadius: "16px",
   },
 };
 

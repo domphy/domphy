@@ -32,6 +32,9 @@ import { themeCSS } from "@domphy/theme";
 import * as esbuild from "esbuild";
 import { htmlDocument, type PageIslandSpec } from "./html-template.js";
 import { config } from "./press.config.js";
+// Side effect: registers the site's brand palette (orange primary, slate
+// secondary) into the theme registry BEFORE themeCSS() is called below.
+import "./site-theme.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const appRoot = resolve(here);

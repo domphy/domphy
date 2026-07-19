@@ -87,7 +87,7 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 | `@domphy/chart` | canvas chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`hexToRgba`, `seriesHex`, `seriesPaletteFamily`, `colorFromVisualMap`); ECharts-compatible type surface |
 | `@domphy/three` | declarative three.js scene graph — 1-1 functional port of `@react-three/fiber` core (reconciler, raycast pointer events, demand frameloop) on Domphy reactivity; `three(options)` patch mounts a canvas host and renders the scene graph, `extend(classes)` registers custom/version-agnostic tags for `resolve()`, `loadAsset`/`preloadAsset`/`clearAsset` for reactive asset loading (`AssetResult<T>`: `data`/`error`/`promise`); `diagnose(options)`/`validate(options)` — scene-level static analyzer (doctor's contract shape for the three() option object doctor cannot see): rules `unknown-tag`, `legacy-light-intensity`, `additive-blowout`, `camera-missing-lookat`; per-node suppression via `_doctorDisable` |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
-| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component |
+| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features/`fullBleed`, `--dp-font-sans`/`--dp-font-mono`/`--dp-font-display` font hooks, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component |
 | `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, currentLocale, exists, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
 | `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
@@ -564,7 +564,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 
 - `@domphy/core` — runtime: rendering, reactivity, lifecycle, SSR, CSS-in-JS (≈ `react-dom` + SSR + CSS-in-JS in one)
 - `@domphy/theme` — context-aware color/size/spacing tokens
-- `@domphy/ui` — 87 patches for native HTML (≈ MUI)
+- `@domphy/ui` — 95 patches for native HTML (≈ MUI)
 
 **Data & logic** — framework-agnostic API + a Domphy adapter at the `/domphy` subpath:
 
@@ -664,7 +664,7 @@ Form state, validation, and submission live in [`@domphy/form`](/docs/form/) (`c
 
 - [Core concepts](/docs/core/) — Syntax, reactivity, lifecycle
 - [Theme](/docs/theme/) — Tone, size, density
-- [All 86 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
+- [All 95 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
 - [Research](/docs/research/) — The two papers behind the design system
 
 
@@ -34837,6 +34837,7 @@ Add these to the frontmatter of any `.md` file to control per-page behavior.
 | `draft` | `true` | Exclude the page from the build output |
 | `hero` | `HeroConfig` | Enable the home page hero section |
 | `features` | `FeatureConfig[]` | Enable the home page features grid |
+| `fullBleed` | `true` | Home layout only: drop the fixed-width main column — prose blocks center themselves, bare island placeholders span edge-to-edge |
 
 ### Example
 
@@ -35561,6 +35562,29 @@ features:
     title: Fast
     details: Description here.
 ---
+```
+
+`features[].icon` also accepts a `DomphyElement` (e.g. an inline SVG icon)
+when features are composed from code rather than YAML.
+
+Add `fullBleed: true` to drop the fixed-width main column: every top-level
+prose block then centers itself at the landing width, while bare island
+placeholders (live demos — e.g. a full-screen WebGL hero) span edge-to-edge.
+Use it when the home page is led by a demo instead of a frontmatter `hero`.
+
+## Fonts
+
+The generated stylesheet reads three font hooks — `var(--dp-font-sans, …)`
+for body text, `var(--dp-font-mono, …)` for code, and
+`var(--dp-font-display, inherit)` for the hero headline and content h1/h2.
+Define them in `head` to re-skin typography (the `var()` indirection means
+source order against the generated `<style>` does not matter):
+
+```ts
+head: [
+  `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Space+Grotesk:wght@700&display=swap">`,
+  `<style>:root{--dp-font-sans:"Inter",sans-serif;--dp-font-display:"Space Grotesk","Inter",sans-serif}</style>`,
+]
 ```
 
 ## Include Files
@@ -39025,7 +39049,20 @@ function dialog(
 
   const finalizeClose = (dlg: HTMLDialogElement) => {
     closing = false;
-    dlg.close();
+    // Guard for environments with HTMLDialogElement but no close()
+    // implementation (e.g. jsdom in tests).
+    if (typeof dlg.close === "function") dlg.close();
+    // visibility/pointer-events (not just opacity) must reflect the closed
+    // state: opacity alone leaves a closed dialog's content fully reachable
+    // by Tab and exposed to the accessibility tree (opacity, unlike
+    // visibility, never removes an element from either) — and a consumer
+    // that sets its own `style: { display: ... }` on the dialog (a common
+    // pattern for centering content) overrides the UA stylesheet's
+    // `dialog:not([open]) { display: none }`, so `dlg.close()` alone doesn't
+    // reliably hide it either. Set INLINE so it always wins regardless of
+    // what the consumer's own style object declares.
+    dlg.style.visibility = "hidden";
+    dlg.style.pointerEvents = "none";
     if (scrollLocked) {
       unlockScroll();
       scrollLocked = false;
@@ -39103,7 +39140,11 @@ function dialog(
       const update = (val: boolean) => {
         if (val) {
           previousFocus = document.activeElement as HTMLElement;
-          dlg.showModal();
+          dlg.style.visibility = "visible";
+          dlg.style.pointerEvents = "auto";
+          // Guard for environments with HTMLDialogElement but no showModal()
+          // implementation (e.g. jsdom in tests).
+          if (typeof dlg.showModal === "function") dlg.showModal();
           if (!scrollLocked) {
             lockScroll();
             scrollLocked = true;
@@ -39147,6 +39188,12 @@ function dialog(
     },
     style: {
       opacity: "0",
+      // Matches finalizeClose's inline defaults — a dialog that mounts
+      // already-closed (the common case: `open` defaults to false) must
+      // start out of the tab order/accessibility tree from first paint, not
+      // just after its first open->close cycle runs finalizeClose.
+      visibility: "hidden",
+      pointerEvents: "none",
       transition: "opacity 200ms ease",
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-10", color),
@@ -39358,7 +39405,18 @@ function drawer(
         closeTimer = null;
         if (!closing) return;
         closing = false;
-        dlg.close();
+        // Guard for environments with HTMLDialogElement but no close()
+        // implementation (e.g. jsdom in tests).
+        if (typeof dlg.close === "function") dlg.close();
+        // Same fix as dialog.ts: the closed state was only ever represented
+        // by an off-screen `transform`, never visibility/pointer-events — a
+        // closed drawer stayed fully reachable by Tab and exposed to the
+        // accessibility tree (a CSS transform, like opacity, does neither),
+        // and a consumer's own `style: { display: ... }` overrides the UA
+        // stylesheet's `dialog:not([open])` rule anyway. Set INLINE so it
+        // always wins.
+        dlg.style.visibility = "hidden";
+        dlg.style.pointerEvents = "none";
         if (scrollLocked) {
           unlockScroll();
           scrollLocked = false;
@@ -39375,7 +39433,11 @@ function drawer(
       const update = (val: boolean) => {
         if (val) {
           closing = false;
-          dlg.showModal();
+          dlg.style.visibility = "visible";
+          dlg.style.pointerEvents = "auto";
+          // Guard for environments with HTMLDialogElement but no showModal()
+          // implementation (e.g. jsdom in tests).
+          if (typeof dlg.showModal === "function") dlg.showModal();
           if (!scrollLocked) {
             lockScroll();
             scrollLocked = true;
@@ -39407,6 +39469,12 @@ function drawer(
     },
     style: {
       transform: translateOut[physicalFallback],
+      // Matches finishClose's inline defaults — a drawer that mounts
+      // already-closed (the common case) must start out of the tab
+      // order/accessibility tree from first paint, not just after its first
+      // open->close cycle runs finishClose.
+      visibility: "hidden",
+      pointerEvents: "none",
       transition: "transform 0.25s ease",
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-10", color),

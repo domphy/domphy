@@ -30,7 +30,7 @@ export function pressCSS(): string {
 /* ------------------------------------------------------------------ reset */
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:calc(${headerH} + ${ts(4)})}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:${bg};color:${text};line-height:1.6;font-size:16px}
+body{margin:0;font-family:var(--dp-font-sans,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif);background:${bg};color:${text};line-height:1.6;font-size:16px}
 a{color:${brand};text-decoration:none}
 a:hover{text-decoration:underline}
 
@@ -72,9 +72,9 @@ a:hover{text-decoration:underline}
 
 /* ------------------------------------------------------------ code blocks */
 .code-block{margin:${ts(4)} 0;border:1px solid ${border};border-radius:${ts(2)};overflow:hidden}
-.code-block-title{display:flex;align-items:center;padding:${ts(1.5)} ${ts(4)};background:${bgMute};border-bottom:1px solid ${border};font-size:12px;font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;color:${textSoft}}
+.code-block-title{display:flex;align-items:center;padding:${ts(1.5)} ${ts(4)};background:${bgMute};border-bottom:1px solid ${border};font-size:12px;font-family:var(--dp-font-mono,ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace);color:${textSoft}}
 .code-block-inner{position:relative}
-.code-block pre{margin:0;padding:${ts(4)} ${ts(5)};background:${bgSoft};border:none;border-radius:0;overflow-x:auto;overflow-y:auto;max-height:32em;font-size:13.5px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace}
+.code-block pre{margin:0;padding:${ts(4)} ${ts(5)};background:${bgSoft};border:none;border-radius:0;overflow-x:auto;overflow-y:auto;max-height:32em;font-size:13.5px;line-height:1.5;font-family:var(--dp-font-mono,ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace)}
 .code-block code{font-family:inherit;background:none;padding:0;font-size:inherit}
 .code-block .line{display:inline-block;width:100%}
 .code-block .line.highlighted{background:color-mix(in srgb,${brand} 10%,transparent)}

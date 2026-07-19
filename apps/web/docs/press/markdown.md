@@ -211,6 +211,29 @@ features:
 ---
 ```
 
+`features[].icon` also accepts a `DomphyElement` (e.g. an inline SVG icon)
+when features are composed from code rather than YAML.
+
+Add `fullBleed: true` to drop the fixed-width main column: every top-level
+prose block then centers itself at the landing width, while bare island
+placeholders (live demos — e.g. a full-screen WebGL hero) span edge-to-edge.
+Use it when the home page is led by a demo instead of a frontmatter `hero`.
+
+## Fonts
+
+The generated stylesheet reads three font hooks — `var(--dp-font-sans, …)`
+for body text, `var(--dp-font-mono, …)` for code, and
+`var(--dp-font-display, inherit)` for the hero headline and content h1/h2.
+Define them in `head` to re-skin typography (the `var()` indirection means
+source order against the generated `<style>` does not matter):
+
+```ts
+head: [
+  `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Space+Grotesk:wght@700&display=swap">`,
+  `<style>:root{--dp-font-sans:"Inter",sans-serif;--dp-font-display:"Space Grotesk","Inter",sans-serif}</style>`,
+]
+```
+
 ## Include Files
 
 ```md
