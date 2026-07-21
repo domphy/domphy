@@ -25,6 +25,8 @@ function badge(
   const state = toState(label);
   const color = toState(props.color ?? "danger", "color");
   return {
+    // Badge ::after uses a fixed size scale for the pill chrome.
+    _doctorDisable: "inline-typography",
     style: {
       position: "relative",
       "&::after": {
@@ -33,15 +35,21 @@ function badge(
         top: 0,
         right: 0,
         transform: "translate(50%,-50%)",
-        paddingInline: themeSpacing(1),
-        minWidth: themeSpacing(6),
+        paddingInline: themeSpacing(1.5),
+        minWidth: themeSpacing(5),
+        height: themeSpacing(5),
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        fontSize: (l) => themeSize(l, "decrease-1"),
+        fontSize: (l) => themeSize(l, "decrease-2"),
+        fontWeight: "600",
+        lineHeight: 1,
         borderRadius: themeSpacing(999),
         backgroundColor: (l) => themeColor(l, "shift-9", color.get(l)),
         color: (l) => themeColor(l, "shift-0", color.get(l)),
+        // Hairline ring so the pill pops on same-hue surfaces.
+        boxShadow: (l) =>
+          `0 0 0 1px ${themeColor(l, "shift-0", color.get(l))}`,
       },
     },
   };

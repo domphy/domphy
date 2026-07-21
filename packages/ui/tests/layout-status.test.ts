@@ -264,6 +264,16 @@ describe("card", () => {
     ).not.toThrow();
     color.set("primary");
   });
+
+  it("carries a low elevation shadow + border", () => {
+    const { node } = render({
+      div: [{ h3: "T" }],
+      $: [card()],
+    } as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toContain("box-shadow");
+    expect(css).toContain("outline");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -467,6 +477,15 @@ describe("badge", () => {
       div: [{ span: "🔔", $: [badge({ label: 3 })] }],
     } as DomphyElement);
     expect(host.querySelector("span")!.textContent).toBe("🔔");
+  });
+
+  it("styles the count pill with a ring so it pops on any surface", () => {
+    const { node } = render({
+      div: [{ span: "🔔", $: [badge({ label: 3 })] }],
+    } as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toContain("box-shadow");
+    expect(css).toContain("border-radius");
   });
 
   it("generates CSS with the label value in the ::after content", () => {

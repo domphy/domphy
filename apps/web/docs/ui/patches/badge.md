@@ -6,7 +6,7 @@ import Badge from "../../demos/patches/Badge.ts?raw"
 
 # Badge
 
-Apply the badge patch to any inline container (typically a `<span>` wrapping an icon or button) to render a small count bubble pinned to its top-right corner via a `::after` pseudo-element. Use `label` to set the count and `color` to control the severity tone.
+Apply the badge patch to any inline container (typically a `<span>` wrapping an icon or button) to render a small count bubble pinned to its top-right corner via a `::after` pseudo-element. The pill is compact, bold, and ringed with a light hairline so it reads on same-hue surfaces.
 
 ## Props
 

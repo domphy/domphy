@@ -5,6 +5,7 @@ import {
   themeDensity,
   themeSpacing,
 } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
 
 /**
  * A grid-based card surface that auto-places known child elements into named
@@ -35,6 +36,8 @@ function card(
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       outlineOffset: "-1px",
+      // Soft lift so cards separate from the page without looking like dialogs.
+      boxShadow: elevation("low"),
       overflow: "hidden",
       "& > img": {
         gridArea: "image",
@@ -47,11 +50,14 @@ function card(
         paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
         fontWeight: "600",
+        color: (listener) =>
+          themeColor(listener, "shift-11", color.get(listener)),
         margin: 0,
       },
       "& > p": {
         gridArea: "desc",
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
+        paddingBottom: (listener) => themeSpacing(themeDensity(listener) * 2),
         color: (listener) => themeColor(listener, "text", color.get(listener)),
         margin: 0,
       },

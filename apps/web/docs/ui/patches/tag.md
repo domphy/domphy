@@ -6,7 +6,7 @@ import Tag from "../../demos/patches/Tag.ts?raw"
 
 # Tag
 
-Apply the tag patch to a `<span>` to style it as a rounded inline chip with a colored border and background. Set `color` to choose the theme tone and `removable: true` to insert an ×&nbsp;button that removes the chip from the DOM on click.
+Apply the tag patch to a `<span>` to style it as a pill-shaped inline chip with a colored border and background. Set `color` to choose the theme tone and `removable: true` to insert an ×&nbsp;button that removes the chip from the DOM on click.
 
 ## Props
 
