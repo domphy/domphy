@@ -14,6 +14,9 @@
     "build": "pnpm --filter \"@domphy/*\" build && node scripts/manifest.mjs && node scripts/app-manifest.mjs && node scripts/llms-full.mjs && tsx build.press.ts",
     "a11y": "node scripts/a11y-audit.mjs",
     "a11y:prod": "node scripts/a11y-audit.mjs https://domphy.com https://domphy.com/docs/quickstart https://domphy.com/docs/ui/patches/button",
+    "visual": "playwright test -c visual/playwright.config.ts",
+    "visual:update": "playwright test -c visual/playwright.config.ts --update-snapshots",
+    "visual:blocks-gen": "node scripts/gen-visual-blocks.mjs",
     "postinstall": "puppeteer browsers install chrome-headless-shell"
   },
   "keywords": [],
@@ -43,6 +46,7 @@
     "@domphy/three": "workspace:*",
     "@domphy/ui": "workspace:*",
     "@domphy/virtual": "workspace:*",
+    "@playwright/test": "^1.61.1",
     "@tanstack/query-core": "^5.90.20",
     "@types/markdown-it": "^14.1.2",
     "@types/markdown-it-container": "^2.0.10",
