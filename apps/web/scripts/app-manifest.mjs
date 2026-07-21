@@ -27,15 +27,13 @@ const REPO = resolve(HERE, "../../.."); // monorepo root
 /** Write JSON then biome-format so `pnpm check` stays green after build. */
 async function writeFormattedJson(path, value) {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  try {
-    execFileSync(
-      process.platform === "win32" ? "pnpm.cmd" : "pnpm",
-      ["exec", "biome", "format", "--write", path],
-      { cwd: REPO, stdio: "pipe" },
-    );
-  } catch {
-    // Biome optional for environments that only need the raw JSON; CI always has it.
-  }
+  // Resolve the monorepo biome binary directly — `pnpm exec`/`pnpm.cmd` is
+  // unreliable under execFileSync on Windows (silent no-op → dirty check).
+  const biomeCli = resolve(REPO, "node_modules/@biomejs/biome/bin/biome");
+  execFileSync(process.execPath, [biomeCli, "format", "--write", path], {
+    cwd: REPO,
+    stdio: "pipe",
+  });
 }
 
 // `typescript` is a dev dependency of several packages but is not hoisted to the
