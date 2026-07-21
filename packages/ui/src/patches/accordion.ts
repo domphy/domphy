@@ -13,7 +13,7 @@ import { focusRing } from "../utils/focusRing.js";
  *
  * @param props.type - `"single"` (default) or `"multiple"`. Single mode auto-closes siblings.
  * @param props.color - Theme color tone for borders and backgrounds. Defaults to `"neutral"`.
- * @param props.accentColor - Accent color for focus outlines on summary. Defaults to `"primary"`.
+ * @param props.accentColor - Accent color for focus rings on summary. Defaults to `"primary"`.
  * @example
  * { div: [
  *   { details: [{ summary: "Section A" }, { p: "Content A" }], $: [details()] },

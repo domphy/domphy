@@ -6,7 +6,7 @@ import Empty from "../../demos/patches/Empty.ts?raw"
 
 # Empty
 
-Use `empty` on a container to display an empty-state placeholder. It centers children in a flex column with muted coloring and comfortable padding. The first child (icon) is rendered slightly more muted than the remaining children (title and description).
+Use `empty` on a container to display an empty-state placeholder. It centers children in a flex column with muted coloring and comfortable padding. Hierarchy: first child (icon) is softest, second child (title) uses body text contrast, remaining children stay muted.
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|

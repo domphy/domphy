@@ -6,7 +6,7 @@ import Skeleton from "../../demos/patches/Skeleton.ts?raw"
 
 # Skeleton
 
-Use the skeleton patch on any block element to show a loading placeholder. The animation pulses between full and reduced opacity.
+Use the skeleton patch on any block element to show a loading placeholder. A left-to-right shimmer gradient sweeps over the themed base surface.
 
 ## Props
 

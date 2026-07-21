@@ -165,7 +165,8 @@ Use `outline` not `border` — a 1px border on both sides adds 2px to height and
 
 ### Elevation and focus ring
 - **Elevation**: floating/raised surfaces (popover, menu, dialog, drawer, toast, tooltip, combobox/selectBox dropdown, datePicker popup, fab) use the shared `elevation(level)` helper (`packages/ui/src/utils/elevation.ts`, internal) — 3 levels (`"low" | "medium" | "high"`), layered black-alpha box-shadows that read correctly on both themes. Combined with a `border-strong` outline for the "shadow + border" look on panel-style surfaces (popover, menu, combobox/selectBox dropdown, datePicker); shadow-only (no outline) on dialog/drawer/toast/tooltip.
-- **Focus ring**: interactive patches (button, buttonGhost, linkButton, inputs, select, textarea, segmented, tabs, toggleGroup, rating, pagination) unify on the shared `focusRing(listener, color)` helper (`packages/ui/src/utils/focusRing.ts`, internal) — a 2px accent-tone halo via `box-shadow` on `:focus-visible`, layered on top of (not replacing) the control's own resting outline.
+- **Focus ring**: interactive patches (button, buttonGhost, linkButton, link, listItemButton, inputs, select, selectItem, textarea, segmented, tabs, toggleGroup, rating, pagination, menu items, command items, datePicker cells, accordion/details summary, splitter handle, breadcrumbEllipsis, fab) unify on the shared `focusRing(listener, color)` helper (`packages/ui/src/utils/focusRing.ts`, internal) — a 2px accent-tone halo via `box-shadow` on `:focus-visible`, layered on top of (not replacing) the control's own resting outline.
+- **Press `:active`**: primary CTA controls (button outline/solid, buttonGhost, linkButton, fab, listItemButton) apply the design-system interactive delta — hover `±1`, pressed `±2` (solid uses `decrease-N` on the dark edge surface).
 
 ### Doctor rules (complete list — 18 built-in)
 `inline-typography`, `raw-theme-value` (hex/rgb + CSS named colors), `raw-spacing-value`, `low-opacity` (style.opacity < 0.6 on interactive controls — too dim to be discoverable; info if hover-restore pattern detected), `tone-background-inherit` (backgroundColor must resolve to themeColor(l, "inherit") — detected by running the reactive fn at context=0: var(--X-N) with N>0 means a fixed shifted tone; shift the surface via dataTone instead), `missing-color` (element uses themeColor for bg/border but has no style.color — text won't re-evaluate on tone shift), `low-contrast` (text `color` and `backgroundColor` are both reactive theme vars but their shift numbers differ by < 9 — insufficient contrast; extracted from the `var(--X-N)` string that `themeColor()` returns), `dataTone-surface-contract` (dataTone set but missing backgroundColor and/or color — a tone context surface must declare both so children can guarantee readable contrast), `color-shift-minimum` (style.color on a dataTone element resolves to tone step < 9 — below the minimum for legible body text), `unknown-tone`, `middle-surface-anchor`, `unknown-density`, `unknown-size`, `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. Extend with project rules via `options.rules: CustomRule[]`. Suppress on an element with `_doctorDisable`.
@@ -36975,6 +36976,7 @@ import {
   themeDensity,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Container patch that groups `<details>` elements into a bordered accordion.
@@ -36982,7 +36984,7 @@ import {
  *
  * @param props.type - `"single"` (default) or `"multiple"`. Single mode auto-closes siblings.
  * @param props.color - Theme color tone for borders and backgrounds. Defaults to `"neutral"`.
- * @param props.accentColor - Accent color for focus outlines on summary. Defaults to `"primary"`.
+ * @param props.accentColor - Accent color for focus rings on summary. Defaults to `"primary"`.
  * @example
  * { div: [
  *   { details: [{ summary: "Section A" }, { p: "Content A" }], $: [details()] },
@@ -37029,6 +37031,8 @@ function accordion(
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       outlineOffset: "-1px",
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       overflow: "hidden",
       "& > details": {
         borderBottom: (listener) =>
@@ -37038,8 +37042,8 @@ function accordion(
         borderBottom: "none",
       },
       "& > details > summary:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
       },
     },
   };
@@ -37083,6 +37087,7 @@ function alert(
       gap: themeSpacing(3),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       boxShadow: (listener) =>
         `inset ${themeSpacing(1)} 0 0 0 ${themeColor(listener, "shift-8", color.get(listener))}`,
       backgroundColor: (listener) =>
@@ -37122,6 +37127,8 @@ function avatar(
 
   return {
     dataTone: "shift-2",
+    // Design-system initials weight (not app chrome) — consumers use avatar().
+    _doctorDisable: "inline-typography",
     style: {
       position: "relative",
       display: "inline-flex",
@@ -37244,6 +37251,8 @@ function blockquote(
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       boxShadow: (listener) =>
         `inset ${themeSpacing(1)} 0 0 0 ${themeColor(listener, "shift-4", color.get(listener))}`,
       border: "none",
@@ -37334,6 +37343,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * An ellipsis trigger button for collapsed breadcrumb items, with hover and
@@ -37366,6 +37376,7 @@ function breadcrumbEllipsis(
       cursor: "pointer",
       color: (listener) => themeColor(listener, "muted", color.get(listener)),
       borderRadius: themeSpacing(1),
+      transition: "color 140ms ease, background-color 140ms ease, box-shadow 140ms ease",
       "&:hover": {
         color: (listener) =>
           themeColor(listener, "shift-10", color.get(listener)),
@@ -37373,9 +37384,7 @@ function breadcrumbEllipsis(
           themeColor(listener, "hover", color.get(listener)),
       },
       "&:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", color.get(listener))}`,
-        outlineOffset: themeSpacing(0.5),
+        boxShadow: (listener) => focusRing(listener, color.get(listener)),
       },
     },
   };
@@ -37408,8 +37417,9 @@ const PADDING_STEPS: Record<ButtonSize, { block: number; inline: number }> = {
 };
 
 /**
- * A themed button control with density-aware padding/radius and hover, focus-visible,
- * `[disabled]`, and `[aria-busy=true]` states. Apply to a `<button>` element.
+ * A themed button control with density-aware padding/radius and hover, pressed
+ * (`:active` ±2), focus-visible, `[disabled]`, and `[aria-busy=true]` states.
+ * Apply to a `<button>` element.
  *
  * @hostTag button
  * @param props.color - Button color tone. Optional `ValueOrState<ThemeColor>`, default "primary".
@@ -37443,6 +37453,14 @@ function button(
         console.warn(`"button" primitive patch must use button tag`);
       }
     },
+    // Solid fills use the dark edge (shift-17) + light text (shift-0).
+    // Inverse solid controls intentionally invert doctor body-text contrast rules.
+    ...(isSolid
+      ? {
+          dataTone: "shift-17" as const,
+          _doctorDisable: ["low-contrast", "color-shift-minimum"] as const,
+        }
+      : {}),
     style: {
       appearance: "none",
       fontSize: (listener) => themeSize(listener, fontSize),
@@ -37473,9 +37491,7 @@ function button(
           ? themeColor(listener, "shift-0", color.get(listener))
           : themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
-        isSolid
-          ? themeColor(listener, "shift-9", color.get(listener))
-          : themeColor(listener, "inherit", color.get(listener)),
+        themeColor(listener, "inherit", color.get(listener)),
       transition:
         "background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
       "&:hover:not([disabled]):not([aria-busy=true])": {
@@ -37485,8 +37501,15 @@ function button(
             : themeColor(listener, "shift-10", color.get(listener)),
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "shift-10", color.get(listener))
+            ? themeColor(listener, "decrease-1", color.get(listener))
             : themeColor(listener, "hover", color.get(listener)),
+      },
+      // Pressed: ±2 from surface (design system interactive delta).
+      "&:active:not([disabled]):not([aria-busy=true])": {
+        backgroundColor: (listener) =>
+          isSolid
+            ? themeColor(listener, "decrease-2", color.get(listener))
+            : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {
         boxShadow: (listener) => focusRing(listener, color.get(listener)),
@@ -37584,6 +37607,11 @@ function buttonGhost(
         backgroundColor: (listener) =>
           themeColor(listener, "hover", color.get(listener)),
       },
+      "&:active:not([disabled]):not([aria-busy=true])": {
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
+        backgroundColor: (listener) =>
+          themeColor(listener, "increase-2", color.get(listener)),
+      },
       "&:focus-visible": {
         boxShadow: (listener) => focusRing(listener, color.get(listener)),
       },
@@ -37614,6 +37642,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * A pill-shaped toggle switch with `role="switch"`; clicking flips the bound
@@ -37662,9 +37691,16 @@ function buttonSwitch(
       borderRadius: themeSpacing(999),
       paddingLeft: themeSpacing(7),
       paddingRight: themeSpacing(2),
-      transition: "padding-left 0.3s, padding-right 0.3s",
+      cursor: "pointer",
+      transition:
+        "padding-left 0.3s, padding-right 0.3s, background-color 140ms ease, box-shadow 140ms ease",
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
+      "&:focus-visible": {
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+      },
       "& > :first-child": {
         content: '""',
         position: "absolute",
@@ -37728,6 +37764,8 @@ function card(
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
   return {
+    // Title weight is design-system chrome for the card region layout.
+    _doctorDisable: "inline-typography",
     style: {
       display: "grid",
       gridTemplateColumns: "1fr auto",
@@ -37859,6 +37897,7 @@ import {
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
 import { createFloating } from "../utils/floating.js";
+import { focusRing } from "../utils/focusRing.js";
 import { tag } from "./tag.js";
 
 /**
@@ -38006,6 +38045,11 @@ function combobox(props: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      transition:
+        "background-color 140ms ease, outline-color 140ms ease, box-shadow 140ms ease",
+      "&:focus-within": {
+        boxShadow: (listener) => focusRing(listener, color),
+      },
     },
   };
 
@@ -38027,6 +38071,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Command-palette container patch. Sets up a vertical flex column and provides a
@@ -38099,9 +38144,11 @@ function commandSearch(
       "&::placeholder": {
         color: (listener) => themeColor(listener, "shift-7"),
       },
+      transition: "border-bottom-color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {
         borderBottomColor: (listener) =>
           themeColor(listener, "shift-6", accentColor),
+        boxShadow: (listener) => focusRing(listener, accentColor),
       },
     },
   };
@@ -38115,7 +38162,7 @@ function commandSearch(
  * used inside a `command()`.
  *
  * @param props.color - Base theme color tone. Defaults to "neutral".
- * @param props.accentColor - Accent color used for the focus outline. Defaults to "primary".
+ * @param props.accentColor - Accent color used for the focus ring. Defaults to "primary".
  * @example { button: "Open file", $: [commandItem({ color: "neutral" })] }
  */
 function commandItem(
@@ -38151,13 +38198,12 @@ function commandItem(
       outline: "none",
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      transition: "background-color 140ms ease, box-shadow 140ms ease",
       "&:hover:not([disabled])": {
         backgroundColor: (listener) => themeColor(listener, "hover", color),
       },
       "&:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
-        outlineOffset: `-${themeSpacing(0.5)}`,
+        boxShadow: (listener) => focusRing(listener, accentColor),
       },
     },
   };
@@ -38188,6 +38234,7 @@ import {
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
 import { createFloating } from "../utils/floating.js";
+import { focusRing } from "../utils/focusRing.js";
 
 /** A single date selection, or a `[start, end]` tuple in range mode. */
 export type DatePickerValue = Date | null | [Date | null, Date | null];
@@ -38530,7 +38577,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
           style: {
             flex: "1",
             textAlign: "center",
-            fontWeight: "600",
+            fontWeight: "bold",
             fontSize: (listener) => themeSize(listener),
           },
         },
@@ -38551,7 +38598,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         style: {
           textAlign: "center",
           fontSize: (listener) => themeSize(listener, "decrease-1"),
-          fontWeight: "600",
+          fontWeight: "bold",
           color: (listener) => themeColor(listener, "shift-7"),
           paddingBlock: themeSpacing(1),
         },
@@ -38673,9 +38720,10 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
               ? themeColor(l, "shift-7", accentColor.get(l))
               : themeColor(l, "shift-3", accentColor.get(l)),
         },
+        transition: "background-color 140ms ease, box-shadow 140ms ease",
         "&:focus-visible": {
-          outline: (l: Listener) =>
-            `2px solid ${themeColor(l, "shift-6", accentColor.get(l))}`,
+          boxShadow: (l: Listener) =>
+            focusRing(l, accentColor.get(l)),
         },
       },
       _key: isoOf(date),
@@ -38705,7 +38753,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     return {
       div: [
         numberSelect(24, hour, "Hour"),
-        { span: ":", style: { fontWeight: "600" } },
+        { span: ":", style: { fontWeight: "bold" } },
         numberSelect(60, minute, "Minute"),
       ],
       style: {
@@ -38875,6 +38923,8 @@ function descriptionList(
         console.warn(`"descriptionList" primitive patch must use dl tag`);
       }
     },
+    // Term weight is design-system chrome for description lists.
+    _doctorDisable: "inline-typography",
     style: {
       display: "grid",
       gridTemplateColumns: `minmax(${themeSpacing(24)}, max-content) 1fr`,
@@ -38910,6 +38960,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a native disclosure widget: a themed `<summary>` header with an
@@ -38918,7 +38969,7 @@ import {
  *
  * @hostTag details
  * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for the body/summary. Defaults to "neutral".
- * @param props.accentColor - Accent color (`ValueOrState<ThemeColor>`) for the summary's focus outline. Defaults to "primary".
+ * @param props.accentColor - Accent color (`ValueOrState<ThemeColor>`) for the summary's focus ring. Defaults to "primary".
  * @param props.duration - Open/close transition duration in milliseconds. Defaults to 240.
  * @example { details: [{ summary: "More" }, { div: "Body" }], $: [details()] }
  */
@@ -38939,6 +38990,8 @@ function details(
         console.warn(`"details" primitive patch must use details tag`);
       }
     },
+    // Summary weight is design-system chrome for disclosure headers.
+    _doctorDisable: "inline-typography",
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
@@ -38991,9 +39044,8 @@ function details(
       },
       "& > summary:focus-visible": {
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
-        outlineOffset: `-${themeSpacing(0.5)}`,
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
       },
       "& > :not(summary)": {
         maxHeight: 0,
@@ -39576,11 +39628,18 @@ function empty(
       paddingBlock: themeSpacing(12),
       paddingInline: themeSpacing(6),
       textAlign: "center",
-      color: (listener) => themeColor(listener, "shift-6", color.get(listener)),
-      // First child (icon area): more muted color to visually recede behind the text
+      // Body / description text sits in the muted zone.
+      color: (listener) => themeColor(listener, "muted", color.get(listener)),
+      // Icon area: slightly softer so it recedes behind the title.
       "& > :first-child": {
         color: (listener) =>
           themeColor(listener, "shift-5", color.get(listener)),
+        opacity: 0.9,
+      },
+      // Title (typically second child): stronger body text for hierarchy.
+      "& > :nth-child(2)": {
+        color: (listener) =>
+          themeColor(listener, "text", color.get(listener)),
       },
     },
   };
@@ -39671,6 +39730,11 @@ function fab(
         console.warn('"fab" patch must use button tag');
       }
     },
+    // Solid accent disc on the dark edge (shift-17) + light text (shift-0).
+    // Doctor's low-contrast / color-shift-minimum rules assume light-surface
+    // body text (shift ≥ 9); inverse solid controls intentionally invert that.
+    dataTone: "shift-17",
+    _doctorDisable: ["low-contrast", "color-shift-minimum"],
     style: {
       appearance: "none",
       border: "none",
@@ -39684,14 +39748,19 @@ function fab(
       borderRadius: "50%",
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) =>
-        themeColor(listener, "shift-9", color.get(listener)),
+        themeColor(listener, "inherit", color.get(listener)),
       color: (listener) => themeColor(listener, "shift-0", color.get(listener)),
       boxShadow: elevation("low"),
       transition: "background-color 200ms ease, box-shadow 200ms ease",
       "&:hover:not([disabled])": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-10", color.get(listener)),
+          themeColor(listener, "decrease-1", color.get(listener)),
         boxShadow: elevation("medium"),
+      },
+      "&:active:not([disabled])": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "decrease-2", color.get(listener)),
+        boxShadow: elevation("low"),
       },
       "&:focus-visible": {
         boxShadow: (listener) =>
@@ -39799,6 +39868,8 @@ function formGroup(
         console.warn(`"formGroup" patch must use fieldset tag`);
       }
     },
+    // Legend weight is design-system chrome for field groups.
+    _doctorDisable: "inline-typography",
     style: {
       margin: 0,
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
@@ -39808,6 +39879,8 @@ function formGroup(
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       display: "grid",
       gridTemplateColumns: isVertical
         ? `minmax(0, 1fr)`
@@ -39939,6 +40012,8 @@ function horizontalRule(
         console.warn(`"horizontalRule" primitive patch must use hr tag`);
       }
     },
+    // Soft rule surface — edge anchor (shift-3 = border) + inherit paint.
+    dataTone: "shift-3",
     style: {
       border: 0,
       height: "1px",
@@ -39946,7 +40021,9 @@ function horizontalRule(
       marginTop: themeSpacing(3),
       marginBottom: themeSpacing(3),
       backgroundColor: (listener) =>
-        themeColor(listener, "shift-4", color.get(listener)),
+        themeColor(listener, "inherit", color.get(listener)),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
     },
   };
 }
@@ -40039,6 +40116,8 @@ function image(
       borderRadius: themeSpacing(2),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
     },
   };
 }
@@ -40056,6 +40135,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a custom checkbox with themed box, check mark, indeterminate state,
@@ -40086,6 +40166,8 @@ function inputCheckbox(
     style: {
       appearance: "none",
       fontSize: (listener) => themeSize(listener, "inherit"),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       display: "inline-flex",
       position: "relative",
       width: themeSpacing(6),
@@ -40156,8 +40238,8 @@ function inputCheckbox(
       },
       "&:focus-visible": {
         borderRadius: themeSpacing(1.5),
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         cursor: "not-allowed",
@@ -40179,6 +40261,7 @@ export { inputCheckbox };
 
 ```ts
 import type { PartialElement, ValueOrState } from "@domphy/core";
+import { toState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -40186,6 +40269,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a native color picker swatch with themed padding, rounded swatch and
@@ -40198,11 +40282,12 @@ import {
  * @example { input: null, type: "color", $: [inputColor()] }
  */
 function inputColor(
-  _props: {
+  props: {
     color?: ValueOrState<ThemeColor>;
     accentColor?: ValueOrState<ThemeColor>;
   } = {},
 ): PartialElement {
+  const color = toState(props.color ?? "neutral", "color");
   return {
     type: "color",
     _onSchedule: (node, element) => {
@@ -40216,11 +40301,18 @@ function inputColor(
       border: "none",
       cursor: "pointer",
       fontSize: (listener) => themeSize(listener, "inherit"),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
       blockSize: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
       inlineSize: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
       backgroundColor: "transparent",
+      transition: "box-shadow 140ms ease",
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
+      "&:focus-visible": {
+        boxShadow: (listener) => focusRing(listener, color.get(listener)),
+      },
       "&::-webkit-color-swatch-wrapper": {
         margin: 0,
         padding: 0,
@@ -40745,6 +40837,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a custom radio button with a themed circular box, checked dot, hover,
@@ -40777,6 +40870,8 @@ function inputRadio(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       appearance: "none",
       display: "inline-flex",
       position: "relative",
@@ -40823,8 +40918,8 @@ function inputRadio(
       },
       "&:focus-visible": {
         borderRadius: "50%",
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         cursor: "not-allowed",
@@ -40847,6 +40942,7 @@ export { inputRadio };
 ```ts
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a range slider with a themed track and thumb, hover, focus and
@@ -40902,11 +40998,11 @@ function inputRange(
         backgroundColor: (listener) =>
           themeColor(listener, "shift-10", accentColor.get(listener)),
       },
+      borderRadius: themeSpacing(2),
+      transition: "box-shadow 140ms ease",
       "&:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
-        outlineOffset: themeSpacing(1),
-        borderRadius: themeSpacing(2),
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -41018,6 +41114,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a checkbox as a toggle switch: themed track and sliding knob that
@@ -41045,6 +41142,9 @@ function inputSwitch(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
+      // Surface contract: dataTone is set; paint track via inherit + text color.
+      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      color: (listener) => themeColor(listener, "text"),
       appearance: "none",
       position: "relative",
       display: "inline-flex",
@@ -41053,6 +41153,12 @@ function inputSwitch(
       cursor: "pointer",
       margin: `0`,
       paddingBlock: themeSpacing(1),
+      transition: "box-shadow 140ms ease",
+      borderRadius: themeSpacing(999),
+      "&:focus-visible": {
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
+      },
       "&:checked": {
         "&::before": {
           backgroundColor: (listener) =>
@@ -41313,6 +41419,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Themed hyperlink primitive: styles text color, hover underline, visited,
@@ -41352,11 +41459,11 @@ function link(
           themeColor(listener, "shift-10", color.get(listener)),
         textDecoration: "underline",
       },
+      borderRadius: themeSpacing(1),
+      transition: "color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {
-        borderRadius: themeSpacing(1),
-        outlineOffset: themeSpacing(1),
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -41381,21 +41488,109 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { BUTTON_SIZE_FONT, type ButtonSize } from "../utils/buttonSize.js";
 import { focusRing } from "../utils/focusRing.js";
+import type { ButtonVariant } from "./button.js";
+
+const PADDING_STEPS: Record<ButtonSize, { block: number; inline: number }> = {
+  small: { block: 0.5, inline: 2 },
+  medium: { block: 1, inline: 3 },
+  large: { block: 1.5, inline: 4 },
+};
+
+const GHOST_PADDING: Record<ButtonSize, number> = {
+  small: 0.5,
+  medium: 1,
+  large: 1.5,
+};
 
 /**
- * An `<a>` element styled to look like a button — same visual appearance as
- * `button()` but preserves link semantics (href, middle-click, right-click).
- * Apply to an `<a>` element.
+ * An `<a>` element styled to look like a button — same visual system as
+ * `button()` (`variant` / `size` / color) while preserving link semantics
+ * (href, middle-click, right-click). Apply to an `<a>` element.
  *
  * @hostTag a
  * @param props.color - Button color tone. Optional `ValueOrState<ThemeColor>`, default "primary".
+ * @param props.variant - `"outline"` (default) | `"solid"` | `"ghost"` — matches `button()`.
+ * @param props.size - `"small" | "medium" | "large"`, defaults to `"medium"`.
  * @example { a: "Open app", href: "/app", $: [linkButton({ color: "primary" })] }
+ * @example { a: "Get started", href: "/start", $: [linkButton({ variant: "solid" })] }
  */
 function linkButton(
-  props: { color?: ValueOrState<ThemeColor> } = {},
+  props: {
+    color?: ValueOrState<ThemeColor>;
+    variant?: ButtonVariant;
+    size?: ButtonSize;
+  } = {},
 ): PartialElement {
-  const color = toState(props.color ?? "primary", "color");
+  const variant = props.variant ?? "outline";
+  const color = toState(
+    props.color ?? (variant === "ghost" ? "neutral" : "primary"),
+    "color",
+  );
+  const size = props.size ?? "medium";
+  const fontSize = BUTTON_SIZE_FONT[size];
+
+  if (variant === "ghost") {
+    const padding = GHOST_PADDING[size];
+    return {
+      _onInsert: (node) => {
+        if (node.tagName !== "a") {
+          console.warn(`"linkButton" primitive patch must use a tag`);
+        }
+      },
+      style: {
+        fontSize: (listener) => themeSize(listener, fontSize),
+        textDecoration: "none",
+        paddingBlock: (listener) =>
+          themeSpacing(themeDensity(listener) * padding),
+        paddingInline: (listener) =>
+          themeSpacing(themeDensity(listener) * padding),
+        borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
+        display: "inline-flex",
+        justifyContent: "center",
+        alignItems: "center",
+        gap: (listener) => themeSpacing(themeDensity(listener) * 1),
+        userSelect: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        lineHeight: "inherit",
+        border: "none",
+        background: "none",
+        outline: "none",
+        transition:
+          "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
+        color: (listener) =>
+          themeColor(listener, "shift-6", color.get(listener)),
+        "&:hover:not([aria-disabled=true])": {
+          color: (listener) =>
+            themeColor(listener, "text", color.get(listener)),
+          backgroundColor: (listener) =>
+            themeColor(listener, "hover", color.get(listener)),
+          textDecoration: "none",
+        },
+        "&:active:not([aria-disabled=true])": {
+          color: (listener) =>
+            themeColor(listener, "text", color.get(listener)),
+          backgroundColor: (listener) =>
+            themeColor(listener, "increase-2", color.get(listener)),
+        },
+        "&:focus-visible": {
+          boxShadow: (listener) => focusRing(listener, color.get(listener)),
+        },
+        "&[aria-disabled=true]": {
+          opacity: 0.7,
+          cursor: "not-allowed",
+          pointerEvents: "none",
+          color: (listener) =>
+            themeColor(listener, "border-strong", "neutral"),
+        },
+      },
+    };
+  }
+
+  const isSolid = variant === "solid";
+  const padding = PADDING_STEPS[size];
 
   return {
     _onInsert: (node) => {
@@ -41403,11 +41598,19 @@ function linkButton(
         console.warn(`"linkButton" primitive patch must use a tag`);
       }
     },
+    ...(isSolid
+      ? {
+          dataTone: "shift-17" as const,
+          _doctorDisable: ["low-contrast", "color-shift-minimum"] as const,
+        }
+      : {}),
     style: {
-      fontSize: (listener) => themeSize(listener, "inherit"),
+      fontSize: (listener) => themeSize(listener, fontSize),
       textDecoration: "none",
-      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
-      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
+      paddingBlock: (listener) =>
+        themeSpacing(themeDensity(listener) * padding.block),
+      paddingInline: (listener) =>
+        themeSpacing(themeDensity(listener) * padding.inline),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       width: "fit-content",
       display: "inline-flex",
@@ -41416,20 +41619,39 @@ function linkButton(
       gap: (listener) => themeSpacing(themeDensity(listener) * 1),
       userSelect: "none",
       cursor: "pointer",
+      fontFamily: "inherit",
+      lineHeight: "inherit",
+      border: "none",
       outlineOffset: "-1px",
       outlineWidth: "1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
-      color: (listener) => themeColor(listener, "text", color.get(listener)),
+      outline: isSolid
+        ? "none"
+        : (listener) =>
+            `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      color: (listener) =>
+        isSolid
+          ? themeColor(listener, "shift-0", color.get(listener))
+          : themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       transition:
-        "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
-      "&:hover": {
+        "background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
+      "&:hover:not([aria-disabled=true])": {
+        textDecoration: "none",
         color: (listener) =>
-          themeColor(listener, "shift-10", color.get(listener)),
+          isSolid
+            ? themeColor(listener, "shift-0", color.get(listener))
+            : themeColor(listener, "shift-10", color.get(listener)),
         backgroundColor: (listener) =>
-          themeColor(listener, "hover", color.get(listener)),
+          isSolid
+            ? themeColor(listener, "decrease-1", color.get(listener))
+            : themeColor(listener, "hover", color.get(listener)),
+      },
+      "&:active:not([aria-disabled=true])": {
+        backgroundColor: (listener) =>
+          isSolid
+            ? themeColor(listener, "decrease-2", color.get(listener))
+            : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {
         boxShadow: (listener) => focusRing(listener, color.get(listener)),
@@ -41462,6 +41684,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a navigation/display list container. Sets `list-style: none` and
@@ -41501,6 +41724,7 @@ function listItem(props: { dense?: boolean } = {}): PartialElement {
         themeSpacing(dense ? 1 : themeDensity(listener) * 2),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       fontSize: (listener) => themeSize(listener, "inherit"),
+      color: (listener) => themeColor(listener, "text"),
     },
   };
 }
@@ -41543,10 +41767,14 @@ function listItemButton(
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
-      transition: "background-color 150ms ease",
+      transition: "background-color 150ms ease, box-shadow 140ms ease",
       "&:hover:not([disabled])": {
         backgroundColor: (listener) =>
           themeColor(listener, "hover", color.get(listener)),
+      },
+      "&:active:not([disabled])": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "increase-2", color.get(listener)),
       },
       "&[aria-current=page], &[aria-selected=true]": {
         backgroundColor: (listener) =>
@@ -41554,9 +41782,7 @@ function listItemButton(
         color: (listener) => themeColor(listener, "shift-12", accentColor),
       },
       "&:focus-visible": {
-        outline: (listener) =>
-          `2px solid ${themeColor(listener, "shift-6", accentColor)}`,
-        outlineOffset: "-2px",
+        boxShadow: (listener) => focusRing(listener, accentColor),
       },
       "&[disabled]": { opacity: 0.5, cursor: "not-allowed" },
     },
@@ -41634,6 +41860,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
+import { focusRing } from "../utils/focusRing.js";
 
 /** One item inside a menu. */
 type MenuItem = {
@@ -41746,7 +41973,7 @@ function menu(
             outline: "none",
             color: (l: Listener) => themeColor(l, "text", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
-            transition: "background-color 140ms ease",
+            transition: "background-color 140ms ease, box-shadow 140ms ease",
             "&:hover:not([disabled]):not([aria-current=true])": {
               backgroundColor: (l: Listener) => themeColor(l, "hover", color),
             },
@@ -41756,9 +41983,7 @@ function menu(
               color: (l: Listener) => themeColor(l, "shift-10"),
             },
             "&:focus-visible": {
-              outline: (l: Listener) =>
-                `${themeSpacing(0.5)} solid ${themeColor(l, "shift-6", accentColor)}`,
-              outlineOffset: `-${themeSpacing(0.5)}`,
+              boxShadow: (l: Listener) => focusRing(l, accentColor),
             },
           },
         } as DomphyElement<"button">;
@@ -41773,6 +41998,7 @@ function menu(
       paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
       fontSize: (l: Listener) => themeSize(l, "inherit"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
+      color: (l: Listener) => themeColor(l, "text", color),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
       outline: (l: Listener) =>
         `1px solid ${themeColor(l, "border-strong", color)}`,
@@ -42047,7 +42273,7 @@ function pagination(props: {
     backgroundColor: (listener: any) =>
       themeColor(listener, "shift-6", accentColor),
     color: (listener: any) => themeColor(listener, "shift-11", accentColor),
-    fontWeight: "600",
+    fontWeight: "bold",
     cursor: "default",
     "&:hover:not([disabled])": {
       backgroundColor: (listener: any) =>
@@ -42058,6 +42284,8 @@ function pagination(props: {
   return {
     role: "navigation",
     ariaLabel: "Pagination",
+    // Active page weight is design-system chrome for the control.
+    _doctorDisable: "inline-typography",
     _onInsert: (node) => {
       if (node.tagName !== "div")
         console.warn('"pagination" patch must use div tag');
@@ -42586,6 +42814,8 @@ function progress(
         console.warn(`"progress" primitive patch must use progress tag`);
       }
     },
+    // Track surface — shift via dataTone, paint with inherit.
+    dataTone: "shift-3",
     style: {
       appearance: "none",
       width: "100%",
@@ -42594,10 +42824,12 @@ function progress(
       borderRadius: themeSpacing(999),
       overflow: "hidden",
       backgroundColor: (listener) =>
-        themeColor(listener, "shift-3", color.get(listener)),
+        themeColor(listener, "inherit", color.get(listener)),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       "&::-webkit-progress-bar": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", color.get(listener)),
+          themeColor(listener, "inherit", color.get(listener)),
         borderRadius: themeSpacing(999),
       },
       "&::-webkit-progress-value": {
@@ -42623,7 +42855,12 @@ import {
   toState,
   type ValueOrState,
 } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 import { focusRing } from "../utils/focusRing.js";
 
 const STAR_FILLED =
@@ -42674,7 +42911,8 @@ function rating(
     style: {
       display: "inline-flex",
       gap: themeSpacing(0.5),
-      fontSize: "1.5rem",
+      // 1.5× inherited control size (theme-owned type scale, not a px/rem literal).
+      fontSize: (listener) => themeSize(listener, "increase-1"),
       cursor: readOnly ? "default" : "pointer",
       color: (listener) => themeColor(listener, "muted", color),
     },
@@ -42804,6 +43042,8 @@ function ringProgress(
       width: themeSpacing(size),
       height: themeSpacing(size),
       borderRadius: "50%",
+      // Text color tracks the filled arc so any overlay label inherits it.
+      color: (l) => themeColor(l, "shift-9", color.get(l)),
       // Fill arc from 12 o'clock clockwise; `from -90deg` rotates the start point.
       background: (l) =>
         `conic-gradient(from -90deg, ${themeColor(l, "shift-9", color.get(l))} ${value.get(l)}%, ${themeColor(l, "shift-3", trackColor.get(l))} 0%)`,
@@ -42894,6 +43134,8 @@ function scrollArea(
   return {
     style: {
       overflow: "auto",
+      // Container text color so theme token usage also carries a reactive `color`.
+      color: (l) => themeColor(l, "text", color.get(l)),
       "&::-webkit-scrollbar": {
         width: themeSpacing(2),
         height: themeSpacing(2),
@@ -43026,13 +43268,16 @@ function segmented(
 
       (element as any)[node.tagName] = buttons;
     },
+    // Track is a soft surface anchor — shift via dataTone, paint with inherit.
+    dataTone: "shift-2",
     style: {
       display: "inline-flex",
       paddingBlock: themeSpacing(1),
       paddingInline: themeSpacing(1),
       gap: themeSpacing(0.5),
       borderRadius: themeSpacing(10),
-      backgroundColor: (l: Listener) => themeColor(l, "shift-2", color),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
+      color: (l: Listener) => themeColor(l, "text", color),
     },
   };
 }
@@ -43152,6 +43397,7 @@ import {
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
 import { createFloating } from "../utils/floating.js";
+import { focusRing } from "../utils/focusRing.js";
 import { tag } from "./tag.js";
 
 /**
@@ -43253,6 +43499,8 @@ function selectBox(props: {
     },
     _onInit: (node) => node.children.insert(wrap),
     onClick: (_e, node) => (openState.get() ? hide(node) : show(node)),
+    // Focusable trigger for keyboard users (click already toggles open).
+    tabindex: 0,
     style: {
       cursor: "pointer",
       display: "flex",
@@ -43267,6 +43515,11 @@ function selectBox(props: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      transition:
+        "background-color 140ms ease, outline-color 140ms ease, box-shadow 140ms ease",
+      "&:focus-visible": {
+        boxShadow: (listener) => focusRing(listener, color),
+      },
     },
   };
 
@@ -43288,6 +43541,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * A single selectable option row (`role="option"`) for use inside a `selectList`. Reads the
@@ -43354,10 +43608,9 @@ function selectItem(
           themeColor(listener, "shift-6", accentColor),
         color: (listener) => themeColor(listener, "shift-11"),
       },
+      transition: "background-color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
-        outlineOffset: `-${themeSpacing(0.5)}`,
+        boxShadow: (listener) => focusRing(listener, accentColor),
       },
     },
   };
@@ -43448,6 +43701,7 @@ function selectList(
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      color: (listener) => themeColor(listener, "text", color),
     },
   };
   return partial;
@@ -43474,9 +43728,10 @@ import {
 } from "@domphy/theme";
 
 /**
- * A loading placeholder block with a pulsing opacity animation. Marked `aria-hidden`, themed
- * background/foreground, fixed height, slight rounding. No host-tag check; typically applied
- * to a block-level element such as a `div` or `span`.
+ * A loading placeholder block with a left-to-right shimmer gradient. Marked
+ * `aria-hidden`, themed background/foreground, fixed height, slight rounding.
+ * No host-tag check; typically applied to a block-level element such as a
+ * `div` or `span`.
  *
  * @param props.color - Theme color tone for the placeholder. Accepts a value or reactive state.
  *   Defaults to `"neutral"`.
@@ -43487,9 +43742,12 @@ function skeleton(
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
 
+  // Shimmer sweeps left→right over a mid-ramp base (reads as loading, not
+  // a flat opacity blink). Base + highlight are both theme tokens so the
+  // effect adapts to light/dark surfaces.
   const keyframes = {
-    "0%,100%": { opacity: 1 },
-    "50%": { opacity: 0.4 },
+    "0%": { backgroundPosition: "200% 0" },
+    "100%": { backgroundPosition: "-200% 0" },
   };
   const animationName = hashString(JSON.stringify(keyframes));
   return {
@@ -43503,7 +43761,10 @@ function skeleton(
       borderRadius: themeSpacing(1),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      animation: `${animationName} 1.5s ease-in-out infinite`,
+      backgroundImage: (listener) =>
+        `linear-gradient(90deg, ${themeColor(listener, "inherit", color.get(listener))} 0%, ${themeColor(listener, "shift-4", color.get(listener))} 50%, ${themeColor(listener, "inherit", color.get(listener))} 100%)`,
+      backgroundSize: "200% 100%",
+      animation: `${animationName} 1.6s ease-in-out infinite`,
       [`@keyframes ${animationName}`]: keyframes,
     } as StyleObject,
   };
@@ -43616,6 +43877,7 @@ export { spinner };
 ```ts
 import { merge, type PartialElement, toState } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Root of a resizable split layout. Lays out children as a flex row (horizontal) or column
@@ -43799,18 +44061,21 @@ function splitterHandle(): PartialElement {
         handle.removeEventListener("mousedown", onMousedown);
       });
     },
+    // Soft divider surface — shift via dataTone, paint with inherit.
+    dataTone: "shift-2",
     style: {
       flexShrink: 0,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: (listener) => themeColor(listener, "shift-2"),
+      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      color: (listener) => themeColor(listener, "text"),
       "&:hover": {
-        backgroundColor: (listener) => themeColor(listener, "shift-3"),
+        backgroundColor: (listener) => themeColor(listener, "increase-1"),
       },
+      transition: "background-color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {
-        outline: (listener) => `2px solid ${themeColor(listener, "shift-6")}`,
-        outlineOffset: "2px",
+        boxShadow: (listener) => focusRing(listener, "primary"),
       },
       "&::after": {
         content: '""',
@@ -43847,7 +44112,9 @@ type FlexAlign = "flex-start" | "center" | "flex-end" | "stretch" | "baseline";
  * @example { div: [{ h3: "Title" }, { p: "Body" }], $: [stack()] }
  * @example { div: [...], $: [stack({ gap: 2, align: "center" })] }
  */
-function stack(props: { gap?: number; align?: FlexAlign } = {}): PartialElement {
+function stack(
+  props: { gap?: number; align?: FlexAlign } = {},
+): PartialElement {
   const { gap = 3, align } = props;
   return {
     style: {
@@ -43922,6 +44189,8 @@ function steps(
   const current = toState(props.current ?? 0);
 
   return {
+    // Step badge weight is design-system chrome for the progress control.
+    _doctorDisable: "inline-typography",
     // Expose state in context so stepItem() escape-hatch still works.
     _context: { steps: { current, direction, color, accentColor } },
     _onSchedule: (node, element) => {
@@ -43961,7 +44230,7 @@ function steps(
               height: themeSpacing(6),
               borderRadius: themeSpacing(999),
               fontSize: (l: Listener) => themeSize(l, "decrease-1"),
-              fontWeight: "600",
+              fontWeight: "bold",
               flexShrink: "0",
               border: (l: Listener) =>
                 `2px solid ${themeColor(l, "border-strong", color)}`,
@@ -44006,7 +44275,7 @@ function steps(
             },
             "&[data-status=active]": {
               color: (l: Listener) => themeColor(l, "shift-10"),
-              fontWeight: "600",
+              fontWeight: "bold",
             },
             "&[data-status=done]": {
               color: (l: Listener) => themeColor(l, "muted"),
@@ -44061,7 +44330,7 @@ function strong(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      fontWeight: 700,
+      fontWeight: "bold",
       color: (listener) =>
         themeColor(listener, "shift-11", color.get(listener)),
       backgroundColor: (listener) => themeColor(listener),
@@ -44175,6 +44444,8 @@ function table(
         console.warn(`"table" primitive patch must use table tag`);
       }
     },
+    // Header/footer weights are design-system table chrome.
+    _doctorDisable: "inline-typography",
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
@@ -44390,6 +44661,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 const xSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6.707 5.293l5.293 5.292l5.293 -5.292a1 1 0 0 1 1.414 1.414l-5.292 5.293l5.292 5.293a1 1 0 0 1 -1.414 1.414l-5.293 -5.292l-5.293 5.292a1 1 0 1 1 -1.414 -1.414l5.292 -5.293l-5.292 -5.293a1 1 0 0 1 1.414 -1.414" /></svg>`;
 
@@ -44418,6 +44690,9 @@ function tag(
           (e as Event).stopPropagation();
           node.remove();
         },
+        tabindex: 0,
+        role: "button",
+        ariaLabel: "Remove",
         style: {
           display: "inline-flex",
           alignItems: "center",
@@ -44426,9 +44701,14 @@ function tag(
           width: themeSpacing(4),
           height: themeSpacing(4),
           flexShrink: 0,
+          transition: "background-color 140ms ease, box-shadow 140ms ease",
           "&:hover": {
             backgroundColor: (listener) =>
               themeColor(listener, "shift-4", color.get(listener)),
+          },
+          "&:focus-visible": {
+            boxShadow: (listener) =>
+              focusRing(listener, color.get(listener)),
           },
         },
       };
@@ -44629,7 +44909,7 @@ function timelineItem(
         height: "0.75rem",
         borderRadius: "50%",
         justifySelf: "center",
-        marginTop: "0.25em",
+        marginTop: themeSpacing(1),
         transition: "background-color 200ms ease, opacity 200ms ease",
         backgroundColor: (listener) =>
           themeColor(
@@ -44928,6 +45208,7 @@ function toggleGroup(
       borderRadius: themeSpacing(2),
       fontSize: (l: Listener) => themeSize(l, "inherit"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
+      color: (l: Listener) => themeColor(l, "text", color),
       outline: (l: Listener) => `1px solid ${themeColor(l, "border", color)}`,
       outlineOffset: "-1px",
     },

@@ -6,7 +6,7 @@ import Alert from "../../demos/patches/Alert.ts?raw"
 
 # Alert
 
-Use the alert patch on a `div` to show an inline notification. The `color` prop controls the severity theme — use `primary`, `success`, `warning`, or `error`.
+Use the alert patch on a `div` to show an inline notification. The `color` prop controls the severity theme — use `primary`, `success`, `warning`, or `error`. Surfaces are rounded with a colored inset bar on the start edge.
 
 ## Props
 

@@ -15,7 +15,7 @@ import { focusRing } from "../utils/focusRing.js";
  *
  * @hostTag details
  * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for the body/summary. Defaults to "neutral".
- * @param props.accentColor - Accent color (`ValueOrState<ThemeColor>`) for the summary's focus outline. Defaults to "primary".
+ * @param props.accentColor - Accent color (`ValueOrState<ThemeColor>`) for the summary's focus ring. Defaults to "primary".
  * @param props.duration - Open/close transition duration in milliseconds. Defaults to 240.
  * @example { details: [{ summary: "More" }, { div: "Body" }], $: [details()] }
  */

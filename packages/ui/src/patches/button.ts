@@ -19,8 +19,9 @@ const PADDING_STEPS: Record<ButtonSize, { block: number; inline: number }> = {
 };
 
 /**
- * A themed button control with density-aware padding/radius and hover, focus-visible,
- * `[disabled]`, and `[aria-busy=true]` states. Apply to a `<button>` element.
+ * A themed button control with density-aware padding/radius and hover, pressed
+ * (`:active` ±2), focus-visible, `[disabled]`, and `[aria-busy=true]` states.
+ * Apply to a `<button>` element.
  *
  * @hostTag button
  * @param props.color - Button color tone. Optional `ValueOrState<ThemeColor>`, default "primary".

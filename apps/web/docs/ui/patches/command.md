@@ -20,7 +20,7 @@ Build a command palette with three coordinated patches. Apply `command()` to the
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `color` | `ThemeColor` | `"neutral"` | Base color tone for the item. |
-| `accentColor` | `ThemeColor` | `"primary"` | Accent color used for the focus outline. |
+| `accentColor` | `ThemeColor` | `"primary"` | Accent color used for the focus ring. |
 
 <CodeEditor :code="Command" />
 
