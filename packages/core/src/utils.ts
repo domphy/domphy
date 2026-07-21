@@ -33,7 +33,9 @@ export function merge(
 
   for (const key in target) {
     const value = target[key];
-    if (value === undefined || value === null || value === "") continue;
+    // Keep empty string — valid for HTML attrs like alt="" (decorative images).
+    // Join paths for class/transition still filter falsy parts separately.
+    if (value === undefined || value === null) continue;
 
     if (typeof value === "object" && !Array.isArray(value)) {
       if (typeof source[key] === "object") {

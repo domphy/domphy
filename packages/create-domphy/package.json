@@ -1,6 +1,6 @@
 {
   "name": "create-domphy",
-  "version": "0.18.2",
+  "version": "0.18.3",
   "description": "Scaffold a runnable Domphy starter project (npm create domphy@latest)",
   "type": "module",
   "bin": {
@@ -11,7 +11,7 @@
     "build": "npm run generate:versions && tsup",
     "dev": "npm run generate:versions && tsup --watch",
     "test": "vitest run",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "node ../../scripts/guard-pnpm-publish.mjs && npm run build"
   },
   "keywords": [
     "domphy",

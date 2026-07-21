@@ -1,7 +1,7 @@
 {
   "name": "@domphy/chart",
-  "version": "0.2.2",
-  "description": "ECharts-grade chart library for Domphy. SVG-native, tone/density cascade.",
+  "version": "0.2.3",
+  "description": "ECharts-grade chart library for Domphy — WebGL series + SVG overlays, tone/density cascade.",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -22,7 +22,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "pack": "tsup && npm pack",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "node ../../scripts/guard-pnpm-publish.mjs && npm run build",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -30,6 +30,8 @@
     "domphy",
     "chart",
     "visualization",
+    "webgl",
+    "luma.gl",
     "svg",
     "echarts"
   ],

@@ -41,7 +41,7 @@ Data & logic — framework-agnostic API at the main entry + a thin Domphy adapte
 App layer & tools:
 
 - `@domphy/palette` — color-science toolkit: measure & validate palette quality (5 CIELAB metrics); the design-time companion to `@domphy/theme`
-- `@domphy/chart` — canvas chart engine: line, bar, pie, scatter, gauge… (`chart(option)` patch, ECharts-compatible type surface)
+- `@domphy/chart` — WebGL + SVG chart engine: line, bar, pie, scatter, gauge… (`chart(option)` patch, ECharts-compatible type surface)
 - `@domphy/i18n` — i18next wrapper with Domphy reactivity: reactive `t(listener, key)` re-renders on `setLocale()`
 - `@domphy/press` — SSG docs engine: markdown, search, islands, routing (VitePress-baseline; built on `@domphy/app` + `@domphy/markdown`)
 - `@domphy/dnd` — drag & drop / sortable lists (`dragDrop`, wraps `@formkit/drag-and-drop`)

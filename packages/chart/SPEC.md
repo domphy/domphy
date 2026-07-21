@@ -1,43 +1,42 @@
 # `@domphy/chart` — Spec
 
-> ECharts-grade chart library, native Domphy. Geometry via `shapemetry`, color quality via `chromametry` (CIELAB). Tone/density cascade — same chart, any context.
+> ECharts-grade chart library for Domphy. **WebGL series (luma.gl) + SVG overlays**, theme-family colors via `@domphy/theme`. ECharts-compatible option surface.
+
+> **Note:** This SPEC tracks the shipped implementation; historical pure-SVG design notes (and claims of `shapemetry` / `chromametry` as chart engines) are retired.
 
 ---
 
 ## Design Principles
 
-### 1. Color cascade (key differentiator vs ECharts)
+### 1. Two-layer rendering architecture
 
-ECharts: hardcoded `color: ['#5470c6', '#91cc75']` — breaks in dark context, no contrast guarantee.
+| Layer | Tech | Responsibility |
+| --- | --- | --- |
+| Series geometry (performance) | **WebGL** via `@luma.gl` v9 | `line`, `bar`, `scatter`, `pie`, `radar`, `heatmap`, `candlestick` (+ canvas host) |
+| Overlay / layout | **SVG** (imperative DOM under the engine) | axes, grid lines, title, legend, tooltip, marks, labels; layout series: `funnel`, `treemap`, `sankey`, `graph`, `boxplot`, `parallel`, `themeRiver`, `geo`/`map`/`lines`, … |
+| Gauge | SVG path drawing (`GaugeRenderer.renderToSvg`) | progress arc, ticks, detail text |
 
-`@domphy/chart`: series color = theme family name → resolved via `themeColor()` at render time.
+Not pure SVG. Not a Domphy element-tree of chart marks. Not canvas2d-only. The host is a `div` with background SVG + WebGL canvas + foreground SVG stacked absolutely.
+
+### 2. Theme-family colors (`@domphy/theme`)
+
+Series and overlay colors take **theme family names** (`"primary"`, `"secondary"`, …) and resolve through `themeColorToken(null, tone, family)` → concrete hex (light-theme default when no listener). Palette helpers live in `gl/color.ts` (`seriesHex`, `seriesPaletteFamily`, `familyHex`, …).
 
 ```ts
-lineSeries({ data, color: "primary" })   // adapts to dataTone of parent
-barSeries({ data, color: "secondary" })  // WCAG contrast guaranteed (chromametry-backed)
+// series option
+{ type: "line", data: [1, 2, 3], color: "primary" }
+// auto when color omitted: cycles primary → secondary → success → warning → error → info → highlight → attention → danger
 ```
 
-Set `dataTone="shift-11"` on parent panel → chart colors automatically invert. Zero manual config.
+Theme ramps themselves are design-system quality (WCAG-oriented steps in `@domphy/theme` / palette). Chart does **not** depend on standalone `shapemetry` or `chromametry` packages.
 
-Auto color assignment when `color` omitted: cycles through `["primary","secondary","success","warning","error","info","highlight"]` — all chromametry-quality ramps.
+### 3. ECharts-compatible option surface
 
-### 2. Spacing cascade
+`ChartOption` / series option types mirror ECharts-shaped configs (`xAxis`/`yAxis`/`grid`/`series`/`tooltip`/`legend`/`dataZoom`/`visualMap`/…) so existing mental models and many option snippets port with little translation. Domphy integration is the `chart(option | State<option>)` patch on a sized `div`.
 
-Tick density, label padding, legend gap → all use `themeSpacing(themeDensity(l) * n)`.  
-Set `dataDensity="decrease-1"` on parent → chart compacts. No per-chart prop needed.
+### 4. Headless engine
 
-### 3. SVG element tree (not canvas)
-
-Output = Domphy SVG element tree → inspectable, serializable, shadow-DOM-compatible.  
-No canvas. No external rendering engine.
-
-### 4. Geometry via shapemetry
-
-- Smooth lines → `Spline2d` (cubic B-spline, NURBS-backed)
-- Arc sectors (pie/gauge) → `Ellipse2d` + `CubicBezier2d` arc approximation
-- Bezier transitions → `CubicBezier2d`
-- Coordinate transform → `Transformation2d`
-- Hit testing → `BoundingBox2d`
+`ChartEngine` owns device/canvas/SVG lifecycle for advanced embedding without the Domphy patch: `init()` → `setSize` → `setOption` → `destroy()`.
 
 ---
 
@@ -45,47 +44,38 @@ No canvas. No external rendering engine.
 
 ```
 packages/chart/src/
-├── scale/
-│   ├── LinearScale.ts      — linear numeric scale
-│   ├── LogScale.ts         — logarithmic scale
-│   ├── TimeScale.ts        — date/time scale
-│   └── OrdinalScale.ts     — categorical scale
+├── patch.ts                 — chart() Domphy patch
+├── engine.ts                — ChartEngine (render pipeline)
+├── types.ts                 — ChartOption + series/component types
+├── index.ts                 — public exports
+├── gl/                      — WebGL series renderers (luma.gl)
+│   ├── device.ts            — getDevice / releaseDevice
+│   ├── color.ts             — theme-family → hex / rgba
+│   ├── BarRenderer.ts
+│   ├── LineRenderer.ts
+│   ├── ScatterRenderer.ts
+│   ├── PieRenderer.ts
+│   ├── RadarRenderer.ts
+│   ├── HeatmapRenderer.ts
+│   ├── CandlestickRenderer.ts
+│   ├── GaugeRenderer.ts     — SVG gauge (constructor takes device for API symmetry)
+│   ├── Renderer3D.ts        — 3D grid/series overlay helpers
+│   └── shaders/             — GLSL sources (bar/line/pie/scatter/heatmap/common)
+├── overlay/                 — SVG axes, chrome, layout series
+│   ├── axes.ts, title.ts, legend.ts, tooltip.ts, labels.ts
+│   ├── datazoom.ts, visualmap.ts
+│   ├── boxplot.ts, funnel.ts, treemap.ts, sankey.ts, graph.ts
+│   ├── calendar.ts, parallel.ts, themeriver.ts
+│   ├── geomap.ts, lines.ts, effectscatter.ts, pictorialbar.ts
 ├── coord/
-│   ├── Cartesian.ts        — grid coordinate system
-│   ├── Polar.ts            — polar coordinate system (pie/radar/gauge)
-│   └── Geo.ts              — (v2) geographic
-├── axis/
-│   ├── Axis.ts             — tick generation, label format, grid lines
-│   └── RadiusAxis.ts       — polar radius axis
-├── series/
-│   ├── line/               — Line + Area
-│   ├── bar/                — Bar (vertical, horizontal, stacked)
-│   ├── pie/                — Pie + Donut
-│   ├── scatter/            — Scatter + Bubble
-│   ├── radar/              — Radar (spider)
-│   ├── heatmap/            — Heatmap (cartesian + calendar)
-│   ├── candlestick/        — OHLC Candlestick
-│   ├── boxplot/            — Box plot
-│   ├── gauge/              — Gauge (arc)
-│   ├── treemap/            — Treemap
-│   ├── funnel/             — Funnel
-│   ├── sankey/             — Sankey diagram
-│   ├── graph/              — Network graph (force/circular)
-│   └── custom/             — Custom render function
-├── component/
-│   ├── Title.ts
-│   ├── Legend.ts           — horizontal/vertical/scroll
-│   ├── Tooltip.ts          — reactive tooltip overlay (Domphy element)
-│   ├── Toolbox.ts          — save/zoom/reset actions
-│   ├── DataZoom.ts         — slider + inside (wheel) zoom
-│   ├── VisualMap.ts        — continuous + piecewise color mapping
-│   └── Brush.ts            — rectangle/polygon selection
-├── color/
-│   └── seriesColor.ts      — auto-assign series colors from theme families
-├── animation/
-│   └── animate.ts          — enter/update/exit transitions (Web Animations API)
-├── patch.ts                — chart() patch for Domphy
-└── index.ts
+│   ├── grid.ts              — cartesian grid + zoom windows
+│   └── polar.ts
+├── scale/
+│   ├── index.ts, linear.ts, log.ts, ordinal.ts, time.ts
+├── dataset/
+│   └── transform.ts
+└── marks/
+    └── index.ts             — markPoint / markLine / markArea → SVG
 ```
 
 ---
@@ -145,7 +135,7 @@ interface LineSeriesOption {
   // Appearance
   color?: ThemeFamily              // "primary" | "secondary" | ... — default auto
   lineWidth?: number               // default 2
-  smooth?: boolean | number        // true = cubic spline via Spline2d; 0–1 = tension
+  smooth?: boolean | number        // true = smooth curve in LineRenderer; 0–1 = tension
   step?: false | "start" | "middle" | "end"
   symbol?: SymbolType              // "circle" | "rect" | "diamond" | "triangle" | "none"
   symbolSize?: number | [number, number]
@@ -753,7 +743,7 @@ interface TransformOption {
 
 ---
 
-## Color System (Domphy-native, chromametry-quality)
+## Color System (theme families via `@domphy/theme`)
 
 ```ts
 type ThemeFamily =
@@ -761,16 +751,14 @@ type ThemeFamily =
   | "info" | "success" | "warning" | "attention"
   | "error" | "danger" | "highlight"
 
-// Auto-cycle order when color omitted:
-const AUTO_SERIES_COLOR: ThemeFamily[] = [
+// Auto-cycle order when color omitted (see gl/color.ts):
+const SERIES_PALETTE: ThemeFamily[] = [
   "primary", "secondary", "success", "warning",
-  "error", "info", "highlight", "attention"
+  "error", "info", "highlight", "attention", "danger",
 ]
 
-// Resolved at render time via themeColor(listener, "base", family)
-// → follows dataTone cascade of parent
-// → chromametry-quality ramp (CIELAB perceptually uniform)
-// → WCAG 4.5:1 guaranteed at base tone
+// Resolved via themeColorToken(null, "shift-9", family) → concrete hex
+// (light-theme default; no live CSS-var listener for WebGL uniforms)
 ```
 
 ---
@@ -789,7 +777,7 @@ interface LinearGradient {
   type: "linear"
   x: number; y: number; x2: number; y2: number  // 0–1, bounding-box fractions
   colorStops: ColorStop[]
-  global?: boolean  // interpret coords in global SVG space instead of element bbox
+  global?: boolean  // interpret coords in global paint space instead of element bbox
 }
 
 interface RadialGradient {
@@ -891,24 +879,17 @@ const element = {
 ChartOption
   → Dataset resolve (join series.data + dataset.source)
   → Scale computation (LinearScale / OrdinalScale / TimeScale / LogScale)
-  → Coordinate system (Cartesian / Polar)
-    → Cartesian: xAxis + yAxis → pixel transform via Transformation2d
-    → Polar: center + radius → angle/radius → Point2d
-  → Series render
-    → line: data points → Spline2d (smooth) or polyline → SVG <path>
-    → bar: rects → SVG <rect>
-    → pie: sectors → Ellipse2d arc → SVG <path>
-    → scatter: points → SVG <circle>/<path symbol>
-    → gauge: arc → CubicBezier2d arc approx → SVG <path>
-  → Components render
-    → Axis: ticks + labels → SVG <line> + Domphy <text>
-    → Legend: Domphy element overlay
-    → Tooltip: Domphy element (reactive, positioned via floating-ui)
-    → DataZoom: Domphy element (reactive slider)
-  → Animation (Web Animations API via motion() patch)
-    → enter: path morphing / height grow / opacity
-    → update: smooth tween via requestAnimationFrame
-    → exit: opacity out
+  → Grid / polar layout (coord/grid.ts, coord/polar.ts)
+  → SVG chrome (behind + above canvas)
+      axes grid lines (backsvg), axes labels, title, legend
+      layout series (funnel/treemap/sankey/graph/…) → overlaysvg
+      gauge → GaugeRenderer.renderToSvg
+  → WebGL pass (luma.gl Device.beginRenderPass)
+      Bar / Line / Scatter / Pie / Radar / Heatmap / Candlestick renderers
+      device.submit()
+  → SVG post-pass
+      series symbols, labels, marks, dataZoom sliders
+  → Tooltip (DOM overlay via @domphy/floating)
 ```
 
 ---
@@ -917,25 +898,15 @@ ChartOption
 
 ```
 @domphy/chart
-  @domphy/core        (element tree, reactivity)
-  @domphy/theme       (themeColor, themeSpacing, dataTone cascade)
-  @domphy/floating    (tooltip positioning)
-  @domphy/ui          (motion patch for animation)
-  shapemetry          (Spline2d, CubicBezier2d, Ellipse2d, Point2d, BoundingBox2d)
-  — NO canvas library
-  — NO ECharts
+  peer: @domphy/core      (chart() patch, reactivity State)
+  peer: @domphy/theme     (themeColorToken for series/overlay colors)
+  dep:  @domphy/floating  (tooltip positioning)
+  dep:  @luma.gl/core | webgl | engine | shadertools  (WebGL series)
+  — NO shapemetry
+  — NO chromametry (theme ramps live in @domphy/theme / @domphy/palette)
+  — NO ECharts runtime
   — NO D3
 ```
-
----
-
-## MVP Scope (Phase 1)
-
-Series: `line`, `bar`, `pie`, `scatter`, `radar`  
-Components: `legend`, `tooltip`, `title`, `grid`  
-Axes: `value`, `category`, `time`  
-Color: full cascade system  
-Animation: enter/update for all 5 series  
 
 ## Phase 2 (shipped)
 

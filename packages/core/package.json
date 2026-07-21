@@ -1,6 +1,6 @@
 {
   "name": "@domphy/core",
-  "version": "0.19.1",
+  "version": "0.19.2",
   "description": "Domphy core runtime — patch-based, framework-agnostic UI with plain-object element trees, listener-based reactivity, and SSR + hydration (no JSX, no virtual DOM)",
   "type": "module",
   "sideEffects": false,
@@ -22,7 +22,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "pack": "tsup && npm pack",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "node ../../scripts/guard-pnpm-publish.mjs && npm run build",
     "test": "vitest run",
     "test:watch": "vitest"
   },

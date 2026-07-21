@@ -1,6 +1,6 @@
 {
   "name": "@domphy/blocks",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, independently reimplemented (clean-room) from the public behavior of shadcn/ui and Magic UI.",
   "type": "module",
   "sideEffects": false,
@@ -16,13 +16,33 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
+    },
+    "./shadcn": {
+      "import": {
+        "types": "./dist/shadcn.d.ts",
+        "default": "./dist/shadcn.js"
+      },
+      "require": {
+        "types": "./dist/shadcn.d.cts",
+        "default": "./dist/shadcn.cjs"
+      }
+    },
+    "./magicui": {
+      "import": {
+        "types": "./dist/magicui.d.ts",
+        "default": "./dist/magicui.js"
+      },
+      "require": {
+        "types": "./dist/magicui.d.cts",
+        "default": "./dist/magicui.cjs"
+      }
     }
   },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "pack": "tsup && npm pack",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "node ../../scripts/guard-pnpm-publish.mjs && npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "demo": "vite --config vite.demo.config.ts",

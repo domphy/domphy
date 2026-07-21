@@ -6,6 +6,48 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## `@domphy/chart` [0.2.3] — 2026-07-21
+
+### Docs / packaging
+- Truth-in-advertising: package description/keywords now state **WebGL series (luma.gl) + SVG overlays**, not "SVG-native".
+- `SPEC.md` Design Principles + package tree rewritten to match the shipped `src/` layout; retired pure-SVG / shapemetry / chromametry design notes.
+- Root `AGENTS.md` / `README.md` / manifest / llms one-liners aligned (canvas → WebGL+SVG).
+
+### Tests
+- `tests/series-smoke.test.ts`: jsdom smoke for major series types (mock device, no real WebGL) + `chart()` patch applies via `ElementNode` without throw.
+
+---
+
+## `@domphy/core` [0.19.2] — 2026-07-21
+
+### Fixed
+- `merge()` no longer drops empty-string leaf values (`""`). Only `undefined`/`null` are skipped. Decorative-image `alt: ""` and similar valid empty HTML attributes now survive patch composition.
+
+---
+
+## `@domphy/blocks` [0.1.2] — 2026-07-21
+
+### Added
+- Family subpath entry points for smaller consumer bundles: `@domphy/blocks/shadcn` and `@domphy/blocks/magicui`. Main `@domphy/blocks` still re-exports everything.
+
+---
+
+## CI + publish guard — 2026-07-21
+
+### Added
+- GitHub Actions CI (`.github/workflows/ci.yml`): on push to `main` and pull requests — install (pnpm 10.24.0, Node 22), `pnpm check`, recursive build, recursive test.
+- `scripts/guard-pnpm-publish.mjs` — fails `prepublishOnly` unless the invoking agent is pnpm (prevents `workspace:` protocol leaks from `npm publish`).
+- `scripts/verify-publish.mjs` — packs a package (or `--all`) and asserts the tarball `package.json` has no `workspace:` dependency values.
+- Root scripts: `ci`, `verify:publish`. Every package `prepublishOnly` now runs the pnpm guard before build.
+
+### Tests
+- `@domphy/form` / `@domphy/query` / `@domphy/table`: ElementNode lifecycle suites — reactive ancestor re-render reuses DOM nodes while adapter bindings keep updating; `destroy()` stops listeners.
+
+### Packaging
+- `create-domphy` [0.18.3]: regenerated embedded `@domphy/core` version pin (`0.19.2`).
+
+---
+
 ## Repo-wide audit + release wave — 2026-07-19
 
 Full-repo audit (health, docs consistency, packaging, design) followed by a fix/polish wave. `@domphy/press` gains features; everything else is fixes, metadata, or packaging hygiene.

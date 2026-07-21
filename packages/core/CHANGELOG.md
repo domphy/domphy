@@ -1,5 +1,8 @@
 # @domphy/core Changelog
 
+## 0.19.2
+- fix `merge()`: no longer drop empty-string leaf values (`""`). Only `undefined`/`null` are skipped. Fixes decorative-image `alt: ""` and other valid empty HTML attributes being stripped during patch composition.
+
 ## 0.19.1
 - Metadata only: fuller package description/keywords for npm. No runtime change.
 

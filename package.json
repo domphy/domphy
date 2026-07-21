@@ -8,6 +8,8 @@
     "test": "pnpm -r test",
     "check": "biome check .",
     "fix": "biome check --write .",
+    "verify:publish": "node scripts/verify-publish.mjs",
+    "ci": "pnpm check && pnpm -r build && pnpm -r test",
     "publish:core": "cd packages/core && pnpm publish --access public --no-git-checks",
     "publish:theme": "cd packages/theme && pnpm publish --access public --no-git-checks",
     "publish:ui": "cd packages/ui && pnpm publish --access public --no-git-checks",

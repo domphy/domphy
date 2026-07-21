@@ -20,7 +20,12 @@ Peer dependencies: `@domphy/core`, `@domphy/theme`, `@domphy/ui`, `@domphy/chart
 ## Quick start
 
 ```ts
+// Full barrel (all families)
 import { sidebar07, dashboard01, marquee } from "@domphy/blocks"
+
+// Family subpaths — smaller bundle when you only need one family
+import { marquee } from "@domphy/blocks/magicui"
+import { sidebar07, dashboard01 } from "@domphy/blocks/shadcn"
 
 // Every export is a factory function with an optional props object and
 // sane defaults, so calling it with no arguments renders a working demo.
@@ -32,6 +37,8 @@ const Dashboard = dashboard01({
   navItems: [{ label: "Home", href: "/" }, { label: "Settings", href: "/settings" }],
 })
 ```
+
+Prefer `@domphy/blocks/shadcn` or `@domphy/blocks/magicui` when a consumer only needs one family — each subpath ships its own entry so the unused family stays out of the graph.
 
 ## What's in the box
 

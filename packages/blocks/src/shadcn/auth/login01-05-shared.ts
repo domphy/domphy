@@ -434,17 +434,8 @@ export function coverImage(options: CoverImageOptions): DomphyElement<"img"> {
   return {
     img: null,
     src,
-    // `@domphy/core`'s `merge()` treats a literal empty string the same as
-    // undefined/null and drops it — so `alt: ""` (the deliberate,
-    // decorative-image pattern this component's callers default to) never
-    // actually reaches the DOM `alt` attribute, and htmlhint's `alt-require`
-    // rule then sees a genuinely MISSING attribute and fails it. Wrapping it
-    // in a function bypasses that string-equality check (merge() only special-
-    // cases the literal `""`, not a function that resolves to it) so the
-    // attribute — even when empty — always reaches the DOM.
-    alt: () => alt,
-    // `aria-hidden` isn't affected by that merge quirk (non-empty string), so
-    // it reliably marks the image as decorative/skip-in-AT regardless.
+    // Empty string is a real value (`alt: ""` = decorative image).
+    alt,
     ...(alt === "" ? { ariaHidden: "true" } : {}),
     $: [image()],
     style: {

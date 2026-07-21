@@ -47,7 +47,7 @@ describe("merge", () => {
     expect(hookOrder).toEqual(["source", "target"]);
   });
 
-  it("ignores null/undefined/empty-string values", () => {
+  it("ignores null/undefined but keeps empty string", () => {
     const source: Record<string, any> = { title: "kept" };
     const target: Record<string, any> = {
       title: "",
@@ -57,7 +57,16 @@ describe("merge", () => {
 
     merge(source, target);
 
-    expect(source).toEqual({ title: "kept" });
+    expect(source).toEqual({ title: "" });
+  });
+
+  it("keeps empty string on a new key", () => {
+    const source: Record<string, any> = {};
+    const target: Record<string, any> = { alt: "" };
+
+    merge(source, target);
+
+    expect(source).toEqual({ alt: "" });
   });
 
   it("joins comma-list keys reactively when the new value is a function", () => {

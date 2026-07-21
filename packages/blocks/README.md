@@ -17,7 +17,12 @@ Peer dependencies: `@domphy/core`, `@domphy/theme`, `@domphy/ui`, `@domphy/chart
 Every export is a factory function, not a `$`-patch — call it directly to get a complete, mountable element tree:
 
 ```ts
+// Full barrel (all families)
 import { sidebar07, dashboard01, marquee } from "@domphy/blocks"
+
+// Family subpaths — smaller bundle when you only need one family
+import { marquee } from "@domphy/blocks/magicui"
+import { sidebar07, dashboard01 } from "@domphy/blocks/shadcn"
 
 const App = sidebar07() // works with zero arguments — renders a working demo
 
@@ -26,6 +31,8 @@ const Dashboard = dashboard01({
   navItems: [{ label: "Home", href: "/" }, { label: "Settings", href: "/settings" }],
 })
 ```
+
+Prefer `@domphy/blocks/shadcn` or `@domphy/blocks/magicui` when a consumer only needs one family — each subpath ships its own entry so the unused family stays out of the graph. The main `@domphy/blocks` entry still re-exports everything.
 
 `props` is a single optional object with sane defaults; only the genuinely variable parts (data/items/labels/colors) are parameterized. Layout and structure stay a fixed literal tree — closer to a "copy-paste block" than a heavily configurable component. Need something the props don't cover? Copy the block's source out of `node_modules` and edit it, the same way you would a shadcn block.
 

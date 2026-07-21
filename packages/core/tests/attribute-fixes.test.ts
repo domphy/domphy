@@ -129,6 +129,20 @@ describe("AttributeList.remove() removes the real (canonical) DOM attribute", ()
   });
 });
 
+describe("empty-string HTML attributes reach the live DOM", () => {
+  it("renders alt: \"\" on an img (decorative image)", () => {
+    const { host } = mount({
+      img: null,
+      alt: "",
+      src: "x.png",
+    } as unknown as DomphyElement);
+
+    const img = host.querySelector("img")!;
+    expect(img.getAttribute("alt")).toBe("");
+    expect(img.hasAttribute("alt")).toBe(true);
+  });
+});
+
 describe("AttributeList.addClass() preserves an existing reactive `class` binding", () => {
   it("keeps updating the class after addClass() merges a static class onto a reactive one", async () => {
     const active = toState(true, "addClassOverReactive");
