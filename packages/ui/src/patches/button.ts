@@ -55,8 +55,12 @@ function button(
         console.warn(`"button" primitive patch must use button tag`);
       }
     },
-    // Solid fills use the dark edge (shift-17) + light text (shift-0).
-    // Inverse solid controls intentionally invert doctor body-text contrast rules.
+    // Solid fills use the dark edge (dataTone shift-17) + max-contrast text.
+    // shift-N is RELATIVE to the dataTone context (from a dark context, shift-N
+    // lightens): shift-0 stays dark (= invisible text on solid), shift-17 lands
+    // on the opposite ramp end (light text on dark solid / dark text on light
+    // solid after theme ramp reversal). Inverse solids disable body-text doctor
+    // rules that assume light-surface shift ≥ 9.
     ...(isSolid
       ? {
           dataTone: "shift-17" as const,
@@ -90,7 +94,7 @@ function button(
             `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       color: (listener) =>
         isSolid
-          ? themeColor(listener, "shift-0", color.get(listener))
+          ? themeColor(listener, "shift-17", color.get(listener))
           : themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
@@ -99,7 +103,7 @@ function button(
       "&:hover:not([disabled]):not([aria-busy=true])": {
         color: (listener) =>
           isSolid
-            ? themeColor(listener, "shift-0", color.get(listener))
+            ? themeColor(listener, "shift-17", color.get(listener))
             : themeColor(listener, "shift-10", color.get(listener)),
         backgroundColor: (listener) =>
           isSolid

@@ -6,6 +6,15 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## Focus ring redesign — 2026-07-21
+
+### `@domphy/ui` [0.20.6]
+- `focusRing()` uses ring-offset pattern (`0 0 0 2px surface, 0 0 0 4px accent@shift-9`) — matches Radix/shadcn; replaces the flush pastel `0 0 0 2px shift-6` that read as a thick browser-default box.
+- `link()` sets `outline: none` so only the shared ring shows.
+- Solid `button` / `linkButton` / `fab` text uses `shift-17` from dark `dataTone` (max contrast; `shift-0` was invisible).
+
+---
+
 ## Enterprise FE gate + UI polish — 2026-07-21
 
 ### `@domphy/ui` [0.20.5]

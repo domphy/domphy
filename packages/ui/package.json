@@ -1,6 +1,6 @@
 {
   "name": "@domphy/ui",
-  "version": "0.20.5",
+  "version": "0.20.6",
   "description": "95 dependency-free UI patches for the Domphy runtime — buttons, dialogs, forms, overlays, motion",
   "type": "module",
   "sideEffects": false,

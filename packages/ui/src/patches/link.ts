@@ -46,6 +46,8 @@ function link(
         textDecoration: "underline",
       },
       borderRadius: themeSpacing(1),
+      // Kill the browser default outline so only the shared focusRing shows.
+      outline: "none",
       transition: "color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {
         boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),

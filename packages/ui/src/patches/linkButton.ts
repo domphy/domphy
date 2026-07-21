@@ -145,9 +145,11 @@ function linkButton(
         ? "none"
         : (listener) =>
             `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      // Solid text: shift-17 from dataTone shift-17 = opposite ramp end (readable
+      // contrast). shift-0 stays on the dark surface tone and is invisible.
       color: (listener) =>
         isSolid
-          ? themeColor(listener, "shift-0", color.get(listener))
+          ? themeColor(listener, "shift-17", color.get(listener))
           : themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
@@ -157,7 +159,7 @@ function linkButton(
         textDecoration: "none",
         color: (listener) =>
           isSolid
-            ? themeColor(listener, "shift-0", color.get(listener))
+            ? themeColor(listener, "shift-17", color.get(listener))
             : themeColor(listener, "shift-10", color.get(listener)),
         backgroundColor: (listener) =>
           isSolid

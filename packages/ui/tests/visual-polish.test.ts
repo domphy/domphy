@@ -59,10 +59,14 @@ describe("elevation()", () => {
 });
 
 describe("focusRing()", () => {
-  it("returns a 2px box-shadow ring referencing the given color's tone", () => {
+  it("returns a ring-offset box-shadow (surface gap + accent halo)", () => {
     const value = focusRing(null, "primary");
-    expect(value).toMatch(/^0 0 0 2px /);
+    // Inner 2px gap (surface) + outer 2px accent (total 4px from edge).
+    expect(value).toMatch(/0 0 0 2px /);
+    expect(value).toMatch(/0 0 0 4px /);
     expect(value).toContain("primary");
+    // Must not be the old flush single-layer ring.
+    expect(value.split(",").length).toBeGreaterThanOrEqual(2);
   });
 });
 
