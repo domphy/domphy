@@ -78,6 +78,49 @@ describe("createQuery.refetch", () => {
   });
 });
 
+describe("createQuery throwOnError", () => {
+  it("throws on reactive field read when throwOnError is true and the query errored", async () => {
+    const query = createQuery(client, {
+      queryKey: ["throw-on-error"],
+      queryFn: async () => {
+        throw new Error("boom");
+      },
+      throwOnError: true,
+      retry: false,
+    });
+
+    await sleep(30);
+    expect(query.isError()).toBe(true);
+
+    // Imperative read without a listener must not throw.
+    expect(query.error()).toBeInstanceOf(Error);
+    expect(query.data()).toBeUndefined();
+
+    // Reactive read (render path) must throw into the caller.
+    const fakeListener = () => {};
+    expect(() => query.data(fakeListener as any)).toThrow("boom");
+    expect(() => query.status(fakeListener as any)).toThrow("boom");
+
+    query.destroy();
+  });
+
+  it("does not throw on reactive read when throwOnError is false", async () => {
+    const query = createQuery(client, {
+      queryKey: ["no-throw"],
+      queryFn: async () => {
+        throw new Error("soft");
+      },
+      throwOnError: false,
+      retry: false,
+    });
+    await sleep(30);
+    const fakeListener = () => {};
+    expect(query.isError(fakeListener as any)).toBe(true);
+    expect(query.error(fakeListener as any)).toBeInstanceOf(Error);
+    query.destroy();
+  });
+});
+
 describe("createInfiniteQuery.fetchPreviousPage", () => {
   it("prepends a previous page using getPreviousPageParam", async () => {
     const query = createInfiniteQuery<

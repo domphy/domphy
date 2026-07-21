@@ -68,7 +68,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "unpkg": "dist/form.global.js",
   "jsdelivr": "dist/form.global.js"

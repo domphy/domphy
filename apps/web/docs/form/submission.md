@@ -35,12 +35,12 @@ const ContactForm = {
 }
 ```
 
-`handleSubmit()`:
-1. Runs all `onSubmit` validators across all fields
-2. If any validator fails, sets `isSubmitted = true` and stops (errors are displayed)
-3. If all pass, calls your `onSubmit` handler
-4. Sets `isSubmitting = true` during the async handler
-5. Sets `isSubmitting = false` when done
+`handleSubmit()` (same contract as TanStack Form):
+1. Marks fields touched; increments `submissionAttempts`
+2. Runs field + form validators for cause `"submit"`
+3. If invalid: calls `onSubmitInvalid` (if provided) and **returns without** calling `onSubmit`
+4. If valid: sets `isSubmitting = true`, runs your `onSubmit`, then `isSubmitted` / `isSubmitSuccessful`
+5. If `onSubmit` **throws**, rethrows after setting `isSubmitSuccessful = false` — it does **not** auto-write `form.state.errors` (use `setErrorMap` for displayable server errors)
 
 ## Async submission with loading state
 
@@ -48,7 +48,7 @@ const ContactForm = {
 const form = createForm<LoginInput>({
   defaultValues: { email: "", password: "" },
   onSubmit: async ({ value }) => {
-    const result = await loginApi(value)
+    await loginApi(value)
     router.navigate({ to: "/dashboard" })
   },
 })
@@ -62,26 +62,39 @@ const SubmitButton = {
 
 ## Handling server errors
 
-Return a rejection from `onSubmit` to display a server error:
+Use `formApi.setErrorMap` so errors show up on `form.state().errors` (TanStack Form's API). Throwing from `onSubmit` only rejects the `handleSubmit()` promise — it does not populate the error map.
 
 ```ts
 const form = createForm<LoginInput>({
   defaultValues: { email: "", password: "" },
-  onSubmit: async ({ value }) => {
+  onSubmit: async ({ value, formApi }) => {
     const result = await loginApi(value)
     if (result.error === "invalid_credentials") {
-      // Set a form-level error by throwing
-      throw new Error("Invalid email or password")
+      formApi.setErrorMap({
+        onSubmit: "Invalid email or password",
+      })
+      return
     }
   },
 })
 
-// Display form-level errors
+// Display form-level errors from the error map
 const FormError = {
   p: (l) => String(form.state(l).errors[0] ?? ""),
   hidden: (l) => form.state(l).errors.length === 0,
   style: { color: "red" },
 }
+```
+
+For unexpected network failures you can still throw and catch at the call site:
+
+```ts
+onSubmit: (e: Event) => {
+  e.preventDefault()
+  form.handleSubmit().catch((err) => {
+    console.error("submit failed", err)
+  })
+},
 ```
 
 For field-level server errors (e.g. "email already taken"):
@@ -90,11 +103,12 @@ For field-level server errors (e.g. "email already taken"):
 onSubmit: async ({ value, formApi }) => {
   const result = await registerApi(value)
   if (result.error === "email_taken") {
-    formApi.setFieldMeta("email", (meta) => ({
-      ...meta,
-      errors: ["Email already in use"],
-      errorMap: { onSubmit: "Email already in use" },
-    }))
+    formApi.setErrorMap({
+      onSubmit: {
+        form: undefined,
+        fields: { email: "Email already in use" },
+      },
+    })
   }
 }
 ```

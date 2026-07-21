@@ -40,8 +40,10 @@ async function loadMermaidCli(): Promise<MermaidCliModule> {
     )) as unknown as MermaidCliModule;
   } catch (cause) {
     throw new Error(
-      "@domphy/mermaid: failed to load '@mermaid-js/mermaid-cli'. It is " +
-        "required for build-time rendering.",
+      "@domphy/mermaid: failed to load '@mermaid-js/mermaid-cli'. Install it " +
+        "as a dependency when using build-time rendering " +
+        "(`renderMermaidToSvg` / SSG). Client-only `mermaidClient()` does not " +
+        "need the CLI (it uses the optional peer `mermaid` in the browser).",
       { cause: cause as Error },
     );
   }

@@ -233,6 +233,65 @@ function hitTestScatter(
   return nearest;
 }
 
+/** Series types with a real renderer path in this engine. */
+const IMPLEMENTED_SERIES_TYPES = new Set([
+  "line",
+  "bar",
+  "scatter",
+  "pie",
+  "radar",
+  "heatmap",
+  "candlestick",
+  "gauge",
+  "boxplot",
+  "funnel",
+  "treemap",
+  "sankey",
+  "graph",
+  "parallel",
+  "themeRiver",
+  "map",
+  "lines",
+  "effectScatter",
+  "pictorialBar",
+  "scatter3D",
+  "bar3D",
+  "line3D",
+  "surface3D",
+]);
+
+/**
+ * ECharts-compatible option keys that are typed for interop but not rendered.
+ * Consumers should treat these as unsupported until implemented — we warn so
+ * production charts do not fail silently.
+ */
+function warnUnsupportedChartOption(option: ChartOption): void {
+  if (option.toolbox != null) {
+    console.warn(
+      "@domphy/chart: option.toolbox is typed for ECharts interop but is not implemented yet; it has no effect.",
+    );
+  }
+  if (option.brush != null) {
+    console.warn(
+      "@domphy/chart: option.brush is typed for ECharts interop but is not implemented yet; it has no effect.",
+    );
+  }
+  const series = Array.isArray(option.series)
+    ? option.series
+    : option.series
+      ? [option.series]
+      : [];
+  for (const entry of series) {
+    const type = (entry as { type?: string })?.type;
+    if (type == null) continue;
+    if (!IMPLEMENTED_SERIES_TYPES.has(type)) {
+      console.warn(
+        `@domphy/chart: series type "${type}" is not implemented; the series is ignored. Supported: ${[...IMPLEMENTED_SERIES_TYPES].join(", ")}.`,
+      );
+    }
+  }
+}
+
 export class ChartEngine {
   private container: HTMLElement;
   private canvas: HTMLCanvasElement;
@@ -328,6 +387,11 @@ export class ChartEngine {
 
   setOption(option: ChartOption): void {
     this.option = option;
+
+    // Honest surface: type/docs may list ECharts-compatible keys that are not
+    // implemented yet. Warn once per option so silent no-ops do not ship as
+    // "working" enterprise charts.
+    warnUnsupportedChartOption(option);
 
     // Reset interactive state when option changes
     this.hiddenSeries = new Set();

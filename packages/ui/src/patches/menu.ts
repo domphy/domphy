@@ -128,7 +128,8 @@ function menu(
             // (readable on dark light-theme panels and light dark-theme panels).
             color: (l: Listener) => themeColor(l, "shift-17", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
-            transition: "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
+            transition:
+              "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
             "&:hover:not([disabled]):not([aria-current=true])": {
               backgroundColor: (l: Listener) => themeColor(l, "hover", color),
             },

@@ -485,10 +485,7 @@ async function run(): Promise<void> {
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });
 
-  const islandsEntrySrc = await buildIslands(
-    built,
-    join(appRoot, ".dp-cache"),
-  );
+  const islandsEntrySrc = await buildIslands(built, join(appRoot, ".dp-cache"));
   console.log(`Islands entry: ${islandsEntrySrc}`);
 
   let totalBytes = 0;

@@ -211,8 +211,7 @@ function safari(props: SafariProps = {}): DomphyElement<"div"> {
   const mode = props.mode ?? "default";
   // Default sample page so no-arg demos are not an empty white viewport.
   const media = screenMedia(
-    props.imageSrc ??
-      (props.videoSrc ? undefined : DEFAULT_BROWSER_SCREEN_SRC),
+    props.imageSrc ?? (props.videoSrc ? undefined : DEFAULT_BROWSER_SCREEN_SRC),
     props.videoSrc,
     `Preview of ${url}`,
   );

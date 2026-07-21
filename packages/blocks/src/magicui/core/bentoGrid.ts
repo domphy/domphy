@@ -356,9 +356,7 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
       "@media (min-width: 64em)": {
         // Only set span props when present — Domphy serializes JS `undefined`
         // as the CSS token `undefined`, which invents extra grid tracks.
-        ...(card.columnSpan
-          ? { gridColumn: `span ${card.columnSpan}` }
-          : {}),
+        ...(card.columnSpan ? { gridColumn: `span ${card.columnSpan}` } : {}),
         ...(card.rowSpan ? { gridRow: `span ${card.rowSpan}` } : {}),
         // `& [descendant]` (not a bare `[descendant]`) so the key matches
         // StyleObject's `&${string}` nested-selector contract — a bare bracket

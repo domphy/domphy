@@ -50,7 +50,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "unpkg": "dist/palette.global.js",
   "jsdelivr": "dist/palette.global.js"

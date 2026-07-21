@@ -11,7 +11,11 @@
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode } from "@domphy/core";
 import { themeApply } from "@domphy/theme";
-import { visualCell, visualPage, visualSection } from "../docs/demos/visual/cell.js";
+import {
+  visualCell,
+  visualPage,
+  visualSection,
+} from "../docs/demos/visual/cell.js";
 import "../site-theme.js";
 
 const params = new URLSearchParams(location.search);

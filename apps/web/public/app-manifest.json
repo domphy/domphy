@@ -8,6 +8,14 @@
     "exportKind": "default"
   },
   {
+    "name": "default",
+    "kind": "block",
+    "file": "apps/web/docs/demos/blocks/scrollProgress.ts",
+    "signature": "default: DomphyElement",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
     "name": "App",
     "kind": "block",
     "file": "apps/web/docs/demos/chart/Bar3D.ts",
@@ -1398,5 +1406,29 @@
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",
     "exportKind": "default"
+  },
+  {
+    "name": "visualCell",
+    "kind": "patch",
+    "file": "apps/web/docs/demos/visual/cell.ts",
+    "signature": "visualCell(id: string, label: string, content: DomphyElement | DomphyElement[], opts: { focus?: boolean; hover?: boolean; minWidth?: string; minHeight?: string; maxHeight?: string; overflow?: string; /** Stack full-width shells (layouts) instead of flex-wrap row of controls. */ block?: boolean; } = {}): DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "named"
+  },
+  {
+    "name": "visualPage",
+    "kind": "patch",
+    "file": "apps/web/docs/demos/visual/cell.ts",
+    "signature": "visualPage(title: string, sections: DomphyElement[]): DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "named"
+  },
+  {
+    "name": "visualSection",
+    "kind": "patch",
+    "file": "apps/web/docs/demos/visual/cell.ts",
+    "signature": "visualSection(title: string, cells: DomphyElement[]): DomphyElement<\"section\">",
+    "jsdoc": "",
+    "exportKind": "named"
   }
 ]

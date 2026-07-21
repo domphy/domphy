@@ -8,12 +8,18 @@ import type {
   QueryObserverResult,
   RefetchOptions,
 } from "../types.js"
+import { shouldThrowError } from "../utils.js"
 import { bindResult } from "./bindResult.js"
 
 /**
  * Reactive handle around a `QueryObserver`. Every accessor takes an optional
  * Domphy listener `l` and subscribes it to that field only. Call `destroy()`
  * from the owning subtree's `_onRemove` to unsubscribe.
+ *
+ * When `throwOnError` is true (or a function that returns true), reading any
+ * field **with a listener** (render path) throws `result.error` so a parent
+ * `_onError` / `errorBoundary()` can catch it — same contract as TanStack
+ * React Query's render-time throw.
  */
 export interface QueryHandle<TData = unknown, TError = DefaultError> {
   state: ReturnType<typeof bindResult<QueryObserverResult<TData, TError>>>["state"]
@@ -34,6 +40,25 @@ export interface QueryHandle<TData = unknown, TError = DefaultError> {
   refetch(options?: RefetchOptions): Promise<QueryObserverResult<TData, TError>>
   setOptions(options: QueryObserverOptions<any, TError, TData, any, any>): void
   destroy(): void
+}
+
+function throwOnErrorIfNeeded(
+  observer: QueryObserver<any, any, any, any, any>,
+  listener?: Listener,
+): void {
+  // Imperative reads (no listener) never throw — only the reactive render path.
+  if (!listener) return
+  const result = observer.getCurrentResult()
+  if (
+    result.isError &&
+    result.error != null &&
+    shouldThrowError(observer.options.throwOnError, [
+      result.error,
+      observer.getCurrentQuery(),
+    ])
+  ) {
+    throw result.error
+  }
 }
 
 export function createQuery<
@@ -65,21 +90,29 @@ export function createQuery<
     (callback) => observer.subscribe(callback),
   )
 
+  const read = <K extends keyof QueryObserverResult<TData, TError>>(
+    key: K,
+    listener?: Listener,
+  ): QueryObserverResult<TData, TError>[K] => {
+    throwOnErrorIfNeeded(observer, listener)
+    return field(key, listener)
+  }
+
   return {
     state,
     observer: observer as QueryHandle<TData, TError>["observer"],
-    data: (l) => field("data", l),
-    error: (l) => field("error", l),
-    status: (l) => field("status", l),
-    fetchStatus: (l) => field("fetchStatus", l),
-    isPending: (l) => field("isPending", l),
-    isLoading: (l) => field("isLoading", l),
-    isFetching: (l) => field("isFetching", l),
-    isSuccess: (l) => field("isSuccess", l),
-    isError: (l) => field("isError", l),
-    isRefetching: (l) => field("isRefetching", l),
-    isStale: (l) => field("isStale", l),
-    isPlaceholderData: (l) => field("isPlaceholderData", l),
+    data: (l) => read("data", l),
+    error: (l) => read("error", l),
+    status: (l) => read("status", l),
+    fetchStatus: (l) => read("fetchStatus", l),
+    isPending: (l) => read("isPending", l),
+    isLoading: (l) => read("isLoading", l),
+    isFetching: (l) => read("isFetching", l),
+    isSuccess: (l) => read("isSuccess", l),
+    isError: (l) => read("isError", l),
+    isRefetching: (l) => read("isRefetching", l),
+    isStale: (l) => read("isStale", l),
+    isPlaceholderData: (l) => read("isPlaceholderData", l),
     refetch: (refetchOptions) => observer.refetch(refetchOptions),
     setOptions: (next) => observer.setOptions(next),
     destroy: () => {

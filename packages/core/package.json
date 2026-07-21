@@ -53,7 +53,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "unpkg": "dist/core.global.js",
   "jsdelivr": "dist/core.global.js"

@@ -36,7 +36,8 @@ function link(
       backgroundColor: (listener) => themeColor(listener),
       // shift-13 (not "text"/shift-9): brand hues need extra depth for ≥4.5:1
       // on a light surface (primary orange failed at 2.57 with shift-9).
-      color: (listener) => themeColor(listener, "shift-13", color.get(listener)),
+      color: (listener) =>
+        themeColor(listener, "shift-13", color.get(listener)),
       textDecoration: "none",
       "&:visited": {
         color: (listener) =>

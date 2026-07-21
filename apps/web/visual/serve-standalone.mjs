@@ -4,10 +4,11 @@
  *   node visual/serve-standalone.mjs --port 4177
  *   open http://127.0.0.1:4177/?catalog=patches
  */
-import * as esbuild from "esbuild";
+
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import * as esbuild from "esbuild";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = join(here, ".serve");

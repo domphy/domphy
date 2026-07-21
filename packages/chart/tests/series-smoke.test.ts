@@ -26,6 +26,44 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("ChartEngine unsupported surface warnings", () => {
+  it("warns when series type custom is set (typed but not rendered)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { engine } = makeEngine();
+    engine.setOption({
+      series: [
+        {
+          type: "custom",
+          // renderItem would be required for a real custom series; we only
+          // assert the honest unsupported warning fires.
+          renderItem: () => ({ type: "circle" }),
+        } as any,
+      ],
+    });
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('series type "custom" is not implemented'),
+    );
+    warn.mockRestore();
+  });
+
+  it("warns when toolbox or brush options are set", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { engine } = makeEngine();
+    engine.setOption({
+      toolbox: { show: true } as any,
+      brush: { toolbox: ["rect"] } as any,
+      series: [{ type: "bar", data: [1, 2] }],
+    });
+    expect(warn.mock.calls.some((c) => String(c[0]).includes("toolbox"))).toBe(
+      true,
+    );
+    expect(warn.mock.calls.some((c) => String(c[0]).includes("brush"))).toBe(
+      true,
+    );
+    warn.mockRestore();
+  });
+});
+
 describe("ChartEngine series smoke (no real WebGL)", () => {
   const cases: Array<{ name: string; option: ChartOption }> = [
     {

@@ -63,7 +63,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "unpkg": "dist/query.global.js",
   "jsdelivr": "dist/query.global.js"

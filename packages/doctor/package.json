@@ -76,7 +76,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "unpkg": "dist/doctor.global.js",
   "jsdelivr": "dist/doctor.global.js"

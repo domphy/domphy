@@ -10,6 +10,7 @@ import type {
   QueryKey,
   RefetchOptions,
 } from "../types.js"
+import { shouldThrowError } from "../utils.js"
 import { bindResult } from "./bindResult.js"
 
 type InfiniteResult<TData, TError> = InfiniteQueryObserverResult<TData, TError>
@@ -37,6 +38,24 @@ export interface InfiniteQueryHandle<TData = unknown, TError = DefaultError> {
   ): Promise<InfiniteResult<TData, TError>>
   refetch(options?: RefetchOptions): Promise<InfiniteResult<TData, TError>>
   destroy(): void
+}
+
+function throwOnErrorIfNeeded(
+  observer: InfiniteQueryObserver<any, any, any, any, any>,
+  listener?: Listener,
+): void {
+  if (!listener) return
+  const result = observer.getCurrentResult()
+  if (
+    result.isError &&
+    result.error != null &&
+    shouldThrowError(observer.options.throwOnError, [
+      result.error,
+      observer.getCurrentQuery(),
+    ])
+  ) {
+    throw result.error
+  }
 }
 
 export function createInfiniteQuery<
@@ -68,20 +87,28 @@ export function createInfiniteQuery<
     (callback) => observer.subscribe(callback as any),
   )
 
+  const read = <K extends keyof InfiniteResult<TData, TError>>(
+    key: K,
+    listener?: Listener,
+  ): InfiniteResult<TData, TError>[K] => {
+    throwOnErrorIfNeeded(observer, listener)
+    return field(key, listener)
+  }
+
   return {
     state,
     observer: observer as InfiniteQueryHandle<TData, TError>["observer"],
-    data: (l) => field("data", l),
-    error: (l) => field("error", l),
-    status: (l) => field("status", l),
-    isPending: (l) => field("isPending", l),
-    isFetching: (l) => field("isFetching", l),
-    isSuccess: (l) => field("isSuccess", l),
-    isError: (l) => field("isError", l),
-    hasNextPage: (l) => field("hasNextPage", l),
-    hasPreviousPage: (l) => field("hasPreviousPage", l),
-    isFetchingNextPage: (l) => field("isFetchingNextPage", l),
-    isFetchingPreviousPage: (l) => field("isFetchingPreviousPage", l),
+    data: (l) => read("data", l),
+    error: (l) => read("error", l),
+    status: (l) => read("status", l),
+    isPending: (l) => read("isPending", l),
+    isFetching: (l) => read("isFetching", l),
+    isSuccess: (l) => read("isSuccess", l),
+    isError: (l) => read("isError", l),
+    hasNextPage: (l) => read("hasNextPage", l),
+    hasPreviousPage: (l) => read("hasPreviousPage", l),
+    isFetchingNextPage: (l) => read("isFetchingNextPage", l),
+    isFetchingPreviousPage: (l) => read("isFetchingPreviousPage", l),
     fetchNextPage: (next) => observer.fetchNextPage(next),
     fetchPreviousPage: (previous) => observer.fetchPreviousPage(previous),
     refetch: (refetchOptions) =>

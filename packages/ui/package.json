@@ -62,7 +62,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "unpkg": "dist/core-theme-ui.global.js",
   "jsdelivr": "dist/core-theme-ui.global.js"

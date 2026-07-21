@@ -33,49 +33,67 @@ const UserPage = {
 
 ## `throwOnError` — propagate errors up
 
-When `throwOnError: true`, a query error is thrown into the Domphy element tree. The nearest ancestor with `_onError` catches it:
+When `throwOnError: true`, reading any query field **with a listener** (the reactive render path) throws `result.error` into the Domphy element tree. The nearest ancestor with `_onError` / `errorBoundary()` catches it. Imperative reads without a listener never throw (so you can still inspect `query.error()` outside render).
 
 ```ts
+import { errorBoundary } from "@domphy/ui"
+import { QueryClient } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
+
 const queryClient = new QueryClient()
 
 const user = createQuery(queryClient, {
   queryKey: ["user"],
   queryFn: fetchUser,
-  throwOnError: true,   // throw errors into the element tree
+  throwOnError: true,   // throw on reactive field reads when status is error
 })
 
-const ErrorBoundary = {
-  div: UserSection,
-  _onError: (error, reset) => ({
-    div: [
-      { p: `Error: ${error.message}` },
-      { button: "Retry", onClick: reset },
-    ],
-  }),
+const UserSection = {
+  div: (l) => {
+    // With throwOnError, an error here bubbles to errorBoundary / _onError
+    const data = user.data(l)
+    return { p: data ? data.name : "…" }
+  },
+}
+
+const Page = {
+  div: [UserSection],
+  $: [
+    errorBoundary({
+      fallback: (error, reset) => ({
+        div: [
+          { p: `Error: ${(error as Error).message}` },
+          { button: "Retry", onClick: () => { user.refetch(); reset() } },
+        ],
+      }),
+    }),
+  ],
 }
 ```
 
-This mirrors React's `Suspense` + `ErrorBoundary` pattern but without React.
+This mirrors TanStack React Query's render-time throw + Error Boundary pattern, without React Suspense.
 
-## Controlled pending with `suspense` flag
+## Controlled pending (no React Suspense)
 
-Use `suspense: true` to make the query participate in a Domphy-managed pending state. The component pauses rendering until the query resolves:
+Domphy has **no** React-style Suspense that pauses a parent while a promise settles. Use explicit `isPending` / `isError` branches (see above). The core option `suspense: true` is accepted for TanStack Query interop (it also defaults `throwOnError` to true in the core client) but **does not** guarantee `data(l)` is defined — always gate on status:
 
 ```ts
-const queryClient = new QueryClient()
-
 const post = createQuery(queryClient, {
   queryKey: ["post", postId],
   queryFn: () => fetchPost(postId),
-  suspense: true,
+  // optional: throwOnError: true  // same as React Query suspense default
 })
 
-// With suspense: true, post.data(l) is always defined — no undefined check needed
 const PostContent = {
-  article: [
-    { h1: (l) => post.data(l)!.title },
-    { p: (l) => post.data(l)!.body },
-  ],
+  article: (l) => {
+    if (post.isPending(l)) return { p: "Loading…" }
+    if (post.isError(l)) return { p: "Failed" }
+    const data = post.data(l)!
+    return [
+      { h1: data.title },
+      { p: data.body },
+    ]
+  },
 }
 ```
 

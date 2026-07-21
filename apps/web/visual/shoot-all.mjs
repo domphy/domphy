@@ -2,35 +2,40 @@
 // Usage (with docs server running on :3000):
 //   node visual/shoot-all.mjs visual/shots-review-light
 //   THEME=dark node visual/shoot-all.mjs visual/shots-review-dark
-import { createRequire } from "node:module"
-import { mkdirSync, writeFileSync, existsSync } from "node:fs"
-import { join, dirname } from "node:path"
-import { fileURLToPath } from "node:url"
-import { pathToFileURL } from "node:url"
 
-const require = createRequire(import.meta.url)
-const here = dirname(fileURLToPath(import.meta.url))
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const require = createRequire(import.meta.url);
+const here = dirname(fileURLToPath(import.meta.url));
 // pnpm nests playwright under the monorepo root .pnpm store
-const monorepoRoot = join(here, "../../..")
+const monorepoRoot = join(here, "../../..");
 const coreCandidates = [
-  join(monorepoRoot, "node_modules/.pnpm/playwright-core@1.61.1/node_modules/playwright-core/index.mjs"),
+  join(
+    monorepoRoot,
+    "node_modules/.pnpm/playwright-core@1.61.1/node_modules/playwright-core/index.mjs",
+  ),
   join(monorepoRoot, "node_modules/playwright-core/index.mjs"),
   join(here, "../node_modules/playwright-core/index.mjs"),
-]
-const corePath = coreCandidates.find((p) => existsSync(p))
+];
+const corePath = coreCandidates.find((p) => existsSync(p));
 if (!corePath) {
-  console.error("playwright-core not found; tried:\n" + coreCandidates.join("\n"))
-  process.exit(1)
+  console.error(
+    "playwright-core not found; tried:\n" + coreCandidates.join("\n"),
+  );
+  process.exit(1);
 }
-const { chromium } = await import(pathToFileURL(corePath).href)
+const { chromium } = await import(pathToFileURL(corePath).href);
 
 // Standalone catalog host (visual/serve-standalone.mjs), NOT press :3000.
-const BASE = process.env.VISUAL_BASE_URL || "http://127.0.0.1:4177"
-const outDir = process.argv[2] || "visual/shots-review"
-const theme = process.env.THEME || "light"
-const catalog = process.env.CATALOG || "patches"
-const path = `/?catalog=${catalog}&theme=${theme}`
-mkdirSync(outDir, { recursive: true })
+const BASE = process.env.VISUAL_BASE_URL || "http://127.0.0.1:4177";
+const outDir = process.argv[2] || "visual/shots-review";
+const theme = process.env.THEME || "light";
+const catalog = process.env.CATALOG || "patches";
+const path = `/?catalog=${catalog}&theme=${theme}`;
+mkdirSync(outDir, { recursive: true });
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH || undefined,
@@ -42,13 +47,16 @@ const browser = await chromium.launch({
     "--ignore-gpu-blocklist",
     "--enable-unsafe-swiftshader",
   ],
-})
-const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
-const report = { theme, path, base: BASE, catalog, cells: [], issues: [] }
+});
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+const report = { theme, path, base: BASE, catalog, cells: [], issues: [] };
 
-await page.goto(BASE + path, { waitUntil: "domcontentloaded", timeout: 120000 })
-await page.waitForSelector("[data-visual-ready]", { timeout: 120000 })
-await page.waitForSelector("[data-visual]", { timeout: 30000 })
+await page.goto(BASE + path, {
+  waitUntil: "domcontentloaded",
+  timeout: 120000,
+});
+await page.waitForSelector("[data-visual-ready]", { timeout: 120000 });
+await page.waitForSelector("[data-visual]", { timeout: 30000 });
 await page.addStyleTag({
   // Freeze CSS animations BUT clear clip-path so chart-area motion()
   // initial state (inset 100% right) does not leave the plot permanently hidden.
@@ -60,138 +68,147 @@ await page.addStyleTag({
       -webkit-clip-path:none!important;
     }
   `,
-})
+});
 // Charts / WebGL / layout shells need extra paint time on blocks catalog.
-await page.waitForTimeout(catalog === "blocks" ? 2500 : 800)
+await page.waitForTimeout(catalog === "blocks" ? 2500 : 800);
 
 async function isolateVisualCell(currentId) {
   await page.evaluate((id) => {
     for (const el of document.querySelectorAll("[data-visual]")) {
-      const match = el.getAttribute("data-visual") === id
+      const match = el.getAttribute("data-visual") === id;
       if (match) {
-        el.style.removeProperty("display")
-        el.style.removeProperty("visibility")
-        el.style.removeProperty("pointer-events")
+        el.style.removeProperty("display");
+        el.style.removeProperty("visibility");
+        el.style.removeProperty("pointer-events");
       } else {
-        el.style.setProperty("display", "none", "important")
+        el.style.setProperty("display", "none", "important");
       }
     }
     // Unstick sticky/fixed outside the current cell (sidebar pollution).
     for (const el of document.querySelectorAll("body *")) {
-      if (el.closest(`[data-visual="${id}"]`)) continue
-      const pos = getComputedStyle(el).position
+      if (el.closest(`[data-visual="${id}"]`)) continue;
+      const pos = getComputedStyle(el).position;
       if (pos === "sticky" || pos === "fixed") {
-        el.style.setProperty("position", "static", "important")
-        el.style.setProperty("top", "auto", "important")
-        el.style.setProperty("left", "auto", "important")
-        el.style.setProperty("right", "auto", "important")
-        el.style.setProperty("bottom", "auto", "important")
-        el.style.setProperty("z-index", "auto", "important")
+        el.style.setProperty("position", "static", "important");
+        el.style.setProperty("top", "auto", "important");
+        el.style.setProperty("left", "auto", "important");
+        el.style.setProperty("right", "auto", "important");
+        el.style.setProperty("bottom", "auto", "important");
+        el.style.setProperty("z-index", "auto", "important");
       }
     }
-  }, currentId)
+  }, currentId);
 }
 
-const cells = page.locator("[data-visual]")
-const count = await cells.count()
+const cells = page.locator("[data-visual]");
+const count = await cells.count();
 if (count === 0) {
-  console.error("No [data-visual] cells — is the catalog island mounted?")
-  process.exit(1)
+  console.error("No [data-visual] cells — is the catalog island mounted?");
+  process.exit(1);
 }
-console.log(`Found ${count} cells on ${path} (${theme})`)
+console.log(`Found ${count} cells on ${path} (${theme})`);
 
 for (let i = 0; i < count; i++) {
-  const cell = cells.nth(i)
-  const id = await cell.getAttribute("data-visual")
-  if (!id) continue
+  const cell = cells.nth(i);
+  const id = await cell.getAttribute("data-visual");
+  if (!id) continue;
   // Isolate BEFORE scroll/screenshot so sticky sidebars from other blocks
   // cannot paint into this cell's crop.
-  await isolateVisualCell(id)
+  await isolateVisualCell(id);
   // Close top-layer dialogs so later cells are not blocked.
   await page.evaluate(() => {
     for (const dialog of document.querySelectorAll("dialog")) {
-      const el = dialog
+      const el = dialog;
       try {
-        if (el.open) el.close()
+        if (el.open) el.close();
       } catch {
-        el.removeAttribute("open")
+        el.removeAttribute("open");
       }
-      el.style.setProperty("display", "none")
+      el.style.setProperty("display", "none");
     }
-  })
-  await cell.scrollIntoViewIfNeeded()
-  const dialogInCell = cell.locator("dialog").first()
+  });
+  await cell.scrollIntoViewIfNeeded();
+  const dialogInCell = cell.locator("dialog").first();
   if ((await dialogInCell.count()) > 0) {
-    await page.evaluate((el) => {
-      // dialog() patch sets visibility/pointer-events on close — clear them.
-      el.style.removeProperty("display")
-      el.style.removeProperty("visibility")
-      el.style.removeProperty("pointer-events")
-      el.style.opacity = "1"
-      try {
-        if (typeof el.showModal === "function") el.showModal()
-        else el.setAttribute("open", "")
-      } catch {
-        el.setAttribute("open", "")
-      }
-    }, await dialogInCell.elementHandle())
-    await page.waitForTimeout(50)
+    await page.evaluate(
+      (el) => {
+        // dialog() patch sets visibility/pointer-events on close — clear them.
+        el.style.removeProperty("display");
+        el.style.removeProperty("visibility");
+        el.style.removeProperty("pointer-events");
+        el.style.opacity = "1";
+        try {
+          if (typeof el.showModal === "function") el.showModal();
+          else el.setAttribute("open", "");
+        } catch {
+          el.setAttribute("open", "");
+        }
+      },
+      await dialogInCell.elementHandle(),
+    );
+    await page.waitForTimeout(50);
   }
   // Give chart/canvas/WebGL a beat after isolation (layout reflow).
-  if (id.startsWith("block-chart") || id.includes("globe") || id.includes("particles")) {
-    await page.waitForTimeout(400)
+  if (
+    id.startsWith("block-chart") ||
+    id.includes("globe") ||
+    id.includes("particles")
+  ) {
+    await page.waitForTimeout(400);
   }
-  const focus = await cell.getAttribute("data-visual-focus")
-  const hover = await cell.getAttribute("data-visual-hover")
+  const focus = await cell.getAttribute("data-visual-focus");
+  const hover = await cell.getAttribute("data-visual-hover");
   if (focus) {
-    const t = cell.locator("button, a, input, textarea, select").first()
-    if ((await t.count()) > 0) await t.focus().catch(() => {})
+    const t = cell.locator("button, a, input, textarea, select").first();
+    if ((await t.count()) > 0) await t.focus().catch(() => {});
   }
-  if (hover) await cell.hover({ force: true }).catch(() => {})
+  if (hover) await cell.hover({ force: true }).catch(() => {});
 
-  const file = join(outDir, `${id}.png`)
-  await cell.screenshot({ path: file, animations: "disabled" })
-  const box = await cell.boundingBox()
+  const file = join(outDir, `${id}.png`);
+  await cell.screenshot({ path: file, animations: "disabled" });
+  const box = await cell.boundingBox();
   if (!box || box.width < 4 || box.height < 4) {
-    report.issues.push({ id, kind: "empty-cell", box })
-    console.log(`[EMPTY] ${id}`, box)
+    report.issues.push({ id, kind: "empty-cell", box });
+    console.log(`[EMPTY] ${id}`, box);
   }
   // Detect wrong-content sticky bleed: cell text mentions sidebar chrome
   // that should not appear in non-sidebar blocks.
-  const textSample = await cell.innerText().catch(() => "")
-  const isSidebarBlock = /block-sidebar/i.test(id)
+  const textSample = await cell.innerText().catch(() => "");
+  const isSidebarBlock = /block-sidebar/i.test(id);
   if (
     !isSidebarBlock &&
-    /Playground|Documentation|Design Engineering|Sales & Marketing/.test(textSample) &&
+    /Playground|Documentation|Design Engineering|Sales & Marketing/.test(
+      textSample,
+    ) &&
     id.startsWith("block-")
   ) {
     report.issues.push({
       id,
       kind: "sidebar-bleed",
       sample: textSample.slice(0, 120),
-    })
-    console.log(`[SIDEBAR BLEED] ${id}`)
+    });
+    console.log(`[SIDEBAR BLEED] ${id}`);
   }
 
   const contrast = await cell.evaluate((el) => {
-    const targets = [...el.querySelectorAll("button, a")]
+    const targets = [...el.querySelectorAll("button, a")];
     const parse = (c) => {
-      const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
-      return m ? [+m[1], +m[2], +m[3]] : null
-    }
-    const lum = ([r, g, b]) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+      const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      return m ? [+m[1], +m[2], +m[3]] : null;
+    };
+    const lum = ([r, g, b]) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
     return targets.map((n) => {
-      const s = getComputedStyle(n)
-      const tc = parse(s.color)
-      const bg = parse(s.backgroundColor)
-      const text = (n.innerText || n.textContent || "").trim().slice(0, 40)
-      let ratio = null
+      const s = getComputedStyle(n);
+      const tc = parse(s.color);
+      const bg = parse(s.backgroundColor);
+      const text = (n.innerText || n.textContent || "").trim().slice(0, 40);
+      let ratio = null;
       if (tc && bg && s.backgroundColor !== "rgba(0, 0, 0, 0)") {
-        const L1 = lum(tc)
-        const L2 = lum(bg)
-        const lighter = Math.max(L1, L2)
-        const darker = Math.min(L1, L2)
-        ratio = (lighter + 0.05) / (darker + 0.05)
+        const L1 = lum(tc);
+        const L2 = lum(bg);
+        const lighter = Math.max(L1, L2);
+        const darker = Math.min(L1, L2);
+        ratio = (lighter + 0.05) / (darker + 0.05);
       }
       return {
         text,
@@ -199,27 +216,30 @@ for (let i = 0; i < count; i++) {
         bg: s.backgroundColor,
         dataTone: n.getAttribute("data-tone"),
         ratio,
-        blankText: text.length === 0 && n.tagName === "BUTTON" && n.getAttribute("data-tone") === "shift-17",
-      }
-    })
-  })
+        blankText:
+          text.length === 0 &&
+          n.tagName === "BUTTON" &&
+          n.getAttribute("data-tone") === "shift-17",
+      };
+    });
+  });
 
   for (const c of contrast) {
     if (c.ratio != null && c.ratio < 3 && c.text) {
-      report.issues.push({ id, kind: "low-contrast", ...c })
-      console.log(`[LOW CONTRAST ${c.ratio.toFixed(2)}] ${id}: "${c.text}"`)
+      report.issues.push({ id, kind: "low-contrast", ...c });
+      console.log(`[LOW CONTRAST ${c.ratio.toFixed(2)}] ${id}: "${c.text}"`);
     }
     if (c.blankText) {
-      report.issues.push({ id, kind: "blank-solid", ...c })
-      console.log(`[BLANK SOLID] ${id}`)
+      report.issues.push({ id, kind: "blank-solid", ...c });
+      console.log(`[BLANK SOLID] ${id}`);
     }
   }
 
-  report.cells.push({ id, file, contrast })
-  if ((i + 1) % 30 === 0) console.log(`… ${i + 1}/${count}`)
+  report.cells.push({ id, file, contrast });
+  if ((i + 1) % 30 === 0) console.log(`… ${i + 1}/${count}`);
 }
 
-writeFileSync(join(outDir, "report.json"), JSON.stringify(report, null, 2))
-console.log(`\nDone: ${count} shots → ${outDir}`)
-console.log(`Issues: ${report.issues.length}`)
-await browser.close()
+writeFileSync(join(outDir, "report.json"), JSON.stringify(report, null, 2));
+console.log(`\nDone: ${count} shots → ${outDir}`);
+console.log(`Issues: ${report.issues.length}`);
+await browser.close();

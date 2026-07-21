@@ -165,7 +165,7 @@ Use `outline` not `border` — a 1px border on both sides adds 2px to height and
 
 ### Elevation and focus ring
 - **Elevation**: floating/raised surfaces (popover, menu, dialog, drawer, toast, tooltip, combobox/selectBox dropdown, datePicker popup, fab) use the shared `elevation(level)` helper (`packages/ui/src/utils/elevation.ts`, internal) — 3 levels (`"low" | "medium" | "high"`), layered black-alpha box-shadows that read correctly on both themes. Combined with a `border-strong` outline for the "shadow + border" look on panel-style surfaces (popover, menu, combobox/selectBox dropdown, datePicker); shadow-only (no outline) on dialog/drawer/toast/tooltip.
-- **Focus ring**: interactive patches (button, buttonGhost, linkButton, link, listItemButton, inputs, select, selectItem, textarea, segmented, tabs, toggleGroup, rating, pagination, menu items, command items, datePicker cells, accordion/details summary, splitter handle, breadcrumbEllipsis, fab) unify on the shared `focusRing(listener, color)` helper (`packages/ui/src/utils/focusRing.ts`, internal) — a 2px accent-tone halo via `box-shadow` on `:focus-visible`, layered on top of (not replacing) the control's own resting outline.
+- **Focus ring**: interactive patches (button, buttonGhost, linkButton, link, listItemButton, inputs, select, selectItem, textarea, segmented, tabs, toggleGroup, rating, pagination, menu items, command items, datePicker cells, accordion/details summary, splitter handle, breadcrumbEllipsis, fab) unify on the shared `focusRing(listener, color)` helper (`packages/ui/src/utils/focusRing.ts`, internal) — ring-offset pattern via layered `box-shadow` on `:focus-visible` (`0 0 0 2px surface, 0 0 0 4px accent@shift-9`), matching Radix/shadcn. Never hand-roll a flush `0 0 0 2px` pastel ring.
 - **Press `:active`**: primary CTA controls (button outline/solid, buttonGhost, linkButton, fab, listItemButton) apply the design-system interactive delta — hover `±1`, pressed `±2` (solid uses `decrease-N` on the dark edge surface).
 
 ### Doctor rules (complete list — 18 built-in)
@@ -9368,49 +9368,67 @@ const UserPage = {
 
 ## `throwOnError` — propagate errors up
 
-When `throwOnError: true`, a query error is thrown into the Domphy element tree. The nearest ancestor with `_onError` catches it:
+When `throwOnError: true`, reading any query field **with a listener** (the reactive render path) throws `result.error` into the Domphy element tree. The nearest ancestor with `_onError` / `errorBoundary()` catches it. Imperative reads without a listener never throw (so you can still inspect `query.error()` outside render).
 
 ```ts
+import { errorBoundary } from "@domphy/ui"
+import { QueryClient } from "@domphy/query"
+import { createQuery } from "@domphy/query/domphy"
+
 const queryClient = new QueryClient()
 
 const user = createQuery(queryClient, {
   queryKey: ["user"],
   queryFn: fetchUser,
-  throwOnError: true,   // throw errors into the element tree
+  throwOnError: true,   // throw on reactive field reads when status is error
 })
 
-const ErrorBoundary = {
-  div: UserSection,
-  _onError: (error, reset) => ({
-    div: [
-      { p: `Error: ${error.message}` },
-      { button: "Retry", onClick: reset },
-    ],
-  }),
+const UserSection = {
+  div: (l) => {
+    // With throwOnError, an error here bubbles to errorBoundary / _onError
+    const data = user.data(l)
+    return { p: data ? data.name : "…" }
+  },
+}
+
+const Page = {
+  div: [UserSection],
+  $: [
+    errorBoundary({
+      fallback: (error, reset) => ({
+        div: [
+          { p: `Error: ${(error as Error).message}` },
+          { button: "Retry", onClick: () => { user.refetch(); reset() } },
+        ],
+      }),
+    }),
+  ],
 }
 ```
 
-This mirrors React's `Suspense` + `ErrorBoundary` pattern but without React.
+This mirrors TanStack React Query's render-time throw + Error Boundary pattern, without React Suspense.
 
-## Controlled pending with `suspense` flag
+## Controlled pending (no React Suspense)
 
-Use `suspense: true` to make the query participate in a Domphy-managed pending state. The component pauses rendering until the query resolves:
+Domphy has **no** React-style Suspense that pauses a parent while a promise settles. Use explicit `isPending` / `isError` branches (see above). The core option `suspense: true` is accepted for TanStack Query interop (it also defaults `throwOnError` to true in the core client) but **does not** guarantee `data(l)` is defined — always gate on status:
 
 ```ts
-const queryClient = new QueryClient()
-
 const post = createQuery(queryClient, {
   queryKey: ["post", postId],
   queryFn: () => fetchPost(postId),
-  suspense: true,
+  // optional: throwOnError: true  // same as React Query suspense default
 })
 
-// With suspense: true, post.data(l) is always defined — no undefined check needed
 const PostContent = {
-  article: [
-    { h1: (l) => post.data(l)!.title },
-    { p: (l) => post.data(l)!.body },
-  ],
+  article: (l) => {
+    if (post.isPending(l)) return { p: "Loading…" }
+    if (post.isError(l)) return { p: "Failed" }
+    const data = post.data(l)!
+    return [
+      { h1: data.title },
+      { p: data.body },
+    ]
+  },
 }
 ```
 
@@ -18681,12 +18699,12 @@ const ContactForm = {
 }
 ```
 
-`handleSubmit()`:
-1. Runs all `onSubmit` validators across all fields
-2. If any validator fails, sets `isSubmitted = true` and stops (errors are displayed)
-3. If all pass, calls your `onSubmit` handler
-4. Sets `isSubmitting = true` during the async handler
-5. Sets `isSubmitting = false` when done
+`handleSubmit()` (same contract as TanStack Form):
+1. Marks fields touched; increments `submissionAttempts`
+2. Runs field + form validators for cause `"submit"`
+3. If invalid: calls `onSubmitInvalid` (if provided) and **returns without** calling `onSubmit`
+4. If valid: sets `isSubmitting = true`, runs your `onSubmit`, then `isSubmitted` / `isSubmitSuccessful`
+5. If `onSubmit` **throws**, rethrows after setting `isSubmitSuccessful = false` — it does **not** auto-write `form.state.errors` (use `setErrorMap` for displayable server errors)
 
 ## Async submission with loading state
 
@@ -18694,7 +18712,7 @@ const ContactForm = {
 const form = createForm<LoginInput>({
   defaultValues: { email: "", password: "" },
   onSubmit: async ({ value }) => {
-    const result = await loginApi(value)
+    await loginApi(value)
     router.navigate({ to: "/dashboard" })
   },
 })
@@ -18708,26 +18726,39 @@ const SubmitButton = {
 
 ## Handling server errors
 
-Return a rejection from `onSubmit` to display a server error:
+Use `formApi.setErrorMap` so errors show up on `form.state().errors` (TanStack Form's API). Throwing from `onSubmit` only rejects the `handleSubmit()` promise — it does not populate the error map.
 
 ```ts
 const form = createForm<LoginInput>({
   defaultValues: { email: "", password: "" },
-  onSubmit: async ({ value }) => {
+  onSubmit: async ({ value, formApi }) => {
     const result = await loginApi(value)
     if (result.error === "invalid_credentials") {
-      // Set a form-level error by throwing
-      throw new Error("Invalid email or password")
+      formApi.setErrorMap({
+        onSubmit: "Invalid email or password",
+      })
+      return
     }
   },
 })
 
-// Display form-level errors
+// Display form-level errors from the error map
 const FormError = {
   p: (l) => String(form.state(l).errors[0] ?? ""),
   hidden: (l) => form.state(l).errors.length === 0,
   style: { color: "red" },
 }
+```
+
+For unexpected network failures you can still throw and catch at the call site:
+
+```ts
+onSubmit: (e: Event) => {
+  e.preventDefault()
+  form.handleSubmit().catch((err) => {
+    console.error("submit failed", err)
+  })
+},
 ```
 
 For field-level server errors (e.g. "email already taken"):
@@ -18736,11 +18767,12 @@ For field-level server errors (e.g. "email already taken"):
 onSubmit: async ({ value, formApi }) => {
   const result = await registerApi(value)
   if (result.error === "email_taken") {
-    formApi.setFieldMeta("email", (meta) => ({
-      ...meta,
-      errors: ["Email already in use"],
-      errorMap: { onSubmit: "Email already in use" },
-    }))
+    formApi.setErrorMap({
+      onSubmit: {
+        form: undefined,
+        fields: { email: "Email already in use" },
+      },
+    })
   }
 }
 ```
@@ -37031,8 +37063,7 @@ function accordion(
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       outlineOffset: "-1px",
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       overflow: "hidden",
       "& > details": {
         borderBottom: (listener) =>
@@ -37042,8 +37073,7 @@ function accordion(
         borderBottom: "none",
       },
       "& > details > summary:focus-visible": {
-        boxShadow: (listener) =>
-          focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
     },
   };
@@ -37146,6 +37176,9 @@ function avatar(
         themeColor(listener, "inherit", color.get(listener)),
       color: (listener) =>
         themeColor(listener, "shift-11", color.get(listener)),
+      // Hairline so the circle separates from same-tone surfaces.
+      boxShadow: (listener) =>
+        `0 0 0 1px ${themeColor(listener, "border", color.get(listener))}`,
       "& img": {
         position: "absolute",
         inset: 0,
@@ -37213,8 +37246,7 @@ function badge(
         backgroundColor: (l) => themeColor(l, "shift-9", color.get(l)),
         color: (l) => themeColor(l, "shift-0", color.get(l)),
         // Hairline ring so the pill pops on same-hue surfaces.
-        boxShadow: (l) =>
-          `0 0 0 1px ${themeColor(l, "shift-0", color.get(l))}`,
+        boxShadow: (l) => `0 0 0 1px ${themeColor(l, "shift-0", color.get(l))}`,
       },
     },
   };
@@ -37259,8 +37291,7 @@ function blockquote(
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       boxShadow: (listener) =>
         `inset ${themeSpacing(1)} 0 0 0 ${themeColor(listener, "shift-4", color.get(listener))}`,
       border: "none",
@@ -37384,7 +37415,8 @@ function breadcrumbEllipsis(
       cursor: "pointer",
       color: (listener) => themeColor(listener, "muted", color.get(listener)),
       borderRadius: themeSpacing(1),
-      transition: "color 140ms ease, background-color 140ms ease, box-shadow 140ms ease",
+      transition:
+        "color 140ms ease, background-color 140ms ease, box-shadow 140ms ease",
       "&:hover": {
         color: (listener) =>
           themeColor(listener, "shift-10", color.get(listener)),
@@ -37461,12 +37493,17 @@ function button(
         console.warn(`"button" primitive patch must use button tag`);
       }
     },
-    // Solid fills use the dark edge (shift-17) + light text (shift-0).
-    // Inverse solid controls intentionally invert doctor body-text contrast rules.
+    // Solid: deep brand fill (shift-13) + light-end neutral text (shift-0).
+    // Mid-ramp shift-8 failed WCAG (~2.2:1 white-on-medium). NOT dataTone-17
+    // (that collapsed every color into a near-black pill). Outline text:
+    // shift-13 for ≥4.5:1 on light surfaces (shift-9 failed at ~2.57).
     ...(isSolid
       ? {
-          dataTone: "shift-17" as const,
-          _doctorDisable: ["low-contrast", "color-shift-minimum"] as const,
+          _doctorDisable: [
+            "low-contrast",
+            "color-shift-minimum",
+            "tone-background-inherit",
+          ] as const,
         }
       : {}),
     style: {
@@ -37496,27 +37533,29 @@ function button(
             `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       color: (listener) =>
         isSolid
-          ? themeColor(listener, "shift-0", color.get(listener))
-          : themeColor(listener, "text", color.get(listener)),
+          ? themeColor(listener, "shift-0", "neutral")
+          : themeColor(listener, "shift-13", color.get(listener)),
       backgroundColor: (listener) =>
-        themeColor(listener, "inherit", color.get(listener)),
+        isSolid
+          ? themeColor(listener, "shift-13", color.get(listener))
+          : themeColor(listener, "inherit", color.get(listener)),
       transition:
         "background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
       "&:hover:not([disabled]):not([aria-busy=true])": {
         color: (listener) =>
           isSolid
-            ? themeColor(listener, "shift-0", color.get(listener))
-            : themeColor(listener, "shift-10", color.get(listener)),
+            ? themeColor(listener, "shift-0", "neutral")
+            : themeColor(listener, "shift-14", color.get(listener)),
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "decrease-1", color.get(listener))
+            ? themeColor(listener, "shift-14", color.get(listener))
             : themeColor(listener, "hover", color.get(listener)),
       },
-      // Pressed: ±2 from surface (design system interactive delta).
+      // Pressed: solid steps deeper on the brand ramp; outline uses +2 surface.
       "&:active:not([disabled]):not([aria-busy=true])": {
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "decrease-2", color.get(listener))
+            ? themeColor(listener, "shift-15", color.get(listener))
             : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {
@@ -37704,8 +37743,7 @@ function buttonSwitch(
         "padding-left 0.3s, padding-right 0.3s, background-color 140ms ease, box-shadow 140ms ease",
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       "&:focus-visible": {
         boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
@@ -38210,10 +38248,12 @@ function commandItem(
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       border: "none",
       outline: "none",
-      color: (listener) => themeColor(listener, "text", color),
+      // shift-13: menu-row labels need ≥4.5:1 on light surface (visual catalog).
+      color: (listener) => themeColor(listener, "shift-13", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       transition: "background-color 140ms ease, box-shadow 140ms ease",
       "&:hover:not([disabled])": {
+        color: (listener) => themeColor(listener, "shift-13", color),
         backgroundColor: (listener) => themeColor(listener, "hover", color),
       },
       "&:focus-visible": {
@@ -38736,8 +38776,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         },
         transition: "background-color 140ms ease, box-shadow 140ms ease",
         "&:focus-visible": {
-          boxShadow: (l: Listener) =>
-            focusRing(l, accentColor.get(l)),
+          boxShadow: (l: Listener) => focusRing(l, accentColor.get(l)),
         },
       },
       _key: isoOf(date),
@@ -39058,8 +39097,7 @@ function details(
       },
       "& > summary:focus-visible": {
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
-        boxShadow: (listener) =>
-          focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "& > :not(summary)": {
         maxHeight: 0,
@@ -39652,8 +39690,7 @@ function empty(
       },
       // Title (typically second child): stronger body text for hierarchy.
       "& > :nth-child(2)": {
-        color: (listener) =>
-          themeColor(listener, "text", color.get(listener)),
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
       },
     },
   };
@@ -39744,11 +39781,14 @@ function fab(
         console.warn('"fab" patch must use button tag');
       }
     },
-    // Solid accent disc on the dark edge (shift-17) + light text (shift-0).
-    // Doctor's low-contrast / color-shift-minimum rules assume light-surface
-    // body text (shift ≥ 9); inverse solid controls intentionally invert that.
-    dataTone: "shift-17",
-    _doctorDisable: ["low-contrast", "color-shift-minimum"],
+    // Deep brand disc (shift-13) + light icon — mid-ramp shift-8 failed WCAG
+    // (~2.2:1). tone-background-inherit wants inherit+dataTone; explicit fill
+    // silences it the same way as button solid.
+    _doctorDisable: [
+      "low-contrast",
+      "color-shift-minimum",
+      "tone-background-inherit",
+    ],
     style: {
       appearance: "none",
       border: "none",
@@ -39762,18 +39802,18 @@ function fab(
       borderRadius: "50%",
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) =>
-        themeColor(listener, "inherit", color.get(listener)),
-      color: (listener) => themeColor(listener, "shift-0", color.get(listener)),
+        themeColor(listener, "shift-13", color.get(listener)),
+      color: (listener) => themeColor(listener, "shift-0", "neutral"),
       boxShadow: elevation("low"),
       transition: "background-color 200ms ease, box-shadow 200ms ease",
       "&:hover:not([disabled])": {
         backgroundColor: (listener) =>
-          themeColor(listener, "decrease-1", color.get(listener)),
+          themeColor(listener, "shift-14", color.get(listener)),
         boxShadow: elevation("medium"),
       },
       "&:active:not([disabled])": {
         backgroundColor: (listener) =>
-          themeColor(listener, "decrease-2", color.get(listener)),
+          themeColor(listener, "shift-15", color.get(listener)),
         boxShadow: elevation("low"),
       },
       "&:focus-visible": {
@@ -39893,8 +39933,7 @@ function formGroup(
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       display: "grid",
       gridTemplateColumns: isVertical
         ? `minmax(0, 1fr)`
@@ -40036,8 +40075,7 @@ function horizontalRule(
       marginBottom: themeSpacing(3),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
     },
   };
 }
@@ -40130,8 +40168,7 @@ function image(
       borderRadius: themeSpacing(2),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
     },
   };
 }
@@ -40180,8 +40217,7 @@ function inputCheckbox(
     style: {
       appearance: "none",
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       display: "inline-flex",
       position: "relative",
       width: themeSpacing(6),
@@ -40252,8 +40288,7 @@ function inputCheckbox(
       },
       "&:focus-visible": {
         borderRadius: themeSpacing(1.5),
-        boxShadow: (listener) =>
-          focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         cursor: "not-allowed",
@@ -40315,8 +40350,7 @@ function inputColor(
       border: "none",
       cursor: "pointer",
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
       blockSize: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
@@ -40884,8 +40918,7 @@ function inputRadio(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       appearance: "none",
       display: "inline-flex",
       position: "relative",
@@ -40932,8 +40965,7 @@ function inputRadio(
       },
       "&:focus-visible": {
         borderRadius: "50%",
-        boxShadow: (listener) =>
-          focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         cursor: "not-allowed",
@@ -41015,8 +41047,7 @@ function inputRange(
       borderRadius: themeSpacing(2),
       transition: "box-shadow 140ms ease",
       "&:focus-visible": {
-        boxShadow: (listener) =>
-          focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -41170,8 +41201,7 @@ function inputSwitch(
       transition: "box-shadow 140ms ease",
       borderRadius: themeSpacing(999),
       "&:focus-visible": {
-        boxShadow: (listener) =>
-          focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&:checked": {
         "&::before": {
@@ -41462,22 +41492,26 @@ function link(
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) => themeColor(listener),
-      color: (listener) => themeColor(listener, "text", color.get(listener)),
+      // shift-13 (not "text"/shift-9): brand hues need extra depth for ≥4.5:1
+      // on a light surface (primary orange failed at 2.57 with shift-9).
+      color: (listener) =>
+        themeColor(listener, "shift-13", color.get(listener)),
       textDecoration: "none",
       "&:visited": {
         color: (listener) =>
-          themeColor(listener, "text", accentColor.get(listener)),
+          themeColor(listener, "shift-13", accentColor.get(listener)),
       },
       "&:hover:not([disabled])": {
         color: (listener) =>
-          themeColor(listener, "shift-10", color.get(listener)),
+          themeColor(listener, "shift-14", color.get(listener)),
         textDecoration: "underline",
       },
       borderRadius: themeSpacing(1),
+      // Kill the browser default outline so only the shared focusRing shows.
+      outline: "none",
       transition: "color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {
-        boxShadow: (listener) =>
-          focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -41596,8 +41630,7 @@ function linkButton(
           opacity: 0.7,
           cursor: "not-allowed",
           pointerEvents: "none",
-          color: (listener) =>
-            themeColor(listener, "border-strong", "neutral"),
+          color: (listener) => themeColor(listener, "border-strong", "neutral"),
         },
       },
     };
@@ -41614,8 +41647,11 @@ function linkButton(
     },
     ...(isSolid
       ? {
-          dataTone: "shift-17" as const,
-          _doctorDisable: ["low-contrast", "color-shift-minimum"] as const,
+          _doctorDisable: [
+            "low-contrast",
+            "color-shift-minimum",
+            "tone-background-inherit",
+          ] as const,
         }
       : {}),
     style: {
@@ -41642,29 +41678,33 @@ function linkButton(
         ? "none"
         : (listener) =>
             `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      // Solid: deep brand (shift-13) + light-end text (not mid-ramp ~2.2:1).
+      // Outline: shift-13 for ≥4.5:1 on light bg.
       color: (listener) =>
         isSolid
-          ? themeColor(listener, "shift-0", color.get(listener))
-          : themeColor(listener, "text", color.get(listener)),
+          ? themeColor(listener, "shift-0", "neutral")
+          : themeColor(listener, "shift-13", color.get(listener)),
       backgroundColor: (listener) =>
-        themeColor(listener, "inherit", color.get(listener)),
+        isSolid
+          ? themeColor(listener, "shift-13", color.get(listener))
+          : themeColor(listener, "inherit", color.get(listener)),
       transition:
         "background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
       "&:hover:not([aria-disabled=true])": {
         textDecoration: "none",
         color: (listener) =>
           isSolid
-            ? themeColor(listener, "shift-0", color.get(listener))
-            : themeColor(listener, "shift-10", color.get(listener)),
+            ? themeColor(listener, "shift-0", "neutral")
+            : themeColor(listener, "shift-14", color.get(listener)),
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "decrease-1", color.get(listener))
+            ? themeColor(listener, "shift-14", color.get(listener))
             : themeColor(listener, "hover", color.get(listener)),
       },
       "&:active:not([aria-disabled=true])": {
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "decrease-2", color.get(listener))
+            ? themeColor(listener, "shift-15", color.get(listener))
             : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {
@@ -41985,16 +42025,19 @@ function menu(
             paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
             border: "none",
             outline: "none",
-            color: (l: Listener) => themeColor(l, "text", color),
+            // Menu panel is dataTone shift-17: shift-17 text = opposite ramp end
+            // (readable on dark light-theme panels and light dark-theme panels).
+            color: (l: Listener) => themeColor(l, "shift-17", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
-            transition: "background-color 140ms ease, box-shadow 140ms ease",
+            transition:
+              "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
             "&:hover:not([disabled]):not([aria-current=true])": {
               backgroundColor: (l: Listener) => themeColor(l, "hover", color),
             },
             "&[aria-current=true]": {
               backgroundColor: (l: Listener) =>
                 themeColor(l, "shift-3", accentColor),
-              color: (l: Listener) => themeColor(l, "shift-10"),
+              color: (l: Listener) => themeColor(l, "shift-13", accentColor),
             },
             "&:focus-visible": {
               boxShadow: (l: Listener) => focusRing(l, accentColor),
@@ -42110,6 +42153,15 @@ const toStyles = (frame: MotionKeyframe): Keyframe => {
  * @param props.transition.iterations - Number of iterations. Defaults to `1`.
  * @example { div: "Hello", $: [motion({ initial: { opacity: 0 }, animate: { opacity: 1 } })] }
  */
+function prefersReducedMotion(): boolean {
+  if (typeof matchMedia !== "function") return false;
+  try {
+    return matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+}
+
 function motion(props: MotionProps = {}): PartialElement {
   const { initial, animate, exit, transition = {} } = props;
   const options: KeyframeAnimationOptions = {
@@ -42125,6 +42177,18 @@ function motion(props: MotionProps = {}): PartialElement {
       const el = node.domElement as HTMLElement | null;
       if (!el || typeof el.animate !== "function") return;
       const target = isState(animate) ? animate.get() : animate;
+      // WCAG 2.3.3 / Front-End Checklist: respect prefers-reduced-motion.
+      if (prefersReducedMotion()) {
+        if (target) Object.assign(el.style, toStyles(target));
+        else if (initial) Object.assign(el.style, toStyles(initial));
+        if (isState(animate)) {
+          const release = animate.addListener((next: MotionKeyframe) => {
+            Object.assign(el.style, toStyles(next));
+          });
+          node.setMetadata("motionRelease", release);
+        }
+        return;
+      }
       if (target) {
         el.animate(
           initial ? [toStyles(initial), toStyles(target)] : [toStyles(target)],
@@ -42143,6 +42207,10 @@ function motion(props: MotionProps = {}): PartialElement {
     _onBeforeRemove: (node, done) => {
       const el = node.domElement as HTMLElement | null;
       if (!el || !exit || typeof el.animate !== "function") return done();
+      if (prefersReducedMotion()) {
+        Object.assign(el.style, toStyles(exit));
+        return done();
+      }
       el.animate([toStyles(exit)], options).finished.then(done, done);
     },
     _onRemove: (node) => {
@@ -42268,9 +42336,12 @@ function pagination(props: {
     cursor: "pointer",
     fontSize: (listener: any) => themeSize(listener, "inherit"),
     backgroundColor: "transparent",
-    color: (listener: any) => themeColor(listener, "text", color),
-    transition: "background-color 140ms ease, box-shadow 140ms ease",
+    // Page numbers: shift-13 for readable inactive digits (catalog contrast).
+    color: (listener: any) => themeColor(listener, "shift-13", color),
+    transition:
+      "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
     "&:hover:not([disabled])": {
+      color: (listener: any) => themeColor(listener, "shift-13", color),
       backgroundColor: (listener: any) => themeColor(listener, "hover", color),
     },
     "&:focus-visible": {
@@ -42284,14 +42355,15 @@ function pagination(props: {
 
   const activeStyle = {
     ...btnBase,
+    // Deep accent fill + light text (mid-ramp + mid text failed catalog).
     backgroundColor: (listener: any) =>
-      themeColor(listener, "shift-6", accentColor),
-    color: (listener: any) => themeColor(listener, "shift-11", accentColor),
+      themeColor(listener, "shift-13", accentColor),
+    color: (listener: any) => themeColor(listener, "shift-0", "neutral"),
     fontWeight: "bold",
     cursor: "default",
     "&:hover:not([disabled])": {
       backgroundColor: (listener: any) =>
-        themeColor(listener, "shift-6", accentColor),
+        themeColor(listener, "shift-13", accentColor),
     },
   };
 
@@ -42839,8 +42911,7 @@ function progress(
       overflow: "hidden",
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       "&::-webkit-progress-bar": {
         backgroundColor: (listener) =>
           themeColor(listener, "inherit", color.get(listener)),
@@ -43194,6 +43265,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /** One item inside a segmented control. */
@@ -43264,13 +43336,23 @@ function segmented(
             "&:hover:not([disabled]):not([aria-checked=true])": {
               backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
             },
+            "&:active:not([disabled]):not([aria-checked=true])": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "increase-2", color),
+            },
             "&[aria-checked=true]": {
               backgroundColor: (l: Listener) =>
                 themeColor(l, "shift-0", accentColor),
               color: (l: Listener) => themeColor(l, "shift-10", accentColor),
+              // Selected segment sits slightly above the track.
+              boxShadow: elevation("low"),
             },
             "&:focus-visible": {
               boxShadow: (l: Listener) => focusRing(l, accentColor),
+            },
+            "&[aria-checked=true]:focus-visible": {
+              boxShadow: (l: Listener) =>
+                `${elevation("low")}, ${focusRing(l, accentColor)}`,
             },
             "&[disabled]": {
               opacity: 0.7,
@@ -43816,7 +43898,9 @@ function small(
     dataSize: "decrease-1",
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "text", color.get(listener)),
+      // shift-10 (not muted/shift-8) keeps WCAG AA ≥4.5:1 on light surfaces for small type.
+      color: (listener) =>
+        themeColor(listener, "shift-10", color.get(listener)),
     },
   };
 }
@@ -44266,33 +44350,39 @@ function steps(
             },
             "&[data-status=active]::before": {
               backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-6", accentColor),
+                themeColor(l, "shift-9", accentColor),
               borderColor: (l: Listener) =>
-                themeColor(l, "shift-6", accentColor),
-              color: (l: Listener) => themeColor(l, "shift-15", accentColor),
+                themeColor(l, "shift-9", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-0", accentColor),
+              boxShadow: (l: Listener) =>
+                `0 0 0 3px ${themeColor(l, "shift-3", accentColor)}`,
             },
+            // Completed steps: filled accent + check, matching active track.
             "&[data-status=done]::before": {
               content: '"✓"',
-              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
-              borderColor: (l: Listener) => themeColor(l, "border", color),
-              color: (l: Listener) => themeColor(l, "text", color),
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-9", accentColor),
+              borderColor: (l: Listener) =>
+                themeColor(l, "shift-9", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-0", accentColor),
             },
             "&[data-status=done]:not(:first-child)::after": {
-              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-9", accentColor),
             },
             "&[data-status=active]:not(:first-child)::after": {
               backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-6", accentColor),
+                themeColor(l, "shift-9", accentColor),
             },
             "&[data-status=pending]": {
-              color: (l: Listener) => themeColor(l, "shift-7"),
+              color: (l: Listener) => themeColor(l, "muted"),
             },
             "&[data-status=active]": {
-              color: (l: Listener) => themeColor(l, "shift-10"),
+              color: (l: Listener) => themeColor(l, "shift-11", accentColor),
               fontWeight: "bold",
             },
             "&[data-status=done]": {
-              color: (l: Listener) => themeColor(l, "muted"),
+              color: (l: Listener) => themeColor(l, "text", color),
             },
           },
         } as DomphyElement<"li">;
@@ -44611,21 +44701,30 @@ function tabs(
             paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
             border: "none",
             outline: "none",
-            color: (l: Listener) => themeColor(l, "text"),
+            // Resting tabs: shift-13 for ≥4.5:1 on surface (catalog low-contrast).
+            color: (l: Listener) => themeColor(l, "shift-13"),
             backgroundColor: (l: Listener) => themeColor(l, "inherit"),
             boxShadow: (l: Listener) =>
               `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-1", color)}`,
             transition: "box-shadow 140ms ease, color 140ms ease",
-            "&:hover:not([disabled])": {
+            "&:hover:not([disabled]):not([aria-selected=true])": {
+              color: (l: Listener) => themeColor(l, "shift-13"),
               boxShadow: (l: Listener) =>
                 `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-2", color)}`,
             },
             "&[aria-selected=true]:not([disabled])": {
+              color: (l: Listener) => themeColor(l, "shift-13", accentColor),
               boxShadow: (l: Listener) =>
-                `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
+                `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-8", accentColor)}`,
             },
+            // Focus ring must compose with the selected underline (both use
+            // box-shadow) so keyboard focus doesn't erase the active indicator.
             "&:focus-visible": {
               boxShadow: (l: Listener) => focusRing(l, accentColor),
+            },
+            "&[aria-selected=true]:focus-visible": {
+              boxShadow: (l: Listener) =>
+                `${focusRing(l, accentColor)}, inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
             },
           },
         } as DomphyElement<"button">;
@@ -44721,8 +44820,7 @@ function tag(
               themeColor(listener, "shift-4", color.get(listener)),
           },
           "&:focus-visible": {
-            boxShadow: (listener) =>
-              focusRing(listener, color.get(listener)),
+            boxShadow: (listener) => focusRing(listener, color.get(listener)),
           },
         },
       };
@@ -45189,17 +45287,23 @@ function toggleGroup(
             paddingInline: themeSpacing(2),
             border: "none",
             borderRadius: themeSpacing(1.5),
-            color: (l: Listener) => themeColor(l, "text", color),
+            // Unpressed: shift-13 for readable resting labels (catalog contrast).
+            color: (l: Listener) => themeColor(l, "shift-13", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
             transition:
               "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
-            "&:hover:not([disabled])": {
+            "&:hover:not([disabled]):not([aria-pressed=true])": {
+              color: (l: Listener) => themeColor(l, "shift-13", color),
               backgroundColor: (l: Listener) => themeColor(l, "hover", color),
+            },
+            "&:active:not([disabled])": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "increase-2", color),
             },
             "&[aria-pressed=true]": {
               backgroundColor: (l: Listener) =>
                 themeColor(l, "shift-3", accentColor),
-              color: (l: Listener) => themeColor(l, "shift-12", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-13", accentColor),
             },
             "&:focus-visible": {
               boxShadow: (l: Listener) => focusRing(l, accentColor),

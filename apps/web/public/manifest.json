@@ -1,6 +1,6 @@
 {
   "name": "domphy",
-  "version": "0.19.0",
+  "version": "0.19.3",
   "generated": "auto",
   "rules": "https://domphy.com/llms.txt",
   "tones": "https://domphy.com/tones.json",
@@ -9,14 +9,22 @@
       "name": "@domphy/app",
       "version": "0.18.1",
       "description": "Domphy App - a port of the Next.js App Router feature set for Domphy: routing, nested layouts, navigation, data loading, metadata, middleware, SSR and API routes",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/blocks",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "description": "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, independently reimplemented (clean-room) from the public behavior of shadcn/ui and Magic UI.",
-      "subpaths": ["."],
+      "subpaths": [
+        ".",
+        "./shadcn",
+        "./magicui"
+      ],
       "peerDependencies": [
         "@domphy/chart",
         "@domphy/core",
@@ -30,91 +38,141 @@
       "name": "@domphy/chart",
       "version": "0.2.3",
       "description": "ECharts-grade chart library for Domphy — WebGL series + SVG overlays, tone/density cascade.",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core", "@domphy/theme"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core",
+        "@domphy/theme"
+      ]
     },
     {
       "name": "@domphy/core",
-      "version": "0.19.0",
+      "version": "0.19.3",
       "description": "Domphy core runtime — patch-based, framework-agnostic UI with plain-object element trees, listener-based reactivity, and SSR + hydration (no JSX, no virtual DOM)",
-      "subpaths": ["."],
+      "subpaths": [
+        "."
+      ],
       "peerDependencies": []
     },
     {
       "name": "create-domphy",
-      "version": "0.18.1",
+      "version": "0.18.3",
       "description": "Scaffold a runnable Domphy starter project (npm create domphy@latest)",
-      "subpaths": ["."],
+      "subpaths": [
+        "."
+      ],
       "peerDependencies": []
     },
     {
       "name": "@domphy/dnd",
       "version": "0.18.3",
       "description": "Domphy Drag & Drop - reactive adapter for the framework-agnostic @formkit/drag-and-drop engine",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/doctor",
-      "version": "0.18.14",
+      "version": "0.18.15",
       "description": "Domphy Doctor - static analyzer that flags non-idiomatic Domphy element trees (AI self-correction)",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core", "htmlhint", "stylelint", "tsx"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core",
+        "htmlhint",
+        "stylelint",
+        "tsx"
+      ]
     },
     {
       "name": "@domphy/floating",
       "version": "0.18.1",
       "description": "Domphy Floating - anchor positioning (tooltips, popovers, dropdowns), a 1-1 vendor of floating-ui (dom + core + utils), zero dependencies",
-      "subpaths": ["."],
+      "subpaths": [
+        "."
+      ],
       "peerDependencies": []
     },
     {
       "name": "@domphy/form",
       "version": "0.18.1",
       "description": "Domphy Form - headless form state, validation and submission, a 1-1 port of @tanstack/form-core",
-      "subpaths": [".", "./domphy"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./domphy"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/i18n",
-      "version": "0.19.1",
+      "version": "0.19.2",
       "description": "Domphy i18n — generic i18next wrapper with reactive Domphy integration (globalThis dedup, typed keys, t(listener, key) overload)",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/markdown",
       "version": "0.19.1",
       "description": "Domphy Markdown - parse Markdown (remark/MDAST) into Domphy element trees for SSR with @domphy/core",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/mcp",
       "version": "0.19.2",
       "description": "Domphy MCP server - exposes patches, packages, rules, and the doctor to MCP-capable AI agents",
-      "subpaths": [".", "./tools"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./tools"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/mermaid",
       "version": "0.18.1",
       "description": "Domphy Mermaid - build-time (SSG) and client-side Mermaid diagram rendering, with markdown tree integration for @domphy/markdown",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core", "mermaid"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core",
+        "mermaid"
+      ]
     },
     {
       "name": "@domphy/palette",
       "version": "0.19.0",
       "description": "Domphy Palette - color-science toolkit: generate, measure, and validate palette quality with CIELAB metrics, a port of chromametry",
-      "subpaths": ["."],
+      "subpaths": [
+        "."
+      ],
       "peerDependencies": []
     },
     {
       "name": "@domphy/press",
-      "version": "0.20.15",
+      "version": "0.21.4",
       "description": "Domphy Press — VitePress-baseline static doc site framework built on @domphy/app + @domphy/markdown",
-      "subpaths": [".", "./browser"],
+      "subpaths": [
+        ".",
+        "./browser"
+      ],
       "peerDependencies": [
         "@domphy/app",
         "@domphy/core",
@@ -127,8 +185,13 @@
       "name": "@domphy/query",
       "version": "0.18.1",
       "description": "Domphy Query - async state management, a 1-1 port of @tanstack/query-core",
-      "subpaths": [".", "./domphy"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./domphy"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/router",
@@ -148,36 +211,60 @@
       "name": "@domphy/table",
       "version": "0.18.1",
       "description": "Domphy Table - headless table logic, a 1-1 port of @tanstack/table-core",
-      "subpaths": [".", "./domphy"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./domphy"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/theme",
-      "version": "0.20.0",
+      "version": "0.20.1",
       "description": "Domphy design system — reactive color/spacing/size tokens, tone ramps, and theme generation from a single base color per role",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     },
     {
       "name": "@domphy/three",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Declarative three.js renderer for Domphy — a react-three-fiber-grade scene graph on Domphy reactivity.",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core", "three"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core",
+        "three"
+      ]
     },
     {
       "name": "@domphy/ui",
-      "version": "0.20.1",
+      "version": "0.20.8",
       "description": "95 dependency-free UI patches for the Domphy runtime — buttons, dialogs, forms, overlays, motion",
-      "subpaths": ["."],
-      "peerDependencies": ["@domphy/core", "@domphy/theme"]
+      "subpaths": [
+        "."
+      ],
+      "peerDependencies": [
+        "@domphy/core",
+        "@domphy/theme"
+      ]
     },
     {
       "name": "@domphy/virtual",
       "version": "0.18.1",
       "description": "Domphy Virtual - headless list/grid virtualization, a 1-1 port of @tanstack/virtual-core",
-      "subpaths": [".", "./domphy"],
-      "peerDependencies": ["@domphy/core"]
+      "subpaths": [
+        ".",
+        "./domphy"
+      ],
+      "peerDependencies": [
+        "@domphy/core"
+      ]
     }
   ],
   "patches": [
@@ -224,7 +311,7 @@
           "name": "accentColor",
           "type": "ValueOrState<ThemeColor>",
           "optional": true,
-          "doc": "Accent color for focus outlines on summary. Defaults to `\"primary\"`."
+          "doc": "Accent color for focus rings on summary. Defaults to `\"primary\"`."
         }
       ],
       "doc": "Container patch that groups `<details>` elements into a bordered accordion. In `type: \"single\"` mode (default), opening one item closes all siblings.",
@@ -363,7 +450,7 @@
           "doc": "Button size preset. Optional `\"small\" | \"medium\" | \"large\"`, defaults to `\"medium\"`."
         }
       ],
-      "doc": "A themed button control with density-aware padding/radius and hover, focus-visible, `[disabled]`, and `[aria-busy=true]` states. Apply to a `<button>` element.",
+      "doc": "A themed button control with density-aware padding/radius and hover, pressed (`:active` ±2), focus-visible, `[disabled]`, and `[aria-busy=true]` states. Apply to a `<button>` element.",
       "example": "{ button: \"Save\", $: [button({ color: \"primary\" })] }",
       "source": "packages/ui/src/patches/button.ts"
     },
@@ -531,7 +618,7 @@
           "name": "accentColor",
           "type": "ThemeColor",
           "optional": true,
-          "doc": "Accent color used for the focus outline. Defaults to \"primary\"."
+          "doc": "Accent color used for the focus ring. Defaults to \"primary\"."
         }
       ],
       "doc": "Selectable item (`role=\"option\"`) in a command palette. On mount, immediately hides itself if the current query doesn't match its text content, and subscribes to future query changes — so items added dynamically after a search is typed are correctly filtered. Typically applied to a `<button>` (or any clickable element) used inside a `command()`.",
@@ -673,7 +760,7 @@
           "name": "accentColor",
           "type": "ValueOrState<ThemeColor>",
           "optional": true,
-          "doc": "Accent color (`ValueOrState<ThemeColor>`) for the summary's focus outline. Defaults to \"primary\"."
+          "doc": "Accent color (`ValueOrState<ThemeColor>`) for the summary's focus ring. Defaults to \"primary\"."
         },
         {
           "name": "duration",
@@ -961,7 +1048,7 @@
     {
       "name": "inputColor",
       "hostTag": "input",
-      "signature": "inputColor(_props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "signature": "inputColor(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
       "props": [
         {
           "name": "color",
@@ -1250,16 +1337,28 @@
     {
       "name": "linkButton",
       "hostTag": "a",
-      "signature": "linkButton(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "signature": "linkButton(props: { color?: ValueOrState<ThemeColor>; variant?: ButtonVariant; size?: ButtonSize; } = {})",
       "props": [
         {
           "name": "color",
           "type": "ValueOrState<ThemeColor>",
           "optional": true,
           "doc": "Button color tone. Optional `ValueOrState<ThemeColor>`, default \"primary\"."
+        },
+        {
+          "name": "variant",
+          "type": "ButtonVariant",
+          "optional": true,
+          "doc": "`\"outline\"` (default) | `\"solid\"` | `\"ghost\"` — matches `button()`."
+        },
+        {
+          "name": "size",
+          "type": "ButtonSize",
+          "optional": true,
+          "doc": "`\"small\" | \"medium\" | \"large\"`, defaults to `\"medium\"`."
         }
       ],
-      "doc": "An `<a>` element styled to look like a button — same visual appearance as `button()` but preserves link semantics (href, middle-click, right-click). Apply to an `<a>` element.",
+      "doc": "An `<a>` element styled to look like a button — same visual system as `button()` (`variant` / `size` / color) while preserving link semantics (href, middle-click, right-click). Apply to an `<a>` element.",
       "example": "{ a: \"Open app\", href: \"/app\", $: [linkButton({ color: \"primary\" })] }",
       "source": "packages/ui/src/patches/linkButton.ts"
     },
@@ -1388,29 +1487,29 @@
           "name": "initial",
           "type": "MotionKeyframe",
           "optional": true,
-          "doc": "Starting keyframe applied before the enter animation."
+          "doc": ""
         },
         {
           "name": "animate",
           "type": "MotionKeyframe | State<MotionKeyframe>",
           "optional": true,
-          "doc": "Target keyframe, or a `State` to re-animate on change."
+          "doc": ""
         },
         {
           "name": "exit",
           "type": "MotionKeyframe",
           "optional": true,
-          "doc": "Keyframe animated to before the element is removed."
+          "doc": ""
         },
         {
           "name": "transition",
           "type": "{ /** ms, default 300. */ duration?: number; /** ms, default 0. */ delay?: number; /** CSS easing, default \"ease\". */ easing?: string; iterations?: number; }",
           "optional": true,
-          "doc": "Timing options."
+          "doc": ""
         }
       ],
-      "doc": "Animation primitive driven by the Web Animations API. Runs an enter animation on mount (`initial` -> `animate`), re-animates whenever `animate` is a `State` that changes, and plays the `exit` keyframe before removal. Has no host-tag restriction; apply to any element you want to animate.",
-      "example": "{ div: \"Hello\", $: [motion({ initial: { opacity: 0 }, animate: { opacity: 1 } })] }",
+      "doc": "",
+      "example": "",
       "source": "packages/ui/src/patches/motion.ts"
     },
     {
@@ -1925,7 +2024,7 @@
           "doc": "Theme color tone for the placeholder. Accepts a value or reactive state. Defaults to `\"neutral\"`."
         }
       ],
-      "doc": "A loading placeholder block with a pulsing opacity animation. Marked `aria-hidden`, themed background/foreground, fixed height, slight rounding. No host-tag check; typically applied to a block-level element such as a `div` or `span`.",
+      "doc": "A loading placeholder block with a left-to-right shimmer gradient. Marked `aria-hidden`, themed background/foreground, fixed height, slight rounding. No host-tag check; typically applied to a block-level element such as a `div` or `span`.",
       "example": "{ div: null, $: [skeleton()] }",
       "source": "packages/ui/src/patches/skeleton.ts"
     },

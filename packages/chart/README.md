@@ -82,7 +82,10 @@ option.set({ series: [{ type: "line", data: [4, 5, 6] }] })  // triggers re-rend
 | `lines` | flow map arcs with optional `effect` animation |
 | `effectScatter` | scatter with SVG ripple animation |
 | `pictorialBar` | bar with symbol shapes; `symbol`, `symbolRepeat` |
-| `custom` | `renderItem(params, api)` returns SVG element descriptor |
+
+> **Not implemented (typed for ECharts interop only):** `custom` series
+> (`renderItem`), `toolbox`, and `brush`. Passing them logs a console warning
+> and has no render effect — pre-normalize data or wait for a future release.
 
 **3D (SVG perspective projection):**
 

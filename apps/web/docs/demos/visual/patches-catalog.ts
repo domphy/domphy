@@ -243,13 +243,19 @@ const buttons = visualSection("Buttons", [
   visualCell(
     "button-solid-hover",
     "button / solid hover",
-    { button: "Hover solid", $: [button({ variant: "solid", color: "primary" })] },
+    {
+      button: "Hover solid",
+      $: [button({ variant: "solid", color: "primary" })],
+    },
     { hover: true },
   ),
   visualCell(
     "button-solid-focus",
     "button / solid focus",
-    { button: "Focus solid", $: [button({ variant: "solid", color: "primary" })] },
+    {
+      button: "Focus solid",
+      $: [button({ variant: "solid", color: "primary" })],
+    },
     { focus: true },
   ),
   visualCell("button-solid-busy", "button / solid busy", {
@@ -1362,11 +1368,11 @@ const navigation = visualSection("Navigation & selection", [
     },
     { minWidth: "180px" },
   ),
-  visualCell(
-    "link-default",
-    "link / default",
-    { a: "Documentation", href: "#", $: [link()] },
-  ),
+  visualCell("link-default", "link / default", {
+    a: "Documentation",
+    href: "#",
+    $: [link()],
+  }),
   visualCell("link-state-disabled", "link / disabled", {
     a: "Disabled",
     href: "#",
@@ -1448,11 +1454,7 @@ const dataDisplay = visualSection("Data display", [
         {
           thead: [
             {
-              tr: [
-                { th: "Invoice" },
-                { th: "Status" },
-                { th: "Amount" },
-              ],
+              tr: [{ th: "Invoice" }, { th: "Status" }, { th: "Amount" }],
             },
           ],
         },
@@ -1527,30 +1529,22 @@ const dataDisplay = visualSection("Data display", [
     },
     { minWidth: "220px" },
   ),
-  visualCell(
-    "image-default",
-    "image / default",
-    {
-      img: null,
-      src: CHART_IMG,
-      alt: "Chart",
-      _doctorDisable: "missing-color",
-      $: [image()],
-      style: { maxWidth: themeSpacing(48) },
-    },
-  ),
-  visualCell(
-    "image-color-primary",
-    "image / primary",
-    {
-      img: null,
-      src: CHART_IMG,
-      alt: "Chart primary",
-      _doctorDisable: "missing-color",
-      $: [image({ color: "primary" })],
-      style: { maxWidth: themeSpacing(48) },
-    },
-  ),
+  visualCell("image-default", "image / default", {
+    img: null,
+    src: CHART_IMG,
+    alt: "Chart",
+    _doctorDisable: "missing-color",
+    $: [image()],
+    style: { maxWidth: themeSpacing(48) },
+  }),
+  visualCell("image-color-primary", "image / primary", {
+    img: null,
+    src: CHART_IMG,
+    alt: "Chart primary",
+    _doctorDisable: "missing-color",
+    $: [image({ color: "primary" })],
+    style: { maxWidth: themeSpacing(48) },
+  }),
   visualCell("icon-default", "icon / default", {
     span: ICON_SVG,
     $: [icon()],
@@ -1640,11 +1634,17 @@ const layout = visualSection("Layout", [
     {
       div: [
         {
-          div: [{ h4: "Section", $: [heading()] }, { p: "Body", $: [paragraph()] }],
+          div: [
+            { h4: "Section", $: [heading()] },
+            { p: "Body", $: [paragraph()] },
+          ],
           $: [stack({ gap: 1 }), panelSection({ divider: true })],
         },
         {
-          div: [{ h4: "Next", $: [heading()] }, { p: "More", $: [paragraph()] }],
+          div: [
+            { h4: "Next", $: [heading()] },
+            { p: "More", $: [paragraph()] },
+          ],
           $: [stack({ gap: 1 }), panelSection()],
         },
       ],

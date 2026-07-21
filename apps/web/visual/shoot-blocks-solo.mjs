@@ -5,8 +5,8 @@
  *   node visual/serve-standalone.mjs --port 4177
  *   node visual/shoot-blocks-solo.mjs [outDir]
  */
-import { readdirSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -108,6 +108,8 @@ for (let i = 0; i < names.length; i++) {
 }
 
 writeFileSync(join(outDir, "report.json"), JSON.stringify(report, null, 2));
-console.log(`\nDone: ${report.cells.length} shots, ${report.issues.length} issues → ${outDir}`);
+console.log(
+  `\nDone: ${report.cells.length} shots, ${report.issues.length} issues → ${outDir}`,
+);
 await browser.close();
 process.exit(report.issues.some((i) => i.kind === "sidebar-bleed") ? 2 : 0);

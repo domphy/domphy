@@ -61,7 +61,8 @@ function pagination(props: {
     backgroundColor: "transparent",
     // Page numbers: shift-13 for readable inactive digits (catalog contrast).
     color: (listener: any) => themeColor(listener, "shift-13", color),
-    transition: "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
+    transition:
+      "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
     "&:hover:not([disabled])": {
       color: (listener: any) => themeColor(listener, "shift-13", color),
       backgroundColor: (listener: any) => themeColor(listener, "hover", color),

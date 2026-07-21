@@ -224,6 +224,88 @@ describe("dialog", () => {
     expect(dlg.style.visibility).toBe("hidden");
     expect(dlg.style.pointerEvents).toBe("none");
   });
+
+  it("restores focus to the previously focused element when closed", () => {
+    const open = toState(false);
+    const trigger = document.createElement("button");
+    trigger.textContent = "Open";
+    document.body.appendChild(trigger);
+    trigger.focus();
+    const focusSpy = vi.spyOn(trigger, "focus");
+
+    const { host } = render({
+      div: [
+        {
+          dialog: [{ button: "Confirm" }, { button: "Cancel" }],
+          $: [dialog({ open })],
+        },
+      ],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+
+    // Open while `trigger` is document.activeElement so dialog stores it as
+    // previousFocus (Radix-style restore target).
+    open.set(true);
+    flushSync();
+    expect(dlg.style.visibility).toBe("visible");
+    focusSpy.mockClear();
+
+    open.set(false);
+    flushSync();
+    // Close finalizes via transitionend or the 350ms fallback timer.
+    vi.runAllTimers();
+    expect(dlg.style.visibility).toBe("hidden");
+    expect(focusSpy).toHaveBeenCalled();
+  });
+
+  it("traps Tab focus within the dialog (shift+Tab from first cycles to last)", () => {
+    const open = toState(true);
+    const { host } = render({
+      div: [
+        {
+          dialog: [{ button: "First" }, { button: "Last" }],
+          $: [dialog({ open })],
+        },
+      ],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+    flushSync();
+    vi.runAllTimers();
+
+    const buttons = Array.from(dlg.querySelectorAll("button"));
+    expect(buttons.length).toBe(2);
+    const [first, last] = buttons;
+    // Make both focusable/visible for offsetParent filter in trapFocus.
+    Object.defineProperty(first, "offsetParent", { get: () => dlg });
+    Object.defineProperty(last, "offsetParent", { get: () => dlg });
+    first.focus();
+    expect(document.activeElement).toBe(first);
+
+    const shiftTab = new KeyboardEvent("keydown", {
+      key: "Tab",
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    const prevented = !dlg.dispatchEvent(shiftTab) || shiftTab.defaultPrevented;
+    // trapFocus should move focus to last and preventDefault.
+    expect(prevented || document.activeElement === last).toBe(true);
+    if (document.activeElement !== last) {
+      // jsdom may not re-target focus on preventDefault alone — assert trap ran
+      // by checking defaultPrevented after a real listener.
+      last.focus();
+      const tab = new KeyboardEvent("keydown", {
+        key: "Tab",
+        shiftKey: false,
+        bubbles: true,
+        cancelable: true,
+      });
+      dlg.dispatchEvent(tab);
+      expect(tab.defaultPrevented || document.activeElement === first).toBe(
+        true,
+      );
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

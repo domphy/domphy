@@ -22,10 +22,7 @@ async function closeBlockingOverlays(page: Page): Promise<void> {
   });
 }
 
-async function isolateVisualCell(
-  page: Page,
-  currentId: string,
-): Promise<void> {
+async function isolateVisualCell(page: Page, currentId: string): Promise<void> {
   await page.evaluate((id) => {
     for (const el of document.querySelectorAll("[data-visual]")) {
       const match = el.getAttribute("data-visual") === id;
@@ -58,19 +55,22 @@ async function prepareCell(page: Page, cell: Locator): Promise<void> {
   // Re-show overlays that live inside this cell (dialog/drawer demos).
   const dialog = cell.locator("dialog").first();
   if ((await dialog.count()) > 0) {
-    await page.evaluate((el) => {
-      const d = el as HTMLDialogElement;
-      d.style.removeProperty("display");
-      d.style.removeProperty("visibility");
-      d.style.removeProperty("pointer-events");
-      d.style.opacity = "1";
-      try {
-        if (typeof d.showModal === "function") d.showModal();
-        else d.setAttribute("open", "");
-      } catch {
-        d.setAttribute("open", "");
-      }
-    }, await dialog.elementHandle());
+    await page.evaluate(
+      (el) => {
+        const d = el as HTMLDialogElement;
+        d.style.removeProperty("display");
+        d.style.removeProperty("visibility");
+        d.style.removeProperty("pointer-events");
+        d.style.opacity = "1";
+        try {
+          if (typeof d.showModal === "function") d.showModal();
+          else d.setAttribute("open", "");
+        } catch {
+          d.setAttribute("open", "");
+        }
+      },
+      await dialog.elementHandle(),
+    );
     await page.waitForTimeout(50);
   }
   // Unhide floating panels under this cell.

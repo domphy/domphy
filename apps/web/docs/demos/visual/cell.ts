@@ -42,7 +42,7 @@ export function visualCell(
           letterSpacing: "0.02em",
           color: (l) => themeColor(l, "muted"),
           fontFamily:
-            'var(--dp-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)',
+            "var(--dp-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)",
         },
       },
       {

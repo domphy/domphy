@@ -22,7 +22,7 @@ import {
 // (tsup/esbuild) does not inject the package version, and a JSON import of
 // package.json is awkward under this dts/bundle setup, so it is hardcoded here.
 // Bump both together on every release.
-const SERVER_VERSION = "0.19.1";
+const SERVER_VERSION = "0.19.2";
 
 const server = new Server(
   { name: "domphy", version: SERVER_VERSION },

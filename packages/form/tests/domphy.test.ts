@@ -73,4 +73,60 @@ describe("createForm", () => {
     expect(form.values().n).toBe("a");
     form.destroy();
   });
+
+  it("does not call onSubmit when field onSubmit validation fails; calls onSubmitInvalid", async () => {
+    let submitted = false;
+    let invalidCalls = 0;
+    const form = createForm<{ name: string }>({
+      defaultValues: { name: "" },
+      onSubmit: () => {
+        submitted = true;
+      },
+      onSubmitInvalid: () => {
+        invalidCalls += 1;
+      },
+    });
+    form.field<string>("name", {
+      validators: {
+        onSubmit: ({ value }: { value: string }) =>
+          value.trim() ? undefined : "Name is required",
+      },
+    });
+
+    await form.handleSubmit();
+    expect(submitted).toBe(false);
+    expect(invalidCalls).toBe(1);
+    expect(form.field<string>("name").errors().length).toBeGreaterThan(0);
+    form.destroy();
+  });
+
+  it("setErrorMap writes form-level errors readable via state().errors", async () => {
+    const form = createForm<{ email: string }>({
+      defaultValues: { email: "a@b.com" },
+      onSubmit: ({ formApi }) => {
+        formApi.setErrorMap({
+          onSubmit: "Invalid credentials",
+        });
+      },
+    });
+    form.field<string>("email");
+    await form.handleSubmit();
+    expect(form.state().errors).toContain("Invalid credentials");
+    form.destroy();
+  });
+
+  it("rethrows when onSubmit throws and does not invent form errors", async () => {
+    const form = createForm<{ n: string }>({
+      defaultValues: { n: "ok" },
+      onSubmit: async () => {
+        throw new Error("network down");
+      },
+    });
+    form.field<string>("n");
+    await expect(form.handleSubmit()).rejects.toThrow("network down");
+    expect(form.state().isSubmitSuccessful).toBe(false);
+    // Throwing must not auto-populate the error map (TanStack Form contract).
+    expect(form.state().errors).not.toContain("network down");
+    form.destroy();
+  });
 });

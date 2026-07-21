@@ -1,6 +1,6 @@
 import { scrollProgress } from "@domphy/blocks";
-import { paragraph } from "@domphy/ui";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { paragraph } from "@domphy/ui";
 
 // In-flow demo stage: fixed-to-viewport progress is also staged as absolute
 // inside this relative host so catalog cell screenshots capture the bar.
