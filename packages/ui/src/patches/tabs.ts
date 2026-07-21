@@ -99,16 +99,23 @@ function tabs(
             boxShadow: (l: Listener) =>
               `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-1", color)}`,
             transition: "box-shadow 140ms ease, color 140ms ease",
-            "&:hover:not([disabled])": {
+            "&:hover:not([disabled]):not([aria-selected=true])": {
               boxShadow: (l: Listener) =>
                 `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-2", color)}`,
             },
             "&[aria-selected=true]:not([disabled])": {
+              color: (l: Listener) => themeColor(l, "shift-12", accentColor),
               boxShadow: (l: Listener) =>
                 `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
             },
+            // Focus ring must compose with the selected underline (both use
+            // box-shadow) so keyboard focus doesn't erase the active indicator.
             "&:focus-visible": {
               boxShadow: (l: Listener) => focusRing(l, accentColor),
+            },
+            "&[aria-selected=true]:focus-visible": {
+              boxShadow: (l: Listener) =>
+                `${focusRing(l, accentColor)}, inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
             },
           },
         } as DomphyElement<"button">;

@@ -11,6 +11,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { elevation } from "../utils/elevation.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /** One item inside a segmented control. */
@@ -81,13 +82,23 @@ function segmented(
             "&:hover:not([disabled]):not([aria-checked=true])": {
               backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
             },
+            "&:active:not([disabled]):not([aria-checked=true])": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "increase-2", color),
+            },
             "&[aria-checked=true]": {
               backgroundColor: (l: Listener) =>
                 themeColor(l, "shift-0", accentColor),
               color: (l: Listener) => themeColor(l, "shift-10", accentColor),
+              // Selected segment sits slightly above the track.
+              boxShadow: elevation("low"),
             },
             "&:focus-visible": {
               boxShadow: (l: Listener) => focusRing(l, accentColor),
+            },
+            "&[aria-checked=true]:focus-visible": {
+              boxShadow: (l: Listener) =>
+                `${elevation("low")}, ${focusRing(l, accentColor)}`,
             },
             "&[disabled]": {
               opacity: 0.7,

@@ -39,6 +39,9 @@ function avatar(
         themeColor(listener, "inherit", color.get(listener)),
       color: (listener) =>
         themeColor(listener, "shift-11", color.get(listener)),
+      // Hairline so the circle separates from same-tone surfaces.
+      boxShadow: (listener) =>
+        `0 0 0 1px ${themeColor(listener, "border", color.get(listener))}`,
       "& img": {
         position: "absolute",
         inset: 0,

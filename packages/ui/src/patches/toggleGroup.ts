@@ -99,8 +99,12 @@ function toggleGroup(
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
             transition:
               "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
-            "&:hover:not([disabled])": {
+            "&:hover:not([disabled]):not([aria-pressed=true])": {
               backgroundColor: (l: Listener) => themeColor(l, "hover", color),
+            },
+            "&:active:not([disabled])": {
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "increase-2", color),
             },
             "&[aria-pressed=true]": {
               backgroundColor: (l: Listener) =>

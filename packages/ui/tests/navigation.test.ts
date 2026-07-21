@@ -46,6 +46,23 @@ describe("tabs", () => {
     expect(tablist!.getAttribute("aria-orientation")).toBe("horizontal");
   });
 
+  it("composes focus ring with selected underline (does not drop the indicator)", () => {
+    const { node } = render({
+      div: null,
+      $: [
+        tabs({
+          items: [
+            { label: "A", key: "a" },
+            { label: "B", key: "b" },
+          ],
+        }),
+      ],
+    } as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toContain("aria-selected=true]:focus-visible");
+    expect(css).toMatch(/focus-visible[\s\S]*box-shadow/);
+  });
+
   it("accepts an initial activeKey and passes it through context", () => {
     const { host } = render({
       div: null,
