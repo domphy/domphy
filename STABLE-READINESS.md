@@ -25,7 +25,7 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 | `@domphy/table` | 0.18.1 | TanStack Table | none | Column virtualization recipes | — | Core + `/domphy` adapter. |
 | `@domphy/form` | 0.18.1 | TanStack Form / RHF | none | Standard schema adapters docs | — | Core + `/domphy` adapter; invalid submit + `setErrorMap` tested. |
 | `@domphy/virtual` | 0.18.1 | TanStack Virtual | none | Grid virtualizer / window helper examples | — | Core + `/domphy` adapter. |
-| `@domphy/router` | 0.18.1 | TanStack Router | none | File-route codegen; SSR integration tests; Link helper | Devtools | SSR client/server exports; match/loader core tested. |
+| `@domphy/router` | 0.18.1 | TanStack Router | none | File-route codegen; deeper stream/hydrate suite; Link helper | Devtools | SSR `createRequestHandler` smoke tests + match/loader core. |
 | `@domphy/dnd` | 0.18.3 | FormKit DnD (list model; not dnd-kit canvas) | none | Keyboard sortable a11y suite; drag sim tests | — | Thin FormKit adapter for sortable/multi-list. |
 | `@domphy/app` | 0.18.1 | Next.js App Router | none | Edge middleware cookbook; page SSR Set-Cookie/headers; revalidateTag | Deploy adapters | Loaders, lazy, i18n, cookies(read), SSR tests. |
 | `@domphy/blocks` | 0.1.2 | shadcn blocks + Magic UI | none | Full visual re-baseline in CI | More device demo assets | 173 demos; SOURCES.md clean-room; visual QA harness. |
@@ -53,6 +53,7 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 | P0-MERMAID-CLI | mermaid | hard dependency on mermaid-cli/Chromium | `optionalDependencies` + clearer install error |
 | P0-MCP-VERSION | mcp | SERVER_VERSION lagged package.json | synced to 0.19.2 |
 | P0-DIALOG-FOCUS | ui | focus trap/restore untested vs Radix contract | overlay tests for restore + Tab trap |
+| P0-ROUTER-SSR | router | `./ssr/server` shipped with zero package tests | `tests/ssr-server.test.ts` createRequestHandler smoke |
 
 ## Stable cut — remaining publish steps
 

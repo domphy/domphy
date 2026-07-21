@@ -1,4 +1,8 @@
-# @domphy/router Changelog
+# @domphy/router
+
+## 0.18.1
+
+- Tests: SSR server surface (`createRequestHandler`) smoke coverage for production request → load → Response path. Changelog
 
 ## 0.1.0
 - Initial release: 1-1 port of @tanstack/router-core v1.171.13
