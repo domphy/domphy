@@ -57,6 +57,18 @@ describe("htmlDocument", () => {
     );
     expect(html).toContain('<div id="domphy-app"><h1>Title</h1></div>');
   });
+
+  it("loads a hashed islands entry URL when provided (CDN cache-bust)", () => {
+    const html = htmlDocument(
+      emptyResult,
+      "",
+      [],
+      [],
+      "/assets/islands-entry-AbC123.js",
+    );
+    expect(html).toContain('src="/assets/islands-entry-AbC123.js"');
+    expect(html).not.toContain('src="/assets/islands-entry.js"');
+  });
 });
 
 describe("RUNTIME_SCRIPT", () => {

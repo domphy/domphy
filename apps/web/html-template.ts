@@ -24,6 +24,13 @@ export function htmlDocument(
   generatedCss: string,
   islandSpecs: PageIslandSpec[],
   extraHead: string[],
+  /**
+   * Hashed islands bundle path (e.g. `/assets/islands-entry-ABC123.js`).
+   * MUST be content-hashed — `/assets/*` is cached `immutable` on the CDN,
+   * so a fixed `islands-entry.js` URL poisons production after every deploy
+   * (users keep the old playground/UI forever).
+   */
+  islandsEntrySrc = "/assets/islands-entry.js",
 ): string {
   const specsJson = JSON.stringify(islandSpecs).replace(/</g, "\\u003c");
   return `<!DOCTYPE html>
@@ -42,7 +49,7 @@ ${extraHead.join("\n")}
 <body>
 <div id="domphy-app">${result.html}</div>
 <script>window.__DP_PAGE_ISLANDS__=${specsJson};</script>
-<script type="module" src="/assets/islands-entry.js"></script>
+<script type="module" src="${islandsEntrySrc}"></script>
 </body>
 </html>`;
 }

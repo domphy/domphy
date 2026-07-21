@@ -6,7 +6,15 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
-## Focus ring redesign — 2026-07-21
+## Docs CDN + chrome audit — 2026-07-21
+
+### Critical: playground never shipped to users
+- `islands-entry.js` was **not content-hashed** but served with `Cache-Control: immutable` (1y). Production CDN pinned an old entry forever → Code/Preview/Split redesign + focus ring never reached `domphy.com`.
+- Fix: esbuild `entryNames: "[name]-[hash]"`, HTML injects the hashed URL; safety `must-revalidate` on legacy unhashed path.
+
+### `@domphy/press` [0.21.4]
+- Global `:focus-visible` ring-offset for chrome links/buttons (no more thin black browser outline on Docs/AI/sidebar).
+- Theme + menu header buttons use SVG mask icons (not `◐`/`☰` glyphs).
 
 ### `@domphy/ui` [0.20.6]
 - `focusRing()` uses ring-offset pattern (`0 0 0 2px surface, 0 0 0 4px accent@shift-9`) — matches Radix/shadcn; replaces the flush pastel `0 0 0 2px shift-6` that read as a thick browser-default box.

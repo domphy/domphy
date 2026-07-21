@@ -35,8 +35,33 @@ body{margin:0;font-family:var(--dp-font-sans,-apple-system,BlinkMacSystemFont,"S
 a{color:${brand};text-decoration:underline;text-underline-offset:.15em}
 a:hover{text-decoration-thickness:2px}
 /* Nav/UI chrome links stay clean; content areas keep the underline. */
-nav a,.dp-skip-link,header a,footer a.code-copy-btn{text-decoration:none}
+nav a,.dp-skip-link,header a,footer a,.code-copy-btn{text-decoration:none}
 nav a:hover,.dp-skip-link:hover,header a:hover{text-decoration:underline}
+
+/* ----------------------------------------------------------- focus rings */
+/*
+ * Press chrome (header / sidebar / footer / TOC / content markdown links)
+ * used the browser default outline — thin black/grey rect. Apply a proper
+ * ring-offset. Scoped to chrome + markdown content so Domphy island patches
+ * (button/input/…) keep their own box-shadow focusRing without double rings.
+ */
+header a:focus-visible,header button:focus-visible,
+nav a:focus-visible,nav button:focus-visible,
+footer a:focus-visible,footer button:focus-visible,
+aside a:focus-visible,
+.dp-doc a:focus-visible,
+main a:focus-visible{
+  outline:2px solid ${brand};
+  outline-offset:2px;
+}
+header a:focus:not(:focus-visible),header button:focus:not(:focus-visible),
+nav a:focus:not(:focus-visible),nav button:focus:not(:focus-visible),
+footer a:focus:not(:focus-visible),footer button:focus:not(:focus-visible),
+aside a:focus:not(:focus-visible),
+.dp-doc a:focus:not(:focus-visible),
+main a:focus:not(:focus-visible){
+  outline:none;
+}
 
 /* ----------------------------------------------------------- skip link (a11y) */
 /* Front-End Checklist: skip-navigation / WCAG 2.4.1 Bypass Blocks */
@@ -55,6 +80,13 @@ nav a:hover,.dp-skip-link:hover,header a:hover{text-decoration:underline}
 [data-theme="dark"] .dp-logo-light{display:none}
 [data-theme="light"] .dp-logo-dark,.dp-logo-dark{display:none}
 [data-theme="dark"] .dp-logo-dark{display:block}
+
+/* -------------------------------------------- header icon buttons (theme/menu) */
+.dp-theme-toggle-icon,.dp-menu-toggle-icon{display:block;width:${ts(4.5)};height:${ts(4.5)};background:currentColor;flex-shrink:0}
+/* Moon in light mode (click → dark); sun in dark mode. */
+.dp-theme-toggle-icon{-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z'/%3E%3C/svg%3E") center/contain no-repeat}
+[data-theme="dark"] .dp-theme-toggle-icon{-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M3 12h1m8-9v1m8 8h1m-9 8v1m-6.4-15.4l.7.7m12.1-.7l-.7.7m0 11.4l.7.7m-12.1-.7l-.7.7'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M3 12h1m8-9v1m8 8h1m-9 8v1m-6.4-15.4l.7.7m12.1-.7l-.7.7m0 11.4l.7.7m-12.1-.7l-.7.7'/%3E%3C/svg%3E") center/contain no-repeat}
+.dp-menu-toggle-icon{-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6h16M4 12h16M4 18h16'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6h16M4 12h16M4 18h16'/%3E%3C/svg%3E") center/contain no-repeat}
 
 /* ---------------------------------------------------------- social icon masks */
 /* dp-social-icon + dp-icon-* classes set in layout.ts socialLinkEl */

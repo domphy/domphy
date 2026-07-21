@@ -6,6 +6,7 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -304,10 +305,15 @@ function pageIslandSpecs(page: BuiltPage): PageIslandSpec[] {
   return specs;
 }
 
+/**
+ * Bundle the client islands runtime. Returns the public URL of the entry
+ * script with a content hash so CDN `immutable` caching cannot pin an old
+ * playground forever (the pre-hash `islands-entry.js` bug of 2026-07).
+ */
 async function buildIslands(
   built: BuiltPage[],
   cacheDir: string,
-): Promise<void> {
+): Promise<string> {
   const previewSources = new Set<string>();
   for (const page of built) {
     for (const island of page.islands) {
@@ -329,6 +335,7 @@ bootstrap(previewRegistry);
   mkdirSync(cacheDir, { recursive: true });
   const entryFile = join(cacheDir, "islands-entry.ts");
   writeFileSync(entryFile, entrySource, "utf8");
+  const assetsDir = join(outDir, "assets");
   await esbuild.build({
     entryPoints: { "islands-entry": entryFile },
     bundle: true,
@@ -343,8 +350,10 @@ bootstrap(previewRegistry);
     // at hydration). Resolving everything through node_modules keeps each
     // singleton single; the packages are always built before this script runs.
     tsconfigRaw: "{}",
-    outdir: join(outDir, "assets"),
-    entryNames: "[name]",
+    outdir: assetsDir,
+    // Hash the ENTRY too — chunks already use [hash]. A fixed entry name
+    // under Cache-Control: immutable means deploys never reach users.
+    entryNames: "[name]-[hash]",
     chunkNames: "chunks/[name]-[hash]",
     assetNames: "media/[name]-[hash]",
     minify: true,
@@ -354,6 +363,15 @@ bootstrap(previewRegistry);
     logLevel: "error",
     loader: { ".ttf": "file", ".woff": "file", ".woff2": "file" },
   });
+  const entryFiles = readdirSync(assetsDir).filter(
+    (name) => name.startsWith("islands-entry-") && name.endsWith(".js"),
+  );
+  if (entryFiles.length !== 1) {
+    throw new Error(
+      `expected exactly one islands-entry-*.js, found: ${entryFiles.join(", ") || "(none)"}`,
+    );
+  }
+  return `/assets/${entryFiles[0]}`;
 }
 
 function buildSitemap(pages: BuiltPage[], hostname: string): string {
@@ -467,7 +485,11 @@ async function run(): Promise<void> {
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });
 
-  await buildIslands(built, join(appRoot, ".dp-cache"));
+  const islandsEntrySrc = await buildIslands(
+    built,
+    join(appRoot, ".dp-cache"),
+  );
+  console.log(`Islands entry: ${islandsEntrySrc}`);
 
   let totalBytes = 0;
   const failures: { route: string; error: string }[] = [];
@@ -479,6 +501,7 @@ async function run(): Promise<void> {
         generatedCss,
         pageIslandSpecs(page),
         config.head,
+        islandsEntrySrc,
       );
       const outPath = join(outDir, page.outFile);
       mkdirSync(dirname(outPath), { recursive: true });

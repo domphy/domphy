@@ -525,7 +525,15 @@ function header(ctx: LayoutContext): DomphyElement {
           ...socialEls,
           ...(localeEl ? [localeEl] : []),
           {
-            button: "◐",
+            // Icons via .dp-theme-toggle-icon / .dp-menu-toggle-icon in pressCSS
+            // (not "◐"/"☰" glyphs — inconsistent, look like placeholders).
+            button: [
+              {
+                span: null,
+                class: "dp-theme-toggle-icon",
+                ariaHidden: "true",
+              },
+            ],
             type: "button",
             ariaLabel: "Toggle dark mode",
             dataThemeToggle: "",
@@ -537,12 +545,22 @@ function header(ctx: LayoutContext): DomphyElement {
               width: ts(8.5),
               height: ts(8.5),
               cursor: "pointer",
-              fontSize: fixed("16px"),
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
               flexShrink: "0",
+              padding: "0",
+              "&:hover": { background: bgMute },
             },
           },
           {
-            button: "☰",
+            button: [
+              {
+                span: null,
+                class: "dp-menu-toggle-icon",
+                ariaHidden: "true",
+              },
+            ],
             type: "button",
             ariaLabel: "Toggle menu",
             dataMenuToggle: "",
@@ -554,10 +572,13 @@ function header(ctx: LayoutContext): DomphyElement {
               width: ts(8.5),
               height: ts(8.5),
               cursor: "pointer",
-              fontSize: fixed("16px"),
-              flexShrink: "0",
               display: "none",
-              "@media (max-width: 860px)": { display: "block" },
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: "0",
+              padding: "0",
+              "&:hover": { background: bgMute },
+              "@media (max-width: 860px)": { display: "inline-flex" },
             },
           },
         ],
