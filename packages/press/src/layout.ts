@@ -5,7 +5,7 @@
 import { navLink } from "@domphy/app";
 import type { DomphyElement, StyleObject } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
-import { button, buttonGhost, toolbar, toolbarSpacer } from "@domphy/ui";
+import { linkButton, toolbar, toolbarSpacer } from "@domphy/ui";
 import { prevNextForRoute, sidebarForRoute } from "./routes-browser.js";
 import type {
   LayoutContext,
@@ -1245,9 +1245,9 @@ function heroSection(hero: HeroConfig): DomphyElement {
       },
     } as DomphyElement);
   if (hero.actions?.length) {
-    // Rendered through the real @domphy/ui button patches (dogfooding) —
-    // geometry/hover/focus all come from the design system. The only local
-    // override is killing the global `a:hover` underline from the reset.
+    // Hero CTAs are real links — use `linkButton()` (hostTag <a>), never
+    // button()/buttonGhost() which warn and break host-tag contracts when
+    // applied to anchors (console: "button must use button tag").
     textChildren.push({
       div: hero.actions.map(
         (a) =>
@@ -1255,9 +1255,10 @@ function heroSection(hero: HeroConfig): DomphyElement {
             a: a.text,
             href: a.link,
             $: [
-              !a.theme || a.theme === "brand"
-                ? button({ color: "primary" })
-                : buttonGhost(),
+              linkButton({
+                color:
+                  !a.theme || a.theme === "brand" ? "primary" : "neutral",
+              }),
             ],
             style: {
               textDecoration: fixed("none"),

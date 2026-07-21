@@ -121,8 +121,11 @@ function lineShadowText(props: LineShadowTextProps = {}): DomphyElement {
         color: "transparent",
         WebkitTextFillColor: "transparent",
         animation: `${animationName} 15s linear infinite`,
-        [`@keyframes ${animationName}`]: keyframes,
       },
+      // Keyframes must be at the host style root — nesting them under
+      // `&::after` emits invalid CSS (`.scope::after @keyframes name from {…}`)
+      // which browsers reject via insertRule (console SyntaxError).
+      [`@keyframes ${animationName}`]: keyframes,
       ...(props.style ?? {}),
     } as StyleObject,
   } as unknown as DomphyElement;

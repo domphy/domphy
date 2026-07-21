@@ -48,3 +48,6 @@ packages/chart/*-bundle.js
 
 # Claude Code local state / agent worktrees
 .claude/
+
+.ui-qa/
+

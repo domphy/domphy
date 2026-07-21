@@ -46,7 +46,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "demo": "vite --config vite.demo.config.ts",
-    "visual-compare": "tsx scripts/visual-compare.ts"
+    "visual-compare": "tsx scripts/visual-compare.ts",
+    "demo:qa": "node scripts/run-blocks-demo-qa.mjs"
   },
   "keywords": [
     "domphy",
