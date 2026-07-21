@@ -6,6 +6,7 @@
 // API (no regex), so prop names/types/optionality come straight from the
 // declarations and descriptions from JSDoc. Run via `pnpm --filter domphy-web
 // run manifest` (also part of build).
+import { execFileSync } from "node:child_process";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { basename, dirname, resolve } from "node:path";
@@ -14,6 +15,20 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, ".."); // apps/web
 const REPO = resolve(HERE, "../../.."); // monorepo root
+
+/** Write JSON then biome-format so `pnpm check` stays green after build. */
+async function writeFormattedJson(path, value) {
+  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  try {
+    execFileSync(
+      process.platform === "win32" ? "pnpm.cmd" : "pnpm",
+      ["exec", "biome", "format", "--write", path],
+      { cwd: REPO, stdio: "pipe" },
+    );
+  } catch {
+    // Biome optional for environments that only need the raw JSON; CI always has it.
+  }
+}
 
 const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
 
@@ -255,7 +270,7 @@ const manifest = {
 };
 
 const manifestDest = resolve(ROOT, "public/manifest.json");
-await writeFile(manifestDest, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+await writeFormattedJson(manifestDest, manifest);
 
 // --- tones.json (valid tone names + theme color names) ---
 const theme = await loadModule("@domphy/theme", [
@@ -270,7 +285,7 @@ const tones = {
   colors: Object.keys(theme.getTheme("light").colors),
 };
 const tonesDest = resolve(ROOT, "public/tones.json");
-await writeFile(tonesDest, `${JSON.stringify(tones, null, 2)}\n`, "utf8");
+await writeFormattedJson(tonesDest, tones);
 
 const propCount = patches.reduce((sum, p) => sum + p.props.length, 0);
 console.log(

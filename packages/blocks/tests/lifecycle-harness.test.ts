@@ -122,9 +122,11 @@ afterAll(() => {
       }, {}),
     blocks: failing,
   };
+  // Trailing newline required: biome format errors on EOF without `\n`, and
+  // `pnpm check` would fail if this artifact is left dirty after the suite.
   writeFileSync(
     join(__dirname, "..", ".lifecycle-report.json"),
-    JSON.stringify(summary, null, 2),
+    `${JSON.stringify(summary, null, 2)}\n`,
   );
 });
 

@@ -14,6 +14,7 @@
 //   srcDir  = apps/web/docs/demos
 //   outFile = apps/web/public/app-manifest.json
 
+import { execFileSync } from "node:child_process";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, relative, resolve } from "node:path";
@@ -22,6 +23,20 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, ".."); // apps/web
 const REPO = resolve(HERE, "../../.."); // monorepo root
+
+/** Write JSON then biome-format so `pnpm check` stays green after build. */
+async function writeFormattedJson(path, value) {
+  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  try {
+    execFileSync(
+      process.platform === "win32" ? "pnpm.cmd" : "pnpm",
+      ["exec", "biome", "format", "--write", path],
+      { cwd: REPO, stdio: "pipe" },
+    );
+  } catch {
+    // Biome optional for environments that only need the raw JSON; CI always has it.
+  }
+}
 
 // `typescript` is a dev dependency of several packages but is not hoisted to the
 // repo root in this pnpm layout, so resolve it from a package that declares it.
@@ -499,7 +514,7 @@ entries.sort(
   (a, b) => a.file.localeCompare(b.file) || a.name.localeCompare(b.name),
 );
 
-await writeFile(outFile, `${JSON.stringify(entries, null, 2)}\n`, "utf8");
+await writeFormattedJson(outFile, entries);
 
 const byKind = entries.reduce((acc, entry) => {
   acc[entry.kind] = (acc[entry.kind] ?? 0) + 1;
