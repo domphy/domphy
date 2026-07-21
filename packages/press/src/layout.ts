@@ -43,6 +43,15 @@ const fixed = (value: string) => (): string => value;
 // marks the hero headline and content h1/h2 (falls back to the body face).
 const fontDisplay = fixed("var(--dp-font-display, inherit)");
 
+/** Skip-to-content link (Front-End Checklist / WCAG 2.4.1 Bypass Blocks). */
+function skipToContentLink(): DomphyElement {
+  return {
+    a: "Skip to content",
+    href: "#main-content",
+    class: "dp-skip-link",
+  } as DomphyElement;
+}
+
 const bg = tc("inherit");
 const bgSoft = tc("shift-1");
 const bgMute = tc("shift-2");
@@ -732,10 +741,12 @@ function sidebar(ctx: LayoutContext): DomphyElement {
         gap: ts(1.5),
         padding: `${ts(1.25)} ${ts(3)}`,
         fontSize: fixed("14px"),
-        color: textSoft,
+        // Body text tone (not muted) — WCAG AA for 14px UI chrome.
+        color: text,
         borderRadius: ts(1.5),
+        textDecoration: fixed("none"),
       },
-      "& a:hover": { color: text, textDecoration: fixed("none") },
+      "& a:hover": { color: brand, textDecoration: fixed("none"), background: bgSoft },
       "& a[aria-current='page']": {
         color: brand,
         fontWeight: fixed("600"),
@@ -1131,7 +1142,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
       };
   const shellChildren: DomphyElement[] = [
     ...(sidebarEl ? [sidebarEl] : []),
-    { main, style: mainStyle },
+    { main, id: "main-content", tabindex: -1, style: mainStyle },
   ];
   if (showAside) shellChildren.push(asideEl!);
 
@@ -1145,8 +1156,9 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
         style: {
           padding: `${ts(6)} ${ts(12)}`,
           borderTop: `1px solid ${border}`,
-          color: textSoft,
+          color: text,
           fontSize: fixed("13px"),
+          "& a": { color: brand, textDecoration: fixed("underline") },
         },
       } as DomphyElement);
 
@@ -1158,6 +1170,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
 
   return {
     div: [
+      skipToContentLink(),
       ...(bar ? [bar] : []),
       ...(headerEl ? [headerEl] : []),
       backdrop,
@@ -1509,8 +1522,9 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
         style: {
           padding: `${ts(6)} ${ts(12)}`,
           borderTop: `1px solid ${border}`,
-          color: textSoft,
+          color: text,
           fontSize: fixed("13px"),
+          "& a": { color: brand, textDecoration: fixed("underline") },
         },
       } as DomphyElement);
   // Backdrop: covers screen on mobile when the Primary nav drawer is open
@@ -1521,11 +1535,14 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
   } as unknown as DomphyElement;
   return {
     div: [
+      skipToContentLink(),
       ...(bar ? [bar] : []),
       ...(headerEl ? [headerEl] : []),
       backdrop,
       {
         main,
+        id: "main-content",
+        tabindex: -1,
         style: fullBleed
           ? { padding: `0 0 ${ts(20)}` }
           : {

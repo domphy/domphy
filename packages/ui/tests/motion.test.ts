@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// motion respects prefers-reduced-motion (Front-End Checklist / WCAG 2.3.3)
 
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode, toState } from "@domphy/core";
@@ -99,5 +100,35 @@ describe("motion patch", () => {
         $: [motion({ animate: { opacity: 1 } })],
       } as DomphyElement),
     ).not.toThrow();
+  });
+
+  it("skips WAAPI and applies final styles when prefers-reduced-motion", () => {
+    installWaapi();
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) =>
+      ({
+        matches: query.includes("prefers-reduced-motion"),
+        media: query,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+        onchange: null,
+      })) as typeof window.matchMedia;
+
+    const { host } = mount({
+      div: "calm",
+      $: [
+        motion({
+          initial: { opacity: 0 },
+          animate: { opacity: 1 },
+        }),
+      ],
+    } as DomphyElement);
+
+    expect(calls.length).toBe(0);
+    expect((host.firstElementChild as HTMLElement).style.opacity).toBe("1");
+    window.matchMedia = original;
   });
 });

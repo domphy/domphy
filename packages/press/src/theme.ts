@@ -31,8 +31,24 @@ export function pressCSS(): string {
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:calc(${headerH} + ${ts(4)})}
 body{margin:0;font-family:var(--dp-font-sans,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif);background:${bg};color:${text};line-height:1.6;font-size:16px}
-a{color:${brand};text-decoration:none}
-a:hover{text-decoration:underline}
+/* Links always underlined in running text so they don't rely on color alone (WCAG 1.4.1 / link-in-text-block). */
+a{color:${brand};text-decoration:underline;text-underline-offset:.15em}
+a:hover{text-decoration-thickness:2px}
+/* Nav/UI chrome links stay clean; content areas keep the underline. */
+nav a,.dp-skip-link,header a,footer a.code-copy-btn{text-decoration:none}
+nav a:hover,.dp-skip-link:hover,header a:hover{text-decoration:underline}
+
+/* ----------------------------------------------------------- skip link (a11y) */
+/* Front-End Checklist: skip-navigation / WCAG 2.4.1 Bypass Blocks */
+.dp-skip-link{position:absolute;left:${ts(2)};top:${ts(2)};z-index:100;padding:${ts(2)} ${ts(4)};background:${bg};color:${brand};border:1px solid ${brand};border-radius:${ts(1.5)};font-weight:600;font-size:14px;text-decoration:none;transform:translateY(-200%);transition:transform .15s ease}
+.dp-skip-link:focus,.dp-skip-link:focus-visible{transform:translateY(0);outline:2px solid ${brand};outline-offset:2px}
+#main-content:focus{outline:none}
+
+/* ---------------------------------------------- reduced motion (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
+}
 
 /* -------------------------------------------------------- logo theme variants */
 /* dp-logo-light/dark classes set in layout.ts img elements */
@@ -56,9 +72,13 @@ a:hover{text-decoration:underline}
 .dp-sidebar-group.collapsed .dp-sidebar-items{display:none}
 
 /* ------- sidebar open state on mobile (JS sets html[data-sidebar="open"]) ------ */
+/* Closed off-canvas nav: visibility:hidden drops it from the tab order so
+   axe aria-hidden-focus / keyboard traps don't fire on drawer links. */
 @media(max-width:860px){
+  nav[aria-label="Documentation"],
+  nav[aria-label="Primary"]{visibility:hidden;pointer-events:none}
   html[data-sidebar="open"] nav[aria-label="Documentation"],
-  html[data-sidebar="open"] nav[aria-label="Primary"]{transform:translateX(0)}
+  html[data-sidebar="open"] nav[aria-label="Primary"]{transform:translateX(0);visibility:visible;pointer-events:auto}
 }
 
 /* ----------------------------------------------------------------- backdrop */
@@ -72,7 +92,7 @@ a:hover{text-decoration:underline}
 
 /* ------------------------------------------------------------ code blocks */
 .code-block{margin:${ts(4)} 0;border:1px solid ${border};border-radius:${ts(2)};overflow:hidden}
-.code-block-title{display:flex;align-items:center;padding:${ts(1.5)} ${ts(4)};background:${bgMute};border-bottom:1px solid ${border};font-size:12px;font-family:var(--dp-font-mono,ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace);color:${textSoft}}
+.code-block-title{display:flex;align-items:center;padding:${ts(1.5)} ${ts(4)};background:${bgMute};border-bottom:1px solid ${border};font-size:12px;font-family:var(--dp-font-mono,ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace);color:${text}}
 .code-block-inner{position:relative}
 .code-block pre{margin:0;padding:${ts(4)} ${ts(5)};background:${bgSoft};border:none;border-radius:0;overflow-x:auto;overflow-y:auto;max-height:32em;font-size:13.5px;line-height:1.5;font-family:var(--dp-font-mono,ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace)}
 .code-block code{font-family:inherit;background:none;padding:0;font-size:inherit}
@@ -95,7 +115,8 @@ a:hover{text-decoration:underline}
 .code-group{margin:${ts(4)} 0;border:1px solid ${border};border-radius:${ts(2)};overflow:hidden}
 .code-group>input[type="radio"]{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
 .code-group .tabs{display:flex;gap:${ts(0.5)};padding:${ts(1.5)} ${ts(2)};background:${bgSoft};border-bottom:1px solid ${border};flex-wrap:wrap}
-.code-group .tabs label{padding:${ts(1)} ${ts(3)};font-size:13px;font-weight:500;color:${textSoft};border-radius:${ts(1.25)};cursor:pointer}
+/* Inactive tabs use body text tone (not muted) so contrast stays ≥4.5:1. */
+.code-group .tabs label{padding:${ts(1)} ${ts(3)};font-size:13px;font-weight:500;color:${text};border-radius:${ts(1.25)};cursor:pointer}
 .code-group .blocks>.code-block{display:none;margin:0;border:none;border-radius:0}
 .code-group .blocks>.code-block pre{border-radius:0}
 ${Array.from({ length: 8 }, (_, i) => `.code-group>input:nth-of-type(${i + 1}):checked~.blocks>.code-block:nth-child(${i + 1})`).join(",\n")}{display:block}

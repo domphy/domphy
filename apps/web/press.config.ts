@@ -32,7 +32,7 @@ export const config = defineConfig({
     // so favicon / header / primary palette all tell one brand story.
     logo: "/favicon.svg",
     footerMessage:
-      'Released under the MIT License. Made by <a href="https://khanhhuu.com" target="_blank">Nguyen Huu Khanh</a>.',
+      'Released under the MIT License. Made by <a href="https://khanhhuu.com" target="_blank" rel="noopener noreferrer">Nguyen Huu Khanh</a>.',
     nav: [
       { text: "Docs", link: "/docs/" },
       {

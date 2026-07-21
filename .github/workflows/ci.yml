@@ -40,3 +40,35 @@ jobs:
 
       - name: Test
         run: pnpm -r test
+
+  # Front-End Checklist enterprise gate: axe + structural HTML checks against production.
+  # Runs after merge to main so deploys are verified; PRs stay fast without live URL flakiness.
+  a11y-prod:
+    name: A11y audit (production)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.24.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Wait for Vercel production deploy
+        run: sleep 90
+
+      - name: Axe + structural audit (prod)
+        run: pnpm --filter domphy-web exec node scripts/a11y-audit.mjs --warn-only https://domphy.com https://domphy.com/docs/quickstart https://domphy.com/docs/ui/patches/button

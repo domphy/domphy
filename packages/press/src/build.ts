@@ -313,6 +313,8 @@ function htmlDocument(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 ${result.head}
 ${config.head.join("\n")}
 ${pageHead.join("\n")}

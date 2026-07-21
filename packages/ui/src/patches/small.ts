@@ -24,7 +24,9 @@ function small(
     dataSize: "decrease-1",
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "text", color.get(listener)),
+      // shift-10 (not muted/shift-8) keeps WCAG AA ≥4.5:1 on light surfaces for small type.
+      color: (listener) =>
+        themeColor(listener, "shift-10", color.get(listener)),
     },
   };
 }

@@ -79,6 +79,15 @@ const toStyles = (frame: MotionKeyframe): Keyframe => {
  * @param props.transition.iterations - Number of iterations. Defaults to `1`.
  * @example { div: "Hello", $: [motion({ initial: { opacity: 0 }, animate: { opacity: 1 } })] }
  */
+function prefersReducedMotion(): boolean {
+  if (typeof matchMedia !== "function") return false;
+  try {
+    return matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+}
+
 function motion(props: MotionProps = {}): PartialElement {
   const { initial, animate, exit, transition = {} } = props;
   const options: KeyframeAnimationOptions = {
@@ -94,6 +103,18 @@ function motion(props: MotionProps = {}): PartialElement {
       const el = node.domElement as HTMLElement | null;
       if (!el || typeof el.animate !== "function") return;
       const target = isState(animate) ? animate.get() : animate;
+      // WCAG 2.3.3 / Front-End Checklist: respect prefers-reduced-motion.
+      if (prefersReducedMotion()) {
+        if (target) Object.assign(el.style, toStyles(target));
+        else if (initial) Object.assign(el.style, toStyles(initial));
+        if (isState(animate)) {
+          const release = animate.addListener((next: MotionKeyframe) => {
+            Object.assign(el.style, toStyles(next));
+          });
+          node.setMetadata("motionRelease", release);
+        }
+        return;
+      }
       if (target) {
         el.animate(
           initial ? [toStyles(initial), toStyles(target)] : [toStyles(target)],
@@ -112,6 +133,10 @@ function motion(props: MotionProps = {}): PartialElement {
     _onBeforeRemove: (node, done) => {
       const el = node.domElement as HTMLElement | null;
       if (!el || !exit || typeof el.animate !== "function") return done();
+      if (prefersReducedMotion()) {
+        Object.assign(el.style, toStyles(exit));
+        return done();
+      }
       el.animate([toStyles(exit)], options).finished.then(done, done);
     },
     _onRemove: (node) => {

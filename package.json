@@ -10,6 +10,8 @@
     "fix": "biome check --write .",
     "verify:publish": "node scripts/verify-publish.mjs",
     "ci": "pnpm check && pnpm -r build && pnpm -r test",
+    "a11y": "pnpm --filter domphy-web a11y",
+    "a11y:prod": "pnpm --filter domphy-web a11y:prod",
     "publish:core": "cd packages/core && pnpm publish --access public --no-git-checks",
     "publish:theme": "cd packages/theme && pnpm publish --access public --no-git-checks",
     "publish:ui": "cd packages/ui && pnpm publish --access public --no-git-checks",

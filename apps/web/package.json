@@ -12,12 +12,15 @@
     "dev": "tsx ../../packages/press/dist/cli.js dev --port 3000",
     "preview": "tsx serve.press.ts",
     "build": "pnpm --filter \"@domphy/*\" build && node scripts/manifest.mjs && node scripts/app-manifest.mjs && node scripts/llms-full.mjs && tsx build.press.ts",
+    "a11y": "node scripts/a11y-audit.mjs",
+    "a11y:prod": "node scripts/a11y-audit.mjs https://domphy.com https://domphy.com/docs/quickstart https://domphy.com/docs/ui/patches/button",
     "postinstall": "puppeteer browsers install chrome-headless-shell"
   },
   "keywords": [],
   "author": "Huu Khanh Nguyen",
   "license": "MIT",
   "devDependencies": {
+    "@axe-core/puppeteer": "^4.12.1",
     "@codemirror/lang-javascript": "^6.2.4",
     "@codemirror/theme-one-dark": "^6.1.3",
     "@domphy/app": "workspace:*",
@@ -44,6 +47,7 @@
     "@types/markdown-it": "^14.1.2",
     "@types/markdown-it-container": "^2.0.10",
     "@types/sortablejs": "^1.15.9",
+    "axe-core": "^4.12.1",
     "codemirror": "^6.0.2",
     "esbuild": "^0.25.0",
     "jsdom": "^29.1.1",
