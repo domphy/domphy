@@ -1,16 +1,24 @@
 import { themeColorToken } from "@domphy/theme";
-import type {
-  SeriesOption, BarSeriesOption, LineSeriesOption, PieSeriesOption,
-  ScatterSeriesOption,
-} from "../types.js";
-import type { AnyScale } from "../scale/index.js";
 import { seriesHex } from "../gl/color.js";
+import type { AnyScale } from "../scale/index.js";
+import type {
+  BarSeriesOption,
+  LineSeriesOption,
+  PieSeriesOption,
+  ScatterSeriesOption,
+  SeriesOption,
+} from "../types.js";
 
 function svgNS(tag: string): Element {
   return document.createElementNS("http://www.w3.org/2000/svg", tag);
 }
 
-function text(content: string, x: number, y: number, attrs: Record<string, string | number>): Element {
+function text(
+  content: string,
+  x: number,
+  y: number,
+  attrs: Record<string, string | number>,
+): Element {
   const el = svgNS("text");
   el.textContent = content;
   el.setAttribute("x", String(x));
@@ -54,33 +62,56 @@ function renderBarLabels(
 
     const position = s.label?.position ?? "top";
     const bandwidth = xScale.bandwidth();
-    const groupBarWidth = groupCount > 1
-      ? (bandwidth * 0.85 - (groupCount - 1) * gap) / groupCount
-      : bandwidth * 0.65;
+    const groupBarWidth =
+      groupCount > 1
+        ? (bandwidth * 0.85 - (groupCount - 1) * gap) / groupCount
+        : bandwidth * 0.65;
     const totalGroupWidth = groupCount * groupBarWidth + (groupCount - 1) * gap;
     const groupIndex = grouped.indexOf(s);
     const data = s.data ?? [];
     const baselineY = yScale.map(0);
 
     data.forEach((item, index) => {
-      const rawValue = typeof item === "number" ? item
-        : Array.isArray(item) ? (item[1] as number)
-        : typeof (item as any)?.value === "number" ? (item as any).value : null;
+      const rawValue =
+        typeof item === "number"
+          ? item
+          : Array.isArray(item)
+            ? (item[1] as number)
+            : typeof (item as any)?.value === "number"
+              ? (item as any).value
+              : null;
       if (rawValue === null) return;
 
-      const xArg = typeof item === "number" ? index : Array.isArray(item) ? item[0] : index;
+      const xArg =
+        typeof item === "number"
+          ? index
+          : Array.isArray(item)
+            ? item[0]
+            : index;
       const xCenter = xScale.map(xArg as number);
       const yTop = yScale.map(rawValue);
       if (!Number.isFinite(xCenter) || !Number.isFinite(yTop)) return;
 
       // For grouped bars, label above the specific bar; stacked bars use category center
-      const lx = groupIndex >= 0
-        ? xCenter - totalGroupWidth / 2 + groupIndex * (groupBarWidth + gap) + groupBarWidth / 2
-        : xCenter;
+      const lx =
+        groupIndex >= 0
+          ? xCenter -
+            totalGroupWidth / 2 +
+            groupIndex * (groupBarWidth + gap) +
+            groupBarWidth / 2
+          : xCenter;
 
       const barHeight = Math.abs(baselineY - yTop);
       const labelStr = s.label?.formatter
-        ? (typeof s.label.formatter === "function" ? s.label.formatter({ value: rawValue, name: String(xArg), dataIndex: index, seriesIndex: si, seriesName: s.name ?? "" }) : String(s.label.formatter))
+        ? typeof s.label.formatter === "function"
+          ? s.label.formatter({
+              value: rawValue,
+              name: String(xArg),
+              dataIndex: index,
+              seriesIndex: si,
+              seriesName: s.name ?? "",
+            })
+          : String(s.label.formatter)
         : formatValue(rawValue);
 
       let ly: number;
@@ -99,13 +130,15 @@ function renderBarLabels(
         ly = yTop - 4;
       }
 
-      group.appendChild(text(labelStr, lx, ly, {
-        fill: color,
-        "font-size": s.label?.fontSize ?? 11,
-        "text-anchor": anchor,
-        "dominant-baseline": position === "inside" ? "middle" : "auto",
-        "pointer-events": "none",
-      }));
+      group.appendChild(
+        text(labelStr, lx, ly, {
+          fill: color,
+          "font-size": s.label?.fontSize ?? 11,
+          "text-anchor": anchor,
+          "dominant-baseline": position === "inside" ? "middle" : "auto",
+          "pointer-events": "none",
+        }),
+      );
     });
   }
 }
@@ -138,27 +171,46 @@ function renderLineLabels(
       let xVal: any;
       let yVal: number | null = null;
 
-      if (typeof item === "number") { xVal = index; yVal = item; }
-      else if (Array.isArray(item)) { xVal = item[0]; yVal = item[1] as number; }
-      else if (item && typeof item === "object") {
+      if (typeof item === "number") {
+        xVal = index;
+        yVal = item;
+      } else if (Array.isArray(item)) {
+        xVal = item[0];
+        yVal = item[1] as number;
+      } else if (item && typeof item === "object") {
         const raw = (item as any).value;
-        if (Array.isArray(raw)) { xVal = raw[0]; yVal = raw[1]; }
-        else { xVal = index; yVal = raw; }
+        if (Array.isArray(raw)) {
+          xVal = raw[0];
+          yVal = raw[1];
+        } else {
+          xVal = index;
+          yVal = raw;
+        }
       }
       if (yVal === null || !Number.isFinite(yVal)) return;
 
       const px = xScale.map(xVal);
       const py = yScale.map(yVal);
       const label = s.label?.formatter
-        ? (typeof s.label.formatter === "function" ? s.label.formatter({ value: yVal, name: String(xVal), dataIndex: index, seriesIndex: 0, seriesName: s.name ?? "" }) : String(s.label.formatter))
+        ? typeof s.label.formatter === "function"
+          ? s.label.formatter({
+              value: yVal,
+              name: String(xVal),
+              dataIndex: index,
+              seriesIndex: 0,
+              seriesName: s.name ?? "",
+            })
+          : String(s.label.formatter)
         : formatValue(yVal);
 
-      group.appendChild(text(label, px, py - 6, {
-        fill: labelColor,
-        "font-size": s.label?.fontSize ?? 11,
-        "text-anchor": "middle",
-        "pointer-events": "none",
-      }));
+      group.appendChild(
+        text(label, px, py - 6, {
+          fill: labelColor,
+          "font-size": s.label?.fontSize ?? 11,
+          "text-anchor": "middle",
+          "pointer-events": "none",
+        }),
+      );
     });
   }
 }
@@ -181,13 +233,21 @@ function renderPieLabels(
     if (s.name && hiddenSeries.has(s.name)) continue;
 
     const center = s.center ?? ["50%", "50%"];
-    const cx = typeof center[0] === "number" ? center[0] : (parseFloat(center[0]) / 100) * width;
-    const cy = typeof center[1] === "number" ? center[1] : (parseFloat(center[1]) / 100) * height;
+    const cx =
+      typeof center[0] === "number"
+        ? center[0]
+        : (parseFloat(center[0]) / 100) * width;
+    const cy =
+      typeof center[1] === "number"
+        ? center[1]
+        : (parseFloat(center[1]) / 100) * height;
     const halfMin = minSize / 2;
     let outerR = halfMin * 0.7;
     if (s.radius) {
       const r = s.radius;
-      if (Array.isArray(r)) outerR = typeof r[1] === "number" ? r[1] : (parseFloat(r[1]) / 100) * halfMin;
+      if (Array.isArray(r))
+        outerR =
+          typeof r[1] === "number" ? r[1] : (parseFloat(r[1]) / 100) * halfMin;
       else outerR = typeof r === "number" ? r : (parseFloat(r) / 100) * halfMin;
     }
 
@@ -209,12 +269,21 @@ function renderPieLabels(
       const anchor = lx > cx ? "start" : "end";
 
       // Leader line
-      const lineStart = { x: cx + outerR * 0.9 * Math.cos(midAngle), y: cy + outerR * 0.9 * Math.sin(midAngle) };
-      const lineMid = { x: cx + outerR * 1.1 * Math.cos(midAngle), y: cy + outerR * 1.1 * Math.sin(midAngle) };
+      const lineStart = {
+        x: cx + outerR * 0.9 * Math.cos(midAngle),
+        y: cy + outerR * 0.9 * Math.sin(midAngle),
+      };
+      const lineMid = {
+        x: cx + outerR * 1.1 * Math.cos(midAngle),
+        y: cy + outerR * 1.1 * Math.sin(midAngle),
+      };
       const lineEnd = { x: lx + (lx > cx ? 8 : -8), y: ly };
 
       const polyline = svgNS("polyline");
-      polyline.setAttribute("points", `${lineStart.x},${lineStart.y} ${lineMid.x},${lineMid.y} ${lineEnd.x},${lineEnd.y}`);
+      polyline.setAttribute(
+        "points",
+        `${lineStart.x},${lineStart.y} ${lineMid.x},${lineMid.y} ${lineEnd.x},${lineEnd.y}`,
+      );
       polyline.setAttribute("fill", "none");
       polyline.setAttribute("stroke", labelColor);
       polyline.setAttribute("stroke-width", "1");
@@ -226,18 +295,30 @@ function renderPieLabels(
       const pct = `${(fraction * 100).toFixed(1)}%`;
       const name = item.name ?? String(index);
       const label = s.label?.formatter
-        ? (typeof s.label.formatter === "function"
-          ? s.label.formatter({ name, value: item.value ?? 0, percent: fraction * 100, dataIndex: index, seriesIndex: 0, seriesName: s.name ?? "" })
-          : String(s.label.formatter).replace("{b}", name).replace("{c}", String(item.value)).replace("{d}", pct))
+        ? typeof s.label.formatter === "function"
+          ? s.label.formatter({
+              name,
+              value: item.value ?? 0,
+              percent: fraction * 100,
+              dataIndex: index,
+              seriesIndex: 0,
+              seriesName: s.name ?? "",
+            })
+          : String(s.label.formatter)
+              .replace("{b}", name)
+              .replace("{c}", String(item.value))
+              .replace("{d}", pct)
         : `${name} ${pct}`;
 
-      group.appendChild(text(label, lineEnd.x + (lx > cx ? 3 : -3), ly, {
-        fill: labelColor,
-        "font-size": s.label?.fontSize ?? 11,
-        "text-anchor": anchor,
-        "dominant-baseline": "middle",
-        "pointer-events": "none",
-      }));
+      group.appendChild(
+        text(label, lineEnd.x + (lx > cx ? 3 : -3), ly, {
+          fill: labelColor,
+          "font-size": s.label?.fontSize ?? 11,
+          "text-anchor": anchor,
+          "dominant-baseline": "middle",
+          "pointer-events": "none",
+        }),
+      );
     });
   }
 }
@@ -262,17 +343,36 @@ function renderScatterLabels(
     (s.data ?? []).forEach((item, index) => {
       let xVal: any;
       let yVal: number;
-      if (Array.isArray(item)) { xVal = item[0]; yVal = item[1] as number; }
-      else if (typeof item === "number") { xVal = index; yVal = item; }
-      else { return; }
+      if (Array.isArray(item)) {
+        xVal = item[0];
+        yVal = item[1] as number;
+      } else if (typeof item === "number") {
+        xVal = index;
+        yVal = item;
+      } else {
+        return;
+      }
       const px = xScale.map(xVal);
       const py = yScale.map(yVal);
       const label = s.label?.formatter
-        ? (typeof s.label.formatter === "function" ? s.label.formatter({ value: yVal, name: String(xVal), dataIndex: index, seriesIndex: 0, seriesName: s.name ?? "" }) : String(s.label.formatter))
+        ? typeof s.label.formatter === "function"
+          ? s.label.formatter({
+              value: yVal,
+              name: String(xVal),
+              dataIndex: index,
+              seriesIndex: 0,
+              seriesName: s.name ?? "",
+            })
+          : String(s.label.formatter)
         : formatValue(yVal);
-      group.appendChild(text(label, px, py - 8, {
-        fill: labelColor, "font-size": 10, "text-anchor": "middle", "pointer-events": "none",
-      }));
+      group.appendChild(
+        text(label, px, py - 8, {
+          fill: labelColor,
+          "font-size": 10,
+          "text-anchor": "middle",
+          "pointer-events": "none",
+        }),
+      );
     });
   }
 }
@@ -288,11 +388,17 @@ export interface SeriesLabelOptions {
   hiddenSeries: Set<string>;
 }
 
-export function renderSeriesSymbols(svg: SVGSVGElement, opts: SeriesLabelOptions, seriesOffset = 0): void {
+export function renderSeriesSymbols(
+  svg: SVGSVGElement,
+  opts: SeriesLabelOptions,
+  seriesOffset = 0,
+): void {
   const old = svg.querySelector(".dc-symbols");
   if (old) old.remove();
 
-  const lines = opts.series.filter((s): s is LineSeriesOption => s.type === "line");
+  const lines = opts.series.filter(
+    (s): s is LineSeriesOption => s.type === "line",
+  );
   // Auto-hide symbols for dense series (>30 points) unless explicitly enabled
   const visible = lines.filter((s) => {
     if (s.name && opts.hiddenSeries.has(s.name)) return false;
@@ -310,25 +416,39 @@ export function renderSeriesSymbols(svg: SVGSVGElement, opts: SeriesLabelOptions
     const yScale = opts.yScales[s.yAxisIndex ?? 0];
     if (!xScale || !yScale) return;
 
-    const color = s.color ? String(s.color) : seriesHex(seriesOffset + lines.indexOf(s));
+    const color = s.color
+      ? String(s.color)
+      : seriesHex(seriesOffset + lines.indexOf(s));
     const r = typeof s.symbolSize === "number" ? s.symbolSize / 2 : 4;
 
     (s.data ?? []).forEach((item, index) => {
       let xVal: any;
       let yVal: number | null = null;
-      if (typeof item === "number") { xVal = index; yVal = item; }
-      else if (Array.isArray(item)) { xVal = item[0]; yVal = item[1] as number; }
-      else if (item && typeof item === "object") {
+      if (typeof item === "number") {
+        xVal = index;
+        yVal = item;
+      } else if (Array.isArray(item)) {
+        xVal = item[0];
+        yVal = item[1] as number;
+      } else if (item && typeof item === "object") {
         const raw = (item as any).value;
-        if (Array.isArray(raw)) { xVal = raw[0]; yVal = raw[1]; }
-        else { xVal = index; yVal = raw; }
+        if (Array.isArray(raw)) {
+          xVal = raw[0];
+          yVal = raw[1];
+        } else {
+          xVal = index;
+          yVal = raw;
+        }
       }
       if (yVal === null || !Number.isFinite(yVal)) return;
       const px = xScale.map(xVal);
       const py = yScale.map(yVal);
       if (!Number.isFinite(px) || !Number.isFinite(py)) return;
 
-      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      const circle = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "circle",
+      );
       circle.setAttribute("cx", String(px));
       circle.setAttribute("cy", String(py));
       circle.setAttribute("r", String(r));
@@ -343,7 +463,10 @@ export function renderSeriesSymbols(svg: SVGSVGElement, opts: SeriesLabelOptions
   svg.appendChild(group);
 }
 
-export function renderSeriesLabels(svg: SVGSVGElement, opts: SeriesLabelOptions): void {
+export function renderSeriesLabels(
+  svg: SVGSVGElement,
+  opts: SeriesLabelOptions,
+): void {
   const old = svg.querySelector(".dc-labels");
   if (old) old.remove();
 
@@ -353,15 +476,36 @@ export function renderSeriesLabels(svg: SVGSVGElement, opts: SeriesLabelOptions)
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
   group.setAttribute("class", "dc-labels");
 
-  const bars = opts.series.filter((s): s is BarSeriesOption => s.type === "bar");
-  const lines = opts.series.filter((s): s is LineSeriesOption => s.type === "line");
-  const pies = opts.series.filter((s): s is PieSeriesOption => s.type === "pie");
-  const scatters = opts.series.filter((s): s is ScatterSeriesOption => s.type === "scatter");
+  const bars = opts.series.filter(
+    (s): s is BarSeriesOption => s.type === "bar",
+  );
+  const lines = opts.series.filter(
+    (s): s is LineSeriesOption => s.type === "line",
+  );
+  const pies = opts.series.filter(
+    (s): s is PieSeriesOption => s.type === "pie",
+  );
+  const scatters = opts.series.filter(
+    (s): s is ScatterSeriesOption => s.type === "scatter",
+  );
 
-  renderBarLabels(group, bars, opts.xScales, opts.yScales, 0, opts.hiddenSeries);
+  renderBarLabels(
+    group,
+    bars,
+    opts.xScales,
+    opts.yScales,
+    0,
+    opts.hiddenSeries,
+  );
   renderLineLabels(group, lines, opts.xScales, opts.yScales, opts.hiddenSeries);
   renderPieLabels(group, pies, opts.width, opts.height, opts.hiddenSeries);
-  renderScatterLabels(group, scatters, opts.xScales, opts.yScales, opts.hiddenSeries);
+  renderScatterLabels(
+    group,
+    scatters,
+    opts.xScales,
+    opts.yScales,
+    opts.hiddenSeries,
+  );
 
   svg.appendChild(group);
 }

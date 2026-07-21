@@ -96,7 +96,10 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
         class: "header-anchor",
         ariaHidden: "true",
       } as DomphyElement);
-      return { [`h${node.depth}`]: children, id: slug } as unknown as DomphyElement;
+      return {
+        [`h${node.depth}`]: children,
+        id: slug,
+      } as unknown as DomphyElement;
     }
 
     case "paragraph":

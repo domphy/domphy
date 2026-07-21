@@ -3,7 +3,15 @@
 // axis-trigger nearest-index lookup), and picking a different trailing-
 // window range preset actually re-renders the WebGL series with different
 // pixels (not just swapping some inert prop).
-import { boot, teardown, mountedPage, locate, pixelSnapshot, report, summarize } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  pixelSnapshot,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 const BLOCK = "chartAreaInteractive";
 const TOOLTIP_SELECTOR = `[data-block="${BLOCK}"] .dc-tooltip`;
@@ -20,7 +28,12 @@ async function main() {
   const tooltipInfo = () =>
     page.evaluate((selector) => {
       const element = document.querySelector(selector) as HTMLElement | null;
-      return element ? { opacity: getComputedStyle(element).opacity, text: element.innerText } : null;
+      return element
+        ? {
+            opacity: getComputedStyle(element).opacity,
+            text: element.innerText,
+          }
+        : null;
     }, TOOLTIP_SELECTOR);
 
   const before = await tooltipInfo();
@@ -37,7 +50,9 @@ async function main() {
   await page.waitForTimeout(200);
   const atLeftEdge = await tooltipInfo();
 
-  await page.mouse.move(box.x + box.width - 20, box.y + box.height / 2, { steps: 15 });
+  await page.mouse.move(box.x + box.width - 20, box.y + box.height / 2, {
+    steps: 15,
+  });
   await page.waitForTimeout(200);
   const atRightEdge = await tooltipInfo();
 
@@ -66,7 +81,9 @@ async function main() {
   await page.waitForTimeout(150);
   const beforeRangeChange = await pixelSnapshot(page, canvas);
 
-  const rangeSelect = page.locator(`[data-block="${BLOCK}"] select[aria-label="Select date range"]`);
+  const rangeSelect = page.locator(
+    `[data-block="${BLOCK}"] select[aria-label="Select date range"]`,
+  );
   await rangeSelect.selectOption("7");
   await page.waitForTimeout(800);
   const afterRangeChange = await pixelSnapshot(page, canvas);

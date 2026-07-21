@@ -1,7 +1,10 @@
-import type { ThemeRiverSeriesOption } from "../types.js";
 import { seriesHex } from "../gl/color.js";
+import type { ThemeRiverSeriesOption } from "../types.js";
 
-function svgEl(tag: string, attrs: Record<string, string | number>): SVGElement {
+function svgEl(
+  tag: string,
+  attrs: Record<string, string | number>,
+): SVGElement {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
   return el;
@@ -16,10 +19,10 @@ function catmullRomToBezier(points: [number, number][]): string {
     const p1 = points[i];
     const p2 = points[i + 1];
     const p3 = points[Math.min(points.length - 1, i + 2)];
-    const cp1x = p1[0] + (p2[0] - p0[0]) * tension / 3;
-    const cp1y = p1[1] + (p2[1] - p0[1]) * tension / 3;
-    const cp2x = p2[0] - (p3[0] - p1[0]) * tension / 3;
-    const cp2y = p2[1] - (p3[1] - p1[1]) * tension / 3;
+    const cp1x = p1[0] + ((p2[0] - p0[0]) * tension) / 3;
+    const cp1y = p1[1] + ((p2[1] - p0[1]) * tension) / 3;
+    const cp2x = p2[0] - ((p3[0] - p1[0]) * tension) / 3;
+    const cp2y = p2[1] - ((p3[1] - p1[1]) * tension) / 3;
     d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0]},${p2[1]}`;
   }
   return d;
@@ -85,20 +88,25 @@ export function renderThemeRiver(
     const name = item[2];
     const nameIdx = uniqueNames.indexOf(name);
     if (nameIdx < 0) continue;
-    const t = typeof timeRaw === "number" ? timeRaw : new Date(String(timeRaw)).getTime();
+    const t =
+      typeof timeRaw === "number"
+        ? timeRaw
+        : new Date(String(timeRaw)).getTime();
     const timeIdx = times.indexOf(t);
     if (timeIdx >= 0) valueMatrix[nameIdx][timeIdx] = value;
   }
 
   // Compute stacked heights per time with silhouette centering
   const totalAtTime: number[] = times.map((_, ti) =>
-    uniqueNames.reduce((sum, _, ni) => sum + valueMatrix[ni][ti], 0)
+    uniqueNames.reduce((sum, _, ni) => sum + valueMatrix[ni][ti], 0),
   );
   const maxTotal = Math.max(...totalAtTime, 1);
 
   // For each time, compute layer positions using wiggle/silhouette baseline
   // baseline[ti] centers streams: starts at -totalAtTime[ti]/2
-  const baselines: number[][] = uniqueNames.map(() => new Array(times.length).fill(0));
+  const baselines: number[][] = uniqueNames.map(() =>
+    new Array(times.length).fill(0),
+  );
 
   for (let ti = 0; ti < times.length; ti++) {
     let runningY = -totalAtTime[ti] / 2;
@@ -127,10 +135,12 @@ export function renderThemeRiver(
     ]);
 
     // Lower edge: baseline[ni], reversed
-    const lowerPoints: [number, number][] = [...times].reverse().map((t, ri) => {
-      const ti = times.length - 1 - ri;
-      return [timeToX(t), valToY(baselines[ni][ti])];
-    });
+    const lowerPoints: [number, number][] = [...times]
+      .reverse()
+      .map((t, ri) => {
+        const ti = times.length - 1 - ri;
+        return [timeToX(t), valToY(baselines[ni][ti])];
+      });
 
     // Build smooth path
     const upperPath = catmullRomToBezier(upperPoints);
@@ -143,7 +153,10 @@ export function renderThemeRiver(
     const firstLower = lowerPoints[0];
     const d = `${upperPath} L ${firstLower[0]},${firstLower[1]} ${lowerPath.slice(1)} L ${upperPoints[0][0]},${upperPoints[0][1]} Z`;
 
-    const pathEl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const pathEl = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "path",
+    );
     pathEl.setAttribute("d", d);
     pathEl.setAttribute("fill", color);
     pathEl.setAttribute("opacity", "0.8");
@@ -155,7 +168,10 @@ export function renderThemeRiver(
     const midX = timeToX(times[midTi]);
     const midY = valToY(baselines[ni][midTi] + valueMatrix[ni][midTi] / 2);
     if (valueMatrix[ni][midTi] > 0) {
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      const label = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text",
+      );
       label.textContent = uniqueNames[ni];
       label.setAttribute("x", String(midX));
       label.setAttribute("y", String(midY));
@@ -174,7 +190,10 @@ export function renderThemeRiver(
     const ti = Math.round((i / (labelCount - 1)) * (times.length - 1));
     const t = times[ti];
     const x = timeToX(t);
-    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    const label = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "text",
+    );
     label.textContent = new Date(t).toLocaleDateString();
     label.setAttribute("x", String(x));
     label.setAttribute("y", String(height - marginB + 14));

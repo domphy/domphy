@@ -3,7 +3,14 @@
 // required validation, tab order straight to the submit button, a valid
 // submit not reloading, and the social-provider buttons being real,
 // non-submitting, accessible buttons.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -14,10 +21,16 @@ async function main() {
   const submit = block.getByRole("button", { name: "Create Account" });
 
   const passwordCount = await block.locator('input[type="password"]').count();
-  report("signup05: has no password field (email-only by design)", passwordCount === 0, `count=${passwordCount}`);
+  report(
+    "signup05: has no password field (email-only by design)",
+    passwordCount === 0,
+    `count=${passwordCount}`,
+  );
 
   await email.fill("not-an-email");
-  const typeMismatch = await email.evaluate((element: HTMLInputElement) => element.validity.typeMismatch);
+  const typeMismatch = await email.evaluate(
+    (element: HTMLInputElement) => element.validity.typeMismatch,
+  );
   report(
     "signup05: malformed email is rejected by type=email format validation",
     typeMismatch === true,
@@ -26,8 +39,12 @@ async function main() {
 
   await email.fill("");
   await submit.click();
-  const emailValid = await email.evaluate((element: HTMLInputElement) => element.validity.valid);
-  const focusedAfterEmptySubmit = await page.evaluate(() => document.activeElement?.id);
+  const emailValid = await email.evaluate(
+    (element: HTMLInputElement) => element.validity.valid,
+  );
+  const focusedAfterEmptySubmit = await page.evaluate(
+    () => document.activeElement?.id,
+  );
   report(
     "signup05: empty submit blocked by native required validation",
     emailValid === false && focusedAfterEmptySubmit === "signup05-email",
@@ -43,7 +60,8 @@ async function main() {
   });
   report(
     "signup05: tab order moves straight from email to the submit button",
-    focusedAfterTab.type === "submit" && focusedAfterTab.text === "Create Account",
+    focusedAfterTab.type === "submit" &&
+      focusedAfterTab.text === "Create Account",
     `focused=${JSON.stringify(focusedAfterTab)}`,
   );
 
@@ -61,7 +79,9 @@ async function main() {
     `marker survived=${markerSurvived}`,
   );
 
-  const appleProvider = block.getByRole("button", { name: "Sign up with Apple" });
+  const appleProvider = block.getByRole("button", {
+    name: "Sign up with Apple",
+  });
   const providerType = await appleProvider.getAttribute("type");
   report(
     "signup05: social-provider button is a real accessible, non-submitting button",

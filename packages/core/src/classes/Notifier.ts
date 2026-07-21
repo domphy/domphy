@@ -66,9 +66,7 @@ export class Notifier {
   // `toString`, `hasOwnProperty`, `__proto__`, ...): a plain `{}` would resolve
   // `this._listeners[event]` to an inherited value for those event names,
   // which is truthy but not a Set, crashing `.has`/`.add` on first subscribe.
-  private _listeners: Record<string, Set<Handler>> | null = Object.create(
-    null,
-  );
+  private _listeners: Record<string, Set<Handler>> | null = Object.create(null);
   private _pending: Map<string, { args: unknown[]; chain: ChainEntry[] }> =
     new Map();
   private _scheduled = false;

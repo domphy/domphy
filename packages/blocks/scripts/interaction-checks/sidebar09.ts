@@ -1,7 +1,14 @@
 // Real browser interaction checks for sidebar09 (email-client sidebar):
 // clicking a folder in the icon rail must actually swap the message list,
 // and clicking a message must actually select/highlight it (aria-selected).
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main(): Promise<void> {
   const { demoUrl } = await boot();
@@ -14,7 +21,8 @@ async function main(): Promise<void> {
     const inboxText = await messageList.innerText();
     report(
       "sidebar09: inbox is the default folder",
-      inboxText.includes("William Smith") || inboxText.includes("Meeting Tomorrow"),
+      inboxText.includes("William Smith") ||
+        inboxText.includes("Meeting Tomorrow"),
       `inbox list text: ${inboxText.slice(0, 80)}`,
     );
 
@@ -24,7 +32,8 @@ async function main(): Promise<void> {
     const draftsText = await messageList.innerText();
     report(
       "sidebar09: clicking Drafts swaps the message list",
-      draftsText.includes("Draft: Quarterly Report") && !draftsText.includes("William Smith"),
+      draftsText.includes("Draft: Quarterly Report") &&
+        !draftsText.includes("William Smith"),
       `drafts list text: ${draftsText.slice(0, 80)}`,
     );
 

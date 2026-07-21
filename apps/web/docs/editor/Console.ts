@@ -4,7 +4,8 @@ import { themeColor, themeSize, themeSpacing } from "@domphy/theme";
 // The console is a terminal surface — deliberately dark on both site themes.
 // dataTheme="dark" + dataTone gives it a real dark ramp from the theme itself,
 // so every color below stays a token instead of a hard-coded hex.
-const monoFont = "var(--dp-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)";
+const monoFont =
+  "var(--dp-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)";
 
 function ConsoleLog(log: string, i: number): DomphyElement<"div"> {
   return {
@@ -27,7 +28,8 @@ function ConsoleLog(log: string, i: number): DomphyElement<"div"> {
       paddingBlock: themeSpacing(0.75),
       paddingInline: themeSpacing(2.5),
       color: (listener) => themeColor(listener, "shift-10", "info"),
-      borderBottom: (listener) => `1px solid ${themeColor(listener, "shift-2")}`,
+      borderBottom: (listener) =>
+        `1px solid ${themeColor(listener, "shift-2")}`,
     },
   };
 }

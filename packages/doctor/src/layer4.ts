@@ -7,7 +7,7 @@
  * Only called from the CLI after Layer 1–3 (diagnose) has already run.
  * Diagnostics produced here have category "output".
  */
-import { ElementNode } from "@domphy/core";
+import type { ElementNode } from "@domphy/core";
 import type { Diagnostic } from "./diagnose.js";
 
 // ─── htmlhint rule set ────────────────────────────────────────────────────────
@@ -70,11 +70,16 @@ export async function auditOutput(
 
 async function checkHtml(html: string, path: string): Promise<Diagnostic[]> {
   if (!html) return [];
-  type HtmlHintInstance = { verify: (html: string, rules: Record<string, unknown>) => HintMessage[] };
+  type HtmlHintInstance = {
+    verify: (html: string, rules: Record<string, unknown>) => HintMessage[];
+  };
   let htmlhint: HtmlHintInstance | null = null;
   try {
-    type HtmlHintMod = { default?: { HTMLHint?: HtmlHintInstance }; HTMLHint?: HtmlHintInstance };
-    const mod = await import("htmlhint" as string) as HtmlHintMod;
+    type HtmlHintMod = {
+      default?: { HTMLHint?: HtmlHintInstance };
+      HTMLHint?: HtmlHintInstance;
+    };
+    const mod = (await import("htmlhint" as string)) as HtmlHintMod;
     htmlhint = mod.default?.HTMLHint ?? mod.HTMLHint ?? null;
   } catch {
     return [];
@@ -104,9 +109,16 @@ interface HintMessage {
 
 async function checkCss(css: string, path: string): Promise<Diagnostic[]> {
   if (!css) return [];
-  let stylelint: { lint: (opts: { code: string; config: typeof STYLELINT_CONFIG }) => Promise<StylelintResult> };
+  let stylelint: {
+    lint: (opts: {
+      code: string;
+      config: typeof STYLELINT_CONFIG;
+    }) => Promise<StylelintResult>;
+  };
   try {
-    const mod = await import("stylelint" as string) as { default: typeof stylelint };
+    const mod = (await import("stylelint" as string)) as {
+      default: typeof stylelint;
+    };
     stylelint = mod.default;
   } catch {
     return [];
@@ -122,7 +134,8 @@ async function checkCss(css: string, path: string): Promise<Diagnostic[]> {
   const warnings = result.results?.[0]?.warnings ?? [];
   return warnings.map((w) => ({
     rule: `css/${w.rule}`,
-    severity: w.severity === "error" ? ("error" as const) : ("warning" as const),
+    severity:
+      w.severity === "error" ? ("error" as const) : ("warning" as const),
     category: "output" as any,
     path: `${path} [css:${w.line}:${w.column}]`,
     message: w.text,

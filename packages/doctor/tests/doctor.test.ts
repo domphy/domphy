@@ -118,9 +118,7 @@ describe("diagnose", () => {
     expect(rules({ div: "x", dataTone: "surface" })).not.toContain(
       "unknown-tone",
     );
-    expect(rules({ div: "x", dataTone: "text" })).not.toContain(
-      "unknown-tone",
-    );
+    expect(rules({ div: "x", dataTone: "text" })).not.toContain("unknown-tone");
     // out-of-range but valid grammar
     expect(rules({ div: "x", dataTone: "shift-25" })).toContain("unknown-tone");
     expect(rules({ div: "x", dataTone: "increase-18" })).toContain(

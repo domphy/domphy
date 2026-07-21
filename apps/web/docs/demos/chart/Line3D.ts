@@ -1,16 +1,12 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 // Single-loop helix: 61 points, t from 0 to 2PI (inclusive), step PI/30
 const helixData: [number, number, number][] = [];
 for (let i = 0; i <= 60; i++) {
   const t = (i / 60) * 2 * Math.PI;
-  helixData.push([
-    Math.cos(t) * 3,
-    Math.sin(t) * 3,
-    t / (2 * Math.PI),
-  ]);
+  helixData.push([Math.cos(t) * 3, Math.sin(t) * 3, t / (2 * Math.PI)]);
 }
 
 const option: ChartOption = {

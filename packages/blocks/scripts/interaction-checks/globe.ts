@@ -15,7 +15,14 @@
 // frame — proof, at the graphics-API level, that dragging changes the
 // globe's rotation state, independent of whether this GPU can visibly
 // render the result.
-import { boot, locate, mountedPageWithInit, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPageWithInit,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 const NAME = "globe";
 
@@ -27,32 +34,57 @@ async function main(): Promise<void> {
         (window as unknown as { __phiValues: number[] }).__phiValues = [];
         const locationNames = new WeakMap<object, string>();
 
-        const origGetUniformLocation1 = WebGLRenderingContext.prototype.getUniformLocation;
-        WebGLRenderingContext.prototype.getUniformLocation = function (this: WebGLRenderingContext, program, name) {
+        const origGetUniformLocation1 =
+          WebGLRenderingContext.prototype.getUniformLocation;
+        WebGLRenderingContext.prototype.getUniformLocation = function (
+          this: WebGLRenderingContext,
+          program,
+          name,
+        ) {
           const location = origGetUniformLocation1.call(this, program, name);
           if (location && name === "z") locationNames.set(location, name);
           return location;
         };
         const origUniform1f1 = WebGLRenderingContext.prototype.uniform1f;
-        WebGLRenderingContext.prototype.uniform1f = function (this: WebGLRenderingContext, location, value) {
+        WebGLRenderingContext.prototype.uniform1f = function (
+          this: WebGLRenderingContext,
+          location,
+          value,
+        ) {
           if (location && locationNames.get(location) === "z") {
-            (window as unknown as { __phiValues: number[] }).__phiValues.push(value);
+            (window as unknown as { __phiValues: number[] }).__phiValues.push(
+              value,
+            );
           }
           return origUniform1f1.call(this, location, value);
         };
 
-        const webgl2Proto = (window as unknown as { WebGL2RenderingContext?: typeof WebGL2RenderingContext }).WebGL2RenderingContext?.prototype;
+        const webgl2Proto = (
+          window as unknown as {
+            WebGL2RenderingContext?: typeof WebGL2RenderingContext;
+          }
+        ).WebGL2RenderingContext?.prototype;
         if (webgl2Proto) {
           const origGetUniformLocation2 = webgl2Proto.getUniformLocation;
-          webgl2Proto.getUniformLocation = function (this: WebGL2RenderingContext, program, name) {
+          webgl2Proto.getUniformLocation = function (
+            this: WebGL2RenderingContext,
+            program,
+            name,
+          ) {
             const location = origGetUniformLocation2.call(this, program, name);
             if (location && name === "z") locationNames.set(location, name);
             return location;
           };
           const origUniform1f2 = webgl2Proto.uniform1f;
-          webgl2Proto.uniform1f = function (this: WebGL2RenderingContext, location, value) {
+          webgl2Proto.uniform1f = function (
+            this: WebGL2RenderingContext,
+            location,
+            value,
+          ) {
             if (location && locationNames.get(location) === "z") {
-              (window as unknown as { __phiValues: number[] }).__phiValues.push(value);
+              (window as unknown as { __phiValues: number[] }).__phiValues.push(
+                value,
+              );
             }
             return origUniform1f2.call(this, location, value);
           };
@@ -69,12 +101,18 @@ async function main(): Promise<void> {
     const centerX = box.x + box.width / 2;
     const centerY = box.y + box.height / 2;
 
-    const phiBeforeDrag = await page.evaluate(() => (window as unknown as { __phiValues: number[] }).__phiValues.at(-1) ?? null);
+    const phiBeforeDrag = await page.evaluate(
+      () =>
+        (window as unknown as { __phiValues: number[] }).__phiValues.at(-1) ??
+        null,
+    );
 
     await page.mouse.move(centerX, centerY);
     await page.mouse.down();
 
-    const cursorWhileDragging = await canvas.evaluate((el) => (el as HTMLElement).style.cursor);
+    const cursorWhileDragging = await canvas.evaluate(
+      (el) => (el as HTMLElement).style.cursor,
+    );
     report(
       `${NAME}: cursor switches to "grabbing" while dragging`,
       cursorWhileDragging === "grabbing",
@@ -89,15 +127,24 @@ async function main(): Promise<void> {
     await page.mouse.up();
     await page.waitForTimeout(150);
 
-    const cursorAfterRelease = await canvas.evaluate((el) => (el as HTMLElement).style.cursor);
+    const cursorAfterRelease = await canvas.evaluate(
+      (el) => (el as HTMLElement).style.cursor,
+    );
     report(
       `${NAME}: cursor reverts to "grab" after release`,
       cursorAfterRelease === "grab",
       `cursor="${cursorAfterRelease}"`,
     );
 
-    const phiAfterDrag = await page.evaluate(() => (window as unknown as { __phiValues: number[] }).__phiValues.at(-1) ?? null);
-    const phiDelta = phiBeforeDrag !== null && phiAfterDrag !== null ? Math.abs(phiAfterDrag - phiBeforeDrag) : null;
+    const phiAfterDrag = await page.evaluate(
+      () =>
+        (window as unknown as { __phiValues: number[] }).__phiValues.at(-1) ??
+        null,
+    );
+    const phiDelta =
+      phiBeforeDrag !== null && phiAfterDrag !== null
+        ? Math.abs(phiAfterDrag - phiBeforeDrag)
+        : null;
     // A 380px drag maps to `delta/100` radians (~3.8) in the component's own
     // pointermove handler — idle auto-rotate alone (`rotationSpeed` 0.0035/frame)
     // could not plausibly produce a delta anywhere near this large.

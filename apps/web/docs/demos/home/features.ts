@@ -15,9 +15,7 @@ const border = themeColor(null, "shift-3");
 
 function icon(paths: string[]): DomphyElement {
   return {
-    svg: paths.map(
-      (d) => ({ path: null, d }) as DomphyElement,
-    ),
+    svg: paths.map((d) => ({ path: null, d }) as DomphyElement),
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",

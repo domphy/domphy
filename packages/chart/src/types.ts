@@ -145,7 +145,10 @@ export interface LabelLineOption {
 export interface MarkPointOption {
   data?: MarkPointDataItem[];
   symbol?: SymbolType;
-  symbolSize?: number | [number, number] | ((value: any, params: any) => number);
+  symbolSize?:
+    | number
+    | [number, number]
+    | ((value: any, params: any) => number);
   silent?: boolean;
   label?: LabelOption;
   itemStyle?: ItemStyleOption;
@@ -296,8 +299,16 @@ export interface AxisOption {
   nameRotate?: number;
   inverse?: boolean;
   boundaryGap?: boolean | [string | number, string | number];
-  min?: number | string | "dataMin" | ((value: { min: number; max: number }) => number);
-  max?: number | string | "dataMax" | ((value: { min: number; max: number }) => number);
+  min?:
+    | number
+    | string
+    | "dataMin"
+    | ((value: { min: number; max: number }) => number);
+  max?:
+    | number
+    | string
+    | "dataMax"
+    | ((value: { min: number; max: number }) => number);
   scale?: boolean;
   splitNumber?: number;
   minInterval?: number;
@@ -308,22 +319,34 @@ export interface AxisOption {
   triggerEvent?: boolean;
   axisLine?: AxisLineOption;
   axisTick?: AxisTickOption;
-  minorTick?: { show?: boolean; splitNumber?: number; length?: number; lineStyle?: LineStyleOption };
+  minorTick?: {
+    show?: boolean;
+    splitNumber?: number;
+    length?: number;
+    lineStyle?: LineStyleOption;
+  };
   axisLabel?: AxisLabelOption;
   splitLine?: SplitLineOption;
   minorSplitLine?: SplitLineOption;
   splitArea?: SplitAreaOption;
-  data?: (string | number | Date | { value: string | number | Date; textStyle?: object })[];
+  data?: (
+    | string
+    | number
+    | Date
+    | { value: string | number | Date; textStyle?: object }
+  )[];
   axisPointer?: AxisPointerOption;
   z?: number;
   zlevel?: number;
 }
 
-export interface RadiusAxisOption extends Omit<AxisOption, "position" | "gridIndex"> {
+export interface RadiusAxisOption
+  extends Omit<AxisOption, "position" | "gridIndex"> {
   polarIndex?: number;
 }
 
-export interface AngleAxisOption extends Omit<AxisOption, "position" | "gridIndex"> {
+export interface AngleAxisOption
+  extends Omit<AxisOption, "position" | "gridIndex"> {
   polarIndex?: number;
   startAngle?: number;
   clockwise?: boolean;
@@ -430,7 +453,15 @@ export interface LegendOption {
     width?: number;
   };
   tooltip?: TooltipOption;
-  data?: (string | { name: string; icon?: SymbolType; itemStyle?: ItemStyleOption; lineStyle?: LineStyleOption })[];
+  data?: (
+    | string
+    | {
+        name: string;
+        icon?: SymbolType;
+        itemStyle?: ItemStyleOption;
+        lineStyle?: LineStyleOption;
+      }
+  )[];
   backgroundColor?: ThemeFamily;
   borderColor?: ThemeFamily;
   borderWidth?: number;
@@ -487,10 +518,21 @@ export interface TooltipOption {
         dom: HTMLElement,
         rect: { x: number; y: number; width: number; height: number } | null,
         size: { contentSize: [number, number]; viewSize: [number, number] },
-      ) => [number | string, number | string] | { top?: string | number; left?: string | number; right?: string | number; bottom?: string | number });
+      ) =>
+        | [number | string, number | string]
+        | {
+            top?: string | number;
+            left?: string | number;
+            right?: string | number;
+            bottom?: string | number;
+          });
   formatter?:
     | string
-    | ((params: TooltipParams | TooltipParams[], ticket: string, callback: (ticket: string, html: string) => void) => string | DomphyElement);
+    | ((
+        params: TooltipParams | TooltipParams[],
+        ticket: string,
+        callback: (ticket: string, html: string) => void,
+      ) => string | DomphyElement);
   valueFormatter?: (value: any, dataIndex: number) => string;
   backgroundColor?: string;
   borderColor?: string;
@@ -534,16 +576,34 @@ export interface ToolboxOption {
   itemGap?: number;
   showTitle?: boolean;
   feature?: {
-    saveAsImage?: { type?: "png" | "jpg" | "svg"; name?: string; title?: string; show?: boolean };
+    saveAsImage?: {
+      type?: "png" | "jpg" | "svg";
+      name?: string;
+      title?: string;
+      show?: boolean;
+    };
     restore?: { title?: string; show?: boolean };
-    dataView?: { title?: string; show?: boolean; readOnly?: boolean; lang?: [string, string, string] };
-    dataZoom?: { title?: { zoom?: string; back?: string }; show?: boolean; filterMode?: "filter" | "weakFilter" | "empty" | "none" };
+    dataView?: {
+      title?: string;
+      show?: boolean;
+      readOnly?: boolean;
+      lang?: [string, string, string];
+    };
+    dataZoom?: {
+      title?: { zoom?: string; back?: string };
+      show?: boolean;
+      filterMode?: "filter" | "weakFilter" | "empty" | "none";
+    };
     magicType?: {
       type?: ("line" | "bar" | "stack")[];
       title?: { line?: string; bar?: string; stack?: string; tiled?: string };
       show?: boolean;
     };
-    brush?: { type?: ("rect" | "polygon" | "lineX" | "lineY" | "keep" | "clear")[]; title?: Record<string, string>; show?: boolean };
+    brush?: {
+      type?: ("rect" | "polygon" | "lineX" | "lineY" | "keep" | "clear")[];
+      title?: Record<string, string>;
+      show?: boolean;
+    };
   };
   left?: number | string;
   top?: number | string;
@@ -585,7 +645,10 @@ export interface DataZoomSliderOption {
   borderRadius?: number;
   backgroundColor?: ThemeFamily;
   dataBackground?: { lineStyle?: LineStyleOption; areaStyle?: AreaStyleOption };
-  selectedDataBackground?: { lineStyle?: LineStyleOption; areaStyle?: AreaStyleOption };
+  selectedDataBackground?: {
+    lineStyle?: LineStyleOption;
+    areaStyle?: AreaStyleOption;
+  };
   fillerColor?: ThemeFamily;
   handleColor?: ThemeFamily;
   handleStyle?: ItemStyleOption;
@@ -594,14 +657,19 @@ export interface DataZoomSliderOption {
   moveHandleStyle?: ItemStyleOption;
   moveHandleSize?: number;
   labelPrecision?: number | "auto";
-  labelFormatter?: string | ((value: number | string, valueStr: string) => string);
+  labelFormatter?:
+    | string
+    | ((value: number | string, valueStr: string) => string);
   showDetail?: boolean;
   showDataShadow?: "auto" | boolean;
   realtime?: boolean;
   textStyle?: { color?: ThemeFamily; fontSize?: number };
   brushSelect?: boolean;
   brushStyle?: ItemStyleOption;
-  emphasis?: { handleStyle?: ItemStyleOption; moveHandleStyle?: ItemStyleOption };
+  emphasis?: {
+    handleStyle?: ItemStyleOption;
+    moveHandleStyle?: ItemStyleOption;
+  };
   z?: number;
   zlevel?: number;
 }
@@ -651,7 +719,12 @@ export interface VisualMapContinuousOption {
   dimension?: number;
   seriesIndex?: number | number[];
   hoverLink?: boolean;
-  inRange?: { color?: ThemeFamily[]; opacity?: number; symbol?: SymbolType; symbolSize?: [number, number] };
+  inRange?: {
+    color?: ThemeFamily[];
+    opacity?: number;
+    symbol?: SymbolType;
+    symbolSize?: [number, number];
+  };
   outOfRange?: { color?: ThemeFamily[]; opacity?: number };
   controller?: { inRange?: object; outOfRange?: object };
   orient?: OrientType;
@@ -726,12 +799,16 @@ export interface VisualMapPiecewiseOption {
   borderWidth?: number;
   color?: ThemeFamily[];
   textStyle?: { color?: ThemeFamily; fontSize?: number };
-  formatter?: string | ((value: number | string, value2: number | string) => string);
+  formatter?:
+    | string
+    | ((value: number | string, value2: number | string) => string);
   z?: number;
   zlevel?: number;
 }
 
-export type VisualMapOption = VisualMapContinuousOption | VisualMapPiecewiseOption;
+export type VisualMapOption =
+  | VisualMapContinuousOption
+  | VisualMapPiecewiseOption;
 
 // ─── Brush ────────────────────────────────────────────────────────────────────
 export interface BrushOption {
@@ -749,7 +826,12 @@ export interface BrushOption {
   throttleType?: "debounce" | "fixRate";
   throttleDelay?: number;
   removeOnClick?: boolean;
-  inBrush?: { color?: ThemeFamily[]; opacity?: number; symbol?: SymbolType; symbolSize?: [number, number] };
+  inBrush?: {
+    color?: ThemeFamily[];
+    opacity?: number;
+    symbol?: SymbolType;
+    symbolSize?: [number, number];
+  };
   outOfBrush?: { color?: ThemeFamily[]; opacity?: number };
   z?: number;
 }
@@ -758,7 +840,14 @@ export interface BrushOption {
 export interface DatasetOption {
   id?: string;
   source?: any[][] | Record<string, any[]> | Record<string, any>[];
-  dimensions?: (string | { name: string; type?: "ordinal" | "number" | "float" | "int" | "time"; displayName?: string })[];
+  dimensions?: (
+    | string
+    | {
+        name: string;
+        type?: "ordinal" | "number" | "float" | "int" | "time";
+        displayName?: string;
+      }
+  )[];
   sourceHeader?: boolean;
   transform?: TransformOption[];
   fromDatasetIndex?: number;
@@ -803,7 +892,10 @@ export interface LineSeriesOption {
   yAxisIndex?: number;
   polarIndex?: number;
   symbol?: SymbolType;
-  symbolSize?: number | [number, number] | ((value: any, params: any) => number);
+  symbolSize?:
+    | number
+    | [number, number]
+    | ((value: any, params: any) => number);
   symbolRotate?: number;
   symbolKeepAspect?: boolean;
   symbolOffset?: [number | string, number | string];
@@ -824,8 +916,18 @@ export interface LineSeriesOption {
   lineStyle?: LineStyleOption;
   areaStyle?: AreaStyleOption;
   emphasis?: EmphasisOption;
-  blur?: { label?: LabelOption; itemStyle?: ItemStyleOption; lineStyle?: LineStyleOption; areaStyle?: AreaStyleOption };
-  select?: { label?: LabelOption; itemStyle?: ItemStyleOption; lineStyle?: LineStyleOption; areaStyle?: AreaStyleOption };
+  blur?: {
+    label?: LabelOption;
+    itemStyle?: ItemStyleOption;
+    lineStyle?: LineStyleOption;
+    areaStyle?: AreaStyleOption;
+  };
+  select?: {
+    label?: LabelOption;
+    itemStyle?: ItemStyleOption;
+    lineStyle?: LineStyleOption;
+    areaStyle?: AreaStyleOption;
+  };
   selectedMode?: boolean | "single" | "multiple" | "series";
   smooth?: boolean | number;
   smoothMonotone?: "x" | "y" | "none";
@@ -834,7 +936,19 @@ export interface LineSeriesOption {
   encode?: EncodeOption;
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
-  data?: (number | null | undefined | [number | string | Date, number] | { value: number | null; name?: string; itemStyle?: ItemStyleOption; label?: LabelOption; emphasis?: EmphasisOption })[];
+  data?: (
+    | number
+    | null
+    | undefined
+    | [number | string | Date, number]
+    | {
+        value: number | null;
+        name?: string;
+        itemStyle?: ItemStyleOption;
+        label?: LabelOption;
+        emphasis?: EmphasisOption;
+      }
+  )[];
   markPoint?: MarkPointOption;
   markLine?: MarkLineOption;
   markArea?: MarkAreaOption;
@@ -888,11 +1002,25 @@ export interface BarSeriesOption {
   encode?: EncodeOption;
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
-  data?: (number | null | undefined | [number | string | Date, number] | { value: number | null; name?: string; itemStyle?: ItemStyleOption; label?: LabelOption; emphasis?: EmphasisOption })[];
+  data?: (
+    | number
+    | null
+    | undefined
+    | [number | string | Date, number]
+    | {
+        value: number | null;
+        name?: string;
+        itemStyle?: ItemStyleOption;
+        label?: LabelOption;
+        emphasis?: EmphasisOption;
+      }
+  )[];
   clip?: boolean;
   realtimeSort?: boolean;
   showBackground?: boolean;
-  backgroundStyle?: ItemStyleOption & { borderRadius?: number | [number, number, number, number] };
+  backgroundStyle?: ItemStyleOption & {
+    borderRadius?: number | [number, number, number, number];
+  };
   markPoint?: MarkPointOption;
   markLine?: MarkLineOption;
   markArea?: MarkAreaOption;
@@ -949,7 +1077,9 @@ export interface PieSeriesOption {
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
   data?: PieDataItem[];
-  label?: LabelOption & { position?: "outside" | "inside" | "inner" | "center" };
+  label?: LabelOption & {
+    position?: "outside" | "inside" | "inner" | "center";
+  };
   labelLine?: LabelLineOption;
   labelLayout?: object;
   itemStyle?: ItemStyleOption;
@@ -985,7 +1115,10 @@ export interface ScatterSeriesOption {
   geoIndex?: number;
   legendHoverLink?: boolean;
   symbol?: SymbolType;
-  symbolSize?: number | [number, number] | ((value: any, params: any) => number);
+  symbolSize?:
+    | number
+    | [number, number]
+    | ((value: any, params: any) => number);
   symbolRotate?: number;
   symbolKeepAspect?: boolean;
   symbolOffset?: [number | string, number | string];
@@ -1006,7 +1139,21 @@ export interface ScatterSeriesOption {
   encode?: EncodeOption;
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
-  data?: (number | null | undefined | number[] | { value: number | number[]; name?: string; itemStyle?: ItemStyleOption; label?: LabelOption; emphasis?: EmphasisOption; symbol?: SymbolType; symbolSize?: number })[];
+  data?: (
+    | number
+    | null
+    | undefined
+    | number[]
+    | {
+        value: number | number[];
+        name?: string;
+        itemStyle?: ItemStyleOption;
+        label?: LabelOption;
+        emphasis?: EmphasisOption;
+        symbol?: SymbolType;
+        symbolSize?: number;
+      }
+  )[];
   markPoint?: MarkPointOption;
   markLine?: MarkLineOption;
   markArea?: MarkAreaOption;
@@ -1035,7 +1182,16 @@ export interface RadarOption {
   center?: [string | number, string | number];
   radius?: string | number | [string | number, string | number];
   startAngle?: number;
-  axisName?: { show?: boolean; formatter?: string | ((name: string) => string); color?: ThemeFamily; fontSize?: number; fontWeight?: "normal" | "bold"; backgroundColor?: ThemeFamily; borderRadius?: number; padding?: number | [number, number] };
+  axisName?: {
+    show?: boolean;
+    formatter?: string | ((name: string) => string);
+    color?: ThemeFamily;
+    fontSize?: number;
+    fontWeight?: "normal" | "bold";
+    backgroundColor?: ThemeFamily;
+    borderRadius?: number;
+    padding?: number | [number, number];
+  };
   nameGap?: number;
   splitNumber?: number;
   shape?: "polygon" | "circle";
@@ -1066,10 +1222,30 @@ export interface RadarSeriesOption {
   lineStyle?: LineStyleOption;
   areaStyle?: AreaStyleOption;
   emphasis?: EmphasisOption;
-  blur?: { label?: LabelOption; itemStyle?: ItemStyleOption; lineStyle?: LineStyleOption; areaStyle?: AreaStyleOption };
-  select?: { label?: LabelOption; itemStyle?: ItemStyleOption; lineStyle?: LineStyleOption; areaStyle?: AreaStyleOption };
+  blur?: {
+    label?: LabelOption;
+    itemStyle?: ItemStyleOption;
+    lineStyle?: LineStyleOption;
+    areaStyle?: AreaStyleOption;
+  };
+  select?: {
+    label?: LabelOption;
+    itemStyle?: ItemStyleOption;
+    lineStyle?: LineStyleOption;
+    areaStyle?: AreaStyleOption;
+  };
   selectedMode?: boolean | "single" | "multiple" | "series";
-  data?: { name?: string; value: number[]; label?: LabelOption; itemStyle?: ItemStyleOption; lineStyle?: LineStyleOption; areaStyle?: AreaStyleOption; emphasis?: EmphasisOption; symbol?: SymbolType; symbolSize?: number }[];
+  data?: {
+    name?: string;
+    value: number[];
+    label?: LabelOption;
+    itemStyle?: ItemStyleOption;
+    lineStyle?: LineStyleOption;
+    areaStyle?: AreaStyleOption;
+    emphasis?: EmphasisOption;
+    symbol?: SymbolType;
+    symbolSize?: number;
+  }[];
   z?: number;
   zlevel?: number;
   silent?: boolean;
@@ -1146,7 +1322,9 @@ export interface CandlestickSeriesOption {
   encode?: EncodeOption;
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
-  data?: [number, number, number, number][] | { value: [number, number, number, number]; itemStyle?: object }[];
+  data?:
+    | [number, number, number, number][]
+    | { value: [number, number, number, number]; itemStyle?: object }[];
   markPoint?: MarkPointOption;
   markLine?: MarkLineOption;
   markArea?: MarkAreaOption;
@@ -1186,7 +1364,13 @@ export interface BoxplotSeriesOption {
   encode?: EncodeOption;
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
-  data?: [number, number, number, number, number][] | { value: [number, number, number, number, number]; name?: string; itemStyle?: ItemStyleOption }[];
+  data?:
+    | [number, number, number, number, number][]
+    | {
+        value: [number, number, number, number, number];
+        name?: string;
+        itemStyle?: ItemStyleOption;
+      }[];
   markPoint?: MarkPointOption;
   markLine?: MarkLineOption;
   markArea?: MarkAreaOption;
@@ -1203,7 +1387,10 @@ export interface BoxplotSeriesOption {
 export interface GaugeDataItem {
   name?: string;
   value: number;
-  detail?: { offsetCenter?: [string | number, string | number]; formatter?: string | ((value: number) => string) };
+  detail?: {
+    offsetCenter?: [string | number, string | number];
+    formatter?: string | ((value: number) => string);
+  };
   pointer?: { show?: boolean };
   itemStyle?: ItemStyleOption;
   title?: { offsetCenter?: [string | number, string | number] };
@@ -1234,11 +1421,30 @@ export interface GaugeSeriesOption {
   axisLine?: {
     show?: boolean;
     roundCap?: boolean;
-    lineStyle?: { width?: number; color?: [number, ThemeFamily][]; shadowBlur?: number; opacity?: number };
+    lineStyle?: {
+      width?: number;
+      color?: [number, ThemeFamily][];
+      shadowBlur?: number;
+      opacity?: number;
+    };
   };
-  splitLine?: { show?: boolean; distance?: number; length?: number; lineStyle?: LineStyleOption };
-  axisTick?: { show?: boolean; splitNumber?: number; distance?: number; length?: number; lineStyle?: LineStyleOption };
-  axisLabel?: AxisLabelOption & { distance?: number; formatter?: string | ((value: number) => string) };
+  splitLine?: {
+    show?: boolean;
+    distance?: number;
+    length?: number;
+    lineStyle?: LineStyleOption;
+  };
+  axisTick?: {
+    show?: boolean;
+    splitNumber?: number;
+    distance?: number;
+    length?: number;
+    lineStyle?: LineStyleOption;
+  };
+  axisLabel?: AxisLabelOption & {
+    distance?: number;
+    formatter?: string | ((value: number) => string);
+  };
   pointer?: {
     show?: boolean;
     showAbove?: boolean;
@@ -1412,7 +1618,11 @@ export interface FunnelSeriesOption {
   minSize?: string | number;
   maxSize?: string | number;
   orient?: OrientType;
-  sort?: "descending" | "ascending" | "none" | ((a: FunnelDataItem, b: FunnelDataItem) => number);
+  sort?:
+    | "descending"
+    | "ascending"
+    | "none"
+    | ((a: FunnelDataItem, b: FunnelDataItem) => number);
   gap?: number;
   legendHoverLink?: boolean;
   funnelAlign?: "left" | "right" | "center";
@@ -1422,7 +1632,18 @@ export interface FunnelSeriesOption {
   bottom?: string | number;
   width?: string | number;
   height?: string | number;
-  label?: LabelOption & { position?: "left" | "right" | "inside" | "rightTop" | "rightBottom" | "leftTop" | "leftBottom" | "insideRight" | "insideLeft" };
+  label?: LabelOption & {
+    position?:
+      | "left"
+      | "right"
+      | "inside"
+      | "rightTop"
+      | "rightBottom"
+      | "leftTop"
+      | "leftBottom"
+      | "insideRight"
+      | "insideLeft";
+  };
   labelLine?: LabelLineOption;
   itemStyle?: ItemStyleOption;
   emphasis?: EmphasisOption;
@@ -1495,8 +1716,16 @@ export interface SankeySeriesOption {
   itemStyle?: ItemStyleOption;
   lineStyle?: LineStyleOption & { curveness?: number };
   emphasis?: EmphasisOption;
-  blur?: { label?: LabelOption; itemStyle?: ItemStyleOption; lineStyle?: LineStyleOption };
-  select?: { label?: LabelOption; itemStyle?: ItemStyleOption; lineStyle?: LineStyleOption };
+  blur?: {
+    label?: LabelOption;
+    itemStyle?: ItemStyleOption;
+    lineStyle?: LineStyleOption;
+  };
+  select?: {
+    label?: LabelOption;
+    itemStyle?: ItemStyleOption;
+    lineStyle?: LineStyleOption;
+  };
   focusNodeAdjacency?: boolean | "allEdges" | "outEdges" | "inEdges";
   data?: SankeyNode[];
   nodes?: SankeyNode[];
@@ -1594,8 +1823,18 @@ export interface GraphSeriesOption {
   edgeLabel?: LabelOption;
   labelLayout?: object;
   emphasis?: EmphasisOption;
-  blur?: { itemStyle?: ItemStyleOption; lineStyle?: LineStyleOption; label?: LabelOption; edgeLabel?: LabelOption };
-  select?: { itemStyle?: ItemStyleOption; lineStyle?: LineStyleOption; label?: LabelOption; edgeLabel?: LabelOption };
+  blur?: {
+    itemStyle?: ItemStyleOption;
+    lineStyle?: LineStyleOption;
+    label?: LabelOption;
+    edgeLabel?: LabelOption;
+  };
+  select?: {
+    itemStyle?: ItemStyleOption;
+    lineStyle?: LineStyleOption;
+    label?: LabelOption;
+    edgeLabel?: LabelOption;
+  };
   selectedMode?: boolean | "single" | "multiple" | "series";
   symbol?: SymbolType;
   symbolSize?: number | [number, number];
@@ -1646,7 +1885,10 @@ export interface CustomRenderParams {
 
 export interface CustomSeriesAPI {
   value(dim: number | string, dataIndexInside?: number): number;
-  ordinalRawValue(dim: number | string, dataIndexInside?: number): string | number;
+  ordinalRawValue(
+    dim: number | string,
+    dataIndexInside?: number,
+  ): string | number;
   coord(data: number[]): number[];
   size(dataSize: number[], dataItem?: number[]): number[];
   style(extra?: object, dataIndexInside?: number): object;
@@ -1675,7 +1917,13 @@ export interface CustomElement {
   ignore?: boolean;
   textConfig?: object;
   textContent?: CustomElement;
-  during?: (params: { setShape: (key: string, value: any) => void; setStyle: (key: string, value: any) => void; setExtra: (key: string, value: any) => void; getShape: (key: string) => any; getStyle: (key: string) => any }) => void;
+  during?: (params: {
+    setShape: (key: string, value: any) => void;
+    setStyle: (key: string, value: any) => void;
+    setExtra: (key: string, value: any) => void;
+    getShape: (key: string) => any;
+    getStyle: (key: string) => any;
+  }) => void;
   shape?: Record<string, any>;
   style?: Record<string, any>;
   children?: CustomElement[];
@@ -1690,7 +1938,10 @@ export interface CustomSeriesOption {
   yAxisIndex?: number;
   polarIndex?: number;
   geoIndex?: number;
-  renderItem: (params: CustomRenderParams, api: CustomSeriesAPI) => CustomElement;
+  renderItem: (
+    params: CustomRenderParams,
+    api: CustomSeriesAPI,
+  ) => CustomElement;
   dimensions?: string[];
   encode?: EncodeOption;
   seriesLayoutBy?: "column" | "row";
@@ -1881,7 +2132,10 @@ export interface Scatter3DSeriesOption {
   type: "scatter3D";
   id?: string;
   name?: string;
-  data?: ([number, number, number] | { value: [number, number, number]; name?: string })[];
+  data?: (
+    | [number, number, number]
+    | { value: [number, number, number]; name?: string }
+  )[];
   symbolSize?: number;
   color?: ThemeFamily;
   grid3DIndex?: number;
@@ -1894,7 +2148,10 @@ export interface Bar3DSeriesOption {
   type: "bar3D";
   id?: string;
   name?: string;
-  data?: ([number, number, number] | { value: [number, number, number]; name?: string })[];
+  data?: (
+    | [number, number, number]
+    | { value: [number, number, number]; name?: string }
+  )[];
   barSize?: number;
   color?: ThemeFamily;
   grid3DIndex?: number;
@@ -1996,7 +2253,10 @@ export interface PictorialBarSeriesOption {
   name?: string;
   xAxisIndex?: number;
   yAxisIndex?: number;
-  data?: (number | { value: number; name?: string; itemStyle?: ItemStyleOption })[];
+  data?: (
+    | number
+    | { value: number; name?: string; itemStyle?: ItemStyleOption }
+  )[];
   symbol?: SymbolType | `path://${string}`;
   symbolSize?: number | [number, number];
   symbolRepeat?: boolean | number;

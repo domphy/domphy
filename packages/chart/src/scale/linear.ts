@@ -26,7 +26,7 @@ function niceTicks(min: number, max: number, count: number): number[] {
 }
 
 function niceStep(roughStep: number): number {
-  const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
   const residual = roughStep / magnitude;
   if (residual < 1.5) return magnitude;
   if (residual < 3) return 2 * magnitude;

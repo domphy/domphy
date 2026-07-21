@@ -49,7 +49,15 @@ describe("tabs", () => {
   it("accepts an initial activeKey and passes it through context", () => {
     const { host } = render({
       div: null,
-      $: [tabs({ activeKey: "b", items: [{ label: "A", key: "a" }, { label: "B", key: "b" }] })],
+      $: [
+        tabs({
+          activeKey: "b",
+          items: [
+            { label: "A", key: "a" },
+            { label: "B", key: "b" },
+          ],
+        }),
+      ],
     } as DomphyElement);
     const buttons = host.querySelectorAll("[role=tab]");
     expect(buttons[0].getAttribute("aria-selected")).toBe("false");
@@ -59,7 +67,15 @@ describe("tabs", () => {
   it("clicking a tab updates activeKey so the right tab becomes selected", async () => {
     const { host } = render({
       div: null,
-      $: [tabs({ activeKey: 0, items: [{ label: "A", key: 0 }, { label: "B", key: 1 }] })],
+      $: [
+        tabs({
+          activeKey: 0,
+          items: [
+            { label: "A", key: 0 },
+            { label: "B", key: 1 },
+          ],
+        }),
+      ],
     } as DomphyElement);
     const buttons = host.querySelectorAll<HTMLButtonElement>("[role=tab]");
     buttons[1].click();
@@ -71,10 +87,15 @@ describe("tabs", () => {
   it("tabPanel is hidden when its key does not match activeKey", () => {
     const { host } = render({
       div: null,
-      $: [tabs({ activeKey: 0, items: [
-        { label: "A", key: 0, content: { div: "Panel A" } as any },
-        { label: "B", key: 1, content: { div: "Panel B" } as any },
-      ] })],
+      $: [
+        tabs({
+          activeKey: 0,
+          items: [
+            { label: "A", key: 0, content: { div: "Panel A" } as any },
+            { label: "B", key: 1, content: { div: "Panel B" } as any },
+          ],
+        }),
+      ],
     } as DomphyElement);
     const panels = host.querySelectorAll("[role=tabpanel]");
     expect((panels[0] as HTMLElement).hidden).toBe(false);
@@ -84,10 +105,15 @@ describe("tabs", () => {
   it("clicking a tab shows the matching panel and hides the others", async () => {
     const { host } = render({
       div: null,
-      $: [tabs({ activeKey: 0, items: [
-        { label: "A", key: 0, content: { div: "Panel A" } as any },
-        { label: "B", key: 1, content: { div: "Panel B" } as any },
-      ] })],
+      $: [
+        tabs({
+          activeKey: 0,
+          items: [
+            { label: "A", key: 0, content: { div: "Panel A" } as any },
+            { label: "B", key: 1, content: { div: "Panel B" } as any },
+          ],
+        }),
+      ],
     } as DomphyElement);
     host.querySelectorAll<HTMLButtonElement>("[role=tab]")[1].click();
     await new Promise((r) => setTimeout(r, 0));
@@ -100,7 +126,12 @@ describe("tabs", () => {
     const active = toState(0, "activeKey");
     const { node } = render({
       div: null,
-      $: [tabs({ activeKey: active, items: [{ label: "A", key: 0, content: { div: "Panel A" } as any }] })],
+      $: [
+        tabs({
+          activeKey: active,
+          items: [{ label: "A", key: 0, content: { div: "Panel A" } as any }],
+        }),
+      ],
     } as DomphyElement);
     expect(listenerCount(active)).toBeGreaterThanOrEqual(1);
     node.remove();
@@ -121,7 +152,15 @@ describe("menu", () => {
   it("clicking a menuItem sets it as the active key via aria-current", async () => {
     const { host } = render({
       div: null,
-      $: [menu({ activeKey: 0, items: [{ label: "Home", key: 0 }, { label: "Settings", key: 1 }] })],
+      $: [
+        menu({
+          activeKey: 0,
+          items: [
+            { label: "Home", key: 0 },
+            { label: "Settings", key: 1 },
+          ],
+        }),
+      ],
     } as DomphyElement);
     const buttons = host.querySelectorAll<HTMLButtonElement>("button");
     // wait for initial render
@@ -137,7 +176,16 @@ describe("menu", () => {
   it("does not update activeKey when selectable is false", () => {
     const { host } = render({
       div: null,
-      $: [menu({ activeKey: null, selectable: false, items: [{ label: "A", key: 0 }, { label: "B", key: 1 }] })],
+      $: [
+        menu({
+          activeKey: null,
+          selectable: false,
+          items: [
+            { label: "A", key: 0 },
+            { label: "B", key: 1 },
+          ],
+        }),
+      ],
     } as DomphyElement);
     const buttons = host.querySelectorAll<HTMLButtonElement>("button");
     buttons[0].click();
@@ -282,7 +330,15 @@ describe("segmented + segmentedItem", () => {
   it("segmentedItem reflects aria-checked from context value", () => {
     const { host } = render({
       div: null,
-      $: [segmented({ value: "month", items: [{ label: "Day", key: "day" }, { label: "Month", key: "month" }] })],
+      $: [
+        segmented({
+          value: "month",
+          items: [
+            { label: "Day", key: "day" },
+            { label: "Month", key: "month" },
+          ],
+        }),
+      ],
     } as DomphyElement);
     const buttons = host.querySelectorAll<HTMLButtonElement>("button");
     expect(buttons[0].getAttribute("aria-checked")).toBe("false");
@@ -293,7 +349,15 @@ describe("segmented + segmentedItem", () => {
     const value = toState("day", "seg");
     const { host } = render({
       div: null,
-      $: [segmented({ value, items: [{ label: "Day", key: "day" }, { label: "Week", key: "week" }] })],
+      $: [
+        segmented({
+          value,
+          items: [
+            { label: "Day", key: "day" },
+            { label: "Week", key: "week" },
+          ],
+        }),
+      ],
     } as DomphyElement);
     const buttons = host.querySelectorAll<HTMLButtonElement>("button");
     buttons[1].click();
@@ -307,7 +371,9 @@ describe("segmented + segmentedItem", () => {
     const value = toState("", "seg2");
     const { host } = render({
       div: null,
-      $: [segmented({ value, items: [{ label: "First" }, { label: "Second" }] })],
+      $: [
+        segmented({ value, items: [{ label: "First" }, { label: "Second" }] }),
+      ],
     } as DomphyElement);
     const buttons = host.querySelectorAll<HTMLButtonElement>("button");
     buttons[0].click();

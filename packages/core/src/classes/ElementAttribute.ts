@@ -12,11 +12,10 @@ import { Notifier } from "./Notifier.js";
 // truthy state — unlike BooleanAttributes, omitting them does NOT mean "off",
 // so a `true`/`false` input must map to the real keyword instead of being
 // dropped from the DOM.
-const EnumeratedBooleanAttributes: Record<string, readonly [string, string]> =
-  {
-    translate: ["yes", "no"],
-    autoCapitalize: ["on", "off"],
-  };
+const EnumeratedBooleanAttributes: Record<string, readonly [string, string]> = {
+  translate: ["yes", "no"],
+  autoCapitalize: ["on", "off"],
+};
 
 export class ElementAttribute {
   readonly name: string;

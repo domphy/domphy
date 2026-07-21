@@ -1,5 +1,5 @@
 import { themeColorToken } from "@domphy/theme";
-import type { ThemeFamily, GradientObject } from "../types.js";
+import type { GradientObject, ThemeFamily } from "../types.js";
 
 export type Rgba = [number, number, number, number];
 
@@ -47,7 +47,11 @@ export function familyHex(family: ThemeFamily, tone = SERIES_TONE): string {
   return themeColorToken(null, tone, family);
 }
 
-export function familyRgba(family: ThemeFamily, tone = SERIES_TONE, alpha = 1): Rgba {
+export function familyRgba(
+  family: ThemeFamily,
+  tone = SERIES_TONE,
+  alpha = 1,
+): Rgba {
   return hexToRgba(familyHex(family, tone), alpha);
 }
 
@@ -55,12 +59,16 @@ export function familyRgba(family: ThemeFamily, tone = SERIES_TONE, alpha = 1): 
 export function resolveColorSrc(src: unknown, fallback: Rgba): Rgba {
   if (!src) return fallback;
   const s = String(src);
-  return s.startsWith("#") || s.startsWith("rgb") ? hexToRgba(s) : familyRgba(src as ThemeFamily);
+  return s.startsWith("#") || s.startsWith("rgb")
+    ? hexToRgba(s)
+    : familyRgba(src as ThemeFamily);
 }
 
 // Parse "rgba(r,g,b,a)" or "rgb(r,g,b)" string to Rgba
 function parseRgbaString(color: string): Rgba {
-  const m = color.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
+  const m = color.match(
+    /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/,
+  );
   if (!m) return hexToRgba(color);
   return [
     parseFloat(m[1]) / 255,
@@ -77,12 +85,19 @@ function colorStopToRgba(color: string): Rgba {
 }
 
 export function isGradient(src: unknown): src is GradientObject {
-  return typeof src === "object" && src !== null && "type" in src &&
-    ((src as any).type === "linear" || (src as any).type === "radial");
+  return (
+    typeof src === "object" &&
+    src !== null &&
+    "type" in src &&
+    ((src as any).type === "linear" || (src as any).type === "radial")
+  );
 }
 
 // Extract top/bottom Rgba from a gradient object (2-stop simplification for WebGL)
-export function gradientEndpoints(grad: GradientObject, fallback: Rgba): { top: Rgba; bottom: Rgba } {
+export function gradientEndpoints(
+  grad: GradientObject,
+  fallback: Rgba,
+): { top: Rgba; bottom: Rgba } {
   const stops = grad.colorStops ?? [];
   if (stops.length === 0) return { top: fallback, bottom: fallback };
   if (stops.length === 1) {

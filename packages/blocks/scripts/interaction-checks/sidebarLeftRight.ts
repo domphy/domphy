@@ -1,7 +1,14 @@
 // Real browser interaction checks for sidebarLeftRight: same collapse-toggle
 // pattern as the sidebar05-08 family — the header's panel-toggle button (and
 // its Cmd/Ctrl+B shortcut) must actually change the left sidebar's width.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main(): Promise<void> {
   const { demoUrl } = await boot();

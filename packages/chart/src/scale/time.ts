@@ -9,17 +9,36 @@ export interface TimeScale {
   format(value: Date | number | string): string;
 }
 
-const MS = { second: 1000, minute: 60000, hour: 3600000, day: 86400000, week: 604800000, month: 2628000000, year: 31536000000 };
+const MS = {
+  second: 1000,
+  minute: 60000,
+  hour: 3600000,
+  day: 86400000,
+  week: 604800000,
+  month: 2628000000,
+  year: 31536000000,
+};
 
 function floorDate(date: Date, unit: keyof typeof MS): Date {
   const d = new Date(date);
-  if (unit === "second") { d.setMilliseconds(0); }
-  else if (unit === "minute") { d.setSeconds(0, 0); }
-  else if (unit === "hour") { d.setMinutes(0, 0, 0); }
-  else if (unit === "day") { d.setHours(0, 0, 0, 0); }
-  else if (unit === "week") { d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - d.getDay()); }
-  else if (unit === "month") { d.setDate(1); d.setHours(0, 0, 0, 0); }
-  else if (unit === "year") { d.setMonth(0, 1); d.setHours(0, 0, 0, 0); }
+  if (unit === "second") {
+    d.setMilliseconds(0);
+  } else if (unit === "minute") {
+    d.setSeconds(0, 0);
+  } else if (unit === "hour") {
+    d.setMinutes(0, 0, 0);
+  } else if (unit === "day") {
+    d.setHours(0, 0, 0, 0);
+  } else if (unit === "week") {
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - d.getDay());
+  } else if (unit === "month") {
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+  } else if (unit === "year") {
+    d.setMonth(0, 1);
+    d.setHours(0, 0, 0, 0);
+  }
   return d;
 }
 
@@ -35,24 +54,45 @@ function stepDate(date: Date, unit: keyof typeof MS, count = 1): Date {
   return d;
 }
 
-function pickUnit(spanMs: number, count: number): { unit: keyof typeof MS; step: number } {
+function pickUnit(
+  spanMs: number,
+  count: number,
+): { unit: keyof typeof MS; step: number } {
   const roughMs = spanMs / count;
-  if (roughMs < MS.minute * 2) return { unit: "second", step: niceStep(roughMs / MS.second, [1, 2, 5, 10, 15, 30]) };
-  if (roughMs < MS.hour * 2) return { unit: "minute", step: niceStep(roughMs / MS.minute, [1, 2, 5, 10, 15, 30]) };
-  if (roughMs < MS.day * 2) return { unit: "hour", step: niceStep(roughMs / MS.hour, [1, 2, 3, 6, 12]) };
-  if (roughMs < MS.week * 4) return { unit: "day", step: niceStep(roughMs / MS.day, [1, 2, 7]) };
-  if (roughMs < MS.month * 6) return { unit: "month", step: niceStep(roughMs / MS.month, [1, 2, 3, 6]) };
+  if (roughMs < MS.minute * 2)
+    return {
+      unit: "second",
+      step: niceStep(roughMs / MS.second, [1, 2, 5, 10, 15, 30]),
+    };
+  if (roughMs < MS.hour * 2)
+    return {
+      unit: "minute",
+      step: niceStep(roughMs / MS.minute, [1, 2, 5, 10, 15, 30]),
+    };
+  if (roughMs < MS.day * 2)
+    return {
+      unit: "hour",
+      step: niceStep(roughMs / MS.hour, [1, 2, 3, 6, 12]),
+    };
+  if (roughMs < MS.week * 4)
+    return { unit: "day", step: niceStep(roughMs / MS.day, [1, 2, 7]) };
+  if (roughMs < MS.month * 6)
+    return { unit: "month", step: niceStep(roughMs / MS.month, [1, 2, 3, 6]) };
   return { unit: "year", step: niceStep(roughMs / MS.year, [1, 2, 5, 10]) };
 }
 
 function niceStep(rough: number, steps: number[]): number {
-  for (const step of steps) { if (rough <= step) return step; }
+  for (const step of steps) {
+    if (rough <= step) return step;
+  }
   return steps[steps.length - 1];
 }
 
 function formatDate(date: Date, spanMs: number): string {
-  if (spanMs < MS.day * 2) return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  if (spanMs < MS.year) return date.toLocaleDateString([], { month: "short", day: "numeric" });
+  if (spanMs < MS.day * 2)
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (spanMs < MS.year)
+    return date.toLocaleDateString([], { month: "short", day: "numeric" });
   return String(date.getFullYear());
 }
 
@@ -95,7 +135,11 @@ export function createTimeScale(
       }
       return result;
     },
-    bandwidth() { return 0; },
-    format(value) { return formatDate(toDate(value), spanMs); },
+    bandwidth() {
+      return 0;
+    },
+    format(value) {
+      return formatDate(toDate(value), spanMs);
+    },
   };
 }

@@ -4,8 +4,9 @@
 // rendered pixels behind each visible text run via a real screenshot, so a
 // decorative glow that reads as dark in its own declared color but composites
 // bright under `mix-blend-mode: screen` still gets caught.
-import { PNG } from "pngjs";
+
 import type { Page } from "playwright";
+import { PNG } from "pngjs";
 
 export type TextRun = {
   index: number;
@@ -34,7 +35,10 @@ function relativeLuminance([r, g, b]: [number, number, number]): number {
   return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 }
 
-export function contrastRatio(a: [number, number, number], b: [number, number, number]): number {
+export function contrastRatio(
+  a: [number, number, number],
+  b: [number, number, number],
+): number {
   const l1 = relativeLuminance(a);
   const l2 = relativeLuminance(b);
   const lighter = Math.max(l1, l2);
@@ -51,7 +55,8 @@ function parseCssColor(color: string): [number, number, number] {
 
 /** WCAG 2 "large text" threshold: >=24px any weight, or >=18.66px (~19px) at bold (>=700). */
 function requiredRatioFor(fontSizePx: number, fontWeight: number): number {
-  const isLarge = fontSizePx >= 24 || (fontSizePx >= 18.66 && fontWeight >= 700);
+  const isLarge =
+    fontSizePx >= 24 || (fontSizePx >= 18.66 && fontWeight >= 700);
   return isLarge ? 3 : 4.5;
 }
 
@@ -60,7 +65,10 @@ function requiredRatioFor(fontSizePx: number, fontWeight: number): number {
  * (not a nested element's) is non-empty — the actual visible text runs a
  * reader would read, not decorative wrapper divs.
  */
-export async function findTextRuns(page: Page, blockName: string): Promise<TextRun[]> {
+export async function findTextRuns(
+  page: Page,
+  blockName: string,
+): Promise<TextRun[]> {
   return page.evaluate((name) => {
     // Scoped to `.block-box` (the factory's own mounted output), not the
     // outer `[data-block]` card wrapper — that wrapper also carries the demo
@@ -116,7 +124,12 @@ export async function findTextRuns(page: Page, blockName: string): Promise<TextR
             index,
             text: directText,
             tag: el.tagName.toLowerCase(),
-            rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+            rect: {
+              x: rect.x,
+              y: rect.y,
+              width: rect.width,
+              height: rect.height,
+            },
             color: style.color,
             fontSizePx: Number.parseFloat(style.fontSize),
             fontWeight: Number.parseInt(style.fontWeight, 10) || 400,
@@ -172,12 +185,24 @@ async function sampleBackgroundBehindText(
   const stepsY = 8;
   for (let stepY = 0; stepY <= stepsY; stepY += 1) {
     for (let stepX = 0; stepX <= stepsX; stepX += 1) {
-      const x = Math.min(png.width - 1, Math.round((stepX / stepsX) * (png.width - 1)));
-      const y = Math.min(png.height - 1, Math.round((stepY / stepsY) * (png.height - 1)));
+      const x = Math.min(
+        png.width - 1,
+        Math.round((stepX / stepsX) * (png.width - 1)),
+      );
+      const y = Math.min(
+        png.height - 1,
+        Math.round((stepY / stepsY) * (png.height - 1)),
+      );
       const index = (png.width * y + x) << 2;
-      const pixel: [number, number, number] = [png.data[index], png.data[index + 1], png.data[index + 2]];
+      const pixel: [number, number, number] = [
+        png.data[index],
+        png.data[index + 1],
+        png.data[index + 2],
+      ];
       const distance = Math.sqrt(
-        (pixel[0] - textRgb[0]) ** 2 + (pixel[1] - textRgb[1]) ** 2 + (pixel[2] - textRgb[2]) ** 2,
+        (pixel[0] - textRgb[0]) ** 2 +
+          (pixel[1] - textRgb[1]) ** 2 +
+          (pixel[2] - textRgb[2]) ** 2,
       );
       // Also exclude near-pure-black/white extremes only when they exactly
       // match text color's own extreme, handled by the distance check above.
@@ -194,21 +219,50 @@ async function sampleBackgroundBehindText(
     for (let stepY = 0; stepY <= stepsY; stepY += 1) {
       for (let stepX = 0; stepX <= stepsX; stepX += 1) {
         const isBorder =
-          stepX <= 1 || stepX >= stepsX - 1 || stepY <= 1 || stepY >= stepsY - 1;
+          stepX <= 1 ||
+          stepX >= stepsX - 1 ||
+          stepY <= 1 ||
+          stepY >= stepsY - 1;
         if (!isBorder) continue;
-        const x = Math.min(png.width - 1, Math.round((stepX / stepsX) * (png.width - 1)));
-        const y = Math.min(png.height - 1, Math.round((stepY / stepsY) * (png.height - 1)));
+        const x = Math.min(
+          png.width - 1,
+          Math.round((stepX / stepsX) * (png.width - 1)),
+        );
+        const y = Math.min(
+          png.height - 1,
+          Math.round((stepY / stepsY) * (png.height - 1)),
+        );
         const index = (png.width * y + x) << 2;
-        samples.push([png.data[index], png.data[index + 1], png.data[index + 2]]);
+        samples.push([
+          png.data[index],
+          png.data[index + 1],
+          png.data[index + 2],
+        ]);
       }
     }
     void borderPx;
   }
 
-  if (samples.length === 0) samples.push([textRgb[0] === 0 ? 255 : 0, textRgb[1] === 0 ? 255 : 0, textRgb[2] === 0 ? 255 : 0]);
+  if (samples.length === 0)
+    samples.push([
+      textRgb[0] === 0 ? 255 : 0,
+      textRgb[1] === 0 ? 255 : 0,
+      textRgb[2] === 0 ? 255 : 0,
+    ]);
 
-  const sum = samples.reduce((accumulator, pixel) => [accumulator[0] + pixel[0], accumulator[1] + pixel[1], accumulator[2] + pixel[2]], [0, 0, 0]);
-  const average: [number, number, number] = [sum[0] / samples.length, sum[1] / samples.length, sum[2] / samples.length];
+  const sum = samples.reduce(
+    (accumulator, pixel) => [
+      accumulator[0] + pixel[0],
+      accumulator[1] + pixel[1],
+      accumulator[2] + pixel[2],
+    ],
+    [0, 0, 0],
+  );
+  const average: [number, number, number] = [
+    sum[0] / samples.length,
+    sum[1] / samples.length,
+    sum[2] / samples.length,
+  ];
   return { rgb: average, sampleCount: samples.length };
 }
 
@@ -220,7 +274,10 @@ async function sampleBackgroundBehindText(
  * state you want to check (e.g. after waitForTimeout past an entrance
  * animation, or at a specific point mid-loop for ambient effects).
  */
-export async function measureBlockContrast(page: Page, blockName: string): Promise<ContrastResult[]> {
+export async function measureBlockContrast(
+  page: Page,
+  blockName: string,
+): Promise<ContrastResult[]> {
   const runs = await findTextRuns(page, blockName);
   const results: ContrastResult[] = [];
   for (const run of runs) {
@@ -232,7 +289,10 @@ export async function measureBlockContrast(page: Page, blockName: string): Promi
     await page.waitForTimeout(120);
     const runAtCurrentPosition: TextRun = { ...run, rect: freshRect };
     const textRgb = parseCssColor(run.color);
-    const { rgb: bgRgb, sampleCount } = await sampleBackgroundBehindText(page, runAtCurrentPosition);
+    const { rgb: bgRgb, sampleCount } = await sampleBackgroundBehindText(
+      page,
+      runAtCurrentPosition,
+    );
     const ratio = contrastRatio(textRgb, bgRgb);
     const requiredRatio = requiredRatioFor(run.fontSizePx, run.fontWeight);
     results.push({

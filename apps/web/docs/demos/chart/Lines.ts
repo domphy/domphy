@@ -1,23 +1,23 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 const cities: Record<string, [number, number]> = {
-  "New York":  [-74.0, 40.7],
-  "London":    [ -0.1, 51.5],
+  "New York": [-74.0, 40.7],
+  London: [-0.1, 51.5],
   "Los Angeles": [-118.2, 34.0],
-  "Tokyo":     [139.7, 35.7],
-  "Dubai":     [ 55.3, 25.2],
-  "Singapore": [103.8,  1.3],
-  "Sydney":    [151.2, -33.9],
+  Tokyo: [139.7, 35.7],
+  Dubai: [55.3, 25.2],
+  Singapore: [103.8, 1.3],
+  Sydney: [151.2, -33.9],
 };
 
 const routes: [string, string][] = [
-  ["New York",    "London"],
+  ["New York", "London"],
   ["Los Angeles", "Tokyo"],
-  ["London",      "Dubai"],
-  ["Dubai",       "Singapore"],
-  ["Singapore",   "Sydney"],
+  ["London", "Dubai"],
+  ["Dubai", "Singapore"],
+  ["Singapore", "Sydney"],
 ];
 
 const linesData = routes.map(([from, to]) => ({

@@ -317,7 +317,10 @@ export class ElementNode {
     if (element._metadata) merge(this._metadata, element._metadata);
     this._processBehaviors(element._behaviors);
 
-    this.styles.patchCSS(element.style || {}, `.${this.tagName}_${this.nodeId}`);
+    this.styles.patchCSS(
+      element.style || {},
+      `.${this.tagName}_${this.nodeId}`,
+    );
 
     // Rebuild attributes and events. Events are replaced (live dispatch in
     // _bindEvent reads this._events, so swapping the map is enough); attributes

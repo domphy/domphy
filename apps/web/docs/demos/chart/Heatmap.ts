@@ -1,6 +1,6 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 // Deterministic calendar data: weekdays busier, sine-wave seasonal variation
 function buildCalendarData(year: number): [string, number][] {
@@ -8,8 +8,14 @@ function buildCalendarData(year: number): [string, number][] {
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year, 11, 31);
 
-  for (let day = new Date(yearStart); day <= yearEnd; day.setDate(day.getDate() + 1)) {
-    const dayOfYear = Math.round((day.getTime() - yearStart.getTime()) / 86_400_000);
+  for (
+    let day = new Date(yearStart);
+    day <= yearEnd;
+    day.setDate(day.getDate() + 1)
+  ) {
+    const dayOfYear = Math.round(
+      (day.getTime() - yearStart.getTime()) / 86_400_000,
+    );
     const weekday = day.getDay();
     const isWeekend = weekday === 0 || weekday === 6;
     const seasonal = Math.abs(Math.sin(dayOfYear * 0.05)) * 4;

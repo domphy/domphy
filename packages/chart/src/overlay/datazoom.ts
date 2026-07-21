@@ -1,9 +1,13 @@
 import { themeColorToken } from "@domphy/theme";
-import type { DataZoomOption, DataZoomSliderOption, ChartRect } from "../types.js";
+import type {
+  ChartRect,
+  DataZoomOption,
+  DataZoomSliderOption,
+} from "../types.js";
 
 export interface DataZoomState {
   start: number; // 0–100
-  end: number;   // 0–100
+  end: number; // 0–100
 }
 
 interface SliderHandle {
@@ -14,7 +18,10 @@ interface SliderHandle {
 const HANDLE_W = 8;
 const SLIDER_H = 30;
 
-function svgEl(tag: string, attrs: Record<string, string | number>): SVGElement {
+function svgEl(
+  tag: string,
+  attrs: Record<string, string | number>,
+): SVGElement {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
   return el;
@@ -36,10 +43,18 @@ export function createDataZoomSlider(
   const handleColor = themeColorToken(null, "shift-5", "neutral");
   const textColor = themeColorToken(null, "shift-7", "neutral");
 
-  const sliderH = typeof option.height === "number" ? option.height : option.height ? parseFloat(String(option.height)) : SLIDER_H;
-  const bottom = option.bottom !== undefined
-    ? (typeof option.bottom === "number" ? option.bottom : parseFloat(String(option.bottom)))
-    : 10;
+  const sliderH =
+    typeof option.height === "number"
+      ? option.height
+      : option.height
+        ? parseFloat(String(option.height))
+        : SLIDER_H;
+  const bottom =
+    option.bottom !== undefined
+      ? typeof option.bottom === "number"
+        ? option.bottom
+        : parseFloat(String(option.bottom))
+      : 10;
   const sliderY = svgHeight - bottom - sliderH;
   const sliderX = gridRect.x;
   const sliderW = gridRect.width;
@@ -49,29 +64,49 @@ export function createDataZoomSlider(
 
   // Background track
   const track = svgEl("rect", {
-    x: sliderX, y: sliderY, width: sliderW, height: sliderH,
-    rx: 3, fill: trackColor, opacity: 0.5,
+    x: sliderX,
+    y: sliderY,
+    width: sliderW,
+    height: sliderH,
+    rx: 3,
+    fill: trackColor,
+    opacity: 0.5,
   });
   group.appendChild(track);
 
   // Selection fill
   const fill = svgEl("rect", {
-    x: sliderX, y: sliderY, width: sliderW, height: sliderH,
-    rx: 3, fill: fillColor, opacity: 0.8,
+    x: sliderX,
+    y: sliderY,
+    width: sliderW,
+    height: sliderH,
+    rx: 3,
+    fill: fillColor,
+    opacity: 0.8,
   });
   group.appendChild(fill);
 
   // Left handle
   const leftHandle = svgEl("rect", {
-    x: sliderX, y: sliderY, width: HANDLE_W, height: sliderH,
-    rx: 2, fill: handleColor, style: "cursor:ew-resize",
+    x: sliderX,
+    y: sliderY,
+    width: HANDLE_W,
+    height: sliderH,
+    rx: 2,
+    fill: handleColor,
+    style: "cursor:ew-resize",
   });
   group.appendChild(leftHandle);
 
   // Right handle
   const rightHandle = svgEl("rect", {
-    x: sliderX + sliderW - HANDLE_W, y: sliderY, width: HANDLE_W, height: sliderH,
-    rx: 2, fill: handleColor, style: "cursor:ew-resize",
+    x: sliderX + sliderW - HANDLE_W,
+    y: sliderY,
+    width: HANDLE_W,
+    height: sliderH,
+    rx: 2,
+    fill: handleColor,
+    style: "cursor:ew-resize",
   });
   group.appendChild(rightHandle);
 
@@ -80,9 +115,13 @@ export function createDataZoomSlider(
     for (const side of ["left", "right"]) {
       const baseX = side === "left" ? sliderX : sliderX + sliderW - HANDLE_W;
       const line = svgEl("line", {
-        x1: baseX + offsetX, y1: sliderY + 8,
-        x2: baseX + offsetX, y2: sliderY + sliderH - 8,
-        stroke: "#fff", "stroke-width": 1, opacity: 0.6,
+        x1: baseX + offsetX,
+        y1: sliderY + 8,
+        x2: baseX + offsetX,
+        y2: sliderY + sliderH - 8,
+        stroke: "#fff",
+        "stroke-width": 1,
+        opacity: 0.6,
       });
       group.appendChild(line);
     }
@@ -135,12 +174,21 @@ export function createDataZoomSlider(
     const delta = ((e.clientX - dragStartX) / sliderW) * 100;
 
     if (dragMode === "left") {
-      current.start = Math.max(0, Math.min(dragStartState.start + delta, current.end - 1));
+      current.start = Math.max(
+        0,
+        Math.min(dragStartState.start + delta, current.end - 1),
+      );
     } else if (dragMode === "right") {
-      current.end = Math.max(current.start + 1, Math.min(100, dragStartState.end + delta));
+      current.end = Math.max(
+        current.start + 1,
+        Math.min(100, dragStartState.end + delta),
+      );
     } else {
       const span = dragStartState.end - dragStartState.start;
-      current.start = Math.max(0, Math.min(dragStartState.start + delta, 100 - span));
+      current.start = Math.max(
+        0,
+        Math.min(dragStartState.start + delta, 100 - span),
+      );
       current.end = current.start + span;
     }
     refresh();
@@ -186,10 +234,19 @@ export function setupDataZoom(
   for (const dz of dataZoom) {
     if (dz.type === "inside") continue; // inside zoom handled separately
     const slider = dz as DataZoomSliderOption;
-    const xIndex = typeof slider.xAxisIndex === "number" ? slider.xAxisIndex : 0;
-    const state: DataZoomState = { start: slider.start ?? 0, end: slider.end ?? 100 };
+    const xIndex =
+      typeof slider.xAxisIndex === "number" ? slider.xAxisIndex : 0;
+    const state: DataZoomState = {
+      start: slider.start ?? 0,
+      end: slider.end ?? 100,
+    };
     const handle = createDataZoomSlider(
-      svg, slider, gridRect, svgWidth, svgHeight, state,
+      svg,
+      slider,
+      gridRect,
+      svgWidth,
+      svgHeight,
+      state,
       (s) => onZoom(xIndex, s),
     );
     handles.push(handle);

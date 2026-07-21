@@ -8,15 +8,17 @@ const App: DomphyElement<"div"> = {
   div: [
     {
       ol: null,
-      $: [steps({
-        current,
-        items: [
-          { label: "Account" },
-          { label: "Details" },
-          { label: "Payment" },
-          { label: "Confirm" },
-        ],
-      })],
+      $: [
+        steps({
+          current,
+          items: [
+            { label: "Account" },
+            { label: "Details" },
+            { label: "Payment" },
+            { label: "Confirm" },
+          ],
+        }),
+      ],
     },
     {
       div: [

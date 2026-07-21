@@ -82,7 +82,10 @@ describe("applyTransforms — filter", () => {
 
   it("ORs comparisons when method is OR", () => {
     const result = applyTransforms(rows, [
-      { type: "filter", config: { dimension: "value", "=": 10, method: "OR", ">": 25 } },
+      {
+        type: "filter",
+        config: { dimension: "value", "=": 10, method: "OR", ">": 25 },
+      },
     ]);
     expect(result).toEqual([
       { name: "A", value: 10 },
@@ -92,10 +95,14 @@ describe("applyTransforms — filter", () => {
 
   it("supports range (inside) and outside checks", () => {
     expect(
-      applyTransforms(rows, [{ type: "filter", config: { dimension: "value", range: [15, 25] } }]),
+      applyTransforms(rows, [
+        { type: "filter", config: { dimension: "value", range: [15, 25] } },
+      ]),
     ).toEqual([{ name: "B", value: 20 }]);
     expect(
-      applyTransforms(rows, [{ type: "filter", config: { dimension: "value", outside: [15, 25] } }]),
+      applyTransforms(rows, [
+        { type: "filter", config: { dimension: "value", outside: [15, 25] } },
+      ]),
     ).toEqual([
       { name: "A", value: 10 },
       { name: "C", value: 30 },
@@ -107,13 +114,19 @@ describe("applyTransforms — filter", () => {
       ["A", 10],
       ["B", 20],
     ];
-    expect(applyTransforms(arrayRows, [{ type: "filter", config: { dimension: 1, ">": 15 } }])).toEqual([
-      ["B", 20],
-    ]);
+    expect(
+      applyTransforms(arrayRows, [
+        { type: "filter", config: { dimension: 1, ">": 15 } },
+      ]),
+    ).toEqual([["B", 20]]);
   });
 
   it("passes rows through when no comparison operator is configured", () => {
-    expect(applyTransforms(rows, [{ type: "filter", config: { dimension: "value" } }])).toEqual(rows);
+    expect(
+      applyTransforms(rows, [
+        { type: "filter", config: { dimension: "value" } },
+      ]),
+    ).toEqual(rows);
   });
 });
 
@@ -125,15 +138,25 @@ describe("applyTransforms — sort", () => {
   ];
 
   it("sorts ascending by default", () => {
-    const result = applyTransforms(rows, [{ type: "sort", config: { dimension: "value" } }]);
-    expect(result.map((r) => (r as { name: string }).name)).toEqual(["A", "B", "C"]);
+    const result = applyTransforms(rows, [
+      { type: "sort", config: { dimension: "value" } },
+    ]);
+    expect(result.map((r) => (r as { name: string }).name)).toEqual([
+      "A",
+      "B",
+      "C",
+    ]);
   });
 
   it("sorts descending when requested", () => {
     const result = applyTransforms(rows, [
       { type: "sort", config: { dimension: "value", order: "desc" } },
     ]);
-    expect(result.map((r) => (r as { name: string }).name)).toEqual(["C", "B", "A"]);
+    expect(result.map((r) => (r as { name: string }).name)).toEqual([
+      "C",
+      "B",
+      "A",
+    ]);
   });
 
   it("does not mutate the source array", () => {
@@ -143,7 +166,11 @@ describe("applyTransforms — sort", () => {
   });
 
   it("parses date strings when parser is 'time'", () => {
-    const dated = [{ d: "2024-03-01" }, { d: "2024-01-01" }, { d: "2024-02-01" }];
+    const dated = [
+      { d: "2024-03-01" },
+      { d: "2024-01-01" },
+      { d: "2024-02-01" },
+    ];
     const result = applyTransforms(dated, [
       { type: "sort", config: { dimension: "d", parser: "time" } },
     ]);
@@ -171,6 +198,8 @@ describe("applyTransforms — chaining and unknown types", () => {
 
   it("passes rows through unchanged for an unrecognized transform type", () => {
     const rows = [{ name: "A", value: 10 }];
-    expect(applyTransforms(rows, [{ type: "unknown-future-transform" }])).toEqual(rows);
+    expect(
+      applyTransforms(rows, [{ type: "unknown-future-transform" }]),
+    ).toEqual(rows);
   });
 });

@@ -1,6 +1,6 @@
 import {
-  behavior,
   type BehaviorInstance,
+  behavior,
   type DomphyElement,
   type ElementNode,
   merge,
@@ -55,8 +55,7 @@ function attachFloating(
   node: ElementNode,
   initialProps: FloatingProps,
 ): FloatingInstance {
-  let { openState, placement, content, keepOpenOnContentHover } =
-    initialProps;
+  let { openState, placement, content, keepOpenOnContentHover } = initialProps;
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let cleanup: (() => void) | null = null;

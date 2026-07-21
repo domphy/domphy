@@ -28,7 +28,14 @@ describe("ChartEngine Cartesian axis gating", () => {
       series: [
         {
           type: "lines",
-          data: [{ coords: [[0, 0], [1, 1]] }],
+          data: [
+            {
+              coords: [
+                [0, 0],
+                [1, 1],
+              ],
+            },
+          ],
         } as any,
       ],
     };
@@ -67,7 +74,14 @@ describe("ChartEngine Cartesian axis gating", () => {
         {
           type: "lines",
           coordinateSystem: "cartesian2d",
-          data: [{ coords: [[0, 0], [10, 10]] }],
+          data: [
+            {
+              coords: [
+                [0, 0],
+                [10, 10],
+              ],
+            },
+          ],
         } as any,
       ],
     };

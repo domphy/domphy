@@ -14,7 +14,9 @@ type FlexAlign = "flex-start" | "center" | "flex-end" | "stretch" | "baseline";
  * @example { div: [{ h3: "Title" }, { p: "Body" }], $: [stack()] }
  * @example { div: [...], $: [stack({ gap: 2, align: "center" })] }
  */
-function stack(props: { gap?: number; align?: FlexAlign } = {}): PartialElement {
+function stack(
+  props: { gap?: number; align?: FlexAlign } = {},
+): PartialElement {
   const { gap = 3, align } = props;
   return {
     style: {

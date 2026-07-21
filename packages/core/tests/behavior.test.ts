@@ -12,8 +12,8 @@
 // BEFORE test below reproduces the bug with the naive pattern the contract
 // replaces; the AFTER test proves `behavior()` fixes it.
 import { afterEach, describe, expect, it } from "vitest";
-import type { State } from "../src/classes/State.ts";
 import { ElementNode } from "../src/classes/ElementNode.ts";
+import type { State } from "../src/classes/State.ts";
 import type { DomphyElement, PartialElement } from "../src/types.ts";
 import { behavior, toState } from "../src/utils.ts";
 
@@ -95,7 +95,8 @@ describe("behavior(): per-node contract vs. the reused-node/stale-closure bug cl
       // opened) openState — generation 2's actually-open state is untouched.
       expect(currentOpenState.get()).toBe(true);
     } finally {
-      if (keydownHandler) document.removeEventListener("keydown", keydownHandler);
+      if (keydownHandler)
+        document.removeEventListener("keydown", keydownHandler);
     }
   });
 
@@ -173,9 +174,11 @@ describe("behavior(): per-node contract vs. the reused-node/stale-closure bug cl
     const items = toState([1]);
     const { host } = mountApp({
       div: (listener: any) =>
-        items
-          .get(listener)
-          .map((id: number) => ({ button: "x", $: [wiredTrigger()], _key: id })),
+        items.get(listener).map((id: number) => ({
+          button: "x",
+          $: [wiredTrigger()],
+          _key: id,
+        })),
     } as DomphyElement);
 
     expect(host.querySelectorAll("button").length).toBe(1);

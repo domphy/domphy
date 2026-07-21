@@ -243,11 +243,7 @@ export async function runCondition(
   condition: Condition,
   options: RunnerOptions,
 ): Promise<RunResult> {
-  const {
-    dryRun,
-    model = "gpt-4o-mini",
-    maxTokens = 2048,
-  } = options;
+  const { dryRun, model = "gpt-4o-mini", maxTokens = 2048 } = options;
 
   if (dryRun) {
     // Simulate ~300ms latency

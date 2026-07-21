@@ -3,7 +3,14 @@
 // Moves the real mouse over the trigger zone at two distinct coordinates and
 // reads the custom cursor element's own `transform` after each, asserting it
 // actually tracks the live cursor position (not just a static "visible" flag).
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 function parseTranslate(transform: string): { x: number; y: number } | null {
   const match = transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
@@ -20,12 +27,16 @@ async function main() {
   // not the demo card shell around it (which also includes the `<h2>`
   // heading above it) — mousemove coordinates are computed by pointer.ts
   // relative to that inner wrapper's own `getBoundingClientRect()`.
-  const container = page.locator('[data-block="pointer"] .block-box > div').first();
+  const container = page
+    .locator('[data-block="pointer"] .block-box > div')
+    .first();
   const cursorElement = container.locator('[data-pointer-cursor="true"]');
   const box = await container.boundingBox();
   if (!box) throw new Error("pointer container has no bounding box");
 
-  const opacityOutside = await cursorElement.evaluate((el) => getComputedStyle(el).opacity);
+  const opacityOutside = await cursorElement.evaluate(
+    (el) => getComputedStyle(el).opacity,
+  );
 
   // First point: near the top-left of the zone.
   const pointA = { x: box.x + box.width * 0.25, y: box.y + box.height * 0.3 };
@@ -41,7 +52,9 @@ async function main() {
   const pointB = { x: box.x + box.width * 0.75, y: box.y + box.height * 0.7 };
   await page.mouse.move(pointB.x, pointB.y, { steps: 5 });
   await page.waitForTimeout(300);
-  const transformB = await cursorElement.evaluate((el) => (el as HTMLElement).style.transform);
+  const transformB = await cursorElement.evaluate(
+    (el) => (el as HTMLElement).style.transform,
+  );
   const pointBResult = parseTranslate(transformB);
 
   report(
@@ -51,8 +64,11 @@ async function main() {
   );
 
   const offset = { x: 16, y: 16 }; // DEFAULT_OFFSET
-  const withinTolerance = (actual: number, expected: number, tolerancePx: number) =>
-    Math.abs(actual - expected) <= tolerancePx;
+  const withinTolerance = (
+    actual: number,
+    expected: number,
+    tolerancePx: number,
+  ) => Math.abs(actual - expected) <= tolerancePx;
 
   const pointAMatches =
     !!pointAResult &&
@@ -65,7 +81,11 @@ async function main() {
 
   report(
     "pointer: custom cursor's transform follows real cursor coordinates at two different points",
-    pointAMatches && pointBMatches && !!pointAResult && !!pointBResult && (pointAResult.x !== pointBResult.x || pointAResult.y !== pointBResult.y),
+    pointAMatches &&
+      pointBMatches &&
+      !!pointAResult &&
+      !!pointBResult &&
+      (pointAResult.x !== pointBResult.x || pointAResult.y !== pointBResult.y),
     `pointA target=(${pointA.x - box.x + offset.x},${pointA.y - box.y + offset.y}) got=${JSON.stringify(pointAResult)}; pointB target=(${pointB.x - box.x + offset.x},${pointB.y - box.y + offset.y}) got=${JSON.stringify(pointBResult)}`,
   );
 

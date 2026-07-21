@@ -4,7 +4,7 @@ import {
   createMutation,
   createQuery,
 } from "../src/domphy/index";
-import { QueryClient, keepPreviousData } from "../src/index";
+import { keepPreviousData, QueryClient } from "../src/index";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

@@ -80,8 +80,7 @@ export const Toolbar = (props: {
       rowGap: themeSpacing(1),
       paddingBlock: themeSpacing(1),
       paddingInline: themeSpacing(3),
-      borderBottom: (listener) =>
-        `1px solid ${themeColor(listener, "border")}`,
+      borderBottom: (listener) => `1px solid ${themeColor(listener, "border")}`,
       backgroundColor: (listener) => themeColor(listener, "inherit"),
       color: (listener) => themeColor(listener, "shift-10"),
     },

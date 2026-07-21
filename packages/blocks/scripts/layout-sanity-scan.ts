@@ -30,7 +30,9 @@ type SuspectElement = {
 
 async function main(): Promise<void> {
   const registryPath = resolve(import.meta.dirname, "..", "registry.json");
-  const registry: RegistryEntry[] = JSON.parse(readFileSync(registryPath, "utf8"));
+  const registry: RegistryEntry[] = JSON.parse(
+    readFileSync(registryPath, "utf8"),
+  );
   const names = registry.map((entry) => entry.exportName).sort();
 
   const { demoUrl } = await boot();
@@ -44,17 +46,29 @@ async function main(): Promise<void> {
       page = await mountedPage(demoUrl, name);
       await page.waitForTimeout(500);
       const suspects = await page.evaluate((blockName) => {
-        const root = document.querySelector(`[data-block="${blockName}"] .block-box`);
+        const root = document.querySelector(
+          `[data-block="${blockName}"] .block-box`,
+        );
         if (!root) return [];
-        const replaced = Array.from(root.querySelectorAll("svg, canvas, video, iframe, embed, object"));
+        const replaced = Array.from(
+          root.querySelectorAll("svg, canvas, video, iframe, embed, object"),
+        );
         const found: SuspectElement[] = [];
         for (const element of replaced) {
           const style = getComputedStyle(element);
           if (style.position === "static") continue;
-          const hasOffset = [style.top, style.right, style.bottom, style.left].some((value) => value !== "auto");
+          const hasOffset = [
+            style.top,
+            style.right,
+            style.bottom,
+            style.left,
+          ].some((value) => value !== "auto");
           if (!hasOffset) continue;
           const rect = element.getBoundingClientRect();
-          if (Math.round(rect.width) === 300 && Math.round(rect.height) === 150) {
+          if (
+            Math.round(rect.width) === 300 &&
+            Math.round(rect.height) === 150
+          ) {
             found.push({
               tag: element.tagName.toLowerCase(),
               className: element.className.toString(),
@@ -71,7 +85,11 @@ async function main(): Promise<void> {
         return found;
       }, name);
       reports.push({ name, suspects });
-      console.log(suspects.length > 0 ? `${name}: ${suspects.length} suspect element(s)` : `${name}: clean`);
+      console.log(
+        suspects.length > 0
+          ? `${name}: ${suspects.length} suspect element(s)`
+          : `${name}: clean`,
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       reports.push({ name, suspects: [], error: message });
@@ -83,15 +101,23 @@ async function main(): Promise<void> {
 
   await teardown();
 
-  const outputPath = resolve(import.meta.dirname, "..", ".layout-sanity-report.json");
+  const outputPath = resolve(
+    import.meta.dirname,
+    "..",
+    ".layout-sanity-report.json",
+  );
   writeFileSync(outputPath, JSON.stringify(reports, null, 2));
 
   const withSuspects = reports.filter((r) => r.suspects.length > 0);
   const withErrors = reports.filter((r) => r.error);
   console.log(`\n=== Summary ===`);
-  console.log(`${reports.length} blocks scanned, ${withSuspects.length} with a suspect default-sized replaced element, ${withErrors.length} errored.`);
+  console.log(
+    `${reports.length} blocks scanned, ${withSuspects.length} with a suspect default-sized replaced element, ${withErrors.length} errored.`,
+  );
   for (const report of withSuspects) {
-    console.log(`  ${report.name}: ${report.suspects.map((s) => `<${s.tag}> (${s.position}, ${s.width}x${s.height})`).join(", ")}`);
+    console.log(
+      `  ${report.name}: ${report.suspects.map((s) => `<${s.tag}> (${s.position}, ${s.width}x${s.height})`).join(", ")}`,
+    );
   }
   console.log(`\nFull report: ${outputPath}`);
 }

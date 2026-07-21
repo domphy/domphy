@@ -6,7 +6,14 @@
 // aside/main row, offset via a `--siteHeaderHeight` custom property) actually
 // stays pinned to the top of its own card while the main content column
 // scrolls internally underneath it.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -23,8 +30,12 @@ async function main() {
     .filter({ hasText: "Models" })
     .first();
 
-  const playgroundOpen = await playgroundDetails.evaluate((el) => (el as HTMLDetailsElement).open);
-  const modelsOpenBefore = await modelsDetails.evaluate((el) => (el as HTMLDetailsElement).open);
+  const playgroundOpen = await playgroundDetails.evaluate(
+    (el) => (el as HTMLDetailsElement).open,
+  );
+  const modelsOpenBefore = await modelsDetails.evaluate(
+    (el) => (el as HTMLDetailsElement).open,
+  );
   report(
     "sidebarStickyHeader: 'Playground' (has active child 'Starred') starts open, 'Models' starts closed",
     playgroundOpen === true && modelsOpenBefore === false,
@@ -33,8 +44,13 @@ async function main() {
 
   await modelsDetails.locator("summary").first().click();
   await page.waitForTimeout(150);
-  const modelsOpenAfter = await modelsDetails.evaluate((el) => (el as HTMLDetailsElement).open);
-  const genesisVisible = await modelsDetails.locator("ul li a", { hasText: "Genesis" }).first().isVisible();
+  const modelsOpenAfter = await modelsDetails.evaluate(
+    (el) => (el as HTMLDetailsElement).open,
+  );
+  const genesisVisible = await modelsDetails
+    .locator("ul li a", { hasText: "Genesis" })
+    .first()
+    .isVisible();
   report(
     "sidebarStickyHeader: clicking 'Models' expands it and reveals the 'Genesis' child link",
     modelsOpenAfter === true && genesisVisible === true,
@@ -42,12 +58,20 @@ async function main() {
   );
 
   // --- icon-rail collapse: site header toggle button + window Ctrl/Cmd+B --
-  const aside = page.locator('[data-block="sidebarStickyHeader"] aside').first();
-  const toggleButton = page.locator('[data-block="sidebarStickyHeader"] header button').first();
-  const expandedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const aside = page
+    .locator('[data-block="sidebarStickyHeader"] aside')
+    .first();
+  const toggleButton = page
+    .locator('[data-block="sidebarStickyHeader"] header button')
+    .first();
+  const expandedWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
   await toggleButton.click();
   await page.waitForTimeout(300);
-  const collapsedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const collapsedWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
   report(
     "sidebarStickyHeader: the site header's toggle button collapses the aside to the icon rail",
     collapsedWidth < expandedWidth / 2,
@@ -56,7 +80,9 @@ async function main() {
 
   await page.keyboard.press("Control+b");
   await page.waitForTimeout(300);
-  const reExpandedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const reExpandedWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
   report(
     "sidebarStickyHeader: the window-level Ctrl+B shortcut re-expands the aside back to full width",
     reExpandedWidth > collapsedWidth * 2,
@@ -72,11 +98,17 @@ async function main() {
   // would render with more data) to force a genuine scrollbar, then verify
   // scrolling it for real (mouse wheel) moves the content but not the
   // `position: fixed` header sitting outside/above `main` as a sibling.
-  const headerLocator = page.locator('[data-block="sidebarStickyHeader"] header').first();
-  const headerTopBefore = await headerLocator.evaluate((el) => el.getBoundingClientRect().top);
+  const headerLocator = page
+    .locator('[data-block="sidebarStickyHeader"] header')
+    .first();
+  const headerTopBefore = await headerLocator.evaluate(
+    (el) => el.getBoundingClientRect().top,
+  );
 
   await page.evaluate(() => {
-    const wrapper = document.querySelector('[data-block="sidebarStickyHeader"]') as HTMLElement;
+    const wrapper = document.querySelector(
+      '[data-block="sidebarStickyHeader"]',
+    ) as HTMLElement;
     const mainElement = wrapper.querySelector("main") as HTMLElement;
     for (let index = 0; index < 40; index += 1) {
       const filler = document.createElement("div");
@@ -88,16 +120,23 @@ async function main() {
   });
   await page.waitForTimeout(150);
 
-  const mainLocator = page.locator('[data-block="sidebarStickyHeader"] main').first();
+  const mainLocator = page
+    .locator('[data-block="sidebarStickyHeader"] main')
+    .first();
   const mainBox = await mainLocator.boundingBox();
   if (mainBox) {
-    await page.mouse.move(mainBox.x + mainBox.width / 2, mainBox.y + mainBox.height / 2);
+    await page.mouse.move(
+      mainBox.x + mainBox.width / 2,
+      mainBox.y + mainBox.height / 2,
+    );
     await page.mouse.wheel(0, 400);
   }
   await page.waitForTimeout(300);
 
   const mainScrollTop = await mainLocator.evaluate((el) => el.scrollTop);
-  const headerTopAfter = await headerLocator.evaluate((el) => el.getBoundingClientRect().top);
+  const headerTopAfter = await headerLocator.evaluate(
+    (el) => el.getBoundingClientRect().top,
+  );
   report(
     "sidebarStickyHeader: scrolling `main` internally moves its content but the fixed site header stays pinned in place",
     mainScrollTop > 0 && headerTopAfter === headerTopBefore,
@@ -108,7 +147,11 @@ async function main() {
 main()
   .catch((error) => {
     console.error(error);
-    report("sidebarStickyHeader: script ran without throwing", false, String(error));
+    report(
+      "sidebarStickyHeader: script ran without throwing",
+      false,
+      String(error),
+    );
   })
   .finally(async () => {
     await teardown();

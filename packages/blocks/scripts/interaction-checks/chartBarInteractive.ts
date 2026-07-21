@@ -3,7 +3,15 @@
 // actually swaps which series is plotted — confirmed via the `data-active`
 // attribute flipping AND a real pixel diff of the re-rendered bars (not just
 // reading back whatever prop was passed in).
-import { boot, teardown, mountedPage, locate, pixelSnapshot, report, summarize } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  pixelSnapshot,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 const BLOCK = "chartBarInteractive";
 const TOOLTIP_SELECTOR = `[data-block="${BLOCK}"] .dc-tooltip`;
@@ -20,14 +28,21 @@ async function main() {
   const tooltipInfo = () =>
     page.evaluate((selector) => {
       const element = document.querySelector(selector) as HTMLElement | null;
-      return element ? { opacity: getComputedStyle(element).opacity, text: element.innerText } : null;
+      return element
+        ? {
+            opacity: getComputedStyle(element).opacity,
+            text: element.innerText,
+          }
+        : null;
     }, TOOLTIP_SELECTOR);
 
   await page.mouse.move(box.x + 20, box.y + box.height / 2, { steps: 5 });
   await page.waitForTimeout(200);
   const atLeftEdge = await tooltipInfo();
 
-  await page.mouse.move(box.x + box.width - 20, box.y + box.height / 2, { steps: 15 });
+  await page.mouse.move(box.x + box.width - 20, box.y + box.height / 2, {
+    steps: 15,
+  });
   await page.waitForTimeout(200);
   const atRightEdge = await tooltipInfo();
 
@@ -46,25 +61,32 @@ async function main() {
   await page.waitForTimeout(150);
   const beforeSwitch = await pixelSnapshot(page, canvas);
   const activeBefore = await page.evaluate(() =>
-    Array.from(document.querySelectorAll(`[data-block="chartBarInteractive"] button[data-active]`)).map(
-      (element) => element.getAttribute("data-active"),
-    ),
+    Array.from(
+      document.querySelectorAll(
+        `[data-block="chartBarInteractive"] button[data-active]`,
+      ),
+    ).map((element) => element.getAttribute("data-active")),
   );
 
-  const mobileTile = page.locator(`[data-block="${BLOCK}"] button`, { hasText: "Mobile" });
+  const mobileTile = page.locator(`[data-block="${BLOCK}"] button`, {
+    hasText: "Mobile",
+  });
   await mobileTile.click();
   await page.waitForTimeout(700);
 
   const activeAfter = await page.evaluate(() =>
-    Array.from(document.querySelectorAll(`[data-block="chartBarInteractive"] button[data-active]`)).map(
-      (element) => element.getAttribute("data-active"),
-    ),
+    Array.from(
+      document.querySelectorAll(
+        `[data-block="chartBarInteractive"] button[data-active]`,
+      ),
+    ).map((element) => element.getAttribute("data-active")),
   );
   const afterSwitch = await pixelSnapshot(page, canvas);
 
   report(
     "chartBarInteractive:click-stat-tile-flips-active-state",
-    JSON.stringify(activeBefore) !== JSON.stringify(activeAfter) && activeAfter.includes("true"),
+    JSON.stringify(activeBefore) !== JSON.stringify(activeAfter) &&
+      activeAfter.includes("true"),
     `expected data-active to flip between the two stat tiles after clicking "Mobile"; before=${JSON.stringify(activeBefore)} after=${JSON.stringify(activeAfter)}`,
   );
   report(

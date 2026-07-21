@@ -3,7 +3,14 @@
 // shared, `document.body`-level overlay (not nested inside the component
 // itself, per its own spec), then confirms holding the button keeps
 // trickling out more particles over time (not just a single one-shot spawn).
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -28,9 +35,16 @@ async function main() {
 
     const buttonBox = await triggerButton.boundingBox();
     if (!buttonBox) {
-      report("coolMode trigger bounds", false, "trigger button has no bounding box");
+      report(
+        "coolMode trigger bounds",
+        false,
+        "trigger button has no bounding box",
+      );
     } else {
-      await page.mouse.move(buttonBox.x + buttonBox.width / 2, buttonBox.y + buttonBox.height / 2);
+      await page.mouse.move(
+        buttonBox.x + buttonBox.width / 2,
+        buttonBox.y + buttonBox.height / 2,
+      );
       await page.mouse.down();
       await page.waitForTimeout(60);
       const afterDownCount = await countOverlayParticles();

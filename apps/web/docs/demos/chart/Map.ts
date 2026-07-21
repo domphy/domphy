@@ -1,26 +1,25 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 const gdpData = [
-  { name: "United States",   value: 25.5 },
-  { name: "China",           value: 17.7 },
-  { name: "Japan",           value:  4.2 },
-  { name: "Germany",         value:  4.1 },
-  { name: "India",           value:  3.5 },
-  { name: "United Kingdom",  value:  3.1 },
-  { name: "France",          value:  2.8 },
-  { name: "Italy",           value:  2.2 },
-  { name: "Brazil",          value:  2.1 },
-  { name: "Canada",          value:  2.0 },
+  { name: "United States", value: 25.5 },
+  { name: "China", value: 17.7 },
+  { name: "Japan", value: 4.2 },
+  { name: "Germany", value: 4.1 },
+  { name: "India", value: 3.5 },
+  { name: "United Kingdom", value: 3.1 },
+  { name: "France", value: 2.8 },
+  { name: "Italy", value: 2.2 },
+  { name: "Brazil", value: 2.1 },
+  { name: "Canada", value: 2.0 },
 ];
 
 const option: ChartOption = {
   title: { text: "World GDP (trillion USD)", left: "center" },
   tooltip: {
     trigger: "item",
-    formatter: (params: any) =>
-      `${params.name}: $${params.value ?? "N/A"} T`,
+    formatter: (params: any) => `${params.name}: $${params.value ?? "N/A"} T`,
   },
   visualMap: {
     type: "continuous",

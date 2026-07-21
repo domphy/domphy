@@ -1,6 +1,6 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 const option: ChartOption = {
   brush: {
@@ -14,13 +14,24 @@ const option: ChartOption = {
       brush: { type: ["rect", "lineX", "keep", "clear"] },
     },
   },
-  xAxis: { type: "category", data: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"] },
+  xAxis: {
+    type: "category",
+    data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+  },
   yAxis: { type: "value" },
   series: [
-    { type: "bar", name: "Visits", data: [120, 200, 150, 80, 70, 110, 130],
-      itemStyle: { color: "primary" } },
-    { type: "bar", name: "Conversions", data: [20, 45, 35, 18, 15, 28, 30],
-      itemStyle: { color: "success" } },
+    {
+      type: "bar",
+      name: "Visits",
+      data: [120, 200, 150, 80, 70, 110, 130],
+      itemStyle: { color: "primary" },
+    },
+    {
+      type: "bar",
+      name: "Conversions",
+      data: [20, 45, 35, 18, 15, 28, 30],
+      itemStyle: { color: "success" },
+    },
   ],
   legend: {},
 };

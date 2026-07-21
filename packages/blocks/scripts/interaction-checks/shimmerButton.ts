@@ -4,7 +4,14 @@
 // <button> and that the rotating-sliver layer's `rotate()` keyframe animation
 // is actually running (the button itself has no `animation`, only its first
 // child span does).
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -26,23 +33,40 @@ async function main() {
   );
 
   await page.keyboard.press("Tab");
-  const isFocused = await button.evaluate((element) => element === document.activeElement);
-  report("shimmerButton: is reachable via Tab (a real focusable control)", isFocused, `activeElement matches=${isFocused}`);
+  const isFocused = await button.evaluate(
+    (element) => element === document.activeElement,
+  );
+  report(
+    "shimmerButton: is reachable via Tab (a real focusable control)",
+    isFocused,
+    `activeElement matches=${isFocused}`,
+  );
 
   const animation = await sliver.evaluate((element) => {
     const computed = getComputedStyle(element);
-    return { name: computed.animationName, duration: computed.animationDuration, playState: computed.animationPlayState };
+    return {
+      name: computed.animationName,
+      duration: computed.animationDuration,
+      playState: computed.animationPlayState,
+    };
   });
-  const running = animation.name !== "none" && animation.duration !== "0s" && animation.playState === "running";
+  const running =
+    animation.name !== "none" &&
+    animation.duration !== "0s" &&
+    animation.playState === "running";
   report(
     "shimmerButton: the border-highlight rotate() keyframe animation is actually running",
     running,
     `animationName=${animation.name} duration=${animation.duration} playState=${animation.playState}`,
   );
 
-  const first = await sliver.evaluate((element) => getComputedStyle(element).transform);
+  const first = await sliver.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
   await page.waitForTimeout(500);
-  const second = await sliver.evaluate((element) => getComputedStyle(element).transform);
+  const second = await sliver.evaluate(
+    (element) => getComputedStyle(element).transform,
+  );
   report(
     "shimmerButton: the sliver's rotation transform actually changes over time (not frozen)",
     first !== second,

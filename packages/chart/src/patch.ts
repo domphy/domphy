@@ -1,6 +1,6 @@
-import { toState, type PartialElement, type ReadableState } from "@domphy/core";
-import type { ChartOption } from "./types.js";
+import { type PartialElement, type ReadableState, toState } from "@domphy/core";
 import { ChartEngine } from "./engine.js";
+import type { ChartOption } from "./types.js";
 
 /**
  * Renders an ECharts-grade chart using WebGL (luma.gl) + SVG overlay.
@@ -28,7 +28,7 @@ function chart(
 
       // Async init then render
       let initialized = false;
-      let pendingOption: ChartOption | null = null;
+      const pendingOption: ChartOption | null = null;
       let width = 0;
       let height = 0;
 

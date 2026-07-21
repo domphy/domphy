@@ -10,7 +10,12 @@ describe("resolveGrid", () => {
   });
 
   it("resolves percentage-based grid edges against the container size", () => {
-    const grid: GridOption = { left: "10%", top: "10%", right: "10%", bottom: "10%" };
+    const grid: GridOption = {
+      left: "10%",
+      top: "10%",
+      right: "10%",
+      bottom: "10%",
+    };
     const { gridRect } = resolveGrid([grid], [], [], [], 1000, 500);
     expect(gridRect).toEqual({ x: 100, y: 50, width: 800, height: 400 });
   });
@@ -26,9 +31,23 @@ describe("resolveGrid", () => {
   it("derives a linear y-scale's extent from series data, padded, and flips pixel direction", () => {
     const yAxis: AxisOption = { type: "value" };
     const series = [
-      { yAxisIndex: 0, data: [["A", 10], ["B", 20], ["C", 5]] },
+      {
+        yAxisIndex: 0,
+        data: [
+          ["A", 10],
+          ["B", 20],
+          ["C", 5],
+        ],
+      },
     ];
-    const { yScales, gridRect } = resolveGrid([{}], [], [yAxis], series, 800, 400);
+    const { yScales, gridRect } = resolveGrid(
+      [{}],
+      [],
+      [yAxis],
+      series,
+      800,
+      400,
+    );
     const scale = yScales[0];
     expect(scale.type).toBe("linear");
     // Higher data value maps to a smaller pixel y (top of the chart).
@@ -55,7 +74,9 @@ describe("resolveGrid", () => {
   it("captures the full min/max range of boxplot series on the y dimension", () => {
     const yAxis: AxisOption = { type: "value" };
     // boxplot rows: [min, Q1, median, Q3, max]
-    const series = [{ type: "boxplot", yAxisIndex: 0, data: [[2, 5, 8, 12, 20]] }];
+    const series = [
+      { type: "boxplot", yAxisIndex: 0, data: [[2, 5, 8, 12, 20]] },
+    ];
     const { yScales } = resolveGrid([{}], [], [yAxis], series, 800, 400);
     const [lo, hi] = yScales[0].domain as [number, number];
     expect(lo).toBeLessThanOrEqual(2);

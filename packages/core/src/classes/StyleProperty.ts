@@ -63,7 +63,7 @@ export class StyleProperty {
     }
 
     if (typeof value === "function") {
-      let listener = (() => {
+      const listener = (() => {
         if (!this.parentRule || this.parentRule.parentNode?._disposed) return;
         this.value = value(listener);
         this._domUpdate();

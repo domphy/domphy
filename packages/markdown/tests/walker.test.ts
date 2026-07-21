@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createUniqueSlugger, defaultSlugify, markdownToDomphy } from "../src/index";
+import {
+  createUniqueSlugger,
+  defaultSlugify,
+  markdownToDomphy,
+} from "../src/index";
 
 /** Narrows an unknown element to a record for assertion ergonomics. */
 function asRecord(value: unknown): Record<string, unknown> {

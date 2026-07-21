@@ -38,7 +38,9 @@ describe("theme core APIs", () => {
     const light = getTheme("light");
     for (const name of Object.keys(light.colors)) {
       expect(light.baseTones[name], `baseTones.${name}`).toBeTypeOf("number");
-      expect(light.colors[name][light.baseTones[name]]).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(light.colors[name][light.baseTones[name]]).toMatch(
+        /^#[0-9a-f]{6}$/i,
+      );
     }
   });
 
@@ -147,9 +149,9 @@ describe("theme size/tone helpers", () => {
       /color "totally-bogus-color" not found on theme "light"/,
     );
     const node = createNode({});
-    expect(() => themeColor(node as any, "inherit", "totally-bogus-color")).toThrow(
-      /color "totally-bogus-color" not found on theme "light"/,
-    );
+    expect(() =>
+      themeColor(node as any, "inherit", "totally-bogus-color"),
+    ).toThrow(/color "totally-bogus-color" not found on theme "light"/);
     expect(() =>
       themeColorToken(null, "inherit", "totally-bogus-color"),
     ).toThrow(/color "totally-bogus-color" not found on theme "light"/);

@@ -105,9 +105,7 @@ describe("createMarkdown task list support (remark-gfm built-in)", () => {
     const items = ul.ul as Record<string, unknown>[];
     const firstItem = asRecord(items[0]);
     const liChildren = firstItem.li as unknown[];
-    const textParts = liChildren
-      .filter((c) => typeof c === "string")
-      .join("");
+    const textParts = liChildren.filter((c) => typeof c === "string").join("");
     expect(textParts).toContain("Deploy release");
   });
 
@@ -129,7 +127,9 @@ describe("createMarkdown onCustom handler", () => {
         type: "containerDirective" as "html",
         // @ts-expect-error -- fake custom node for test
         name: "tip",
-        children: [{ type: "paragraph", children: [{ type: "text", value: "content" }] }],
+        children: [
+          { type: "paragraph", children: [{ type: "text", value: "content" }] },
+        ],
       });
     };
 

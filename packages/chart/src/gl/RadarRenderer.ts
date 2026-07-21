@@ -1,9 +1,9 @@
-import type { Device, Buffer, RenderPass } from "@luma.gl/core";
-import { Model } from "@luma.gl/engine";
-import { AREA_VS, AREA_FS } from "./shaders/line.glsl.js";
-import type { RadarSeriesOption, RadarOption } from "../types.js";
-import { seriesRgba, familyRgba } from "./color.js";
 import { themeColorToken } from "@domphy/theme";
+import type { Buffer, Device, RenderPass } from "@luma.gl/core";
+import { Model } from "@luma.gl/engine";
+import type { RadarOption, RadarSeriesOption } from "../types.js";
+import { familyRgba, seriesRgba } from "./color.js";
+import { AREA_FS, AREA_VS } from "./shaders/line.glsl.js";
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
   (model as any).props.uniforms = uniforms;
@@ -37,19 +37,30 @@ export class RadarRenderer {
     return this.model;
   }
 
-  renderGridToSvg(svg: SVGSVGElement, radar: RadarOption, width: number, height: number): void {
+  renderGridToSvg(
+    svg: SVGSVGElement,
+    radar: RadarOption,
+    width: number,
+    height: number,
+  ): void {
     const old = svg.querySelector(".dc-radar-grid");
     if (old) old.remove();
 
     const minSize = Math.min(width, height);
     const cx = radar.center
-      ? (typeof radar.center[0] === "number" ? radar.center[0] : (parseFloat(radar.center[0]) / 100) * width)
+      ? typeof radar.center[0] === "number"
+        ? radar.center[0]
+        : (parseFloat(radar.center[0]) / 100) * width
       : width / 2;
     const cy = radar.center
-      ? (typeof radar.center[1] === "number" ? radar.center[1] : (parseFloat(radar.center[1]) / 100) * height)
+      ? typeof radar.center[1] === "number"
+        ? radar.center[1]
+        : (parseFloat(radar.center[1]) / 100) * height
       : height / 2;
     const radius = radar.radius
-      ? (typeof radar.radius === "number" ? radar.radius : (parseFloat(radar.radius as string) / 100) * minSize)
+      ? typeof radar.radius === "number"
+        ? radar.radius
+        : (parseFloat(radar.radius as string) / 100) * minSize
       : minSize * 0.35;
 
     const indicators = radar.indicator;
@@ -62,7 +73,10 @@ export class RadarRenderer {
 
     const spoke = (i: number, fraction = 1): [number, number] => {
       const angle = startAngle - (2 * Math.PI * i) / count;
-      return [cx + radius * fraction * Math.cos(angle), cy - radius * fraction * Math.sin(angle)];
+      return [
+        cx + radius * fraction * Math.cos(angle),
+        cy - radius * fraction * Math.sin(angle),
+      ];
     };
 
     const gridColor = themeColorToken(null, "shift-2", "neutral");
@@ -71,7 +85,10 @@ export class RadarRenderer {
     for (let level = 1; level <= splitNum; level++) {
       const fraction = level / splitNum;
       if (isCircle) {
-        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        const circle = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "circle",
+        );
         circle.setAttribute("cx", String(cx));
         circle.setAttribute("cy", String(cy));
         circle.setAttribute("r", String(radius * fraction));
@@ -80,8 +97,13 @@ export class RadarRenderer {
         circle.setAttribute("stroke-width", "1");
         group.appendChild(circle);
       } else {
-        const points = indicators.map((_, i) => spoke(i, fraction).join(",")).join(" ");
-        const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        const points = indicators
+          .map((_, i) => spoke(i, fraction).join(","))
+          .join(" ");
+        const poly = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "polygon",
+        );
         poly.setAttribute("points", points);
         poly.setAttribute("fill", "none");
         poly.setAttribute("stroke", gridColor);
@@ -92,7 +114,10 @@ export class RadarRenderer {
 
     for (let i = 0; i < count; i++) {
       const [sx, sy] = spoke(i);
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      const line = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "line",
+      );
       line.setAttribute("x1", String(cx));
       line.setAttribute("y1", String(cy));
       line.setAttribute("x2", String(sx));
@@ -109,14 +134,23 @@ export class RadarRenderer {
       const len = Math.hypot(dx, dy) || 1;
       const lx = sx + (dx / len) * 14;
       const ly = sy + (dy / len) * 14;
-      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      const text = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text",
+      );
       text.textContent = ind.name ?? "";
       text.setAttribute("x", String(lx));
       text.setAttribute("y", String(ly));
       text.setAttribute("font-size", "11");
       text.setAttribute("fill", textColor);
-      text.setAttribute("text-anchor", lx > cx + 4 ? "start" : lx < cx - 4 ? "end" : "middle");
-      text.setAttribute("dominant-baseline", ly > cy + 4 ? "hanging" : ly < cy - 4 ? "auto" : "middle");
+      text.setAttribute(
+        "text-anchor",
+        lx > cx + 4 ? "start" : lx < cx - 4 ? "end" : "middle",
+      );
+      text.setAttribute(
+        "dominant-baseline",
+        ly > cy + 4 ? "hanging" : ly < cy - 4 ? "auto" : "middle",
+      );
       group.appendChild(text);
     });
 
@@ -143,9 +177,21 @@ export class RadarRenderer {
       if (!radar) continue;
 
       const minSize = Math.min(width, height);
-      const cx = radar.center ? (typeof radar.center[0] === "number" ? radar.center[0] : (parseFloat(radar.center[0]) / 100) * width) : width / 2;
-      const cy = radar.center ? (typeof radar.center[1] === "number" ? radar.center[1] : (parseFloat(radar.center[1]) / 100) * height) : height / 2;
-      const radius = radar.radius ? (typeof radar.radius === "number" ? radar.radius : (parseFloat(radar.radius as string) / 100) * minSize) : minSize * 0.35;
+      const cx = radar.center
+        ? typeof radar.center[0] === "number"
+          ? radar.center[0]
+          : (parseFloat(radar.center[0]) / 100) * width
+        : width / 2;
+      const cy = radar.center
+        ? typeof radar.center[1] === "number"
+          ? radar.center[1]
+          : (parseFloat(radar.center[1]) / 100) * height
+        : height / 2;
+      const radius = radar.radius
+        ? typeof radar.radius === "number"
+          ? radar.radius
+          : (parseFloat(radar.radius as string) / 100) * minSize
+        : minSize * 0.35;
       const startAngle = ((radar.startAngle ?? 90) * Math.PI) / 180;
       const indicators = radar.indicator;
       const count = indicators.length;
@@ -153,24 +199,50 @@ export class RadarRenderer {
         const dataItem = (s.data ?? [])[di];
         const color = (dataItem as any).lineStyle?.color
           ? familyRgba((dataItem as any).lineStyle.color, "shift-9")
-          : (s.color ? familyRgba(s.color as any, "shift-9") : seriesRgba(seriesOffset + si + di));
+          : s.color
+            ? familyRgba(s.color as any, "shift-9")
+            : seriesRgba(seriesOffset + si + di);
         const values = dataItem.value ?? [];
         const polygon: [number, number][] = [];
 
         for (let i = 0; i < count; i++) {
           const ind = indicators[i];
-          const fraction = Math.max(0, Math.min(1, ((values[i] ?? 0) - (ind.min ?? 0)) / (ind.max - (ind.min ?? 0))));
+          const fraction = Math.max(
+            0,
+            Math.min(
+              1,
+              ((values[i] ?? 0) - (ind.min ?? 0)) / (ind.max - (ind.min ?? 0)),
+            ),
+          );
           const angle = startAngle - (2 * Math.PI * i) / count;
-          polygon.push([cx + radius * fraction * Math.cos(angle), cy - radius * fraction * Math.sin(angle)]);
+          polygon.push([
+            cx + radius * fraction * Math.cos(angle),
+            cy - radius * fraction * Math.sin(angle),
+          ]);
         }
 
         const fillVerts: number[] = [];
         for (let i = 0; i < count; i++) {
           const next = (i + 1) % count;
-          fillVerts.push(cx, cy, polygon[i][0], polygon[i][1], polygon[next][0], polygon[next][1]);
+          fillVerts.push(
+            cx,
+            cy,
+            polygon[i][0],
+            polygon[i][1],
+            polygon[next][0],
+            polygon[next][1],
+          );
         }
-        const areaColor = [color[0], color[1], color[2], color[3] * ((s.areaStyle?.opacity as number) ?? 0.35)];
-        const fillBuffer = this.device.createBuffer({ data: new Float32Array(fillVerts), id: "radar-fill" });
+        const areaColor = [
+          color[0],
+          color[1],
+          color[2],
+          color[3] * ((s.areaStyle?.opacity as number) ?? 0.35),
+        ];
+        const fillBuffer = this.device.createBuffer({
+          data: new Float32Array(fillVerts),
+          id: "radar-fill",
+        });
         this.buffers.push(fillBuffer);
         model.setAttributes({ aPosition: fillBuffer });
         model.setVertexCount(fillVerts.length / 2);
@@ -187,11 +259,24 @@ export class RadarRenderer {
           const ny = (x1 - x0) / len;
           const hw = 1;
           lineVerts.push(
-            x0 + nx * hw, y0 + ny * hw, x1 + nx * hw, y1 + ny * hw, x0 - nx * hw, y0 - ny * hw,
-            x1 + nx * hw, y1 + ny * hw, x1 - nx * hw, y1 - ny * hw, x0 - nx * hw, y0 - ny * hw,
+            x0 + nx * hw,
+            y0 + ny * hw,
+            x1 + nx * hw,
+            y1 + ny * hw,
+            x0 - nx * hw,
+            y0 - ny * hw,
+            x1 + nx * hw,
+            y1 + ny * hw,
+            x1 - nx * hw,
+            y1 - ny * hw,
+            x0 - nx * hw,
+            y0 - ny * hw,
           );
         }
-        const lineBuffer = this.device.createBuffer({ data: new Float32Array(lineVerts), id: "radar-line" });
+        const lineBuffer = this.device.createBuffer({
+          data: new Float32Array(lineVerts),
+          id: "radar-line",
+        });
         this.buffers.push(lineBuffer);
         model.setAttributes({ aPosition: lineBuffer });
         model.setVertexCount(lineVerts.length / 2);

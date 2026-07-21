@@ -14,15 +14,30 @@ type RegistryEntry = { exportName: string };
 
 async function main(): Promise<void> {
   const registryPath = resolve(import.meta.dirname, "..", "registry.json");
-  const registry: RegistryEntry[] = JSON.parse(readFileSync(registryPath, "utf8"));
+  const registry: RegistryEntry[] = JSON.parse(
+    readFileSync(registryPath, "utf8"),
+  );
   const names = registry.map((entry) => entry.exportName).sort();
 
   const { demoUrl } = await boot();
 
   type Report = {
     name: string;
-    violations: Array<{ id: string; impact: string | null; description: string; help: string; nodeCount: number; targets: string[][] }>;
-    incomplete: Array<{ id: string; impact: string | null; description: string; nodeCount: number; targets: string[][] }>;
+    violations: Array<{
+      id: string;
+      impact: string | null;
+      description: string;
+      help: string;
+      nodeCount: number;
+      targets: string[][];
+    }>;
+    incomplete: Array<{
+      id: string;
+      impact: string | null;
+      description: string;
+      nodeCount: number;
+      targets: string[][];
+    }>;
     error?: string;
   };
   const reports: Report[] = [];
@@ -32,7 +47,9 @@ async function main(): Promise<void> {
     try {
       page = await mountedPage(demoUrl, name);
       await page.waitForTimeout(500);
-      const results = await new AxeBuilder({ page }).include(`[data-block="${name}"] .block-box`).analyze();
+      const results = await new AxeBuilder({ page })
+        .include(`[data-block="${name}"] .block-box`)
+        .analyze();
       reports.push({
         name,
         violations: results.violations.map((v) => ({
@@ -51,8 +68,13 @@ async function main(): Promise<void> {
           targets: v.nodes.map((n) => n.target as string[]),
         })),
       });
-      const status = results.violations.length > 0 ? `${results.violations.length} violation(s)` : "clean";
-      console.log(`${name}: ${status}${results.incomplete.length ? `, ${results.incomplete.length} incomplete` : ""}`);
+      const status =
+        results.violations.length > 0
+          ? `${results.violations.length} violation(s)`
+          : "clean";
+      console.log(
+        `${name}: ${status}${results.incomplete.length ? `, ${results.incomplete.length} incomplete` : ""}`,
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       reports.push({ name, violations: [], incomplete: [], error: message });
@@ -68,7 +90,11 @@ async function main(): Promise<void> {
 
   await teardown();
 
-  const outputPath = resolve(import.meta.dirname, "..", ".axe-scan-report.json");
+  const outputPath = resolve(
+    import.meta.dirname,
+    "..",
+    ".axe-scan-report.json",
+  );
   writeFileSync(outputPath, JSON.stringify(reports, null, 2));
 
   const withViolations = reports.filter((r) => r.violations.length > 0);
@@ -81,9 +107,13 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n=== Summary ===`);
-  console.log(`${reports.length} blocks scanned, ${withViolations.length} with violations, ${withErrors.length} errored.`);
+  console.log(
+    `${reports.length} blocks scanned, ${withViolations.length} with violations, ${withErrors.length} errored.`,
+  );
   console.log(`Violations by rule:`);
-  for (const [rule, count] of [...byRule.entries()].sort((a, b) => b[1] - a[1])) {
+  for (const [rule, count] of [...byRule.entries()].sort(
+    (a, b) => b[1] - a[1],
+  )) {
     console.log(`  ${rule}: ${count} block(s)`);
   }
   console.log(`\nFull report: ${outputPath}`);

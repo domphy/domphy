@@ -31,7 +31,8 @@ export const config = defineConfig({
     // The orange mark doubles as the header logo — same asset as the favicon,
     // so favicon / header / primary palette all tell one brand story.
     logo: "/favicon.svg",
-    footerMessage: 'Released under the MIT License. Made by <a href="https://khanhhuu.com" target="_blank">Nguyen Huu Khanh</a>.',
+    footerMessage:
+      'Released under the MIT License. Made by <a href="https://khanhhuu.com" target="_blank">Nguyen Huu Khanh</a>.',
     nav: [
       { text: "Docs", link: "/docs/" },
       {
@@ -449,22 +450,43 @@ export const config = defineConfig({
         {
           text: "Examples",
           items: [
-            { text: "Spinning Cube", link: "/docs/three/examples/spinning-cube" },
-            { text: "Interactive Grid", link: "/docs/three/examples/interactive-grid" },
+            {
+              text: "Spinning Cube",
+              link: "/docs/three/examples/spinning-cube",
+            },
+            {
+              text: "Interactive Grid",
+              link: "/docs/three/examples/interactive-grid",
+            },
             { text: "Wave Field", link: "/docs/three/examples/wave-field" },
             { text: "Galaxy", link: "/docs/three/examples/galaxy" },
             { text: "Orbit Viewer", link: "/docs/three/examples/orbit-viewer" },
             { text: "Theme Sync", link: "/docs/three/examples/theme-sync" },
             { text: "UI Bridge", link: "/docs/three/examples/ui-bridge" },
             { text: "glTF Viewer", link: "/docs/three/examples/gltf-viewer" },
-            { text: "Primitive Bridge", link: "/docs/three/examples/primitive-bridge" },
-            { text: "Starfield Hero", link: "/docs/three/examples/starfield-hero" },
+            {
+              text: "Primitive Bridge",
+              link: "/docs/three/examples/primitive-bridge",
+            },
+            {
+              text: "Starfield Hero",
+              link: "/docs/three/examples/starfield-hero",
+            },
             { text: "Dissolve", link: "/docs/three/examples/dissolve" },
-            { text: "Cursor Particles", link: "/docs/three/examples/cursor-particles" },
+            {
+              text: "Cursor Particles",
+              link: "/docs/three/examples/cursor-particles",
+            },
             { text: "Neon Bloom", link: "/docs/three/examples/neon-bloom" },
             { text: "Tunnel", link: "/docs/three/examples/tunnel" },
-            { text: "Synthwave Terrain", link: "/docs/three/examples/synthwave-terrain" },
-            { text: "Morph Particles", link: "/docs/three/examples/morph-particles" },
+            {
+              text: "Synthwave Terrain",
+              link: "/docs/three/examples/synthwave-terrain",
+            },
+            {
+              text: "Morph Particles",
+              link: "/docs/three/examples/morph-particles",
+            },
           ],
         },
       ],

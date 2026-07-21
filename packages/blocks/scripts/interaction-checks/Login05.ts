@@ -2,7 +2,14 @@
 // magic-link entry — no password field): email format validation, native
 // required validation, tab order straight to the submit button, and OAuth
 // fallback buttons being real, non-submitting, accessible buttons.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -14,10 +21,16 @@ async function main() {
 
   // No password field on this variant at all.
   const passwordCount = await block.locator('input[type="password"]').count();
-  report("Login05: has no password field (passwordless by design)", passwordCount === 0, `count=${passwordCount}`);
+  report(
+    "Login05: has no password field (passwordless by design)",
+    passwordCount === 0,
+    `count=${passwordCount}`,
+  );
 
   await email.fill("not-an-email");
-  const typeMismatch = await email.evaluate((element: HTMLInputElement) => element.validity.typeMismatch);
+  const typeMismatch = await email.evaluate(
+    (element: HTMLInputElement) => element.validity.typeMismatch,
+  );
   report(
     "Login05: malformed email is rejected by type=email format validation",
     typeMismatch === true,
@@ -26,8 +39,12 @@ async function main() {
 
   await email.fill("");
   await submit.click();
-  const emailValid = await email.evaluate((element: HTMLInputElement) => element.validity.valid);
-  const focusedAfterEmptySubmit = await page.evaluate(() => document.activeElement?.id);
+  const emailValid = await email.evaluate(
+    (element: HTMLInputElement) => element.validity.valid,
+  );
+  const focusedAfterEmptySubmit = await page.evaluate(
+    () => document.activeElement?.id,
+  );
   report(
     "Login05: empty submit blocked by native required validation",
     emailValid === false && focusedAfterEmptySubmit === "login05-email",

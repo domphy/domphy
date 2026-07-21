@@ -61,10 +61,7 @@ describe("LineRenderer stacked area-fill baseline", () => {
     expect(areaBuffer).toBeDefined();
     const verts = Array.from(areaBuffer!.data);
     // 6 vertices per segment quad: (x0,by0) (x1,by1) (x0,y0) (x1,by1) (x1,y1) (x0,y0)
-    expect(verts).toEqual([
-      0, 0, 1, 5, 0, 10,
-      1, 5, 1, 20, 0, 10,
-    ]);
+    expect(verts).toEqual([0, 0, 1, 5, 0, 10, 1, 5, 1, 20, 0, 10]);
     // The bottom edge is NOT a flat zero line (the pre-fix behavior) — it
     // varies per point, following the supplied baseline (0, then 5).
     const bottomEdgeYs = [verts[1], verts[3]];

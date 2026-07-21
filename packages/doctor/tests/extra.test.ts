@@ -168,9 +168,9 @@ describe("raw-theme-value: CSS named color detection on direct color props", () 
   });
 
   it("flags backgroundColor: 'white'", () => {
-    expect(
-      rules({ div: "x", style: { backgroundColor: "white" } }),
-    ).toContain("raw-theme-value");
+    expect(rules({ div: "x", style: { backgroundColor: "white" } })).toContain(
+      "raw-theme-value",
+    );
   });
 
   it("flags fill: 'black' on svg elements", () => {
@@ -186,12 +186,12 @@ describe("raw-theme-value: CSS named color detection on direct color props", () 
   });
 
   it("does not flag semantic keywords: transparent, currentColor, inherit", () => {
-    expect(
-      rules({ div: "x", style: { color: "transparent" } }),
-    ).not.toContain("raw-theme-value");
-    expect(
-      rules({ div: "x", style: { color: "currentColor" } }),
-    ).not.toContain("raw-theme-value");
+    expect(rules({ div: "x", style: { color: "transparent" } })).not.toContain(
+      "raw-theme-value",
+    );
+    expect(rules({ div: "x", style: { color: "currentColor" } })).not.toContain(
+      "raw-theme-value",
+    );
     expect(rules({ div: "x", style: { color: "inherit" } })).not.toContain(
       "raw-theme-value",
     );
@@ -201,9 +201,9 @@ describe("raw-theme-value: CSS named color detection on direct color props", () 
   });
 
   it("does not flag reactive named colors", () => {
-    expect(
-      rules({ div: "x", style: { color: () => "red" } }),
-    ).not.toContain("raw-theme-value");
+    expect(rules({ div: "x", style: { color: () => "red" } })).not.toContain(
+      "raw-theme-value",
+    );
   });
 
   it("does not double-flag: hex is caught by hex check, not named-color check", () => {
@@ -320,7 +320,11 @@ describe("_doctorDisable suppress annotation", () => {
 
   it("_doctorDisable: 'rule-id' (string) works like single-element array", () => {
     expect(
-      rules({ div: "x", dataTone: "invalid-tone-word", _doctorDisable: "unknown-tone" }),
+      rules({
+        div: "x",
+        dataTone: "invalid-tone-word",
+        _doctorDisable: "unknown-tone",
+      }),
     ).not.toContain("unknown-tone");
   });
 
@@ -352,7 +356,11 @@ describe("_doctorDisable suppress annotation", () => {
       rules({ div: "x", dataTone: "invalid-tone-word", _doctorDisable: null }),
     ).toContain("unknown-tone");
     expect(
-      rules({ div: "x", dataTone: "invalid-tone-word", _doctorDisable: undefined }),
+      rules({
+        div: "x",
+        dataTone: "invalid-tone-word",
+        _doctorDisable: undefined,
+      }),
     ).toContain("unknown-tone");
   });
 });
@@ -455,10 +463,7 @@ describe("custom rules via options.rules", () => {
     };
     // Should not throw; built-in rules still run
     expect(() =>
-      diagnose(
-        { p: "x", style: { fontSize: "20px" } },
-        { rules: [throwing] },
-      ),
+      diagnose({ p: "x", style: { fontSize: "20px" } }, { rules: [throwing] }),
     ).not.toThrow();
     const d = diagnose(
       { p: "x", style: { fontSize: "20px" } },
@@ -558,24 +563,24 @@ describe("low-opacity rule", () => {
   });
 
   it("does not fire on opacity 0 (intentionally hidden)", () => {
-    expect(
-      rules({ span: "x", style: { opacity: "0" } }),
-    ).not.toContain("low-opacity");
+    expect(rules({ span: "x", style: { opacity: "0" } })).not.toContain(
+      "low-opacity",
+    );
   });
 
   it("does not fire on opacity >= 0.6", () => {
-    expect(
-      rules({ span: "x", style: { opacity: "0.6" } }),
-    ).not.toContain("low-opacity");
-    expect(
-      rules({ span: "x", style: { opacity: "1" } }),
-    ).not.toContain("low-opacity");
+    expect(rules({ span: "x", style: { opacity: "0.6" } })).not.toContain(
+      "low-opacity",
+    );
+    expect(rules({ span: "x", style: { opacity: "1" } })).not.toContain(
+      "low-opacity",
+    );
   });
 
   it("does not fire on reactive opacity function", () => {
-    expect(
-      rules({ span: "x", style: { opacity: () => "0.3" } }),
-    ).not.toContain("low-opacity");
+    expect(rules({ span: "x", style: { opacity: () => "0.3" } })).not.toContain(
+      "low-opacity",
+    );
   });
 
   it("does not fire on opacity inside pseudo-class (&:hover)", () => {

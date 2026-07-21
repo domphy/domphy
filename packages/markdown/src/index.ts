@@ -18,9 +18,9 @@ import type {
 
 export type { FrontmatterSplit } from "./frontmatter.js";
 export { splitFrontmatter } from "./frontmatter.js";
-export { createUniqueSlugger, defaultSlugify } from "./slug.js";
-export { walkMdast } from "./mdast.js";
 export type { MdastWalkOptions, WalkHelper } from "./mdast.js";
+export { walkMdast } from "./mdast.js";
+export { createUniqueSlugger, defaultSlugify } from "./slug.js";
 export type {
   AnchorSlugify,
   CreateMarkdownOptions,

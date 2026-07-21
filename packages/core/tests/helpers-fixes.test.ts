@@ -38,9 +38,7 @@ describe("sanitizeHTMLString: strips <script> tags", () => {
   });
 
   it("strips a self-closing <script/> without eating trailing content", () => {
-    const result = sanitizeHTMLString(
-      '<script src="evil.js"/><div>safe</div>',
-    );
+    const result = sanitizeHTMLString('<script src="evil.js"/><div>safe</div>');
     expect(result).not.toContain("<script");
     expect(result).toContain("<div>safe</div>");
   });
@@ -68,9 +66,9 @@ describe("isHTML: multi-line single-element strings", () => {
   });
 
   it("detects a paired tag with nested multi-line markup", () => {
-    expect(
-      isHTML("<div>\n  <span>a</span>\n  <span>b</span>\n</div>"),
-    ).toBe(true);
+    expect(isHTML("<div>\n  <span>a</span>\n  <span>b</span>\n</div>")).toBe(
+      true,
+    );
   });
 
   it("still detects single-line paired and self-closing tags", () => {

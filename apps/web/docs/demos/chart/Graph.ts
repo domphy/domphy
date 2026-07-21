@@ -1,19 +1,19 @@
-import { type DomphyElement } from "@domphy/core";
+import type { ChartOption, GraphLink, GraphNode } from "@domphy/chart";
 import { chart } from "@domphy/chart";
-import type { ChartOption, GraphNode, GraphLink } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 // Categories: 0 = Frontend, 1 = Backend, 2 = Infra
 const nodes: GraphNode[] = [
-  { id: "0", name: "UI Team",      category: 0, symbolSize: 30 },
-  { id: "1", name: "Design Team",  category: 0, symbolSize: 28 },
-  { id: "2", name: "QA Team",      category: 0, symbolSize: 26 },
-  { id: "3", name: "API Team",     category: 1, symbolSize: 34 },
-  { id: "4", name: "Auth Team",    category: 1, symbolSize: 28 },
-  { id: "5", name: "Data Team",    category: 1, symbolSize: 30 },
-  { id: "6", name: "DevOps",       category: 2, symbolSize: 34 },
-  { id: "7", name: "Security",     category: 2, symbolSize: 28 },
-  { id: "8", name: "Monitoring",   category: 2, symbolSize: 26 },
-  { id: "9", name: "Platform",     category: 2, symbolSize: 30 },
+  { id: "0", name: "UI Team", category: 0, symbolSize: 30 },
+  { id: "1", name: "Design Team", category: 0, symbolSize: 28 },
+  { id: "2", name: "QA Team", category: 0, symbolSize: 26 },
+  { id: "3", name: "API Team", category: 1, symbolSize: 34 },
+  { id: "4", name: "Auth Team", category: 1, symbolSize: 28 },
+  { id: "5", name: "Data Team", category: 1, symbolSize: 30 },
+  { id: "6", name: "DevOps", category: 2, symbolSize: 34 },
+  { id: "7", name: "Security", category: 2, symbolSize: 28 },
+  { id: "8", name: "Monitoring", category: 2, symbolSize: 26 },
+  { id: "9", name: "Platform", category: 2, symbolSize: 30 },
 ];
 
 const links: GraphLink[] = [

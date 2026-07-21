@@ -2,7 +2,14 @@
 // masking, minlength=8 enforcement on the password field, native required
 // validation, a valid submit not reloading the page, and the default
 // (non-loading) reactive button state.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -24,9 +31,13 @@ async function main() {
   );
 
   await password.fill("abc");
-  const tooShort = await password.evaluate((element: HTMLInputElement) => element.validity.tooShort);
+  const tooShort = await password.evaluate(
+    (element: HTMLInputElement) => element.validity.tooShort,
+  );
   await password.fill("longenough123");
-  const validAfterFix = await password.evaluate((element: HTMLInputElement) => element.validity.valid);
+  const validAfterFix = await password.evaluate(
+    (element: HTMLInputElement) => element.validity.valid,
+  );
   report(
     "signup01: password minlength=8 is actually enforced",
     tooShort === true && validAfterFix === true,
@@ -35,8 +46,12 @@ async function main() {
   await password.fill("");
 
   await submit.click();
-  const nameValid = await name.evaluate((element: HTMLInputElement) => element.validity.valid);
-  const focusedAfterEmptySubmit = await page.evaluate(() => document.activeElement?.id);
+  const nameValid = await name.evaluate(
+    (element: HTMLInputElement) => element.validity.valid,
+  );
+  const focusedAfterEmptySubmit = await page.evaluate(
+    () => document.activeElement?.id,
+  );
   report(
     "signup01: empty submit blocked by native required validation (focus -> Full Name)",
     nameValid === false && focusedAfterEmptySubmit === "signup01-name",

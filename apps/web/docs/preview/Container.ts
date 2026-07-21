@@ -1,8 +1,8 @@
 import { type DomphyElement, ElementNode, toState } from "@domphy/core";
 import { themeApply, themeColor, themeSpacing } from "@domphy/theme";
+import { lockScrollOnFullscreen } from "../editor/fullscreenLock";
 import { Render } from "../editor/Render";
 import { Toolbar } from "../editor/Toolbar";
-import { lockScrollOnFullscreen } from "../editor/fullscreenLock";
 
 export function Container(element: DomphyElement): DomphyElement<"div"> {
   // Match the site's current theme on mount (see editor/Container.ts).
@@ -40,7 +40,8 @@ export function Container(element: DomphyElement): DomphyElement<"div"> {
       display: "flex",
       flexDirection: "column",
       border: (listener) => `1px solid ${themeColor(listener, "border")}`,
-      borderRadius: (listener) => (isFull.get(listener) ? "0" : themeSpacing(2)),
+      borderRadius: (listener) =>
+        isFull.get(listener) ? "0" : themeSpacing(2),
       overflow: "hidden",
       position: (listener) => (isFull.get(listener) ? "fixed" : "relative"),
       inset: 0,

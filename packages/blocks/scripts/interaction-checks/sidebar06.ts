@@ -5,7 +5,14 @@
 // cross-wires every row's open `State` so opening one closes any other that
 // was open (only one dropdown at a time). Plus the same fully-hides (not
 // icon-rail) toggle button as sidebar05.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -30,14 +37,18 @@ async function main() {
 
   await playgroundButton.click();
   await page.waitForTimeout(150);
-  const afterClickExpanded = await playgroundButton.getAttribute("aria-expanded");
+  const afterClickExpanded =
+    await playgroundButton.getAttribute("aria-expanded");
   report(
     "sidebar06: clicking 'Playground' opens its floating dropdown",
     afterClickExpanded === "true",
     `aria-expanded=${afterClickExpanded}`,
   );
 
-  const historyItemVisible = await page.locator('[role="dialog"]', { hasText: "History" }).first().isVisible();
+  const historyItemVisible = await page
+    .locator('[role="dialog"]', { hasText: "History" })
+    .first()
+    .isVisible();
   report(
     "sidebar06: the open dropdown shows 'Playground's child items (e.g. 'History')",
     historyItemVisible === true,
@@ -46,7 +57,8 @@ async function main() {
 
   await modelsButton.click();
   await page.waitForTimeout(150);
-  const playgroundAfterModelsClick = await playgroundButton.getAttribute("aria-expanded");
+  const playgroundAfterModelsClick =
+    await playgroundButton.getAttribute("aria-expanded");
   const modelsExpanded = await modelsButton.getAttribute("aria-expanded");
   report(
     "sidebar06: opening 'Models' closes the previously-open 'Playground' dropdown (only one open at a time)",
@@ -55,11 +67,17 @@ async function main() {
   );
 
   const aside = page.locator('[data-block="sidebar06"] aside').first();
-  const toggleButton = page.locator('[data-block="sidebar06"] main header button').first();
-  const expandedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const toggleButton = page
+    .locator('[data-block="sidebar06"] main header button')
+    .first();
+  const expandedWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
   await toggleButton.click();
   await page.waitForTimeout(300);
-  const collapsedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const collapsedWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
   report(
     "sidebar06: the header toggle button fully collapses the sidebar (width -> ~0)",
     expandedWidth > 200 && collapsedWidth < 5,

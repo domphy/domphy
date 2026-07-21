@@ -3,7 +3,14 @@
 // (imperative DOM writes driven by live cursor position, per dock.ts's own
 // "canvas loop" comment — not Domphy reactivity) actually reflects proximity
 // to the cursor — the closest icon should scale up, a far icon should not.
-import { boot, teardown, mountedPage, locate, report, summarize } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 function scaleOf(transform: string): number {
   if (!transform || transform === "none") return 1;
@@ -18,7 +25,11 @@ async function main() {
 
   const icons = page.locator('[data-block="dock"] nav > a');
   const count = await icons.count();
-  report("dock:renders-icon-buttons", count >= 5, `expected several icon buttons, got ${count}`);
+  report(
+    "dock:renders-icon-buttons",
+    count >= 5,
+    `expected several icon buttons, got ${count}`,
+  );
 
   const boxes: { x: number; y: number; width: number; height: number }[] = [];
   for (let index = 0; index < count; index++) {
@@ -36,17 +47,26 @@ async function main() {
   // Hover the leftmost icon: it should magnify while the rightmost (far
   // enough away given the default 3.5x-icon-width proximity falloff) stays
   // at rest.
-  const firstCenter = { x: boxes[0].x + boxes[0].width / 2, y: boxes[0].y + boxes[0].height / 2 };
+  const firstCenter = {
+    x: boxes[0].x + boxes[0].width / 2,
+    y: boxes[0].y + boxes[0].height / 2,
+  };
   const lastIndex = boxes.length - 1;
-  const lastCenter = { x: boxes[lastIndex].x + boxes[lastIndex].width / 2, y: boxes[lastIndex].y + boxes[lastIndex].height / 2 };
+  const lastCenter = {
+    x: boxes[lastIndex].x + boxes[lastIndex].width / 2,
+    y: boxes[lastIndex].y + boxes[lastIndex].height / 2,
+  };
 
   await page.mouse.move(firstCenter.x, firstCenter.y, { steps: 10 });
   await page.waitForTimeout(150);
   const firstScaleWhenHovered = scaleOf((await transformOf(0)) ?? "");
-  const lastScaleWhileFarHovered = scaleOf((await transformOf(lastIndex)) ?? "");
+  const lastScaleWhileFarHovered = scaleOf(
+    (await transformOf(lastIndex)) ?? "",
+  );
   report(
     "dock:hovered-icon-magnifies-vs-far-icon",
-    firstScaleWhenHovered > 1.05 && firstScaleWhenHovered > lastScaleWhileFarHovered,
+    firstScaleWhenHovered > 1.05 &&
+      firstScaleWhenHovered > lastScaleWhileFarHovered,
     `expected leftmost icon's own scale to grow well past 1 and exceed the far rightmost icon's scale while hovering the leftmost icon; leftmost=${firstScaleWhenHovered} rightmost=${lastScaleWhileFarHovered}`,
   );
 
@@ -58,7 +78,8 @@ async function main() {
   const firstScaleWhileFarHovered = scaleOf((await transformOf(0)) ?? "");
   report(
     "dock:magnification-follows-cursor-to-other-end",
-    lastScaleWhenHovered > 1.05 && lastScaleWhenHovered > firstScaleWhileFarHovered,
+    lastScaleWhenHovered > 1.05 &&
+      lastScaleWhenHovered > firstScaleWhileFarHovered,
     `expected rightmost icon's own scale to grow and exceed the now-far leftmost icon's scale after moving the cursor there; rightmost=${lastScaleWhenHovered} leftmost=${firstScaleWhileFarHovered}`,
   );
 
@@ -67,7 +88,9 @@ async function main() {
   await page.mouse.move(20, 20, { steps: 5 });
   await page.waitForTimeout(150);
   const restTransforms = await page.evaluate(() => {
-    const nodes = Array.from(document.querySelectorAll('[data-block="dock"] nav > a')) as HTMLElement[];
+    const nodes = Array.from(
+      document.querySelectorAll('[data-block="dock"] nav > a'),
+    ) as HTMLElement[];
     return nodes.map((node) => node.style.transform);
   });
   const allAtRest = restTransforms.every((transform) => !transform);

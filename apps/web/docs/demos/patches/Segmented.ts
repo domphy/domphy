@@ -7,15 +7,17 @@ const App: DomphyElement<"div"> = {
   style: {
     color: (l: Listener) => themeColor(l, "shift-9"),
   },
-  $: [segmented({
-    value: "month",
-    items: [
-      { label: "Day", key: "day" },
-      { label: "Week", key: "week" },
-      { label: "Month", key: "month" },
-      { label: "Year", key: "year" },
-    ],
-  })],
+  $: [
+    segmented({
+      value: "month",
+      items: [
+        { label: "Day", key: "day" },
+        { label: "Week", key: "week" },
+        { label: "Month", key: "month" },
+        { label: "Year", key: "year" },
+      ],
+    }),
+  ],
 };
 
 export default App;

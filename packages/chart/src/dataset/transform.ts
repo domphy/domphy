@@ -44,14 +44,20 @@ function applySort(source: Row[], config: Record<string, any>): Row[] {
   return [...source].sort((a, b) => {
     let va = getField(a, dimension);
     let vb = getField(b, dimension);
-    if (parser === "time") { va = new Date(va).getTime(); vb = new Date(vb).getTime(); }
+    if (parser === "time") {
+      va = new Date(va).getTime();
+      vb = new Date(vb).getTime();
+    }
     if (va < vb) return order === "asc" ? -1 : 1;
     if (va > vb) return order === "asc" ? 1 : -1;
     return 0;
   });
 }
 
-export function applyTransforms(source: Row[], transforms: TransformOption[]): Row[] {
+export function applyTransforms(
+  source: Row[],
+  transforms: TransformOption[],
+): Row[] {
   let result = source;
   for (const transform of transforms) {
     const config = transform.config ?? {};
@@ -70,14 +76,24 @@ export function resolveDataset(dataset: DatasetOption): Row[] {
   if (Array.isArray(dataset.source)) {
     source = dataset.source as Row[];
     // Handle source header
-    if (dataset.sourceHeader !== false && source.length > 0 && !Array.isArray(source[0])) {
+    if (
+      dataset.sourceHeader !== false &&
+      source.length > 0 &&
+      !Array.isArray(source[0])
+    ) {
       // Object array — no header to strip
-    } else if (dataset.sourceHeader !== false && source.length > 0 && Array.isArray(source[0])) {
+    } else if (
+      dataset.sourceHeader !== false &&
+      source.length > 0 &&
+      Array.isArray(source[0])
+    ) {
       // First row is header
       const headers = source[0] as string[];
       source = (source.slice(1) as any[][]).map((row) => {
         const obj: Record<string, any> = {};
-        headers.forEach((h, i) => { obj[h] = row[i]; });
+        headers.forEach((h, i) => {
+          obj[h] = row[i];
+        });
         return obj;
       });
     }

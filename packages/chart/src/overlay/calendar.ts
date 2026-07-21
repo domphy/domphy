@@ -1,7 +1,14 @@
-import type { CalendarOption, HeatmapSeriesOption, VisualMapOption } from "../types.js";
+import type {
+  CalendarOption,
+  HeatmapSeriesOption,
+  VisualMapOption,
+} from "../types.js";
 import { colorFromVisualMap } from "./visualmap.js";
 
-function svgEl(tag: string, attrs: Record<string, string | number>): SVGElement {
+function svgEl(
+  tag: string,
+  attrs: Record<string, string | number>,
+): SVGElement {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
   return el;
@@ -39,14 +46,41 @@ interface CalendarLayout {
   endDate: Date;
   firstDay: number;
   getCell(date: Date): { col: number; row: number } | null;
-  getCellPixel(date: Date): { x: number; y: number; w: number; h: number } | null;
+  getCellPixel(
+    date: Date,
+  ): { x: number; y: number; w: number; h: number } | null;
 }
 
-function buildCalendarLayout(cal: CalendarOption, calIndex: number, width: number, height: number): CalendarLayout {
-  const marginL = typeof cal.left === "number" ? cal.left : typeof cal.left === "string" ? parseFloat(cal.left) : width * 0.07;
-  const marginT = typeof cal.top === "number" ? cal.top : typeof cal.top === "string" ? parseFloat(cal.top) : height * 0.1 + calIndex * height * 0.35;
-  const marginR = typeof cal.right === "number" ? cal.right : typeof cal.right === "string" ? parseFloat(cal.right) : width * 0.03;
-  const marginB = typeof cal.bottom === "number" ? cal.bottom : typeof cal.bottom === "string" ? parseFloat(cal.bottom) : height * 0.05;
+function buildCalendarLayout(
+  cal: CalendarOption,
+  calIndex: number,
+  width: number,
+  height: number,
+): CalendarLayout {
+  const marginL =
+    typeof cal.left === "number"
+      ? cal.left
+      : typeof cal.left === "string"
+        ? parseFloat(cal.left)
+        : width * 0.07;
+  const marginT =
+    typeof cal.top === "number"
+      ? cal.top
+      : typeof cal.top === "string"
+        ? parseFloat(cal.top)
+        : height * 0.1 + calIndex * height * 0.35;
+  const marginR =
+    typeof cal.right === "number"
+      ? cal.right
+      : typeof cal.right === "string"
+        ? parseFloat(cal.right)
+        : width * 0.03;
+  const marginB =
+    typeof cal.bottom === "number"
+      ? cal.bottom
+      : typeof cal.bottom === "string"
+        ? parseFloat(cal.bottom)
+        : height * 0.05;
 
   const rectW = width - marginL - marginR;
   const rectH = height - marginT - marginB;
@@ -85,7 +119,9 @@ function buildCalendarLayout(cal: CalendarOption, calIndex: number, width: numbe
     return { col, row };
   }
 
-  function getCellPixel(date: Date): { x: number; y: number; w: number; h: number } | null {
+  function getCellPixel(
+    date: Date,
+  ): { x: number; y: number; w: number; h: number } | null {
     const cell = getCell(date);
     if (!cell) return null;
     const x = rect.x + cell.col * cellW;
@@ -93,11 +129,33 @@ function buildCalendarLayout(cal: CalendarOption, calIndex: number, width: numbe
     return { x, y, w: cellW, h: cellH };
   }
 
-  return { rect, cellW, cellH, startDate, endDate, firstDay, getCell, getCellPixel };
+  return {
+    rect,
+    cellW,
+    cellH,
+    startDate,
+    endDate,
+    firstDay,
+    getCell,
+    getCellPixel,
+  };
 }
 
-const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function renderCalendar(
   svg: SVGSVGElement,
@@ -154,9 +212,12 @@ export function renderCalendar(
           fill = "#91cc75";
         }
         const rx = svgEl("rect", {
-          x: cell.x + 1, y: cell.y + 1,
-          width: cellW - 2, height: cellH - 2,
-          fill, rx: 2,
+          x: cell.x + 1,
+          y: cell.y + 1,
+          width: cellW - 2,
+          height: cellH - 2,
+          fill,
+          rx: 2,
         });
         group.appendChild(rx);
       }
@@ -171,7 +232,10 @@ export function renderCalendar(
         if (first < startDate || first > endDate) continue;
         const cell = layout.getCellPixel(first);
         if (!cell) continue;
-        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        const label = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text",
+        );
         label.textContent = monthNames[m] ?? String(m + 1);
         label.setAttribute("x", String(cell.x));
         label.setAttribute("y", String(rect.y - 4));
@@ -188,7 +252,10 @@ export function renderCalendar(
       const margin = cal.dayLabel?.margin ?? 4;
       for (let d = 0; d < 7; d++) {
         const dayIndex = (d + firstDay) % 7;
-        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        const label = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text",
+        );
         label.textContent = dayNames[dayIndex] ?? "";
         label.setAttribute("x", String(rect.x - margin));
         label.setAttribute("y", String(rect.y + d * cellH + cellH / 2));
@@ -204,7 +271,10 @@ export function renderCalendar(
     // Draw year label
     if (cal.yearLabel?.show !== false) {
       const yearMargin = cal.yearLabel?.margin ?? 30;
-      const yearLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      const yearLabel = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text",
+      );
       yearLabel.textContent = String(startDate.getFullYear());
       yearLabel.setAttribute("x", String(rect.x - yearMargin));
       yearLabel.setAttribute("y", String(rect.y + rect.h / 2));
@@ -212,7 +282,10 @@ export function renderCalendar(
       yearLabel.setAttribute("fill", "#555");
       yearLabel.setAttribute("text-anchor", "middle");
       yearLabel.setAttribute("dominant-baseline", "middle");
-      yearLabel.setAttribute("transform", `rotate(-90,${rect.x - yearMargin},${rect.y + rect.h / 2})`);
+      yearLabel.setAttribute(
+        "transform",
+        `rotate(-90,${rect.x - yearMargin},${rect.y + rect.h / 2})`,
+      );
       yearLabel.setAttribute("pointer-events", "none");
       group.appendChild(yearLabel);
     }

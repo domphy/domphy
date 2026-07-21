@@ -1,6 +1,6 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 const option: ChartOption = {
   title: { text: "Boxplot" },
@@ -11,7 +11,13 @@ const option: ChartOption = {
       return `${params.name}<br/>Min: ${v[0]}<br/>Q1: ${v[1]}<br/>Median: ${v[2]}<br/>Q3: ${v[3]}<br/>Max: ${v[4]}`;
     },
   },
-  grid: { left: "5%", right: "3%", top: "12%", bottom: "8%", containLabel: true },
+  grid: {
+    left: "5%",
+    right: "3%",
+    top: "12%",
+    bottom: "8%",
+    containLabel: true,
+  },
   xAxis: {
     type: "category",
     data: ["Group A", "Group B", "Group C", "Group D"],

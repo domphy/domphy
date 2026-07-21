@@ -602,7 +602,16 @@ describe("steps + stepItem", () => {
   it("active step has aria-current=step", () => {
     const { host } = render({
       ol: null,
-      $: [steps({ current: 1, items: [{ label: "Step 1" }, { label: "Step 2" }, { label: "Step 3" }] })],
+      $: [
+        steps({
+          current: 1,
+          items: [
+            { label: "Step 1" },
+            { label: "Step 2" },
+            { label: "Step 3" },
+          ],
+        }),
+      ],
     } as DomphyElement);
 
     const items = host.querySelectorAll("li");
@@ -614,7 +623,16 @@ describe("steps + stepItem", () => {
   it("sets data-status correctly for pending/active/done", () => {
     const { host } = render({
       ol: null,
-      $: [steps({ current: 1, items: [{ label: "Step 1" }, { label: "Step 2" }, { label: "Step 3" }] })],
+      $: [
+        steps({
+          current: 1,
+          items: [
+            { label: "Step 1" },
+            { label: "Step 2" },
+            { label: "Step 3" },
+          ],
+        }),
+      ],
     } as DomphyElement);
 
     const items = host.querySelectorAll("li");
@@ -627,7 +645,9 @@ describe("steps + stepItem", () => {
     const current = toState(0);
     const { host } = render({
       ol: null,
-      $: [steps({ current, items: [{ label: "Step 1" }, { label: "Step 2" }] })],
+      $: [
+        steps({ current, items: [{ label: "Step 1" }, { label: "Step 2" }] }),
+      ],
     } as DomphyElement);
 
     const items = host.querySelectorAll("li");

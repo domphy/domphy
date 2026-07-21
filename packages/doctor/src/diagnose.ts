@@ -367,7 +367,10 @@ function buildSpacingHint(prop: string, value: string): string | null {
  * listener per reactive prop per element visited. Returns null for non-string
  * results, or when `runReactive` is false and the value is a function.
  */
-function resolveStyleValue(value: unknown, runReactive: boolean): string | null {
+function resolveStyleValue(
+  value: unknown,
+  runReactive: boolean,
+): string | null {
   if (typeof value === "string") return value;
   if (typeof value !== "function" || !runReactive) return null;
   try {
@@ -602,7 +605,10 @@ function walk(
   // walkStyleProps: checks a flat style object (or pseudo-class nested style
   // like "&:hover") for theme/visual violations. Called for the element's own
   // style AND for any nested pseudo-class objects found inside it.
-  const walkStyleProps = (style: Record<string, unknown>, stylePath: string) => {
+  const walkStyleProps = (
+    style: Record<string, unknown>,
+    stylePath: string,
+  ) => {
     for (const prop in style) {
       // Skip nested pseudo-class objects at this level — they are walked
       // separately after the outer loop so their rules fire at the right path.
@@ -620,10 +626,16 @@ function walk(
         });
       }
 
-      if (COLOR_STYLE.has(prop) && typeof value === "string" && LITERAL_COLOR.test(value)) {
+      if (
+        COLOR_STYLE.has(prop) &&
+        typeof value === "string" &&
+        LITERAL_COLOR.test(value)
+      ) {
         const colorLiteral = extractColorLiteral(value) ?? value;
         const lch = parseLiteralToLch(colorLiteral);
-        const colorHint = lch ? buildColorHint(lch) : "(l) => themeColor(l, tone, colorName)";
+        const colorHint = lch
+          ? buildColorHint(lch)
+          : "(l) => themeColor(l, tone, colorName)";
         elementDiags.push({
           rule: "raw-theme-value",
           severity: "info",
@@ -665,7 +677,6 @@ function walk(
           });
         }
       }
-
     }
   };
 
@@ -674,8 +685,14 @@ function walk(
     walkStyleProps(style, here);
     // Walk pseudo-class nested objects (&:hover, &:focus, &:active, etc.)
     for (const prop in style) {
-      if ((prop.startsWith("&") || prop.startsWith(":")) && isPlainObject(style[prop])) {
-        walkStyleProps(style[prop] as Record<string, unknown>, `${here}[${prop}]`);
+      if (
+        (prop.startsWith("&") || prop.startsWith(":")) &&
+        isPlainObject(style[prop])
+      ) {
+        walkStyleProps(
+          style[prop] as Record<string, unknown>,
+          `${here}[${prop}]`,
+        );
       }
     }
 
@@ -687,7 +704,9 @@ function walk(
     if (typeof opacityValue === "string") {
       const opacity = parseFloat(opacityValue);
       if (!Number.isNaN(opacity) && opacity > 0 && opacity < 0.6) {
-        const hoverStyle = style["&:hover"] as Record<string, unknown> | undefined;
+        const hoverStyle = style["&:hover"] as
+          | Record<string, unknown>
+          | undefined;
         const hoverOpacity = hoverStyle?.opacity;
         const hasFullHoverRestore = hoverOpacity === "1" || hoverOpacity === 1;
         elementDiags.push({
@@ -750,11 +769,18 @@ function walk(
     if (styleForColorCheck) {
       const themedProps: string[] = [];
       for (const prop in styleForColorCheck) {
-        if (prop === "color" || prop.startsWith("&") || prop.startsWith(":")) continue;
-        const resolved = resolveStyleValue(styleForColorCheck[prop], runReactive);
+        if (prop === "color" || prop.startsWith("&") || prop.startsWith(":"))
+          continue;
+        const resolved = resolveStyleValue(
+          styleForColorCheck[prop],
+          runReactive,
+        );
         if (resolved && resolved.includes("var(")) themedProps.push(prop);
       }
-      if (themedProps.length > 0 && !hasStyleProp(styleForColorCheck, "color")) {
+      if (
+        themedProps.length > 0 &&
+        !hasStyleProp(styleForColorCheck, "color")
+      ) {
         elementDiags.push({
           rule: "missing-color",
           severity: "warning",
@@ -778,21 +804,31 @@ function walk(
     const colorFn = styleProp?.color;
     const bgFn = styleProp?.backgroundColor;
 
-    if (runReactive && typeof colorFn === "function" && typeof bgFn === "function") {
+    if (
+      runReactive &&
+      typeof colorFn === "function" &&
+      typeof bgFn === "function"
+    ) {
       let colorVar: unknown;
       let bgVar: unknown;
       try {
         colorVar = (colorFn as (l: unknown) => unknown)(() => {});
         bgVar = (bgFn as (l: unknown) => unknown)(() => {});
-      } catch { /* reactive fn threw without a runtime — skip */ }
+      } catch {
+        /* reactive fn threw without a runtime — skip */
+      }
 
       // Captures both the CSS-var family (e.g. "neutral") and the numeric shift,
       // so two vars from different families (var(--error-3) vs var(--success-9))
       // are never compared — only same-family shifts are a real contrast signal.
-      const extractShift = (v: unknown): { family: string; shift: number } | null => {
+      const extractShift = (
+        v: unknown,
+      ): { family: string; shift: number } | null => {
         if (typeof v !== "string") return null;
         const match = v.match(/var\(--([\w-]+)-(\d+)\)$/);
-        return match ? { family: match[1], shift: parseInt(match[2], 10) } : null;
+        return match
+          ? { family: match[1], shift: parseInt(match[2], 10) }
+          : null;
       };
 
       const textShift = extractShift(colorVar);
@@ -851,17 +887,25 @@ function walk(
   // (to set the baseline text color, guaranteeing minimum legibility without
   // relying on CSS inheritance from a different context). "inherit" is exempt —
   // it passes the parent context through without creating a new surface.
-  if (typeof dataTone === "string" && dataTone !== "inherit" && isValidTone(dataTone)) {
+  if (
+    typeof dataTone === "string" &&
+    dataTone !== "inherit" &&
+    isValidTone(dataTone)
+  ) {
     const styleForToneCheck = isPlainObject(element.style)
       ? (element.style as Record<string, unknown>)
       : null;
-    const missingBg = !styleForToneCheck || !hasStyleProp(styleForToneCheck, "backgroundColor");
-    const missingColor = !styleForToneCheck || !hasStyleProp(styleForToneCheck, "color");
+    const missingBg =
+      !styleForToneCheck || !hasStyleProp(styleForToneCheck, "backgroundColor");
+    const missingColor =
+      !styleForToneCheck || !hasStyleProp(styleForToneCheck, "color");
     if (missingBg || missingColor) {
       const missing = [
         missingBg ? "backgroundColor" : null,
         missingColor ? "color" : null,
-      ].filter(Boolean).join(" and ");
+      ]
+        .filter(Boolean)
+        .join(" and ");
       elementDiags.push({
         rule: "dataTone-surface-contract",
         severity: "warning",
@@ -877,7 +921,10 @@ function walk(
     // that themeColor() emits; skipped if the value isn't a recognizable theme var,
     // or if `runReactive` is false and color is a reactive function.
     if (!missingColor && styleForToneCheck) {
-      const colorValue = resolveStyleValue(styleForToneCheck.color, runReactive);
+      const colorValue = resolveStyleValue(
+        styleForToneCheck.color,
+        runReactive,
+      );
       const step = colorValue !== null ? extractToneStep(colorValue) : null;
       if (step !== null && step < 9) {
         elementDiags.push({
@@ -886,7 +933,7 @@ function walk(
           category: "theme",
           path: here,
           message: `\`style.color\` resolves to tone step ${step} — below the minimum shift-9 required for legible text on a standard surface.`,
-          hint: "Use at least `themeColor(l, \"shift-9\")` for body text. Decorative / secondary text may use shift-7 or shift-8 with explicit justification.",
+          hint: 'Use at least `themeColor(l, "shift-9")` for body text. Decorative / secondary text may use shift-7 or shift-8 with explicit justification.',
         });
       }
     }

@@ -41,11 +41,15 @@ describe("ThemeBuilder demo", () => {
 
   it("changing a color picker regenerates the theme and updates the export panel", async () => {
     const { host } = await mountFresh();
-    const picker = host.querySelector('input[type="color"]') as HTMLInputElement;
+    const picker = host.querySelector(
+      'input[type="color"]',
+    ) as HTMLInputElement;
     expect(picker).toBeTruthy();
 
     const exportCode = host.querySelector("pre code") as HTMLElement;
-    const hexMirror = picker.closest("div")?.querySelector("code") as HTMLElement;
+    const hexMirror = picker
+      .closest("div")
+      ?.querySelector("code") as HTMLElement;
     const before = exportCode.textContent;
 
     picker.value = "#00ff00";
@@ -63,10 +67,14 @@ describe("ThemeBuilder demo", () => {
   it("switching tabs shows the size/density fields instead of color pickers", async () => {
     const { host } = await mountFresh();
     const buttons = Array.from(host.querySelectorAll("aside button"));
-    const sizeTabButton = buttons.find((b) => b.textContent === "Size & Density") as HTMLButtonElement;
+    const sizeTabButton = buttons.find(
+      (b) => b.textContent === "Size & Density",
+    ) as HTMLButtonElement;
     expect(sizeTabButton).toBeTruthy();
 
-    sizeTabButton.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    sizeTabButton.dispatchEvent(
+      new window.MouseEvent("click", { bubbles: true }),
+    );
     await flush();
 
     const numberInputs = host.querySelectorAll('aside input[type="number"]');
@@ -76,7 +84,9 @@ describe("ThemeBuilder demo", () => {
   it("switching the preview theme selector changes the gallery's dataTheme", async () => {
     const { host } = await mountFresh();
     const select = host.querySelector("aside select") as HTMLSelectElement;
-    const galleryRoot = host.querySelector("[data-theme]:not(aside [data-theme])") as HTMLElement | null;
+    const galleryRoot = host.querySelector(
+      "[data-theme]:not(aside [data-theme])",
+    ) as HTMLElement | null;
     const gallery = Array.from(host.querySelectorAll("[data-theme]")).find(
       (el) => el !== host.querySelector("aside")?.closest("[data-theme]"),
     ) as HTMLElement | undefined;
@@ -97,11 +107,17 @@ describe("ThemeBuilder demo", () => {
   it("changing a density field regenerates without throwing", async () => {
     const { host } = await mountFresh();
     const buttons = Array.from(host.querySelectorAll("aside button"));
-    const sizeTabButton = buttons.find((b) => b.textContent === "Size & Density") as HTMLButtonElement;
-    sizeTabButton.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    const sizeTabButton = buttons.find(
+      (b) => b.textContent === "Size & Density",
+    ) as HTMLButtonElement;
+    sizeTabButton.dispatchEvent(
+      new window.MouseEvent("click", { bubbles: true }),
+    );
     await flush();
 
-    const densityInput = host.querySelector('aside input[type="number"]') as HTMLInputElement;
+    const densityInput = host.querySelector(
+      'aside input[type="number"]',
+    ) as HTMLInputElement;
     densityInput.value = "1.25";
     densityInput.dispatchEvent(new window.Event("input", { bubbles: true }));
     await flush();

@@ -86,4 +86,3 @@ describe("dialog transitionend bubble guard", () => {
     node.remove();
   });
 });
-

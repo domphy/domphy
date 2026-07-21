@@ -1,6 +1,6 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 // 20 points on a unit sphere: 5 latitude bands × 4 longitude steps
 // lat in [30, 60, 90, 120, 150] deg, lon in [0, 90, 180, 270] deg

@@ -1,6 +1,11 @@
-import type { AxisOption, ChartRect, GridOption } from "../types.js";
-import { createLinearScale, createOrdinalScale, createTimeScale, createLogScale } from "../scale/index.js";
 import type { AnyScale } from "../scale/index.js";
+import {
+  createLinearScale,
+  createLogScale,
+  createOrdinalScale,
+  createTimeScale,
+} from "../scale/index.js";
+import type { AxisOption, ChartRect, GridOption } from "../types.js";
 
 export interface GridCoord {
   gridRect: ChartRect;
@@ -10,10 +15,14 @@ export interface GridCoord {
 
 export interface ZoomWindow {
   start: number; // 0–100 percentage
-  end: number;   // 0–100 percentage
+  end: number; // 0–100 percentage
 }
 
-function resolvePercent(value: number | string | undefined, total: number, fallback: number): number {
+function resolvePercent(
+  value: number | string | undefined,
+  total: number,
+  fallback: number,
+): number {
   if (value === undefined) return fallback;
   if (typeof value === "number") return value;
   if (value.endsWith("%")) return (parseFloat(value) / 100) * total;
@@ -25,9 +34,9 @@ function computeGridRect(
   containerWidth: number,
   containerHeight: number,
 ): ChartRect {
-  const left   = resolvePercent(grid.left, containerWidth, 60);
-  const top    = resolvePercent(grid.top, containerHeight, 40);
-  const right  = resolvePercent(grid.right, containerWidth, 20);
+  const left = resolvePercent(grid.left, containerWidth, 60);
+  const top = resolvePercent(grid.top, containerHeight, 40);
+  const right = resolvePercent(grid.right, containerWidth, 20);
   const bottom = resolvePercent(grid.bottom, containerHeight, 50);
   return {
     x: left,
@@ -58,10 +67,12 @@ function dataExtentFromSeries(
   for (const s of series) {
     if ((s[axisKey] ?? 0) !== axisIndex) continue;
     const data: any[] = s.data ?? [];
-    const stackName: string | undefined = typeof s.stack === "string" ? s.stack : undefined;
+    const stackName: string | undefined =
+      typeof s.stack === "string" ? s.stack : undefined;
     let acc: number[] | undefined;
     if (stackName) {
-      if (!stackRunningTotal.has(stackName)) stackRunningTotal.set(stackName, []);
+      if (!stackRunningTotal.has(stackName))
+        stackRunningTotal.set(stackName, []);
       acc = stackRunningTotal.get(stackName)!;
     }
 
@@ -71,7 +82,10 @@ function dataExtentFromSeries(
           // boxplot: [min, Q1, median, Q3, max] — capture full range on y dim
           if (dim === "y") {
             for (const v of item) {
-              if (typeof v === "number" && !Number.isNaN(v)) { min = Math.min(min, v); max = Math.max(max, v); }
+              if (typeof v === "number" && !Number.isNaN(v)) {
+                min = Math.min(min, v);
+                max = Math.max(max, v);
+              }
             }
           } else {
             // x is the category index (handled by OrdinalScale)
@@ -80,8 +94,12 @@ function dataExtentFromSeries(
         }
         let value = dim === "x" ? item[0] : item[1];
         if (typeof value === "number" && !Number.isNaN(value)) {
-          if (acc) { value = (acc[itemIndex] ?? 0) + value; acc[itemIndex] = value; }
-          min = Math.min(min, value); max = Math.max(max, value);
+          if (acc) {
+            value = (acc[itemIndex] ?? 0) + value;
+            acc[itemIndex] = value;
+          }
+          min = Math.min(min, value);
+          max = Math.max(max, value);
         }
         return;
       }
@@ -94,16 +112,16 @@ function dataExtentFromSeries(
         else if (Array.isArray(raw)) value = dim === "x" ? raw[0] : raw[1];
       }
       if (value !== null && !Number.isNaN(value)) {
-        if (acc) { value = (acc[itemIndex] ?? 0) + value; acc[itemIndex] = value; }
+        if (acc) {
+          value = (acc[itemIndex] ?? 0) + value;
+          acc[itemIndex] = value;
+        }
         min = Math.min(min, value);
         max = Math.max(max, value);
       }
     });
   }
-  return [
-    Number.isFinite(min) ? min : 0,
-    Number.isFinite(max) ? max : 1,
-  ];
+  return [Number.isFinite(min) ? min : 0, Number.isFinite(max) ? max : 1];
 }
 
 function buildScale(
@@ -123,7 +141,10 @@ function buildScale(
       const startIdx = Math.floor((zoom.start / 100) * domain.length);
       const endIdx = Math.ceil((zoom.end / 100) * domain.length);
       const visible = domain.slice(startIdx, endIdx);
-      return createOrdinalScale(visible.length > 0 ? visible : domain, [pMin, pMax]);
+      return createOrdinalScale(visible.length > 0 ? visible : domain, [
+        pMin,
+        pMax,
+      ]);
     }
     return createOrdinalScale(domain, [pMin, pMax]);
   }
@@ -158,7 +179,13 @@ function buildScale(
   const span = rawMax - rawMin;
   const padMin = axis.min !== undefined ? rawMin : rawMin - span * 0.02;
   const padMax = axis.max !== undefined ? rawMax : rawMax + span * 0.05;
-  return createLinearScale([padMin === padMax ? padMin - 1 : padMin, padMax === rawMin ? padMax + 1 : padMax], [pMin, pMax]);
+  return createLinearScale(
+    [
+      padMin === padMax ? padMin - 1 : padMin,
+      padMax === rawMin ? padMax + 1 : padMax,
+    ],
+    [pMin, pMax],
+  );
 }
 
 export function resolveGrid(
@@ -177,14 +204,26 @@ export function resolveGrid(
   const xScales: AnyScale[] = xAxes.map((axis, index) => {
     const [min, max] = dataExtentFromSeries(series, "x", index, "xAxisIndex");
     const categories: string[] = (axis.data as string[] | undefined) ?? [];
-    return buildScale(axis, [rect.x, rect.x + rect.width], [min, max], categories, xZoom?.get(index));
+    return buildScale(
+      axis,
+      [rect.x, rect.x + rect.width],
+      [min, max],
+      categories,
+      xZoom?.get(index),
+    );
   });
 
   const yScales: AnyScale[] = yAxes.map((axis, index) => {
     const [min, max] = dataExtentFromSeries(series, "y", index, "yAxisIndex");
     const categories: string[] = (axis.data as string[] | undefined) ?? [];
     // y runs bottom to top in data, but SVG/canvas is top-down, so flip
-    return buildScale(axis, [rect.y + rect.height, rect.y], [min, max], categories, yZoom?.get(index));
+    return buildScale(
+      axis,
+      [rect.y + rect.height, rect.y],
+      [min, max],
+      categories,
+      yZoom?.get(index),
+    );
   });
 
   return { gridRect: rect, xScales, yScales };

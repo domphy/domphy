@@ -1,5 +1,5 @@
-import type { GraphSeriesOption, GraphNode, GraphLink } from "../types.js";
 import { seriesHex } from "../gl/color.js";
+import type { GraphLink, GraphNode, GraphSeriesOption } from "../types.js";
 
 interface PhysicsNode {
   id: string;
@@ -81,8 +81,14 @@ function runForce(
       const force = (dist * dist) / k;
       const fx = (dx / dist) * force * (idealLength / 200);
       const fy = (dy / dist) * force * (idealLength / 200);
-      if (!a.fixed) { a.vx += fx; a.vy += fy; }
-      if (!b.fixed) { b.vx -= fx; b.vy -= fy; }
+      if (!a.fixed) {
+        a.vx += fx;
+        a.vy += fy;
+      }
+      if (!b.fixed) {
+        b.vx -= fx;
+        b.vy -= fy;
+      }
     }
 
     // Integrate and clamp
@@ -94,8 +100,14 @@ function runForce(
         node.x += (node.vx / speed) * clamp;
         node.y += (node.vy / speed) * clamp;
       }
-      node.x = Math.max(node.radius + 4, Math.min(width - node.radius - 4, node.x));
-      node.y = Math.max(node.radius + 4, Math.min(height - node.radius - 4, node.y));
+      node.x = Math.max(
+        node.radius + 4,
+        Math.min(width - node.radius - 4, node.x),
+      );
+      node.y = Math.max(
+        node.radius + 4,
+        Math.min(height - node.radius - 4, node.y),
+      );
     }
   }
 }
@@ -129,13 +141,14 @@ export function renderGraph(
     const areaW = width - 40;
     const areaH = height - 40;
 
-    const defaultRadius = typeof s.symbolSize === "number" ? s.symbolSize / 2 : 10;
+    const defaultRadius =
+      typeof s.symbolSize === "number" ? s.symbolSize / 2 : 10;
 
     // Build physics nodes
     const nodeMap = new Map<string, PhysicsNode>();
     const physicsNodes: PhysicsNode[] = rawNodes.map((n, index) => {
       const id = nodeId(n, index);
-      const catIndex = n.category ?? (si % 9);
+      const catIndex = n.category ?? si % 9;
       const color = n.color
         ? seriesHex(catIndex)
         : categories[catIndex]?.color
@@ -149,8 +162,14 @@ export function renderGraph(
       // Circular init or given coords
       const angle = (index / rawNodes.length) * Math.PI * 2;
       const initR = Math.min(areaW, areaH) * 0.35;
-      const initX = n.x !== undefined ? left + n.x * areaW : left + areaW / 2 + Math.cos(angle) * initR;
-      const initY = n.y !== undefined ? top + n.y * areaH : top + areaH / 2 + Math.sin(angle) * initR;
+      const initX =
+        n.x !== undefined
+          ? left + n.x * areaW
+          : left + areaW / 2 + Math.cos(angle) * initR;
+      const initY =
+        n.y !== undefined
+          ? top + n.y * areaH
+          : top + areaH / 2 + Math.sin(angle) * initR;
 
       const node: PhysicsNode = {
         id,
@@ -174,24 +193,33 @@ export function renderGraph(
     for (const link of rawLinks) {
       const srcId = String(link.source);
       const tgtId = String(link.target);
-      const src = nodeMap.get(srcId) ?? nodeMap.get(
-        [...nodeMap.keys()].find((k) => {
-          const n = rawNodes.find((_, i) => nodeId(rawNodes[i], i) === k);
-          return n && (n.name === srcId || String(n.id) === srcId);
-        }) ?? "",
-      );
-      const tgt = nodeMap.get(tgtId) ?? nodeMap.get(
-        [...nodeMap.keys()].find((k) => {
-          const n = rawNodes.find((_, i) => nodeId(rawNodes[i], i) === k);
-          return n && (n.name === tgtId || String(n.id) === tgtId);
-        }) ?? "",
-      );
+      const src =
+        nodeMap.get(srcId) ??
+        nodeMap.get(
+          [...nodeMap.keys()].find((k) => {
+            const n = rawNodes.find((_, i) => nodeId(rawNodes[i], i) === k);
+            return n && (n.name === srcId || String(n.id) === srcId);
+          }) ?? "",
+        );
+      const tgt =
+        nodeMap.get(tgtId) ??
+        nodeMap.get(
+          [...nodeMap.keys()].find((k) => {
+            const n = rawNodes.find((_, i) => nodeId(rawNodes[i], i) === k);
+            return n && (n.name === tgtId || String(n.id) === tgtId);
+          }) ?? "",
+        );
       if (!src || !tgt) continue;
 
       const pairKey = [src.id, tgt.id].sort().join("→");
       const count = (edgeCountMap.get(pairKey) ?? 0) + 1;
       edgeCountMap.set(pairKey, count);
-      physicsEdges.push({ source: src, target: tgt, value: link.value ?? 1, curved: count });
+      physicsEdges.push({
+        source: src,
+        target: tgt,
+        value: link.value ?? 1,
+        curved: count,
+      });
     }
 
     // Run layout
@@ -202,7 +230,16 @@ export function renderGraph(
       const edgeLength = Array.isArray(forceOpts.edgeLength)
         ? forceOpts.edgeLength[0]
         : (forceOpts.edgeLength ?? 80);
-      runForce(physicsNodes, physicsEdges, areaW + left * 2, areaH + top * 2, 150, repulsion, gravity, edgeLength);
+      runForce(
+        physicsNodes,
+        physicsEdges,
+        areaW + left * 2,
+        areaH + top * 2,
+        150,
+        repulsion,
+        gravity,
+        edgeLength,
+      );
     } else if (layout === "circular") {
       const r = Math.min(areaW, areaH) * 0.4;
       physicsNodes.forEach((n, i) => {
@@ -220,14 +257,20 @@ export function renderGraph(
     }
     const arrowId = `dc-graph-arrow-${si}`;
     if (!defs.querySelector(`#${arrowId}`)) {
-      const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+      const marker = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "marker",
+      );
       marker.setAttribute("id", arrowId);
       marker.setAttribute("markerWidth", "8");
       marker.setAttribute("markerHeight", "8");
       marker.setAttribute("refX", "6");
       marker.setAttribute("refY", "3");
       marker.setAttribute("orient", "auto");
-      const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const arrow = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path",
+      );
       arrow.setAttribute("d", "M0,0 L0,6 L8,3 z");
       arrow.setAttribute("fill", "#999");
       marker.appendChild(arrow);
@@ -235,10 +278,15 @@ export function renderGraph(
     }
 
     const edgeSymbol = s.edgeSymbol;
-    const hasArrow = Array.isArray(edgeSymbol) ? edgeSymbol[1] === "arrow" : edgeSymbol === "arrow";
+    const hasArrow = Array.isArray(edgeSymbol)
+      ? edgeSymbol[1] === "arrow"
+      : edgeSymbol === "arrow";
 
     // Draw edges first (below nodes)
-    const edgesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const edgesGroup = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "g",
+    );
     edgesGroup.setAttribute("opacity", "0.7");
     for (const edge of physicsEdges) {
       const { source: sn, target: tn } = edge;
@@ -252,7 +300,10 @@ export function renderGraph(
       const tx = tn.x - (dx / dist) * (tn.radius + (hasArrow ? 8 : 0));
       const ty = tn.y - (dy / dist) * (tn.radius + (hasArrow ? 8 : 0));
 
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      const line = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "line",
+      );
       line.setAttribute("x1", String(sx));
       line.setAttribute("y1", String(sy));
       line.setAttribute("x2", String(tx));
@@ -265,9 +316,15 @@ export function renderGraph(
     group.appendChild(edgesGroup);
 
     // Draw nodes
-    const nodesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const nodesGroup = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "g",
+    );
     for (const node of physicsNodes) {
-      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      const circle = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "circle",
+      );
       circle.setAttribute("cx", String(node.x));
       circle.setAttribute("cy", String(node.y));
       circle.setAttribute("r", String(node.radius));
@@ -277,7 +334,10 @@ export function renderGraph(
       nodesGroup.appendChild(circle);
 
       if (node.label && node.radius >= 6) {
-        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        const text = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text",
+        );
         text.textContent = node.label;
         text.setAttribute("x", String(node.x));
         text.setAttribute("y", String(node.y + node.radius + 11));

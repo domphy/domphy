@@ -1,4 +1,23 @@
-import { computed, type DomphyElement, type Listener, RecordState, toState } from "@domphy/core";
+import {
+  computed,
+  type DomphyElement,
+  type Listener,
+  RecordState,
+  toState,
+} from "@domphy/core";
+import {
+  COLOR_ROLES,
+  type ColorRole,
+  type GenerateThemeOptions,
+  generateTheme,
+  getTheme,
+  type PartialThemeInput,
+  setTheme,
+  themeApply,
+  themeColor,
+  themeDensity,
+  themeSpacing,
+} from "@domphy/theme";
 import {
   abbreviation,
   accordion,
@@ -47,23 +66,10 @@ import {
   steps,
   strong,
   table,
-  tag,
   tabs,
+  tag,
   toggleGroup,
 } from "@domphy/ui";
-import {
-  COLOR_ROLES,
-  type ColorRole,
-  type GenerateThemeOptions,
-  type PartialThemeInput,
-  generateTheme,
-  getTheme,
-  setTheme,
-  themeApply,
-  themeColor,
-  themeDensity,
-  themeSpacing,
-} from "@domphy/theme";
 
 // Live demo of generateTheme()/generateRamp() (@domphy/palette, @domphy/theme —
 // see DESIGN.md at the repo root for the math). Every control in the sidebar
@@ -92,7 +98,8 @@ const DEFAULT_DENSITIES = [0.75, 1, 1.5, 2, 2.5];
 function defaultColors(): Record<Role, string> {
   const light = getTheme("light");
   const result = {} as Record<Role, string>;
-  for (const role of ROLES) result[role] = light.colors[role][light.baseTones[role]];
+  for (const role of ROLES)
+    result[role] = light.colors[role][light.baseTones[role]];
   return result;
 }
 
@@ -232,9 +239,21 @@ function densityField(index: number): DomphyElement<"label"> {
 function sizeTab(): DomphyElement<"div"> {
   return {
     div: [
-      { small: "Font sizes (0 = smallest .. 7 = largest)", $: [small()], style: { display: "block", marginBottom: themeSpacing(2) } } as DomphyElement<"small">,
+      {
+        small: "Font sizes (0 = smallest .. 7 = largest)",
+        $: [small()],
+        style: { display: "block", marginBottom: themeSpacing(2) },
+      } as DomphyElement<"small">,
       { div: DEFAULT_FONT_SIZES.map((_, i) => fontSizeField(i)) },
-      { small: "Density steps (0 = compact .. 4 = spacious)", $: [small()], style: { display: "block", marginTop: themeSpacing(4), marginBottom: themeSpacing(2) } } as DomphyElement<"small">,
+      {
+        small: "Density steps (0 = compact .. 4 = spacious)",
+        $: [small()],
+        style: {
+          display: "block",
+          marginTop: themeSpacing(4),
+          marginBottom: themeSpacing(2),
+        },
+      } as DomphyElement<"small">,
       { div: DEFAULT_DENSITIES.map((_, i) => densityField(i)) },
     ],
     _key: "size-tab",
@@ -243,8 +262,13 @@ function sizeTab(): DomphyElement<"div"> {
 
 // --- Sidebar shell ---------------------------------------------------------
 
-function tabButton(key: "colors" | "size", label_: string): DomphyElement<"button"> {
-  const color = computed<Role>(() => (activeTab.get() === key ? "primary" : "neutral"));
+function tabButton(
+  key: "colors" | "size",
+  label_: string,
+): DomphyElement<"button"> {
+  const color = computed<Role>(() =>
+    activeTab.get() === key ? "primary" : "neutral",
+  );
   return {
     button: label_,
     onClick: () => activeTab.set(key),
@@ -259,13 +283,22 @@ function tabButton(key: "colors" | "size", label_: string): DomphyElement<"butto
 function themeSwitcher(): DomphyElement<"label"> {
   return {
     label: [
-      { small: "Preview theme", $: [small()], style: { display: "block", marginBottom: themeSpacing(1) } } as DomphyElement<"small">,
+      {
+        small: "Preview theme",
+        $: [small()],
+        style: { display: "block", marginBottom: themeSpacing(1) },
+      } as DomphyElement<"small">,
       {
         select: [{ option: "Generated (brand)" }, { option: "Built-in light" }],
-        value: (l: Listener) => (previewThemeName.get(l) === THEME_NAME ? "Generated (brand)" : "Built-in light"),
+        value: (l: Listener) =>
+          previewThemeName.get(l) === THEME_NAME
+            ? "Generated (brand)"
+            : "Built-in light",
         onInput: (e) => {
           const value = (e.target as HTMLSelectElement).value;
-          previewThemeName.set(value === "Built-in light" ? "light" : THEME_NAME);
+          previewThemeName.set(
+            value === "Built-in light" ? "light" : THEME_NAME,
+          );
         },
         $: [select()],
       } as DomphyElement<"select">,
@@ -285,10 +318,20 @@ function sidebar(): DomphyElement<"aside"> {
       },
       themeSwitcher(),
       {
-        div: [tabButton("colors", "Colors"), tabButton("size", "Size & Density")],
-        style: { display: "flex", gap: themeSpacing(1), marginBottom: themeSpacing(4) },
+        div: [
+          tabButton("colors", "Colors"),
+          tabButton("size", "Size & Density"),
+        ],
+        style: {
+          display: "flex",
+          gap: themeSpacing(1),
+          marginBottom: themeSpacing(4),
+        },
       },
-      { div: (l: Listener) => (activeTab.get(l) === "colors" ? [colorsTab()] : [sizeTab()]) } as DomphyElement<"div">,
+      {
+        div: (l: Listener) =>
+          activeTab.get(l) === "colors" ? [colorsTab()] : [sizeTab()],
+      } as DomphyElement<"div">,
     ],
     style: {
       width: themeSpacing(72),
@@ -305,13 +348,21 @@ function sidebar(): DomphyElement<"aside"> {
 
 // --- Gallery -----------------------------------------------------------
 
-function section(title: string, items: DomphyElement[]): DomphyElement<"section"> {
+function section(
+  title: string,
+  items: DomphyElement[],
+): DomphyElement<"section"> {
   return {
     section: [
       { h4: title, $: [heading()] },
       {
         div: items,
-        style: { display: "flex", gap: themeSpacing(3), alignItems: "center", flexWrap: "wrap" as const },
+        style: {
+          display: "flex",
+          gap: themeSpacing(3),
+          alignItems: "center",
+          flexWrap: "wrap" as const,
+        },
       },
     ],
     style: { marginBottom: themeSpacing(6) },
@@ -320,8 +371,14 @@ function section(title: string, items: DomphyElement[]): DomphyElement<"section"
 
 function typographyGallery(): DomphyElement<"section"> {
   return section("Typography", [
-    { p: "Body paragraph text at shift-9.", $: [paragraph()] } as DomphyElement<"p">,
-    { small: "Small / secondary caption text", $: [small()] } as DomphyElement<"small">,
+    {
+      p: "Body paragraph text at shift-9.",
+      $: [paragraph()],
+    } as DomphyElement<"p">,
+    {
+      small: "Small / secondary caption text",
+      $: [small()],
+    } as DomphyElement<"small">,
     { strong: "Bold emphasis", $: [strong()] } as DomphyElement<"strong">,
     { em: "Italic emphasis", $: [emphasis()] } as DomphyElement<"em">,
     { mark: "Highlighted text", $: [mark()] } as DomphyElement<"mark">,
@@ -332,48 +389,148 @@ function typographyGallery(): DomphyElement<"section"> {
     } as DomphyElement<"blockquote">,
     { code: "npm install @domphy/ui", $: [code()] } as DomphyElement<"code">,
     { kbd: "Ctrl", $: [keyboard()] } as DomphyElement<"kbd">,
-    { a: "domphy.com", href: "#", onClick: (e: Event) => e.preventDefault(), $: [link()] } as DomphyElement<"a">,
-    { abbr: "HTML", title: "HyperText Markup Language", $: [abbreviation({ accentColor: "primary" })] } as DomphyElement<"abbr">,
+    {
+      a: "domphy.com",
+      href: "#",
+      onClick: (e: Event) => e.preventDefault(),
+      $: [link()],
+    } as DomphyElement<"a">,
+    {
+      abbr: "HTML",
+      title: "HyperText Markup Language",
+      $: [abbreviation({ accentColor: "primary" })],
+    } as DomphyElement<"abbr">,
   ]);
 }
 
 function buttonsGallery(): DomphyElement<"section"> {
-  const colors: Role[] = ["primary", "secondary", "success", "warning", "error", "danger", "info", "neutral"];
+  const colors: Role[] = [
+    "primary",
+    "secondary",
+    "success",
+    "warning",
+    "error",
+    "danger",
+    "info",
+    "neutral",
+  ];
   return section("Buttons & Actions", [
-    ...colors.map((color) => ({ button: color, onClick: () => {}, $: [button({ color })] }) as DomphyElement<"button">),
-    { button: "×", onClick: () => {}, $: [buttonGhost()] } as DomphyElement<"button">,
-    { a: "Open app", href: "#", onClick: (e: Event) => e.preventDefault(), $: [linkButton({ color: "primary" })] } as DomphyElement<"a">,
+    ...colors.map(
+      (color) =>
+        ({
+          button: color,
+          onClick: () => {},
+          $: [button({ color })],
+        }) as DomphyElement<"button">,
+    ),
+    {
+      button: "×",
+      onClick: () => {},
+      $: [buttonGhost()],
+    } as DomphyElement<"button">,
+    {
+      a: "Open app",
+      href: "#",
+      onClick: (e: Event) => e.preventDefault(),
+      $: [linkButton({ color: "primary" })],
+    } as DomphyElement<"a">,
     { button: "+", onClick: () => {}, $: [fab()] } as DomphyElement<"button">,
   ]);
 }
 
 function formsGallery(): DomphyElement<"section"> {
   return section("Forms & Inputs", [
-    { input: null, type: "text", placeholder: "Name", $: [inputText()] } as DomphyElement<"input">,
-    { input: null, type: "number", placeholder: "18", $: [inputNumber()] } as DomphyElement<"input">,
+    {
+      input: null,
+      type: "text",
+      placeholder: "Name",
+      $: [inputText()],
+    } as DomphyElement<"input">,
+    {
+      input: null,
+      type: "number",
+      placeholder: "18",
+      $: [inputNumber()],
+    } as DomphyElement<"input">,
     { div: null, $: [inputPassword()] } as DomphyElement<"div">,
-    { input: null, type: "search", placeholder: "Search…", $: [inputSearch()] } as DomphyElement<"input">,
-    { input: null, type: "checkbox", $: [inputCheckbox()], _doctorDisable: "missing-color" } as DomphyElement<"input">,
-    { input: null, type: "radio", $: [inputRadio()], _doctorDisable: "missing-color" } as DomphyElement<"input">,
-    { input: null, type: "checkbox", $: [inputSwitch()], _doctorDisable: "missing-color" } as DomphyElement<"input">,
+    {
+      input: null,
+      type: "search",
+      placeholder: "Search…",
+      $: [inputSearch()],
+    } as DomphyElement<"input">,
+    {
+      input: null,
+      type: "checkbox",
+      $: [inputCheckbox()],
+      _doctorDisable: "missing-color",
+    } as DomphyElement<"input">,
+    {
+      input: null,
+      type: "radio",
+      $: [inputRadio()],
+      _doctorDisable: "missing-color",
+    } as DomphyElement<"input">,
+    {
+      input: null,
+      type: "checkbox",
+      $: [inputSwitch()],
+      _doctorDisable: "missing-color",
+    } as DomphyElement<"input">,
     { input: null, type: "range", $: [inputRange()] } as DomphyElement<"input">,
-    { input: null, type: "color", value: "#4a7ff4", $: [inputColor()], _doctorDisable: "missing-color" } as DomphyElement<"input">,
+    {
+      input: null,
+      type: "color",
+      value: "#4a7ff4",
+      $: [inputColor()],
+      _doctorDisable: "missing-color",
+    } as DomphyElement<"input">,
     { input: null, type: "file", $: [inputFile()] } as DomphyElement<"input">,
-    { select: [{ option: "Option A" }, { option: "Option B" }], $: [select()] } as DomphyElement<"select">,
-    { label: "Email", htmlFor: "tb-email", $: [label()] } as DomphyElement<"label">,
+    {
+      select: [{ option: "Option A" }, { option: "Option B" }],
+      $: [select()],
+    } as DomphyElement<"select">,
+    {
+      label: "Email",
+      htmlFor: "tb-email",
+      $: [label()],
+    } as DomphyElement<"label">,
   ]);
 }
 
 function feedbackGallery(): DomphyElement<"section"> {
   return section("Feedback & Status", [
-    { div: "Saved successfully", $: [alert({ color: "success" })] } as DomphyElement<"div">,
-    { div: "Something needs attention", $: [alert({ color: "warning" })] } as DomphyElement<"div">,
-    { span: "🔔", $: [badge({ label: 3, color: "danger" })] } as DomphyElement<"span">,
+    {
+      div: "Saved successfully",
+      $: [alert({ color: "success" })],
+    } as DomphyElement<"div">,
+    {
+      div: "Something needs attention",
+      $: [alert({ color: "warning" })],
+    } as DomphyElement<"div">,
+    {
+      span: "🔔",
+      $: [badge({ label: 3, color: "danger" })],
+    } as DomphyElement<"span">,
     { span: "Label", $: [tag({ removable: true })] } as DomphyElement<"span">,
-    { progress: null, value: 40, max: 100, $: [progress()], _doctorDisable: "missing-color" } as DomphyElement<"progress">,
-    { div: null, $: [ringProgress({ value: 65 })], _doctorDisable: "missing-color" } as DomphyElement<"div">,
+    {
+      progress: null,
+      value: 40,
+      max: 100,
+      $: [progress()],
+      _doctorDisable: "missing-color",
+    } as DomphyElement<"progress">,
+    {
+      div: null,
+      $: [ringProgress({ value: 65 })],
+      _doctorDisable: "missing-color",
+    } as DomphyElement<"div">,
     { span: null, $: [spinner()] } as DomphyElement<"span">,
-    { div: null, $: [skeleton()], style: { width: themeSpacing(20), height: themeSpacing(5) } } as DomphyElement<"div">,
+    {
+      div: null,
+      $: [skeleton()],
+      style: { width: themeSpacing(20), height: themeSpacing(5) },
+    } as DomphyElement<"div">,
   ]);
 }
 
@@ -382,23 +539,47 @@ function dataDisplayGallery(): DomphyElement<"section"> {
     {
       div: [
         { h3: "Generated card" },
-        { p: "Surface at shift-1, body text at shift-9 — the same tone-anchoring rule as every other Domphy surface." },
+        {
+          p: "Surface at shift-1, body text at shift-9 — the same tone-anchoring rule as every other Domphy surface.",
+        },
       ],
       $: [card({ color: "neutral" })],
       style: { width: themeSpacing(70) },
     } as DomphyElement<"div">,
     { span: "JD", $: [avatar({ color: "primary" })] } as DomphyElement<"span">,
-    { dl: [{ dt: "Framework" }, { dd: "Domphy" }, { dt: "Generated by" }, { dd: "generateTheme()" }], $: [descriptionList()] } as DomphyElement<"dl">,
+    {
+      dl: [
+        { dt: "Framework" },
+        { dd: "Domphy" },
+        { dt: "Generated by" },
+        { dd: "generateTheme()" },
+      ],
+      $: [descriptionList()],
+    } as DomphyElement<"dl">,
     {
       table: [
         { thead: [{ tr: [{ th: "Role" }, { th: "Base color" }] }] },
-        { tbody: ROLES.slice(0, 4).map((role) => ({ tr: [{ td: role }, { td: (l: Listener) => baseColors.get(role, l) }] })) },
+        {
+          tbody: ROLES.slice(0, 4).map((role) => ({
+            tr: [
+              { td: role },
+              { td: (l: Listener) => baseColors.get(role, l) },
+            ],
+          })),
+        },
       ],
       $: [table()],
     } as DomphyElement<"table">,
-    { ul: [{ li: "First item" }, { li: "Second item" }, { li: "Third item" }], $: [list()] } as DomphyElement<"ul">,
+    {
+      ul: [{ li: "First item" }, { li: "Second item" }, { li: "Third item" }],
+      $: [list()],
+    } as DomphyElement<"ul">,
     { div: "or", $: [divider()] } as DomphyElement<"div">,
-    { hr: null, $: [horizontalRule()], _doctorDisable: "missing-color" } as DomphyElement<"hr">,
+    {
+      hr: null,
+      $: [horizontalRule()],
+      _doctorDisable: "missing-color",
+    } as DomphyElement<"hr">,
   ]);
 }
 
@@ -421,14 +602,24 @@ function navigationGallery(): DomphyElement<"section"> {
       $: [
         steps({
           current: 1,
-          items: [{ label: "Cart" }, { label: "Shipping" }, { label: "Payment" }],
+          items: [
+            { label: "Cart" },
+            { label: "Shipping" },
+            { label: "Payment" },
+          ],
         }),
       ],
     } as DomphyElement<"ol">,
     {
       div: [
-        { details: [{ summary: "Section A" }, { p: "Content A" }], $: [details()] },
-        { details: [{ summary: "Section B" }, { p: "Content B" }], $: [details()] },
+        {
+          details: [{ summary: "Section A" }, { p: "Content A" }],
+          $: [details()],
+        },
+        {
+          details: [{ summary: "Section B" }, { p: "Content B" }],
+          $: [details()],
+        },
       ],
       $: [accordion()],
       style: { width: themeSpacing(70) },
@@ -462,7 +653,10 @@ function navigationGallery(): DomphyElement<"section"> {
       ],
       _doctorDisable: "missing-color",
     } as DomphyElement<"div">,
-    { div: "", $: [pagination({ total: 10, value: 1 })] } as DomphyElement<"div">,
+    {
+      div: "",
+      $: [pagination({ total: 10, value: 1 })],
+    } as DomphyElement<"div">,
   ]);
 }
 
@@ -491,13 +685,21 @@ function swatchRow(role: Role): DomphyElement<"div"> {
         style: { display: "flex" },
       },
     ],
-    style: { display: "flex", alignItems: "center", gap: themeSpacing(2), marginBottom: themeSpacing(1) },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: themeSpacing(2),
+      marginBottom: themeSpacing(1),
+    },
   };
 }
 
 function ramps(): DomphyElement<"section"> {
   return {
-    section: [{ h4: "Generated ramps", $: [heading()] }, { div: ROLES.map(swatchRow) }],
+    section: [
+      { h4: "Generated ramps", $: [heading()] },
+      { div: ROLES.map(swatchRow) },
+    ],
     style: { marginBottom: themeSpacing(6) },
   };
 }
@@ -513,7 +715,12 @@ function exportPanel(): DomphyElement<"section"> {
       {
         pre: [{ code: (l: Listener) => exportJSON.get(l) }],
         $: [preformated()],
-        style: { whiteSpace: "pre-wrap" as const, overflowX: "auto" as const, maxHeight: themeSpacing(80), overflowY: "auto" as const },
+        style: {
+          whiteSpace: "pre-wrap" as const,
+          overflowX: "auto" as const,
+          maxHeight: themeSpacing(80),
+          overflowY: "auto" as const,
+        },
       } as DomphyElement<"pre">,
     ],
     style: { marginBottom: themeSpacing(6) },

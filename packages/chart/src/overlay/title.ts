@@ -11,27 +11,43 @@ export function renderTitle(svg: SVGSVGElement, title: TitleOption): void {
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
   group.setAttribute("class", "dc-title");
 
-  function resolveH(val: string | number | undefined, fallback: number): [number, "start" | "middle" | "end"] {
+  function resolveH(
+    val: string | number | undefined,
+    fallback: number,
+  ): [number, "start" | "middle" | "end"] {
     if (val === undefined) return [fallback, "start"];
     if (typeof val === "number") return [val, "start"];
     if (val === "center") return [svgWidth / 2, "middle"];
     if (val === "right") return [svgWidth - 8, "end"];
     if (val === "left") return [8, "start"];
-    if (String(val).endsWith("%")) return [parseFloat(val) / 100 * svgWidth, "start"];
+    if (String(val).endsWith("%"))
+      return [(parseFloat(val) / 100) * svgWidth, "start"];
     return [parseFloat(String(val)) || fallback, "start"];
   }
 
   const [leftPx, autoAnchor] = resolveH(title.left, 8);
-  const top = title.top !== undefined
-    ? (typeof title.top === "number" ? title.top : parseFloat(String(title.top)) || 10)
-    : 10;
+  const top =
+    title.top !== undefined
+      ? typeof title.top === "number"
+        ? title.top
+        : parseFloat(String(title.top)) || 10
+      : 10;
 
-  const explicitAnchor = title.textAlign === "center" ? "middle"
-    : title.textAlign === "right" ? "end"
-    : title.textAlign === "left" ? "start"
-    : null;
+  const explicitAnchor =
+    title.textAlign === "center"
+      ? "middle"
+      : title.textAlign === "right"
+        ? "end"
+        : title.textAlign === "left"
+          ? "start"
+          : null;
   const anchor = explicitAnchor ?? autoAnchor;
-  const align = anchor === "middle" ? svgWidth / 2 : anchor === "end" ? svgWidth - 8 : leftPx;
+  const align =
+    anchor === "middle"
+      ? svgWidth / 2
+      : anchor === "end"
+        ? svgWidth - 8
+        : leftPx;
 
   if (title.text) {
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -41,7 +57,10 @@ export function renderTitle(svg: SVGSVGElement, title: TitleOption): void {
     text.setAttribute("text-anchor", anchor);
     text.setAttribute("fill", themeColorToken(null, "shift-11", "neutral"));
     text.setAttribute("font-size", String(title.textStyle?.fontSize ?? 14));
-    text.setAttribute("font-weight", String(title.textStyle?.fontWeight ?? "600"));
+    text.setAttribute(
+      "font-weight",
+      String(title.textStyle?.fontWeight ?? "600"),
+    );
     group.appendChild(text);
   }
 

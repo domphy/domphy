@@ -179,9 +179,9 @@ describe("keyed re-add during an in-flight async removal", () => {
 
       // The ghost's deferred done() fires: it must remove ONLY the ghost.
       vi.advanceTimersByTime(400);
-      const remaining = Array.from(
-        node.domElement!.querySelectorAll("li"),
-      ).map((li) => li.textContent);
+      const remaining = Array.from(node.domElement!.querySelectorAll("li")).map(
+        (li) => li.textContent,
+      );
       expect(remaining).toEqual(["second"]);
       expect(removedNodes).toEqual(["first"]);
     } finally {

@@ -2,7 +2,14 @@
 // ripple <span> is actually created in the DOM at the click point, then
 // removed again after its own `duration` (default 600ms) — see
 // src/magicui/buttons/rippleButton.ts.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -11,7 +18,10 @@ async function main() {
   const button = locator.locator("button");
 
   const rippleCountBefore = await button.evaluate(
-    (element) => element.querySelectorAll('span[aria-hidden="true"] > span[style*="position: absolute"]').length,
+    (element) =>
+      element.querySelectorAll(
+        'span[aria-hidden="true"] > span[style*="position: absolute"]',
+      ).length,
   );
   report(
     "rippleButton: no ripple present before any click",
@@ -28,7 +38,9 @@ async function main() {
     // reactive functions), so Domphy compiles them into a generated CSS
     // class rather than an inline `style` attribute — read back via
     // `getComputedStyle`, not `.style.left`.
-    const ripple = element.querySelector('span[aria-hidden="true"] > span') as HTMLElement | null;
+    const ripple = element.querySelector(
+      'span[aria-hidden="true"] > span',
+    ) as HTMLElement | null;
     const computed = ripple ? getComputedStyle(ripple) : null;
     return {
       count: element.querySelectorAll('span[aria-hidden="true"] > span').length,
@@ -50,7 +62,8 @@ async function main() {
   // from the reactive array shortly after.
   await page.waitForTimeout(800);
   const afterFade = await button.evaluate(
-    (element) => element.querySelectorAll('span[aria-hidden="true"] > span').length,
+    (element) =>
+      element.querySelectorAll('span[aria-hidden="true"] > span').length,
   );
   report(
     "rippleButton: ripple is removed from the DOM after its 600ms duration",

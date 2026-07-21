@@ -19,7 +19,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, ".."); // apps/web
 const REPO = resolve(HERE, "../../.."); // monorepo root
 
-const registry = JSON.parse(await readFile(resolve(REPO, "packages/blocks/registry.json"), "utf8"));
+const registry = JSON.parse(
+  await readFile(resolve(REPO, "packages/blocks/registry.json"), "utf8"),
+);
 
 // --- typescript compiler API (same dynamic-resolve trick as manifest.mjs —
 // `typescript` isn't hoisted to the repo root in this pnpm layout) ---
@@ -60,7 +62,8 @@ function typeReferenceName(typeNode) {
 
 function commentText(comment) {
   if (typeof comment === "string") return oneLine(comment);
-  if (Array.isArray(comment)) return oneLine(comment.map((part) => part.text ?? "").join(""));
+  if (Array.isArray(comment))
+    return oneLine(comment.map((part) => part.text ?? "").join(""));
   return "";
 }
 
@@ -88,18 +91,32 @@ function membersOfNamedType(sourceFile, name) {
  * pattern used anywhere in this package today). */
 async function membersOfImportedType(sourceFile, sourceDir, name) {
   for (const statement of sourceFile.statements) {
-    if (!ts.isImportDeclaration(statement) || !statement.importClause?.namedBindings) continue;
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !statement.importClause?.namedBindings
+    )
+      continue;
     const bindings = statement.importClause.namedBindings;
     if (!ts.isNamedImports(bindings)) continue;
-    const matches = bindings.elements.some((el) => (el.propertyName ?? el.name).text === name);
+    const matches = bindings.elements.some(
+      (el) => (el.propertyName ?? el.name).text === name,
+    );
     if (!matches) continue;
 
     const specifier = statement.moduleSpecifier.text; // e.g. "./sidebar01-04-shared.js"
     if (!specifier.startsWith(".")) continue; // only chase relative imports, not @domphy/* packages
     const importedPath = resolve(sourceDir, specifier).replace(/\.js$/, ".ts");
-    const importedSource = await readFile(importedPath, "utf8").catch(() => null);
+    const importedSource = await readFile(importedPath, "utf8").catch(
+      () => null,
+    );
     if (!importedSource) continue;
-    const importedFile = ts.createSourceFile(importedPath, importedSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    const importedFile = ts.createSourceFile(
+      importedPath,
+      importedSource,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    );
     const members = membersOfNamedType(importedFile, name);
     if (members) return { members, sourceFile: importedFile };
   }
@@ -137,7 +154,11 @@ async function extractBlockProps(sourceFile, sourceDir, exportName) {
       const typeName = typeReferenceName(param.type);
       members = membersOfNamedType(sourceFile, typeName);
       if (!members) {
-        const imported = await membersOfImportedType(sourceFile, sourceDir, typeName);
+        const imported = await membersOfImportedType(
+          sourceFile,
+          sourceDir,
+          typeName,
+        );
         if (imported) {
           members = imported.members;
           membersSourceFile = imported.sourceFile;
@@ -153,7 +174,9 @@ async function extractBlockProps(sourceFile, sourceDir, exportName) {
       if (!name) continue;
       props.push({
         name,
-        type: member.type ? oneLine(member.type.getText(membersSourceFile)) : "unknown",
+        type: member.type
+          ? oneLine(member.type.getText(membersSourceFile))
+          : "unknown",
         optional: Boolean(member.questionToken),
         doc: memberJsDoc(member),
       });
@@ -197,7 +220,8 @@ function escapeProseForMarkdown(text) {
 function frontmatterDescription(fidelityNotes) {
   // YAML scalar, not markdown — angle brackets are harmless here, only
   // backslashes/quotes need escaping for a double-quoted YAML string.
-  const firstSentence = (fidelityNotes ?? "").split(". ")[0] || "A composed Domphy block.";
+  const firstSentence =
+    (fidelityNotes ?? "").split(". ")[0] || "A composed Domphy block.";
   const escaped = firstSentence.replace(/\\/g, "\\\\").replace(/"/g, "'");
   if (escaped.length <= 160) return `${escaped}.`;
   const truncated = escaped.slice(0, 160);
@@ -217,12 +241,20 @@ function renderPropsSection(props) {
     return "## Props\n\nThis block takes no configurable props — call it with no arguments for the default demo.";
   }
   const rows = props.map((prop) => {
-    const name = prop.optional ? `\`${prop.name}\`` : `\`${prop.name}\` (required)`;
+    const name = prop.optional
+      ? `\`${prop.name}\``
+      : `\`${prop.name}\` (required)`;
     const type = `\`${escapeTableCell(prop.type)}\``;
     const description = escapeTableCell(prop.doc || "—");
     return `| ${name} | ${type} | ${description} |`;
   });
-  return ["## Props", "", "| Prop | Type | Description |", "|---|---|---|", ...rows].join("\n");
+  return [
+    "## Props",
+    "",
+    "| Prop | Type | Description |",
+    "|---|---|---|",
+    ...rows,
+  ].join("\n");
 }
 
 function capitalize(word) {
@@ -234,7 +266,9 @@ function titleCase(kebabOrCamel) {
     .replace(/-/g, " ")
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .split(" ")
-    .map((word) => (/^\d+d$/i.test(word) ? word.toUpperCase() : capitalize(word)))
+    .map((word) =>
+      /^\d+d$/i.test(word) ? word.toUpperCase() : capitalize(word),
+    )
     .join(" ");
 }
 
@@ -244,7 +278,13 @@ const SOURCE_CATALOG_SLUG = { shadcn: "shadcn", magicui: "magicui" };
 // --- clean slate for generated output (demo files + doc pages only; the
 // hand-written catalog/overview/methodology/api pages are untouched since
 // they live at the same docsDir root — only per-export pages are removed) ---
-const HAND_WRITTEN_DOC_PAGES = new Set(["index.md", "shadcn.md", "magicui.md", "methodology.md", "api.md"]);
+const HAND_WRITTEN_DOC_PAGES = new Set([
+  "index.md",
+  "shadcn.md",
+  "magicui.md",
+  "methodology.md",
+  "api.md",
+]);
 
 await mkdir(demosDir, { recursive: true });
 await mkdir(docsDir, { recursive: true });
@@ -264,7 +304,9 @@ for (const entry of registry) {
   const { source, category } = categoryKeyOf(repoRelativePath);
   const groupKey = `${source}/${category}`;
   if (!bySourceCategory.has(groupKey)) bySourceCategory.set(groupKey, []);
-  bySourceCategory.get(groupKey).push({ ...entry, source, category, repoRelativePath });
+  bySourceCategory
+    .get(groupKey)
+    .push({ ...entry, source, category, repoRelativePath });
 
   const demoVar = `${capitalize(entry.exportName)}Demo`;
   const demoFileName = `${entry.exportName}.ts`;
@@ -280,8 +322,18 @@ for (const entry of registry) {
 
   const absoluteSourcePath = resolve(REPO, repoRelativePath);
   const blockSource = await readFile(absoluteSourcePath, "utf8");
-  const blockSourceFile = ts.createSourceFile(entry.exportName, blockSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  const props = await extractBlockProps(blockSourceFile, dirname(absoluteSourcePath), entry.exportName);
+  const blockSourceFile = ts.createSourceFile(
+    entry.exportName,
+    blockSource,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const props = await extractBlockProps(
+    blockSourceFile,
+    dirname(absoluteSourcePath),
+    entry.exportName,
+  );
 
   const doc = [
     "---",
@@ -291,7 +343,7 @@ for (const entry of registry) {
     "",
     `# ${entry.exportName}`,
     "",
-    "<script setup lang=\"ts\">",
+    '<script setup lang="ts">',
     `import ${demoVar} from "../demos/blocks/${entry.exportName}.ts?raw"`,
     "</script>",
     "",
@@ -302,7 +354,9 @@ for (const entry of registry) {
     renderPropsSection(props),
     "",
     "::: details Implementation notes",
-    escapeProseForMarkdown(entry.fidelityNotes || "No additional notes recorded."),
+    escapeProseForMarkdown(
+      entry.fidelityNotes || "No additional notes recorded.",
+    ),
     "",
     `Status: **${entry.status}** · Reference: [${sourceLabel} original](${entry.refUrl})`,
     ":::",
@@ -327,7 +381,10 @@ function sidebarItemsFor(groupKey) {
   return items
     .slice()
     .sort((a, b) => a.exportName.localeCompare(b.exportName))
-    .map((entry) => ({ text: entry.exportName, link: `/docs/blocks/${entry.exportName}` }));
+    .map((entry) => ({
+      text: entry.exportName,
+      link: `/docs/blocks/${entry.exportName}`,
+    }));
 }
 
 const sourceOrder = ["shadcn", "magicui"];

@@ -4,7 +4,14 @@
 // <button> and that the glow layer's `box-shadow` keyframe animation is
 // actually running (the animation lives on the button's first child span,
 // not the button itself).
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -24,23 +31,40 @@ async function main() {
   );
 
   await page.keyboard.press("Tab");
-  const isFocused = await button.evaluate((element) => element === document.activeElement);
-  report("pulsatingButton: is reachable via Tab (a real focusable control)", isFocused, `activeElement matches=${isFocused}`);
+  const isFocused = await button.evaluate(
+    (element) => element === document.activeElement,
+  );
+  report(
+    "pulsatingButton: is reachable via Tab (a real focusable control)",
+    isFocused,
+    `activeElement matches=${isFocused}`,
+  );
 
   const animation = await glowLayer.evaluate((element) => {
     const computed = getComputedStyle(element);
-    return { name: computed.animationName, duration: computed.animationDuration, playState: computed.animationPlayState };
+    return {
+      name: computed.animationName,
+      duration: computed.animationDuration,
+      playState: computed.animationPlayState,
+    };
   });
-  const running = animation.name !== "none" && animation.duration !== "0s" && animation.playState === "running";
+  const running =
+    animation.name !== "none" &&
+    animation.duration !== "0s" &&
+    animation.playState === "running";
   report(
     "pulsatingButton: the glow layer's box-shadow pulse keyframe animation is actually running",
     running,
     `animationName=${animation.name} duration=${animation.duration} playState=${animation.playState}`,
   );
 
-  const first = await glowLayer.evaluate((element) => getComputedStyle(element).boxShadow);
+  const first = await glowLayer.evaluate(
+    (element) => getComputedStyle(element).boxShadow,
+  );
   await page.waitForTimeout(800);
-  const second = await glowLayer.evaluate((element) => getComputedStyle(element).boxShadow);
+  const second = await glowLayer.evaluate(
+    (element) => getComputedStyle(element).boxShadow,
+  );
   report(
     "pulsatingButton: the glow's boxShadow spread actually changes over time (not frozen)",
     first !== second,

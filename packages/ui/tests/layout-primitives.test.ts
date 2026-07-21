@@ -39,7 +39,10 @@ describe("stack", () => {
   });
 
   it("default gap (3) produces a smaller gap than a doubled multiplier", () => {
-    const { node: defaultNode } = render({ div: null, $: [stack()] } as DomphyElement);
+    const { node: defaultNode } = render({
+      div: null,
+      $: [stack()],
+    } as DomphyElement);
     const defaultGap = gapEm(defaultNode.generateCSS());
     document.body.innerHTML = "";
 
@@ -120,7 +123,10 @@ describe("row", () => {
   });
 
   it("gap prop math: default (4) is larger than a smaller custom value", () => {
-    const { node: defaultNode } = render({ div: null, $: [row()] } as DomphyElement);
+    const { node: defaultNode } = render({
+      div: null,
+      $: [row()],
+    } as DomphyElement);
     const defaultGap = gapEm(defaultNode.generateCSS());
     document.body.innerHTML = "";
 

@@ -1,4 +1,8 @@
-import { type ReadableState, State, type ValueListener } from "./classes/State.js";
+import {
+  type ReadableState,
+  State,
+  type ValueListener,
+} from "./classes/State.js";
 import { addEvent, addHook, deepClone } from "./helpers.js";
 import type {
   BehaviorAttach,
@@ -129,7 +133,9 @@ export function toState<T>(
 //     if (isState(src)) return src.get()
 //     return src
 //   }
-export function isState<T = unknown>(value: unknown): value is ReadableState<T> {
+export function isState<T = unknown>(
+  value: unknown,
+): value is ReadableState<T> {
   return (
     typeof value === "object" &&
     value !== null &&

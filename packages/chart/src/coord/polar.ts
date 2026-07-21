@@ -1,6 +1,10 @@
-import type { PolarOption, AngleAxisOption, RadiusAxisOption } from "../types.js";
-import { createLinearScale, createOrdinalScale } from "../scale/index.js";
 import type { AnyScale } from "../scale/index.js";
+import { createLinearScale, createOrdinalScale } from "../scale/index.js";
+import type {
+  AngleAxisOption,
+  PolarOption,
+  RadiusAxisOption,
+} from "../types.js";
 
 export interface PolarCoord {
   center: [number, number];
@@ -10,7 +14,11 @@ export interface PolarCoord {
   radiusScale: AnyScale;
 }
 
-function resolveLength(value: string | number | undefined, containerSize: number, fallback: number): number {
+function resolveLength(
+  value: string | number | undefined,
+  containerSize: number,
+  fallback: number,
+): number {
   if (value === undefined) return fallback;
   if (typeof value === "number") return value;
   if (value.endsWith("%")) return (parseFloat(value) / 100) * containerSize;
@@ -36,7 +44,8 @@ function resolveRadius(
   defaultOuter: number,
 ): [number, number] {
   if (radius === undefined) return [defaultInner, defaultOuter];
-  if (!Array.isArray(radius)) return [0, resolveLength(radius, size, defaultOuter)];
+  if (!Array.isArray(radius))
+    return [0, resolveLength(radius, size, defaultOuter)];
   return [
     resolveLength(radius[0], size, defaultInner),
     resolveLength(radius[1], size, defaultOuter),
@@ -59,16 +68,20 @@ export function resolvePolar(
   let angleScale: AnyScale;
   if (angleAxis.type === "category") {
     const categories = (angleAxis.data ?? []) as string[];
-    angleScale = createOrdinalScale(
-      categories,
-      [angleAxis.startAngle ?? 90, (angleAxis.startAngle ?? 90) + (angleAxis.clockwise === false ? -360 : 360)],
-    );
+    angleScale = createOrdinalScale(categories, [
+      angleAxis.startAngle ?? 90,
+      (angleAxis.startAngle ?? 90) +
+        (angleAxis.clockwise === false ? -360 : 360),
+    ]);
   } else {
     const angleMin = angleAxis.min !== undefined ? Number(angleAxis.min) : 0;
     const angleMax = angleAxis.max !== undefined ? Number(angleAxis.max) : 360;
     const startAngle = angleAxis.startAngle ?? 90;
     const direction = angleAxis.clockwise === false ? -1 : 1;
-    angleScale = createLinearScale([angleMin, angleMax], [startAngle, startAngle + direction * 360]);
+    angleScale = createLinearScale(
+      [angleMin, angleMax],
+      [startAngle, startAngle + direction * 360],
+    );
   }
 
   // Build radius scale
@@ -81,8 +94,12 @@ export function resolvePolar(
     let min = 0;
     let max = 1;
     for (const s of series) {
-      for (const item of (s.data ?? [])) {
-        const value = Array.isArray(item) ? item[1] : (typeof item === "number" ? item : item?.value);
+      for (const item of s.data ?? []) {
+        const value = Array.isArray(item)
+          ? item[1]
+          : typeof item === "number"
+            ? item
+            : item?.value;
         if (typeof value === "number") {
           min = Math.min(min, value);
           max = Math.max(max, value);
@@ -90,10 +107,19 @@ export function resolvePolar(
       }
     }
     radiusScale = createLinearScale(
-      [radiusAxis.min !== undefined ? Number(radiusAxis.min) : min, radiusAxis.max !== undefined ? Number(radiusAxis.max) : max],
+      [
+        radiusAxis.min !== undefined ? Number(radiusAxis.min) : min,
+        radiusAxis.max !== undefined ? Number(radiusAxis.max) : max,
+      ],
       [inner, outer],
     );
   }
 
-  return { center, outerRadius: outer, innerRadius: inner, angleScale, radiusScale };
+  return {
+    center,
+    outerRadius: outer,
+    innerRadius: inner,
+    angleScale,
+    radiusScale,
+  };
 }

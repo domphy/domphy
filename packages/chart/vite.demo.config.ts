@@ -1,5 +1,5 @@
-import { defineConfig } from "vite";
 import { resolve } from "path";
+import { defineConfig } from "vite";
 
 export default defineConfig({
   root: ".",
@@ -11,7 +11,12 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ["@luma.gl/core", "@luma.gl/webgl", "@luma.gl/engine", "@luma.gl/shadertools"],
+    include: [
+      "@luma.gl/core",
+      "@luma.gl/webgl",
+      "@luma.gl/engine",
+      "@luma.gl/shadertools",
+    ],
     force: true,
   },
   server: {

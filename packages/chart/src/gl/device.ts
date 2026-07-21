@@ -1,4 +1,4 @@
-import { luma, type Device } from "@luma.gl/core";
+import { type Device, luma } from "@luma.gl/core";
 import { webgl2Adapter } from "@luma.gl/webgl";
 
 luma.registerAdapters([webgl2Adapter]);

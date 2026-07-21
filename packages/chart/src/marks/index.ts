@@ -1,6 +1,11 @@
 import { themeColorToken } from "@domphy/theme";
-import type { MarkPointOption, MarkLineOption, MarkAreaOption, ChartRect } from "../types.js";
 import type { AnyScale } from "../scale/index.js";
+import type {
+  ChartRect,
+  MarkAreaOption,
+  MarkLineOption,
+  MarkPointOption,
+} from "../types.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function svgEl(tag: string, attrs: Record<string, string | number>): Element {
@@ -9,7 +14,12 @@ function svgEl(tag: string, attrs: Record<string, string | number>): Element {
   return el;
 }
 
-function svgText(content: string, x: number, y: number, attrs: Record<string, string | number> = {}): Element {
+function svgText(
+  content: string,
+  x: number,
+  y: number,
+  attrs: Record<string, string | number> = {},
+): Element {
   const el = svgEl("text", { x, y, ...attrs });
   el.textContent = content;
   return el;
@@ -26,7 +36,8 @@ function resolveSpecialValue(
   if (values.length === 0) return null;
   if (type === "max") return scale.map(Math.max(...values));
   if (type === "min") return scale.map(Math.min(...values));
-  if (type === "average") return scale.map(values.reduce((a, b) => a + b, 0) / values.length);
+  if (type === "average")
+    return scale.map(values.reduce((a, b) => a + b, 0) / values.length);
   return null;
 }
 
@@ -72,7 +83,9 @@ export function renderMarkPoints(
 
     // Pin dot
     const circle = svgEl("circle", {
-      cx: px, cy: py, r: 5,
+      cx: px,
+      cy: py,
+      r: 5,
       fill: dotColor,
       stroke: "white",
       "stroke-width": 1.5,
@@ -80,14 +93,18 @@ export function renderMarkPoints(
     group.appendChild(circle);
 
     // Label
-    const label = item.name ?? (item.type ? item.type.charAt(0).toUpperCase() + item.type.slice(1) : "");
+    const label =
+      item.name ??
+      (item.type ? item.type.charAt(0).toUpperCase() + item.type.slice(1) : "");
     if (label) {
-      group.appendChild(svgText(label, px, py - 10, {
-        fill: labelColor,
-        "text-anchor": "middle",
-        "font-size": 11,
-        "font-weight": "600",
-      }));
+      group.appendChild(
+        svgText(label, px, py - 10, {
+          fill: labelColor,
+          "text-anchor": "middle",
+          "font-size": 11,
+          "font-weight": "600",
+        }),
+      );
     }
   }
 }
@@ -104,7 +121,9 @@ export function renderMarkLines(
   if (!mark.data) return;
   const lineColor = themeColorToken(null, "shift-7", "primary");
   const labelColor = themeColorToken(null, "shift-9", "neutral");
-  const yValues = seriesData.map(([, y]) => y).filter((v) => typeof v === "number") as number[];
+  const yValues = seriesData
+    .map(([, y]) => y)
+    .filter((v) => typeof v === "number") as number[];
 
   for (const segment of mark.data) {
     const [startDef, endDef] = segment;
@@ -114,7 +133,10 @@ export function renderMarkLines(
     let y2: number | null = null;
     let label = "";
 
-    for (const [def, isEnd] of [[startDef, false], [endDef, true]] as [any, boolean][]) {
+    for (const [def, isEnd] of [
+      [startDef, false],
+      [endDef, true],
+    ] as [any, boolean][]) {
       let px: number | null = null;
       let py: number | null = null;
       if (def.type === "average" && yValues.length) {
@@ -133,20 +155,31 @@ export function renderMarkLines(
         py = yScale.map(min);
         label = `min: ${min}`;
       } else if (def.xAxis !== undefined) {
-        px = xScale.map(def.xAxis); py = isEnd ? gridRect.y : gridRect.y + gridRect.height;
+        px = xScale.map(def.xAxis);
+        py = isEnd ? gridRect.y : gridRect.y + gridRect.height;
       } else if (def.yAxis !== undefined) {
-        py = yScale.map(def.yAxis); px = isEnd ? gridRect.x + gridRect.width : gridRect.x;
+        py = yScale.map(def.yAxis);
+        px = isEnd ? gridRect.x + gridRect.width : gridRect.x;
       } else if (def.coord) {
-        px = xScale.map(def.coord[0]); py = yScale.map(def.coord[1]);
+        px = xScale.map(def.coord[0]);
+        py = yScale.map(def.coord[1]);
       }
-      if (isEnd) { x2 = px; y2 = py; }
-      else { x1 = px; y1 = py; }
+      if (isEnd) {
+        x2 = px;
+        y2 = py;
+      } else {
+        x1 = px;
+        y1 = py;
+      }
     }
 
     if (x1 === null || y1 === null || x2 === null || y2 === null) continue;
 
     const line = svgEl("line", {
-      x1, y1, x2, y2,
+      x1,
+      y1,
+      x2,
+      y2,
       stroke: lineColor,
       "stroke-width": mark.lineStyle?.width ?? 1,
       "stroke-dasharray": "6,4",
@@ -155,11 +188,13 @@ export function renderMarkLines(
     group.appendChild(line);
 
     if (label) {
-      group.appendChild(svgText(label, (x1 + x2) / 2, (y1 + y2) / 2 - 6, {
-        fill: labelColor,
-        "text-anchor": "middle",
-        "font-size": 10,
-      }));
+      group.appendChild(
+        svgText(label, (x1 + x2) / 2, (y1 + y2) / 2 - 6, {
+          fill: labelColor,
+          "text-anchor": "middle",
+          "font-size": 10,
+        }),
+      );
     }
   }
 }
@@ -186,8 +221,14 @@ export function renderMarkAreas(
     if (corner2.xAxis !== undefined) x2 = xScale.map(corner2.xAxis as number);
     if (corner2.yAxis !== undefined) y2 = yScale.map(corner2.yAxis as number);
 
-    if (corner1.coord) { x1 = xScale.map(corner1.coord[0] as number); y1 = yScale.map(corner1.coord[1] as number); }
-    if (corner2.coord) { x2 = xScale.map(corner2.coord[0] as number); y2 = yScale.map(corner2.coord[1] as number); }
+    if (corner1.coord) {
+      x1 = xScale.map(corner1.coord[0] as number);
+      y1 = yScale.map(corner1.coord[1] as number);
+    }
+    if (corner2.coord) {
+      x2 = xScale.map(corner2.coord[0] as number);
+      y2 = yScale.map(corner2.coord[1] as number);
+    }
 
     const rectEl = svgEl("rect", {
       x: Math.min(x1, x2),
@@ -219,10 +260,20 @@ export function renderMarksToSvg(
   group.setAttribute("class", "dc-marks");
   group.setAttribute("pointer-events", "none");
 
-  for (const { markPoint, markLine, markArea, xScale, yScale, gridRect, seriesData } of marksData) {
+  for (const {
+    markPoint,
+    markLine,
+    markArea,
+    xScale,
+    yScale,
+    gridRect,
+    seriesData,
+  } of marksData) {
     if (markArea) renderMarkAreas(group, markArea, xScale, yScale, gridRect);
-    if (markLine) renderMarkLines(group, markLine, xScale, yScale, gridRect, seriesData);
-    if (markPoint) renderMarkPoints(group, markPoint, xScale, yScale, gridRect, seriesData);
+    if (markLine)
+      renderMarkLines(group, markLine, xScale, yScale, gridRect, seriesData);
+    if (markPoint)
+      renderMarkPoints(group, markPoint, xScale, yScale, gridRect, seriesData);
   }
   svg.appendChild(group);
 }

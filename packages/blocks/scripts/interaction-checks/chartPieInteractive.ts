@@ -4,7 +4,14 @@
 // own path geometry (CSS `d`) while shrinking the previously-selected one,
 // and updates the donut's center total text — not just a `<select>.value`
 // bookkeeping change.
-import { boot, teardown, mountedPage, locate, report, summarize } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 const BLOCK = "chartPieInteractive";
 
@@ -13,9 +20,15 @@ async function main() {
   const page = await mountedPage(demoUrl, BLOCK);
   await locate(page, BLOCK);
 
-  const wedges = page.locator(`[data-block="${BLOCK}"] g[aria-hidden="true"] path`);
+  const wedges = page.locator(
+    `[data-block="${BLOCK}"] g[aria-hidden="true"] path`,
+  );
   const wedgeCount = await wedges.count();
-  report("chartPieInteractive:renders-wedges", wedgeCount === 5, `expected 5 donut wedges (Chrome/Safari/Firefox/Edge/Other), got ${wedgeCount}`);
+  report(
+    "chartPieInteractive:renders-wedges",
+    wedgeCount === 5,
+    `expected 5 donut wedges (Chrome/Safari/Firefox/Edge/Other), got ${wedgeCount}`,
+  );
 
   // `strong` is unique in this tree — pieCenterText's donut total uses an SVG
   // `<text>`, not `<strong>` — so it reliably identifies the tooltip layer.
@@ -26,7 +39,9 @@ async function main() {
     page.evaluate((block) => {
       const root = document.querySelector(`[data-block="${block}"]`);
       const strong = root?.querySelector("strong");
-      const layer = strong?.closest("div[aria-hidden='true']") as HTMLElement | null;
+      const layer = strong?.closest(
+        "div[aria-hidden='true']",
+      ) as HTMLElement | null;
       const small = layer?.querySelector("small");
       return {
         opacity: layer ? getComputedStyle(layer).opacity : null,
@@ -46,7 +61,9 @@ async function main() {
   const hovered = await tooltipText();
   report(
     "chartPieInteractive:hover-shows-wedge-tooltip",
-    hovered.opacity === "1" && hovered.name === "Chrome" && hovered.value === "275",
+    hovered.opacity === "1" &&
+      hovered.name === "Chrome" &&
+      hovered.value === "275",
     `expected a visible tooltip naming "Chrome" with value "275" (the first/default DEFAULT_PIE_DATA record) while hovering the first wedge, got ${JSON.stringify(hovered)}`,
   );
 
@@ -56,8 +73,11 @@ async function main() {
   const readCenterAndWedgeD = () =>
     page.evaluate((block) => {
       const root = document.querySelector(`[data-block="${block}"]`);
-      const centerText = root?.querySelector("g[aria-hidden='true'] text")?.textContent ?? null;
-      const paths = Array.from(root?.querySelectorAll("g[aria-hidden='true'] path") ?? []) as SVGPathElement[];
+      const centerText =
+        root?.querySelector("g[aria-hidden='true'] text")?.textContent ?? null;
+      const paths = Array.from(
+        root?.querySelectorAll("g[aria-hidden='true'] path") ?? [],
+      ) as SVGPathElement[];
       return {
         centerText,
         chromeD: paths[0] ? getComputedStyle(paths[0]).d : null,
@@ -72,7 +92,9 @@ async function main() {
     `expected the donut's center total to read "275" (Chrome, the default selection), got ${beforeSelect.centerText}`,
   );
 
-  const select = page.locator(`[data-block="${BLOCK}"] select[aria-label="Select a category"]`);
+  const select = page.locator(
+    `[data-block="${BLOCK}"] select[aria-label="Select a category"]`,
+  );
   await select.selectOption("firefox");
   await page.waitForTimeout(400);
   const afterSelect = await readCenterAndWedgeD();

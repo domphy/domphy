@@ -1,9 +1,12 @@
 import { themeColorToken } from "@domphy/theme";
-import type { BoxplotSeriesOption } from "../types.js";
-import type { AnyScale } from "../scale/index.js";
 import { seriesHex } from "../gl/color.js";
+import type { AnyScale } from "../scale/index.js";
+import type { BoxplotSeriesOption } from "../types.js";
 
-function svgEl(tag: string, attrs: Record<string, string | number>): SVGElement {
+function svgEl(
+  tag: string,
+  attrs: Record<string, string | number>,
+): SVGElement {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
   return el;
@@ -37,7 +40,11 @@ export function renderBoxplot(
 
     const data = s.data ?? [];
     data.forEach((item, index) => {
-      const raw = Array.isArray(item) ? item : Array.isArray((item as any)?.value) ? (item as any).value : null;
+      const raw = Array.isArray(item)
+        ? item
+        : Array.isArray((item as any)?.value)
+          ? (item as any).value
+          : null;
       if (!raw || raw.length < 5) return;
 
       const [vMin, vQ1, vMedian, vQ3, vMax] = raw as number[];
@@ -52,34 +59,68 @@ export function renderBoxplot(
       const xRight = xCenter + boxW / 2;
 
       // Upper whisker: median → max
-      group.appendChild(svgEl("line", {
-        x1: xCenter, y1: yQ3, x2: xCenter, y2: yMax,
-        stroke: color, "stroke-width": 1.5, "stroke-dasharray": "3,2",
-      }));
+      group.appendChild(
+        svgEl("line", {
+          x1: xCenter,
+          y1: yQ3,
+          x2: xCenter,
+          y2: yMax,
+          stroke: color,
+          "stroke-width": 1.5,
+          "stroke-dasharray": "3,2",
+        }),
+      );
       // Lower whisker: min → Q1
-      group.appendChild(svgEl("line", {
-        x1: xCenter, y1: yQ1, x2: xCenter, y2: yMin,
-        stroke: color, "stroke-width": 1.5, "stroke-dasharray": "3,2",
-      }));
+      group.appendChild(
+        svgEl("line", {
+          x1: xCenter,
+          y1: yQ1,
+          x2: xCenter,
+          y2: yMin,
+          stroke: color,
+          "stroke-width": 1.5,
+          "stroke-dasharray": "3,2",
+        }),
+      );
       // Whisker caps
       for (const capY of [yMax, yMin]) {
-        group.appendChild(svgEl("line", {
-          x1: xLeft + boxW * 0.1, y1: capY, x2: xRight - boxW * 0.1, y2: capY,
-          stroke: color, "stroke-width": 1.5,
-        }));
+        group.appendChild(
+          svgEl("line", {
+            x1: xLeft + boxW * 0.1,
+            y1: capY,
+            x2: xRight - boxW * 0.1,
+            y2: capY,
+            stroke: color,
+            "stroke-width": 1.5,
+          }),
+        );
       }
       // Box (Q1–Q3)
       const boxTop = Math.min(yQ1, yQ3);
       const boxH = Math.abs(yQ3 - yQ1);
-      group.appendChild(svgEl("rect", {
-        x: xLeft, y: boxTop, width: boxW, height: Math.max(1, boxH),
-        fill: color, opacity: 0.25, stroke: color, "stroke-width": 1.5,
-      }));
+      group.appendChild(
+        svgEl("rect", {
+          x: xLeft,
+          y: boxTop,
+          width: boxW,
+          height: Math.max(1, boxH),
+          fill: color,
+          opacity: 0.25,
+          stroke: color,
+          "stroke-width": 1.5,
+        }),
+      );
       // Median line
-      group.appendChild(svgEl("line", {
-        x1: xLeft, y1: yMedian, x2: xRight, y2: yMedian,
-        stroke: color, "stroke-width": 2,
-      }));
+      group.appendChild(
+        svgEl("line", {
+          x1: xLeft,
+          y1: yMedian,
+          x2: xRight,
+          y2: yMedian,
+          stroke: color,
+          "stroke-width": 2,
+        }),
+      );
     });
   }
 

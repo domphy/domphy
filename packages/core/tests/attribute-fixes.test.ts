@@ -43,9 +43,7 @@ afterEach(() => {
 describe("multi-word HTML attribute names resolve to their real (unhyphenated) DOM spelling", () => {
   it("renders contentEditable/maxLength/tabIndex to the correct live DOM attributes", () => {
     const { host } = mount({
-      div: [
-        { input: null, maxLength: 5, tabIndex: 0 },
-      ],
+      div: [{ input: null, maxLength: 5, tabIndex: 0 }],
       contentEditable: true,
       tabIndex: 3,
     } as unknown as DomphyElement);
@@ -99,7 +97,7 @@ describe("multi-word HTML attribute names resolve to their real (unhyphenated) D
 });
 
 describe("AttributeList.remove() removes the real (canonical) DOM attribute", () => {
-  it("remove(\"ariaCurrent\") actually removes aria-current from the live DOM", () => {
+  it('remove("ariaCurrent") actually removes aria-current from the live DOM', () => {
     const { host, node } = mount({
       a: "x",
       ariaCurrent: "page",
@@ -130,7 +128,7 @@ describe("AttributeList.remove() removes the real (canonical) DOM attribute", ()
 });
 
 describe("empty-string HTML attributes reach the live DOM", () => {
-  it("renders alt: \"\" on an img (decorative image)", () => {
+  it('renders alt: "" on an img (decorative image)', () => {
     const { host } = mount({
       img: null,
       alt: "",

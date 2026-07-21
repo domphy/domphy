@@ -1,46 +1,64 @@
 import type { Device } from "@luma.gl/core";
-import { getDevice, releaseDevice } from "./gl/device.js";
+import type { ZoomWindow } from "./coord/grid.js";
+import { resolveGrid } from "./coord/grid.js";
 import { BarRenderer } from "./gl/BarRenderer.js";
+import { CandlestickRenderer } from "./gl/CandlestickRenderer.js";
+import { seriesHex } from "./gl/color.js";
+import { getDevice, releaseDevice } from "./gl/device.js";
+import { GaugeRenderer } from "./gl/GaugeRenderer.js";
+import { HeatmapRenderer } from "./gl/HeatmapRenderer.js";
 import { LineRenderer } from "./gl/LineRenderer.js";
-import { ScatterRenderer } from "./gl/ScatterRenderer.js";
 import { PieRenderer } from "./gl/PieRenderer.js";
 import { RadarRenderer } from "./gl/RadarRenderer.js";
-import { HeatmapRenderer } from "./gl/HeatmapRenderer.js";
-import { CandlestickRenderer } from "./gl/CandlestickRenderer.js";
-import { GaugeRenderer } from "./gl/GaugeRenderer.js";
-import { resolveGrid } from "./coord/grid.js";
-import type { ZoomWindow } from "./coord/grid.js";
-import { renderAxes, renderAxisPointer } from "./overlay/axes.js";
-import { renderTitle } from "./overlay/title.js";
-import { renderLegend } from "./overlay/legend.js";
-import { renderSeriesLabels, renderSeriesSymbols } from "./overlay/labels.js";
-import { renderBoxplot } from "./overlay/boxplot.js";
-import { renderFunnel } from "./overlay/funnel.js";
-import { renderTreemap } from "./overlay/treemap.js";
-import { renderSankey } from "./overlay/sankey.js";
-import { renderGraph } from "./overlay/graph.js";
-import { renderVisualMap } from "./overlay/visualmap.js";
-import { setupDataZoom, setupInsideZoom } from "./overlay/datazoom.js";
-import { createTooltip } from "./overlay/tooltip.js";
-import { renderMarksToSvg } from "./marks/index.js";
-import type {
-  ChartOption, SeriesOption, TooltipParams,
-  BoxplotSeriesOption, FunnelSeriesOption, TreemapSeriesOption, SankeySeriesOption, GraphSeriesOption,
-  LineSeriesOption,
-  CalendarOption, ParallelOption, ParallelAxisOption, ParallelSeriesOption,
-  ThemeRiverSeriesOption, GeoOption, MapSeriesOption,
-  Grid3DOption, Axis3DOption, Scatter3DSeriesOption, Bar3DSeriesOption, Line3DSeriesOption, Surface3DSeriesOption,
-  LinesSeriesOption, EffectScatterSeriesOption, PictorialBarSeriesOption,
-} from "./types.js";
-import { seriesHex } from "./gl/color.js";
-import { renderCalendar } from "./overlay/calendar.js";
-import { renderParallel } from "./overlay/parallel.js";
-import { renderThemeRiver } from "./overlay/themeriver.js";
-import { renderGeoMap } from "./overlay/geomap.js";
 import { renderGrid3D } from "./gl/Renderer3D.js";
-import { renderLines } from "./overlay/lines.js";
+import { ScatterRenderer } from "./gl/ScatterRenderer.js";
+import { renderMarksToSvg } from "./marks/index.js";
+import { renderAxes, renderAxisPointer } from "./overlay/axes.js";
+import { renderBoxplot } from "./overlay/boxplot.js";
+import { renderCalendar } from "./overlay/calendar.js";
+import { setupDataZoom, setupInsideZoom } from "./overlay/datazoom.js";
 import { renderEffectScatter } from "./overlay/effectscatter.js";
+import { renderFunnel } from "./overlay/funnel.js";
+import { renderGeoMap } from "./overlay/geomap.js";
+import { renderGraph } from "./overlay/graph.js";
+import { renderSeriesLabels, renderSeriesSymbols } from "./overlay/labels.js";
+import { renderLegend } from "./overlay/legend.js";
+import { renderLines } from "./overlay/lines.js";
+import { renderParallel } from "./overlay/parallel.js";
 import { renderPictorialBar } from "./overlay/pictorialbar.js";
+import { renderSankey } from "./overlay/sankey.js";
+import { renderThemeRiver } from "./overlay/themeriver.js";
+import { renderTitle } from "./overlay/title.js";
+import { createTooltip } from "./overlay/tooltip.js";
+import { renderTreemap } from "./overlay/treemap.js";
+import { renderVisualMap } from "./overlay/visualmap.js";
+import type {
+  Axis3DOption,
+  Bar3DSeriesOption,
+  BoxplotSeriesOption,
+  CalendarOption,
+  ChartOption,
+  EffectScatterSeriesOption,
+  FunnelSeriesOption,
+  GeoOption,
+  GraphSeriesOption,
+  Grid3DOption,
+  Line3DSeriesOption,
+  LineSeriesOption,
+  LinesSeriesOption,
+  MapSeriesOption,
+  ParallelAxisOption,
+  ParallelOption,
+  ParallelSeriesOption,
+  PictorialBarSeriesOption,
+  SankeySeriesOption,
+  Scatter3DSeriesOption,
+  SeriesOption,
+  Surface3DSeriesOption,
+  ThemeRiverSeriesOption,
+  TooltipParams,
+  TreemapSeriesOption,
+} from "./types.js";
 
 // Accumulate y-values for line series sharing the same stack name.
 // Each stacked series receives the sum of all previous series at the same data index.
@@ -51,9 +69,10 @@ import { renderPictorialBar } from "./overlay/pictorialbar.js";
 // stacked bars, which draw each segment between the previous cumulative top
 // and the new one rather than from zero). `undefined` for non-stacked series,
 // which keep the plain zero baseline in LineRenderer.
-function accumStackedLines(
-  series: LineSeriesOption[],
-): { series: LineSeriesOption[]; baselines: (number[] | undefined)[] } {
+function accumStackedLines(series: LineSeriesOption[]): {
+  series: LineSeriesOption[];
+  baselines: (number[] | undefined)[];
+} {
   const sums = new Map<string, number[]>(); // stackName → accumulated y per dataIndex
   const baselines: (number[] | undefined)[] = [];
   const stackedSeries = series.map((s) => {
@@ -102,8 +121,14 @@ function hitTestPie(
     if (s.type !== "pie") continue;
 
     const center = s.center ?? ["50%", "50%"];
-    const cx = typeof center[0] === "number" ? center[0] : (parseFloat(center[0]) / 100) * width;
-    const cy = typeof center[1] === "number" ? center[1] : (parseFloat(center[1]) / 100) * height;
+    const cx =
+      typeof center[0] === "number"
+        ? center[0]
+        : (parseFloat(center[0]) / 100) * width;
+    const cy =
+      typeof center[1] === "number"
+        ? center[1]
+        : (parseFloat(center[1]) / 100) * height;
 
     const halfMin = minSize / 2;
     let innerR = 0;
@@ -111,8 +136,10 @@ function hitTestPie(
     if (s.radius) {
       const r = s.radius;
       if (Array.isArray(r)) {
-        innerR = typeof r[0] === "number" ? r[0] : (parseFloat(r[0]) / 100) * halfMin;
-        outerR = typeof r[1] === "number" ? r[1] : (parseFloat(r[1]) / 100) * halfMin;
+        innerR =
+          typeof r[0] === "number" ? r[0] : (parseFloat(r[0]) / 100) * halfMin;
+        outerR =
+          typeof r[1] === "number" ? r[1] : (parseFloat(r[1]) / 100) * halfMin;
       } else {
         outerR = typeof r === "number" ? r : (parseFloat(r) / 100) * halfMin;
       }
@@ -125,7 +152,8 @@ function hitTestPie(
     if (cursorAngle < startOffset) cursorAngle += PI2;
 
     const data: any[] = s.data ?? [];
-    const total = data.reduce((sum: number, item: any) => sum + (item.value ?? 0), 0) || 1;
+    const total =
+      data.reduce((sum: number, item: any) => sum + (item.value ?? 0), 0) || 1;
     const globalIdx = allSeries.findIndex((as_) => as_ === s);
 
     let currentAngle = startOffset;
@@ -241,20 +269,29 @@ export class ChartEngine {
     this.container = container;
 
     // Background SVG (behind WebGL canvas) — for grid lines only
-    const backsvg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
-    backsvg.style.cssText = "position:absolute;top:0;left:0;pointer-events:none;overflow:visible;";
+    const backsvg = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "svg",
+    ) as SVGSVGElement;
+    backsvg.style.cssText =
+      "position:absolute;top:0;left:0;pointer-events:none;overflow:visible;";
     container.appendChild(backsvg);
     this.backsvg = backsvg;
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
+    canvas.style.cssText =
+      "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
     canvas.setAttribute("aria-hidden", "true");
     container.appendChild(canvas);
     this.canvas = canvas;
 
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
+    const svg = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "svg",
+    ) as SVGSVGElement;
     // pointer-events:none on SVG itself, but legend/datazoom groups override to all
-    svg.style.cssText = "position:absolute;top:0;left:0;pointer-events:none;overflow:visible;";
+    svg.style.cssText =
+      "position:absolute;top:0;left:0;pointer-events:none;overflow:visible;";
     container.appendChild(svg);
     this.overlaysvg = svg;
   }
@@ -298,7 +335,11 @@ export class ChartEngine {
     this.yZoomMap = new Map();
 
     // Initialize DataZoom state from option (skip "inside" — it has no initial range)
-    const dataZooms = Array.isArray(option.dataZoom) ? option.dataZoom : option.dataZoom ? [option.dataZoom] : [];
+    const dataZooms = Array.isArray(option.dataZoom)
+      ? option.dataZoom
+      : option.dataZoom
+        ? [option.dataZoom]
+        : [];
     for (const dz of dataZooms) {
       if (dz.type === "inside") continue;
       const xIndex = typeof dz.xAxisIndex === "number" ? dz.xAxisIndex : 0;
@@ -333,142 +374,378 @@ export class ChartEngine {
 
     const allSeries = option.series ?? [];
     // Filter out hidden series for WebGL renderers
-    const series = allSeries.filter((s) => !s.name || !this.hiddenSeries.has(s.name));
+    const series = allSeries.filter(
+      (s) => !s.name || !this.hiddenSeries.has(s.name),
+    );
 
-    const xAxes = Array.isArray(option.xAxis) ? option.xAxis : option.xAxis ? [option.xAxis] : [{ type: "category" as const }];
-    const yAxes = Array.isArray(option.yAxis) ? option.yAxis : option.yAxis ? [option.yAxis] : [{ type: "value" as const }];
-    const grids = Array.isArray(option.grid) ? option.grid : option.grid ? [option.grid] : [{}];
-    const radars = Array.isArray(option.radar) ? option.radar : option.radar ? [option.radar] : [];
-    const dataZooms = Array.isArray(option.dataZoom) ? option.dataZoom : option.dataZoom ? [option.dataZoom] : [];
-    const visualMaps = Array.isArray(option.visualMap) ? option.visualMap : option.visualMap ? [option.visualMap] : [];
+    const xAxes = Array.isArray(option.xAxis)
+      ? option.xAxis
+      : option.xAxis
+        ? [option.xAxis]
+        : [{ type: "category" as const }];
+    const yAxes = Array.isArray(option.yAxis)
+      ? option.yAxis
+      : option.yAxis
+        ? [option.yAxis]
+        : [{ type: "value" as const }];
+    const grids = Array.isArray(option.grid)
+      ? option.grid
+      : option.grid
+        ? [option.grid]
+        : [{}];
+    const radars = Array.isArray(option.radar)
+      ? option.radar
+      : option.radar
+        ? [option.radar]
+        : [];
+    const dataZooms = Array.isArray(option.dataZoom)
+      ? option.dataZoom
+      : option.dataZoom
+        ? [option.dataZoom]
+        : [];
+    const visualMaps = Array.isArray(option.visualMap)
+      ? option.visualMap
+      : option.visualMap
+        ? [option.visualMap]
+        : [];
 
-    const grid = resolveGrid(grids, xAxes, yAxes, series, width, height, this.xZoomMap, this.yZoomMap);
+    const grid = resolveGrid(
+      grids,
+      xAxes,
+      yAxes,
+      series,
+      width,
+      height,
+      this.xZoomMap,
+      this.yZoomMap,
+    );
 
     // Only render Cartesian axes when there are series that use them.
     // "lines" defaults to geo coordinates (see lines.ts) — only count it when explicitly cartesian2d,
     // otherwise a geo-only flow map gets spurious default axes drawn over it.
-    const cartesianTypes = new Set(["line","bar","scatter","heatmap","candlestick","boxplot","effectScatter","pictorialBar","lines"]);
-    const hasCartesian = series.some((s) =>
-      cartesianTypes.has(s.type ?? "") && !(s.type === "lines" && (s as any).coordinateSystem !== "cartesian2d"),
+    const cartesianTypes = new Set([
+      "line",
+      "bar",
+      "scatter",
+      "heatmap",
+      "candlestick",
+      "boxplot",
+      "effectScatter",
+      "pictorialBar",
+      "lines",
+    ]);
+    const hasCartesian = series.some(
+      (s) =>
+        cartesianTypes.has(s.type ?? "") &&
+        !(s.type === "lines" && (s as any).coordinateSystem !== "cartesian2d"),
     );
 
     // ─── SVG Overlay ──────────────────────────────────────────────────────────
-    if (hasCartesian) renderAxes(this.overlaysvg, {
-      gridRect: grid.gridRect,
-      xAxes,
-      yAxes,
-      xScales: grid.xScales,
-      yScales: grid.yScales,
-      width,
-      height,
-    }, this.backsvg);
+    if (hasCartesian)
+      renderAxes(
+        this.overlaysvg,
+        {
+          gridRect: grid.gridRect,
+          xAxes,
+          yAxes,
+          xScales: grid.xScales,
+          yScales: grid.yScales,
+          width,
+          height,
+        },
+        this.backsvg,
+      );
 
-    const titles = Array.isArray(option.title) ? option.title : option.title ? [option.title] : [];
+    const titles = Array.isArray(option.title)
+      ? option.title
+      : option.title
+        ? [option.title]
+        : [];
     for (const title of titles) renderTitle(this.overlaysvg, title);
 
-    const legends = Array.isArray(option.legend) ? option.legend : option.legend ? [option.legend] : [];
-    const self = this;
+    const legends = Array.isArray(option.legend)
+      ? option.legend
+      : option.legend
+        ? [option.legend]
+        : [];
+
     for (const legend of legends) {
-      renderLegend(this.overlaysvg, legend, allSeries, this.hiddenSeries, (name) => {
-        if (self.hiddenSeries.has(name)) self.hiddenSeries.delete(name);
-        else self.hiddenSeries.add(name);
-        self.render();
-      });
+      renderLegend(
+        this.overlaysvg,
+        legend,
+        allSeries,
+        this.hiddenSeries,
+        (name) => {
+          if (this.hiddenSeries.has(name)) this.hiddenSeries.delete(name);
+          else this.hiddenSeries.add(name);
+          this.render();
+        },
+      );
     }
 
     for (const radarDef of radars) {
-      this.radarRenderer?.renderGridToSvg(this.overlaysvg, radarDef, width, height);
+      this.radarRenderer?.renderGridToSvg(
+        this.overlaysvg,
+        radarDef,
+        width,
+        height,
+      );
     }
 
     const gaugeSeries = series.filter((s): s is any => s.type === "gauge");
     if (gaugeSeries.length > 0) {
-      this.gaugeRenderer?.renderToSvg(this.overlaysvg, gaugeSeries, width, height);
+      this.gaugeRenderer?.renderToSvg(
+        this.overlaysvg,
+        gaugeSeries,
+        width,
+        height,
+      );
     }
 
     // SVG-only series
-    const boxplotSeries = series.filter((s): s is BoxplotSeriesOption => s.type === "boxplot");
+    const boxplotSeries = series.filter(
+      (s): s is BoxplotSeriesOption => s.type === "boxplot",
+    );
     if (boxplotSeries.length > 0) {
-      renderBoxplot(this.overlaysvg, boxplotSeries, grid.xScales, grid.yScales, this.hiddenSeries);
+      renderBoxplot(
+        this.overlaysvg,
+        boxplotSeries,
+        grid.xScales,
+        grid.yScales,
+        this.hiddenSeries,
+      );
     }
 
-    const funnelSeries = series.filter((s): s is FunnelSeriesOption => s.type === "funnel");
+    const funnelSeries = series.filter(
+      (s): s is FunnelSeriesOption => s.type === "funnel",
+    );
     if (funnelSeries.length > 0) {
-      renderFunnel(this.overlaysvg, funnelSeries, width, height, this.hiddenSeries);
+      renderFunnel(
+        this.overlaysvg,
+        funnelSeries,
+        width,
+        height,
+        this.hiddenSeries,
+      );
     }
 
-    const treemapSeries = series.filter((s): s is TreemapSeriesOption => s.type === "treemap");
+    const treemapSeries = series.filter(
+      (s): s is TreemapSeriesOption => s.type === "treemap",
+    );
     if (treemapSeries.length > 0) {
-      renderTreemap(this.overlaysvg, treemapSeries, width, height, this.hiddenSeries);
+      renderTreemap(
+        this.overlaysvg,
+        treemapSeries,
+        width,
+        height,
+        this.hiddenSeries,
+      );
     }
 
-    const sankeySeries = series.filter((s): s is SankeySeriesOption => s.type === "sankey");
+    const sankeySeries = series.filter(
+      (s): s is SankeySeriesOption => s.type === "sankey",
+    );
     if (sankeySeries.length > 0) {
-      renderSankey(this.overlaysvg, sankeySeries, width, height, this.hiddenSeries);
+      renderSankey(
+        this.overlaysvg,
+        sankeySeries,
+        width,
+        height,
+        this.hiddenSeries,
+      );
     }
 
-    const graphSeries = series.filter((s): s is GraphSeriesOption => s.type === "graph");
+    const graphSeries = series.filter(
+      (s): s is GraphSeriesOption => s.type === "graph",
+    );
     if (graphSeries.length > 0) {
-      renderGraph(this.overlaysvg, graphSeries, width, height, this.hiddenSeries);
+      renderGraph(
+        this.overlaysvg,
+        graphSeries,
+        width,
+        height,
+        this.hiddenSeries,
+      );
     }
 
     // Calendar heatmap
-    const calendars = Array.isArray(option.calendar) ? option.calendar : option.calendar ? [option.calendar] : [];
-    const calendarHeatmap = allSeries.filter((s): s is any => s.type === "heatmap" && (s as any).coordinateSystem === "calendar");
+    const calendars = Array.isArray(option.calendar)
+      ? option.calendar
+      : option.calendar
+        ? [option.calendar]
+        : [];
+    const calendarHeatmap = allSeries.filter(
+      (s): s is any =>
+        s.type === "heatmap" && (s as any).coordinateSystem === "calendar",
+    );
     if (calendars.length > 0) {
-      renderCalendar(this.overlaysvg, calendars, calendarHeatmap, visualMaps, width, height);
+      renderCalendar(
+        this.overlaysvg,
+        calendars,
+        calendarHeatmap,
+        visualMaps,
+        width,
+        height,
+      );
     }
 
     // Parallel coordinates
-    const parallelOpts = Array.isArray(option.parallel) ? option.parallel : option.parallel ? [option.parallel] : [];
-    const parallelAxes = Array.isArray(option.parallelAxis) ? option.parallelAxis : option.parallelAxis ? [option.parallelAxis] : [];
-    const parallelSeries = series.filter((s): s is ParallelSeriesOption => s.type === "parallel");
+    const parallelOpts = Array.isArray(option.parallel)
+      ? option.parallel
+      : option.parallel
+        ? [option.parallel]
+        : [];
+    const parallelAxes = Array.isArray(option.parallelAxis)
+      ? option.parallelAxis
+      : option.parallelAxis
+        ? [option.parallelAxis]
+        : [];
+    const parallelSeries = series.filter(
+      (s): s is ParallelSeriesOption => s.type === "parallel",
+    );
     if (parallelAxes.length > 0 || parallelSeries.length > 0) {
-      renderParallel(this.overlaysvg, parallelOpts, parallelAxes, parallelSeries, width, height, this.hiddenSeries);
+      renderParallel(
+        this.overlaysvg,
+        parallelOpts,
+        parallelAxes,
+        parallelSeries,
+        width,
+        height,
+        this.hiddenSeries,
+      );
     }
 
     // ThemeRiver
-    const themeRiverSeries = series.filter((s): s is ThemeRiverSeriesOption => s.type === "themeRiver");
+    const themeRiverSeries = series.filter(
+      (s): s is ThemeRiverSeriesOption => s.type === "themeRiver",
+    );
     if (themeRiverSeries.length > 0) {
-      renderThemeRiver(this.overlaysvg, themeRiverSeries, width, height, this.hiddenSeries);
+      renderThemeRiver(
+        this.overlaysvg,
+        themeRiverSeries,
+        width,
+        height,
+        this.hiddenSeries,
+      );
     }
 
     // Geo map
-    const geos = Array.isArray(option.geo) ? option.geo : option.geo ? [option.geo] : [];
-    const mapSeries = series.filter((s): s is MapSeriesOption => s.type === "map");
-    const geoScatter = series.filter((s): s is any => s.type === "scatter" && (s as any).coordinateSystem === "geo");
+    const geos = Array.isArray(option.geo)
+      ? option.geo
+      : option.geo
+        ? [option.geo]
+        : [];
+    const mapSeries = series.filter(
+      (s): s is MapSeriesOption => s.type === "map",
+    );
+    const geoScatter = series.filter(
+      (s): s is any =>
+        s.type === "scatter" && (s as any).coordinateSystem === "geo",
+    );
     if (geos.length > 0 || mapSeries.length > 0) {
-      renderGeoMap(this.overlaysvg, geos, mapSeries, geoScatter, visualMaps, width, height);
+      renderGeoMap(
+        this.overlaysvg,
+        geos,
+        mapSeries,
+        geoScatter,
+        visualMaps,
+        width,
+        height,
+      );
     }
 
     // Lines (flow map)
-    const linesSeries = series.filter((s): s is LinesSeriesOption => s.type === "lines");
+    const linesSeries = series.filter(
+      (s): s is LinesSeriesOption => s.type === "lines",
+    );
     if (linesSeries.length > 0) {
       renderLines(this.overlaysvg, geos, linesSeries, width, height);
     }
 
     // EffectScatter
-    const effectScatterSeries = series.filter((s): s is EffectScatterSeriesOption => s.type === "effectScatter");
+    const effectScatterSeries = series.filter(
+      (s): s is EffectScatterSeriesOption => s.type === "effectScatter",
+    );
     if (effectScatterSeries.length > 0) {
-      renderEffectScatter(this.overlaysvg, effectScatterSeries, grid.xScales, grid.yScales, geos, width, height, this.hiddenSeries);
+      renderEffectScatter(
+        this.overlaysvg,
+        effectScatterSeries,
+        grid.xScales,
+        grid.yScales,
+        geos,
+        width,
+        height,
+        this.hiddenSeries,
+      );
     }
 
     // PictorialBar
-    const pictorialBarSeries = series.filter((s): s is PictorialBarSeriesOption => s.type === "pictorialBar");
+    const pictorialBarSeries = series.filter(
+      (s): s is PictorialBarSeriesOption => s.type === "pictorialBar",
+    );
     if (pictorialBarSeries.length > 0) {
-      renderPictorialBar(this.overlaysvg, pictorialBarSeries, grid.xScales, grid.yScales, this.hiddenSeries);
+      renderPictorialBar(
+        this.overlaysvg,
+        pictorialBarSeries,
+        grid.xScales,
+        grid.yScales,
+        this.hiddenSeries,
+      );
     }
 
     // 3D charts
-    const grid3Ds = Array.isArray(option.grid3D) ? option.grid3D : option.grid3D ? [option.grid3D] : [];
-    const xAxes3D = Array.isArray(option.xAxis3D) ? option.xAxis3D : option.xAxis3D ? [option.xAxis3D] : [];
-    const yAxes3D = Array.isArray(option.yAxis3D) ? option.yAxis3D : option.yAxis3D ? [option.yAxis3D] : [];
-    const zAxes3D = Array.isArray(option.zAxis3D) ? option.zAxis3D : option.zAxis3D ? [option.zAxis3D] : [];
-    const scatter3DSeries = series.filter((s): s is Scatter3DSeriesOption => s.type === "scatter3D");
-    const bar3DSeries = series.filter((s): s is Bar3DSeriesOption => s.type === "bar3D");
-    const line3DSeries = series.filter((s): s is Line3DSeriesOption => s.type === "line3D");
-    const surface3DSeries = series.filter((s): s is Surface3DSeriesOption => s.type === "surface3D");
-    if (grid3Ds.length > 0 || scatter3DSeries.length > 0 || bar3DSeries.length > 0 || line3DSeries.length > 0 || surface3DSeries.length > 0) {
-      renderGrid3D(this.overlaysvg, grid3Ds, xAxes3D, yAxes3D, zAxes3D, scatter3DSeries, bar3DSeries, line3DSeries, surface3DSeries, width, height);
+    const grid3Ds = Array.isArray(option.grid3D)
+      ? option.grid3D
+      : option.grid3D
+        ? [option.grid3D]
+        : [];
+    const xAxes3D = Array.isArray(option.xAxis3D)
+      ? option.xAxis3D
+      : option.xAxis3D
+        ? [option.xAxis3D]
+        : [];
+    const yAxes3D = Array.isArray(option.yAxis3D)
+      ? option.yAxis3D
+      : option.yAxis3D
+        ? [option.yAxis3D]
+        : [];
+    const zAxes3D = Array.isArray(option.zAxis3D)
+      ? option.zAxis3D
+      : option.zAxis3D
+        ? [option.zAxis3D]
+        : [];
+    const scatter3DSeries = series.filter(
+      (s): s is Scatter3DSeriesOption => s.type === "scatter3D",
+    );
+    const bar3DSeries = series.filter(
+      (s): s is Bar3DSeriesOption => s.type === "bar3D",
+    );
+    const line3DSeries = series.filter(
+      (s): s is Line3DSeriesOption => s.type === "line3D",
+    );
+    const surface3DSeries = series.filter(
+      (s): s is Surface3DSeriesOption => s.type === "surface3D",
+    );
+    if (
+      grid3Ds.length > 0 ||
+      scatter3DSeries.length > 0 ||
+      bar3DSeries.length > 0 ||
+      line3DSeries.length > 0 ||
+      surface3DSeries.length > 0
+    ) {
+      renderGrid3D(
+        this.overlaysvg,
+        grid3Ds,
+        xAxes3D,
+        yAxes3D,
+        zAxes3D,
+        scatter3DSeries,
+        bar3DSeries,
+        line3DSeries,
+        surface3DSeries,
+        width,
+        height,
+      );
     }
 
     // VisualMap legend
@@ -485,45 +762,104 @@ export class ChartEngine {
 
     const barSeries = series.filter((s): s is any => s.type === "bar");
     if (barSeries.length > 0 && this.barRenderer) {
-      this.barRenderer.render(renderPass, barSeries, grid.xScales, grid.yScales, grid.gridRect, width, height, seriesOffset);
+      this.barRenderer.render(
+        renderPass,
+        barSeries,
+        grid.xScales,
+        grid.yScales,
+        grid.gridRect,
+        width,
+        height,
+        seriesOffset,
+      );
       seriesOffset += barSeries.length;
     }
 
     const lineSeries = series.filter((s): s is any => s.type === "line");
     if (lineSeries.length > 0 && this.lineRenderer) {
-      const { series: stackedLineSeries, baselines: lineBaselines } = accumStackedLines(lineSeries);
-      this.lineRenderer.render(renderPass, stackedLineSeries, grid.xScales, grid.yScales, grid.gridRect, width, height, seriesOffset, lineBaselines);
+      const { series: stackedLineSeries, baselines: lineBaselines } =
+        accumStackedLines(lineSeries);
+      this.lineRenderer.render(
+        renderPass,
+        stackedLineSeries,
+        grid.xScales,
+        grid.yScales,
+        grid.gridRect,
+        width,
+        height,
+        seriesOffset,
+        lineBaselines,
+      );
       seriesOffset += lineSeries.length;
     }
 
     const scatterSeries = series.filter((s): s is any => s.type === "scatter");
     if (scatterSeries.length > 0 && this.scatterRenderer) {
-      this.scatterRenderer.render(renderPass, scatterSeries, grid.xScales, grid.yScales, grid.gridRect, width, height, seriesOffset);
+      this.scatterRenderer.render(
+        renderPass,
+        scatterSeries,
+        grid.xScales,
+        grid.yScales,
+        grid.gridRect,
+        width,
+        height,
+        seriesOffset,
+      );
       seriesOffset += scatterSeries.length;
     }
 
     const pieSeries = series.filter((s): s is any => s.type === "pie");
     if (pieSeries.length > 0 && this.pieRenderer) {
       this.pieRenderer.clearBuffers();
-      this.pieRenderer.render(renderPass, pieSeries, width, height, seriesOffset);
+      this.pieRenderer.render(
+        renderPass,
+        pieSeries,
+        width,
+        height,
+        seriesOffset,
+      );
       seriesOffset += pieSeries.length;
     }
 
     const radarSeries = series.filter((s): s is any => s.type === "radar");
     if (radarSeries.length > 0 && this.radarRenderer) {
-      this.radarRenderer.render(renderPass, radarSeries, radars, width, height, seriesOffset);
+      this.radarRenderer.render(
+        renderPass,
+        radarSeries,
+        radars,
+        width,
+        height,
+        seriesOffset,
+      );
       seriesOffset += radarSeries.length;
     }
 
     const heatmapSeries = series.filter((s): s is any => s.type === "heatmap");
     if (heatmapSeries.length > 0 && this.heatmapRenderer) {
-      this.heatmapRenderer.render(renderPass, heatmapSeries, grid.xScales, grid.yScales, width, height);
+      this.heatmapRenderer.render(
+        renderPass,
+        heatmapSeries,
+        grid.xScales,
+        grid.yScales,
+        width,
+        height,
+      );
       seriesOffset += heatmapSeries.length;
     }
 
-    const candleSeries = series.filter((s): s is any => s.type === "candlestick");
+    const candleSeries = series.filter(
+      (s): s is any => s.type === "candlestick",
+    );
     if (candleSeries.length > 0 && this.candlestickRenderer) {
-      this.candlestickRenderer.render(renderPass, candleSeries, grid.xScales, grid.yScales, width, height, seriesOffset);
+      this.candlestickRenderer.render(
+        renderPass,
+        candleSeries,
+        grid.xScales,
+        grid.yScales,
+        width,
+        height,
+        seriesOffset,
+      );
       seriesOffset += candleSeries.length;
     }
 
@@ -548,17 +884,22 @@ export class ChartEngine {
 
     // Marks
     const marksData = series
-      .filter((s): s is any => (s as any).markPoint || (s as any).markLine || (s as any).markArea)
+      .filter(
+        (s): s is any =>
+          (s as any).markPoint || (s as any).markLine || (s as any).markArea,
+      )
       .map((s: any) => {
         const xScale = grid.xScales[s.xAxisIndex ?? 0];
         const yScale = grid.yScales[s.yAxisIndex ?? 0];
-        const seriesData: [any, number][] = (s.data ?? []).map((item: any, index: number) => {
-          if (typeof item === "number") return [index, item];
-          if (Array.isArray(item)) return [item[0], item[1]];
-          const v = item?.value;
-          if (Array.isArray(v)) return [v[0], v[1]];
-          return [index, v];
-        });
+        const seriesData: [any, number][] = (s.data ?? []).map(
+          (item: any, index: number) => {
+            if (typeof item === "number") return [index, item];
+            if (Array.isArray(item)) return [item[0], item[1]];
+            const v = item?.value;
+            if (Array.isArray(v)) return [v[0], v[1]];
+            return [index, v];
+          },
+        );
         return {
           markPoint: s.markPoint,
           markLine: s.markLine,
@@ -571,7 +912,8 @@ export class ChartEngine {
       })
       .filter((m) => m.xScale && m.yScale);
 
-    if (marksData.length > 0) renderMarksToSvg(this.overlaysvg, marksData as any);
+    if (marksData.length > 0)
+      renderMarksToSvg(this.overlaysvg, marksData as any);
 
     // DataZoom sliders
     if (dataZooms.length > 0) {
@@ -604,9 +946,21 @@ export class ChartEngine {
 
   private bindTooltipEvents(option: ChartOption): void {
     const allSeries = option.series ?? [];
-    const xAxes = Array.isArray(option.xAxis) ? option.xAxis : option.xAxis ? [option.xAxis] : [{}];
-    const yAxes = Array.isArray(option.yAxis) ? option.yAxis : option.yAxis ? [option.yAxis] : [{}];
-    const grids = Array.isArray(option.grid) ? option.grid : option.grid ? [option.grid] : [{}];
+    const xAxes = Array.isArray(option.xAxis)
+      ? option.xAxis
+      : option.xAxis
+        ? [option.xAxis]
+        : [{}];
+    const yAxes = Array.isArray(option.yAxis)
+      ? option.yAxis
+      : option.yAxis
+        ? [option.yAxis]
+        : [{}];
+    const grids = Array.isArray(option.grid)
+      ? option.grid
+      : option.grid
+        ? [option.grid]
+        : [{}];
 
     const onMove = (event: MouseEvent) => {
       if (!this.option || !this.tooltipCtrl) return;
@@ -614,12 +968,27 @@ export class ChartEngine {
       const mx = event.clientX - rect.left;
       const my = event.clientY - rect.top;
 
-      const series = allSeries.filter((s) => !s.name || !this.hiddenSeries.has(s.name));
-      const grid = resolveGrid(grids as any, xAxes as any, yAxes as any, series, this.width, this.height, this.xZoomMap, this.yZoomMap);
+      const series = allSeries.filter(
+        (s) => !s.name || !this.hiddenSeries.has(s.name),
+      );
+      const grid = resolveGrid(
+        grids as any,
+        xAxes as any,
+        yAxes as any,
+        series,
+        this.width,
+        this.height,
+        this.xZoomMap,
+        this.yZoomMap,
+      );
       const { gridRect, xScales, yScales } = grid;
 
-      if (mx < gridRect.x || mx > gridRect.x + gridRect.width ||
-          my < gridRect.y || my > gridRect.y + gridRect.height) {
+      if (
+        mx < gridRect.x ||
+        mx > gridRect.x + gridRect.width ||
+        my < gridRect.y ||
+        my > gridRect.y + gridRect.height
+      ) {
         this.tooltipCtrl.update({ visible: false, x: mx, y: my, params: [] });
         renderAxisPointer(this.overlaysvg, null, null, gridRect);
         return;
@@ -633,8 +1002,14 @@ export class ChartEngine {
 
         for (let si = 0; si < series.length; si++) {
           const s = series[si];
-          if (s.type === "pie" || s.type === "radar" || s.type === "gauge") continue;
-          if (s.type === "funnel" || s.type === "treemap" || s.type === "boxplot") continue;
+          if (s.type === "pie" || s.type === "radar" || s.type === "gauge")
+            continue;
+          if (
+            s.type === "funnel" ||
+            s.type === "treemap" ||
+            s.type === "boxplot"
+          )
+            continue;
           const data = (s as any).data ?? [];
 
           let closestIndex = 0;
@@ -647,15 +1022,25 @@ export class ChartEngine {
             else xVal = di;
             const pixX = xScale?.map(xVal) ?? 0;
             const dist = Math.abs(pixX - mx);
-            if (dist < closestDist) { closestDist = dist; closestIndex = di; }
+            if (dist < closestDist) {
+              closestDist = dist;
+              closestIndex = di;
+            }
           }
 
           const item = data[closestIndex];
           let value: any;
           let xVal: any;
-          if (typeof item === "number") { xVal = closestIndex; value = item; }
-          else if (Array.isArray(item)) { xVal = item[0]; value = item[1]; }
-          else if (item && typeof item === "object") { value = item.value; xVal = closestIndex; }
+          if (typeof item === "number") {
+            xVal = closestIndex;
+            value = item;
+          } else if (Array.isArray(item)) {
+            xVal = item[0];
+            value = item[1];
+          } else if (item && typeof item === "object") {
+            value = item.value;
+            xVal = closestIndex;
+          }
 
           // Find actual series index in allSeries for correct color
           const globalIdx = allSeries.findIndex((as_) => as_ === s);
@@ -691,13 +1076,29 @@ export class ChartEngine {
         if (hit) params.push(hit);
       }
 
-      this.tooltipCtrl.update({ visible: params.length > 0, x: mx, y: my, params });
+      this.tooltipCtrl.update({
+        visible: params.length > 0,
+        x: mx,
+        y: my,
+        params,
+      });
     };
 
     const onLeave = () => {
       this.tooltipCtrl?.update({ visible: false, x: 0, y: 0, params: [] });
-      const series = allSeries.filter((s) => !s.name || !this.hiddenSeries.has(s.name));
-      const grid = resolveGrid(grids as any, xAxes as any, yAxes as any, series, this.width, this.height, this.xZoomMap, this.yZoomMap);
+      const series = allSeries.filter(
+        (s) => !s.name || !this.hiddenSeries.has(s.name),
+      );
+      const grid = resolveGrid(
+        grids as any,
+        xAxes as any,
+        yAxes as any,
+        series,
+        this.width,
+        this.height,
+        this.xZoomMap,
+        this.yZoomMap,
+      );
       renderAxisPointer(this.overlaysvg, null, null, grid.gridRect);
     };
 

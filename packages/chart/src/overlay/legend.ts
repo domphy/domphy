@@ -1,6 +1,6 @@
 import { themeColorToken } from "@domphy/theme";
-import type { LegendOption, SeriesOption } from "../types.js";
 import { seriesHex } from "../gl/color.js";
+import type { LegendOption, SeriesOption } from "../types.js";
 
 export function renderLegend(
   svg: SVGSVGElement,
@@ -25,9 +25,11 @@ export function renderLegend(
   const itemHeight = legend.itemHeight ?? 10;
   const orient = legend.orient ?? "horizontal";
 
-  const names = (legend.data
-    ? legend.data.map((d) => (typeof d === "string" ? d : d.name))
-    : series.map((s) => s.name ?? "")).filter((n) => n !== "");
+  const names = (
+    legend.data
+      ? legend.data.map((d) => (typeof d === "string" ? d : d.name))
+      : series.map((s) => s.name ?? "")
+  ).filter((n) => n !== "");
 
   const textColor = themeColorToken(null, "shift-8", "neutral");
   const disabledColor = themeColorToken(null, "shift-4", "neutral");
@@ -36,25 +38,41 @@ export function renderLegend(
   // Rough width estimate for centering
   const estimatedItemW = itemWidth + 6 + 60;
   const totalWidth = names.length * (estimatedItemW + itemGap);
-  const startX = legend.left !== undefined
-    ? (typeof legend.left === "number" ? legend.left : (legend.left === "center" ? (svgWidth - totalWidth) / 2 : 8))
-    : (svgWidth - totalWidth) / 2;
+  const startX =
+    legend.left !== undefined
+      ? typeof legend.left === "number"
+        ? legend.left
+        : legend.left === "center"
+          ? (svgWidth - totalWidth) / 2
+          : 8
+      : (svgWidth - totalWidth) / 2;
 
-  const startY = legend.top !== undefined
-    ? (typeof legend.top === "number" ? legend.top : 8)
-    : (legend.bottom !== undefined ? svgHeight - 30 : 8);
+  const startY =
+    legend.top !== undefined
+      ? typeof legend.top === "number"
+        ? legend.top
+        : 8
+      : legend.bottom !== undefined
+        ? svgHeight - 30
+        : 8;
 
   let offsetX = startX;
   let offsetY = startY;
 
   names.forEach((name, index) => {
-    const seriesIndex = series.findIndex((s) => s.name === name) === -1 ? index : series.findIndex((s) => s.name === name);
+    const seriesIndex =
+      series.findIndex((s) => s.name === name) === -1
+        ? index
+        : series.findIndex((s) => s.name === name);
     const isHidden = hiddenSeries.has(name);
     const color = isHidden ? disabledColor : seriesHex(seriesIndex);
 
     // Invisible hit area for click
     const textW = name.length * 7;
-    const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    const hitArea = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "rect",
+    );
     hitArea.setAttribute("x", String(offsetX));
     hitArea.setAttribute("y", String(offsetY));
     hitArea.setAttribute("width", String(itemWidth + 5 + textW));

@@ -3,7 +3,14 @@
 // src/magicui/community/shinyButton.ts). Verify it's a real, focusable
 // <button> and that its own `background-position` keyframe animation is
 // actually running.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -22,23 +29,40 @@ async function main() {
   );
 
   await page.keyboard.press("Tab");
-  const isFocused = await button.evaluate((element) => element === document.activeElement);
-  report("shinyButton: is reachable via Tab (a real focusable control)", isFocused, `activeElement matches=${isFocused}`);
+  const isFocused = await button.evaluate(
+    (element) => element === document.activeElement,
+  );
+  report(
+    "shinyButton: is reachable via Tab (a real focusable control)",
+    isFocused,
+    `activeElement matches=${isFocused}`,
+  );
 
   const animation = await button.evaluate((element) => {
     const computed = getComputedStyle(element);
-    return { name: computed.animationName, duration: computed.animationDuration, playState: computed.animationPlayState };
+    return {
+      name: computed.animationName,
+      duration: computed.animationDuration,
+      playState: computed.animationPlayState,
+    };
   });
-  const running = animation.name !== "none" && animation.duration !== "0s" && animation.playState === "running";
+  const running =
+    animation.name !== "none" &&
+    animation.duration !== "0s" &&
+    animation.playState === "running";
   report(
     "shinyButton: the diagonal-sheen background-position keyframe animation is actually running",
     running,
     `animationName=${animation.name} duration=${animation.duration} playState=${animation.playState}`,
   );
 
-  const first = await button.evaluate((element) => getComputedStyle(element).backgroundPosition);
+  const first = await button.evaluate(
+    (element) => getComputedStyle(element).backgroundPosition,
+  );
   await page.waitForTimeout(700);
-  const second = await button.evaluate((element) => getComputedStyle(element).backgroundPosition);
+  const second = await button.evaluate(
+    (element) => getComputedStyle(element).backgroundPosition,
+  );
   report(
     "shinyButton: backgroundPosition actually sweeps over time (not frozen)",
     first !== second,

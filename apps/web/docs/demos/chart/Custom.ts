@@ -1,6 +1,6 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 // [start, end, taskIndex] — taskIndex maps to yAxis category
 const ganttData: [number, number, number][] = [
@@ -28,13 +28,13 @@ const option: ChartOption = {
     {
       type: "custom",
       renderItem: (params: any, api: any) => {
-        const start  = api.value(0);
-        const end    = api.value(1);
-        const index  = api.value(2);
+        const start = api.value(0);
+        const end = api.value(1);
+        const index = api.value(2);
 
         const startPoint = api.coord([start, index]);
-        const endPoint   = api.coord([end,   index]);
-        const barHeight  = api.size([0, 1])[1] * 0.5;
+        const endPoint = api.coord([end, index]);
+        const barHeight = api.size([0, 1])[1] * 0.5;
 
         return {
           type: "rect",

@@ -4,7 +4,14 @@
 // the rendered pixel content actually differs afterward, plus that the
 // canvas's own cursor style flips to "grabbing" while the drag is held —
 // both only possible if the pointer handlers really rotated the sphere.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -17,13 +24,19 @@ async function main() {
   const centerX = box.x + box.width / 2;
   const centerY = box.y + box.height / 2;
 
-  const cursorAtRest = await canvas.evaluate((el) => (el as HTMLCanvasElement).style.cursor);
+  const cursorAtRest = await canvas.evaluate(
+    (el) => (el as HTMLCanvasElement).style.cursor,
+  );
 
-  const pixelsBeforeDrag = await canvas.evaluate((el) => (el as HTMLCanvasElement).toDataURL());
+  const pixelsBeforeDrag = await canvas.evaluate((el) =>
+    (el as HTMLCanvasElement).toDataURL(),
+  );
 
   await page.mouse.move(centerX, centerY);
   await page.mouse.down();
-  const cursorWhileDragging = await canvas.evaluate((el) => (el as HTMLCanvasElement).style.cursor);
+  const cursorWhileDragging = await canvas.evaluate(
+    (el) => (el as HTMLCanvasElement).style.cursor,
+  );
   // Large, multi-step drag so the yaw/pitch delta is unmistakably real (not
   // just idle auto-rotation, which this build's default is slow at 0.003 rad/frame).
   for (let step = 1; step <= 10; step += 1) {
@@ -32,12 +45,18 @@ async function main() {
   await page.mouse.up();
   await page.waitForTimeout(150); // one more rAF settle after release
 
-  const cursorAfterRelease = await canvas.evaluate((el) => (el as HTMLCanvasElement).style.cursor);
-  const pixelsAfterDrag = await canvas.evaluate((el) => (el as HTMLCanvasElement).toDataURL());
+  const cursorAfterRelease = await canvas.evaluate(
+    (el) => (el as HTMLCanvasElement).style.cursor,
+  );
+  const pixelsAfterDrag = await canvas.evaluate((el) =>
+    (el as HTMLCanvasElement).toDataURL(),
+  );
 
   report(
     "iconCloud: dragging the sphere flips the canvas cursor to grabbing then back to grab",
-    cursorAtRest === "grab" && cursorWhileDragging === "grabbing" && cursorAfterRelease === "grab",
+    cursorAtRest === "grab" &&
+      cursorWhileDragging === "grabbing" &&
+      cursorAfterRelease === "grab",
     `cursor rest=${cursorAtRest} dragging=${cursorWhileDragging} afterRelease=${cursorAfterRelease}`,
   );
 

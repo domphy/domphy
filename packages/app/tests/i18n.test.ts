@@ -53,7 +53,9 @@ describe("createI18nMiddleware", () => {
 
   it("redirects bare path when prefixDefault is true", () => {
     const mwPrefix = createI18nMiddleware({ ...opts, prefixDefault: true });
-    expect(() => mwPrefix(makeContext("/about"))).toThrow("Redirect to /en/about");
+    expect(() => mwPrefix(makeContext("/about"))).toThrow(
+      "Redirect to /en/about",
+    );
   });
 
   it("redirects / to /en when prefixDefault is true", () => {

@@ -1,8 +1,11 @@
 import { themeColorToken } from "@domphy/theme";
-import type { FunnelSeriesOption } from "../types.js";
 import { seriesHex } from "../gl/color.js";
+import type { FunnelSeriesOption } from "../types.js";
 
-function svgEl(tag: string, attrs: Record<string, string | number>): SVGElement {
+function svgEl(
+  tag: string,
+  attrs: Record<string, string | number>,
+): SVGElement {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
   return el;
@@ -43,9 +46,14 @@ export function renderFunnel(
 
     sorted.forEach((item, index) => {
       const pct = (item.value ?? 0) / maxVal;
-      const color = (s.color as string[] | undefined)?.[index] ?? seriesHex(rawData.findIndex((d) => d.name === item.name));
+      const color =
+        (s.color as string[] | undefined)?.[index] ??
+        seriesHex(rawData.findIndex((d) => d.name === item.name));
 
-      const topW = index === 0 ? funnelW : ((sorted[index - 1].value ?? 0) / maxVal) * funnelW;
+      const topW =
+        index === 0
+          ? funnelW
+          : ((sorted[index - 1].value ?? 0) / maxVal) * funnelW;
       const bottomW = pct * funnelW;
 
       const itemTop = top + index * itemH + gap / 2;
@@ -58,7 +66,10 @@ export function renderFunnel(
 
       const points = `${topLeft},${itemTop} ${topRight},${itemTop} ${botRight},${itemBottom} ${botLeft},${itemBottom}`;
       const poly = svgEl("polygon", {
-        points, fill: color, opacity: 0.85, stroke: "none",
+        points,
+        fill: color,
+        opacity: 0.85,
+        stroke: "none",
       });
       group.appendChild(poly);
 
@@ -66,7 +77,10 @@ export function renderFunnel(
       if (s.label?.show !== false) {
         const midY = (itemTop + itemBottom) / 2;
         const midX = left + funnelW / 2;
-        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        const label = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text",
+        );
         label.textContent = item.name ?? "";
         label.setAttribute("x", String(midX));
         label.setAttribute("y", String(midY));

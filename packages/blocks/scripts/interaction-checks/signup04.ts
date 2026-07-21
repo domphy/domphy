@@ -3,7 +3,14 @@
 // enforcement, native required validation (focus lands on Email first, since
 // there is no name field), a valid submit not reloading, and the icon-only
 // OAuth buttons still being real accessible, non-submitting buttons.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -24,9 +31,13 @@ async function main() {
   );
 
   await password.fill("abc");
-  const tooShort = await password.evaluate((element: HTMLInputElement) => element.validity.tooShort);
+  const tooShort = await password.evaluate(
+    (element: HTMLInputElement) => element.validity.tooShort,
+  );
   await password.fill("longenough123");
-  const validAfterFix = await password.evaluate((element: HTMLInputElement) => element.validity.valid);
+  const validAfterFix = await password.evaluate(
+    (element: HTMLInputElement) => element.validity.valid,
+  );
   report(
     "signup04: password minlength=8 is actually enforced",
     tooShort === true && validAfterFix === true,
@@ -35,8 +46,12 @@ async function main() {
   await password.fill("");
 
   await submit.click();
-  const emailValid = await email.evaluate((element: HTMLInputElement) => element.validity.valid);
-  const focusedAfterEmptySubmit = await page.evaluate(() => document.activeElement?.id);
+  const emailValid = await email.evaluate(
+    (element: HTMLInputElement) => element.validity.valid,
+  );
+  const focusedAfterEmptySubmit = await page.evaluate(
+    () => document.activeElement?.id,
+  );
   report(
     "signup04: empty submit blocked by native required validation (focus -> Email, no Full Name field)",
     emailValid === false && focusedAfterEmptySubmit === "signup04-email",
@@ -63,7 +78,9 @@ async function main() {
   // Provider buttons render icon-only (no visible label text) — their
   // accessible name comes entirely from aria-label, and they must be
   // type="button" so clicking them never triggers the form's own submit.
-  const appleProvider = block.getByRole("button", { name: "Sign up with Apple" });
+  const appleProvider = block.getByRole("button", {
+    name: "Sign up with Apple",
+  });
   const providerType = await appleProvider.getAttribute("type");
   const providerHTML = await appleProvider.innerHTML();
   report(

@@ -7,26 +7,29 @@ function flush(): Promise<void> {
 }
 
 describe("Notifier: event names colliding with Object.prototype", () => {
-  it.each(["constructor", "hasOwnProperty", "toString", "valueOf", "__proto__"])(
-    "add/remove/notify a listener on a state named %s",
-    async (name) => {
-      const state = new State(0, name);
-      const listener = vi.fn();
+  it.each([
+    "constructor",
+    "hasOwnProperty",
+    "toString",
+    "valueOf",
+    "__proto__",
+  ])("add/remove/notify a listener on a state named %s", async (name) => {
+    const state = new State(0, name);
+    const listener = vi.fn();
 
-      const release = state.addListener(listener);
-      expect(release).toBeInstanceOf(Function);
+    const release = state.addListener(listener);
+    expect(release).toBeInstanceOf(Function);
 
-      state.set(1);
-      await flush();
-      expect(listener).toHaveBeenCalledWith(1);
+    state.set(1);
+    await flush();
+    expect(listener).toHaveBeenCalledWith(1);
 
-      state.removeListener(listener);
-      state.set(2);
-      await flush();
-      // No further call after removal.
-      expect(listener).toHaveBeenCalledTimes(1);
-    },
-  );
+    state.removeListener(listener);
+    state.set(2);
+    await flush();
+    // No further call after removal.
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
 
   it("supports two independent listeners on a Object.prototype-colliding name", async () => {
     const state = new State(0, "constructor");

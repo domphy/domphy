@@ -2,7 +2,14 @@
 // button and asserts the overlay canvas actually shows burst content shortly
 // after (alpha-channel readback via getImageData; plain 2D context, no
 // WebGL), where it showed none before the click.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -16,7 +23,12 @@ async function main() {
       canvasLocator.evaluate((el) => {
         const canvas = el as HTMLCanvasElement;
         const context = canvas.getContext("2d")!;
-        const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+        const data = context.getImageData(
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+        ).data;
         let sum = 0;
         for (let index = 3; index < data.length; index += 4) sum += data[index];
         return sum;

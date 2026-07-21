@@ -1,7 +1,10 @@
-import type { PictorialBarSeriesOption } from "../types.js";
 import { seriesHex } from "../gl/color.js";
+import type { PictorialBarSeriesOption } from "../types.js";
 
-function svgEl(tag: string, attrs: Record<string, string | number>): SVGElement {
+function svgEl(
+  tag: string,
+  attrs: Record<string, string | number>,
+): SVGElement {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
   return el;
@@ -26,7 +29,10 @@ function drawSymbol(
   if (symbol.startsWith("path://")) {
     el = svgEl("path", { d: symbol.slice(7), fill });
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    g.setAttribute("transform", `translate(${cx},${cy}) rotate(${rotate}) scale(${half / 10})`);
+    g.setAttribute(
+      "transform",
+      `translate(${cx},${cy}) rotate(${rotate}) scale(${half / 10})`,
+    );
     g.appendChild(el);
     if (clipRect && clipId) g.setAttribute("clip-path", `url(#${clipId})`);
     group.appendChild(g);
@@ -36,19 +42,38 @@ function drawSymbol(
   switch (symbol) {
     case "rect":
     case "roundRect":
-      el = svgEl("rect", { x: cx - width / 2, y: cy - height / 2, width, height, fill, rx: symbol === "roundRect" ? 3 : 0 });
+      el = svgEl("rect", {
+        x: cx - width / 2,
+        y: cy - height / 2,
+        width,
+        height,
+        fill,
+        rx: symbol === "roundRect" ? 3 : 0,
+      });
       break;
     case "triangle":
-      el = svgEl("polygon", { points: `${cx},${cy - half} ${cx - half},${cy + half} ${cx + half},${cy + half}`, fill });
+      el = svgEl("polygon", {
+        points: `${cx},${cy - half} ${cx - half},${cy + half} ${cx + half},${cy + half}`,
+        fill,
+      });
       break;
     case "diamond":
-      el = svgEl("polygon", { points: `${cx},${cy - half} ${cx + half},${cy} ${cx},${cy + half} ${cx - half},${cy}`, fill });
+      el = svgEl("polygon", {
+        points: `${cx},${cy - half} ${cx + half},${cy} ${cx},${cy + half} ${cx - half},${cy}`,
+        fill,
+      });
       break;
     case "arrow":
-      el = svgEl("polygon", { points: `${cx},${cy - half} ${cx + half * 0.5},${cy} ${cx + half * 0.25},${cy} ${cx + half * 0.25},${cy + half} ${cx - half * 0.25},${cy + half} ${cx - half * 0.25},${cy} ${cx - half * 0.5},${cy}`, fill });
+      el = svgEl("polygon", {
+        points: `${cx},${cy - half} ${cx + half * 0.5},${cy} ${cx + half * 0.25},${cy} ${cx + half * 0.25},${cy + half} ${cx - half * 0.25},${cy + half} ${cx - half * 0.25},${cy} ${cx - half * 0.5},${cy}`,
+        fill,
+      });
       break;
     case "pin":
-      el = svgEl("path", { d: `M${cx},${cy + half} C${cx - half},${cy} ${cx - half},${cy - half} ${cx},${cy - half} C${cx + half},${cy - half} ${cx + half},${cy} ${cx},${cy + half}`, fill });
+      el = svgEl("path", {
+        d: `M${cx},${cy + half} C${cx - half},${cy} ${cx - half},${cy - half} ${cx},${cy - half} C${cx + half},${cy - half} ${cx + half},${cy} ${cx},${cy + half}`,
+        fill,
+      });
       break;
     default: // circle
       el = svgEl("circle", { cx, cy, r: half, fill });
@@ -101,27 +126,37 @@ export function renderPictorialBar(
 
     const rawSize = s.symbolSize ?? Math.min(bandwidth * 0.8, 20);
     const [symW, symH] = Array.isArray(rawSize)
-      ? rawSize as [number, number]
+      ? (rawSize as [number, number])
       : [rawSize as number, rawSize as number];
 
     const yZero = yScale.map(0);
 
     const data = s.data ?? [];
     data.forEach((item, index) => {
-      const value = typeof item === "number" ? item : (item as any)?.value ?? 0;
+      const value =
+        typeof item === "number" ? item : ((item as any)?.value ?? 0);
       const xCenter = xScale.map(index);
       const yValue = yScale.map(value);
       const barH = Math.abs(yZero - yValue);
       const isPositive = yValue <= yZero;
 
-      const baseX = xCenter + (typeof offsetX === "string" ? parseFloat(offsetX) / 100 * bandwidth : offsetX);
+      const baseX =
+        xCenter +
+        (typeof offsetX === "string"
+          ? (parseFloat(offsetX) / 100) * bandwidth
+          : offsetX);
       const baseY = isPositive ? yZero : yValue;
 
       if (repeat) {
         // Repeat symbols stacked to fill bar height
         const gap = 2;
         const step = symH + gap;
-        const count = repeat === true ? Math.max(1, Math.floor(barH / step)) : (typeof repeat === "number" ? repeat : 1);
+        const count =
+          repeat === true
+            ? Math.max(1, Math.floor(barH / step))
+            : typeof repeat === "number"
+              ? repeat
+              : 1;
 
         for (let ri = 0; ri < count; ri++) {
           const cyPos = isPositive
@@ -129,7 +164,9 @@ export function renderPictorialBar(
             : yValue + symH / 2 + ri * step;
 
           const isLast = ri === count - 1 && clip;
-          let clipRectData: { x: number; y: number; w: number; h: number } | undefined;
+          let clipRectData:
+            | { x: number; y: number; w: number; h: number }
+            | undefined;
           let clipId: string | undefined;
 
           if (isLast && clip) {
@@ -137,20 +174,49 @@ export function renderPictorialBar(
             const used = ri * step;
             const remaining = barH - used;
             clipId = `dc-pbar-clip-${clipCounter++}`;
-            clipRectData = { x: baseX - symW / 2, y: isPositive ? yZero - barH : yValue, w: symW, h: remaining };
-            const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+            clipRectData = {
+              x: baseX - symW / 2,
+              y: isPositive ? yZero - barH : yValue,
+              w: symW,
+              h: remaining,
+            };
+            const clipPath = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "clipPath",
+            );
             clipPath.setAttribute("id", clipId);
             clipPath.appendChild(svgEl("rect", clipRectData));
             defs.appendChild(clipPath);
           }
 
-          drawSymbol(group, symbol, baseX, cyPos + (typeof offsetY === "string" ? parseFloat(offsetY) : offsetY), symW, symH, color, rotate, clipRectData, clipId);
+          drawSymbol(
+            group,
+            symbol,
+            baseX,
+            cyPos +
+              (typeof offsetY === "string" ? parseFloat(offsetY) : offsetY),
+            symW,
+            symH,
+            color,
+            rotate,
+            clipRectData,
+            clipId,
+          );
         }
       } else {
         // Single symbol scaled to bar height
         const scaledH = barH;
         const cyPos = isPositive ? yZero - scaledH / 2 : yValue + scaledH / 2;
-        drawSymbol(group, symbol, baseX, cyPos + (typeof offsetY === "string" ? parseFloat(offsetY) : offsetY), symW, scaledH || symH, color, rotate);
+        drawSymbol(
+          group,
+          symbol,
+          baseX,
+          cyPos + (typeof offsetY === "string" ? parseFloat(offsetY) : offsetY),
+          symW,
+          scaledH || symH,
+          color,
+          rotate,
+        );
       }
     });
   }

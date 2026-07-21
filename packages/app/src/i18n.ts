@@ -1,6 +1,10 @@
-import { redirect } from "./navigation.js";
-import { rewrite } from "./navigation.js";
-import type { LoaderContext, Middleware, MiddlewareContext, RouteContext } from "./types.js";
+import { redirect, rewrite } from "./navigation.js";
+import type {
+  LoaderContext,
+  Middleware,
+  MiddlewareContext,
+  RouteContext,
+} from "./types.js";
 
 export interface I18nRoutingOptions<TLocale extends string> {
   /** All supported locales (e.g. `["en", "vi", "fr"]`). */

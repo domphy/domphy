@@ -1,7 +1,14 @@
 // Real browser interaction checks for sidebar11 (IDE-style file tree):
 // clicking a folder must expand and reveal its children, and clicking a file
 // must select/highlight it (aria-current) and update the header breadcrumb.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main(): Promise<void> {
   const { demoUrl } = await boot();
@@ -13,14 +20,21 @@ async function main(): Promise<void> {
     // components/ui/button.tsx, start open) — expand it and check its child appears.
     const libDetails = block.locator('details:has(summary:has-text("lib"))');
     const beforeOpen = await libDetails.getAttribute("open");
-    const childVisibleBefore = await libDetails.locator("button", { hasText: "utils.ts" }).isVisible();
+    const childVisibleBefore = await libDetails
+      .locator("button", { hasText: "utils.ts" })
+      .isVisible();
     await libDetails.locator("summary").click();
     await page.waitForTimeout(150);
     const afterOpen = await libDetails.getAttribute("open");
-    const childVisibleAfter = await libDetails.locator("button", { hasText: "utils.ts" }).isVisible();
+    const childVisibleAfter = await libDetails
+      .locator("button", { hasText: "utils.ts" })
+      .isVisible();
     report(
       "sidebar11: clicking a folder expands and reveals its children",
-      beforeOpen === null && !childVisibleBefore && afterOpen !== null && childVisibleAfter,
+      beforeOpen === null &&
+        !childVisibleBefore &&
+        afterOpen !== null &&
+        childVisibleAfter,
       `open before=${beforeOpen} after=${afterOpen}, utils.ts visible before=${childVisibleBefore} after=${childVisibleAfter}`,
     );
 
@@ -31,7 +45,8 @@ async function main(): Promise<void> {
     // selector would then match zero elements and hang waiting for one.
     const buttonFileRow = block.locator("button", { hasText: "button.tsx" });
     const cardFileRow = block.locator("button", { hasText: "card.tsx" });
-    const buttonCurrentBefore = await buttonFileRow.getAttribute("aria-current");
+    const buttonCurrentBefore =
+      await buttonFileRow.getAttribute("aria-current");
     const cardCurrentBefore = await cardFileRow.getAttribute("aria-current");
     await cardFileRow.click();
     await page.waitForTimeout(150);
@@ -51,7 +66,8 @@ async function main(): Promise<void> {
     const breadcrumbText = await block.locator("header nav").innerText();
     report(
       "sidebar11: selecting a file updates the header breadcrumb",
-      breadcrumbText.includes("card.tsx") && !breadcrumbText.includes("button.tsx"),
+      breadcrumbText.includes("card.tsx") &&
+        !breadcrumbText.includes("button.tsx"),
       `breadcrumb text: ${breadcrumbText.replace(/\s+/g, " ")}`,
     );
   } finally {

@@ -1,10 +1,10 @@
+import { __DEV__ } from "../dev.js";
 import {
   activeCollector,
   Collector,
   runUntracked,
   runWithCollector,
 } from "./Collector.js";
-import { __DEV__ } from "../dev.js";
 import {
   _microtask,
   flushPendingNotifiers,
@@ -370,15 +370,14 @@ export function watch<T>(
   callback: (newValue: T, oldValue: T | undefined) => void,
   options?: WatchOptions,
 ): () => void {
-  let oldValue: T | undefined = undefined;
+  let oldValue: T | undefined;
   let firstRun = true;
 
   // `effect` runs synchronously on setup (initial collection), then re-runs
   // whenever a tracked dependency changes. We suppress the callback on the
   // first (setup) run unless `immediate` is set.
   return effect(() => {
-    const newValue =
-      typeof source === "function" ? source() : source.get();
+    const newValue = typeof source === "function" ? source() : source.get();
 
     if (!firstRun || options?.immediate) {
       callback(newValue, oldValue);

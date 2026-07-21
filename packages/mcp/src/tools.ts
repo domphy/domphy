@@ -248,7 +248,9 @@ async function readBlockSource(repoRelativeFile: string): Promise<string> {
   for (const base of bases) {
     const candidate = resolve(base, repoRelativeFile);
     if (!isWithinRoot(candidate, base)) {
-      lastError = new Error(`refusing to read outside "${base}": ${repoRelativeFile}`);
+      lastError = new Error(
+        `refusing to read outside "${base}": ${repoRelativeFile}`,
+      );
       continue;
     }
     try {

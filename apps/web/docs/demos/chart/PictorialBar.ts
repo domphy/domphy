@@ -1,9 +1,9 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 const languages = ["Python", "JavaScript", "Rust", "Go", "TypeScript"];
-const scores    = [65, 58, 42, 38, 55];
+const scores = [65, 58, 42, 38, 55];
 
 const option: ChartOption = {
   title: { text: "Language Popularity Index", left: "center" },

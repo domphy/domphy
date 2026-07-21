@@ -3,7 +3,10 @@ import { themeColor, themeSize, themeSpacing } from "@domphy/theme";
 
 export const TipBar: DomphyElement<"div"> = {
   div: [
-    { span: "Tip: ", style: { color: (listener) => themeColor(listener, "text") } },
+    {
+      span: "Tip: ",
+      style: { color: (listener) => themeColor(listener, "text") },
+    },
     { code: "console.log(domphyElement)" },
     {
       span: " prints the full expanded patch object (all merges resolved) — paste it to AI for debugging.",

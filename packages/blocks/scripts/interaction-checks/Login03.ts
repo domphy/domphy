@@ -1,7 +1,14 @@
 // Real-browser interaction checks for the Login03 block (OAuth-first muted
 // card): password masking, native required validation, tab order through the
 // forgot-password link, and that a valid submit doesn't reload.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -13,11 +20,19 @@ async function main() {
   const submit = block.getByRole("button", { name: "Login", exact: true });
 
   const passwordType = await password.getAttribute("type");
-  report("Login03: password field masks input", passwordType === "password", `type="${passwordType}"`);
+  report(
+    "Login03: password field masks input",
+    passwordType === "password",
+    `type="${passwordType}"`,
+  );
 
   await submit.click();
-  const emailValid = await email.evaluate((element: HTMLInputElement) => element.validity.valid);
-  const focusedAfterEmptySubmit = await page.evaluate(() => document.activeElement?.id);
+  const emailValid = await email.evaluate(
+    (element: HTMLInputElement) => element.validity.valid,
+  );
+  const focusedAfterEmptySubmit = await page.evaluate(
+    () => document.activeElement?.id,
+  );
   report(
     "Login03: empty submit blocked by native required validation",
     emailValid === false && focusedAfterEmptySubmit === "login03-email",
@@ -29,10 +44,16 @@ async function main() {
   await page.keyboard.press("Tab");
   const forgotLinkFocus = await page.evaluate(() => {
     const element = document.activeElement as HTMLAnchorElement | null;
-    return { tag: element?.tagName, href: element?.getAttribute("href"), text: element?.textContent };
+    return {
+      tag: element?.tagName,
+      href: element?.getAttribute("href"),
+      text: element?.textContent,
+    };
   });
   await page.keyboard.press("Tab");
-  const focusedAfterSecondTab = await page.evaluate(() => document.activeElement?.id);
+  const focusedAfterSecondTab = await page.evaluate(
+    () => document.activeElement?.id,
+  );
   report(
     "Login03: tab order is email -> forgot-password link (real href) -> password",
     forgotLinkFocus.tag === "A" &&

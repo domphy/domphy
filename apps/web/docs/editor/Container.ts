@@ -130,7 +130,8 @@ export function Container(
       display: "flex",
       flexDirection: "column",
       border: (listener) => `1px solid ${themeColor(listener, "border")}`,
-      borderRadius: (listener) => (isFull.get(listener) ? "0" : themeSpacing(2)),
+      borderRadius: (listener) =>
+        isFull.get(listener) ? "0" : themeSpacing(2),
       overflow: "hidden",
       position: (listener) => (isFull.get(listener) ? "fixed" : "relative"),
       inset: 0,

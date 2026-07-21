@@ -1,9 +1,9 @@
-import type { Device, Buffer, RenderPass } from "@luma.gl/core";
+import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
-import { SCATTER_VS, SCATTER_FS } from "./shaders/scatter.glsl.js";
-import type { ScatterSeriesOption, ChartRect } from "../types.js";
 import type { AnyScale } from "../scale/index.js";
-import { seriesRgba, familyRgba } from "./color.js";
+import type { ChartRect, ScatterSeriesOption } from "../types.js";
+import { familyRgba, seriesRgba } from "./color.js";
+import { SCATTER_FS, SCATTER_VS } from "./shaders/scatter.glsl.js";
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
   (model as any).props.uniforms = uniforms;
@@ -74,8 +74,11 @@ export class ScatterRenderer {
       const yScale = yScales[s.yAxisIndex ?? 0];
       if (!xScale || !yScale) continue;
 
-      const baseColor = s.color ? familyRgba(s.color as any, "shift-9") : seriesRgba(seriesOffset + index);
-      const defaultRadius = typeof s.symbolSize === "number" ? s.symbolSize / 2 : 5;
+      const baseColor = s.color
+        ? familyRgba(s.color as any, "shift-9")
+        : seriesRgba(seriesOffset + index);
+      const defaultRadius =
+        typeof s.symbolSize === "number" ? s.symbolSize / 2 : 5;
       const data = s.data ?? [];
 
       for (let di = 0; di < data.length; di++) {
@@ -85,29 +88,46 @@ export class ScatterRenderer {
         let radius = defaultRadius;
 
         if (Array.isArray(item)) {
-          xVal = item[0]; yVal = item[1] as number;
+          xVal = item[0];
+          yVal = item[1] as number;
           if (item[2] !== undefined) radius = (item[2] as number) / 2;
         } else if (typeof item === "number") {
-          xVal = di; yVal = item;
+          xVal = di;
+          yVal = item;
         } else if (item && typeof item === "object") {
           const raw = (item as any).value;
-          if (Array.isArray(raw)) { xVal = raw[0]; yVal = raw[1]; if (raw[2] !== undefined) radius = raw[2] / 2; }
-          else { xVal = di; yVal = raw; }
+          if (Array.isArray(raw)) {
+            xVal = raw[0];
+            yVal = raw[1];
+            if (raw[2] !== undefined) radius = raw[2] / 2;
+          } else {
+            xVal = di;
+            yVal = raw;
+          }
           if ((item as any).symbolSize) radius = (item as any).symbolSize / 2;
         } else {
           continue;
         }
 
-        if (typeof s.symbolSize === "function") radius = (s.symbolSize as any)(item, { dataIndex: di }) / 2;
+        if (typeof s.symbolSize === "function")
+          radius = (s.symbolSize as any)(item, { dataIndex: di }) / 2;
 
-        allInstances.push(xScale.map(xVal), yScale.map(yVal), radius, ...baseColor);
+        allInstances.push(
+          xScale.map(xVal),
+          yScale.map(yVal),
+          radius,
+          ...baseColor,
+        );
         pointCount++;
       }
     }
 
     if (pointCount === 0) return;
 
-    const instanceBuffer = this.device.createBuffer({ data: new Float32Array(allInstances), id: "scatter-instances" });
+    const instanceBuffer = this.device.createBuffer({
+      data: new Float32Array(allInstances),
+      id: "scatter-instances",
+    });
     this.buffers.push(instanceBuffer);
 
     model.setAttributes({ instanceData: instanceBuffer });

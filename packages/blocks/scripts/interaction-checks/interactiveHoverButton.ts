@@ -2,7 +2,14 @@
 // and assert the accent dot's scale and the hover-overlay's opacity actually
 // change via the button's own `&:hover [data-*]` CSS rules — see
 // src/magicui/community/interactiveHoverButton.ts.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -12,7 +19,9 @@ async function main() {
 
   const baseline = await page.evaluate(() => {
     const dotElement = document.querySelector("[data-ihb-dot]") as HTMLElement;
-    const overlayElement = document.querySelector("[data-ihb-overlay]") as HTMLElement;
+    const overlayElement = document.querySelector(
+      "[data-ihb-overlay]",
+    ) as HTMLElement;
     return {
       dotTransform: getComputedStyle(dotElement).transform,
       overlayOpacity: getComputedStyle(overlayElement).opacity,
@@ -29,7 +38,9 @@ async function main() {
   await page.waitForTimeout(420);
   const hovered = await page.evaluate(() => {
     const dotElement = document.querySelector("[data-ihb-dot]") as HTMLElement;
-    const overlayElement = document.querySelector("[data-ihb-overlay]") as HTMLElement;
+    const overlayElement = document.querySelector(
+      "[data-ihb-overlay]",
+    ) as HTMLElement;
     return {
       dotTransform: getComputedStyle(dotElement).transform,
       overlayOpacity: getComputedStyle(overlayElement).opacity,
@@ -37,7 +48,8 @@ async function main() {
   });
   report(
     "interactiveHoverButton: hovering floods the dot (scale(90)) and reveals the overlay",
-    hovered.dotTransform !== baseline.dotTransform && hovered.overlayOpacity === "1",
+    hovered.dotTransform !== baseline.dotTransform &&
+      hovered.overlayOpacity === "1",
     `dotTransform=${hovered.dotTransform} overlayOpacity=${hovered.overlayOpacity}`,
   );
 

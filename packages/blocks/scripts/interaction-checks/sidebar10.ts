@@ -6,7 +6,14 @@
 // day-grid or month nav at all — that content lives in sidebar12/sidebarLeftRight
 // instead. Tests below drive sidebar10's real interactive elements: expanding
 // a workspace's page tree, and revealing overflowed favorites via "More".
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main(): Promise<void> {
   const { demoUrl } = await boot();
@@ -16,13 +23,17 @@ async function main(): Promise<void> {
 
     // Workspace tree: "Product" starts collapsed (only "Engineering" is
     // expanded by default) — clicking its <summary> should reveal its pages.
-    const productDetails = block.locator('details:has(summary:has-text("Product"))');
+    const productDetails = block.locator(
+      'details:has(summary:has-text("Product"))',
+    );
     const productSummary = productDetails.locator("summary");
     const beforeOpen = await productDetails.getAttribute("open");
     await productSummary.click();
     await page.waitForTimeout(150);
     const afterOpen = await productDetails.getAttribute("open");
-    const childVisible = await productDetails.locator("a", { hasText: "Roadmap" }).isVisible();
+    const childVisible = await productDetails
+      .locator("a", { hasText: "Roadmap" })
+      .isVisible();
     report(
       "sidebar10: clicking a workspace folder expands its page tree",
       beforeOpen === null && afterOpen !== null && childVisible,
@@ -32,11 +43,15 @@ async function main(): Promise<void> {
     // Favorites list: only 10 of 13 default favorites show initially, plus a
     // real "More" row that reveals the rest.
     const favoritesMore = block.locator("button", { hasText: "More" }).first();
-    const hiddenBefore = await block.locator("a", { hasText: "Security" }).count();
+    const hiddenBefore = await block
+      .locator("a", { hasText: "Security" })
+      .count();
     await favoritesMore.scrollIntoViewIfNeeded();
     await favoritesMore.click();
     await page.waitForTimeout(150);
-    const hiddenAfter = await block.locator("a", { hasText: "Security" }).count();
+    const hiddenAfter = await block
+      .locator("a", { hasText: "Security" })
+      .count();
     report(
       "sidebar10: clicking favorites' More row reveals the overflowed items",
       hiddenBefore === 0 && hiddenAfter === 1,

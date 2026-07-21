@@ -8,8 +8,8 @@
 // darker over their cycle, not just their first frame.
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { boot, mountedPage, teardown } from "./interaction-harness.js";
 import { measureBlockContrast } from "./contrast-harness.js";
+import { boot, mountedPage, teardown } from "./interaction-harness.js";
 
 type RegistryEntry = { exportName: string; filePath: string };
 
@@ -19,13 +19,17 @@ function normalizePath(filePath: string): string {
 
 async function main(): Promise<void> {
   const registryPath = resolve(import.meta.dirname, "..", "registry.json");
-  const registry: RegistryEntry[] = JSON.parse(readFileSync(registryPath, "utf8"));
+  const registry: RegistryEntry[] = JSON.parse(
+    readFileSync(registryPath, "utf8"),
+  );
   const names = registry
     .filter((entry) => normalizePath(entry.filePath).includes("/backgrounds/"))
     .map((entry) => entry.exportName)
     .sort();
 
-  console.log(`Scanning ${names.length} "backgrounds" blocks for real WCAG contrast...\n`);
+  console.log(
+    `Scanning ${names.length} "backgrounds" blocks for real WCAG contrast...\n`,
+  );
 
   const { demoUrl } = await boot();
 
@@ -76,12 +80,20 @@ async function main(): Promise<void> {
 
   await teardown();
 
-  const outputPath = resolve(import.meta.dirname, "..", ".contrast-scan-report.json");
+  const outputPath = resolve(
+    import.meta.dirname,
+    "..",
+    ".contrast-scan-report.json",
+  );
   writeFileSync(outputPath, JSON.stringify(reports, null, 2));
 
-  const failingBlocks = reports.filter((r) => r.results.some((res) => !res.passes));
+  const failingBlocks = reports.filter((r) =>
+    r.results.some((res) => !res.passes),
+  );
   console.log(`\n=== Summary ===`);
-  console.log(`${reports.length} blocks scanned, ${failingBlocks.length} with a real contrast failure.`);
+  console.log(
+    `${reports.length} blocks scanned, ${failingBlocks.length} with a real contrast failure.`,
+  );
   for (const report of failingBlocks) {
     for (const result of report.results.filter((r) => !r.passes)) {
       console.log(

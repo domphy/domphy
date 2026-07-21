@@ -1,6 +1,6 @@
 import { themeColorToken } from "@domphy/theme";
-import type { TreemapSeriesOption } from "../types.js";
 import { seriesHex } from "../gl/color.js";
+import type { TreemapSeriesOption } from "../types.js";
 
 interface Rect {
   x: number;
@@ -17,12 +17,16 @@ interface TreemapNode {
 }
 
 // Squarified treemap layout — Bruls et al.
-function squarify(items: Array<{ value: number; index: number }>, rect: Rect): Rect[] {
+function squarify(
+  items: Array<{ value: number; index: number }>,
+  rect: Rect,
+): Rect[] {
   if (items.length === 0) return [];
 
   const totalArea = rect.w * rect.h;
   const totalValue = items.reduce((s, n) => s + n.value, 0);
-  if (totalValue === 0) return items.map(() => ({ x: rect.x, y: rect.y, w: 0, h: 0 }));
+  if (totalValue === 0)
+    return items.map(() => ({ x: rect.x, y: rect.y, w: 0, h: 0 }));
 
   const results: Rect[] = new Array(items.length);
   let remaining = items;
@@ -67,18 +71,38 @@ function squarify(items: Array<{ value: number; index: number }>, rect: Rect): R
       const area = (item.value / valueLeft) * areaLeft;
       const itemLen = area / rowLen;
       if (isWide) {
-        results[item.index] = { x: currentRect.x, y: offset, w: rowLen, h: itemLen };
+        results[item.index] = {
+          x: currentRect.x,
+          y: offset,
+          w: rowLen,
+          h: itemLen,
+        };
       } else {
-        results[item.index] = { x: offset, y: currentRect.y, w: itemLen, h: rowLen };
+        results[item.index] = {
+          x: offset,
+          y: currentRect.y,
+          w: itemLen,
+          h: rowLen,
+        };
       }
       offset += itemLen;
     }
 
     // Shrink currentRect
     if (isWide) {
-      currentRect = { x: currentRect.x + rowLen, y: currentRect.y, w: currentRect.w - rowLen, h: currentRect.h };
+      currentRect = {
+        x: currentRect.x + rowLen,
+        y: currentRect.y,
+        w: currentRect.w - rowLen,
+        h: currentRect.h,
+      };
     } else {
-      currentRect = { x: currentRect.x, y: currentRect.y + rowLen, w: currentRect.w, h: currentRect.h - rowLen };
+      currentRect = {
+        x: currentRect.x,
+        y: currentRect.y + rowLen,
+        w: currentRect.w,
+        h: currentRect.h - rowLen,
+      };
     }
     remaining = remaining.slice(row.length);
   }
@@ -104,12 +128,20 @@ function renderNodes(
     const r = rects[index];
     if (!r || r.w < 1 || r.h < 1) return;
 
-    const padded = { x: r.x + GAP, y: r.y + GAP, w: r.w - GAP * 2, h: r.h - GAP * 2 };
+    const padded = {
+      x: r.x + GAP,
+      y: r.y + GAP,
+      w: r.w - GAP * 2,
+      h: r.h - GAP * 2,
+    };
     if (padded.w < 1 || padded.h < 1) return;
 
     const color = node.color ?? seriesHex(depth === 0 ? index : seriesIndex);
 
-    const rect2 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    const rect2 = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "rect",
+    );
     rect2.setAttribute("x", String(padded.x));
     rect2.setAttribute("y", String(padded.y));
     rect2.setAttribute("width", String(padded.w));
@@ -121,12 +153,18 @@ function renderNodes(
 
     // Label if big enough
     if (padded.w > 30 && padded.h > 16 && node.name) {
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      const label = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text",
+      );
       label.textContent = node.name;
       label.setAttribute("x", String(padded.x + padded.w / 2));
       label.setAttribute("y", String(padded.y + Math.min(padded.h / 2, 20)));
       label.setAttribute("fill", "#fff");
-      label.setAttribute("font-size", String(Math.max(9, Math.min(13, padded.w / 6))));
+      label.setAttribute(
+        "font-size",
+        String(Math.max(9, Math.min(13, padded.w / 6))),
+      );
       label.setAttribute("text-anchor", "middle");
       label.setAttribute("dominant-baseline", "middle");
       label.setAttribute("pointer-events", "none");
@@ -134,10 +172,16 @@ function renderNodes(
       group.appendChild(label);
 
       if (node.value !== undefined && padded.h > 36) {
-        const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        const val = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text",
+        );
         val.textContent = String(node.value);
         val.setAttribute("x", String(padded.x + padded.w / 2));
-        val.setAttribute("y", String(padded.y + Math.min(padded.h / 2, 20) + 14));
+        val.setAttribute(
+          "y",
+          String(padded.y + Math.min(padded.h / 2, 20) + 14),
+        );
         val.setAttribute("fill", "rgba(255,255,255,0.7)");
         val.setAttribute("font-size", "10");
         val.setAttribute("text-anchor", "middle");
@@ -148,8 +192,19 @@ function renderNodes(
     }
 
     // Recurse into children — pass parent's color index so gap between siblings matches
-    if (node.children && node.children.length > 0 && padded.w > 20 && padded.h > 20) {
-      renderNodes(group, node.children, padded, depth + 1, depth === 0 ? index : seriesIndex);
+    if (
+      node.children &&
+      node.children.length > 0 &&
+      padded.w > 20 &&
+      padded.h > 20
+    ) {
+      renderNodes(
+        group,
+        node.children,
+        padded,
+        depth + 1,
+        depth === 0 ? index : seriesIndex,
+      );
     }
   });
 }
@@ -172,8 +227,18 @@ export function renderTreemap(
     const s = series[si];
     if (s.name && hiddenSeries.has(s.name)) continue;
 
-    const left = typeof s.left === "number" ? s.left : typeof s.left === "string" ? parseFloat(s.left) : width * 0.05;
-    const top = typeof s.top === "number" ? s.top : typeof s.top === "string" ? parseFloat(s.top) : height * 0.1;
+    const left =
+      typeof s.left === "number"
+        ? s.left
+        : typeof s.left === "string"
+          ? parseFloat(s.left)
+          : width * 0.05;
+    const top =
+      typeof s.top === "number"
+        ? s.top
+        : typeof s.top === "string"
+          ? parseFloat(s.top)
+          : height * 0.1;
     const tw = typeof s.width === "number" ? s.width : width * 0.9;
     const th = typeof s.height === "number" ? s.height : height * 0.85;
 

@@ -52,7 +52,9 @@ export function createTooltip(
       .map((p) => {
         const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
         // p.seriesName/p.name/p.value come from caller-controlled ChartOption data — must escape before innerHTML.
-        const val = option.valueFormatter ? option.valueFormatter(p.value, p.dataIndex) : String(p.value ?? "");
+        const val = option.valueFormatter
+          ? option.valueFormatter(p.value, p.dataIndex)
+          : String(p.value ?? "");
         const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
         return `${dot}<strong>${label}</strong>: ${escapeHtml(val)}`;
       })
@@ -61,7 +63,11 @@ export function createTooltip(
 
   return {
     update(state: TooltipState) {
-      if (!state.visible || state.params.length === 0 || option.show === false) {
+      if (
+        !state.visible ||
+        state.params.length === 0 ||
+        option.show === false
+      ) {
         el.style.opacity = "0";
         el.style.pointerEvents = "none";
         return;
@@ -69,9 +75,9 @@ export function createTooltip(
 
       const { x, y, params } = state;
       const formatted = option.formatter
-        ? (typeof option.formatter === "function"
-            ? String((option.formatter as Function)(params, "", () => {}))
-            : String(option.formatter))
+        ? typeof option.formatter === "function"
+          ? String((option.formatter as Function)(params, "", () => {}))
+          : String(option.formatter)
         : formatDefault(params);
 
       el.innerHTML = formatted;

@@ -31,7 +31,8 @@ function autoClassToken(el: Element): string | undefined {
 }
 
 function ruleFor(el: Element): CSSStyleRule | undefined {
-  const styleEl = document.head.querySelector<HTMLStyleElement>("#domphy-style")!;
+  const styleEl =
+    document.head.querySelector<HTMLStyleElement>("#domphy-style")!;
   const token = autoClassToken(el);
   return Array.from(styleEl.sheet?.cssRules ?? []).find(
     (r) => (r as CSSStyleRule).selectorText === `.${token}`,

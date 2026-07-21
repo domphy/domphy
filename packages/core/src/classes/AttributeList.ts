@@ -95,7 +95,8 @@ export class AttributeList {
 
   addClass(className: string | ((listener: Listener) => string)): void {
     if (!className) return;
-    if (typeof className !== "string" && typeof className !== "function") return;
+    if (typeof className !== "string" && typeof className !== "function")
+      return;
 
     const add = (classes: string, newClass: string) => {
       const list = (classes || "").split(" ").filter((e: string) => e);

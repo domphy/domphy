@@ -60,14 +60,11 @@ describe("StyleList.addCSS: doubly-nested non-'&' selector", () => {
 
     new ElementNode(element).render(host);
 
-    const styleEl = document.head.querySelector<HTMLStyleElement>(
-      "#domphy-style",
-    )!;
+    const styleEl =
+      document.head.querySelector<HTMLStyleElement>("#domphy-style")!;
     expect(styleEl).toBeTruthy();
 
-    const rules = Array.from(
-      styleEl.sheet?.cssRules ?? [],
-    ) as CSSStyleRule[];
+    const rules = Array.from(styleEl.sheet?.cssRules ?? []) as CSSStyleRule[];
     const iconRule = rules.find((r) => r.selectorText?.endsWith(".icon"));
 
     expect(iconRule).toBeDefined();

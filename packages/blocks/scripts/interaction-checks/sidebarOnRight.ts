@@ -3,7 +3,14 @@
 // its Cmd/Ctrl+B shortcut) must actually change the sidebar's width. This
 // variant docks the sidebar to the right edge, but the toggle mechanics
 // (shared via sidebar01-04-shared.ts's buildSidebarBlock) are the same.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main(): Promise<void> {
   const { demoUrl } = await boot();

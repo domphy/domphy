@@ -299,8 +299,7 @@ export function submitButton(buttonLabel: string): DomphyElement<"button"> {
       width: "100%",
       backgroundColor: (listener: Listener) =>
         themeColor(listener, "inherit", "neutral"),
-      color: (listener: Listener) =>
-        themeColor(listener, "shift-9", "neutral"),
+      color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },
   };
 }

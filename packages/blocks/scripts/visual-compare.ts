@@ -58,8 +58,12 @@ async function main() {
     : registry.filter((entry) => requested.includes(entry.exportName));
 
   if (targets.length === 0) {
-    console.error("No matching exports. Pass one or more export names, or --all.");
-    console.error("Example: pnpm --filter @domphy/blocks visual-compare sidebar07 dashboard01");
+    console.error(
+      "No matching exports. Pass one or more export names, or --all.",
+    );
+    console.error(
+      "Example: pnpm --filter @domphy/blocks visual-compare sidebar07 dashboard01",
+    );
     process.exitCode = 1;
     return;
   }
@@ -83,24 +87,42 @@ async function main() {
       const targetDir = resolve(outputRoot, entry.exportName);
       await mkdir(targetDir, { recursive: true });
 
-      const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+      const page = await browser.newPage({
+        viewport: { width: 1280, height: 900 },
+      });
       try {
         await page.goto(demoUrl, { waitUntil: "networkidle" });
         const locator = page.locator(`[data-block="${entry.exportName}"]`);
         const count = await locator.count();
         if (count === 0) {
-          console.warn(`  skip ${entry.exportName}: not found in demo (check src/index.ts export)`);
+          console.warn(
+            `  skip ${entry.exportName}: not found in demo (check src/index.ts export)`,
+          );
           continue;
         }
         // Stop other cards from lazy-mounting as we scroll toward this one —
         // otherwise their placeholder-to-real-content resize can shift this
         // block's position between measuring its clip rect and screenshotting.
-        await page.evaluate(() => (window as unknown as { disconnectLazyMount: () => void }).disconnectLazyMount());
+        await page.evaluate(() =>
+          (
+            window as unknown as { disconnectLazyMount: () => void }
+          ).disconnectLazyMount(),
+        );
         // Cards lazy-mount on scroll (to avoid exhausting the browser's WebGL
         // context budget across all 173 demo blocks); force-mount this one
         // directly instead of relying on scroll-driven IntersectionObserver.
-        await page.evaluate((name) => (window as unknown as { mountBlock: (n: string) => void }).mountBlock(name), entry.exportName);
-        await locator.locator("canvas, svg").first().waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
+        await page.evaluate(
+          (name) =>
+            (
+              window as unknown as { mountBlock: (n: string) => void }
+            ).mountBlock(name),
+          entry.exportName,
+        );
+        await locator
+          .locator("canvas, svg")
+          .first()
+          .waitFor({ state: "attached", timeout: 5000 })
+          .catch(() => {});
         await page.waitForTimeout(600);
         // NOT locator.screenshot() — its built-in scroll-then-capture leaves
         // WebGL canvases blank (verified: reading the canvas's own pixel data
@@ -109,33 +131,52 @@ async function main() {
         // manual scroll + settle delay + clipped page.screenshot() reliably
         // captures the same canvas correctly.
         await page.evaluate(
-          (name) => document.querySelector(`[data-block="${name}"]`)?.scrollIntoView({ block: "center" }),
+          (name) =>
+            document
+              .querySelector(`[data-block="${name}"]`)
+              ?.scrollIntoView({ block: "center" }),
           entry.exportName,
         );
         await page.waitForTimeout(300);
         const clip = await page.evaluate((name) => {
-          const rect = document.querySelector(`[data-block="${name}"]`)!.getBoundingClientRect();
-          return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+          const rect = document
+            .querySelector(`[data-block="${name}"]`)!
+            .getBoundingClientRect();
+          return {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          };
         }, entry.exportName);
         await page.screenshot({ path: resolve(targetDir, "local.png"), clip });
       } catch (error) {
-        console.warn(`  local screenshot failed for ${entry.exportName}:`, (error as Error).message);
+        console.warn(
+          `  local screenshot failed for ${entry.exportName}:`,
+          (error as Error).message,
+        );
       } finally {
         await page.close();
       }
 
       if (!entry.refUrl) {
-        console.warn(`  ${entry.exportName}: no reference URL recorded, skipping reference screenshot`);
+        console.warn(
+          `  ${entry.exportName}: no reference URL recorded, skipping reference screenshot`,
+        );
         continue;
       }
 
       const referencePath = resolve(targetDir, "reference.png");
       if (!refreshReference && (await fileExists(referencePath))) {
-        console.log(`  ${entry.exportName}: reusing cached reference.png (pass --refresh-reference to re-fetch)`);
+        console.log(
+          `  ${entry.exportName}: reusing cached reference.png (pass --refresh-reference to re-fetch)`,
+        );
         continue;
       }
 
-      const refPage = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+      const refPage = await browser.newPage({
+        viewport: { width: 1280, height: 900 },
+      });
       try {
         // "networkidle" never fires on sites with persistent background
         // activity (analytics beacons, live-reload sockets, etc.) — "load"
@@ -145,7 +186,10 @@ async function main() {
         await refPage.waitForTimeout(500);
         await refPage.screenshot({ path: referencePath, fullPage: false });
       } catch (error) {
-        console.warn(`  reference screenshot failed for ${entry.exportName} (${entry.refUrl}):`, (error as Error).message);
+        console.warn(
+          `  reference screenshot failed for ${entry.exportName} (${entry.refUrl}):`,
+          (error as Error).message,
+        );
       } finally {
         await refPage.close();
       }

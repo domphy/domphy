@@ -4,7 +4,14 @@
 // screenshot/preserveDrawingBuffer workaround is needed) at two points in
 // time ~500ms apart and asserts they differ, proving the ambient drift loop
 // is actually animating rather than a frozen first frame.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();

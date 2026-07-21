@@ -3,7 +3,14 @@
 // the text actually scrambles (not a no-op), then waits past the component's
 // own `duration` (default 800ms) and asserts the FINAL settled text matches
 // the intended phrase (see src/magicui/text/hyperText.ts's `play()`).
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 const EXPECTED_TEXT = "Hover to Decode"; // hyperText()'s own default `children`
 const DURATION_MS = 800; // hyperText()'s own default `duration`
@@ -20,7 +27,9 @@ async function main() {
   const wrapper = await locate(page, "hyperText");
   const root = wrapper.locator(".block-box > *").first();
 
-  const textBeforeHover = normalizeNbsp(await root.evaluate((element) => element.textContent));
+  const textBeforeHover = normalizeNbsp(
+    await root.evaluate((element) => element.textContent),
+  );
   report(
     "hyperText: renders the intended phrase before any hover (resting state)",
     textBeforeHover === EXPECTED_TEXT,
@@ -32,7 +41,9 @@ async function main() {
   // before `duration` completes) — the not-yet-locked characters should read
   // as random noise, i.e. different from the resolved phrase.
   await page.waitForTimeout(DURATION_MS * 0.35);
-  const textMidScramble = normalizeNbsp(await root.evaluate((element) => element.textContent));
+  const textMidScramble = normalizeNbsp(
+    await root.evaluate((element) => element.textContent),
+  );
   report(
     "hyperText: text actually scrambles mid-animation (differs from the resolved phrase)",
     textMidScramble !== EXPECTED_TEXT,
@@ -40,7 +51,9 @@ async function main() {
   );
 
   await page.waitForTimeout(DURATION_MS * 0.85); // past the remaining duration, with margin
-  const textAfterSettle = normalizeNbsp(await root.evaluate((element) => element.textContent));
+  const textAfterSettle = normalizeNbsp(
+    await root.evaluate((element) => element.textContent),
+  );
   report(
     "hyperText: FINAL settled text matches the intended phrase after the scramble finishes",
     textAfterSettle === EXPECTED_TEXT,

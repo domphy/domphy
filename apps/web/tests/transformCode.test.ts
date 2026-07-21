@@ -14,7 +14,9 @@ describe("transformCode", () => {
     const output = transformCode(
       `import * as domphyThree from "@domphy/three";\nimport { toState } from "@domphy/core";\nimport page from "page";\nexport default { domphyThree, toState, page };\n`,
     );
-    expect(output).toContain("const domphyThree = __modules__['@domphy/three']");
+    expect(output).toContain(
+      "const domphyThree = __modules__['@domphy/three']",
+    );
     expect(output).toContain("const { toState } = __modules__['@domphy/core']");
     expect(output).toContain(
       "const page = __modules__['page'].default ?? __modules__['page']",

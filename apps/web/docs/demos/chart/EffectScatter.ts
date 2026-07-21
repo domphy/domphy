@@ -1,15 +1,15 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 const cities = [
-  { name: "New York",   value: [-74.0,  40.7, 18] },
-  { name: "London",     value: [ -0.1,  51.5, 15] },
-  { name: "Tokyo",      value: [139.7,  35.7, 20] },
-  { name: "Mumbai",     value: [ 72.8,  18.9, 16] },
-  { name: "São Paulo",  value: [-46.6, -23.5, 14] },
-  { name: "Shanghai",   value: [121.5,  31.2, 17] },
-  { name: "Cairo",      value: [ 31.2,  30.1, 13] },
+  { name: "New York", value: [-74.0, 40.7, 18] },
+  { name: "London", value: [-0.1, 51.5, 15] },
+  { name: "Tokyo", value: [139.7, 35.7, 20] },
+  { name: "Mumbai", value: [72.8, 18.9, 16] },
+  { name: "São Paulo", value: [-46.6, -23.5, 14] },
+  { name: "Shanghai", value: [121.5, 31.2, 17] },
+  { name: "Cairo", value: [31.2, 30.1, 13] },
 ];
 
 const option: ChartOption = {

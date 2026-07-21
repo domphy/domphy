@@ -7,7 +7,14 @@
 // icon-rail collapse — its own toggle button (in the shared sticky content
 // header) fully hides it (width -> 0), not a Ctrl/Cmd+B shortcut (none is
 // wired for this variant).
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -23,8 +30,12 @@ async function main() {
     .filter({ hasText: "Building Your Application" })
     .first();
 
-  const gettingStartedOpen = await gettingStarted.evaluate((el) => (el as HTMLDetailsElement).open);
-  const buildingOpenBefore = await building.evaluate((el) => (el as HTMLDetailsElement).open);
+  const gettingStartedOpen = await gettingStarted.evaluate(
+    (el) => (el as HTMLDetailsElement).open,
+  );
+  const buildingOpenBefore = await building.evaluate(
+    (el) => (el as HTMLDetailsElement).open,
+  );
   report(
     "sidebar05: 'Getting Started' starts open (defaultOpen: true), 'Building Your Application' starts closed",
     gettingStartedOpen === true && buildingOpenBefore === false,
@@ -33,15 +44,22 @@ async function main() {
 
   await building.locator("summary").first().click();
   await page.waitForTimeout(150);
-  const buildingOpenAfter = await building.evaluate((el) => (el as HTMLDetailsElement).open);
-  const gettingStartedStillOpen = await gettingStarted.evaluate((el) => (el as HTMLDetailsElement).open);
+  const buildingOpenAfter = await building.evaluate(
+    (el) => (el as HTMLDetailsElement).open,
+  );
+  const gettingStartedStillOpen = await gettingStarted.evaluate(
+    (el) => (el as HTMLDetailsElement).open,
+  );
   report(
     "sidebar05: opening 'Building Your Application' does not close the already-open 'Getting Started' (independent accordions)",
     buildingOpenAfter === true && gettingStartedStillOpen === true,
     `buildingOpen=${buildingOpenAfter} gettingStartedOpen=${gettingStartedStillOpen}`,
   );
 
-  const routingVisible = await building.locator("ul li a", { hasText: "Routing" }).first().isVisible();
+  const routingVisible = await building
+    .locator("ul li a", { hasText: "Routing" })
+    .first()
+    .isVisible();
   report(
     "sidebar05: the newly-opened group's 'Routing' child link is now visible",
     routingVisible === true,
@@ -49,11 +67,17 @@ async function main() {
   );
 
   const aside = page.locator('[data-block="sidebar05"] aside').first();
-  const toggleButton = page.locator('[data-block="sidebar05"] main header button').first();
-  const expandedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const toggleButton = page
+    .locator('[data-block="sidebar05"] main header button')
+    .first();
+  const expandedWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
   await toggleButton.click();
   await page.waitForTimeout(300);
-  const collapsedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const collapsedWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
   report(
     "sidebar05: the header toggle button fully collapses the sidebar (width -> ~0), not to an icon rail",
     expandedWidth > 200 && collapsedWidth < 5,
@@ -62,7 +86,9 @@ async function main() {
 
   await toggleButton.click();
   await page.waitForTimeout(300);
-  const reExpandedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const reExpandedWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
   report(
     "sidebar05: clicking the toggle button again restores the full width",
     reExpandedWidth > 200,

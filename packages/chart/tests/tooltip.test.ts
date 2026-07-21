@@ -30,7 +30,9 @@ describe("tooltip default formatter escapes caller-controlled data", () => {
       visible: true,
       x: 0,
       y: 0,
-      params: [makeParams({ seriesName: '<img src=x onerror=alert(1)>', value: 42 })],
+      params: [
+        makeParams({ seriesName: "<img src=x onerror=alert(1)>", value: 42 }),
+      ],
     });
 
     const el = container.querySelector(".dc-tooltip")!;

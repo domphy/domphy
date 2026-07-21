@@ -1,6 +1,6 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 const option: ChartOption = {
   legend: {},
@@ -10,7 +10,16 @@ const option: ChartOption = {
   },
   xAxis: {
     type: "category",
-    data: ["Q1 2023", "Q2 2023", "Q3 2023", "Q4 2023", "Q1 2024", "Q2 2024", "Q3 2024", "Q4 2024"],
+    data: [
+      "Q1 2023",
+      "Q2 2023",
+      "Q3 2023",
+      "Q4 2023",
+      "Q1 2024",
+      "Q2 2024",
+      "Q3 2024",
+      "Q4 2024",
+    ],
   },
   yAxis: {
     type: "value",

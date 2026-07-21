@@ -1,4 +1,9 @@
-import { calcDeltaE2000, generateRamp, hexToRgb, rgbToLab } from "@domphy/palette";
+import {
+  calcDeltaE2000,
+  generateRamp,
+  hexToRgb,
+  rgbToLab,
+} from "@domphy/palette";
 import type { PartialThemeInput, ThemeInput } from "./types.js";
 
 export type GenerateThemeOptions = {

@@ -34,21 +34,21 @@ export function createLogScale(
     },
     invert(pixel: number) {
       const logVal = l0 + ((pixel - r0) / rangeSpan) * logSpan;
-      return Math.pow(base, logVal);
+      return base ** logVal;
     },
     ticks(count = 5) {
       const result: number[] = [];
       const start = Math.ceil(l0);
       const end = Math.floor(l1);
       for (let i = start; i <= end; i++) {
-        result.push(Math.pow(base, i));
+        result.push(base ** i);
       }
       // Add intermediate ticks if sparse
       if (result.length < count / 2 && count > 2) {
         const subs = [2, 3, 5];
         for (const s of subs) {
           for (let i = start - 1; i < end; i++) {
-            const val = s * Math.pow(base, i);
+            const val = s * base ** i;
             if (val >= d0 && val <= d1) result.push(val);
           }
         }
@@ -56,7 +56,9 @@ export function createLogScale(
       }
       return result.filter((v) => v >= d0 && v <= d1);
     },
-    bandwidth() { return 0; },
+    bandwidth() {
+      return 0;
+    },
     format(value: number) {
       const exp = Math.round(log(value));
       if (base === 10) return `10^${exp}`;

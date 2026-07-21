@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { ElementNode } from "@domphy/core";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChartEngine } from "../src/engine.ts";
 import { GaugeRenderer } from "../src/gl/GaugeRenderer.ts";
 import { chart } from "../src/patch.ts";
@@ -62,7 +63,16 @@ describe("ChartEngine series smoke (no real WebGL)", () => {
       option: {
         xAxis: { type: "value" },
         yAxis: { type: "value" },
-        series: [{ type: "scatter", data: [[1, 2], [3, 4], [5, 1]] }],
+        series: [
+          {
+            type: "scatter",
+            data: [
+              [1, 2],
+              [3, 4],
+              [5, 1],
+            ],
+          },
+        ],
       },
     },
     {
@@ -84,7 +94,15 @@ describe("ChartEngine series smoke (no real WebGL)", () => {
         xAxis: { type: "category", data: ["A", "B"] },
         yAxis: { type: "category", data: ["X", "Y"] },
         visualMap: { min: 0, max: 10 },
-        series: [{ type: "heatmap", data: [[0, 0, 5], [1, 1, 8]] }],
+        series: [
+          {
+            type: "heatmap",
+            data: [
+              [0, 0, 5],
+              [1, 1, 8],
+            ],
+          },
+        ],
       },
     },
     {
@@ -144,11 +162,7 @@ describe("ChartEngine series smoke (no real WebGL)", () => {
         series: [
           {
             type: "sankey",
-            data: [
-              { name: "A" },
-              { name: "B" },
-              { name: "C" },
-            ],
+            data: [{ name: "A" }, { name: "B" }, { name: "C" }],
             links: [
               { source: "A", target: "B", value: 5 },
               { source: "B", target: "C", value: 3 },

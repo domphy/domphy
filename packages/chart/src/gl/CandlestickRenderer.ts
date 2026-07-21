@@ -1,10 +1,10 @@
-import type { Device, Buffer, RenderPass } from "@luma.gl/core";
+import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
-import { BAR_VS, BAR_FS } from "./shaders/bar.glsl.js";
-import { AREA_VS, AREA_FS } from "./shaders/line.glsl.js";
-import type { CandlestickSeriesOption } from "../types.js";
 import type { AnyScale } from "../scale/index.js";
-import { seriesRgba, resolveColorSrc } from "./color.js";
+import type { CandlestickSeriesOption } from "../types.js";
+import { resolveColorSrc, seriesRgba } from "./color.js";
+import { BAR_FS, BAR_VS } from "./shaders/bar.glsl.js";
+import { AREA_FS, AREA_VS } from "./shaders/line.glsl.js";
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
   (model as any).props.uniforms = uniforms;
@@ -24,7 +24,10 @@ export class CandlestickRenderer {
   private ensureBodyModel(): Model {
     if (this.bodyModel) return this.bodyModel;
     const quadVerts = new Float32Array([0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1]);
-    this.quadVbo = this.device.createBuffer({ data: quadVerts, id: "candle-quad" });
+    this.quadVbo = this.device.createBuffer({
+      data: quadVerts,
+      id: "candle-quad",
+    });
     this.bodyModel = new Model(this.device, {
       vs: BAR_VS,
       fs: BAR_FS,
@@ -99,8 +102,14 @@ export class CandlestickRenderer {
       if (!xScale || !yScale) continue;
 
       // itemStyle.color = bullish (close >= open), itemStyle.color0 = bearish
-      const upColor = resolveColorSrc(s.itemStyle?.color ?? s.upColor, defaultUp);
-      const downColor = resolveColorSrc(s.itemStyle?.color0 ?? s.downColor, defaultDown);
+      const upColor = resolveColorSrc(
+        s.itemStyle?.color ?? s.upColor,
+        defaultUp,
+      );
+      const downColor = resolveColorSrc(
+        s.itemStyle?.color0 ?? s.downColor,
+        defaultDown,
+      );
 
       const bandwidth = xScale.bandwidth() * 0.7;
       const data = s.data ?? [];
@@ -112,7 +121,12 @@ export class CandlestickRenderer {
       data.forEach((item, index) => {
         const raw = Array.isArray(item) ? item : (item as any)?.value;
         if (!raw || raw.length < 4) return;
-        const [open, close, low, high] = raw as [number, number, number, number];
+        const [open, close, low, high] = raw as [
+          number,
+          number,
+          number,
+          number,
+        ];
         const isUp = close >= open;
         const color = isUp ? upColor : downColor;
 
@@ -124,34 +138,69 @@ export class CandlestickRenderer {
 
         const rectY = Math.min(yOpen, yClose);
         const rectH = Math.abs(yClose - yOpen) || 1;
-        bodyInstances.push(xCenter - bandwidth / 2, rectY, bandwidth, rectH, color[0], color[1], color[2], color[3], 0);
+        bodyInstances.push(
+          xCenter - bandwidth / 2,
+          rectY,
+          bandwidth,
+          rectH,
+          color[0],
+          color[1],
+          color[2],
+          color[3],
+          0,
+        );
         bodyCount++;
 
         const hw = 0.5;
         const wickVerts = isUp ? upWickVerts : downWickVerts;
         wickVerts.push(
-          xCenter - hw, yHigh, xCenter + hw, yHigh, xCenter - hw, yLow,
-          xCenter + hw, yHigh, xCenter + hw, yLow, xCenter - hw, yLow,
+          xCenter - hw,
+          yHigh,
+          xCenter + hw,
+          yHigh,
+          xCenter - hw,
+          yLow,
+          xCenter + hw,
+          yHigh,
+          xCenter + hw,
+          yLow,
+          xCenter - hw,
+          yLow,
         );
       });
 
       if (bodyCount > 0) {
-        const instanceBuffer = this.device.createBuffer({ data: new Float32Array(bodyInstances), id: "candle-bodies" });
+        const instanceBuffer = this.device.createBuffer({
+          data: new Float32Array(bodyInstances),
+          id: "candle-bodies",
+        });
         this.buffers.push(instanceBuffer);
-        bodyModel.setAttributes({ position: this.quadVbo!, instanceData: instanceBuffer });
+        bodyModel.setAttributes({
+          position: this.quadVbo!,
+          instanceData: instanceBuffer,
+        });
         bodyModel.setVertexCount(6);
         bodyModel.setInstanceCount(bodyCount);
         setUniforms(bodyModel, { uResolution: [width, height] });
         bodyModel.draw(renderPass);
       }
 
-      for (const [verts, color] of [[upWickVerts, upColor], [downWickVerts, downColor]] as const) {
+      for (const [verts, color] of [
+        [upWickVerts, upColor],
+        [downWickVerts, downColor],
+      ] as const) {
         if (verts.length > 0) {
-          const buffer = this.device.createBuffer({ data: new Float32Array(verts), id: "candle-wick" });
+          const buffer = this.device.createBuffer({
+            data: new Float32Array(verts),
+            id: "candle-wick",
+          });
           this.buffers.push(buffer);
           wickModel.setAttributes({ aPosition: buffer });
           wickModel.setVertexCount(verts.length / 2);
-          setUniforms(wickModel, { uResolution: [width, height], uColor: color });
+          setUniforms(wickModel, {
+            uResolution: [width, height],
+            uColor: color,
+          });
           wickModel.draw(renderPass);
         }
       }

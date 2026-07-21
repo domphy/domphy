@@ -4,7 +4,14 @@
 // "inset" main panel whose margin shrinks in step with the sidebar's own
 // collapse transition — verified by checking the main panel's own left edge
 // moves closer to the aside once collapsed.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -20,8 +27,12 @@ async function main() {
     .filter({ hasText: "Models" })
     .first();
 
-  const playgroundOpen = await playgroundDetails.evaluate((el) => (el as HTMLDetailsElement).open);
-  const modelsOpenBefore = await modelsDetails.evaluate((el) => (el as HTMLDetailsElement).open);
+  const playgroundOpen = await playgroundDetails.evaluate(
+    (el) => (el as HTMLDetailsElement).open,
+  );
+  const modelsOpenBefore = await modelsDetails.evaluate(
+    (el) => (el as HTMLDetailsElement).open,
+  );
   report(
     "sidebar08: 'Playground' (has active child 'Starred') starts open, 'Models' starts closed",
     playgroundOpen === true && modelsOpenBefore === false,
@@ -30,8 +41,13 @@ async function main() {
 
   await modelsDetails.locator("summary").first().click();
   await page.waitForTimeout(150);
-  const modelsOpenAfter = await modelsDetails.evaluate((el) => (el as HTMLDetailsElement).open);
-  const genesisVisible = await modelsDetails.locator("ul li a", { hasText: "Genesis" }).first().isVisible();
+  const modelsOpenAfter = await modelsDetails.evaluate(
+    (el) => (el as HTMLDetailsElement).open,
+  );
+  const genesisVisible = await modelsDetails
+    .locator("ul li a", { hasText: "Genesis" })
+    .first()
+    .isVisible();
   report(
     "sidebar08: clicking 'Models' expands it and reveals the 'Genesis' child link",
     modelsOpenAfter === true && genesisVisible === true,
@@ -40,15 +56,25 @@ async function main() {
 
   const aside = page.locator('[data-block="sidebar08"] aside').first();
   const main = page.locator('[data-block="sidebar08"] main').first();
-  const toggleButton = page.locator('[data-block="sidebar08"] main header button').first();
+  const toggleButton = page
+    .locator('[data-block="sidebar08"] main header button')
+    .first();
 
-  const expandedAsideWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
-  const mainLeftBefore = await main.evaluate((el) => el.getBoundingClientRect().left);
+  const expandedAsideWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
+  const mainLeftBefore = await main.evaluate(
+    (el) => el.getBoundingClientRect().left,
+  );
 
   await toggleButton.click();
   await page.waitForTimeout(300);
-  const collapsedAsideWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
-  const mainLeftAfter = await main.evaluate((el) => el.getBoundingClientRect().left);
+  const collapsedAsideWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
+  const mainLeftAfter = await main.evaluate(
+    (el) => el.getBoundingClientRect().left,
+  );
   report(
     "sidebar08: the header toggle button collapses the aside to the icon rail",
     collapsedAsideWidth < expandedAsideWidth / 2,
@@ -62,7 +88,9 @@ async function main() {
 
   await page.keyboard.press("Control+b");
   await page.waitForTimeout(300);
-  const reExpandedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const reExpandedWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
   report(
     "sidebar08: the window-level Ctrl+B shortcut re-expands the aside back to full width",
     reExpandedWidth > collapsedAsideWidth * 2,

@@ -1,6 +1,6 @@
 import { themeColorToken } from "@domphy/theme";
-import type { AxisOption, ChartRect } from "../types.js";
 import type { AnyScale } from "../scale/index.js";
+import type { AxisOption, ChartRect } from "../types.js";
 
 export interface AxisSvgOptions {
   gridRect: ChartRect;
@@ -20,7 +20,10 @@ const colorMinor = () => themeColorToken(null, "shift-1", "neutral");
 
 // ─── SVG element factory helpers ──────────────────────────────────────────────
 
-function svgEl(tag: string, attrs: Record<string, string | number>): SVGElement {
+function svgEl(
+  tag: string,
+  attrs: Record<string, string | number>,
+): SVGElement {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [k, v] of Object.entries(attrs)) {
     el.setAttribute(k, String(v));
@@ -28,19 +31,34 @@ function svgEl(tag: string, attrs: Record<string, string | number>): SVGElement 
   return el;
 }
 
-function svgText(content: string, x: number, y: number, attrs: Record<string, string | number> = {}): SVGTextElement {
+function svgText(
+  content: string,
+  x: number,
+  y: number,
+  attrs: Record<string, string | number> = {},
+): SVGTextElement {
   const el = svgEl("text", { x, y, ...attrs }) as SVGTextElement;
   el.textContent = content;
   return el;
 }
 
-function svgLine(x1: number, y1: number, x2: number, y2: number, attrs: Record<string, string | number> = {}): SVGLineElement {
+function svgLine(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  attrs: Record<string, string | number> = {},
+): SVGLineElement {
   return svgEl("line", { x1, y1, x2, y2, ...attrs }) as SVGLineElement;
 }
 
 // ─── Axis rendering ───────────────────────────────────────────────────────────
 
-export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions, gridSvg?: SVGSVGElement): void {
+export function renderAxes(
+  svg: SVGSVGElement,
+  options: AxisSvgOptions,
+  gridSvg?: SVGSVGElement,
+): void {
   // Remove any existing axes group
   const old = svg.querySelector(".dc-axes");
   if (old) old.remove();
@@ -68,11 +86,12 @@ export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions, gridSvg?
 
     // Axis line
     if (axis.axisLine?.show !== false) {
-      group.appendChild(svgLine(
-        gridRect.x, finalY,
-        gridRect.x + gridRect.width, finalY,
-        { stroke: axisColor, "stroke-width": axis.axisLine?.lineStyle?.width ?? 1 },
-      ));
+      group.appendChild(
+        svgLine(gridRect.x, finalY, gridRect.x + gridRect.width, finalY, {
+          stroke: axisColor,
+          "stroke-width": axis.axisLine?.lineStyle?.width ?? 1,
+        }),
+      );
     }
 
     // Grid lines (vertical)
@@ -80,9 +99,13 @@ export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions, gridSvg?
 
     // Compute label skip interval to avoid crowding on dense ordinal axes
     const estLabelPx = 40;
-    const labelInterval = (scale.type === "ordinal" && axis.axisLabel?.interval === undefined)
-      ? Math.max(1, Math.ceil(ticks.length * estLabelPx / (gridRect.width || 1)))
-      : 1;
+    const labelInterval =
+      scale.type === "ordinal" && axis.axisLabel?.interval === undefined
+        ? Math.max(
+            1,
+            Math.ceil((ticks.length * estLabelPx) / (gridRect.width || 1)),
+          )
+        : 1;
 
     for (let ti = 0; ti < ticks.length; ti++) {
       const tick = ticks[ti];
@@ -90,20 +113,26 @@ export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions, gridSvg?
       if (tickX < gridRect.x || tickX > gridRect.x + gridRect.width) continue;
 
       if (axis.splitLine?.show !== false) {
-        gridGroup.appendChild(svgLine(
-          tickX, gridRect.y,
-          tickX, gridRect.y + gridRect.height,
-          { stroke: gridColor, "stroke-width": 1, "stroke-dasharray": "none" },
-        ));
+        gridGroup.appendChild(
+          svgLine(tickX, gridRect.y, tickX, gridRect.y + gridRect.height, {
+            stroke: gridColor,
+            "stroke-width": 1,
+            "stroke-dasharray": "none",
+          }),
+        );
       }
 
       if (axis.axisTick?.show !== false) {
         const tickLen = axis.axisTick?.length ?? 5;
-        group.appendChild(svgLine(
-          tickX, finalY,
-          tickX, finalY + (isBottom ? tickLen : -tickLen),
-          { stroke: axisColor, "stroke-width": 1 },
-        ));
+        group.appendChild(
+          svgLine(
+            tickX,
+            finalY,
+            tickX,
+            finalY + (isBottom ? tickLen : -tickLen),
+            { stroke: axisColor, "stroke-width": 1 },
+          ),
+        );
       }
 
       if (axis.axisLabel?.show !== false && ti % labelInterval === 0) {
@@ -116,7 +145,10 @@ export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions, gridSvg?
           "dominant-baseline": isBottom ? "hanging" : "auto",
         });
         if (axis.axisLabel?.rotate) {
-          textEl.setAttribute("transform", `rotate(${axis.axisLabel.rotate},${tickX},${labelY})`);
+          textEl.setAttribute(
+            "transform",
+            `rotate(${axis.axisLabel.rotate},${tickX},${labelY})`,
+          );
         }
         group.appendChild(textEl);
       }
@@ -124,16 +156,21 @@ export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions, gridSvg?
 
     // Axis name
     if (axis.name) {
-      const nameX = axis.nameLocation === "start" ? gridRect.x
-        : axis.nameLocation === "end" ? gridRect.x + gridRect.width
-        : gridRect.x + gridRect.width / 2;
+      const nameX =
+        axis.nameLocation === "start"
+          ? gridRect.x
+          : axis.nameLocation === "end"
+            ? gridRect.x + gridRect.width
+            : gridRect.x + gridRect.width / 2;
       const nameY = finalY + (isBottom ? 36 : -28);
-      group.appendChild(svgText(axis.name, nameX, nameY, {
-        fill: labelColor,
-        "text-anchor": "middle",
-        "font-size": 12,
-        "font-weight": "600",
-      }));
+      group.appendChild(
+        svgText(axis.name, nameX, nameY, {
+          fill: labelColor,
+          "text-anchor": "middle",
+          "font-size": 12,
+          "font-weight": "600",
+        }),
+      );
     }
   });
 
@@ -148,11 +185,12 @@ export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions, gridSvg?
     const finalX = axisX + (isLeft ? -offset : offset);
 
     if (axis.axisLine?.show !== false) {
-      group.appendChild(svgLine(
-        finalX, gridRect.y,
-        finalX, gridRect.y + gridRect.height,
-        { stroke: axisColor, "stroke-width": axis.axisLine?.lineStyle?.width ?? 1 },
-      ));
+      group.appendChild(
+        svgLine(finalX, gridRect.y, finalX, gridRect.y + gridRect.height, {
+          stroke: axisColor,
+          "stroke-width": axis.axisLine?.lineStyle?.width ?? 1,
+        }),
+      );
     }
 
     const ticks = scale.ticks(6);
@@ -161,31 +199,38 @@ export function renderAxes(svg: SVGSVGElement, options: AxisSvgOptions, gridSvg?
       if (tickY < gridRect.y || tickY > gridRect.y + gridRect.height) continue;
 
       if (axis.splitLine?.show !== false) {
-        gridGroup.appendChild(svgLine(
-          gridRect.x, tickY,
-          gridRect.x + gridRect.width, tickY,
-          { stroke: gridColor, "stroke-width": 1 },
-        ));
+        gridGroup.appendChild(
+          svgLine(gridRect.x, tickY, gridRect.x + gridRect.width, tickY, {
+            stroke: gridColor,
+            "stroke-width": 1,
+          }),
+        );
       }
 
       if (axis.axisTick?.show !== false) {
         const tickLen = axis.axisTick?.length ?? 5;
-        group.appendChild(svgLine(
-          finalX, tickY,
-          finalX + (isLeft ? -tickLen : tickLen), tickY,
-          { stroke: axisColor, "stroke-width": 1 },
-        ));
+        group.appendChild(
+          svgLine(
+            finalX,
+            tickY,
+            finalX + (isLeft ? -tickLen : tickLen),
+            tickY,
+            { stroke: axisColor, "stroke-width": 1 },
+          ),
+        );
       }
 
       if (axis.axisLabel?.show !== false) {
         const labelX = finalX + (isLeft ? -10 : 10);
         const label = scale.format(tick as any);
-        group.appendChild(svgText(label, labelX, tickY, {
-          fill: labelColor,
-          "text-anchor": isLeft ? "end" : "start",
-          "font-size": 11,
-          "dominant-baseline": "middle",
-        }));
+        group.appendChild(
+          svgText(label, labelX, tickY, {
+            fill: labelColor,
+            "text-anchor": isLeft ? "end" : "start",
+            "font-size": 11,
+            "dominant-baseline": "middle",
+          }),
+        );
       }
     }
 
@@ -233,18 +278,24 @@ export function renderAxisPointer(
     group.appendChild(shadow);
   } else {
     if (pixelX !== null) {
-      group.appendChild(svgLine(
-        pixelX, gridRect.y,
-        pixelX, gridRect.y + gridRect.height,
-        { stroke: pointerColor, "stroke-width": 1, "stroke-dasharray": "4,3", opacity: 0.7 },
-      ));
+      group.appendChild(
+        svgLine(pixelX, gridRect.y, pixelX, gridRect.y + gridRect.height, {
+          stroke: pointerColor,
+          "stroke-width": 1,
+          "stroke-dasharray": "4,3",
+          opacity: 0.7,
+        }),
+      );
     }
     if (pixelY !== null) {
-      group.appendChild(svgLine(
-        gridRect.x, pixelY,
-        gridRect.x + gridRect.width, pixelY,
-        { stroke: pointerColor, "stroke-width": 1, "stroke-dasharray": "4,3", opacity: 0.7 },
-      ));
+      group.appendChild(
+        svgLine(gridRect.x, pixelY, gridRect.x + gridRect.width, pixelY, {
+          stroke: pointerColor,
+          "stroke-width": 1,
+          "stroke-dasharray": "4,3",
+          opacity: 0.7,
+        }),
+      );
     }
   }
   svg.appendChild(group);

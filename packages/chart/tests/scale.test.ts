@@ -33,7 +33,8 @@ describe("createLinearScale", () => {
     const scale = createLinearScale([0, 100], [0, 200]);
     const ticks = scale.ticks(5);
     expect(ticks).toEqual([0, 20, 40, 60, 80, 100]);
-    for (let i = 1; i < ticks.length; i++) expect(ticks[i]).toBeGreaterThan(ticks[i - 1]);
+    for (let i = 1; i < ticks.length; i++)
+      expect(ticks[i]).toBeGreaterThan(ticks[i - 1]);
   });
 
   it("bandwidth is always zero (continuous scale)", () => {
@@ -110,7 +111,10 @@ describe("createOrdinalScale", () => {
 });
 
 describe("createTimeScale", () => {
-  const domain: [string, string] = ["2024-01-01T00:00:00Z", "2024-01-05T00:00:00Z"];
+  const domain: [string, string] = [
+    "2024-01-01T00:00:00Z",
+    "2024-01-05T00:00:00Z",
+  ];
 
   it("maps domain endpoints to range endpoints and inverts back", () => {
     const scale = createTimeScale(domain, [0, 400]);
@@ -127,8 +131,12 @@ describe("createTimeScale", () => {
     expect(ticks.length).toBeGreaterThan(0);
     const dayMs = 86400000;
     for (const tick of ticks) {
-      expect(tick.getTime()).toBeGreaterThanOrEqual(new Date(domain[0]).getTime() - dayMs);
-      expect(tick.getTime()).toBeLessThanOrEqual(new Date(domain[1]).getTime() + dayMs);
+      expect(tick.getTime()).toBeGreaterThanOrEqual(
+        new Date(domain[0]).getTime() - dayMs,
+      );
+      expect(tick.getTime()).toBeLessThanOrEqual(
+        new Date(domain[1]).getTime() + dayMs,
+      );
     }
     for (let i = 1; i < ticks.length; i++) {
       expect(ticks[i].getTime()).toBeGreaterThan(ticks[i - 1].getTime());

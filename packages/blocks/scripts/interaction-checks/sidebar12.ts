@@ -2,7 +2,14 @@
 // date-picker + grouped checkbox calendar lists): toggling a calendar entry's
 // checkbox, navigating months, and selecting a day must all actually update
 // state (not just render inertly).
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main(): Promise<void> {
   const { demoUrl } = await boot();
@@ -33,23 +40,29 @@ async function main(): Promise<void> {
     );
 
     // Reset to October and select a day cell in the always-visible mini picker.
-    await block.locator('button', { hasText: "Today" }).click();
+    await block.locator("button", { hasText: "Today" }).click();
     await page.waitForTimeout(150);
-    const dayCell = block.locator('button[aria-selected]', { hasText: /^20$/ }).first();
+    const dayCell = block
+      .locator("button[aria-selected]", { hasText: /^20$/ })
+      .first();
     const selectedBefore = await dayCell.getAttribute("aria-selected");
     await dayCell.click();
     await page.waitForTimeout(150);
     const selectedAfter = await dayCell.getAttribute("aria-selected");
-    const fifteenCell = block.locator('button', { hasText: /^15$/ }).first();
+    const fifteenCell = block.locator("button", { hasText: /^15$/ }).first();
     const fifteenAfter = await fifteenCell.getAttribute("aria-selected");
     report(
       "sidebar12: clicking a day cell moves the selected-day state",
-      selectedBefore === "false" && selectedAfter === "true" && fifteenAfter === "false",
+      selectedBefore === "false" &&
+        selectedAfter === "true" &&
+        fifteenAfter === "false",
       `day 20: ${selectedBefore}->${selectedAfter}; day 15 after=${fifteenAfter}`,
     );
 
     // Calendar-entry checkbox toggle (first group starts expanded by default).
-    const personalCheckbox = block.locator('label:has-text("Personal") input[type="checkbox"]');
+    const personalCheckbox = block.locator(
+      'label:has-text("Personal") input[type="checkbox"]',
+    );
     const checkedBefore = await personalCheckbox.isChecked();
     await personalCheckbox.click();
     await page.waitForTimeout(100);

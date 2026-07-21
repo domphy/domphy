@@ -1,5 +1,5 @@
-import { ElementNode } from "@domphy/core";
 import type { DomphyElement } from "@domphy/core";
+import { ElementNode } from "@domphy/core";
 import { themeApply } from "@domphy/theme";
 import * as blocks from "./src/index.js";
 
@@ -58,7 +58,10 @@ function mount(
 }
 
 const entries = Object.entries(blocks as Record<string, unknown>)
-  .filter((entry): entry is [string, () => DomphyElement] => typeof entry[1] === "function")
+  .filter(
+    (entry): entry is [string, () => DomphyElement] =>
+      typeof entry[1] === "function",
+  )
   .sort(([a], [b]) => a.localeCompare(b));
 
 const mounted = new Set<string>();
@@ -70,7 +73,9 @@ const observer = new IntersectionObserver(
       if (mounted.has(name)) continue;
       mounted.add(name);
       observer.unobserve(observed.target);
-      const factory = blocks[name as keyof typeof blocks] as unknown as () => DomphyElement;
+      const factory = blocks[
+        name as keyof typeof blocks
+      ] as unknown as () => DomphyElement;
       const box = observed.target.querySelector(".block-box") as HTMLElement;
       mount(name, factory, box);
     }
@@ -93,10 +98,9 @@ for (const [name, factory] of entries) {
 // The optional `props` argument lets interaction-check scripts exercise a
 // prop that's off by default in the demo's zero-arg render (e.g.
 // stickyBanner's `hideOnScroll`) without needing a second bespoke mount path.
-(window as unknown as { mountBlock: (name: string, props?: unknown) => void }).mountBlock = (
-  name: string,
-  props?: unknown,
-) => {
+(
+  window as unknown as { mountBlock: (name: string, props?: unknown) => void }
+).mountBlock = (name: string, props?: unknown) => {
   if (mounted.has(name)) return;
   const factory = blocks[name as keyof typeof blocks] as unknown as
     | ((props?: unknown) => DomphyElement)
@@ -116,9 +120,10 @@ for (const [name, factory] of entries) {
 // placeholder text with real (differently-sized) content and shifting the
 // target block's position between when its clip rect is measured and when
 // the screenshot actually fires.
-(window as unknown as { disconnectLazyMount: () => void }).disconnectLazyMount = () => {
-  observer.disconnect();
-};
+(window as unknown as { disconnectLazyMount: () => void }).disconnectLazyMount =
+  () => {
+    observer.disconnect();
+  };
 
 // Exposed for interaction-check scripts that need to exercise a NON-default
 // prop combination the default-props demo instance can't reach (e.g.
@@ -127,12 +132,18 @@ for (const [name, factory] of entries) {
 // `<body>`, entirely separate from the default-props instance `mountBlock()`
 // already rendered — so it doesn't disturb whatever the harness is asserting
 // against that one.
-(window as unknown as { mountBlockWithProps: (name: string, elementId: string, props: unknown) => void }).mountBlockWithProps = (
-  name: string,
-  elementId: string,
-  props: unknown,
-) => {
-  const factory = blocks[name as keyof typeof blocks] as unknown as ((p: unknown) => DomphyElement) | undefined;
+(
+  window as unknown as {
+    mountBlockWithProps: (
+      name: string,
+      elementId: string,
+      props: unknown,
+    ) => void;
+  }
+).mountBlockWithProps = (name: string, elementId: string, props: unknown) => {
+  const factory = blocks[name as keyof typeof blocks] as unknown as
+    | ((p: unknown) => DomphyElement)
+    | undefined;
   if (!factory) return;
   const container = document.createElement("div");
   container.id = elementId;
@@ -140,4 +151,6 @@ for (const [name, factory] of entries) {
   new ElementNode(factory(props)).render(container);
 };
 
-console.log(`[demo] ${entries.length} blocks registered (lazy-mount on scroll into view)`);
+console.log(
+  `[demo] ${entries.length} blocks registered (lazy-mount on scroll into view)`,
+);

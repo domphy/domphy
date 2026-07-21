@@ -1,10 +1,9 @@
-import type { Device, RenderPass } from "@luma.gl/core";
+import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
-import { BAR_VS, BAR_FS } from "./shaders/bar.glsl.js";
-import type { BarSeriesOption, ChartRect } from "../types.js";
 import type { AnyScale } from "../scale/index.js";
-import { seriesRgba, hexToRgba, resolveColorSrc } from "./color.js";
-import type { Buffer } from "@luma.gl/core";
+import type { BarSeriesOption, ChartRect } from "../types.js";
+import { hexToRgba, resolveColorSrc, seriesRgba } from "./color.js";
+import { BAR_FS, BAR_VS } from "./shaders/bar.glsl.js";
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
   (model as any).props.uniforms = uniforms;
@@ -22,11 +21,11 @@ export class BarRenderer {
 
   private ensureModel(): Model {
     if (this.model) return this.model;
-    const quadVerts = new Float32Array([
-      0, 0,  1, 0,  0, 1,
-      1, 0,  1, 1,  0, 1,
-    ]);
-    this.quadVbo = this.device.createBuffer({ data: quadVerts, id: "bar-quad" });
+    const quadVerts = new Float32Array([0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1]);
+    this.quadVbo = this.device.createBuffer({
+      data: quadVerts,
+      id: "bar-quad",
+    });
     this.model = new Model(this.device, {
       vs: BAR_VS,
       fs: BAR_FS,
@@ -103,28 +102,50 @@ export class BarRenderer {
       // Horizontal grouped bars
       const bandH = Math.abs(yScale.bandwidth());
       const groupCount = Math.max(1, grouped.length);
-      const groupBarH = groupCount > 1
-        ? (bandH * 0.85 - (groupCount - 1) * gap) / groupCount
-        : bandH * 0.65;
+      const groupBarH =
+        groupCount > 1
+          ? (bandH * 0.85 - (groupCount - 1) * gap) / groupCount
+          : bandH * 0.65;
       const totalGroupH = groupCount * groupBarH + (groupCount - 1) * gap;
       const baselineX = xScale.map(0);
 
       grouped.forEach((s, groupIndex) => {
-        const color = resolveColorSrc(s.color, seriesRgba(seriesOffset + series.indexOf(s)));
+        const color = resolveColorSrc(
+          s.color,
+          seriesRgba(seriesOffset + series.indexOf(s)),
+        );
         const data = s.data ?? [];
         data.forEach((item, dataIndex) => {
-          const rawValue = typeof item === "number" ? item
-            : Array.isArray(item) ? (item[1] as number)
-            : (typeof (item as any)?.value === "number" ? (item as any).value : null);
+          const rawValue =
+            typeof item === "number"
+              ? item
+              : Array.isArray(item)
+                ? (item[1] as number)
+                : typeof (item as any)?.value === "number"
+                  ? (item as any).value
+                  : null;
           if (rawValue === null) return;
 
           const yCenter = yScale.map(dataIndex);
           const xRight = xScale.map(rawValue);
           const rectX = Math.min(baselineX, xRight);
           const rectW = Math.abs(xRight - baselineX);
-          const rectY = yCenter - totalGroupH / 2 + groupIndex * (groupBarH + gap);
-          const c = (item as any)?.itemStyle?.color ? hexToRgba((item as any).itemStyle.color) : color;
-          allInstances.push(rectX, rectY, rectW, groupBarH, c[0], c[1], c[2], c[3], barRadius);
+          const rectY =
+            yCenter - totalGroupH / 2 + groupIndex * (groupBarH + gap);
+          const c = (item as any)?.itemStyle?.color
+            ? hexToRgba((item as any).itemStyle.color)
+            : color;
+          allInstances.push(
+            rectX,
+            rectY,
+            rectW,
+            groupBarH,
+            c[0],
+            c[1],
+            c[2],
+            c[3],
+            barRadius,
+          );
           barCount++;
         });
       });
@@ -133,12 +154,20 @@ export class BarRenderer {
       for (const [, stackSeries] of stacked) {
         const stackRights = new Map<number, number>();
         stackSeries.forEach((s) => {
-          const color = resolveColorSrc(s.color, seriesRgba(seriesOffset + series.indexOf(s)));
+          const color = resolveColorSrc(
+            s.color,
+            seriesRgba(seriesOffset + series.indexOf(s)),
+          );
           const data = s.data ?? [];
           data.forEach((item, dataIndex) => {
-            const rawValue = typeof item === "number" ? item
-              : Array.isArray(item) ? (item[1] as number)
-              : (typeof (item as any)?.value === "number" ? (item as any).value : null);
+            const rawValue =
+              typeof item === "number"
+                ? item
+                : Array.isArray(item)
+                  ? (item[1] as number)
+                  : typeof (item as any)?.value === "number"
+                    ? (item as any).value
+                    : null;
             if (rawValue === null) return;
 
             const prevRight = stackRights.get(dataIndex) ?? 0;
@@ -152,7 +181,17 @@ export class BarRenderer {
             const rectX = Math.min(xLeft, xRight);
             const rectW = Math.abs(xRight - xLeft);
             const rectY = yCenter - barH / 2;
-            allInstances.push(rectX, rectY, rectW, barH, color[0], color[1], color[2], color[3], barRadius);
+            allInstances.push(
+              rectX,
+              rectY,
+              rectW,
+              barH,
+              color[0],
+              color[1],
+              color[2],
+              color[3],
+              barRadius,
+            );
             barCount++;
           });
         });
@@ -161,29 +200,57 @@ export class BarRenderer {
       // Vertical bars (original behavior)
       const bandwidth = xScale.bandwidth();
       const groupCount = Math.max(1, grouped.length);
-      const groupBarWidth = groupCount > 1
-        ? (bandwidth * 0.85 - (groupCount - 1) * gap) / groupCount
-        : bandwidth * 0.65;
-      const totalGroupWidth = groupCount * groupBarWidth + (groupCount - 1) * gap;
+      const groupBarWidth =
+        groupCount > 1
+          ? (bandwidth * 0.85 - (groupCount - 1) * gap) / groupCount
+          : bandwidth * 0.65;
+      const totalGroupWidth =
+        groupCount * groupBarWidth + (groupCount - 1) * gap;
       const baselineY = yScale.map(0);
 
       grouped.forEach((s, groupIndex) => {
-        const color = resolveColorSrc(s.color, seriesRgba(seriesOffset + series.indexOf(s)));
+        const color = resolveColorSrc(
+          s.color,
+          seriesRgba(seriesOffset + series.indexOf(s)),
+        );
         const data = s.data ?? [];
         data.forEach((item, dataIndex) => {
-          const rawValue = typeof item === "number" ? item
-            : Array.isArray(item) ? (item[1] as number)
-            : (typeof (item as any)?.value === "number" ? (item as any).value : null);
+          const rawValue =
+            typeof item === "number"
+              ? item
+              : Array.isArray(item)
+                ? (item[1] as number)
+                : typeof (item as any)?.value === "number"
+                  ? (item as any).value
+                  : null;
           if (rawValue === null) return;
 
-          const xArg = typeof item === "number" ? dataIndex : Array.isArray(item) ? item[0] : dataIndex;
+          const xArg =
+            typeof item === "number"
+              ? dataIndex
+              : Array.isArray(item)
+                ? item[0]
+                : dataIndex;
           const xCenter = xScale.map(xArg as number);
           const yTop = yScale.map(rawValue);
-          const xLeft = xCenter - totalGroupWidth / 2 + groupIndex * (groupBarWidth + gap);
+          const xLeft =
+            xCenter - totalGroupWidth / 2 + groupIndex * (groupBarWidth + gap);
           const rectY = Math.min(yTop, baselineY);
           const rectH = Math.abs(baselineY - yTop);
-          const c = (item as any)?.itemStyle?.color ? hexToRgba((item as any).itemStyle.color) : color;
-          allInstances.push(xLeft, rectY, groupBarWidth, rectH, c[0], c[1], c[2], c[3], barRadius);
+          const c = (item as any)?.itemStyle?.color
+            ? hexToRgba((item as any).itemStyle.color)
+            : color;
+          allInstances.push(
+            xLeft,
+            rectY,
+            groupBarWidth,
+            rectH,
+            c[0],
+            c[1],
+            c[2],
+            c[3],
+            barRadius,
+          );
           barCount++;
         });
       });
@@ -191,25 +258,48 @@ export class BarRenderer {
       for (const [, stackSeries] of stacked) {
         const stackTops = new Map<number, number>();
         stackSeries.forEach((s) => {
-          const color = resolveColorSrc(s.color, seriesRgba(seriesOffset + series.indexOf(s)));
+          const color = resolveColorSrc(
+            s.color,
+            seriesRgba(seriesOffset + series.indexOf(s)),
+          );
           const data = s.data ?? [];
           data.forEach((item, dataIndex) => {
-            const rawValue = typeof item === "number" ? item
-              : Array.isArray(item) ? (item[1] as number)
-              : (typeof (item as any)?.value === "number" ? (item as any).value : null);
+            const rawValue =
+              typeof item === "number"
+                ? item
+                : Array.isArray(item)
+                  ? (item[1] as number)
+                  : typeof (item as any)?.value === "number"
+                    ? (item as any).value
+                    : null;
             if (rawValue === null) return;
 
             const prevTop = stackTops.get(dataIndex) ?? 0;
             const newTop = prevTop + rawValue;
             stackTops.set(dataIndex, newTop);
-            const xArg = typeof item === "number" ? dataIndex : Array.isArray(item) ? item[0] : dataIndex;
+            const xArg =
+              typeof item === "number"
+                ? dataIndex
+                : Array.isArray(item)
+                  ? item[0]
+                  : dataIndex;
             const xCenter = xScale.map(xArg as number);
-            const xLeft = xCenter - bandwidth * 0.85 / 2;
+            const xLeft = xCenter - (bandwidth * 0.85) / 2;
             const yTop = yScale.map(newTop);
             const yBottom = yScale.map(prevTop);
             const rectY = Math.min(yTop, yBottom);
             const rectH = Math.abs(yBottom - yTop);
-            allInstances.push(xLeft, rectY, bandwidth * 0.85, rectH, color[0], color[1], color[2], color[3], barRadius);
+            allInstances.push(
+              xLeft,
+              rectY,
+              bandwidth * 0.85,
+              rectH,
+              color[0],
+              color[1],
+              color[2],
+              color[3],
+              barRadius,
+            );
             barCount++;
           });
         });
@@ -218,10 +308,16 @@ export class BarRenderer {
 
     if (barCount === 0) return;
 
-    const instanceBuffer = this.device.createBuffer({ data: new Float32Array(allInstances), id: "bar-instances" });
+    const instanceBuffer = this.device.createBuffer({
+      data: new Float32Array(allInstances),
+      id: "bar-instances",
+    });
     this.instanceBuffers.push(instanceBuffer);
 
-    model.setAttributes({ position: this.quadVbo!, instanceData: instanceBuffer });
+    model.setAttributes({
+      position: this.quadVbo!,
+      instanceData: instanceBuffer,
+    });
     model.setVertexCount(6);
     model.setInstanceCount(barCount);
     setUniforms(model, { uResolution: [width, height] });

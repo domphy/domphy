@@ -8,7 +8,14 @@
 // sun/moon icon swap, driven by `display: theme.get() === visibleWhen ?
 // "flex" : "none"` — which is exactly what flips when `handleToggle()` calls
 // `theme.set(nextTheme)`.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();

@@ -1,6 +1,6 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 // OHLC format: [open, close, low, high]
 const dates: string[] = [];
@@ -54,7 +54,13 @@ const option: ChartOption = {
     trigger: "axis",
     axisPointer: { type: "cross" },
   },
-  grid: { left: "5%", right: "3%", top: "8%", bottom: "8%", containLabel: true },
+  grid: {
+    left: "5%",
+    right: "3%",
+    top: "8%",
+    bottom: "8%",
+    containLabel: true,
+  },
   xAxis: {
     type: "category",
     data: dates,

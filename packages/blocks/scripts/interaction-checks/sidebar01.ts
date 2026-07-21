@@ -5,7 +5,14 @@
 // `navGroupList` branch for `collapsibleSections: false` renders a plain
 // label + `<ul>`, not a `<details>`), so those two toggle paths are the only
 // real interactive contract this variant has.
-import { boot, locate, mountedPage, report, summarize, teardown } from "../interaction-harness.js";
+import {
+  boot,
+  locate,
+  mountedPage,
+  report,
+  summarize,
+  teardown,
+} from "../interaction-harness.js";
 
 async function main() {
   const { demoUrl } = await boot();
@@ -13,13 +20,19 @@ async function main() {
   await locate(page, "sidebar01");
 
   const aside = page.locator('[data-block="sidebar01"] aside').first();
-  const toggleButton = page.locator('[data-block="sidebar01"] main header button').first();
+  const toggleButton = page
+    .locator('[data-block="sidebar01"] main header button')
+    .first();
 
-  const expandedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const expandedWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
 
   await toggleButton.click();
   await page.waitForTimeout(300);
-  const collapsedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const collapsedWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
   report(
     "sidebar01: clicking the header toggle button collapses the aside to the icon rail",
     collapsedWidth < expandedWidth / 2,
@@ -28,7 +41,9 @@ async function main() {
 
   await page.keyboard.press("Control+b");
   await page.waitForTimeout(300);
-  const reExpandedWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const reExpandedWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
   report(
     "sidebar01: Ctrl+B re-expands the aside back to full width",
     reExpandedWidth > collapsedWidth * 2,
@@ -37,7 +52,9 @@ async function main() {
 
   await page.keyboard.press("Control+b");
   await page.waitForTimeout(300);
-  const collapsedAgainWidth = await aside.evaluate((el) => el.getBoundingClientRect().width);
+  const collapsedAgainWidth = await aside.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
   report(
     "sidebar01: a second Ctrl+B collapses it again (shortcut toggles both ways)",
     collapsedAgainWidth < reExpandedWidth / 2,

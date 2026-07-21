@@ -65,9 +65,7 @@ describe("popover after reactive-parent re-render (repro)", () => {
     const { host } = render({
       div: (l: any) => {
         refreshTrigger.get(l);
-        return [
-          { button: "Open", $: [popover({ content: { div: "Body" } })] },
-        ];
+        return [{ button: "Open", $: [popover({ content: { div: "Body" } })] }];
       },
     } as DomphyElement);
 
@@ -90,9 +88,7 @@ describe("popover after reactive-parent re-render (repro)", () => {
     const { host } = render({
       div: (l: any) => {
         refreshTrigger.get(l);
-        return [
-          { button: "Open", $: [popover({ content: { div: "Body" } })] },
-        ];
+        return [{ button: "Open", $: [popover({ content: { div: "Body" } })] }];
       },
     } as DomphyElement);
 
@@ -149,9 +145,7 @@ describe("popover after reactive-parent re-render (repro)", () => {
     const { host } = render({
       div: (l: any) => {
         refreshTrigger.get(l);
-        return [
-          { button: "Open", $: [popover({ content: { div: "Body" } })] },
-        ];
+        return [{ button: "Open", $: [popover({ content: { div: "Body" } })] }];
       },
     } as DomphyElement);
 
@@ -194,7 +188,10 @@ describe("popover teardown when the anchor is removed while open (repro)", () =>
           div: (l: any) =>
             items.get(l).map((id: number) => ({
               div: [
-                { button: `Open ${id}`, $: [popover({ content: { div: `Body ${id}` } })] },
+                {
+                  button: `Open ${id}`,
+                  $: [popover({ content: { div: `Body ${id}` } })],
+                },
               ],
               _key: id,
             })),
@@ -205,11 +202,15 @@ describe("popover teardown when the anchor is removed while open (repro)", () =>
     host.querySelector("button")!.click();
     vi.advanceTimersByTime(150);
     flushSync();
-    expect(host.querySelector("#domphy-floating")!.textContent).toContain("Body 1");
+    expect(host.querySelector("#domphy-floating")!.textContent).toContain(
+      "Body 1",
+    );
 
     items.set([]);
     flushSync();
-    expect(host.querySelector("#domphy-floating")!.textContent).not.toContain("Body 1");
+    expect(host.querySelector("#domphy-floating")!.textContent).not.toContain(
+      "Body 1",
+    );
   });
 
   it("removing the anchor after MULTIPLE reactive re-renders of its row still removes the CURRENTLY open floating panel", () => {
@@ -233,7 +234,10 @@ describe("popover teardown when the anchor is removed while open (repro)", () =>
             refreshTrigger.get(l);
             return items.get(l).map((id: number) => ({
               div: [
-                { button: `Open ${id}`, $: [popover({ content: { div: `Body ${id}` } })] },
+                {
+                  button: `Open ${id}`,
+                  $: [popover({ content: { div: `Body ${id}` } })],
+                },
               ],
               _key: id,
             }));
@@ -252,13 +256,17 @@ describe("popover teardown when the anchor is removed while open (repro)", () =>
     host.querySelector("button")!.click();
     vi.advanceTimersByTime(150);
     flushSync();
-    expect(host.querySelector("#domphy-floating")!.textContent).toContain("Body 1");
+    expect(host.querySelector("#domphy-floating")!.textContent).toContain(
+      "Body 1",
+    );
 
     // Real removal (not just a value change) — the exact "Remove" action
     // from a node's settings menu.
     items.set([]);
     flushSync();
-    expect(host.querySelector("#domphy-floating")!.textContent).not.toContain("Body 1");
+    expect(host.querySelector("#domphy-floating")!.textContent).not.toContain(
+      "Body 1",
+    );
   });
 });
 
@@ -279,7 +287,9 @@ describe("floating teardown when the anchor merely RE-RENDERS while a panel is o
         {
           div: (l: any) => {
             refreshTrigger.get(l);
-            return [{ button: "Hover me", $: [tooltip({ content: "Help text" })] }];
+            return [
+              { button: "Hover me", $: [tooltip({ content: "Help text" })] },
+            ];
           },
         },
       ],
@@ -288,7 +298,9 @@ describe("floating teardown when the anchor merely RE-RENDERS while a panel is o
     host.querySelector("button")!.dispatchEvent(new Event("mouseenter"));
     vi.advanceTimersByTime(150);
     flushSync();
-    expect(host.querySelector("#domphy-floating")!.textContent).toContain("Help text");
+    expect(host.querySelector("#domphy-floating")!.textContent).toContain(
+      "Help text",
+    );
 
     // Re-render WHILE the tooltip is open (mouse never left) — a fresh
     // closure on the same reused button.
@@ -296,13 +308,17 @@ describe("floating teardown when the anchor merely RE-RENDERS while a panel is o
     flushSync();
     // Still visible right after the re-render — this fix does not eagerly
     // close it, only when the new generation is actually interacted with.
-    expect(host.querySelector("#domphy-floating")!.textContent).toContain("Help text");
+    expect(host.querySelector("#domphy-floating")!.textContent).toContain(
+      "Help text",
+    );
 
     // mouseleave on the (live, rebound to the NEW closure) button.
     host.querySelector("button")!.dispatchEvent(new Event("mouseleave"));
     vi.advanceTimersByTime(150);
     flushSync();
-    expect(host.querySelector("#domphy-floating")!.textContent).not.toContain("Help text");
+    expect(host.querySelector("#domphy-floating")!.textContent).not.toContain(
+      "Help text",
+    );
   });
 
   it("popover: opening a NEW generation while an OLD generation's panel is still open closes the old one (no duplicate panels)", () => {
@@ -313,7 +329,9 @@ describe("floating teardown when the anchor merely RE-RENDERS while a panel is o
         {
           div: (l: any) => {
             refreshTrigger.get(l);
-            return [{ button: "Open", $: [popover({ content: { div: "Body" } })] }];
+            return [
+              { button: "Open", $: [popover({ content: { div: "Body" } })] },
+            ];
           },
         },
       ],
@@ -322,7 +340,9 @@ describe("floating teardown when the anchor merely RE-RENDERS while a panel is o
     host.querySelector("button")!.click();
     vi.advanceTimersByTime(150);
     flushSync();
-    expect(host.querySelectorAll("#domphy-floating [role=dialog]").length).toBe(1);
+    expect(host.querySelectorAll("#domphy-floating [role=dialog]").length).toBe(
+      1,
+    );
 
     // Re-render while open (fresh closure, same reused button), then open
     // via the new generation.
@@ -334,6 +354,8 @@ describe("floating teardown when the anchor merely RE-RENDERS while a panel is o
 
     // Exactly one panel — the stale generation's got torn down when the new
     // one was interacted with, not left stacked underneath it.
-    expect(host.querySelectorAll("#domphy-floating [role=dialog]").length).toBe(1);
+    expect(host.querySelectorAll("#domphy-floating [role=dialog]").length).toBe(
+      1,
+    );
   });
 });

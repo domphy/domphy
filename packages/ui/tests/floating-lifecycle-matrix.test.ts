@@ -9,7 +9,13 @@
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode, flushSync, toState } from "@domphy/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { combobox, datePicker, popover, selectBox, tooltip } from "../src/index.ts";
+import {
+  combobox,
+  datePicker,
+  popover,
+  selectBox,
+  tooltip,
+} from "../src/index.ts";
 
 if (!("ResizeObserver" in globalThis)) {
   (globalThis as any).ResizeObserver = class {
@@ -375,23 +381,33 @@ describe("floating a11y and theming", () => {
     const lightPanel = Array.from(overlay(host)!.children).find((child) =>
       child.textContent?.includes("LIGHT_PANEL"),
     )!;
-    expect(
-      lightPanel.closest("[data-theme]")?.getAttribute("data-theme"),
-    ).toBe("light");
+    expect(lightPanel.closest("[data-theme]")?.getAttribute("data-theme")).toBe(
+      "light",
+    );
   });
 });
 
 describe("floating listener hygiene", () => {
   it("popover: every root-level click listener added is removed when the anchor is removed", () => {
     vi.useFakeTimers();
-    const log: Array<{ op: "add" | "remove"; target: EventTarget; type: string }> = [];
+    const log: Array<{
+      op: "add" | "remove";
+      target: EventTarget;
+      type: string;
+    }> = [];
     const originalAdd = EventTarget.prototype.addEventListener;
     const originalRemove = EventTarget.prototype.removeEventListener;
-    EventTarget.prototype.addEventListener = function (type: string, ...rest: any[]) {
+    EventTarget.prototype.addEventListener = function (
+      type: string,
+      ...rest: any[]
+    ) {
       log.push({ op: "add", target: this, type });
       return (originalAdd as any).call(this, type, ...rest);
     };
-    EventTarget.prototype.removeEventListener = function (type: string, ...rest: any[]) {
+    EventTarget.prototype.removeEventListener = function (
+      type: string,
+      ...rest: any[]
+    ) {
       log.push({ op: "remove", target: this, type });
       return (originalRemove as any).call(this, type, ...rest);
     };
@@ -423,7 +439,9 @@ describe("floating listener hygiene", () => {
       items.set([]);
       flushSync();
 
-      const rootClicks = log.filter((e) => e.target === root && e.type === "click");
+      const rootClicks = log.filter(
+        (e) => e.target === root && e.type === "click",
+      );
       const adds = rootClicks.filter((e) => e.op === "add").length;
       const removes = rootClicks.filter((e) => e.op === "remove").length;
       expect(adds).toBeGreaterThan(0); // sanity: the outside-click handler was registered

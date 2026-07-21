@@ -6,7 +6,13 @@
 // resulting DOM/state actually changed as expected (not just "didn't throw").
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type Browser, type BrowserContext, type Locator, type Page, chromium } from "playwright";
+import {
+  type Browser,
+  type BrowserContext,
+  chromium,
+  type Locator,
+  type Page,
+} from "playwright";
 import { createServer, type ViteDevServer } from "vite";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -24,7 +30,9 @@ export function report(name: string, pass: boolean, detail: string): void {
 
 export function summarize(): never {
   const failed = results.filter((r) => !r.pass);
-  console.log(`\n${results.length - failed.length}/${results.length} checks passed.`);
+  console.log(
+    `\n${results.length - failed.length}/${results.length} checks passed.`,
+  );
   if (failed.length) {
     console.log("Failed:");
     for (const f of failed) console.log(`  - ${f.name}: ${f.detail}`);
@@ -62,12 +70,19 @@ export async function teardown(): Promise<void> {
  * log). If that lands between our readiness check and the next `evaluate`,
  * Playwright throws "execution context was destroyed" — just wait for the
  * page to settle again and retry once rather than failing the whole check. */
-async function retryAcrossReload<T>(page: Page, action: () => Promise<T>): Promise<T> {
+async function retryAcrossReload<T>(
+  page: Page,
+  action: () => Promise<T>,
+): Promise<T> {
   try {
     return await action();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (!/execution context was destroyed|Target closed|disconnectLazyMount is not a function|mountBlock is not a function/i.test(message)) {
+    if (
+      !/execution context was destroyed|Target closed|disconnectLazyMount is not a function|mountBlock is not a function/i.test(
+        message,
+      )
+    ) {
       throw error;
     }
     await page.waitForLoadState("networkidle");
@@ -98,20 +113,48 @@ function attachContextAutoClose(page: Page, context: BrowserContext): Page {
  * `AxeBuilder#analyze()` does internally (it opens its own scratch page in
  * the same context to run `axe.finishRun()`), so every axe-core scan against
  * a `mountedPage()`-created page failed until this was an explicit context. */
-export async function mountedPage(demoUrl: string, name: string): Promise<Page> {
-  const context = await browser!.newContext({ viewport: { width: 1280, height: 900 } });
+export async function mountedPage(
+  demoUrl: string,
+  name: string,
+): Promise<Page> {
+  const context = await browser!.newContext({
+    viewport: { width: 1280, height: 900 },
+  });
   const page = await context.newPage();
   try {
     await page.goto(demoUrl, { waitUntil: "networkidle" });
     await retryAcrossReload(page, async () => {
-      await page.waitForFunction(() => typeof (window as unknown as { disconnectLazyMount?: unknown }).disconnectLazyMount === "function");
-      await page.evaluate(() => (window as unknown as { disconnectLazyMount: () => void }).disconnectLazyMount());
+      await page.waitForFunction(
+        () =>
+          typeof (window as unknown as { disconnectLazyMount?: unknown })
+            .disconnectLazyMount === "function",
+      );
+      await page.evaluate(() =>
+        (
+          window as unknown as { disconnectLazyMount: () => void }
+        ).disconnectLazyMount(),
+      );
     });
     await retryAcrossReload(page, async () => {
-      await page.waitForFunction(() => typeof (window as unknown as { mountBlock?: unknown }).mountBlock === "function");
-      await page.evaluate((n) => (window as unknown as { mountBlock: (x: string) => void }).mountBlock(n), name);
+      await page.waitForFunction(
+        () =>
+          typeof (window as unknown as { mountBlock?: unknown }).mountBlock ===
+          "function",
+      );
+      await page.evaluate(
+        (n) =>
+          (window as unknown as { mountBlock: (x: string) => void }).mountBlock(
+            n,
+          ),
+        name,
+      );
     });
-    await page.locator(`[data-block="${name}"]`).locator("*").first().waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
+    await page
+      .locator(`[data-block="${name}"]`)
+      .locator("*")
+      .first()
+      .waitFor({ state: "attached", timeout: 5000 })
+      .catch(() => {});
     await page.waitForTimeout(300);
     return attachContextAutoClose(page, context);
   } catch (error) {
@@ -133,20 +176,45 @@ export async function mountedPageWithInit(
   name: string,
   beforeNavigate: (page: Page) => Promise<void>,
 ): Promise<Page> {
-  const context = await browser!.newContext({ viewport: { width: 1280, height: 900 } });
+  const context = await browser!.newContext({
+    viewport: { width: 1280, height: 900 },
+  });
   const page = await context.newPage();
   try {
     await beforeNavigate(page);
     await page.goto(demoUrl, { waitUntil: "networkidle" });
     await retryAcrossReload(page, async () => {
-      await page.waitForFunction(() => typeof (window as unknown as { disconnectLazyMount?: unknown }).disconnectLazyMount === "function");
-      await page.evaluate(() => (window as unknown as { disconnectLazyMount: () => void }).disconnectLazyMount());
+      await page.waitForFunction(
+        () =>
+          typeof (window as unknown as { disconnectLazyMount?: unknown })
+            .disconnectLazyMount === "function",
+      );
+      await page.evaluate(() =>
+        (
+          window as unknown as { disconnectLazyMount: () => void }
+        ).disconnectLazyMount(),
+      );
     });
     await retryAcrossReload(page, async () => {
-      await page.waitForFunction(() => typeof (window as unknown as { mountBlock?: unknown }).mountBlock === "function");
-      await page.evaluate((n) => (window as unknown as { mountBlock: (x: string) => void }).mountBlock(n), name);
+      await page.waitForFunction(
+        () =>
+          typeof (window as unknown as { mountBlock?: unknown }).mountBlock ===
+          "function",
+      );
+      await page.evaluate(
+        (n) =>
+          (window as unknown as { mountBlock: (x: string) => void }).mountBlock(
+            n,
+          ),
+        name,
+      );
     });
-    await page.locator(`[data-block="${name}"]`).locator("*").first().waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
+    await page
+      .locator(`[data-block="${name}"]`)
+      .locator("*")
+      .first()
+      .waitFor({ state: "attached", timeout: 5000 })
+      .catch(() => {});
     await page.waitForTimeout(300);
     return attachContextAutoClose(page, context);
   } catch (error) {
@@ -160,7 +228,10 @@ export async function mountedPageWithInit(
  * mouse/click coordinates are meaningful). */
 export async function locate(page: Page, name: string) {
   await page.evaluate(
-    (n) => document.querySelector(`[data-block="${n}"]`)?.scrollIntoView({ block: "center" }),
+    (n) =>
+      document
+        .querySelector(`[data-block="${n}"]`)
+        ?.scrollIntoView({ block: "center" }),
     name,
   );
   await page.waitForTimeout(200);
@@ -174,8 +245,14 @@ export async function locate(page: Page, name: string) {
  * built-in scroll-then-capture reads a blank WebGL buffer, per
  * visual-compare.ts's own note). A manual boundingBox() + clipped
  * `page.screenshot()` captures the real compositor output every time. */
-export async function pixelSnapshot(page: Page, locator: Locator): Promise<Buffer> {
+export async function pixelSnapshot(
+  page: Page,
+  locator: Locator,
+): Promise<Buffer> {
   const box = await locator.boundingBox();
-  if (!box) throw new Error("pixelSnapshot: locator has no bounding box (not visible?)");
+  if (!box)
+    throw new Error(
+      "pixelSnapshot: locator has no bounding box (not visible?)",
+    );
   return page.screenshot({ clip: box });
 }

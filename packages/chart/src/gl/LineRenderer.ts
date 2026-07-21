@@ -1,10 +1,23 @@
-import type { Device, Buffer, RenderPass } from "@luma.gl/core";
+import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
-import { LINE_VS, LINE_FS, AREA_VS, AREA_FS, GRADIENT_AREA_VS, GRADIENT_AREA_FS } from "./shaders/line.glsl.js";
-import type { LineSeriesOption, ChartRect } from "../types.js";
 import type { AnyScale } from "../scale/index.js";
-import { seriesRgba, familyRgba, isGradient, gradientEndpoints } from "./color.js";
+import type { ChartRect, LineSeriesOption } from "../types.js";
 import type { Rgba } from "./color.js";
+import {
+  familyRgba,
+  gradientEndpoints,
+  isGradient,
+  seriesRgba,
+} from "./color.js";
+import {
+  AREA_FS,
+  AREA_VS,
+  GRADIENT_AREA_FS,
+  GRADIENT_AREA_VS,
+  LINE_FS,
+  LINE_VS,
+} from "./shaders/line.glsl.js";
+
 type Point2d = { x: number; y: number };
 
 function splinePointAt(points: Point2d[], t: number): Point2d {
@@ -17,8 +30,18 @@ function splinePointAt(points: Point2d[], t: number): Point2d {
   const p3 = points[Math.min(seg + 2, n - 1)];
   const u2 = u * u;
   const u3 = u2 * u;
-  const x = 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * u + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * u2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * u3);
-  const y = 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * u + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * u2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * u3);
+  const x =
+    0.5 *
+    (2 * p1.x +
+      (-p0.x + p2.x) * u +
+      (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * u2 +
+      (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * u3);
+  const y =
+    0.5 *
+    (2 * p1.y +
+      (-p0.y + p2.y) * u +
+      (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * u2 +
+      (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * u3);
   return { x, y };
 }
 
@@ -98,7 +121,11 @@ export class LineRenderer {
     return this.gradientAreaModel;
   }
 
-  private buildPixelPoints(series: LineSeriesOption, xScale: AnyScale, yScale: AnyScale): [number, number][] {
+  private buildPixelPoints(
+    series: LineSeriesOption,
+    xScale: AnyScale,
+    yScale: AnyScale,
+  ): [number, number][] {
     const rawData = series.data ?? [];
     const points: [number, number][] = [];
 
@@ -108,13 +135,20 @@ export class LineRenderer {
       let yVal: number | null;
 
       if (typeof item === "number") {
-        xVal = index; yVal = item;
+        xVal = index;
+        yVal = item;
       } else if (Array.isArray(item)) {
-        xVal = item[0]; yVal = item[1] as number;
+        xVal = item[0];
+        yVal = item[1] as number;
       } else if (item && typeof item === "object") {
         const raw = (item as any).value;
-        if (Array.isArray(raw)) { xVal = raw[0]; yVal = raw[1]; }
-        else { xVal = index; yVal = raw; }
+        if (Array.isArray(raw)) {
+          xVal = raw[0];
+          yVal = raw[1];
+        } else {
+          xVal = index;
+          yVal = raw;
+        }
       } else {
         continue;
       }
@@ -127,10 +161,13 @@ export class LineRenderer {
     }
 
     const smooth = series.smooth;
-    if ((smooth === true || (typeof smooth === "number" && smooth > 0)) && points.length >= 4) {
+    if (
+      (smooth === true || (typeof smooth === "number" && smooth > 0)) &&
+      points.length >= 4
+    ) {
       const valid = points.filter(([x]) => !isNaN(x));
       try {
-        const pts = valid.map(([x, y]) => ({ x, y } as Point2d));
+        const pts = valid.map(([x, y]) => ({ x, y }) as Point2d);
         const smoothed: [number, number][] = [];
         const steps = valid.length * 8;
         for (let step = 0; step <= steps; step++) {
@@ -148,10 +185,18 @@ export class LineRenderer {
       for (let index = 0; index < points.length - 1; index++) {
         const [x0, y0] = points[index];
         const [x1, y1] = points[index + 1];
-        if (isNaN(x0) || isNaN(x1)) { expanded.push([NaN, NaN]); continue; }
-        if (series.step === "start") { expanded.push([x0, y0], [x0, y1]); }
-        else if (series.step === "end") { expanded.push([x0, y0], [x1, y0]); }
-        else { const mx = (x0 + x1) / 2; expanded.push([x0, y0], [mx, y0], [mx, y1]); }
+        if (isNaN(x0) || isNaN(x1)) {
+          expanded.push([NaN, NaN]);
+          continue;
+        }
+        if (series.step === "start") {
+          expanded.push([x0, y0], [x0, y1]);
+        } else if (series.step === "end") {
+          expanded.push([x0, y0], [x1, y0]);
+        } else {
+          const mx = (x0 + x1) / 2;
+          expanded.push([x0, y0], [mx, y0], [mx, y1]);
+        }
       }
       if (points.length > 0) expanded.push(points[points.length - 1]);
       return expanded;
@@ -160,12 +205,18 @@ export class LineRenderer {
     return points;
   }
 
-  private buildLineGeom(pixelPoints: [number, number][]): { pointDir: Float32Array; sides: Float32Array; vertexCount: number } {
+  private buildLineGeom(pixelPoints: [number, number][]): {
+    pointDir: Float32Array;
+    sides: Float32Array;
+    vertexCount: number;
+  } {
     const segments: [number, number][][] = [];
     let current: [number, number][] = [];
     for (const p of pixelPoints) {
-      if (isNaN(p[0])) { if (current.length > 1) segments.push(current); current = []; }
-      else current.push(p);
+      if (isNaN(p[0])) {
+        if (current.length > 1) segments.push(current);
+        current = [];
+      } else current.push(p);
     }
     if (current.length > 1) segments.push(current);
 
@@ -229,16 +280,23 @@ export class LineRenderer {
       const yScale = yScales[s.yAxisIndex ?? 0];
       if (!xScale || !yScale) continue;
 
-      const color: Rgba = s.color ? familyRgba(s.color as any, "shift-9") : seriesRgba(seriesOffset + index);
+      const color: Rgba = s.color
+        ? familyRgba(s.color as any, "shift-9")
+        : seriesRgba(seriesOffset + index);
       const lineAlpha = s.lineStyle?.opacity ?? 1;
-      const lineColor: Rgba = [color[0], color[1], color[2], color[3] * (lineAlpha as number)];
+      const lineColor: Rgba = [
+        color[0],
+        color[1],
+        color[2],
+        color[3] * (lineAlpha as number),
+      ];
       const lineWidth = ((s.lineStyle?.width ?? 2) as number) / 2;
 
       const pixelPoints = this.buildPixelPoints(s, xScale, yScale);
 
       // Area fill
       if (s.areaStyle) {
-        const areaAlpha = ((s.areaStyle.opacity as number) ?? 0.3);
+        const areaAlpha = (s.areaStyle.opacity as number) ?? 0.3;
         const areaVerts: number[] = [];
 
         // A stacked series' area fill is a band between its own curve and the
@@ -260,10 +318,20 @@ export class LineRenderer {
 
         const segs: { main: [number, number]; base: [number, number] }[][] = [];
         let cur: { main: [number, number]; base: [number, number] }[] = [];
-        for (let pointIndex = 0; pointIndex < pixelPoints.length; pointIndex++) {
+        for (
+          let pointIndex = 0;
+          pointIndex < pixelPoints.length;
+          pointIndex++
+        ) {
           const p = pixelPoints[pointIndex];
-          if (isNaN(p[0])) { if (cur.length > 1) segs.push(cur); cur = []; }
-          else cur.push({ main: p, base: baselinePixelPoints[pointIndex] ?? [p[0], zeroY] });
+          if (isNaN(p[0])) {
+            if (cur.length > 1) segs.push(cur);
+            cur = [];
+          } else
+            cur.push({
+              main: p,
+              base: baselinePixelPoints[pointIndex] ?? [p[0], zeroY],
+            });
         }
         if (cur.length > 1) segs.push(cur);
 
@@ -278,15 +346,28 @@ export class LineRenderer {
         }
 
         if (areaVerts.length > 0) {
-          const areaBuffer = this.device.createBuffer({ data: new Float32Array(areaVerts), id: "line-area" });
+          const areaBuffer = this.device.createBuffer({
+            data: new Float32Array(areaVerts),
+            id: "line-area",
+          });
           this.buffers.push(areaBuffer);
 
           const colorSrc = s.areaStyle.color;
           if (isGradient(colorSrc)) {
             const gradModel = this.ensureGradientAreaModel();
             const { top, bottom } = gradientEndpoints(colorSrc, color);
-            const topWithAlpha: Rgba = [top[0], top[1], top[2], top[3] * areaAlpha];
-            const bottomWithAlpha: Rgba = [bottom[0], bottom[1], bottom[2], bottom[3] * areaAlpha];
+            const topWithAlpha: Rgba = [
+              top[0],
+              top[1],
+              top[2],
+              top[3] * areaAlpha,
+            ];
+            const bottomWithAlpha: Rgba = [
+              bottom[0],
+              bottom[1],
+              bottom[2],
+              bottom[3] * areaAlpha,
+            ];
             // Compute y range from vertices
             const ys = areaVerts.filter((_, i) => i % 2 === 1);
             const yTop = Math.min(...ys);
@@ -302,10 +383,18 @@ export class LineRenderer {
             });
             gradModel.draw(renderPass);
           } else {
-            const areaColor: Rgba = [color[0], color[1], color[2], color[3] * areaAlpha];
+            const areaColor: Rgba = [
+              color[0],
+              color[1],
+              color[2],
+              color[3] * areaAlpha,
+            ];
             areaModel.setAttributes({ aPosition: areaBuffer });
             areaModel.setVertexCount(areaVerts.length / 2);
-            setUniforms(areaModel, { uResolution: [width, height], uColor: areaColor });
+            setUniforms(areaModel, {
+              uResolution: [width, height],
+              uColor: areaColor,
+            });
             areaModel.draw(renderPass);
           }
         }
@@ -313,15 +402,26 @@ export class LineRenderer {
 
       // Line — only skip if explicitly set to "none" (not a valid value, but guard anyway)
       const lineType = s.lineStyle?.type;
-      if (lineType !== "none" as any) {
-        const { pointDir, sides, vertexCount } = this.buildLineGeom(pixelPoints);
+      if (lineType !== ("none" as any)) {
+        const { pointDir, sides, vertexCount } =
+          this.buildLineGeom(pixelPoints);
         if (vertexCount > 0) {
-          const pdBuffer = this.device.createBuffer({ data: pointDir, id: "line-pd" });
-          const sideBuffer = this.device.createBuffer({ data: sides, id: "line-side" });
+          const pdBuffer = this.device.createBuffer({
+            data: pointDir,
+            id: "line-pd",
+          });
+          const sideBuffer = this.device.createBuffer({
+            data: sides,
+            id: "line-side",
+          });
           this.buffers.push(pdBuffer, sideBuffer);
           lineModel.setAttributes({ aPointDir: pdBuffer, aSide: sideBuffer });
           lineModel.setVertexCount(vertexCount);
-          setUniforms(lineModel, { uResolution: [width, height], uLineWidth: lineWidth, uColor: lineColor });
+          setUniforms(lineModel, {
+            uResolution: [width, height],
+            uLineWidth: lineWidth,
+            uColor: lineColor,
+          });
           lineModel.draw(renderPass);
         }
       }

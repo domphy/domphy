@@ -1,16 +1,16 @@
-import { parseArgs } from "node:util";
-import { readdirSync, statSync, existsSync } from "node:fs";
-import { join, resolve, extname } from "node:path";
+import { existsSync, readdirSync, statSync } from "node:fs";
+import { extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { parseArgs } from "node:util";
+import { ElementNode } from "@domphy/core";
 import {
-  diagnose,
-  format,
   type DiagnoseOptions,
   type Diagnostic,
+  diagnose,
+  format,
 } from "./diagnose.js";
-import { findTag, isPlainObject } from "./shared.js";
 import { auditOutput } from "./layer4.js";
-import { ElementNode } from "@domphy/core";
+import { findTag, isPlainObject } from "./shared.js";
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
@@ -124,9 +124,16 @@ function extractElements(mod: Record<string, unknown>): unknown[] {
 
 async function main(): Promise<void> {
   // Try to load tsx/esm/api for TS file imports.
-  let tsxImport: ((file: string, parent: string) => Promise<Record<string, unknown>>) | null = null;
+  let tsxImport:
+    | ((file: string, parent: string) => Promise<Record<string, unknown>>)
+    | null = null;
   try {
-    const tsxApi = await import("tsx/esm/api" as string) as { tsImport: (file: string, parent: string) => Promise<Record<string, unknown>> };
+    const tsxApi = (await import("tsx/esm/api" as string)) as {
+      tsImport: (
+        file: string,
+        parent: string,
+      ) => Promise<Record<string, unknown>>;
+    };
     tsxImport = tsxApi.tsImport;
   } catch {
     // tsx not installed — .ts files will be skipped
@@ -141,9 +148,7 @@ async function main(): Promise<void> {
 
   const options: DiagnoseOptions = {
     runReactive: values.reactive !== false,
-    only: values.only
-      ? values.only.split(",").map((s) => s.trim())
-      : undefined,
+    only: values.only ? values.only.split(",").map((s) => s.trim()) : undefined,
     exclude: values.exclude
       ? values.exclude.split(",").map((s) => s.trim())
       : undefined,
@@ -173,7 +178,10 @@ async function main(): Promise<void> {
       if (file.endsWith(".ts") || file.endsWith(".tsx")) {
         mod = await tsxImport!(pathToFileURL(file).href, import.meta.url);
       } else {
-        mod = (await import(pathToFileURL(file).href)) as Record<string, unknown>;
+        mod = (await import(pathToFileURL(file).href)) as Record<
+          string,
+          unknown
+        >;
       }
     } catch {
       skipped++;

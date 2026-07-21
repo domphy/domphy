@@ -23,7 +23,7 @@ describe("sanitizeHTMLString", () => {
   });
 
   it("strips uppercase/mixed-case on* handlers (case-insensitive bypass)", () => {
-    const uppercase = sanitizeHTMLString('<img src=x ONERROR=alert(1)/>');
+    const uppercase = sanitizeHTMLString("<img src=x ONERROR=alert(1)/>");
     expect(uppercase).not.toMatch(/onerror/i);
     expect(uppercase).not.toContain("alert(1)");
 

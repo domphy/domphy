@@ -2,760 +2,760 @@
 // Re-run that script after packages/blocks/registry.json changes.
 export const blocksSidebarGroups = [
   {
-    "text": "shadcn/ui",
-    "items": [
+    text: "shadcn/ui",
+    items: [
       {
-        "text": "Auth",
-        "items": [
+        text: "Auth",
+        items: [
           {
-            "text": "Login01",
-            "link": "/docs/blocks/Login01"
+            text: "Login01",
+            link: "/docs/blocks/Login01",
           },
           {
-            "text": "Login02",
-            "link": "/docs/blocks/Login02"
+            text: "Login02",
+            link: "/docs/blocks/Login02",
           },
           {
-            "text": "Login03",
-            "link": "/docs/blocks/Login03"
+            text: "Login03",
+            link: "/docs/blocks/Login03",
           },
           {
-            "text": "Login04",
-            "link": "/docs/blocks/Login04"
+            text: "Login04",
+            link: "/docs/blocks/Login04",
           },
           {
-            "text": "Login05",
-            "link": "/docs/blocks/Login05"
+            text: "Login05",
+            link: "/docs/blocks/Login05",
           },
           {
-            "text": "signup01",
-            "link": "/docs/blocks/signup01"
+            text: "signup01",
+            link: "/docs/blocks/signup01",
           },
           {
-            "text": "signup02",
-            "link": "/docs/blocks/signup02"
+            text: "signup02",
+            link: "/docs/blocks/signup02",
           },
           {
-            "text": "signup03",
-            "link": "/docs/blocks/signup03"
+            text: "signup03",
+            link: "/docs/blocks/signup03",
           },
           {
-            "text": "signup04",
-            "link": "/docs/blocks/signup04"
+            text: "signup04",
+            link: "/docs/blocks/signup04",
           },
           {
-            "text": "signup05",
-            "link": "/docs/blocks/signup05"
-          }
-        ]
+            text: "signup05",
+            link: "/docs/blocks/signup05",
+          },
+        ],
       },
       {
-        "text": "Charts",
-        "items": [
+        text: "Charts",
+        items: [
           {
-            "text": "chartAreaAxes",
-            "link": "/docs/blocks/chartAreaAxes"
+            text: "chartAreaAxes",
+            link: "/docs/blocks/chartAreaAxes",
           },
           {
-            "text": "chartAreaDefault",
-            "link": "/docs/blocks/chartAreaDefault"
+            text: "chartAreaDefault",
+            link: "/docs/blocks/chartAreaDefault",
           },
           {
-            "text": "chartAreaGradient",
-            "link": "/docs/blocks/chartAreaGradient"
+            text: "chartAreaGradient",
+            link: "/docs/blocks/chartAreaGradient",
           },
           {
-            "text": "chartAreaIcons",
-            "link": "/docs/blocks/chartAreaIcons"
+            text: "chartAreaIcons",
+            link: "/docs/blocks/chartAreaIcons",
           },
           {
-            "text": "chartAreaInteractive",
-            "link": "/docs/blocks/chartAreaInteractive"
+            text: "chartAreaInteractive",
+            link: "/docs/blocks/chartAreaInteractive",
           },
           {
-            "text": "chartAreaLegend",
-            "link": "/docs/blocks/chartAreaLegend"
+            text: "chartAreaLegend",
+            link: "/docs/blocks/chartAreaLegend",
           },
           {
-            "text": "chartAreaLinear",
-            "link": "/docs/blocks/chartAreaLinear"
+            text: "chartAreaLinear",
+            link: "/docs/blocks/chartAreaLinear",
           },
           {
-            "text": "chartAreaStacked",
-            "link": "/docs/blocks/chartAreaStacked"
+            text: "chartAreaStacked",
+            link: "/docs/blocks/chartAreaStacked",
           },
           {
-            "text": "chartAreaStackedExpand",
-            "link": "/docs/blocks/chartAreaStackedExpand"
+            text: "chartAreaStackedExpand",
+            link: "/docs/blocks/chartAreaStackedExpand",
           },
           {
-            "text": "chartAreaStep",
-            "link": "/docs/blocks/chartAreaStep"
+            text: "chartAreaStep",
+            link: "/docs/blocks/chartAreaStep",
           },
           {
-            "text": "chartBarActive",
-            "link": "/docs/blocks/chartBarActive"
+            text: "chartBarActive",
+            link: "/docs/blocks/chartBarActive",
           },
           {
-            "text": "chartBarDefault",
-            "link": "/docs/blocks/chartBarDefault"
+            text: "chartBarDefault",
+            link: "/docs/blocks/chartBarDefault",
           },
           {
-            "text": "chartBarHorizontal",
-            "link": "/docs/blocks/chartBarHorizontal"
+            text: "chartBarHorizontal",
+            link: "/docs/blocks/chartBarHorizontal",
           },
           {
-            "text": "chartBarInteractive",
-            "link": "/docs/blocks/chartBarInteractive"
+            text: "chartBarInteractive",
+            link: "/docs/blocks/chartBarInteractive",
           },
           {
-            "text": "chartBarLabel",
-            "link": "/docs/blocks/chartBarLabel"
+            text: "chartBarLabel",
+            link: "/docs/blocks/chartBarLabel",
           },
           {
-            "text": "chartBarLabelCustom",
-            "link": "/docs/blocks/chartBarLabelCustom"
+            text: "chartBarLabelCustom",
+            link: "/docs/blocks/chartBarLabelCustom",
           },
           {
-            "text": "chartBarMixed",
-            "link": "/docs/blocks/chartBarMixed"
+            text: "chartBarMixed",
+            link: "/docs/blocks/chartBarMixed",
           },
           {
-            "text": "chartBarMultiple",
-            "link": "/docs/blocks/chartBarMultiple"
+            text: "chartBarMultiple",
+            link: "/docs/blocks/chartBarMultiple",
           },
           {
-            "text": "chartBarNegative",
-            "link": "/docs/blocks/chartBarNegative"
+            text: "chartBarNegative",
+            link: "/docs/blocks/chartBarNegative",
           },
           {
-            "text": "chartBarStacked",
-            "link": "/docs/blocks/chartBarStacked"
+            text: "chartBarStacked",
+            link: "/docs/blocks/chartBarStacked",
           },
           {
-            "text": "chartLineDefault",
-            "link": "/docs/blocks/chartLineDefault"
+            text: "chartLineDefault",
+            link: "/docs/blocks/chartLineDefault",
           },
           {
-            "text": "chartLineDots",
-            "link": "/docs/blocks/chartLineDots"
+            text: "chartLineDots",
+            link: "/docs/blocks/chartLineDots",
           },
           {
-            "text": "chartLineDotsColors",
-            "link": "/docs/blocks/chartLineDotsColors"
+            text: "chartLineDotsColors",
+            link: "/docs/blocks/chartLineDotsColors",
           },
           {
-            "text": "chartLineDotsCustom",
-            "link": "/docs/blocks/chartLineDotsCustom"
+            text: "chartLineDotsCustom",
+            link: "/docs/blocks/chartLineDotsCustom",
           },
           {
-            "text": "chartLineInteractive",
-            "link": "/docs/blocks/chartLineInteractive"
+            text: "chartLineInteractive",
+            link: "/docs/blocks/chartLineInteractive",
           },
           {
-            "text": "chartLineLabel",
-            "link": "/docs/blocks/chartLineLabel"
+            text: "chartLineLabel",
+            link: "/docs/blocks/chartLineLabel",
           },
           {
-            "text": "chartLineLabelCustom",
-            "link": "/docs/blocks/chartLineLabelCustom"
+            text: "chartLineLabelCustom",
+            link: "/docs/blocks/chartLineLabelCustom",
           },
           {
-            "text": "chartLineLinear",
-            "link": "/docs/blocks/chartLineLinear"
+            text: "chartLineLinear",
+            link: "/docs/blocks/chartLineLinear",
           },
           {
-            "text": "chartLineMultiple",
-            "link": "/docs/blocks/chartLineMultiple"
+            text: "chartLineMultiple",
+            link: "/docs/blocks/chartLineMultiple",
           },
           {
-            "text": "chartLineStep",
-            "link": "/docs/blocks/chartLineStep"
+            text: "chartLineStep",
+            link: "/docs/blocks/chartLineStep",
           },
           {
-            "text": "chartPieDonut",
-            "link": "/docs/blocks/chartPieDonut"
+            text: "chartPieDonut",
+            link: "/docs/blocks/chartPieDonut",
           },
           {
-            "text": "chartPieDonutActive",
-            "link": "/docs/blocks/chartPieDonutActive"
+            text: "chartPieDonutActive",
+            link: "/docs/blocks/chartPieDonutActive",
           },
           {
-            "text": "chartPieDonutText",
-            "link": "/docs/blocks/chartPieDonutText"
+            text: "chartPieDonutText",
+            link: "/docs/blocks/chartPieDonutText",
           },
           {
-            "text": "chartPieInteractive",
-            "link": "/docs/blocks/chartPieInteractive"
+            text: "chartPieInteractive",
+            link: "/docs/blocks/chartPieInteractive",
           },
           {
-            "text": "chartPieLabel",
-            "link": "/docs/blocks/chartPieLabel"
+            text: "chartPieLabel",
+            link: "/docs/blocks/chartPieLabel",
           },
           {
-            "text": "chartPieLabelCustom",
-            "link": "/docs/blocks/chartPieLabelCustom"
+            text: "chartPieLabelCustom",
+            link: "/docs/blocks/chartPieLabelCustom",
           },
           {
-            "text": "chartPieLabelList",
-            "link": "/docs/blocks/chartPieLabelList"
+            text: "chartPieLabelList",
+            link: "/docs/blocks/chartPieLabelList",
           },
           {
-            "text": "chartPieLegend",
-            "link": "/docs/blocks/chartPieLegend"
+            text: "chartPieLegend",
+            link: "/docs/blocks/chartPieLegend",
           },
           {
-            "text": "chartPieSeparatorNone",
-            "link": "/docs/blocks/chartPieSeparatorNone"
+            text: "chartPieSeparatorNone",
+            link: "/docs/blocks/chartPieSeparatorNone",
           },
           {
-            "text": "chartPieSimple",
-            "link": "/docs/blocks/chartPieSimple"
+            text: "chartPieSimple",
+            link: "/docs/blocks/chartPieSimple",
           },
           {
-            "text": "chartPieStacked",
-            "link": "/docs/blocks/chartPieStacked"
+            text: "chartPieStacked",
+            link: "/docs/blocks/chartPieStacked",
           },
           {
-            "text": "chartRadarDefault",
-            "link": "/docs/blocks/chartRadarDefault"
+            text: "chartRadarDefault",
+            link: "/docs/blocks/chartRadarDefault",
           },
           {
-            "text": "chartRadarDots",
-            "link": "/docs/blocks/chartRadarDots"
+            text: "chartRadarDots",
+            link: "/docs/blocks/chartRadarDots",
           },
           {
-            "text": "chartRadarGrid",
-            "link": "/docs/blocks/chartRadarGrid"
+            text: "chartRadarGrid",
+            link: "/docs/blocks/chartRadarGrid",
           },
           {
-            "text": "chartRadarGridCircle",
-            "link": "/docs/blocks/chartRadarGridCircle"
+            text: "chartRadarGridCircle",
+            link: "/docs/blocks/chartRadarGridCircle",
           },
           {
-            "text": "chartRadarGridCircleFill",
-            "link": "/docs/blocks/chartRadarGridCircleFill"
+            text: "chartRadarGridCircleFill",
+            link: "/docs/blocks/chartRadarGridCircleFill",
           },
           {
-            "text": "chartRadarGridCustom",
-            "link": "/docs/blocks/chartRadarGridCustom"
+            text: "chartRadarGridCustom",
+            link: "/docs/blocks/chartRadarGridCustom",
           },
           {
-            "text": "chartRadarGridFill",
-            "link": "/docs/blocks/chartRadarGridFill"
+            text: "chartRadarGridFill",
+            link: "/docs/blocks/chartRadarGridFill",
           },
           {
-            "text": "chartRadarGridNone",
-            "link": "/docs/blocks/chartRadarGridNone"
+            text: "chartRadarGridNone",
+            link: "/docs/blocks/chartRadarGridNone",
           },
           {
-            "text": "chartRadarIcons",
-            "link": "/docs/blocks/chartRadarIcons"
+            text: "chartRadarIcons",
+            link: "/docs/blocks/chartRadarIcons",
           },
           {
-            "text": "chartRadarLabelCustom",
-            "link": "/docs/blocks/chartRadarLabelCustom"
+            text: "chartRadarLabelCustom",
+            link: "/docs/blocks/chartRadarLabelCustom",
           },
           {
-            "text": "chartRadarLegend",
-            "link": "/docs/blocks/chartRadarLegend"
+            text: "chartRadarLegend",
+            link: "/docs/blocks/chartRadarLegend",
           },
           {
-            "text": "chartRadarLinesOnly",
-            "link": "/docs/blocks/chartRadarLinesOnly"
+            text: "chartRadarLinesOnly",
+            link: "/docs/blocks/chartRadarLinesOnly",
           },
           {
-            "text": "chartRadarMultiple",
-            "link": "/docs/blocks/chartRadarMultiple"
+            text: "chartRadarMultiple",
+            link: "/docs/blocks/chartRadarMultiple",
           },
           {
-            "text": "chartRadarRadius",
-            "link": "/docs/blocks/chartRadarRadius"
+            text: "chartRadarRadius",
+            link: "/docs/blocks/chartRadarRadius",
           },
           {
-            "text": "chartRadialGrid",
-            "link": "/docs/blocks/chartRadialGrid"
+            text: "chartRadialGrid",
+            link: "/docs/blocks/chartRadialGrid",
           },
           {
-            "text": "chartRadialLabel",
-            "link": "/docs/blocks/chartRadialLabel"
+            text: "chartRadialLabel",
+            link: "/docs/blocks/chartRadialLabel",
           },
           {
-            "text": "chartRadialShape",
-            "link": "/docs/blocks/chartRadialShape"
+            text: "chartRadialShape",
+            link: "/docs/blocks/chartRadialShape",
           },
           {
-            "text": "chartRadialSimple",
-            "link": "/docs/blocks/chartRadialSimple"
+            text: "chartRadialSimple",
+            link: "/docs/blocks/chartRadialSimple",
           },
           {
-            "text": "chartRadialStacked",
-            "link": "/docs/blocks/chartRadialStacked"
+            text: "chartRadialStacked",
+            link: "/docs/blocks/chartRadialStacked",
           },
           {
-            "text": "chartRadialText",
-            "link": "/docs/blocks/chartRadialText"
+            text: "chartRadialText",
+            link: "/docs/blocks/chartRadialText",
           },
           {
-            "text": "chartTooltipAdvanced",
-            "link": "/docs/blocks/chartTooltipAdvanced"
+            text: "chartTooltipAdvanced",
+            link: "/docs/blocks/chartTooltipAdvanced",
           },
           {
-            "text": "chartTooltipDefault",
-            "link": "/docs/blocks/chartTooltipDefault"
+            text: "chartTooltipDefault",
+            link: "/docs/blocks/chartTooltipDefault",
           },
           {
-            "text": "chartTooltipFormatter",
-            "link": "/docs/blocks/chartTooltipFormatter"
+            text: "chartTooltipFormatter",
+            link: "/docs/blocks/chartTooltipFormatter",
           },
           {
-            "text": "chartTooltipIcons",
-            "link": "/docs/blocks/chartTooltipIcons"
+            text: "chartTooltipIcons",
+            link: "/docs/blocks/chartTooltipIcons",
           },
           {
-            "text": "chartTooltipIndicatorLine",
-            "link": "/docs/blocks/chartTooltipIndicatorLine"
+            text: "chartTooltipIndicatorLine",
+            link: "/docs/blocks/chartTooltipIndicatorLine",
           },
           {
-            "text": "chartTooltipIndicatorNone",
-            "link": "/docs/blocks/chartTooltipIndicatorNone"
+            text: "chartTooltipIndicatorNone",
+            link: "/docs/blocks/chartTooltipIndicatorNone",
           },
           {
-            "text": "chartTooltipLabelCustom",
-            "link": "/docs/blocks/chartTooltipLabelCustom"
+            text: "chartTooltipLabelCustom",
+            link: "/docs/blocks/chartTooltipLabelCustom",
           },
           {
-            "text": "chartTooltipLabelFormatter",
-            "link": "/docs/blocks/chartTooltipLabelFormatter"
+            text: "chartTooltipLabelFormatter",
+            link: "/docs/blocks/chartTooltipLabelFormatter",
           },
           {
-            "text": "chartTooltipLabelNone",
-            "link": "/docs/blocks/chartTooltipLabelNone"
-          }
-        ]
+            text: "chartTooltipLabelNone",
+            link: "/docs/blocks/chartTooltipLabelNone",
+          },
+        ],
       },
       {
-        "text": "Dashboard",
-        "items": [
+        text: "Dashboard",
+        items: [
           {
-            "text": "dashboard01",
-            "link": "/docs/blocks/dashboard01"
-          }
-        ]
+            text: "dashboard01",
+            link: "/docs/blocks/dashboard01",
+          },
+        ],
       },
       {
-        "text": "Sidebar",
-        "items": [
+        text: "Sidebar",
+        items: [
           {
-            "text": "sidebar01",
-            "link": "/docs/blocks/sidebar01"
+            text: "sidebar01",
+            link: "/docs/blocks/sidebar01",
           },
           {
-            "text": "sidebar02",
-            "link": "/docs/blocks/sidebar02"
+            text: "sidebar02",
+            link: "/docs/blocks/sidebar02",
           },
           {
-            "text": "sidebar03",
-            "link": "/docs/blocks/sidebar03"
+            text: "sidebar03",
+            link: "/docs/blocks/sidebar03",
           },
           {
-            "text": "sidebar04",
-            "link": "/docs/blocks/sidebar04"
+            text: "sidebar04",
+            link: "/docs/blocks/sidebar04",
           },
           {
-            "text": "sidebar05",
-            "link": "/docs/blocks/sidebar05"
+            text: "sidebar05",
+            link: "/docs/blocks/sidebar05",
           },
           {
-            "text": "sidebar06",
-            "link": "/docs/blocks/sidebar06"
+            text: "sidebar06",
+            link: "/docs/blocks/sidebar06",
           },
           {
-            "text": "sidebar07",
-            "link": "/docs/blocks/sidebar07"
+            text: "sidebar07",
+            link: "/docs/blocks/sidebar07",
           },
           {
-            "text": "sidebar08",
-            "link": "/docs/blocks/sidebar08"
+            text: "sidebar08",
+            link: "/docs/blocks/sidebar08",
           },
           {
-            "text": "sidebar09",
-            "link": "/docs/blocks/sidebar09"
+            text: "sidebar09",
+            link: "/docs/blocks/sidebar09",
           },
           {
-            "text": "sidebar10",
-            "link": "/docs/blocks/sidebar10"
+            text: "sidebar10",
+            link: "/docs/blocks/sidebar10",
           },
           {
-            "text": "sidebar11",
-            "link": "/docs/blocks/sidebar11"
+            text: "sidebar11",
+            link: "/docs/blocks/sidebar11",
           },
           {
-            "text": "sidebar12",
-            "link": "/docs/blocks/sidebar12"
+            text: "sidebar12",
+            link: "/docs/blocks/sidebar12",
           },
           {
-            "text": "sidebarInDialog",
-            "link": "/docs/blocks/sidebarInDialog"
+            text: "sidebarInDialog",
+            link: "/docs/blocks/sidebarInDialog",
           },
           {
-            "text": "sidebarLeftRight",
-            "link": "/docs/blocks/sidebarLeftRight"
+            text: "sidebarLeftRight",
+            link: "/docs/blocks/sidebarLeftRight",
           },
           {
-            "text": "sidebarOnRight",
-            "link": "/docs/blocks/sidebarOnRight"
+            text: "sidebarOnRight",
+            link: "/docs/blocks/sidebarOnRight",
           },
           {
-            "text": "sidebarStickyHeader",
-            "link": "/docs/blocks/sidebarStickyHeader"
-          }
-        ]
-      }
-    ]
+            text: "sidebarStickyHeader",
+            link: "/docs/blocks/sidebarStickyHeader",
+          },
+        ],
+      },
+    ],
   },
   {
-    "text": "Magic UI",
-    "items": [
+    text: "Magic UI",
+    items: [
       {
-        "text": "Backgrounds",
-        "items": [
+        text: "Backgrounds",
+        items: [
           {
-            "text": "animatedGridPattern",
-            "link": "/docs/blocks/animatedGridPattern"
+            text: "animatedGridPattern",
+            link: "/docs/blocks/animatedGridPattern",
           },
           {
-            "text": "dotPattern",
-            "link": "/docs/blocks/dotPattern"
+            text: "dotPattern",
+            link: "/docs/blocks/dotPattern",
           },
           {
-            "text": "flickeringGrid",
-            "link": "/docs/blocks/flickeringGrid"
+            text: "flickeringGrid",
+            link: "/docs/blocks/flickeringGrid",
           },
           {
-            "text": "gridPattern",
-            "link": "/docs/blocks/gridPattern"
+            text: "gridPattern",
+            link: "/docs/blocks/gridPattern",
           },
           {
-            "text": "hexagonPattern",
-            "link": "/docs/blocks/hexagonPattern"
+            text: "hexagonPattern",
+            link: "/docs/blocks/hexagonPattern",
           },
           {
-            "text": "interactiveGridPattern",
-            "link": "/docs/blocks/interactiveGridPattern"
+            text: "interactiveGridPattern",
+            link: "/docs/blocks/interactiveGridPattern",
           },
           {
-            "text": "lightRays",
-            "link": "/docs/blocks/lightRays"
+            text: "lightRays",
+            link: "/docs/blocks/lightRays",
           },
           {
-            "text": "noiseTexture",
-            "link": "/docs/blocks/noiseTexture"
+            text: "noiseTexture",
+            link: "/docs/blocks/noiseTexture",
           },
           {
-            "text": "retroGrid",
-            "link": "/docs/blocks/retroGrid"
+            text: "retroGrid",
+            link: "/docs/blocks/retroGrid",
           },
           {
-            "text": "ripple",
-            "link": "/docs/blocks/ripple"
+            text: "ripple",
+            link: "/docs/blocks/ripple",
           },
           {
-            "text": "stripedPattern",
-            "link": "/docs/blocks/stripedPattern"
-          }
-        ]
+            text: "stripedPattern",
+            link: "/docs/blocks/stripedPattern",
+          },
+        ],
       },
       {
-        "text": "Buttons",
-        "items": [
+        text: "Buttons",
+        items: [
           {
-            "text": "rainbowButton",
-            "link": "/docs/blocks/rainbowButton"
+            text: "rainbowButton",
+            link: "/docs/blocks/rainbowButton",
           },
           {
-            "text": "rippleButton",
-            "link": "/docs/blocks/rippleButton"
+            text: "rippleButton",
+            link: "/docs/blocks/rippleButton",
           },
           {
-            "text": "shimmerButton",
-            "link": "/docs/blocks/shimmerButton"
-          }
-        ]
+            text: "shimmerButton",
+            link: "/docs/blocks/shimmerButton",
+          },
+        ],
       },
       {
-        "text": "Community",
-        "items": [
+        text: "Community",
+        items: [
           {
-            "text": "animatedCircularProgressBar",
-            "link": "/docs/blocks/animatedCircularProgressBar"
+            text: "animatedCircularProgressBar",
+            link: "/docs/blocks/animatedCircularProgressBar",
           },
           {
-            "text": "backlight",
-            "link": "/docs/blocks/backlight"
+            text: "backlight",
+            link: "/docs/blocks/backlight",
           },
           {
-            "text": "codeComparison",
-            "link": "/docs/blocks/codeComparison"
+            text: "codeComparison",
+            link: "/docs/blocks/codeComparison",
           },
           {
-            "text": "comicText",
-            "link": "/docs/blocks/comicText"
+            text: "comicText",
+            link: "/docs/blocks/comicText",
           },
           {
-            "text": "coolMode",
-            "link": "/docs/blocks/coolMode"
+            text: "coolMode",
+            link: "/docs/blocks/coolMode",
           },
           {
-            "text": "fileTree",
-            "link": "/docs/blocks/fileTree"
+            text: "fileTree",
+            link: "/docs/blocks/fileTree",
           },
           {
-            "text": "interactiveHoverButton",
-            "link": "/docs/blocks/interactiveHoverButton"
+            text: "interactiveHoverButton",
+            link: "/docs/blocks/interactiveHoverButton",
           },
           {
-            "text": "kineticText",
-            "link": "/docs/blocks/kineticText"
+            text: "kineticText",
+            link: "/docs/blocks/kineticText",
           },
           {
-            "text": "neonGradientCard",
-            "link": "/docs/blocks/neonGradientCard"
+            text: "neonGradientCard",
+            link: "/docs/blocks/neonGradientCard",
           },
           {
-            "text": "pixelImage",
-            "link": "/docs/blocks/pixelImage"
+            text: "pixelImage",
+            link: "/docs/blocks/pixelImage",
           },
           {
-            "text": "pulsatingButton",
-            "link": "/docs/blocks/pulsatingButton"
+            text: "pulsatingButton",
+            link: "/docs/blocks/pulsatingButton",
           },
           {
-            "text": "scrollProgress",
-            "link": "/docs/blocks/scrollProgress"
+            text: "scrollProgress",
+            link: "/docs/blocks/scrollProgress",
           },
           {
-            "text": "shinyButton",
-            "link": "/docs/blocks/shinyButton"
+            text: "shinyButton",
+            link: "/docs/blocks/shinyButton",
           },
           {
-            "text": "warpBackground",
-            "link": "/docs/blocks/warpBackground"
-          }
-        ]
+            text: "warpBackground",
+            link: "/docs/blocks/warpBackground",
+          },
+        ],
       },
       {
-        "text": "Core",
-        "items": [
+        text: "Core",
+        items: [
           {
-            "text": "animatedList",
-            "link": "/docs/blocks/animatedList"
+            text: "animatedList",
+            link: "/docs/blocks/animatedList",
           },
           {
-            "text": "avatarCircles",
-            "link": "/docs/blocks/avatarCircles"
+            text: "avatarCircles",
+            link: "/docs/blocks/avatarCircles",
           },
           {
-            "text": "bentoGrid",
-            "link": "/docs/blocks/bentoGrid"
+            text: "bentoGrid",
+            link: "/docs/blocks/bentoGrid",
           },
           {
-            "text": "dock",
-            "link": "/docs/blocks/dock"
+            text: "dock",
+            link: "/docs/blocks/dock",
           },
           {
-            "text": "dottedMap",
-            "link": "/docs/blocks/dottedMap"
+            text: "dottedMap",
+            link: "/docs/blocks/dottedMap",
           },
           {
-            "text": "globe",
-            "link": "/docs/blocks/globe"
+            text: "globe",
+            link: "/docs/blocks/globe",
           },
           {
-            "text": "heroVideoDialog",
-            "link": "/docs/blocks/heroVideoDialog"
+            text: "heroVideoDialog",
+            link: "/docs/blocks/heroVideoDialog",
           },
           {
-            "text": "iconCloud",
-            "link": "/docs/blocks/iconCloud"
+            text: "iconCloud",
+            link: "/docs/blocks/iconCloud",
           },
           {
-            "text": "lens",
-            "link": "/docs/blocks/lens"
+            text: "lens",
+            link: "/docs/blocks/lens",
           },
           {
-            "text": "marquee",
-            "link": "/docs/blocks/marquee"
+            text: "marquee",
+            link: "/docs/blocks/marquee",
           },
           {
-            "text": "orbitingCircles",
-            "link": "/docs/blocks/orbitingCircles"
+            text: "orbitingCircles",
+            link: "/docs/blocks/orbitingCircles",
           },
           {
-            "text": "pointer",
-            "link": "/docs/blocks/pointer"
+            text: "pointer",
+            link: "/docs/blocks/pointer",
           },
           {
-            "text": "progressiveBlur",
-            "link": "/docs/blocks/progressiveBlur"
+            text: "progressiveBlur",
+            link: "/docs/blocks/progressiveBlur",
           },
           {
-            "text": "smoothCursor",
-            "link": "/docs/blocks/smoothCursor"
+            text: "smoothCursor",
+            link: "/docs/blocks/smoothCursor",
           },
           {
-            "text": "terminal",
-            "link": "/docs/blocks/terminal"
+            text: "terminal",
+            link: "/docs/blocks/terminal",
           },
           {
-            "text": "tweetCard",
-            "link": "/docs/blocks/tweetCard"
-          }
-        ]
+            text: "tweetCard",
+            link: "/docs/blocks/tweetCard",
+          },
+        ],
       },
       {
-        "text": "Device Mocks",
-        "items": [
+        text: "Device Mocks",
+        items: [
           {
-            "text": "android",
-            "link": "/docs/blocks/android"
+            text: "android",
+            link: "/docs/blocks/android",
           },
           {
-            "text": "iphone",
-            "link": "/docs/blocks/iphone"
+            text: "iphone",
+            link: "/docs/blocks/iphone",
           },
           {
-            "text": "safari",
-            "link": "/docs/blocks/safari"
-          }
-        ]
+            text: "safari",
+            link: "/docs/blocks/safari",
+          },
+        ],
       },
       {
-        "text": "Effects",
-        "items": [
+        text: "Effects",
+        items: [
           {
-            "text": "animatedBeam",
-            "link": "/docs/blocks/animatedBeam"
+            text: "animatedBeam",
+            link: "/docs/blocks/animatedBeam",
           },
           {
-            "text": "animatedThemeToggler",
-            "link": "/docs/blocks/animatedThemeToggler"
+            text: "animatedThemeToggler",
+            link: "/docs/blocks/animatedThemeToggler",
           },
           {
-            "text": "blurFade",
-            "link": "/docs/blocks/blurFade"
+            text: "blurFade",
+            link: "/docs/blocks/blurFade",
           },
           {
-            "text": "borderBeam",
-            "link": "/docs/blocks/borderBeam"
+            text: "borderBeam",
+            link: "/docs/blocks/borderBeam",
           },
           {
-            "text": "confetti",
-            "link": "/docs/blocks/confetti"
+            text: "confetti",
+            link: "/docs/blocks/confetti",
           },
           {
-            "text": "confettiButton",
-            "link": "/docs/blocks/confettiButton"
+            text: "confettiButton",
+            link: "/docs/blocks/confettiButton",
           },
           {
-            "text": "glareHover",
-            "link": "/docs/blocks/glareHover"
+            text: "glareHover",
+            link: "/docs/blocks/glareHover",
           },
           {
-            "text": "magicCard",
-            "link": "/docs/blocks/magicCard"
+            text: "magicCard",
+            link: "/docs/blocks/magicCard",
           },
           {
-            "text": "meteors",
-            "link": "/docs/blocks/meteors"
+            text: "meteors",
+            link: "/docs/blocks/meteors",
           },
           {
-            "text": "particles",
-            "link": "/docs/blocks/particles"
+            text: "particles",
+            link: "/docs/blocks/particles",
           },
           {
-            "text": "shineBorder",
-            "link": "/docs/blocks/shineBorder"
-          }
-        ]
+            text: "shineBorder",
+            link: "/docs/blocks/shineBorder",
+          },
+        ],
       },
       {
-        "text": "Text",
-        "items": [
+        text: "Text",
+        items: [
           {
-            "text": "animatedGradientText",
-            "link": "/docs/blocks/animatedGradientText"
+            text: "animatedGradientText",
+            link: "/docs/blocks/animatedGradientText",
           },
           {
-            "text": "animatedShinyText",
-            "link": "/docs/blocks/animatedShinyText"
+            text: "animatedShinyText",
+            link: "/docs/blocks/animatedShinyText",
           },
           {
-            "text": "auroraText",
-            "link": "/docs/blocks/auroraText"
+            text: "auroraText",
+            link: "/docs/blocks/auroraText",
           },
           {
-            "text": "diaTextReveal",
-            "link": "/docs/blocks/diaTextReveal"
+            text: "diaTextReveal",
+            link: "/docs/blocks/diaTextReveal",
           },
           {
-            "text": "hyperText",
-            "link": "/docs/blocks/hyperText"
+            text: "hyperText",
+            link: "/docs/blocks/hyperText",
           },
           {
-            "text": "lineShadowText",
-            "link": "/docs/blocks/lineShadowText"
+            text: "lineShadowText",
+            link: "/docs/blocks/lineShadowText",
           },
           {
-            "text": "morphingText",
-            "link": "/docs/blocks/morphingText"
+            text: "morphingText",
+            link: "/docs/blocks/morphingText",
           },
           {
-            "text": "numberTicker",
-            "link": "/docs/blocks/numberTicker"
+            text: "numberTicker",
+            link: "/docs/blocks/numberTicker",
           },
           {
-            "text": "scrollBasedVelocity",
-            "link": "/docs/blocks/scrollBasedVelocity"
+            text: "scrollBasedVelocity",
+            link: "/docs/blocks/scrollBasedVelocity",
           },
           {
-            "text": "sparklesText",
-            "link": "/docs/blocks/sparklesText"
+            text: "sparklesText",
+            link: "/docs/blocks/sparklesText",
           },
           {
-            "text": "spinningText",
-            "link": "/docs/blocks/spinningText"
+            text: "spinningText",
+            link: "/docs/blocks/spinningText",
           },
           {
-            "text": "text3dFlip",
-            "link": "/docs/blocks/text3dFlip"
+            text: "text3dFlip",
+            link: "/docs/blocks/text3dFlip",
           },
           {
-            "text": "textAnimate",
-            "link": "/docs/blocks/textAnimate"
+            text: "textAnimate",
+            link: "/docs/blocks/textAnimate",
           },
           {
-            "text": "textHighlighter",
-            "link": "/docs/blocks/textHighlighter"
+            text: "textHighlighter",
+            link: "/docs/blocks/textHighlighter",
           },
           {
-            "text": "textReveal",
-            "link": "/docs/blocks/textReveal"
+            text: "textReveal",
+            link: "/docs/blocks/textReveal",
           },
           {
-            "text": "typingAnimation",
-            "link": "/docs/blocks/typingAnimation"
+            text: "typingAnimation",
+            link: "/docs/blocks/typingAnimation",
           },
           {
-            "text": "videoText",
-            "link": "/docs/blocks/videoText"
+            text: "videoText",
+            link: "/docs/blocks/videoText",
           },
           {
-            "text": "wordRotate",
-            "link": "/docs/blocks/wordRotate"
-          }
-        ]
-      }
-    ]
-  }
+            text: "wordRotate",
+            link: "/docs/blocks/wordRotate",
+          },
+        ],
+      },
+    ],
+  },
 ];

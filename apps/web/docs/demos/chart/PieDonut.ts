@@ -1,13 +1,13 @@
-import { type DomphyElement } from "@domphy/core";
-import { chart } from "@domphy/chart";
 import type { ChartOption } from "@domphy/chart";
+import { chart } from "@domphy/chart";
+import type { DomphyElement } from "@domphy/core";
 
 const salesData = [
   { name: "Electronics", value: 1048 },
-  { name: "Clothing",    value: 735 },
-  { name: "Groceries",   value: 580 },
-  { name: "Sports",      value: 484 },
-  { name: "Books",       value: 300 },
+  { name: "Clothing", value: 735 },
+  { name: "Groceries", value: 580 },
+  { name: "Sports", value: 484 },
+  { name: "Books", value: 300 },
 ];
 
 const option: ChartOption = {

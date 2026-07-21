@@ -1,5 +1,5 @@
-import type { SankeySeriesOption, SankeyNode, SankeyLink } from "../types.js";
 import { seriesHex } from "../gl/color.js";
+import type { SankeyLink, SankeyNode, SankeySeriesOption } from "../types.js";
 
 interface LayoutNode {
   name: string;
@@ -27,7 +27,10 @@ interface LayoutLink {
   color: string;
 }
 
-function svgEl(tag: string, attrs: Record<string, string | number>): SVGElement {
+function svgEl(
+  tag: string,
+  attrs: Record<string, string | number>,
+): SVGElement {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
   return el;
@@ -51,7 +54,10 @@ function layoutSankey(
       name: n.name,
       value: n.value ?? 0,
       depth: n.depth ?? -1,
-      x: 0, y: 0, w: nodeWidth, h: 0,
+      x: 0,
+      y: 0,
+      w: nodeWidth,
+      h: 0,
       color: n.color ? seriesHex(i % 9) : seriesHex(i % 9),
       inValue: 0,
       outValue: 0,
@@ -87,7 +93,8 @@ function layoutSankey(
   const rootNames = [...sourceNames].filter((n) => !targetNames.has(n));
 
   // BFS depth assignment
-  const queue: string[] = rootNames.length > 0 ? rootNames : [nodesArr[0]?.name ?? ""];
+  const queue: string[] =
+    rootNames.length > 0 ? rootNames : [nodesArr[0]?.name ?? ""];
   const visited = new Set<string>();
   for (const r of queue) {
     const node = nodeMap.get(r);
@@ -137,14 +144,20 @@ function layoutSankey(
   // Compute node heights proportional to max flow
   const maxColumnFlow = Math.max(
     ...[...depthGroups.values()].map((group) =>
-      group.reduce((s, n) => s + Math.max(n.inValue, n.outValue, n.value, 1), 0)
+      group.reduce(
+        (s, n) => s + Math.max(n.inValue, n.outValue, n.value, 1),
+        0,
+      ),
     ),
     1,
   );
 
   // First pass: assign heights and initial y positions
   for (const [, group] of depthGroups) {
-    const totalFlow = group.reduce((s, n) => s + Math.max(n.inValue, n.outValue, n.value, 1), 0);
+    const totalFlow = group.reduce(
+      (s, n) => s + Math.max(n.inValue, n.outValue, n.value, 1),
+      0,
+    );
     const totalGap = nodeGap * (group.length - 1);
     const availH = rect.h - totalGap;
     let y = rect.y;
@@ -164,7 +177,8 @@ function layoutSankey(
       for (const n of group) {
         const incoming = links.filter((l) => l.target === n.name);
         if (incoming.length === 0) continue;
-        let weightedY = 0, totalW = 0;
+        let weightedY = 0,
+          totalW = 0;
         for (const l of incoming) {
           const src = nodeMap.get(l.source);
           if (src) {
@@ -198,7 +212,10 @@ function layoutSankey(
 
   // Build layout links
   const layoutLinks: LayoutLink[] = [];
-  const totalMaxFlow = Math.max(...nodesArr.map((n) => Math.max(n.inValue, n.outValue, n.value, 1)), 1);
+  const totalMaxFlow = Math.max(
+    ...nodesArr.map((n) => Math.max(n.inValue, n.outValue, n.value, 1)),
+    1,
+  );
 
   for (const l of links) {
     const src = nodeMap.get(l.source);
@@ -262,8 +279,18 @@ export function renderSankey(
     const rawLinks = (s.links ?? s.edges ?? []) as SankeyLink[];
     if (rawNodes.length === 0) continue;
 
-    const left = typeof s.left === "number" ? s.left : typeof s.left === "string" ? parseFloat(s.left) : width * 0.05;
-    const top = typeof s.top === "number" ? s.top : typeof s.top === "string" ? parseFloat(s.top) : height * 0.05;
+    const left =
+      typeof s.left === "number"
+        ? s.left
+        : typeof s.left === "string"
+          ? parseFloat(s.left)
+          : width * 0.05;
+    const top =
+      typeof s.top === "number"
+        ? s.top
+        : typeof s.top === "string"
+          ? parseFloat(s.top)
+          : height * 0.05;
     const sw = typeof s.width === "number" ? s.width : width * 0.9;
     const sh = typeof s.height === "number" ? s.height : height * 0.85;
     const nodeWidth = s.nodeWidth ?? 20;
@@ -271,13 +298,19 @@ export function renderSankey(
     const iterations = s.layoutIterations ?? 32;
 
     const { nodes, links: layoutLinks } = layoutSankey(
-      rawNodes, rawLinks,
+      rawNodes,
+      rawLinks,
       { x: left, y: top, w: sw, h: sh },
-      nodeWidth, nodeGap, iterations,
+      nodeWidth,
+      nodeGap,
+      iterations,
     );
 
     // Draw links (below nodes)
-    const linksGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const linksGroup = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "g",
+    );
     linksGroup.setAttribute("opacity", "0.4");
 
     for (const link of layoutLinks) {
@@ -286,7 +319,10 @@ export function renderSankey(
       const x2 = tn.x;
       const cx = (x1 + x2) / 2;
 
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const path = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path",
+      );
       const d = `M ${x1} ${sy} C ${cx} ${sy} ${cx} ${ty} ${x2} ${ty}`;
       path.setAttribute("d", d);
       path.setAttribute("fill", "none");
@@ -299,8 +335,12 @@ export function renderSankey(
     // Draw nodes (above links)
     for (const node of nodes) {
       const rect = svgEl("rect", {
-        x: node.x, y: node.y, width: node.w, height: node.h,
-        fill: node.color, rx: 2,
+        x: node.x,
+        y: node.y,
+        width: node.w,
+        height: node.h,
+        fill: node.color,
+        rx: 2,
       });
       group.appendChild(rect);
 
@@ -309,7 +349,10 @@ export function renderSankey(
       const labelX = isLeft ? node.x - 4 : node.x + nodeWidth + 4;
       const anchor = isLeft ? "end" : "start";
       if (node.h >= 8) {
-        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        const label = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text",
+        );
         label.textContent = node.name;
         label.setAttribute("x", String(labelX));
         label.setAttribute("y", String(node.y + node.h / 2));

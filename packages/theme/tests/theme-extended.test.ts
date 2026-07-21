@@ -197,7 +197,9 @@ describe("deepMerge via setTheme", () => {
     const name = `vitest-merge-proto-${Math.random().toString(36).slice(2)}`;
     // JSON.parse produces an own enumerable "__proto__" key, unlike
     // object-literal syntax, so this reproduces the real attack vector.
-    const payload = JSON.parse('{"custom": {"__proto__": {"polluted": "yes"}}}');
+    const payload = JSON.parse(
+      '{"custom": {"__proto__": {"polluted": "yes"}}}',
+    );
     setTheme(name, payload);
     expect(({} as any).polluted).toBeUndefined();
     expect(Object.prototype).not.toHaveProperty("polluted");
@@ -205,7 +207,9 @@ describe("deepMerge via setTheme", () => {
 
   it("does not let constructor/prototype keys escape the merge target", () => {
     const name = `vitest-merge-ctor-${Math.random().toString(36).slice(2)}`;
-    const payload = JSON.parse('{"custom": {"constructor": {"polluted": "yes"}}}');
+    const payload = JSON.parse(
+      '{"custom": {"constructor": {"polluted": "yes"}}}',
+    );
     setTheme(name, payload);
     expect(({} as any).polluted).toBeUndefined();
   });
@@ -265,9 +269,9 @@ describe("validateTheme errors", () => {
   });
 
   it("rejects a direction value other than 'lighten'/'darken'", () => {
-    expect(() =>
-      setTheme("light", { direction: "sideways" } as any),
-    ).toThrow(/direction must be "lighten" or "darken"/);
+    expect(() => setTheme("light", { direction: "sideways" } as any)).toThrow(
+      /direction must be "lighten" or "darken"/,
+    );
   });
 
   it("accepts a well-formed colors/baseTones/direction partial without throwing", () => {

@@ -1,7 +1,14 @@
-import type { ParallelOption, ParallelAxisOption, ParallelSeriesOption } from "../types.js";
 import { seriesHex } from "../gl/color.js";
+import type {
+  ParallelAxisOption,
+  ParallelOption,
+  ParallelSeriesOption,
+} from "../types.js";
 
-function svgEl(tag: string, attrs: Record<string, string | number>): SVGElement {
+function svgEl(
+  tag: string,
+  attrs: Record<string, string | number>,
+): SVGElement {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
   return el;
@@ -18,20 +25,51 @@ interface AxisMeta {
   name: string;
 }
 
-function buildAxisMeta(axis: ParallelAxisOption, data: number[][], axisX: number, top: number, bottom: number): AxisMeta {
+function buildAxisMeta(
+  axis: ParallelAxisOption,
+  data: number[][],
+  axisX: number,
+  top: number,
+  bottom: number,
+): AxisMeta {
   const type = axis.type ?? "value";
   const categories = axis.data ?? [];
 
   if (type === "category") {
-    return { min: 0, max: categories.length - 1, categories, type, x: axisX, top, bottom, name: axis.name ?? "" };
+    return {
+      min: 0,
+      max: categories.length - 1,
+      categories,
+      type,
+      x: axisX,
+      top,
+      bottom,
+      name: axis.name ?? "",
+    };
   }
 
-  const colValues = data.map((row) => row[axis.dim ?? 0] ?? 0).filter((v) => isFinite(v));
-  let min = axis.min !== undefined ? Number(axis.min) : Math.min(...colValues, 0);
-  let max = axis.max !== undefined ? Number(axis.max) : Math.max(...colValues, 1);
-  if (min === max) { min -= 1; max += 1; }
+  const colValues = data
+    .map((row) => row[axis.dim ?? 0] ?? 0)
+    .filter((v) => isFinite(v));
+  let min =
+    axis.min !== undefined ? Number(axis.min) : Math.min(...colValues, 0);
+  let max =
+    axis.max !== undefined ? Number(axis.max) : Math.max(...colValues, 1);
+  if (min === max) {
+    min -= 1;
+    max += 1;
+  }
 
-  return { min, max, categories, type, x: axisX, top, bottom, name: axis.name ?? "" };
+  return {
+    min,
+    max,
+    categories,
+    type,
+    x: axisX,
+    top,
+    bottom,
+    name: axis.name ?? "",
+  };
 }
 
 function normalizeValue(meta: AxisMeta, value: number | string): number {
@@ -67,10 +105,30 @@ export function renderParallel(
   group.setAttribute("class", "dc-parallel");
 
   const parallelOpt = parallelOpts[0] ?? {};
-  const left = typeof parallelOpt.left === "number" ? parallelOpt.left : typeof parallelOpt.left === "string" ? parseFloat(parallelOpt.left) : width * 0.1;
-  const top = typeof parallelOpt.top === "number" ? parallelOpt.top : typeof parallelOpt.top === "string" ? parseFloat(parallelOpt.top) : height * 0.1;
-  const right = typeof parallelOpt.right === "number" ? parallelOpt.right : typeof parallelOpt.right === "string" ? parseFloat(parallelOpt.right) : width * 0.05;
-  const bottom = typeof parallelOpt.bottom === "number" ? parallelOpt.bottom : typeof parallelOpt.bottom === "string" ? parseFloat(parallelOpt.bottom) : height * 0.1;
+  const left =
+    typeof parallelOpt.left === "number"
+      ? parallelOpt.left
+      : typeof parallelOpt.left === "string"
+        ? parseFloat(parallelOpt.left)
+        : width * 0.1;
+  const top =
+    typeof parallelOpt.top === "number"
+      ? parallelOpt.top
+      : typeof parallelOpt.top === "string"
+        ? parseFloat(parallelOpt.top)
+        : height * 0.1;
+  const right =
+    typeof parallelOpt.right === "number"
+      ? parallelOpt.right
+      : typeof parallelOpt.right === "string"
+        ? parseFloat(parallelOpt.right)
+        : width * 0.05;
+  const bottom =
+    typeof parallelOpt.bottom === "number"
+      ? parallelOpt.bottom
+      : typeof parallelOpt.bottom === "string"
+        ? parseFloat(parallelOpt.bottom)
+        : height * 0.1;
 
   const drawTop = top;
   const drawBottom = height - bottom;
@@ -101,14 +159,21 @@ export function renderParallel(
 
     // Axis line
     const line = svgEl("line", {
-      x1: meta.x, y1: meta.top, x2: meta.x, y2: meta.bottom,
-      stroke: "#aaa", "stroke-width": 1,
+      x1: meta.x,
+      y1: meta.top,
+      x2: meta.x,
+      y2: meta.bottom,
+      stroke: "#aaa",
+      "stroke-width": 1,
     });
     group.appendChild(line);
 
     // Axis name
     if (meta.name) {
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      const label = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text",
+      );
       label.textContent = meta.name;
       label.setAttribute("x", String(meta.x));
       label.setAttribute("y", String(meta.top - 8));
@@ -131,11 +196,24 @@ export function renderParallel(
       }
       const y = valueToY(meta, tickValue);
 
-      const tick = svgEl("line", { x1: meta.x - 3, y1: y, x2: meta.x + 3, y2: y, stroke: "#aaa", "stroke-width": 1 });
+      const tick = svgEl("line", {
+        x1: meta.x - 3,
+        y1: y,
+        x2: meta.x + 3,
+        y2: y,
+        stroke: "#aaa",
+        "stroke-width": 1,
+      });
       group.appendChild(tick);
 
-      const tickLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      tickLabel.textContent = meta.type === "category" ? String(tickValue) : Number(tickValue).toFixed(1);
+      const tickLabel = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text",
+      );
+      tickLabel.textContent =
+        meta.type === "category"
+          ? String(tickValue)
+          : Number(tickValue).toFixed(1);
       tickLabel.setAttribute("x", String(meta.x - 6));
       tickLabel.setAttribute("y", String(y));
       tickLabel.setAttribute("font-size", "9");
@@ -162,13 +240,19 @@ export function renderParallel(
         const meta = axisMetas[ai];
         const dim = parallelAxes[ai].dim ?? ai;
         const value = row[dim];
-        if (value === undefined || value === null || !isFinite(Number(value))) { valid = false; break; }
+        if (value === undefined || value === null || !isFinite(Number(value))) {
+          valid = false;
+          break;
+        }
         const y = valueToY(meta, value);
         points.push(`${meta.x},${y}`);
       }
       if (!valid || points.length < 2) continue;
 
-      const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      const polyline = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "polyline",
+      );
       polyline.setAttribute("points", points.join(" "));
       polyline.setAttribute("fill", "none");
       polyline.setAttribute("stroke", color);
