@@ -1,27 +1,32 @@
 # Domphy visual regression
 
-Playwright screenshot tests against the internal visual catalogs:
-
-- `/docs/visual/patches` — UI patch prop/state matrices
-- `/docs/visual/blocks` — every `@domphy/blocks` demo
-
-Each `[data-visual="<id>"]` cell is one baseline PNG.
+Playwright screenshots of every `[data-visual="<id>"]` cell in the patch/block
+catalogs. Host is the **standalone** catalog server (not press islands).
 
 ## Run
 
 ```bash
-pnpm --filter domphy-web dev   # terminal 1
-pnpm --filter domphy-web visual:update  # write baselines
-pnpm --filter domphy-web visual         # compare
+# From apps/web — auto-starts serve-standalone on :4177
+pnpm visual:update   # write baselines
+pnpm visual           # compare
+
+# One-shot dump for human review (no snapshot compare):
+node visual/serve-standalone.mjs --port 4177   # terminal 1
+node visual/shoot-all.mjs visual/shots-review-light
+THEME=dark node visual/shoot-all.mjs visual/shots-review-dark
 ```
 
-Optional env:
+Catalogs (standalone query string):
 
-- `VISUAL_BASE_URL` — default `http://127.0.0.1:3000`
+- `/?catalog=patches` — UI patch prop/state matrices (`docs/demos/visual/patches-catalog.ts`)
+- `/?catalog=blocks` — every `@domphy/blocks` demo
+
+Press docs path `/visual/patches` exists but islands often don't mount
+`data-visual` cells — always use the standalone host for screenshots.
+
+Optional: `VISUAL_BASE_URL` (default `http://127.0.0.1:4177`).
 
 ## Regenerate blocks catalog
-
-When demos under `docs/demos/blocks/` change:
 
 ```bash
 pnpm --filter domphy-web visual:blocks-gen
@@ -29,4 +34,5 @@ pnpm --filter domphy-web visual:blocks-gen
 
 ## CI note
 
-Visual tests are **not** wired into the main CI pipeline by default (baselines are large and need a stable headless browser). Run them locally (or a dedicated visual job) after UI/blocks changes. Commit updated snapshots from `visual:update` together with the code change.
+Visual tests are **not** in the main CI pipeline by default (large baselines +
+stable headless browser). Run locally after UI/blocks changes.

@@ -117,8 +117,11 @@ function linkButton(
     },
     ...(isSolid
       ? {
-          dataTone: "shift-17" as const,
-          _doctorDisable: ["low-contrast", "color-shift-minimum"] as const,
+          _doctorDisable: [
+            "low-contrast",
+            "color-shift-minimum",
+            "tone-background-inherit",
+          ] as const,
         }
       : {}),
     style: {
@@ -145,31 +148,33 @@ function linkButton(
         ? "none"
         : (listener) =>
             `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
-      // Solid text: shift-17 from dataTone shift-17 = opposite ramp end (readable
-      // contrast). shift-0 stays on the dark surface tone and is invisible.
+      // Solid: mid-ramp brand + light text (not dataTone-17 black). Outline:
+      // shift-13 so brand hues clear ≥4.5:1 on light bg.
       color: (listener) =>
         isSolid
-          ? themeColor(listener, "shift-17", color.get(listener))
-          : themeColor(listener, "text", color.get(listener)),
+          ? themeColor(listener, "shift-0", "neutral")
+          : themeColor(listener, "shift-13", color.get(listener)),
       backgroundColor: (listener) =>
-        themeColor(listener, "inherit", color.get(listener)),
+        isSolid
+          ? themeColor(listener, "shift-8", color.get(listener))
+          : themeColor(listener, "inherit", color.get(listener)),
       transition:
         "background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
       "&:hover:not([aria-disabled=true])": {
         textDecoration: "none",
         color: (listener) =>
           isSolid
-            ? themeColor(listener, "shift-17", color.get(listener))
-            : themeColor(listener, "shift-10", color.get(listener)),
+            ? themeColor(listener, "shift-0", "neutral")
+            : themeColor(listener, "shift-14", color.get(listener)),
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "decrease-1", color.get(listener))
+            ? themeColor(listener, "shift-9", color.get(listener))
             : themeColor(listener, "hover", color.get(listener)),
       },
       "&:active:not([aria-disabled=true])": {
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "decrease-2", color.get(listener))
+            ? themeColor(listener, "shift-10", color.get(listener))
             : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {

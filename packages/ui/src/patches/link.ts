@@ -34,15 +34,17 @@ function link(
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) => themeColor(listener),
-      color: (listener) => themeColor(listener, "text", color.get(listener)),
+      // shift-13 (not "text"/shift-9): brand hues need extra depth for ≥4.5:1
+      // on a light surface (primary orange failed at 2.57 with shift-9).
+      color: (listener) => themeColor(listener, "shift-13", color.get(listener)),
       textDecoration: "none",
       "&:visited": {
         color: (listener) =>
-          themeColor(listener, "text", accentColor.get(listener)),
+          themeColor(listener, "shift-13", accentColor.get(listener)),
       },
       "&:hover:not([disabled])": {
         color: (listener) =>
-          themeColor(listener, "shift-10", color.get(listener)),
+          themeColor(listener, "shift-14", color.get(listener)),
         textDecoration: "underline",
       },
       borderRadius: themeSpacing(1),

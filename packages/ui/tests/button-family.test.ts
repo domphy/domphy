@@ -169,14 +169,17 @@ describe("linkButton", () => {
     expect(css).toContain("140ms");
   });
 
-  it("solid variant drops outline and anchors on a dark dataTone surface", () => {
+  it("solid variant drops outline and uses mid-ramp brand fill", () => {
     const { host, node } = render({
       a: "Get started",
       href: "/start",
       $: [linkButton({ variant: "solid", color: "primary" })],
     } as DomphyElement);
-    expect(node.generateCSS()).toContain("outline: none");
-    expect(host.querySelector("a")?.getAttribute("data-tone")).toBe("shift-17");
+    const css = node.generateCSS();
+    expect(css).toContain("outline: none");
+    // Not the old dataTone-17 black solid — fill is absolute mid-ramp.
+    expect(host.querySelector("a")?.getAttribute("data-tone")).toBeNull();
+    expect(css).toMatch(/shift-8|primary/);
   });
 
   it("ghost variant is transparent like buttonGhost", () => {

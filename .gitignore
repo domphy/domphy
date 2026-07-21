@@ -51,3 +51,9 @@ packages/chart/*-bundle.js
 
 .ui-qa/
 
+
+# Visual / Playwright local
+apps/web/visual/.serve/
+apps/web/test-results/
+apps/web/visual/shots-review-*/
+apps/web/playwright-report/

@@ -55,16 +55,17 @@ function button(
         console.warn(`"button" primitive patch must use button tag`);
       }
     },
-    // Solid fills use the dark edge (dataTone shift-17) + max-contrast text.
-    // shift-N is RELATIVE to the dataTone context (from a dark context, shift-N
-    // lightens): shift-0 stays dark (= invisible text on solid), shift-17 lands
-    // on the opposite ramp end (light text on dark solid / dark text on light
-    // solid after theme ramp reversal). Inverse solids disable body-text doctor
-    // rules that assume light-surface shift ≥ 9.
+    // Solid: mid-ramp brand fill (shift-8) + light neutral text. NOT dataTone
+    // shift-17 (that collapsed every color into a near-black pill — visual catalog).
+    // Outline text: shift-13 so brand hues clear WCAG ≥4.5:1 on light surfaces
+    // (shift-9/"text" failed at ~2.57 for orange primary).
     ...(isSolid
       ? {
-          dataTone: "shift-17" as const,
-          _doctorDisable: ["low-contrast", "color-shift-minimum"] as const,
+          _doctorDisable: [
+            "low-contrast",
+            "color-shift-minimum",
+            "tone-background-inherit",
+          ] as const,
         }
       : {}),
     style: {
@@ -94,27 +95,29 @@ function button(
             `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       color: (listener) =>
         isSolid
-          ? themeColor(listener, "shift-17", color.get(listener))
-          : themeColor(listener, "text", color.get(listener)),
+          ? themeColor(listener, "shift-0", "neutral")
+          : themeColor(listener, "shift-13", color.get(listener)),
       backgroundColor: (listener) =>
-        themeColor(listener, "inherit", color.get(listener)),
+        isSolid
+          ? themeColor(listener, "shift-8", color.get(listener))
+          : themeColor(listener, "inherit", color.get(listener)),
       transition:
         "background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
       "&:hover:not([disabled]):not([aria-busy=true])": {
         color: (listener) =>
           isSolid
-            ? themeColor(listener, "shift-17", color.get(listener))
-            : themeColor(listener, "shift-10", color.get(listener)),
+            ? themeColor(listener, "shift-0", "neutral")
+            : themeColor(listener, "shift-14", color.get(listener)),
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "decrease-1", color.get(listener))
+            ? themeColor(listener, "shift-9", color.get(listener))
             : themeColor(listener, "hover", color.get(listener)),
       },
-      // Pressed: ±2 from surface (design system interactive delta).
+      // Pressed: solid steps deeper on the brand ramp; outline uses +2 surface.
       "&:active:not([disabled]):not([aria-busy=true])": {
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "decrease-2", color.get(listener))
+            ? themeColor(listener, "shift-10", color.get(listener))
             : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {

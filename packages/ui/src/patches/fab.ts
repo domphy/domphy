@@ -35,12 +35,14 @@ function fab(
         console.warn('"fab" patch must use button tag');
       }
     },
-    // Solid accent disc on the dark edge (dataTone shift-17) + max-contrast
-    // icon/text (shift-17 from that context → opposite ramp end). shift-0 would
-    // stay on the surface tone and disappear. Doctor's body-text rules assume
-    // light-surface shift ≥ 9; inverse solids disable them.
-    dataTone: "shift-17",
-    _doctorDisable: ["low-contrast", "color-shift-minimum"],
+    // Mid-ramp brand disc + light icon (not dataTone-17 black — visual catalog).
+    // tone-background-inherit wants inherit+dataTone; solid brand fill needs
+    // an explicit shift-8 so doctor is silenced the same way as button solid.
+    _doctorDisable: [
+      "low-contrast",
+      "color-shift-minimum",
+      "tone-background-inherit",
+    ],
     style: {
       appearance: "none",
       border: "none",
@@ -54,18 +56,18 @@ function fab(
       borderRadius: "50%",
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) =>
-        themeColor(listener, "inherit", color.get(listener)),
-      color: (listener) => themeColor(listener, "shift-17", color.get(listener)),
+        themeColor(listener, "shift-8", color.get(listener)),
+      color: (listener) => themeColor(listener, "shift-0", "neutral"),
       boxShadow: elevation("low"),
       transition: "background-color 200ms ease, box-shadow 200ms ease",
       "&:hover:not([disabled])": {
         backgroundColor: (listener) =>
-          themeColor(listener, "decrease-1", color.get(listener)),
+          themeColor(listener, "shift-9", color.get(listener)),
         boxShadow: elevation("medium"),
       },
       "&:active:not([disabled])": {
         backgroundColor: (listener) =>
-          themeColor(listener, "decrease-2", color.get(listener)),
+          themeColor(listener, "shift-10", color.get(listener)),
         boxShadow: elevation("low"),
       },
       "&:focus-visible": {

@@ -133,6 +133,8 @@ const box = (label: string): DomphyElement<"div"> => ({
 });
 
 // Controlled open states for overlays (force-open for screenshots)
+// Overlays start open for capture; catalog.spec closes them between cells
+// so they don't steal pointer events from hover/focus targets.
 const dialogOpen = toState(true);
 const drawerOpen = toState(true);
 const popoverOpen = toState(true);
@@ -194,6 +196,65 @@ const buttons = visualSection("Buttons", [
   visualCell("button-variant-ghost", "button / ghost", {
     button: "Ghost",
     $: [button({ variant: "ghost", color: "primary" })],
+  }),
+  // Solid × color matrix — contrast-critical (shift-17 text on dark surface)
+  visualCell("button-solid-primary", "button / solid primary", {
+    button: "Primary",
+    $: [button({ variant: "solid", color: "primary" })],
+  }),
+  visualCell("button-solid-neutral", "button / solid neutral", {
+    button: "Neutral",
+    $: [button({ variant: "solid", color: "neutral" })],
+  }),
+  visualCell("button-solid-danger", "button / solid danger", {
+    button: "Danger",
+    $: [button({ variant: "solid", color: "danger" })],
+  }),
+  visualCell("button-solid-error", "button / solid error", {
+    button: "Error",
+    $: [button({ variant: "solid", color: "error" })],
+  }),
+  visualCell("button-solid-success", "button / solid success", {
+    button: "Success",
+    $: [button({ variant: "solid", color: "success" })],
+  }),
+  visualCell("button-solid-warning", "button / solid warning", {
+    button: "Warning",
+    $: [button({ variant: "solid", color: "warning" })],
+  }),
+  visualCell("button-solid-info", "button / solid info", {
+    button: "Info",
+    $: [button({ variant: "solid", color: "info" })],
+  }),
+  visualCell("button-solid-small", "button / solid small", {
+    button: "Small solid",
+    $: [button({ variant: "solid", color: "primary", size: "small" })],
+  }),
+  visualCell("button-solid-large", "button / solid large", {
+    button: "Large solid",
+    $: [button({ variant: "solid", color: "primary", size: "large" })],
+  }),
+  visualCell("button-solid-disabled", "button / solid disabled", {
+    button: "Disabled solid",
+    disabled: true,
+    $: [button({ variant: "solid", color: "primary" })],
+  }),
+  visualCell(
+    "button-solid-hover",
+    "button / solid hover",
+    { button: "Hover solid", $: [button({ variant: "solid", color: "primary" })] },
+    { hover: true },
+  ),
+  visualCell(
+    "button-solid-focus",
+    "button / solid focus",
+    { button: "Focus solid", $: [button({ variant: "solid", color: "primary" })] },
+    { focus: true },
+  ),
+  visualCell("button-solid-busy", "button / solid busy", {
+    button: "Loading…",
+    ariaBusy: true,
+    $: [button({ variant: "solid", color: "primary" })],
   }),
   visualCell("button-color-primary", "button / primary", {
     button: "Primary",
@@ -297,6 +358,21 @@ const buttons = visualSection("Buttons", [
     href: "#",
     $: [linkButton({ variant: "solid", color: "primary" })],
   }),
+  visualCell("linkButton-solid-danger", "linkButton / solid danger", {
+    a: "Danger solid",
+    href: "#",
+    $: [linkButton({ variant: "solid", color: "danger" })],
+  }),
+  visualCell("linkButton-solid-success", "linkButton / solid success", {
+    a: "Success solid",
+    href: "#",
+    $: [linkButton({ variant: "solid", color: "success" })],
+  }),
+  visualCell("linkButton-solid-neutral", "linkButton / solid neutral", {
+    a: "Neutral solid",
+    href: "#",
+    $: [linkButton({ variant: "solid", color: "neutral" })],
+  }),
   visualCell("linkButton-variant-outline", "linkButton / outline", {
     a: "Outline",
     href: "#",
@@ -345,6 +421,10 @@ const buttons = visualSection("Buttons", [
     button: "+",
     $: [fab({ size: "large" })],
   }),
+  visualCell("fab-color-primary", "fab / primary", {
+    button: "+",
+    $: [fab({ color: "primary" })],
+  }),
   visualCell("fab-color-danger", "fab / danger", {
     button: "×",
     $: [fab({ color: "danger" })],
@@ -352,6 +432,15 @@ const buttons = visualSection("Buttons", [
   visualCell("fab-color-success", "fab / success", {
     button: "✓",
     $: [fab({ color: "success" })],
+  }),
+  visualCell("fab-color-warning", "fab / warning", {
+    button: "!",
+    $: [fab({ color: "warning" })],
+  }),
+  visualCell("fab-state-disabled", "fab / disabled", {
+    button: "+",
+    disabled: true,
+    $: [fab({ color: "primary" })],
   }),
 ]);
 
@@ -847,7 +936,7 @@ const overlays = visualSection("Overlays", [
       $: [
         button({ color: "primary" }),
         popover({
-          open: toState(true),
+          open: popoverOpen,
           placement: "top",
           content: {
             div: "With arrow",

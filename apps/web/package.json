@@ -16,7 +16,10 @@
     "a11y:prod": "node scripts/a11y-audit.mjs https://domphy.com https://domphy.com/docs/quickstart https://domphy.com/docs/ui/patches/button",
     "visual": "playwright test -c visual/playwright.config.ts",
     "visual:update": "playwright test -c visual/playwright.config.ts --update-snapshots",
+    "visual:patches": "playwright test -c visual/playwright.config.ts --grep \"patches catalog\"",
+    "visual:patches:update": "playwright test -c visual/playwright.config.ts --grep \"patches catalog\" --update-snapshots",
     "visual:blocks-gen": "node scripts/gen-visual-blocks.mjs",
+    "visual:serve": "node visual/serve-standalone.mjs --port 4177",
     "postinstall": "puppeteer browsers install chrome-headless-shell"
   },
   "keywords": [],
