@@ -6,6 +6,29 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## Enterprise FE gate + UI polish — 2026-07-21
+
+### `@domphy/ui` [0.20.5]
+- Shared `focusRing` on remaining interactive patches (link, list, menu, command, datePicker, accordion/details, range, selectItem, splitter, breadcrumb).
+- Pressed `:active` (±2) on button / ghost / linkButton / fab / listItemButton / toggle / segmented.
+- Card elevation, badge ring, pill tags, alert radius, empty hierarchy, skeleton shimmer, stronger steps, tab focus+underline compose.
+- `motion()` respects `prefers-reduced-motion`; `small()` uses `shift-10` for WCAG AA.
+
+### `@domphy/press` [0.21.3]
+- Skip-to-content → `#main-content` on every shell.
+- `prefers-reduced-motion` global CSS; mobile closed nav `visibility:hidden` (tab-order safe).
+- Content links underlined; sidebar/footer contrast; code blocks `tabindex="0"`; code-group tab contrast.
+- HTML head: `color-scheme`, referrer meta.
+
+### `@domphy/core` [0.19.3]
+- Publish catch-up (typed `_doctorDisable` and prior fixes already on main).
+
+### Site / ops
+- `vercel.json` security + cache headers; `SECURITY.md` / `ENTERPRISE.md`.
+- `pnpm a11y` / `a11y:prod` (axe-core + Puppeteer); CI `a11y-prod` on `main`.
+
+---
+
 ## `@domphy/chart` [0.2.3] — 2026-07-21
 
 ### Docs / packaging
