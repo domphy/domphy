@@ -80,12 +80,18 @@ function linkButton(
           "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
         color: (listener) =>
           themeColor(listener, "shift-6", color.get(listener)),
-        "&:hover": {
+        "&:hover:not([aria-disabled=true])": {
           color: (listener) =>
             themeColor(listener, "text", color.get(listener)),
           backgroundColor: (listener) =>
             themeColor(listener, "hover", color.get(listener)),
           textDecoration: "none",
+        },
+        "&:active:not([aria-disabled=true])": {
+          color: (listener) =>
+            themeColor(listener, "text", color.get(listener)),
+          backgroundColor: (listener) =>
+            themeColor(listener, "increase-2", color.get(listener)),
         },
         "&:focus-visible": {
           boxShadow: (listener) => focusRing(listener, color.get(listener)),
@@ -148,7 +154,7 @@ function linkButton(
         themeColor(listener, "inherit", color.get(listener)),
       transition:
         "background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
-      "&:hover": {
+      "&:hover:not([aria-disabled=true])": {
         textDecoration: "none",
         color: (listener) =>
           isSolid
@@ -158,6 +164,12 @@ function linkButton(
           isSolid
             ? themeColor(listener, "decrease-1", color.get(listener))
             : themeColor(listener, "hover", color.get(listener)),
+      },
+      "&:active:not([aria-disabled=true])": {
+        backgroundColor: (listener) =>
+          isSolid
+            ? themeColor(listener, "decrease-2", color.get(listener))
+            : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {
         boxShadow: (listener) => focusRing(listener, color.get(listener)),

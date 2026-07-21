@@ -387,6 +387,16 @@ describe("skeleton", () => {
     ).not.toThrow();
   });
 
+  it("uses a shimmer gradient animation (not a flat opacity pulse)", () => {
+    const { node } = render({
+      div: [{ div: null, $: [skeleton()] }],
+    } as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toContain("linear-gradient");
+    expect(css).toContain("background-position");
+    expect(css).toContain("background-size");
+  });
+
   it("renders without error with custom color", () => {
     expect(() =>
       render({

@@ -94,6 +94,10 @@ function listItemButton(
         backgroundColor: (listener) =>
           themeColor(listener, "hover", color.get(listener)),
       },
+      "&:active:not([disabled])": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "increase-2", color.get(listener)),
+      },
       "&[aria-current=page], &[aria-selected=true]": {
         backgroundColor: (listener) =>
           themeColor(listener, "shift-3", accentColor),

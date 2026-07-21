@@ -26,9 +26,12 @@ function skeleton(
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
 
+  // Shimmer sweeps left→right over a mid-ramp base (reads as loading, not
+  // a flat opacity blink). Base + highlight are both theme tokens so the
+  // effect adapts to light/dark surfaces.
   const keyframes = {
-    "0%,100%": { opacity: 1 },
-    "50%": { opacity: 0.4 },
+    "0%": { backgroundPosition: "200% 0" },
+    "100%": { backgroundPosition: "-200% 0" },
   };
   const animationName = hashString(JSON.stringify(keyframes));
   return {
@@ -42,7 +45,10 @@ function skeleton(
       borderRadius: themeSpacing(1),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      animation: `${animationName} 1.5s ease-in-out infinite`,
+      backgroundImage: (listener) =>
+        `linear-gradient(90deg, ${themeColor(listener, "inherit", color.get(listener))} 0%, ${themeColor(listener, "shift-4", color.get(listener))} 50%, ${themeColor(listener, "inherit", color.get(listener))} 100%)`,
+      backgroundSize: "200% 100%",
+      animation: `${animationName} 1.6s ease-in-out infinite`,
       [`@keyframes ${animationName}`]: keyframes,
     } as StyleObject,
   };

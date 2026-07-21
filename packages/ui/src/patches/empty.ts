@@ -29,11 +29,18 @@ function empty(
       paddingBlock: themeSpacing(12),
       paddingInline: themeSpacing(6),
       textAlign: "center",
-      color: (listener) => themeColor(listener, "shift-6", color.get(listener)),
-      // First child (icon area): more muted color to visually recede behind the text
+      // Body / description text sits in the muted zone.
+      color: (listener) => themeColor(listener, "muted", color.get(listener)),
+      // Icon area: slightly softer so it recedes behind the title.
       "& > :first-child": {
         color: (listener) =>
           themeColor(listener, "shift-5", color.get(listener)),
+        opacity: 0.9,
+      },
+      // Title (typically second child): stronger body text for hierarchy.
+      "& > :nth-child(2)": {
+        color: (listener) =>
+          themeColor(listener, "text", color.get(listener)),
       },
     },
   };

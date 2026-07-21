@@ -317,6 +317,13 @@ describe("alert", () => {
     expect(alertEl?.getAttribute("data-tone")).toBe("shift-2");
   });
 
+  it("rounds the alert surface", () => {
+    const { node } = render({
+      div: [{ div: "Note", $: [alert()] }],
+    } as DomphyElement);
+    expect(node.generateCSS()).toContain("border-radius");
+  });
+
   it("renders children content correctly", () => {
     const { host } = render({
       div: [

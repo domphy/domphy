@@ -66,6 +66,11 @@ function buttonGhost(
         backgroundColor: (listener) =>
           themeColor(listener, "hover", color.get(listener)),
       },
+      "&:active:not([disabled]):not([aria-busy=true])": {
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
+        backgroundColor: (listener) =>
+          themeColor(listener, "increase-2", color.get(listener)),
+      },
       "&:focus-visible": {
         boxShadow: (listener) => focusRing(listener, color.get(listener)),
       },

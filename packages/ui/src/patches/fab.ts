@@ -62,6 +62,11 @@ function fab(
           themeColor(listener, "decrease-1", color.get(listener)),
         boxShadow: elevation("medium"),
       },
+      "&:active:not([disabled])": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "decrease-2", color.get(listener)),
+        boxShadow: elevation("low"),
+      },
       "&:focus-visible": {
         boxShadow: (listener) =>
           `${elevation("medium")}, ${focusRing(listener, color.get(listener))}`,

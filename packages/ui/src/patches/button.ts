@@ -105,6 +105,13 @@ function button(
             ? themeColor(listener, "decrease-1", color.get(listener))
             : themeColor(listener, "hover", color.get(listener)),
       },
+      // Pressed: ±2 from surface (design system interactive delta).
+      "&:active:not([disabled]):not([aria-busy=true])": {
+        backgroundColor: (listener) =>
+          isSolid
+            ? themeColor(listener, "decrease-2", color.get(listener))
+            : themeColor(listener, "increase-2", color.get(listener)),
+      },
       "&:focus-visible": {
         boxShadow: (listener) => focusRing(listener, color.get(listener)),
       },

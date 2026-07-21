@@ -121,6 +121,17 @@ describe("button", () => {
     expect(css).toContain("border: none");
   });
 
+  it("emits a pressed :active state for outline and solid", () => {
+    for (const variant of ["outline", "solid"] as const) {
+      const { node } = render({
+        button: "Press",
+        $: [button({ variant })],
+      } as DomphyElement);
+      const css = node.generateCSS();
+      expect(css, variant).toContain(":active");
+    }
+  });
+
   it("size preset changes padding-inline: small < medium < large", () => {
     const cssValues: string[] = [];
     const sizes = ["small", "medium", "large"] as const;

@@ -30,6 +30,7 @@ function alert(
       gap: themeSpacing(3),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       boxShadow: (listener) =>
         `inset ${themeSpacing(1)} 0 0 0 ${themeColor(listener, "shift-8", color.get(listener))}`,
       backgroundColor: (listener) =>
