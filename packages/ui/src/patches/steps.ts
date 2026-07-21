@@ -117,33 +117,39 @@ function steps(
             },
             "&[data-status=active]::before": {
               backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-6", accentColor),
+                themeColor(l, "shift-9", accentColor),
               borderColor: (l: Listener) =>
-                themeColor(l, "shift-6", accentColor),
-              color: (l: Listener) => themeColor(l, "shift-15", accentColor),
+                themeColor(l, "shift-9", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-0", accentColor),
+              boxShadow: (l: Listener) =>
+                `0 0 0 3px ${themeColor(l, "shift-3", accentColor)}`,
             },
+            // Completed steps: filled accent + check, matching active track.
             "&[data-status=done]::before": {
               content: '"✓"',
-              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
-              borderColor: (l: Listener) => themeColor(l, "border", color),
-              color: (l: Listener) => themeColor(l, "text", color),
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-9", accentColor),
+              borderColor: (l: Listener) =>
+                themeColor(l, "shift-9", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-0", accentColor),
             },
             "&[data-status=done]:not(:first-child)::after": {
-              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
+              backgroundColor: (l: Listener) =>
+                themeColor(l, "shift-9", accentColor),
             },
             "&[data-status=active]:not(:first-child)::after": {
               backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-6", accentColor),
+                themeColor(l, "shift-9", accentColor),
             },
             "&[data-status=pending]": {
-              color: (l: Listener) => themeColor(l, "shift-7"),
+              color: (l: Listener) => themeColor(l, "muted"),
             },
             "&[data-status=active]": {
-              color: (l: Listener) => themeColor(l, "shift-10"),
+              color: (l: Listener) => themeColor(l, "shift-11", accentColor),
               fontWeight: "bold",
             },
             "&[data-status=done]": {
-              color: (l: Listener) => themeColor(l, "muted"),
+              color: (l: Listener) => themeColor(l, "text", color),
             },
           },
         } as DomphyElement<"li">;
