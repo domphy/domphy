@@ -131,10 +131,12 @@ function commandItem(
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       border: "none",
       outline: "none",
-      color: (listener) => themeColor(listener, "text", color),
+      // shift-13: menu-row labels need ≥4.5:1 on light surface (visual catalog).
+      color: (listener) => themeColor(listener, "shift-13", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       transition: "background-color 140ms ease, box-shadow 140ms ease",
       "&:hover:not([disabled])": {
+        color: (listener) => themeColor(listener, "shift-13", color),
         backgroundColor: (listener) => themeColor(listener, "hover", color),
       },
       "&:focus-visible": {

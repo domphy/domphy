@@ -95,11 +95,13 @@ function toggleGroup(
             paddingInline: themeSpacing(2),
             border: "none",
             borderRadius: themeSpacing(1.5),
-            color: (l: Listener) => themeColor(l, "text", color),
+            // Unpressed: shift-13 for readable resting labels (catalog contrast).
+            color: (l: Listener) => themeColor(l, "shift-13", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
             transition:
               "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
             "&:hover:not([disabled]):not([aria-pressed=true])": {
+              color: (l: Listener) => themeColor(l, "shift-13", color),
               backgroundColor: (l: Listener) => themeColor(l, "hover", color),
             },
             "&:active:not([disabled])": {
@@ -109,7 +111,7 @@ function toggleGroup(
             "&[aria-pressed=true]": {
               backgroundColor: (l: Listener) =>
                 themeColor(l, "shift-3", accentColor),
-              color: (l: Listener) => themeColor(l, "shift-12", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-13", accentColor),
             },
             "&:focus-visible": {
               boxShadow: (l: Listener) => focusRing(l, accentColor),

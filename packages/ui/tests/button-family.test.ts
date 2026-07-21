@@ -111,6 +111,30 @@ describe("button", () => {
     expect(css).toContain("outline: none");
   });
 
+  it("solid uses deep brand fill + light text tokens (catalog contrast bar)", () => {
+    // Catalog audit: mid-ramp fill (shift-8 / --primary-8) with white text
+    // failed WCAG (~2.2:1). Ship CSS must emit deep fill + light-end text.
+    const { node } = render({
+      button: "Primary solid",
+      $: [button({ variant: "solid", color: "primary" })],
+    } as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toMatch(/background-color:\s*var\(--primary-13\)/);
+    expect(css).toMatch(/color:\s*var\(--neutral-0\)/);
+    expect(css).not.toMatch(/background-color:\s*var\(--primary-8\)/);
+  });
+
+  it("outline primary text uses deep tone token for light-surface AA", () => {
+    const { node } = render({
+      button: "Outline",
+      $: [button({ variant: "outline", color: "primary" })],
+    } as DomphyElement);
+    const css = node.generateCSS();
+    // shift-13, not shift-9/"text" which failed the catalog at ~2.57:1.
+    expect(css).toMatch(/color:\s*var\(--primary-13\)/);
+    expect(css).not.toMatch(/color:\s*var\(--primary-9\)/);
+  });
+
   it("ghost variant delegates to buttonGhost (no background/border)", () => {
     const { node } = render({
       button: "Save",

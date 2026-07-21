@@ -94,19 +94,21 @@ function tabs(
             paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
             border: "none",
             outline: "none",
-            color: (l: Listener) => themeColor(l, "text"),
+            // Resting tabs: shift-13 for ≥4.5:1 on surface (catalog low-contrast).
+            color: (l: Listener) => themeColor(l, "shift-13"),
             backgroundColor: (l: Listener) => themeColor(l, "inherit"),
             boxShadow: (l: Listener) =>
               `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-1", color)}`,
             transition: "box-shadow 140ms ease, color 140ms ease",
             "&:hover:not([disabled]):not([aria-selected=true])": {
+              color: (l: Listener) => themeColor(l, "shift-13"),
               boxShadow: (l: Listener) =>
                 `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-2", color)}`,
             },
             "&[aria-selected=true]:not([disabled])": {
-              color: (l: Listener) => themeColor(l, "shift-12", accentColor),
+              color: (l: Listener) => themeColor(l, "shift-13", accentColor),
               boxShadow: (l: Listener) =>
-                `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
+                `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-8", accentColor)}`,
             },
             // Focus ring must compose with the selected underline (both use
             // box-shadow) so keyboard focus doesn't erase the active indicator.

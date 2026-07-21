@@ -55,10 +55,10 @@ function button(
         console.warn(`"button" primitive patch must use button tag`);
       }
     },
-    // Solid: mid-ramp brand fill (shift-8) + light neutral text. NOT dataTone
-    // shift-17 (that collapsed every color into a near-black pill — visual catalog).
-    // Outline text: shift-13 so brand hues clear WCAG ≥4.5:1 on light surfaces
-    // (shift-9/"text" failed at ~2.57 for orange primary).
+    // Solid: deep brand fill (shift-13) + light-end neutral text (shift-0).
+    // Mid-ramp shift-8 failed WCAG (~2.2:1 white-on-medium). NOT dataTone-17
+    // (that collapsed every color into a near-black pill). Outline text:
+    // shift-13 for ≥4.5:1 on light surfaces (shift-9 failed at ~2.57).
     ...(isSolid
       ? {
           _doctorDisable: [
@@ -99,7 +99,7 @@ function button(
           : themeColor(listener, "shift-13", color.get(listener)),
       backgroundColor: (listener) =>
         isSolid
-          ? themeColor(listener, "shift-8", color.get(listener))
+          ? themeColor(listener, "shift-13", color.get(listener))
           : themeColor(listener, "inherit", color.get(listener)),
       transition:
         "background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
@@ -110,14 +110,14 @@ function button(
             : themeColor(listener, "shift-14", color.get(listener)),
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "shift-9", color.get(listener))
+            ? themeColor(listener, "shift-14", color.get(listener))
             : themeColor(listener, "hover", color.get(listener)),
       },
       // Pressed: solid steps deeper on the brand ramp; outline uses +2 surface.
       "&:active:not([disabled]):not([aria-busy=true])": {
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "shift-10", color.get(listener))
+            ? themeColor(listener, "shift-15", color.get(listener))
             : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {

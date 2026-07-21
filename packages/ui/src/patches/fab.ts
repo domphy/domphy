@@ -35,9 +35,9 @@ function fab(
         console.warn('"fab" patch must use button tag');
       }
     },
-    // Mid-ramp brand disc + light icon (not dataTone-17 black — visual catalog).
-    // tone-background-inherit wants inherit+dataTone; solid brand fill needs
-    // an explicit shift-8 so doctor is silenced the same way as button solid.
+    // Deep brand disc (shift-13) + light icon — mid-ramp shift-8 failed WCAG
+    // (~2.2:1). tone-background-inherit wants inherit+dataTone; explicit fill
+    // silences it the same way as button solid.
     _doctorDisable: [
       "low-contrast",
       "color-shift-minimum",
@@ -56,18 +56,18 @@ function fab(
       borderRadius: "50%",
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) =>
-        themeColor(listener, "shift-8", color.get(listener)),
+        themeColor(listener, "shift-13", color.get(listener)),
       color: (listener) => themeColor(listener, "shift-0", "neutral"),
       boxShadow: elevation("low"),
       transition: "background-color 200ms ease, box-shadow 200ms ease",
       "&:hover:not([disabled])": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-9", color.get(listener)),
+          themeColor(listener, "shift-14", color.get(listener)),
         boxShadow: elevation("medium"),
       },
       "&:active:not([disabled])": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-10", color.get(listener)),
+          themeColor(listener, "shift-15", color.get(listener)),
         boxShadow: elevation("low"),
       },
       "&:focus-visible": {

@@ -148,15 +148,15 @@ function linkButton(
         ? "none"
         : (listener) =>
             `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
-      // Solid: mid-ramp brand + light text (not dataTone-17 black). Outline:
-      // shift-13 so brand hues clear ≥4.5:1 on light bg.
+      // Solid: deep brand (shift-13) + light-end text (not mid-ramp ~2.2:1).
+      // Outline: shift-13 for ≥4.5:1 on light bg.
       color: (listener) =>
         isSolid
           ? themeColor(listener, "shift-0", "neutral")
           : themeColor(listener, "shift-13", color.get(listener)),
       backgroundColor: (listener) =>
         isSolid
-          ? themeColor(listener, "shift-8", color.get(listener))
+          ? themeColor(listener, "shift-13", color.get(listener))
           : themeColor(listener, "inherit", color.get(listener)),
       transition:
         "background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
@@ -168,13 +168,13 @@ function linkButton(
             : themeColor(listener, "shift-14", color.get(listener)),
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "shift-9", color.get(listener))
+            ? themeColor(listener, "shift-14", color.get(listener))
             : themeColor(listener, "hover", color.get(listener)),
       },
       "&:active:not([aria-disabled=true])": {
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "shift-10", color.get(listener))
+            ? themeColor(listener, "shift-15", color.get(listener))
             : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {

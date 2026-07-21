@@ -124,16 +124,18 @@ function menu(
             paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
             border: "none",
             outline: "none",
-            color: (l: Listener) => themeColor(l, "text", color),
+            // Menu panel is dataTone shift-17: shift-17 text = opposite ramp end
+            // (readable on dark light-theme panels and light dark-theme panels).
+            color: (l: Listener) => themeColor(l, "shift-17", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
-            transition: "background-color 140ms ease, box-shadow 140ms ease",
+            transition: "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
             "&:hover:not([disabled]):not([aria-current=true])": {
               backgroundColor: (l: Listener) => themeColor(l, "hover", color),
             },
             "&[aria-current=true]": {
               backgroundColor: (l: Listener) =>
                 themeColor(l, "shift-3", accentColor),
-              color: (l: Listener) => themeColor(l, "shift-10"),
+              color: (l: Listener) => themeColor(l, "shift-13", accentColor),
             },
             "&:focus-visible": {
               boxShadow: (l: Listener) => focusRing(l, accentColor),

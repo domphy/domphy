@@ -59,9 +59,11 @@ function pagination(props: {
     cursor: "pointer",
     fontSize: (listener: any) => themeSize(listener, "inherit"),
     backgroundColor: "transparent",
-    color: (listener: any) => themeColor(listener, "text", color),
-    transition: "background-color 140ms ease, box-shadow 140ms ease",
+    // Page numbers: shift-13 for readable inactive digits (catalog contrast).
+    color: (listener: any) => themeColor(listener, "shift-13", color),
+    transition: "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
     "&:hover:not([disabled])": {
+      color: (listener: any) => themeColor(listener, "shift-13", color),
       backgroundColor: (listener: any) => themeColor(listener, "hover", color),
     },
     "&:focus-visible": {
@@ -75,14 +77,15 @@ function pagination(props: {
 
   const activeStyle = {
     ...btnBase,
+    // Deep accent fill + light text (mid-ramp + mid text failed catalog).
     backgroundColor: (listener: any) =>
-      themeColor(listener, "shift-6", accentColor),
-    color: (listener: any) => themeColor(listener, "shift-11", accentColor),
+      themeColor(listener, "shift-13", accentColor),
+    color: (listener: any) => themeColor(listener, "shift-0", "neutral"),
     fontWeight: "bold",
     cursor: "default",
     "&:hover:not([disabled])": {
       backgroundColor: (listener: any) =>
-        themeColor(listener, "shift-6", accentColor),
+        themeColor(listener, "shift-13", accentColor),
     },
   };
 
