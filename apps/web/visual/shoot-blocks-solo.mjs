@@ -44,6 +44,9 @@ const browser = await chromium.launch({
 // Tall viewport so full login/signup shells + bento mosaics fit without
 // scrolling off the capture root.
 const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } });
+// Prefer reduced motion so typing/fade demos keep resting full content for
+// catalog screenshots while still exercising the live path in unit tests.
+await page.emulateMedia({ reducedMotion: "reduce" });
 const report = {
   theme,
   mode: "solo",

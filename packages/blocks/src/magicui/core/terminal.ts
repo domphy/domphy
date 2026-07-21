@@ -149,8 +149,8 @@ function typingLineElement(
   startDelayMs: number,
   started: State<boolean>,
 ): DomphyElement {
-  // Resting state = full command text so freeze/catalog shots are never blank
-  // mid-type (JS typing can take >1s; visual shoot settles in ~400ms).
+  // Resting paint = full command (SSR / pre-start / catalog before playback).
+  // On start, reset then retype so the animation still runs.
   const revealed = toState(line.text);
   const tag = line.tag ?? "div";
   const charsPerSecond = line.charsPerSecond ?? DEFAULT_CHARS_PER_SECOND;
@@ -171,11 +171,19 @@ function typingLineElement(
     _onMount: (node: ElementNode) => {
       let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
       let intervalHandle: ReturnType<typeof setInterval> | null = null;
+      let hasPlayed = false;
 
       const runTyping = () => {
-        // Resting paint already shows the full command (catalog/freeze-safe).
-        // Skip retype when already complete so screenshots are not mid-glyph.
-        if (revealed.get() === line.text) return;
+        // Prefer reduced motion: keep resting full text, skip retype.
+        if (
+          typeof window !== "undefined" &&
+          typeof window.matchMedia === "function" &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ) {
+          revealed.set(line.text);
+          return;
+        }
+        revealed.set("");
         let index = 0;
         intervalHandle = setInterval(() => {
           index += 1;
@@ -187,6 +195,8 @@ function typingLineElement(
         }, intervalMs);
       };
       const schedule = () => {
+        if (hasPlayed) return;
+        hasPlayed = true;
         timeoutHandle = setTimeout(runTyping, startDelayMs);
       };
       const update = (value: boolean) => {
@@ -211,11 +221,11 @@ function fadeLineElement(
   startDelayMs: number,
   started: State<boolean>,
 ): DomphyElement {
-  // Resting opacity 1 so freeze/catalog shots show output lines immediately.
-  const initialFrame: MotionKeyframe = { opacity: 1, y: 0 };
-  const revealFrame: MotionKeyframe = { opacity: 1, y: 0 };
+  // Resting opacity 1 (pre-start). On start, hide then fade in.
+  const restingFrame: MotionKeyframe = { opacity: 1, y: 0 };
   const hiddenFrame: MotionKeyframe = { opacity: 0, y: -5 };
-  const frame = toState<MotionKeyframe>(initialFrame);
+  const revealFrame: MotionKeyframe = { opacity: 1, y: 0 };
+  const frame = toState<MotionKeyframe>(restingFrame);
   const tag = line.tag ?? "div";
 
   return {
@@ -226,22 +236,34 @@ function fadeLineElement(
     },
     $: [
       motion({
-        initial: initialFrame,
+        initial: restingFrame,
         animate: frame,
         transition: { duration: FADE_LINE_DURATION_MS, easing: "ease-in-out" },
       }),
     ],
     _onMount: (node: ElementNode) => {
       let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+      let hasPlayed = false;
 
       const reveal = () => {
-        // Resting frame is already visible; optional fade-in only when still hidden.
-        if (frame.get().opacity === 1) return;
+        if (
+          typeof window !== "undefined" &&
+          typeof window.matchMedia === "function" &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ) {
+          frame.set(revealFrame);
+          return;
+        }
         frame.set(hiddenFrame);
         timeoutHandle = setTimeout(() => frame.set(revealFrame), startDelayMs);
       };
+      const schedule = () => {
+        if (hasPlayed) return;
+        hasPlayed = true;
+        reveal();
+      };
       const update = (value: boolean) => {
-        if (value) reveal();
+        if (value) schedule();
       };
       update(started.get());
       const release = started.addListener(update);

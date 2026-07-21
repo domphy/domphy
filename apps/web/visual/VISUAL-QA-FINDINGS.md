@@ -25,9 +25,9 @@ Solo capture is required for blocks: mounting all 70 charts at once exhausts Web
 | **android / iphone / safari** | Empty black/white chrome | Default sample SVG screen content |
 | **confetti** | Empty fixed canvas | `confettiButton` resting "Celebrate" CTA |
 | **smoothCursor** | Invisible until pointer | In-flow resting arrow glyph |
-| **scrollProgress** | 0-width empty bar | Resting `scaleX(0.42)` + demo stage |
+| **scrollProgress** | 0-width empty bar | Resting `scaleX(0.42)` **only when no overflow**; real pages at scrollTop=0 show `scaleX(0)` |
 | **spinningText** | 0×0 collapsed host | Explicit `ch` box + visible ring |
-| **terminal** | Mid-type blank | Full script text at rest |
+| **terminal** | Mid-type blank | Full text at rest; **retypes on start**; reduced-motion keeps rest |
 
 ## Color probe (Playwright computed, light catalog)
 

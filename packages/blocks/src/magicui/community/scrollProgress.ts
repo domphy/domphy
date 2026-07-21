@@ -58,19 +58,33 @@ export interface ScrollProgressProps {
 
 const DEFAULT_COLORS: ThemeColor[] = ["primary", "secondary", "warning"];
 
-/** Current scroll fraction (0–1) of `target`, or of the whole page when `target` is `window`. */
-function readScrollFraction(target: Element | Window): number {
+/** Scroll metrics for a target: fraction is only meaningful when `hasOverflow`. */
+function readScrollState(target: Element | Window): {
+  fraction: number;
+  hasOverflow: boolean;
+} {
   if (target === window) {
     const doc = document.documentElement;
-    const scrolled = window.scrollY ?? doc.scrollTop;
     const scrollable = doc.scrollHeight - doc.clientHeight;
-    return scrollable > 0 ? Math.min(1, Math.max(0, scrolled / scrollable)) : 0;
+    if (scrollable <= 0) return { fraction: 0, hasOverflow: false };
+    const scrolled = window.scrollY ?? doc.scrollTop;
+    return {
+      fraction: Math.min(1, Math.max(0, scrolled / scrollable)),
+      hasOverflow: true,
+    };
   }
   const element = target as HTMLElement;
   const scrollable = element.scrollHeight - element.clientHeight;
-  return scrollable > 0
-    ? Math.min(1, Math.max(0, element.scrollTop / scrollable))
-    : 0;
+  if (scrollable <= 0) return { fraction: 0, hasOverflow: false };
+  return {
+    fraction: Math.min(1, Math.max(0, element.scrollTop / scrollable)),
+    hasOverflow: true,
+  };
+}
+
+/** Current scroll fraction (0–1). Returns 0 when the target has no overflow. */
+function readScrollFraction(target: Element | Window): number {
+  return readScrollState(target).fraction;
 }
 
 /**
@@ -107,10 +121,10 @@ function scrollProgress(props: ScrollProgressProps = {}): DomphyElement<"div"> {
       // fraction on every scroll/resize — no lerp/spring, matching upstream's
       // direct `scaleX = scrollYProgress` binding.
       const paint = () => {
-        const fraction = readScrollFraction(getScrollTarget());
-        // When the page has nothing to scroll (common on solo catalog cells),
-        // keep a visible resting fill so the bar is not a 0-width empty line.
-        const display = fraction > 0 ? fraction : 0.42;
+        const { fraction, hasOverflow } = readScrollState(getScrollTarget());
+        // Resting floor ONLY when there is nothing to scroll (catalog cells /
+        // short pages). A real page at scrollTop=0 must show scaleX(0).
+        const display = hasOverflow ? fraction : 0.42;
         element.style.transform = `scaleX(${display})`;
       };
       paint();
