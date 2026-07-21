@@ -18,6 +18,12 @@ const brand = generateTheme({
   // Cool slate neutral — replaces the old raspberry secondary so it stops
   // fighting the orange brand.
   secondary: "#64748b",
+  // Solid buttons use deep ramp steps (shift-13). Warm yellows collapse toward
+  // the same brown as primary amber at that depth, so warning is lime-olive,
+  // danger is vivid red, and error is rose — readable as three roles, not one.
+  warning: "#65a30d",
+  danger: "#ef4444",
+  error: "#db2777",
 });
 setTheme("light", brand);
 

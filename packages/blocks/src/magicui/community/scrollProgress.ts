@@ -107,7 +107,11 @@ function scrollProgress(props: ScrollProgressProps = {}): DomphyElement<"div"> {
       // fraction on every scroll/resize — no lerp/spring, matching upstream's
       // direct `scaleX = scrollYProgress` binding.
       const paint = () => {
-        element.style.transform = `scaleX(${readScrollFraction(getScrollTarget())})`;
+        const fraction = readScrollFraction(getScrollTarget());
+        // When the page has nothing to scroll (common on solo catalog cells),
+        // keep a visible resting fill so the bar is not a 0-width empty line.
+        const display = fraction > 0 ? fraction : 0.42;
+        element.style.transform = `scaleX(${display})`;
       };
       paint();
 
@@ -127,7 +131,9 @@ function scrollProgress(props: ScrollProgressProps = {}): DomphyElement<"div"> {
       width: "100%",
       height: themeSpacing(thickness),
       transformOrigin: "0% 50%",
-      transform: "scaleX(0)",
+      // Resting fill before mount/scroll (solo catalog pages often have no
+      // overflow — scaleX(0) made the cell look empty).
+      transform: "scaleX(0.42)",
       pointerEvents: "none",
       zIndex,
       backgroundImage: (listener: Listener) =>

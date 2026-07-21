@@ -18,10 +18,13 @@ afterEach(() => {
 });
 
 describe("scrollProgress", () => {
-  it("renders a single fixed-position bar with zero args", () => {
+  it("renders a single fixed-position bar with zero args and a resting fill", () => {
     const { host, node } = render(scrollProgress() as DomphyElement);
     expect(host.children.length).toBe(1);
-    expect(node.generateCSS()).toContain("position: fixed");
+    const css = node.generateCSS();
+    expect(css).toContain("position: fixed");
+    // Resting scale so no-scroll catalog cells still show the bar.
+    expect(css).toMatch(/scaleX\(0\.42\)/);
   });
 
   it("does not throw on scroll/resize and cleans up listeners on removal", () => {

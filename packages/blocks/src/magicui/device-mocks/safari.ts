@@ -7,6 +7,7 @@
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { small } from "@domphy/ui";
+import { DEFAULT_BROWSER_SCREEN_SRC } from "./defaultScreen.js";
 
 export type SafariMode = "default" | "simple";
 
@@ -202,14 +203,16 @@ function screenMedia(
 /**
  * A macOS-Safari-styled browser-window frame (fixed 1203:753 aspect ratio) that shows a
  * screenshot or video inside its screen area. Static presentational mockup — no built-in
- * interactivity. Call with no arguments for a working demo (empty frame, "domphy.com" in
- * the address bar).
+ * interactivity. Call with no arguments for a working demo (sample landing
+ * screen, "domphy.com" in the address bar).
  */
 function safari(props: SafariProps = {}): DomphyElement<"div"> {
   const url = props.url ?? "domphy.com";
   const mode = props.mode ?? "default";
+  // Default sample page so no-arg demos are not an empty white viewport.
   const media = screenMedia(
-    props.imageSrc,
+    props.imageSrc ??
+      (props.videoSrc ? undefined : DEFAULT_BROWSER_SCREEN_SRC),
     props.videoSrc,
     `Preview of ${url}`,
   );

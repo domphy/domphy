@@ -149,7 +149,9 @@ function typingLineElement(
   startDelayMs: number,
   started: State<boolean>,
 ): DomphyElement {
-  const revealed = toState("");
+  // Resting state = full command text so freeze/catalog shots are never blank
+  // mid-type (JS typing can take >1s; visual shoot settles in ~400ms).
+  const revealed = toState(line.text);
   const tag = line.tag ?? "div";
   const charsPerSecond = line.charsPerSecond ?? DEFAULT_CHARS_PER_SECOND;
   const intervalMs = Math.max(16, 1000 / charsPerSecond);
@@ -171,6 +173,9 @@ function typingLineElement(
       let intervalHandle: ReturnType<typeof setInterval> | null = null;
 
       const runTyping = () => {
+        // Resting paint already shows the full command (catalog/freeze-safe).
+        // Skip retype when already complete so screenshots are not mid-glyph.
+        if (revealed.get() === line.text) return;
         let index = 0;
         intervalHandle = setInterval(() => {
           index += 1;
@@ -206,8 +211,10 @@ function fadeLineElement(
   startDelayMs: number,
   started: State<boolean>,
 ): DomphyElement {
-  const initialFrame: MotionKeyframe = { opacity: 0, y: -5 };
+  // Resting opacity 1 so freeze/catalog shots show output lines immediately.
+  const initialFrame: MotionKeyframe = { opacity: 1, y: 0 };
   const revealFrame: MotionKeyframe = { opacity: 1, y: 0 };
+  const hiddenFrame: MotionKeyframe = { opacity: 0, y: -5 };
   const frame = toState<MotionKeyframe>(initialFrame);
   const tag = line.tag ?? "div";
 
@@ -228,6 +235,9 @@ function fadeLineElement(
       let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
       const reveal = () => {
+        // Resting frame is already visible; optional fade-in only when still hidden.
+        if (frame.get().opacity === 1) return;
+        frame.set(hiddenFrame);
         timeoutHandle = setTimeout(() => frame.set(revealFrame), startDelayMs);
       };
       const update = (value: boolean) => {

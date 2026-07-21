@@ -27,7 +27,10 @@ describe("iphone", () => {
     // Dynamic Island + its camera lens + earpiece slit + 4 side buttons (mute, volume
     // up/down, power) = 7 decorative glyphs.
     expect(host.querySelectorAll("svg rect").length).toBe(7);
-    expect(host.querySelector("img")).toBeNull();
+    // Default sample screen (data URI) so no-arg demos are not empty black panels.
+    const image = host.querySelector("img");
+    expect(image).toBeTruthy();
+    expect(image!.getAttribute("src") ?? "").toMatch(/^data:image\/svg\+xml/);
     expect(host.querySelector("video")).toBeNull();
   });
 

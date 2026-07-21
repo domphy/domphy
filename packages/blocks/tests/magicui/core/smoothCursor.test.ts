@@ -22,14 +22,19 @@ afterEach(() => {
 });
 
 describe("smoothCursor", () => {
-  it("renders a working demo tree with zero args: fixed-position glyph and global cursor:none", () => {
+  it("renders a working demo tree with zero args: resting glyph + fixed follower", () => {
     const { host, node } = render(smoothCursor() as DomphyElement);
-    const wrapper = host.querySelector(
+    const follower = host.querySelector(
       '[data-smooth-cursor="true"]',
     ) as HTMLElement;
-    expect(wrapper).toBeTruthy();
+    const resting = host.querySelector(
+      '[data-smooth-cursor-rest="true"]',
+    ) as HTMLElement;
+    expect(follower).toBeTruthy();
+    expect(resting).toBeTruthy();
+    expect(resting.querySelector("svg")).toBeTruthy();
     expect(node.generateCSS()).toContain("position: fixed");
-    expect(wrapper.querySelector("svg")).toBeTruthy();
+    expect(follower.querySelector("svg")).toBeTruthy();
     expect(document.body.style.cursor).toBe("none");
   });
 

@@ -7,6 +7,7 @@
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { type ElementTone, themeColor } from "@domphy/theme";
 import { fixed } from "../../shared/typography.js";
+import { DEFAULT_DEVICE_SCREEN_SRC } from "./defaultScreen.js";
 
 export interface IphoneProps {
   /** Screenshot shown in the screen area. */
@@ -147,11 +148,16 @@ function screenMedia(
  * A realistic iPhone (Dynamic-Island era) device-frame mockup (fixed 433:882 aspect ratio)
  * that shows a screenshot or video inside its screen cutout. Static presentational frame —
  * no built-in interactivity. Sized entirely by its wrapper (renders at `width: 100%`). Call
- * with no arguments for a working demo (empty frame with Dynamic Island and buttons).
+ * with no arguments for a working demo (sample app screen + Dynamic Island).
  */
 function iphone(props: IphoneProps = {}): DomphyElement<"div"> {
   const alt = props.alt ?? "App screen preview";
-  const media = screenMedia(props.src, props.videoSrc, alt);
+  // Default sample UI so no-arg demos are not an empty black panel.
+  const media = screenMedia(
+    props.src ?? (props.videoSrc ? undefined : DEFAULT_DEVICE_SCREEN_SRC),
+    props.videoSrc,
+    alt,
+  );
 
   // Camera / Face-ID lens: a subtle dot toward the right end of the Dynamic Island. Upstream
   // draws it as a ~5.5r circle centered at x259.5,y48.5 within the 154..278 × 30..67 pill, i.e.

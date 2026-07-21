@@ -16,6 +16,7 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { type ElementTone, themeColor } from "@domphy/theme";
+import { DEFAULT_DEVICE_SCREEN_SRC } from "./defaultScreen.js";
 
 export interface AndroidProps {
   /** Screenshot shown in the screen area. */
@@ -212,13 +213,18 @@ function screenMedia(
  * A realistic Android flagship device-frame mockup with a front camera punch-hole cutout
  * that shows a screenshot or video inside its screen area. Static presentational frame — no
  * built-in interactivity. Sized directly by `width`/`height` props (defaults 433×882). Call
- * with no arguments for a working demo (empty frame with camera cutout and buttons).
+ * with no arguments for a working demo (sample app screen + camera cutout).
  */
 function android(props: AndroidProps = {}): DomphyElement<"div"> {
   const alt = props.alt ?? "App screen preview";
   const width = props.width ?? DEFAULT_WIDTH;
   const height = props.height ?? DEFAULT_HEIGHT;
-  const media = screenMedia(props.src, props.videoSrc, alt);
+  // Default sample UI so no-arg demos are not an empty black panel.
+  const media = screenMedia(
+    props.src ?? (props.videoSrc ? undefined : DEFAULT_DEVICE_SCREEN_SRC),
+    props.videoSrc,
+    alt,
+  );
 
   const screen: DomphyElement = {
     div: media ? [media] : null,

@@ -28,16 +28,16 @@ describe("terminal", () => {
     const header = window_.children[0];
     expect(header.children.length).toBe(3);
     expect(window_.querySelectorAll("small")).toHaveLength(0);
-    // Fade lines render their full text immediately (only their opacity
-    // animates in), so the default script's output text is present right away.
+    // Typing + fade lines rest at full text so freeze/catalog shots are complete.
     expect(host.textContent).toContain("Scaffolding your project");
+    expect(host.textContent).toContain("npx domphy@latest init");
     // Five scripted lines from the default script.
     expect(window_.children.length).toBe(2); // header row + lines column
     const linesColumn = window_.children[1];
     expect(linesColumn.children.length).toBe(5);
   });
 
-  it("renders custom lines without throwing (typing line's cursor is present immediately; fade-line text is present immediately)", () => {
+  it("renders custom lines with full typing + fade text immediately at rest", () => {
     const { host } = render(
       terminal({
         startOnView: false,
@@ -47,11 +47,8 @@ describe("terminal", () => {
         ],
       }),
     );
-    // The blinking cursor renders immediately; the command text (including
-    // any prompt glyph the author writes into it) types in over time (not
-    // asserted here — see instructions on keeping tests short).
     expect(host.textContent).toContain("▊");
-    // Fade lines render their full text as a static block right away.
+    expect(host.textContent).toContain("echo hi");
     expect(host.textContent).toContain("Done");
   });
 });

@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 describe("safari", () => {
-  it("renders a working demo with zero arguments (frame, toolbar, empty screen)", () => {
+  it("renders a working demo with zero arguments (frame, toolbar, sample screen)", () => {
     const { host } = render(safari());
 
     const frame = host.querySelector('[role="img"]')!;
@@ -27,8 +27,10 @@ describe("safari", () => {
     // Three traffic-light dots in default mode.
     expect(host.querySelectorAll("svg circle").length).toBe(3);
     expect(host.textContent).toContain("domphy.com");
-    // No media supplied — no img/video rendered.
-    expect(host.querySelector("img")).toBeNull();
+    // Default sample page (data URI) so no-arg demos are not an empty viewport.
+    const image = host.querySelector("img");
+    expect(image).toBeTruthy();
+    expect(image!.getAttribute("src") ?? "").toMatch(/^data:image\/svg\+xml/);
     expect(host.querySelector("video")).toBeNull();
   });
 

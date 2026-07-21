@@ -32,7 +32,10 @@ describe("android", () => {
     // button paths.
     expect(host.querySelectorAll("svg circle").length).toBe(2);
     expect(host.querySelectorAll("svg rect").length).toBe(2);
-    expect(host.querySelector("img")).toBeNull();
+    // Default sample screen (data URI) so no-arg demos are not empty black panels.
+    const image = host.querySelector("img");
+    expect(image).toBeTruthy();
+    expect(image!.getAttribute("src") ?? "").toMatch(/^data:image\/svg\+xml/);
     expect(host.querySelector("video")).toBeNull();
   });
 

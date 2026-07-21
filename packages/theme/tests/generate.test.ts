@@ -44,4 +44,41 @@ describe("generateTheme", () => {
       Object.fromEntries(generated.colors!.primary!.map((hex, i) => [i, hex])),
     );
   });
+
+  it("keeps solid-depth steps distinct for primary/warning and error/danger", () => {
+    // Mirrors apps/web site-theme brand anchors used by the docs catalog.
+    const brand = generateTheme({
+      primary: "#d97706",
+      warning: "#65a30d",
+      danger: "#ef4444",
+      error: "#db2777",
+    });
+    const solidStep = 13;
+    const primary = brand.colors!.primary[solidStep]!.toLowerCase();
+    const warning = brand.colors!.warning[solidStep]!.toLowerCase();
+    const danger = brand.colors!.danger[solidStep]!.toLowerCase();
+    const error = brand.colors!.error[solidStep]!.toLowerCase();
+    expect(primary).not.toBe(warning);
+    expect(error).not.toBe(danger);
+
+    const rgb = (hex: string) => [
+      parseInt(hex.slice(1, 3), 16),
+      parseInt(hex.slice(3, 5), 16),
+      parseInt(hex.slice(5, 7), 16),
+    ];
+    const dist = (a: string, b: string) => {
+      const [ar, ag, ab] = rgb(a);
+      const [br, bg, bb] = rgb(b);
+      return Math.hypot(ar - br, ag - bg, ab - bb);
+    };
+    // Must be visibly different fills, not near-identical browns/maroons.
+    expect(dist(primary, warning)).toBeGreaterThan(50);
+    expect(dist(error, danger)).toBeGreaterThan(35);
+  });
+
+  it("ships distinct built-in light error vs danger ramps at solid depth", async () => {
+    const { getTheme } = await import("../src/theme.ts");
+    const light = getTheme("light");
+    expect(light.colors.error[13]).not.toBe(light.colors.danger[13]);
+  });
 });

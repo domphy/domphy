@@ -36,6 +36,14 @@ describe("spinningText", () => {
     expect(srOnly?.textContent).toBe("learn more");
   });
 
+  it("sizes the ring box so absolute glyphs do not collapse layout to 0×0", () => {
+    const { node } = render(spinningText({ radius: 5 }) as DomphyElement);
+    const css = node.generateCSS();
+    // radius 5 → boxCh = 12 → width/height 12ch
+    expect(css).toMatch(/width:\s*12ch/);
+    expect(css).toMatch(/height:\s*12ch/);
+  });
+
   it("spins in reverse and honors a custom radius/duration without throwing", () => {
     expect(() =>
       render(

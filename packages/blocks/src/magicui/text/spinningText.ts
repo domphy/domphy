@@ -100,6 +100,10 @@ function spinningText(props: SpinningTextProps = {}): DomphyElement<"div"> {
     },
   );
 
+  // Absolute letter spans do not contribute to layout size — without an
+  // explicit box the host collapses to 0×0 and catalog screenshots are blank.
+  const boxCh = radius * 2 + 2;
+
   return {
     div: [
       ...characterSpans,
@@ -109,6 +113,10 @@ function spinningText(props: SpinningTextProps = {}): DomphyElement<"div"> {
     // letter spans — directly, matching upstream's rotated `motion.div`.
     style: {
       position: "relative",
+      display: "inline-block",
+      width: `${boxCh}ch`,
+      height: `${boxCh}ch`,
+      // Keep letters visible when CSS animations are frozen (visual QA).
       animation: `${animationName} ${durationSeconds}s ${easing} infinite ${reverse ? "reverse" : "normal"}`,
       [`@keyframes ${animationName}`]: keyframes,
       ...(props.style ?? {}),

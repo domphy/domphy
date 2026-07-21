@@ -86,14 +86,38 @@ function defaultCursorGlyph(color: ThemeColor): DomphyElement<"svg"> {
 /**
  * Global full-viewport custom cursor driven by spring physics. Call with no
  * arguments for a working demo — a dark arrow glyph that trails the mouse
- * with organic deceleration and direction-of-travel rotation.
+ * with organic deceleration and direction-of-travel rotation. An in-flow
+ * resting glyph is always rendered so catalog cells are not empty before
+ * pointer motion.
  */
 function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
   const spring = { ...DEFAULT_SPRING, ...(props.spring ?? {}) };
-  const glyph = props.children ?? defaultCursorGlyph(props.color ?? "neutral");
+  const color = props.color ?? "neutral";
+  // Separate element trees — Domphy cannot mount one object in two places.
+  const restingGlyph = props.children ?? defaultCursorGlyph(color);
+  const followerGlyph = props.children
+    ? // Callers who pass a custom glyph only get the follower; resting uses default.
+      defaultCursorGlyph(color)
+    : defaultCursorGlyph(color);
 
-  return {
-    div: [glyph],
+  // In-flow resting glyph so catalog / freeze captures are not empty.
+  const resting: DomphyElement<"div"> = {
+    div: [restingGlyph],
+    ariaHidden: "true",
+    dataSmoothCursorRest: "true",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: themeSpacing(12),
+      height: themeSpacing(12),
+      pointerEvents: "none",
+    },
+  };
+
+  // Live follower — fixed, hidden until the pointer moves on a fine-pointer host.
+  const follower: DomphyElement<"div"> = {
+    div: [followerGlyph],
     ariaHidden: "true",
     dataSmoothCursor: "true",
     style: {
@@ -273,6 +297,17 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
         if (frameHandle !== null) cancelAnimationFrame(frameHandle);
         document.body.style.cursor = previousCursor;
       });
+    },
+  };
+
+  return {
+    div: [resting, follower],
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minWidth: themeSpacing(12),
+      minHeight: themeSpacing(12),
     },
   };
 }
