@@ -215,14 +215,32 @@ function safari(props: SafariProps = {}): DomphyElement<"div"> {
   );
 
   const addressBar: DomphyElement = {
-    div: [lockIcon(), { small: url, $: [small()] }],
+    div: [
+      lockIcon(),
+      {
+        small: url,
+        $: [small()],
+        // Centered URL in a narrow pill: without ellipsis + minWidth:0 the
+        // overflow:hidden chrome clips the middle of "domphy.com" to "mph".
+        style: {
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        },
+      },
+    ],
     // `dataTone` anchors are absolute (each is computed from the base tone, not nested
     // relative to an ancestor's own anchor), so pairing this "shift-0" with the toolbar's
     // "shift-2" gives the pill a genuinely distinct — slightly lighter — surface than the
     // bar around it, matching a real address bar's subtle contrast.
     dataTone: "shift-0",
     style: {
-      width: "60%",
+      // Grow/shrink between toolbar side groups instead of a rigid 60% that
+      // collapses the URL when the mock is shown below ~400px wide.
+      flex: "1 1 auto",
+      minWidth: 0,
+      maxWidth: "60%",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",

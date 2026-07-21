@@ -313,8 +313,10 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
       position: "relative",
       overflow: "hidden",
       borderRadius: themeSpacing(4),
-      gridColumn: card.columnSpan ? `span ${card.columnSpan}` : undefined,
-      gridRow: card.rowSpan ? `span ${card.rowSpan}` : undefined,
+      // Below 64em the grid collapses to 1 column — forcing `span 2` there
+      // squeezes cards into ~half-width strips (visual QA: bentoGrid demos).
+      // Mosaic spans only apply at the multi-column breakpoint, matching
+      // upstream's `lg:col-span-N` pattern.
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       // Diffed directly against the real upstream source (registry/magicui/
@@ -352,6 +354,12 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
         },
       },
       "@media (min-width: 64em)": {
+        // Only set span props when present — Domphy serializes JS `undefined`
+        // as the CSS token `undefined`, which invents extra grid tracks.
+        ...(card.columnSpan
+          ? { gridColumn: `span ${card.columnSpan}` }
+          : {}),
+        ...(card.rowSpan ? { gridRow: `span ${card.rowSpan}` } : {}),
         // `& [descendant]` (not a bare `[descendant]`) so the key matches
         // StyleObject's `&${string}` nested-selector contract — a bare bracket
         // key is not in that union and fails the .d.ts build. Same emitted CSS.

@@ -22,8 +22,11 @@ export function visualCell(
     focus?: boolean;
     hover?: boolean;
     minWidth?: string;
+    minHeight?: string;
     maxHeight?: string;
     overflow?: string;
+    /** Stack full-width shells (layouts) instead of flex-wrap row of controls. */
+    block?: boolean;
   } = {},
 ): DomphyElement<"div"> {
   const children = Array.isArray(content) ? content : [content];
@@ -49,11 +52,12 @@ export function visualCell(
         dataVisualFocus: opts.focus ? "1" : undefined,
         dataVisualHover: opts.hover ? "1" : undefined,
         style: {
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
+          display: opts.block ? "block" : "flex",
+          flexWrap: opts.block ? undefined : "wrap",
+          alignItems: opts.block ? undefined : "center",
           gap: themeSpacing(2),
           minWidth: opts.minWidth ?? "0",
+          minHeight: opts.minHeight,
           maxHeight: opts.maxHeight,
           overflow: opts.overflow ?? "visible",
           padding: themeSpacing(3),

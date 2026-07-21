@@ -282,22 +282,48 @@ function metricCard(
           {
             small: data.label,
             $: [small({ color: "neutral" })],
+            style: {
+              minWidth: 0,
+              flex: "1 1 auto",
+              // Prefer wrap over mid-word ellipsis on narrow KPI tiles.
+              overflowWrap: "anywhere",
+              lineHeight: 1.25,
+            },
           } as unknown as DomphyElement,
-          trendBadge,
+          {
+            ...trendBadge,
+            style: {
+              ...(trendBadge.style as object),
+              flex: "0 0 auto",
+              whiteSpace: "nowrap",
+            },
+          } as unknown as DomphyElement,
         ],
         style: {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: themeSpacing(2),
+          minWidth: 0,
         },
       } as unknown as DomphyElement,
       {
         h2: data.value,
         $: [heading({ color: "neutral" })],
+        style: {
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        },
       } as unknown as DomphyElement,
     ],
-    style: { display: "flex", flexDirection: "column", gap: themeSpacing(1) },
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: themeSpacing(1),
+      minWidth: 0,
+    },
   } as unknown as DomphyElement<"div">;
 
   const footer: DomphyElement<"footer"> = {
@@ -308,20 +334,33 @@ function metricCard(
           {
             strong: data.footerHeadline,
             $: [strong({ color: "neutral" })],
+            style: {
+              minWidth: 0,
+              // Allow multi-line headlines instead of clipping mid-word under
+              // a 4-column KPI grid inside a sidebar shell.
+              overflowWrap: "anywhere",
+            },
           } as unknown as DomphyElement,
         ],
         style: {
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           gap: themeSpacing(1.5),
+          minWidth: 0,
         },
       } as unknown as DomphyElement,
       {
         small: data.footerSubtext,
         $: [small({ color: "neutral" })],
+        style: { minWidth: 0, overflowWrap: "anywhere" },
       } as unknown as DomphyElement,
     ],
-    style: { display: "flex", flexDirection: "column", gap: themeSpacing(1) },
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: themeSpacing(1),
+      minWidth: 0,
+    },
   } as unknown as DomphyElement<"footer">;
 
   return {
@@ -333,6 +372,8 @@ function metricCard(
     // contributions, so it can't see that and flags a false positive here.
     _doctorDisable: "missing-color",
     style: {
+      minWidth: 0,
+      overflow: "hidden",
       backgroundImage: (l: Listener) =>
         `linear-gradient(to top, ${themeColor(l, "shift-1", "primary")}, transparent)`,
     },
@@ -346,13 +387,15 @@ function metricCardGrid(cards: MetricCardData[]): DomphyElement<"section"> {
     ),
     style: {
       display: "grid",
+      // minmax(12rem, 1fr) keeps KPI tiles readable; drop to fewer columns
+      // before numbers/labels clip mid-glyph in a sidebar + content shell.
       gridTemplateColumns: "repeat(1, minmax(0, 1fr))",
       gap: themeSpacing(4),
       "@media (min-width: 48em)": {
-        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+        gridTemplateColumns: "repeat(2, minmax(12rem, 1fr))",
       },
-      "@media (min-width: 64em)": {
-        gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+      "@media (min-width: 80em)": {
+        gridTemplateColumns: "repeat(4, minmax(12rem, 1fr))",
       },
     },
   } as unknown as DomphyElement<"section">;

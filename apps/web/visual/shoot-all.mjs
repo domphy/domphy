@@ -35,6 +35,13 @@ mkdirSync(outDir, { recursive: true })
 const browser = await chromium.launch({
   executablePath: process.env.CHROME_PATH || undefined,
   headless: true,
+  // Help WebGL/chart canvas paint in headless (globe, bar/area series).
+  args: [
+    "--use-gl=angle",
+    "--enable-webgl",
+    "--ignore-gpu-blocklist",
+    "--enable-unsafe-swiftshader",
+  ],
 })
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
 const report = { theme, path, base: BASE, catalog, cells: [], issues: [] }
@@ -42,8 +49,48 @@ const report = { theme, path, base: BASE, catalog, cells: [], issues: [] }
 await page.goto(BASE + path, { waitUntil: "domcontentloaded", timeout: 120000 })
 await page.waitForSelector("[data-visual-ready]", { timeout: 120000 })
 await page.waitForSelector("[data-visual]", { timeout: 30000 })
+await page.addStyleTag({
+  // Freeze CSS animations BUT clear clip-path so chart-area motion()
+  // initial state (inset 100% right) does not leave the plot permanently hidden.
+  content: `
+    *,*::before,*::after{
+      animation:none!important;
+      transition:none!important;
+      clip-path:none!important;
+      -webkit-clip-path:none!important;
+    }
+  `,
+})
 // Charts / WebGL / layout shells need extra paint time on blocks catalog.
 await page.waitForTimeout(catalog === "blocks" ? 2500 : 800)
+
+async function isolateVisualCell(currentId) {
+  await page.evaluate((id) => {
+    for (const el of document.querySelectorAll("[data-visual]")) {
+      const match = el.getAttribute("data-visual") === id
+      if (match) {
+        el.style.removeProperty("display")
+        el.style.removeProperty("visibility")
+        el.style.removeProperty("pointer-events")
+      } else {
+        el.style.setProperty("display", "none", "important")
+      }
+    }
+    // Unstick sticky/fixed outside the current cell (sidebar pollution).
+    for (const el of document.querySelectorAll("body *")) {
+      if (el.closest(`[data-visual="${id}"]`)) continue
+      const pos = getComputedStyle(el).position
+      if (pos === "sticky" || pos === "fixed") {
+        el.style.setProperty("position", "static", "important")
+        el.style.setProperty("top", "auto", "important")
+        el.style.setProperty("left", "auto", "important")
+        el.style.setProperty("right", "auto", "important")
+        el.style.setProperty("bottom", "auto", "important")
+        el.style.setProperty("z-index", "auto", "important")
+      }
+    }
+  }, currentId)
+}
 
 const cells = page.locator("[data-visual]")
 const count = await cells.count()
@@ -57,6 +104,9 @@ for (let i = 0; i < count; i++) {
   const cell = cells.nth(i)
   const id = await cell.getAttribute("data-visual")
   if (!id) continue
+  // Isolate BEFORE scroll/screenshot so sticky sidebars from other blocks
+  // cannot paint into this cell's crop.
+  await isolateVisualCell(id)
   // Close top-layer dialogs so later cells are not blocked.
   await page.evaluate(() => {
     for (const dialog of document.querySelectorAll("dialog")) {
@@ -87,6 +137,10 @@ for (let i = 0; i < count; i++) {
     }, await dialogInCell.elementHandle())
     await page.waitForTimeout(50)
   }
+  // Give chart/canvas/WebGL a beat after isolation (layout reflow).
+  if (id.startsWith("block-chart") || id.includes("globe") || id.includes("particles")) {
+    await page.waitForTimeout(400)
+  }
   const focus = await cell.getAttribute("data-visual-focus")
   const hover = await cell.getAttribute("data-visual-hover")
   if (focus) {
@@ -101,6 +155,22 @@ for (let i = 0; i < count; i++) {
   if (!box || box.width < 4 || box.height < 4) {
     report.issues.push({ id, kind: "empty-cell", box })
     console.log(`[EMPTY] ${id}`, box)
+  }
+  // Detect wrong-content sticky bleed: cell text mentions sidebar chrome
+  // that should not appear in non-sidebar blocks.
+  const textSample = await cell.innerText().catch(() => "")
+  const isSidebarBlock = /block-sidebar/i.test(id)
+  if (
+    !isSidebarBlock &&
+    /Playground|Documentation|Design Engineering|Sales & Marketing/.test(textSample) &&
+    id.startsWith("block-")
+  ) {
+    report.issues.push({
+      id,
+      kind: "sidebar-bleed",
+      sample: textSample.slice(0, 120),
+    })
+    console.log(`[SIDEBAR BLEED] ${id}`)
   }
 
   const contrast = await cell.evaluate((el) => {

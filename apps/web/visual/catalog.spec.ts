@@ -22,6 +22,36 @@ async function closeBlockingOverlays(page: Page): Promise<void> {
   });
 }
 
+async function isolateVisualCell(
+  page: Page,
+  currentId: string,
+): Promise<void> {
+  await page.evaluate((id) => {
+    for (const el of document.querySelectorAll("[data-visual]")) {
+      const match = el.getAttribute("data-visual") === id;
+      if (match) {
+        el.style.removeProperty("display");
+        el.style.removeProperty("visibility");
+        el.style.removeProperty("pointer-events");
+      } else {
+        el.style.setProperty("display", "none", "important");
+      }
+    }
+    for (const el of document.querySelectorAll("body *")) {
+      if (el.closest(`[data-visual="${id}"]`)) continue;
+      const pos = getComputedStyle(el).position;
+      if (pos === "sticky" || pos === "fixed") {
+        el.style.setProperty("position", "static", "important");
+        el.style.setProperty("top", "auto", "important");
+        el.style.setProperty("left", "auto", "important");
+        el.style.setProperty("right", "auto", "important");
+        el.style.setProperty("bottom", "auto", "important");
+        el.style.setProperty("z-index", "auto", "important");
+      }
+    }
+  }, currentId);
+}
+
 async function prepareCell(page: Page, cell: Locator): Promise<void> {
   await closeBlockingOverlays(page);
 
@@ -80,6 +110,8 @@ async function screenshotCatalog(
   await page.waitForSelector("[data-visual-ready]", { timeout: 120_000 });
   await page.waitForSelector("[data-visual-page]", { timeout: 30_000 });
   // Freeze motion so animated Magic UI / icon clouds produce stable shots.
+  // Also clear clip-path: chart-area uses motion({initial: clipPath inset 100%})
+  // which would stay fully clipped if animations are disabled mid-reveal.
   await page.addStyleTag({
     content: `
       *, *::before, *::after {
@@ -87,6 +119,8 @@ async function screenshotCatalog(
         animation-duration: 0s !important;
         transition: none !important;
         caret-color: transparent !important;
+        clip-path: none !important;
+        -webkit-clip-path: none !important;
       }
     `,
   });
@@ -108,6 +142,7 @@ async function screenshotCatalog(
     if (!id) {
       throw new Error(`Cell at index ${i} missing data-visual`);
     }
+    await isolateVisualCell(page, id);
     await cell.scrollIntoViewIfNeeded();
     await prepareCell(page, cell);
     const fileName = `${opts.idPrefix ?? ""}${id}.png`;
@@ -137,7 +172,7 @@ test.describe("Domphy visual catalogs", () => {
     await page.waitForSelector("[data-visual-ready]", { timeout: 120_000 });
     await page.waitForSelector("[data-visual-page]", { timeout: 30_000 });
     await page.addStyleTag({
-      content: `*,*::before,*::after{animation:none!important;transition:none!important}`,
+      content: `*,*::before,*::after{animation:none!important;transition:none!important;clip-path:none!important;-webkit-clip-path:none!important}`,
     });
     await page.waitForTimeout(2000);
     const cells = page.locator("[data-visual]");
@@ -149,8 +184,16 @@ test.describe("Domphy visual catalogs", () => {
       const cell = cells.nth(i);
       const id = await cell.getAttribute("data-visual");
       if (!id) throw new Error(`missing data-visual at ${i}`);
+      await isolateVisualCell(page, id);
       await cell.scrollIntoViewIfNeeded();
       await prepareCell(page, cell);
+      if (
+        id.includes("chart") ||
+        id.includes("globe") ||
+        id.includes("particles")
+      ) {
+        await page.waitForTimeout(400);
+      }
       const file = testInfo.snapshotPath(`${id}.png`);
       await cell.screenshot({ path: file, animations: "disabled" });
     }
