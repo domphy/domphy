@@ -18,7 +18,13 @@ export function visualCell(
   id: string,
   label: string,
   content: DomphyElement | DomphyElement[],
-  opts: { focus?: boolean; hover?: boolean; minWidth?: string } = {},
+  opts: {
+    focus?: boolean;
+    hover?: boolean;
+    minWidth?: string;
+    maxHeight?: string;
+    overflow?: string;
+  } = {},
 ): DomphyElement<"div"> {
   const children = Array.isArray(content) ? content : [content];
   return {
@@ -48,6 +54,8 @@ export function visualCell(
           alignItems: "center",
           gap: themeSpacing(2),
           minWidth: opts.minWidth ?? "0",
+          maxHeight: opts.maxHeight,
+          overflow: opts.overflow ?? "visible",
           padding: themeSpacing(3),
           borderRadius: themeSpacing(2),
           border: (l) => `1px solid ${themeColor(l, "border")}`,

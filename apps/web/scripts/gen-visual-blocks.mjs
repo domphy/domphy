@@ -94,9 +94,16 @@ lines.push("");
 
 function cellExpr(name) {
   const id = `block-${name}`;
-  const isLayout = sectionOf(name) === "Layouts";
-  if (isLayout) {
-    return `visualCell(${JSON.stringify(id)}, ${JSON.stringify(name)}, ${importId(name)}, { minWidth: "360px" })`;
+  const section = sectionOf(name);
+  // Clip large/sticky shells so cell screenshots do not bleed into neighbors.
+  if (section === "Layouts") {
+    return `visualCell(${JSON.stringify(id)}, ${JSON.stringify(name)}, ${importId(name)}, { minWidth: "360px", maxHeight: "420px", overflow: "hidden" })`;
+  }
+  if (section === "Charts") {
+    return `visualCell(${JSON.stringify(id)}, ${JSON.stringify(name)}, ${importId(name)}, { minWidth: "320px", maxHeight: "360px", overflow: "hidden" })`;
+  }
+  if (section === "Effects") {
+    return `visualCell(${JSON.stringify(id)}, ${JSON.stringify(name)}, ${importId(name)}, { minWidth: "240px", maxHeight: "280px", overflow: "hidden" })`;
   }
   return `visualCell(${JSON.stringify(id)}, ${JSON.stringify(name)}, ${importId(name)})`;
 }

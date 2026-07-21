@@ -42,7 +42,8 @@ const report = { theme, path, base: BASE, catalog, cells: [], issues: [] }
 await page.goto(BASE + path, { waitUntil: "domcontentloaded", timeout: 120000 })
 await page.waitForSelector("[data-visual-ready]", { timeout: 120000 })
 await page.waitForSelector("[data-visual]", { timeout: 30000 })
-await page.waitForTimeout(800)
+// Charts / WebGL / layout shells need extra paint time on blocks catalog.
+await page.waitForTimeout(catalog === "blocks" ? 2500 : 800)
 
 const cells = page.locator("[data-visual]")
 const count = await cells.count()
@@ -56,17 +57,51 @@ for (let i = 0; i < count; i++) {
   const cell = cells.nth(i)
   const id = await cell.getAttribute("data-visual")
   if (!id) continue
+  // Close top-layer dialogs so later cells are not blocked.
+  await page.evaluate(() => {
+    for (const dialog of document.querySelectorAll("dialog")) {
+      const el = dialog
+      try {
+        if (el.open) el.close()
+      } catch {
+        el.removeAttribute("open")
+      }
+      el.style.setProperty("display", "none")
+    }
+  })
   await cell.scrollIntoViewIfNeeded()
+  const dialogInCell = cell.locator("dialog").first()
+  if ((await dialogInCell.count()) > 0) {
+    await page.evaluate((el) => {
+      // dialog() patch sets visibility/pointer-events on close — clear them.
+      el.style.removeProperty("display")
+      el.style.removeProperty("visibility")
+      el.style.removeProperty("pointer-events")
+      el.style.opacity = "1"
+      try {
+        if (typeof el.showModal === "function") el.showModal()
+        else el.setAttribute("open", "")
+      } catch {
+        el.setAttribute("open", "")
+      }
+    }, await dialogInCell.elementHandle())
+    await page.waitForTimeout(50)
+  }
   const focus = await cell.getAttribute("data-visual-focus")
   const hover = await cell.getAttribute("data-visual-hover")
   if (focus) {
     const t = cell.locator("button, a, input, textarea, select").first()
     if ((await t.count()) > 0) await t.focus().catch(() => {})
   }
-  if (hover) await cell.hover().catch(() => {})
+  if (hover) await cell.hover({ force: true }).catch(() => {})
 
   const file = join(outDir, `${id}.png`)
   await cell.screenshot({ path: file, animations: "disabled" })
+  const box = await cell.boundingBox()
+  if (!box || box.width < 4 || box.height < 4) {
+    report.issues.push({ id, kind: "empty-cell", box })
+    console.log(`[EMPTY] ${id}`, box)
+  }
 
   const contrast = await cell.evaluate((el) => {
     const targets = [...el.querySelectorAll("button, a")]

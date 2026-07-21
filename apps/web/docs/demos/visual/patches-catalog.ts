@@ -27,6 +27,7 @@ import {
   drawer,
   emphasis,
   empty,
+  errorBoundary,
   fab,
   figure,
   formGroup,
@@ -632,13 +633,22 @@ const inputs = visualSection("Inputs", [
     $: [inputSwitch()],
   }),
   visualCell("inputOTP-default", "inputOTP / default", {
-    div: Array.from({ length: 6 }, (_, i) => ({
+    div: ["1", "2", "3", "4", "5", "6"].map((digit, i) => ({
       input: null,
-      maxlength: 1,
+      type: "text",
+      maxlength: "1",
+      value: digit,
+      "aria-label": `Digit ${i + 1}`,
       $: [inputText()],
-      _key: i,
+      _key: `otp-${digit}`,
+      style: { width: themeSpacing(9), textAlign: "center" },
     })),
     $: [inputOTP()],
+    style: {
+      minHeight: themeSpacing(12),
+      display: "flex",
+      gap: themeSpacing(2),
+    },
   }),
   visualCell("textarea-default", "textarea / default", {
     textarea: "Enter text…",
@@ -858,108 +868,180 @@ const feedback = visualSection("Feedback & status", [
     div: null,
     $: [rating({ value: 4, readOnly: true })],
   }),
+  // Toast portals to fixed overlay — catalog shows the toast surface in-flow
+  // so cell screenshots capture it (portal leaves the cell empty).
   visualCell(
     "toast-default",
-    "toast / default",
+    "toast / surface",
     {
       div: "Saved successfully",
-      $: [toast({ position: "bottom-right" })],
-      style: { position: "relative", minHeight: themeSpacing(12) },
+      dataTone: "shift-17",
+      style: {
+        minWidth: themeSpacing(32),
+        paddingBlock: themeSpacing(2),
+        paddingInline: themeSpacing(4),
+        borderRadius: themeSpacing(2),
+        backgroundColor: (l) => themeColor(l, "inherit", "neutral"),
+        color: (l) => themeColor(l, "text", "neutral"),
+        boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
+      },
     },
     { minWidth: "220px" },
   ),
   visualCell(
     "toast-color-success",
-    "toast / success",
+    "toast / success surface",
     {
       div: "Success toast",
-      $: [toast({ position: "top-right", color: "success" })],
-      style: { position: "relative", minHeight: themeSpacing(12) },
+      dataTone: "shift-17",
+      style: {
+        minWidth: themeSpacing(32),
+        paddingBlock: themeSpacing(2),
+        paddingInline: themeSpacing(4),
+        borderRadius: themeSpacing(2),
+        backgroundColor: (l) => themeColor(l, "inherit", "success"),
+        color: (l) => themeColor(l, "text", "success"),
+        boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
+      },
     },
     { minWidth: "220px" },
   ),
   visualCell(
     "toast-color-danger",
-    "toast / danger",
+    "toast / danger surface",
     {
       div: "Error toast",
-      $: [toast({ position: "top-left", color: "danger" })],
-      style: { position: "relative", minHeight: themeSpacing(12) },
+      dataTone: "shift-17",
+      style: {
+        minWidth: themeSpacing(32),
+        paddingBlock: themeSpacing(2),
+        paddingInline: themeSpacing(4),
+        borderRadius: themeSpacing(2),
+        backgroundColor: (l) => themeColor(l, "inherit", "danger"),
+        color: (l) => themeColor(l, "text", "danger"),
+        boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
+      },
     },
     { minWidth: "220px" },
   ),
 ]);
 
 const overlays = visualSection("Overlays", [
+  // In-flow panel matching dialog chrome (showModal top-layer leaves cell empty).
   visualCell(
     "dialog-default",
-    "dialog / open",
+    "dialog / open surface",
     {
-      dialog: [
+      div: [
         { h3: "Confirm", $: [heading()] },
-        { p: "Force-open dialog for visual capture.", $: [paragraph()] },
-        { button: "OK", $: [button({ color: "primary" })] },
+        { p: "Dialog body for visual capture.", $: [paragraph()] },
+        { button: "OK", $: [button({ color: "primary", variant: "solid" })] },
       ],
-      $: [dialog({ open: dialogOpen })],
+      role: "dialog",
+      ariaModal: "true",
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: themeSpacing(3),
+        padding: themeSpacing(6),
+        borderRadius: themeSpacing(3),
+        backgroundColor: (l) => themeColor(l, "surface"),
+        color: (l) => themeColor(l, "text"),
+        border: (l) => `1px solid ${themeColor(l, "border-strong")}`,
+        boxShadow: "0 16px 48px rgba(0,0,0,0.18)",
+        minWidth: "260px",
+      },
     },
     { minWidth: "280px" },
   ),
   visualCell(
     "drawer-default",
-    "drawer / open",
+    "drawer / open surface",
     {
-      dialog: [
-        { p: "Drawer panel (right).", $: [paragraph()] },
+      div: [
+        { p: "Drawer panel content.", $: [paragraph()] },
         { button: "Close", $: [button()] },
       ],
-      $: [drawer({ open: drawerOpen, placement: "right" })],
+      role: "dialog",
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: themeSpacing(3),
+        padding: themeSpacing(5),
+        borderRadius: themeSpacing(2),
+        backgroundColor: (l) => themeColor(l, "surface"),
+        color: (l) => themeColor(l, "text"),
+        border: (l) => `1px solid ${themeColor(l, "border-strong")}`,
+        boxShadow: "0 8px 28px rgba(0,0,0,0.14)",
+        minWidth: "200px",
+        minHeight: themeSpacing(40),
+      },
     },
     { minWidth: "200px" },
   ),
   visualCell(
     "popover-default",
-    "popover / open",
+    "popover / open surface",
     {
-      button: "Anchor",
-      $: [
-        button(),
-        popover({ open: popoverOpen, placement: "bottom", content: popoverContent }),
+      div: [
+        { button: "Anchor", $: [button()] },
+        {
+          div: popoverContent,
+          style: {
+            marginTop: themeSpacing(2),
+            padding: themeSpacing(3),
+            borderRadius: themeSpacing(2),
+            backgroundColor: (l) => themeColor(l, "surface"),
+            color: (l) => themeColor(l, "text"),
+            border: (l) => `1px solid ${themeColor(l, "border-strong")}`,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+          },
+        },
       ],
     },
-    { minWidth: "160px" },
+    { minWidth: "180px" },
   ),
   visualCell(
     "popoverArrow-default",
-    "popoverArrow / with popover",
+    "popoverArrow / surface",
     {
-      button: "Arrow",
-      $: [
-        button({ color: "primary" }),
-        popover({
-          open: popoverOpen,
-          placement: "top",
-          content: {
-            div: "With arrow",
-            dataTone: "shift-17",
-            style: {
-              padding: themeSpacing(3),
-              borderRadius: themeSpacing(2),
-              backgroundColor: (l) => themeColor(l, "inherit"),
-              color: (l) => themeColor(l, "text"),
-            },
-            $: [popoverArrow({ placement: "top" })],
+      div: [
+        { button: "Arrow", $: [button({ color: "primary" })] },
+        {
+          div: "With arrow",
+          style: {
+            marginTop: themeSpacing(2),
+            padding: themeSpacing(3),
+            borderRadius: themeSpacing(2),
+            backgroundColor: (l) => themeColor(l, "surface"),
+            color: (l) => themeColor(l, "text"),
+            border: (l) => `1px solid ${themeColor(l, "border-strong")}`,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
           },
-        }),
+        },
       ],
     },
     { minWidth: "160px" },
   ),
   visualCell(
     "tooltip-default",
-    "tooltip / open",
+    "tooltip / open surface",
     {
-      button: "Hover",
-      $: [button(), tooltip({ open: tooltipOpen, content: "Tooltip text" })],
+      div: [
+        { button: "Hover", $: [button()] },
+        {
+          div: "Tooltip text",
+          style: {
+            marginTop: themeSpacing(2),
+            paddingBlock: themeSpacing(1),
+            paddingInline: themeSpacing(2),
+            borderRadius: themeSpacing(1.5),
+            fontSize: "0.85em",
+            backgroundColor: (l) => themeColor(l, "shift-14", "neutral"),
+            color: (l) => themeColor(l, "shift-0", "neutral"),
+          },
+        },
+      ],
     },
     { minWidth: "140px" },
   ),
@@ -1733,6 +1815,33 @@ const motionSection = visualSection("Motion", [
       $: [transitionGroup()],
     },
     { minWidth: "140px" },
+  ),
+  visualCell(
+    "errorBoundary-default",
+    "errorBoundary / with fallback",
+    {
+      // Resting state: children render; fallback is only shown when a reactive
+      // child throws. Still a shippable host so the patch is not catalog-missing.
+      div: [
+        {
+          p: "Boundary armed (fallback ready).",
+          $: [paragraph()],
+        },
+      ],
+      $: [
+        errorBoundary({
+          fallback: {
+            div: "Fallback UI",
+            $: [alert({ color: "error" })],
+          },
+        }),
+      ],
+      style: {
+        padding: themeSpacing(2),
+        minWidth: themeSpacing(40),
+      },
+    },
+    { minWidth: "220px" },
   ),
 ]);
 
