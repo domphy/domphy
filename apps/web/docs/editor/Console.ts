@@ -1,9 +1,7 @@
 import type { DomphyElement, State } from "@domphy/core";
 import { themeColor, themeSize, themeSpacing } from "@domphy/theme";
 
-// The console is a terminal surface — deliberately dark on both site themes.
-// dataTheme="dark" + dataTone gives it a real dark ramp from the theme itself,
-// so every color below stays a token instead of a hard-coded hex.
+// Terminal surface — dark ramp via dataTheme so tokens stay themed.
 const monoFont =
   "var(--dp-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)";
 
@@ -25,8 +23,8 @@ function ConsoleLog(log: string, i: number): DomphyElement<"div"> {
       display: "flex",
       alignItems: "flex-start",
       gap: themeSpacing(1.5),
-      paddingBlock: themeSpacing(0.75),
-      paddingInline: themeSpacing(2.5),
+      paddingBlock: themeSpacing(1),
+      paddingInline: themeSpacing(3),
       color: (listener) => themeColor(listener, "shift-10", "info"),
       borderBottom: (listener) =>
         `1px solid ${themeColor(listener, "shift-2")}`,
@@ -40,9 +38,13 @@ function ConsoleHeader(
 ): DomphyElement<"div"> {
   return {
     div: [
-      { span: "Console" },
       {
-        button: (listener) => (copied.get(listener) ? "✓ Copied" : "Copy"),
+        span: (l) => `Console · ${logs.get(l).length}`,
+        style: { fontWeight: "600" },
+      },
+      {
+        button: (listener) => (copied.get(listener) ? "Copied" : "Copy all"),
+        type: "button",
         onClick: () => {
           navigator.clipboard.writeText(logs.get().join("\n")).then(() => {
             copied.set(true);
@@ -54,18 +56,16 @@ function ConsoleHeader(
           background: "transparent",
           border: (listener) =>
             `1px solid ${themeColor(listener, "border-strong")}`,
-          color: (listener) => themeColor(listener, "shift-8"),
+          color: (listener) => themeColor(listener, "shift-9"),
           fontSize: (listener) => themeSize(listener, "decrease-2"),
           paddingBlock: themeSpacing(0.5),
           paddingInline: themeSpacing(2),
           borderRadius: themeSpacing(1),
-          textTransform: "uppercase",
+          fontWeight: "600",
         },
       },
     ],
     _key: "header",
-    // Raised strip over the log lines so the sticky header stays readable
-    // while scrolling.
     dataTone: "shift-2",
     style: {
       position: "sticky",
@@ -74,13 +74,44 @@ function ConsoleHeader(
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingBlock: themeSpacing(1),
-      paddingInline: themeSpacing(2.5),
+      flexShrink: "0",
+      paddingBlock: themeSpacing(1.5),
+      paddingInline: themeSpacing(3),
       backgroundColor: (listener) => themeColor(listener, "inherit"),
       borderBottom: (listener) => `1px solid ${themeColor(listener, "border")}`,
       color: (listener) => themeColor(listener, "shift-11"),
       fontSize: (listener) => themeSize(listener, "decrease-2"),
       textTransform: "uppercase",
+      letterSpacing: "0.04em",
+    },
+  };
+}
+
+function ConsoleEmpty(): DomphyElement<"div"> {
+  return {
+    div: [
+      {
+        span: "No output yet. ",
+        style: { color: (listener) => themeColor(listener, "muted") },
+      },
+      {
+        code: "console.log(...)",
+        style: {
+          color: (listener) => themeColor(listener, "shift-10", "info"),
+          fontFamily: monoFont,
+        },
+      },
+      {
+        span: " in the demo prints here. Tip: log the element to inspect the expanded patch tree.",
+        style: { color: (listener) => themeColor(listener, "muted") },
+      },
+    ],
+    _key: "empty",
+    style: {
+      paddingBlock: themeSpacing(4),
+      paddingInline: themeSpacing(3),
+      fontSize: (listener) => themeSize(listener, "decrease-1"),
+      lineHeight: "1.5",
     },
   };
 }
@@ -92,24 +123,23 @@ export function Console(
   return {
     div: (listener) => {
       const currentLogs = logs.get(listener);
-      if (!currentLogs.length) return [];
+      if (!currentLogs.length) {
+        return [ConsoleHeader(logs, copied), ConsoleEmpty()];
+      }
       return [ConsoleHeader(logs, copied), ...currentLogs.map(ConsoleLog)];
     },
     dataTheme: "dark",
     dataTone: "shift-1",
-    // Terminal output is semantically monospace — the typography patches
-    // cover prose, not consoles. Uses the theme's own --dp-font-mono token.
     _doctorDisable: "inline-typography",
     style: {
-      // Collapse fully when there are no logs — an empty strip with just a
-      // border-top read as a rendering bug.
-      display: (listener) => (logs.get(listener).length ? "block" : "none"),
-      borderTop: (listener) => `1px solid ${themeColor(listener, "border")}`,
+      display: "flex",
+      flexDirection: "column",
+      flex: "1",
+      minHeight: "0",
       backgroundColor: (listener) => themeColor(listener, "inherit"),
       color: (listener) => themeColor(listener, "text"),
       fontFamily: monoFont,
       fontSize: (listener) => themeSize(listener, "decrease-1"),
-      maxHeight: "clamp(160px, 32svh, 480px)",
       overflowY: "auto",
       position: "relative",
     },
