@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * An ellipsis trigger button for collapsed breadcrumb items, with hover and
@@ -38,6 +39,7 @@ function breadcrumbEllipsis(
       cursor: "pointer",
       color: (listener) => themeColor(listener, "muted", color.get(listener)),
       borderRadius: themeSpacing(1),
+      transition: "color 140ms ease, background-color 140ms ease, box-shadow 140ms ease",
       "&:hover": {
         color: (listener) =>
           themeColor(listener, "shift-10", color.get(listener)),
@@ -45,9 +47,7 @@ function breadcrumbEllipsis(
           themeColor(listener, "hover", color.get(listener)),
       },
       "&:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", color.get(listener))}`,
-        outlineOffset: themeSpacing(0.5),
+        boxShadow: (listener) => focusRing(listener, color.get(listener)),
       },
     },
   };

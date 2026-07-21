@@ -1,5 +1,6 @@
 import { merge, type PartialElement, toState } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Root of a resizable split layout. Lays out children as a flex row (horizontal) or column
@@ -195,9 +196,9 @@ function splitterHandle(): PartialElement {
       "&:hover": {
         backgroundColor: (listener) => themeColor(listener, "increase-1"),
       },
+      transition: "background-color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {
-        outline: (listener) => `2px solid ${themeColor(listener, "shift-6")}`,
-        outlineOffset: "2px",
+        boxShadow: (listener) => focusRing(listener, "primary"),
       },
       "&::after": {
         content: '""',

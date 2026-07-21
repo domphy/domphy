@@ -4,12 +4,16 @@ import type { DomphyElement } from "@domphy/core";
 import { ElementNode, flushSync } from "@domphy/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  breadcrumbEllipsis,
   button,
   buttonSwitch,
   combobox,
   dialog,
+  inputRange,
   inputText,
+  link,
   linkButton,
+  listItemButton,
   menu,
   popover,
   selectBox,
@@ -132,7 +136,7 @@ describe("button/input focus-visible ring", () => {
     expect(focusBlock).toContain("box-shadow");
   });
 
-  it("buttonSwitch / linkButton / selectBox expose focus rings", () => {
+  it("interactive patches expose unified focus rings", () => {
     for (const [name, el] of [
       [
         "buttonSwitch",
@@ -165,6 +169,13 @@ describe("button/input focus-visible ring", () => {
             }),
           ],
         },
+      ],
+      ["link", { a: "Docs", href: "/docs", $: [link()] }],
+      ["listItemButton", { button: "Row", $: [listItemButton()] }],
+      ["inputRange", { input: null, type: "range", $: [inputRange()] }],
+      [
+        "breadcrumbEllipsis",
+        { button: "…", $: [breadcrumbEllipsis()] },
       ],
     ] as const) {
       document.body.innerHTML = "";

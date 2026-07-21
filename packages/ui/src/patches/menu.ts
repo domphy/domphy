@@ -13,6 +13,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
+import { focusRing } from "../utils/focusRing.js";
 
 /** One item inside a menu. */
 type MenuItem = {
@@ -125,7 +126,7 @@ function menu(
             outline: "none",
             color: (l: Listener) => themeColor(l, "text", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
-            transition: "background-color 140ms ease",
+            transition: "background-color 140ms ease, box-shadow 140ms ease",
             "&:hover:not([disabled]):not([aria-current=true])": {
               backgroundColor: (l: Listener) => themeColor(l, "hover", color),
             },
@@ -135,9 +136,7 @@ function menu(
               color: (l: Listener) => themeColor(l, "shift-10"),
             },
             "&:focus-visible": {
-              outline: (l: Listener) =>
-                `${themeSpacing(0.5)} solid ${themeColor(l, "shift-6", accentColor)}`,
-              outlineOffset: `-${themeSpacing(0.5)}`,
+              boxShadow: (l: Listener) => focusRing(l, accentColor),
             },
           },
         } as DomphyElement<"button">;

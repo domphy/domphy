@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * A single selectable option row (`role="option"`) for use inside a `selectList`. Reads the
@@ -72,10 +73,9 @@ function selectItem(
           themeColor(listener, "shift-6", accentColor),
         color: (listener) => themeColor(listener, "shift-11"),
       },
+      transition: "background-color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
-        outlineOffset: `-${themeSpacing(0.5)}`,
+        boxShadow: (listener) => focusRing(listener, accentColor),
       },
     },
   };

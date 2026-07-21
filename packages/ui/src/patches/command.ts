@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Command-palette container patch. Sets up a vertical flex column and provides a
@@ -78,9 +79,11 @@ function commandSearch(
       "&::placeholder": {
         color: (listener) => themeColor(listener, "shift-7"),
       },
+      transition: "border-bottom-color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {
         borderBottomColor: (listener) =>
           themeColor(listener, "shift-6", accentColor),
+        boxShadow: (listener) => focusRing(listener, accentColor),
       },
     },
   };
@@ -94,7 +97,7 @@ function commandSearch(
  * used inside a `command()`.
  *
  * @param props.color - Base theme color tone. Defaults to "neutral".
- * @param props.accentColor - Accent color used for the focus outline. Defaults to "primary".
+ * @param props.accentColor - Accent color used for the focus ring. Defaults to "primary".
  * @example { button: "Open file", $: [commandItem({ color: "neutral" })] }
  */
 function commandItem(
@@ -130,13 +133,12 @@ function commandItem(
       outline: "none",
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      transition: "background-color 140ms ease, box-shadow 140ms ease",
       "&:hover:not([disabled])": {
         backgroundColor: (listener) => themeColor(listener, "hover", color),
       },
       "&:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor)}`,
-        outlineOffset: `-${themeSpacing(0.5)}`,
+        boxShadow: (listener) => focusRing(listener, accentColor),
       },
     },
   };

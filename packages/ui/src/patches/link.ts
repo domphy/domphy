@@ -5,6 +5,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Themed hyperlink primitive: styles text color, hover underline, visited,
@@ -44,11 +45,11 @@ function link(
           themeColor(listener, "shift-10", color.get(listener)),
         textDecoration: "underline",
       },
+      borderRadius: themeSpacing(1),
+      transition: "color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {
-        borderRadius: themeSpacing(1),
-        outlineOffset: themeSpacing(1),
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         opacity: 0.7,

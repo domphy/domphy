@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a navigation/display list container. Sets `list-style: none` and
@@ -88,7 +89,7 @@ function listItemButton(
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
-      transition: "background-color 150ms ease",
+      transition: "background-color 150ms ease, box-shadow 140ms ease",
       "&:hover:not([disabled])": {
         backgroundColor: (listener) =>
           themeColor(listener, "hover", color.get(listener)),
@@ -99,9 +100,7 @@ function listItemButton(
         color: (listener) => themeColor(listener, "shift-12", accentColor),
       },
       "&:focus-visible": {
-        outline: (listener) =>
-          `2px solid ${themeColor(listener, "shift-6", accentColor)}`,
-        outlineOffset: "-2px",
+        boxShadow: (listener) => focusRing(listener, accentColor),
       },
       "&[disabled]": { opacity: 0.5, cursor: "not-allowed" },
     },

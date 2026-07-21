@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a native disclosure widget: a themed `<summary>` header with an
@@ -89,9 +90,8 @@ function details(
       },
       "& > summary:focus-visible": {
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
-        outlineOffset: `-${themeSpacing(0.5)}`,
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
       },
       "& > :not(summary)": {
         maxHeight: 0,

@@ -1,5 +1,6 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a range slider with a themed track and thumb, hover, focus and
@@ -55,11 +56,11 @@ function inputRange(
         backgroundColor: (listener) =>
           themeColor(listener, "shift-10", accentColor.get(listener)),
       },
+      borderRadius: themeSpacing(2),
+      transition: "box-shadow 140ms ease",
       "&:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
-        outlineOffset: themeSpacing(1),
-        borderRadius: themeSpacing(2),
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         opacity: 0.7,

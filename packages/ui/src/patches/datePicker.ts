@@ -17,6 +17,7 @@ import {
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
 import { createFloating } from "../utils/floating.js";
+import { focusRing } from "../utils/focusRing.js";
 
 /** A single date selection, or a `[start, end]` tuple in range mode. */
 export type DatePickerValue = Date | null | [Date | null, Date | null];
@@ -502,9 +503,10 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
               ? themeColor(l, "shift-7", accentColor.get(l))
               : themeColor(l, "shift-3", accentColor.get(l)),
         },
+        transition: "background-color 140ms ease, box-shadow 140ms ease",
         "&:focus-visible": {
-          outline: (l: Listener) =>
-            `2px solid ${themeColor(l, "shift-6", accentColor.get(l))}`,
+          boxShadow: (l: Listener) =>
+            focusRing(l, accentColor.get(l)),
         },
       },
       _key: isoOf(date),

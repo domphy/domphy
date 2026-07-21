@@ -57,14 +57,14 @@ describe("inputColor", () => {
     expect(css).toContain("cursor: not-allowed");
   });
 
-  it("does not emit an empty no-op hover/focus rule", () => {
+  it("emits a real :focus-visible focus ring (not an empty no-op rule)", () => {
     const node = new ElementNode({
       input: null,
       $: [inputColor()],
     } as DomphyElement);
     const css = node.generateCSS();
-    // The removed rule was "&:hover:not([disabled]), &:focus-visible {}".
-    expect(css).not.toContain(":focus-visible");
+    expect(css).toContain(":focus-visible");
+    expect(css).toMatch(/:focus-visible[^{]*\{[^}]*box-shadow/);
   });
 });
 

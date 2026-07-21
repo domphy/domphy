@@ -5,6 +5,7 @@ import {
   themeDensity,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Container patch that groups `<details>` elements into a bordered accordion.
@@ -70,8 +71,8 @@ function accordion(
         borderBottom: "none",
       },
       "& > details > summary:focus-visible": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
       },
     },
   };
