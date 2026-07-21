@@ -16,6 +16,7 @@ import {
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
 import { createFloating } from "../utils/floating.js";
+import { focusRing } from "../utils/focusRing.js";
 import { tag } from "./tag.js";
 
 /**
@@ -163,6 +164,11 @@ function combobox(props: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      transition:
+        "background-color 140ms ease, outline-color 140ms ease, box-shadow 140ms ease",
+      "&:focus-within": {
+        boxShadow: (listener) => focusRing(listener, color),
+      },
     },
   };
 

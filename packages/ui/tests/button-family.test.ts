@@ -8,6 +8,7 @@ import {
   buttonGhost,
   buttonSwitch,
   fab,
+  linkButton,
   toggleGroup,
 } from "../src/index.ts";
 
@@ -137,6 +138,56 @@ describe("button", () => {
     const nums = cssValues.map((v) => parseFloat(v.match(/[\d.]+/)?.[0] ?? ""));
     expect(nums[0]).toBeLessThan(nums[1]);
     expect(nums[1]).toBeLessThan(nums[2]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// linkButton
+// ---------------------------------------------------------------------------
+
+describe("linkButton", () => {
+  it("defaults to outline (border + tinted surface) like button()", () => {
+    const { node } = render({
+      a: "Open",
+      href: "/app",
+      $: [linkButton()],
+    } as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toContain("outline: 1px solid");
+    expect(css).toContain("focus-visible");
+    expect(css).toContain("140ms");
+  });
+
+  it("solid variant drops outline and anchors on a dark dataTone surface", () => {
+    const { host, node } = render({
+      a: "Get started",
+      href: "/start",
+      $: [linkButton({ variant: "solid", color: "primary" })],
+    } as DomphyElement);
+    expect(node.generateCSS()).toContain("outline: none");
+    expect(host.querySelector("a")?.getAttribute("data-tone")).toBe(
+      "shift-17",
+    );
+  });
+
+  it("ghost variant is transparent like buttonGhost", () => {
+    const { node } = render({
+      a: "Skip",
+      href: "#",
+      $: [linkButton({ variant: "ghost" })],
+    } as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toContain("background: none");
+    expect(css).toContain("border: none");
+  });
+
+  it("warns when applied to a non-anchor tag", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render({
+      div: [{ button: "x", $: [linkButton()] }],
+    } as DomphyElement);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("linkButton"));
+    warn.mockRestore();
   });
 });
 

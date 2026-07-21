@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 const xSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6.707 5.293l5.293 5.292l5.293 -5.292a1 1 0 0 1 1.414 1.414l-5.292 5.293l5.292 5.293a1 1 0 0 1 -1.414 1.414l-5.293 -5.292l-5.293 5.292a1 1 0 1 1 -1.414 -1.414l5.292 -5.293l-5.292 -5.293a1 1 0 0 1 1.414 -1.414" /></svg>`;
 
@@ -34,6 +35,9 @@ function tag(
           (e as Event).stopPropagation();
           node.remove();
         },
+        tabindex: 0,
+        role: "button",
+        ariaLabel: "Remove",
         style: {
           display: "inline-flex",
           alignItems: "center",
@@ -42,9 +46,14 @@ function tag(
           width: themeSpacing(4),
           height: themeSpacing(4),
           flexShrink: 0,
+          transition: "background-color 140ms ease, box-shadow 140ms ease",
           "&:hover": {
             backgroundColor: (listener) =>
               themeColor(listener, "shift-4", color.get(listener)),
+          },
+          "&:focus-visible": {
+            boxShadow: (listener) =>
+              focusRing(listener, color.get(listener)),
           },
         },
       };

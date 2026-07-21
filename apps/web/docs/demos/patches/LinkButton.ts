@@ -4,9 +4,23 @@ import { linkButton } from "@domphy/ui";
 
 const App: DomphyElement<"div"> = {
   div: [
-    { a: "Open app", href: "#", $: [linkButton()] },
-    { a: "Settings", href: "#", $: [linkButton({ color: "neutral" })] },
-    { a: "Success action", href: "#", $: [linkButton({ color: "success" })] },
+    { a: "Outline", href: "#", $: [linkButton()] },
+    {
+      a: "Solid CTA",
+      href: "#",
+      $: [linkButton({ variant: "solid", color: "primary" })],
+    },
+    {
+      a: "Ghost",
+      href: "#",
+      $: [linkButton({ variant: "ghost", color: "neutral" })],
+    },
+    { a: "Success", href: "#", $: [linkButton({ color: "success" })] },
+    {
+      a: "Small solid",
+      href: "#",
+      $: [linkButton({ variant: "solid", size: "small" })],
+    },
     {
       a: "Disabled link",
       ariaDisabled: "true",
@@ -18,6 +32,7 @@ const App: DomphyElement<"div"> = {
     display: "flex",
     flexWrap: "wrap",
     gap: themeSpacing(3),
+    alignItems: "center",
   },
 };
 

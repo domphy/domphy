@@ -18,6 +18,18 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## UI CTA + focus polish — 2026-07-21
+
+### `@domphy/ui` [0.20.4]
+- `linkButton()`: `variant: "solid" | "outline" | "ghost"` and `size` — parity with `button()` for real-link CTAs (hero, nav).
+- Focus rings: `buttonSwitch`, `inputSwitch`, `inputColor`, `inputCheckbox`/`inputRadio` (via `focusRing`), `combobox` (`:focus-within`), `selectBox` (tabIndex + `:focus-visible`), tag remove control.
+- Transitions on the same controls for hover/focus polish.
+
+### `@domphy/press` [0.21.2]
+- Hero brand actions use `linkButton({ variant: "solid" })`; secondary outline.
+
+---
+
 ## UI doctor honesty + design-system polish — 2026-07-21
 
 ### Fixed — `@domphy/ui`

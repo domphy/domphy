@@ -5,10 +5,14 @@ import { ElementNode, flushSync } from "@domphy/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   button,
+  buttonSwitch,
+  combobox,
   dialog,
   inputText,
+  linkButton,
   menu,
   popover,
+  selectBox,
   tooltip,
 } from "../src/index.ts";
 import { elevation } from "../src/utils/elevation.ts";
@@ -126,5 +130,48 @@ describe("button/input focus-visible ring", () => {
     expect(css).toContain("focus-visible");
     const focusBlock = css.slice(css.indexOf("focus-visible"));
     expect(focusBlock).toContain("box-shadow");
+  });
+
+  it("buttonSwitch / linkButton / selectBox expose focus rings", () => {
+    for (const [name, el] of [
+      [
+        "buttonSwitch",
+        { button: { span: null }, $: [buttonSwitch()] },
+      ],
+      [
+        "linkButton",
+        { a: "Go", href: "#", $: [linkButton({ variant: "solid" })] },
+      ],
+      [
+        "selectBox",
+        {
+          div: null,
+          $: [
+            selectBox({
+              content: { div: "menu" },
+              options: [{ label: "A", value: "a" }],
+            }),
+          ],
+        },
+      ],
+      [
+        "combobox",
+        {
+          div: null,
+          $: [
+            combobox({
+              content: { div: "menu" },
+              options: [{ label: "A", value: "a" }],
+            }),
+          ],
+        },
+      ],
+    ] as const) {
+      document.body.innerHTML = "";
+      const { node } = render(el as DomphyElement);
+      const css = node.generateCSS();
+      expect(css, name).toMatch(/focus-visible|focus-within/);
+      expect(css, name).toContain("box-shadow");
+    }
   });
 });

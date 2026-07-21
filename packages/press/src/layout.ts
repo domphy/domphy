@@ -1258,6 +1258,9 @@ function heroSection(hero: HeroConfig): DomphyElement {
               linkButton({
                 color:
                   !a.theme || a.theme === "brand" ? "primary" : "neutral",
+                // Brand CTAs read as filled primary; secondary stays outline.
+                variant:
+                  !a.theme || a.theme === "brand" ? "solid" : "outline",
               }),
             ],
             style: {

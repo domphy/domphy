@@ -5,6 +5,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a checkbox as a toggle switch: themed track and sliding knob that
@@ -43,6 +44,12 @@ function inputSwitch(
       cursor: "pointer",
       margin: `0`,
       paddingBlock: themeSpacing(1),
+      transition: "box-shadow 140ms ease",
+      borderRadius: themeSpacing(999),
+      "&:focus-visible": {
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
+      },
       "&:checked": {
         "&::before": {
           backgroundColor: (listener) =>

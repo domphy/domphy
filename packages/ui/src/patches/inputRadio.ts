@@ -5,6 +5,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a custom radio button with a themed circular box, checked dot, hover,
@@ -85,8 +86,8 @@ function inputRadio(
       },
       "&:focus-visible": {
         borderRadius: "50%",
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         cursor: "not-allowed",

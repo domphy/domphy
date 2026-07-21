@@ -5,6 +5,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * A pill-shaped toggle switch with `role="switch"`; clicking flips the bound
@@ -53,11 +54,16 @@ function buttonSwitch(
       borderRadius: themeSpacing(999),
       paddingLeft: themeSpacing(7),
       paddingRight: themeSpacing(2),
-      transition: "padding-left 0.3s, padding-right 0.3s",
+      cursor: "pointer",
+      transition:
+        "padding-left 0.3s, padding-right 0.3s, background-color 140ms ease, box-shadow 140ms ease",
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       color: (listener) =>
         themeColor(listener, "text", color.get(listener)),
+      "&:focus-visible": {
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+      },
       "& > :first-child": {
         content: '""',
         position: "absolute",

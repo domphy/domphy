@@ -14,7 +14,9 @@ Identical styling to `button()`, but the host element must be `<a>`. A console w
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `color` | `ValueOrState<ThemeColor>` | `"primary"` | Button color tone. Reactive — pass a `State<ThemeColor>` to switch theme at runtime. |
+| `color` | `ValueOrState<ThemeColor>` | `"primary"` (ghost defaults `"neutral"`) | Button color tone. Reactive — pass a `State<ThemeColor>` to switch theme at runtime. |
+| `variant` | `"solid" \| "outline" \| "ghost"` | `"outline"` | Same visual system as `button()` — filled CTA, outlined control, or transparent ghost. |
+| `size` | `"small" \| "medium" \| "large"` | `"medium"` | Density-aware padding + type size, matching `button()`. |
 
 ## Usage
 
@@ -23,7 +25,9 @@ import { linkButton } from "@domphy/ui"
 
 { a: "Open app", href: "/app", $: [linkButton()] }
 
-{ a: "Settings", href: "/settings", $: [linkButton({ color: "neutral" })] }
+{ a: "Get started", href: "/start", $: [linkButton({ variant: "solid", color: "primary" })] }
+
+{ a: "Docs", href: "/docs", $: [linkButton({ variant: "ghost", color: "neutral" })] }
 ```
 
 For a button that triggers JavaScript (no URL), use `button()` instead. `linkButton` is for navigational actions that should be a real anchor.

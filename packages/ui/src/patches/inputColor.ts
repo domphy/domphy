@@ -7,6 +7,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a native color picker swatch with themed padding, rounded swatch and
@@ -45,6 +46,11 @@ function inputColor(
       blockSize: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
       inlineSize: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
       backgroundColor: "transparent",
+      transition: "box-shadow 140ms ease",
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
+      "&:focus-visible": {
+        boxShadow: (listener) => focusRing(listener, color.get(listener)),
+      },
       "&::-webkit-color-swatch-wrapper": {
         margin: 0,
         padding: 0,

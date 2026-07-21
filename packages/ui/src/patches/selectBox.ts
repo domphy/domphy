@@ -16,6 +16,7 @@ import {
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
 import { createFloating } from "../utils/floating.js";
+import { focusRing } from "../utils/focusRing.js";
 import { tag } from "./tag.js";
 
 /**
@@ -117,6 +118,8 @@ function selectBox(props: {
     },
     _onInit: (node) => node.children.insert(wrap),
     onClick: (_e, node) => (openState.get() ? hide(node) : show(node)),
+    // Focusable trigger for keyboard users (click already toggles open).
+    tabindex: 0,
     style: {
       cursor: "pointer",
       display: "flex",
@@ -131,6 +134,11 @@ function selectBox(props: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      transition:
+        "background-color 140ms ease, outline-color 140ms ease, box-shadow 140ms ease",
+      "&:focus-visible": {
+        boxShadow: (listener) => focusRing(listener, color),
+      },
     },
   };
 

@@ -5,6 +5,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { focusRing } from "../utils/focusRing.js";
 
 /**
  * Styles a custom checkbox with themed box, check mark, indeterminate state,
@@ -107,8 +108,8 @@ function inputCheckbox(
       },
       "&:focus-visible": {
         borderRadius: themeSpacing(1.5),
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         cursor: "not-allowed",
