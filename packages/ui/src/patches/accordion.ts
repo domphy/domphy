@@ -59,6 +59,8 @@ function accordion(
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       outlineOffset: "-1px",
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       overflow: "hidden",
       "& > details": {
         borderBottom: (listener) =>

@@ -54,6 +54,14 @@ function button(
         console.warn(`"button" primitive patch must use button tag`);
       }
     },
+    // Solid fills use the dark edge (shift-17) + light text (shift-0).
+    // Inverse solid controls intentionally invert doctor body-text contrast rules.
+    ...(isSolid
+      ? {
+          dataTone: "shift-17" as const,
+          _doctorDisable: ["low-contrast", "color-shift-minimum"] as const,
+        }
+      : {}),
     style: {
       appearance: "none",
       fontSize: (listener) => themeSize(listener, fontSize),
@@ -84,9 +92,7 @@ function button(
           ? themeColor(listener, "shift-0", color.get(listener))
           : themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
-        isSolid
-          ? themeColor(listener, "shift-9", color.get(listener))
-          : themeColor(listener, "inherit", color.get(listener)),
+        themeColor(listener, "inherit", color.get(listener)),
       transition:
         "background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
       "&:hover:not([disabled]):not([aria-busy=true])": {
@@ -96,7 +102,7 @@ function button(
             : themeColor(listener, "shift-10", color.get(listener)),
         backgroundColor: (listener) =>
           isSolid
-            ? themeColor(listener, "shift-10", color.get(listener))
+            ? themeColor(listener, "decrease-1", color.get(listener))
             : themeColor(listener, "hover", color.get(listener)),
       },
       "&:focus-visible": {

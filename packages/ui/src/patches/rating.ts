@@ -5,7 +5,12 @@ import {
   toState,
   type ValueOrState,
 } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeSpacing,
+} from "@domphy/theme";
 import { focusRing } from "../utils/focusRing.js";
 
 const STAR_FILLED =
@@ -56,7 +61,8 @@ function rating(
     style: {
       display: "inline-flex",
       gap: themeSpacing(0.5),
-      fontSize: "1.5rem",
+      // 1.5× inherited control size (theme-owned type scale, not a px/rem literal).
+      fontSize: (listener) => themeSize(listener, "increase-1"),
       cursor: readOnly ? "default" : "pointer",
       color: (listener) => themeColor(listener, "muted", color),
     },

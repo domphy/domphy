@@ -76,6 +76,7 @@ function selectList(
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      color: (listener) => themeColor(listener, "text", color),
     },
   };
   return partial;

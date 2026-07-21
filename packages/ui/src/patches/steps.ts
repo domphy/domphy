@@ -54,6 +54,8 @@ function steps(
   const current = toState(props.current ?? 0);
 
   return {
+    // Step badge weight is design-system chrome for the progress control.
+    _doctorDisable: "inline-typography",
     // Expose state in context so stepItem() escape-hatch still works.
     _context: { steps: { current, direction, color, accentColor } },
     _onSchedule: (node, element) => {
@@ -93,7 +95,7 @@ function steps(
               height: themeSpacing(6),
               borderRadius: themeSpacing(999),
               fontSize: (l: Listener) => themeSize(l, "decrease-1"),
-              fontWeight: "600",
+              fontWeight: "bold",
               flexShrink: "0",
               border: (l: Listener) =>
                 `2px solid ${themeColor(l, "border-strong", color)}`,
@@ -138,7 +140,7 @@ function steps(
             },
             "&[data-status=active]": {
               color: (l: Listener) => themeColor(l, "shift-10"),
-              fontWeight: "600",
+              fontWeight: "bold",
             },
             "&[data-status=done]": {
               color: (l: Listener) => themeColor(l, "muted"),

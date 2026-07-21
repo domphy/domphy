@@ -320,11 +320,23 @@ describe("diagnose", () => {
     expect(light[0].hint).toContain("increase-");
   });
 
-  it("flags fontFamily and textDecoration as inline-typography (bench gap)", () => {
+  it("flags fontFamily and non-cascade textDecoration as inline-typography (bench gap)", () => {
     expect(
       rules({ p: "x", style: { fontFamily: "Arial, sans-serif" } }),
     ).toContain("inline-typography");
-    expect(rules({ a: "link", style: { textDecoration: "none" } })).toContain(
+    // Multi-token / non-keyword decoration is still hard-coded chrome.
+    expect(
+      rules({ a: "link", style: { textDecoration: "underline wavy" } }),
+    ).toContain("inline-typography");
+    // CSS cascade keywords (none/underline/inherit/…) and unitless line-height
+    // multipliers are NOT type-scale literals — design-system patches use them.
+    expect(
+      rules({ a: "link", style: { textDecoration: "none" } }),
+    ).not.toContain("inline-typography");
+    expect(rules({ p: "x", style: { lineHeight: 1.5 } })).not.toContain(
+      "inline-typography",
+    );
+    expect(rules({ p: "x", style: { fontFamily: "inherit" } })).not.toContain(
       "inline-typography",
     );
     // fontFamily as function is fine

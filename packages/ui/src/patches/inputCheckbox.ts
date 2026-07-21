@@ -35,6 +35,8 @@ function inputCheckbox(
     style: {
       appearance: "none",
       fontSize: (listener) => themeSize(listener, "inherit"),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       display: "inline-flex",
       position: "relative",
       width: themeSpacing(6),

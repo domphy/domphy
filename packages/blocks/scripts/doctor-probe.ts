@@ -4,10 +4,28 @@
  * Exit 1 on any error-severity diagnostic.
  */
 import { writeFileSync } from "node:fs";
+import { merge } from "@domphy/core";
 import type { Diagnostic } from "../../doctor/src/index.ts";
 import { diagnose, format } from "../../doctor/src/index.ts";
-import * as ui from "@domphy/ui";
+import * as ui from "../../ui/src/index.ts";
 import * as blocks from "../src/index.ts";
+
+/** Expand `$` like ElementNode/mergePartial; keep void `tag: null` keys. */
+function expandPatches(element: Record<string, any>): Record<string, any> {
+  if (!Array.isArray(element.$)) return element;
+  const accumulated: Record<string, any> = {};
+  for (const patch of element.$) {
+    merge(accumulated, expandPatches(patch as Record<string, any>));
+  }
+  const native = { ...element };
+  delete native.$;
+  const nullKeys = Object.entries(native)
+    .filter(([, value]) => value === null)
+    .map(([key]) => key);
+  merge(accumulated, native);
+  for (const key of nullKeys) accumulated[key] = null;
+  return accumulated;
+}
 
 const HOST: Record<string, string> = {
   abbreviation: "abbr",
@@ -25,6 +43,8 @@ const HOST: Record<string, string> = {
   code: "code",
   combobox: "div",
   command: "input",
+  commandItem: "div",
+  commandSearch: "input",
   datePicker: "input",
   descriptionList: "dl",
   details: "details",
@@ -58,6 +78,8 @@ const HOST: Record<string, string> = {
   link: "a",
   linkButton: "a",
   list: "ul",
+  listItem: "li",
+  listItemButton: "button",
   mark: "mark",
   menu: "div",
   motion: "div",
@@ -82,6 +104,8 @@ const HOST: Record<string, string> = {
   small: "small",
   spinner: "span",
   splitter: "div",
+  splitterHandle: "div",
+  splitterPanel: "div",
   stack: "div",
   steps: "div",
   strong: "strong",
@@ -92,9 +116,11 @@ const HOST: Record<string, string> = {
   tag: "span",
   textarea: "textarea",
   timeline: "div",
+  timelineItem: "div",
   toast: "div",
   toggleGroup: "div",
   toolbar: "div",
+  toolbarSpacer: "div",
   tooltip: "button",
   transitionGroup: "div",
   unorderedList: "ul",
@@ -110,7 +136,6 @@ const PATCH_ARGS: Record<string, unknown> = {
   segmented: { options: [{ value: "a", label: "A" }] },
   tabs: { items: [{ value: "a", label: "A", content: { div: "A" } }] },
   toggleGroup: { options: [{ value: "a", label: "A" }] },
-  steps: { steps: [{ label: "One" }, { label: "Two" }] },
   timeline: { items: [{ title: "A", content: "B" }] },
   accordion: { items: [{ title: "A", content: { p: "body" } }] },
   pagination: { page: 1, total: 10 },
@@ -132,6 +157,12 @@ const PATCH_ARGS: Record<string, unknown> = {
   image: { src: "x.png", alt: "" },
   inputOTP: { length: 4 },
   descriptionList: { items: [{ term: "A", description: "B" }] },
+  commandItem: { value: "a", label: "A" },
+  commandSearch: {},
+  listItem: {},
+  listItemButton: {},
+  timelineItem: { title: "A" },
+  steps: { items: [{ label: "One" }, { label: "Two" }] },
 };
 
 const VOID = new Set(["hr", "img", "input", "progress"]);
@@ -151,6 +182,7 @@ function defaultContent(tag: string): unknown {
   if (tag === "a") return "link";
   if (tag === "label") return "Label";
   if (tag === "textarea") return "text";
+  if (tag === "li") return "item";
   return "content";
 }
 
@@ -170,7 +202,8 @@ function record(label: string, diags: Diagnostic[]) {
   if (diags.length === 0) return;
   lines.push(`\n## ${label}`);
   lines.push(format(diags));
-  for (const d of errs) {
+  // Gate: error AND warning both fail (info may remain for raw-spacing etc.).
+  for (const d of [...errs, ...warns]) {
     errors.push({ label, rule: d.rule, message: d.message });
   }
 }
@@ -199,22 +232,9 @@ for (const [name, fn] of Object.entries(ui)) {
     $: [patch],
   };
   if (name === "link" || name === "linkButton") el.href = "#";
-  if (tag === "input") {
-    el.type = name.includes("Checkbox")
-      ? "checkbox"
-      : name.includes("Radio")
-        ? "radio"
-        : name.includes("Range")
-          ? "range"
-          : name.includes("Color")
-            ? "color"
-            : name.includes("File")
-              ? "file"
-              : "text";
-  }
 
   try {
-    const diags = diagnose(el as any);
+    const diags = diagnose(expandPatches(el) as any);
     uiProbed++;
     record(`ui.${name}`, diags);
   } catch (e) {

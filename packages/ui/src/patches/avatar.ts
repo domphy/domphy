@@ -20,6 +20,8 @@ function avatar(
 
   return {
     dataTone: "shift-2",
+    // Design-system initials weight (not app chrome) — consumers use avatar().
+    _doctorDisable: "inline-typography",
     style: {
       position: "relative",
       display: "inline-flex",

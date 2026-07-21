@@ -183,14 +183,17 @@ function splitterHandle(): PartialElement {
         handle.removeEventListener("mousedown", onMousedown);
       });
     },
+    // Soft divider surface — shift via dataTone, paint with inherit.
+    dataTone: "shift-2",
     style: {
       flexShrink: 0,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: (listener) => themeColor(listener, "shift-2"),
+      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      color: (listener) => themeColor(listener, "text"),
       "&:hover": {
-        backgroundColor: (listener) => themeColor(listener, "shift-3"),
+        backgroundColor: (listener) => themeColor(listener, "increase-1"),
       },
       "&:focus-visible": {
         outline: (listener) => `2px solid ${themeColor(listener, "shift-6")}`,

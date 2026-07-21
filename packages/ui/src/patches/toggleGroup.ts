@@ -128,6 +128,7 @@ function toggleGroup(
       borderRadius: themeSpacing(2),
       fontSize: (l: Listener) => themeSize(l, "inherit"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
+      color: (l: Listener) => themeColor(l, "text", color),
       outline: (l: Listener) => `1px solid ${themeColor(l, "border", color)}`,
       outlineOffset: "-1px",
     },

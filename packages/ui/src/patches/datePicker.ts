@@ -359,7 +359,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
           style: {
             flex: "1",
             textAlign: "center",
-            fontWeight: "600",
+            fontWeight: "bold",
             fontSize: (listener) => themeSize(listener),
           },
         },
@@ -380,7 +380,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         style: {
           textAlign: "center",
           fontSize: (listener) => themeSize(listener, "decrease-1"),
-          fontWeight: "600",
+          fontWeight: "bold",
           color: (listener) => themeColor(listener, "shift-7"),
           paddingBlock: themeSpacing(1),
         },
@@ -534,7 +534,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     return {
       div: [
         numberSelect(24, hour, "Hour"),
-        { span: ":", style: { fontWeight: "600" } },
+        { span: ":", style: { fontWeight: "bold" } },
         numberSelect(60, minute, "Minute"),
       ],
       style: {

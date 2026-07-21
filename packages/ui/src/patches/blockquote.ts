@@ -31,6 +31,8 @@ function blockquote(
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       boxShadow: (listener) =>
         `inset ${themeSpacing(1)} 0 0 0 ${themeColor(listener, "shift-4", color.get(listener))}`,
       border: "none",

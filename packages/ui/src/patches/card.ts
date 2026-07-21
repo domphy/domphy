@@ -20,6 +20,8 @@ function card(
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
   return {
+    // Title weight is design-system chrome for the card region layout.
+    _doctorDisable: "inline-typography",
     style: {
       display: "grid",
       gridTemplateColumns: "1fr auto",

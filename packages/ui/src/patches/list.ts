@@ -45,6 +45,7 @@ function listItem(props: { dense?: boolean } = {}): PartialElement {
         themeSpacing(dense ? 1 : themeDensity(listener) * 2),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       fontSize: (listener) => themeSize(listener, "inherit"),
+      color: (listener) => themeColor(listener, "text"),
     },
   };
 }

@@ -20,6 +20,8 @@ function horizontalRule(
         console.warn(`"horizontalRule" primitive patch must use hr tag`);
       }
     },
+    // Soft rule surface — edge anchor (shift-3 = border) + inherit paint.
+    dataTone: "shift-3",
     style: {
       border: 0,
       height: "1px",
@@ -27,7 +29,9 @@ function horizontalRule(
       marginTop: themeSpacing(3),
       marginBottom: themeSpacing(3),
       backgroundColor: (listener) =>
-        themeColor(listener, "shift-4", color.get(listener)),
+        themeColor(listener, "inherit", color.get(listener)),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
     },
   };
 }

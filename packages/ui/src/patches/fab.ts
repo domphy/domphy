@@ -35,6 +35,11 @@ function fab(
         console.warn('"fab" patch must use button tag');
       }
     },
+    // Solid accent disc on the dark edge (shift-17) + light text (shift-0).
+    // Doctor's low-contrast / color-shift-minimum rules assume light-surface
+    // body text (shift ≥ 9); inverse solid controls intentionally invert that.
+    dataTone: "shift-17",
+    _doctorDisable: ["low-contrast", "color-shift-minimum"],
     style: {
       appearance: "none",
       border: "none",
@@ -48,13 +53,13 @@ function fab(
       borderRadius: "50%",
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) =>
-        themeColor(listener, "shift-9", color.get(listener)),
+        themeColor(listener, "inherit", color.get(listener)),
       color: (listener) => themeColor(listener, "shift-0", color.get(listener)),
       boxShadow: elevation("low"),
       transition: "background-color 200ms ease, box-shadow 200ms ease",
       "&:hover:not([disabled])": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-10", color.get(listener)),
+          themeColor(listener, "decrease-1", color.get(listener)),
         boxShadow: elevation("medium"),
       },
       "&:focus-visible": {

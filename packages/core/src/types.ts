@@ -122,6 +122,12 @@ export type PartialElement<T extends TagName = never> = {
   // Keyed so multiple patches ($-composed) can each attach their own behavior
   // on one element without colliding — see `behavior()` in utils.ts.
   _behaviors?: Record<string, BehaviorSpec<any>>;
+  /**
+   * Suppress `@domphy/doctor` diagnostics on this element.
+   * `true` silences all rules; a rule id or list of ids silences those only.
+   * Used by design-system patches for intentional type/chrome defaults.
+   */
+  _doctorDisable?: true | string | string[];
   $?: PartialElement<T>[];
 } & {
   [K in keyof HookMap as `_on${K}`]?: HookMap[K];

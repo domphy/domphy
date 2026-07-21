@@ -121,6 +121,39 @@ const TYPOGRAPHY_STYLE = new Set([
   "textDecoration",
 ]);
 
+// CSS cascade / non-scale values are NOT hard-coded type metrics — they
+// deliberately defer to the theme or UA cascade (inherit), reset decoration
+// (none), or use relative line-height multipliers. Still flag literal sizes
+// ("16px"), families ("Arial"), and design weights ("600") so apps use patches.
+const TYPOGRAPHY_CASCADE = new Set([
+  "inherit",
+  "unset",
+  "initial",
+  "revert",
+  "revert-layer",
+  "normal",
+  "none",
+  "underline",
+  "line-through",
+  "overline",
+  "bold",
+  "bolder",
+  "lighter",
+]);
+
+function isTypographyCascadeValue(prop: string, value: unknown): boolean {
+  if (typeof value === "string" && TYPOGRAPHY_CASCADE.has(value.toLowerCase())) {
+    return true;
+  }
+  // Unitless line-height multipliers (e.g. 1.5) — relative, not a type scale step.
+  if (prop === "lineHeight") {
+    if (typeof value === "number" && Number.isFinite(value)) return true;
+    if (typeof value === "string" && /^\d+(\.\d+)?$/.test(value.trim()))
+      return true;
+  }
+  return false;
+}
+
 // Color-bearing style props that should resolve through a theme token rather
 // than a literal value, so theming and dark mode apply. Shorthands
 // (background/border/outline) are included because they often carry a color.
@@ -615,7 +648,11 @@ function walk(
       if (prop.startsWith("&") || prop.startsWith(":")) continue;
       const value = style[prop];
 
-      if (TYPOGRAPHY_STYLE.has(prop) && typeof value !== "function") {
+      if (
+        TYPOGRAPHY_STYLE.has(prop) &&
+        typeof value !== "function" &&
+        !isTypographyCascadeValue(prop, value)
+      ) {
         elementDiags.push({
           rule: "inline-typography",
           severity: "warning",

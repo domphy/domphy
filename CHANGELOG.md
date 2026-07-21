@@ -18,6 +18,24 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## UI doctor honesty + design-system polish — 2026-07-21
+
+### Fixed — `@domphy/ui`
+- Doctor-conformance now **merges** `$` patches before `diagnose()` (expand like `mergePartial`, keep void `tag: null`). Covers all **96** patch exports including nested helpers (`commandItem`, `listItem`, …).
+- Surface/color contract: missing `style.color`, `dataTone` + inherit bg on solid controls (`button` solid / `fab` on `shift-17`), track surfaces (`segmented`, `progress`, `splitterHandle`, `horizontalRule`), and themed chrome (`blockquote`, `menu`, `selectList`, inputs, …).
+- Typography: cascade keywords (`inherit`/`none`/`bold`/unitless `lineHeight`) allowed in doctor; intentional design weights use `_doctorDisable: "inline-typography"` with comments; inverse solid FAB disables low-contrast/color-shift-minimum (light-on-dark).
+
+### Fixed — `@domphy/doctor`
+- `inline-typography` no longer flags CSS cascade keywords or unitless line-height multipliers.
+
+### Added — `@domphy/core` [0.19.3]
+- `PartialElement._doctorDisable` typed for design-system suppressions.
+
+### Tests
+- `packages/ui/tests/doctor-conformance.test.ts` + `packages/blocks/tests/doctor-conformance.test.ts` are hard gates (errors **and** warnings = fail after merge).
+
+---
+
 ## `@domphy/core` [0.19.2] — 2026-07-21
 
 ### Fixed

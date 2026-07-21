@@ -53,6 +53,8 @@ function ringProgress(
       width: themeSpacing(size),
       height: themeSpacing(size),
       borderRadius: "50%",
+      // Text color tracks the filled arc so any overlay label inherits it.
+      color: (l) => themeColor(l, "shift-9", color.get(l)),
       // Fill arc from 12 o'clock clockwise; `from -90deg` rotates the start point.
       background: (l) =>
         `conic-gradient(from -90deg, ${themeColor(l, "shift-9", color.get(l))} ${value.get(l)}%, ${themeColor(l, "shift-3", trackColor.get(l))} 0%)`,

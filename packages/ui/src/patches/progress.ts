@@ -27,6 +27,8 @@ function progress(
         console.warn(`"progress" primitive patch must use progress tag`);
       }
     },
+    // Track surface — shift via dataTone, paint with inherit.
+    dataTone: "shift-3",
     style: {
       appearance: "none",
       width: "100%",
@@ -35,10 +37,12 @@ function progress(
       borderRadius: themeSpacing(999),
       overflow: "hidden",
       backgroundColor: (listener) =>
-        themeColor(listener, "shift-3", color.get(listener)),
+        themeColor(listener, "inherit", color.get(listener)),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       "&::-webkit-progress-bar": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-3", color.get(listener)),
+          themeColor(listener, "inherit", color.get(listener)),
         borderRadius: themeSpacing(999),
       },
       "&::-webkit-progress-value": {

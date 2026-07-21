@@ -1,17 +1,43 @@
 // Doctor-conformance gate: every exported UI patch applied to its default host
-// produces zero error-severity diagnostics on the resulting element tree.
-// Complements visual-polish / overlay tests (focus ring, closed dialog a11y).
+// produces zero error-severity diagnostics AND zero un-justified warnings.
+//
+// IMPORTANT: diagnose() never expands `$` (RESERVED). We merge patch
+// PartialElements onto the host the same way ElementNode/mergePartial does
+// before diagnosing — otherwise style/dataTone checks never see patch defaults.
 
+import { merge } from "@domphy/core";
 import { diagnose } from "../../doctor/src/index.ts";
 import { describe, expect, it } from "vitest";
 import * as ui from "../src/index.ts";
 
-/** Host tags for each patch (from @hostTag JSDoc / layout defaults). */
+/**
+ * Expand `$` patches like ElementNode/mergePartial.
+ * Preserves `tag: null` void content that merge() would drop (null is skipped).
+ */
+function expandPatches(element: Record<string, any>): Record<string, any> {
+  if (!Array.isArray(element.$)) return element;
+  const accumulated: Record<string, any> = {};
+  for (const patch of element.$) {
+    merge(accumulated, expandPatches(patch as Record<string, any>));
+  }
+  const native = { ...element };
+  delete native.$;
+  const nullKeys = Object.entries(native)
+    .filter(([, value]) => value === null)
+    .map(([key]) => key);
+  merge(accumulated, native);
+  for (const key of nullKeys) {
+    accumulated[key] = null;
+  }
+  return accumulated;
+}
+
+/** Host tags for every patch export (from @hostTag JSDoc / layout defaults). */
 const HOST: Record<string, string> = {
   abbreviation: "abbr",
   accordion: "div",
   alert: "div",
-  avatar: "div",
+  avatar: "span",
   badge: "span",
   blockquote: "blockquote",
   breadcrumb: "nav",
@@ -23,6 +49,8 @@ const HOST: Record<string, string> = {
   code: "code",
   combobox: "div",
   command: "input",
+  commandItem: "div",
+  commandSearch: "input",
   datePicker: "input",
   descriptionList: "dl",
   details: "details",
@@ -56,6 +84,8 @@ const HOST: Record<string, string> = {
   link: "a",
   linkButton: "a",
   list: "ul",
+  listItem: "li",
+  listItemButton: "button",
   mark: "mark",
   menu: "div",
   motion: "div",
@@ -80,6 +110,8 @@ const HOST: Record<string, string> = {
   small: "small",
   spinner: "span",
   splitter: "div",
+  splitterHandle: "div",
+  splitterPanel: "div",
   stack: "div",
   steps: "div",
   strong: "strong",
@@ -90,9 +122,11 @@ const HOST: Record<string, string> = {
   tag: "span",
   textarea: "textarea",
   timeline: "div",
+  timelineItem: "div",
   toast: "div",
   toggleGroup: "div",
   toolbar: "div",
+  toolbarSpacer: "div",
   tooltip: "button",
   transitionGroup: "div",
   unorderedList: "ul",
@@ -108,7 +142,7 @@ const PATCH_ARGS: Record<string, unknown> = {
   segmented: { options: [{ value: "a", label: "A" }] },
   tabs: { items: [{ value: "a", label: "A", content: { div: "A" } }] },
   toggleGroup: { options: [{ value: "a", label: "A" }] },
-  steps: { steps: [{ label: "One" }, { label: "Two" }] },
+  steps: { items: [{ label: "One" }, { label: "Two" }] },
   timeline: { items: [{ title: "A", content: "B" }] },
   accordion: { items: [{ title: "A", content: { p: "body" } }] },
   pagination: { page: 1, total: 10 },
@@ -130,6 +164,11 @@ const PATCH_ARGS: Record<string, unknown> = {
   image: { src: "x.png", alt: "" },
   inputOTP: { length: 4 },
   descriptionList: { items: [{ term: "A", description: "B" }] },
+  commandItem: { value: "a", label: "A" },
+  commandSearch: {},
+  listItem: {},
+  listItemButton: {},
+  timelineItem: { title: "A" },
 };
 
 const VOID = new Set(["hr", "img", "input", "progress"]);
@@ -148,17 +187,27 @@ function defaultContent(tag: string): unknown {
   if (tag === "a") return "link";
   if (tag === "label") return "Label";
   if (tag === "textarea") return "text";
+  if (tag === "li") return "item";
   return "content";
 }
 
-describe("doctor conformance — all UI patch defaults", () => {
+describe("doctor conformance — all UI patch defaults (merged)", () => {
   const patches = Object.entries(ui).filter(
     ([name, value]) => typeof value === "function" && HOST[name],
   );
 
-  it(`probes ${patches.length} patches with zero error-severity diagnostics`, () => {
-    expect(patches.length).toBeGreaterThan(80);
+  it("covers every function export from @domphy/ui", () => {
+    const allFns = Object.entries(ui)
+      .filter(([, value]) => typeof value === "function")
+      .map(([name]) => name)
+      .sort();
+    const missing = allFns.filter((name) => !HOST[name]);
+    expect(missing, `HOST map missing: ${missing.join(", ")}`).toEqual([]);
+    expect(patches.length).toBe(allFns.length);
+    expect(patches.length).toBeGreaterThanOrEqual(96);
+  });
 
+  it(`probes ${patches.length} merged patch trees with zero error/warning diagnostics`, () => {
     const failures: string[] = [];
     for (const [name, fn] of patches) {
       const tag = HOST[name];
@@ -180,24 +229,17 @@ describe("doctor conformance — all UI patch defaults", () => {
         $: [patch],
       };
       if (name === "link" || name === "linkButton") el.href = "#";
-      if (tag === "input") {
-        el.type = name.includes("Checkbox")
-          ? "checkbox"
-          : name.includes("Radio")
-            ? "radio"
-            : name.includes("Range")
-              ? "range"
-              : name.includes("Color")
-                ? "color"
-                : name.includes("File")
-                  ? "file"
-                  : "text";
-      }
+      // Do NOT set type= on void inputs here — patches that need type set it
+      // themselves; a bare type: "text" without a found tag used to trigger
+      // unknown-tag when expand failed to preserve input:null.
 
-      const errors = diagnose(el as any).filter((d) => d.severity === "error");
-      if (errors.length > 0) {
+      const merged = expandPatches(el);
+      const diags = diagnose(merged as any).filter(
+        (d) => d.severity === "error" || d.severity === "warning",
+      );
+      if (diags.length > 0) {
         failures.push(
-          `${name}: ${errors.map((d) => `${d.rule}: ${d.message}`).join("; ")}`,
+          `${name}: ${diags.map((d) => `${d.severity}/${d.rule}: ${d.message}`).join("; ")}`,
         );
       }
     }

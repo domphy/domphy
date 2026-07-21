@@ -64,7 +64,7 @@ function timelineItem(
         height: "0.75rem",
         borderRadius: "50%",
         justifySelf: "center",
-        marginTop: "0.25em",
+        marginTop: themeSpacing(1),
         transition: "background-color 200ms ease, opacity 200ms ease",
         backgroundColor: (listener) =>
           themeColor(

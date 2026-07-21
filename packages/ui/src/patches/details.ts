@@ -35,6 +35,8 @@ function details(
         console.warn(`"details" primitive patch must use details tag`);
       }
     },
+    // Summary weight is design-system chrome for disclosure headers.
+    _doctorDisable: "inline-typography",
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color.get(listener)),

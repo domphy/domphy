@@ -37,6 +37,8 @@ function inputRadio(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       appearance: "none",
       display: "inline-flex",
       position: "relative",

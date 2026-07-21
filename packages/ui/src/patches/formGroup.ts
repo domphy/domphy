@@ -34,6 +34,8 @@ function formGroup(
         console.warn(`"formGroup" patch must use fieldset tag`);
       }
     },
+    // Legend weight is design-system chrome for field groups.
+    _doctorDisable: "inline-typography",
     style: {
       margin: 0,
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
@@ -43,6 +45,8 @@ function formGroup(
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       display: "grid",
       gridTemplateColumns: isVertical
         ? `minmax(0, 1fr)`

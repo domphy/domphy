@@ -20,6 +20,8 @@ function scrollArea(
   return {
     style: {
       overflow: "auto",
+      // Container text color so theme token usage also carries a reactive `color`.
+      color: (l) => themeColor(l, "text", color.get(l)),
       "&::-webkit-scrollbar": {
         width: themeSpacing(2),
         height: themeSpacing(2),

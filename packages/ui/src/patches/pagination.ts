@@ -78,7 +78,7 @@ function pagination(props: {
     backgroundColor: (listener: any) =>
       themeColor(listener, "shift-6", accentColor),
     color: (listener: any) => themeColor(listener, "shift-11", accentColor),
-    fontWeight: "600",
+    fontWeight: "bold",
     cursor: "default",
     "&:hover:not([disabled])": {
       backgroundColor: (listener: any) =>
@@ -89,6 +89,8 @@ function pagination(props: {
   return {
     role: "navigation",
     ariaLabel: "Pagination",
+    // Active page weight is design-system chrome for the control.
+    _doctorDisable: "inline-typography",
     _onInsert: (node) => {
       if (node.tagName !== "div")
         console.warn('"pagination" patch must use div tag');

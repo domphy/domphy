@@ -1,5 +1,8 @@
 # @domphy/core Changelog
 
+## 0.19.3
+- Types: `PartialElement` now includes optional `_doctorDisable` (`true | string | string[]`) so design-system patches can declare intentional doctor suppressions in TypeScript.
+
 ## 0.19.2
 - fix `merge()`: no longer drop empty-string leaf values (`""`). Only `undefined`/`null` are skipped. Fixes decorative-image `alt: ""` and other valid empty HTML attributes being stripped during patch composition.
 

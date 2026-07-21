@@ -32,6 +32,9 @@ function inputSwitch(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
+      // Surface contract: dataTone is set; paint track via inherit + text color.
+      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      color: (listener) => themeColor(listener, "text"),
       appearance: "none",
       position: "relative",
       display: "inline-flex",

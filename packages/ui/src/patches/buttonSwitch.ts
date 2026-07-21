@@ -56,6 +56,8 @@ function buttonSwitch(
       transition: "padding-left 0.3s, padding-right 0.3s",
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       "& > :first-child": {
         content: '""',
         position: "absolute",

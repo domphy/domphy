@@ -99,13 +99,16 @@ function segmented(
 
       (element as any)[node.tagName] = buttons;
     },
+    // Track is a soft surface anchor — shift via dataTone, paint with inherit.
+    dataTone: "shift-2",
     style: {
       display: "inline-flex",
       paddingBlock: themeSpacing(1),
       paddingInline: themeSpacing(1),
       gap: themeSpacing(0.5),
       borderRadius: themeSpacing(10),
-      backgroundColor: (l: Listener) => themeColor(l, "shift-2", color),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
+      color: (l: Listener) => themeColor(l, "text", color),
     },
   };
 }

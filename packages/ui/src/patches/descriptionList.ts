@@ -26,6 +26,8 @@ function descriptionList(
         console.warn(`"descriptionList" primitive patch must use dl tag`);
       }
     },
+    // Term weight is design-system chrome for description lists.
+    _doctorDisable: "inline-typography",
     style: {
       display: "grid",
       gridTemplateColumns: `minmax(${themeSpacing(24)}, max-content) 1fr`,

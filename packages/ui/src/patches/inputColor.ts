@@ -1,4 +1,5 @@
 import type { PartialElement, ValueOrState } from "@domphy/core";
+import { toState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -18,11 +19,12 @@ import {
  * @example { input: null, type: "color", $: [inputColor()] }
  */
 function inputColor(
-  _props: {
+  props: {
     color?: ValueOrState<ThemeColor>;
     accentColor?: ValueOrState<ThemeColor>;
   } = {},
 ): PartialElement {
+  const color = toState(props.color ?? "neutral", "color");
   return {
     type: "color",
     _onSchedule: (node, element) => {
@@ -36,6 +38,8 @@ function inputColor(
       border: "none",
       cursor: "pointer",
       fontSize: (listener) => themeSize(listener, "inherit"),
+      color: (listener) =>
+        themeColor(listener, "text", color.get(listener)),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
       blockSize: (listener) => themeSpacing(6 + themeDensity(listener) * 2),

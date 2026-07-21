@@ -26,6 +26,8 @@ function table(
         console.warn(`"table" primitive patch must use table tag`);
       }
     },
+    // Header/footer weights are design-system table chrome.
+    _doctorDisable: "inline-typography",
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color.get(listener)),

@@ -23,7 +23,7 @@ function strong(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      fontWeight: 700,
+      fontWeight: "bold",
       color: (listener) =>
         themeColor(listener, "shift-11", color.get(listener)),
       backgroundColor: (listener) => themeColor(listener),
