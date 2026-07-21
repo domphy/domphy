@@ -39,19 +39,24 @@ export function Container(element: DomphyElement): DomphyElement<"div"> {
     style: {
       display: "flex",
       flexDirection: "column",
-      border: (listener) => `1px solid ${themeColor(listener, "border")}`,
+      border: (listener) =>
+        `1px solid ${themeColor(listener, "border-strong")}`,
       borderRadius: (listener) =>
-        isFull.get(listener) ? "0" : themeSpacing(2),
+        isFull.get(listener) ? "0" : themeSpacing(2.5),
       overflow: "hidden",
       position: (listener) => (isFull.get(listener) ? "fixed" : "relative"),
       inset: 0,
       height: (listener) =>
-        isFull.get(listener) ? "100vh" : "clamp(240px, 38svh, 400px)",
+        isFull.get(listener) ? "100dvh" : "clamp(320px, 48svh, 560px)",
+      boxShadow: (listener) =>
+        isFull.get(listener)
+          ? "none"
+          : "0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06)",
       // Above the site header's own z-index:100 (packages/press/src/layout.ts)
       // so fullscreen genuinely covers the whole page instead of having its
       // toolbar hidden underneath the sticky header.
       zIndex: (listener) => (isFull.get(listener) ? 300 : 10),
-      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      backgroundColor: (listener) => themeColor(listener, "surface"),
       color: (listener) => themeColor(listener, "text"),
     },
   };

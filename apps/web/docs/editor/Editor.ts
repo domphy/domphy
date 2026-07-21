@@ -13,13 +13,26 @@ export function Editor(code: State<string>): DomphyElement<"div"> {
           basicSetup,
           javascript({ typescript: true }),
           oneDark,
-          // Without a bounded height CodeMirror sizes .cm-editor to its
-          // CONTENT, and the host's overflow:hidden clips long demos with no
-          // scrollbar at all. Pinning the editor to the host makes
-          // .cm-scroller the real (internal) scroll container.
+          // Pin editor to host height so .cm-scroller is the real scroll
+          // container (content-sized editor + overflow:hidden = no scrollbar).
           EditorView.theme({
-            "&": { height: "100%" },
-            ".cm-scroller": { overflow: "auto" },
+            "&": {
+              height: "100%",
+              fontSize: "13.5px",
+            },
+            ".cm-scroller": {
+              overflow: "auto",
+              fontFamily:
+                "var(--dp-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace)",
+              lineHeight: "1.55",
+            },
+            ".cm-content": {
+              paddingTop: "12px",
+              paddingBottom: "24px",
+            },
+            ".cm-gutters": {
+              minHeight: "100%",
+            },
           }),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) code.set(update.state.doc.toString());
@@ -34,8 +47,7 @@ export function Editor(code: State<string>): DomphyElement<"div"> {
       flex: 1,
       minWidth: 0,
       minHeight: 0,
-      // CodeMirror's own `.cm-scroller` already scrolls internally — an
-      // "auto" here would add a second, overlapping scrollbar.
+      // CodeMirror's own `.cm-scroller` already scrolls internally.
       overflow: "hidden",
     },
   };

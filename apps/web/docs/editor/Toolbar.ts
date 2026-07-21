@@ -58,14 +58,20 @@ export const Toolbar = (props: {
       {
         span: title,
         style: {
-          color: (listener) => themeColor(listener, "muted"),
+          color: (listener) => themeColor(listener, "text"),
           fontSize: (listener) => themeSize(listener, "decrease-1"),
+          fontWeight: "600",
+          letterSpacing: "0.02em",
           userSelect: "none",
         },
       },
       {
         div: [toggleGrid, toggleTheme, toggleScreen],
-        style: { display: "flex", alignItems: "center", gap: themeSpacing(2) },
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: themeSpacing(1),
+        },
       },
     ],
     // Slightly raised strip above the code/preview surfaces.
@@ -74,15 +80,15 @@ export const Toolbar = (props: {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      // Narrow viewports: the icon group wraps under the label instead of
-      // crushing it.
       flexWrap: "wrap",
       rowGap: themeSpacing(1),
-      paddingBlock: themeSpacing(1),
+      flexShrink: "0",
+      paddingBlock: themeSpacing(1.5),
       paddingInline: themeSpacing(3),
       borderBottom: (listener) => `1px solid ${themeColor(listener, "border")}`,
       backgroundColor: (listener) => themeColor(listener, "inherit"),
-      color: (listener) => themeColor(listener, "shift-10"),
+      color: (listener) => themeColor(listener, "text"),
+      minHeight: themeSpacing(10),
     },
   };
 };
