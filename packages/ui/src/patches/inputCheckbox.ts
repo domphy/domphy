@@ -36,8 +36,7 @@ function inputCheckbox(
     style: {
       appearance: "none",
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       display: "inline-flex",
       position: "relative",
       width: themeSpacing(6),
@@ -108,8 +107,7 @@ function inputCheckbox(
       },
       "&:focus-visible": {
         borderRadius: themeSpacing(1.5),
-        boxShadow: (listener) =>
-          focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         cursor: "not-allowed",

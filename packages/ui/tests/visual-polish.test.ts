@@ -138,10 +138,7 @@ describe("button/input focus-visible ring", () => {
 
   it("interactive patches expose unified focus rings", () => {
     for (const [name, el] of [
-      [
-        "buttonSwitch",
-        { button: { span: null }, $: [buttonSwitch()] },
-      ],
+      ["buttonSwitch", { button: { span: null }, $: [buttonSwitch()] }],
       [
         "linkButton",
         { a: "Go", href: "#", $: [linkButton({ variant: "solid" })] },
@@ -173,10 +170,7 @@ describe("button/input focus-visible ring", () => {
       ["link", { a: "Docs", href: "/docs", $: [link()] }],
       ["listItemButton", { button: "Row", $: [listItemButton()] }],
       ["inputRange", { input: null, type: "range", $: [inputRange()] }],
-      [
-        "breadcrumbEllipsis",
-        { button: "…", $: [breadcrumbEllipsis()] },
-      ],
+      ["breadcrumbEllipsis", { button: "…", $: [breadcrumbEllipsis()] }],
     ] as const) {
       document.body.innerHTML = "";
       const { node } = render(el as DomphyElement);

@@ -48,8 +48,7 @@ function badge(
         backgroundColor: (l) => themeColor(l, "shift-9", color.get(l)),
         color: (l) => themeColor(l, "shift-0", color.get(l)),
         // Hairline ring so the pill pops on same-hue surfaces.
-        boxShadow: (l) =>
-          `0 0 0 1px ${themeColor(l, "shift-0", color.get(l))}`,
+        boxShadow: (l) => `0 0 0 1px ${themeColor(l, "shift-0", color.get(l))}`,
       },
     },
   };

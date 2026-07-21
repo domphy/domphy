@@ -6,8 +6,8 @@
 // before diagnosing — otherwise style/dataTone checks never see patch defaults.
 
 import { merge } from "@domphy/core";
-import { diagnose } from "../../doctor/src/index.ts";
 import { describe, expect, it } from "vitest";
+import { diagnose } from "../../doctor/src/index.ts";
 import * as ui from "../src/index.ts";
 
 /**

@@ -105,17 +105,16 @@ describe("motion patch", () => {
   it("skips WAAPI and applies final styles when prefers-reduced-motion", () => {
     installWaapi();
     const original = window.matchMedia;
-    window.matchMedia = ((query: string) =>
-      ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        dispatchEvent: () => false,
-        onchange: null,
-      })) as typeof window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes("prefers-reduced-motion"),
+      media: query,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+      onchange: null,
+    })) as typeof window.matchMedia;
 
     const { host } = mount({
       div: "calm",

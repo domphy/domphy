@@ -39,8 +39,7 @@ function empty(
       },
       // Title (typically second child): stronger body text for hierarchy.
       "& > :nth-child(2)": {
-        color: (listener) =>
-          themeColor(listener, "text", color.get(listener)),
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
       },
     },
   };

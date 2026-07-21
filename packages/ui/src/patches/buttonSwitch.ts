@@ -59,8 +59,7 @@ function buttonSwitch(
         "padding-left 0.3s, padding-right 0.3s, background-color 140ms ease, box-shadow 140ms ease",
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       "&:focus-visible": {
         boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },

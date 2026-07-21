@@ -10,9 +10,9 @@
  *   node scripts/run-blocks-demo-qa.mjs
  */
 import { spawn } from "node:child_process";
-import { createRequire } from "node:module";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
@@ -145,10 +145,12 @@ const report = {
   axeSummary,
   ts: new Date().toISOString(),
 };
-writeFileSync(join(out, "blocks-demo-report.json"), JSON.stringify(report, null, 2));
+writeFileSync(
+  join(out, "blocks-demo-report.json"),
+  JSON.stringify(report, null, 2),
+);
 console.log(JSON.stringify(report, null, 2));
 
 const hardFail =
-  (stats.errors?.length ?? 0) > 0 ||
-  (report.consoleErrors?.length ?? 0) > 0;
+  (stats.errors?.length ?? 0) > 0 || (report.consoleErrors?.length ?? 0) > 0;
 process.exit(hardFail ? 1 : 0);

@@ -5,8 +5,8 @@
 // This is the regression form of the one-shot `scripts/doctor-probe.ts` used
 // during UI polish gates — keep it green whenever a block is added or edited.
 
-import { diagnose } from "../../doctor/src/index.ts";
 import { describe, expect, it } from "vitest";
+import { diagnose } from "../../doctor/src/index.ts";
 import * as blocks from "../src/index.ts";
 
 const factories = Object.entries(blocks).filter(
@@ -28,7 +28,9 @@ describe("doctor conformance — all block factories", () => {
         );
         continue;
       }
-      const errors = diagnose(tree as any).filter((d) => d.severity === "error");
+      const errors = diagnose(tree as any).filter(
+        (d) => d.severity === "error",
+      );
       if (errors.length > 0) {
         failures.push(
           `${name}: ${errors.map((d) => `${d.rule}: ${d.message}`).join("; ")}`,

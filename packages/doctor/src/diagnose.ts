@@ -142,7 +142,10 @@ const TYPOGRAPHY_CASCADE = new Set([
 ]);
 
 function isTypographyCascadeValue(prop: string, value: unknown): boolean {
-  if (typeof value === "string" && TYPOGRAPHY_CASCADE.has(value.toLowerCase())) {
+  if (
+    typeof value === "string" &&
+    TYPOGRAPHY_CASCADE.has(value.toLowerCase())
+  ) {
     return true;
   }
   // Unitless line-height multipliers (e.g. 1.5) — relative, not a type scale step.

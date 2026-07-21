@@ -47,8 +47,7 @@ function inputSwitch(
       transition: "box-shadow 140ms ease",
       borderRadius: themeSpacing(999),
       "&:focus-visible": {
-        boxShadow: (listener) =>
-          focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&:checked": {
         "&::before": {

@@ -30,8 +30,7 @@ function image(
       borderRadius: themeSpacing(2),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
     },
   };
 }

@@ -746,7 +746,11 @@ function sidebar(ctx: LayoutContext): DomphyElement {
         borderRadius: ts(1.5),
         textDecoration: fixed("none"),
       },
-      "& a:hover": { color: brand, textDecoration: fixed("none"), background: bgSoft },
+      "& a:hover": {
+        color: brand,
+        textDecoration: fixed("none"),
+        background: bgSoft,
+      },
       "& a[aria-current='page']": {
         color: brand,
         fontWeight: fixed("600"),
@@ -1269,11 +1273,9 @@ function heroSection(hero: HeroConfig): DomphyElement {
             href: a.link,
             $: [
               linkButton({
-                color:
-                  !a.theme || a.theme === "brand" ? "primary" : "neutral",
+                color: !a.theme || a.theme === "brand" ? "primary" : "neutral",
                 // Brand CTAs read as filled primary; secondary stays outline.
-                variant:
-                  !a.theme || a.theme === "brand" ? "solid" : "outline",
+                variant: !a.theme || a.theme === "brand" ? "solid" : "outline",
               }),
             ],
             style: {

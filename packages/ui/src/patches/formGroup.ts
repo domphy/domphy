@@ -45,8 +45,7 @@ function formGroup(
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       display: "grid",
       gridTemplateColumns: isVertical
         ? `minmax(0, 1fr)`

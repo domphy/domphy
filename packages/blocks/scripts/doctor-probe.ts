@@ -171,8 +171,7 @@ function defaultContent(tag: string): unknown {
   if (VOID.has(tag)) return null;
   if (tag === "select") return [{ option: "A", value: "a" }];
   if (tag === "ul" || tag === "ol") return [{ li: "item" }];
-  if (tag === "table")
-    return [{ tbody: [{ tr: [{ td: "cell" }] }] }];
+  if (tag === "table") return [{ tbody: [{ tr: [{ td: "cell" }] }] }];
   if (tag === "dialog") return [{ p: "body" }];
   if (tag === "details") return [{ summary: "sum" }, { p: "body" }];
   if (tag === "dl") return [{ dt: "t" }, { dd: "d" }];

@@ -10,7 +10,7 @@
  *   node apps/web/scripts/a11y-audit.mjs --warn-only https://domphy.com
  */
 
-import { readdirSync, existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import AxePuppeteer from "@axe-core/puppeteer";
@@ -64,7 +64,9 @@ function resolveChromePath() {
       const linux = join(
         productDir,
         rev,
-        product === "chrome" ? "chrome-linux64" : "chrome-headless-shell-linux64",
+        product === "chrome"
+          ? "chrome-linux64"
+          : "chrome-headless-shell-linux64",
         product === "chrome" ? "chrome" : "chrome-headless-shell",
       );
       if (existsSync(win)) return win;
@@ -77,7 +79,10 @@ function resolveChromePath() {
 function formatNodes(nodes, limit = 3) {
   return nodes
     .slice(0, limit)
-    .map((n) => `    - ${n.target?.join(" ") ?? "?"} :: ${(n.failureSummary ?? n.html ?? "").slice(0, 120)}`)
+    .map(
+      (n) =>
+        `    - ${n.target?.join(" ") ?? "?"} :: ${(n.failureSummary ?? n.html ?? "").slice(0, 120)}`,
+    )
     .join("\n");
 }
 
@@ -113,7 +118,7 @@ try {
     const { results } = await auditUrl(browser, url);
     const violations = results.violations ?? [];
     const blocking = violations.filter((v) =>
-      (v.impact ? FAIL_IMPACTS.has(v.impact) : true),
+      v.impact ? FAIL_IMPACTS.has(v.impact) : true,
     );
 
     for (const v of violations) {
@@ -133,8 +138,12 @@ try {
       return {
         lang: html.getAttribute("lang"),
         viewport: !!document.querySelector('meta[name="viewport"]'),
-        charset: !!document.querySelector("meta[charset], meta[http-equiv='Content-Type']"),
-        skipLink: !!document.querySelector('a.dp-skip-link, a[href="#main-content"]'),
+        charset: !!document.querySelector(
+          "meta[charset], meta[http-equiv='Content-Type']",
+        ),
+        skipLink: !!document.querySelector(
+          'a.dp-skip-link, a[href="#main-content"]',
+        ),
         main: !!document.querySelector("main, #main-content, [role='main']"),
         doctype: document.doctype?.name === "html",
       };
@@ -145,8 +154,10 @@ try {
     if (!structural.lang) structuralFails.push("html[lang] missing");
     if (!structural.viewport) structuralFails.push("viewport meta missing");
     if (!structural.charset) structuralFails.push("charset missing");
-    if (!structural.main) structuralFails.push("main landmark / #main-content missing");
-    if (!structural.skipLink) structuralFails.push("skip-to-content link missing");
+    if (!structural.main)
+      structuralFails.push("main landmark / #main-content missing");
+    if (!structural.skipLink)
+      structuralFails.push("skip-to-content link missing");
     if (!structural.doctype) structuralFails.push("HTML5 doctype missing");
 
     for (const f of structuralFails) {

@@ -90,8 +90,7 @@ function details(
       },
       "& > summary:focus-visible": {
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
-        boxShadow: (listener) =>
-          focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "& > :not(summary)": {
         maxHeight: 0,

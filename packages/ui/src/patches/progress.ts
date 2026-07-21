@@ -38,8 +38,7 @@ function progress(
       overflow: "hidden",
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       "&::-webkit-progress-bar": {
         backgroundColor: (listener) =>
           themeColor(listener, "inherit", color.get(listener)),

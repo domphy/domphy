@@ -38,8 +38,7 @@ function inputRadio(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       appearance: "none",
       display: "inline-flex",
       position: "relative",
@@ -86,8 +85,7 @@ function inputRadio(
       },
       "&:focus-visible": {
         borderRadius: "50%",
-        boxShadow: (listener) =>
-          focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         cursor: "not-allowed",

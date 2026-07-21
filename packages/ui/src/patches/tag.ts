@@ -52,8 +52,7 @@ function tag(
               themeColor(listener, "shift-4", color.get(listener)),
           },
           "&:focus-visible": {
-            boxShadow: (listener) =>
-              focusRing(listener, color.get(listener)),
+            boxShadow: (listener) => focusRing(listener, color.get(listener)),
           },
         },
       };

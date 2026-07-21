@@ -39,7 +39,8 @@ function breadcrumbEllipsis(
       cursor: "pointer",
       color: (listener) => themeColor(listener, "muted", color.get(listener)),
       borderRadius: themeSpacing(1),
-      transition: "color 140ms ease, background-color 140ms ease, box-shadow 140ms ease",
+      transition:
+        "color 140ms ease, background-color 140ms ease, box-shadow 140ms ease",
       "&:hover": {
         color: (listener) =>
           themeColor(listener, "shift-10", color.get(listener)),

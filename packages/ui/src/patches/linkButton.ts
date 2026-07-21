@@ -100,8 +100,7 @@ function linkButton(
           opacity: 0.7,
           cursor: "not-allowed",
           pointerEvents: "none",
-          color: (listener) =>
-            themeColor(listener, "border-strong", "neutral"),
+          color: (listener) => themeColor(listener, "border-strong", "neutral"),
         },
       },
     };

@@ -505,8 +505,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         },
         transition: "background-color 140ms ease, box-shadow 140ms ease",
         "&:focus-visible": {
-          boxShadow: (l: Listener) =>
-            focusRing(l, accentColor.get(l)),
+          boxShadow: (l: Listener) => focusRing(l, accentColor.get(l)),
         },
       },
       _key: isoOf(date),

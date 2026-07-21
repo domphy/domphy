@@ -39,8 +39,7 @@ function inputColor(
       border: "none",
       cursor: "pointer",
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) =>
-        themeColor(listener, "text", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
       blockSize: (listener) => themeSpacing(6 + themeDensity(listener) * 2),

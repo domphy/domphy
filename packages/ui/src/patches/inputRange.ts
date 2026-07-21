@@ -59,8 +59,7 @@ function inputRange(
       borderRadius: themeSpacing(2),
       transition: "box-shadow 140ms ease",
       "&:focus-visible": {
-        boxShadow: (listener) =>
-          focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&[disabled]": {
         opacity: 0.7,

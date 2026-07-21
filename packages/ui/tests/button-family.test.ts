@@ -176,9 +176,7 @@ describe("linkButton", () => {
       $: [linkButton({ variant: "solid", color: "primary" })],
     } as DomphyElement);
     expect(node.generateCSS()).toContain("outline: none");
-    expect(host.querySelector("a")?.getAttribute("data-tone")).toBe(
-      "shift-17",
-    );
+    expect(host.querySelector("a")?.getAttribute("data-tone")).toBe("shift-17");
   });
 
   it("ghost variant is transparent like buttonGhost", () => {
