@@ -813,6 +813,9 @@ function tocAside(ctx: LayoutContext): DomphyElement | null {
         style: { fontWeight: fixed("700"), marginBottom: ts(2), color: text },
       },
       {
+        // class dp-toc: RUNTIME_SCRIPT scroll-spy sets aria-current on the
+        // active heading link (click + scroll). Do not remove without updating
+        // build.ts's RUNTIME_SCRIPT.
         nav: entries.map((e) => ({
           a: e.text,
           href: `#${e.slug}`,
@@ -821,9 +824,19 @@ function tocAside(ctx: LayoutContext): DomphyElement | null {
             padding: `${ts(0.75)} 0`,
             color: textSoft,
             paddingLeft: indentMap[e.level] ?? "0",
+            borderLeft: fixed("2px solid transparent"),
+            marginLeft: fixed("-2px"),
             "&:hover": { color: brand, textDecoration: fixed("none") },
+            // location = in-page TOC active section (not route aria-current=page)
+            "&[aria-current='true']": {
+              color: brand,
+              fontWeight: fixed("600"),
+              borderLeftColor: brand,
+            },
           },
         })),
+        class: "dp-toc",
+        ariaLabel: tocTitle,
       },
     ],
     style: {

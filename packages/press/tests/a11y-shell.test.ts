@@ -74,6 +74,26 @@ describe("press shell a11y (Front-End Checklist)", () => {
     expect(main!.id || main!.getAttribute("id")).toBe("main-content");
   });
 
+  it("pageShell TOC nav is marked dp-toc for scroll-spy runtime", () => {
+    const host = render(
+      pageShell(
+        ctx({
+          frontmatter: {},
+          toc: [
+            { level: 1, text: "Title", slug: "title" },
+            { level: 2, text: "Section", slug: "section" },
+            { level: 3, text: "Sub", slug: "sub" },
+          ],
+        }),
+      ),
+    );
+    const toc = host.querySelector("nav.dp-toc");
+    expect(toc).not.toBeNull();
+    expect(toc!.getAttribute("aria-label")).toBeTruthy();
+    const link = toc!.querySelector('a[href="#section"]');
+    expect(link).not.toBeNull();
+  });
+
   it("pressCSS emits skip-link + prefers-reduced-motion rules", async () => {
     const { pressCSS } = await import("../src/theme.js");
     const css = pressCSS();
