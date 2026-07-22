@@ -1,5 +1,8 @@
 # @domphy/press Changelog
 
+## 0.21.6
+- fix(toc): give "On this page" links base left padding so the active left border is not flush against the label (nested levels stack indent on top of the base).
+
 ## 0.21.5
 - feat(toc): aside "On this page" scroll-spy — `nav.dp-toc` links get `aria-current="true"` on click and while scrolling (sticky left border + brand color). Wired in `RUNTIME_SCRIPT` (no extra client bundle).
 

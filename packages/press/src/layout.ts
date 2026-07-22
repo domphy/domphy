@@ -805,7 +805,14 @@ function tocAside(ctx: LayoutContext): DomphyElement | null {
   if (entries.length === 0) return null;
   const tocTitle = ctx.config.themeConfig.tocTitle ?? "On this page";
 
-  const indentMap: Record<number, string> = { 2: "0", 3: ts(3), 4: ts(6) };
+  // Base left padding keeps the active border from sitting flush against the
+  // label; nested levels add indent on top of that base (never zero).
+  const basePad = ts(3);
+  const indentMap: Record<number, string> = {
+    2: basePad,
+    3: `calc(${basePad} + ${ts(3)})`,
+    4: `calc(${basePad} + ${ts(6)})`,
+  };
   return {
     aside: [
       {
@@ -823,7 +830,7 @@ function tocAside(ctx: LayoutContext): DomphyElement | null {
             display: "block",
             padding: `${ts(0.75)} 0`,
             color: textSoft,
-            paddingLeft: indentMap[e.level] ?? "0",
+            paddingLeft: indentMap[e.level] ?? basePad,
             borderLeft: fixed("2px solid transparent"),
             marginLeft: fixed("-2px"),
             "&:hover": { color: brand, textDecoration: fixed("none") },
