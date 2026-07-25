@@ -1171,6 +1171,13 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
   const docFooterEl = resolveSlot(ctx, "docFooter", docFooter);
   if (docFooterEl) main.push(docFooterEl);
 
+  // `wide: true` drops the 1440px shell cap for pages whose content is a wide
+  // artifact — a generated diagram, a broad table — rather than prose. It is
+  // deliberately orthogonal to `layout`: a wide page usually still wants the
+  // nav sidebar, which `layout: 'page'` would remove. Without this the only
+  // way to show something wider than the cap is to let it overflow into a
+  // horizontal scrollbar, which is not reading, it is peeking.
+  const wide = ctx.frontmatter.wide === true;
   const sidebarEl = showSidebar ? resolveSlot(ctx, "sidebar", sidebar) : null;
   const mainStyle = showSidebar
     ? {
@@ -1181,7 +1188,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
     : {
         padding: `${ts(8)} ${ts(12)} ${ts(20)}`,
         gridColumn: "1 / -1",
-        maxWidth: layout === "page" ? "100%" : contentMax,
+        maxWidth: wide || layout === "page" ? "100%" : contentMax,
         margin: "0 auto",
         "@media (max-width: 860px)": { padding: `${ts(6)} ${ts(5)} ${ts(16)}` },
       };
@@ -1229,7 +1236,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
               : `${sidebarW} minmax(0,1fr)`
             : "1fr",
           alignItems: "start",
-          maxWidth: "1440px",
+          maxWidth: wide ? "none" : "1440px",
           margin: "0 auto",
           "@media (max-width: 1200px)": showSidebar
             ? { gridTemplateColumns: `${sidebarW} minmax(0,1fr)` }
