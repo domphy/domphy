@@ -751,7 +751,10 @@ function sidebar(ctx: LayoutContext): DomphyElement {
     style: {
       position: "sticky",
       top: headerH,
-      maxHeight: `calc(100vh - ${headerH})`,
+      // Fixed height (not maxHeight): the column divider borderRight must
+      // reach the viewport bottom even when the nav has few items — a border
+      // that stops at the last link reads as a rendering glitch.
+      height: `calc(100vh - ${headerH})`,
       overflowY: "auto",
       padding: `${ts(6)} ${ts(3)} ${ts(12)} ${ts(6)}`,
       color: text,
@@ -788,7 +791,8 @@ function sidebar(ctx: LayoutContext): DomphyElement {
         zIndex: "25",
         transform: "translateX(-100%)",
         transition: "transform .2s ease",
-        maxHeight: "none",
+        // Drawer box is defined by top+bottom, not the desktop height.
+        height: "auto",
       },
     },
   };
@@ -1154,6 +1158,14 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
     layout !== "page" ? resolveSlot(ctx, "aside", tocAside) : null;
   const showAside = asideEl !== null && showSidebar;
 
+  // `wide: true` drops the 1440px shell cap for pages whose content is a wide
+  // artifact — a generated diagram, a broad table — rather than prose. It is
+  // deliberately orthogonal to `layout`: a wide page usually still wants the
+  // nav sidebar, which `layout: 'page'` would remove. Without this the only
+  // way to show something wider than the cap is to let it overflow into a
+  // horizontal scrollbar, which is not reading, it is peeking.
+  const wide = ctx.frontmatter.wide === true;
+
   const main: DomphyElement[] = [];
   const badge = pageBadge(ctx.frontmatter);
   if (badge)
@@ -1163,21 +1175,19 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
     } as DomphyElement);
   // With the aside column hidden (frontmatter `aside: false` or no TOC), let
   // the content span the freed-up grid space instead of capping at prose width.
+  // A `wide` page uncaps unconditionally — including with the sidebar hidden,
+  // where the no-sidebar branch otherwise assumes prose (home, playground).
   main.push(
-    contentDiv(ctx.body, !showAside && showSidebar ? "none" : undefined),
+    contentDiv(
+      ctx.body,
+      wide || (!showAside && showSidebar) ? "none" : undefined,
+    ),
   );
   const pn = resolveSlot(ctx, "prevNext", prevNext);
   if (pn) main.push(pn);
   const docFooterEl = resolveSlot(ctx, "docFooter", docFooter);
   if (docFooterEl) main.push(docFooterEl);
 
-  // `wide: true` drops the 1440px shell cap for pages whose content is a wide
-  // artifact — a generated diagram, a broad table — rather than prose. It is
-  // deliberately orthogonal to `layout`: a wide page usually still wants the
-  // nav sidebar, which `layout: 'page'` would remove. Without this the only
-  // way to show something wider than the cap is to let it overflow into a
-  // horizontal scrollbar, which is not reading, it is peeking.
-  const wide = ctx.frontmatter.wide === true;
   const sidebarEl = showSidebar ? resolveSlot(ctx, "sidebar", sidebar) : null;
   const mainStyle = showSidebar
     ? {
