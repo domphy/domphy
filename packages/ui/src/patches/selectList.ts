@@ -56,7 +56,7 @@ function selectList(
   };
 
   const partial: PartialElement = {
-    dataTone: "shift-17",
+    dataTone: "shift-0",
     _context: {
       select: {
         value: state,

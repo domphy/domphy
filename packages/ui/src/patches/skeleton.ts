@@ -27,9 +27,10 @@ function skeleton(
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
 
-  // Shimmer sweeps left→right over a mid-ramp base (reads as loading, not
+  // Shimmer sweeps left→right over a near-white base (reads as loading, not
   // a flat opacity blink). Base + highlight are both theme tokens so the
-  // effect adapts to light/dark surfaces.
+  // effect adapts to light/dark surfaces. Highlight stays close to the base
+  // (shift-2) — a deeper step reads as dirty banding on light themes.
   const keyframes = {
     "0%": { backgroundPosition: "200% 0" },
     "100%": { backgroundPosition: "-200% 0" },
@@ -37,7 +38,7 @@ function skeleton(
   const animationName = hashString(JSON.stringify(keyframes));
   return {
     ariaHidden: "true",
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     style: {
       fontSize: (listener) => themeSize(listener),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
@@ -47,7 +48,7 @@ function skeleton(
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       backgroundImage: (listener) =>
-        `linear-gradient(90deg, ${themeColor(listener, "inherit", color.get(listener))} 0%, ${themeColor(listener, "shift-4", color.get(listener))} 50%, ${themeColor(listener, "inherit", color.get(listener))} 100%)`,
+        `linear-gradient(90deg, ${themeColor(listener, "inherit", color.get(listener))} 0%, ${themeColor(listener, "shift-2", color.get(listener))} 50%, ${themeColor(listener, "inherit", color.get(listener))} 100%)`,
       backgroundSize: "200% 100%",
       animation: `${animationName} 1.6s ease-in-out infinite`,
       [`@keyframes ${animationName}`]: keyframes,

@@ -2,6 +2,7 @@ import {
   computed,
   type DomphyElement,
   type Listener,
+  rawHtml,
   type State,
 } from "@domphy/core";
 import { themeColor, themeSize, themeSpacing } from "@domphy/theme";
@@ -28,7 +29,8 @@ function toolButton(
   return {
     button: [
       {
-        span: typeof svg === "function" ? (l: Listener) => svg(l) : svg,
+        span:
+          typeof svg === "function" ? (l: Listener) => rawHtml(svg(l)) : rawHtml(svg),
         $: [icon()],
         style: {
           width: themeSpacing(5),

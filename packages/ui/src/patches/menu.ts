@@ -62,7 +62,7 @@ function menu(
 
   return {
     role: "menu",
-    dataTone: "shift-17",
+    dataTone: "shift-0",
     _onSchedule: (node, element) => {
       // Empty items = the caller renders its own rows; leave children alone.
       if (items.length === 0) return;
@@ -124,9 +124,9 @@ function menu(
             paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
             border: "none",
             outline: "none",
-            // Menu panel is dataTone shift-17: shift-17 text = opposite ramp end
-            // (readable on dark light-theme panels and light dark-theme panels).
-            color: (l: Listener) => themeColor(l, "shift-17", color),
+            // Menu panel is a light (shift-0) surface: "text" resolves to a
+            // dark-on-light reading tone in both light and dark themes.
+            color: (l: Listener) => themeColor(l, "text", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
             transition:
               "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",

@@ -382,13 +382,13 @@ describe("skeleton", () => {
     expect(el!.getAttribute("aria-hidden")).toBe("true");
   });
 
-  it("sets data-tone=shift-2 attribute", () => {
+  it("sets data-tone=shift-1 attribute", () => {
     const { host } = render({
       div: [{ div: null, $: [skeleton()] }],
     } as DomphyElement);
     const el = host.querySelector("[data-tone]");
     expect(el).not.toBeNull();
-    expect(el!.getAttribute("data-tone")).toBe("shift-2");
+    expect(el!.getAttribute("data-tone")).toBe("shift-1");
   });
 
   it("renders without error with default color", () => {

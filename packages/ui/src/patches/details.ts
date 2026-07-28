@@ -73,7 +73,7 @@ function details(
         width: themeSpacing(2),
         height: themeSpacing(2),
         flexShrink: 0,
-        marginTop: `-${themeSpacing(0.5)}`,
+        marginTop: themeSpacing(-0.5),
         borderInlineEnd: (listener) =>
           `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-9", color.get(listener))}`,
         borderBottom: (listener) =>

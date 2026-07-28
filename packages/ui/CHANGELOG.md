@@ -1,5 +1,15 @@
 # @domphy/ui Changelog
 
+## 0.20.10
+- Visual-fidelity fixes (screenshot-driven QA vs shadcn/ui):
+  - `menu`, `selectList`: light panel surface (`shift-0`) instead of a hardcoded near-black one — reads as a proper light listbox on light pages.
+  - `popoverArrow`: arrow border now uses `border-strong` so the arrow is visible (was surface-on-surface invisible).
+  - `skeleton`: base/highlight lightened to shift-1/shift-2 (near-white shimmer instead of mid-gray).
+  - Invalid `-calc(...)` CSS fixed so it actually paints: `tabs` active underline (never rendered before), `timeline` connector line, `details` summary chevron offset.
+
+## 0.20.9
+- Requires @domphy/core >= 0.20.0 (string children are now text by default). Icon glyphs in `tag`, `rating` and `inputPassword` are wrapped in `rawHtml()` so they still render as SVG.
+
 ## 0.20.2
 - fix(dialog, drawer): guard `close()`/`showModal()` calls for environments where `HTMLDialogElement` exists but its methods are unimplemented (jsdom) — an unguarded `dlg.close()` in the close fallback timer crashed the test process with an unhandled async error. Metadata: fuller description/keywords, consistent author name.
 
