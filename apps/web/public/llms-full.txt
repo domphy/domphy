@@ -12913,6 +12913,7 @@ Each feature contributes methods to the table, column, row, and header objects. 
 - **Row pinning** — `table.setRowPinning`, `getTopRows`, `getBottomRows`; `row.pin`, `getIsPinned`
 - **Sizing** — `table.setColumnSizing`, `resetColumnSizing`; `column.getSize`, `getIsResizing`; `header.getSize`, `getResizeHandler`
 - **Faceting** — `column.getFacetedRowModel`, `getFacetedUniqueValues`, `getFacetedMinMaxValues`; global variants on `table`
+- **Cell editing** (opt-in, not a built-in — pass `_features: [CellEditing]`) — `table.setEditingCell`, `getEditingCell`, `resetEditingCell`; `cell.beginEdit`, `commitEdit`, `cancelEdit`, `getIsEditing`, `getCanEdit`; options `enableCellEditing`, `onCellEditingChange`, `onCellEdit`
 
 ## Utilities
 
@@ -12929,7 +12930,7 @@ All public types are re-exported, including:
 - instance shapes: `Table`, `Column`, `Row`, `Cell`, `Header`, `HeaderGroup`, `RowModel`, `RowData`
 - options & state: `TableOptions`, `TableState`, `InitialTableState`, `Updater`
 - column defs: `ColumnDef`, `AccessorKeyColumnDef`, `AccessorFnColumnDef`, `DisplayColumnDef`, `GroupColumnDef`, `IdentifiedColumnDef`, `ColumnHelper`, `CellContext`, `HeaderContext`
-- feature state: `SortingState`, `ColumnFiltersState`, `GlobalFilterTableState` (via `TableState`), `PaginationState`, `RowSelectionState`, `GroupingState`, `ExpandedState`, `VisibilityState`, `ColumnOrderState`, `ColumnPinningState`, `RowPinningState`, `ColumnSizingState`, `ColumnSizingInfoState`
+- feature state: `SortingState`, `ColumnFiltersState`, `GlobalFilterTableState` (via `TableState`), `PaginationState`, `RowSelectionState`, `GroupingState`, `ExpandedState`, `VisibilityState`, `ColumnOrderState`, `ColumnPinningState`, `RowPinningState`, `ColumnSizingState`, `ColumnSizingInfoState`, `CellEditingState`, `EditingCellId`
 - functions: `SortingFn`, `FilterFn`, `AggregationFn`, `AccessorFn`, plus `BuiltInSortingFn`, `BuiltInFilterFn`, `BuiltInAggregationFn`
 
 ## CDN Global

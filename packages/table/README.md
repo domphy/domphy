@@ -1,4 +1,4 @@
-﻿# @domphy/table
+# @domphy/table
 
 **[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/table/) · [npm](https://www.npmjs.com/package/@domphy/table)
 
@@ -84,6 +84,51 @@ const PrevButton = {
 | `getCanNextPage(l?)` | Reactive |
 | `getCanPreviousPage(l?)` | Reactive |
 | `getPageCount(l?)` | Reactive |
+
+## Cell editing (opt-in)
+
+`CellEditing` is a Domphy-original feature (no TanStack counterpart) and is **not** part of the built-in feature list — pass it via `_features` to keep the core a byte-level port:
+
+```ts
+import { createDomphyTable } from "@domphy/table/domphy"
+import { CellEditing, createColumnHelper, getCoreRowModel } from "@domphy/table"
+
+const dTable = createDomphyTable({
+  data: people,
+  columns,
+  getCoreRowModel: getCoreRowModel(),
+  _features: [CellEditing],
+  // Commit hook — write the value back into your own data here.
+  onCellEdit: ({ rowId, columnId, value }) => updatePerson(rowId, columnId, value),
+  // Gate editing per cell: boolean or (cell) => boolean (default true)
+  // enableCellEditing: (cell) => cell.column.id !== "id",
+})
+```
+
+State is `cellEditing: { rowId, columnId } | null` — one cell edits at a time. Cell methods: `beginEdit()`, `commitEdit(value)` (fires `onCellEdit`, then exits), `cancelEdit()` (exits silently), `getIsEditing()`, `getCanEdit()`. Table methods: `setEditingCell`, `getEditingCell`, `resetEditingCell`.
+
+An editable `<td>` render — show an input while the cell is editing, commit on Enter/blur, cancel on Escape:
+
+```ts
+{
+  td: (l) => {
+    dTable.version(l)
+    const cell = cellAt(row, columnId)
+    return cell.getIsEditing()
+      ? [{
+          input: null,
+          value: String(cell.getValue() ?? ""),
+          onKeyDown: (e) => {
+            if (e.key === "Enter") cell.commitEdit(e.target.value)
+            if (e.key === "Escape") cell.cancelEdit()
+          },
+          onBlur: (e) => cell.commitEdit(e.target.value),
+        }]
+      : [String(cell.getValue() ?? "")]
+  },
+  onDblClick: () => cellAt(row, columnId).beginEdit(),
+}
+```
 
 ## Raw table-core (advanced)
 

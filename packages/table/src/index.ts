@@ -10,6 +10,7 @@ export * from './core/row'
 export * from './core/table'
 
 //features
+export * from './features/CellEditing'
 export * from './features/ColumnFaceting'
 export * from './features/ColumnFiltering'
 export * from './features/ColumnGrouping'

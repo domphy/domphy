@@ -6,6 +6,11 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## @domphy/table — 2026-07-28
+
+### `@domphy/table` [0.19.0]
+- New opt-in `CellEditing` feature (Domphy-original, no TanStack table-core counterpart) — not part of the built-in feature list; enable with `_features: [CellEditing]`. State `cellEditing: { rowId, columnId } | null` (one cell edits at a time); options `enableCellEditing` (boolean or per-cell function, default `true`), `onCellEditingChange`, and `onCellEdit` (the commit hook where the caller writes the value back into their data). Table methods `setEditingCell` / `getEditingCell` / `resetEditingCell`; cell methods `beginEdit` / `commitEdit` / `cancelEdit` / `getIsEditing` / `getCanEdit`.
+
 ## @domphy/editor — 2026-07-28
 
 ### `@domphy/editor` [0.1.0] — NEW

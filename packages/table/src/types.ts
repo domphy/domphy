@@ -33,6 +33,12 @@ import {
   HeaderContext,
   HeadersInstance,
 } from './core/headers'
+import {
+  CellEditingCell,
+  CellEditingInstance,
+  CellEditingOptions,
+  CellEditingTableState,
+} from './features/CellEditing'
 import { FacetedColumn, FacetedOptions } from './features/ColumnFaceting'
 import { GlobalFacetingInstance } from './features/GlobalFaceting'
 import {
@@ -149,7 +155,8 @@ export interface Table<TData extends RowData>
     ColumnSizingInstance,
     ExpandedInstance<TData>,
     PaginationInstance<TData>,
-    RowSelectionInstance<TData> {}
+    RowSelectionInstance<TData>,
+    CellEditingInstance<TData> {}
 
 interface FeatureOptions<TData extends RowData>
   extends VisibilityOptions,
@@ -164,7 +171,8 @@ interface FeatureOptions<TData extends RowData>
     ExpandedOptions<TData>,
     ColumnSizingOptions,
     PaginationOptions,
-    RowSelectionOptions<TData> {}
+    RowSelectionOptions<TData>,
+    CellEditingOptions<TData> {}
 
 export interface TableOptionsResolved<TData extends RowData>
   extends CoreOptions<TData>,
@@ -189,7 +197,8 @@ export interface TableState
     GroupingTableState,
     ColumnSizingTableState,
     PaginationTableState,
-    RowSelectionTableState {}
+    RowSelectionTableState,
+    CellEditingTableState {}
 
 interface CompleteInitialTableState
   extends CoreTableState,
@@ -204,7 +213,8 @@ interface CompleteInitialTableState
     GroupingTableState,
     ColumnSizingTableState,
     PaginationInitialTableState,
-    RowSelectionTableState {}
+    RowSelectionTableState,
+    CellEditingTableState {}
 
 export interface InitialTableState extends Partial<CompleteInitialTableState> {}
 
@@ -351,7 +361,8 @@ export interface Column<TData extends RowData, TValue = unknown>
 
 export interface Cell<TData extends RowData, TValue>
   extends CoreCell<TData, TValue>,
-    GroupingCell {}
+    GroupingCell,
+    CellEditingCell {}
 
 export interface Header<TData extends RowData, TValue>
   extends CoreHeader<TData, TValue>,
