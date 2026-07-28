@@ -166,3 +166,64 @@ describe("AttributeList.addClass() preserves an existing reactive `class` bindin
     expect(el.className).toContain("static-class");
   });
 });
+
+// contenteditable/spellcheck are ENUMERATED attributes, not boolean: absent
+// means "inherit from ancestor", so a `false` that merely drops the attribute
+// leaves a child of an editable root still editable. They used to sit in
+// BooleanAttributes, which did exactly that (and coerced "plaintext-only" to
+// a bare `contenteditable`).
+describe("enumerated contenteditable/spellcheck emit explicit keywords", () => {
+  it("renders false as the explicit keyword, not a removed attribute", () => {
+    const { host } = mount({
+      div: [{ span: "atom", contentEditable: false, spellCheck: false }],
+      contentEditable: true,
+      spellCheck: true,
+    } as unknown as DomphyElement);
+
+    const outer = host.querySelector("div")!;
+    const inner = host.querySelector("span")!;
+
+    expect(outer.getAttribute("contenteditable")).toBe("true");
+    expect(outer.getAttribute("spellcheck")).toBe("true");
+
+    // The whole point: an explicit "false" inside an editable root.
+    expect(inner.getAttribute("contenteditable")).toBe("false");
+    expect(inner.getAttribute("spellcheck")).toBe("false");
+  });
+
+  it("preserves non-boolean keywords such as plaintext-only", () => {
+    const { host } = mount({
+      div: "x",
+      contentEditable: "plaintext-only",
+    } as unknown as DomphyElement);
+
+    expect(host.querySelector("div")!.getAttribute("contenteditable")).toBe(
+      "plaintext-only",
+    );
+  });
+
+  it("emits the same explicit keywords in SSR generateHTML()", () => {
+    const html = new ElementNode({
+      div: [{ span: "atom", contentEditable: false }],
+      contentEditable: true,
+    } as unknown as DomphyElement).generateHTML();
+
+    expect(html).toContain('contenteditable="true"');
+    expect(html).toContain('contenteditable="false"');
+  });
+
+  it("tracks a reactive false without collapsing it to a removed attribute", async () => {
+    const editable = toState(true);
+    const { host } = mount({
+      div: "x",
+      contentEditable: (l: any) => editable.get(l),
+    } as unknown as DomphyElement);
+
+    const el = host.querySelector("div")!;
+    expect(el.getAttribute("contenteditable")).toBe("true");
+
+    editable.set(false);
+    await flush();
+    expect(el.getAttribute("contenteditable")).toBe("false");
+  });
+});

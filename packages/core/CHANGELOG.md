@@ -1,5 +1,8 @@
 # @domphy/core Changelog
 
+## 0.20.1
+- `contentEditable` and `spellCheck` are enumerated attributes, not boolean ones: `contentEditable: false` now renders `contenteditable="false"` (previously the attribute was removed entirely, so a child of an editable ancestor stayed editable — exactly what `@domphy/editor` emits for atom nodes), `"plaintext-only"` passes through unchanged, and a reactive `true → false` transition works. SSR output fixed the same way.
+
 ## 0.20.0
 - **Security (breaking default):** a string child is now rendered as TEXT. Previously any string that looked like HTML (`isHTML()`) was parsed into live DOM, so user-supplied values (comments, titles, form fields) could inject elements — only `on*` attributes and `javascript:` URLs were stripped, with no tag whitelist. Markup in a plain string is now escaped on both the client and in SSR output.
 - Added `rawHtml(html)` / `RawHTML` / `isRawHTML(value)`: the explicit opt-in for rendering a string as markup. It still strips `<script>` elements, `on*` handler attributes and `javascript:` URLs (defense in depth — not a sanitizer for untrusted input). A reactive child may switch between a plain string and `rawHtml()`; crossing that boundary rebuilds the node.

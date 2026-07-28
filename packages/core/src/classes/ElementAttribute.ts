@@ -15,6 +15,13 @@ import { Notifier } from "./Notifier.js";
 const EnumeratedBooleanAttributes: Record<string, readonly [string, string]> = {
   translate: ["yes", "no"],
   autoCapitalize: ["on", "off"],
+  // Both inherit from the nearest ancestor when absent, so `false` MUST emit
+  // the explicit "false" keyword — dropping the attribute would leave a child
+  // of a contenteditable/spellchecked root still editable/checked. Keeping
+  // them non-boolean also preserves other keywords verbatim, notably
+  // contenteditable="plaintext-only".
+  contentEditable: ["true", "false"],
+  spellCheck: ["true", "false"],
 };
 
 export class ElementAttribute {

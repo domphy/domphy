@@ -19,7 +19,6 @@ export const HtmlAttributeNames: Record<string, string> = {
   allowFullScreen: "allowfullscreen",
   autoFocus: "autofocus",
   autoPlay: "autoplay",
-  contentEditable: "contenteditable",
   formNoValidate: "formnovalidate",
   isMap: "ismap",
   itemScope: "itemscope",
@@ -29,12 +28,14 @@ export const HtmlAttributeNames: Record<string, string> = {
   playsInline: "playsinline",
   trueSpeed: "truespeed",
   typeMustMatch: "typemustmatch",
-  spellCheck: "spellcheck",
   noModule: "nomodule",
   autoPictureInPicture: "autopictureinpicture",
 
-  // Enumerated (yes/no, on/off) attributes.
+  // Enumerated (yes/no, on/off, true/false) attributes — see
+  // EnumeratedBooleanAttributes in classes/ElementAttribute.ts.
   autoCapitalize: "autocapitalize",
+  contentEditable: "contenteditable",
+  spellCheck: "spellcheck",
 
   // Other global attributes.
   accessKey: "accesskey",
