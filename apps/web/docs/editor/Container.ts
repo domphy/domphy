@@ -368,6 +368,22 @@ export function Container(
       ];
     },
     class: "dp-playground",
+    _onMount: (node) => {
+      // Follow the site theme live: when the user flips light/dark in the
+      // page chrome, the preview re-renders in the same theme instead of
+      // staying a white box on a dark page (the preview's own toolbar toggle
+      // still overrides this until the next site-theme flip).
+      const observer = new MutationObserver(() => {
+        isDark.set(
+          document.documentElement.getAttribute("data-theme") === "dark",
+        );
+      });
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+      node.addHook("Remove", () => observer.disconnect());
+    },
     style: {
       display: "flex",
       flexDirection: "column",

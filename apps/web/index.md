@@ -7,11 +7,35 @@ fullBleed: true
 <script setup lang="ts">
 import HomeHero from "./docs/demos/home/hero.js"
 import HomeFeatures from "./docs/demos/home/features.js"
+import StateDemo from "./docs/demos/quickstart/03-state.js"
 </script>
 
 <DomphyPreview :element="HomeHero" bare />
 
 <DomphyPreview :element="HomeFeatures" bare />
+
+## This is a component
+
+No JSX, no compiler — a plain object plus patches, reactive out of the box:
+
+```ts
+import { toState } from "@domphy/core"
+import { button, heading } from "@domphy/ui"
+
+const count = toState(0)
+
+const App = {
+  div: [
+    { h3: (l) => `Count: ${count.get(l)}`, $: [heading()] },
+    { button: "Increment", onClick: () => count.set(count.get() + 1), $: [button({ color: "primary" })] },
+    { button: "Reset", onClick: () => count.set(0), $: [button()] },
+  ],
+}
+```
+
+Live, right here on the page:
+
+<DomphyPreview :element="StateDemo" bare />
 
 ## Packages
 
@@ -19,7 +43,7 @@ import HomeFeatures from "./docs/demos/home/features.js"
 |---|---|
 | [`@domphy/core`](/docs/core/) | Runtime — elements, reactivity, lifecycle, SSR |
 | [`@domphy/theme`](/docs/theme/) | Design tokens — color, spacing, size, dark mode |
-| [`@domphy/ui`](/docs/ui/) | 95 UI patches — button, dialog, table, form controls… |
+| [`@domphy/ui`](/docs/ui/) | 96 UI patches — button, dialog, table, form controls… |
 | [`@domphy/app`](/docs/app/) | App layer — file-based routing, layouts, SSR, lazy routes |
 | [`@domphy/query`](/docs/query/) | Async data fetching, caching, mutations, infinite queries |
 | [`@domphy/router`](/docs/router/) | Type-safe client-side router with search params and loaders |
