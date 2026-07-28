@@ -1,4 +1,5 @@
 import type { DomphyElement, Listener, PartialElement } from "@domphy/core";
+import { rawHtml } from "@domphy/core";
 import {
   themeColor,
   themeDensity,
@@ -67,7 +68,7 @@ function authFieldInput(): PartialElement {
       },
       "&:hover:not([disabled]), &:focus-visible": {
         outline: (listener: Listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "primary")}`,
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "neutral")}`,
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -111,10 +112,11 @@ function field(config: FieldConfig): DomphyElement<"div"> {
   };
 }
 
-/** Small accent-colored square badge holding the logo glyph — edge-anchored tone surface. */
+/** Small near-black square badge holding the logo glyph (upstream bg-primary)
+ * — edge-anchored tone surface. */
 function logoMark(): DomphyElement<"span"> {
   return {
-    span: [{ span: LOGO_ICON, $: [icon({ color: "inherit" })] }],
+    span: [{ span: rawHtml(LOGO_ICON), $: [icon({ color: "inherit" })] }],
     dataTone: "shift-16",
     style: {
       display: "inline-flex",
@@ -126,8 +128,8 @@ function logoMark(): DomphyElement<"span"> {
         themeSpacing(themeDensity(listener) * 1),
       flexShrink: 0,
       backgroundColor: (listener: Listener) =>
-        themeColor(listener, "inherit", "primary"),
-      color: (listener: Listener) => themeColor(listener, "shift-9", "primary"),
+        themeColor(listener, "inherit", "neutral"),
+      color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },
   };
 }
@@ -215,7 +217,7 @@ function signup02(props: Signup02Props = {}): DomphyElement<"div"> {
 
   const githubButton: DomphyElement<"button"> = {
     button: [
-      { span: GITHUB_ICON, $: [icon({ color: "inherit" })] },
+      { span: rawHtml(GITHUB_ICON), $: [icon({ color: "inherit" })] },
       { span: githubButtonLabel },
     ],
     type: "button",

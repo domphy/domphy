@@ -16,15 +16,16 @@
 
 import type { ChartOption } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
 import {
-  CHART_AREA_SERIES_PALETTE,
   CHART_AREA_TWO_SERIES_DATA,
   CHART_AREA_X_AXIS_BARE,
   CHART_AREA_Y_AXIS_HIDDEN,
+  type ChartAreaSeriesTone,
   type ChartAreaTwoSeriesPoint,
   type ChartTrendDirection,
   chartAreaFrame,
+  chartAreaGradientFill,
+  chartAreaSeriesColor,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartLegendRow,
@@ -34,7 +35,8 @@ import {
 export interface ChartAreaLegendSeries {
   key: "desktop" | "mobile";
   label: string;
-  color: ThemeColor;
+  /** Ramp tone within the primary family (approximates var(--chart-N)). */
+  tone: ChartAreaSeriesTone;
 }
 
 export interface ChartAreaLegendProps {
@@ -51,8 +53,8 @@ export interface ChartAreaLegendProps {
 }
 
 const DEFAULT_SERIES: ChartAreaLegendSeries[] = [
-  { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[1] },
-  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0] },
+  { key: "mobile", label: "Mobile", tone: chartAreaSeriesColor(0).tone },
+  { key: "desktop", label: "Desktop", tone: chartAreaSeriesColor(1).tone },
 ];
 
 /**
@@ -92,16 +94,24 @@ function chartAreaLegend(
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     yAxis: CHART_AREA_Y_AXIS_HIDDEN,
-    grid: { left: 8, right: 8, top: 12, bottom: 24, containLabel: false },
-    series: series.map((s) => ({
+    grid: { left: 8, right: 8, top: 12, bottom: 32, containLabel: false },
+    series: series.map((s, seriesIndex) => ({
       type: "line",
       name: s.label,
       stack: stackId,
       smooth: true,
       showSymbol: false,
-      color: s.color,
-      lineStyle: { width: 2 },
-      areaStyle: { opacity: fillOpacity },
+      // The engine pins strokes to the family at shift-9; the ramp step is
+      // approximated via stroke opacity, and the fill carries the exact tone.
+      color: "primary",
+      lineStyle: {
+        width: 2,
+        opacity: chartAreaSeriesColor(seriesIndex).strokeOpacity,
+      },
+      areaStyle: {
+        color: chartAreaGradientFill("primary", fillOpacity, fillOpacity, s.tone),
+        opacity: 1,
+      },
       data: data.map((point) => point[s.key]),
     })),
   };
@@ -112,7 +122,9 @@ function chartAreaLegend(
     content: {
       div: [
         chartAreaFrame(option, height),
-        chartLegendRow(series.map((s) => ({ label: s.label, color: s.color }))),
+        chartLegendRow(
+          series.map((s) => ({ label: s.label, color: "primary", tone: s.tone })),
+        ),
       ],
     },
     footer: chartTrendFooter({

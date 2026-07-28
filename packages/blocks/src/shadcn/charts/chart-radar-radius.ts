@@ -77,7 +77,14 @@ function renderRadiusAxisTicks(
       text: String(rounded),
       x: point.x,
       y: point.y,
+      // Upstream fills the radius ticks with var(--foreground) (strongest
+      // foreground tone). The mobile polygon paints fully opaque on top of
+      // the same area, so the text also gets a background-colored halo
+      // (paint-order stroke) to keep the numbers legible over the fill.
       fill: (l: Listener) => themeColor(l, "shift-11"),
+      stroke: (l: Listener) => themeColor(l, "shift-0", "neutral"),
+      strokeWidth: 3,
+      paintOrder: "stroke",
       fontSize: fixed("10"),
       textAnchor: "middle",
       dominantBaseline: "middle",

@@ -28,7 +28,7 @@ import { fixed } from "../../shared/typography.js";
 export interface InteractiveHoverButtonProps {
   /** Button label. Defaults to `"Get Started"`. */
   children?: string;
-  /** Theme color family for the accent dot, flood, and outline. Defaults to `"primary"`. */
+  /** Theme color family for the accent dot, flood, and outline. Defaults to `"neutral"` (a near-black dot/flood — upstream's primary is near-black). */
   color?: ThemeColor;
   disabled?: boolean;
   onClick?: (event: MouseEvent) => void;
@@ -87,7 +87,7 @@ function accentDot(color: ThemeColor): DomphyElement<"span"> {
       transformOrigin: "center",
       transform: "scale(1)",
       backgroundColor: (listener: Listener) =>
-        themeColor(listener, "shift-9", color),
+        themeColor(listener, "shift-15", color),
       transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1)",
       pointerEvents: "none",
       zIndex: 0,
@@ -104,7 +104,7 @@ function interactiveHoverButton(
   props: InteractiveHoverButtonProps = {},
 ): DomphyElement<"button"> {
   const label = props.children ?? "Get Started";
-  const color = props.color ?? "primary";
+  const color = props.color ?? "neutral";
 
   const restingLabel: DomphyElement<"span"> = {
     span: label,

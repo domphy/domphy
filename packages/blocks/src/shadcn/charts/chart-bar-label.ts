@@ -10,7 +10,6 @@
 
 import type { ChartOption, LabelParams, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
 import { fixed } from "../../shared/typography.js";
 import {
   CHART_BAR_MONTHLY_DATA,
@@ -19,6 +18,7 @@ import {
   chartBarCardShell,
   chartBarCategoryXAxis,
   chartBarFrame,
+  chartBarSeriesColor,
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
@@ -27,7 +27,9 @@ import {
 export interface ChartBarLabelProps {
   data?: ChartBarPoint[];
   seriesLabel?: string;
-  seriesColor?: ThemeColor;
+  /** Bar color — a theme role (resolved at shift-9) or literal ramp hex.
+   * Defaults to the ramp's first step (upstream var(--chart-1) ≈ blue-300). */
+  seriesColor?: string;
   /** Formats each bar's printed value label. Defaults to the raw number. */
   labelFormatter?: (value: number) => string;
   title?: string;
@@ -46,7 +48,7 @@ function chartBarLabel(props: ChartBarLabelProps = {}): DomphyElement<"div"> {
   const {
     data = CHART_BAR_MONTHLY_DATA,
     seriesLabel = "Desktop",
-    seriesColor = "primary",
+    seriesColor = chartBarSeriesColor(0).hex,
     labelFormatter = (value) => String(value),
     title = "Bar Chart - Label",
     subtitle = "January - June 2026",
@@ -78,7 +80,7 @@ function chartBarLabel(props: ChartBarLabelProps = {}): DomphyElement<"div"> {
       axisLabel: { show: false },
       splitLine: { show: true },
     },
-    grid: { left: 8, right: 8, top: 24, bottom: 24 },
+    grid: { left: 8, right: 8, top: 24, bottom: 32 },
     series: [
       {
         type: "bar",
@@ -124,8 +126,10 @@ function chartBarLabelTooltipFormatter(
   if (parameters.length === 0) return "";
   const item = parameters[0];
   // Upstream ChartTooltipContent's default 'dot' indicator is a 10px rounded
-  // SQUARE (rounded-[2px], h-2.5 w-2.5), not a circle — see chart.tsx.
-  const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${item.color};margin-right:6px;"></span>`;
+  // SQUARE (rounded-[2px], h-2.5 w-2.5), not a circle — see chart.tsx. The
+  // engine's `item.color` follows its own multi-hue rotation palette, so the
+  // swatch is re-resolved from the single-hue ramp by series position.
+  const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${chartBarSeriesColor(item.seriesIndex ?? 0).hex};margin-right:6px;"></span>`;
   const label = escapeTooltipHtml(String(item.seriesName ?? item.name ?? ""));
   const value = escapeTooltipHtml(String(item.value ?? ""));
   return chartBarTooltipRow(dot, label, value);

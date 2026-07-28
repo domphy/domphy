@@ -11,7 +11,6 @@
 
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
 import {
   type ChartBarCategoryPoint,
   type ChartBarGrid,
@@ -22,6 +21,7 @@ import {
   chartBarColorHex,
   chartBarFrame,
   chartBarHiddenValueYAxis,
+  chartBarSeriesColor,
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
@@ -30,7 +30,9 @@ import {
 export interface ChartBarActiveProps {
   data?: ChartBarCategoryPoint[];
   seriesLabel?: string;
-  seriesColor?: ThemeColor;
+  /** Fallback bar color for data items without their own — a theme role
+   * (resolved at shift-9) or literal ramp hex. */
+  seriesColor?: string;
   /** Index of the bar rendered with the dashed-outline "active" treatment. */
   activeIndex?: number;
   title?: string;
@@ -41,19 +43,19 @@ export interface ChartBarActiveProps {
   height?: number;
 }
 
-const GRID: ChartBarGrid = { left: 8, right: 8, top: 16, bottom: 24 };
+const GRID: ChartBarGrid = { left: 8, right: 8, top: 16, bottom: 32 };
 
 // The active recipe carries its OWN dataset — distinct from the mixed recipe's
 // shared CHART_BAR_BROWSER_DATA — so the pre-selected bar at index 2 (Firefox)
 // is the tallest peak, giving the dashed "active" outline something prominent
-// to sit on. Per-browser accent colors are kept identical to the mixed recipe
-// (color follows browser identity, not value rank).
+// to sit on. Per-browser colors follow the same single-hue ramp as the mixed
+// recipe (upstream colors each bar from the SAME chart ramp, chart-1 … chart-5).
 const CHART_BAR_ACTIVE_DATA: ChartBarCategoryPoint[] = [
-  { category: "Chrome", value: 187, color: "primary" },
-  { category: "Safari", value: 200, color: "secondary" },
-  { category: "Firefox", value: 275, color: "success" },
-  { category: "Edge", value: 173, color: "warning" },
-  { category: "Other", value: 90, color: "info" },
+  { category: "Chrome", value: 187, color: chartBarSeriesColor(0).hex },
+  { category: "Safari", value: 200, color: chartBarSeriesColor(1).hex },
+  { category: "Firefox", value: 275, color: chartBarSeriesColor(2).hex },
+  { category: "Edge", value: 173, color: chartBarSeriesColor(3).hex },
+  { category: "Other", value: 90, color: chartBarSeriesColor(4).hex },
 ];
 
 /**
@@ -65,7 +67,7 @@ function chartBarActive(props: ChartBarActiveProps = {}): DomphyElement<"div"> {
   const {
     data = CHART_BAR_ACTIVE_DATA,
     seriesLabel = "Visitors",
-    seriesColor = "primary",
+    seriesColor = chartBarSeriesColor(0).hex,
     activeIndex = 2,
     title = "Bar Chart - Active",
     subtitle = "January - June 2026",
@@ -82,7 +84,7 @@ function chartBarActive(props: ChartBarActiveProps = {}): DomphyElement<"div"> {
     0,
     Math.min(data.length - 1, activeIndex),
   );
-  const barColor = (index: number): ThemeColor =>
+  const barColor = (index: number): string =>
     data[index]?.color ?? seriesColor;
 
   const option: ChartOption = {
@@ -93,8 +95,10 @@ function chartBarActive(props: ChartBarActiveProps = {}): DomphyElement<"div"> {
       axisPointer: { type: "none" },
       // Upstream renders this recipe's tooltip with <ChartTooltipContent
       // hideLabel /> — the category header (e.g. "Firefox") is suppressed, so
-      // only the single series dot + "Visitors" + value row shows.
-      formatter: chartBarActiveTooltipFormatter,
+      // only the single series dot + "Visitors" + value row shows. The dot
+      // re-resolves the hovered bar's own ramp color (the engine's param
+      // `color` follows its multi-hue rotation palette instead).
+      formatter: chartBarActiveTooltipFormatter((index) => barColor(index)),
     },
     xAxis: chartBarCategoryXAxis(categories),
     yAxis: chartBarHiddenValueYAxis({
@@ -157,17 +161,19 @@ function escapeTooltipHtml(text: string): string {
 // chartBarDefaultTooltipFormatter and upstream's <ChartTooltipContent
 // hideLabel />).
 function chartBarActiveTooltipFormatter(
-  parametersInput: TooltipParams | TooltipParams[],
-): string {
-  const parameters = Array.isArray(parametersInput)
-    ? parametersInput
-    : [parametersInput];
-  if (parameters.length === 0) return "";
-  const item = parameters[0];
-  const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${item.color};margin-right:6px;"></span>`;
-  const label = escapeTooltipHtml(String(item.seriesName ?? item.name ?? ""));
-  const value = escapeTooltipHtml(String(item.value ?? ""));
-  return chartBarTooltipRow(dot, label, value);
+  barColorAt: (dataIndex: number) => string,
+): (parametersInput: TooltipParams | TooltipParams[]) => string {
+  return (parametersInput) => {
+    const parameters = Array.isArray(parametersInput)
+      ? parametersInput
+      : [parametersInput];
+    if (parameters.length === 0) return "";
+    const item = parameters[0];
+    const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${chartBarColorHex(barColorAt(item.dataIndex))};margin-right:6px;"></span>`;
+    const label = escapeTooltipHtml(String(item.seriesName ?? item.name ?? ""));
+    const value = escapeTooltipHtml(String(item.value ?? ""));
+    return chartBarTooltipRow(dot, label, value);
+  };
 }
 
 export { chartBarActive };

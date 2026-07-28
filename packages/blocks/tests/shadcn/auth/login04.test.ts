@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 describe("Login04", () => {
-  it("renders a working demo tree with zero args: two-column card frame, cover image, three OAuth buttons", () => {
+  it("renders a working demo tree with zero args: two-column card frame, cover panel, three OAuth buttons", () => {
     const { host } = render(Login04() as DomphyElement);
     expect(host.querySelector("form")).toBeTruthy();
     expect(
@@ -27,9 +27,23 @@ describe("Login04", () => {
     expect(
       host.querySelector('input[name="password"][type="password"]'),
     ).toBeTruthy();
-    expect(host.querySelector("img")).toBeTruthy();
+    // No photo is hotlinked by default (clean-room) — the cover column
+    // renders a decorative theme-token panel instead of an <img>.
+    expect(host.querySelector("img")).toBeNull();
     // Submit + Apple + Google + Meta = 4 buttons.
     expect(host.querySelectorAll("button")).toHaveLength(4);
+  });
+
+  it("renders a caller-supplied cover image", () => {
+    const { host } = render(
+      Login04({
+        coverImageSrc: "https://example.com/photo.jpg",
+        coverImageAlt: "Office",
+      }) as DomphyElement,
+    );
+    const img = host.querySelector("img") as HTMLImageElement;
+    expect(img.getAttribute("src")).toBe("https://example.com/photo.jpg");
+    expect(img.getAttribute("alt")).toBe("Office");
   });
 
   it("renders the legal disclaimer footer below the card", () => {

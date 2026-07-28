@@ -9,15 +9,14 @@
 
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
 import {
-  CHART_BAR_SERIES_PALETTE,
   type ChartBarTwoSeriesPoint,
   type ChartTrendDirection,
   chartBarCardShell,
   chartBarCategoryXAxis,
   chartBarFrame,
   chartBarHiddenValueYAxis,
+  chartBarSeriesColor,
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
@@ -26,7 +25,8 @@ import {
 export interface ChartBarMultipleSeries {
   key: "desktop" | "mobile";
   label: string;
-  color: ThemeColor;
+  /** Theme role (resolved at shift-9) or literal ramp hex. */
+  color: string;
 }
 
 export interface ChartBarMultipleProps {
@@ -41,8 +41,8 @@ export interface ChartBarMultipleProps {
 }
 
 const DEFAULT_SERIES: ChartBarMultipleSeries[] = [
-  { key: "desktop", label: "Desktop", color: CHART_BAR_SERIES_PALETTE[0] },
-  { key: "mobile", label: "Mobile", color: CHART_BAR_SERIES_PALETTE[1] },
+  { key: "desktop", label: "Desktop", color: chartBarSeriesColor(0).hex },
+  { key: "mobile", label: "Mobile", color: chartBarSeriesColor(1).hex },
 ];
 
 // Upstream stores FULL month names in chartData and abbreviates only on the
@@ -101,7 +101,7 @@ function chartBarMultiple(
       min: 0,
       max: domainMax,
     }),
-    grid: { left: 8, right: 8, top: 16, bottom: 24 },
+    grid: { left: 8, right: 8, top: 16, bottom: 32 },
     series: series.map((s) => ({
       type: "bar",
       name: s.label,
@@ -143,7 +143,7 @@ function chartBarMultipleTooltipFormatter(
     );
     const rows = parameters
       .map((p) => {
-        const indicator = `<span style="display:inline-block;width:0;height:12px;border-left:1.5px dashed ${p.color};margin-right:6px;vertical-align:middle;"></span>`;
+        const indicator = `<span style="display:inline-block;width:0;height:12px;border-left:1.5px dashed ${chartBarSeriesColor(p.seriesIndex ?? 0).hex};margin-right:6px;vertical-align:middle;"></span>`;
         const label = escapeTooltipHtml(String(p.seriesName ?? p.name ?? ""));
         const value = escapeTooltipHtml(String(p.value ?? ""));
         return chartBarTooltipRow(indicator, label, value);

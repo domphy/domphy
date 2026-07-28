@@ -115,7 +115,7 @@ function sideButtonGlyph(button: SideButton): DomphyElement<"span"> {
     } as DomphyElement,
     20,
     100,
-    "shift-15",
+    "shift-2",
     {
       insetInlineEnd: `${(-2 / BODY_WIDTH) * 100}%`,
       insetBlockStart: button.top,
@@ -144,7 +144,7 @@ function punchHoleCamera(): DomphyElement<"span">[] {
       { circle: null, cx: 50, cy: 50, r: 50 } as DomphyElement,
       100,
       100,
-      "shift-17",
+      "shift-0",
       {
         ...center,
         width: `${(18 / BODY_WIDTH) * 100}%`,
@@ -156,7 +156,7 @@ function punchHoleCamera(): DomphyElement<"span">[] {
       { circle: null, cx: 50, cy: 50, r: 50 } as DomphyElement,
       100,
       100,
-      "shift-15",
+      "shift-2",
       {
         ...center,
         width: `${(8 / BODY_WIDTH) * 100}%`,
@@ -229,7 +229,7 @@ function android(props: AndroidProps = {}): DomphyElement<"div"> {
   const screen: DomphyElement = {
     div: media ? [media] : null,
     ariaHidden: "true",
-    dataTone: "shift-15",
+    dataTone: "shift-1",
     style: {
       position: "absolute",
       inset: "1.6%",
@@ -246,7 +246,7 @@ function android(props: AndroidProps = {}): DomphyElement<"div"> {
   const body: DomphyElement = {
     div: [screen, ...punchHoleCamera(), ...SIDE_BUTTONS.map(sideButtonGlyph)],
     ariaHidden: "true",
-    dataTone: "shift-17",
+    dataTone: "shift-0",
     style: {
       position: "absolute",
       insetBlockStart: 0,

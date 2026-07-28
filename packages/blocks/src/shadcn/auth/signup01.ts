@@ -59,7 +59,7 @@ function authFieldInput(): PartialElement {
       },
       "&:hover:not([disabled]), &:focus-visible": {
         outline: (listener: Listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "primary")}`,
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "neutral")}`,
       },
       "&[disabled]": {
         opacity: 0.7,

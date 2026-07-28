@@ -310,7 +310,7 @@ function terminal(props: TerminalProps = {}): DomphyElement<"div"> {
           gap: themeSpacing(2),
           padding: themeSpacing(4),
           borderBottom: (listener: Listener) =>
-            `1px solid ${themeColor(listener, "shift-14")}`,
+            `1px solid ${themeColor(listener, "shift-3")}`,
           color: (listener: Listener) => themeColor(listener, "shift-9"),
         },
       },
@@ -329,7 +329,7 @@ function terminal(props: TerminalProps = {}): DomphyElement<"div"> {
         },
       },
     ],
-    dataTone: "shift-17",
+    dataTone: "shift-0",
     _onMount: (node: ElementNode) => {
       if (!startOnView || started.get()) return;
       if (typeof IntersectionObserver !== "function") {
@@ -360,7 +360,7 @@ function terminal(props: TerminalProps = {}): DomphyElement<"div"> {
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       outline: (listener: Listener) =>
-        `1px solid ${themeColor(listener, "shift-14")}`,
+        `1px solid ${themeColor(listener, "shift-3")}`,
       outlineOffset: "-1px",
       ...(props.style ?? {}),
     },

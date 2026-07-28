@@ -16,6 +16,7 @@ import type { DomphyElement } from "@domphy/core";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
 import {
   chartCard,
+  chartLineSeriesColor,
   chartPlot,
   computeYDomain,
   DEFAULT_LINE_GRID,
@@ -69,7 +70,9 @@ function chartLineDotsCustom(
   const categories = data.map((point) => point.month);
   const values = data.map((point) => point.desktop);
   const yDomain = computeYDomain(values);
-  const markerOutline = themeColorToken(null, "shift-9", seriesColor);
+  // Upstream's stroke/markers are var(--chart-1) — the ramp's first step.
+  const ramp = chartLineSeriesColor(0);
+  const markerOutline = themeColorToken(null, ramp.tone, seriesColor);
   const markerFill = themeColorToken(null, "shift-0", "neutral");
 
   const option: ChartOption = {
@@ -82,7 +85,11 @@ function chartLineDotsCustom(
       // Upstream renders <ChartTooltipContent hideLabel />: hideLabel drops only
       // the category-name header, still showing the color swatch + series label
       // + value per row (same as chart-line-default, which is also hideLabel).
-      formatter: lineSwatchLabelValueTooltipFormatter,
+      formatter: (params) =>
+        lineSwatchLabelValueTooltipFormatter(
+          params,
+          chartLineSeriesColor(0).hex,
+        ),
     },
     series: [
       {
@@ -91,7 +98,7 @@ function chartLineDotsCustom(
         data: values,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 2 },
+        lineStyle: { width: 2, opacity: ramp.strokeOpacity },
         color: seriesColor,
       },
     ],

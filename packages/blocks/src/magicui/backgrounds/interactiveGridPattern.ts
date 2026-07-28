@@ -107,12 +107,14 @@ function interactiveGridPattern(
     div: [
       {
         svg: squareElements,
-        // Fixed pixel size with NO viewBox — matches upstream. Without a
-        // viewBox the SVG's user units map 1:1 to CSS px, so each cell keeps
-        // its exact pixel size (always square) and the grid simply clips or
-        // underflows the container rather than stretching to fill it.
-        width: gridWidth,
-        height: gridHeight,
+        // viewBox + preserveAspectRatio="none": the grid scales to fill 100%
+        // of the container in both axes (cells stretch slightly off-square
+        // when the container's aspect differs from the grid's). The previous
+        // fixed-pixel no-viewBox sizing matched upstream's 1:1 px mapping but
+        // left a hard blank strip wherever the container was larger than the
+        // authored grid (visual QA: right ~20% empty at wide containers).
+        viewBox: `0 0 ${gridWidth} ${gridHeight}`,
+        preserveAspectRatio: "none",
         ariaHidden: "true",
         _onMount: (node: ElementNode) => {
           const svgElement = node.domElement as unknown as SVGSVGElement;
@@ -139,15 +141,13 @@ function interactiveGridPattern(
             const boundingBox = svgElement.getBoundingClientRect();
             if (boundingBox.width === 0 || boundingBox.height === 0)
               return null;
-            // No viewBox: user units == CSS px 1:1, so the pointer maps directly
-            // to grid coordinates with no aspect scaling. Cells outside the
-            // container (grid overflow) are simply unreachable, and pointer over
-            // empty space (grid underflow) yields an out-of-range cell -> null,
-            // exactly mirroring upstream's per-rect onMouseEnter hit-testing.
+            // viewBox scaled to the element box: map the pointer fraction of
+            // the element's size onto the column/row count directly (cells
+            // stretch with the container, so a unit is NOT 1 CSS px here).
             const localX = event.clientX - boundingBox.left;
             const localY = event.clientY - boundingBox.top;
-            const column = Math.floor(localX / cellWidth);
-            const row = Math.floor(localY / cellHeight);
+            const column = Math.floor((localX / boundingBox.width) * columns);
+            const row = Math.floor((localY / boundingBox.height) * rows);
             if (column < 0 || column >= columns || row < 0 || row >= rows)
               return null;
             return row * columns + column;

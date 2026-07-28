@@ -83,7 +83,8 @@ function pickRandomCell(
 /**
  * A faint SVG line grid overlaid with animated squares that fade in/out and
  * jump to a new random cell each cycle. Call with no arguments for a working
- * demo — a dark panel with 50 staggered pulsing cells behind a heading.
+ * demo — a white panel with 50 staggered light-gray pulsing cells behind a
+ * heading.
  */
 function animatedGridPattern(
   props: AnimatedGridPatternProps = {},
@@ -165,7 +166,7 @@ function animatedGridPattern(
         // Decorative fill-only rect, no text of its own.
         _doctorDisable: "missing-color",
         style: {
-          fill: (listener: Listener) => themeColor(listener, "shift-9", color),
+          fill: (listener: Listener) => themeColor(listener, "shift-6", color),
           animation: `${animationName} ${totalCycleSeconds}s ease-in-out ${staggerDelaySeconds}s infinite`,
           [`@keyframes ${animationName}`]: keyframes,
         } as StyleObject,
@@ -263,7 +264,7 @@ function animatedGridPattern(
         style: { position: "relative", zIndex: 1 },
       } as DomphyElement,
     ],
-    dataTone: "shift-15",
+    dataTone: "shift-0",
     style: {
       position: "relative",
       overflow: "hidden",

@@ -18,6 +18,7 @@ import { toState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { card, heading, paragraph, small } from "@domphy/ui";
 import {
+  chartLineSeriesColor,
   computeYDomain,
   DAILY_VISITOR_DATA,
   type DailyPoint,
@@ -84,13 +85,18 @@ function chartLineInteractive(
     desktopLabel = "Desktop",
     desktopColor = "primary",
     mobileLabel = "Mobile",
-    mobileColor = "secondary",
+    mobileColor = "primary",
   } = props;
 
   const seriesMeta: Record<SeriesKey, { label: string; color: ThemeColor }> = {
     desktop: { label: desktopLabel, color: desktopColor },
     mobile: { label: mobileLabel, color: mobileColor },
   };
+  // Upstream chartConfig: desktop=var(--chart-1), mobile=var(--chart-2) — two
+  // steps of the same monochrome blue ramp. @domphy/chart pins line strokes
+  // to the family at shift-9, so the ramp steps are approximated with a
+  // matching stroke opacity; swatches use the exact ramp hex.
+  const seriesRamp: Record<SeriesKey, number> = { desktop: 0, mobile: 1 };
 
   const categories = data.map((point) => formatShortDate(point.date));
   const totals: Record<SeriesKey, number> = {
@@ -104,19 +110,21 @@ function chartLineInteractive(
 
   const activeSeriesKey = toState<SeriesKey>(initialSeries);
 
-  const tooltipFormatter = (
-    params: TooltipParams | TooltipParams[],
-  ): string => {
-    const point = Array.isArray(params) ? params[0] : params;
-    if (!point) return "";
-    const day = data[point.dataIndex];
-    const dateLabel = day ? formatLongDate(day.date) : "";
-    const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${point.color};margin-right:6px;"></span>`;
-    return (
-      `<div>${escapeHtml(dateLabel)}</div>` +
-      `<div style="margin-top:2px;">${swatch}Page Views: ${escapeHtml(String(point.value ?? ""))}</div>`
-    );
-  };
+  const tooltipFormatter = (activeKey: SeriesKey) =>
+    (params: TooltipParams | TooltipParams[]): string => {
+      const point = Array.isArray(params) ? params[0] : params;
+      if (!point) return "";
+      const day = data[point.dataIndex];
+      const dateLabel = day ? formatLongDate(day.date) : "";
+      // The engine's param `color` follows its own multi-hue rotation palette
+      // — the swatch uses the active series' ramp color instead.
+      const swatchColor = chartLineSeriesColor(seriesRamp[activeKey]).hex;
+      const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${swatchColor};margin-right:6px;"></span>`;
+      return (
+        `<div>${escapeHtml(dateLabel)}</div>` +
+        `<div style="margin-top:2px;">${swatch}Page Views: ${escapeHtml(String(point.value ?? ""))}</div>`
+      );
+    };
 
   function buildOption(activeKey: SeriesKey): ChartOption {
     const meta = seriesMeta[activeKey];
@@ -136,7 +144,7 @@ function chartLineInteractive(
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "line" },
-        formatter: tooltipFormatter,
+        formatter: tooltipFormatter(activeKey),
       },
       series: [
         {
@@ -146,7 +154,10 @@ function chartLineInteractive(
           smooth: true,
           smoothMonotone: "x",
           showSymbol: false,
-          lineStyle: { width: 2 },
+          lineStyle: {
+            width: 2,
+            opacity: chartLineSeriesColor(seriesRamp[activeKey]).strokeOpacity,
+          },
           color: meta.color,
         },
       ],
@@ -221,8 +232,11 @@ function chartLineInteractive(
         paddingInline: themeSpacing(4),
         textAlign: "left",
         "&[data-active=true]": {
+          // Upstream active tile is `bg-muted/50` (≈ #fafafa): the neutral
+          // ramp's shift-1 #ededed is the closest step. "increase-1" from the
+          // card's white surface landed on the muddy shift-2 #dbdbdb.
           backgroundColor: (listener: Listener) =>
-            themeColor(listener, "increase-1", "neutral"),
+            themeColor(listener, "shift-1", "neutral"),
         },
       },
     } as DomphyElement<"button">;

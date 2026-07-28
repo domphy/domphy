@@ -44,7 +44,7 @@
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import { chart, createOrdinalScale } from "@domphy/chart";
 import type { DomphyElement, PartialElement } from "@domphy/core";
-import { type ThemeColor, themeColorToken, themeSpacing } from "@domphy/theme";
+import { themeColorToken, themeSpacing } from "@domphy/theme";
 import { card, heading, paragraph } from "@domphy/ui";
 
 // ─── Sample dataset ───────────────────────────────────────────────────────────
@@ -77,25 +77,47 @@ const WAVE_ICON_MARKUP =
 export interface ActivitySeriesEntry {
   key: "running" | "swimming";
   name: string;
-  color: ThemeColor;
+  /** Literal ramp hex (BarRenderer accepts hex; also reused for tooltip swatches). */
+  color: string;
   iconMarkup: string;
 }
 
-/** Series order matches @domphy/chart's own default rotation-by-index
- * palette ("primary", "secondary", ...) so the rendered bar fill and the
- * engine-controlled tooltip swatch color stay visually consistent (same
- * precedent documented in chart-area-shared.ts). */
+// Single-hue series ramp within the `primary` (blue) family: upstream shadcn
+// v4's light-theme chart palette is a MONOCHROME BLUE RAMP (chart-1=blue-300,
+// chart-2=blue-500, …), and the tooltip demos color running=var(--chart-1),
+// swimming=var(--chart-2) — never distinct semantic hues. The domphy
+// `primary` family IS blue, so the ramp maps onto increasing primary tones.
+export const CHART_TOOLTIP_SERIES_TONES = [
+  "shift-4",
+  "shift-6",
+  "shift-8",
+  "shift-10",
+  "shift-12",
+] as const;
+
+export type ChartTooltipSeriesTone =
+  (typeof CHART_TOOLTIP_SERIES_TONES)[number];
+
+/** The nth series' ramp color as a resolved hex (approximates upstream `var(--chart-N)`). */
+export function chartTooltipSeriesColor(index: number): string {
+  const step =
+    ((index % CHART_TOOLTIP_SERIES_TONES.length) +
+      CHART_TOOLTIP_SERIES_TONES.length) %
+    CHART_TOOLTIP_SERIES_TONES.length;
+  return themeColorToken(null, CHART_TOOLTIP_SERIES_TONES[step], "primary");
+}
+
 export const ACTIVITY_SERIES_CONFIG: ActivitySeriesEntry[] = [
   {
     key: "running",
     name: "Running",
-    color: "primary",
+    color: chartTooltipSeriesColor(0),
     iconMarkup: FOOTPRINT_ICON_MARKUP,
   },
   {
     key: "swimming",
     name: "Swimming",
-    color: "secondary",
+    color: chartTooltipSeriesColor(1),
     iconMarkup: WAVE_ICON_MARKUP,
   },
 ];
@@ -191,7 +213,14 @@ export function activityBarOption(props: ActivityBarOptionProps): ChartOption {
       axisLabel: { show: true },
       splitLine: { show: false },
     },
-    yAxis: { type: "value", show: false },
+    // Zero-anchored value domain: without an explicit `min` the engine sizes
+    // the domain from the stacked totals (~260–690), pushing the bars' zero
+    // baseline far below the plot — bars then overflow past the grid's bottom
+    // edge and the x-axis weekday ticks land ON the bars instead of below
+    // them (verified against packages/chart/src/coord/grid.ts buildScale's
+    // auto-padding). `min: 0` pins the baseline to the grid's bottom edge so
+    // the muted ticks render in the margin below the bars, as upstream.
+    yAxis: { type: "value", show: false, min: 0 },
     series: series.map((entry) => ({
       type: "bar",
       name: entry.name,
@@ -412,7 +441,10 @@ export function activityTooltipFormatter(
         );
         return renderTooltipRow({
           indicator,
-          colorHex: point.color,
+          // `point.color` comes from the engine's multi-hue rotation palette
+          // (seriesHex) — use the series config's own ramp hex so the swatch
+          // matches the rendered bar.
+          colorHex: entry?.color ?? point.color,
           entry,
           label: entry?.name ?? String(point.seriesName ?? ""),
           valueHtml,

@@ -12,14 +12,16 @@
 // @domphy/chart engine notes learned while building this family (see
 // packages/chart/src/gl/LineRenderer.ts and engine.ts):
 //   - A solid (non-gradient) area fill always uses the series-level `color`
-//     field (or, if unset, the engine's default palette rotation by series
-//     position) — `areaStyle.color` as a plain ThemeColor role is IGNORED for
-//     solid fills; it only matters when it is a GradientObject.
-//   - The tooltip's color-coded dot is computed from the same default
-//     rotation-by-index palette, NOT from the series' configured `color`. To
-//     keep the rendered fill and the tooltip dot visually consistent, every
-//     recipe below assigns per-series colors in that same rotation order
-//     (primary, secondary, success, …).
+//     field resolved as a theme FAMILY at shift-9 — `areaStyle.color` as a
+//     plain ThemeColor role is IGNORED for solid fills; it only matters when
+//     it is a GradientObject. Line/area strokes are likewise pinned to the
+//     family at shift-9 (a literal hex throws in themeColorToken), so ramp
+//     variation is expressed through the fill gradient + stroke opacity.
+//   - The tooltip's color-coded dot is computed from the engine's own
+//     multi-hue rotation-by-index palette, NOT from the series' configured
+//     `color`. chartAxisTooltipFormatter below re-resolves the swatch from
+//     the single-hue primary ramp by series position so the dot matches the
+//     rendered fill.
 //   - The built-in axis-trigger tooltip does not print the hovered category
 //     label by default, and `TooltipParams.axisValueLabel` is declared in the
 //     type but never populated at runtime — `chartAxisTooltipFormatter` below
@@ -152,15 +154,52 @@ export const CHART_AREA_RANGE_PRESETS: ChartRangePreset[] = [
 
 // ─── Color helpers ─────────────────────────────────────────────────────────
 
-// Series color rotation the engine's own default palette follows (see
-// packages/chart/src/gl/color.ts SERIES_PALETTE) — recipes assign explicit
-// per-series colors in this same order so the rendered fill and the (engine-
-// controlled, rotation-index-based) tooltip dot stay visually consistent.
-export const CHART_AREA_SERIES_PALETTE: ThemeColor[] = [
-  "primary",
-  "secondary",
-  "success",
-];
+// Single-hue series ramp within the `primary` (blue) family. Upstream shadcn
+// v4's light-theme chart palette is a MONOCHROME BLUE RAMP (chart-1=blue-300,
+// chart-2=blue-500, chart-3=blue-600, chart-4=blue-700, chart-5=blue-800) —
+// every chart demo colors its series from var(--chart-N), never from distinct
+// semantic hues. The domphy `primary` family IS blue, so the ramp maps onto
+// increasing primary tones approximating blue-300 → blue-800.
+export const CHART_AREA_SERIES_TONES = [
+  "shift-4",
+  "shift-6",
+  "shift-8",
+  "shift-10",
+  "shift-12",
+] as const;
+
+export type ChartAreaSeriesTone = (typeof CHART_AREA_SERIES_TONES)[number];
+
+export interface ChartAreaSeriesColor {
+  /** Ramp tone within the primary family — fills, legend swatches, tooltip dots. */
+  tone: ChartAreaSeriesTone;
+  /** Resolved hex of `tone` — for literal chart-option values and raw-HTML tooltips. */
+  hex: string;
+  /** Stroke opacity approximating this ramp step: @domphy/chart pins line/area
+   * strokes to the family at shift-9 (LineRenderer resolves `s.color` via
+   * familyRgba only), so lighter ramp steps are approached by fading that
+   * pinned stroke toward white. */
+  strokeOpacity: number;
+}
+
+// Alpha over white that blends the pinned shift-9 stroke (#2a5ed7) to each
+// ramp step's target hex (0.45≈shift-4, 0.72≈shift-6, 0.92≈shift-8; darker
+// steps are unreachable from the lighter base and stay full-strength).
+const CHART_AREA_SERIES_STROKE_OPACITIES = [0.45, 0.72, 0.92, 1, 1] as const;
+
+/** The nth series' ramp color (approximates upstream `var(--chart-N)`). */
+export function chartAreaSeriesColor(index: number): ChartAreaSeriesColor {
+  const step =
+    ((index % CHART_AREA_SERIES_TONES.length) +
+      CHART_AREA_SERIES_TONES.length) %
+    CHART_AREA_SERIES_TONES.length;
+  const tone = CHART_AREA_SERIES_TONES[step];
+  return {
+    tone,
+    hex: themeColorToken(null, tone, "primary"),
+    strokeOpacity: CHART_AREA_SERIES_STROKE_OPACITIES[step],
+  };
+}
 
 function hexToRgbTriple(hex: string): [number, number, number] {
   const clean = hex.replace("#", "");
@@ -186,11 +225,13 @@ export function chartColorRgba(
 }
 
 // Vertical fill gradient for one area series: a visible tint just under the
-// line, fading to near-nothing at the baseline.
+// line, fading to near-nothing at the baseline. `tone` selects the ramp step
+// (pass chartAreaSeriesColor(i).tone); equal top/bottom alphas give a flat fill.
 export function chartAreaGradientFill(
   role: ThemeColor,
   topAlpha = 0.8,
   bottomAlpha = 0.1,
+  tone = "shift-9",
 ): GradientObject {
   return {
     type: "linear",
@@ -199,8 +240,8 @@ export function chartAreaGradientFill(
     x2: 0,
     y2: 1,
     colorStops: [
-      { offset: 0, color: chartColorRgba(role, topAlpha) },
-      { offset: 1, color: chartColorRgba(role, bottomAlpha) },
+      { offset: 0, color: chartColorRgba(role, topAlpha, tone) },
+      { offset: 1, color: chartColorRgba(role, bottomAlpha, tone) },
     ],
   };
 }
@@ -314,10 +355,15 @@ export function chartAxisTooltipFormatter(
     );
     const rows = params
       .map((p) => {
+        // The engine computes `p.color` from its own multi-hue rotation
+        // palette (seriesHex(globalIdx)), ignoring the configured series
+        // color — resolve the swatch from the single-hue ramp by series
+        // position instead so it matches the rendered fill.
+        const swatchColor = chartAreaSeriesColor(p.seriesIndex ?? 0).hex;
         const swatch =
           indicator === "line"
-            ? `<span style="display:inline-block;width:4px;height:12px;border-radius:2px;background:${p.color};margin-right:6px;vertical-align:middle;"></span>`
-            : `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
+            ? `<span style="display:inline-block;width:4px;height:12px;border-radius:2px;background:${swatchColor};margin-right:6px;vertical-align:middle;"></span>`
+            : `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${swatchColor};margin-right:6px;"></span>`;
         const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
         return chartAreaTooltipRow(swatch, label, escapeHtml(valueLabel(p)));
       })
@@ -349,7 +395,9 @@ export type ChartTrendDirection = "up" | "down";
 export function chartTrendIcon(
   direction: ChartTrendDirection,
   color: ThemeColor = "neutral",
+  tone = "shift-9",
 ): DomphyElement<"span"> {
+  const colorState = toState(color, "color");
   return {
     span: [
       {
@@ -366,6 +414,10 @@ export function chartTrendIcon(
       } as DomphyElement<"svg">,
     ],
     $: [icon({ color })],
+    style: {
+      color: (listener: Listener) =>
+        themeColor(listener, tone, colorState.get(listener)),
+    },
   };
 }
 
@@ -375,7 +427,10 @@ export function chartTrendIcon(
  * same "small reusable colored primitive" idiom as @domphy/ui's own
  * decorative-fill patches (e.g. progress()'s filled track).
  */
-export function chartLegendSwatch(color: ThemeColor): PartialElement {
+export function chartLegendSwatch(
+  color: ThemeColor,
+  tone = "shift-9",
+): PartialElement {
   const colorState = toState(color, "color");
   return {
     style: {
@@ -387,9 +442,9 @@ export function chartLegendSwatch(color: ThemeColor): PartialElement {
       borderRadius: themeSpacing(0.5),
       flexShrink: "0",
       backgroundColor: (listener: Listener) =>
-        themeColor(listener, "shift-9", colorState.get(listener)),
+        themeColor(listener, tone, colorState.get(listener)),
       color: (listener: Listener) =>
-        themeColor(listener, "shift-9", colorState.get(listener)),
+        themeColor(listener, tone, colorState.get(listener)),
     },
   };
 }
@@ -477,16 +532,11 @@ export function chartTrendFooter(
     const trendIcon = trendIconOverride ?? chartTrendIcon(direction, color);
     // Upstream's footer <TrendingUp/> has no color class, so it inherits the
     // trend line's FULL foreground (currentColor) — unlike the muted legend
-    // icons. icon() bakes in shift-9 (muted); restore full foreground here.
-    trendIcon.$ = [
-      ...(trendIcon.$ ?? []),
-      {
-        style: {
-          color: (listener: Listener) =>
-            themeColor(listener, "shift-11", color),
-        },
-      },
-    ];
+    // icons. Override the glyph's own tone with full foreground; assigning
+    // the element's style directly keeps the native-win merge unambiguous.
+    trendIcon.style = {
+      color: (listener: Listener) => themeColor(listener, "shift-11", color),
+    };
     trendRow.push(trendIcon);
   }
   return {
@@ -508,6 +558,8 @@ export function chartTrendFooter(
 export interface ChartLegendEntry {
   label: string;
   color: ThemeColor;
+  /** Ramp tone for the swatch/icon glyph (defaults to shift-9). */
+  tone?: string;
   icon?: ChartTrendDirection;
 }
 
@@ -519,10 +571,10 @@ export function chartLegendRow(
     div: entries.map((entry) => ({
       span: [
         entry.icon
-          ? chartTrendIcon(entry.icon, entry.color)
+          ? chartTrendIcon(entry.icon, entry.color, entry.tone)
           : ({
               span: null,
-              $: [chartLegendSwatch(entry.color)],
+              $: [chartLegendSwatch(entry.color, entry.tone)],
             } as DomphyElement<"span">),
         // Upstream ChartLegendContent label is plain inherited-size FULL
         // foreground text (chart.tsx line 322) — not muted, not shrunk.

@@ -30,9 +30,9 @@ describe("chartRadialText", () => {
     );
   });
 
-  it("accepts a custom value/color", () => {
+  it("accepts a custom value/tone", () => {
     const { host } = render(
-      chartRadialText({ value: 7500, color: "success" }) as DomphyElement,
+      chartRadialText({ value: 7500, tone: "shift-6" }) as DomphyElement,
     );
     expect(host.querySelector("h2")?.textContent).toBe("7,500");
   });

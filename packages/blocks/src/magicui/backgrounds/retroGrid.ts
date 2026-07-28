@@ -80,7 +80,7 @@ function buildGridBackgroundImage(lineColor: string, cellSize: number): string {
 /**
  * A synthwave-style perspective floor grid, continuously scrolling toward
  * the viewer, meant as a full-bleed hero background. Call with no arguments
- * for a working demo — a dark panel with the scrolling grid behind a
+ * for a working demo — a white panel with the scrolling gray grid behind a
  * heading.
  */
 function retroGrid(props: RetroGridProps = {}): DomphyElement<"div"> {
@@ -184,7 +184,7 @@ function retroGrid(props: RetroGridProps = {}): DomphyElement<"div"> {
       perspectiveWrapper,
       { div: contentChildren, style: { position: "relative", zIndex: 1 } },
     ],
-    dataTone: "shift-15",
+    dataTone: "shift-0",
     style: {
       position: "relative",
       overflow: "hidden",

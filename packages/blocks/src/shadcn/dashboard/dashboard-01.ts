@@ -37,7 +37,7 @@
 // numbers are original inventions for this port.
 
 import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
-import { toState } from "@domphy/core";
+import { rawHtml, toState } from "@domphy/core";
 import type { Column, Row } from "@domphy/table";
 import {
   createColumnHelper,
@@ -160,7 +160,7 @@ function flippedIcon(
   color: ThemeColor = "neutral",
 ): DomphyElement<"span"> {
   return {
-    span: svg,
+    span: rawHtml(svg),
     ariaHidden: "true",
     style: { transform: "scaleX(-1)" },
     $: [icon({ color })],
@@ -336,6 +336,9 @@ function metricCard(
             $: [strong({ color: "neutral" })],
             style: {
               minWidth: 0,
+              // strong() paints an inherit-tone background — keep it
+              // transparent so no box appears over the card's gradient tint.
+              backgroundColor: "transparent",
               // Allow multi-line headlines instead of clipping mid-word under
               // a 4-column KPI grid inside a sidebar shell.
               overflowWrap: "anywhere",
@@ -375,7 +378,9 @@ function metricCard(
       minWidth: 0,
       overflow: "hidden",
       backgroundImage: (l: Listener) =>
-        `linear-gradient(to top, ${themeColor(l, "shift-1", "primary")}, transparent)`,
+        // Upstream: from-primary/5 — upstream's primary is near-black, so the
+        // tint is a barely-visible NEUTRAL wash, not a blue one.
+        `linear-gradient(to top, ${themeColor(l, "shift-1", "neutral")}, transparent)`,
     },
   } as unknown as DomphyElement<"div">;
 }
@@ -485,6 +490,9 @@ function chartRegion(data: ChartBarDailyPoint[]): DomphyElement<"div"> {
               key: preset.key,
             })),
             value: rangeKey,
+            // Upstream active pill is neutral (bg-background on a muted
+            // track), not brand blue.
+            accentColor: "neutral",
           }),
         ],
       } as unknown as DomphyElement,
@@ -671,7 +679,7 @@ function statusBadge(status: DashboardTableStatus): DomphyElement<"span"> {
   return {
     span: [
       {
-        span: isDone ? ICON_CHECK_CIRCLE : ICON_SPINNER_ARC,
+        span: rawHtml(isDone ? ICON_CHECK_CIRCLE : ICON_SPINNER_ARC),
         ariaHidden: "true",
         style: {
           display: "inline-flex",
@@ -887,7 +895,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
                 !domphyTable.table.getIsAllPageRowsSelected();
             },
             _doctorDisable: "missing-color",
-            $: [inputCheckbox({ accentColor: "primary" })],
+            $: [inputCheckbox({ accentColor: "neutral" })],
           } as unknown as DomphyElement,
         ],
         _key: "select",
@@ -939,7 +947,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
               checked: row.getIsSelected(),
               onChange: () => row.toggleSelected(),
               _doctorDisable: "missing-color",
-              $: [inputCheckbox({ accentColor: "primary" })],
+              $: [inputCheckbox({ accentColor: "neutral" })],
             } as unknown as DomphyElement,
           ],
           _key: "select",
@@ -950,7 +958,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
         return {
           td: [
             {
-              span: ICON_GRIP,
+              span: rawHtml(ICON_GRIP),
               ariaHidden: "true",
               $: [icon({ color: "neutral" })],
             } as unknown as DomphyElement,
@@ -970,7 +978,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
                 ...(original.favorite
                   ? [
                       {
-                        span: ICON_STAR,
+                        span: rawHtml(ICON_STAR),
                         ariaHidden: "true",
                         $: [icon({ color: "warning" })],
                       } as unknown as DomphyElement,
@@ -981,7 +989,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
               type: "button",
               onClick: () => openDrawerForRow(original),
               style: { paddingInline: 0 },
-              $: [buttonGhost({ color: "primary" })],
+              $: [buttonGhost({ color: "neutral" })],
             } as unknown as DomphyElement,
           ],
           _key: "header",
@@ -1057,7 +1065,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
             {
               button: [
                 {
-                  span: ICON_MORE,
+                  span: rawHtml(ICON_MORE),
                   ariaHidden: "true",
                   $: [icon({ color: "neutral" })],
                 } as unknown as DomphyElement,
@@ -1111,7 +1119,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
             {
               div: [
                 {
-                  span: ICON_CIRCLE_DASHED,
+                  span: rawHtml(ICON_CIRCLE_DASHED),
                   ariaHidden: "true",
                   $: [icon({ color: "neutral" })],
                 } as unknown as DomphyElement,
@@ -1190,6 +1198,8 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
               content: { div: null, style: { display: "none" } },
             })),
             activeKey: activeStatusFilter,
+            // Upstream active tab indicator is neutral foreground, not blue.
+            accentColor: "neutral",
           }),
         ],
       } as unknown as DomphyElement,
@@ -1266,7 +1276,8 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
         button: [sidebarIcon(ICON_PLUS), { span: "Add Section" }],
         type: "button",
         onClick: () => addSection(),
-        $: [button({ color: "primary" })],
+        // Upstream renders this as an outline (not solid blue) button.
+        $: [button({ color: "neutral" })],
       } as unknown as DomphyElement,
     ],
     style: {
@@ -1415,7 +1426,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
     label: string,
     value: number,
     max: number,
-    color: ThemeColor,
+    fillTone: `shift-${number}`,
     key: string,
   ): DomphyElement<"div"> {
     const percent = Math.round((value / max) * 100);
@@ -1434,7 +1445,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
                 height: "100%",
                 borderRadius: themeSpacing(2),
                 backgroundColor: (l: Listener) =>
-                  themeColor(l, "shift-8", color),
+                  themeColor(l, fillTone, "neutral"),
               },
             } as unknown as DomphyElement,
           ],
@@ -1457,8 +1468,10 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
     const max = Math.max(row.target, row.limit, 1);
     return {
       div: [
-        drawerBarRow("Target", row.target, max, "primary", "target-bar"),
-        drawerBarRow("Limit", row.limit, max, "secondary", "limit-bar"),
+        // Upstream's mini chart tints both series off the single near-black
+        // primary at different opacities — two neutral ramp shades here.
+        drawerBarRow("Target", row.target, max, "shift-9", "target-bar"),
+        drawerBarRow("Limit", row.limit, max, "shift-5", "limit-bar"),
       ],
       _key: "chart",
       style: { display: "flex", flexDirection: "column", gap: themeSpacing(3) },
@@ -1587,7 +1600,8 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
             drawerOpen.set(false);
           },
           _key: "submit",
-          $: [button({ color: "primary" })],
+          // Upstream default <Button> is near-black (primary), not brand blue.
+          $: [button({ color: "neutral", variant: "solid" })],
         } as unknown as DomphyElement,
         {
           button: "Done",

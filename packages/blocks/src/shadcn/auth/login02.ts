@@ -8,13 +8,14 @@
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
 
-import type { DomphyElement, Listener } from "@domphy/core";
-import { themeColor, themeSpacing } from "@domphy/theme";
+import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
 import { fixed } from "../../shared/typography.js";
 import {
   brandBadge,
   coverImage,
+  coverPanel,
   dividerRow,
   emailField,
   oauthButton,
@@ -66,7 +67,7 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
     signUpPrompt = "Don't have an account?",
     signUpLabel = "Sign up",
     signUpHref = "#",
-    coverImageSrc = "https://picsum.photos/seed/domphy-login02/1200/1600",
+    coverImageSrc,
     coverImageAlt = "",
     dimCoverInDarkMode = true,
     onSubmit,
@@ -193,30 +194,20 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
       },
       {
         div: [
-          coverImage({
-            src: coverImageSrc,
-            alt: coverImageAlt,
-            dimInDarkMode: dimCoverInDarkMode,
-          }),
+          // Clean-room: no external photo is hotlinked by default — a caller-
+          // supplied coverImageSrc renders the photo, otherwise an understated
+          // theme-token dot-grid panel fills the column (see coverPanel()).
+          coverImageSrc
+            ? coverImage({
+                src: coverImageSrc,
+                alt: coverImageAlt,
+                dimInDarkMode: dimCoverInDarkMode,
+              })
+            : coverPanel(),
         ],
-        // Upstream image container carries `bg-muted` (a fixed mid-ramp tone,
-        // not the ambient page surface) behind the photo — a deliberate,
-        // always-slightly-muted backdrop visible while the cover photo loads,
-        // independent of `dataTone`. Remapping it to `"inherit"` would erase
-        // that intentional distinction from the surrounding page background.
-        // (`_doctorDisable` is a doctor-only annotation absent from core's
-        // strict element type — build through an untyped literal + cast.)
-        _doctorDisable: "tone-background-inherit",
         style: {
           minWidth: "0",
-          backgroundColor: (listener: Listener) =>
-            themeColor(listener, "shift-2", "neutral"),
-          // shift-11 (not the usual shift-9) to clear the doctor's ≥9-step
-          // contrast minimum against this container's shift-2 background —
-          // moot in practice since the cover photo fills 100% of the box and
-          // no text renders here, but keeps the reactive `color` legitimate.
-          color: (listener: Listener) =>
-            themeColor(listener, "shift-11", "neutral"),
+          display: "flex",
           [WIDE_SPLIT_MEDIA_QUERY]: { display: "none" },
         },
       } as DomphyElement<"div">,

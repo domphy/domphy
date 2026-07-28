@@ -67,6 +67,11 @@ function chartRadarGridCustom(
           tooltip,
           gridRingFractions: [ringFraction],
           gridShowSpokes: showSpokes,
+          // The lone custom ring is the ONLY grid geometry — at the default
+          // faint shift-3/1px gridline tone it reads as nearly invisible, so
+          // it gets a clearly muted ring instead.
+          gridStrokeWidth: 1.5,
+          gridStrokeTone: "shift-5",
           tooltipShowLabel: false,
           tooltipIndicator: "swatch",
         }),

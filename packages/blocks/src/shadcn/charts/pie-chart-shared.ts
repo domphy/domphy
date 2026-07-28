@@ -14,12 +14,7 @@
 
 import type { DomphyElement, Listener, State } from "@domphy/core";
 import { toState } from "@domphy/core";
-import {
-  type ThemeColor,
-  themeColor,
-  themeDensity,
-  themeSpacing,
-} from "@domphy/theme";
+import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { card, heading, icon, small } from "@domphy/ui";
 import { fixed } from "../../shared/typography.js";
 
@@ -31,19 +26,25 @@ export interface PieDatum {
   key: string;
   name: string;
   value: number;
-  color?: ThemeColor;
+  /** Optional ramp tone override (defaults to the palette rotation by index). */
+  tone?: PieSeriesTone;
 }
 
-// Sequential chart-palette rotation standing in for "a blue, a teal, an
-// amber, an orange, a neutral gray" — five semantic role families, never a
-// hard-coded hex value, so the rotation still follows the active theme.
-export const PIE_CHART_PALETTE: ThemeColor[] = [
-  "info",
-  "success",
-  "warning",
-  "attention",
-  "neutral",
-];
+// Single-hue slice ramp within the `primary` (blue) family: upstream shadcn
+// v4's light-theme chart palette is a MONOCHROME BLUE RAMP (chart-1=blue-300
+// … chart-5=blue-800), and every pie demo colors its slices var(--chart-1) …
+// var(--chart-5) in data order — never distinct semantic hues. The domphy
+// `primary` family IS blue, so the ramp maps onto increasing primary tones
+// approximating blue-300 → blue-800.
+export const PIE_CHART_PALETTE = [
+  "shift-4",
+  "shift-6",
+  "shift-8",
+  "shift-10",
+  "shift-12",
+] as const;
+
+export type PieSeriesTone = (typeof PIE_CHART_PALETTE)[number];
 
 // Illustrative sample data only (five browsers over a Jan-Jun window) — not a
 // required schema. Callers pass their own `data` array in real usage.
@@ -55,8 +56,9 @@ export const DEFAULT_PIE_DATA: PieDatum[] = [
   { key: "other", name: "Other", value: 90 },
 ];
 
-export function resolveSliceColor(datum: PieDatum, index: number): ThemeColor {
-  return datum.color ?? PIE_CHART_PALETTE[index % PIE_CHART_PALETTE.length];
+/** The slice's ramp tone within the primary family (approximates var(--chart-N)). */
+export function resolveSliceTone(datum: PieDatum, index: number): string {
+  return datum.tone ?? PIE_CHART_PALETTE[index % PIE_CHART_PALETTE.length];
 }
 
 export function defaultValueFormatter(value: number): string {
@@ -90,7 +92,8 @@ export interface PieSlice {
   endAngle: number;
   midAngle: number;
   fraction: number;
-  color: ThemeColor;
+  /** Ramp tone within the primary family (see PIE_CHART_PALETTE). */
+  tone: string;
 }
 
 /** Cumulative-angle layout for a pie/donut ring, starting at 12 o'clock. */
@@ -110,7 +113,7 @@ export function layoutPieSlices(data: PieDatum[]): PieSlice[] {
       endAngle,
       midAngle: startAngle + sweep / 2,
       fraction,
-      color: resolveSliceColor(datum, index),
+      tone: resolveSliceTone(datum, index),
     };
   });
 }
@@ -167,7 +170,8 @@ export interface PieTooltipInfo {
   visible: boolean;
   x: number;
   y: number;
-  swatchColor: ThemeColor;
+  /** Ramp tone of the hovered slice (within the primary family). */
+  swatchTone: string;
   name: string;
   value: string;
   /** "swatch" = filled square (default); "line" = thin bar, used by multi-ring charts. */
@@ -178,7 +182,7 @@ const HIDDEN_TOOLTIP: PieTooltipInfo = {
   visible: false,
   x: 0,
   y: 0,
-  swatchColor: "neutral",
+  swatchTone: "shift-9",
   name: "",
   value: "",
   markerShape: "swatch",
@@ -205,7 +209,7 @@ export interface WireTooltipOptions {
 
 /** Pointer handlers that drive the shared tooltip layer from one wedge. */
 export function wedgeTooltipHandlers(
-  slice: Pick<PieSlice, "datum" | "color">,
+  slice: Pick<PieSlice, "datum" | "tone">,
   options: WireTooltipOptions,
 ): Pick<
   DomphyElement<"path">,
@@ -232,7 +236,7 @@ export function wedgeTooltipHandlers(
       visible: true,
       x: rect ? mouseEvent.clientX - rect.left : 0,
       y: rect ? mouseEvent.clientY - rect.top : 0,
-      swatchColor: slice.color,
+      swatchTone: slice.tone,
       name,
       value: valueFormatter(slice.datum.value),
       markerShape,
@@ -267,7 +271,7 @@ export function pieTooltipLayer(
             rx: (l: Listener) =>
               tooltipState.get(l).markerShape === "line" ? "1" : "2",
             fill: (l: Listener) =>
-              themeColor(l, "shift-9", tooltipState.get(l).swatchColor),
+              themeColor(l, tooltipState.get(l).swatchTone, "primary"),
           } as DomphyElement<"rect">,
         ],
         viewBox: "0 0 10 10",
@@ -368,7 +372,7 @@ export function pieWedgePath(
   const element: DomphyElement<"path"> = {
     path: null,
     d: arcSlicePath(slice, innerRadius, outerRadius, padAngle),
-    fill: (l: Listener) => themeColor(l, "shift-9", slice.color),
+    fill: (l: Listener) => themeColor(l, slice.tone, "primary"),
     strokeWidth,
     strokeLinejoin: "round",
     cursor: "pointer",
@@ -381,11 +385,12 @@ export function pieWedgePath(
   return element;
 }
 
-/** Small inline color chip (an `<svg><rect>`, not a `style.backgroundColor` surface) for legends/selects. */
+/** Small inline color chip (an `<svg><rect>`, not a `style.backgroundColor` surface) for legends/selects.
+ * Takes a ramp tone within the primary family (or a reactive tone getter). */
 export function colorSwatch(
-  color: ThemeColor | ((listener: Listener) => ThemeColor),
+  tone: string | ((listener: Listener) => string),
 ): DomphyElement<"svg"> {
-  const resolve = typeof color === "function" ? color : () => color;
+  const resolve = typeof tone === "function" ? tone : () => tone;
   return {
     svg: [
       {
@@ -395,7 +400,7 @@ export function colorSwatch(
         width: "8",
         height: "8",
         rx: "2",
-        fill: (l: Listener) => themeColor(l, "shift-9", resolve(l)),
+        fill: (l: Listener) => themeColor(l, resolve(l), "primary"),
       } as DomphyElement<"rect">,
     ],
     viewBox: "0 0 10 10",
@@ -564,7 +569,7 @@ export function pieLegendRow(
 ): DomphyElement<"div"> {
   const items: DomphyElement<"div">[] = data.map((datum, index) => ({
     div: [
-      colorSwatch(resolveSliceColor(datum, index)),
+      colorSwatch(resolveSliceTone(datum, index)),
       { small: datum.name, $: [small()] },
     ],
     _key: datum.key,

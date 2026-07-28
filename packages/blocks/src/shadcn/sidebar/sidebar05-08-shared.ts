@@ -3,8 +3,13 @@
 // actual factory function; this module only holds icons/types/helpers reused
 // across the four variants to avoid duplicating ~150 lines of layout per file.
 
-import type { DomphyElement, Listener, ReadableState } from "@domphy/core";
-import { toState } from "@domphy/core";
+import type {
+  DomphyElement,
+  Listener,
+  RawHTML,
+  ReadableState,
+} from "@domphy/core";
+import { rawHtml, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   avatar,
@@ -137,12 +142,24 @@ export type { SidebarBreadcrumbItem };
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Normalizes a glyph slot that callers fill with EITHER inline SVG markup or a
+ * plain text glyph (an emoji, a title initial). Markup opts into DOM parsing
+ * via `rawHtml()`; anything else stays an ordinary escaped text child.
+ */
+function glyphChild(glyph: string): string | RawHTML {
+  return glyph.startsWith("<") ? rawHtml(glyph) : glyph;
+}
+
 /** Wraps a raw inline SVG string in a themed icon() span. */
 function sidebarIcon(
   svg: string,
   color: "neutral" | "primary" = "neutral",
 ): DomphyElement<"span"> {
-  return { span: svg, $: [icon({ color })] } as DomphyElement<"span">;
+  return {
+    span: glyphChild(svg),
+    $: [icon({ color })],
+  } as DomphyElement<"span">;
 }
 
 /**
@@ -174,7 +191,9 @@ function placeholderCard(key: string | number): DomphyElement<"div"> {
   return {
     div: null,
     _key: key,
-    dataTone: "shift-2",
+    // Near-white muted fill — upstream bg-muted/50 territory; shift-2 reads
+    // visibly dirty at this size.
+    dataTone: "shift-1",
     style: {
       aspectRatio: "16 / 9",
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
@@ -188,7 +207,7 @@ function placeholderCard(key: string | number): DomphyElement<"div"> {
 function placeholderPanel(): DomphyElement<"div"> {
   return {
     div: null,
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     style: {
       flex: "1",
       minHeight: themeSpacing(80),
@@ -366,6 +385,7 @@ function sidebarBackdrop(
 }
 
 export {
+  glyphChild,
   sidebarIcon,
   srOnlyLabel,
   placeholderCard,
@@ -435,12 +455,13 @@ function navBadgePill(count: string | number): DomphyElement<"span"> {
   } as unknown as DomphyElement<"span">;
 }
 
-/** Icon badge used by the team-switcher and the brand mark. Edge-anchored
- * dataTone surface per the design system's badge convention. */
+/** Icon badge used by the team-switcher and the brand mark. Solid near-black
+ * (upstream sidebar-primary) with a light glyph — the same solid-dark pattern
+ * as signup01's submit button. */
 function iconBadge(svg: string): DomphyElement<"span"> {
   return {
-    span: svg,
-    dataTone: "shift-0",
+    span: glyphChild(svg),
+    dataTone: "shift-17",
     style: {
       display: "flex",
       alignItems: "center",
@@ -449,8 +470,8 @@ function iconBadge(svg: string): DomphyElement<"span"> {
       height: themeSpacing(8),
       flexShrink: "0",
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-      backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
-      color: (l: Listener) => themeColor(l, "shift-10", "primary"),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
   } as unknown as DomphyElement<"span">;
 }
@@ -462,6 +483,9 @@ function twoLineLabel(title: string, caption: string): DomphyElement<"div"> {
     div: [
       {
         strong: title,
+        // strong() paints an inherit-tone background; keep it transparent so
+        // no box appears over the host row's hover/active tint.
+        style: { backgroundColor: "transparent" },
         $: [strong({ color: "neutral" })],
       } as unknown as DomphyElement,
       {
@@ -556,8 +580,9 @@ function renderPlainNavRow(
       backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
     },
     "&[aria-current=page]": {
-      backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary"),
-      color: (l: Listener) => themeColor(l, "shift-12", "primary"),
+      // Upstream active nav item is monochrome (sidebar-accent), not brand blue.
+      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+      color: (l: Listener) => themeColor(l, "shift-12", "neutral"),
     },
   };
 
@@ -633,7 +658,7 @@ function renderExpandableNavRow(
                 style: { flex: "1", textAlign: "left" },
               } as unknown as DomphyElement,
               {
-                span: ICON_CHEVRON_RIGHT,
+                span: rawHtml(ICON_CHEVRON_RIGHT),
                 dataSlot: "nav-chevron",
                 style: { transition: "transform 150ms ease" },
                 $: [icon({ color: "neutral" })],
@@ -669,6 +694,9 @@ function renderExpandableNavRow(
                     ? ([
                         {
                           strong: child.title,
+                          // strong() paints an inherit-tone background; keep it
+                          // transparent so no box appears over the active pill.
+                          style: { backgroundColor: "transparent" },
                           $: [strong({ color: "neutral" })],
                         },
                       ] as unknown as DomphyElement)
@@ -691,9 +719,9 @@ function renderExpandableNavRow(
                     },
                     "&[aria-current=page]": {
                       backgroundColor: (l: Listener) =>
-                        themeColor(l, "shift-3", "primary"),
+                        themeColor(l, "shift-2", "neutral"),
                       color: (l: Listener) =>
-                        themeColor(l, "shift-12", "primary"),
+                        themeColor(l, "shift-12", "neutral"),
                     },
                   },
                 } as unknown as DomphyElement,
@@ -762,8 +790,8 @@ function renderExpandableNavRow(
           },
           "&[aria-expanded=true]": {
             backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-3", "primary"),
-            color: (l: Listener) => themeColor(l, "shift-12", "primary"),
+              themeColor(l, "shift-2", "neutral"),
+            color: (l: Listener) => themeColor(l, "shift-12", "neutral"),
           },
         },
         $: [
@@ -1045,11 +1073,11 @@ function renderUserFooter(user: SidebarUser): DomphyElement<"div"> {
             alt: user.name,
           } as unknown as DomphyElement,
         ],
-        $: [avatar({ color: "primary" })],
+        $: [avatar({ color: "neutral" })],
       } as unknown as DomphyElement<"span">)
     : ({
         span: initialsOf(user.name),
-        $: [avatar({ color: "primary" })],
+        $: [avatar({ color: "neutral" })],
       } as unknown as DomphyElement<"span">);
 
   const dropdownAvatar: DomphyElement<"span"> = user.avatarUrl
@@ -1061,11 +1089,11 @@ function renderUserFooter(user: SidebarUser): DomphyElement<"div"> {
             alt: user.name,
           } as unknown as DomphyElement,
         ],
-        $: [avatar({ color: "primary" })],
+        $: [avatar({ color: "neutral" })],
       } as unknown as DomphyElement<"span">)
     : ({
         span: initialsOf(user.name),
-        $: [avatar({ color: "primary" })],
+        $: [avatar({ color: "neutral" })],
       } as unknown as DomphyElement<"span">);
 
   // Upstream nav-user.tsx dropdown: a header block (avatar + name + email),

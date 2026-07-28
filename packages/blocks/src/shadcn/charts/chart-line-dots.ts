@@ -15,6 +15,7 @@ import type { DomphyElement } from "@domphy/core";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
 import {
   chartCard,
+  chartLineSeriesColor,
   chartPlot,
   computeYDomain,
   DEFAULT_LINE_GRID,
@@ -69,7 +70,9 @@ function chartLineDots(props: ChartLineDotsProps = {}): DomphyElement<"div"> {
   const categories = data.map((point) => point.month);
   const values = data.map((point) => point.desktop);
   const yDomain = computeYDomain(values);
-  const dotFill = themeColorToken(null, "shift-9", seriesColor);
+  // Upstream's stroke/dots are var(--chart-1) — the ramp's first step.
+  const ramp = chartLineSeriesColor(0);
+  const dotFill = themeColorToken(null, ramp.tone, seriesColor);
 
   const option: ChartOption = {
     grid: DEFAULT_LINE_GRID,
@@ -92,7 +95,7 @@ function chartLineDots(props: ChartLineDotsProps = {}): DomphyElement<"div"> {
         // (upstream `dot={{ fill: color }}`); the engine's built-in line symbol
         // is a hollow white-fill circle, so it is disabled here.
         showSymbol: false,
-        lineStyle: { width: 2 },
+        lineStyle: { width: 2, opacity: ramp.strokeOpacity },
         color: seriesColor,
       },
     ],
@@ -127,6 +130,7 @@ function chartLineDots(props: ChartLineDotsProps = {}): DomphyElement<"div"> {
           yDomain,
           grid: DEFAULT_LINE_GRID,
           color: seriesColor,
+          tone: ramp.tone,
           radius: activeDotRadius,
         }),
       ],

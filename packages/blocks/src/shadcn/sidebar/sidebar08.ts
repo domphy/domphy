@@ -22,6 +22,7 @@ import {
   ICON_LIFEBUOY,
   ICON_MARK,
   ICON_MESSAGE,
+  glyphChild,
   renderExpandableNavRow,
   renderPlainNavRow,
   renderProjectRow,
@@ -77,8 +78,8 @@ function renderBrandHeader(team: SidebarTeam): DomphyElement<"div"> {
       {
         a: [
           {
-            span: team.logo ?? ICON_MARK,
-            dataTone: "shift-0",
+            span: glyphChild(team.logo ?? ICON_MARK),
+            dataTone: "shift-17",
             style: {
               display: "flex",
               alignItems: "center",
@@ -88,8 +89,8 @@ function renderBrandHeader(team: SidebarTeam): DomphyElement<"div"> {
               flexShrink: "0",
               borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
               backgroundColor: (l: Listener) =>
-                themeColor(l, "inherit", "primary"),
-              color: (l: Listener) => themeColor(l, "shift-10", "primary"),
+                themeColor(l, "inherit", "neutral"),
+              color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
             },
           } as unknown as DomphyElement,
           {
@@ -476,7 +477,7 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
       mainElement,
       sidebarBackdrop(sidebarOpen, () => sidebarOpen.set(false)),
     ],
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     style: {
       display: "flex",
       height: "100dvh",

@@ -25,7 +25,7 @@ import {
   pieCardTitle,
   pieCenterText,
   pieChartContainer,
-  resolveSliceColor,
+  resolveSliceTone,
   wedgeTooltipHandlers,
 } from "./pie-chart-shared.js";
 
@@ -102,7 +102,7 @@ function chartPieInteractive(
         },
         transition: "d 260ms ease-out",
       },
-      fill: (l: Listener) => themeColor(l, "shift-9", slice.color),
+      fill: (l: Listener) => themeColor(l, slice.tone, "primary"),
       // Uniform stroke on every wedge — upstream applies a single
       // strokeWidth={5} to the whole <Pie> and the active sector inherits it
       // via {...props}, so selection changes the wedge's radius, never its
@@ -129,7 +129,7 @@ function chartPieInteractive(
   const activeRings: DomphyElement<"path">[] = slices.map((slice) => ({
     path: null,
     d: arcSlicePath(slice, activeRingInner, activeRingOuter, 0),
-    fill: (l: Listener) => themeColor(l, "shift-9", slice.color),
+    fill: (l: Listener) => themeColor(l, slice.tone, "primary"),
     stroke: "none",
     ariaHidden: "true",
     _key: `${slice.datum.key}-active-ring`,
@@ -150,7 +150,7 @@ function chartPieInteractive(
     // note in the port report).
     style: {
       color: (l: Listener) =>
-        themeColor(l, "shift-9", resolveSliceColor(datum, index)),
+        themeColor(l, resolveSliceTone(datum, index), "primary"),
     },
     _key: datum.key,
   }));
@@ -161,13 +161,13 @@ function chartPieInteractive(
     return datum ? valueFormatter(datum.value) : "";
   };
 
-  const selectedSwatchColor = (l: Listener) => {
+  const selectedSwatchTone = (l: Listener) => {
     const key = selectedKey.get(l);
     const index = Math.max(
       data.findIndex((record) => record.key === key),
       0,
     );
-    return resolveSliceColor(
+    return resolveSliceTone(
       data[index] ?? { key: "", name: "", value: 0 },
       index,
     );
@@ -178,7 +178,7 @@ function chartPieInteractive(
     pieCardDescription(description, false),
     {
       aside: [
-        colorSwatch(selectedSwatchColor),
+        colorSwatch(selectedSwatchTone),
         {
           select: options,
           value: (l: Listener) => selectedKey.get(l),

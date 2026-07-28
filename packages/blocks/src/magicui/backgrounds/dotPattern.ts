@@ -70,7 +70,7 @@ const GLOW_PULSE_KEYFRAMES = {
 /**
  * A background of evenly spaced dots, optionally twinkling with an
  * independently-randomized glow per dot. Call with no arguments for a
- * working demo — a dark panel with a static dot grid behind a heading.
+ * working demo — a white panel with a static gray dot grid behind a heading.
  */
 function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
   const spacingWidth = Math.max(1, props.width ?? 16);
@@ -246,7 +246,7 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
         style: { position: "relative", zIndex: 1 },
       } as DomphyElement,
     ],
-    dataTone: "shift-15",
+    dataTone: "shift-0",
     style: {
       position: "relative",
       overflow: "hidden",

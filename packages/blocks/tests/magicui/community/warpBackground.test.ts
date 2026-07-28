@@ -22,7 +22,7 @@ describe("warpBackground", () => {
     const { host } = render(warpBackground());
 
     const container = host.firstElementChild!;
-    expect(container.getAttribute("data-tone")).toBe("shift-15");
+    expect(container.getAttribute("data-tone")).toBe("shift-0");
     const scene = container.firstElementChild!;
     // 4 planes (top/bottom/left/right), each with 3 default beams.
     expect(scene.children.length).toBe(4);

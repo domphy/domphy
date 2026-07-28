@@ -1,9 +1,10 @@
 // magicui "HeroVideoDialog" — direct-source-diffed against
 // registry/magicui/hero-video-dialog.tsx (Magic UI, MIT). A large clickable
 // video thumbnail with a STATIC nested double-circle play button (a frosted
-// translucent-primary outer circle wrapping a primary-blue gradient inner
-// button) that opens the real video in an animated modal above a dimmed
-// backdrop. Built on the `dialog()` ui patch (native <dialog>, backdrop, focus
+// translucent-neutral outer circle wrapping a near-black gradient inner
+// button — upstream's `primary` is its docs theme's near-black, not the
+// domphy blue primary ramp) that opens the real video in an animated modal
+// above a dimmed backdrop. Built on the `dialog()` ui patch (native <dialog>, backdrop, focus
 // trap, scroll lock, outside-click close) with an extra transform layered on
 // top for the edge-slide/grow animation presets — the same technique used by
 // the shadcn "sidebar-in-dialog" block's scale-in dialog. Hover feedback
@@ -94,7 +95,7 @@ function playGlyph(): DomphyElement<"span"> {
       transformOrigin: "center",
       transition: "transform 200ms ease-out",
       // Upstream `fill-white text-white` — the lightest neutral tone reads as
-      // white on the saturated primary-blue button (same light-on-fill idiom
+      // white on the near-black button (same light-on-fill idiom
       // rainbowButton / interactiveHoverButton use).
       color: (listener: Listener) => themeColor(listener, "shift-0", "neutral"),
       // Upstream inline two-layer black drop-shadow (7% / 6% alpha).
@@ -138,7 +139,7 @@ function placeholderThumbnail(alt: string): DomphyElement<"div"> {
     div: [{ small: alt, $: [small()] }],
     dataHvdThumb: "true",
     ariaHidden: "true",
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     style: {
       display: "flex",
       alignItems: "center",
@@ -156,11 +157,12 @@ function placeholderThumbnail(alt: string): DomphyElement<"div"> {
 
 /**
  * Static nested double-circle play control centered over the thumbnail
- * (upstream): a frosted translucent-primary outer circle (`bg-primary/10
- * backdrop-blur-md size-28`) wrapping a primary-blue gradient inner button
- * (`from-primary/30 to-primary bg-linear-to-b shadow-md size-20`) with the
- * white play glyph. The overlay, inner button, and glyph carry `data-hvd-*`
- * hooks for the trigger's group-hover scale feedback.
+ * (upstream): a frosted translucent-neutral outer circle (`bg-primary/10
+ * backdrop-blur-md size-28`) wrapping a near-black gradient inner button
+ * (`from-primary/30 to-primary bg-linear-to-b shadow-md size-20` — upstream's
+ * primary is near-black) with the white play glyph. The overlay, inner
+ * button, and glyph carry `data-hvd-*` hooks for the trigger's group-hover
+ * scale feedback.
  */
 function playButton(): DomphyElement<"div"> {
   // `_doctorDisable`d for `missing-color` (decorative, no text) and
@@ -183,9 +185,11 @@ function playButton(): DomphyElement<"div"> {
       transform: "scale(1)",
       transformOrigin: "center",
       transition: "transform 200ms ease-out",
-      // `bg-linear-to-b from-primary/30 to-primary`.
+      // Upstream `bg-linear-to-b from-primary/30 to-primary` — upstream's
+      // docs theme primary is near-black, so this is a neutral dark gradient
+      // here, NOT the domphy (blue) primary ramp.
       backgroundImage: (listener: Listener) =>
-        `linear-gradient(to bottom, color-mix(in srgb, ${themeColor(listener, "shift-9", "primary")} 30%, transparent), ${themeColor(listener, "shift-9", "primary")})`,
+        `linear-gradient(to bottom, color-mix(in srgb, ${themeColor(listener, "shift-16", "neutral")} 30%, transparent), ${themeColor(listener, "shift-16", "neutral")})`,
       // `shadow-md`.
       boxShadow: (listener: Listener) =>
         `0 ${themeSpacing(1)} ${themeSpacing(2)} ${themeColor(listener, "shift-4", "neutral")}`,
@@ -205,9 +209,10 @@ function playButton(): DomphyElement<"div"> {
       borderRadius: "50%",
       // `backdrop-blur-md` (12px == themeSpacing(3)).
       backdropFilter: (_listener: Listener) => `blur(${themeSpacing(3)})`,
-      // `bg-primary/10`.
+      // `bg-primary/10` — upstream primary is near-black; with the backdrop
+      // blur this reads as a frosted neutral veil over the thumbnail.
       backgroundColor: (listener: Listener) =>
-        `color-mix(in srgb, ${themeColor(listener, "shift-9", "primary")} 10%, transparent)`,
+        `color-mix(in srgb, ${themeColor(listener, "shift-17", "neutral")} 10%, transparent)`,
     } as StyleObject,
   } as DomphyElement<"div">;
 

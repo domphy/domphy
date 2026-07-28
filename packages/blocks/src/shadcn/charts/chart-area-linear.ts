@@ -17,6 +17,8 @@ import {
   type ChartAreaSinglePoint,
   type ChartTrendDirection,
   chartAreaFrame,
+  chartAreaGradientFill,
+  chartAreaSeriesColor,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartTrendFooter,
@@ -55,6 +57,7 @@ function chartAreaLinear(
   } = props;
 
   const categories = data.map((point) => point.month);
+  const ramp = chartAreaSeriesColor(0);
 
   const option: ChartOption = {
     tooltip: {
@@ -66,7 +69,7 @@ function chartAreaLinear(
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     yAxis: CHART_AREA_Y_AXIS_HIDDEN,
-    grid: { left: 8, right: 8, top: 12, bottom: 24, containLabel: false },
+    grid: { left: 8, right: 8, top: 12, bottom: 32, containLabel: false },
     series: [
       {
         type: "line",
@@ -74,8 +77,11 @@ function chartAreaLinear(
         smooth: false,
         showSymbol: false,
         color: seriesColor,
-        lineStyle: { width: 2 },
-        areaStyle: { opacity: 0.4 },
+        lineStyle: { width: 2, opacity: ramp.strokeOpacity },
+        areaStyle: {
+          color: chartAreaGradientFill("primary", 0.4, 0.4, ramp.tone),
+          opacity: 1,
+        },
         data: data.map((point) => point.value),
       },
     ],

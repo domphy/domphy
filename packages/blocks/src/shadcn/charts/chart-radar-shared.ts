@@ -49,10 +49,37 @@ export interface RadarPoint {
   [seriesKey: string]: number | string;
 }
 
+// Single-hue series ramp within the `primary` (blue) family: upstream shadcn
+// v4's light-theme chart palette is a MONOCHROME BLUE RAMP (chart-1=blue-300
+// … chart-5=blue-800), and every radar demo colors its series var(--chart-1),
+// var(--chart-2) — never distinct semantic hues. The domphy `primary` family
+// IS blue, so the ramp maps onto increasing primary tones approximating
+// blue-300 → blue-800.
+export const CHART_RADAR_SERIES_TONES = [
+  "shift-4",
+  "shift-6",
+  "shift-8",
+  "shift-10",
+  "shift-12",
+] as const;
+
+export type ChartRadarSeriesTone = (typeof CHART_RADAR_SERIES_TONES)[number];
+
+/** The nth series' ramp tone (approximates upstream `var(--chart-N)`). */
+export function chartRadarSeriesTone(index: number): ChartRadarSeriesTone {
+  const step =
+    ((index % CHART_RADAR_SERIES_TONES.length) +
+      CHART_RADAR_SERIES_TONES.length) %
+    CHART_RADAR_SERIES_TONES.length;
+  return CHART_RADAR_SERIES_TONES[step];
+}
+
 export interface RadarSeriesConfig {
   key: string;
   label: string;
   color: ThemeColor;
+  /** Ramp tone for the polygon fill/stroke and its swatches (defaults to shift-9). */
+  tone?: string;
   fillOpacity?: number;
   /** Legend glyph override (arrow icon instead of a plain swatch) — chartRadarIcons only. */
   icon?: "up" | "down";
@@ -96,7 +123,13 @@ export const RADAR_MONTHLY_TIGHT_DATA: RadarPoint[] = [
 ];
 
 export const RADAR_SINGLE_SERIES: RadarSeriesConfig[] = [
-  { key: "value", label: "Desktop", color: "primary", fillOpacity: 0.6 },
+  {
+    key: "value",
+    label: "Desktop",
+    color: "primary",
+    tone: chartRadarSeriesTone(0),
+    fillOpacity: 0.6,
+  },
 ];
 
 // Upstream draws desktop with an explicit `fillOpacity={0.6}` and mobile with
@@ -109,13 +142,15 @@ export const RADAR_MULTI_SERIES: RadarSeriesConfig[] = [
     key: "desktop",
     label: "Desktop",
     color: "primary",
+    tone: chartRadarSeriesTone(0),
     fillOpacity: 0.6,
     icon: "down",
   },
   {
     key: "mobile",
     label: "Mobile",
-    color: "secondary",
+    color: "primary",
+    tone: chartRadarSeriesTone(1),
     fillOpacity: 1,
     icon: "up",
   },
@@ -205,6 +240,8 @@ export interface RadarGridProps {
   ringFractions?: number[];
   showSpokes?: boolean;
   strokeWidth?: number;
+  /** Ring/spoke stroke tone (defaults to the faint shift-3 gridline tone). */
+  strokeTone?: string;
   fill?: { color: ThemeColor; opacity: number };
   plotRadius?: number;
 }
@@ -218,6 +255,7 @@ export function renderRadarGrid(props: RadarGridProps): DomphyElement[] {
     ringFractions,
     showSpokes = true,
     strokeWidth = 1,
+    strokeTone = "shift-3",
     fill,
     plotRadius = RADAR_PLOT_RADIUS,
   } = props;
@@ -263,7 +301,7 @@ export function renderRadarGrid(props: RadarGridProps): DomphyElement[] {
             cy: RADAR_CENTER,
             r: radius,
             fill: "none",
-            stroke: (l: Listener) => themeColor(l, "shift-3"),
+            stroke: (l: Listener) => themeColor(l, strokeTone),
             strokeWidth,
             _key: `ring-${index}`,
           } as DomphyElement<"circle">)
@@ -271,7 +309,7 @@ export function renderRadarGrid(props: RadarGridProps): DomphyElement[] {
             polygon: null,
             points: ringPoints(categoryCount, radius),
             fill: "none",
-            stroke: (l: Listener) => themeColor(l, "shift-3"),
+            stroke: (l: Listener) => themeColor(l, strokeTone),
             strokeWidth,
             _key: `ring-${index}`,
           } as DomphyElement<"polygon">),
@@ -290,7 +328,7 @@ export function renderRadarGrid(props: RadarGridProps): DomphyElement[] {
         y1: RADAR_CENTER,
         x2: point.x,
         y2: point.y,
-        stroke: (l: Listener) => themeColor(l, "shift-3"),
+        stroke: (l: Listener) => themeColor(l, strokeTone),
         strokeWidth: 1,
         _key: `spoke-${index}`,
       } as DomphyElement<"line">);
@@ -482,13 +520,14 @@ export function renderRadarSeriesShape(
     );
   });
   const fillOpacity = strokeOnly ? 0 : (series.fillOpacity ?? 0.6);
+  const seriesTone = series.tone ?? "shift-9";
 
   const shapeElement: DomphyElement<"polygon"> = {
     polygon: null,
     points: points.map((point) => `${point.x},${point.y}`).join(" "),
-    fill: (l: Listener) => themeColor(l, "shift-9", series.color),
+    fill: (l: Listener) => themeColor(l, seriesTone, series.color),
     fillOpacity,
-    stroke: (l: Listener) => themeColor(l, "shift-9", series.color),
+    stroke: (l: Listener) => themeColor(l, seriesTone, series.color),
     strokeWidth: 2,
     _key: `${series.key}-shape`,
   };
@@ -501,7 +540,7 @@ export function renderRadarSeriesShape(
             cx: point.x,
             cy: point.y,
             r: dotRadius,
-            fill: (l: Listener) => themeColor(l, "shift-9", series.color),
+            fill: (l: Listener) => themeColor(l, seriesTone, series.color),
             stroke: "none",
             _key: `${series.key}-dot-${data[index].category}`,
           }) as DomphyElement<"circle">,
@@ -608,6 +647,7 @@ export interface RadarTooltipLayerOptions {
 function radarIndicatorMark(
   color: ThemeColor,
   style: "swatch" | "line",
+  tone = "shift-9",
 ): DomphyElement<"span"> {
   const element = {
     span: null,
@@ -620,7 +660,7 @@ function radarIndicatorMark(
             height: themeSpacing(3),
             borderRadius: themeSpacing(1),
             flexShrink: "0",
-            backgroundColor: (l: Listener) => themeColor(l, "shift-9", color),
+            backgroundColor: (l: Listener) => themeColor(l, tone, color),
             color: (l: Listener) => themeColor(l, "shift-0", color),
           }
         : {
@@ -629,7 +669,7 @@ function radarIndicatorMark(
             height: themeSpacing(2.5),
             borderRadius: themeSpacing(1),
             flexShrink: "0",
-            backgroundColor: (l: Listener) => themeColor(l, "shift-9", color),
+            backgroundColor: (l: Listener) => themeColor(l, tone, color),
             color: (l: Listener) => themeColor(l, "shift-0", color),
           },
   };
@@ -664,7 +704,7 @@ export function radarTooltipLayer(
   series.forEach((entry, index) => {
     const row: DomphyElement[] = [];
     if (indicator !== "none")
-      row.push(radarIndicatorMark(entry.color, indicator));
+      row.push(radarIndicatorMark(entry.color, indicator, entry.tone));
     if (indicator !== "none" || series.length > 1) {
       // Series name: left-aligned, muted-foreground, normal weight (upstream's
       // `<span className="text-muted-foreground">`).
@@ -736,6 +776,9 @@ export interface RadarChartProps {
   gridRingCount?: number;
   gridRingFractions?: number[];
   gridShowSpokes?: boolean;
+  gridStrokeWidth?: number;
+  /** Ring/spoke stroke tone override (chartRadarGridCustom's clearer ring). */
+  gridStrokeTone?: string;
   gridFill?: { color: ThemeColor; opacity: number } | null;
   showRadiusAxisLine?: boolean;
   radiusAxisAngle?: number;
@@ -765,6 +808,8 @@ export function renderRadarChart(props: RadarChartProps): DomphyElement<"div"> {
     gridRingCount = 4,
     gridRingFractions,
     gridShowSpokes = true,
+    gridStrokeWidth,
+    gridStrokeTone,
     gridFill = null,
     showRadiusAxisLine = false,
     radiusAxisAngle = 60,
@@ -799,6 +844,8 @@ export function renderRadarChart(props: RadarChartProps): DomphyElement<"div"> {
           ringCount: gridRingCount,
           ringFractions: gridRingFractions,
           showSpokes: gridShowSpokes,
+          strokeWidth: gridStrokeWidth,
+          strokeTone: gridStrokeTone,
           fill: gridFill ?? undefined,
           plotRadius,
         });

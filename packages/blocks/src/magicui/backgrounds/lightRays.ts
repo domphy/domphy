@@ -22,8 +22,8 @@ import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
 export interface LightRaysProps {
   /** Number of rays. Defaults to `7`. */
   count?: number;
-  /** Theme color family for the ray tint. Defaults to `"primary"` (reads as a soft
-   * translucent blue against a dark backdrop). */
+  /** Theme color family for the ray tint. Defaults to `"neutral"` (white/
+   * monochrome beams against the dark backdrop, matching upstream's default). */
   color?: ThemeColor;
   /** Blur radius, in px. Defaults to `36`. */
   blur?: number;
@@ -78,7 +78,7 @@ function glowBlob(
 function lightRays(props: LightRaysProps = {}): DomphyElement<"div"> {
   const instanceId = ++lightRaysInstanceCounter;
   const count = Math.max(1, Math.round(props.count ?? 7));
-  const color = props.color ?? "primary";
+  const color = props.color ?? "neutral";
   const blur = props.blur ?? 36;
   const speed = props.speed ?? 14;
   const length = props.length ?? "70vh";

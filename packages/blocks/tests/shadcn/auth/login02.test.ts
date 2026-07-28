@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 describe("Login02", () => {
-  it("renders a working demo tree with zero args: split grid, form column, cover image column", () => {
+  it("renders a working demo tree with zero args: split grid, form column, cover column", () => {
     const { host } = render(Login02() as DomphyElement);
     expect(host.querySelector("form")).toBeTruthy();
     expect(
@@ -27,7 +27,9 @@ describe("Login02", () => {
     expect(
       host.querySelector('input[name="password"][type="password"]'),
     ).toBeTruthy();
-    expect(host.querySelector("img")).toBeTruthy();
+    // No photo is hotlinked by default (clean-room) — the cover column
+    // renders a decorative theme-token panel instead of an <img>.
+    expect(host.querySelector("img")).toBeNull();
   });
 
   it("renders the brand row, GitHub OAuth button and sign-up footer line", () => {

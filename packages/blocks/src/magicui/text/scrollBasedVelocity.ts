@@ -19,7 +19,7 @@ import type {
   StyleObject,
 } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { themeSpacing } from "@domphy/theme";
+import { themeColor, themeSpacing } from "@domphy/theme";
 import { strong } from "@domphy/ui";
 
 export interface ScrollVelocityRow {
@@ -86,7 +86,15 @@ function wrap(min: number, max: number, value: number): number {
 
 /** Default repeating unit for string content: large, bold, uppercase-style display text. */
 function defaultTextNode(text: string): DomphyElement {
-  return { strong: text, $: [strong({ color: "neutral" })] } as DomphyElement;
+  // Near-black display text (the element's own style wins over the strong()
+  // patch's default gray) — upstream renders these rows in full foreground.
+  return {
+    strong: text,
+    $: [strong({ color: "neutral" })],
+    style: {
+      color: (listener) => themeColor(listener, "shift-14", "neutral"),
+    } as StyleObject,
+  } as DomphyElement;
 }
 
 function rowElement(
@@ -178,6 +186,12 @@ function rowElement(
       width: "100%",
       overflow: "hidden",
       whiteSpace: "nowrap",
+      // Fade both edges instead of hard-clipping the row (upstream demos mask
+      // the marquee ends so the text dissolves out of view).
+      maskImage:
+        "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
+      WebkitMaskImage:
+        "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
     },
   };
 }

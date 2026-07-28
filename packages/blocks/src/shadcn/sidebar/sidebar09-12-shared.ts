@@ -124,8 +124,9 @@ function interactiveRowStyle(dense = false) {
       backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
     },
     "&[aria-current=page], &[aria-current=true]": {
-      backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary"),
-      color: (l: Listener) => themeColor(l, "shift-12", "primary"),
+      // Upstream active nav item is monochrome (sidebar-accent), not brand blue.
+      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+      color: (l: Listener) => themeColor(l, "shift-12", "neutral"),
     },
   } as const;
 }

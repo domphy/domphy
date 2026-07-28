@@ -11,14 +11,15 @@
 
 import type { ChartOption } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
 import {
-  CHART_AREA_SERIES_PALETTE,
   CHART_AREA_TWO_SERIES_DATA,
   CHART_AREA_X_AXIS_BARE,
+  type ChartAreaSeriesTone,
   type ChartAreaTwoSeriesPoint,
   type ChartTrendDirection,
   chartAreaFrame,
+  chartAreaGradientFill,
+  chartAreaSeriesColor,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartTrendFooter,
@@ -27,7 +28,8 @@ import {
 export interface ChartAreaAxesSeries {
   key: "desktop" | "mobile";
   label: string;
-  color: ThemeColor;
+  /** Ramp tone within the primary family (approximates var(--chart-N)). */
+  tone: ChartAreaSeriesTone;
 }
 
 export interface ChartAreaAxesProps {
@@ -46,12 +48,12 @@ export interface ChartAreaAxesProps {
 // Declaration order sets the stack band arrangement: the engine draws
 // series[0] at the baseline (bottom band). Upstream declares Area(mobile)
 // before Area(desktop) under one stackId, so mobile is the bottom band and
-// desktop sits on top. Each key keeps its own color (mobile → chart-2,
-// desktop → chart-1), so the fill bands match upstream and the tooltip lists
+// desktop sits on top. Each key keeps its own ramp tone (mobile → chart-1,
+// desktop → chart-2), so the fill bands match upstream and the tooltip lists
 // mobile then desktop.
 const DEFAULT_SERIES: ChartAreaAxesSeries[] = [
-  { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[1] },
-  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0] },
+  { key: "mobile", label: "Mobile", tone: chartAreaSeriesColor(0).tone },
+  { key: "desktop", label: "Desktop", tone: chartAreaSeriesColor(1).tone },
 ];
 
 /**
@@ -89,16 +91,24 @@ function chartAreaAxes(props: ChartAreaAxesProps = {}): DomphyElement<"div"> {
       // Horizontal-only gridlines — the x-axis above keeps its splitLine off.
       splitLine: { show: true },
     },
-    grid: { left: 40, right: 8, top: 12, bottom: 24, containLabel: false },
-    series: series.map((s) => ({
+    grid: { left: 40, right: 8, top: 12, bottom: 32, containLabel: false },
+    series: series.map((s, seriesIndex) => ({
       type: "line",
       name: s.label,
       stack: "total",
       smooth: true,
       showSymbol: false,
-      color: s.color,
-      lineStyle: { width: 2 },
-      areaStyle: { opacity: 0.4 },
+      // The engine pins strokes to the family at shift-9; the ramp step is
+      // approximated via stroke opacity, and the fill carries the exact tone.
+      color: "primary",
+      lineStyle: {
+        width: 2,
+        opacity: chartAreaSeriesColor(seriesIndex).strokeOpacity,
+      },
+      areaStyle: {
+        color: chartAreaGradientFill("primary", 0.4, 0.4, s.tone),
+        opacity: 1,
+      },
       data: data.map((point) => point[s.key]),
     })),
   };

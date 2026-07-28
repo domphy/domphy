@@ -1,4 +1,5 @@
 import type { DomphyElement, Listener, PartialElement } from "@domphy/core";
+import { rawHtml } from "@domphy/core";
 import {
   themeColor,
   themeDensity,
@@ -64,7 +65,7 @@ function authFieldInput(): PartialElement {
       },
       "&:hover:not([disabled]), &:focus-visible": {
         outline: (listener: Listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "primary")}`,
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "neutral")}`,
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -148,7 +149,9 @@ function providerButton(provider: SocialProvider): DomphyElement<"button"> {
   return {
     button: [
       {
-        span: provider.iconSvg ?? letterBadgeIcon(provider.label.charAt(0)),
+        span: rawHtml(
+          provider.iconSvg ?? letterBadgeIcon(provider.label.charAt(0)),
+        ),
         $: [icon({ color: "inherit" })],
       },
     ],
@@ -380,7 +383,7 @@ function signup04(props: Signup04Props = {}): DomphyElement<"div"> {
 
   return {
     div: [panelWrap, legalLine(termsHref, privacyHref)],
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     style: {
       display: "flex",
       flexDirection: "column",

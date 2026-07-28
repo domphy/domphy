@@ -193,7 +193,7 @@ function videoText(props: VideoTextProps = {}): DomphyElement<"div"> {
     div: [fillLayer, maskDefs],
     role: "img",
     ariaLabel: text,
-    dataTone: "shift-16",
+    dataTone: "shift-0",
     style: {
       position: "relative",
       overflow: "hidden",

@@ -349,7 +349,7 @@ function warpBackground(props: WarpBackgroundProps = {}): DomphyElement<"div"> {
         style: { position: "relative" } as StyleObject,
       } as DomphyElement<"div">,
     ],
-    dataTone: "shift-15",
+    dataTone: "shift-0",
     style: {
       // Upstream root: `relative rounded border p-20`.
       position: "relative",

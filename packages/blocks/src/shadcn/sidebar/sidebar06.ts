@@ -18,6 +18,7 @@ import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   ICON_MARK,
   ICON_MORE,
+  glyphChild,
   type SidebarBreadcrumbItem,
   sidebarBackdrop,
   sidebarIcon,
@@ -213,7 +214,7 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
                 // re-asserts it); compose a later _onSchedule to restore the
                 // email type so upstream's `type="email"` validation is kept.
                 $: [
-                  inputText({ color: "neutral", accentColor: "primary" }),
+                  inputText({ color: "neutral", accentColor: "neutral" }),
                   {
                     _onSchedule: (
                       _node: ElementNode,
@@ -227,8 +228,15 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
               {
                 button: optInCard.buttonLabel,
                 type: "submit",
-                style: { width: "100%" },
-                $: [button({ color: "primary" })],
+                dataTone: "shift-17",
+                style: {
+                  width: "100%",
+                  // Solid near-black submit (upstream sidebar-primary button).
+                  backgroundColor: (l: Listener) =>
+                    themeColor(l, "inherit", "neutral"),
+                  color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+                },
+                $: [button({ color: "neutral" })],
               } as unknown as DomphyElement,
             ],
             // Handle submit on the form (covers both button click and
@@ -240,7 +248,7 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
             style: { display: "grid", gap: themeSpacing(2.5) },
           } as unknown as DomphyElement,
         ],
-        dataTone: "shift-2",
+        dataTone: "shift-0",
         // Upstream's <SidebarFooter> wraps this card and renders as a plain
         // `<div data-slot="sidebar-footer">` (not a semantic <footer>).
         dataSlot: "sidebar-footer",
@@ -272,8 +280,8 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
           {
             a: [
               {
-                span: header.icon ?? ICON_MARK,
-                dataTone: "shift-0",
+                span: glyphChild(header.icon ?? ICON_MARK),
+                dataTone: "shift-17",
                 style: {
                   display: "flex",
                   alignItems: "center",
@@ -284,8 +292,8 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
                   borderRadius: (l: Listener) =>
                     themeSpacing(themeDensity(l) * 2),
                   backgroundColor: (l: Listener) =>
-                    themeColor(l, "inherit", "primary"),
-                  color: (l: Listener) => themeColor(l, "shift-10", "primary"),
+                    themeColor(l, "inherit", "neutral"),
+                  color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
                 },
               } as unknown as DomphyElement,
               {
@@ -368,7 +376,7 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
         },
       } as unknown as DomphyElement,
     ],
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined" || !window.matchMedia) return;
       const media = window.matchMedia("(max-width: 768px)");

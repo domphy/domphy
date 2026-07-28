@@ -20,6 +20,7 @@ import {
   BROWSER_CATEGORY_DATA,
   type CategoryPoint,
   chartCard,
+  chartLineSeriesColor,
   chartPlot,
   computeYDomain,
   HIDDEN_AXIS_LINE_GRID,
@@ -31,6 +32,14 @@ import {
 } from "./chart-line-shared.js";
 
 const DOT_RADIUS = 5;
+
+// Per-point marker colors are literal ramp hexes (see BROWSER_CATEGORY_DATA);
+// a theme role falls back to a shift-9 resolution.
+function pointColorHex(color: string): string {
+  return color.startsWith("#") || color.startsWith("rgb")
+    ? color
+    : themeColorToken(null, "shift-9", color as ThemeColor);
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -63,7 +72,7 @@ function chartLineDotsColors(
   const {
     title = "Line Chart - Dots Colors",
     description = "Browser share for the last 6 months",
-    seriesColor = "secondary",
+    seriesColor = "primary",
     data = BROWSER_CATEGORY_DATA,
     trendHeadline = "Trending up by 4.8% this period",
     trendSubtitle = "Showing browser share across five platforms",
@@ -84,8 +93,10 @@ function chartLineDotsColors(
   ): string {
     const point = Array.isArray(params) ? params[0] : params;
     if (!point) return "";
-    const pointColor = data[point.dataIndex]?.color ?? seriesColor;
-    const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${themeColorToken(null, "shift-9", pointColor)};"></span>`;
+    const pointColor = pointColorHex(
+      data[point.dataIndex]?.color ?? seriesColor,
+    );
+    const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${pointColor};"></span>`;
     const label = escapeHtml(String(point.seriesName ?? point.name ?? ""));
     return tooltipRow(swatch, label, escapeHtml(String(point.value ?? "")));
   }
@@ -106,7 +117,12 @@ function chartLineDotsColors(
         data: values,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 2 },
+        // Upstream's uniform line stroke is var(--chart-2): the engine pins
+        // strokes to shift-9, so the ramp step is approximated via opacity.
+        lineStyle: {
+          width: 2,
+          opacity: chartLineSeriesColor(1).strokeOpacity,
+        },
         color: seriesColor,
       },
     ],
@@ -133,7 +149,7 @@ function chartLineDotsColors(
             circle.setAttribute("r", String(DOT_RADIUS));
             circle.setAttribute(
               "fill",
-              themeColorToken(null, "shift-9", data[index].color),
+              pointColorHex(data[index].color),
             );
             group.appendChild(circle);
           },

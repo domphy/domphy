@@ -539,7 +539,7 @@ function tweetBody(
           depth: options.depth + 1,
         }),
       ],
-      dataTone: "shift-2",
+      dataTone: "shift-1",
       style: {
         borderRadius: (listener: Listener) =>
           themeSpacing(themeDensity(listener) * 3),
@@ -650,7 +650,7 @@ function tweetCard(props: TweetCardProps = {}): DomphyElement<"div"> {
     },
     role: "article",
     dataTheme: props.theme,
-    dataTone: "shift-1",
+    dataTone: "shift-0",
     style: {
       display: "block",
       width: "100%",

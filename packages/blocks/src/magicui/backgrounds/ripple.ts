@@ -101,7 +101,8 @@ function ringElement(
 /**
  * A stack of concentric rings that gently pulse with staggered delays,
  * reading as an outward ripple radiating from a focal center. Call with no
- * arguments for a working demo — 8 rings behind a centered heading.
+ * arguments for a working demo — 8 soft gray rings on a white panel behind a
+ * centered heading.
  */
 function ripple(props: RippleProps = {}): DomphyElement<"div"> {
   const mainCircleSize = Math.max(1, props.mainCircleSize ?? 210);
@@ -166,7 +167,7 @@ function ripple(props: RippleProps = {}): DomphyElement<"div"> {
         },
       } as DomphyElement,
     ],
-    dataTone: "shift-15",
+    dataTone: "shift-0",
     style: {
       position: "relative",
       display: "flex",

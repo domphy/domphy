@@ -28,7 +28,7 @@ import {
   type RadialSeriesDatum,
   radialArcPath,
   radialCardShell,
-  radialSeriesColor,
+  radialSeriesTone,
   radialThinCircle,
   radialTooltipLayer,
 } from "./chart-radial-shared.js";
@@ -122,7 +122,7 @@ function chartRadialGrid(
 
   const arcElements: DomphyElement[] = data.map((point, index) => {
     const ring = rings[index];
-    const color = radialSeriesColor(index, point.color);
+    const tone = radialSeriesTone(index, point.tone);
     const sweep = (point.value / maxValue) * 360;
     return radialArcPath({
       cx,
@@ -131,7 +131,7 @@ function chartRadialGrid(
       thickness: ring.thickness,
       startAngleDeg: 0,
       endAngleDeg: sweep,
-      color,
+      tone,
       tooltip,
       // ChartTooltipContent (hideLabel nameKey="browser") = swatch + name +
       // right-aligned numeric value; the shared tooltip now threads the value

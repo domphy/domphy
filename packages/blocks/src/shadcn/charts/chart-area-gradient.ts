@@ -9,16 +9,16 @@
 
 import type { ChartOption } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
 import {
-  CHART_AREA_SERIES_PALETTE,
   CHART_AREA_TWO_SERIES_DATA,
   CHART_AREA_X_AXIS_BARE,
   CHART_AREA_Y_AXIS_HIDDEN,
+  type ChartAreaSeriesTone,
   type ChartAreaTwoSeriesPoint,
   type ChartTrendDirection,
   chartAreaFrame,
   chartAreaGradientFill,
+  chartAreaSeriesColor,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartTrendFooter,
@@ -27,7 +27,8 @@ import {
 export interface ChartAreaGradientSeries {
   key: "desktop" | "mobile";
   label: string;
-  color: ThemeColor;
+  /** Ramp tone within the primary family (approximates var(--chart-N)). */
+  tone: ChartAreaSeriesTone;
 }
 
 export interface ChartAreaGradientProps {
@@ -42,8 +43,8 @@ export interface ChartAreaGradientProps {
 }
 
 const DEFAULT_SERIES: ChartAreaGradientSeries[] = [
-  { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[0] },
-  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[1] },
+  { key: "mobile", label: "Mobile", tone: chartAreaSeriesColor(0).tone },
+  { key: "desktop", label: "Desktop", tone: chartAreaSeriesColor(1).tone },
 ];
 
 /**
@@ -75,16 +76,26 @@ function chartAreaGradient(
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     yAxis: CHART_AREA_Y_AXIS_HIDDEN,
-    grid: { left: 8, right: 8, top: 12, bottom: 24, containLabel: false },
-    series: series.map((s) => ({
+    grid: { left: 8, right: 8, top: 12, bottom: 32, containLabel: false },
+    series: series.map((s, seriesIndex) => ({
       type: "line",
       name: s.label,
       stack: "total",
       smooth: true,
       showSymbol: false,
-      color: s.color,
-      lineStyle: { width: 2 },
-      areaStyle: { color: chartAreaGradientFill(s.color), opacity: 0.4 },
+      // The engine pins strokes to the family at shift-9; the ramp step is
+      // approximated via stroke opacity, and the gradient carries the tone.
+      color: "primary",
+      lineStyle: {
+        width: 2,
+        opacity: chartAreaSeriesColor(seriesIndex).strokeOpacity,
+      },
+      areaStyle: {
+        // The gradient's own alphas (0.8→0.1) already encode the fade —
+        // multiplying by an extra 0.4 opacity washes the fill out to white.
+        color: chartAreaGradientFill("primary", 0.8, 0.1, s.tone),
+        opacity: 1,
+      },
       data: data.map((point) => point[s.key]),
     })),
   };

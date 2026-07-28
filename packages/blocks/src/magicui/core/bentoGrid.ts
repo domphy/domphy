@@ -141,7 +141,7 @@ function gradientBlob(color: ThemeColor): DomphyElement<"div"> {
       inset: "-25%",
       borderRadius: "50%",
       background: (listener: Listener) =>
-        `radial-gradient(circle at 30% 30%, ${themeColor(listener, "shift-9", color)}, transparent 60%)`,
+        `radial-gradient(circle at 30% 30%, ${themeColor(listener, "shift-1", color)}, transparent 60%)`,
       opacity: 0.35,
       filter: "blur(28px)",
       animation: `${animationName} 9s ease-in-out infinite`,
@@ -158,7 +158,7 @@ const DEFAULT_CARDS: BentoCardSpec[] = [
       "A component library and a design system that stay in lockstep, so nothing drifts.",
     href: "#",
     icon: boltIcon(),
-    background: gradientBlob("primary"),
+    background: gradientBlob("neutral"),
     columnSpan: 2,
     rowSpan: 2,
   },
@@ -168,7 +168,7 @@ const DEFAULT_CARDS: BentoCardSpec[] = [
       "Every change propagates instantly across your team's workspace.",
     href: "#",
     icon: syncIcon(),
-    background: gradientBlob("secondary"),
+    background: gradientBlob("neutral"),
   },
   {
     title: "Global by default",
@@ -176,7 +176,7 @@ const DEFAULT_CARDS: BentoCardSpec[] = [
       "Edge-rendered everywhere, with locale-aware content out of the box.",
     href: "#",
     icon: globeIcon(),
-    background: gradientBlob("info"),
+    background: gradientBlob("neutral"),
     rowSpan: 2,
   },
   {
@@ -184,7 +184,7 @@ const DEFAULT_CARDS: BentoCardSpec[] = [
     description: "Understand usage without wiring up a separate dashboard.",
     href: "#",
     icon: chartIcon(),
-    background: gradientBlob("success"),
+    background: gradientBlob("neutral"),
     columnSpan: 2,
   },
   {
@@ -192,7 +192,7 @@ const DEFAULT_CARDS: BentoCardSpec[] = [
     description: "Audited, encrypted, and access-controlled from day one.",
     href: "#",
     icon: shieldIcon(),
-    background: gradientBlob("attention"),
+    background: gradientBlob("neutral"),
   },
 ];
 
@@ -370,7 +370,7 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
         },
         "&:hover [data-bento-cta]": { opacity: 1, transform: "translateY(0)" },
         "&:hover [data-bento-text]": {
-          transform: `translateY(-${themeSpacing(10)})`,
+          transform: `translateY(${themeSpacing(-10)})`,
         },
       },
     },

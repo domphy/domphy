@@ -1,4 +1,5 @@
 import type { DomphyElement, Listener, PartialElement } from "@domphy/core";
+import { rawHtml } from "@domphy/core";
 import {
   themeColor,
   themeDensity,
@@ -58,7 +59,7 @@ function authFieldInput(): PartialElement {
       },
       "&:hover:not([disabled]), &:focus-visible": {
         outline: (listener: Listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "primary")}`,
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "neutral")}`,
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -102,7 +103,7 @@ function field(config: FieldConfig): DomphyElement<"div"> {
 
 function logoMark(): DomphyElement<"span"> {
   return {
-    span: [{ span: LOGO_ICON, $: [icon({ color: "inherit" })] }],
+    span: [{ span: rawHtml(LOGO_ICON), $: [icon({ color: "inherit" })] }],
     dataTone: "shift-16",
     style: {
       display: "inline-flex",
@@ -114,8 +115,8 @@ function logoMark(): DomphyElement<"span"> {
         themeSpacing(themeDensity(listener) * 1),
       flexShrink: 0,
       backgroundColor: (listener: Listener) =>
-        themeColor(listener, "inherit", "primary"),
-      color: (listener: Listener) => themeColor(listener, "shift-9", "primary"),
+        themeColor(listener, "inherit", "neutral"),
+      color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },
   };
 }
@@ -353,6 +354,9 @@ function signup03(props: Signup03Props = {}): DomphyElement<"div"> {
       { div: [formElement] },
     ],
     $: [card({ color: "neutral" })],
+    // White card surface (upstream bg-card) so the card separates from the
+    // muted shift-1 page — card() paints an inherit-tone background.
+    dataTone: "shift-0",
     style: { width: "100%", maxWidth: themeSpacing(96) },
   };
 
@@ -362,7 +366,7 @@ function signup03(props: Signup03Props = {}): DomphyElement<"div"> {
       cardElement,
       legalLine(termsHref, privacyHref),
     ],
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     style: {
       display: "flex",
       flexDirection: "column",

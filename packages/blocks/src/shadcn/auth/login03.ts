@@ -90,6 +90,10 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
       fontWeight: fixed("500"),
       gap: themeSpacing(2),
       marginBlockEnd: themeSpacing(6),
+      // Reset the browser's default anchor styling (blue + underline) so the
+      // wordmark reads as plain foreground text, like login02's brand row.
+      color: "inherit",
+      textDecoration: fixed("none"),
     },
   };
 
@@ -185,6 +189,9 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
       },
     ],
     $: [card({ color: "neutral" })],
+    // White card surface (upstream bg-card) so the card separates from the
+    // muted shift-1 page — card() paints an inherit-tone background.
+    dataTone: "shift-0",
     style: { width: "100%", maxWidth: NARROW_CARD_WIDTH },
   };
 
@@ -213,7 +220,7 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
         },
       },
     ],
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     style: {
       display: "flex",
       alignItems: "center",

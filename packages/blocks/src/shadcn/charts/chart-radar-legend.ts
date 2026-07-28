@@ -57,6 +57,7 @@ function chartRadarLegend(
   const legendEntries: ChartLegendEntry[] = series.map((entry) => ({
     label: entry.label,
     color: entry.color,
+    tone: entry.tone,
   }));
 
   return radarCardShell({

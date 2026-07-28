@@ -88,7 +88,10 @@ function neonGradientCard(
   };
 
   const gradientImage = (listener: Listener) =>
-    `linear-gradient(0deg, ${themeColor(listener, "shift-9", firstColor)}, ${themeColor(listener, "shift-9", secondColor)})`;
+    // "base" resolves to each family's canonical saturated anchor color (the
+    // vivid pink/cyan the effect needs) — mid-ramp shift-9 steps read
+    // washed-out by comparison (visual QA: thin desaturated frame).
+    `linear-gradient(0deg, ${themeColor(listener, "base", firstColor)}, ${themeColor(listener, "base", secondColor)})`;
 
   // Decorative gradient layers carry no text of their own — exempt from the
   // missing-color contract (same idiom as `borderBeam`/`shineBorder`'s ring
@@ -111,7 +114,12 @@ function neonGradientCard(
       const wrapper = glow.parentElement;
       if (!wrapper) return;
       const applyBlur = () => {
-        glow.style.filter = `blur(${wrapper.offsetWidth / 3}px)`;
+        // Upstream's blur is offsetWidth/3, but its demo card is content-sized
+        // (~300px -> ~100px glow). This block is `width: 100%`, so the raw
+        // formula explodes (a 1200px container -> 400px blur), which smears
+        // the gradient into a giant flat gray wash detached below the card
+        // (visual QA). Cap it at the scale upstream's own demo produces.
+        glow.style.filter = `blur(${Math.min(wrapper.offsetWidth / 3, 96)}px)`;
       };
       applyBlur();
       if (typeof ResizeObserver !== "undefined") {
@@ -125,8 +133,10 @@ function neonGradientCard(
     },
     style: {
       position: "absolute",
-      inset: `${-(borderSize * 2)}px`,
-      borderRadius: `${borderRadius + borderSize * 2}px`,
+      // Upstream's pseudo-element extends exactly `--border-size` past the
+      // card on every side (top/left -borderSize, size +2*borderSize).
+      inset: `${-borderSize}px`,
+      borderRadius: `${borderRadius + borderSize}px`,
       backgroundImage: gradientImage,
       backgroundSize: "100% 200%",
       // Pre-mount / no-JS fallback; `_onMount` overrides this with the
@@ -159,6 +169,9 @@ function neonGradientCard(
 
   const contentLayer: DomphyElement<"div"> = {
     div: children,
+    // Upstream content surface is `bg-gray-100` (a faint gray, not pure
+    // white) so the neon frame stays the brightest element.
+    dataTone: "shift-1",
     style: {
       position: "relative",
       zIndex: 2,

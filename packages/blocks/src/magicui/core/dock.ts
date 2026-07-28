@@ -166,7 +166,7 @@ function dockIconButton(
     href: item.href ?? "#",
     ariaLabel: item.label,
     _key: `icon-${index}`,
-    dataTone: "shift-16",
+    dataTone: "shift-0",
     style: {
       display: "flex",
       alignItems: "center",
@@ -278,7 +278,7 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
   return {
     nav: children,
     ariaLabel: "Application dock",
-    dataTone: "shift-14",
+    dataTone: "shift-0",
     style: {
       position: "relative",
       display: "flex",
@@ -306,13 +306,18 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
         themeSpacing(themeDensity(listener) * 2),
       // Upstream rounded-2xl (16px rounded rectangle), not a fully-rounded pill.
       borderRadius: themeSpacing(4),
-      backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
+      // Translucent frosted-white bar (upstream's macOS-style glassy dock):
+      // the backdrop blur below only reads if the fill itself passes light.
+      backgroundColor: (listener: Listener) =>
+        `color-mix(in srgb, ${themeColor(listener, "inherit")} 75%, transparent)`,
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       outline: (listener: Listener) =>
         `1px solid ${themeColor(listener, "shift-3")}`,
       outlineOffset: "-1px",
+      // Soft translucent elevation shadow (upstream's subtle drop shadow),
+      // not a solid mid-gray band.
       boxShadow: (listener: Listener) =>
-        `0 ${themeSpacing(2)} ${themeSpacing(10)} ${themeColor(listener, "shift-4")}`,
+        `0 ${themeSpacing(2)} ${themeSpacing(10)} color-mix(in srgb, ${themeColor(listener, "shift-9")} 18%, transparent)`,
       backdropFilter: (_listener: Listener) => `blur(${themeSpacing(4)})`,
     },
     _onMount: (node: ElementNode) => {

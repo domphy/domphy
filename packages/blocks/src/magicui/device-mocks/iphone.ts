@@ -163,7 +163,7 @@ function iphone(props: IphoneProps = {}): DomphyElement<"div"> {
   // draws it as a ~5.5r circle centered at x259.5,y48.5 within the 154..278 × 30..67 pill, i.e.
   // 85% across and 50% down the island box, ~8.9% × 29.7% of it. Nested inside the island span
   // (its containing block) so these percentages resolve against the island, not the root.
-  const cameraLens = frameGlyph("dynamic-island-lens", 11, 11, "shift-15", {
+  const cameraLens = frameGlyph("dynamic-island-lens", 11, 11, "shift-2", {
     insetInlineStart: "85.08%",
     insetBlockStart: "50%",
     transform: "translate(-50%, -50%)",
@@ -178,7 +178,7 @@ function iphone(props: IphoneProps = {}): DomphyElement<"div"> {
     "dynamic-island",
     124,
     37,
-    "shift-17",
+    "shift-1",
     {
       insetBlockStart: "3.4%",
       insetInlineStart: "50%",
@@ -191,7 +191,7 @@ function iphone(props: IphoneProps = {}): DomphyElement<"div"> {
 
   // Earpiece speaker slit: a faint, very thin centered pill hugging the top edge. Upstream is
   // the opacity-0.5 path M174 5H258 (x174..258 → 19.4% wide, y5..7.5 → ~0.28% tall, top 0.57%).
-  const earpiece = frameGlyph("earpiece", 84, 3, "shift-15", {
+  const earpiece = frameGlyph("earpiece", 84, 3, "shift-2", {
     insetBlockStart: "0.57%",
     insetInlineStart: "50%",
     transform: "translateX(-50%)",
@@ -201,7 +201,7 @@ function iphone(props: IphoneProps = {}): DomphyElement<"div"> {
   });
 
   const buttons = SIDE_BUTTONS.map((button) =>
-    frameGlyph(button.key, 20, 100, "shift-15", {
+    frameGlyph(button.key, 20, 100, "shift-2", {
       [button.side]: "-1%",
       insetBlockStart: button.top,
       width: "1%",
@@ -212,7 +212,7 @@ function iphone(props: IphoneProps = {}): DomphyElement<"div"> {
   const screen: DomphyElement = {
     div: media ? [media] : null,
     ariaHidden: "true",
-    dataTone: "shift-15",
+    dataTone: "shift-1",
     style: {
       position: "absolute",
       inset: "2.18% 5.14% 2.18% 4.91%",
@@ -227,7 +227,7 @@ function iphone(props: IphoneProps = {}): DomphyElement<"div"> {
     div: [screen, dynamicIsland, earpiece, ...buttons],
     role: "img",
     ariaLabel: `iPhone mockup showing ${alt}`,
-    dataTone: "shift-17",
+    dataTone: "shift-0",
     style: {
       // Upstream root is `inline-block ... align-middle leading-none`: it flows inline (so a
       // caption/text sibling baselines against its middle) with no stray line-box height.

@@ -88,10 +88,13 @@ function offsetForDirection(
 /** Self-contained (no network fetch) gradient thumbnail — used so the default demo has
  * actual image/grid content to fade in, rather than bare text. */
 function defaultThumbnail(index: number): DomphyElement {
-  const hue = 200 + index * 45;
+  // Neutral grayscale tiles (upstream demos use muted photo placeholders, not
+  // saturated color blocks); a slight per-tile lightness step keeps the grid
+  // from reading as three identical gray boxes.
+  const lightness = 88 - index * 5;
   const markup =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140">' +
-    `<rect width="200" height="140" rx="12" fill="hsl(${hue}, 70%, 55%)"/>` +
+    `<rect width="200" height="140" rx="12" fill="hsl(0, 0%, ${lightness}%)"/>` +
     '<circle cx="150" cy="40" r="18" fill="#ffffff" opacity="0.35"/>' +
     "</svg>";
   return {

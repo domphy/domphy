@@ -31,6 +31,51 @@ import {
 import { card, heading, icon, motion, paragraph, small } from "@domphy/ui";
 import { fixed } from "../../shared/typography.js";
 
+// ─── Single-hue series ramp ─────────────────────────────────────────────────
+//
+// Upstream shadcn v4's light-theme chart palette is a MONOCHROME BLUE RAMP
+// (chart-1=blue-300, chart-2=blue-500, chart-3=blue-600, chart-4=blue-700,
+// chart-5=blue-800) — every chart demo colors its series from var(--chart-N),
+// never from distinct semantic hues. The domphy `primary` family IS blue, so
+// the ramp maps onto increasing primary tones approximating blue-300 →
+// blue-800. @domphy/chart's LineRenderer resolves `s.color` as a theme FAMILY
+// at shift-9 only (a literal hex throws), so the stroke stays `primary` and
+// the lighter ramp steps are approximated with a matching stroke opacity.
+export const CHART_LINE_SERIES_TONES = [
+  "shift-4",
+  "shift-6",
+  "shift-8",
+  "shift-10",
+  "shift-12",
+] as const;
+
+export type ChartLineSeriesTone = (typeof CHART_LINE_SERIES_TONES)[number];
+
+export interface ChartLineSeriesColor {
+  /** Ramp tone within the primary family — markers, swatches, overlay dots. */
+  tone: ChartLineSeriesTone;
+  /** Resolved hex of `tone` — for SVG overlays and raw-HTML tooltips. */
+  hex: string;
+  /** Stroke opacity approximating this ramp step on the engine-pinned
+   * shift-9 stroke (0.45≈shift-4, 0.72≈shift-6, 0.92≈shift-8 over white). */
+  strokeOpacity: number;
+}
+
+const CHART_LINE_SERIES_STROKE_OPACITIES = [0.45, 0.72, 0.92, 1, 1] as const;
+
+/** The nth series' ramp color (approximates upstream `var(--chart-N)`). */
+export function chartLineSeriesColor(index: number): ChartLineSeriesColor {
+  const step =
+    ((index % CHART_LINE_SERIES_TONES.length) + CHART_LINE_SERIES_TONES.length) %
+    CHART_LINE_SERIES_TONES.length;
+  const tone = CHART_LINE_SERIES_TONES[step];
+  return {
+    tone,
+    hex: themeColorToken(null, tone, "primary"),
+    strokeOpacity: CHART_LINE_SERIES_STROKE_OPACITIES[step],
+  };
+}
+
 // ─── Sample datasets ──────────────────────────────────────────────────────────
 
 export interface MonthlyPoint {
@@ -56,16 +101,18 @@ export interface CategoryPoint {
   key: string;
   label: string;
   value: number;
-  color: ThemeColor;
+  /** Per-point marker color — a ramp hex from chartLineSeriesColor(). */
+  color: string;
 }
 
-/** Five made-up browser/platform categories, each with its own marker color. */
+/** Five made-up browser/platform categories, each with its own ramp step
+ * (upstream colors the per-browser markers chart-1 … chart-5). */
 export const BROWSER_CATEGORY_DATA: CategoryPoint[] = [
-  { key: "chrome", label: "Chrome", value: 487, color: "primary" },
-  { key: "safari", label: "Safari", value: 312, color: "secondary" },
-  { key: "firefox", label: "Firefox", value: 176, color: "warning" },
-  { key: "edge", label: "Edge", value: 143, color: "info" },
-  { key: "other", label: "Other", value: 98, color: "success" },
+  { key: "chrome", label: "Chrome", value: 487, color: chartLineSeriesColor(0).hex },
+  { key: "safari", label: "Safari", value: 312, color: chartLineSeriesColor(1).hex },
+  { key: "firefox", label: "Firefox", value: 176, color: chartLineSeriesColor(2).hex },
+  { key: "edge", label: "Edge", value: 143, color: chartLineSeriesColor(3).hex },
+  { key: "other", label: "Other", value: 98, color: chartLineSeriesColor(4).hex },
 ];
 
 export interface DailyPoint {
@@ -398,13 +445,16 @@ export function lineSwatchValueTooltipFormatter(
 }
 
 /** A small vertical-line color swatch + muted series label on the left + the
- * value pushed right (monospace/medium/foreground) — the upstream row. */
+ * value pushed right (monospace/medium/foreground) — the upstream row.
+ * `swatchColor` overrides the engine's rotation-palette `point.color` (which
+ * ignores the configured series color). */
 export function lineSwatchLabelValueTooltipFormatter(
   params: TooltipParams | TooltipParams[],
+  swatchColor?: string,
 ): string {
   const point = firstTooltipParam(params);
   if (!point) return "";
-  const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${point.color};"></span>`;
+  const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${swatchColor ?? point.color};"></span>`;
   const label = escapeHtml(String(point.seriesName ?? point.name ?? ""));
   return tooltipRow(swatch, label, escapeHtml(String(point.value ?? "")));
 }
@@ -541,6 +591,8 @@ export interface HoverDotOverlayProps {
   yDomain: [number, number];
   grid: FixedGrid;
   color: ThemeColor;
+  /** Ramp tone for the dot fill (defaults to shift-9). */
+  tone?: string;
   radius: number;
 }
 
@@ -551,7 +603,7 @@ export interface HoverDotOverlayProps {
  * `pointer-events: none` so the underlying chart tooltip keeps receiving
  * hover events. */
 export function hoverDotOverlay(props: HoverDotOverlayProps): PartialElement {
-  const { categories, values, yDomain, grid, color, radius } = props;
+  const { categories, values, yDomain, grid, color, tone = "shift-9", radius } = props;
   return {
     style: { position: "absolute", inset: "0", pointerEvents: "none" },
     _onMount(node) {
@@ -576,7 +628,7 @@ export function hoverDotOverlay(props: HoverDotOverlayProps): PartialElement {
         "circle",
       ) as SVGCircleElement;
       dot.setAttribute("r", String(radius));
-      dot.setAttribute("fill", themeColorToken(null, "shift-9", color));
+      dot.setAttribute("fill", themeColorToken(null, tone, color));
       // recharts activeDot defaults: fill=seriesColor, stroke=#fff, strokeWidth=2.
       // The white stroke reads as a card/background-tone ring that separates the
       // active dot from the line — use the lightest neutral (card background).

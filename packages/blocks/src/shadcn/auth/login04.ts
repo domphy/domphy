@@ -29,6 +29,7 @@ import {
 import { heading, paragraph } from "@domphy/ui";
 import {
   coverImage,
+  coverPanel,
   dividerRow,
   emailField,
   legalFooter,
@@ -99,7 +100,7 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
     termsHref = "#",
     privacyLabel = "Privacy Policy",
     privacyHref = "#",
-    coverImageSrc = "https://picsum.photos/seed/domphy-login04/1200/1600",
+    coverImageSrc,
     coverImageAlt = "",
     dimCoverInDarkMode = true,
     onSubmit,
@@ -218,20 +219,29 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
 
   const imageColumn: DomphyElement<"div"> = {
     div: [
-      coverImage({
-        src: coverImageSrc,
-        alt: coverImageAlt,
-        dimInDarkMode: dimCoverInDarkMode,
-      }),
+      // Clean-room: no external photo is hotlinked by default — a caller-
+      // supplied coverImageSrc renders the photo, otherwise an understated
+      // theme-token dot-grid panel fills the column (see coverPanel()).
+      coverImageSrc
+        ? coverImage({
+            src: coverImageSrc,
+            alt: coverImageAlt,
+            dimInDarkMode: dimCoverInDarkMode,
+          })
+        : coverPanel(),
     ],
     style: {
       minWidth: "0",
+      display: "flex",
       [MOBILE_MEDIA_QUERY]: { display: "none" },
     },
   };
 
   const cardFrame: DomphyElement<"div"> = {
     div: [formColumn, imageColumn],
+    // White card surface (upstream bg-card) so the frame separates from the
+    // muted shift-1 page background.
+    dataTone: "shift-0",
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -280,7 +290,7 @@ function Login04(props: Login04Props = {}): DomphyElement<"div"> {
         },
       },
     ],
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     style: {
       display: "flex",
       flexDirection: "column",

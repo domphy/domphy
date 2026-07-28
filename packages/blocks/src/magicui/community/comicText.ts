@@ -45,9 +45,9 @@ export interface ComicTextProps {
   fontSize?: number;
   /** Thick outline color family. Defaults to `"neutral"` (near-black via a fixed dark-edge shift). */
   outlineColor?: ThemeColor;
-  /** Halftone dot color family. Defaults to `"danger"` (red). */
+  /** Halftone dot color family. Defaults to `"danger"` (bright red, upstream's `#EF4444`). */
   dotColor?: ThemeColor;
-  /** Halftone paper/background color family showing through the dots. Defaults to `"warning"` (yellow). */
+  /** Halftone paper/background color family showing through the dots. Defaults to `"highlight"` (bright yellow, upstream's `#FACC15`). */
   backgroundFill?: ThemeColor;
   /** Extra class name merged onto the container's native `class` attribute. */
   className?: string;
@@ -68,7 +68,7 @@ function comicText(props: ComicTextProps = {}): DomphyElement<"div"> {
   const fontSize = props.fontSize ?? 5;
   const outlineColor = props.outlineColor ?? "neutral";
   const dotColor = props.dotColor ?? "danger";
-  const backgroundFill = props.backgroundFill ?? "warning";
+  const backgroundFill = props.backgroundFill ?? "highlight";
 
   const STATIC_SKEW = "skewX(-10deg)";
 
@@ -95,9 +95,11 @@ function comicText(props: ComicTextProps = {}): DomphyElement<"div"> {
       // an ambient surface — same reasoning `meteors.ts` documents for its
       // fixed-accent dot color).
       backgroundColor: (listener) =>
-        themeColor(listener, "shift-9", backgroundFill),
+        // Bright yellow paper (upstream `#FACC15`): the family's vivid
+        // high-chroma step, not the dark mid-ramp step (which read brown).
+        themeColor(listener, "shift-5", backgroundFill),
       backgroundImage: (listener) =>
-        `radial-gradient(circle at 1px 1px, ${themeColor(listener, "shift-9", dotColor)} 1px, transparent 0)`,
+        `radial-gradient(circle at 1px 1px, ${themeColor(listener, "shift-6", dotColor)} 1px, transparent 0)`,
       backgroundSize: "8px 8px",
       backgroundClip: "text",
       WebkitBackgroundClip: "text",
@@ -114,7 +116,7 @@ function comicText(props: ComicTextProps = {}): DomphyElement<"div"> {
       // includes the thick outline stroke — the layered pop-art sticker look.
       filter: (listener) =>
         `drop-shadow(5px 5px 0 ${themeColor(listener, "shift-17", outlineColor)}) ` +
-        `drop-shadow(3px 3px 0 ${themeColor(listener, "shift-9", dotColor)})`,
+        `drop-shadow(3px 3px 0 ${themeColor(listener, "shift-6", dotColor)})`,
       ...(props.style ?? {}),
     } as StyleObject,
     $: [

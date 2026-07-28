@@ -11,7 +11,6 @@
 
 import type { ChartOption } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_TWO_SERIES_DATA,
   type ChartBarGrid,
@@ -22,6 +21,7 @@ import {
   chartBarFrame,
   chartBarHorizontalHoverOverlay,
   chartBarInsideOutsideLabelOverlay,
+  chartBarSeriesColor,
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
@@ -30,7 +30,9 @@ import {
 export interface ChartBarLabelCustomProps {
   data?: ChartBarTwoSeriesPoint[];
   seriesLabel?: string;
-  seriesColor?: ThemeColor;
+  /** Bar color — a theme role (resolved at shift-9) or literal ramp hex.
+   * Defaults to the ramp's second step (upstream var(--chart-2) ≈ blue-500). */
+  seriesColor?: string;
   title?: string;
   subtitle?: string;
   trendText?: string;
@@ -73,7 +75,7 @@ function chartBarLabelCustom(
   const {
     data = CHART_BAR_TWO_SERIES_DATA,
     seriesLabel = "Desktop",
-    seriesColor = "secondary",
+    seriesColor = chartBarSeriesColor(1).hex,
     title = "Bar Chart - Custom Label",
     subtitle = "January - June 2026",
     trendText = "Trending up by 5.2% this month",

@@ -142,7 +142,7 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
       // Declared explicitly (not just inherited) so it re-evaluates with the
       // tone context, satisfying the doctor's missing-color contract for the
       // reactive fontSize above.
-      color: (listener: Listener) => themeColor(listener, "shift-9"),
+      color: (listener: Listener) => themeColor(listener, "shift-14"),
       ...(props.style ?? {}),
     } as StyleObject,
     class: props.className,

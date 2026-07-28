@@ -76,6 +76,44 @@ import {
 import { card, heading, icon, motion, paragraph, small } from "@domphy/ui";
 import { fixed } from "../../shared/typography.js";
 
+// ─── Color helpers ─────────────────────────────────────────────────────────
+
+// Single-hue series ramp within the `primary` (blue) family. Upstream shadcn
+// v4's light-theme chart palette is a MONOCHROME BLUE RAMP (chart-1=blue-300,
+// chart-2=blue-500, chart-3=blue-600, chart-4=blue-700, chart-5=blue-800) —
+// every chart demo colors its series/items from var(--chart-N), never from
+// distinct semantic hues. The domphy `primary` family IS blue, so the ramp
+// maps onto increasing primary tones approximating blue-300 → blue-800.
+// @domphy/chart's BarRenderer resolves per-series/per-item colors through
+// resolveColorSrc, which accepts literal hex strings — so unlike the
+// line/area families, bars can render the exact ramp tones.
+export const CHART_BAR_SERIES_TONES = [
+  "shift-4",
+  "shift-6",
+  "shift-8",
+  "shift-10",
+  "shift-12",
+] as const;
+
+export type ChartBarSeriesTone = (typeof CHART_BAR_SERIES_TONES)[number];
+
+export interface ChartBarSeriesColor {
+  /** Ramp tone within the primary family. */
+  tone: ChartBarSeriesTone;
+  /** Resolved hex of `tone` — safe to pass to BarRenderer (series `color` or
+   * per-item `itemStyle.color`) and into raw-HTML tooltip swatches. */
+  hex: string;
+}
+
+/** The nth series' (or per-item's) ramp color — approximates upstream `var(--chart-N)`. */
+export function chartBarSeriesColor(index: number): ChartBarSeriesColor {
+  const step =
+    ((index % CHART_BAR_SERIES_TONES.length) + CHART_BAR_SERIES_TONES.length) %
+    CHART_BAR_SERIES_TONES.length;
+  const tone = CHART_BAR_SERIES_TONES[step];
+  return { tone, hex: themeColorToken(null, tone, "primary") };
+}
+
 // ─── Data shapes ───────────────────────────────────────────────────────────
 
 export interface ChartBarPoint {
@@ -92,7 +130,9 @@ export interface ChartBarTwoSeriesPoint {
 export interface ChartBarCategoryPoint {
   category: string;
   value: number;
-  color?: ThemeColor;
+  /** Per-item bar color — a ramp hex from chartBarSeriesColor() (or a theme
+   * role name, resolved at shift-9). */
+  color?: string;
 }
 
 export interface ChartBarDailyPoint {
@@ -130,14 +170,15 @@ export const CHART_BAR_NEGATIVE_DATA: ChartBarPoint[] = [
   { label: "Jun", value: -208 },
 ];
 
-/** Five browser categories, each carrying its own accent color — reused by
- * both the mixed-color and the pre-emphasized "active" recipes. */
+/** Five browser categories, each carrying its own ramp step — reused by both
+ * the mixed-color and the pre-emphasized "active" recipes (upstream colors
+ * each bar from the SAME chart ramp: chart-1 … chart-5 per browser). */
 export const CHART_BAR_BROWSER_DATA: ChartBarCategoryPoint[] = [
-  { category: "Chrome", value: 275, color: "primary" },
-  { category: "Safari", value: 200, color: "secondary" },
-  { category: "Firefox", value: 187, color: "success" },
-  { category: "Edge", value: 173, color: "warning" },
-  { category: "Other", value: 90, color: "info" },
+  { category: "Chrome", value: 275, color: chartBarSeriesColor(0).hex },
+  { category: "Safari", value: 200, color: chartBarSeriesColor(1).hex },
+  { category: "Firefox", value: 187, color: chartBarSeriesColor(2).hex },
+  { category: "Edge", value: 173, color: chartBarSeriesColor(3).hex },
+  { category: "Other", value: 90, color: chartBarSeriesColor(4).hex },
 ];
 
 // Anchored to the dataset's own latest date (not the real current date) so
@@ -195,25 +236,16 @@ export const CHART_BAR_DAILY_DATA: ChartBarDailyPoint[] =
 
 // ─── Color helpers ─────────────────────────────────────────────────────────
 
-// Series color rotation the engine's own default palette follows (see
-// packages/chart/src/gl/color.ts SERIES_PALETTE) — recipes assign explicit
-// per-series colors in this same order so the rendered fill and the (engine-
-// controlled, rotation-index-based) tooltip dot stay visually consistent.
-export const CHART_BAR_SERIES_PALETTE: ThemeColor[] = [
-  "primary",
-  "secondary",
-  "success",
-  "warning",
-  "info",
-];
-
 /** Resolves a theme color role to a literal hex via themeColorToken/familyHex
  * — required for per-data-item `itemStyle.color`, which BarRenderer parses
- * as a hex string (not a reactive theme function). This is the closest a
- * per-item chart-option color can get to "theme token, not a hardcoded
- * literal" — mirrors chart-area-shared.ts's chartColorRgba() rationale. */
-export function chartBarColorHex(role: ThemeColor, tone = "shift-9"): string {
-  return familyHex(role, tone);
+ * as a hex string (not a reactive theme function). A literal hex input passes
+ * through unchanged, so ramp hexes from chartBarSeriesColor() are safe. This
+ * is the closest a per-item chart-option color can get to "theme token, not
+ * a hardcoded literal" — mirrors chart-area-shared.ts's chartColorRgba()
+ * rationale. */
+export function chartBarColorHex(role: string, tone = "shift-9"): string {
+  if (role.startsWith("#") || role.startsWith("rgb")) return role;
+  return familyHex(role as ThemeColor, tone);
 }
 
 // ─── Axis presets ──────────────────────────────────────────────────────────
@@ -359,7 +391,9 @@ export function chartBarAxisTooltipFormatter(
     if (parameters.length === 0) return "";
     const rows = parameters
       .map((p) => {
-        const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
+        // `p.color` comes from the engine's multi-hue rotation palette — use
+        // the single-hue ramp by series position so the dot matches the bars.
+        const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${chartBarSeriesColor(p.seriesIndex ?? 0).hex};margin-right:6px;"></span>`;
         const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
         return chartBarTooltipRow(dot, label, escapeHtml(valueLabel(p)));
       })
@@ -392,7 +426,7 @@ export function chartBarStackedTooltipFormatter(
       categories[parameters[0].dataIndex] ?? parameters[0].name ?? "",
     );
     const rows = parameters.map((p) => {
-      const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
+      const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${chartBarSeriesColor(p.seriesIndex ?? 0).hex};margin-right:6px;"></span>`;
       const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
       return chartBarTooltipRow(dot, label, escapeHtml(String(p.value ?? "")));
     });
@@ -470,8 +504,10 @@ export function chartBarTrendIcon(
   };
 }
 
-/** Small flat color swatch patch used by the plain legend recipe. */
-export function chartBarLegendSwatch(color: ThemeColor): PartialElement {
+/** Small flat color swatch patch used by the plain legend recipe. Accepts a
+ * theme role (resolved at shift-9) or a literal ramp hex. */
+export function chartBarLegendSwatch(color: string): PartialElement {
+  const isLiteral = color.startsWith("#") || color.startsWith("rgb");
   return {
     style: {
       display: "inline-block",
@@ -479,16 +515,22 @@ export function chartBarLegendSwatch(color: ThemeColor): PartialElement {
       height: themeSpacing(2.5),
       borderRadius: themeSpacing(1),
       flexShrink: "0",
-      backgroundColor: (listener: Listener) =>
-        themeColor(listener, "shift-9", color),
-      color: (listener: Listener) => themeColor(listener, "shift-9", color),
+      backgroundColor: isLiteral
+        ? color
+        : (listener: Listener) =>
+            themeColor(listener, "shift-9", color as ThemeColor),
+      color: isLiteral
+        ? color
+        : (listener: Listener) =>
+            themeColor(listener, "shift-9", color as ThemeColor),
     },
   };
 }
 
 export interface ChartBarLegendEntry {
   label: string;
-  color: ThemeColor;
+  /** Theme role or literal ramp hex (see chartBarLegendSwatch). */
+  color: string;
 }
 
 /** Centered swatch + label row shown below a chart's plot. */
@@ -821,7 +863,8 @@ export interface ChartBarActiveOverlayProps {
   valueDomain: [number, number];
   grid: ChartBarGrid;
   activeIndex: number;
-  color: ThemeColor;
+  /** Theme role (resolved at shift-9) or a literal ramp hex. */
+  color: string;
 }
 
 /**
@@ -871,7 +914,7 @@ export function chartBarActiveOverlay(
         rect.setAttribute("height", String(rectHeight));
         rect.setAttribute("rx", "2");
         rect.setAttribute("fill", "none");
-        rect.setAttribute("stroke", themeColorToken(null, "shift-9", color));
+        rect.setAttribute("stroke", chartBarColorHex(color));
         rect.setAttribute("stroke-width", "2");
         // Upstream Rectangle: strokeDasharray={4} + strokeDashoffset={4}.
         rect.setAttribute("stroke-dasharray", "4");

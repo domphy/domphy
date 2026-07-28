@@ -26,12 +26,7 @@
 
 import type { DomphyElement, Listener } from "@domphy/core";
 import { type State, toState } from "@domphy/core";
-import {
-  type ThemeColor,
-  themeColor,
-  themeDensity,
-  themeSpacing,
-} from "@domphy/theme";
+import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { card, heading, motion, paragraph, small } from "@domphy/ui";
 import { fixed } from "../../shared/typography.js";
 
@@ -41,7 +36,8 @@ export interface RadialSeriesDatum {
   key: string;
   label: string;
   value: number;
-  color?: ThemeColor;
+  /** Optional ramp tone override (defaults to the palette rotation by index). */
+  tone?: string;
 }
 
 // ─── Original sample dataset (five marketing-channel sessions, invented for
@@ -57,33 +53,33 @@ export const RADIAL_CHANNEL_DATA: RadialSeriesDatum[] = [
 ];
 
 export const RADIAL_STACKED_SEGMENTS: RadialSeriesDatum[] = [
-  { key: "new", label: "New customers", value: 682, color: "primary" },
+  { key: "new", label: "New customers", value: 682, tone: "shift-4" },
   {
     key: "returning",
     label: "Returning customers",
     value: 419,
-    color: "secondary",
+    tone: "shift-6",
   },
 ];
 
 // ─── Color rotation ────────────────────────────────────────────────────────
 
-// Five rotating theme accent hues — same idea as chart-area's
-// CHART_AREA_SERIES_PALETTE (packages/chart/src/gl/color.ts SERIES_PALETTE
-// rotation order), just carrying two more steps since these recipes plot five
-// concentric rings instead of up to three lines/areas.
-export const RADIAL_ACCENT_PALETTE: ThemeColor[] = [
-  "primary",
-  "secondary",
-  "success",
-  "warning",
-  "info",
-];
+// Single-hue ring ramp within the `primary` (blue) family: upstream shadcn
+// v4's light-theme chart palette is a MONOCHROME BLUE RAMP (chart-1=blue-300
+// … chart-5=blue-800), and every radial demo colors its rings var(--chart-1)
+// … var(--chart-5) in data order — never distinct semantic hues. The domphy
+// `primary` family IS blue, so the ramp maps onto increasing primary tones
+// approximating blue-300 → blue-800.
+export const RADIAL_ACCENT_PALETTE = [
+  "shift-4",
+  "shift-6",
+  "shift-8",
+  "shift-10",
+  "shift-12",
+] as const;
 
-export function radialSeriesColor(
-  index: number,
-  explicit?: ThemeColor,
-): ThemeColor {
+/** The nth ring's ramp tone (approximates upstream `var(--chart-N)`). */
+export function radialSeriesTone(index: number, explicit?: string): string {
   return (
     explicit ?? RADIAL_ACCENT_PALETTE[index % RADIAL_ACCENT_PALETTE.length]
   );
@@ -212,7 +208,8 @@ export interface RadialArcPathProps {
   thickness: number;
   startAngleDeg: number;
   endAngleDeg: number;
-  color: ThemeColor;
+  /** Ramp tone within the primary family (see RADIAL_ACCENT_PALETTE). */
+  tone: string;
   capStyle?: "butt" | "round";
   tooltip?: RadialTooltipController;
   tooltipLabel?: string;
@@ -231,7 +228,7 @@ export function radialArcPath(
     thickness,
     startAngleDeg,
     endAngleDeg,
-    color,
+    tone,
     capStyle = "butt",
     tooltip,
     tooltipLabel,
@@ -251,7 +248,7 @@ export function radialArcPath(
     path: null,
     d: pathData,
     fill: "none",
-    stroke: (listener: Listener) => themeColor(listener, "shift-9", color),
+    stroke: (listener: Listener) => themeColor(listener, tone, "primary"),
     strokeWidth: thickness,
     strokeLinecap: capStyle,
     strokeDasharray: length,
@@ -270,7 +267,7 @@ export function radialArcPath(
     element.onMouseEnter = (event) =>
       tooltip.show(event as MouseEvent, {
         label: tooltipLabel,
-        color,
+        tone,
         value: tooltipValue,
       });
     element.onMouseMove = (event) => tooltip.move(event as MouseEvent);
@@ -323,7 +320,8 @@ export function radialThinCircle(
 
 export interface RadialTooltipEntry {
   label: string;
-  color: ThemeColor;
+  /** Ramp tone of the hovered ring (within the primary family). */
+  tone: string;
   /** Numeric value shown right-aligned after the label (upstream
    * ChartTooltipContent renders `item.value.toLocaleString()`). */
   value?: number;
@@ -332,7 +330,7 @@ export interface RadialTooltipEntry {
 interface RadialTooltipStateShape {
   visible: boolean;
   label: string;
-  color: ThemeColor;
+  tone: string;
   value?: number;
   x: number;
   y: number;
@@ -351,7 +349,7 @@ export function createRadialTooltip(): RadialTooltipController {
   const state = toState<RadialTooltipStateShape>({
     visible: false,
     label: "",
-    color: "neutral",
+    tone: "shift-9",
     value: undefined,
     x: 0,
     y: 0,
@@ -373,7 +371,7 @@ export function createRadialTooltip(): RadialTooltipController {
       state.set({
         visible: true,
         label: entry.label,
-        color: entry.color,
+        tone: entry.tone,
         value: entry.value,
         ...positionFromEvent(event),
       });
@@ -411,7 +409,7 @@ export function radialTooltipLayer(
           borderRadius: themeSpacing(1),
           flexShrink: "0",
           backgroundColor: (listener: Listener) =>
-            themeColor(listener, "shift-9", tooltip.state.get(listener).color),
+            themeColor(listener, tooltip.state.get(listener).tone, "primary"),
         },
       } as DomphyElement<"span">,
       {
@@ -606,7 +604,7 @@ export function renderRadialRingsChart(
 
   data.forEach((point, index) => {
     const ring = rings[index];
-    const color = radialSeriesColor(index, point.color);
+    const tone = radialSeriesTone(index, point.tone);
 
     if (showBackgroundTrack) {
       backgroundElements.push({
@@ -631,7 +629,7 @@ export function renderRadialRingsChart(
         thickness: ring.thickness,
         startAngleDeg: startAngle,
         endAngleDeg: endAngle,
-        color,
+        tone,
         capStyle,
         tooltip,
         tooltipLabel: point.label,
@@ -650,7 +648,12 @@ export function renderRadialRingsChart(
           left: `${toPercent(labelPoint.x)}%`,
           top: `${toPercent(labelPoint.y)}%`,
           transform: "translate(-6%, -50%)",
-          color: (listener: Listener) => themeColor(listener, "shift-1", color),
+          // Upstream renders insideStart labels in WHITE
+          // (`fill-white capitalize mix-blend-luminosity`) directly on the
+          // bar — a light tint of the bar's own color washes out on the
+          // lighter ramp steps.
+          color: (listener: Listener) =>
+            themeColor(listener, "shift-0", "neutral"),
           textTransform: "capitalize",
           whiteSpace: "nowrap",
           pointerEvents: "none",
@@ -695,7 +698,8 @@ export function renderRadialRingsChart(
 // ─── Single-value gauge (chartRadialShape / Text) ──────────────────────────
 
 export interface RadialGaugeProps {
-  color: ThemeColor;
+  /** Ramp tone of the gauge arc (within the primary family). */
+  tone: string;
   sweepDegrees: number;
   outerRadius?: number;
   /** Ring thickness as a fraction of outerRadius left unfilled by the inner radius. */
@@ -713,7 +717,7 @@ export function renderRadialGauge(
   props: RadialGaugeProps,
 ): DomphyElement<"div"> {
   const {
-    color,
+    tone,
     sweepDegrees,
     outerRadius = 90,
     innerRadiusRatio = 0.66,
@@ -757,7 +761,7 @@ export function renderRadialGauge(
       thickness,
       startAngleDeg: 0,
       endAngleDeg: sweepDegrees,
-      color,
+      tone,
       capStyle,
       seriesKey: "value",
     }),
@@ -828,7 +832,7 @@ export function renderRadialStackedGauge(
   let cursor = startAngle;
   const arcElements: DomphyElement[] = [];
   segments.forEach((segment, index) => {
-    const color = radialSeriesColor(index, segment.color);
+    const tone = radialSeriesTone(index, segment.tone);
     const segmentSweep = (segment.value / totalValue) * sweepDegrees;
     const segmentStart = cursor + (index === 0 ? 0 : segmentGapDegrees / 2);
     const segmentEnd =
@@ -843,7 +847,7 @@ export function renderRadialStackedGauge(
         thickness,
         startAngleDeg: segmentStart,
         endAngleDeg: Math.max(segmentStart + 0.5, segmentEnd),
-        color,
+        tone,
         capStyle: "round",
         tooltip,
         tooltipLabel: segment.label,

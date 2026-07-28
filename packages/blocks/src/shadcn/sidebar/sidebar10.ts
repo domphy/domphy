@@ -7,7 +7,7 @@
 // ./sidebar09-12-shared.ts and ./sidebar05-08-shared.ts.
 
 import type { DomphyElement, Listener, State } from "@domphy/core";
-import { toState } from "@domphy/core";
+import { rawHtml, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { buttonGhost, icon, popover, small } from "@domphy/ui";
 import {
@@ -293,7 +293,7 @@ function workspaceNode(
           {
             button: [
               {
-                span: ICON_CHEVRON_RIGHT,
+                span: rawHtml(ICON_CHEVRON_RIGHT),
                 dataSlot: "chevron",
                 style: {
                   display: "inline-flex",
@@ -475,48 +475,16 @@ function moreRow(
 }
 
 /**
- * Right-aligned count badge overlaid on a nav row (upstream SidebarMenuBadge —
- * `absolute right-1`, hidden in the collapsed icon rail). The row it decorates
- * must be `position: relative`.
+ * A quick-link nav row, optionally carrying a trailing count badge. The badge
+ * uses renderPlainNavRow()'s built-in in-flow pill (upstream SidebarMenuBadge
+ * sits inside the row, ml-auto) — an earlier absolutely-positioned overlay
+ * badge rendered clipped at the sidebar's padding edge.
  */
-function navRowBadge(
-  text: string,
-  collapsed: State<boolean>,
-): DomphyElement<"span"> {
-  return {
-    span: text,
-    ariaHidden: "true",
-    style: {
-      position: "absolute",
-      insetInlineEnd: themeSpacing(3),
-      top: "50%",
-      transform: "translateY(-50%)",
-      display: (l: Listener) => (collapsed.get(l) ? "none" : "flex"),
-      alignItems: "center",
-      justifyContent: "center",
-      height: themeSpacing(5),
-      minWidth: themeSpacing(5),
-      paddingInline: themeSpacing(1),
-      pointerEvents: "none",
-      color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
-    },
-  } as unknown as DomphyElement<"span">;
-}
-
-/** A quick-link nav row, optionally carrying a right-aligned count badge. */
 function quickLinkRow(
   item: SidebarNavMainItem & { badge?: string },
   collapsed: State<boolean>,
 ): DomphyElement<"li"> {
-  const row = renderPlainNavRow(item, collapsed) as unknown as {
-    li: DomphyElement[];
-    style?: Record<string, unknown>;
-  };
-  if (item.badge) {
-    row.style = { position: "relative" };
-    row.li.push(navRowBadge(item.badge, collapsed));
-  }
-  return row as unknown as DomphyElement<"li">;
+  return renderPlainNavRow(item, collapsed);
 }
 
 /**
@@ -527,7 +495,8 @@ function quickLinkRow(
 function centeredBox(fill: boolean): DomphyElement<"div"> {
   return {
     div: null,
-    dataTone: "shift-2",
+    // Near-white muted fill (upstream bg-muted/50); shift-2 reads dirty here.
+    dataTone: "shift-1",
     style: {
       marginInline: "auto",
       width: "100%",
@@ -800,6 +769,9 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
           overflowY: "auto",
           overflowX: "hidden",
           paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+          // Clearance above the pinned secondary nav so the last scrollable
+          // row never reads as clipped against its top border.
+          paddingBlockEnd: (l: Listener) => themeSpacing(themeDensity(l) * 2),
         },
       } as unknown as DomphyElement,
       {

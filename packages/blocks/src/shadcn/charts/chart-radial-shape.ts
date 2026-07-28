@@ -11,7 +11,7 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement, Listener } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { themeColor, themeSpacing } from "@domphy/theme";
 import { motion } from "@domphy/ui";
 import {
   type ChartTrendDirection,
@@ -31,7 +31,8 @@ import {
 
 export interface ChartRadialShapeProps {
   value?: number;
-  color?: ThemeColor;
+  /** Ramp tone of the gauge arc, within the primary family (upstream var(--chart-2) ≈ shift-6). */
+  tone?: string;
   captionText?: string;
   title?: string;
   description?: string;
@@ -54,7 +55,7 @@ export interface ChartRadialShapeProps {
 // it is a shared helper this pass may not edit, so this recipe builds its own
 // arc from the exported ring/track/label primitives.
 function renderShapeGauge(props: {
-  color: ThemeColor;
+  tone: string;
   sweepDegrees: number;
   innerRadiusRatio: number;
   showDecorativeCircles: boolean;
@@ -63,7 +64,7 @@ function renderShapeGauge(props: {
   captionText: string;
 }): DomphyElement<"div"> {
   const {
-    color,
+    tone,
     sweepDegrees,
     innerRadiusRatio,
     showDecorativeCircles,
@@ -114,7 +115,7 @@ function renderShapeGauge(props: {
     path: null,
     d: arcPath,
     fill: "none",
-    stroke: (listener: Listener) => themeColor(listener, "shift-9", color),
+    stroke: (listener: Listener) => themeColor(listener, tone, "primary"),
     strokeWidth: thickness,
     strokeLinecap: "butt",
     strokeDasharray: arcLength,
@@ -162,7 +163,7 @@ function chartRadialShape(
 ): DomphyElement<"div"> {
   const {
     value = 1125,
-    color = "secondary",
+    tone = "shift-6",
     captionText = "Visitors",
     title = "Radial Chart - Shape",
     description = "January - June 2026",
@@ -181,7 +182,7 @@ function chartRadialShape(
     content: {
       div: [
         renderShapeGauge({
-          color,
+          tone,
           sweepDegrees,
           innerRadiusRatio,
           showDecorativeCircles,

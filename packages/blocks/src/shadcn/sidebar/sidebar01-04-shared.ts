@@ -374,7 +374,7 @@ function navItemRow(
         a: rowChildren,
         href: item.href ?? "#",
         ariaCurrent: item.active ? ("page" as const) : undefined,
-        $: [listItemButton({ accentColor: "primary" })],
+        $: [listItemButton({ accentColor: "neutral" })],
       },
     ],
     _key: item.label,
@@ -417,7 +417,7 @@ function navItemWithChildrenRow(
                   a: [collapsibleLabel(collapsed, child.label)],
                   href: child.href ?? "#",
                   ariaCurrent: child.active ? ("page" as const) : undefined,
-                  $: [listItemButton({ dense: true, accentColor: "primary" })],
+                  $: [listItemButton({ dense: true, accentColor: "neutral" })],
                 },
               ],
               _key: child.label,
@@ -555,7 +555,7 @@ export function sidebarHeaderSwitcher(
     div: [
       {
         button: [
-          navIcon("grid", "primary"),
+          navIcon("grid"),
           collapsibleLabel(collapsed, header.workspaceName),
           {
             span: [navIcon("chevronsUpDown")],
@@ -587,11 +587,13 @@ export function sidebarHeaderSwitcher(
   };
 }
 
-/** Square brand box holding a `gallery` glyph (GalleryVerticalEnd stand-in). */
+/** Square brand box holding a `gallery` glyph (GalleryVerticalEnd stand-in).
+ * Solid near-black (upstream bg-sidebar-primary) with a light glyph. */
 function headerBrandBox(): DomphyElement<"span"> {
   return {
-    span: [navIcon("gallery", "primary")],
-    $: [avatar({ color: "primary" })],
+    span: [navIcon("gallery")],
+    dataTone: "shift-17",
+    $: [avatar({ color: "neutral" })],
     style: {
       width: themeSpacing(8),
       height: themeSpacing(8),
@@ -809,7 +811,7 @@ export function sidebarSearchForm(
             ariaLabel: "Search",
             placeholder: "Search the docs...",
             style: { width: "100%", paddingInlineStart: themeSpacing(8) },
-            $: [inputSearch({ color: "neutral", accentColor: "primary" })],
+            $: [inputSearch({ color: "neutral", accentColor: "neutral" })],
           } as DomphyElement<"input">,
         ],
         style: { position: "relative", display: "flex", alignItems: "center" },
@@ -847,7 +849,7 @@ export function sidebarFooterUser(
     div: [
       {
         button: [
-          { span: user.initials, $: [avatar({ color: "primary" })] },
+          { span: user.initials, $: [avatar({ color: "neutral" })] },
           {
             div: [
               {
@@ -1085,6 +1087,9 @@ export function contentTileGrid(): DomphyElement<"div"> {
   const tiles = [0, 1, 2].map((index) => ({
     div: null,
     _key: `tile-${index}`,
+    // Near-white muted fill (upstream bg-muted/50); skeleton() defaults to a
+    // shift-2 surface that reads visibly dirty at this size.
+    dataTone: "shift-1",
     $: [skeleton()],
     style: { height: themeSpacing(48) },
   }));
@@ -1101,6 +1106,7 @@ export function contentTileGrid(): DomphyElement<"div"> {
       },
       {
         div: null,
+        dataTone: "shift-1",
         $: [skeleton()],
         style: { height: themeSpacing(160), flex: "1 1 auto" },
       },
@@ -1118,6 +1124,7 @@ export function contentPlaceholderRows(count = 40): DomphyElement<"div"> {
   const rows = Array.from({ length: count }, (_unused, index) => ({
     div: null,
     _key: `row-${index}`,
+    dataTone: "shift-1",
     $: [skeleton()],
     style: { height: themeSpacing(14) },
   }));
@@ -1540,7 +1547,7 @@ export function buildSidebarBlock(
       side === "right"
         ? [mainElement, asideElement, mobileDrawerElement]
         : [asideElement, mobileDrawerElement, mainElement],
-    dataTone: insetMain ? "shift-2" : "shift-0",
+    dataTone: insetMain ? "shift-1" : "shift-0",
     style: {
       display: "flex",
       width: "100%",
@@ -1603,7 +1610,7 @@ function docsSubList(
           a: [collapsibleLabel(collapsed, child.label)],
           href: child.href ?? "#",
           ariaCurrent: child.active ? ("page" as const) : undefined,
-          $: [listItemButton({ dense: true, accentColor: "primary" })],
+          $: [listItemButton({ dense: true, accentColor: "neutral" })],
         },
       ],
       _key: child.label,

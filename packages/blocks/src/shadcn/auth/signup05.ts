@@ -1,4 +1,5 @@
 import type { DomphyElement, Listener, PartialElement } from "@domphy/core";
+import { rawHtml } from "@domphy/core";
 import {
   themeColor,
   themeDensity,
@@ -74,7 +75,7 @@ function authFieldInput(): PartialElement {
       },
       "&:hover:not([disabled]), &:focus-visible": {
         outline: (listener: Listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "primary")}`,
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "neutral")}`,
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -90,7 +91,7 @@ function logoMark(): DomphyElement<"span"> {
   // Upstream's logo container is a transparent `size-8 rounded-md` box with the
   // icon in inherited currentColor — no background or color utility on it.
   return {
-    span: [{ span: LOGO_ICON, $: [icon({ color: "inherit" })] }],
+    span: [{ span: rawHtml(LOGO_ICON), $: [icon({ color: "inherit" })] }],
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -166,7 +167,9 @@ function providerButton(provider: SocialProvider): DomphyElement<"button"> {
   return {
     button: [
       {
-        span: provider.iconSvg ?? letterBadgeIcon(provider.label.charAt(0)),
+        span: rawHtml(
+          provider.iconSvg ?? letterBadgeIcon(provider.label.charAt(0)),
+        ),
         $: [icon({ color: "inherit" })],
       },
       // Upstream renders the full CTA text ("Continue with Apple/Google") as the

@@ -19,6 +19,8 @@ import {
   type ChartAreaSinglePoint,
   type ChartTrendDirection,
   chartAreaFrame,
+  chartAreaGradientFill,
+  chartAreaSeriesColor,
   chartAreaTooltipRow,
   chartCardShell,
   chartTrendFooter,
@@ -99,6 +101,11 @@ function chartAreaStep(props: ChartAreaStepProps = {}): DomphyElement<"div"> {
   } = props;
 
   const categories = data.map((point) => point.month);
+  // Single-series recipe: upstream strokes the step at full-strength
+  // `var(--color-desktop)` (chart-2, a medium blue). Use the second ramp step
+  // for the fill but keep the engine-pinned stroke at full opacity — the
+  // faded-stroke approximation (0.45/0.72) renders the staircase as a ghost.
+  const ramp = chartAreaSeriesColor(1);
 
   const option: ChartOption = {
     tooltip: {
@@ -109,7 +116,7 @@ function chartAreaStep(props: ChartAreaStepProps = {}): DomphyElement<"div"> {
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     yAxis: CHART_AREA_Y_AXIS_HIDDEN,
     // Upstream `<AreaChart margin={{ left: 12, right: 12 }}>`.
-    grid: { left: 12, right: 12, top: 12, bottom: 24, containLabel: false },
+    grid: { left: 12, right: 12, top: 12, bottom: 32, containLabel: false },
     series: [
       {
         type: "line",
@@ -122,8 +129,11 @@ function chartAreaStep(props: ChartAreaStepProps = {}): DomphyElement<"div"> {
         showSymbol: false,
         color: seriesColor,
         // recharts <Area> default stroke is ~1px.
-        lineStyle: { width: 1 },
-        areaStyle: { opacity: 0.4 },
+        lineStyle: { width: 1, opacity: 1 },
+        areaStyle: {
+          color: chartAreaGradientFill("primary", 0.4, 0.4, ramp.tone),
+          opacity: 1,
+        },
         data: data.map((point) => point.value),
       },
     ],

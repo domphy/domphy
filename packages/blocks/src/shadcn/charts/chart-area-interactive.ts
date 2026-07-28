@@ -29,12 +29,13 @@ import {
   CHART_AREA_DAILY_DATA,
   CHART_AREA_RANGE_PRESETS,
   CHART_AREA_REVEAL_TRANSITION,
-  CHART_AREA_SERIES_PALETTE,
   CHART_AREA_X_AXIS_BARE,
   CHART_AREA_Y_AXIS_HIDDEN,
   type ChartAreaDailyPoint,
+  type ChartAreaSeriesTone,
   type ChartRangePreset,
   chartAreaGradientFill,
+  chartAreaSeriesColor,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartLegendRow,
@@ -44,7 +45,8 @@ import {
 export interface ChartAreaInteractiveSeries {
   key: "desktop" | "mobile";
   label: string;
-  color: ThemeColor;
+  /** Ramp tone within the primary family (approximates var(--chart-N)). */
+  tone: ChartAreaSeriesTone;
 }
 
 export interface ChartAreaInteractiveProps {
@@ -57,14 +59,14 @@ export interface ChartAreaInteractiveProps {
   height?: number;
 }
 
-// Order matches upstream's <Area> render order: mobile (chart-2) is declared
-// first so it is the bottom band, desktop (chart-1) is stacked on top. The
+// Order matches upstream's <Area> render order: mobile (chart-1) is declared
+// first so it is the bottom band, desktop (chart-2) is stacked on top. The
 // auto legend and the stacked series both follow this array order, so keeping
-// mobile-then-desktop here yields the upstream legend "Mobile, Desktop" and the
-// upstream band coloring (secondary on the bottom, primary layered above).
+// mobile-then-desktop here yields the upstream legend "Mobile, Desktop" and
+// the upstream band coloring (lighter step below, darker step layered above).
 const DEFAULT_SERIES: ChartAreaInteractiveSeries[] = [
-  { key: "mobile", label: "Mobile", color: CHART_AREA_SERIES_PALETTE[1] },
-  { key: "desktop", label: "Desktop", color: CHART_AREA_SERIES_PALETTE[0] },
+  { key: "mobile", label: "Mobile", tone: chartAreaSeriesColor(0).tone },
+  { key: "desktop", label: "Desktop", tone: chartAreaSeriesColor(1).tone },
 ];
 
 /**
@@ -105,16 +107,27 @@ function chartAreaInteractive(
         data: tooltipCategories,
       },
       yAxis: CHART_AREA_Y_AXIS_HIDDEN,
-      grid: { left: 8, right: 8, top: 12, bottom: 24, containLabel: false },
-      series: series.map((s) => ({
+      // Bottom margin fits the full x-axis label row: the engine draws labels
+      // 18px below the grid's bottom edge (11px hanging text), so 24px
+      // clipped the date glyphs at the frame edge.
+      grid: { left: 8, right: 8, top: 12, bottom: 32, containLabel: false },
+      series: series.map((s, seriesIndex) => ({
         type: "line",
         name: s.label,
         stack: "total",
         smooth: true,
         showSymbol: false,
-        color: s.color,
-        lineStyle: { width: 2 },
-        areaStyle: { color: chartAreaGradientFill(s.color), opacity: 1 },
+        // The engine pins strokes to the family at shift-9; the ramp step is
+        // approximated via stroke opacity, and the gradient carries the tone.
+        color: "primary",
+        lineStyle: {
+          width: 2,
+          opacity: chartAreaSeriesColor(seriesIndex).strokeOpacity,
+        },
+        areaStyle: {
+          color: chartAreaGradientFill("primary", 0.8, 0.1, s.tone),
+          opacity: 1,
+        },
         data: sliced.map((point) => point[s.key]),
       })),
     };
@@ -181,7 +194,9 @@ function chartAreaInteractive(
     content: {
       div: [
         chartFrame,
-        chartLegendRow(series.map((s) => ({ label: s.label, color: s.color }))),
+        chartLegendRow(
+          series.map((s) => ({ label: s.label, color: "primary", tone: s.tone })),
+        ),
       ],
     },
   });

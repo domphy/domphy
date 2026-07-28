@@ -17,6 +17,7 @@ import {
   BROWSER_CATEGORY_DATA,
   type CategoryPoint,
   chartCard,
+  chartLineSeriesColor,
   chartPlot,
   computeYDomain,
   HIDDEN_AXIS_LINE_GRID,
@@ -63,7 +64,7 @@ function chartLineLabelCustom(
   const {
     title = "Line Chart - Custom Label",
     description = "Browser share for the last 6 months",
-    seriesColor = "secondary",
+    seriesColor = "primary",
     data = BROWSER_CATEGORY_DATA,
     trendHeadline = "Trending up by 4.8% this period",
     trendSubtitle = "Showing browser share across five platforms",
@@ -73,7 +74,9 @@ function chartLineLabelCustom(
   const categories = data.map((point) => point.key);
   const values = data.map((point) => point.value);
   const yDomain = computeYDomain(values);
-  const dotFill = themeColorToken(null, "shift-9", seriesColor);
+  // Upstream's uniform stroke/dots are var(--chart-2) — the ramp's second step.
+  const ramp = chartLineSeriesColor(1);
+  const dotFill = themeColorToken(null, ramp.tone, seriesColor);
 
   // Upstream ChartTooltipContent (indicator="line", nameKey="visitors",
   // hideLabel) colors the swatch with item.payload.fill — the HOVERED point's
@@ -86,8 +89,12 @@ function chartLineLabelCustom(
   ): string {
     const point = Array.isArray(params) ? params[0] : params;
     if (!point) return "";
-    const pointColor = data[point.dataIndex]?.color ?? seriesColor;
-    const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${themeColorToken(null, "shift-9", pointColor)};"></span>`;
+    const pointColorRaw = data[point.dataIndex]?.color ?? seriesColor;
+    const pointColor =
+      pointColorRaw.startsWith("#") || pointColorRaw.startsWith("rgb")
+        ? pointColorRaw
+        : themeColorToken(null, ramp.tone, pointColorRaw as ThemeColor);
+    const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${pointColor};"></span>`;
     const label = escapeHtml(String(point.seriesName ?? point.name ?? ""));
     return tooltipRow(swatch, label, escapeHtml(String(point.value ?? "")));
   }
@@ -108,7 +115,7 @@ function chartLineLabelCustom(
         data: values,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 2 },
+        lineStyle: { width: 2, opacity: ramp.strokeOpacity },
         color: seriesColor,
         // Look up the friendly display name from `data` by dataIndex — the
         // label shows the category's name, not its raw value. Upstream
@@ -152,6 +159,7 @@ function chartLineLabelCustom(
           yDomain,
           grid: HIDDEN_AXIS_LINE_GRID,
           color: seriesColor,
+          tone: ramp.tone,
           radius: ACTIVE_DOT_RADIUS,
         }),
       ],

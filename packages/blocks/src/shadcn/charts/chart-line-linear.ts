@@ -13,6 +13,7 @@ import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   chartCard,
+  chartLineSeriesColor,
   chartPlot,
   computeYDomain,
   DEFAULT_LINE_GRID,
@@ -66,7 +67,11 @@ function chartLineLinear(
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "none" },
-      formatter: lineSwatchLabelValueTooltipFormatter,
+      formatter: (params) =>
+        lineSwatchLabelValueTooltipFormatter(
+          params,
+          chartLineSeriesColor(0).hex,
+        ),
     },
     series: [
       {
@@ -76,7 +81,9 @@ function chartLineLinear(
         smooth: false,
         step: false,
         showSymbol: false,
-        lineStyle: { width: 2 },
+        // Upstream's stroke is var(--chart-1): the engine pins strokes to
+        // shift-9, so the ramp step is approximated via stroke opacity.
+        lineStyle: { width: 2, opacity: chartLineSeriesColor(0).strokeOpacity },
         color: seriesColor,
       },
     ],

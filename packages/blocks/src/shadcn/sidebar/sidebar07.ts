@@ -208,7 +208,7 @@ function sidebar07(props: Sidebar07Props = {}): DomphyElement<"div"> {
         },
       } as unknown as DomphyElement,
     ],
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     _onMount: (node: ElementNode) => {
       const onKeyDown = (event: KeyboardEvent) => {
         if (

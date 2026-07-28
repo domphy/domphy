@@ -13,6 +13,7 @@ import { type ThemeColor, themeColorToken } from "@domphy/theme";
 import { fixed } from "../../shared/typography.js";
 import {
   chartCard,
+  chartLineSeriesColor,
   chartPlot,
   computeYDomain,
   hiddenLabelYAxis,
@@ -73,7 +74,7 @@ function nestLabelTooltipFormatter(categories: string[]) {
     );
     const series = escapeHtml(String(point.seriesName ?? ""));
     const value = escapeHtml(String(point.value ?? ""));
-    const swatch = `<span style="display:inline-block;width:3px;align-self:stretch;border-radius:2px;background:${point.color};margin-right:8px;"></span>`;
+    const swatch = `<span style="display:inline-block;width:3px;align-self:stretch;border-radius:2px;background:${chartLineSeriesColor(0).hex};margin-right:8px;"></span>`;
     return (
       `<span style="display:flex;align-items:stretch;">${swatch}` +
       `<span style="display:flex;flex:1;justify-content:space-between;align-items:flex-end;gap:16px;">` +
@@ -120,7 +121,9 @@ function chartLineLabel(props: ChartLineLabelProps = {}): DomphyElement<"div"> {
   const categories = data.map((point) => point.month);
   const values = data.map((point) => point.desktop);
   const yDomain = computeYDomain(values);
-  const dotFill = themeColorToken(null, "shift-9", seriesColor);
+  // Upstream's stroke/dots are var(--chart-1) — the ramp's first step.
+  const ramp = chartLineSeriesColor(0);
+  const dotFill = themeColorToken(null, ramp.tone, seriesColor);
 
   const option: ChartOption = {
     grid: PLOT_GRID,
@@ -144,7 +147,7 @@ function chartLineLabel(props: ChartLineLabelProps = {}): DomphyElement<"div"> {
         // (upstream `dot={{ fill: color }}`); the engine's built-in line symbol
         // is a hollow white-fill circle, so it is disabled here.
         showSymbol: false,
-        lineStyle: { width: 2 },
+        lineStyle: { width: 2, opacity: ramp.strokeOpacity },
         color: seriesColor,
         // Upstream <LabelList className="fill-foreground"> — full card foreground,
         // not the engine's muted default point-label tone.
@@ -182,6 +185,7 @@ function chartLineLabel(props: ChartLineLabelProps = {}): DomphyElement<"div"> {
           yDomain,
           grid: PLOT_GRID,
           color: seriesColor,
+          tone: ramp.tone,
           radius: ACTIVE_DOT_RADIUS,
         }),
       ],

@@ -17,6 +17,8 @@ import {
   type ChartAreaSinglePoint,
   type ChartTrendDirection,
   chartAreaFrame,
+  chartAreaGradientFill,
+  chartAreaSeriesColor,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartTrendFooter,
@@ -54,6 +56,10 @@ function chartAreaDefault(
   } = props;
 
   const categories = data.map((point) => point.month);
+  // Upstream colors this single series var(--chart-1) (≈ blue-300): the fill
+  // uses the exact ramp tone, while the engine-pinned shift-9 stroke is faded
+  // toward it with the ramp's stroke opacity.
+  const ramp = chartAreaSeriesColor(0);
 
   const option: ChartOption = {
     tooltip: {
@@ -70,7 +76,10 @@ function chartAreaDefault(
     },
     xAxis: { ...CHART_AREA_X_AXIS_BARE, data: categories },
     yAxis: CHART_AREA_Y_AXIS_HIDDEN,
-    grid: { left: 8, right: 8, top: 12, bottom: 24, containLabel: false },
+    // Bottom margin fits the full x-axis label row: the engine draws labels
+    // 18px below the grid's bottom edge (11px hanging text), so 24px clipped
+    // the glyphs at the frame edge.
+    grid: { left: 8, right: 8, top: 12, bottom: 32, containLabel: false },
     series: [
       {
         type: "line",
@@ -81,8 +90,11 @@ function chartAreaDefault(
         // Upstream <Area> sets no strokeWidth, so the outline renders at the
         // 1px SVG default (unlike the linear recipe, which sets strokeWidth=2).
         // The engine defaults an unset lineStyle.width to 2, so pin it to 1.
-        lineStyle: { width: 1 },
-        areaStyle: { opacity: 0.4 },
+        lineStyle: { width: 1, opacity: ramp.strokeOpacity },
+        areaStyle: {
+          color: chartAreaGradientFill("primary", 0.4, 0.4, ramp.tone),
+          opacity: 1,
+        },
         data: data.map((point) => point.value),
       },
     ],

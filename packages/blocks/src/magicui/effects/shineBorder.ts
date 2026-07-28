@@ -1,6 +1,6 @@
 // Magic UI "Shine Border" — clean-room reimplementation.
 //
-// A decorative animated border: a subtle single-hue shine band that
+// A decorative animated border: a vivid multi-hue shine band that
 // continuously sweeps around a container's rounded outline (contrast with
 // `borderBeam`, which animates a single traveling comet). Implemented as a
 // full-perimeter SVG ring stroked with a gradient — transparent flanks around
@@ -25,7 +25,7 @@ export interface ShineBorderProps {
   thickness?: number;
   /** One full rotation, in seconds — slower/calmer than `borderBeam`'s comet. Defaults to `14`. */
   duration?: number;
-  /** Colors the shine band blends through, in order. Defaults to a single subtle hue `["neutral"]` (upstream's `#000000`). */
+  /** Colors the shine band blends through, in order. Defaults to a vivid three-hue gradient `["primary", "secondary", "warning"]` — the animated multicolor shine is the point of the component (mirrors the upstream docs demo's `#A07CFE/#FE8FB5/#FFBE7B` trio within the theme's own families). */
   colors?: ThemeColor[];
   /** Corner radius in pixels, should roughly match the host card's own rounding. Defaults to `16`. */
   borderRadius?: number;
@@ -44,7 +44,7 @@ function shineBorder(props: ShineBorderProps = {}): DomphyElement<"div"> {
   const {
     thickness = 1,
     duration = 14,
-    colors = ["neutral"],
+    colors = ["primary", "secondary", "warning"],
     borderRadius = 16,
     children = [
       { h3: "Shine Border", $: [heading()] },

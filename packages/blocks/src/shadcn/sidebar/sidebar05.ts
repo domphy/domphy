@@ -5,7 +5,7 @@
 // sidebar itself slides fully off-canvas when hidden (no icon-rail collapse).
 
 import type { DomphyElement, Listener } from "@domphy/core";
-import { toState } from "@domphy/core";
+import { rawHtml, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   icon,
@@ -21,6 +21,7 @@ import {
   ICON_PLUS,
   ICON_SEARCH,
   type SidebarBreadcrumbItem,
+  glyphChild,
   sidebarBackdrop,
   sidebarMainContent,
   sidebarStickyHeader,
@@ -113,7 +114,13 @@ function renderSubItem(
       {
         a: item.active
           ? ([
-              { strong: item.title, $: [strong({ color: "neutral" })] },
+              {
+                strong: item.title,
+                // strong() paints an inherit-tone background; keep it
+                // transparent so no box appears over the active pill.
+                style: { backgroundColor: "transparent" },
+                $: [strong({ color: "neutral" })],
+              },
             ] as unknown as DomphyElement)
           : item.title,
         href: item.href ?? "#",
@@ -121,7 +128,7 @@ function renderSubItem(
         $: [
           listItemButton({
             color: "neutral",
-            accentColor: "primary",
+            accentColor: "neutral",
             dense: true,
           }),
         ],
@@ -153,12 +160,12 @@ function renderNavGroup(
                 style: { flex: "1", textAlign: "left" },
               } as unknown as DomphyElement,
               {
-                span: ICON_PLUS,
+                span: rawHtml(ICON_PLUS),
                 dataSlot: "toggle-plus",
                 $: [icon({ color: "neutral" })],
               } as unknown as DomphyElement,
               {
-                span: ICON_MINUS,
+                span: rawHtml(ICON_MINUS),
                 dataSlot: "toggle-minus",
                 $: [icon({ color: "neutral" })],
               } as unknown as DomphyElement,
@@ -249,8 +256,8 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
           {
             a: [
               {
-                span: header.icon ?? ICON_MARK,
-                dataTone: "shift-0",
+                span: glyphChild(header.icon ?? ICON_MARK),
+                dataTone: "shift-17",
                 style: {
                   display: "flex",
                   alignItems: "center",
@@ -261,8 +268,8 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
                   borderRadius: (l: Listener) =>
                     themeSpacing(themeDensity(l) * 2),
                   backgroundColor: (l: Listener) =>
-                    themeColor(l, "inherit", "primary"),
-                  color: (l: Listener) => themeColor(l, "shift-10", "primary"),
+                    themeColor(l, "inherit", "neutral"),
+                  color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
                 },
               } as unknown as DomphyElement,
               {
@@ -302,7 +309,7 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
           {
             div: [
               {
-                span: ICON_SEARCH,
+                span: rawHtml(ICON_SEARCH),
                 style: {
                   position: "absolute",
                   insetInlineStart: themeSpacing(3),
@@ -321,7 +328,7 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
                 ariaLabel: "Search",
                 placeholder: searchPlaceholder,
                 style: { width: "100%", paddingInlineStart: themeSpacing(9) },
-                $: [inputSearch({ color: "neutral", accentColor: "primary" })],
+                $: [inputSearch({ color: "neutral", accentColor: "neutral" })],
               } as unknown as DomphyElement,
             ],
             style: {
@@ -357,7 +364,7 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
         },
       } as unknown as DomphyElement,
     ],
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     style: {
       display: "flex",
       flexDirection: "column",

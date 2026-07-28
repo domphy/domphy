@@ -84,7 +84,8 @@ export function brandGlyph(brand: BrandName): DomphyElement<"span"> {
 // original geometry, not any real company's trademark.
 const LOGO_MARK_PATH = "M12 2 20 12 12 22 4 12Z";
 
-/** Small rounded-square colored logo badge, used beside the brand wordmark. */
+/** Small rounded-square logo badge, used beside the brand wordmark. Solid
+ * near-black (upstream bg-primary) with a light glyph. */
 export function brandBadge(): DomphyElement<"div"> {
   return {
     div: [
@@ -98,6 +99,7 @@ export function brandBadge(): DomphyElement<"div"> {
         style: { width: themeSpacing(4), height: themeSpacing(4) },
       } as DomphyElement<"svg">,
     ],
+    dataTone: "shift-17",
     style: {
       display: "flex",
       alignItems: "center",
@@ -108,9 +110,9 @@ export function brandBadge(): DomphyElement<"div"> {
       borderRadius: (listener: Listener) =>
         themeSpacing(themeDensity(listener) * 1),
       backgroundColor: (listener: Listener) =>
-        themeColor(listener, "inherit", "primary"),
+        themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) =>
-        themeColor(listener, "shift-11", "primary"),
+        themeColor(listener, "shift-9", "neutral"),
     },
   };
 }
@@ -156,7 +158,7 @@ function fieldInputStyle(): PartialElement {
       },
       "&:hover:not([disabled]), &:focus-visible": {
         outline: (listener: Listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "primary")}`,
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "neutral")}`,
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -450,6 +452,30 @@ export function coverImage(options: CoverImageOptions): DomphyElement<"img"> {
             },
           }
         : {}),
+    },
+  };
+}
+
+/**
+ * Understated decorative cover used when no photo is available (the default —
+ * clean-room means no external photo hotlink): a soft shift-1 → shift-0
+ * neutral wash with a faint dot grid, built entirely from theme tokens so it
+ * adapts to the active theme instead of reading as a dead gray box.
+ */
+export function coverPanel(): DomphyElement<"div"> {
+  return {
+    div: null,
+    ariaHidden: "true",
+    dataTone: "shift-1",
+    style: {
+      width: "100%",
+      height: "100%",
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
+      backgroundImage: (listener: Listener) =>
+        `radial-gradient(circle, ${themeColor(listener, "shift-3", "neutral")} 1px, transparent 1px), linear-gradient(to bottom right, ${themeColor(listener, "shift-1", "neutral")}, ${themeColor(listener, "shift-0", "neutral")})`,
+      backgroundSize: `${themeSpacing(6)} ${themeSpacing(6)}, 100% 100%`,
+      color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },
   };
 }

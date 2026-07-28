@@ -73,7 +73,7 @@ function chartPieLabelCustom(
       // the shared tooltip a name-overridden datum so its name channel carries
       // the metric label instead of slice.datum.name.
       ...wedgeTooltipHandlers(
-        { datum: { ...slice.datum, name: valueLabel }, color: slice.color },
+        { datum: { ...slice.datum, name: valueLabel }, tone: slice.tone },
         { containerRef, tooltipState, valueFormatter: labelFormatter },
       ),
     },

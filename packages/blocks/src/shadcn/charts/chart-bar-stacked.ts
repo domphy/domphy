@@ -10,9 +10,7 @@
 
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
 import {
-  CHART_BAR_SERIES_PALETTE,
   CHART_BAR_TWO_SERIES_DATA,
   type ChartBarTwoSeriesPoint,
   type ChartTrendDirection,
@@ -21,6 +19,7 @@ import {
   chartBarFrame,
   chartBarHiddenValueYAxis,
   chartBarLegendRow,
+  chartBarSeriesColor,
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
@@ -47,7 +46,7 @@ function chartBarStackedTooltip(
   if (parameters.length === 0) return "";
   return parameters
     .map((p) => {
-      const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
+      const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${chartBarSeriesColor(p.seriesIndex ?? 0).hex};margin-right:6px;"></span>`;
       const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
       return chartBarTooltipRow(dot, label, escapeHtml(String(p.value ?? "")));
     })
@@ -57,7 +56,8 @@ function chartBarStackedTooltip(
 export interface ChartBarStackedSeries {
   key: "desktop" | "mobile";
   label: string;
-  color: ThemeColor;
+  /** Theme role (resolved at shift-9) or literal ramp hex. */
+  color: string;
 }
 
 export interface ChartBarStackedProps {
@@ -74,8 +74,8 @@ export interface ChartBarStackedProps {
 }
 
 const DEFAULT_SERIES: ChartBarStackedSeries[] = [
-  { key: "desktop", label: "Desktop", color: CHART_BAR_SERIES_PALETTE[0] },
-  { key: "mobile", label: "Mobile", color: CHART_BAR_SERIES_PALETTE[1] },
+  { key: "desktop", label: "Desktop", color: chartBarSeriesColor(0).hex },
+  { key: "mobile", label: "Mobile", color: chartBarSeriesColor(1).hex },
 ];
 
 /**
@@ -117,7 +117,7 @@ function chartBarStacked(
       min: 0,
       max: domainMax,
     }),
-    grid: { left: 8, right: 8, top: 16, bottom: 24 },
+    grid: { left: 8, right: 8, top: 16, bottom: 32 },
     series: series.map((s) => ({
       type: "bar",
       name: s.label,

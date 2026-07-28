@@ -14,6 +14,7 @@ import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   chartCard,
+  chartLineSeriesColor,
   chartPlot,
   computeYDomain,
   DEFAULT_LINE_GRID,
@@ -44,7 +45,9 @@ function chartLineDefaultTooltipFormatter(
 ): string {
   const point = Array.isArray(params) ? params[0] : params;
   if (!point) return "";
-  const swatch = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${point.color};"></span>`;
+  // The engine's param `color` follows its own multi-hue rotation palette —
+  // the swatch uses the series' ramp color (chart-1 step) instead.
+  const swatch = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${chartLineSeriesColor(0).hex};"></span>`;
   const label = escapeHtml(String(point.seriesName ?? point.name ?? ""));
   const value = point.value;
   const valueText =
@@ -103,7 +106,9 @@ function chartLineDefault(
         data: values,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 2 },
+        // Upstream's stroke is var(--chart-1): the engine pins strokes to
+        // shift-9, so the ramp step is approximated via stroke opacity.
+        lineStyle: { width: 2, opacity: chartLineSeriesColor(0).strokeOpacity },
         color: seriesColor,
       },
     ],

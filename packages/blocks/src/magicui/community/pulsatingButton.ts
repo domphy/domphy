@@ -39,7 +39,7 @@ export interface PulsatingButtonProps {
   onClick?: (event: MouseEvent) => void;
   /** Disables the button (the glow keeps looping regardless). */
   disabled?: boolean;
-  /** Button color family. Also the glow's color family unless `pulseColor` is set. Defaults to `"primary"`. */
+  /** Button color family. Also the glow's color family unless `pulseColor` is set. Defaults to `"neutral"` (a solid near-black button on the forced dark surface, matching upstream). */
   color?: ValueOrState<ThemeColor>;
   /** Overrides the glow's own color family independent of the button's `color`. */
   pulseColor?: ThemeColor;
@@ -65,7 +65,7 @@ function pulsatingButton(
 ): DomphyElement<"button"> {
   const label = props.children ?? "Pulsating Button";
   const disabled = props.disabled ?? false;
-  const colorState = toState(props.color ?? "primary", "color");
+  const colorState = toState(props.color ?? "neutral", "color");
   const duration = props.duration ?? 1500;
   const expandDistanceUnits = props.expandDistance ?? 2;
   const variant = props.variant ?? "pulse";
@@ -130,10 +130,20 @@ function pulsatingButton(
     button: [glowLayer, labelLayer],
     type: "button",
     disabled,
+    // Upstream's default is a SOLID near-black button (its docs theme primary
+    // is near-black): anchor a dark edge surface so `button({ color })`
+    // renders the solid style (same pattern as shadcn/auth/signup01).
+    dataTone: "shift-17",
     $: [button({ color: colorState })],
     style: {
       position: "relative",
       overflow: "visible",
+      // Force the solid fill + light label (signup01's exact pattern) so the
+      // button reads solid near-black by default instead of outline-on-white.
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", colorState.get(listener)),
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-9", colorState.get(listener)),
       ...(props.style ?? {}),
     } as StyleObject,
   };

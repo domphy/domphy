@@ -95,11 +95,12 @@ function numberTicker(props: NumberTickerProps = {}): DomphyElement<"span"> {
       fontVariantNumeric: "tabular-nums",
       // text-8xl (fixed 96px) + tracking-wider (0.05em) from the upstream
       // component class + demo; no fluid clamp (upstream sets no responsive
-      // shrink) and no bold — the demos use font-medium (500).
+      // shrink) and no bold — the demos use font-medium (500). Upstream paints
+      // `text-black`, so the tone sits at the dark edge of the ramp.
       fontSize: fixed("6rem"),
       fontWeight: fixed("500"),
       letterSpacing: fixed("0.05em"),
-      color: (listener) => themeColor(listener, "shift-11", color),
+      color: (listener) => themeColor(listener, "shift-14", color),
       ...(props.style ?? {}),
     },
     _onMount: (node: ElementNode) => {

@@ -5,7 +5,7 @@
 // independently. See ./sidebar09-12-shared.ts and ./sidebar05-08-shared.ts.
 
 import type { DomphyElement, Listener, State } from "@domphy/core";
-import { toState } from "@domphy/core";
+import { rawHtml, toState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -64,24 +64,26 @@ const DEFAULT_GROUPS: Sidebar12CalendarGroup[] = [
   {
     label: "My Calendars",
     entries: [
-      { id: "personal", name: "Personal", color: "primary" },
-      { id: "work", name: "Work", color: "secondary" },
-      { id: "family", name: "Family", color: "success" },
+      // Upstream checkboxes are the standard near-black primary, not per-calendar
+      // hues — keep every entry on the neutral accent.
+      { id: "personal", name: "Personal", color: "neutral" },
+      { id: "work", name: "Work", color: "neutral" },
+      { id: "family", name: "Family", color: "neutral" },
     ],
   },
   {
     label: "Favorites",
     entries: [
-      { id: "holidays", name: "Holidays", color: "warning" },
-      { id: "birthdays", name: "Birthdays", color: "error" },
+      { id: "holidays", name: "Holidays", color: "neutral" },
+      { id: "birthdays", name: "Birthdays", color: "neutral" },
     ],
   },
   {
     label: "Other",
     entries: [
-      { id: "travel", name: "Travel", color: "info" },
+      { id: "travel", name: "Travel", color: "neutral" },
       { id: "reminders", name: "Reminders", color: "neutral" },
-      { id: "deadlines", name: "Deadlines", color: "error" },
+      { id: "deadlines", name: "Deadlines", color: "neutral" },
     ],
   },
 ];
@@ -127,11 +129,11 @@ function accountAvatar(user: Sidebar12User): DomphyElement<"span"> {
             alt: user.name,
           } as unknown as DomphyElement,
         ],
-        $: [avatar({ color: "primary" })],
+        $: [avatar({ color: "neutral" })],
       } as unknown as DomphyElement<"span">)
     : ({
         span: initialsOf(user.name),
-        $: [avatar({ color: "primary" })],
+        $: [avatar({ color: "neutral" })],
       } as unknown as DomphyElement<"span">);
 }
 
@@ -141,6 +143,9 @@ function twoLineLabel(title: string, caption: string): DomphyElement<"div"> {
     div: [
       {
         strong: title,
+        // strong() paints an inherit-tone background; keep it transparent so
+        // no box appears over the host row's hover tint.
+        style: { backgroundColor: "transparent" },
         $: [strong({ color: "neutral" })],
       } as unknown as DomphyElement,
       {
@@ -408,6 +413,9 @@ function monthDatePicker(
             ariaLabel: fullDateFormatter.format(date),
             onClick: () => onSelect(date),
             _key: isoOf(date),
+            // Selected day: solid near-black circle (upstream bg-primary) with
+            // light text — shift-9 resolves light on this dark edge surface.
+            ...(isSelected ? { dataTone: "shift-17" as const } : {}),
             style: {
               appearance: "none",
               border: "none",
@@ -415,18 +423,13 @@ function monthDatePicker(
               aspectRatio: "1",
               borderRadius: "50%",
               opacity: outside ? 0.4 : 1,
-              color: (l: Listener) =>
-                isSelected
-                  ? themeColor(l, "shift-9", "primary")
-                  : themeColor(l, "shift-9", "neutral"),
+              color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
               backgroundColor: (l: Listener) =>
-                isSelected
-                  ? themeColor(l, "inherit", "primary")
-                  : themeColor(l, "inherit", "neutral"),
+                themeColor(l, "inherit", "neutral"),
               "&:hover:not(:disabled)": {
                 backgroundColor: (l: Listener) =>
                   isSelected
-                    ? themeColor(l, "inherit", "primary")
+                    ? themeColor(l, "inherit", "neutral")
                     : themeColor(l, "shift-2", "neutral"),
               },
             },
@@ -555,7 +558,7 @@ function calendarGroupSection(
                 style: { flex: "1", textAlign: "left" },
               } as unknown as DomphyElement,
               {
-                span: ICON_CHEVRON_RIGHT,
+                span: rawHtml(ICON_CHEVRON_RIGHT),
                 dataSlot: "chevron",
                 style: { transition: "transform 150ms ease" },
                 $: [icon({ color: "neutral" })],
@@ -634,7 +637,7 @@ function eventGridPlaceholder(): DomphyElement<"div"> {
   const cells = Array.from({ length: 35 }, (_unused, index) => ({
     div: String((index % 31) + 1),
     _key: index,
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     style: {
       minHeight: themeSpacing(24),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),

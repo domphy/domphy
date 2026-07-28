@@ -10,10 +10,8 @@
 
 import type { ChartOption } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_BROWSER_DATA,
-  CHART_BAR_SERIES_PALETTE,
   type ChartBarCategoryPoint,
   type ChartBarGrid,
   type ChartTrendDirection,
@@ -23,6 +21,7 @@ import {
   chartBarFrame,
   chartBarHiddenValueXAxis,
   chartBarHorizontalHoverOverlay,
+  chartBarSeriesColor,
   chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
@@ -65,12 +64,7 @@ function chartBarMixed(props: ChartBarMixedProps = {}): DomphyElement<"div"> {
   const categories = orderedData.map((point) => point.category);
   const values = orderedData.map((point) => point.value);
   const colorHexes = orderedData.map((point, index) =>
-    chartBarColorHex(
-      point.color ??
-        (CHART_BAR_SERIES_PALETTE[
-          index % CHART_BAR_SERIES_PALETTE.length
-        ] as ThemeColor),
-    ),
+    chartBarColorHex(point.color ?? chartBarSeriesColor(index).hex),
   );
   const [, domainMax] = chartBarValueDomain(values);
 

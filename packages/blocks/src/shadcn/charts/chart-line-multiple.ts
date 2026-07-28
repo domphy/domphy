@@ -13,6 +13,7 @@ import type { DomphyElement } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import {
   chartCard,
+  chartLineSeriesColor,
   chartPlot,
   computeYDomain,
   DEFAULT_LINE_GRID,
@@ -49,7 +50,12 @@ function chartLineMultipleTooltipFormatter(
     ? `<div style="font-weight:600;margin-bottom:4px;">${escapeHtml(String(name))}</div>`
     : "";
   const rows = list
-    .map((point) => lineSwatchLabelValueTooltipFormatter(point))
+    .map((point, rowIndex) =>
+      lineSwatchLabelValueTooltipFormatter(
+        point,
+        chartLineSeriesColor(point.seriesIndex ?? rowIndex).hex,
+      ),
+    )
     .join("<br>");
   return `${header}${rows}`;
 }
@@ -82,7 +88,11 @@ function chartLineMultiple(
     primarySeriesLabel = "Desktop",
     primarySeriesColor = "primary",
     secondarySeriesLabel = "Mobile",
-    secondarySeriesColor = "secondary",
+    // Both series are steps of the same monochrome blue ramp (upstream
+    // desktop=var(--chart-1), mobile=var(--chart-2)) — the engine pins line
+    // strokes to the family at shift-9, so the steps are approximated via
+    // stroke opacity below.
+    secondarySeriesColor = "primary",
     data = MONTHLY_VISITOR_DATA,
     trendHeadline = "Trending up by 5.2% this month",
     trendSubtitle = "Showing total visitors for the last 6 months",
@@ -110,7 +120,10 @@ function chartLineMultiple(
         data: desktopValues,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 2 },
+        lineStyle: {
+          width: 2,
+          opacity: chartLineSeriesColor(0).strokeOpacity,
+        },
         color: primarySeriesColor,
       },
       {
@@ -119,7 +132,10 @@ function chartLineMultiple(
         data: mobileValues,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 2 },
+        lineStyle: {
+          width: 2,
+          opacity: chartLineSeriesColor(1).strokeOpacity,
+        },
         color: secondarySeriesColor,
       },
     ],

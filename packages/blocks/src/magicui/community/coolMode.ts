@@ -26,8 +26,13 @@
 // rather than a literal random-hue string, so the "multicolored burst" stays
 // theme-token-driven instead of a raw color literal.
 
-import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { type ThemeColor, themeColorToken } from "@domphy/theme";
+import type {
+  DomphyElement,
+  ElementNode,
+  Listener,
+  StyleObject,
+} from "@domphy/core";
+import { type ThemeColor, themeColor, themeColorToken } from "@domphy/theme";
 import { button } from "@domphy/ui";
 
 export type CoolModeParticleAppearance =
@@ -36,7 +41,7 @@ export type CoolModeParticleAppearance =
   | { kind: "text"; glyph: string };
 
 export interface CoolModeProps {
-  /** Element(s) the burst effect wraps. Defaults to a small demo "Hold Me" button. */
+  /** Element(s) the burst effect wraps. Defaults to a small demo "Click Me!" button. */
   children?: DomphyElement | DomphyElement[];
   /** Particle appearance. Defaults to `{ kind: "circle" }` (theme-colored dots). */
   particle?: CoolModeParticleAppearance;
@@ -232,10 +237,19 @@ function spawnParticle(
 }
 
 function defaultDemoTrigger(): DomphyElement<"button"> {
+  // Upstream's demo trigger ("Click Me!") is a SOLID near-black button — its
+  // docs theme primary is near-black. Forced dark edge surface + neutral
+  // solid fill, the same pattern shadcn/auth/signup01 uses.
   return {
-    button: "Hold Me",
+    button: "Click Me!",
     type: "button",
-    $: [button({ color: "primary" })],
+    dataTone: "shift-17",
+    $: [button({ color: "neutral" })],
+    style: {
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
+      color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
+    } as StyleObject,
   } as DomphyElement<"button">;
 }
 

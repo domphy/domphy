@@ -23,7 +23,7 @@ describe("dock", () => {
 
     const nav = host.querySelector("nav")!;
     expect(nav).toBeTruthy();
-    expect(nav.getAttribute("data-tone")).toBe("shift-14");
+    expect(nav.getAttribute("data-tone")).toBe("shift-0");
     // 7 icon links across the default demo, split by one separator.
     expect(nav.querySelectorAll("a").length).toBe(7);
     expect(nav.querySelectorAll("svg").length).toBe(7);

@@ -13,7 +13,6 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
 import {
   type ChartTrendDirection,
   chartTrendFooter,
@@ -22,7 +21,8 @@ import { radialCardShell, renderRadialGauge } from "./chart-radial-shared.js";
 
 export interface ChartRadialTextProps {
   value?: number;
-  color?: ThemeColor;
+  /** Ramp tone of the gauge arc, within the primary family (upstream var(--chart-2) ≈ shift-6). */
+  tone?: string;
   captionText?: string;
   title?: string;
   description?: string;
@@ -45,7 +45,7 @@ function chartRadialText(
 ): DomphyElement<"div"> {
   const {
     value = 1125,
-    color = "secondary",
+    tone = "shift-6",
     captionText = "Visitors",
     title = "Radial Chart - Text",
     description = "January - June 2026",
@@ -65,7 +65,7 @@ function chartRadialText(
     content: {
       div: [
         renderRadialGauge({
-          color,
+          tone,
           sweepDegrees,
           innerRadiusRatio,
           capStyle: "round",

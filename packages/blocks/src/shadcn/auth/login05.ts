@@ -102,6 +102,9 @@ function Login05(props: Login05Props = {}): DomphyElement<"div"> {
     backgroundColor: "transparent",
     color: (listener: Listener) => themeColor(listener, "shift-11", "neutral"),
   };
+  // The unfilled badge sits directly on the page — drop the shared badge's
+  // dark-edge tone anchor so the glyph's shift-11 resolves against the page.
+  delete (badge as unknown as Record<string, unknown>).dataTone;
   const badgeGlyph = (badge.div as unknown as DomphyElement<"svg">[])[0];
   // 75% of the size-8 box = size-6 (24px) mark, matching upstream.
   badgeGlyph.style = { ...badgeGlyph.style, width: "75%", height: "75%" };

@@ -177,7 +177,7 @@ function railLogo(): DomphyElement<"div"> {
     div: [
       {
         div: [
-          sidebarIcon(ICON_MARK, "primary"),
+          sidebarIcon(ICON_MARK),
           {
             div: [
               {
@@ -262,8 +262,8 @@ function folderRailButton(
           },
           "&[aria-current=true]": {
             backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-3", "primary"),
-            color: (l: Listener) => themeColor(l, "shift-12", "primary"),
+              themeColor(l, "shift-2", "neutral"),
+            color: (l: Listener) => themeColor(l, "shift-12", "neutral"),
           },
         },
       } as unknown as DomphyElement,
@@ -308,7 +308,7 @@ function accountDropdown(user: Sidebar09User): DomphyElement<"div"> {
     div: [
       {
         span: user.name.slice(0, 1).toUpperCase(),
-        $: [avatar({ color: "primary" })],
+        $: [avatar({ color: "neutral" })],
       } as unknown as DomphyElement,
       {
         div: [
@@ -398,7 +398,7 @@ function railFooter(user: Sidebar09User): DomphyElement<"div"> {
         button: [
           {
             span: user.name.slice(0, 1).toUpperCase(),
-            $: [avatar({ color: "primary" })],
+            $: [avatar({ color: "neutral" })],
           } as unknown as DomphyElement,
         ],
         type: "button",
@@ -456,7 +456,7 @@ function messageListHeader(
                     input: null,
                     id: "sidebar09-unreads-toggle",
                     type: "checkbox",
-                    $: [inputSwitch()],
+                    $: [inputSwitch({ accentColor: "neutral" })],
                   } as unknown as DomphyElement,
                 ],
                 htmlFor: "sidebar09-unreads-toggle",
@@ -505,7 +505,7 @@ function messageListHeader(
             type: "search",
             placeholder: "Type to search...",
             style: { width: "100%" },
-            $: [inputSearch()],
+            $: [inputSearch({ color: "neutral", accentColor: "neutral" })],
           } as unknown as DomphyElement,
         ],
         style: {
@@ -600,7 +600,7 @@ function messageRow(
           },
           "&[aria-selected=true]": {
             backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-3", "primary"),
+              themeColor(l, "shift-2", "neutral"),
           },
         },
       } as unknown as DomphyElement,

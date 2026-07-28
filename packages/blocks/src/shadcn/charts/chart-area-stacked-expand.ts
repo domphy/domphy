@@ -21,14 +21,15 @@
 
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
 import {
-  CHART_AREA_SERIES_PALETTE,
   CHART_AREA_THREE_SERIES_DATA,
   CHART_AREA_X_AXIS_BARE,
+  type ChartAreaSeriesTone,
   type ChartAreaThreeSeriesPoint,
   type ChartTrendDirection,
   chartAreaFrame,
+  chartAreaGradientFill,
+  chartAreaSeriesColor,
   chartAxisTooltipFormatter,
   chartCardShell,
   chartTrendFooter,
@@ -37,7 +38,8 @@ import {
 export interface ChartAreaStackedExpandSeries {
   key: "desktop" | "mobile" | "other";
   label: string;
-  color: ThemeColor;
+  /** Ramp tone within the primary family (approximates var(--chart-N)). */
+  tone: ChartAreaSeriesTone;
   opacity?: number;
 }
 
@@ -54,30 +56,27 @@ export interface ChartAreaStackedExpandProps {
 
 // Declared bottom-to-top to match upstream's <Area> order (other → mobile →
 // desktop): the engine stacks series[0] at the bottom, so the faint `other`
-// band sits at the base and the primary `desktop` band on top, and the
-// axis-tooltip rows list Other, Mobile, Desktop in this same order. Each key
-// keeps its own palette color / opacity, so the ordering no longer coincides
-// with the engine's rotation-by-position — the tooltip's color dot (driven by
-// series position in the engine, not the configured color) is a known
-// consequence of that, see chart-area-shared.ts's tooltip note.
+// band sits at the base and the `desktop` band on top, and the axis-tooltip
+// rows list Other, Mobile, Desktop in this same order. Each key takes the
+// next step of the single-hue ramp (chart-1 → chart-3).
 const DEFAULT_SERIES: ChartAreaStackedExpandSeries[] = [
   // Minor category recedes visually at a lower opacity, per spec.
   {
     key: "other",
     label: "Other",
-    color: CHART_AREA_SERIES_PALETTE[2],
+    tone: chartAreaSeriesColor(0).tone,
     opacity: 0.1,
   },
   {
     key: "mobile",
     label: "Mobile",
-    color: CHART_AREA_SERIES_PALETTE[1],
+    tone: chartAreaSeriesColor(1).tone,
     opacity: 0.4,
   },
   {
     key: "desktop",
     label: "Desktop",
-    color: CHART_AREA_SERIES_PALETTE[0],
+    tone: chartAreaSeriesColor(2).tone,
     opacity: 0.4,
   },
 ];
@@ -147,16 +146,29 @@ function chartAreaStackedExpand(
       axisLabel: { show: false },
       splitLine: { show: true },
     },
-    grid: { left: 8, right: 8, top: 12, bottom: 24, containLabel: false },
+    grid: { left: 8, right: 8, top: 12, bottom: 32, containLabel: false },
     series: series.map((s, seriesIndex) => ({
       type: "line",
       name: s.label,
       stack: "share",
       smooth: true,
       showSymbol: false,
-      color: s.color,
-      lineStyle: { width: 2 },
-      areaStyle: { opacity: s.opacity ?? 0.4 },
+      // The engine pins strokes to the family at shift-9; the ramp step is
+      // approximated via stroke opacity, and the fill carries the exact tone.
+      color: "primary",
+      lineStyle: {
+        width: 2,
+        opacity: chartAreaSeriesColor(seriesIndex).strokeOpacity,
+      },
+      areaStyle: {
+        color: chartAreaGradientFill(
+          "primary",
+          s.opacity ?? 0.4,
+          s.opacity ?? 0.4,
+          s.tone,
+        ),
+        opacity: 1,
+      },
       data: percentData[seriesIndex],
     })),
   };

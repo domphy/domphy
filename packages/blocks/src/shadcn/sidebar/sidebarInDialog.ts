@@ -12,7 +12,7 @@ import type {
   Listener,
   ValueOrState,
 } from "@domphy/core";
-import { toState } from "@domphy/core";
+import { rawHtml, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   breadcrumb,
@@ -145,7 +145,7 @@ function categoryRow(
       {
         button: [
           {
-            span: category.icon,
+            span: rawHtml(category.icon),
             $: [icon({ color: "neutral" })],
           } as unknown as DomphyElement,
           {
@@ -269,7 +269,7 @@ function sidebarInDialog(
       } as unknown as DomphyElement,
       {
         button: {
-          span: ICON_CLOSE,
+          span: rawHtml(ICON_CLOSE),
           $: [icon({ color: "neutral" })],
         } as unknown as DomphyElement,
         type: "button",
@@ -422,11 +422,18 @@ function sidebarInDialog(
     button: triggerLabel,
     type: "button",
     onClick: () => open.set(true),
-    $: [button({ color: "primary" })],
+    // Upstream default <Button> is near-black (primary), not brand blue.
+    dataTone: "shift-17",
+    $: [button({ color: "neutral" })],
     // upstream `<Button size="sm">`: compact h-8 (32px), px-3 (kept from the
     // patch's density*3 inline padding). Zero the patch's block padding so the
     // fixed height governs, matching the sm variant's tighter footprint.
-    style: { height: themeSpacing(8), paddingBlock: "0" },
+    style: {
+      height: themeSpacing(8),
+      paddingBlock: "0",
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
+    },
   } as unknown as DomphyElement<"button">;
 
   return {

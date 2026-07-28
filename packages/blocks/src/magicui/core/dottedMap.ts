@@ -44,7 +44,7 @@ export interface DottedMapProps {
   dotRadius?: number;
   /** Background dot color — dots render with `fill: currentColor`, so this sets the map's `color`. Defaults to `"neutral"`. */
   dotColor?: ThemeColor;
-  /** Default marker color, overridable per marker. Defaults to `"primary"`. */
+  /** Default marker color, overridable per marker. Defaults to `"neutral"` (dark gray markers, matching upstream's near-black dots). */
   markerColor?: ThemeColor;
   /** Default pulse setting, overridable per marker. Defaults to `false`. */
   pulse?: boolean;
@@ -374,7 +374,7 @@ function dottedMap(props: DottedMapProps = {}): DomphyElement<"svg"> {
   const columns = Math.max(10, Math.round(props.columns ?? DEFAULT_COLUMNS));
   const dotRadius = props.dotRadius ?? DEFAULT_DOT_RADIUS;
   const dotColor = props.dotColor ?? "neutral";
-  const markerColor = props.markerColor ?? "primary";
+  const markerColor = props.markerColor ?? "neutral";
   const globalPulse = props.pulse ?? false;
   const staggerRows = props.staggerRows ?? true;
   const markers = props.markers ?? DEFAULT_MARKERS;

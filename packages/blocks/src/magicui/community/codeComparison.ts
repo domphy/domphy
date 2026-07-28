@@ -277,7 +277,9 @@ function codePanel(
       _key: `line-${lineIndex}`,
       // Only anchor a new tone surface for actually-tinted rows — plain
       // rows stay untouched (no dataTone, no backgroundColor override).
-      ...(emphasized ? { dataTone: "shift-2" as const } : {}),
+      // shift-1 keeps the add/remove/highlight wash soft (upstream's rows
+      // are a faint translucent tint, not a saturated pastel fill).
+      ...(emphasized ? { dataTone: "shift-1" as const } : {}),
       // Marks rows dimmed by a sibling `[!code focus]` line so the panel's
       // own `&:hover` rule can un-dim (and un-blur) them.
       ...(dimmed ? { dataCcDim: "true" as const } : {}),
@@ -361,7 +363,7 @@ function codePanel(
         },
       },
     ],
-    dataTone: "shift-1",
+    dataTone: "shift-0",
     style: {
       minWidth: 0,
       overflow: "hidden",
@@ -419,7 +421,7 @@ function codeComparison(props: CodeComparisonProps = {}): DomphyElement<"div"> {
           {
             span: [{ small: "VS", $: [small({ color: "neutral" })] }],
             ariaHidden: "true",
-            dataTone: "shift-2",
+            dataTone: "shift-1",
             style: {
               position: "absolute",
               top: "50%",

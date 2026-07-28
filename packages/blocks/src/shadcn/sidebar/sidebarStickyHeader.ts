@@ -17,7 +17,7 @@
 // grid) and so are shared across sidebar variants rather than owned here.
 
 import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
-import { toState } from "@domphy/core";
+import { rawHtml, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   breadcrumb,
@@ -37,6 +37,7 @@ import {
   ICON_MESSAGE,
   ICON_PANEL_TOGGLE,
   ICON_SEARCH,
+  glyphChild,
   renderExpandableNavRow,
   renderPlainNavRow,
   renderProjectRow,
@@ -178,8 +179,8 @@ function renderBrandHeader(brand: SidebarTeam): DomphyElement<"div"> {
       {
         a: [
           {
-            span: brand.logo ?? ICON_MARK,
-            dataTone: "shift-0",
+            span: glyphChild(brand.logo ?? ICON_MARK),
+            dataTone: "shift-17",
             style: {
               display: "flex",
               alignItems: "center",
@@ -189,8 +190,8 @@ function renderBrandHeader(brand: SidebarTeam): DomphyElement<"div"> {
               flexShrink: "0",
               borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
               backgroundColor: (l: Listener) =>
-                themeColor(l, "inherit", "primary"),
-              color: (l: Listener) => themeColor(l, "shift-10", "primary"),
+                themeColor(l, "inherit", "neutral"),
+              color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
             },
           } as unknown as DomphyElement,
           {
@@ -321,7 +322,7 @@ function sidebarStickyHeader(
       {
         form: [
           {
-            span: ICON_SEARCH,
+            span: rawHtml(ICON_SEARCH),
             style: {
               position: "absolute",
               insetInlineStart: themeSpacing(3),
@@ -340,7 +341,7 @@ function sidebarStickyHeader(
             placeholder: searchPlaceholder,
             ariaLabel: "Search",
             style: { width: "100%", paddingInlineStart: themeSpacing(9) },
-            $: [inputSearch({ color: "neutral", accentColor: "primary" })],
+            $: [inputSearch({ color: "neutral", accentColor: "neutral" })],
           } as unknown as DomphyElement,
         ],
         role: "search",
@@ -466,7 +467,7 @@ function sidebarStickyHeader(
         },
       } as unknown as DomphyElement,
     ],
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     _onMount: (node: ElementNode) => {
       const onKeyDown = (event: KeyboardEvent) => {
         if (

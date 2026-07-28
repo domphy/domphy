@@ -14,11 +14,13 @@ import type { ChartOption, TooltipParams } from "@domphy/chart";
 import { chart } from "@domphy/chart";
 import type { DomphyElement, Listener } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { themeColor, themeSpacing } from "@domphy/theme";
 import { card, heading, paragraph, small } from "@domphy/ui";
 import {
   CHART_BAR_DAILY_DATA,
   type ChartBarDailyPoint,
+  chartBarColorHex,
+  chartBarSeriesColor,
   chartBarTooltipRow,
   chartBarValueDomain,
 } from "./chart-bar-shared.js";
@@ -65,9 +67,11 @@ export interface ChartBarInteractiveProps {
   data?: ChartBarDailyPoint[];
   initialSeries?: SeriesKey;
   desktopLabel?: string;
-  desktopColor?: ThemeColor;
+  /** Theme role (resolved at shift-9) or literal ramp hex. */
+  desktopColor?: string;
   mobileLabel?: string;
-  mobileColor?: ThemeColor;
+  /** Theme role (resolved at shift-9) or literal ramp hex. */
+  mobileColor?: string;
 }
 
 /**
@@ -84,15 +88,14 @@ function chartBarInteractive(
     data = CHART_BAR_DAILY_DATA,
     initialSeries = "desktop",
     desktopLabel = "Desktop",
-    // Upstream chartConfig: desktop=var(--chart-2), mobile=var(--chart-1); with
-    // this package's chart-1→primary / chart-2→secondary map that means desktop
-    // is secondary and mobile is primary (default active series is desktop).
-    desktopColor = "secondary",
+    // Upstream chartConfig: desktop=var(--chart-2), mobile=var(--chart-1) —
+    // two steps of the same monochrome blue ramp (default active: desktop).
+    desktopColor = chartBarSeriesColor(1).hex,
     mobileLabel = "Mobile",
-    mobileColor = "primary",
+    mobileColor = chartBarSeriesColor(0).hex,
   } = props;
 
-  const seriesMeta: Record<SeriesKey, { label: string; color: ThemeColor }> = {
+  const seriesMeta: Record<SeriesKey, { label: string; color: string }> = {
     desktop: { label: desktopLabel, color: desktopColor },
     mobile: { label: mobileLabel, color: mobileColor },
   };
@@ -112,18 +115,19 @@ function chartBarInteractive(
 
   const activeSeriesKey = toState<SeriesKey>(initialSeries);
 
-  const tooltipFormatter = (
-    parametersInput: TooltipParams | TooltipParams[],
-  ): string => {
-    const point = Array.isArray(parametersInput)
-      ? parametersInput[0]
-      : parametersInput;
-    if (!point) return "";
-    const day = data[point.dataIndex];
-    const dateLabel = day ? formatLongDate(day.date) : "";
-    const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${point.color};margin-right:6px;"></span>`;
-    return `<strong>${escapeHtml(dateLabel)}</strong>${chartBarTooltipRow(swatch, "Page Views", escapeHtml(String(point.value ?? "")))}`;
-  };
+  const tooltipFormatter = (swatchColor: string) =>
+    (parametersInput: TooltipParams | TooltipParams[]): string => {
+      const point = Array.isArray(parametersInput)
+        ? parametersInput[0]
+        : parametersInput;
+      if (!point) return "";
+      const day = data[point.dataIndex];
+      const dateLabel = day ? formatLongDate(day.date) : "";
+      // The engine's param `color` follows its own multi-hue rotation palette
+      // — the swatch uses the active series' configured ramp color instead.
+      const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${chartBarColorHex(swatchColor)};margin-right:6px;"></span>`;
+      return `<strong>${escapeHtml(dateLabel)}</strong>${chartBarTooltipRow(swatch, "Page Views", escapeHtml(String(point.value ?? "")))}`;
+    };
 
   function buildOption(activeKey: SeriesKey): ChartOption {
     const meta = seriesMeta[activeKey];
@@ -149,7 +153,7 @@ function chartBarInteractive(
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "shadow" },
-        formatter: tooltipFormatter,
+        formatter: tooltipFormatter(meta.color),
       },
       series: [
         {
@@ -224,8 +228,11 @@ function chartBarInteractive(
         paddingInline: themeSpacing(4),
         textAlign: "left",
         "&[data-active=true]": {
+          // Upstream active tile is `bg-muted/50` (≈ #fafafa): the neutral
+          // ramp's shift-1 #ededed is the closest step. "increase-1" from the
+          // card's white surface landed on the muddy shift-2 #dbdbdb.
           backgroundColor: (listener: Listener) =>
-            themeColor(listener, "increase-1", "neutral"),
+            themeColor(listener, "shift-1", "neutral"),
         },
       },
     } as DomphyElement<"button">;

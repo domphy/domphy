@@ -28,7 +28,7 @@ import { button } from "@domphy/ui";
 export interface RippleButtonProps {
   /** Button label content. Defaults to `"Click me"`. */
   children?: DomphyElement | DomphyElement[] | string;
-  /** `button()` patch color tone for the button's own chrome. Defaults to `"primary"`. */
+  /** `button()` patch color tone for the button's own chrome. Defaults to `"neutral"` (a plain gray outline button, matching upstream). */
   color?: ThemeColor;
   /** Theme color family the ripple wave is drawn from. Defaults to `"neutral"`. */
   rippleColor?: ThemeColor;
@@ -68,7 +68,7 @@ function asContent(
  */
 function rippleButton(props: RippleButtonProps = {}): DomphyElement<"button"> {
   const label = props.children ?? "Click me";
-  const color = props.color ?? "primary";
+  const color = props.color ?? "neutral";
   const rippleColor = props.rippleColor ?? "neutral";
   const duration = props.duration ?? 600;
 

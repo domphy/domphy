@@ -17,7 +17,7 @@ import type {
   ReadableState,
   State,
 } from "@domphy/core";
-import { RecordState, toState } from "@domphy/core";
+import { RecordState, rawHtml, toState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -44,6 +44,7 @@ import {
   ICON_PANEL_TOGGLE,
   ICON_PLUS,
   ICON_SEARCH,
+  glyphChild,
   type SidebarTeam,
   sidebarBackdrop,
   sidebarIcon,
@@ -202,30 +203,31 @@ const DEFAULT_USER: CurrentUser = {
 
 // Upstream `Calendars` marks exactly the first two items of every group active
 // (`data-active={index < 2}`) and colors every active indicator with the single
-// `sidebar-primary` accent — so every entry here is `primary`, and only the
-// first two entries of each group start checked.
+// `sidebar-primary` accent — in upstream's light theme that accent is
+// near-black, so every entry maps to the domphy `neutral` ramp (not the blue
+// `primary` ramp). Only the first two entries of each group start checked.
 const DEFAULT_CALENDAR_GROUPS: CalendarGroup[] = [
   {
     label: "My Calendars",
     entries: [
-      { id: "personal", name: "Personal", color: "primary", checked: true },
-      { id: "work", name: "Work", color: "primary", checked: true },
-      { id: "family", name: "Family", color: "primary", checked: false },
+      { id: "personal", name: "Personal", color: "neutral", checked: true },
+      { id: "work", name: "Work", color: "neutral", checked: true },
+      { id: "family", name: "Family", color: "neutral", checked: false },
     ],
   },
   {
     label: "Favorites",
     entries: [
-      { id: "holidays", name: "Holidays", color: "primary", checked: true },
-      { id: "birthdays", name: "Birthdays", color: "primary", checked: true },
+      { id: "holidays", name: "Holidays", color: "neutral", checked: true },
+      { id: "birthdays", name: "Birthdays", color: "neutral", checked: true },
     ],
   },
   {
     label: "Other",
     entries: [
-      { id: "travel", name: "Travel", color: "primary", checked: true },
-      { id: "reminders", name: "Reminders", color: "primary", checked: true },
-      { id: "deadlines", name: "Deadlines", color: "primary", checked: false },
+      { id: "travel", name: "Travel", color: "neutral", checked: true },
+      { id: "reminders", name: "Reminders", color: "neutral", checked: true },
+      { id: "deadlines", name: "Deadlines", color: "neutral", checked: false },
     ],
   },
 ];
@@ -331,8 +333,9 @@ function quickLinkRow(
       backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
     },
     "&[aria-current=page]": {
-      backgroundColor: (l: Listener) => themeColor(l, "shift-3", "primary"),
-      color: (l: Listener) => themeColor(l, "shift-12", "primary"),
+      // Upstream active nav item is monochrome (sidebar-accent), not brand blue.
+      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
+      color: (l: Listener) => themeColor(l, "shift-12", "neutral"),
     },
   };
 
@@ -493,7 +496,7 @@ function workspaceGroupRow(
           } as unknown as DomphyElement,
           {
             button: {
-              span: ICON_CHEVRON_RIGHT,
+              span: rawHtml(ICON_CHEVRON_RIGHT),
               style: {
                 display: "inline-flex",
                 transition: "transform 150ms ease",
@@ -640,11 +643,12 @@ function footerLinkRow(
   });
 }
 
-/** Compact `size-5` primary logo badge shown in the team-switcher trigger. */
+/** Compact `size-5` logo badge shown in the team-switcher trigger. Solid
+ * near-black (upstream sidebar-primary) with a light glyph. */
 function teamTriggerBadge(glyph: string): DomphyElement<"span"> {
   return {
-    span: glyph,
-    dataTone: "shift-0",
+    span: glyphChild(glyph),
+    dataTone: "shift-17",
     style: {
       display: "flex",
       alignItems: "center",
@@ -656,17 +660,18 @@ function teamTriggerBadge(glyph: string): DomphyElement<"span"> {
       // non-token typography (fixed() marks it for the doctor).
       fontSize: fixed(themeSpacing(3)),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
-      backgroundColor: (l: Listener) => themeColor(l, "inherit", "primary"),
-      color: (l: Listener) => themeColor(l, "shift-10", "primary"),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+      color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     },
   } as unknown as DomphyElement<"span">;
 }
 
-/** Bordered `size-6` logo box shown on each row of the team-switcher dropdown. */
+/** Bordered `size-6` logo box shown on each row of the team-switcher dropdown.
+ * White (bg-background) with a hairline border, matching upstream. */
 function teamMenuBadge(glyph: string): DomphyElement<"span"> {
   return {
-    span: glyph,
-    dataTone: "shift-2",
+    span: glyphChild(glyph),
+    dataTone: "shift-0",
     style: {
       display: "flex",
       alignItems: "center",
@@ -775,7 +780,7 @@ function localTeamSwitcher(
           teamTriggerBadge(active.logo ?? ICON_MARK),
           collapsibleLabel(collapsed, active.name),
           {
-            span: ICON_CHEVRON_DOWN,
+            span: rawHtml(ICON_CHEVRON_DOWN),
             style: {
               display: (l: Listener) =>
                 collapsed.get(l) ? "none" : "inline-flex",
@@ -837,11 +842,11 @@ function currentUserHeader(user: CurrentUser): DomphyElement<"div"> {
                     alt: user.name,
                   } as unknown as DomphyElement,
                 ],
-                $: [avatar({ color: "primary" })],
+                $: [avatar({ color: "neutral" })],
               } as unknown as DomphyElement)
             : ({
                 span: user.name.slice(0, 1).toUpperCase(),
-                $: [avatar({ color: "primary" })],
+                $: [avatar({ color: "neutral" })],
               } as unknown as DomphyElement),
           {
             div: [
@@ -897,11 +902,11 @@ function currentUserHeader(user: CurrentUser): DomphyElement<"div"> {
             alt: user.name,
           } as unknown as DomphyElement,
         ],
-        $: [avatar({ color: "primary" })],
+        $: [avatar({ color: "neutral" })],
       } as unknown as DomphyElement<"span">)
     : ({
         span: user.name.slice(0, 1).toUpperCase(),
-        $: [avatar({ color: "primary" })],
+        $: [avatar({ color: "neutral" })],
       } as unknown as DomphyElement<"span">);
 
   return {
@@ -1067,10 +1072,9 @@ function inlineMonthCalendar(
             ariaLabel: fullDateFormatter.format(date),
             onClick: () => selectedDate.set(date),
             _key: isoOf(date),
-            // The selected day is a fixed accent chip, not a tone-context
-            // surface — same deliberate exception the core `datePicker()`
-            // patch itself makes for its own selected-day cell.
-            _doctorDisable: isSelected ? "tone-background-inherit" : undefined,
+            // Selected day: solid near-black circle (upstream bg-primary) with
+            // light text — shift-9 resolves light on this dark edge surface.
+            ...(isSelected ? { dataTone: "shift-17" as const } : {}),
             style: {
               appearance: "none",
               border: "none",
@@ -1078,18 +1082,13 @@ function inlineMonthCalendar(
               aspectRatio: "1",
               borderRadius: "50%",
               opacity: outside ? 0.4 : 1,
-              color: (l: Listener) =>
-                isSelected
-                  ? themeColor(l, "shift-0", "primary")
-                  : themeColor(l, "shift-9", "neutral"),
+              color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
               backgroundColor: (l: Listener) =>
-                isSelected
-                  ? themeColor(l, "shift-9", "primary")
-                  : themeColor(l, "inherit", "neutral"),
+                themeColor(l, "inherit", "neutral"),
               "&:hover:not(:disabled)": {
                 backgroundColor: (l: Listener) =>
                   isSelected
-                    ? themeColor(l, "shift-9", "primary")
+                    ? themeColor(l, "inherit", "neutral")
                     : themeColor(l, "shift-2", "neutral"),
               },
             },
@@ -1183,7 +1182,7 @@ function calendarGroupSection(
                 $: [small({ color: "neutral" })],
               } as unknown as DomphyElement,
               {
-                span: ICON_CHEVRON_RIGHT,
+                span: rawHtml(ICON_CHEVRON_RIGHT),
                 dataSlot: "calendar-chevron",
                 style: { transition: "transform 150ms ease" },
                 $: [icon({ color: "neutral" })],
@@ -1410,7 +1409,7 @@ function sidebarLeftRight(
     // distinguishing label the two collide as duplicate "complementary"
     // landmarks (axe-core `landmark-unique`).
     ariaLabel: "Primary sidebar",
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     _onMount: (node: ElementNode) => {
       const onKeyDown = (event: KeyboardEvent) => {
         if (
@@ -1575,7 +1574,7 @@ function sidebarLeftRight(
     // distinguishing label the two collide as duplicate "complementary"
     // landmarks (axe-core `landmark-unique`).
     ariaLabel: "Calendar sidebar",
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     style: {
       display: "none",
       flexDirection: "column",

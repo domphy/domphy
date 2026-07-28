@@ -10,7 +10,6 @@
 
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import type { ThemeColor } from "@domphy/theme";
 import {
   CHART_BAR_NEGATIVE_DATA,
   type ChartBarGrid,
@@ -19,6 +18,7 @@ import {
   chartBarCardShell,
   chartBarColorHex,
   chartBarFrame,
+  chartBarSeriesColor,
   chartBarSignedDomain,
   chartBarSignedLabelOverlay,
   chartBarTooltipRow,
@@ -28,8 +28,10 @@ import {
 export interface ChartBarNegativeProps {
   data?: ChartBarPoint[];
   seriesLabel?: string;
-  positiveColor?: ThemeColor;
-  negativeColor?: ThemeColor;
+  /** Theme role (resolved at shift-9) or literal ramp hex. */
+  positiveColor?: string;
+  /** Theme role (resolved at shift-9) or literal ramp hex. */
+  negativeColor?: string;
   title?: string;
   subtitle?: string;
   trendText?: string;
@@ -50,10 +52,10 @@ function chartBarNegative(
   const {
     data = CHART_BAR_NEGATIVE_DATA,
     seriesLabel = "Visitors",
-    positiveColor = "primary",
-    // Upstream fills negative bars with var(--chart-2); this family maps
-    // chart-2 to the 'secondary' role (see CHART_BAR_SERIES_PALETTE).
-    negativeColor = "secondary",
+    // Upstream fills positive bars with var(--chart-1) and negative bars with
+    // var(--chart-2) — two steps of the same monochrome blue ramp.
+    positiveColor = chartBarSeriesColor(0).hex,
+    negativeColor = chartBarSeriesColor(1).hex,
     title = "Bar Chart - Negative",
     subtitle = "January - June 2026",
     trendText = "Trending up by 5.2% this month",
@@ -99,9 +101,6 @@ function chartBarNegative(
       {
         type: "bar",
         name: seriesLabel,
-        // Zero baseline — a distinct dashed reference line the diverging
-        // bars grow away from in either direction.
-        markLine: { data: [[{ yAxis: 0 }, { yAxis: 0 }]] },
         data: values.map((value) => ({
           value,
           itemStyle: { color: value > 0 ? positiveHex : negativeHex },

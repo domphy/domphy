@@ -51,7 +51,7 @@ export interface AnimatedBeamConnection {
   pathColor?: ThemeColor;
   /** Stroke width (px) of the static background line (and the glow, which matches it). Defaults to `2`. */
   pathWidth?: number;
-  /** Opacity of the static background line. Defaults to `0.2`. */
+  /** Opacity of the static background line. Defaults to `0.35` (upstream's 0.2 over its literal `gray` stroke reads ~#e6e6e6; the darker shift-4 token below needs the higher alpha to land on the same visible light gray). */
   pathOpacity?: number;
   /** Extra x/y offset (px) applied to the beam's start point, past the node's edge. */
   startXOffset?: number;
@@ -329,8 +329,8 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       },
       style: {
         color: (listener) =>
-          themeColor(listener, "shift-3", connection.pathColor ?? "neutral"),
-        opacity: connection.pathOpacity ?? 0.2,
+          themeColor(listener, "shift-4", connection.pathColor ?? "neutral"),
+        opacity: connection.pathOpacity ?? 0.35,
       },
     } as DomphyElement;
   }
