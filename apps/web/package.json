@@ -35,6 +35,7 @@
     "@domphy/core": "workspace:*",
     "@domphy/dnd": "workspace:*",
     "@domphy/doctor": "workspace:*",
+    "@domphy/editor": "workspace:*",
     "@domphy/floating": "workspace:*",
     "@domphy/form": "workspace:*",
     "@domphy/i18n": "workspace:*",

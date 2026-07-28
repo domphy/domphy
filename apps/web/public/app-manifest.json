@@ -298,6 +298,30 @@
   {
     "name": "App",
     "kind": "block",
+    "file": "apps/web/docs/demos/editor/bubble-menu.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/editor/quickstart.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
+    "file": "apps/web/docs/demos/editor/toolbar.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
     "file": "apps/web/docs/demos/form/basic.ts",
     "signature": "App: DomphyElement<\"form\">",
     "jsdoc": "",

@@ -6,6 +6,19 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## @domphy/editor — 2026-07-28
+
+### `@domphy/editor` [0.1.0] — NEW
+- Rich-text editor with a Tiptap-compatible API on a self-contained engine — no ProseMirror, no external runtime deps. `Editor`, `Extension.create`/`Node.create`/`Mark.create`, chainable commands (`chain()`/`can()`), `isActive`, JSON/HTML/text serialization; ProseMirror-style token positions; `contenteditable` view driven by `beforeinput` with IME passthrough.
+- `starterKit(options?)`: paragraph, heading, bold, italic, strike, code, blockquote, lists, hardBreak, horizontalRule, link (safe-URI validated), codeBlock, undo/redo history, trailingNode — with Tiptap-parity commands, keyboard shortcuts, and markdown input rules.
+- Domphy adapter at `@domphy/editor/domphy`: `createEditor`, `editorContent()` patch, selection-anchored `bubbleMenu()` patch (via `@domphy/floating`), `editorState()` reactive readers; reactivity bridge `editor.stateVersion`.
+
+### `@domphy/core` [0.20.1]
+- `contentEditable` and `spellCheck` reclassified from boolean to enumerated attributes: `contentEditable: false` now renders `contenteditable="false"` (previously the attribute was removed, so children of an editable root stayed editable), `"plaintext-only"` passes through, and reactive `true → false` transitions work. Same fix for SSR output.
+
+### `@domphy/floating` [0.18.1]
+- Docs/AGENTS wording: the package is public API (powers `@domphy/ui`, `@domphy/chart`, `@domphy/editor`), not "internal to ui".
+
 ## rawHtml migration + visual-fidelity pass — 2026-07-28
 
 ### `@domphy/core` [0.20.0] — BREAKING

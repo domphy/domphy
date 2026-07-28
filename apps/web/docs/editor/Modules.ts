@@ -3,6 +3,8 @@ import * as domphyBlocks from "@domphy/blocks";
 import * as domphyChart from "@domphy/chart";
 import * as domphyCore from "@domphy/core";
 import * as domphyDnd from "@domphy/dnd";
+import * as domphyEditor from "@domphy/editor";
+import * as domphyEditorDomphy from "@domphy/editor/domphy";
 import * as domphyForm from "@domphy/form/domphy";
 import * as domphyI18n from "@domphy/i18n";
 import * as domphyQuery from "@domphy/query";
@@ -39,6 +41,8 @@ const moduleMap: Record<string, unknown> = {
   "@domphy/app": domphyApp,
   "@domphy/i18n": domphyI18n,
   "@domphy/dnd": domphyDnd,
+  "@domphy/editor": domphyEditor,
+  "@domphy/editor/domphy": domphyEditorDomphy,
   "@domphy/form/domphy": domphyForm,
   "@domphy/virtual/domphy": domphyVirtual,
   "@domphy/three": domphyThree,

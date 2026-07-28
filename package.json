@@ -34,6 +34,7 @@
     "publish:i18n": "cd packages/i18n && pnpm publish --access public --no-git-checks",
     "publish:press": "cd packages/press && pnpm publish --access public --no-git-checks",
     "publish:three": "cd packages/three && pnpm publish --access public --no-git-checks",
+    "publish:editor": "cd packages/editor && pnpm publish --access public --no-git-checks",
     "publish:create-domphy": "cd packages/create-domphy && pnpm publish --access public --no-git-checks",
     "bench": "pnpm --filter bench bench",
     "bench:dry": "pnpm --filter bench bench:dry"

@@ -31,6 +31,7 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 | `@domphy/blocks` | 0.1.2 | shadcn blocks + Magic UI | none | Full visual re-baseline in CI | More device demo assets | 173 demos; SOURCES.md clean-room; visual QA harness. |
 | `@domphy/chart` | 0.2.3 | ECharts / Recharts | none | SSR canvas snapshot tests; percent stack | More series demos | Canvas engine + theme; unsupported custom/toolbox/brush warn. |
 | `@domphy/three` | 0.2.1 | @react-three/fiber | none | Asset loader error-boundary recipes; pointer container offset | — | R3F-class reconciler port + doctor. |
+| `@domphy/editor` | 0.1.0 | Tiptap / ProseMirror | none | IME stress suite across browsers; collaborative-editing story | Table/image extensions | Tiptap-compatible API on a self-contained engine; StarterKit set + Domphy adapter. |
 | `@domphy/markdown` | 0.19.1 | react-markdown / MDX | none | MDX component map docs; CDN global entry | — | remark pipeline → Domphy trees. |
 | `@domphy/mermaid` | 0.18.1 | mermaid + React wrappers | none | Client hydrate stress tests | — | Build-time SVG via optional mermaid-cli; client patch. |
 | `@domphy/press` | 0.21.4 | VitePress | none | Search backend pluggability | Theme marketplace | CLI build/dev/preview. |

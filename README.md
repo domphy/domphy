@@ -59,6 +59,7 @@ App layer & tools:
 - `@domphy/mcp` — MCP server exposing patches/packages/rules + the doctor + the app-block registry to AI agents
 - `@domphy/floating` — anchor positioning (vendored [floating-ui](https://github.com/floating-ui/floating-ui), zero-dependency); powers the `@domphy/ui` overlays so it has no third-party runtime dependency
 - `@domphy/three` — declarative three.js scene graph: a 1-1 functional port of `@react-three/fiber`'s core (reconciler, raycast pointer events, demand frameloop, `loadAsset`)
+- `@domphy/editor` — rich-text editor with a Tiptap-compatible API on a self-contained engine (no ProseMirror): `starterKit()`, chainable commands, input rules, and a Domphy adapter (`editorContent()`, selection-anchored `bubbleMenu()`)
 - `create-domphy` — scaffolder: `npm create domphy@latest <dir>` writes a Vite + TypeScript starter with AGENTS.md
 
 `@domphy/core` is a peer dependency of the data/logic packages, so a consumer installs **one** copy.
@@ -112,4 +113,4 @@ Full docs: [domphy.com](https://domphy.com) — [Core](https://domphy.com/docs/c
 
 ## Monorepo
 
-`packages/{core,theme,ui,blocks,query,table,router,virtual,form,dnd,palette,chart,doctor,mcp,floating,app,markdown,mermaid,three,i18n,press,create-domphy}` + `apps/web` (`domphy-web` — docs site, DomphyPress) + `bench` (benchmarks).
+`packages/{core,theme,ui,blocks,query,table,router,virtual,form,dnd,palette,chart,doctor,mcp,floating,app,markdown,mermaid,three,editor,i18n,press,create-domphy}` + `apps/web` (`domphy-web` — docs site, DomphyPress) + `bench` (benchmarks).

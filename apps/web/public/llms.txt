@@ -276,7 +276,7 @@ Static analyzer for Domphy element trees — `diagnose(element, opts?)` returns 
 
 ## Floating (`@domphy/floating`)
 
-Anchor positioning for tooltips, popovers, dropdowns, and menus — a 1-1 vendor of [floating-ui](https://github.com/floating-ui/floating-ui) (`@floating-ui/dom` + core + utils) bundled as a **zero-dependency** package. Used internally by `@domphy/ui` overlays (`tooltip`, `popover`, `selectBox`, `combobox`). Full [Floating UI reference](https://floating-ui.com) applies as-is.
+Anchor positioning for tooltips, popovers, dropdowns, and menus — a 1-1 vendor of [floating-ui](https://github.com/floating-ui/floating-ui) (`@floating-ui/dom` + core + utils) bundled as a **zero-dependency** package. Powers `@domphy/ui` overlays (`tooltip`, `popover`, `selectBox`, `combobox`), `@domphy/chart` tooltips, and `@domphy/editor` bubble menus; equally usable directly (`VirtualElement` anchors floating panels to non-element rects such as a text selection). Full [Floating UI reference](https://floating-ui.com) applies as-is.
 
 Also exports `createFloating(config?)` — a stateful Popper.js-equivalent manager that wraps `computePosition` + `autoUpdate` into a reusable handle: `handle.connect(reference, floating, options?)` starts auto-update; `handle.disconnect()` stops it; `handle.onUpdate(callback)` subscribes to position changes; `handle.position` holds the last computed `{ x, y, placement, strategy, middlewareData }` (null before first update). Types: `FloatingHandle`, `FloatingPosition`.
 
@@ -412,6 +412,37 @@ Peer dep: `three >= 0.156`. Never imports from `three/addons` or `three/examples
 Scene diagnose (0.2.0): `diagnose(options)` / `validate(options)` — doctor's contract shape applied to the three() option object (which @domphy/doctor cannot see). Rules from real silent failures: `unknown-tag` (error), `legacy-light-intensity` (three r155+ physical units), `additive-blowout`, `camera-missing-lookat`. Per-node suppression: `_doctorDisable: true | "rule-id" | string[]`. Built for AI self-correction: generate a scene → diagnose → fix what it reports.
 
 - [Overview](https://domphy.com/docs/three/) · [Scene Grammar](https://domphy.com/docs/three/grammar) · [Events](https://domphy.com/docs/three/events) · [Animation & Loop](https://domphy.com/docs/three/animation) · [Loading Assets](https://domphy.com/docs/three/assets) · [Recipes](https://domphy.com/docs/three/recipes) · 16 live playground examples under `/docs/three/examples/*` (spinning-cube, interactive-grid, wave-field, galaxy, orbit-viewer, theme-sync, ui-bridge, gltf-viewer, primitive-bridge, starfield-hero, dissolve, cursor-particles, neon-bloom, tunnel, synthwave-terrain, morph-particles)
+
+## Editor (`@domphy/editor`)
+
+Rich-text editor with a **Tiptap-compatible API** on a **self-contained engine** — no ProseMirror. The document is Tiptap-shaped JSON, positions are ProseMirror-style integer token positions, and the view is a `contenteditable` host driven by `beforeinput` (composition/IME passes through, `compositionend` resyncs the block). Two layers in one package: the framework-agnostic editor at the root entry, the Domphy adapter at `@domphy/editor/domphy`.
+
+### Usage
+
+```ts
+import { starterKit } from "@domphy/editor";
+import { createEditor, editorContent, bubbleMenu } from "@domphy/editor/domphy";
+
+const editor = createEditor({ content: "<p>Hello</p>", extensions: [starterKit()] });
+
+{ div: null, $: [editorContent(editor)] }  // host MUST declare null children
+editor.chain().focus().toggleBold().run();
+editor.isActive("heading", { level: 2 });
+editor.getJSON(); editor.getHTML(); editor.getText();
+```
+
+### API surface
+
+- `Editor` — `commands`, `chain()`, `can()`, `isActive(name, attrs?)`, `getJSON()`/`getHTML()`/`getText()`, `isEmpty`, `isEditable`/`setEditable`, `isFocused`, `mount(host)`/`unmount()`/`destroy()`, events `create`/`update`/`selectionUpdate`/`focus`/`blur`/`destroy` via `on`/`off`; `stateVersion` (a `State<number>` bumped per transaction) is the Domphy reactivity bridge.
+- `Extension.create` / `Node.create` / `Mark.create` — Tiptap config keys: `name`, `priority`, `addOptions`, `addAttributes`, `parseHTML`, `renderHTML`, `addCommands`, `addKeyboardShortcuts`, `addInputRules`, `addExtensions`, lifecycle hooks; `.configure()`/`.extend()`.
+- `starterKit(options?)` — paragraph, heading, bold, italic, strike, code, blockquote, bulletList/orderedList/listItem, hardBreak, horizontalRule, link (safe-URI validated), codeBlock, undo/redo history, trailingNode. Disable per extension (`{ codeBlock: false }`) or pass options through (`{ heading: { levels: [1, 2, 3] } }`).
+- Generic commands (the engine set extension commands delegate to): `setContent`, `insertContent(At)`, `setMark`/`toggleMark`/`unsetMark` (with `extendEmptyMarkRange` option), `setNode`/`toggleNode`, `updateAttributes`, `clearNodes`, `wrapIn`/`toggleWrap`/`lift`, `toggleList`/`splitListItem`/`sinkListItem`/`liftListItem`, `splitBlock`, `exitCode`, `setTextSelection`, `selectAll`, `deleteSelection`/`deleteRange`, `focus`/`blur`, `undo`/`redo`, `command(fn)`, `first(...)`.
+- Input rules ship with the kit: `# `…`###### `, `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``, `> `, `- `, `1. `, `---`, ```` ```lang ````.
+- Adapter: `createEditor(options)`, `editorContent(editor)` patch (theme-token styled host; declare `null` children so the contenteditable subtree is never reconciled), `bubbleMenu(editor, { shouldShow?, children })` patch (anchored to the selection rect via `@domphy/floating` `VirtualElement` + `inline` middleware), `editorState(editor)` → `{ isActive, read }` reactive readers.
+
+Serialization note: `getJSON()` omits attrs whose values equal their defaults (a level-1 heading is `{ "type": "heading" }`); Tiptap-produced JSON loads unchanged via `setContent`/`fromJSON`. Deliberately not ported (ProseMirror-specific): plugins, node/mark views, `NodePos`, paste rules, collaboration, gapcursor/dropcursor.
+
+- [Overview](https://domphy.com/docs/editor/) · [Extensions](https://domphy.com/docs/editor/extensions) · [API Reference](https://domphy.com/docs/editor/api) · [Toolbar example](https://domphy.com/docs/editor/examples/toolbar) · [Bubble Menu example](https://domphy.com/docs/editor/examples/bubble-menu)
 
 ## Scaffolder (`create-domphy`)
 

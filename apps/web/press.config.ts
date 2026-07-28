@@ -51,6 +51,7 @@ export const config = defineConfig({
           { text: "Blocks", link: "/docs/blocks/" },
           { text: "Chart", link: "/docs/chart/" },
           { text: "Three", link: "/docs/three/" },
+          { text: "Editor", link: "/docs/editor/" },
           { text: "Press", link: "/docs/press/" },
           { text: "Doctor", link: "/docs/doctor/" },
           { text: "MCP", link: "/docs/mcp/" },
@@ -490,6 +491,18 @@ export const config = defineConfig({
           ],
         },
       ],
+      "/docs/editor/": [
+        { text: "Overview", link: "/docs/editor/" },
+        { text: "Extensions", link: "/docs/editor/extensions" },
+        { text: "API Reference", link: "/docs/editor/api" },
+        {
+          text: "Examples",
+          items: [
+            { text: "Toolbar", link: "/docs/editor/examples/toolbar" },
+            { text: "Bubble Menu", link: "/docs/editor/examples/bubble-menu" },
+          ],
+        },
+      ],
       "/docs/i18n/": [
         { text: "Overview", link: "/docs/i18n/" },
         { text: "Setup", link: "/docs/i18n/setup" },
@@ -556,6 +569,7 @@ export const config = defineConfig({
         { text: "DnD", link: "/docs/dnd/" },
         { text: "Blocks", link: "/docs/blocks/" },
         { text: "Three", link: "/docs/three/" },
+        { text: "Editor", link: "/docs/editor/" },
         { text: "Palette", link: "/docs/palette/" },
         { text: "App", link: "/docs/app/" },
         { text: "Doctor", link: "/docs/doctor/" },

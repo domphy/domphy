@@ -131,6 +131,27 @@ await includeFile(
 await includeFile(resolve(ROOT, "docs/blocks/api.md"), "Blocks — API");
 await includeDir(resolve(ROOT, "docs/chart"), "Chart docs (`@domphy/chart`)");
 await includeDir(resolve(ROOT, "docs/three"), "Three docs (`@domphy/three`)");
+// Listed file by file rather than via includeDir: docs/editor/ doubles as the
+// home of the playground's own CodeEditor component sources (Container.ts,
+// Toolbar.ts, Modules.ts, …), and includeDir sweeps up .ts files too — dumping
+// the playground implementation into this file would be pure noise.
+await includeFile(
+  resolve(ROOT, "docs/editor/index.md"),
+  "Editor overview (`@domphy/editor`)",
+);
+await includeFile(
+  resolve(ROOT, "docs/editor/extensions.md"),
+  "Editor — extensions",
+);
+await includeFile(resolve(ROOT, "docs/editor/api.md"), "Editor — API");
+await includeFile(
+  resolve(ROOT, "docs/editor/examples/toolbar.md"),
+  "Editor — toolbar example",
+);
+await includeFile(
+  resolve(ROOT, "docs/editor/examples/bubble-menu.md"),
+  "Editor — bubble menu example",
+);
 await includeDir(
   resolve(ROOT, "docs/palette"),
   "Palette docs (`@domphy/palette`)",

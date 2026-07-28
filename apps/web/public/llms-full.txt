@@ -71,7 +71,7 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 | --- | --- |
 | `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code; `behavior(key, attach, props)` — per-node imperative state that survives reactive re-renders, see "Reused-node lifecycle" below) |
 | `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`); `generateTheme(baseColors, opts?)` builds a full `ThemeInput` from one base hex per semantic role via `@domphy/palette`'s ramp generator (see `DESIGN.md`) |
-| `@domphy/ui` | 95 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, `stack`, `row`, `panelSection`, …) |
+| `@domphy/ui` | 96 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, `stack`, `row`, `panelSection`, …) |
 | `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery`/`bindResult` at `@domphy/query/domphy`; `bindResult` connects an observer to Domphy reactivity so result fields are readable with a listener |
 | `@domphy/table` | headless tables — adapter `createDomphyTable` at `@domphy/table/domphy` |
 | `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
@@ -81,12 +81,13 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 | `@domphy/blocks` | 173 composed blocks/effect components — sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes (from shadcn/ui), and marketing/effect components (from Magic UI). Every export is a **factory function** `name(props?) => DomphyElement` returning a full mountable tree (not a `$`-patch). Subpaths: `@domphy/blocks/shadcn`, `@domphy/blocks/magicui` (family barrels for smaller bundles). Clean-room reimplemented — see `packages/blocks/SOURCES.md` |
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`) |
 | `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. CLI `domphy-doctor <path...>` scans files on disk (flags: `--only`/`--exclude`/`--no-reactive`/`--no-output`/`--format text\|json`); `auditOutput(node, opts?)` is an optional Layer 4 that lints the real generated HTML/CSS via `htmlhint`/`stylelint` (optional peer deps). **Run it on your output and fix the report.** |
-| `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — internal to `@domphy/ui` overlays |
+| `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — powers `@domphy/ui` overlays, `@domphy/chart` tooltips, and `@domphy/editor` bubble menus; public surface: `computePosition`/`autoUpdate` + middleware (`offset`/`flip`/`shift`/`arrow`/`size`/`inline`/…), `VirtualElement` for anchoring to non-element rects |
 | `@domphy/palette` | color-palette engine — `Ramp`/`Palette`/`Swatch`: 5 CIELAB quality metrics (design-time companion to theme); `generateRamp(baseColors, steps)`: builds a WCAG-span-optimized 18-step ramp from one or more anchor colors via a warped Oklab interpolation (see `DESIGN.md` §3) |
 | `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `createMarkdown`, `walkMdast`, `splitFrontmatter`; remark/unified under the hood); powers this docs site |
 | `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
 | `@domphy/chart` | WebGL + SVG chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series (luma.gl WebGL) with SVG overlays for axes/legend/tooltip/layout series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`hexToRgba`, `seriesHex`, `seriesPaletteFamily`, `colorFromVisualMap`); ECharts-compatible type surface |
 | `@domphy/three` | declarative three.js scene graph — 1-1 functional port of `@react-three/fiber` core (reconciler, raycast pointer events, demand frameloop) on Domphy reactivity; `three(options)` patch mounts a canvas host and renders the scene graph, `extend(classes)` registers custom/version-agnostic tags for `resolve()`, `loadAsset`/`preloadAsset`/`clearAsset` for reactive asset loading (`AssetResult<T>`: `data`/`error`/`promise`); `diagnose(options)`/`validate(options)` — scene-level static analyzer (doctor's contract shape for the three() option object doctor cannot see): rules `unknown-tag`, `legacy-light-intensity`, `additive-blowout`, `camera-missing-lookat`; per-node suppression via `_doctorDisable` |
+| `@domphy/editor` | rich-text editor with a Tiptap-compatible API on a self-contained engine (no ProseMirror) — `Editor`, `Extension.create`/`Node.create`/`Mark.create`, chainable commands (`chain()`/`can()`, `isActive`, `getJSON`/`getHTML`/`getText`), `starterKit(options?)` set (paragraph/heading/bold/italic/strike/code/blockquote/lists/hardBreak/horizontalRule/link/codeBlock/undo-redo/trailingNode; per-extension `false` to disable), input rules (`# `, `**bold**`, `- `…) + keymap; positions are ProseMirror-style token positions; `getJSON()` omits default-valued attrs (Tiptap JSON loads unchanged). Domphy adapter at `@domphy/editor/domphy`: `createEditor`, `editorContent()` patch (host element must declare `null` children), `bubbleMenu()` patch (selection-anchored via `@domphy/floating`), `editorState(editor)` reactive readers; `editor.stateVersion` is the reactivity bridge (a `State<number>` bumped per transaction) |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
 | `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features/`fullBleed`, `--dp-font-sans`/`--dp-font-mono`/`--dp-font-display` font hooks, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component |
 | `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, currentLocale, exists, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
@@ -566,7 +567,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 
 - `@domphy/core` — runtime: rendering, reactivity, lifecycle, SSR, CSS-in-JS (≈ `react-dom` + SSR + CSS-in-JS in one)
 - `@domphy/theme` — context-aware color/size/spacing tokens
-- `@domphy/ui` — 95 patches for native HTML (≈ MUI)
+- `@domphy/ui` — 96 patches for native HTML (≈ MUI)
 
 **Data & logic** — framework-agnostic API + a Domphy adapter at the `/domphy` subpath:
 
@@ -2696,6 +2697,33 @@ description: "Upgrade paths between major Domphy versions — breaking changes, 
 ---
 
 # Migration Guide
+
+## v0.19 → v0.20
+
+### String children are text by default; markup needs `rawHtml()`
+
+Before v0.20 (`@domphy/core`), a string child containing markup was parsed as HTML. Since v0.20, **a string child is always text** — markup inside it is escaped and rendered as visible characters, on the client and in SSR output. This closes the default XSS surface where state-derived strings could inject markup.
+
+**Before (v0.19):**
+```ts
+{ span: "<b>bold</b>" }        // rendered as a real <b> element
+```
+
+**After (v0.20):**
+```ts
+import { rawHtml } from "@domphy/core"
+
+{ span: "<b>bold</b>" }        // renders the literal characters "<b>bold</b>"
+{ span: rawHtml("<b>bold</b>") } // opt-in: renders a real <b> element
+```
+
+What to do when upgrading:
+
+- Any string child that intentionally contains markup (icon SVGs, formatted message templates, Markdown output) must be wrapped in `rawHtml(...)`. `rawHtml()` still strips `<script>`/`on*` handlers and `javascript:` URLs, but it is not a sanitizer for untrusted input — wrap only markup you control.
+- Text from user data or state needs no change — it now escapes safely by default.
+- Reactive children keep working: `(l) => rawHtml(template(l))` when the value is markup, plain functions for text.
+
+Also note: `themeApply()` only injects the theme stylesheets — you must also activate a theme (`applySystemTheme()` or a `data-theme` attribute / `dataTone` on the root), or `var(--…)` token references resolve to nothing and the app renders unstyled.
 
 ## v0.18 → current
 
@@ -25756,6 +25784,496 @@ Pass `createWebGPURenderer` as `three()`'s `createRenderer`. Frames rendered bef
 ---
 
 
+## Editor overview (`@domphy/editor`)
+
+---
+title: "@domphy/editor"
+description: "A rich-text editor with a Tiptap-compatible API on a self-contained engine — no ProseMirror, no virtual DOM, with a Domphy adapter for mounting, reactive toolbars, and a selection-anchored bubble menu."
+---
+
+# @domphy/editor
+
+`@domphy/editor` is a rich-text editor whose public API is source-compatible with [Tiptap](https://tiptap.dev) — `Editor`, `Extension`/`Node`/`Mark`, chainable commands, `starterKit()` — implemented on an engine of its own. There is no ProseMirror underneath: the document is plain Tiptap-shaped JSON, positions are ProseMirror-style integer token positions, and the view is a `contenteditable` host driven by `beforeinput`.
+
+Two layers ship in one package:
+
+- **`@domphy/editor`** — the framework-agnostic editor. It knows nothing about Domphy elements; you can drive it from any DOM.
+- **`@domphy/editor/domphy`** — the Domphy adapter: `createEditor`, the `editorContent()` and `bubbleMenu()` patches, and the `editorState()` reactivity bridge.
+
+## Install
+
+```bash
+npm install @domphy/editor
+```
+
+Peer dependencies: `@domphy/core` and `@domphy/theme`.
+
+## Quick start
+
+`createEditor()` builds the editor without a DOM host. The `editorContent()` patch owns the mount: apply it to a `div` and that element becomes the editing surface, styled with theme tokens.
+
+Typing `# `, `- `, `> ` or `**bold**` applies the matching input rule, and <kbd>Mod</kbd>+<kbd>B</kbd> / <kbd>Mod</kbd>+<kbd>I</kbd> / <kbd>Mod</kbd>+<kbd>Z</kbd> work as expected — those come from `starterKit()`, not from the adapter.
+
+## Reading editor state reactively
+
+The editor exposes `stateVersion`, a Domphy `State<number>` bumped once per transaction. Reading it with a listener subscribes that listener to every edit, which is the entire reactivity bridge:
+
+```ts
+const isBold = (l) => {
+  editor.stateVersion.get(l)
+  return editor.isActive("bold")
+}
+
+const boldButton = { button: "B", ariaPressed: isBold, onClick: () => editor.chain().focus().toggleBold().run() }
+```
+
+`editorState(editor)` names the two shapes that show up in every toolbar so you do not repeat the `stateVersion.get(l)` line:
+
+```ts
+import { editorState } from "@domphy/editor/domphy"
+
+const { isActive, read } = editorState(editor)
+
+isActive("bold")                          // (l) => boolean
+isActive("heading", { level: 2 })         // (l) => boolean — attrs are a subset match
+read((editor) => editor.can().undo())     // (l) => boolean
+read((editor) => editor.getText())        // (l) => string
+```
+
+## Coming from Tiptap
+
+The editor half is a straight port — same names, same semantics:
+
+| Tiptap | `@domphy/editor` |
+| --- | --- |
+| `new Editor({ element, extensions })` | `createEditor({ extensions })` + `editorContent(editor)` patch |
+| `import StarterKit from "@tiptap/starter-kit"` | `import { starterKit } from "@domphy/editor"` |
+| `editor.chain().focus().toggleBold().run()` | identical |
+| `editor.can().toggleBold()` | identical |
+| `editor.isActive("heading", { level: 2 })` | identical |
+| `<EditorContent editor={editor} />` (React) | `{ div: null, $: [editorContent(editor)] }` |
+| `<BubbleMenu editor={editor}>…</BubbleMenu>` | `bubbleMenu(editor, { children })` patch |
+| `useEditorState(...)` / `editor.on("transaction")` | `editor.stateVersion` / `editorState(editor)` |
+
+What is deliberately **not** ported, because it is ProseMirror-specific: `registerPlugin`/`unregisterPlugin`, node views, mark views, `NodePos`, paste rules, collaboration, gapcursor, dropcursor, and `editorProps` passthrough.
+
+One serialization difference: `getJSON()` omits `attrs` whose values all equal their defaults, so a level-1 heading serializes as `{ "type": "heading" }` where Tiptap emits `"attrs": { "level": 1 }`. `fromJSON`/`setContent` accept both forms, so Tiptap-produced JSON loads unchanged — only byte-for-byte output comparison differs.
+
+## Next steps
+
+- [Extensions](./extensions) — the `starterKit()` set, its options, and writing your own
+- [API Reference](./api) — editor options, commands, and the three adapter exports
+- [Toolbar example](./examples/toolbar) — a full toolbar composed from `@domphy/ui`
+- [Bubble Menu example](./examples/bubble-menu) — a menu anchored to the selection
+
+
+---
+
+
+## Editor — extensions
+
+---
+title: "@domphy/editor — Extensions"
+description: "The starterKit() extension set (commands, keyboard shortcuts, input rules), how to configure or drop individual extensions, and how to write your own Node, Mark, or Extension."
+---
+
+# Extensions
+
+Everything the editor can do comes from extensions. Three kinds, same as Tiptap:
+
+- **`Node`** — a block or inline node in the document (`paragraph`, `heading`, `bulletList`).
+- **`Mark`** — inline formatting applied to text (`bold`, `code`, `link`).
+- **`Extension`** — no schema of its own, just commands/shortcuts/rules (`undoRedo`, `starterKit()`).
+
+## starterKit()
+
+`starterKit()` is an aggregate: it contributes no schema itself, it just returns the essential set from `addExtensions()`.
+
+```ts
+import { starterKit } from "@domphy/editor"
+import { createEditor } from "@domphy/editor/domphy"
+
+const editor = createEditor({ extensions: [starterKit()] })
+```
+
+| Extension | Commands | Shortcuts | Input rules |
+| --- | --- | --- | --- |
+| `Document` | — | — | — |
+| `Text` | — | — | — |
+| `Paragraph` | `setParagraph()` | <kbd>Mod-Alt-0</kbd> | — |
+| `Heading` | `setHeading({ level })`, `toggleHeading({ level })` | <kbd>Mod-Alt-1</kbd>…<kbd>Mod-Alt-6</kbd> | `# ` … `###### ` |
+| `Bold` | `setBold()`, `toggleBold()`, `unsetBold()` | <kbd>Mod-b</kbd> | `**text**`, `__text__` |
+| `Italic` | `setItalic()`, `toggleItalic()`, `unsetItalic()` | <kbd>Mod-i</kbd> | `*text*`, `_text_` |
+| `Strike` | `setStrike()`, `toggleStrike()`, `unsetStrike()` | <kbd>Mod-Shift-s</kbd> | `~~text~~` |
+| `Code` | `setCode()`, `toggleCode()`, `unsetCode()` | <kbd>Mod-e</kbd> | `` `text` `` |
+| `Blockquote` | `setBlockquote()`, `toggleBlockquote()`, `unsetBlockquote()` | <kbd>Mod-Shift-b</kbd> | `> ` |
+| `BulletList` | `toggleBulletList()` | <kbd>Mod-Shift-8</kbd> | `- `, `+ `, `* ` |
+| `OrderedList` | `toggleOrderedList()` | <kbd>Mod-Shift-7</kbd> | `1. ` |
+| `ListItem` | — | <kbd>Enter</kbd> splits, <kbd>Tab</kbd> sinks, <kbd>Shift-Tab</kbd> lifts | — |
+| `HardBreak` | `setHardBreak()` | <kbd>Mod-Enter</kbd>, <kbd>Shift-Enter</kbd> | — |
+| `HorizontalRule` | `setHorizontalRule()` | — | `---`, `***` |
+| `CodeBlock` | `setCodeBlock({ language })`, `toggleCodeBlock({ language })` | <kbd>Mod-Alt-c</kbd> | ` ```lang `, `~~~lang` |
+| `Link` | `setLink({ href })`, `toggleLink({ href })`, `unsetLink()` | — | — |
+| `UndoRedo` | `undo()`, `redo()` | <kbd>Mod-z</kbd>, <kbd>Shift-Mod-z</kbd>, <kbd>Mod-y</kbd> | — |
+
+`Mod` is <kbd>Ctrl</kbd> on Windows and Linux, <kbd>Cmd</kbd> on macOS.
+
+Two names are worth knowing because they differ from what you would guess:
+
+- `Document`'s schema name is `"doc"`, not `"document"` — the `starterKit()` option key is `document`, but anything addressing the node type (`isActive`, content expressions) uses `"doc"`.
+- `UndoRedo` registers no commands of its own. `undo()` and `redo()` are generic engine commands that exist regardless; the extension only carries `depth`/`newGroupDelay` and the keymap, so dropping it with `undoRedo: false` removes the shortcuts, not the commands.
+
+## Configuring the kit
+
+Every key of the `starterKit()` options object takes that sub-extension's options, or `false` to leave it out entirely:
+
+```ts
+starterKit({
+  heading: { levels: [1, 2, 3] },   // only H1-H3, so only Mod-Alt-1..3 bind
+  codeBlock: false,                 // drop code blocks (and their input rules)
+  undoRedo: { depth: 50, newGroupDelay: 300 },
+  link: { HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" } },
+})
+```
+
+Individual extensions are also exported by name, so you can skip the kit and assemble the set yourself. `Document`, `Text` and `Paragraph` are the minimum a working document needs:
+
+```ts
+import { Bold, Document, Italic, Paragraph, Text } from "@domphy/editor"
+
+const editor = createEditor({ extensions: [Document, Paragraph, Text, Bold, Italic] })
+```
+
+## `configure()` vs `extend()`
+
+`configure(options)` deep-merges over the result of `addOptions()` and returns a new instance — the config hooks are untouched. `extend(config)` replaces hooks; inside a replaced hook, `this.parent` is the same hook from the extended config, which is how you add to a hook instead of overwriting it:
+
+```ts
+const HeadingWithBigShortcut = Heading.extend({
+  addKeyboardShortcuts() {
+    return {
+      ...this.parent?.(),
+      "Mod-Alt-9": ({ editor }) => editor.commands.toggleHeading({ level: 1 }),
+    }
+  },
+})
+```
+
+Every config hook is called with `this` bound to `{ name, options, storage, editor, parent }`.
+
+## Writing an extension
+
+A `Mark` needs a name, how it parses out of HTML, how it renders back, and the commands it contributes:
+
+```ts
+import { Mark, mergeAttributes } from "@domphy/editor"
+
+const Highlight = Mark.create({
+  name: "highlight",
+
+  parseHTML() {
+    return [{ tag: "mark" }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ["mark", mergeAttributes(HTMLAttributes), 0]
+  },
+
+  addCommands() {
+    return {
+      toggleHighlight:
+        () =>
+        ({ commands }) =>
+          commands.toggleMark(this.name),
+    }
+  },
+
+  addKeyboardShortcuts() {
+    return { "Mod-Shift-h": ({ editor }) => editor.commands.toggleHighlight() }
+  },
+})
+```
+
+Commands are curried: the outer function takes the caller's arguments, the inner one takes `CommandProps` and returns whether it applied. A command must check `dispatch` before mutating the transaction — `can()` runs commands with `dispatch: undefined` precisely so it can ask "would this work?" without changing anything:
+
+```ts
+addCommands() {
+  return {
+    clearHighlight:
+      () =>
+      ({ tr, state, dispatch }) => {
+        const { from, to } = state.selection
+        if (from === to) return false
+        if (dispatch) tr.removeMark(from, to, this.name)
+        return true
+      },
+  }
+}
+```
+
+Node extensions add `content`, `group`, and `addAttributes`. Attributes declare a default and are omitted from JSON when every attribute is at its default:
+
+```ts
+import { Node, mergeAttributes } from "@domphy/editor"
+
+const Callout = Node.create({
+  name: "callout",
+  group: "block",
+  content: "block+",
+  defining: true,
+
+  addAttributes() {
+    return { tone: { default: "info" } }
+  },
+
+  parseHTML() {
+    return [{ tag: "aside[data-callout]" }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ["aside", mergeAttributes({ "data-callout": "" }, HTMLAttributes), 0]
+  },
+})
+```
+
+`priority` (default `100`, higher runs first) decides ordering when two extensions register the same shortcut or parse rule — `Paragraph` and `Link` both use `1000`.
+
+## Next steps
+
+- [API Reference](./api) — editor options, the generic command set, and the adapter exports
+- [Toolbar example](./examples/toolbar) — wiring these commands to buttons
+
+
+---
+
+
+## Editor — API
+
+---
+title: "@domphy/editor — API Reference"
+description: "Editor options and instance members, the generic command set behind chain()/can(), and the three Domphy adapter exports: editorContent(), bubbleMenu(), and editorState()."
+---
+
+# API Reference
+
+## `createEditor(options)`
+
+Builds an editor without mounting it. The DOM host comes later from [`editorContent()`](#editorcontent-editor-props), which owns the mount/unmount lifecycle of the element it is applied to — passing `element` here would mount twice.
+
+```ts
+import { createEditor } from "@domphy/editor/domphy"
+
+const editor = createEditor({
+  extensions: [starterKit()],
+  content: "<p>Hello</p>",
+  editable: true,
+  onUpdate: ({ editor }) => console.log(editor.getJSON()),
+})
+```
+
+| Option | Type | Notes |
+| --- | --- | --- |
+| `content` | `string \| JSONContent \| JSONContent[] \| null` | HTML string or Tiptap-shaped JSON. |
+| `extensions` | `AnyExtension[]` | Order does not matter; `priority` does. |
+| `editable` | `boolean` | Defaults to `true`. |
+| `autofocus` | `"start" \| "end" \| "all" \| number \| boolean \| null` | Where the cursor lands on mount. |
+| `onCreate` / `onUpdate` / `onSelectionUpdate` | `({ editor }) => void` | |
+| `onFocus` / `onBlur` | `({ editor, event }) => void` | |
+| `onDestroy` | `() => void` | |
+
+Options can be changed after construction with `editor.setOptions(partial)`.
+
+## Editor instance
+
+| Member | Returns | Notes |
+| --- | --- | --- |
+| `commands` | `SingleCommands` | Each call runs on a fresh transaction and dispatches immediately. |
+| `chain()` | `ChainedCommands` | Collects commands into ONE transaction; `run()` dispatches. |
+| `can()` | `CanCommands` | Same commands with `dispatch: undefined` — never mutates. |
+| `state` | `{ doc, selection, storedMarks }` | The current document and selection. |
+| `stateVersion` | `State<number>` | Bumped once per transaction — the reactivity bridge. |
+| `isActive(name, attrs?)` | `boolean` | Attribute matching is a subset test. |
+| `getAttributes(nameOrType)` | `Attributes` | Attributes of the active node or mark. |
+| `getJSON()` / `getHTML()` / `getText(options?)` | JSON / string / string | `getText({ blockSeparator })` defaults to `"\n\n"`. |
+| `isEmpty` / `isEditable` / `isFocused` / `isDestroyed` | `boolean` | |
+| `setEditable(editable, emitUpdate?)` | `void` | |
+| `mount(element)` / `unmount()` / `destroy()` | `void` | `editorContent()` calls the first two for you. |
+| `on(event, cb)` / `off(event, cb)` | `void` | Events: `create`, `update`, `selectionUpdate`, `focus`, `blur`, `destroy`. |
+
+## Commands
+
+`chain()` builds one transaction shared by every link. Each link runs and pushes its boolean result; **a failing link does not abort the chain**. `run()` dispatches once and returns true only if every link returned true.
+
+```ts
+editor.chain().focus().toggleBold().run()          // one transaction, one history entry
+editor.commands.toggleBold()                       // its own transaction, dispatched immediately
+editor.can().toggleBold()                          // would it apply? nothing is mutated
+editor.can().chain().toggleBold().toggleItalic().run()
+```
+
+Every extension command is built out of this generic set, which is always available:
+
+| Group | Commands |
+| --- | --- |
+| Content | `setContent(content, options?)`, `insertContent(content)`, `insertContentAt(position, content)` |
+| Marks | `setMark(type, attrs?)`, `toggleMark(type, attrs?)`, `unsetMark(type)` |
+| Nodes | `setNode(type, attrs?)`, `toggleNode(type, toggleType, attrs?)`, `updateAttributes(type, attrs)`, `clearNodes()` |
+| Wrapping | `wrapIn(type, attrs?)`, `toggleWrap(type, attrs?)`, `lift(type, attrs?)` |
+| Lists | `toggleList(listType, itemType, attrs?)`, `splitListItem(itemType)`, `sinkListItem(itemType)`, `liftListItem(itemType)` |
+| Splitting | `splitBlock(options?)`, `exitCode()` |
+| Selection | `setTextSelection(position)`, `selectAll()`, `deleteSelection()`, `deleteRange(range)` |
+| Focus | `focus(position?)`, `blur()`, `scrollIntoView()` |
+| Escape hatches | `command(fn)`, `first(commands)`, `setMeta(key, value)` |
+| History | `undo()`, `redo()` |
+
+A command receives `{ editor, tr, state, dispatch, chain, can, commands }` and returns whether it applied. `dispatch` is `undefined` during `can()`, so guard every mutation with it.
+
+`setMeta("preventUpdate", true)` suppresses the `update` event for that transaction; the event is also skipped when the document did not actually change.
+
+## Document JSON
+
+The JSON is Tiptap's, exactly:
+
+```json
+{
+  "type": "doc",
+  "content": [
+    { "type": "heading", "attrs": { "level": 2 }, "content": [{ "type": "text", "text": "Title" }] },
+    { "type": "paragraph", "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Bold" }] },
+    { "type": "paragraph" }
+  ]
+}
+```
+
+Marks live on text nodes, never on wrappers. `attrs` is omitted when every attribute is at its default, and an empty `content` array is omitted entirely — an empty paragraph is just `{ "type": "paragraph" }`.
+
+Positions are ProseMirror-style integer token positions: entering a non-leaf node costs 1, each character costs 1, a leaf node (`hardBreak`, `horizontalRule`) costs 1, leaving a node costs 1. This is what makes `from`/`to` and command semantics source-compatible with Tiptap.
+
+## Domphy adapter
+
+### `editorContent(editor, props?)`
+
+Mounts the editor into the host element and styles the editing surface with theme tokens. Apply it to a `div`.
+
+```ts
+{ div: null, $: [editorContent(editor, { minHeight: 60 })] }
+```
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` — surface text and resting outline |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` — focus ring |
+| `minHeight` | `number` | `40` — theme spacing units (`10em`) |
+
+The mount runs through a `behavior()`, so it happens exactly once for the real DOM node no matter how many times a reactive ancestor re-renders the host; passing a different editor later swaps the view in place, and unmount runs once when the element leaves the DOM.
+
+Typography inside the editable area is left to the theme and the browser's tag defaults — the content is real `p` / `h1`-`h6` / `strong` / `em` markup, so it inherits the document type scale. Only structural rhythm (block margins, list indent, quote and code chrome) is declared by the patch.
+
+### `bubbleMenu(editor, props)`
+
+A floating menu anchored to the current text selection. Apply it to the same host element as `editorContent()`.
+
+```ts
+{
+  div: null,
+  $: [
+    editorContent(editor),
+    bubbleMenu(editor, {
+      shouldShow: (editor) => !editor.state.selection.empty && !editor.isActive("codeBlock"),
+      children: { div: [boldButton, italicButton] },
+    }),
+  ],
+}
+```
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `children` | `DomphyElement` | required — the menu content |
+| `shouldShow` | `(editor) => boolean` | editable, with a non-empty selection |
+
+Positioning uses `@domphy/floating` against a *virtual element* wrapping the live selection rectangle: `getBoundingClientRect()` re-reads `getSelection().getRangeAt(0)` on every call, so scrolling and resizing reposition against the real current rect rather than a snapshot taken when the menu opened. The middleware chain is `inline()` (picks the right rect when a selection wraps across lines), `offset(8)`, `flip()` and `shift()`.
+
+Show/hide is wired to the editor's `selectionUpdate`, `update`, `focus` and `blur` events from inside the behavior — not from a lifecycle hook — so it survives host re-renders. The panel is inserted next to the app root, escaping the editor's overflow and stacking context, and it swallows `mousedown` so pressing a button never blurs the editor and collapses the selection you are formatting.
+
+### `editorState(editor)`
+
+Returns reader functions that re-evaluate on every transaction.
+
+```ts
+const { isActive, read } = editorState(editor)
+
+isActive("bold")                        // (l) => boolean
+isActive("heading", { level: 2 })       // (l) => boolean
+read((editor) => editor.can().undo())   // (l) => boolean
+read((editor) => editor.getText())      // (l) => string
+```
+
+There is nothing more to it than reading `editor.stateVersion` with the listener first, so anything not covered here can be written inline:
+
+```ts
+const wordCount = (l) => {
+  editor.stateVersion.get(l)
+  return editor.getText().split(/\s+/).filter(Boolean).length
+}
+```
+
+
+---
+
+
+## Editor — toolbar example
+
+---
+title: "@domphy/editor — Toolbar"
+description: "A full formatting toolbar composed from @domphy/ui buttons, with pressed states and enabled/disabled states derived from the editor through editorState()."
+---
+
+# Toolbar
+
+A complete formatting bar — marks, headings, lists, quote, undo/redo — above an editing surface. No toolbar patch ships with `@domphy/editor`: a toolbar is buttons, and `@domphy/ui` already has buttons. Move the cursor around the document and watch the pressed states follow it.
+
+## How it works
+
+- **`editorState(editor)`** returns the two reader shapes a toolbar needs. `isActive("bold")` is a listener function `(l) => boolean`, so binding it to `ariaPressed` is enough to make the button track the cursor — under the hood it reads `editor.stateVersion` with the listener, which subscribes to every transaction. See [reading editor state](/docs/editor/#reading-editor-state-reactively).
+- **`isActive("heading", { level: 1 })`** matches attributes as a *subset*, which is why the H1 and H2 buttons can share one node type and still light up independently. `isActive("heading")` with no attrs would match any level.
+- **Pressed styling through the attribute, not a second State**: the button declares `"&[aria-pressed=true]"` in its own `style`, so the active look is pure CSS driven by the one reactive attribute. No parallel `toState(false)` to keep in sync, and no re-render of the button element on every keystroke.
+- **`read((editor) => editor.can().undo())`** drives the disabled state. `can()` runs the command with `dispatch: undefined` — it reports feasibility without touching the document, so asking is free on every transaction. See [Commands](/docs/editor/api#commands).
+- **`.chain().focus().toggleBold().run()`** is one transaction, so the focus restore and the format change land as a single history entry — <kbd>Mod-z</kbd> undoes the formatting, not the focus. `focus()` matters because clicking a button moved focus to the button.
+- **`separator()` is a factory, not a shared constant**: the same element object appearing three times in one children list would hand reconciliation three references to one object. One object per position keeps node identity honest — see [reused-node lifecycle](/docs/core/lifecycle).
+- **Layout comes from patches**: `toolbar({ gap: 1 })` for the button row (a semantic alias of `row()`), `stack({ gap: 2 })` for the bar-above-editor column. No hand-rolled `display: flex`.
+
+[← Back to @domphy/editor](/docs/editor/)
+
+
+---
+
+
+## Editor — bubble menu example
+
+---
+title: "@domphy/editor — Bubble Menu"
+description: "A formatting menu that floats above the text selection, positioned with @domphy/floating against a virtual element that tracks the live selection rectangle."
+---
+
+# Bubble Menu
+
+Select a few words and a small menu appears above them. It is anchored to the selection rectangle itself — not to the editor box — so it follows the text when you scroll, resize, or extend the selection across lines.
+
+## How it works
+
+- **The anchor is a virtual element, not a DOM node.** There is no element to point at: a text selection is a `Range`. `bubbleMenu()` hands `@domphy/floating` an object with `getBoundingClientRect()`/`getClientRects()` that re-read `getSelection().getRangeAt(0)` on every call, so `autoUpdate` recomputes against the *live* rect on scroll and resize instead of a stale snapshot from when the menu opened.
+- **`inline()` runs first in the middleware chain.** A selection that wraps across two lines has a bounding box spanning both, and anchoring to its centre would park the menu in the middle of the paragraph. `inline()` picks the rect that actually matches where the selection starts. Then `offset(8)` lifts it off the text, `flip()` drops it below when there is no room above, and `shift()` keeps it inside the viewport.
+- **`shouldShow` gates visibility per selection change.** The default is "editable, with a non-empty selection"; this demo also excludes code blocks, where inline marks are meaningless. It runs on every `selectionUpdate`, so it can read anything off the editor.
+- **`mousedown` is swallowed on the panel.** Without it, pressing a button blurs the editor, the selection collapses, and the menu hides *before* the click handler runs its command — the button would appear dead. Preventing the default on `mousedown` keeps focus and selection in the editing surface.
+- **The panel is inserted next to the app root**, so it escapes the editor's overflow and stacking context, and it copies the nearest `[data-theme]` from the editor — floating content is a DOM sibling of the page, not of the editor, so it would otherwise resolve theme variables against the wrong scope.
+- **All of the imperative wiring lives in a `behavior()`.** The event subscriptions, the `autoUpdate` cleanup, and the inserted panel node attach once per real DOM node; re-rendering the host routes fresh props into that same instance instead of leaving listeners bound to an orphaned closure. This is the pattern described in [reused-node lifecycle](/docs/core/lifecycle) and used by every `@domphy/ui` overlay.
+
+[← Back to @domphy/editor](/docs/editor/)
+
+
+---
+
+
 ## Palette docs (`@domphy/palette`)
 
 ### accessibility.md
@@ -39108,7 +39626,7 @@ function details(
         width: themeSpacing(2),
         height: themeSpacing(2),
         flexShrink: 0,
-        marginTop: `-${themeSpacing(0.5)}`,
+        marginTop: themeSpacing(-0.5),
         borderInlineEnd: (listener) =>
           `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-9", color.get(listener))}`,
         borderBottom: (listener) =>
@@ -41991,7 +42509,7 @@ function menu(
 
   return {
     role: "menu",
-    dataTone: "shift-17",
+    dataTone: "shift-0",
     _onSchedule: (node, element) => {
       // Empty items = the caller renders its own rows; leave children alone.
       if (items.length === 0) return;
@@ -42053,9 +42571,9 @@ function menu(
             paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
             border: "none",
             outline: "none",
-            // Menu panel is dataTone shift-17: shift-17 text = opposite ramp end
-            // (readable on dark light-theme panels and light dark-theme panels).
-            color: (l: Listener) => themeColor(l, "shift-17", color),
+            // Menu panel is a light (shift-0) surface: "text" resolves to a
+            // dark-on-light reading tone in both light and dark themes.
+            color: (l: Listener) => themeColor(l, "text", color),
             backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
             transition:
               "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
@@ -42768,7 +43286,7 @@ function popoverArrow(
         height: themeSpacing(1.5),
         backgroundColor: (listener) => themeColor(listener, "inherit", color),
         borderWidth: bordered ? "1px" : 0,
-        borderColor: (listener) => themeColor(listener, "inherit", color),
+        borderColor: (listener) => themeColor(listener, "border-strong", color),
         borderTopStyle: (listener) => {
           const pos = getFlipped(listener);
 
@@ -43067,9 +43585,7 @@ function rating(
 
         const star: DomphyElement<"button"> = {
           button: (listener) =>
-            rawHtml(
-              index <= activeCount(listener) ? STAR_FILLED : STAR_EMPTY,
-            ),
+            rawHtml(index <= activeCount(listener) ? STAR_FILLED : STAR_EMPTY),
           _key: index,
           type: "button",
           ariaLabel: `${index} star${index > 1 ? "s" : ""}`,
@@ -43808,7 +44324,7 @@ function selectList(
   };
 
   const partial: PartialElement = {
-    dataTone: "shift-17",
+    dataTone: "shift-0",
     _context: {
       select: {
         value: state,
@@ -43869,9 +44385,10 @@ function skeleton(
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
 
-  // Shimmer sweeps left→right over a mid-ramp base (reads as loading, not
+  // Shimmer sweeps left→right over a near-white base (reads as loading, not
   // a flat opacity blink). Base + highlight are both theme tokens so the
-  // effect adapts to light/dark surfaces.
+  // effect adapts to light/dark surfaces. Highlight stays close to the base
+  // (shift-2) — a deeper step reads as dirty banding on light themes.
   const keyframes = {
     "0%": { backgroundPosition: "200% 0" },
     "100%": { backgroundPosition: "-200% 0" },
@@ -43879,7 +44396,7 @@ function skeleton(
   const animationName = hashString(JSON.stringify(keyframes));
   return {
     ariaHidden: "true",
-    dataTone: "shift-2",
+    dataTone: "shift-1",
     style: {
       fontSize: (listener) => themeSize(listener),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
@@ -43889,7 +44406,7 @@ function skeleton(
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       backgroundImage: (listener) =>
-        `linear-gradient(90deg, ${themeColor(listener, "inherit", color.get(listener))} 0%, ${themeColor(listener, "shift-4", color.get(listener))} 50%, ${themeColor(listener, "inherit", color.get(listener))} 100%)`,
+        `linear-gradient(90deg, ${themeColor(listener, "inherit", color.get(listener))} 0%, ${themeColor(listener, "shift-2", color.get(listener))} 50%, ${themeColor(listener, "inherit", color.get(listener))} 100%)`,
       backgroundSize: "200% 100%",
       animation: `${animationName} 1.6s ease-in-out infinite`,
       [`@keyframes ${animationName}`]: keyframes,
@@ -44736,17 +45253,17 @@ function tabs(
             color: (l: Listener) => themeColor(l, "shift-13"),
             backgroundColor: (l: Listener) => themeColor(l, "inherit"),
             boxShadow: (l: Listener) =>
-              `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-1", color)}`,
+              `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-1", color)}`,
             transition: "box-shadow 140ms ease, color 140ms ease",
             "&:hover:not([disabled]):not([aria-selected=true])": {
               color: (l: Listener) => themeColor(l, "shift-13"),
               boxShadow: (l: Listener) =>
-                `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-2", color)}`,
+                `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-2", color)}`,
             },
             "&[aria-selected=true]:not([disabled])": {
               color: (l: Listener) => themeColor(l, "shift-13", accentColor),
               boxShadow: (l: Listener) =>
-                `inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-8", accentColor)}`,
+                `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-8", accentColor)}`,
             },
             // Focus ring must compose with the selected underline (both use
             // box-shadow) so keyboard focus doesn't erase the active indicator.
@@ -44755,7 +45272,7 @@ function tabs(
             },
             "&[aria-selected=true]:focus-visible": {
               boxShadow: (l: Listener) =>
-                `${focusRing(l, accentColor)}, inset 0 -${themeSpacing(0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
+                `${focusRing(l, accentColor)}, inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
             },
           },
         } as DomphyElement<"button">;
@@ -45072,8 +45589,7 @@ function timelineItem(
               position: "absolute",
               left: "calc(1rem - 1px)",
               top: "1.25rem",
-              bottom: (listener) =>
-                `-${themeSpacing(themeDensity(listener) * 4)}`,
+              bottom: (listener) => themeSpacing(themeDensity(listener) * -4),
               width: "2px",
               backgroundColor: (listener) =>
                 themeColor(listener, "shift-3", color),
