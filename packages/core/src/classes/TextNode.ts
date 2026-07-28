@@ -1,5 +1,10 @@
-import { escapeHTML, isHTML, sanitizeHTMLString } from "../helpers.js";
+import { escapeHTML, sanitizeHTMLString } from "../helpers.js";
 import type { ElementNode } from "./ElementNode.js";
+import { isRawHTML, type RawHTML } from "./RawHTML.js";
+
+// Zero-width space: an empty text child still needs a real DOM node to hold
+// its slot, and a matching &#8203; in the server output so hydration aligns.
+const ZWSP = String.fromCharCode(0x200b);
 
 export class TextNode {
   type = "TextNode";
@@ -8,15 +13,20 @@ export class TextNode {
   _imperative = false;
   parent: ElementNode;
   text: string;
+  // True only when the child was wrapped in `rawHtml(...)`. A plain string is
+  // ALWAYS text — markup in it renders as visible characters, never as DOM.
+  html: boolean;
   domText?: ChildNode;
 
-  constructor(textContent: string | number, parent: ElementNode) {
+  constructor(textContent: string | number | RawHTML, parent: ElementNode) {
     this.parent = parent;
-    this.text = textContent === "" ? "\u200B" : String(textContent);
+    this.html = isRawHTML(textContent);
+    const text = this.html ? (textContent as RawHTML).html : textContent;
+    this.text = text === "" ? ZWSP : String(text);
   }
   _createDOMNode() {
     let newNode: ChildNode;
-    if (isHTML(this.text)) {
+    if (this.html) {
       const tpl = document.createElement("template");
       tpl.innerHTML = this.text.trim();
       // Strip event-handler attributes and javascript: URLs from all elements.
@@ -44,15 +54,17 @@ export class TextNode {
   // stays plain text, mutate `nodeValue` directly (cheap, preserves the node) —
   // this is what lets reactive text like `(l) => "Count: " + n.get(l)` patch the
   // existing text node instead of recreating it every change. Crossing the
-  // plain/inline-HTML boundary (or a non-text node) rebuilds the node.
-  setText(textContent: string | number): void {
-    const next =
-      textContent === "" ? String.fromCharCode(0x200b) : String(textContent);
-    if (next === this.text && this.domText) return;
-    const wasHTML = isHTML(this.text);
+  // text/rawHtml boundary (or a non-text node) rebuilds the node.
+  setText(textContent: string | number | RawHTML): void {
+    const isHtml = isRawHTML(textContent);
+    const raw = isHtml ? (textContent as RawHTML).html : textContent;
+    const next = raw === "" ? ZWSP : String(raw);
+    if (next === this.text && isHtml === this.html && this.domText) return;
+    const wasHTML = this.html;
     this.text = next;
+    this.html = isHtml;
     if (!this.domText) return;
-    if (!wasHTML && !isHTML(next) && this.domText.nodeType === 3) {
+    if (!wasHTML && !isHtml && this.domText.nodeType === 3) {
       this.domText.nodeValue = next;
       return;
     }
@@ -67,14 +79,12 @@ export class TextNode {
   }
 
   generateHTML(): string {
-    if (this.text === "\u200B") return "&#8203;";
-    // Mirror _createDOMNode: a single-root HTML string is intentional inline
-    // HTML, anything else is plain text and must be escaped so the server
+    if (this.text === ZWSP) return "&#8203;";
+    // Mirror _createDOMNode: only an explicit rawHtml() child is emitted as
+    // markup (still sanitized); every plain string is escaped, so the server
     // output is XSS-safe and parses back to the same text node the client
     // builds (otherwise hydration child alignment drifts).
-    return isHTML(this.text)
-      ? sanitizeHTMLString(this.text)
-      : escapeHTML(this.text);
+    return this.html ? sanitizeHTMLString(this.text) : escapeHTML(this.text);
   }
 
   render(domText: ChildNode | DocumentFragment | HTMLElement): void {

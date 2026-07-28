@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { ElementNode } from "../src/classes/ElementNode.ts";
+import { rawHtml } from "../src/classes/RawHTML.ts";
 import { configure } from "../src/config.ts";
 import type { DomphyElement } from "../src/types.ts";
 import { toState } from "../src/utils.ts";
@@ -149,15 +150,20 @@ describe("SSR: generateHTML", () => {
     expect(html).not.toMatch(/title="a"b/);
   });
 
-  it("escapes plain text content but preserves intentional inline HTML", () => {
+  it("escapes text content, including markup, unless opted in with rawHtml", () => {
     const plain = new ElementNode({
       div: "1 < 2 & 3 > 0",
     } as DomphyElement).generateHTML();
     expect(plain).toContain("1 &lt; 2 &amp; 3 &gt; 0");
     expect(plain).not.toContain("<2");
 
-    const inline = new ElementNode({
+    const escaped = new ElementNode({
       div: "<strong>hi</strong>",
+    } as DomphyElement).generateHTML();
+    expect(escaped).toContain("&lt;strong&gt;hi&lt;/strong&gt;");
+
+    const inline = new ElementNode({
+      div: rawHtml("<strong>hi</strong>"),
     } as DomphyElement).generateHTML();
     expect(inline).toContain("<strong>hi</strong>");
   });
@@ -468,51 +474,115 @@ describe("SSR: hydration via mount()", () => {
   });
 });
 
-describe("XSS: inline HTML sanitization", () => {
-  // isHTML() detects paired tags and self-closing tags with a trailing slash.
-  // Strings that don't match are treated as plain text and escaped — already safe.
-  // Strings that DO match are passed to innerHTML and must be sanitized first.
+describe("XSS: a plain string child is TEXT, never HTML", () => {
+  // The default is escape. Markup in a plain string renders as visible
+  // characters — no element is ever created from it, on either side of SSR.
 
-  it("strips event handler attrs from inline HTML (generateHTML / SSR)", () => {
-    // <span onclick=...>text</span> is detected as HTML → must strip onclick
+  it("escapes markup in a string child (generateHTML / SSR)", () => {
     const html = new ElementNode({
-      div: '<span onclick="alert(1)">text</span>',
+      div: '<img src=x onerror="alert(1)">',
     } as DomphyElement).generateHTML();
-    expect(html).not.toContain("onclick");
-    expect(html).toContain("<span");
-    expect(html).toContain("text");
+    expect(html).toContain("&lt;img");
+    expect(html).not.toContain("<img");
   });
 
-  it("strips on* attrs from inline HTML (client _createDOMNode)", () => {
+  it("creates no element from a string child (client _createDOMNode)", () => {
     const host = document.createElement("div");
     new ElementNode({
-      div: '<a href="ok" onclick="alert(1)">link</a>',
+      div: '<img src=x onerror="alert(1)">',
+    } as DomphyElement).render(host);
+    expect(host.querySelector("img")).toBeNull();
+    expect(host.textContent).toBe('<img src=x onerror="alert(1)">');
+  });
+
+  it("escapes an iframe srcdoc payload instead of mounting it", () => {
+    const host = document.createElement("div");
+    new ElementNode({
+      div: '<iframe srcdoc="<script>alert(1)</script>"></iframe>',
+    } as DomphyElement).render(host);
+    expect(host.querySelector("iframe")).toBeNull();
+    expect(
+      new ElementNode({
+        div: '<iframe srcdoc="<script>alert(1)</script>"></iframe>',
+      } as DomphyElement).generateHTML(),
+    ).not.toContain("<iframe");
+  });
+
+  it("escapes markup arriving through a reactive child", async () => {
+    const text = toState("safe");
+    const host = document.createElement("div");
+    new ElementNode({
+      div: (l: any) => text.get(l),
+    } as DomphyElement).render(host);
+    text.set("<img src=x onerror=alert(1)>");
+    await flush();
+    expect(host.querySelector("img")).toBeNull();
+    expect(host.textContent).toBe("<img src=x onerror=alert(1)>");
+  });
+});
+
+describe("rawHtml(): the explicit HTML opt-in, still sanitized", () => {
+  it("renders markup as real DOM (client)", () => {
+    const host = document.createElement("div");
+    new ElementNode({
+      div: rawHtml("<strong>bold</strong>"),
+    } as DomphyElement).render(host);
+    expect(host.querySelector("strong")!.textContent).toBe("bold");
+  });
+
+  it("renders markup as markup (SSR)", () => {
+    const html = new ElementNode({
+      div: rawHtml("<strong>bold</strong>"),
+    } as DomphyElement).generateHTML();
+    expect(html).toContain("<strong>bold</strong>");
+  });
+
+  it("strips on* attributes (SSR + client)", () => {
+    const html = new ElementNode({
+      div: rawHtml('<span onclick="alert(1)">text</span>'),
+    } as DomphyElement).generateHTML();
+    expect(html).not.toContain("onclick");
+    expect(html).toContain("text");
+
+    const host = document.createElement("div");
+    new ElementNode({
+      div: rawHtml('<a href="ok" onclick="alert(1)">link</a>'),
     } as DomphyElement).render(host);
     expect(host.querySelector("a")!.getAttribute("onclick")).toBeNull();
     expect(host.querySelector("a")!.getAttribute("href")).toBe("ok");
   });
 
-  it("strips on* from self-closing tags detected as HTML", () => {
-    // <img .../> has trailing slash → isHTML detects it → sanitize onerror
+  it("neutralises javascript: URLs (SSR)", () => {
     const html = new ElementNode({
-      div: '<img src="x" onerror="alert(1)"/>',
-    } as DomphyElement).generateHTML();
-    expect(html).not.toContain("onerror");
-    expect(html).toContain("src=");
-  });
-
-  it("neutralises javascript: href (SSR)", () => {
-    const html = new ElementNode({
-      div: '<a href="javascript:alert(1)">x</a>',
+      div: rawHtml('<a href="javascript:alert(1)">x</a>'),
     } as DomphyElement).generateHTML();
     expect(html).not.toContain("javascript:");
   });
 
-  it("leaves safe inline HTML untouched", () => {
+  it("strips <script> elements (SSR)", () => {
     const html = new ElementNode({
-      div: "<strong>bold</strong>",
+      div: rawHtml("<div>ok</div><script>alert(1)</script>"),
     } as DomphyElement).generateHTML();
-    expect(html).toContain("<strong>bold</strong>");
+    expect(html).not.toContain("<script");
+    expect(html).toContain("ok");
+  });
+
+  it("swaps between text and HTML across reactive updates", async () => {
+    const child = toState<any>("plain <b>text</b>");
+    const host = document.createElement("div");
+    new ElementNode({
+      div: (l: any) => child.get(l),
+    } as DomphyElement).render(host);
+    expect(host.querySelector("b")).toBeNull();
+
+    child.set(rawHtml("<b>real</b>"));
+    await flush();
+    expect(host.querySelector("b")!.textContent).toBe("real");
+
+    child.set("back to text");
+    await flush();
+    expect(host.querySelector("b")).toBeNull();
+    expect(host.textContent).toBe("back to text");
   });
 });
 

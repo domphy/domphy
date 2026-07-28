@@ -1,4 +1,4 @@
-import type { DomphyElement } from "@domphy/core";
+import { type DomphyElement, rawHtml } from "@domphy/core";
 import { renderMermaidCached } from "./cache.js";
 import type { MermaidRenderer, TreeOptions } from "./types.js";
 
@@ -126,13 +126,13 @@ function walkChildren(
 }
 
 /**
- * Builds the replacement element wrapping the inline SVG. Domphy renders a
- * single-root HTML string as inline HTML, so the SVG markup becomes the `div`'s
- * content directly.
+ * Builds the replacement element wrapping the inline SVG. The markup is opted
+ * into Domphy's HTML path with `rawHtml()` — a plain string child renders as
+ * text — so the SVG becomes the `div`'s content directly.
  */
 function svgWrapper(svg: string, options: TreeOptions): DomphyElement {
   return {
-    div: svg,
+    div: rawHtml(svg),
     class: options.className ?? "mermaid",
     ariaLabel: options.ariaLabel ?? "diagram",
   } as DomphyElement;

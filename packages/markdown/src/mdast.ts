@@ -1,4 +1,4 @@
-import type { DomphyElement } from "@domphy/core";
+import { type DomphyElement, type RawHTML, rawHtml } from "@domphy/core";
 import type {
   Blockquote,
   Break,
@@ -25,7 +25,9 @@ import type { Highlight, TocEntry } from "./types.js";
 /** Public walk helper passed to custom node handlers. */
 export interface WalkHelper {
   /** Walk the children of a parent node into Domphy children. */
-  walkChildren: (parent: { children: Nodes[] }) => (string | DomphyElement)[];
+  walkChildren: (parent: {
+    children: Nodes[];
+  }) => (string | RawHTML | DomphyElement)[];
 }
 
 /** Internal walk context threaded through the recursion. */
@@ -46,7 +48,7 @@ export interface MdastWalkOptions {
   onCustom?: (node: Nodes, helper: WalkHelper) => DomphyElement | string | null;
 }
 
-type Child = string | DomphyElement;
+type Child = string | RawHTML | DomphyElement;
 
 /** Recursively flatten an MDAST node to plain text (for heading anchors / toc). */
 export function nodeToText(node: Nodes): string {
@@ -83,7 +85,10 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
       return { hr: null } as DomphyElement;
 
     case "html":
-      return node.value;
+      // A raw HTML block/inline node in the source IS markup by definition —
+      // the one place markdown opts a string into the HTML path. Author-written
+      // Markdown is trusted input; core still sanitizes script/on*/javascript:.
+      return rawHtml(node.value);
 
     case "heading": {
       const text = nodeToText(node);
@@ -225,7 +230,9 @@ function buildCode(node: Code, ctx: WalkContext): DomphyElement {
   if (ctx.highlight) {
     const result = ctx.highlight(node.value, info);
     if (typeof result === "string" && result.length > 0) {
-      const codeEl: Record<string, unknown> = { code: result };
+      // A highlighter returns token markup (<span class="...">…), so it opts
+      // into the HTML path explicitly.
+      const codeEl: Record<string, unknown> = { code: rawHtml(result) };
       if (lang) {
         codeEl.dataLanguage = lang;
         codeEl.class = `language-${lang}`;

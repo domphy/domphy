@@ -1,3 +1,4 @@
+import type { RawHTML } from "@domphy/core";
 import type { Root } from "mdast";
 import type { Plugin } from "unified";
 import { describe, expect, it } from "vitest";
@@ -45,7 +46,7 @@ describe("createMarkdown", () => {
     const body = parser.toDomphy("```ts\nconst x = 1\n```");
     const pre = asRecord(body[0]);
     const code = asRecord((pre.pre as unknown[])[0]);
-    expect(code.code as string).toContain("<em>");
+    expect((code.code as RawHTML).html).toContain("<em>");
   });
 
   it("each .parse() call uses independent sluggers (no cross-call state leak)", () => {

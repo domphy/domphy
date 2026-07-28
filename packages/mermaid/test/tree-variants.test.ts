@@ -1,6 +1,11 @@
-import type { DomphyElement } from "@domphy/core";
+import type { DomphyElement, RawHTML } from "@domphy/core";
 import { describe, expect, it, vi } from "vitest";
 import { renderMermaidInTree } from "../src/tree.js";
+
+/** Unwraps the rawHtml() opt-in the wrapper div carries. */
+function svgOf(value: unknown): string {
+  return (value as RawHTML).html;
+}
 
 /** Narrows an unknown element to a record for assertion ergonomics. */
 function asRecord(value: unknown): Record<string, unknown> {
@@ -21,7 +26,7 @@ describe("renderMermaidInTree marker variants", () => {
     const output = await renderMermaidInTree(input, { renderer });
 
     const replaced = asRecord(output[0]);
-    expect(replaced.div).toBe("<svg>graph TD; A-->B;</svg>");
+    expect(svgOf(replaced.div)).toBe("<svg>graph TD; A-->B;</svg>");
     expect(replaced.class).toBe("mermaid");
   });
 
@@ -34,7 +39,7 @@ describe("renderMermaidInTree marker variants", () => {
     ];
 
     const output = await renderMermaidInTree(input, { renderer });
-    expect(asRecord(output[0]).div).toBe("<svg>cased</svg>");
+    expect(svgOf(asRecord(output[0]).div)).toBe("<svg>cased</svg>");
   });
 
   it("matches a class that carries the marker among other tokens", async () => {
@@ -46,7 +51,7 @@ describe("renderMermaidInTree marker variants", () => {
     ];
 
     const output = await renderMermaidInTree(input, { renderer });
-    expect(asRecord(output[0]).div).toBe("<svg>extra</svg>");
+    expect(svgOf(asRecord(output[0]).div)).toBe("<svg>extra</svg>");
   });
 
   it("skips an empty mermaid block, leaving it unchanged", async () => {

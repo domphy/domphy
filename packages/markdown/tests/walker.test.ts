@@ -1,3 +1,4 @@
+import { type RawHTML, isRawHTML } from "@domphy/core";
 import { describe, expect, it } from "vitest";
 import {
   createUniqueSlugger,
@@ -40,10 +41,10 @@ describe("aligned GFM tables (remark-gfm)", () => {
 });
 
 describe("raw HTML passthrough", () => {
-  it("passes block HTML through as a raw string (no wrapper)", () => {
+  it("passes block HTML through as a rawHtml child (no wrapper)", () => {
     const body = markdownToDomphy('<div class="raw">hi</div>');
-    expect(typeof body[0]).toBe("string");
-    expect(body[0] as string).toContain("raw");
+    expect(isRawHTML(body[0])).toBe(true);
+    expect((body[0] as RawHTML).html).toContain("raw");
   });
 });
 

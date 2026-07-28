@@ -1,5 +1,8 @@
 # @domphy/press Changelog
 
+## 0.21.9
+- Requires @domphy/core >= 0.20.0 and @domphy/markdown >= 0.19.2 (string children are now text by default). Container-directive child arrays widened to accept `RawHTML`; fences, code groups and mermaid blocks keep rendering as markup via the walker's `rawHtml()` opt-in.
+
 ## 0.21.7
 - feat: `wide: true` frontmatter drops the 1440px shell cap AND the prose content cap, for a page whose content is a wide artifact (a generated diagram, a broad table) rather than prose. Deliberately orthogonal to `layout`: `layout: "page"` also goes full width but removes the nav sidebar, which a wide reference page still wants. Without it the only way to show something wider than the cap was to let it overflow into a horizontal scrollbar, which is peeking rather than reading.
 

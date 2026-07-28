@@ -1,5 +1,6 @@
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { isRawHTML } from "@domphy/core";
 import { describe, expect, it } from "vitest";
 import { renderDoc } from "../src/pipeline.ts";
 import type { RenderDocOptions } from "../src/types.ts";
@@ -93,13 +94,16 @@ describe("renderDoc", () => {
     ].join("\n");
     const { body } = await renderDoc(md, opts);
     // pressCodeGroupPlugin replaces the whole containerDirective with a
-    // single MDAST html node — walkMdast emits that as one raw string, not
-    // a structured DomphyElement (there is nothing left for Domphy's own
+    // single MDAST html node — walkMdast emits that as one rawHtml() child,
+    // not a structured DomphyElement (there is nothing left for Domphy's own
     // ElementNode wrapper to add — the CSS-in-JS scoping/lifecycle it would
     // provide isn't needed for a plain-CSS radio/label tab switcher).
-    const cg = body.find(
-      (el) => typeof el === "string" && el.includes('class="code-group"'),
-    ) as string | undefined;
+    const cg = body
+      .map((el) => (isRawHTML(el) ? el.html : el))
+      .find(
+        (el): el is string =>
+          typeof el === "string" && el.includes('class="code-group"'),
+      );
     expect(cg, "code-group html block not found").toBeDefined();
     expect(cg).toContain('<input type="radio"');
     expect(cg).toContain('class="tabs"');

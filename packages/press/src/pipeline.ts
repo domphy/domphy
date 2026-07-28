@@ -3,7 +3,7 @@
 
 import { readFileSync } from "node:fs";
 import { dirname, extname, isAbsolute, resolve } from "node:path";
-import type { DomphyElement } from "@domphy/core";
+import type { DomphyElement, RawHTML } from "@domphy/core";
 import type { WalkHelper } from "@domphy/markdown";
 import {
   createUniqueSlugger,
@@ -345,7 +345,7 @@ function pressDirectiveHandler(
 
   if (name === "card") {
     const content = helper.walkChildren({ children });
-    const inner: (string | DomphyElement)[] = label
+    const inner: (string | RawHTML | DomphyElement)[] = label
       ? [{ p: [label], class: "card-title" } as DomphyElement, ...content]
       : content;
     return { div: inner, class: "custom-block card" } as DomphyElement;
@@ -356,7 +356,7 @@ function pressDirectiveHandler(
     const href = linkMatch ? linkMatch[2] : "#";
     const title = linkMatch ? linkMatch[1] : label;
     const content = helper.walkChildren({ children });
-    const inner: (string | DomphyElement)[] = title
+    const inner: (string | RawHTML | DomphyElement)[] = title
       ? [{ p: [title], class: "link-card-title" } as DomphyElement, ...content]
       : content;
     return { a: inner, href, class: "custom-block link-card" } as DomphyElement;

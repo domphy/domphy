@@ -1,5 +1,10 @@
 # @domphy/core Changelog
 
+## 0.20.0
+- **Security (breaking default):** a string child is now rendered as TEXT. Previously any string that looked like HTML (`isHTML()`) was parsed into live DOM, so user-supplied values (comments, titles, form fields) could inject elements — only `on*` attributes and `javascript:` URLs were stripped, with no tag whitelist. Markup in a plain string is now escaped on both the client and in SSR output.
+- Added `rawHtml(html)` / `RawHTML` / `isRawHTML(value)`: the explicit opt-in for rendering a string as markup. It still strips `<script>` elements, `on*` handler attributes and `javascript:` URLs (defense in depth — not a sanitizer for untrusted input). A reactive child may switch between a plain string and `rawHtml()`; crossing that boundary rebuilds the node.
+- **Migration:** anywhere you passed markup as a string child expecting it to render (a Markdown renderer's output, a syntax highlighter, a generated SVG), wrap it: `{ div: svg }` → `{ div: rawHtml(svg) }`. Plain text children need no change.
+
 ## 0.19.3
 - Types: `PartialElement` now includes optional `_doctorDisable` (`true | string | string[]`) so design-system patches can declare intentional doctor suppressions in TypeScript.
 

@@ -1,6 +1,11 @@
-import type { DomphyElement } from "@domphy/core";
+import type { DomphyElement, RawHTML } from "@domphy/core";
 import { describe, expect, it, vi } from "vitest";
 import { renderMermaidInTree } from "../src/tree.js";
+
+/** Unwraps the rawHtml() opt-in the wrapper div carries. */
+function svgOf(value: unknown): string {
+  return (value as RawHTML).html;
+}
 
 /**
  * Builds the exact shape `@domphy/markdown` emits for a fenced ```mermaid block:
@@ -51,7 +56,7 @@ describe("renderMermaidInTree", () => {
 
     // The mermaid block becomes a div carrying the inline SVG string.
     const replaced = output[2] as Record<string, unknown>;
-    expect(replaced.div).toBe('<svg data-src="graph TD; A-->B;"></svg>');
+    expect(svgOf(replaced.div)).toBe('<svg data-src="graph TD; A-->B;"></svg>');
     expect(replaced.class).toBe("mermaid");
     expect(replaced.ariaLabel).toBe("diagram");
 
@@ -84,7 +89,7 @@ describe("renderMermaidInTree", () => {
 
     const innerDiv = sectionChildren[1] as Record<string, unknown>;
     const innerChildren = innerDiv.div as Record<string, unknown>[];
-    expect(innerChildren[0].div).toBe("<svg>deep</svg>");
+    expect(svgOf(innerChildren[0].div)).toBe("<svg>deep</svg>");
     expect(innerChildren[0].class).toBe("mermaid");
   });
 
@@ -101,8 +106,8 @@ describe("renderMermaidInTree", () => {
     const output = await renderMermaidInTree(input, { renderer });
 
     expect(renderer).toHaveBeenCalledTimes(1);
-    expect((output[0] as Record<string, unknown>).div).toBe("<svg>16</svg>");
-    expect((output[2] as Record<string, unknown>).div).toBe("<svg>16</svg>");
+    expect(svgOf((output[0] as Record<string, unknown>).div)).toBe("<svg>16</svg>");
+    expect(svgOf((output[2] as Record<string, unknown>).div)).toBe("<svg>16</svg>");
   });
 
   it("supports custom className and ariaLabel", async () => {

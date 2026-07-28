@@ -1,5 +1,6 @@
 import type { Properties } from "csstype";
 import type { ElementNode } from "./classes/ElementNode.js";
+import type { RawHTML } from "./classes/RawHTML.js";
 import type { VoidTagName } from "./constants/VoidTags.js";
 import type { EventProperties } from "./types/EventProperties.js";
 import type { GlobalAttribute } from "./types/GlobalAttributes.js";
@@ -150,7 +151,10 @@ export type PartialElement<T extends TagName = never> = {
         Extract<AttributeMap[T][number], keyof TagAttributes>
       >);
 
-type PrimitiveInput = null | undefined | number | string;
+// `RawHTML` (the `rawHtml("<b>x</b>")` opt-in) is accepted anywhere a string
+// child is: a plain string always renders as TEXT, markup only renders as DOM
+// when explicitly wrapped.
+type PrimitiveInput = null | undefined | number | string | RawHTML;
 
 export type ElementInput = PrimitiveInput | DomphyElement;
 

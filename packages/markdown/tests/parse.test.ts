@@ -1,4 +1,4 @@
-import type { DomphyElement } from "@domphy/core";
+import { type DomphyElement, type RawHTML, isRawHTML } from "@domphy/core";
 import { describe, expect, it } from "vitest";
 import { markdownToDomphy, parseMarkdown } from "../src/index";
 
@@ -140,7 +140,8 @@ describe("@domphy/markdown parseMarkdown", () => {
     });
     const pre = asRecord(body[0]);
     const code = asRecord((pre.pre as unknown[])[0]);
-    expect(code.code).toContain('class="hl-js"');
+    // Highlighter output is markup, so the walker wraps it in rawHtml().
+    expect((code.code as RawHTML).html).toContain('class="hl-js"');
   });
 
   it("supports an element-returning highlighter for fenced code", () => {
@@ -184,10 +185,10 @@ describe("@domphy/markdown parseMarkdown", () => {
     expect(headerCells.every((cell) => "th" in cell)).toBe(true);
   });
 
-  it("passes raw html_block through as a direct string child (no wrapper div)", () => {
+  it("passes raw html_block through as a rawHtml child (no wrapper div)", () => {
     const body = markdownToDomphy('<div class="raw">hi</div>');
-    expect(typeof body[0]).toBe("string");
-    expect(body[0] as string).toContain("raw");
+    expect(isRawHTML(body[0])).toBe(true);
+    expect((body[0] as RawHTML).html).toContain("raw");
   });
 
   it("parses YAML frontmatter and strips it from the body", () => {

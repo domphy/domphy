@@ -2,9 +2,16 @@ import { __DEV__ } from "../dev.js";
 import { ensureDomStyle, getTagName } from "../helpers.js";
 import type { DomphyElement } from "../types.js";
 import { ElementNode } from "./ElementNode.js";
+import { isRawHTML, type RawHTML } from "./RawHTML.js";
 import { TextNode } from "./TextNode.js";
 
-type ElementInput = DomphyElement | null | undefined | number | string;
+type ElementInput =
+  | DomphyElement
+  | RawHTML
+  | null
+  | undefined
+  | number
+  | string;
 type NodeItem = ElementNode | TextNode;
 
 // DEV-only: call-sites that have already emitted the missing-`_key` reactive-list
@@ -27,6 +34,7 @@ export class ElementList {
   }
 
   _createNode(element: ElementInput | DomphyElement): NodeItem {
+    if (isRawHTML(element)) return new TextNode(element, this.owner);
     return typeof element === "object" && element !== null
       ? new ElementNode(element, this.owner, this._nextKey++)
       : new TextNode(element == null ? "" : String(element), this.owner);
@@ -136,7 +144,9 @@ export class ElementList {
     // build target order using existing ops (mutating this.items)
     for (let i = 0; i < inputs.length; i++) {
       const input = inputs[i];
-      const isObj = typeof input === "object" && input !== null;
+      // A rawHtml() wrapper is an object but reconciles as a text node.
+      const isObj =
+        typeof input === "object" && input !== null && !isRawHTML(input);
       const key = isObj ? (input as any)._key : undefined;
       const tag = isObj ? getTagName(input as DomphyElement) : undefined;
       if (__DEV__ && isObj && key === undefined) unkeyedObjectInputs++;
@@ -190,7 +200,7 @@ export class ElementList {
           !claimed.has(at) &&
           !at._imperative
         ) {
-          at.setText(input == null ? "" : (input as string | number));
+          at.setText(input == null ? "" : (input as string | number | RawHTML));
           claimed.add(at);
           continue;
         }
