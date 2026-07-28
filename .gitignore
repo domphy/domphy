@@ -65,3 +65,6 @@ apps/web/playwright-report/
 # Local sequential peer-audit working notes
 .stable-audit/
 
+
+# Third-party reference clones for clean-room comparison (local only)
+reference/
