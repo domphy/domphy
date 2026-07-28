@@ -69,7 +69,7 @@ export function renderAxes(
   // Grid lines go into gridSvg (behind canvas) to avoid covering WebGL data
   const gridGroup = svgEl("g", { class: "dc-axes-grid" });
 
-  const { gridRect, xAxes, yAxes, xScales, yScales, width, height } = options;
+  const { gridRect, xAxes, yAxes, xScales, yScales } = options;
   const gridColor = colorGrid();
   const axisColor = colorAxis();
   const labelColor = colorLabel();
