@@ -60,7 +60,7 @@ read((editor) => editor.getText())        // (l) => string
 
 ## Coming from Tiptap
 
-The editor half is a straight port — same names, same semantics:
+The editor half is a straight port — same names and semantics, with the exceptions listed in [Deviations from Tiptap](./api#deviations-from-tiptap):
 
 | Tiptap | `@domphy/editor` |
 | --- | --- |
@@ -73,7 +73,9 @@ The editor half is a straight port — same names, same semantics:
 | `<BubbleMenu editor={editor}>…</BubbleMenu>` | `bubbleMenu(editor, { children })` patch |
 | `useEditorState(...)` / `editor.on("transaction")` | `editor.stateVersion` / `editorState(editor)` |
 
-What is deliberately **not** ported, because it is ProseMirror-specific: `registerPlugin`/`unregisterPlugin`, node views, mark views, `NodePos`, paste rules, collaboration, gapcursor, dropcursor, and `editorProps` passthrough.
+Node views **are** ported — `addNodeView` builds a plain-DOM instance, with no framework wrapper; see [Node views](./api#node-views). `editorProps.handle*` has an analogue too: the `onPaste`/`onDrop`/`onKeyDown` [editor options](./api#createeditoroptions).
+
+What is deliberately **not** ported, because it is ProseMirror-specific: `registerPlugin`/`unregisterPlugin`, mark views, `NodePos`, paste rules, collaboration, gapcursor, and dropcursor.
 
 One serialization difference: `getJSON()` omits `attrs` whose values all equal their defaults, so a level-1 heading serializes as `{ "type": "heading" }` where Tiptap emits `"attrs": { "level": 1 }`. `fromJSON`/`setContent` accept both forms, so Tiptap-produced JSON loads unchanged — only byte-for-byte output comparison differs.
 

@@ -305,6 +305,38 @@ export interface NodeConfig<Options = Attributes>
     this: ExtensionThis<Options>,
     props: { node: JSONContent },
   ) => string;
+  /**
+   * Custom DOM renderer for this node (tiptap addNodeView analogue, plain DOM
+   * — no framework). The returned instance owns its subtree; the view treats
+   * it as an imperative island: `update` receives the next node JSON on
+   * re-render (return false to force a rebuild), `contentDOM` (contentful
+   * nodes only) is where the editor renders children.
+   */
+  addNodeView?: (
+    this: ExtensionThis<Options>,
+  ) => (props: NodeViewProps) => NodeViewInstance;
+}
+
+export interface NodeViewProps {
+  node: JSONContent;
+  editor: EditorInstance;
+  /** True while the node is the current selection target (atom nodes). */
+  selected: boolean;
+  /** Patch this node's attrs in place (single transaction). */
+  updateAttributes(attributes: Attributes): void;
+  /** Current document position of the node (recomputed per render). */
+  getPos(): number;
+}
+
+export interface NodeViewInstance {
+  dom: HTMLElement;
+  /** Where child content renders; omit for atom/leaf views. */
+  contentDOM?: HTMLElement | null;
+  /** Return false to have the editor rebuild the view from scratch. */
+  update?(node: JSONContent): boolean | undefined;
+  selectNode?(): void;
+  deselectNode?(): void;
+  destroy?(): void;
 }
 
 export interface MarkConfig<Options = Attributes>
@@ -350,11 +382,23 @@ export interface EditorOptions {
   editable?: boolean;
   autofocus?: FocusPosition;
   onCreate?: (props: { editor: EditorInstance }) => void;
-  onUpdate?: (props: { editor: EditorInstance }) => void;
+  /** `transaction` carries meta set via setMeta — usable as a loop guard. */
+  onUpdate?: (props: {
+    editor: EditorInstance;
+    transaction: Transaction;
+  }) => void;
   onSelectionUpdate?: (props: { editor: EditorInstance }) => void;
   onFocus?: (props: { editor: EditorInstance; event: FocusEvent }) => void;
   onBlur?: (props: { editor: EditorInstance; event: FocusEvent }) => void;
   onDestroy?: () => void;
+  /**
+   * View-event hooks (tiptap editorProps.handle* analogue). Return true to
+   * mark the event handled: the editor then skips its own processing.
+   * onKeyDown runs BEFORE the keymap.
+   */
+  onPaste?: (event: ClipboardEvent, editor: EditorInstance) => boolean;
+  onDrop?: (event: DragEvent, editor: EditorInstance) => boolean;
+  onKeyDown?: (event: KeyboardEvent, editor: EditorInstance) => boolean;
 }
 
 /**

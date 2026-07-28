@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { Node } from "../src/Extendable.js";
 import { generateHTML, parseHTML } from "../src/serialize/html.js";
 import { fromJSON, toJSON } from "../src/serialize/json.js";
-import { createTestEditor, docOf, h, p } from "./fixtures.js";
+import { block, createTestEditor, docOf, h, p } from "./fixtures.js";
 
 const editor = createTestEditor();
 const schema = editor.schema;
@@ -116,6 +117,31 @@ describe("generateHTML", () => {
     );
   });
 
+  it("renders literal string children in a spec", () => {
+    const spacer = Node.create({
+      name: "spacer",
+      group: "block",
+      renderHTML: ({ HTMLAttributes }) => [
+        "div",
+        HTMLAttributes,
+        "Page break",
+        ["span", {}, "!"],
+      ],
+    });
+    const instance = createTestEditor(docOf({ type: "spacer" }), [spacer]);
+    expect(instance.getHTML()).toBe("<div>Page break<span>!</span></div>");
+  });
+
+  it("escapes literal string children", () => {
+    const spacer = Node.create({
+      name: "spacer",
+      group: "block",
+      renderHTML: ({ HTMLAttributes }) => ["div", HTMLAttributes, "<b>x</b>"],
+    });
+    const instance = createTestEditor(docOf({ type: "spacer" }), [spacer]);
+    expect(instance.getHTML()).toBe("<div>&lt;b&gt;x&lt;/b&gt;</div>");
+  });
+
   it("nests marks in registry order", () => {
     const document = fromJSON(
       schema,
@@ -158,6 +184,28 @@ describe("parseHTML", () => {
     const document = parseHTML(schema, "<pre><code>a\n  b</code></pre>");
     expect(toJSON(schema, document).content?.[0].content?.[0].text).toBe(
       "a\n  b",
+    );
+  });
+
+  it("matches parse rules written as CSS attribute selectors", () => {
+    const callout = Node.create({
+      name: "callout",
+      group: "block",
+      content: "block+",
+      parseHTML: () => [{ tag: 'div[data-type="callout"]' }],
+      renderHTML: ({ HTMLAttributes }) => [
+        "div",
+        { ...HTMLAttributes, "data-type": "callout" },
+        0,
+      ],
+    });
+    const instance = createTestEditor(null, [callout]);
+    const document = parseHTML(
+      instance.schema,
+      '<div data-type="callout"><p>note</p></div><div><p>plain</p></div>',
+    );
+    expect(toJSON(instance.schema, document)).toEqual(
+      docOf(block("callout", undefined, [p("note")]), p("plain")),
     );
   });
 

@@ -30,10 +30,21 @@ export class History {
     return this.redoStack.length > 0;
   }
 
-  /** Push the state that existed *before* a document change. */
-  record(previous: HistoryEntry, now = Date.now()): void {
+  /**
+   * Push the state that existed *before* a document change.
+   *
+   * `continuesPrevious` is what the caller knows about the change itself: a run
+   * of typing collapses into the open step, while a change of a different kind
+   * starts its own even inside the grouping delay.
+   */
+  record(
+    previous: HistoryEntry,
+    now = Date.now(),
+    continuesPrevious = true,
+  ): void {
     this.redoStack = [];
     if (
+      continuesPrevious &&
       this.undoStack.length > 0 &&
       now - this.lastRecordedAt < this.newGroupDelay
     ) {

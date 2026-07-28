@@ -23,6 +23,7 @@ const allNames = [
   "strike",
   "text",
   "trailingNode",
+  "underline",
   "undoRedo",
 ];
 
@@ -58,6 +59,15 @@ describe("starterKit", () => {
   it("keeps the schema extensions unless explicitly disabled", () => {
     expect(namesOf({ document: false })).not.toContain("doc");
     expect(namesOf({ text: false })).not.toContain("text");
+  });
+
+  it("includes underline, as tiptap's v3 kit does", () => {
+    expect(namesOf()).toContain("underline");
+    expect(namesOf({ underline: false })).not.toContain("underline");
+  });
+
+  it("leaves table out, as tiptap's kit does", () => {
+    expect(namesOf()).not.toContain("table");
   });
 
   it("includes trailingNode and can drop it", () => {

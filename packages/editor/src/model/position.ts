@@ -394,60 +394,69 @@ export function endPosition(schema: Schema, doc: JSONContent): number {
   return found ?? contentSize(schema, doc);
 }
 
+/** Every textblock's content range, in document order. */
+export function textblockRanges(
+  schema: Schema,
+  doc: JSONContent,
+): { from: number; to: number }[] {
+  const ranges: { from: number; to: number }[] = [];
+  nodesBetween(schema, doc, 0, contentSize(schema, doc), (node, pos) => {
+    if (!schema.isTextblock(node.type ?? "")) {
+      return undefined;
+    }
+    const from = pos + 1;
+    ranges.push({ from, to: from + contentSize(schema, node) });
+    return false;
+  });
+  return ranges;
+}
+
 /**
- * Number of text characters (leaf nodes count as one) before `pos`. Structural
- * edits like wrap/lift leave this invariant, so it is what the transaction uses
- * to keep the selection in place across them.
+ * A position expressed as an offset inside the n-th textblock.
+ *
+ * `index` is -1 when `pos` sits outside every textblock (next to a horizontal
+ * rule, say), in which case `offset` is the raw position.
  */
-export function textIndexAt(
+export interface TextblockPoint {
+  index: number;
+  offset: number;
+}
+
+/**
+ * Locate `pos` relative to the textblock that contains it.
+ *
+ * Wrap and lift renest blocks but never reorder, add or drop textblocks, so
+ * this survives them where a plain character count does not: a caret in an
+ * empty block has the same character count as the end of the preceding block
+ * and would otherwise be restored into that preceding block.
+ */
+export function textblockPointAt(
   schema: Schema,
   doc: JSONContent,
   pos: number,
-): number {
-  let count = 0;
-  nodesBetween(schema, doc, 0, pos, (node, nodePos) => {
-    const name = node.type ?? "";
-    if (name === "text") {
-      count += Math.min(pos, nodePos + (node.text?.length ?? 0)) - nodePos;
-    } else if (schema.isLeaf(name) && nodePos + 1 <= pos) {
-      count += 1;
+): TextblockPoint {
+  const ranges = textblockRanges(schema, doc);
+  for (let index = 0; index < ranges.length; index++) {
+    if (pos >= ranges[index].from && pos <= ranges[index].to) {
+      return { index, offset: pos - ranges[index].from };
     }
-  });
-  return count;
+  }
+  return { index: -1, offset: pos };
 }
 
-export function positionAtTextIndex(
+/** Resolve a {@link TextblockPoint} back into a position in `doc`. */
+export function positionAtTextblockPoint(
   schema: Schema,
   doc: JSONContent,
-  index: number,
+  point: TextblockPoint,
 ): number {
-  if (index <= 0) {
-    return startPosition(schema, doc);
+  if (point.index < 0) {
+    return nearestTextPosition(schema, doc, point.offset);
   }
-  let count = 0;
-  let result: number | null = null;
-  nodesBetween(schema, doc, 0, contentSize(schema, doc), (node, nodePos) => {
-    if (result !== null) {
-      return false;
-    }
-    const name = node.type ?? "";
-    if (name === "text") {
-      const length = node.text?.length ?? 0;
-      if (count + length >= index) {
-        result = nodePos + (index - count);
-        return false;
-      }
-      count += length;
-    } else if (schema.isLeaf(name)) {
-      if (count + 1 > index) {
-        result = nodePos;
-        return false;
-      }
-      count += 1;
-    }
-    return undefined;
-  });
-  return result ?? endPosition(schema, doc);
+  const range = textblockRanges(schema, doc)[point.index];
+  return range
+    ? Math.min(range.from + point.offset, range.to)
+    : endPosition(schema, doc);
 }
 
 /** Snap `pos` onto the closest position that sits inside a textblock. */

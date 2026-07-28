@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Extension } from "../../src/Extendable";
 import { Blockquote } from "../../src/extensions/blockquote";
 import {
   Bold,
@@ -17,6 +18,7 @@ import { HorizontalRule } from "../../src/extensions/horizontalRule";
 import { Italic } from "../../src/extensions/italic";
 import { OrderedList } from "../../src/extensions/orderedList";
 import { Strike } from "../../src/extensions/strike";
+import { createTestEditor, docOf, p } from "../fixtures";
 import {
   applyInputRule,
   createRecorder,
@@ -190,13 +192,31 @@ describe("horizontalRule input rule", () => {
     expect("___ ").toMatch(rule.find);
     expect("*** ").toMatch(rule.find);
     expect("--").not.toMatch(rule.find);
+  });
 
-    const { recorder } = applyInputRule(rule, "---");
-
-    expect(recorder.calls).toEqual([
-      { name: "deleteRange", args: [{ from: 1, to: 4 }] },
-      { name: "insertContent", args: [{ type: "horizontalRule" }] },
+  // The rule reads the document to find the block it matched in, so it is
+  // driven through a real editor rather than the command recorder. The rule is
+  // registered on its own: the test schema already carries a `horizontalRule`
+  // node, and the extension list keeps the first extension of a given name.
+  it("keeps the emptied textblock so the caret survives the rule", () => {
+    const [rule] = open(HorizontalRule).inputRules();
+    const editor = createTestEditor(docOf(p("above"), p("")), [
+      Extension.create({
+        name: "horizontalRuleRule",
+        addInputRules: () => [rule],
+      }),
     ]);
+    editor.commands.setTextSelection(editor.selectionBounds.end);
+
+    for (const character of "---") {
+      editor.insertTextWithRules(character);
+    }
+
+    expect(editor.getJSON()).toEqual(
+      docOf(p("above"), { type: "horizontalRule" }, p()),
+    );
+    // Inside the paragraph after the rule, not in the gap beside it.
+    expect(editor.state.selection.from).toBe(9);
   });
 });
 

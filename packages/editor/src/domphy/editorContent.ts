@@ -153,6 +153,24 @@ function editorContent(
         backgroundColor: (listener) =>
           themeColor(listener, "inherit", color.get(listener)),
       },
+      "& table": {
+        borderCollapse: "collapse",
+        inlineSize: "100%",
+        tableLayout: "fixed",
+        marginBlock: themeSpacing(3),
+      },
+      "& td, & th": {
+        padding: themeSpacing(2),
+        verticalAlign: "top",
+        border: (listener) =>
+          `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
+      },
+      "& th": {
+        textAlign: "start",
+        backgroundColor: (listener) =>
+          themeColor(listener, "surface", color.get(listener)),
+      },
       "& hr": {
         border: "none",
         blockSize: themeSpacing(0.25),

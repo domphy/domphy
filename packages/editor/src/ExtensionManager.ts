@@ -102,6 +102,7 @@ export class ExtensionManager implements ExtensionManagerLike {
         parseHTML: extension.resolve("parseHTML", options),
         renderHTML: extension.resolve("renderHTML", options),
         renderText: extension.resolve("renderText", options),
+        addNodeView: extension.resolve("addNodeView", options),
       };
       if (extension.kind === "node") {
         schema.addNode(spec as unknown as NodeSpec);

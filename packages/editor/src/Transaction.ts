@@ -8,10 +8,10 @@ import {
   blockRange,
   contentSize,
   nearestTextPosition,
-  positionAtTextIndex,
+  positionAtTextblockPoint,
   resolve,
   resolveInternal,
-  textIndexAt,
+  textblockPointAt,
 } from "./model/position.js";
 import type { Schema } from "./model/schema.js";
 import {
@@ -207,30 +207,26 @@ export class EditorTransaction implements Transaction {
     return this;
   }
 
-  /** Structural change that preserves text: keep the selection on the same characters. */
+  /** Structural change that renests blocks: keep the selection in its textblock. */
   private restructure(fn: () => JSONContent | null): Transaction {
     const next = fn();
     if (!next) {
       return this;
     }
-    const anchorIndex = textIndexAt(
+    const anchorPoint = textblockPointAt(
       this.schema,
       this.doc,
       this.selection.anchor,
     );
-    const headIndex = textIndexAt(this.schema, this.doc, this.selection.head);
+    const headPoint = textblockPointAt(
+      this.schema,
+      this.doc,
+      this.selection.head,
+    );
     this.applyDoc(next);
     this.selection = createSelection(
-      nearestTextPosition(
-        this.schema,
-        next,
-        positionAtTextIndex(this.schema, next, anchorIndex),
-      ),
-      nearestTextPosition(
-        this.schema,
-        next,
-        positionAtTextIndex(this.schema, next, headIndex),
-      ),
+      positionAtTextblockPoint(this.schema, next, anchorPoint),
+      positionAtTextblockPoint(this.schema, next, headPoint),
     );
     return this;
   }

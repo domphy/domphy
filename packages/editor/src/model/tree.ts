@@ -18,8 +18,10 @@ import {
   blockRange,
   childrenOf,
   contentSize,
+  endPosition,
   nodeSize,
   resolveInternal,
+  startPosition,
 } from "./position.js";
 import type { Schema } from "./schema.js";
 
@@ -311,6 +313,17 @@ export function deleteRangeInDoc(
   if (from >= to) {
     return doc;
   }
+  // Emptying the whole document drops the surviving block's type too: what is
+  // left is the schema's default textblock, not an empty heading. Callers run
+  // fillRequired, which builds it.
+  //
+  // ponytail: positional test, since we have no NodeSelection to tell "select
+  // all" from "select every character". In a single-block document those are
+  // the same range, so drag-selecting all of an <h2> and deleting also resets
+  // it to a paragraph — tiptap keeps the heading there.
+  if (from <= startPosition(schema, doc) && to >= endPosition(schema, doc)) {
+    return { ...doc, content: [] };
+  }
   const $from = resolveInternal(schema, doc, from);
   const $to = resolveInternal(schema, doc, to);
   const fromPath = $from.pathTo($from.depth);
@@ -394,6 +407,24 @@ export interface InsertResult {
   endPos: number;
 }
 
+/**
+ * Where the caret goes after `blocks` were inserted starting at `start`.
+ *
+ * Inside a trailing textblock the caret sits one step back, before its closing
+ * token. A leaf block (a horizontal rule) has nothing to sit inside, so that
+ * step back would land in the gap between nodes; the caret goes after the node
+ * instead and the caller snaps it into the following textblock.
+ */
+function positionAfterBlocks(
+  schema: Schema,
+  start: number,
+  blocks: JSONContent[],
+): number {
+  const size = blocks.reduce((sum, block) => sum + nodeSize(schema, block), 0);
+  const last = blocks[blocks.length - 1];
+  return schema.isLeaf(last?.type ?? "") ? start + size : start + size - 1;
+}
+
 export function insertAt(
   schema: Schema,
   doc: JSONContent,
@@ -426,10 +457,6 @@ export function insertAt(
   }
 
   const blocks = toBlocks(schema, content);
-  const blocksSize = blocks.reduce(
-    (sum, block) => sum + nodeSize(schema, block),
-    0,
-  );
 
   if (schema.isTextblock(parentName)) {
     const children = childrenOf(parent);
@@ -459,7 +486,7 @@ export function insertAt(
           ...grandChildren.slice(index + 1),
         ],
       }),
-      endPos: blocksStart + blocksSize - 1,
+      endPos: positionAfterBlocks(schema, blocksStart, blocks),
     };
   }
 
@@ -473,7 +500,7 @@ export function insertAt(
         ...children.slice($pos.index),
       ],
     }),
-    endPos: pos + blocksSize - 1,
+    endPos: positionAfterBlocks(schema, pos, blocks),
   };
 }
 
@@ -498,10 +525,6 @@ export function replaceRangeInDoc(
     ) {
       const parent = $from.parent;
       const children = childrenOf(parent);
-      const size = content.reduce(
-        (sum, node) => sum + nodeSize(schema, node),
-        0,
-      );
       return {
         doc: fillRequired(
           schema,
@@ -514,7 +537,7 @@ export function replaceRangeInDoc(
             ],
           }),
         ),
-        endPos: from + size - 1,
+        endPos: positionAfterBlocks(schema, from, content),
       };
     }
   }

@@ -17,6 +17,7 @@ import {
 } from "@domphy/floating";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import type { EditorInstance } from "../types";
+import { selectionFor } from "../utils.js";
 
 type BubbleMenuProps = {
   editor: EditorInstance;
@@ -66,7 +67,7 @@ function attachBubbleMenu(
   let lastSelectionRect = ZERO_RECT;
 
   const currentRange = (): Range | null => {
-    const selection = host.ownerDocument.getSelection();
+    const selection = selectionFor(host);
     if (!selection || selection.rangeCount === 0) return null;
     const range = selection.getRangeAt(0);
     return host.contains(range.commonAncestorContainer) ? range : null;

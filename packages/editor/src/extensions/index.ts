@@ -29,6 +29,15 @@ export { OrderedList, type OrderedListOptions } from "./orderedList";
 export { Paragraph, type ParagraphOptions } from "./paragraph";
 export { type StarterKitOptions, starterKit } from "./starterKit";
 export { Strike, type StrikeOptions } from "./strike";
+export {
+  Table,
+  TableCell,
+  type TableCellOptions,
+  TableHeader,
+  type TableOptions,
+  TableRow,
+} from "./table";
 export { Text } from "./text";
 export { TrailingNode, type TrailingNodeOptions } from "./trailingNode";
+export { Underline, type UnderlineOptions } from "./underline";
 export { UndoRedo, type UndoRedoOptions } from "./undoRedo";

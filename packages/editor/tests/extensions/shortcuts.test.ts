@@ -68,7 +68,13 @@ describe("keyboard shortcut maps", () => {
   it("leaves the schema-only extensions unbound", () => {
     expect(open(Document).shortcutKeys()).toEqual([]);
     expect(open(HorizontalRule).shortcutKeys()).toEqual([]);
-    expect(open(Link).shortcutKeys()).toEqual([]);
+  });
+
+  it("binds Enter for autolink only while autolink is on", () => {
+    expect(open(Link).shortcutKeys()).toEqual(["Enter"]);
+    expect(open(Link, { options: { autolink: false } }).shortcutKeys()).toEqual(
+      [],
+    );
   });
 });
 

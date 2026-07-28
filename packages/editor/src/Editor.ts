@@ -44,6 +44,26 @@ function selectionEquals(left: SelectionRange, right: SelectionRange): boolean {
   return left.anchor === right.anchor && left.head === right.head;
 }
 
+/**
+ * Whether a change continues the run of typing before it.
+ *
+ * Only single-character edits at a collapsed caret keep collapsing into the
+ * open undo step. Anything else — toggling a mark over a selection, a
+ * structural command, a paste — becomes its own step even when it happens
+ * within the grouping delay, so undo after bolding does not also erase the
+ * sentence that was typed a moment earlier.
+ */
+function continuesTyping(
+  before: SelectionRange,
+  after: SelectionRange,
+): boolean {
+  if (!before.empty || !after.empty) {
+    return false;
+  }
+  const delta = after.from - before.from;
+  return delta === 0 || delta === 1 || delta === -1;
+}
+
 export class Editor implements EditorInstance {
   options: EditorOptions;
   state: EditorStateLike;
@@ -156,7 +176,11 @@ export class Editor implements EditorInstance {
     const selectionChanged = !selectionEquals(tr.selection, previous.selection);
 
     if (docChanged && tr.getMeta("addToHistory") !== false) {
-      this.history.record(previous);
+      this.history.record(
+        previous,
+        Date.now(),
+        continuesTyping(previous.selection, tr.selection),
+      );
     }
 
     this.state = {
@@ -190,9 +214,9 @@ export class Editor implements EditorInstance {
     }
 
     if (docChanged && !tr.getMeta("preventUpdate")) {
-      this.emit("update");
+      this.emit("update", { editor: this, transaction: tr });
       this.extensionManager.emit("onUpdate");
-      this.options.onUpdate?.({ editor: this });
+      this.options.onUpdate?.({ editor: this, transaction: tr });
     }
     if (selectionChanged) {
       this.emit("selectionUpdate");
@@ -300,6 +324,7 @@ export class Editor implements EditorInstance {
     this.unmount();
     this.view = new EditorView(this, element);
     this.options.element = element;
+    this.view.render();
   }
 
   unmount(): void {
@@ -312,8 +337,10 @@ export class Editor implements EditorInstance {
     this.view?.setEditable(editable);
     this.stateVersion.set(this.stateVersion.get() + 1);
     if (emitUpdate) {
-      this.emit("update");
-      this.options.onUpdate?.({ editor: this });
+      // No document change here, so hand listeners an empty draft to read meta from.
+      const transaction = this.createTransaction();
+      this.emit("update", { editor: this, transaction });
+      this.options.onUpdate?.({ editor: this, transaction });
     }
   }
 

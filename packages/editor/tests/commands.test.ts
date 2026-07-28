@@ -317,6 +317,20 @@ describe("structure commands", () => {
     expect(editor.getJSON()).toEqual(docOf(p("abcd")));
   });
 
+  it("deleting the whole document resets the block to the default type", () => {
+    const editor = createTestEditor(docOf(h(2, "Title"), p("body")));
+    editor.commands.selectAll();
+    editor.commands.deleteSelection();
+    expect(editor.getJSON()).toEqual(docOf(p()));
+  });
+
+  it("keeps the block type when only part of the document is deleted", () => {
+    const editor = createTestEditor(docOf(h(2, "Title"), p("body")));
+    editor.commands.setTextSelection({ from: 3, to: 12 });
+    editor.commands.deleteSelection();
+    expect(editor.getJSON()).toEqual(docOf(h(2, "Ti")));
+  });
+
   it("deleting everything leaves one empty paragraph", () => {
     const editor = createTestEditor(docOf(p("ab"), p("cd")));
     editor.commands.selectAll();

@@ -1,3 +1,5 @@
+import { nodeSize, resolveInternal } from "../model/position";
+import type { Schema } from "../model/schema";
 import type { Attributes, InputRule, JSONContent } from "../types";
 
 /**
@@ -130,7 +132,7 @@ export function nodeInputRule(config: {
 }): InputRule {
   return {
     find: config.find,
-    handler: ({ range, match, chain }) => {
+    handler: ({ editor, range, match, chain }) => {
       const attributes = resolveAttributes(config.getAttributes, match);
 
       if (!attributes) {
@@ -142,7 +144,24 @@ export function nodeInputRule(config: {
           ? { type: config.type, attrs: attributes }
           : { type: config.type };
 
-      chain().deleteRange(range).insertContent(node).run();
+      const schema = editor.schema as Schema;
+
+      if (schema.isInline(config.type)) {
+        chain().deleteRange(range).insertContent(node).run();
+        return;
+      }
+
+      // A block node goes in *before* the textblock the rule matched in, and
+      // the matched text is removed afterwards. Replacing the range outright
+      // would drop the emptied textblock with it and strand the caret in the
+      // gap after the new node.
+      const $from = resolveInternal(schema, editor.state.doc, range.from);
+      const shift = nodeSize(schema, node);
+
+      chain()
+        .insertContentAt($from.start() - 1, node)
+        .deleteRange({ from: range.from + shift, to: range.to + shift })
+        .run();
     },
   };
 }

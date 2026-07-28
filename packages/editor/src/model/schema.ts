@@ -12,6 +12,8 @@ import type {
   MarkConfig,
   MarkJSON,
   NodeConfig,
+  NodeViewInstance,
+  NodeViewProps,
   ParseRule,
   SchemaRegistry,
 } from "../types.js";
@@ -22,7 +24,7 @@ import type {
  */
 export type NodeSpec = Omit<
   NodeConfig,
-  "addAttributes" | "parseHTML" | "renderHTML" | "renderText"
+  "addAttributes" | "parseHTML" | "renderHTML" | "renderText" | "addNodeView"
 > & {
   name: string;
   resolvedAttributes: Record<string, AttributeConfig>;
@@ -32,6 +34,7 @@ export type NodeSpec = Omit<
     HTMLAttributes: Attributes;
   }) => DOMOutputSpec;
   renderText?: (props: { node: JSONContent }) => string;
+  addNodeView?: () => (props: NodeViewProps) => NodeViewInstance;
 };
 
 export type MarkSpec = Omit<
@@ -48,7 +51,8 @@ export type MarkSpec = Omit<
 };
 
 interface ContentTerm {
-  base: string;
+  /** Alternatives: "(tableCell | tableHeader)+" yields two bases. */
+  bases: string[];
   required: boolean;
 }
 
@@ -56,16 +60,21 @@ function parseContent(expression: string | undefined): ContentTerm[] {
   if (!expression) {
     return [];
   }
-  return expression
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((token) => {
-      const quantifier = /[+*?]$/.exec(token)?.[0] ?? "";
-      return {
-        base: quantifier ? token.slice(0, -1) : token,
-        required: quantifier === "+" || quantifier === "",
-      };
-    });
+  // A term is either a parenthesised alternation or a bare name, each
+  // optionally quantified: "paragraph block*", "(tableCell | tableHeader)+".
+  const tokens = expression.match(/\([^)]*\)[+*?]?|\S+/g) ?? [];
+  return tokens.map((token) => {
+    const quantifier = /[+*?]$/.exec(token)?.[0] ?? "";
+    const body = quantifier ? token.slice(0, -1) : token;
+    const inner = body.startsWith("(") ? body.slice(1, -1) : body;
+    return {
+      bases: inner
+        .split("|")
+        .map((base) => base.trim())
+        .filter(Boolean),
+      required: quantifier === "+" || quantifier === "",
+    };
+  });
 }
 
 function groupsOf(spec: NodeSpec | undefined): string[] {
@@ -111,7 +120,7 @@ export class Schema implements SchemaRegistry {
 
   allowsContent(parentName: string, childName: string): boolean {
     return this.terms(parentName).some((term) =>
-      this.matchesTerm(term.base, childName),
+      term.bases.some((base) => this.matchesTerm(base, childName)),
     );
   }
 
@@ -144,11 +153,10 @@ export class Schema implements SchemaRegistry {
     if (cached !== undefined) {
       return cached;
     }
-    const result = this.terms(nodeName).some(
-      (term) =>
-        term.base === "text" ||
-        this.isInline(term.base) ||
-        term.base === "inline",
+    const result = this.terms(nodeName).some((term) =>
+      term.bases.some(
+        (base) => base === "text" || base === "inline" || this.isInline(base),
+      ),
     );
     this.textblockCache.set(nodeName, result);
     return result;
@@ -226,7 +234,7 @@ export class Schema implements SchemaRegistry {
       if (!term.required) {
         continue;
       }
-      const type = this.defaultTypeFor(term.base);
+      const type = this.defaultTypeFor(term.bases[0]);
       if (!type) {
         continue;
       }

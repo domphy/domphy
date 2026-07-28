@@ -26,8 +26,11 @@ import type {
   EditorViewLike,
   JSONContent,
   MarkJSON,
+  NodeViewInstance,
+  NodeViewProps,
   SelectionRange,
 } from "../types.js";
+import { rootOf, selectionFor } from "../utils.js";
 
 const VOID_TAGS = new Set([
   "area",
@@ -45,6 +48,9 @@ const VOID_TAGS = new Set([
   "wbr",
 ]);
 
+/** `white-space` values that keep a trailing space selectable. `pre-line` collapses spaces, so it is not one. */
+const WHITESPACE_PRESERVING = new Set(["pre", "pre-wrap", "break-spaces"]);
+
 interface TextSpan {
   node: Text;
   from: number;
@@ -57,6 +63,14 @@ interface BlockEntry {
   name: string;
   from: number;
   to: number;
+}
+
+interface NodeViewEntry {
+  instance: NodeViewInstance;
+  name: string;
+  node: JSONContent;
+  pos: number;
+  selected: boolean;
 }
 
 function isAttributeBag(value: unknown): value is Attributes {
@@ -80,16 +94,23 @@ function renderSpec(
     dom.setAttribute(name, value === true ? "" : String(value));
   }
   let contentDOM: HTMLElement | null = null;
+  let sawChild = false;
   for (const part of rest) {
     if (part === 0) {
       contentDOM = dom;
+      sawChild = true;
     } else if (Array.isArray(part)) {
       const child = renderSpec(part as DOMOutputSpec, document);
       dom.appendChild(child.dom);
       contentDOM = child.contentDOM ?? contentDOM;
+      sawChild = true;
+    } else if (typeof part === "string") {
+      // Literal text child: ["div", attrs, "Page break"].
+      dom.appendChild(document.createTextNode(part));
+      sawChild = true;
     }
   }
-  if (!contentDOM && rest.length === 0 && !VOID_TAGS.has(String(tag))) {
+  if (!sawChild && !VOID_TAGS.has(String(tag))) {
     contentDOM = dom;
   }
   return { dom, contentDOM };
@@ -102,6 +123,23 @@ export class EditorView implements EditorViewLike {
   private blocks: BlockEntry[] = [];
   private composing = false;
   private applyingSelection = false;
+
+  /**
+   * Live node-view instances, keyed by child-index path + node type.
+   *
+   * ponytail: identity is positional. Rendering is a full rebuild, so an
+   * instance is reused when a node of the same type sits at the same path as
+   * last render — enough for the common case (attrs change in place). Inserting
+   * a sibling before it hands the instance to its neighbour; `update()`
+   * returning false rebuilds. Upgrade to a real keyed diff only if that shows.
+   */
+  private nodeViews = new Map<string, NodeViewEntry>();
+  private previousNodeViews = new Map<string, NodeViewEntry>();
+  private reusedNodeViews = new Set<NodeViewEntry>();
+  private nodeViewFactories = new Map<
+    string,
+    ((props: NodeViewProps) => NodeViewInstance) | null
+  >();
 
   constructor(
     private readonly editor: Editor,
@@ -117,9 +155,17 @@ export class EditorView implements EditorViewLike {
     if (!element.hasAttribute("tabindex")) {
       element.setAttribute("tabindex", "0");
     }
+    // Under a collapsing `white-space` a trailing space is not rendered, so the
+    // browser clamps the caret back in front of it and the next keystroke is
+    // typed before the space instead of after it. Editing needs a value that
+    // keeps the space real; a host that already picked one of those keeps it.
+    if (!WHITESPACE_PRESERVING.has(element.style.whiteSpace)) {
+      element.style.whiteSpace = "pre-wrap";
+    }
     element.addEventListener("beforeinput", this.onBeforeInput);
     element.addEventListener("keydown", this.onKeyDown);
     element.addEventListener("paste", this.onPaste);
+    element.addEventListener("drop", this.onDrop);
     element.addEventListener("focus", this.onFocus);
     element.addEventListener("blur", this.onBlur);
     element.addEventListener("compositionstart", this.onCompositionStart);
@@ -128,7 +174,8 @@ export class EditorView implements EditorViewLike {
       "selectionchange",
       this.onSelectionChange,
     );
-    this.render();
+    // The first render is driven by Editor.mount, once editor.view is assigned:
+    // node views are entitled to reach editor.view while they are being built.
   }
 
   private get schema(): Schema {
@@ -146,6 +193,10 @@ export class EditorView implements EditorViewLike {
     const document = this.element.ownerDocument;
     this.spans = [];
     this.blocks = [];
+    this.previousNodeViews = this.nodeViews;
+    this.nodeViews = new Map();
+    const reused = new Set<NodeViewEntry>();
+    this.reusedNodeViews = reused;
     while (this.element.firstChild) {
       this.element.removeChild(this.element.firstChild);
     }
@@ -161,6 +212,12 @@ export class EditorView implements EditorViewLike {
       );
       position += nodeSize(this.schema, children[index]);
     }
+    for (const entry of this.previousNodeViews.values()) {
+      if (!reused.has(entry)) {
+        entry.instance.destroy?.();
+      }
+    }
+    this.previousNodeViews = new Map();
     this.syncSelection();
   }
 
@@ -190,7 +247,9 @@ export class EditorView implements EditorViewLike {
       return;
     }
 
-    const { dom, contentDOM } = renderSpec(this.nodeSpec(node), document);
+    const { dom, contentDOM } = this.nodeViewFactory(name)
+      ? this.mountNodeView(node, pos, path)
+      : renderSpec(this.nodeSpec(node), document);
     if (contentDOM) {
       const children = childrenOf(node);
       let childPosition = pos + 1;
@@ -230,6 +289,94 @@ export class EditorView implements EditorViewLike {
         0,
       ]
     );
+  }
+
+  /** Resolved node-view factory for a node type, or null. Resolved once. */
+  private nodeViewFactory(
+    name: string,
+  ): ((props: NodeViewProps) => NodeViewInstance) | null {
+    const cached = this.nodeViewFactories.get(name);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const factory = this.schema.nodes.get(name)?.addNodeView?.() ?? null;
+    this.nodeViewFactories.set(name, factory);
+    return factory;
+  }
+
+  private mountNodeView(
+    node: JSONContent,
+    pos: number,
+    path: number[],
+  ): { dom: HTMLElement; contentDOM: HTMLElement | null } {
+    const name = node.type ?? "";
+    const key = `${path.join(".")}:${name}`;
+    let entry = this.previousNodeViews.get(key);
+
+    if (entry) {
+      entry.node = node;
+      entry.pos = pos;
+      if (entry.instance.update?.(node) === false) {
+        entry.instance.destroy?.();
+        // Drop it from the previous map so the post-render sweep does not
+        // destroy it a second time.
+        this.previousNodeViews.delete(key);
+        entry = undefined;
+      }
+    }
+
+    if (!entry) {
+      const factory = this.nodeViewFactory(name) as (
+        props: NodeViewProps,
+      ) => NodeViewInstance;
+      const created: Partial<NodeViewEntry> = {
+        name,
+        node,
+        pos,
+        selected: false,
+      };
+      created.instance = factory({
+        node,
+        editor: this.editor,
+        selected: false,
+        getPos: () => created.pos as number,
+        updateAttributes: (attributes) => {
+          this.editor.commands.command(({ tr }) => {
+            tr.setNodeAttributes(created.pos as number, attributes);
+            return true;
+          });
+        },
+      });
+      entry = created as NodeViewEntry;
+    }
+
+    this.nodeViews.set(key, entry);
+    this.reusedNodeViews.add(entry);
+    this.syncNodeViewSelection(entry);
+    return {
+      dom: entry.instance.dom,
+      contentDOM: entry.instance.contentDOM ?? null,
+    };
+  }
+
+  /**
+   * ponytail: `selected` means the selection covers the node. We have no
+   * NodeSelection, so clicking an atom does not select it — a range that spans
+   * it does. Add NodeSelection if node views need click-to-select.
+   */
+  private syncNodeViewSelection(entry: NodeViewEntry): void {
+    const { from, to } = this.editor.state.selection;
+    const size = nodeSize(this.schema, entry.node);
+    const selected = from <= entry.pos && to >= entry.pos + size;
+    if (selected === entry.selected) {
+      return;
+    }
+    entry.selected = selected;
+    if (selected) {
+      entry.instance.selectNode?.();
+    } else {
+      entry.instance.deselectNode?.();
+    }
   }
 
   private markSpec(mark: MarkJSON): DOMOutputSpec {
@@ -312,8 +459,13 @@ export class EditorView implements EditorViewLike {
     return block ? block.from : null;
   }
 
+  /** True when the editable itself holds focus within its own root. */
+  private get hasFocus(): boolean {
+    return rootOf(this.element).activeElement === this.element;
+  }
+
   readSelection(): SelectionRange | null {
-    const domSelection = this.element.ownerDocument.getSelection();
+    const domSelection = selectionFor(this.element);
     if (!domSelection || domSelection.rangeCount === 0) {
       return null;
     }
@@ -345,11 +497,14 @@ export class EditorView implements EditorViewLike {
 
   /** Write the model selection back into the DOM. */
   syncSelection(): void {
-    const document = this.element.ownerDocument;
-    if (document.activeElement !== this.element) {
+    // Node views track selection even when the host is not focused.
+    for (const entry of this.nodeViews.values()) {
+      this.syncNodeViewSelection(entry);
+    }
+    if (!this.hasFocus) {
       return;
     }
-    const domSelection = document.getSelection();
+    const domSelection = selectionFor(this.element);
     if (!domSelection) {
       return;
     }
@@ -411,7 +566,7 @@ export class EditorView implements EditorViewLike {
     if (this.applyingSelection || this.composing) {
       return;
     }
-    if (this.element.ownerDocument.activeElement !== this.element) {
+    if (!this.hasFocus) {
       return;
     }
     const selection = this.readSelection();
@@ -438,6 +593,9 @@ export class EditorView implements EditorViewLike {
   };
 
   private onKeyDown = (event: KeyboardEvent): void => {
+    if (this.editor.options.onKeyDown?.(event, this.editor)) {
+      return;
+    }
     if (!this.editor.isEditable || this.composing) {
       return;
     }
@@ -453,6 +611,9 @@ export class EditorView implements EditorViewLike {
   };
 
   private onPaste = (event: ClipboardEvent): void => {
+    if (this.editor.options.onPaste?.(event, this.editor)) {
+      return;
+    }
     if (!this.editor.isEditable) {
       return;
     }
@@ -465,6 +626,18 @@ export class EditorView implements EditorViewLike {
     } else if (text) {
       this.editor.commands.insertContent(text);
     }
+  };
+
+  /**
+   * ponytail: no built-in drop handling — a native drop into contenteditable
+   * would edit the DOM behind the model, so we block it. Wire `onDrop` to
+   * implement dropping.
+   */
+  private onDrop = (event: DragEvent): void => {
+    if (this.editor.options.onDrop?.(event, this.editor)) {
+      return;
+    }
+    event.preventDefault();
   };
 
   private onBeforeInput = (event: InputEvent): void => {
@@ -604,7 +777,7 @@ export class EditorView implements EditorViewLike {
 
   /** Read the block the caret sits in back out of the DOM (after IME input). */
   private resyncFromDOM(): void {
-    const domSelection = this.element.ownerDocument.getSelection();
+    const domSelection = selectionFor(this.element);
     const anchorNode = domSelection?.anchorNode ?? null;
     const block = anchorNode
       ? this.blocks.find((entry) => entry.element.contains(anchorNode))
@@ -635,6 +808,7 @@ export class EditorView implements EditorViewLike {
     this.element.removeEventListener("beforeinput", this.onBeforeInput);
     this.element.removeEventListener("keydown", this.onKeyDown);
     this.element.removeEventListener("paste", this.onPaste);
+    this.element.removeEventListener("drop", this.onDrop);
     this.element.removeEventListener("focus", this.onFocus);
     this.element.removeEventListener("blur", this.onBlur);
     this.element.removeEventListener(
@@ -650,6 +824,10 @@ export class EditorView implements EditorViewLike {
     while (this.element.firstChild) {
       this.element.removeChild(this.element.firstChild);
     }
+    for (const entry of this.nodeViews.values()) {
+      entry.instance.destroy?.();
+    }
+    this.nodeViews = new Map();
     this.spans = [];
     this.blocks = [];
   }

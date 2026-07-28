@@ -31,6 +31,7 @@ const editor = createEditor({ extensions: [starterKit()] })
 | `Bold` | `setBold()`, `toggleBold()`, `unsetBold()` | <kbd>Mod-b</kbd> | `**text**`, `__text__` |
 | `Italic` | `setItalic()`, `toggleItalic()`, `unsetItalic()` | <kbd>Mod-i</kbd> | `*text*`, `_text_` |
 | `Strike` | `setStrike()`, `toggleStrike()`, `unsetStrike()` | <kbd>Mod-Shift-s</kbd> | `~~text~~` |
+| `Underline` | `setUnderline()`, `toggleUnderline()`, `unsetUnderline()` | <kbd>Mod-u</kbd> | — |
 | `Code` | `setCode()`, `toggleCode()`, `unsetCode()` | <kbd>Mod-e</kbd> | `` `text` `` |
 | `Blockquote` | `setBlockquote()`, `toggleBlockquote()`, `unsetBlockquote()` | <kbd>Mod-Shift-b</kbd> | `> ` |
 | `BulletList` | `toggleBulletList()` | <kbd>Mod-Shift-8</kbd> | `- `, `+ `, `* ` |
@@ -41,6 +42,7 @@ const editor = createEditor({ extensions: [starterKit()] })
 | `CodeBlock` | `setCodeBlock({ language })`, `toggleCodeBlock({ language })` | <kbd>Mod-Alt-c</kbd> | ` ```lang `, `~~~lang` |
 | `Link` | `setLink({ href })`, `toggleLink({ href })`, `unsetLink()` | — | — |
 | `UndoRedo` | `undo()`, `redo()` | <kbd>Mod-z</kbd>, <kbd>Shift-Mod-z</kbd>, <kbd>Mod-y</kbd> | — |
+| `TrailingNode` | — | — | — |
 
 `Mod` is <kbd>Ctrl</kbd> on Windows and Linux, <kbd>Cmd</kbd> on macOS.
 
@@ -48,6 +50,7 @@ Two names are worth knowing because they differ from what you would guess:
 
 - `Document`'s schema name is `"doc"`, not `"document"` — the `starterKit()` option key is `document`, but anything addressing the node type (`isActive`, content expressions) uses `"doc"`.
 - `UndoRedo` registers no commands of its own. `undo()` and `redo()` are generic engine commands that exist regardless; the extension only carries `depth`/`newGroupDelay` and the keymap, so dropping it with `undoRedo: false` removes the shortcuts, not the commands.
+- `TrailingNode` has no commands and no shortcuts. It keeps an empty paragraph at the end of the document so there is always somewhere to click below a table or code block. Its options are `node` (default `"paragraph"`) and `notAfter`; the appended node is tagged `addToHistory: false`, so undo never stops on it.
 
 ## Configuring the kit
 
@@ -69,6 +72,32 @@ import { Bold, Document, Italic, Paragraph, Text } from "@domphy/editor"
 
 const editor = createEditor({ extensions: [Document, Paragraph, Text, Bold, Italic] })
 ```
+
+## Tables
+
+Tables are **not** in `starterKit()` — import the four node extensions yourself. All four are required: a `Table` holds `TableRow`s, and a row holds cells of either type.
+
+```ts
+import { starterKit, Table, TableCell, TableHeader, TableRow } from "@domphy/editor"
+
+const editor = createEditor({
+  extensions: [starterKit(), Table, TableRow, TableHeader, TableCell],
+})
+```
+
+| Command | Notes |
+| --- | --- |
+| `insertTable({ rows, cols, withHeaderRow })` | Defaults to a 3×3 with a header row. |
+| `deleteTable()` | |
+| `addRowAfter()` / `deleteRow()` | Relative to the cell holding the cursor. |
+| `addColumnAfter()` / `deleteColumn()` | Refuses to delete the last remaining column. |
+| `goToNextCell()` / `goToPreviousCell()` | |
+
+<kbd>Tab</kbd> moves to the next cell and <kbd>Shift-Tab</kbd> to the previous one. <kbd>Tab</kbd> in the last cell appends a row and moves into it, the same as Tiptap.
+
+Schema: `Table` is a `block` containing `tableRow+`; `TableRow` contains `tableCell+`, which is a *group* both `TableCell` (`td`) and `TableHeader` (`th`) belong to — so a row accepts either. Cells carry `colspan`, `rowspan` and `colwidth` attributes and contain `block+`.
+
+This is a subset, not a port of `prosemirror-tables`. Spans round-trip through HTML but the row and column commands treat the table as a uniform grid and ignore them, so merged cells will drift; there is no cell selection and no column resizing. See [Deviations from Tiptap](./api#deviations-from-tiptap).
 
 ## `configure()` vs `extend()`
 

@@ -1,5 +1,11 @@
 import type { DomphyElement, Listener } from "@domphy/core";
-import { starterKit } from "@domphy/editor";
+import {
+  starterKit,
+  Table,
+  TableCell,
+  TableHeader,
+  TableRow,
+} from "@domphy/editor";
 import {
   createEditor,
   editorContent,
@@ -9,7 +15,8 @@ import { themeColor, themeSpacing } from "@domphy/theme";
 import { buttonGhost, stack, toolbar } from "@domphy/ui";
 
 const editor = createEditor({
-  extensions: [starterKit()],
+  // Tables are not part of starterKit — all four node types are needed.
+  extensions: [starterKit(), Table, TableRow, TableHeader, TableCell],
   content: `
     <h2>Toolbar</h2>
     <p>Every button below reads the editor through <code>editorState()</code>, so the pressed states follow the cursor as you move it around.</p>
@@ -86,6 +93,9 @@ const App: DomphyElement<"div"> = {
         toggleButton("I", isActive("italic"), () =>
           editor.chain().focus().toggleItalic().run(),
         ),
+        toggleButton("U", isActive("underline"), () =>
+          editor.chain().focus().toggleUnderline().run(),
+        ),
         toggleButton("S", isActive("strike"), () =>
           editor.chain().focus().toggleStrike().run(),
         ),
@@ -108,6 +118,17 @@ const App: DomphyElement<"div"> = {
         ),
         toggleButton("Quote", isActive("blockquote"), () =>
           editor.chain().focus().toggleBlockquote().run(),
+        ),
+        separator(),
+        actionButton(
+          "Table",
+          () => true,
+          () =>
+            editor
+              .chain()
+              .focus()
+              .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+              .run(),
         ),
         separator(),
         actionButton(

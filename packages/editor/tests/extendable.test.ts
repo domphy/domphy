@@ -230,6 +230,23 @@ describe("schema building", () => {
     expect(editor.schema.allowsMark("codeBlock", "bold")).toBe(false);
   });
 
+  it("parses alternation in a content expression", () => {
+    const cell = Node.create({ name: "tableCell", content: "block+" });
+    const header = Node.create({ name: "tableHeader", content: "block+" });
+    const row = Node.create({
+      name: "tableRow",
+      content: "(tableCell | tableHeader)+",
+    });
+    const editor = new Editor({
+      extensions: [...testExtensions, cell, header, row],
+    });
+    expect(editor.schema.allowsContent("tableRow", "tableCell")).toBe(true);
+    expect(editor.schema.allowsContent("tableRow", "tableHeader")).toBe(true);
+    expect(editor.schema.allowsContent("tableRow", "paragraph")).toBe(false);
+    // a required alternation still fills from its first alternative
+    expect(editor.schema.defaultContent("tableRow")[0].type).toBe("tableCell");
+  });
+
   it("finds the wrapper chain a list needs", () => {
     const editor = new Editor({ extensions: testExtensions });
     expect(editor.schema.findWrapping("blockquote", ["paragraph"])).toEqual([

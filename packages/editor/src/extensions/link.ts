@@ -1,5 +1,13 @@
 import { Mark } from "../Extendable";
-import type { Attributes, CommandProps, RawCommands } from "../types";
+import { textBetween } from "../model/position";
+import type { Schema } from "../model/schema";
+import type {
+  Attributes,
+  CommandProps,
+  EditorInstance,
+  InputRule,
+  RawCommands,
+} from "../types";
 import { mergeAttributes } from "./mergeAttributes";
 
 export interface LinkProtocolOptions {
@@ -20,6 +28,8 @@ export interface UriValidationContext {
 }
 
 export interface LinkOptions {
+  /** Turn a URL into a link as soon as it is followed by a space or Enter. */
+  autolink: boolean;
   /** Follow a link when it is Mod-clicked, or plain-clicked while read-only. */
   openOnClick: boolean;
   /** Extra protocols accepted on top of the built-in safe list. */
@@ -89,6 +99,73 @@ function validationContext(options: LinkOptions): UriValidationContext {
   };
 }
 
+// ponytail: strict `http(s)://` and `www.` matcher — no bare domains, no
+// custom protocols, no IDN. Swap in linkifyjs if bare-domain autolink matters.
+const AUTOLINK_PATTERN = /^(?:https?:\/\/\S+|www\.\S+\.\S+)$/i;
+const TRAILING_PUNCTUATION = /[.,;:!?)\]}'"]+$/;
+
+/** The href a typed word should link to, or null when it is not a URL. */
+function autolinkHref(word: string, options: LinkOptions): string | null {
+  const trimmed = word.replace(TRAILING_PUNCTUATION, "");
+
+  if (!AUTOLINK_PATTERN.test(trimmed)) {
+    return null;
+  }
+
+  const href = /^www\./i.test(trimmed) ? `http://${trimmed}` : trimmed;
+
+  return options.isAllowedUri(href, validationContext(options)) ? href : null;
+}
+
+/** Length of the word that should carry the mark, trailing punctuation aside. */
+function linkedLength(word: string): number {
+  return word.replace(TRAILING_PUNCTUATION, "").length;
+}
+
+/**
+ * Link the word before the caret, for the Enter path where no text is typed
+ * and so no input rule fires.
+ */
+function autolinkBeforeCursor(
+  editor: EditorInstance,
+  options: LinkOptions,
+  name: string,
+): void {
+  if (editor.isActive(name)) {
+    return;
+  }
+
+  editor.commands.command(({ tr }) => {
+    if (!tr.selection.empty) {
+      return false;
+    }
+
+    const caret = tr.selection.from;
+    const textBefore = textBetween(
+      editor.schema as Schema,
+      tr.doc,
+      tr.resolve(caret).start(),
+      caret,
+      "",
+      () => " ",
+    );
+    const word = /\S+$/.exec(textBefore)?.[0];
+    const href = word ? autolinkHref(word, options) : null;
+
+    if (!word || !href) {
+      return false;
+    }
+
+    const from = caret - word.length;
+
+    tr.addMark(from, from + linkedLength(word), {
+      type: name,
+      attrs: { href },
+    });
+    return true;
+  });
+}
+
 /** A hyperlink mark, rendered as `<a href>`. */
 export const Link = Mark.create<LinkOptions>({
   name: "link",
@@ -101,6 +178,7 @@ export const Link = Mark.create<LinkOptions>({
 
   addOptions() {
     return {
+      autolink: true,
       openOnClick: true,
       protocols: [],
       isAllowedUri: (url, context) => context.defaultValidate(url),
@@ -249,6 +327,60 @@ export const Link = Mark.create<LinkOptions>({
         () =>
         ({ commands }: CommandProps): boolean =>
           commands.unsetMark(this.name, { extendEmptyMarkRange: true }),
+    };
+  },
+
+  addInputRules(): InputRule[] {
+    if (!this.options.autolink) {
+      return [];
+    }
+
+    return [
+      {
+        // The rule replaces the typed separator, so the handler reinserts it.
+        find: /(\S+)(\s)$/,
+        handler: ({ editor, range, match, chain }) => {
+          const [, word, separator] = match;
+          const href = autolinkHref(word, this.options);
+
+          // Only plain typing: nothing selected, match ends at the caret, and
+          // the word is not already inside a link.
+          if (
+            !href ||
+            range.from + word.length !== range.to ||
+            editor.isActive(this.name)
+          ) {
+            return;
+          }
+
+          chain()
+            .insertContentAt(range.to, { type: "text", text: separator })
+            .setTextSelection({
+              from: range.from,
+              to: range.from + linkedLength(word),
+            })
+            .setMark(this.name, { href })
+            .setTextSelection(range.to + separator.length)
+            .run();
+        },
+      },
+    ];
+  },
+
+  addKeyboardShortcuts(): Record<
+    string,
+    (props: { editor: EditorInstance }) => boolean
+  > {
+    if (!this.options.autolink) {
+      return {};
+    }
+
+    return {
+      Enter: ({ editor }) => {
+        autolinkBeforeCursor(editor, this.options, this.name);
+        // Never consume Enter — splitBlock and the list handlers still run.
+        return false;
+      },
     };
   },
 });

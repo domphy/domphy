@@ -42,6 +42,35 @@ export function mergeDeep<T extends Record<string, unknown>>(
   return output as T;
 }
 
+/**
+ * The document or shadow root that owns `element`.
+ *
+ * Anything reading focus or selection has to ask this root rather than the
+ * owner document: inside a shadow tree `document.activeElement` is the host and
+ * `document.getSelection()` reports the host as the anchor, so a document-scoped
+ * lookup can never see a node inside the editor.
+ */
+export function rootOf(element: Node): Document | ShadowRoot {
+  const root = element.getRootNode() as Document | ShadowRoot;
+  return "host" in root ? root : (element.ownerDocument as Document);
+}
+
+/**
+ * The selection for the tree `element` lives in.
+ *
+ * Chromium exposes `ShadowRoot#getSelection()`, which reports nodes inside the
+ * shadow tree. Engines without it do not retarget the document selection in the
+ * first place, so falling back to the document is correct there.
+ */
+export function selectionFor(element: Node): Selection | null {
+  const root = rootOf(element) as {
+    getSelection?: () => Selection | null;
+  };
+  return root.getSelection
+    ? root.getSelection()
+    : (element.ownerDocument as Document).getSelection();
+}
+
 /** Subset test: does `object` contain every entry of `subset`? */
 export function objectIncludes(
   object: Attributes,

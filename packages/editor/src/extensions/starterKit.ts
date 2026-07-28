@@ -17,6 +17,7 @@ import { Paragraph, type ParagraphOptions } from "./paragraph";
 import { Strike, type StrikeOptions } from "./strike";
 import { Text } from "./text";
 import { TrailingNode, type TrailingNodeOptions } from "./trailingNode";
+import { Underline, type UnderlineOptions } from "./underline";
 import { UndoRedo, type UndoRedoOptions } from "./undoRedo";
 
 /**
@@ -40,6 +41,7 @@ export interface StarterKitOptions {
   strike: Partial<StrikeOptions> | false;
   text: false;
   trailingNode: Partial<TrailingNodeOptions> | false;
+  underline: Partial<UnderlineOptions> | false;
   undoRedo: Partial<UndoRedoOptions> | false;
 }
 
@@ -65,6 +67,7 @@ const starterKitExtension = Extension.create<StarterKitOptions>({
       [this.options.strike, Strike],
       [this.options.text, Text],
       [this.options.trailingNode, TrailingNode],
+      [this.options.underline, Underline],
       [this.options.undoRedo, UndoRedo],
     ];
 

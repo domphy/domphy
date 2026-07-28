@@ -111,6 +111,10 @@ export function specToHTML(spec: DOMOutputSpec, inner: string): string {
     } else if (Array.isArray(part)) {
       children += specToHTML(part as DOMOutputSpec, inner);
       filledHole = true;
+    } else if (typeof part === "string") {
+      // Literal text child: ["div", attrs, "Page break"].
+      children += escapeText(part);
+      filledHole = true;
     }
   }
   if (!filledHole) {
