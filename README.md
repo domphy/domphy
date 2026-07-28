@@ -3,21 +3,28 @@
 **[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/) · [Quickstart](https://domphy.com/docs/quickstart/) · [npm](https://www.npmjs.com/package/@domphy/core)
 
 ```ts
-const count = toState(0)
+import { ElementNode, toState } from "@domphy/core"
+import { applySystemTheme, themeApply } from "@domphy/theme"
+import { button } from "@domphy/ui"
 
+themeApply()
+applySystemTheme()
+
+const count = toState(0)
 const App = {
   div: [
     { p: (l) => `Count: ${count.get(l)}` },
     { button: "Add", $: [button({ color: "primary" })], onClick: () => count.set(count.get() + 1) },
   ],
 }
+new ElementNode(App).render(document.body)
 ```
 
 **UI as plain objects. No JSX, no compiler.**
 
-`{ button: 'Save', $: [button()] }` — that's a Domphy component. Paste it in a script tag and it runs. No build step, no framework overhead, no wrappers around your DOM.
+`{ button: 'Save', $: [button()] }` — that's a Domphy component. No JSX transform, no build step required, no wrappers around your DOM.
 
-**Good fit for tool apps** (plugins, extensions, dashboards, panels): you get reactivity + 95 polished UI patches + a full design system without shipping a 40 kB runtime or setting up a JSX compiler.
+**Good fit for tool apps** (plugins, extensions, dashboards, panels): you get reactivity + 96 polished UI patches + a full design system without shipping a 40 kB runtime or setting up a JSX compiler.
 
 **Works well with AI**: plain objects are what LLMs generate naturally, and `@domphy/doctor` validates the output — the model reads the report and self-corrects (see [Building with AI](#building-with-ai)).
 
@@ -27,7 +34,7 @@ Core runtime + design system:
 
 - `@domphy/core` — rendering, reactivity (`toState`/`RecordState`/`computed`/`effect`/`effectScope`/`batch`/`untrack`/`flushSync`), lifecycle, SSR, CSS-in-JS; exports `ReadableState<T>`, `ValueOrState<T>`, `configure({ cspNonce })`
 - `@domphy/theme` — context-aware color, size, and spacing tokens
-- `@domphy/ui` — 95 ready-made patches (`button`, `card`, `dialog`, `motion`, `errorBoundary`, …) built on core + theme
+- `@domphy/ui` — 96 ready-made patches (`button`, `card`, `dialog`, `motion`, `errorBoundary`, …) built on core + theme
 - `@domphy/blocks` — 173 composed blocks/effect components: sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes (from shadcn/ui), and marketing/effect components (from Magic UI)
 
 Data & logic — framework-agnostic API at the main entry + a thin Domphy adapter at the `/domphy` subpath:
@@ -75,6 +82,9 @@ Scaffold a new project (Vite + TS starter, includes `AGENTS.md`):
 
 ```bash
 npm create domphy@latest my-app
+cd my-app
+npm install
+npm run dev
 ```
 
 Or add Domphy to an existing project — most apps start with the UI layer (pulls core + theme):

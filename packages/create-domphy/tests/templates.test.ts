@@ -71,4 +71,14 @@ describe("templateFiles", () => {
     expect(agentsMd?.contents).not.toContain("color, margin, lineHeight");
     expect(agentsMd?.contents).toContain("fontWeight");
   });
+
+  it("activates a theme in main.ts (no unstyled first render)", () => {
+    // Regression: the starter called only themeApply(), which injects the
+    // theme stylesheets but activates no [data-theme] scope — every
+    // var(--…) token resolved to nothing and the demo rendered unstyled
+    // (bare black text, invisible buttons) on first `npm run dev`.
+    const mainTs = files.find((file) => file.path === "src/main.ts");
+    expect(mainTs).toBeDefined();
+    expect(mainTs?.contents).toContain("applySystemTheme()");
+  });
 });

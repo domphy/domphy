@@ -6,6 +6,25 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## rawHtml migration + visual-fidelity pass — 2026-07-28
+
+### `@domphy/core` [0.20.0] — BREAKING
+- **String children are text by default.** Markup inside a string child is escaped and rendered as visible characters (client and SSR) instead of being parsed as HTML. Rendering markup is an explicit opt-in: `rawHtml("<b>x</b>")`, which still strips `<script>`/`on*`/`javascript:` but is defense in depth, not a sanitizer. See the migration guide.
+
+### `@domphy/ui` [0.20.10]
+- Screenshot-driven visual QA vs shadcn/ui: `menu`/`selectList` use a light panel surface instead of hardcoded near-black; `popoverArrow` border now visible (`border-strong`); `skeleton` lightened to near-white; invalid `-calc(...)` CSS fixed so the `tabs` active underline, `timeline` connector and `details` chevron actually paint.
+
+### `@domphy/blocks` [0.1.4]
+- Visual-fidelity pass across all 173 blocks vs the shadcn/ui and Magic UI originals: near-white muted surfaces and neutral near-black accents in the sidebar/dashboard/auth family (was muddy gray + bright blue); Magic UI inverted dark defaults flipped to the upstream light look; all chart recipes now use a single-hue blue ramp (upstream chart-1…chart-5) with unclipped axis labels and muted tooltip ticks.
+
+### `@domphy/mermaid` [0.18.2]
+- Requires `@domphy/core` >= 0.20.0; `renderMermaidInTree` wraps the inline SVG in `rawHtml()`.
+
+### `create-domphy` (starter template)
+- P0 fix: the scaffolded app now calls `applySystemTheme()` after `themeApply()` — previously no theme scope was activated, so the starter rendered completely unstyled on first `npm run dev`. Also: system font stack in `index.html`, solid primary CTA.
+
+---
+
 ## Docs CDN + chrome audit — 2026-07-21
 
 ### Critical: playground never shipped to users

@@ -1,5 +1,8 @@
 # @domphy/press Changelog
 
+## 0.21.10
+- fix(layout): `themeConfig.footerMessage` is wrapped in `rawHtml()` again — after the core 0.20.0 "string children are text" flip, the footer rendered its `<a>` markup as literal text on every page.
+
 ## 0.21.9
 - Requires @domphy/core >= 0.20.0 and @domphy/markdown >= 0.19.2 (string children are now text by default). Container-directive child arrays widened to accept `RawHTML`; fences, code groups and mermaid blocks keep rendering as markup via the walker's `rawHtml()` opt-in.
 

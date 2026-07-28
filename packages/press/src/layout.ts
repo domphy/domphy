@@ -4,6 +4,7 @@
 
 import { navLink } from "@domphy/app";
 import type { DomphyElement, StyleObject } from "@domphy/core";
+import { rawHtml } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { linkButton, toolbar, toolbarSpacer } from "@domphy/ui";
 import { prevNextForRoute, sidebarForRoute } from "./routes-browser.js";
@@ -1214,7 +1215,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
   const footerContent = slots?.footer
     ? slots.footer(ctx)
     : ({
-        footer: ctx.config.themeConfig.footerMessage ?? "",
+        footer: rawHtml(ctx.config.themeConfig.footerMessage ?? ""),
         style: {
           padding: `${ts(6)} ${ts(12)}`,
           borderTop: `1px solid ${border}`,
@@ -1578,7 +1579,7 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
   const footerContent = slots?.footer
     ? slots.footer(ctx)
     : ({
-        footer: ctx.config.themeConfig.footerMessage ?? "",
+        footer: rawHtml(ctx.config.themeConfig.footerMessage ?? ""),
         style: {
           padding: `${ts(6)} ${ts(12)}`,
           borderTop: `1px solid ${border}`,

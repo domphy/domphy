@@ -72,6 +72,8 @@ export interface ThemeConfig {
   /** Single URL or separate light/dark variants. */
   logo?: string | { light: string; dark: string };
   search?: false | { placeholder?: string; limit?: number };
+  /** Rendered as HTML (wrapped in `rawHtml()` by the layout) — inline tags
+   * like `<a>` are allowed. Keep it to markup you control. */
   footerMessage?: string;
   socialLinks?: SocialLink[];
   editLink?: EditLink;

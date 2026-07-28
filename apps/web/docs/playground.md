@@ -13,7 +13,6 @@ const App: DomphyElement<"div"> = {
   div: ["Playground"],
   style: {
     padding: (l) => themeSpacing(4),
-    fontFamily: "sans-serif",
   }
 }
 export default App

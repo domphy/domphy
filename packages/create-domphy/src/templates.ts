@@ -43,6 +43,14 @@ const indexHtml = `<!doctype html>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>__PROJECT_NAME__</title>
+    <style>
+      /* Base font — the Domphy theme owns colors/spacing/sizing but
+         deliberately not a font stack, so set one here. */
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        margin: 0;
+      }
+    </style>
   </head>
   <body>
     <div id="app"></div>
@@ -52,11 +60,15 @@ const indexHtml = `<!doctype html>
 `;
 
 const mainTs = `import { ElementNode, type DomphyElement, toState } from "@domphy/core";
-import { themeApply } from "@domphy/theme";
+import { applySystemTheme, themeApply } from "@domphy/theme";
 import { button, card, heading, paragraph } from "@domphy/ui";
 
-// Apply the Domphy design tokens to the document once at startup.
+// Apply the Domphy design tokens to the document once at startup, then
+// activate a theme (follows the OS light/dark preference). Without an
+// active theme the \`var(--…)\` token references resolve to nothing and the
+// app renders unstyled.
 themeApply();
+applySystemTheme();
 
 // Reactive state: read it with \`count.get(listener)\` inside a reactive
 // function to auto-subscribe; write it with \`count.set(...)\` in event handlers.
@@ -77,7 +89,7 @@ const App: DomphyElement<"div"> = {
             {
               button: "Increment",
               onClick: () => count.set(count.get() + 1),
-              $: [button({ color: "primary" })],
+              $: [button({ color: "primary", variant: "solid" })],
             },
             {
               button: "Reset",
@@ -211,7 +223,9 @@ const App = {
   \`small()\`, \`paragraph()\`, \`heading()\`, \`link()\`, \`strong()\`,
   \`emphasis()\`, \`code()\`, \`keyboard()\`.
 - **Theme, not hard-coded values:** \`themeColor()\`, \`themeSpacing()\`,
-  \`themeSize()\`, \`themeDensity()\`; tones are \`inherit\`/\`base\`/\`shift-N\`.
+  \`themeSize()\`, \`themeDensity()\`; tones are \`inherit\`/\`base\`/\`shift-N\`
+  or the semantic aliases \`surface\`/\`hover\`/\`border\`/\`muted\`/\`text\`
+  (prefer aliases over raw \`shift-N\`).
 - **\`_key\`** on dynamic/reordered child lists (identity for reconcile).
 - **Lifecycle hooks** (\`_onMount\`, \`_onBeforeRemove(node, done)\` — must call
   \`done()\`, \`_onRemove\`) for imperative/3rd-party integration; events stay flat
@@ -231,9 +245,10 @@ const App = {
 
 \`\`\`ts
 import { ElementNode } from "@domphy/core";
-import { themeApply } from "@domphy/theme";
+import { applySystemTheme, themeApply } from "@domphy/theme";
 
 themeApply();
+applySystemTheme(); // activates a theme (OS light/dark) — without it nothing is styled
 new ElementNode(App).render(document.getElementById("app")!);
 \`\`\`
 `;

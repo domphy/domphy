@@ -1,6 +1,6 @@
 # Domphy
 
-> UI as plain JS objects — no JSX, no compiler, no virtual DOM. `@domphy/core` handles reactivity, rendering, CSS-in-JS, and SSR. `@domphy/ui` ships 95 patches that apply behavior directly to native HTML elements. **No wrappers, no component hierarchy.** Fits tool apps well (plugins, extensions, dashboards) — drop it in a script tag and ship. Built to be **learnable by AI in-context** (this file) and **self-correcting** via `@domphy/doctor`, so agents write correct Domphy despite thin training data.
+> UI as plain JS objects — no JSX, no compiler, no virtual DOM. `@domphy/core` handles reactivity, rendering, CSS-in-JS, and SSR. `@domphy/ui` ships 96 patches that apply behavior directly to native HTML elements. **No wrappers, no component hierarchy.** Fits tool apps well (plugins, extensions, dashboards) — drop it in a script tag and ship. Built to be **learnable by AI in-context** (this file) and **self-correcting** via `@domphy/doctor`, so agents write correct Domphy despite thin training data.
 
 A **patch** is a function returning a `PartialElement`: a stateless descriptor applied to a host element via the `$` property. Patches carry no rendering lifecycle, own no state, and create no DOM boundary. Compose by listing multiple patches; the runtime merges them on the native element.
 
@@ -55,7 +55,7 @@ A **patch** is a function returning a `PartialElement`: a stateless descriptor a
 - [Performance](https://domphy.com/docs/core/performance): granular subscriptions, `_key`, computed memoization, `batch()`, lazy rendering
 - [Common Patterns](https://domphy.com/docs/core/patterns): state machines, reducers, compound components, factories, per-node behaviors (`behavior()`), code organization
 - [Composing Elements](https://domphy.com/docs/core/composing): component functions, slots, merging, reactive patterns
-- [Migration Guide](https://domphy.com/docs/core/migration): v0.17→v0.18 breaking changes, form patch removal, themeColor signature
+- [Migration Guide](https://domphy.com/docs/core/migration): v0.19→v0.20 string children are text by default (`rawHtml()` opt-in), v0.17→v0.18 breaking changes, form patch removal, themeColor signature
 - [TypeScript](https://domphy.com/docs/core/typescript): `DomphyElement`, `State<T>`, event handler types, component patterns
 - [Testing](https://domphy.com/docs/core/testing): Vitest+jsdom setup, testing reactive state, ElementNode in tests
 - [Portal](https://domphy.com/docs/core/portal): render into arbitrary containers

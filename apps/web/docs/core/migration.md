@@ -5,6 +5,33 @@ description: "Upgrade paths between major Domphy versions — breaking changes, 
 
 # Migration Guide
 
+## v0.19 → v0.20
+
+### String children are text by default; markup needs `rawHtml()`
+
+Before v0.20 (`@domphy/core`), a string child containing markup was parsed as HTML. Since v0.20, **a string child is always text** — markup inside it is escaped and rendered as visible characters, on the client and in SSR output. This closes the default XSS surface where state-derived strings could inject markup.
+
+**Before (v0.19):**
+```ts
+{ span: "<b>bold</b>" }        // rendered as a real <b> element
+```
+
+**After (v0.20):**
+```ts
+import { rawHtml } from "@domphy/core"
+
+{ span: "<b>bold</b>" }        // renders the literal characters "<b>bold</b>"
+{ span: rawHtml("<b>bold</b>") } // opt-in: renders a real <b> element
+```
+
+What to do when upgrading:
+
+- Any string child that intentionally contains markup (icon SVGs, formatted message templates, Markdown output) must be wrapped in `rawHtml(...)`. `rawHtml()` still strips `<script>`/`on*` handlers and `javascript:` URLs, but it is not a sanitizer for untrusted input — wrap only markup you control.
+- Text from user data or state needs no change — it now escapes safely by default.
+- Reactive children keep working: `(l) => rawHtml(template(l))` when the value is markup, plain functions for text.
+
+Also note: `themeApply()` only injects the theme stylesheets — you must also activate a theme (`applySystemTheme()` or a `data-theme` attribute / `dataTone` on the root), or `var(--…)` token references resolve to nothing and the app renders unstyled.
+
 ## v0.18 → current
 
 ### Forms: `form()`/`field()` patches removed
