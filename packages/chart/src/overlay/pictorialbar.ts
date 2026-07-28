@@ -145,7 +145,7 @@ export function renderPictorialBar(
         (typeof offsetX === "string"
           ? (parseFloat(offsetX) / 100) * bandwidth
           : offsetX);
-      const baseY = isPositive ? yZero : yValue;
+      const _baseY = isPositive ? yZero : yValue;
 
       if (repeat) {
         // Repeat symbols stacked to fill bar height

@@ -147,10 +147,7 @@ function chartLineDotsColors(
             circle.setAttribute("cx", String(cx));
             circle.setAttribute("cy", String(cy));
             circle.setAttribute("r", String(DOT_RADIUS));
-            circle.setAttribute(
-              "fill",
-              pointColorHex(data[index].color),
-            );
+            circle.setAttribute("fill", pointColorHex(data[index].color));
             group.appendChild(circle);
           },
         }),

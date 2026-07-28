@@ -16,13 +16,13 @@ import { toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { small, strong, tooltip } from "@domphy/ui";
 import {
+  glyphChild,
   ICON_BAR_CHART,
   ICON_GRID,
   ICON_INBOX,
   ICON_LIFEBUOY,
   ICON_MARK,
   ICON_MESSAGE,
-  glyphChild,
   renderExpandableNavRow,
   renderPlainNavRow,
   renderProjectRow,

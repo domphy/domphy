@@ -10,7 +10,6 @@
 
 import type { ChartOption, LabelParams, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import { fixed } from "../../shared/typography.js";
 import {
   CHART_BAR_MONTHLY_DATA,
   type ChartBarPoint,

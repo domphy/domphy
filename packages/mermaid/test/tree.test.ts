@@ -106,8 +106,12 @@ describe("renderMermaidInTree", () => {
     const output = await renderMermaidInTree(input, { renderer });
 
     expect(renderer).toHaveBeenCalledTimes(1);
-    expect(svgOf((output[0] as Record<string, unknown>).div)).toBe("<svg>16</svg>");
-    expect(svgOf((output[2] as Record<string, unknown>).div)).toBe("<svg>16</svg>");
+    expect(svgOf((output[0] as Record<string, unknown>).div)).toBe(
+      "<svg>16</svg>",
+    );
+    expect(svgOf((output[2] as Record<string, unknown>).div)).toBe(
+      "<svg>16</svg>",
+    );
   });
 
   it("supports custom className and ariaLabel", async () => {

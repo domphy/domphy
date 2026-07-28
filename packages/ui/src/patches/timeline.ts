@@ -84,8 +84,7 @@ function timelineItem(
               position: "absolute",
               left: "calc(1rem - 1px)",
               top: "1.25rem",
-              bottom: (listener) =>
-                themeSpacing(themeDensity(listener) * -4),
+              bottom: (listener) => themeSpacing(themeDensity(listener) * -4),
               width: "2px",
               backgroundColor: (listener) =>
                 themeColor(listener, "shift-3", color),

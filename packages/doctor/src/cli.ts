@@ -227,7 +227,7 @@ async function main(): Promise<void> {
   }
 
   if (values.format === "json") {
-    process.stdout.write(JSON.stringify(allDiags, null, 2) + "\n");
+    process.stdout.write(`${JSON.stringify(allDiags, null, 2)}\n`);
   } else {
     const checked = files.length - skipped;
     for (const { file, diags } of allDiags) {
@@ -240,7 +240,7 @@ async function main(): Promise<void> {
       totalInfo > 0 ? `${totalInfo} info` : null,
     ].filter(Boolean);
     process.stdout.write(
-      `\n${allDiags.length > 0 ? "─".repeat(40) + "\n" : ""}${parts.join(" · ")}\n`,
+      `\n${allDiags.length > 0 ? `${"─".repeat(40)}\n` : ""}${parts.join(" · ")}\n`,
     );
   }
 
@@ -248,6 +248,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  process.stderr.write(String(err) + "\n");
+  process.stderr.write(`${String(err)}\n`);
   process.exit(2);
 });

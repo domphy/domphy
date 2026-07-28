@@ -28,7 +28,7 @@ function chart(
 
       // Async init then render
       let initialized = false;
-      const pendingOption: ChartOption | null = null;
+      const _pendingOption: ChartOption | null = null;
       let width = 0;
       let height = 0;
 

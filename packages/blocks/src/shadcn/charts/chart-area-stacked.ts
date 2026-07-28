@@ -95,7 +95,12 @@ function chartAreaStacked(
         opacity: chartAreaSeriesColor(seriesIndex).strokeOpacity,
       },
       areaStyle: {
-        color: chartAreaGradientFill("primary", fillOpacity, fillOpacity, s.tone),
+        color: chartAreaGradientFill(
+          "primary",
+          fillOpacity,
+          fillOpacity,
+          s.tone,
+        ),
         opacity: 1,
       },
       data: data.map((point) => point[s.key]),

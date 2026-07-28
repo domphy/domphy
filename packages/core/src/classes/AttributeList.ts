@@ -109,7 +109,7 @@ export class AttributeList {
     // always invokes a function value immediately and stores only the
     // resolved string as `.value`, so `.get("class")` can never itself be a
     // function; `declaredValue` preserves the original reactive function.
-    const declared = this.items?.["class"]?.declaredValue;
+    const declared = this.items?.class?.declaredValue;
     const currentIsFn = typeof declared === "function";
     const current = currentIsFn ? declared : this.get("class");
     const nextIsFn = typeof className === "function";

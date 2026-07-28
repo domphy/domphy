@@ -10,7 +10,6 @@
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
-import { fixed } from "../../shared/typography.js";
 import {
   chartCard,
   chartLineSeriesColor,

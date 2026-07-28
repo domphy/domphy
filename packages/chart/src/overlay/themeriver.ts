@@ -1,7 +1,7 @@
 import { seriesHex } from "../gl/color.js";
 import type { ThemeRiverSeriesOption } from "../types.js";
 
-function svgEl(
+function _svgEl(
   tag: string,
   attrs: Record<string, string | number>,
 ): SVGElement {
@@ -149,7 +149,7 @@ export function renderThemeRiver(
     if (!upperPath || !lowerPath) continue;
 
     // Close the path: upper edge forward, lower edge backward
-    const lastUpper = upperPoints[upperPoints.length - 1];
+    const _lastUpper = upperPoints[upperPoints.length - 1];
     const firstLower = lowerPoints[0];
     const d = `${upperPath} L ${firstLower[0]},${firstLower[1]} ${lowerPath.slice(1)} L ${upperPoints[0][0]},${upperPoints[0][1]} Z`;
 

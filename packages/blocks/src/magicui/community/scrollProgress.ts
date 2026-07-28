@@ -83,7 +83,7 @@ function readScrollState(target: Element | Window): {
 }
 
 /** Current scroll fraction (0–1). Returns 0 when the target has no overflow. */
-function readScrollFraction(target: Element | Window): number {
+function _readScrollFraction(target: Element | Window): number {
   return readScrollState(target).fraction;
 }
 

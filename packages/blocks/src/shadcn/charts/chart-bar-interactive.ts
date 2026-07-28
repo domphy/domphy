@@ -115,7 +115,8 @@ function chartBarInteractive(
 
   const activeSeriesKey = toState<SeriesKey>(initialSeries);
 
-  const tooltipFormatter = (swatchColor: string) =>
+  const tooltipFormatter =
+    (swatchColor: string) =>
     (parametersInput: TooltipParams | TooltipParams[]): string => {
       const point = Array.isArray(parametersInput)
         ? parametersInput[0]

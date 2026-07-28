@@ -111,8 +111,7 @@ export function brandBadge(): DomphyElement<"div"> {
         themeSpacing(themeDensity(listener) * 1),
       backgroundColor: (listener: Listener) =>
         themeColor(listener, "inherit", "neutral"),
-      color: (listener: Listener) =>
-        themeColor(listener, "shift-9", "neutral"),
+      color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
     },
   };
 }

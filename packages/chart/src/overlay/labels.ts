@@ -411,7 +411,7 @@ export function renderSeriesSymbols(
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
   group.setAttribute("class", "dc-symbols");
 
-  visible.forEach((s, si) => {
+  visible.forEach((s, _si) => {
     const xScale = opts.xScales[s.xAxisIndex ?? 0];
     const yScale = opts.yScales[s.yAxisIndex ?? 0];
     if (!xScale || !yScale) return;

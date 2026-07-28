@@ -6,7 +6,7 @@ import type { DomphyElement } from "@domphy/core";
 const dates: string[] = [];
 const ohlc: [number, number, number, number][] = [];
 
-const basePrice = 148;
+const _basePrice = 148;
 const daily: number[][] = [
   // [open, close, low, high]
   [148.0, 151.2, 146.5, 152.8],

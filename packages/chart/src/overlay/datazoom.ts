@@ -33,7 +33,7 @@ export function createDataZoomSlider(
   svg: SVGSVGElement,
   option: DataZoomSliderOption,
   gridRect: ChartRect,
-  svgWidth: number,
+  _svgWidth: number,
   svgHeight: number,
   state: DataZoomState,
   onChange: (state: DataZoomState) => void,
@@ -41,7 +41,7 @@ export function createDataZoomSlider(
   const trackColor = themeColorToken(null, "shift-2", "neutral");
   const fillColor = themeColorToken(null, "shift-3", "neutral");
   const handleColor = themeColorToken(null, "shift-5", "neutral");
-  const textColor = themeColorToken(null, "shift-7", "neutral");
+  const _textColor = themeColorToken(null, "shift-7", "neutral");
 
   const sliderH =
     typeof option.height === "number"
@@ -147,7 +147,7 @@ export function createDataZoomSlider(
   let dragStartX = 0;
   let dragStartState: DataZoomState = { start: 0, end: 100 };
 
-  function pct(clientX: number): number {
+  function _pct(clientX: number): number {
     const svgRect = svg.getBoundingClientRect();
     const px = clientX - svgRect.left - sliderX;
     return Math.max(0, Math.min(100, (px / sliderW) * 100));

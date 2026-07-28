@@ -109,7 +109,12 @@ function chartAreaLegend(
         opacity: chartAreaSeriesColor(seriesIndex).strokeOpacity,
       },
       areaStyle: {
-        color: chartAreaGradientFill("primary", fillOpacity, fillOpacity, s.tone),
+        color: chartAreaGradientFill(
+          "primary",
+          fillOpacity,
+          fillOpacity,
+          s.tone,
+        ),
         opacity: 1,
       },
       data: data.map((point) => point[s.key]),
@@ -123,7 +128,11 @@ function chartAreaLegend(
       div: [
         chartAreaFrame(option, height),
         chartLegendRow(
-          series.map((s) => ({ label: s.label, color: "primary", tone: s.tone })),
+          series.map((s) => ({
+            label: s.label,
+            color: "primary",
+            tone: s.tone,
+          })),
         ),
       ],
     },

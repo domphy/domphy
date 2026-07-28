@@ -27,7 +27,7 @@ const option: ChartOption = {
   series: [
     {
       type: "custom",
-      renderItem: (params: any, api: any) => {
+      renderItem: (_params: any, api: any) => {
         const start = api.value(0);
         const end = api.value(1);
         const index = api.value(2);

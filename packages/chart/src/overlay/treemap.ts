@@ -1,4 +1,3 @@
-import { themeColorToken } from "@domphy/theme";
 import { seriesHex } from "../gl/color.js";
 import type { TreemapSeriesOption } from "../types.js";
 
@@ -23,7 +22,7 @@ function squarify(
 ): Rect[] {
   if (items.length === 0) return [];
 
-  const totalArea = rect.w * rect.h;
+  const _totalArea = rect.w * rect.h;
   const totalValue = items.reduce((s, n) => s + n.value, 0);
   if (totalValue === 0)
     return items.map(() => ({ x: rect.x, y: rect.y, w: 0, h: 0 }));

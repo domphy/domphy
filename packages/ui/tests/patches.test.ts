@@ -2,7 +2,7 @@
 
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode, flushSync, toState } from "@domphy/core";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { dialog } from "../src/index.ts";
 import { _resetScrollLock } from "../src/utils/scrollLock.ts";
 

@@ -23,7 +23,7 @@ import type { ChartOption } from "@domphy/chart";
 import { chart } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { type ThemeColor, themeSpacing } from "@domphy/theme";
+import { themeSpacing } from "@domphy/theme";
 import { motion, select } from "@domphy/ui";
 import {
   CHART_AREA_DAILY_DATA,
@@ -195,7 +195,11 @@ function chartAreaInteractive(
       div: [
         chartFrame,
         chartLegendRow(
-          series.map((s) => ({ label: s.label, color: "primary", tone: s.tone })),
+          series.map((s) => ({
+            label: s.label,
+            color: "primary",
+            tone: s.tone,
+          })),
         ),
       ],
     },

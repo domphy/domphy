@@ -30,7 +30,9 @@ function toolButton(
     button: [
       {
         span:
-          typeof svg === "function" ? (l: Listener) => rawHtml(svg(l)) : rawHtml(svg),
+          typeof svg === "function"
+            ? (l: Listener) => rawHtml(svg(l))
+            : rawHtml(svg),
         $: [icon()],
         style: {
           width: themeSpacing(5),

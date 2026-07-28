@@ -154,7 +154,7 @@ function layoutSankey(
 
   // First pass: assign heights and initial y positions
   for (const [, group] of depthGroups) {
-    const totalFlow = group.reduce(
+    const _totalFlow = group.reduce(
       (s, n) => s + Math.max(n.inValue, n.outValue, n.value, 1),
       0,
     );

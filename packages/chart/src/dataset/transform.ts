@@ -9,7 +9,7 @@ function getField(row: Row, dim: string | number): any {
 
 function applyFilter(source: Row[], config: Record<string, any>): Row[] {
   const dimension = config.dimension;
-  const value = config.value;
+  const _value = config.value;
   const gte = config[">="];
   const lte = config["<="];
   const gt = config[">"];

@@ -1,4 +1,4 @@
-import { type DomphyElement, type RawHTML, isRawHTML } from "@domphy/core";
+import { type DomphyElement, isRawHTML, type RawHTML } from "@domphy/core";
 import { describe, expect, it } from "vitest";
 import { markdownToDomphy, parseMarkdown } from "../src/index";
 

@@ -37,6 +37,7 @@ import {
 } from "@domphy/ui";
 import { fixed } from "../../shared/typography.js";
 import {
+  glyphChild,
   ICON_CHEVRON_RIGHT,
   ICON_CHEVRONS_UPDOWN,
   ICON_MARK,
@@ -44,7 +45,6 @@ import {
   ICON_PANEL_TOGGLE,
   ICON_PLUS,
   ICON_SEARCH,
-  glyphChild,
   type SidebarTeam,
   sidebarBackdrop,
   sidebarIcon,

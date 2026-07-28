@@ -3,8 +3,6 @@ import type { GaugeSeriesOption } from "../types.js";
 import { familyRgba, seriesRgba } from "./color.js";
 
 export class GaugeRenderer {
-  constructor(_device: unknown) {}
-
   renderToSvg(
     svg: SVGSVGElement,
     series: GaugeSeriesOption[],

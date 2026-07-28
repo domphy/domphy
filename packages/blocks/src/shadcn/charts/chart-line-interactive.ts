@@ -110,7 +110,8 @@ function chartLineInteractive(
 
   const activeSeriesKey = toState<SeriesKey>(initialSeries);
 
-  const tooltipFormatter = (activeKey: SeriesKey) =>
+  const tooltipFormatter =
+    (activeKey: SeriesKey) =>
     (params: TooltipParams | TooltipParams[]): string => {
       const point = Array.isArray(params) ? params[0] : params;
       if (!point) return "";

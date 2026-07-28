@@ -50,7 +50,7 @@ function buildAxisMeta(
 
   const colValues = data
     .map((row) => row[axis.dim ?? 0] ?? 0)
-    .filter((v) => isFinite(v));
+    .filter((v) => Number.isFinite(v));
   let min =
     axis.min !== undefined ? Number(axis.min) : Math.min(...colValues, 0);
   let max =
@@ -240,7 +240,11 @@ export function renderParallel(
         const meta = axisMetas[ai];
         const dim = parallelAxes[ai].dim ?? ai;
         const value = row[dim];
-        if (value === undefined || value === null || !isFinite(Number(value))) {
+        if (
+          value === undefined ||
+          value === null ||
+          !Number.isFinite(Number(value))
+        ) {
           valid = false;
           break;
         }

@@ -165,7 +165,7 @@ export class LineRenderer {
       (smooth === true || (typeof smooth === "number" && smooth > 0)) &&
       points.length >= 4
     ) {
-      const valid = points.filter(([x]) => !isNaN(x));
+      const valid = points.filter(([x]) => !Number.isNaN(x));
       try {
         const pts = valid.map(([x, y]) => ({ x, y }) as Point2d);
         const smoothed: [number, number][] = [];
@@ -185,7 +185,7 @@ export class LineRenderer {
       for (let index = 0; index < points.length - 1; index++) {
         const [x0, y0] = points[index];
         const [x1, y1] = points[index + 1];
-        if (isNaN(x0) || isNaN(x1)) {
+        if (Number.isNaN(x0) || Number.isNaN(x1)) {
           expanded.push([NaN, NaN]);
           continue;
         }
@@ -213,7 +213,7 @@ export class LineRenderer {
     const segments: [number, number][][] = [];
     let current: [number, number][] = [];
     for (const p of pixelPoints) {
-      if (isNaN(p[0])) {
+      if (Number.isNaN(p[0])) {
         if (current.length > 1) segments.push(current);
         current = [];
       } else current.push(p);
@@ -324,7 +324,7 @@ export class LineRenderer {
           pointIndex++
         ) {
           const p = pixelPoints[pointIndex];
-          if (isNaN(p[0])) {
+          if (Number.isNaN(p[0])) {
             if (cur.length > 1) segs.push(cur);
             cur = [];
           } else

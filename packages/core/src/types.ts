@@ -107,7 +107,7 @@ export type BehaviorInstance<P = any> = {
 export type BehaviorAttach<P = any> = (
   node: ElementNode,
   props: P,
-) => BehaviorInstance<P> | void;
+) => BehaviorInstance<P> | undefined;
 
 export type BehaviorSpec<P = any> = {
   attach: BehaviorAttach<P>;

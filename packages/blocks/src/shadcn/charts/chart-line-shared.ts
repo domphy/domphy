@@ -66,7 +66,8 @@ const CHART_LINE_SERIES_STROKE_OPACITIES = [0.45, 0.72, 0.92, 1, 1] as const;
 /** The nth series' ramp color (approximates upstream `var(--chart-N)`). */
 export function chartLineSeriesColor(index: number): ChartLineSeriesColor {
   const step =
-    ((index % CHART_LINE_SERIES_TONES.length) + CHART_LINE_SERIES_TONES.length) %
+    ((index % CHART_LINE_SERIES_TONES.length) +
+      CHART_LINE_SERIES_TONES.length) %
     CHART_LINE_SERIES_TONES.length;
   const tone = CHART_LINE_SERIES_TONES[step];
   return {
@@ -108,11 +109,36 @@ export interface CategoryPoint {
 /** Five made-up browser/platform categories, each with its own ramp step
  * (upstream colors the per-browser markers chart-1 … chart-5). */
 export const BROWSER_CATEGORY_DATA: CategoryPoint[] = [
-  { key: "chrome", label: "Chrome", value: 487, color: chartLineSeriesColor(0).hex },
-  { key: "safari", label: "Safari", value: 312, color: chartLineSeriesColor(1).hex },
-  { key: "firefox", label: "Firefox", value: 176, color: chartLineSeriesColor(2).hex },
-  { key: "edge", label: "Edge", value: 143, color: chartLineSeriesColor(3).hex },
-  { key: "other", label: "Other", value: 98, color: chartLineSeriesColor(4).hex },
+  {
+    key: "chrome",
+    label: "Chrome",
+    value: 487,
+    color: chartLineSeriesColor(0).hex,
+  },
+  {
+    key: "safari",
+    label: "Safari",
+    value: 312,
+    color: chartLineSeriesColor(1).hex,
+  },
+  {
+    key: "firefox",
+    label: "Firefox",
+    value: 176,
+    color: chartLineSeriesColor(2).hex,
+  },
+  {
+    key: "edge",
+    label: "Edge",
+    value: 143,
+    color: chartLineSeriesColor(3).hex,
+  },
+  {
+    key: "other",
+    label: "Other",
+    value: 98,
+    color: chartLineSeriesColor(4).hex,
+  },
 ];
 
 export interface DailyPoint {
@@ -603,7 +629,15 @@ export interface HoverDotOverlayProps {
  * `pointer-events: none` so the underlying chart tooltip keeps receiving
  * hover events. */
 export function hoverDotOverlay(props: HoverDotOverlayProps): PartialElement {
-  const { categories, values, yDomain, grid, color, tone = "shift-9", radius } = props;
+  const {
+    categories,
+    values,
+    yDomain,
+    grid,
+    color,
+    tone = "shift-9",
+    radius,
+  } = props;
   return {
     style: { position: "absolute", inset: "0", pointerEvents: "none" },
     _onMount(node) {

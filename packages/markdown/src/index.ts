@@ -6,9 +6,7 @@ import { splitFrontmatter } from "./frontmatter.js";
 import { walkMdast } from "./mdast.js";
 import { createUniqueSlugger, defaultSlugify } from "./slug.js";
 import type {
-  AnchorSlugify,
   CreateMarkdownOptions,
-  Highlight,
   MarkdownInstance,
   ParseOptions,
   ParseResult,

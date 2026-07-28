@@ -1,4 +1,4 @@
-import { type RawHTML, isRawHTML } from "@domphy/core";
+import { isRawHTML, type RawHTML } from "@domphy/core";
 import { describe, expect, it } from "vitest";
 import {
   createUniqueSlugger,

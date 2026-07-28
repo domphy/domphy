@@ -24,7 +24,7 @@ export function renderFunnel(
 
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
   group.setAttribute("class", "dc-funnel");
-  const labelColor = themeColorToken(null, "shift-9", "neutral");
+  const _labelColor = themeColorToken(null, "shift-9", "neutral");
 
   for (let si = 0; si < series.length; si++) {
     const s = series[si];

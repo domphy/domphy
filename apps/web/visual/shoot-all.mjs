@@ -8,7 +8,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-const require = createRequire(import.meta.url);
+const _require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 // pnpm nests playwright under the monorepo root .pnpm store
 const monorepoRoot = join(here, "../../..");
@@ -23,7 +23,7 @@ const coreCandidates = [
 const corePath = coreCandidates.find((p) => existsSync(p));
 if (!corePath) {
   console.error(
-    "playwright-core not found; tried:\n" + coreCandidates.join("\n"),
+    `playwright-core not found; tried:\n${coreCandidates.join("\n")}`,
   );
   process.exit(1);
 }

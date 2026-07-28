@@ -1,25 +1,5 @@
 import { type DomphyElement, type RawHTML, rawHtml } from "@domphy/core";
-import type {
-  Blockquote,
-  Break,
-  Code,
-  Delete,
-  Emphasis,
-  Heading,
-  Image,
-  InlineCode,
-  Link,
-  List,
-  ListItem,
-  Nodes,
-  Paragraph,
-  Root,
-  Strong,
-  Table,
-  TableRow,
-  Text,
-  ThematicBreak,
-} from "mdast";
+import type { Code, ListItem, Nodes, Root, Table } from "mdast";
 import type { Highlight, TocEntry } from "./types.js";
 
 /** Public walk helper passed to custom node handlers. */
@@ -191,7 +171,7 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
 function walkListItem(
   item: ListItem,
   index: number,
-  ordered: boolean,
+  _ordered: boolean,
   ctx: WalkContext,
 ): DomphyElement {
   const children: Child[] = [];

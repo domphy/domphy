@@ -35,8 +35,8 @@ function niceStep(roughStep: number): number {
 }
 
 function formatTick(value: number): string {
-  if (Math.abs(value) >= 1e6) return (value / 1e6).toPrecision(3) + "M";
-  if (Math.abs(value) >= 1e3) return (value / 1e3).toPrecision(3) + "K";
+  if (Math.abs(value) >= 1e6) return `${(value / 1e6).toPrecision(3)}M`;
+  if (Math.abs(value) >= 1e3) return `${(value / 1e3).toPrecision(3)}K`;
   // Show enough decimals to distinguish neighboring ticks
   const str = value.toPrecision(6).replace(/\.?0+$/, "");
   return str;

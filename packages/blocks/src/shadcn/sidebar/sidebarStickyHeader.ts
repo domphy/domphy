@@ -28,6 +28,7 @@ import {
   strong,
 } from "@domphy/ui";
 import {
+  glyphChild,
   ICON_BAR_CHART,
   ICON_FOLDER,
   ICON_GRID,
@@ -37,7 +38,6 @@ import {
   ICON_MESSAGE,
   ICON_PANEL_TOGGLE,
   ICON_SEARCH,
-  glyphChild,
   renderExpandableNavRow,
   renderPlainNavRow,
   renderProjectRow,

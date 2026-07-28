@@ -22,9 +22,7 @@ import {
   datePicker,
   descriptionList,
   details,
-  dialog,
   divider,
-  drawer,
   emphasis,
   empty,
   errorBoundary,
@@ -61,7 +59,6 @@ import {
   pagination,
   panelSection,
   paragraph,
-  popover,
   popoverArrow,
   preformated,
   progress,
@@ -91,11 +88,9 @@ import {
   textarea,
   timeline,
   timelineItem,
-  toast,
   toggleGroup,
   toolbar,
   toolbarSpacer,
-  tooltip,
   transitionGroup,
   unorderedList,
 } from "@domphy/ui";
@@ -136,10 +131,10 @@ const box = (label: string): DomphyElement<"div"> => ({
 // Controlled open states for overlays (force-open for screenshots)
 // Overlays start open for capture; catalog.spec closes them between cells
 // so they don't steal pointer events from hover/focus targets.
-const dialogOpen = toState(true);
-const drawerOpen = toState(true);
-const popoverOpen = toState(true);
-const tooltipOpen = toState(true);
+const _dialogOpen = toState(true);
+const _drawerOpen = toState(true);
+const _popoverOpen = toState(true);
+const _tooltipOpen = toState(true);
 const selectBoxOpen = toState(true);
 const comboboxOpen = toState(true);
 const selectValue = toState<string | null>("cherry");

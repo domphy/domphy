@@ -213,7 +213,7 @@ describe("SSR: generateHTML", () => {
 
     const activeHTML = new ElementNode({
       a: "x",
-      ariaCurrent: (l: any) => "page",
+      ariaCurrent: (_l: any) => "page",
     } as DomphyElement).generateHTML();
     expect(activeHTML).toContain('aria-current="page"');
   });

@@ -16,12 +16,12 @@ import {
   strong,
 } from "@domphy/ui";
 import {
+  glyphChild,
   ICON_MARK,
   ICON_MINUS,
   ICON_PLUS,
   ICON_SEARCH,
   type SidebarBreadcrumbItem,
-  glyphChild,
   sidebarBackdrop,
   sidebarMainContent,
   sidebarStickyHeader,

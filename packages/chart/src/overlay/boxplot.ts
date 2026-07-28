@@ -1,4 +1,3 @@
-import { themeColorToken } from "@domphy/theme";
 import { seriesHex } from "../gl/color.js";
 import type { AnyScale } from "../scale/index.js";
 import type { BoxplotSeriesOption } from "../types.js";

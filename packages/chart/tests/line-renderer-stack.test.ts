@@ -20,7 +20,6 @@ describe("LineRenderer stacked area-fill baseline", () => {
     vi.doMock("@luma.gl/engine", () => ({
       Model: class {
         props: Record<string, unknown> = {};
-        constructor(_device: unknown, _config: unknown) {}
         setAttributes(_attrs: unknown) {}
         setVertexCount(_count: number) {}
         draw(_renderPass: unknown) {}
@@ -84,7 +83,6 @@ describe("LineRenderer stacked area-fill baseline", () => {
     vi.doMock("@luma.gl/engine", () => ({
       Model: class {
         props: Record<string, unknown> = {};
-        constructor(_device: unknown, _config: unknown) {}
         setAttributes(_attrs: unknown) {}
         setVertexCount(_count: number) {}
         draw(_renderPass: unknown) {}

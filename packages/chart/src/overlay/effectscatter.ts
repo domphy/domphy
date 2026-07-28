@@ -100,7 +100,7 @@ export function renderEffectScatter(
           geom.type === "Polygon" ? 2 : geom.type === "MultiPolygon" ? 3 : 1;
         walk(geom.coordinates, d);
       }
-      if (isFinite(minX)) {
+      if (Number.isFinite(minX)) {
         const spanX = maxX - minX || 1;
         const spanY = maxY - minY || 1;
         const zoom = geo.zoom ?? 1;

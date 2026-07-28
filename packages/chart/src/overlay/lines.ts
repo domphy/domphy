@@ -78,7 +78,7 @@ function buildViewport(
     if (depth > 0) walk(geom.coordinates, depth);
   }
 
-  if (!isFinite(minX)) return null;
+  if (!Number.isFinite(minX)) return null;
 
   const zoom = geo.zoom ?? 1;
   const spanX = maxX - minX || 1;
@@ -88,7 +88,7 @@ function buildViewport(
   return { left, top, w, h, minX, minY, scaleX: scale, scaleY: scale };
 }
 
-function lngLatToPixel(
+function _lngLatToPixel(
   lng: number,
   lat: number,
   vp: GeoViewport,
@@ -145,7 +145,7 @@ export function renderLines(
   group.setAttribute("class", "dc-lines");
 
   const geo = geos[0];
-  const geoName =
+  const _geoName =
     (geo?.map ?? linesSeries[0]?.geoIndex !== undefined) ? "" : "";
   const mapName = geo?.map ?? "world";
   const geoJSON = getRegisteredMap(mapName);
@@ -188,7 +188,7 @@ export function renderLines(
                 : 0;
       if (depth > 0) walkCoords(geom.coordinates, depth);
     }
-    if (isFinite(minX)) {
+    if (Number.isFinite(minX)) {
       const spanX = maxX - minX || 1;
       const spanY = maxY - minY || 1;
       centerOffsetX = (vp.w - spanX * vp.scaleX) / 2;

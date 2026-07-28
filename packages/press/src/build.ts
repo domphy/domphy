@@ -193,7 +193,7 @@ async function buildIslandsBundle(
 function toAbsUrl(hostname: string, route: string): string {
   return route === "/"
     ? `${hostname}/`
-    : `${hostname}${route}`.replace(/\/+$/, "") + "/";
+    : `${`${hostname}${route}`.replace(/\/+$/, "")}/`;
 }
 
 function buildSitemap(
@@ -232,7 +232,7 @@ function buildSitemap(
 
     // Canonical slug = route with locale prefix stripped
     const slug =
-      ownPrefix === "/" ? route : "/" + route.slice(ownPrefix.length);
+      ownPrefix === "/" ? route : `/${route.slice(ownPrefix.length)}`;
 
     // Build alternate links for each locale that has this page
     const alternates: string[] = [];

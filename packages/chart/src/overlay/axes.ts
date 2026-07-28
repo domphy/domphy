@@ -16,7 +16,7 @@ export interface AxisSvgOptions {
 const colorGrid = () => themeColorToken(null, "shift-2", "neutral");
 const colorAxis = () => themeColorToken(null, "shift-4", "neutral");
 const colorLabel = () => themeColorToken(null, "shift-8", "neutral");
-const colorMinor = () => themeColorToken(null, "shift-1", "neutral");
+const _colorMinor = () => themeColorToken(null, "shift-1", "neutral");
 
 // ─── SVG element factory helpers ──────────────────────────────────────────────
 

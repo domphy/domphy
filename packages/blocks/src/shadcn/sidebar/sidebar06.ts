@@ -16,9 +16,9 @@ type DropdownPlacement = "right-start" | "bottom-end";
 
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
+  glyphChild,
   ICON_MARK,
   ICON_MORE,
-  glyphChild,
   type SidebarBreadcrumbItem,
   sidebarBackdrop,
   sidebarIcon,

@@ -46,7 +46,7 @@ export class PieRenderer {
     series: PieSeriesOption[],
     width: number,
     height: number,
-    seriesOffset: number,
+    _seriesOffset: number,
   ): void {
     if (series.length === 0) return;
     const model = this.ensureModel();

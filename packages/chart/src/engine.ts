@@ -33,22 +33,16 @@ import { createTooltip } from "./overlay/tooltip.js";
 import { renderTreemap } from "./overlay/treemap.js";
 import { renderVisualMap } from "./overlay/visualmap.js";
 import type {
-  Axis3DOption,
   Bar3DSeriesOption,
   BoxplotSeriesOption,
-  CalendarOption,
   ChartOption,
   EffectScatterSeriesOption,
   FunnelSeriesOption,
-  GeoOption,
   GraphSeriesOption,
-  Grid3DOption,
   Line3DSeriesOption,
   LineSeriesOption,
   LinesSeriesOption,
   MapSeriesOption,
-  ParallelAxisOption,
-  ParallelOption,
   ParallelSeriesOption,
   PictorialBarSeriesOption,
   SankeySeriesOption,
@@ -154,7 +148,7 @@ function hitTestPie(
     const data: any[] = s.data ?? [];
     const total =
       data.reduce((sum: number, item: any) => sum + (item.value ?? 0), 0) || 1;
-    const globalIdx = allSeries.findIndex((as_) => as_ === s);
+    const globalIdx = allSeries.indexOf(s);
 
     let currentAngle = startOffset;
     for (let di = 0; di < data.length; di++) {
@@ -203,7 +197,7 @@ function hitTestScatter(
     if (!xScale || !yScale) continue;
 
     const data: any[] = s.data ?? [];
-    const globalIdx = allSeries.findIndex((as_) => as_ === s);
+    const globalIdx = allSeries.indexOf(s);
 
     for (let di = 0; di < data.length; di++) {
       const item = data[di];
@@ -364,7 +358,7 @@ export class ChartEngine {
     this.radarRenderer = new RadarRenderer(this.device);
     this.heatmapRenderer = new HeatmapRenderer(this.device);
     this.candlestickRenderer = new CandlestickRenderer(this.device);
-    this.gaugeRenderer = new GaugeRenderer(this.device);
+    this.gaugeRenderer = new GaugeRenderer();
   }
 
   setSize(width: number, height: number): void {
@@ -1107,7 +1101,7 @@ export class ChartEngine {
           }
 
           // Find actual series index in allSeries for correct color
-          const globalIdx = allSeries.findIndex((as_) => as_ === s);
+          const globalIdx = allSeries.indexOf(s);
 
           params.push({
             componentType: "series",

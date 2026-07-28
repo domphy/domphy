@@ -84,8 +84,7 @@ function chartBarActive(props: ChartBarActiveProps = {}): DomphyElement<"div"> {
     0,
     Math.min(data.length - 1, activeIndex),
   );
-  const barColor = (index: number): string =>
-    data[index]?.color ?? seriesColor;
+  const barColor = (index: number): string => data[index]?.color ?? seriesColor;
 
   const option: ChartOption = {
     tooltip: {

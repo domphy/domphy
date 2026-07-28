@@ -25,11 +25,11 @@ function svgText(
   return el;
 }
 
-function resolveSpecialValue(
+function _resolveSpecialValue(
   type: "max" | "min" | "average" | undefined,
   seriesData: number[],
   scale: AnyScale,
-  isX: boolean,
+  _isX: boolean,
 ): number | null {
   if (!type) return null;
   const values = seriesData.filter((v) => !Number.isNaN(v));

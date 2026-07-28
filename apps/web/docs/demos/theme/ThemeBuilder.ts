@@ -34,7 +34,6 @@ import {
   divider,
   emphasis,
   fab,
-  formGroup,
   heading,
   horizontalRule,
   inputCheckbox,

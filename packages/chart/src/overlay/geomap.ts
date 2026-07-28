@@ -107,7 +107,7 @@ function buildViewport(
     processCoords(feature?.geometry?.coordinates);
   }
 
-  if (!isFinite(minX)) {
+  if (!Number.isFinite(minX)) {
     minX = 0;
     maxX = 1;
     minY = 0;
@@ -158,14 +158,12 @@ function coordsToPath(coords: any, vp: GeoViewport): string {
   // Polygon ring or MultiPolygon
   if (typeof coords[0][0] === "number") {
     // Linear ring
-    return (
-      coords
-        .map((c: number[], i: number) => {
-          const [px, py] = projectToPixel(c[0], c[1], vp);
-          return `${i === 0 ? "M" : "L"} ${px.toFixed(1)},${py.toFixed(1)}`;
-        })
-        .join(" ") + " Z"
-    );
+    return `${coords
+      .map((c: number[], i: number) => {
+        const [px, py] = projectToPixel(c[0], c[1], vp);
+        return `${i === 0 ? "M" : "L"} ${px.toFixed(1)},${py.toFixed(1)}`;
+      })
+      .join(" ")} Z`;
   }
 
   // Multi-ring

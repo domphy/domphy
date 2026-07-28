@@ -104,9 +104,7 @@ function rating(
 
         const star: DomphyElement<"button"> = {
           button: (listener) =>
-            rawHtml(
-              index <= activeCount(listener) ? STAR_FILLED : STAR_EMPTY,
-            ),
+            rawHtml(index <= activeCount(listener) ? STAR_FILLED : STAR_EMPTY),
           _key: index,
           type: "button",
           ariaLabel: `${index} star${index > 1 ? "s" : ""}`,

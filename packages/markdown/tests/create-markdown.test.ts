@@ -60,7 +60,7 @@ describe("createMarkdown", () => {
   it("info string (lang + meta) is passed to the highlight callback", () => {
     const infos: string[] = [];
     const parser = createMarkdown({
-      highlight: (code, info) => {
+      highlight: (_code, info) => {
         infos.push(info);
         return null;
       },
