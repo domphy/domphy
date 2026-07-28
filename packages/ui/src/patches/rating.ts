@@ -2,6 +2,7 @@ import {
   type DomphyElement,
   type Listener,
   type PartialElement,
+  rawHtml,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -103,7 +104,9 @@ function rating(
 
         const star: DomphyElement<"button"> = {
           button: (listener) =>
-            index <= activeCount(listener) ? STAR_FILLED : STAR_EMPTY,
+            rawHtml(
+              index <= activeCount(listener) ? STAR_FILLED : STAR_EMPTY,
+            ),
           _key: index,
           type: "button",
           ariaLabel: `${index} star${index > 1 ? "s" : ""}`,

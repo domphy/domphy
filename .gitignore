@@ -57,3 +57,11 @@ apps/web/visual/.serve/
 apps/web/test-results/
 apps/web/visual/shots-review-*/
 apps/web/playwright-report/
+
+# Local GH Actions failure dumps
+.gh-action-logs/
+
+
+# Local sequential peer-audit working notes
+.stable-audit/
+

@@ -1,5 +1,5 @@
 import type { DomphyElement, PartialElement } from "@domphy/core";
-import { toState, type ValueOrState } from "@domphy/core";
+import { rawHtml, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -30,7 +30,7 @@ function tag(
     dataTone: "shift-2",
     _onInit: (node) => {
       const removeBtn: DomphyElement<"span"> = {
-        span: xSvg,
+        span: rawHtml(xSvg),
         onClick: (e) => {
           (e as Event).stopPropagation();
           node.remove();

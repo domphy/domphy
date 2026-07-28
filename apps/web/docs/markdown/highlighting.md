@@ -29,7 +29,7 @@ type Highlight = (
 
 ## String return — inner HTML
 
-Most highlighters emit HTML strings. Return the string and `@domphy/markdown` sets it as the inner HTML of the `<code>` element:
+Most highlighters emit HTML strings. Return the string and `@domphy/markdown` wraps it in `rawHtml()` (core's explicit HTML opt-in) as the content of the `<code>` element:
 
 ```ts
 import { parseMarkdown } from "@domphy/markdown"
@@ -41,7 +41,7 @@ const { body } = parseMarkdown("```ts\nconst x = 1\n```", {
 })
 
 // body[0] ->
-// { pre: [{ code: '<span class="hl-ts">const x = 1\n</span>', dataLanguage: "ts", class: "language-ts" }] }
+// { pre: [{ code: rawHtml('<span class="hl-ts">const x = 1\n</span>'), dataLanguage: "ts", class: "language-ts" }] }
 ```
 
 The `dataLanguage` and `class` properties on the `<code>` element are always emitted by the walker when a language identifier is present, regardless of whether a highlighter is supplied.

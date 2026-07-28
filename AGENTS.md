@@ -22,6 +22,7 @@ const App = {
 ## Core rules
 
 - **Plain objects keyed by tag.** First key = HTML tag; value = content (string | number | array | `(listener) => value` | `null` for void tags).
+- **A string child is TEXT, always.** Markup inside it is escaped, never parsed — on the client and in SSR output. Rendering a string as HTML is an explicit opt-in: `rawHtml("<b>x</b>")` from `@domphy/core`. Wrap only markup you control (a Markdown renderer, a syntax highlighter, a generated SVG); `rawHtml()` still strips `<script>`/`on*`/`javascript:` but is defense in depth, not a sanitizer for untrusted input.
 - **Patches via `$`**, never wrapper components. Compose multiple: `$: [button(), tooltip({ content: "..." })]`. The native element always wins over patch defaults.
 - **Reactivity:** read with `(listener) => state.get(listener)`; write in events with `state.set(...)`. One-way data flow. Prefer `RecordState` for per-key reactivity. A controlled input (`value: (l) => s.get(l)` + `onInput: (e) => s.set(e.target.value)`) is safe. Types: `ReadableState<T>` (the read-only State contract), `ValueOrState<T>` (accepts a plain value, a `State<T>`, or a `ReadableState<T>`), `Computed<T>` (returned by `computed()`, satisfies `ReadableState<T>` — pass a computed wherever `ValueOrState<T>` is expected). `toState(val)` accepts `T | State<T> | ReadableState<T>`.
 - **Never inline typography styles** — `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, `fontFamily`, `textDecoration`, `color` in `style:` are ALL forbidden. Quick reference:

@@ -213,6 +213,7 @@ const DiagramWithClicks = {
 Render a flowchart to inline SVG at build time:
 
 ```ts
+import { rawHtml } from "@domphy/core"
 import { renderMermaidToSvg } from "@domphy/mermaid"
 
 const source = `flowchart LR
@@ -224,9 +225,10 @@ const source = `flowchart LR
 
 const svg = await renderMermaidToSvg(source, { theme: "neutral" })
 
-// A single-root SVG string is rendered as inline HTML in a Domphy element.
+// A string child is text by default — opt the single-root SVG into the HTML
+// path with rawHtml() (this is what renderMermaidInTree does internally).
 const DiagramBlock = {
-  div: svg,
+  div: rawHtml(svg),
   class: "mermaid",
   ariaLabel: "Cache lookup flowchart",
 }

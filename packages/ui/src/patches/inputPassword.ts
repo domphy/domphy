@@ -1,5 +1,5 @@
 import type { DomphyElement, PartialElement, StyleObject } from "@domphy/core";
-import { toState, type ValueOrState } from "@domphy/core";
+import { rawHtml, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -77,7 +77,7 @@ function inputPassword(
       };
 
       const toggle: DomphyElement<"button"> = {
-        button: (l) => (visibleState.get(l) ? EYE_OFF_SVG : EYE_SVG),
+        button: (l) => rawHtml(visibleState.get(l) ? EYE_OFF_SVG : EYE_SVG),
         type: "button",
         ariaLabel: (l) =>
           visibleState.get(l) ? "Hide password" : "Show password",

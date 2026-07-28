@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { DomphyElement } from "@domphy/core";
+import { type DomphyElement, isRawHTML } from "@domphy/core";
 import type { RenderDocOptions } from "@domphy/press";
 import { createHighlighter, renderDoc } from "@domphy/press";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -112,6 +112,9 @@ function findAll(
 /** Recursively flattens an element subtree to plain text + embedded HTML. */
 function textOf(value: unknown): string {
   if (value == null) return "";
+  // Raw HTML (fences, mermaid SVG, code groups) reaches the tree wrapped in
+  // the rawHtml() opt-in — unwrap it to its markup string.
+  if (isRawHTML(value)) return value.html;
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
   if (Array.isArray(value)) return value.map(textOf).join("");
@@ -207,10 +210,9 @@ describe("renderDoc — index.md", () => {
     const doc = await renderDoc(source, optionsFor(filePath));
     // pressCodeGroupPlugin emits the whole group as ONE self-contained raw
     // HTML string (radio/label tab switcher), not a structured element tree.
-    const group = doc.body.find(
-      (element) =>
-        typeof element === "string" && element.includes('class="code-group"'),
-    ) as string | undefined;
+    const group = doc.body.find((element) =>
+      textOf(element).includes('class="code-group"'),
+    );
     expect(group).toBeDefined();
     const groupText = codeText(group);
     // Tab labels come from the fence `[NPM]` / `[CDN]` markers.

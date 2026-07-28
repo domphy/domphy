@@ -5,7 +5,7 @@
 // header. See ./sidebar09-12-shared.ts and ./sidebar05-08-shared.ts.
 
 import type { DomphyElement, Listener, State } from "@domphy/core";
-import { toState } from "@domphy/core";
+import { rawHtml, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { breadcrumb, buttonGhost, icon, link, small, strong } from "@domphy/ui";
 import { fixed } from "../../shared/typography.js";
@@ -172,7 +172,7 @@ function folderRow(
           {
             summary: [
               {
-                span: ICON_CHEVRON_RIGHT,
+                span: rawHtml(ICON_CHEVRON_RIGHT),
                 dataSlot: "chevron",
                 style: { transition: "transform 150ms ease" },
                 $: [icon({ color: "neutral" })],
