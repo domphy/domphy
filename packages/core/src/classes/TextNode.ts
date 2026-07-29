@@ -4,6 +4,10 @@ import { isRawHTML, type RawHTML } from "./RawHTML.js";
 
 // Zero-width space: an empty text child still needs a real DOM node to hold
 // its slot, and a matching &#8203; in the server output so hydration aligns.
+// Exception: a <textarea> is a value-bearing element — its text content IS the
+// control's value, so a ZWSP slot-holder would leak into `.value` (hiding the
+// native placeholder and reporting a phantom 1-character value). Its children
+// are not layout anchors, so an empty text node keeps the slot cleanly.
 const ZWSP = String.fromCharCode(0x200b);
 
 export class TextNode {
@@ -18,11 +22,17 @@ export class TextNode {
   html: boolean;
   domText?: ChildNode;
 
+  // The stand-in for an empty text child: ZWSP everywhere except inside a
+  // <textarea>, where it must stay a truly empty string (see ZWSP above).
+  private emptyText(): string {
+    return this.parent?.tagName === "textarea" ? "" : ZWSP;
+  }
+
   constructor(textContent: string | number | RawHTML, parent: ElementNode) {
     this.parent = parent;
     this.html = isRawHTML(textContent);
     const text = this.html ? (textContent as RawHTML).html : textContent;
-    this.text = text === "" ? ZWSP : String(text);
+    this.text = text === "" ? this.emptyText() : String(text);
   }
   _createDOMNode() {
     let newNode: ChildNode;
@@ -58,7 +68,7 @@ export class TextNode {
   setText(textContent: string | number | RawHTML): void {
     const isHtml = isRawHTML(textContent);
     const raw = isHtml ? (textContent as RawHTML).html : textContent;
-    const next = raw === "" ? ZWSP : String(raw);
+    const next = raw === "" ? this.emptyText() : String(raw);
     if (next === this.text && isHtml === this.html && this.domText) return;
     const wasHTML = this.html;
     this.text = next;

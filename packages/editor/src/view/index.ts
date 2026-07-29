@@ -495,6 +495,48 @@ export class EditorView implements EditorViewLike {
     };
   }
 
+  coordsAtPos(pos?: number): DOMRect | null {
+    const position = pos ?? this.editor.state.selection.head;
+    // Prefer the live DOM selection when the caller asks for the current
+    // caret: the browser's own range rect is the most accurate answer.
+    if (pos === undefined) {
+      const domSelection = selectionFor(this.element);
+      if (
+        domSelection &&
+        domSelection.rangeCount > 0 &&
+        domSelection.anchorNode &&
+        this.element.contains(domSelection.anchorNode)
+      ) {
+        const range = domSelection.getRangeAt(0).cloneRange();
+        range.collapse(false);
+        if (typeof range.getBoundingClientRect === "function") {
+          return range.getBoundingClientRect();
+        }
+      }
+    }
+    const target = this.domAt(position);
+    if (!target) {
+      return null;
+    }
+    const range = this.element.ownerDocument.createRange();
+    try {
+      range.setStart(target.node, target.offset);
+      range.collapse(true);
+    } catch {
+      // A position that maps to a node the DOM refuses as a range boundary.
+      return null;
+    }
+    if (typeof range.getBoundingClientRect === "function") {
+      return range.getBoundingClientRect();
+    }
+    // No Range geometry (jsdom) — fall back to the boundary element's rect.
+    const boundary =
+      target.node.nodeType === 3
+        ? target.node.parentElement
+        : (target.node as HTMLElement);
+    return boundary?.getBoundingClientRect() ?? null;
+  }
+
   /** Write the model selection back into the DOM. */
   syncSelection(): void {
     // Node views track selection even when the host is not focused.

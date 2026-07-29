@@ -605,13 +605,19 @@ export class ElementNode {
     if (this.children) {
       this.children.items.forEach((child, i) => {
         const childNode = domElement.childNodes[i];
-        if (!childNode) return;
         if (child instanceof ElementNode) {
+          if (!childNode) return;
           child.mount(childNode as HTMLElement);
-        } else {
+        } else if (childNode) {
           // Bind the server-rendered text/inline-HTML node so that reactive
           // child updates after hydration can locate and replace it.
           child.domText = childNode;
+        } else if (this.tagName === "textarea") {
+          // A textarea's empty text child is a real empty string (see TextNode),
+          // so the server output has no character for the parser to give back
+          // — materialize the slot node or post-hydration updates would have
+          // nothing to patch.
+          child.render(domElement);
         }
       });
     }

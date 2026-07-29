@@ -495,5 +495,11 @@ export interface EditorViewLike {
   render(): void;
   /** Map the current DOM selection back into a model SelectionRange, or null. */
   readSelection(): SelectionRange | null;
+  /**
+   * Viewport coordinates of the caret at model position `pos` (defaults to
+   * the current selection head) — for anchoring floating UI like slash menus.
+   * Null when the position cannot be resolved to a DOM location.
+   */
+  coordsAtPos(pos?: number): DOMRect | null;
   destroy(): void;
 }

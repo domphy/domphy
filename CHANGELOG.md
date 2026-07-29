@@ -6,6 +6,16 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## @domphy/core + @domphy/editor — 2026-07-29
+
+### `@domphy/core` [0.20.2]
+- `HtmlAttributeMap`: `textarea` and `select` now accept `value` (the runtime already applied it — `ElementAttribute` assigns `value` as a live DOM property); consumers no longer need a cast for controlled textareas/selects.
+- Empty text child of a `<textarea>` no longer uses the ZWSP slot-holder — it stays a truly empty string, so the native `placeholder` shows and `.value` has no phantom character. ZWSP remains for every other parent (layout anchor + hydration alignment); SSR emits no `&#8203;` for textareas, and hydration materializes the missing slot node so post-hydration reactive updates still land.
+- New `peek(read)` export: read a reactive `(listener) => T` function outside a render/reactive context, untracked and without subscribing — the supported form of the `read(undefined as unknown as Listener)` cast.
+
+### `@domphy/editor` [0.2.1]
+- `EditorViewLike.coordsAtPos(pos?)`: viewport coordinates (DOMRect) of the caret at a model position (defaults to the current selection head), for anchoring floating UI like slash menus; `null` when the position cannot be resolved to the DOM. Implemented via DOM Selection/Range rects with an element-rect fallback where Range geometry is unavailable.
+
 ## @domphy/table — 2026-07-28
 
 ### `@domphy/table` [0.19.0]

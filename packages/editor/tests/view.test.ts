@@ -264,3 +264,23 @@ describe("DOM selection mapping", () => {
     expect(editor.view?.readSelection()).toMatchObject({ from: 2, to: 5 });
   });
 });
+
+describe("coordsAtPos", () => {
+  it("returns a rect for a resolvable position (jsdom zeroes geometry)", () => {
+    const { editor } = mount(docOf(p("hello")));
+    const rect = editor.view?.coordsAtPos(2);
+    expect(rect).not.toBeNull();
+    expect(typeof rect?.left).toBe("number");
+    expect(typeof rect?.top).toBe("number");
+  });
+
+  it("defaults to the current selection head", () => {
+    const { editor } = mount(docOf(p("hello")));
+    expect(editor.view?.coordsAtPos()).not.toBeNull();
+  });
+
+  it("returns null for a position outside the document", () => {
+    const { editor } = mount(docOf(p("hello")));
+    expect(editor.view?.coordsAtPos(9999)).toBeNull();
+  });
+});

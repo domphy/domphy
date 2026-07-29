@@ -1,3 +1,4 @@
+import { runUntracked } from "./classes/Collector.js";
 import {
   type ReadableState,
   State,
@@ -10,6 +11,7 @@ import type {
   EventName,
   Handler,
   HookMap,
+  Listener,
   PartialElement,
 } from "./types.js";
 
@@ -157,6 +159,18 @@ export function readonly<T>(source: ReadableState<T>): ReadableState<T> {
       return source.get(listener);
     },
   };
+}
+
+// Reads a reactive function `(listener) => T` OUTSIDE a render/reactive
+// context — e.g. checking a `disabled` binding inside an `onClick` handler.
+// The read runs with no listener and untracked: the value resolves once and
+// nothing is subscribed, so it never becomes a dependency of an enclosing
+// effect/computed either. This is the supported form of the
+// `read(undefined as unknown as Listener)` cast.
+//
+//   const isDisabled = peek(props.disabled)  // props.disabled: (l) => state.get(l)
+export function peek<T>(read: (listener: Listener) => T): T {
+  return runUntracked(() => read(undefined as unknown as Listener));
 }
 
 // Declares a per-node behavior (Svelte-action-like) inside a patch factory.
