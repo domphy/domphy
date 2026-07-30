@@ -32,6 +32,7 @@ import {
 import { themeCSS } from "@domphy/theme";
 import * as esbuild from "esbuild";
 import { htmlDocument, type PageIslandSpec } from "./html-template.js";
+import { applyPlaygroundLayout } from "./playground-layout.js";
 import { config } from "./press.config.js";
 // Side effect: registers the site's brand palette (orange primary, slate
 // secondary) into the theme registry BEFORE themeCSS() is called below.
@@ -415,6 +416,8 @@ async function run(): Promise<void> {
       repoRoot,
       highlight,
     });
+    // Playground pages: hide TOC aside so content expands wide; keep sidebar.
+    applyPlaygroundLayout(doc.frontmatter, editorIslands.length > 0);
     sanitizeStyles(doc.body);
     const textParts: string[] = [];
     flattenText(doc.body, textParts);

@@ -23,6 +23,7 @@ export default {
       "tests/routes.test.ts",
       "tests/theme-builder.test.ts",
       "tests/transformCode.test.ts",
+      "tests/playground-layout.test.ts",
     ],
     environment: "node",
     // theme-builder.test.ts re-imports the whole demo module graph per test

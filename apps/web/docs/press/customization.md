@@ -81,7 +81,8 @@ Add these to the frontmatter of any `.md` file to control per-page behavior.
 | `description` | `string` | Meta description for this page |
 | `badge` | `string \| { text, type }` | Badge shown next to the page title |
 | `sidebar` | `false` | Hide the sidebar and expand the content to full width |
-| `aside` | `false` | Hide the TOC aside panel |
+| `aside` | `false` | Hide the TOC aside panel; content expands into the freed column (sidebar stays) |
+| `wide` | `true` | Drop the 1440px shell cap and the prose content max-width (sidebar can stay) |
 | `draft` | `true` | Exclude the page from the build output |
 | `hero` | `HeroConfig` | Enable the home page hero section |
 | `features` | `FeatureConfig[]` | Enable the home page features grid |

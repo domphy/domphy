@@ -101,3 +101,78 @@ describe("press shell a11y (Front-End Checklist)", () => {
     expect(css).toContain("prefers-reduced-motion");
   });
 });
+
+describe("pageShell aside:false keeps sidebar and expands content", () => {
+  const configWithSidebar = {
+    ...baseConfig,
+    themeConfig: {
+      nav: [],
+      sidebar: {
+        "/docs/": [
+          {
+            text: "Guide",
+            items: [{ text: "Test", link: "/docs/test" }],
+          },
+        ],
+      },
+    },
+  } as any;
+
+  function shellGrid(partial: Partial<LayoutContext> = {}) {
+    const shell = pageShell(
+      ctx({
+        config: configWithSidebar,
+        ...partial,
+      }),
+    );
+    const shellChildren = (shell as any).div as any[];
+    return shellChildren.find(
+      (child: any) => child?.style?.display === "grid",
+    );
+  }
+
+  it("hides TOC aside but still renders the docs sidebar column", () => {
+    const grid = shellGrid({
+      frontmatter: { aside: false },
+      toc: [
+        { level: 1, text: "Title", slug: "title" },
+        { level: 2, text: "Section", slug: "section" },
+      ],
+    });
+    expect(grid).toBeTruthy();
+    const children = grid.div as any[];
+    // Sidebar nav (Documentation) + main — no TOC <aside>.
+    const sidebarNav = children.find(
+      (child: any) => child?.ariaLabel === "Documentation",
+    );
+    const mainEl = children.find((child: any) => child?.id === "main-content");
+    const tocAside = children.find(
+      (child: any) => child?.aside !== undefined,
+    );
+    expect(sidebarNav).toBeTruthy();
+    expect(mainEl).toBeTruthy();
+    expect(tocAside).toBeUndefined();
+    // Two-column grid: sidebar + main (no aside width token).
+    expect(String(grid.style.gridTemplateColumns)).toMatch(
+      /minmax\(0,\s*1fr\)\s*$/,
+    );
+  });
+
+  it("does not cap prose max-width when aside is hidden and sidebar is shown", () => {
+    const grid = shellGrid({
+      frontmatter: { aside: false },
+      toc: [{ level: 2, text: "Section", slug: "section" }],
+    });
+    expect(grid).toBeTruthy();
+    const mainEl = (grid.div as any[]).find(
+      (child: any) => child?.id === "main-content",
+    );
+    expect(mainEl).toBeTruthy();
+    const contentDiv = (mainEl.main as any[]).find(
+      (child: any) => child?.div && child?.style?.maxWidth !== undefined,
+    );
+    expect(contentDiv).toBeTruthy();
+    expect(contentDiv.style.maxWidth).toBe("none");
+  });
+});
+
