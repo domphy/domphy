@@ -2,8 +2,8 @@
 
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode } from "@domphy/core";
-import { diagnose } from "../../../../doctor/src/index.ts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { diagnose } from "../../../../doctor/src/index.ts";
 import { sidebar01 } from "../../../src/shadcn/sidebar/sidebar01.js";
 
 // Each test renders the full aside + mobile-drawer + main tree (nav content

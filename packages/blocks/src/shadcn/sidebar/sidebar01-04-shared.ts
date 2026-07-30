@@ -11,7 +11,7 @@
 // *behavior* described in the block spec (docked/floating app sidebar with
 // collapsible navigation). Layout, icon artwork and code are original.
 
-import type { DomphyElement, Listener, State } from "@domphy/core";
+import type { DomphyElement, Listener, State, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
 import {
   type ThemeColor,
@@ -1090,9 +1090,7 @@ export function contentHeader(
 // ---------------------------------------------------------------------------
 
 /** dataTone surface paint for skeleton placeholder hosts (tiles / rows). */
-function mutedSurfaceStyle(
-  extra: Record<string, unknown> = {},
-): Record<string, unknown> {
+function mutedSurfaceStyle(extra: StyleObject = {}): StyleObject {
   return {
     backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
     color: (listener: Listener) => themeColor(listener, "shift-9"),

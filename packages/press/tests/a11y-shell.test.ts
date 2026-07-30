@@ -126,9 +126,7 @@ describe("pageShell aside:false keeps sidebar and expands content", () => {
       }),
     );
     const shellChildren = (shell as any).div as any[];
-    return shellChildren.find(
-      (child: any) => child?.style?.display === "grid",
-    );
+    return shellChildren.find((child: any) => child?.style?.display === "grid");
   }
 
   it("hides TOC aside but still renders the docs sidebar column", () => {
@@ -146,9 +144,7 @@ describe("pageShell aside:false keeps sidebar and expands content", () => {
       (child: any) => child?.ariaLabel === "Documentation",
     );
     const mainEl = children.find((child: any) => child?.id === "main-content");
-    const tocAside = children.find(
-      (child: any) => child?.aside !== undefined,
-    );
+    const tocAside = children.find((child: any) => child?.aside !== undefined);
     expect(sidebarNav).toBeTruthy();
     expect(mainEl).toBeTruthy();
     expect(tocAside).toBeUndefined();
@@ -175,4 +171,3 @@ describe("pageShell aside:false keeps sidebar and expands content", () => {
     expect(contentDiv.style.maxWidth).toBe("none");
   });
 });
-

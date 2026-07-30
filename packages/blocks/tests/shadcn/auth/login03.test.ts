@@ -2,8 +2,8 @@
 
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode } from "@domphy/core";
-import { diagnose } from "../../../../doctor/src/index.ts";
 import { afterEach, describe, expect, it } from "vitest";
+import { diagnose } from "../../../../doctor/src/index.ts";
 import { Login03 } from "../../../src/shadcn/auth/login03.ts";
 
 function render(app: DomphyElement) {
