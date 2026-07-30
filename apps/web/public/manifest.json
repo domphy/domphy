@@ -42,7 +42,7 @@
     },
     {
       "name": "create-domphy",
-      "version": "0.18.4",
+      "version": "0.18.5",
       "description": "Scaffold a runnable Domphy starter project (npm create domphy@latest)",
       "subpaths": ["."],
       "peerDependencies": []
@@ -174,7 +174,7 @@
     },
     {
       "name": "@domphy/ui",
-      "version": "0.20.10",
+      "version": "0.20.11",
       "description": "95 dependency-free UI patches for the Domphy runtime — buttons, dialogs, forms, overlays, motion",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core", "@domphy/theme"]
@@ -541,7 +541,7 @@
           "doc": "Accent color used for the focus ring. Defaults to \"primary\"."
         }
       ],
-      "doc": "Selectable item (`role=\"option\"`) in a command palette. On mount, immediately hides itself if the current query doesn't match its text content, and subscribes to future query changes — so items added dynamically after a search is typed are correctly filtered. Typically applied to a `<button>` (or any clickable element) used inside a `command()`.",
+      "doc": "Selectable item in a command palette. On mount, immediately hides itself if the current query doesn't match its text content, and subscribes to future query changes — so items added dynamically after a search is typed are correctly filtered. Typically applied to a `<button>` (or any clickable element) used inside a `command()`. Uses native button semantics (not `role=option`) so the search input may sit as a sibling without a listbox parent requirement.",
       "example": "{ button: \"Open file\", $: [commandItem({ color: \"neutral\" })] }",
       "source": "packages/ui/src/patches/command.ts"
     },

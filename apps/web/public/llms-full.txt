@@ -38730,6 +38730,11 @@ function combobox(props: {
   } else {
     inputElement = {
       input: null,
+      // Accessible name for the filter field (critical for axe label rule).
+      // Native text input (not role=combobox) — full combobox ARIA needs a
+      // stable aria-controls target id for the floating list; label is enough
+      // for WCAG name/role/value of the filter field.
+      ariaLabel: "Filter options",
       onFocus: (_e, node) => show(node),
       value: (listener: any) => {
         state.get(listener);
@@ -38823,6 +38828,10 @@ import { focusRing } from "../utils/focusRing.js";
  */
 function command(): PartialElement {
   return {
+    // Group (not listbox): search input + option buttons share one container;
+    // listbox forbids non-option children (aria-required-children).
+    role: "group",
+    ariaLabel: "Commands",
     _onSchedule: (_node, element) => {
       merge(element, {
         _context: {
@@ -38896,11 +38905,13 @@ function commandSearch(
 }
 
 /**
- * Selectable item (`role="option"`) in a command palette. On mount, immediately
- * hides itself if the current query doesn't match its text content, and subscribes
- * to future query changes — so items added dynamically after a search is typed are
- * correctly filtered. Typically applied to a `<button>` (or any clickable element)
- * used inside a `command()`.
+ * Selectable item in a command palette. On mount, immediately hides itself if
+ * the current query doesn't match its text content, and subscribes to future
+ * query changes — so items added dynamically after a search is typed are
+ * correctly filtered. Typically applied to a `<button>` (or any clickable
+ * element) used inside a `command()`. Uses native button semantics (not
+ * `role=option`) so the search input may sit as a sibling without a listbox
+ * parent requirement.
  *
  * @param props.color - Base theme color tone. Defaults to "neutral".
  * @param props.accentColor - Accent color used for the focus ring. Defaults to "primary".
@@ -38911,7 +38922,6 @@ function commandItem(
 ): PartialElement {
   const { color = "neutral", accentColor = "primary" } = props;
   return {
-    role: "option",
     _onMount: (node) => {
       const ctx = node.getContext("command");
       if (!ctx) {
@@ -41365,6 +41375,9 @@ import { themeSpacing } from "@domphy/theme";
  */
 function inputOTP(): PartialElement {
   return {
+    // Group naming so aria-label on the host is valid (not a bare div).
+    role: "group",
+    ariaLabel: "One-time password",
     style: {
       display: "flex",
       alignItems: "center",
@@ -41499,6 +41512,10 @@ function inputPassword(
       const field: DomphyElement<"input"> = {
         input: null,
         type: (l) => (visibleState.get(l) ? "text" : "password"),
+        // Default accessible name; consumers can override via a wrapping label
+        // or by replacing the field through a custom composition.
+        ariaLabel: "Password",
+        autocomplete: "current-password",
         style: {
           flex: 1,
           minWidth: 0,
@@ -44451,23 +44468,31 @@ function selectList(
   const { color = "neutral", multiple = false } = props;
   const state = toState(props.value ?? (multiple ? [] : null));
 
+  // type=hidden form fields (not a visible input) — avoid axe label/listbox noise.
   const inputs: DomphyElement<"div"> = {
     div: (listener) => {
       const val = state.get(listener);
       const vals = Array.isArray(val) ? val : [val];
       return vals.map((v) => ({
         input: null,
+        type: "hidden",
         name: props.name,
         // Preserve a legitimate numeric 0 (and other falsy-but-valid values);
         // `v || ""` would drop them.
         value: v == null ? "" : String(v),
       }));
     },
+    // Keep out of the a11y tree; listbox children must be options.
+    ariaHidden: "true",
     hidden: true,
   };
 
   const partial: PartialElement = {
     dataTone: "shift-0",
+    // selectItem uses role=option; options require a listbox parent (WAI-ARIA).
+    role: "listbox",
+    ariaLabel: "Options",
+    ariaMultiselectable: multiple ? "true" : undefined,
     _context: {
       select: {
         value: state,
