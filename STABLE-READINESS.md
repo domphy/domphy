@@ -17,7 +17,7 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 | --- | --- | --- | --- | --- | --- | --- |
 | `@domphy/core` | 0.20.2 | React / Solid (runtime model) | none | SSR edge cases vs React 19 streaming | Docs deep-dives | SSR + hydration + behavior() shipped; tests cover reconcile/lifecycle. |
 | `@domphy/theme` | 0.20.2 | CSS vars / design tokens (no React peer) | none | Dark-mode OS sync docs | Token export helpers | solid-role ramps distinct (warning≠primary, error≠danger). |
-| `@domphy/ui` | 0.20.10 | Radix UI / shadcn/ui | none | Broader a11y suite (axe on every patch) | Storybook-class docs | Dialog focus trap/restore + scroll-lock tests; doctor conformance. |
+| `@domphy/ui` | 0.20.11 | Radix UI / shadcn/ui | none | Storybook-class docs; SR manual smoke each release | — | Interactive-patch axe matrix (critical/serious) + keyboard contracts (dialog/menu/tabs/selectBox/combobox); dialog focus trap/restore. |
 | `@domphy/floating` | 0.18.1 | Floating UI | none | — | Size middleware parity | Zero-dep vendored positioning. |
 | `@domphy/palette` | 0.19.0 | chroma.js / culori (design tools) | none | — | CLI export | Ramp metrics + generateRamp. |
 | `@domphy/doctor` | 0.18.16 | eslint-plugin-jsx-a11y / Stylelint | none | Optional htmlhint/stylelint peers docs | Custom rule marketplace | diagnose/validate/fix API + tests. |
@@ -37,7 +37,7 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 | `@domphy/press` | 0.21.10 | VitePress | none | Search backend pluggability | Theme marketplace | CLI build/dev/preview. |
 | `@domphy/i18n` | 0.19.2 | react-i18next | none | ICU messageformat | — | Reactive `t(listener,key)` + singleton tests. |
 | `@domphy/mcp` | 0.19.2 | (no React peer; MCP SDK) | none | Offline/local manifest fallback; more tools | — | Agent tools over doctor/patches; SERVER_VERSION synced. |
-| `create-domphy` | 0.18.4 | `create-vite` / `create-next-app` | none | More templates | — | Version pin regression tests. |
+| `create-domphy` | 0.18.5 | `create-vite` / `create-next-app` | none | More templates | — | Version pin regression tests. |
 
 ### P0 closed this cut (historical + current)
 
@@ -55,6 +55,8 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 | P0-MCP-VERSION | mcp | SERVER_VERSION lagged package.json | synced to 0.19.2 |
 | P0-DIALOG-FOCUS | ui | focus trap/restore untested vs Radix contract | overlay tests for restore + Tab trap |
 | P0-ROUTER-SSR | router | `./ssr/server` shipped with zero package tests | `tests/ssr-server.test.ts` createRequestHandler smoke |
+| P0-UI-A11Y-AXE | ui | no axe-on-every-interactive-patch gate | `tests/a11y-matrix.test.ts` axe-core critical/serious on real mounts; keyboard contracts in `a11y-keyboard.test.ts` |
+| P0-UI-A11Y-ROLES | ui | listbox/option/label gaps on command/selectList/combobox/password/OTP | role/listbox/name fixes in shipped patches (0.20.11) |
 
 ## Stable cut — remaining publish steps
 

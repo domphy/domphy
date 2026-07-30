@@ -1,5 +1,11 @@
 # @domphy/ui Changelog
 
+## 0.20.11
+- a11y: interactive-patch axe-core matrix (`tests/a11y-matrix.test.ts`) fails on critical/serious; keyboard contracts for menu/tabs/selectBox/combobox (`tests/a11y-keyboard.test.ts`).
+- fix(a11y): `selectList` is `role=listbox` with named options and `type=hidden` form fields (aria-hidden wrapper).
+- fix(a11y): `command` is `role=group`; `commandItem` uses native button semantics (search input sibling-safe).
+- fix(a11y): default `aria-label` on `inputPassword` field and combobox filter input; `inputOTP` is `role=group` with a default label.
+
 ## 0.20.10
 - Visual-fidelity fixes (screenshot-driven QA vs shadcn/ui):
   - `menu`, `selectList`: light panel surface (`shift-0`) instead of a hardcoded near-black one — reads as a proper light listbox on light pages.

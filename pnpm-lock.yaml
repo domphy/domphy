@@ -779,6 +779,9 @@ importers:
       '@domphy/theme':
         specifier: workspace:*
         version: link:../theme
+      axe-core:
+        specifier: ^4.12.1
+        version: 4.12.1
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1

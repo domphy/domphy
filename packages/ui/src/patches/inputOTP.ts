@@ -12,6 +12,9 @@ import { themeSpacing } from "@domphy/theme";
  */
 function inputOTP(): PartialElement {
   return {
+    // Group naming so aria-label on the host is valid (not a bare div).
+    role: "group",
+    ariaLabel: "One-time password",
     style: {
       display: "flex",
       alignItems: "center",

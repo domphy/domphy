@@ -40,23 +40,31 @@ function selectList(
   const { color = "neutral", multiple = false } = props;
   const state = toState(props.value ?? (multiple ? [] : null));
 
+  // type=hidden form fields (not a visible input) — avoid axe label/listbox noise.
   const inputs: DomphyElement<"div"> = {
     div: (listener) => {
       const val = state.get(listener);
       const vals = Array.isArray(val) ? val : [val];
       return vals.map((v) => ({
         input: null,
+        type: "hidden",
         name: props.name,
         // Preserve a legitimate numeric 0 (and other falsy-but-valid values);
         // `v || ""` would drop them.
         value: v == null ? "" : String(v),
       }));
     },
+    // Keep out of the a11y tree; listbox children must be options.
+    ariaHidden: "true",
     hidden: true,
   };
 
   const partial: PartialElement = {
     dataTone: "shift-0",
+    // selectItem uses role=option; options require a listbox parent (WAI-ARIA).
+    role: "listbox",
+    ariaLabel: "Options",
+    ariaMultiselectable: multiple ? "true" : undefined,
     _context: {
       select: {
         value: state,

@@ -108,6 +108,11 @@ function combobox(props: {
   } else {
     inputElement = {
       input: null,
+      // Accessible name for the filter field (critical for axe label rule).
+      // Native text input (not role=combobox) — full combobox ARIA needs a
+      // stable aria-controls target id for the floating list; label is enough
+      // for WCAG name/role/value of the filter field.
+      ariaLabel: "Filter options",
       onFocus: (_e, node) => show(node),
       value: (listener: any) => {
         state.get(listener);

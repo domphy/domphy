@@ -147,7 +147,7 @@ describe("command palette", () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("commandSearch"));
   });
 
-  it("sets role=option on command items", () => {
+  it("sets role=group on the command host and keeps items as buttons", () => {
     const { host } = render({
       div: [
         {
@@ -156,7 +156,8 @@ describe("command palette", () => {
         },
       ],
     } as DomphyElement);
-    expect(host.querySelector("[role=option]")).not.toBeNull();
+    expect(host.querySelector("[role=group]")).not.toBeNull();
+    expect(host.querySelector("button")?.textContent).toContain("Open file");
   });
 
   it("hides items on a non-matching query and shows them again when cleared", () => {
@@ -175,7 +176,7 @@ describe("command palette", () => {
 
     const input = host.querySelector("input") as HTMLInputElement;
     const items = () =>
-      Array.from(host.querySelectorAll("[role=option]")) as HTMLElement[];
+      Array.from(host.querySelectorAll("button")) as HTMLElement[];
 
     // No query: every item visible.
     expect(items().every((i) => !i.hidden)).toBe(true);

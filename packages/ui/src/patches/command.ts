@@ -17,6 +17,10 @@ import { focusRing } from "../utils/focusRing.js";
  */
 function command(): PartialElement {
   return {
+    // Group (not listbox): search input + option buttons share one container;
+    // listbox forbids non-option children (aria-required-children).
+    role: "group",
+    ariaLabel: "Commands",
     _onSchedule: (_node, element) => {
       merge(element, {
         _context: {
@@ -90,11 +94,13 @@ function commandSearch(
 }
 
 /**
- * Selectable item (`role="option"`) in a command palette. On mount, immediately
- * hides itself if the current query doesn't match its text content, and subscribes
- * to future query changes — so items added dynamically after a search is typed are
- * correctly filtered. Typically applied to a `<button>` (or any clickable element)
- * used inside a `command()`.
+ * Selectable item in a command palette. On mount, immediately hides itself if
+ * the current query doesn't match its text content, and subscribes to future
+ * query changes — so items added dynamically after a search is typed are
+ * correctly filtered. Typically applied to a `<button>` (or any clickable
+ * element) used inside a `command()`. Uses native button semantics (not
+ * `role=option`) so the search input may sit as a sibling without a listbox
+ * parent requirement.
  *
  * @param props.color - Base theme color tone. Defaults to "neutral".
  * @param props.accentColor - Accent color used for the focus ring. Defaults to "primary".
@@ -105,7 +111,6 @@ function commandItem(
 ): PartialElement {
   const { color = "neutral", accentColor = "primary" } = props;
   return {
-    role: "option",
     _onMount: (node) => {
       const ctx = node.getContext("command");
       if (!ctx) {

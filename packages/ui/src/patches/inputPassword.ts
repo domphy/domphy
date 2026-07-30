@@ -63,6 +63,10 @@ function inputPassword(
       const field: DomphyElement<"input"> = {
         input: null,
         type: (l) => (visibleState.get(l) ? "text" : "password"),
+        // Default accessible name; consumers can override via a wrapping label
+        // or by replacing the field through a custom composition.
+        ariaLabel: "Password",
+        autocomplete: "current-password",
         style: {
           flex: 1,
           minWidth: 0,

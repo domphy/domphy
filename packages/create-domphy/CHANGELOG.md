@@ -1,5 +1,9 @@
 # create-domphy Changelog
 
+## 0.18.5
+
+- Pin scaffolded `@domphy/ui` to 0.20.11 (interactive a11y matrix release).
+
 ## 0.18.4
 
 - P0 fix: scaffolded `main.ts` now calls `applySystemTheme()` after `themeApply()` — previously no theme scope was activated, so the starter rendered unstyled (bare text, invisible buttons) on first `npm run dev`. Regression test added.
