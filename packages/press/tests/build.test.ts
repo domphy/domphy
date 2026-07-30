@@ -77,6 +77,7 @@ describe("buildSite isHome resolution", () => {
     rmSync(outDir, { recursive: true, force: true });
   });
 
+  // Real buildSite under monorepo-wide parallel CI can exceed vitest's 5s default.
   it("renders a non-root page with frontmatter layout: home through homeShell, not pageShell", async () => {
     srcDir = mkdtempSync(join(tmpdir(), "press-build-src-"));
     outDir = mkdtempSync(join(tmpdir(), "press-build-out-"));
@@ -121,5 +122,5 @@ describe("buildSite isHome resolution", () => {
       "utf8",
     );
     expect(plainHtml).not.toContain("Regression Hero Tagline");
-  });
+  }, 30_000);
 });

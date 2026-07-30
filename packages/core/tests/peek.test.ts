@@ -23,7 +23,7 @@ describe("peek", () => {
   it("subscribes nothing on the read states", () => {
     const state = toState(1);
     peek((l) => state.get(l as any));
-    expect((state as any)._notifier._listeners["number"]?.size ?? 0).toBe(0);
+    expect((state as any)._notifier._listeners.number?.size ?? 0).toBe(0);
   });
 
   it("does not become a dependency of an enclosing effect", async () => {

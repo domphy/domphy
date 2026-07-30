@@ -15,29 +15,29 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 
 | Package | Version | React / ecosystem peers | P0 | P1 | P2 | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| `@domphy/core` | 0.19.3 | React / Solid (runtime model) | none | SSR edge cases vs React 19 streaming | Docs deep-dives | SSR + hydration + behavior() shipped; tests cover reconcile/lifecycle. |
-| `@domphy/theme` | 0.20.1 | CSS vars / design tokens (no React peer) | none | Dark-mode OS sync docs | Token export helpers | solid-role ramps distinct (warning≠primary, error≠danger). |
-| `@domphy/ui` | 0.20.8 | Radix UI / shadcn/ui | none | Broader a11y suite (axe on every patch) | Storybook-class docs | Dialog focus trap/restore + scroll-lock tests; doctor conformance. |
+| `@domphy/core` | 0.20.2 | React / Solid (runtime model) | none | SSR edge cases vs React 19 streaming | Docs deep-dives | SSR + hydration + behavior() shipped; tests cover reconcile/lifecycle. |
+| `@domphy/theme` | 0.20.2 | CSS vars / design tokens (no React peer) | none | Dark-mode OS sync docs | Token export helpers | solid-role ramps distinct (warning≠primary, error≠danger). |
+| `@domphy/ui` | 0.20.10 | Radix UI / shadcn/ui | none | Broader a11y suite (axe on every patch) | Storybook-class docs | Dialog focus trap/restore + scroll-lock tests; doctor conformance. |
 | `@domphy/floating` | 0.18.1 | Floating UI | none | — | Size middleware parity | Zero-dep vendored positioning. |
 | `@domphy/palette` | 0.19.0 | chroma.js / culori (design tools) | none | — | CLI export | Ramp metrics + generateRamp. |
-| `@domphy/doctor` | 0.18.15 | eslint-plugin-jsx-a11y / Stylelint | none | Optional htmlhint/stylelint peers docs | Custom rule marketplace | diagnose/validate/fix API + tests. |
+| `@domphy/doctor` | 0.18.16 | eslint-plugin-jsx-a11y / Stylelint | none | Optional htmlhint/stylelint peers docs | Custom rule marketplace | diagnose/validate/fix API + tests. |
 | `@domphy/query` | 0.18.1 | TanStack Query | none | Devtools adapter; createQueries helper | Persist plugin | Core + `/domphy` adapter; `throwOnError` throws on reactive reads. |
-| `@domphy/table` | 0.18.1 | TanStack Table | none | Column virtualization recipes | — | Core + `/domphy` adapter. |
+| `@domphy/table` | 0.19.0 | TanStack Table | none | Column virtualization recipes | — | Core + `/domphy` adapter. |
 | `@domphy/form` | 0.18.1 | TanStack Form / RHF | none | Standard schema adapters docs | — | Core + `/domphy` adapter; invalid submit + `setErrorMap` tested. |
 | `@domphy/virtual` | 0.18.1 | TanStack Virtual | none | Grid virtualizer / window helper examples | — | Core + `/domphy` adapter. |
 | `@domphy/router` | 0.18.1 | TanStack Router | none | File-route codegen; deeper stream/hydrate suite; Link helper | Devtools | SSR `createRequestHandler` smoke tests + match/loader core. |
-| `@domphy/dnd` | 0.18.3 | FormKit DnD (list model; not dnd-kit canvas) | none | Keyboard sortable a11y suite; drag sim tests | — | Thin FormKit adapter for sortable/multi-list. |
-| `@domphy/app` | 0.18.1 | Next.js App Router | none | Edge middleware cookbook; page SSR Set-Cookie/headers; revalidateTag | Deploy adapters | Loaders, lazy, i18n, cookies(read), SSR tests. |
-| `@domphy/blocks` | 0.1.2 | shadcn blocks + Magic UI | none | Full visual re-baseline in CI | More device demo assets | 173 demos; SOURCES.md clean-room; visual QA harness. |
+| `@domphy/dnd` | 0.18.4 | FormKit DnD (list model; not dnd-kit canvas) | none | Keyboard sortable a11y suite; drag sim tests | — | Thin FormKit adapter for sortable/multi-list. |
+| `@domphy/app` | 0.18.2 | Next.js App Router | none | Edge middleware cookbook; page SSR Set-Cookie/headers; revalidateTag | Deploy adapters | Loaders, lazy, i18n, cookies(read), SSR tests. |
+| `@domphy/blocks` | 0.1.4 | shadcn blocks + Magic UI | none | Full visual re-baseline in CI | More device demo assets | 173 demos; SOURCES.md clean-room; visual QA harness. |
 | `@domphy/chart` | 0.2.3 | ECharts / Recharts | none | SSR canvas snapshot tests; percent stack | More series demos | Canvas engine + theme; unsupported custom/toolbox/brush warn. |
 | `@domphy/three` | 0.2.1 | @react-three/fiber | none | Asset loader error-boundary recipes; pointer container offset | — | R3F-class reconciler port + doctor. |
-| `@domphy/editor` | 0.2.0 | Tiptap / ProseMirror | none | IME stress suite across browsers; collaborative-editing story | Merged-cell table map; image extension; NodeSelection | Tiptap-compatible API on a self-contained engine; StarterKit + underline/table/node views/autolink; 27-scenario real-browser pass. |
-| `@domphy/markdown` | 0.19.1 | react-markdown / MDX | none | MDX component map docs; CDN global entry | — | remark pipeline → Domphy trees. |
-| `@domphy/mermaid` | 0.18.1 | mermaid + React wrappers | none | Client hydrate stress tests | — | Build-time SVG via optional mermaid-cli; client patch. |
-| `@domphy/press` | 0.21.4 | VitePress | none | Search backend pluggability | Theme marketplace | CLI build/dev/preview. |
+| `@domphy/editor` | 0.2.1 | Tiptap / ProseMirror | none | IME stress suite across browsers; collaborative-editing story | Merged-cell table map; image extension; NodeSelection | Tiptap-compatible API on a self-contained engine; StarterKit + underline/table/node views/autolink; 27-scenario real-browser pass. |
+| `@domphy/markdown` | 0.19.2 | react-markdown / MDX | none | MDX component map docs; CDN global entry | — | remark pipeline → Domphy trees. |
+| `@domphy/mermaid` | 0.18.2 | mermaid + React wrappers | none | Client hydrate stress tests | — | Build-time SVG via optional mermaid-cli; client patch. |
+| `@domphy/press` | 0.21.10 | VitePress | none | Search backend pluggability | Theme marketplace | CLI build/dev/preview. |
 | `@domphy/i18n` | 0.19.2 | react-i18next | none | ICU messageformat | — | Reactive `t(listener,key)` + singleton tests. |
 | `@domphy/mcp` | 0.19.2 | (no React peer; MCP SDK) | none | Offline/local manifest fallback; more tools | — | Agent tools over doctor/patches; SERVER_VERSION synced. |
-| `create-domphy` | 0.18.3 | `create-vite` / `create-next-app` | none | More templates | — | Version pin regression tests. |
+| `create-domphy` | 0.18.4 | `create-vite` / `create-next-app` | none | More templates | — | Version pin regression tests. |
 
 ### P0 closed this cut (historical + current)
 

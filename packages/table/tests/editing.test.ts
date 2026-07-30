@@ -1,11 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createDomphyTable } from "../src/domphy/index";
-import {
-  CellEditing,
-  createColumnHelper,
-  getCoreRowModel,
-} from "../src/index";
 import type { Cell, CellEdit, EditingCellId } from "../src/index";
+import { CellEditing, createColumnHelper, getCoreRowModel } from "../src/index";
 
 // State notifications are microtask-batched; flush before asserting on listeners.
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -77,7 +73,10 @@ describe("CellEditing feature (opt-in via _features)", () => {
     cell.beginEdit();
 
     expect(dTable.version()).toBe(before + 1);
-    expect(dTable.state().cellEditing).toEqual({ rowId: "0", columnId: "name" });
+    expect(dTable.state().cellEditing).toEqual({
+      rowId: "0",
+      columnId: "name",
+    });
     expect(dTable.table.getEditingCell()).toEqual({
       rowId: "0",
       columnId: "name",
@@ -93,7 +92,9 @@ describe("CellEditing feature (opt-in via _features)", () => {
     table.setEditingCell({ rowId: "1", columnId: "age" });
     expect(table.getEditingCell()).toEqual({ rowId: "1", columnId: "age" });
 
-    table.setEditingCell((old) => (old ? null : { rowId: "0", columnId: "name" }));
+    table.setEditingCell((old) =>
+      old ? null : { rowId: "0", columnId: "name" },
+    );
     expect(table.getEditingCell()).toBeNull();
   });
 

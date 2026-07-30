@@ -1,6 +1,6 @@
 {
   "name": "domphy",
-  "version": "0.20.1",
+  "version": "0.20.2",
   "generated": "auto",
   "rules": "https://domphy.com/llms.txt",
   "tones": "https://domphy.com/tones.json",
@@ -35,7 +35,7 @@
     },
     {
       "name": "@domphy/core",
-      "version": "0.20.1",
+      "version": "0.20.2",
       "description": "Domphy core runtime — patch-based, framework-agnostic UI with plain-object element trees, listener-based reactivity, and SSR + hydration (no JSX, no virtual DOM)",
       "subpaths": ["."],
       "peerDependencies": []
@@ -63,7 +63,7 @@
     },
     {
       "name": "@domphy/editor",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "description": "Domphy Editor - headless rich-text editor with a Tiptap-compatible API, self-contained engine (no ProseMirror), Domphy adapter with bubble menu",
       "subpaths": [".", "./domphy"],
       "peerDependencies": ["@domphy/core", "@domphy/theme"]
@@ -153,7 +153,7 @@
     },
     {
       "name": "@domphy/table",
-      "version": "0.18.1",
+      "version": "0.19.0",
       "description": "Domphy Table - headless table logic, a 1-1 port of @tanstack/table-core",
       "subpaths": [".", "./domphy"],
       "peerDependencies": ["@domphy/core"]
