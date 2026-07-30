@@ -1,5 +1,6 @@
 import {
   type DomphyElement,
+  type ElementNode,
   merge,
   type PartialElement,
   type StyleObject,
@@ -110,6 +111,9 @@ function selectBox(props: {
     } as StyleObject,
   };
 
+  const toggle = (node?: ElementNode) =>
+    openState.get() ? hide(node) : show(node);
+
   const partial: PartialElement = {
     _onInsert: (node) => {
       if (node.tagName !== "div") {
@@ -117,9 +121,31 @@ function selectBox(props: {
       }
     },
     _onInit: (node) => node.children.insert(wrap),
-    onClick: (_e, node) => (openState.get() ? hide(node) : show(node)),
-    // Focusable trigger for keyboard users (click already toggles open).
+    onClick: (_e, node) => toggle(node),
+    // Focusable trigger: click + Enter/Space/ArrowDown open (APG button+listbox).
+    // Escape dismiss composes with createFloating's hide path.
     tabindex: 0,
+    role: "button",
+    // Reactive boolean (same pattern as popover) — do NOT pin a static
+    // ariaExpanded or patch re-apply will overwrite after keyboard open.
+    ariaExpanded: (listener) => openState.get(listener),
+    ariaHaspopup: "listbox",
+    onKeyDown: (e, node) => {
+      const key = (e as KeyboardEvent).key;
+      if (key === "Escape") {
+        hide(node);
+        return;
+      }
+      if (key === "Enter" || key === " ") {
+        e.preventDefault();
+        toggle(node);
+        return;
+      }
+      if (key === "ArrowDown" && !openState.get()) {
+        e.preventDefault();
+        show(node);
+      }
+    },
     style: {
       cursor: "pointer",
       display: "flex",

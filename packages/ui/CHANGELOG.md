@@ -1,5 +1,8 @@
 # @domphy/ui Changelog
 
+## 0.20.12
+- fix(a11y): `selectBox` opens via Enter/Space/ArrowDown on the focused trigger (not click-only); `role=button` + `aria-haspopup=listbox` + reactive `aria-expanded`. Keyboard contract test drives keydown (no `.click()`).
+
 ## 0.20.11
 - a11y: interactive-patch axe-core matrix (`tests/a11y-matrix.test.ts`) fails on critical/serious; keyboard contracts for menu/tabs/selectBox/combobox (`tests/a11y-keyboard.test.ts`).
 - fix(a11y): `selectList` is `role=listbox` with named options and `type=hidden` form fields (aria-hidden wrapper).

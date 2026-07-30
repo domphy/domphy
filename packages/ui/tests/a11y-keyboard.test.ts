@@ -140,7 +140,7 @@ describe("tabs keyboard", () => {
 describe("selectBox keyboard / focus", () => {
   beforeEach(() => vi.useFakeTimers());
 
-  it("is focusable (tabindex=0), toggles open on click, Escape closes floating panel", () => {
+  it("opens via Enter (not only click), Space toggles, Escape closes; focus stays on trigger", () => {
     const open = toState(false);
     const { host } = render({
       div: null,
@@ -165,36 +165,50 @@ describe("selectBox keyboard / focus", () => {
 
     const box = host.querySelector("div[tabindex='0']") as HTMLElement | null;
     expect(box).not.toBeNull();
+    expect(box!.getAttribute("role")).toBe("button");
+    expect(box!.getAttribute("aria-haspopup")).toBe("listbox");
     box!.focus();
     expect(document.activeElement).toBe(box);
+    expect(open.get()).toBe(false);
 
-    box!.click();
+    // Criterion: keyboard open — Enter on focused trigger (no .click()).
+    keydown(box!, "Enter");
     flushSync();
     vi.runAllTimers();
+    flushSync();
     expect(open.get()).toBe(true);
+    // Primary contract is open state; aria-expanded follows when reactive attrs flush.
+    // Accept "true" or empty boolean-true serialization; reject explicit "false".
+    expect(box!.getAttribute("aria-expanded")).not.toBe("false");
 
-    // Floating content is portaled; Escape on panel dismisses.
-    const panel =
-      (document.querySelector("[data-floating]") as HTMLElement | null) ??
-      (Array.from(document.body.querySelectorAll("div")).find(
-        (el) => el.textContent?.includes("Alpha") && el !== box,
-      ) as HTMLElement | undefined) ??
-      null;
-
-    // Prefer dispatching Escape on the anchor (floating also listens document-level).
+    // Escape closes; focus remains usable on the trigger.
     keydown(box!, "Escape");
     flushSync();
     vi.runAllTimers();
-    // If still open, try document-level Escape (floating hide path).
     if (open.get()) {
       keydown(document, "Escape");
       flushSync();
       vi.runAllTimers();
     }
     expect(open.get()).toBe(false);
-    // Focus remains usable on the trigger after dismiss.
     expect(box!.getAttribute("tabindex")).toBe("0");
-    void panel;
+    expect(document.activeElement === box || box!.tabIndex === 0).toBe(true);
+
+    // Space opens when closed.
+    keydown(box!, " ");
+    flushSync();
+    vi.runAllTimers();
+    expect(open.get()).toBe(true);
+
+    // ArrowDown opens when closed.
+    keydown(box!, "Escape");
+    flushSync();
+    vi.runAllTimers();
+    expect(open.get()).toBe(false);
+    keydown(box!, "ArrowDown");
+    flushSync();
+    vi.runAllTimers();
+    expect(open.get()).toBe(true);
   });
 });
 

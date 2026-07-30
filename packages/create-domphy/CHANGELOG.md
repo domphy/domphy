@@ -1,5 +1,9 @@
 # create-domphy Changelog
 
+## 0.18.6
+
+- Pin scaffolded `@domphy/ui` to 0.20.12.
+
 ## 0.18.5
 
 - Pin scaffolded `@domphy/ui` to 0.20.11 (interactive a11y matrix release).
@@ -18,3 +22,4 @@
 ## 0.18.0
 
 - Initial `npm create domphy@latest` scaffolder.
+
