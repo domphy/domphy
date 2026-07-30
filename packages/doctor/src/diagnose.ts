@@ -837,15 +837,19 @@ function walk(
   // by comparing their shift numbers extracted from the `var(--X-N)` strings that
   // themeColor() returns. Both props must be reactive and resolve to theme vars for
   // this check to fire. A shift difference < 9 violates WCAG-level legibility.
+  // Skip void/decorative hosts (`tag: null` content): they carry color tokens for
+  // swatches/glyphs with no text to read — series legend chips, icon rails, etc.
   {
     const styleProp = isPlainObject(element.style)
       ? (element.style as Record<string, unknown>)
       : null;
     const colorFn = styleProp?.color;
     const bgFn = styleProp?.backgroundColor;
+    const contentIsNull = tag ? element[tag] === null : false;
 
     if (
       runReactive &&
+      !contentIsNull &&
       typeof colorFn === "function" &&
       typeof bgFn === "function"
     ) {

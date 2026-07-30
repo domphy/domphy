@@ -2,6 +2,7 @@
 
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode } from "@domphy/core";
+import { diagnose } from "../../../../doctor/src/index.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import { Login03 } from "../../../src/shadcn/auth/login03.ts";
 
@@ -29,6 +30,13 @@ describe("Login03", () => {
     ).toBeTruthy();
     expect(host.textContent).toContain("Login with Apple");
     expect(host.textContent).toContain("Login with Google");
+  });
+
+  it("ships dataTone surfaces with the surface contract (bg + color)", () => {
+    const diags = diagnose(Login03() as any).filter(
+      (d) => d.rule === "dataTone-surface-contract",
+    );
+    expect(diags, diags.map((d) => d.message).join("\n")).toEqual([]);
   });
 
   it("renders the legal disclaimer footer below the card with Terms/Privacy links", () => {

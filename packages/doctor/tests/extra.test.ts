@@ -667,6 +667,19 @@ describe("regression: low-contrast only compares shift steps within the same CSS
     };
     expect(rules(element)).toContain("low-contrast");
   });
+
+  it("does not fire on void/decorative hosts with null content (legend swatches)", () => {
+    // Chart/legend color chips set themed bg+color with no text — gap < 9 is
+    // not a text-legibility problem.
+    const element = {
+      span: null,
+      style: {
+        color: (_l: unknown) => "var(--primary-0)",
+        backgroundColor: (_l: unknown) => "var(--primary-4)",
+      },
+    };
+    expect(rules(element)).not.toContain("low-contrast");
+  });
 });
 
 describe("format() icon variants", () => {

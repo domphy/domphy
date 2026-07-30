@@ -2,6 +2,7 @@
 
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode } from "@domphy/core";
+import { diagnose } from "../../../../doctor/src/index.ts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { sidebar01 } from "../../../src/shadcn/sidebar/sidebar01.js";
 
@@ -52,6 +53,15 @@ describe("sidebar01", () => {
     expect(host.querySelectorAll("aside").length).toBe(1);
     expect(host.querySelectorAll("dialog").length).toBe(1);
     expect(host.querySelectorAll("main").length).toBe(1);
+  });
+
+  it("ships dataTone surfaces with the surface contract (bg + color)", () => {
+    // Reverse-audit finding: brand box / content tiles set dataTone without
+    // restating bg+color — doctor dataTone-surface-contract. Fixed in shared shell.
+    const diags = diagnose(sidebar01() as any).filter(
+      (d) => d.rule === "dataTone-surface-contract",
+    );
+    expect(diags, diags.map((d) => d.message).join("\n")).toEqual([]);
   });
 
   it("renders the version switcher, labeled nav groups and a toggle rail (no footer)", () => {

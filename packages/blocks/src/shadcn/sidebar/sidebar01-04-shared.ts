@@ -599,6 +599,11 @@ function headerBrandBox(): DomphyElement<"span"> {
       height: themeSpacing(8),
       flexShrink: 0,
       borderRadius: themeSpacing(2),
+      // Surface contract: dataTone hosts must declare both bg + color so
+      // doctor (and nested text) can guarantee contrast without relying on
+      // the avatar patch alone.
+      backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
+      color: (listener: Listener) => themeColor(listener, "shift-9"),
     },
   };
 }
@@ -695,6 +700,7 @@ export function sidebarHeaderVersionSwitcher(
       paddingBlock: (listener: Listener) =>
         themeSpacing(themeDensity(listener) * 1),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
+      color: (listener: Listener) => themeColor(listener, "shift-9"),
     },
   };
 
@@ -1083,6 +1089,17 @@ export function contentHeader(
 // Content demo area
 // ---------------------------------------------------------------------------
 
+/** dataTone surface paint for skeleton placeholder hosts (tiles / rows). */
+function mutedSurfaceStyle(
+  extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
+    color: (listener: Listener) => themeColor(listener, "shift-9"),
+    ...extra,
+  };
+}
+
 export function contentTileGrid(): DomphyElement<"div"> {
   const tiles = [0, 1, 2].map((index) => ({
     div: null,
@@ -1091,7 +1108,7 @@ export function contentTileGrid(): DomphyElement<"div"> {
     // shift-2 surface that reads visibly dirty at this size.
     dataTone: "shift-1",
     $: [skeleton()],
-    style: { height: themeSpacing(48) },
+    style: mutedSurfaceStyle({ height: themeSpacing(48) }),
   }));
 
   return {
@@ -1108,7 +1125,10 @@ export function contentTileGrid(): DomphyElement<"div"> {
         div: null,
         dataTone: "shift-1",
         $: [skeleton()],
-        style: { height: themeSpacing(160), flex: "1 1 auto" },
+        style: mutedSurfaceStyle({
+          height: themeSpacing(160),
+          flex: "1 1 auto",
+        }),
       },
     ],
     style: {
@@ -1126,7 +1146,7 @@ export function contentPlaceholderRows(count = 40): DomphyElement<"div"> {
     _key: `row-${index}`,
     dataTone: "shift-1",
     $: [skeleton()],
-    style: { height: themeSpacing(14) },
+    style: mutedSurfaceStyle({ height: themeSpacing(14) }),
   }));
 
   return {

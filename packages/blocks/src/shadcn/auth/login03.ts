@@ -190,9 +190,16 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
     ],
     $: [card({ color: "neutral" })],
     // White card surface (upstream bg-card) so the card separates from the
-    // muted shift-1 page — card() paints an inherit-tone background.
+    // muted shift-1 page — card() paints an inherit-tone background; restate
+    // bg+color so the dataTone surface contract is self-contained on this host.
     dataTone: "shift-0",
-    style: { width: "100%", maxWidth: NARROW_CARD_WIDTH },
+    style: {
+      width: "100%",
+      maxWidth: NARROW_CARD_WIDTH,
+      backgroundColor: (listener: Listener) =>
+        themeColor(listener, "inherit", "neutral"),
+      color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
+    },
   };
 
   return {
