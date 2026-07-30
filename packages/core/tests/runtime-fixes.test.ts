@@ -131,7 +131,7 @@ describe("void-tag content", () => {
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
-  it("does not warn for the empty-string idiom ({ hr: \"\" })", () => {
+  it('does not warn for the empty-string idiom ({ hr: "" })', () => {
     new ElementNode({ hr: "" } as any);
     expect(warnSpy).not.toHaveBeenCalled();
   });
