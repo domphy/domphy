@@ -10,7 +10,7 @@
     "fix": "biome check --write .",
     "verify:publish": "node scripts/verify-publish.mjs",
     "verify:stable": "node scripts/stable-readiness-check.mjs",
-    "ci": "pnpm check && pnpm -r build && pnpm -r --workspace-concurrency=3 test && node scripts/stable-readiness-check.mjs",
+    "ci": "pnpm check && pnpm -r --workspace-concurrency=3 build && pnpm -r --workspace-concurrency=3 test && node scripts/stable-readiness-check.mjs",
     "a11y": "pnpm --filter domphy-web a11y",
     "a11y:prod": "pnpm --filter domphy-web a11y:prod",
     "publish:core": "cd packages/core && pnpm publish --access public --no-git-checks",
