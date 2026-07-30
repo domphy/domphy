@@ -207,6 +207,10 @@ export interface SearchWidgetOptions {
   indexUrl?: string;
   placeholder?: string;
   limit?: number;
+  /** Site base path without trailing slash (e.g. "/docs" when the site is
+   *  deployed under a sub-path). Result hrefs are prefixed with it so they
+   *  resolve on non-root deployments. Default "" (root deployment). */
+  basePath?: string;
 }
 
 interface WidgetState {
@@ -264,11 +268,23 @@ function resultRow(
   };
 }
 
-function runQuery(state: RecordState<WidgetState>, limit: number): void {
+function runQuery(
+  state: RecordState<WidgetState>,
+  limit: number,
+  basePath: string,
+): void {
   const index = state.get("index");
   const query = state.get("query");
   const results = index && query.trim() ? queryIndex(index, query, limit) : [];
-  state.set("results", results);
+  state.set(
+    "results",
+    basePath
+      ? results.map((result) => ({
+          ...result,
+          href: `${basePath}${result.href}`,
+        }))
+      : results,
+  );
   state.set("active", -1);
   state.set("open", results.length > 0);
 }
@@ -278,6 +294,7 @@ export function searchWidget(options: SearchWidgetOptions = {}): DomphyElement {
     indexUrl = "/search-index.json",
     placeholder = "Search docs…",
     limit = 10,
+    basePath = "",
   } = options;
   const widgetId = ++widgetCounter;
   const listboxId = `dp-search-${widgetId}-listbox`;
@@ -314,7 +331,7 @@ export function searchWidget(options: SearchWidgetOptions = {}): DomphyElement {
     onInput: (e) => {
       state.set("query", (e.target as HTMLInputElement).value);
       if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => runQuery(state, limit), 120);
+      debounceTimer = setTimeout(() => runQuery(state, limit, basePath), 120);
     },
     onFocus: () => {
       if (state.get("results").length > 0) state.set("open", true);
@@ -385,7 +402,7 @@ export function searchWidget(options: SearchWidgetOptions = {}): DomphyElement {
         .then((r) => r.text())
         .then((text) => {
           state.set("index", text);
-          if (state.get("query").trim()) runQuery(state, limit);
+          if (state.get("query").trim()) runQuery(state, limit, basePath);
         })
         .catch(() => {});
       const host = node.domElement as HTMLElement;

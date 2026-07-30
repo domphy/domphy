@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Editor } from "../../src/Editor";
+import { Node } from "../../src/Extendable";
 import { Document } from "../../src/extensions/document";
 import { Paragraph } from "../../src/extensions/paragraph";
 import {
@@ -44,7 +45,9 @@ describe("table schema", () => {
       group: "block",
       content: "tableRow+",
     });
-    expect(TableRow.config).toMatchObject({ content: "tableCell+" });
+    expect(TableRow.config).toMatchObject({
+      content: "(tableCell | tableHeader)+",
+    });
     expect(TableCell.config).toMatchObject({
       group: "tableCell",
       content: "block+",
@@ -170,6 +173,92 @@ describe("table editing", () => {
     expect(editor.commands.deleteTable()).toBe(false);
     expect(editor.commands.addRowAfter()).toBe(false);
     expect(editor.commands.goToNextCell()).toBe(false);
+    editor.destroy();
+  });
+
+  it("keeps the caret in its cell after adding a row", () => {
+    const editor = tableEditor();
+
+    editor.commands.insertContent("a");
+    editor.commands.addRowAfter();
+    editor.commands.insertContent("b");
+
+    const table = editor.getJSON().content?.find((n) => n.type === "table");
+    const firstCell = table?.content?.[0].content?.[0];
+    expect(firstCell?.content?.[0].content?.[0]).toMatchObject({ text: "ab" });
+    editor.destroy();
+  });
+
+  it("snaps the caret into a surviving cell after deleting its row", () => {
+    const editor = tableEditor();
+
+    editor.commands.insertContent("a");
+    editor.commands.deleteRow();
+    expect(grid(editor)).toEqual([["tableCell", "tableCell"]]);
+
+    // Typing must land inside the surviving table, not mid-table or past it.
+    editor.commands.insertContent("b");
+    const table = editor.getJSON().content?.find((n) => n.type === "table");
+    expect(JSON.stringify(table)).toContain('"b"');
+    editor.destroy();
+  });
+
+  it("snaps the caret into a surviving cell after deleting its column", () => {
+    const editor = tableEditor();
+
+    editor.commands.deleteColumn();
+    expect(grid(editor)).toEqual([["tableCell"], ["tableCell"]]);
+
+    editor.commands.insertContent("b");
+    const table = editor.getJSON().content?.find((n) => n.type === "table");
+    expect(JSON.stringify(table)).toContain('"b"');
+    editor.destroy();
+  });
+
+  it("applies after an earlier chain link rebuilt the document", () => {
+    const editor = tableEditor();
+
+    const ran = editor
+      .chain()
+      .command(({ tr }) => {
+        // Rebuild every ancestor reference, the way wrap/lift links do.
+        tr.transform((doc) => ({ ...doc, content: [...(doc.content ?? [])] }));
+        return true;
+      })
+      .addRowAfter()
+      .run();
+
+    expect(ran).toBe(true);
+    expect(grid(editor)).toHaveLength(3);
+    editor.destroy();
+  });
+
+  it("fills new cells with the schema's default block type", () => {
+    const Section = Node.create({
+      name: "section",
+      group: "block",
+      content: "inline*",
+      parseHTML: () => [{ tag: "section" }],
+      renderHTML: ({ HTMLAttributes }) => ["section", HTMLAttributes, 0],
+    });
+    const editor = new Editor({
+      content: "<section></section>",
+      extensions: [
+        Document,
+        Section,
+        Text,
+        Table,
+        TableRow,
+        TableCell,
+        TableHeader,
+      ],
+    });
+    editor.commands.setTextSelection(editor.selectionBounds.end);
+
+    editor.commands.insertTable({ rows: 1, cols: 1, withHeaderRow: false });
+
+    const table = editor.getJSON().content?.find((n) => n.type === "table");
+    expect(table?.content?.[0].content?.[0].content?.[0].type).toBe("section");
     editor.destroy();
   });
 });

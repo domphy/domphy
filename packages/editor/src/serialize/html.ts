@@ -18,7 +18,11 @@ import type {
 } from "../types.js";
 import { hydrateContent } from "./json.js";
 
-const VOID_TAGS = new Set([
+/**
+ * HTML tags that never have a closing tag (or children). Shared by the HTML
+ * serializer and the view's DOM-output-spec renderer.
+ */
+export const VOID_TAGS = new Set([
   "area",
   "base",
   "br",
@@ -272,9 +276,12 @@ function parseChildren(
   marks: MarkJSON[],
   inTextblock: boolean,
   preserveWhitespace: boolean,
+  stripTrailingBreak = false,
 ): JSONContent[] {
   const result: JSONContent[] = [];
-  for (const child of Array.from(parent.childNodes)) {
+  const childNodes = Array.from(parent.childNodes);
+  for (let childIndex = 0; childIndex < childNodes.length; childIndex++) {
+    const child = childNodes[childIndex];
     if (child.nodeType === 3) {
       const raw = child.textContent ?? "";
       if (preserveWhitespace) {
@@ -302,6 +309,21 @@ function parseChildren(
       continue;
     }
     const element = child as Element;
+    if (
+      stripTrailingBreak &&
+      element.tagName === "BR" &&
+      childNodes
+        .slice(childIndex + 1)
+        .every(
+          (sibling) =>
+            sibling.nodeType === 3 && !/\S/.test(sibling.textContent ?? ""),
+        )
+    ) {
+      // A lone <br> at the end of a textblock in a live editing DOM is the
+      // caret placeholder browsers (and this editor's own renderer) insert —
+      // not content. Reading it back would manufacture a hardBreak.
+      continue;
+    }
     const match = matchRule(rules, element);
     if (!match) {
       result.push(
@@ -354,12 +376,20 @@ function parseChildren(
   return result;
 }
 
-/** Parse the children of a live DOM element into content for `parentName`. */
+/**
+ * Parse the children of a live DOM element into content for `parentName`.
+ *
+ * This is the DOM-read path (IME resync), not the HTML-paste path: when
+ * reading a textblock, a trailing `<br>` is treated as the caret placeholder
+ * and dropped. Pass `stripTrailingBreak: false` when the current model block
+ * already ends in a leaf node — then that `<br>` is real content.
+ */
 export function parseDOMContent(
   schema: Schema,
   element: Element,
   parentName: string,
   rules = parseRulesFor(schema),
+  stripTrailingBreak = true,
 ): JSONContent[] {
   const isTextblock = schema.isTextblock(parentName);
   const nodes = parseChildren(
@@ -369,6 +399,7 @@ export function parseDOMContent(
     [],
     isTextblock,
     schema.nodes.get(parentName)?.code === true,
+    isTextblock && stripTrailingBreak,
   );
   return hydrateContent(schema, nodes, parentName);
 }

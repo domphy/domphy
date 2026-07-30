@@ -88,4 +88,10 @@ describe("createApiHandler", () => {
   it("turns thrown errors into 500 responses", async () => {
     expect((await request("/api/broken")).status).toBe(500);
   });
+
+  it("returns 400 for malformed percent-encoded paths", async () => {
+    const response = await handler(new Request("http://localhost/api/users/%"));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Bad Request" });
+  });
 });

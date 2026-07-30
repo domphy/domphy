@@ -123,17 +123,34 @@ describe("tabs keyboard", () => {
     await new Promise((r) => setTimeout(r, 0));
     flushSync();
 
-    // Selection should move to B (aria-selected) and focus follows.
+    // Selection should move to B (aria-selected) and focus must follow —
+    // a second arrow key fires on the newly focused tab, not the stale one.
     expect(tabEls[1].getAttribute("aria-selected")).toBe("true");
-    expect(
-      document.activeElement === tabEls[1] ||
-        tabEls[1].getAttribute("aria-selected") === "true",
-    ).toBe(true);
+    expect(document.activeElement).toBe(tabEls[1]);
 
-    keydown(tabEls[1], "ArrowLeft");
+    // Roving tabindex: selected tab is tabbable, the rest are not.
+    expect(tabEls[0].getAttribute("tabindex")).toBe("-1");
+    expect(tabEls[1].getAttribute("tabindex")).toBe("0");
+    expect(tabEls[2].getAttribute("tabindex")).toBe("-1");
+
+    // Tab C must be reachable: a second ArrowRight from the focused tab B.
+    keydown(tabEls[1], "ArrowRight");
+    await new Promise((r) => setTimeout(r, 0));
+    flushSync();
+    expect(tabEls[2].getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(tabEls[2]);
+
+    keydown(tabEls[2], "ArrowLeft");
+    await new Promise((r) => setTimeout(r, 0));
+    flushSync();
+    expect(tabEls[1].getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(tabEls[1]);
+
+    keydown(tabEls[1], "Home");
     await new Promise((r) => setTimeout(r, 0));
     flushSync();
     expect(tabEls[0].getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(tabEls[0]);
   });
 });
 

@@ -1,4 +1,4 @@
-import { type DomphyElement, ElementNode } from "@domphy/core";
+import { type DomphyElement, ElementNode, getConfig } from "@domphy/core";
 import type { HistoryAdapter } from "./history.js";
 import { metadataToHeadTags, renderHeadTags } from "./metadata.js";
 import { AppRouter, type RouterOptions } from "./router.js";
@@ -51,6 +51,17 @@ export interface SSRResult {
 }
 
 const HYDRATION_GLOBAL = "__DOMPHY_APP_DATA__";
+
+/**
+ * ` nonce="…"` attribute when `configure({ cspNonce })` is set, else "".
+ * Stamped on every Domphy-injected inline `<style>`/`<script>` in SSR and
+ * streaming output so a strict Content-Security-Policy admits them. Caller
+ * markup (`options.head`, `options.bootstrap`) is the caller's own concern.
+ */
+function nonceAttr(): string {
+  const nonce = getConfig().cspNonce;
+  return nonce ? ` nonce="${nonce}"` : "";
+}
 
 /**
  * The app shell: routing, rendering and server rendering in one object, the
@@ -146,7 +157,7 @@ export class DomphyApp {
           : 200,
       redirect: redirect?.to,
       data,
-      bootstrapScript: `<script>window.${HYDRATION_GLOBAL} = ${serializeData(data)};</script>`,
+      bootstrapScript: `<script${nonceAttr()}>window.${HYDRATION_GLOBAL} = ${serializeData(data)};</script>`,
     };
     serverRouter.destroy();
     return result;
@@ -194,9 +205,10 @@ export class DomphyApp {
       div: [shell],
       style: { display: "contents" },
     });
+    const nonce = nonceAttr();
     const open =
       `<!DOCTYPE html><html><head>${options.head ?? ""}` +
-      `<style id="domphy-style">${shellNode.generateCSS()}</style>` +
+      `<style id="domphy-style"${nonce}>${shellNode.generateCSS()}</style>` +
       `</head><body><div id="domphy-app">${shellNode.generateHTML()}</div>`;
     const bootstrap = options.bootstrap ?? "";
 
@@ -210,12 +222,30 @@ export class DomphyApp {
             style: { display: "contents" },
           });
           const chunk =
-            `<style>${contentNode.generateCSS()}</style>` +
+            `<style${nonce}>${contentNode.generateCSS()}</style>` +
             `<template id="domphy-head">${head}</template>` +
             `<template id="domphy-content">${contentNode.generateHTML()}</template>` +
-            `<script>${STREAM_SWAP_SCRIPT}</script>` +
-            `<script>window.${HYDRATION_GLOBAL} = ${serializeData(data)};</script>` +
+            `<script${nonce}>${STREAM_SWAP_SCRIPT}</script>` +
+            `<script${nonce}>window.${HYDRATION_GLOBAL} = ${serializeData(data)};</script>` +
             `${bootstrap}</body></html>`;
+          controller.enqueue(encoder.encode(chunk));
+          controller.close();
+        } catch (error) {
+          // The shell already flushed, so the failure cannot become an error
+          // status code; stream an error chunk that swaps the configured error
+          // block into place instead of leaving the loading fallback forever —
+          // the same tree a non-streaming render produces for a thrown error.
+          const failure =
+            error instanceof Error ? error : new Error(String(error));
+          const errorNode = new ElementNode({
+            div: [serverRouter.renderError(failure)],
+            style: { display: "contents" },
+          });
+          const chunk =
+            `<style${nonce}>${errorNode.generateCSS()}</style>` +
+            `<template id="domphy-content">${errorNode.generateHTML()}</template>` +
+            `<script${nonce}>${STREAM_SWAP_SCRIPT}</script>` +
+            `</body></html>`;
           controller.enqueue(encoder.encode(chunk));
           controller.close();
         } finally {

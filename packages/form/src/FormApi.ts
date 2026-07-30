@@ -1265,7 +1265,13 @@ export class FormApi<
 
         if (
           prevVal &&
-          originalMetaCount === Object.keys(currBaseStore.fieldMetaBase).length
+          originalMetaCount ===
+            Object.keys(currBaseStore.fieldMetaBase).length &&
+          // The reuse count alone cannot detect key REMOVAL (e.g. deleteField
+          // during array remove/clear): every surviving key compares equal,
+          // but prevVal still carries the deleted field's stale entry.
+          Object.keys(prevVal).length ===
+            Object.keys(currBaseStore.fieldMetaBase).length
         ) {
           return prevVal
         }
@@ -2684,7 +2690,12 @@ export class FormApi<
 
     // Cleanup the last fields
     this.baseStore.setState((prev) => {
-      const newState = { ...prev }
+      // NOTE(deviation from upstream): `fieldMetaBase` must be a fresh object
+      // here. Upstream mutates the previous object in place, which makes
+      // `fieldMetaDerived`'s identity-based change detection blind to the
+      // deletion (every surviving key compares equal) and leaves stale meta
+      // readable for deleted fields via `getFieldMeta`.
+      const newState = { ...prev, fieldMetaBase: { ...prev.fieldMetaBase } }
       fieldsToDelete.forEach((f) => {
         newState.values = deleteBy(newState.values, f)
         delete this.fieldInfo[f as never]

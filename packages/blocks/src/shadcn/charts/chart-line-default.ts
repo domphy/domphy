@@ -47,7 +47,7 @@ function chartLineDefaultTooltipFormatter(
   if (!point) return "";
   // The engine's param `color` follows its own multi-hue rotation palette —
   // the swatch uses the series' ramp color (chart-1 step) instead.
-  const swatch = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${chartLineSeriesColor(0).hex};"></span>`;
+  const swatch = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${chartLineSeriesColor(0).css};"></span>`;
   const label = escapeHtml(String(point.seriesName ?? point.name ?? ""));
   const value = point.value;
   const valueText =

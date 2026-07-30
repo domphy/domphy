@@ -177,3 +177,59 @@ describe("createVirtualizer cleanup", () => {
     el.remove();
   });
 });
+
+describe("createVirtualizer destroy() hardening", () => {
+  it("setScrollElement after destroy() warns once and does not re-mount observers", () => {
+    const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+      count: 200,
+      estimateSize: () => 25,
+      observeElementRect: fixedRect,
+    });
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+
+    list.destroy();
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const addSpy = vi.spyOn(el, "addEventListener");
+
+    list.setScrollElement(el);
+    list.setScrollElement(el); // second call: still only one warning
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("destroy()");
+    // No scroll listener was attached — the disposed handle stays dead.
+    expect(addSpy).not.toHaveBeenCalled();
+
+    warn.mockRestore();
+    addSpy.mockRestore();
+    el.remove();
+  });
+
+  it("scroll methods are safe to destructure from the handle", () => {
+    const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+      count: 200,
+      estimateSize: () => 25,
+      observeElementRect: fixedRect,
+    });
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    list.setScrollElement(el);
+
+    const scrollTo = vi.fn();
+    (el as HTMLDivElement & { scrollTo: unknown }).scrollTo = scrollTo;
+
+    // Destructured — no `handle.` receiver. Must still hit the virtualizer.
+    const { scrollToOffset, scrollToIndex, scrollBy, scrollToEnd } = list;
+    expect(() => {
+      scrollToOffset(100);
+      scrollToIndex(10);
+      scrollBy(50);
+      scrollToEnd();
+    }).not.toThrow();
+    expect(scrollTo).toHaveBeenCalled();
+
+    list.destroy();
+    el.remove();
+  });
+});

@@ -1,5 +1,5 @@
-import { themeColorToken } from "@domphy/theme";
-import { seriesHex } from "../gl/color.js";
+import { themeColor } from "@domphy/theme";
+import { seriesColor } from "../gl/color.js";
 import type { FunnelSeriesOption } from "../types.js";
 
 function svgEl(
@@ -24,7 +24,7 @@ export function renderFunnel(
 
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
   group.setAttribute("class", "dc-funnel");
-  const _labelColor = themeColorToken(null, "shift-9", "neutral");
+  const _labelColor = themeColor(null, "shift-9", "neutral");
 
   for (let si = 0; si < series.length; si++) {
     const s = series[si];
@@ -48,7 +48,7 @@ export function renderFunnel(
       const pct = (item.value ?? 0) / maxVal;
       const color =
         (s.color as string[] | undefined)?.[index] ??
-        seriesHex(rawData.findIndex((d) => d.name === item.name));
+        seriesColor(rawData.findIndex((d) => d.name === item.name));
 
       const topW =
         index === 0

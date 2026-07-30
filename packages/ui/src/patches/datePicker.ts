@@ -293,7 +293,6 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   }
 
   // Move focus into the grid when the popover opens.
-  anchorPartial.onClick = () => {};
   const triggerPartial: PartialElement = {
     type: "text",
     readonly: true,
@@ -357,6 +356,9 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
               new Date(viewYear.get(listener), viewMonth.get(listener), 1),
             ),
           ariaLive: "polite",
+          // Calendar chrome (month/year header), not prose — weight is part
+          // of the widget's visual design, not the theme's type scale.
+          _doctorDisable: "inline-typography",
           style: {
             flex: "1",
             textAlign: "center",
@@ -378,6 +380,9 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     const weekdayHeader: DomphyElement<"div"> = {
       div: weekdayNames.map((name, index) => ({
         div: name,
+        // Calendar chrome (weekday column labels) — weight is widget design,
+        // not theme typography.
+        _doctorDisable: "inline-typography",
         style: {
           textAlign: "center",
           fontSize: (listener) => themeSize(listener, "decrease-1"),
@@ -535,7 +540,12 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     return {
       div: [
         numberSelect(24, hour, "Hour"),
-        { span: ":", style: { fontWeight: "bold" } },
+        // Time separator glyph — widget chrome, not prose.
+        {
+          span: ":",
+          _doctorDisable: "inline-typography",
+          style: { fontWeight: "bold" },
+        },
         numberSelect(60, minute, "Minute"),
       ],
       style: {

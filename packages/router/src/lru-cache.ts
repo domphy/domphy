@@ -42,6 +42,12 @@ export function createLRUCache<TKey, TValue>(
       return entry.value
     },
     set(key, value) {
+      const existing = cache.get(key)
+      if (existing) {
+        existing.value = value
+        touch(existing)
+        return
+      }
       if (cache.size >= max && oldest) {
         const toDelete = oldest
         cache.delete(toDelete.key)
@@ -53,17 +59,11 @@ export function createLRUCache<TKey, TValue>(
           newest = undefined
         }
       }
-      const existing = cache.get(key)
-      if (existing) {
-        existing.value = value
-        touch(existing)
-      } else {
-        const entry: Node = { key, value, prev: newest }
-        if (newest) newest.next = entry
-        newest = entry
-        if (!oldest) oldest = entry
-        cache.set(key, entry)
-      }
+      const entry: Node = { key, value, prev: newest }
+      if (newest) newest.next = entry
+      newest = entry
+      if (!oldest) oldest = entry
+      cache.set(key, entry)
     },
     clear() {
       cache.clear()

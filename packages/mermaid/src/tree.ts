@@ -139,12 +139,29 @@ function svgWrapper(svg: string, options: TreeOptions): DomphyElement {
 }
 
 /**
+ * Replacement element for a diagram whose render failed when
+ * `onDiagramError: "placeholder"` is set. The message renders as plain text
+ * (Domphy escapes string children), so an error message carrying markup is
+ * inert.
+ */
+function errorWrapper(error: Error, options: TreeOptions): DomphyElement {
+  return {
+    pre: `Mermaid diagram failed to render: ${error.message}`,
+    class: `${options.className ?? "mermaid"} mermaid-error`,
+    role: "alert",
+  } as DomphyElement;
+}
+
+/** One rendered diagram: the SVG, or the failure when contained. */
+type RenderOutcome = { svg: string } | { error: Error };
+
+/**
  * Returns a new children array with mermaid code blocks replaced by SVG wrappers
  * and every other node recursively processed. The original tree is not mutated.
  */
 function replaceInChildren(
   elements: Child[],
-  svgBySource: Map<string, string>,
+  outcomesBySource: Map<string, RenderOutcome>,
   options: TreeOptions,
 ): Child[] {
   return elements.map((element) => {
@@ -156,8 +173,11 @@ function replaceInChildren(
     // node either directly or one level down inside its `pre`.
     const directSource = isMermaidCode(record) ? extractSource(record) : null;
     if (directSource !== null) {
-      const svg = svgBySource.get(directSource);
-      return svg !== undefined ? svgWrapper(svg, options) : element;
+      const outcome = outcomesBySource.get(directSource);
+      if (!outcome) return element;
+      return "svg" in outcome
+        ? svgWrapper(outcome.svg, options)
+        : errorWrapper(outcome.error, options);
     }
 
     const tag = tagKeyOf(record);
@@ -167,8 +187,12 @@ function replaceInChildren(
       if (isObject(child) && isMermaidCode(child as ElementRecord)) {
         const source = extractSource(child as ElementRecord);
         if (source !== null) {
-          const svg = svgBySource.get(source);
-          if (svg !== undefined) return svgWrapper(svg, options);
+          const outcome = outcomesBySource.get(source);
+          if (outcome) {
+            return "svg" in outcome
+              ? svgWrapper(outcome.svg, options)
+              : errorWrapper(outcome.error, options);
+          }
         }
       }
     }
@@ -177,7 +201,7 @@ function replaceInChildren(
 
     // Recurse into children, rebuilding the element with replaced content.
     return rebuildWithChildren(record, (children) =>
-      replaceInChildren(children, svgBySource, options),
+      replaceInChildren(children, outcomesBySource, options),
     );
   });
 }
@@ -215,6 +239,11 @@ function rebuildWithChildren(
  * Diagrams are rendered concurrently (`Promise.all`) and identical sources are
  * rendered only once. Rendering goes through the on-disk cache by default; pass a
  * custom `renderer` (e.g. in tests) to avoid launching a browser.
+ *
+ * By default a single failing diagram rejects the whole call; pass
+ * `onDiagramError: "placeholder"` to contain failures per-diagram (the block
+ * is replaced by a `.mermaid-error` placeholder and the rest of the page
+ * still renders).
  */
 export async function renderMermaidInTree(
   elements: DomphyElement[],
@@ -231,25 +260,37 @@ export async function renderMermaidInTree(
     return elements;
   }
 
-  // Render each distinct source once, concurrently.
+  // Render each distinct source once, concurrently. With
+  // `onDiagramError: "placeholder"` a single failure is contained to that
+  // diagram; otherwise it rejects the whole call (default, unchanged).
   const uniqueSources = [...sources];
-  const svgList = await Promise.all(
-    uniqueSources.map((source) =>
-      renderer
-        ? renderer(source, options)
-        : renderMermaidCached(source, options),
-    ),
+  const outcomes = await Promise.all(
+    uniqueSources.map(async (source): Promise<RenderOutcome> => {
+      try {
+        const svg = renderer
+          ? await renderer(source, options)
+          : await renderMermaidCached(source, options);
+        return { svg };
+      } catch (error) {
+        if (options.onDiagramError === "placeholder") {
+          return {
+            error: error instanceof Error ? error : new Error(String(error)),
+          };
+        }
+        throw error;
+      }
+    }),
   );
 
-  const svgBySource = new Map<string, string>();
+  const outcomesBySource = new Map<string, RenderOutcome>();
   uniqueSources.forEach((source, index) => {
-    svgBySource.set(source, svgList[index]);
+    outcomesBySource.set(source, outcomes[index]);
   });
 
   // Pass 2: rebuild the tree with mermaid blocks replaced.
   return replaceInChildren(
     elements as Child[],
-    svgBySource,
+    outcomesBySource,
     options,
   ) as DomphyElement[];
 }

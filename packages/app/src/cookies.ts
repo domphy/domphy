@@ -17,7 +17,15 @@ export function cookies(headers?: Headers): ReadonlyMap<string, string> {
     const eq = part.indexOf("=");
     if (eq === -1) continue;
     const name = part.slice(0, eq).trim();
-    if (name) map.set(name, decodeURIComponent(part.slice(eq + 1)));
+    if (!name) continue;
+    const value = part.slice(eq + 1).trim();
+    try {
+      map.set(name, decodeURIComponent(value));
+    } catch {
+      // Malformed percent-encoding (e.g. `session=100%`): keep the raw value
+      // instead of letting a URIError crash every loader that reads cookies.
+      map.set(name, value);
+    }
   }
   return map;
 }

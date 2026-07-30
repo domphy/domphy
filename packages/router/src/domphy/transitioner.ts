@@ -24,6 +24,9 @@ export interface TransitionerHandle {
 
 export function setupTransitioner(router: AnyRouter): TransitionerHandle {
   let isTransitioning = false
+  // onRendered is emitted from a macrotask; track pending timers so cleanup()
+  // can cancel them instead of emitting after the router was destroyed.
+  const onRenderedTimeouts = new Set<ReturnType<typeof setTimeout>>()
 
   let previousIsLoading = router.stores.isLoading.get()
   let previousIsPagePending =
@@ -75,12 +78,14 @@ export function setupTransitioner(router: AnyRouter): TransitionerHandle {
       // commits. The headless equivalent: emit on the next macrotask, after
       // onResolved subscribers have mirrored router state into Domphy
       // states and the DOM has updated. Scroll restoration relies on this.
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
+        onRenderedTimeouts.delete(timeout)
         router.emit({
           type: 'onRendered',
           ...changeInfo,
         })
       }, 0)
+      onRenderedTimeouts.add(timeout)
     }
 
     previousIsLoading = isLoading
@@ -128,6 +133,10 @@ export function setupTransitioner(router: AnyRouter): TransitionerHandle {
         subscription.unsubscribe()
       }
       unsubscribeHistory()
+      for (const timeout of onRenderedTimeouts) {
+        clearTimeout(timeout)
+      }
+      onRenderedTimeouts.clear()
     },
     rebindHistory: () => {
       unsubscribeHistory()

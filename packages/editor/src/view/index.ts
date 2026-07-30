@@ -16,10 +16,15 @@ import {
   nodeSize,
   nodesBetween,
   resolveInternal,
+  textBetween,
 } from "../model/position.js";
 import type { Schema } from "../model/schema.js";
 import { replaceAtPath } from "../model/tree.js";
-import { parseDOMContent, renderedAttributes } from "../serialize/html.js";
+import {
+  parseDOMContent,
+  renderedAttributes,
+  VOID_TAGS,
+} from "../serialize/html.js";
 import type {
   Attributes,
   DOMOutputSpec,
@@ -32,24 +37,12 @@ import type {
 } from "../types.js";
 import { rootOf, selectionFor } from "../utils.js";
 
-const VOID_TAGS = new Set([
-  "area",
-  "base",
-  "br",
-  "col",
-  "embed",
-  "hr",
-  "img",
-  "input",
-  "link",
-  "meta",
-  "source",
-  "track",
-  "wbr",
-]);
-
 /** `white-space` values that keep a trailing space selectable. `pre-line` collapses spaces, so it is not one. */
 const WHITESPACE_PRESERVING = new Set(["pre", "pre-wrap", "break-spaces"]);
+
+/** Letters, numbers and underscore — the unit word deletion keeps together. */
+const WORD_CHAR = /[\p{L}\p{N}_]/u;
+const WHITESPACE = /\s/;
 
 interface TextSpan {
   node: Text;
@@ -723,16 +716,28 @@ export class EditorView implements EditorViewLike {
         }
         break;
       case "deleteContentBackward":
-      case "deleteWordBackward":
-      case "deleteSoftLineBackward":
         event.preventDefault();
         this.deleteBackward();
         break;
+      case "deleteWordBackward":
+        event.preventDefault();
+        this.deleteWordBackward();
+        break;
+      case "deleteSoftLineBackward":
+        event.preventDefault();
+        this.deleteSoftLineBackward();
+        break;
       case "deleteContentForward":
-      case "deleteWordForward":
-      case "deleteSoftLineForward":
         event.preventDefault();
         this.deleteForward();
+        break;
+      case "deleteWordForward":
+        event.preventDefault();
+        this.deleteWordForward();
+        break;
+      case "deleteSoftLineForward":
+        event.preventDefault();
+        this.deleteSoftLineForward();
         break;
       case "deleteByCut":
       case "deleteContent":
@@ -779,6 +784,140 @@ export class EditorView implements EditorViewLike {
     if (nextStart !== null) {
       editor.commands.deleteRange({ from, to: nextStart });
     }
+  }
+
+  /**
+   * Text of the caret's textblock around the caret. Leaf nodes (hardBreak)
+   * count as one "\n" so character offsets map 1:1 onto model positions.
+   */
+  private caretText(direction: "before" | "after"): {
+    text: string;
+    from: number;
+  } | null {
+    const editor = this.editor;
+    const { from, empty } = editor.state.selection;
+    if (!empty) {
+      return null;
+    }
+    const $from = resolveInternal(this.schema, editor.state.doc, from);
+    const range =
+      direction === "before"
+        ? ([$from.start(), from] as const)
+        : ([from, $from.end()] as const);
+    return {
+      text: textBetween(
+        this.schema,
+        editor.state.doc,
+        range[0],
+        range[1],
+        "",
+        () => "\n",
+      ),
+      from,
+    };
+  }
+
+  /**
+   * Ctrl/Cmd+Backspace semantics (pinned by tests): skip the whitespace run
+   * touching the caret, then delete one maximal run — word characters when the
+   * run starts on one, otherwise a punctuation run. At a block boundary it
+   * degrades to a plain Backspace (joining blocks).
+   */
+  private deleteWordBackward(): void {
+    const caret = this.caretText("before");
+    if (!caret) {
+      this.editor.commands.deleteSelection();
+      return;
+    }
+    const { text, from } = caret;
+    let index = text.length;
+    while (index > 0 && WHITESPACE.test(text[index - 1])) {
+      index -= 1;
+    }
+    const isWord = index > 0 && WORD_CHAR.test(text[index - 1]);
+    while (
+      index > 0 &&
+      WORD_CHAR.test(text[index - 1]) === isWord &&
+      !WHITESPACE.test(text[index - 1])
+    ) {
+      index -= 1;
+    }
+    if (index === text.length) {
+      this.deleteBackward();
+      return;
+    }
+    this.editor.commands.deleteRange({
+      from: from - (text.length - index),
+      to: from,
+    });
+  }
+
+  /** Forward mirror of {@link deleteWordBackward}. */
+  private deleteWordForward(): void {
+    const caret = this.caretText("after");
+    if (!caret) {
+      this.editor.commands.deleteSelection();
+      return;
+    }
+    const { text, from } = caret;
+    let index = 0;
+    while (index < text.length && WHITESPACE.test(text[index])) {
+      index += 1;
+    }
+    const isWord = index < text.length && WORD_CHAR.test(text[index]);
+    while (
+      index < text.length &&
+      WORD_CHAR.test(text[index]) === isWord &&
+      !WHITESPACE.test(text[index])
+    ) {
+      index += 1;
+    }
+    if (index === 0) {
+      this.deleteForward();
+      return;
+    }
+    this.editor.commands.deleteRange({ from, to: from + index });
+  }
+
+  /**
+   * Cmd+Backspace semantics: delete to the start of the current line — the
+   * previous hardBreak, or the block start. Visual (wrapped) lines are not
+   * computable without layout, so "soft line" means "up to the hard break".
+   */
+  private deleteSoftLineBackward(): void {
+    const caret = this.caretText("before");
+    if (!caret) {
+      this.editor.commands.deleteSelection();
+      return;
+    }
+    const { text, from } = caret;
+    const lineBreak = text.lastIndexOf("\n");
+    const target = lineBreak === -1 ? 0 : lineBreak + 1;
+    if (target === text.length) {
+      this.deleteBackward();
+      return;
+    }
+    this.editor.commands.deleteRange({
+      from: from - (text.length - target),
+      to: from,
+    });
+  }
+
+  /** Forward mirror of {@link deleteSoftLineBackward}. */
+  private deleteSoftLineForward(): void {
+    const caret = this.caretText("after");
+    if (!caret) {
+      this.editor.commands.deleteSelection();
+      return;
+    }
+    const { text, from } = caret;
+    const lineBreak = text.indexOf("\n");
+    const target = lineBreak === -1 ? text.length : lineBreak;
+    if (target === 0) {
+      this.deleteForward();
+      return;
+    }
+    this.editor.commands.deleteRange({ from, to: from + target });
   }
 
   private textblockRanges(): { from: number; to: number }[] {
@@ -828,7 +967,21 @@ export class EditorView implements EditorViewLike {
       this.render();
       return;
     }
-    const content = parseDOMContent(this.schema, block.element, block.name);
+    // A trailing <br> in the DOM is the caret placeholder and is stripped on
+    // read — unless the model block already ends in a leaf node (a real
+    // hardBreak), in which case that <br> is its rendering, not a placeholder.
+    const current = blockAtPath(this.editor.state.doc, block.path);
+    const currentChildren = current ? childrenOf(current) : [];
+    const endsInLeaf =
+      currentChildren.length > 0 &&
+      currentChildren[currentChildren.length - 1].type !== "text";
+    const content = parseDOMContent(
+      this.schema,
+      block.element,
+      block.name,
+      undefined,
+      !endsInLeaf,
+    );
     const offset = textOffsetIn(
       block.element,
       domSelection.anchorNode,

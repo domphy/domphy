@@ -369,6 +369,9 @@ importers:
       '@domphy/palette':
         specifier: workspace:^
         version: link:../palette
+      '@domphy/theme':
+        specifier: workspace:^
+        version: link:../theme
     devDependencies:
       '@domphy/core':
         specifier: workspace:*

@@ -6,6 +6,114 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## Production-readiness pass (all packages) — 2026-07-30
+
+Repo-wide audit and hardening: every package was reviewed top-down (blocks → core) for correctness, reused-node lifecycle violations, error handling, security, and test coverage, then fixed with regression tests. Highlights per package:
+
+### `@domphy/core` [0.21.0]
+- Multi-root `rawHtml()` now renders **all** roots on the client (previously only `firstChild`), matching SSR output and eliminating hydration drift; `ElementList` move/swap/remove operate on the whole node group.
+- DEV-mode hydration mismatch warnings in `mount()` (expected vs actual tag/id/class/text).
+- `sanitizeHTMLString` hardened and now exported: strips `srcdoc`, decodes entity-encoded/whitespace-obfuscated `javascript:` schemes, blocks `vbscript:`/`data:text/html`/`object@data`, and no longer truncates benign attribute text containing `<script>`.
+- Computeds now unsubscribe from upstream dependencies when their last downstream listener releases, and lazily re-subscribe on next read — fixes subscription leaks for per-view computeds (e.g. `@domphy/query` `bindResult`).
+- New `getConfig()` export (SSR consumers can honor `configure({ cspNonce })`).
+- `EffectScope.stop()` runs all disposers even when one throws; `State.set()` after dispose warns in DEV; non-array `$` throws an actionable error; non-empty content on a void tag warns in DEV (the `{ hr: "" }` idiom stays exempt); behavior `attach` errors route to the nearest `_onError` boundary.
+
+### `@domphy/palette` [0.20.0]
+- `hexToRgb` validates input via new `isValidHex`/`normalizeHex` exports (`#rgb`/`#rgba`/`#rrggbb`/`#rrggbbaa`, shorthand expanded; anything else throws an actionable error) — a `#fff` input no longer produces a `#NaNNaNNaN` theme. `cssRgbToRgb` supports percentage and space/slash syntax. `generateRamp(hex, 1)` normalizes like multi-step output.
+
+### `@domphy/theme` [0.21.0]
+- Structural theme validation: `fontSizes` must be 8 non-empty strings, every color ramp exactly 18 steps, `baseTones` range-checked, CSS-breakout (`}`/`</style>`) rejected — no more `undefined` tokens leaking into CSS.
+- New `resolveThemeColor({ theme, tone, color })` — explicit non-reactive token resolution (the supported form of `themeColorToken(null, …)`, which stays back-compatible = light). New value exports `ToneAliases`, `TONE_STEPS`.
+- `generateTheme` normalizes base hexes via palette (`#fff` shorthand works; invalid input throws naming the role). `applySystemTheme` throws an actionable error server-side.
+
+### `@domphy/ui` [0.21.0]
+- **98 patches** (was 96): new `grid({ columns, gap, align? })` layout patch and `visuallyHidden()` sr-only patch. `focusRing` and `elevation` are now public exports (previously internal).
+- `inputText({ type })` — the forced `type="text"` stomp is gone, so `type="email"/"password"` work without duplicating the patch.
+- Critical reused-node fixes: `selectItem` keeps selection and click across ancestor re-renders (declared attributes instead of `_onInit` wiring); `tabs` arrow-key navigation moves DOM focus and uses roving `tabindex` (APG).
+- `popover`/`tooltip` ARIA ids are deterministic (derived from `nodeId`) — `aria-controls`/`aria-describedby` present from first render, stable across generations, SSR-safe (no `Math.random()`).
+- `dialog` migrated to `behavior()` — close finalization no longer splits across generations after a re-render (no more 350 ms fallback delay); reopening within the close window no longer closes a just-opened dialog.
+- `details` no longer clips bodies taller than ~1000 px; empty toast overlays are removed on teardown.
+
+### `@domphy/chart` [0.3.0]
+- **Theme-aware engine**: SVG/overlay colors are `var(--…)` references that flip with `[data-theme]` at paint time; WebGL uniforms resolve through `createColorResolver(el)` (reads computed styles, honors custom themes); the chart re-renders on theme flips (`dataTheme` ancestors + `<html data-theme>` observer).
+- New color utilities: `seriesColor` (var-ref, recommended), `familyCss`, `cssColor` (family/hex/rgb/var — never throws), `createColorResolver`, `ColorResolver`. Hex/rgb series colors no longer crash line/scatter/radar/gauge/pie renderers; raw family names no longer paint black.
+- Tooltip rewritten: positioned via `@domphy/floating` (flip/shift), `formatter` may return a `DomphyElement`, `backgroundColor`/`borderColor`/`padding`/`textStyle`/`extraCssText`/`className`/`confine` implemented; unsupported option keys now warn.
+- `chart()` patch migrated to `behavior()` (options keep updating after ancestor re-renders); `init()` failure surfaces a fallback message instead of an unhandled rejection; `destroy()` removes all three layers; `setOption` is destroy-guarded.
+- Log scale clamps non-positive domains with a warning (ECharts-consistent); ordinal `map()` clamps; dataset transforms handle malformed configs; luma adapter registration is lazy (SSR-import-safe, honest `sideEffects`).
+
+### `@domphy/blocks` [0.2.0]
+- Chart recipes are theme-aware: 31 of 33 `themeColorToken(null, …)` sites now emit `var(--…)` refs (the 2 kept sites are engine-mandated concrete-color paths, documented) — dark theme now renders correctly across all chart blocks.
+- `confettiButton`/`confetti` migrated to `behavior()` — clicks keep firing after any ancestor re-render (previously silently dead).
+- New camelCase aliases `login01`–`login05` (PascalCase `Login01`–`Login05` kept for compatibility). Lifecycle harness is now a hard regression gate (178/178). Test suite capped at 4 fork workers — no more vitest worker-spawn timeouts in CI.
+
+### `@domphy/editor` [0.2.2]
+- **Cross-depth delete no longer produces schema-invalid documents** — `mergeNodes` carries separate left/right depths (ProseMirror slice-closing semantics); a Backspace joining a paragraph into a blockquote/list merges into the deepest open textblock instead of leaving bare text under `block+`. Saved content no longer mutates across a save/load cycle.
+- IME resync strips the placeholder trailing `<br>` instead of manufacturing phantom `hardBreak` nodes; word-delete input types (`deleteWordBackward/Forward`, soft-line) delete whole words instead of single chars.
+- Link is `inclusive: false` (typing at a link boundary no longer extends it); autolink-on-Enter folds into one undo step; table commands replace by path (no stale-reference no-op) and remap the selection after row/column ops; `editorContent()` dev-warns when the host declares children (contract violation).
+
+### `@domphy/app` [0.18.3]
+- SSR `<head>` tags are stamped `data-domphy-head` — no more duplicated meta/link tags after hydration or across navigations.
+- Per-request SSR state no longer flows through the module-global router: `navLink` resolves against the rendering request's router even with concurrent `renderToString` calls.
+- Rewrite loops share the redirect depth budget (actionable error instead of process death); mid-stream render failures emit an error chunk (app-level error block) instead of a permanently-loading truncated page.
+- `cookies()` tolerates malformed values (raw fallback) and trims; API routes return 400 for malformed encoded paths; `navigate()` only allows http/https through `location.assign`.
+- SSR/streamed inline `<style>`/`<script>` tags honor `configure({ cspNonce })` (core `getConfig()`).
+
+### `@domphy/form` [0.18.2]
+- Test suite expanded 19 → 108: groups, array field ops, async validation (debounce/abort/stale races), `revalidateLogic`, `standardSchemaValidators`, `mergeForm`, adapter cache.
+- Three real bugs found by the new tests (upstream-inherited): `moveValue` corrupted item meta (double shift), `getFieldMeta()` returned stale meta for deleted array-item fields, `deleteField` mutated the previous meta snapshot.
+- New `SOURCES.md` pins the port to `@tanstack/form-core@1.33.0` (byte-verified against the tarball) with the deviation list. Adapter dev-warns when a cached field is re-requested with different options.
+
+### `@domphy/press` [0.22.0]
+- Fence-aware preprocessing via `@domphy/markdown`'s `transformOutsideCodeBlocks` — `<script>` samples and `<<<` imports inside fenced code blocks are no longer corrupted.
+- Builds now **fail** when any page fails (both markdown and SSR stages, collected with route context); `continueOnError: true` opts out.
+- CLI loads `press.config.ts` on Node 18+ (esbuild transpile — no tsx needed), validates `--port`, supports `--flag=value`, warns on unknown flags, serializes dev rebuilds, falls back from `fs.watch({recursive})` where unsupported.
+- Dev/preview server survives malformed URLs (400) and handler errors (500). Islands bundle is content-hashed; search respects `config.base`; incremental builds delete stale outputs (deleted/draft pages); a themed `404.html` is emitted; sitemap XML is escaped.
+
+### `@domphy/markdown` [0.20.0]
+- New `transformOutsideCodeBlocks(source, transform)` — remark-based line transform that skips fenced/indented code blocks (nested fences, blockquotes, unclosed fences handled).
+
+### `@domphy/doctor` [0.19.0]
+- Tone grammar now comes from `@domphy/theme` (single source: `ElementTones`/`ToneAliases`/`TONE_STEPS`) — doctor no longer accepts bare-numeric-string `dataTone` values the runtime rejects, and the hand-duplicated alias map is deleted.
+- CLI reports per-file import failures (stderr + summary count) and exits 1 (previously silently "skipped"); `.jsx`/`.cjs` collected; `--no-*` flags parse correctly.
+- `low-opacity` handles numeric opacity; `walk`/`walkFix` are cycle-guarded; `unknown-tag` fires per unknown key; throwing custom rules surface an info diagnostic.
+
+### `@domphy/router` [0.18.2]
+- `Router.destroy()` now releases scroll-restoration listeners and subscriptions; the `ignoreScroll` flag moved from module-global to per-router (multi-router/HMR safe).
+- `invariant(code)` keeps an identifiable message in production (`Invariant failed (<code>)`); `resolvePath` clamps `..` at root; `LRUCache.set` no longer evicts on existing-key updates; pending `onRendered` timeouts are cleared on cleanup.
+
+### `@domphy/floating` [0.18.2]
+- `UPSTREAM.md` pins the vendored upstream (`@floating-ui/core@1.7.5`, `dom@1.7.6`, diff-verified) with the explicit deviation list; `NodeJS.Timeout` replaced with `ReturnType<typeof setTimeout>`; middleware behavior fixtures added.
+
+### `@domphy/mcp` [0.19.3]
+- The served patch registry is complete again (98 patches — `toolbarSpacer` was missing; generator fixed and manifest regenerated).
+- Tool dispatch extracted into a transport-free `handleToolCall` (tests now drive the real handler over an in-memory client); `SERVER_VERSION` reads `package.json` at runtime (no more drift); fetches have 10 s timeout + retry + 5-minute cache TTL; structured errors for missing/invalid arguments and hostile element-tree input.
+
+### `@domphy/dnd` [0.18.5]
+- `dragDrop`/`multiList` migrated to `behavior()` — a factory re-run under a reactive parent re-binds the new State/config instead of staying on generation 1; rAF handles are cancelled; `tearDown` is guarded when registration never happened.
+
+### `@domphy/i18n` [0.19.3]
+- `t()` before `initI18n()` dev-warns once (previously silently returned untranslated values); a second `createI18n` reusing a `globalKey` with different locales dev-warns instead of silently dropping resources.
+
+### `@domphy/virtual` [0.18.2]
+- `setScrollElement()` after `destroy()` dev-warns and no-ops (previously re-mounted observers on a disposed handle); scroll methods are bound defensively.
+
+### `@domphy/three` [0.3.0]
+- `clearAsset(…, { dispose: true })` disposes GPU resources (geometries/textures/Object3D graphs, cycle-safe); `loadAsset` dev-warns when a cache hit carries a different `configure`; pointer math aligns with the container rect (correct NDC under padding/border); the NUL byte in `loader.ts` is fixed — the file is lint-covered again.
+
+### `@domphy/mermaid` [0.19.0]
+- `securityLevel` pinned to `"strict"` by default (explicit loose configs dev-warn); `initialize()`+render serialized (global mermaid config no longer interleaves across mounts); new `onDiagramError: "placeholder"` option (default `"throw"`, unchanged); SVG sanitization now uses core's exported `sanitizeHTMLString`; Chromium E2E tests gated behind `MERMAID_E2E=1` (unit runs stay hermetic).
+
+### `@domphy/query` [0.18.2]
+- `bindResult` publishes `undefined` for keys that vanish from later results; dev-time tripwires for read-after-destroy and double-destroy; the manual `destroy()` contract is documented on the interface.
+
+### `@domphy/table` [0.19.1]
+- Adapter contract documented (it applies state itself, then notifies — do not re-apply as in TanStack React); redundant version bumps skipped for no-op state updates.
+
+### `create-domphy` [0.18.7]
+- Scaffold template re-pinned to the new `@domphy/core`/`theme`/`ui` versions (`versions.generated.ts` regenerated).
+
+---
+
 ## @domphy/core + @domphy/editor — 2026-07-29
 
 ### `@domphy/core` [0.20.2]

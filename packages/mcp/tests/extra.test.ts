@@ -1,8 +1,6 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
-import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -11,6 +9,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { handleToolCall, TOOLS } from "../src/handler";
 import {
   fixTree,
   getAppBlock,
@@ -161,7 +160,7 @@ describe("getAppBlock source-read failure", () => {
 });
 
 // The 10 tools the server is contracted to register, in the order they appear
-// in index.ts. Every one must have a matching switch case in the handler.
+// in the handler's tool list.
 const REGISTERED_TOOLS = [
   "domphy_list_patches",
   "domphy_get_patch",
@@ -175,74 +174,47 @@ const REGISTERED_TOOLS = [
   "domphy_get_app_block",
 ];
 
-describe("server source contract", () => {
-  it("registers exactly 10 tools and every switch case maps to a registered tool", async () => {
-    const here = fileURLToPath(new URL(".", import.meta.url));
-    const source = await readFile(join(here, "../src/index.ts"), "utf8");
-
-    // Every expected tool appears both as a registered `name:` and as a `case`.
-    for (const tool of REGISTERED_TOOLS) {
-      expect(source).toContain(`name: "${tool}"`);
-      expect(source).toContain(`case "${tool}":`);
-    }
-    // Count of registered tool entries is exactly 10 (no extras, none missing).
-    const nameCount = (source.match(/name: "domphy_/g) ?? []).length;
-    expect(nameCount).toBe(10);
-    // Count of switch cases is exactly 10 (each case maps to a registered tool).
-    const caseCount = (source.match(/case "domphy_/g) ?? []).length;
-    expect(caseCount).toBe(10);
+describe("registered tool surface", () => {
+  it("registers exactly 10 tools, in the contracted order", () => {
+    expect(TOOLS.map((t) => t.name)).toEqual(REGISTERED_TOOLS);
   });
 
-  it("sets isError on both the unknown-tool branch and the top-level catch", async () => {
-    const here = fileURLToPath(new URL(".", import.meta.url));
-    const source = await readFile(join(here, "../src/index.ts"), "utf8");
-    // two isError: true sites (default branch + catch)
-    const isErrorCount = (source.match(/isError: true/g) ?? []).length;
-    expect(isErrorCount).toBe(2);
+  it("declares the required argument of each arg-taking tool", () => {
+    const required = Object.fromEntries(
+      TOOLS.map((t) => [
+        t.name,
+        (t.inputSchema as { required?: string[] }).required ?? [],
+      ]),
+    );
+    for (const tool of [
+      "domphy_get_patch",
+      "domphy_diagnose",
+      "domphy_validate",
+      "domphy_fix",
+      "domphy_get_app_block",
+    ]) {
+      expect(required[tool].length).toBe(1);
+    }
   });
 });
 
-// Functional round-trip: build a server with the SAME handler shape as index.ts
-// (importing the real tool implementations) and drive it through an in-memory
-// MCP Client, so the isError contract is exercised as real behavior — not just
-// asserted in source. We cannot import src/index.ts directly because it opens a
-// stdio transport at module load.
+// Functional round-trip: build a server wired EXACTLY like index.ts (same
+// TOOLS list, same handleToolCall dispatch) and drive it through an in-memory
+// MCP Client, so the isError contract is exercised as real behavior.
 function buildTestServer(): Server {
-  const tools = REGISTERED_TOOLS.map((name) => ({
-    name,
-    description: name,
-    inputSchema: { type: "object" as const, properties: {} },
-  }));
   const server = new Server(
     { name: "domphy-test", version: "0.0.0" },
     { capabilities: { tools: {} } },
   );
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name } = request.params;
-    const args = (request.params.arguments ?? {}) as Record<string, unknown>;
-    let text: string;
-    try {
-      switch (name) {
-        case "domphy_fix":
-          text = fixTree(String(args.element));
-          break;
-        case "domphy_throws":
-          throw new Error("boom");
-        default:
-          return {
-            content: [{ type: "text", text: `Unknown tool: ${name}` }],
-            isError: true,
-          };
-      }
-    } catch (error) {
-      return {
-        content: [{ type: "text", text: `Error: ${(error as Error).message}` }],
-        isError: true,
-      };
-    }
-    return { content: [{ type: "text", text }] };
-  });
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: TOOLS,
+  }));
+  server.setRequestHandler(CallToolRequestSchema, async (request) =>
+    handleToolCall(
+      request.params.name,
+      request.params.arguments as Record<string, unknown> | undefined,
+    ),
+  );
   return server;
 }
 
@@ -269,6 +241,13 @@ describe("server isError behavior (functional round-trip)", () => {
   });
 
   it("a throwing tool returns isError:true through the MCP client", async () => {
+    // domphy_rules hits the network; a rejecting fetch makes the tool throw.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("boom");
+      }),
+    );
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair();
     const server = buildTestServer();
@@ -279,7 +258,7 @@ describe("server isError behavior (functional round-trip)", () => {
     ]);
 
     const result = (await client.callTool({
-      name: "domphy_throws",
+      name: "domphy_rules",
       arguments: {},
     })) as { isError?: boolean; content: { text: string }[] };
     expect(result.isError).toBe(true);

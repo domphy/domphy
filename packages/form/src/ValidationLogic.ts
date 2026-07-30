@@ -1,25 +1,40 @@
 import type { AnyFormApi, FormValidators } from './FormApi'
 import type { AnyFormGroupApi } from './FormGroupApi'
 
+/**
+ * A `FormValidators` map with every validator generic widened to `any` —
+ * validation logic strategies operate on forms of any shape.
+ */
+type AnyFormValidators = FormValidators<
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any
+>
+
+/**
+ * Keys of `FormValidators` that hold validator functions/schemas, excluding
+ * the `*DebounceMs` timing options (which are numbers, not validators).
+ */
+type ValidatorFnKey = Exclude<
+  {
+    [K in keyof AnyFormValidators]: K extends `${string}DebounceMs` ? never : K
+  }[keyof AnyFormValidators],
+  undefined
+>
+
 export interface ValidationLogicValidatorsFn {
-  // TODO: Type this properly
-  fn: FormValidators<
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any,
-    any
-  >[keyof FormValidators<any, any, any, any, any, any, any, any, any, any>]
+  fn: AnyFormValidators[ValidatorFnKey]
   cause: 'change' | 'blur' | 'submit' | 'mount' | 'server' | 'dynamic'
 }
 
 export interface ValidationLogicProps {
-  // TODO: Type this properly
   form: AnyFormApi
   /**
    * Set when the validators being processed belong to a `FormGroupApi`.
@@ -27,11 +42,7 @@ export interface ValidationLogicProps {
    * behavior on the group's own state instead of the parent form's.
    */
   group?: AnyFormGroupApi
-  // TODO: Type this properly
-  validators:
-    | FormValidators<any, any, any, any, any, any, any, any, any, any>
-    | undefined
-    | null
+  validators: AnyFormValidators | undefined | null
   event: {
     type: 'blur' | 'change' | 'submit' | 'mount' | 'server'
     fieldName?: string

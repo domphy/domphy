@@ -53,7 +53,7 @@ function chartLineMultipleTooltipFormatter(
     .map((point, rowIndex) =>
       lineSwatchLabelValueTooltipFormatter(
         point,
-        chartLineSeriesColor(point.seriesIndex ?? rowIndex).hex,
+        chartLineSeriesColor(point.seriesIndex ?? rowIndex).css,
       ),
     )
     .join("<br>");

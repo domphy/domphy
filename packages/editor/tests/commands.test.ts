@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { fromJSON, toJSON } from "../src/serialize/json.js";
 import { block, createTestEditor, docOf, h, p } from "./fixtures.js";
 
 function bolded(text: string) {
@@ -337,6 +338,164 @@ describe("structure commands", () => {
     editor.commands.deleteSelection();
     expect(editor.getJSON()).toEqual(docOf(p()));
     expect(editor.isEmpty).toBe(true);
+  });
+});
+
+describe("cross-depth deleteRange", () => {
+  /** Every node's children must fit its content expression (no bare text in wrappers). */
+  function expectSchemaValid(
+    editor: ReturnType<typeof createTestEditor>,
+  ): void {
+    const schema = editor.schema as import("../src/model/schema.js").Schema;
+    const walk = (node: import("../src/types.js").JSONContent) => {
+      const name = node.type ?? "";
+      for (const child of node.content ?? []) {
+        expect(
+          schema.allowsContent(name, child.type ?? ""),
+          `${name} must not directly hold ${child.type}`,
+        ).toBe(true);
+        walk(child);
+      }
+    };
+    walk(editor.state.doc);
+  }
+
+  /** getJSON -> fromJSON must be a fixed point, or saved content mutates on load. */
+  function expectStableRoundTrip(
+    editor: ReturnType<typeof createTestEditor>,
+  ): void {
+    const schema = editor.schema as import("../src/model/schema.js").Schema;
+    const json = editor.getJSON();
+    expect(
+      toJSON(schema, fromJSON(schema, json)),
+      "serialize -> rehydrate changed the document",
+    ).toEqual(json);
+  }
+
+  it("joins a trailing paragraph into a blockquote's textblock", () => {
+    const editor = createTestEditor(
+      docOf(block("blockquote", undefined, [p("ab")]), p("cd")),
+    );
+    // Backspace at the start of "cd": end of "ab" (4) -> caret (7).
+    editor.commands.deleteRange({ from: 4, to: 7 });
+    expect(editor.getJSON()).toEqual(
+      docOf(block("blockquote", undefined, [p("abcd")])),
+    );
+    expectSchemaValid(editor);
+    expectStableRoundTrip(editor);
+  });
+
+  it("joins a trailing paragraph into a list item's textblock", () => {
+    const editor = createTestEditor(
+      docOf(
+        block("bulletList", undefined, [
+          block("listItem", undefined, [p("ab")]),
+        ]),
+        p("cd"),
+      ),
+    );
+    // Backspace at the start of "cd": end of "ab" (5) -> caret (9).
+    editor.commands.deleteRange({ from: 5, to: 9 });
+    expect(editor.getJSON()).toEqual(
+      docOf(
+        block("bulletList", undefined, [
+          block("listItem", undefined, [p("abcd")]),
+        ]),
+      ),
+    );
+    expectSchemaValid(editor);
+    expectStableRoundTrip(editor);
+  });
+
+  it("keeps the deeper right side's wrapper chain", () => {
+    const editor = createTestEditor(
+      docOf(p("ab"), block("blockquote", undefined, [p("cd")])),
+    );
+    // Delete from the end of "ab" (3) to the start of "cd" (6).
+    editor.commands.deleteRange({ from: 3, to: 6 });
+    expect(editor.getJSON()).toEqual(
+      docOf(block("blockquote", undefined, [p("abcd")])),
+    );
+    expectSchemaValid(editor);
+    expectStableRoundTrip(editor);
+  });
+
+  it("joins into the second item of a multi-item list", () => {
+    const editor = createTestEditor(
+      docOf(
+        block("bulletList", undefined, [
+          block("listItem", undefined, [p("ab")]),
+          block("listItem", undefined, [p("cd")]),
+        ]),
+        p("ef"),
+      ),
+    );
+    // End of "cd" (11) -> start of "ef" (15).
+    editor.commands.deleteRange({ from: 11, to: 15 });
+    expect(editor.getJSON()).toEqual(
+      docOf(
+        block("bulletList", undefined, [
+          block("listItem", undefined, [p("ab")]),
+          block("listItem", undefined, [p("cdef")]),
+        ]),
+      ),
+    );
+    expectSchemaValid(editor);
+    expectStableRoundTrip(editor);
+  });
+
+  it("joins into a nested list's textblock", () => {
+    const editor = createTestEditor(
+      docOf(
+        block("bulletList", undefined, [
+          block("listItem", undefined, [
+            p("ab"),
+            block("bulletList", undefined, [
+              block("listItem", undefined, [p("cd")]),
+            ]),
+          ]),
+        ]),
+        p("ef"),
+      ),
+    );
+    // Positions: ul 0, li 1, p 2 ("ab" 3-5), ul 6, li 7, p 8 ("cd" 9-11),
+    // closes 12-15, p"ef" 16 ("ef" 17-19).
+    editor.commands.deleteRange({ from: 11, to: 17 });
+    expect(editor.getJSON()).toEqual(
+      docOf(
+        block("bulletList", undefined, [
+          block("listItem", undefined, [
+            p("ab"),
+            block("bulletList", undefined, [
+              block("listItem", undefined, [p("cdef")]),
+            ]),
+          ]),
+        ]),
+      ),
+    );
+    expectSchemaValid(editor);
+    expectStableRoundTrip(editor);
+  });
+
+  it("ordered list variant stays schema-valid", () => {
+    const editor = createTestEditor(
+      docOf(
+        block("orderedList", undefined, [
+          block("listItem", undefined, [p("ab")]),
+        ]),
+        p("cd"),
+      ),
+    );
+    editor.commands.deleteRange({ from: 5, to: 9 });
+    expect(editor.getJSON()).toEqual(
+      docOf(
+        block("orderedList", undefined, [
+          block("listItem", undefined, [p("abcd")]),
+        ]),
+      ),
+    );
+    expectSchemaValid(editor);
+    expectStableRoundTrip(editor);
   });
 });
 

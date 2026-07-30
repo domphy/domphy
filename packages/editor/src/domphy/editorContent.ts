@@ -18,6 +18,44 @@ type EditorContentProps = {
   editor: EditorInstance;
 };
 
+/**
+ * Dev-time guard for the host contract: the host must declare `null`
+ * children. Declared children (even `[]`) hand the host's child list to Domphy
+ * reconciliation, which then fights the editor's own view. Two shapes are
+ * caught: content already rendered when the behavior attaches, and any
+ * declared-children update after mount — a `[]` host is only observable then,
+ * since `null` ("no children declared") never triggers an update.
+ */
+function guardHostChildren(node: ElementNode, host: HTMLElement): () => void {
+  let warned = false;
+  const warn = () => {
+    if (warned) {
+      return;
+    }
+    warned = true;
+    console.error(
+      "[@domphy/editor] editorContent() host must declare null children — " +
+        "`{ div: null, $: [editorContent(editor)] }`. Declared children " +
+        "(even an empty array) make reconciliation fight the editor's own view.",
+    );
+  };
+
+  if (host.childNodes.length > 0 || node.children.items.length > 0) {
+    warn();
+  }
+
+  const list = node.children;
+  const original = list.update.bind(list);
+  list.update = (...args: Parameters<typeof list.update>) => {
+    warn();
+    return original(...args);
+  };
+
+  return () => {
+    list.update = original;
+  };
+}
+
 // One behavior instance per host element: `attach` mounts the editor's view
 // into the real DOM node exactly once, and every later generation of the patch
 // factory (a reactive ancestor re-rendering the host) routes its fresh props
@@ -29,6 +67,7 @@ function attachEditorContent(
 ): BehaviorInstance<EditorContentProps> {
   let { editor } = initialProps;
   const host = node.domElement as HTMLElement;
+  const unguard = guardHostChildren(node, host);
 
   editor.mount(host);
 
@@ -43,6 +82,7 @@ function attachEditorContent(
       editor.mount(host);
     },
     destroy() {
+      unguard();
       editor.unmount();
     },
   };

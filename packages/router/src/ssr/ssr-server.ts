@@ -493,7 +493,7 @@ export function attachRouterServerSsrUtils({
           throw new Error('Invariant failed: router is already dehydrated!')
         }
 
-        invariant()
+        invariant('already-dehydrated')
       }
       let matchesToDehydrate = router.stores.matches.get()
       if (router.isShell()) {

@@ -69,7 +69,14 @@ export function createApiHandler(
 
   return async (request: Request): Promise<Response> => {
     const url = new URL(request.url);
-    const match = matchRoute(compiled, url.pathname);
+    let match: ReturnType<typeof matchRoute>;
+    try {
+      match = matchRoute(compiled, url.pathname);
+    } catch {
+      // A malformed percent-encoded path (e.g. `/api/%`) makes decodeURIComponent
+      // throw inside the matcher; answer 400 instead of an unhandled rejection.
+      return json({ error: "Bad Request" }, { status: 400 });
+    }
     if (!match) {
       return json({ error: "Not Found" }, { status: 404 });
     }

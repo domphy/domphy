@@ -72,14 +72,34 @@ interface TransitionOptions {
 
 let defaultRouter: AppRouter | null = null;
 
+/**
+ * Stack of routers currently running a synchronous tree build. Page/layout
+ * factories execute inside `buildTree`, so a patch created there (e.g.
+ * `navLink`) can bind to the router that is actually rendering it. This keeps
+ * concurrent server renders correct: the module-global `defaultRouter` alone
+ * would resolve to whichever request constructed its router last.
+ */
+const renderStack: AppRouter[] = [];
+
+/** Depth budget shared by redirect and middleware-rewrite chains before a loop is declared. */
+const MAX_NAVIGATION_LOOPS = 10;
+
+function rewriteLoopError(depth: number): Error {
+  return new Error(
+    `[Domphy] Rewrite loop detected: too many consecutive middleware rewrites (>${depth - 1}). ` +
+      "Check that rewrite() targets do not rewrite back to their source.",
+  );
+}
+
 /** The most recently created router, used by `navLink` when no router is passed explicitly. */
 export function getRouter(): AppRouter {
-  if (!defaultRouter) {
+  const router = renderStack[renderStack.length - 1] ?? defaultRouter;
+  if (!router) {
     throw new Error(
       "No router created yet. Call createApp() or new AppRouter() first.",
     );
   }
-  return defaultRouter;
+  return router;
 }
 
 export class AppRouter {
@@ -162,6 +182,20 @@ export class AppRouter {
         this.slotCompiled.set(route, entry);
       }
       if (route.children) this.compileSlots(route.children);
+    }
+  }
+
+  /**
+   * Runs a synchronous tree build with this router on the render stack, so
+   * patches created by page/layout factories bind to this router even when
+   * another request's router is the module-global default (concurrent SSR).
+   */
+  private buildWithContext<T>(build: () => T): T {
+    renderStack.push(this);
+    try {
+      return build();
+    } finally {
+      renderStack.pop();
     }
   }
 
@@ -269,14 +303,17 @@ export class AppRouter {
       slotMatch.pathname = url.pathname;
       slotMatch.params = { ...match.params, ...slotMatch.params };
       const results = await this.loadMatch(slotMatch, url);
-      slots[name] = buildTree({
-        match: slotMatch,
-        baseContext: this.baseContext(url, slotMatch),
-        results,
-        retry: () => void this.refresh(),
-        defaultError: this.errorBlock,
-        defaultNotFound: this.notFoundBlock,
-      }).element;
+      slots[name] = this.buildWithContext(
+        () =>
+          buildTree({
+            match: slotMatch,
+            baseContext: this.baseContext(url, slotMatch),
+            results,
+            retry: () => void this.refresh(),
+            defaultError: this.errorBlock,
+            defaultNotFound: this.notFoundBlock,
+          }).element,
+      );
     }
     return slots;
   }
@@ -331,6 +368,10 @@ export class AppRouter {
       typeof window !== "undefined" &&
       url.origin !== this.currentUrl().origin
     ) {
+      // Only http(s) URLs may leave the app through a full navigation. Other
+      // schemes (javascript:, data:, ...) parse with origin "null" and must
+      // never reach location.assign.
+      if (url.protocol !== "http:" && url.protocol !== "https:") return;
       window.location.assign(url.href);
       return;
     }
@@ -417,7 +458,10 @@ export class AppRouter {
    * head and loader data once the loaders settle. The caller streams the shell
    * first for a fast TTFB, then the content chunk when `rest` resolves.
    */
-  async renderStream(url: URL): Promise<{
+  async renderStream(
+    url: URL,
+    _rewriteDepth = 0,
+  ): Promise<{
     shell: DomphyElement;
     status: number;
     redirect: string | null;
@@ -460,12 +504,32 @@ export class AppRouter {
 
         // Route-level middleware, mirroring transition()'s loop: a rewrite
         // restarts the whole pipeline against the new URL, since global
-        // middleware may also apply to it.
+        // middleware may also apply to it. Rewrites are depth-capped like
+        // redirects: an A->B->A middleware pair must fail with an actionable
+        // error instead of recursing forever.
         for (const route of match.route.chain) {
           for (const middleware of routeMiddleware(route) ?? []) {
             const result = await middleware(middlewareContext);
             if (isRewrite(result)) {
-              return this.renderStream(new URL(result.__domphyRewrite, url));
+              const depth = _rewriteDepth + 1;
+              if (depth > MAX_NAVIGATION_LOOPS) {
+                const failure = rewriteLoopError(depth);
+                const element = this.renderError(failure);
+                return {
+                  shell: element,
+                  status: 500,
+                  redirect: null,
+                  rest: Promise.resolve({
+                    content: element,
+                    data: {},
+                    head: "",
+                  }),
+                };
+              }
+              return this.renderStream(
+                new URL(result.__domphyRewrite, url),
+                depth,
+              );
             }
           }
         }
@@ -484,7 +548,9 @@ export class AppRouter {
     }
 
     if (!match) {
-      const built = buildNotFoundTree(this.notFoundBlock);
+      const built = this.buildWithContext(() =>
+        buildNotFoundTree(this.notFoundBlock),
+      );
       return {
         shell: built.element,
         status: 404,
@@ -504,14 +570,17 @@ export class AppRouter {
         ? ({ status: "pending" } as SegmentResult)
         : ({ status: "success", data: undefined } as SegmentResult),
     );
-    const shell = buildTree({
-      match: resolvedMatch,
-      baseContext,
-      results: pending,
-      retry: () => {},
-      defaultError: this.errorBlock,
-      defaultNotFound: this.notFoundBlock,
-    }).element;
+    const shell = this.buildWithContext(
+      () =>
+        buildTree({
+          match: resolvedMatch,
+          baseContext,
+          results: pending,
+          retry: () => {},
+          defaultError: this.errorBlock,
+          defaultNotFound: this.notFoundBlock,
+        }).element,
+    );
 
     const rest = (async () => {
       const results = await this.loadMatch(resolvedMatch, url);
@@ -528,15 +597,18 @@ export class AppRouter {
           }
         }),
       );
-      const content = buildTree({
-        match: resolvedMatch,
-        baseContext,
-        results,
-        retry: () => {},
-        defaultError: this.errorBlock,
-        defaultNotFound: this.notFoundBlock,
-        slots,
-      }).element;
+      const content = this.buildWithContext(
+        () =>
+          buildTree({
+            match: resolvedMatch,
+            baseContext,
+            results,
+            retry: () => {},
+            defaultError: this.errorBlock,
+            defaultNotFound: this.notFoundBlock,
+            slots,
+          }).element,
+      );
 
       const data: Record<string, unknown> = {};
       resolvedMatch.route.chain.forEach((route, index) => {
@@ -561,6 +633,15 @@ export class AppRouter {
     })();
 
     return { shell, status: 200, redirect: null, rest };
+  }
+
+  /**
+   * Renders the configured error block for an unexpected failure. Used by
+   * streaming SSR to swap a mid-stream error into the shell.
+   * @internal
+   */
+  renderError(error: Error): DomphyElement {
+    return this.buildWithContext(() => this.errorBlock(error, () => {}));
   }
 
   private cacheKey(segmentId: string, url: URL): string {
@@ -616,10 +697,15 @@ export class AppRouter {
             const result = await middleware(middlewareContext);
             if (isRewrite(result)) {
               if (token !== this.navigationToken) return;
-              await this.transition(
-                new URL(result.__domphyRewrite, url),
-                options,
-              );
+              // A rewrite restarts the whole transition against the new URL;
+              // count it against the same depth budget as redirects so an
+              // A->B->A middleware pair fails instead of recursing forever.
+              const depth = (options._redirectDepth ?? 0) + 1;
+              if (depth > MAX_NAVIGATION_LOOPS) throw rewriteLoopError(depth);
+              await this.transition(new URL(result.__domphyRewrite, url), {
+                ...options,
+                _redirectDepth: depth,
+              });
               return;
             }
           }
@@ -633,7 +719,7 @@ export class AppRouter {
       if (token !== this.navigationToken) return;
       if (error instanceof RedirectSignal) {
         const depth = (options._redirectDepth ?? 0) + 1;
-        if (depth > 10) {
+        if (depth > MAX_NAVIGATION_LOOPS) {
           const failure = new Error(
             `[Domphy] Redirect loop detected: too many consecutive redirects (>${depth - 1})`,
           );
@@ -657,7 +743,11 @@ export class AppRouter {
         return;
       }
       const failure = error instanceof Error ? error : new Error(String(error));
-      this.tree.set(this.errorBlock(failure, () => void this.refresh()));
+      this.tree.set(
+        this.buildWithContext(() =>
+          this.errorBlock(failure, () => void this.refresh()),
+        ),
+      );
       this.state.set("status", "error");
       this.state.set("error", failure);
       this.events.notify("routeChangeError", failure, href);
@@ -701,20 +791,26 @@ export class AppRouter {
     });
 
     // Give already-resolved (cached) loaders and lazy imports a chance to finish
-    // before showing loading UI.
+    // before showing loading UI. A zero-delay macrotask is used deliberately:
+    // it lets the whole microtask queue (the promise chains of cached loaders)
+    // drain first, which a single queueMicrotask/await tick would not. Only
+    // genuinely pending work — network fetches, dynamic imports — outlives one
+    // macrotask and gets the loading fallback.
     await new Promise((resolve) => setTimeout(resolve, 0));
     if (
       !settled &&
       chain.some((route) => routeLoading(route) || hasPendingLazy(route))
     ) {
-      const interim = buildTree({
-        match,
-        baseContext: this.baseContext(url, match),
-        results: results.map((result) => ({ ...result })),
-        retry: () => void this.refresh(),
-        defaultError: this.errorBlock,
-        defaultNotFound: this.notFoundBlock,
-      });
+      const interim = this.buildWithContext(() =>
+        buildTree({
+          match,
+          baseContext: this.baseContext(url, match),
+          results: results.map((result) => ({ ...result })),
+          retry: () => void this.refresh(),
+          defaultError: this.errorBlock,
+          defaultNotFound: this.notFoundBlock,
+        }),
+      );
       if (token === this.navigationToken && interim.status === "loading") {
         this.state.set("status", "loading");
         this.tree.set(interim.element);
@@ -738,15 +834,17 @@ export class AppRouter {
     );
     if (token !== this.navigationToken) return;
 
-    const built = buildTree({
-      match,
-      baseContext: this.baseContext(url, match),
-      results,
-      retry: () => void this.refresh(),
-      defaultError: this.errorBlock,
-      defaultNotFound: this.notFoundBlock,
-      slots,
-    });
+    const built = this.buildWithContext(() =>
+      buildTree({
+        match,
+        baseContext: this.baseContext(url, match),
+        results,
+        retry: () => void this.refresh(),
+        defaultError: this.errorBlock,
+        defaultNotFound: this.notFoundBlock,
+        slots,
+      }),
+    );
 
     const dataRecord: Record<string, unknown> = {};
     chain.forEach((route, index) => {
@@ -772,7 +870,9 @@ export class AppRouter {
     token: number,
     options: TransitionOptions,
   ): Promise<void> {
-    const built = buildNotFoundTree(this.notFoundBlock);
+    const built = this.buildWithContext(() =>
+      buildNotFoundTree(this.notFoundBlock),
+    );
     this.currentMatch = null;
     this.metadata = {};
     applyHeadTags([]);

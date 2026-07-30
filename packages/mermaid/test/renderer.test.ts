@@ -5,6 +5,18 @@ import { describe, expect, it } from "vitest";
 import { normalizeMermaidSource, renderMermaidToSvg } from "../src/renderer.js";
 import type { MermaidOptions } from "../src/types.js";
 
+// ---------------------------------------------------------------------------
+// E2E gate: the two "renders a flowchart…" / "throws with the diagram
+// source…" tests below launch REAL headless Chromium via
+// @mermaid-js/mermaid-cli. They are slow (~25s + ~15s) and have been observed
+// flaky in constrained environments, so they are opt-in: run them with
+//   MERMAID_E2E=1 pnpm test
+// The default `pnpm test` (and therefore repo CI's `pnpm -r test`, which must
+// stay hermetic) skips them. Everything else in this file — and every other
+// test file in this package — runs without a browser.
+// ---------------------------------------------------------------------------
+const MERMAID_E2E = process.env.MERMAID_E2E === "1";
+
 /**
  * Tries to locate an installed `chrome-headless-shell` in the Puppeteer cache so
  * the headless render uses a known-good binary regardless of which Chrome
@@ -86,59 +98,68 @@ describe("renderMermaidToSvg (headless)", () => {
     );
   });
 
-  // Real headless render. chrome-headless-shell is installed in this repo, but
-  // if the environment cannot launch a browser we skip rather than fail the
-  // whole suite — the renderer code itself is still exercised by the empty-input
-  // and tree/cache tests.
-  it("renders a flowchart to an inline SVG containing the node labels", async () => {
-    let svg: string;
-    try {
-      svg = await renderMermaidToSvg(
-        "graph TD; Alpha-->Beta;",
-        headlessOptions(),
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (isBrowserUnavailable(message)) {
-        console.warn(
-          `[skip] headless Mermaid render unavailable in this environment: ${message}`,
+  // Real headless render — MERMAID_E2E=1 only (see the gate note at the top
+  // of this file). chrome-headless-shell is installed in this repo, but if
+  // the environment cannot launch a browser we skip rather than fail the
+  // whole suite — the renderer code itself is still exercised by the
+  // empty-input and tree/cache tests.
+  it.skipIf(!MERMAID_E2E)(
+    "renders a flowchart to an inline SVG containing the node labels",
+    async () => {
+      let svg: string;
+      try {
+        svg = await renderMermaidToSvg(
+          "graph TD; Alpha-->Beta;",
+          headlessOptions(),
         );
-        return;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (isBrowserUnavailable(message)) {
+          console.warn(
+            `[skip] headless Mermaid render unavailable in this environment: ${message}`,
+          );
+          return;
+        }
+        throw error;
       }
-      throw error;
-    }
-    expect(svg).toContain("<svg");
-    expect(svg).toContain("Alpha");
-    expect(svg).toContain("Beta");
-  }, 60000);
+      expect(svg).toContain("<svg");
+      expect(svg).toContain("Alpha");
+      expect(svg).toContain("Beta");
+    },
+    60000,
+  );
 
-  it("throws with the diagram source on a syntax error", async () => {
-    let threw = false;
-    try {
-      await renderMermaidToSvg(
-        "graph TD; this is::: not valid !!!",
-        headlessOptions(),
-      );
-    } catch (error) {
-      threw = true;
-      const message = error instanceof Error ? error.message : String(error);
-      // The render wrapper always appends the source marker. If instead the
-      // browser could not launch at all, skip the content assertion.
-      if (
-        !message.includes("--- source ---") &&
-        isBrowserUnavailable(message)
-      ) {
-        console.warn(
-          `[skip] headless Mermaid render unavailable in this environment: ${message}`,
+  it.skipIf(!MERMAID_E2E)(
+    "throws with the diagram source on a syntax error",
+    async () => {
+      let threw = false;
+      try {
+        await renderMermaidToSvg(
+          "graph TD; this is::: not valid !!!",
+          headlessOptions(),
         );
-        return;
+      } catch (error) {
+        threw = true;
+        const message = error instanceof Error ? error.message : String(error);
+        // The render wrapper always appends the source marker. If instead the
+        // browser could not launch at all, skip the content assertion.
+        if (
+          !message.includes("--- source ---") &&
+          isBrowserUnavailable(message)
+        ) {
+          console.warn(
+            `[skip] headless Mermaid render unavailable in this environment: ${message}`,
+          );
+          return;
+        }
+        expect(message).toContain("--- source ---");
       }
-      expect(message).toContain("--- source ---");
-    }
-    if (!threw) {
-      throw new Error(
-        "expected renderMermaidToSvg to reject on invalid source",
-      );
-    }
-  }, 60000);
+      if (!threw) {
+        throw new Error(
+          "expected renderMermaidToSvg to reject on invalid source",
+        );
+      }
+    },
+    60000,
+  );
 });

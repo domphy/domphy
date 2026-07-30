@@ -1,4 +1,4 @@
-﻿import { readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { diagnose, fix, format, validate } from "@domphy/doctor";
 
@@ -8,6 +8,47 @@ import { diagnose, fix, format, validate } from "@domphy/doctor";
  */
 
 const ORIGIN = process.env.DOMPHY_ORIGIN ?? "https://domphy.com";
+
+// Network policy for the domphy.com-backed tools: fail fast instead of
+// hanging, retry once, and re-fetch the manifest after a TTL rather than
+// caching it for the process lifetime.
+const FETCH_TIMEOUT_MS = 10_000;
+const FETCH_ATTEMPTS = 2; // initial attempt + one retry
+const MANIFEST_CACHE_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * Fetches `url` with a 10s timeout and one retry. The thrown error names the
+ * resource, the cause, and the effective origin so the failure is actionable
+ * from an MCP client's error surface.
+ */
+async function fetchResilient(url: string, label: string): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch ${label}: ${res.status}`);
+      }
+      return res;
+    } catch (error) {
+      lastError =
+        error instanceof Error && error.name === "AbortError"
+          ? new Error(
+              `Failed to fetch ${label}: timed out after ${FETCH_TIMEOUT_MS / 1000}s`,
+            )
+          : error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  const message =
+    lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error(
+    `${message} (${url}; ${FETCH_ATTEMPTS} attempts — check network access and DOMPHY_ORIGIN=${ORIGIN})`,
+  );
+}
 
 // Path to the app-block registry produced by `apps/web/scripts/app-manifest.mjs`.
 // Read lazily (per call) so the env var can be set after this module loads, and
@@ -41,14 +82,16 @@ interface Manifest {
   }>;
 }
 
-let cache: Manifest | null = null;
+let cache: { value: Manifest; at: number } | null = null;
 
 export async function loadManifest(): Promise<Manifest> {
-  if (cache) return cache;
-  const res = await fetch(`${ORIGIN}/manifest.json`);
-  if (!res.ok) throw new Error(`Failed to fetch manifest: ${res.status}`);
-  cache = (await res.json()) as Manifest;
-  return cache;
+  if (cache && Date.now() - cache.at < MANIFEST_CACHE_TTL_MS) {
+    return cache.value;
+  }
+  const res = await fetchResilient(`${ORIGIN}/manifest.json`, "manifest");
+  const value = (await res.json()) as Manifest;
+  cache = { value, at: Date.now() };
+  return value;
 }
 
 export async function listPatches(): Promise<string> {
@@ -83,27 +126,48 @@ export async function listPackages(): Promise<string> {
 }
 
 export async function getRules(): Promise<string> {
-  const res = await fetch(`${ORIGIN}/llms.txt`);
-  if (!res.ok) throw new Error(`Failed to fetch rules: ${res.status}`);
+  const res = await fetchResilient(`${ORIGIN}/llms.txt`, "rules");
   return res.text();
 }
 
 /** Valid tone names + theme color names (tones.json) for themeColor()/dataTone. */
 export async function getTones(): Promise<string> {
-  const res = await fetch(`${ORIGIN}/tones.json`);
-  if (!res.ok) throw new Error(`Failed to fetch tones: ${res.status}`);
+  const res = await fetchResilient(`${ORIGIN}/tones.json`, "tones");
   return res.text();
 }
 
-/** Runs @domphy/doctor on a JSON element tree (static parts only). */
-export function diagnoseTree(elementJson: string): string {
+/**
+ * Parses a JSON element tree for the doctor tools. Returns the parsed tree, or
+ * a readable error string for malformed JSON and non-object roots (a Domphy
+ * element is always an object keyed by tag — "42" or "[...]" is never valid).
+ */
+function parseElementTree(elementJson: string): unknown | string {
   let tree: unknown;
   try {
     tree = JSON.parse(elementJson);
   } catch (error) {
     return `Invalid JSON: ${(error as Error).message}`;
   }
-  return format(diagnose(tree));
+  if (typeof tree !== "object" || tree === null || Array.isArray(tree)) {
+    return `Invalid JSON: expected an object element tree keyed by tag (e.g. {"div": "hi"}), got ${Array.isArray(tree) ? "array" : tree === null ? "null" : typeof tree}`;
+  }
+  return tree;
+}
+
+/** Runs a doctor entry point, converting crashes (e.g. stack depth on hostile deeply-nested input) into a readable error string. */
+function runDoctor(label: string, run: () => string): string {
+  try {
+    return run();
+  } catch (error) {
+    return `${label} failed: ${(error as Error).message}`;
+  }
+}
+
+/** Runs @domphy/doctor on a JSON element tree (static parts only). */
+export function diagnoseTree(elementJson: string): string {
+  const tree = parseElementTree(elementJson);
+  if (typeof tree === "string") return tree;
+  return runDoctor("diagnose", () => format(diagnose(tree)));
 }
 
 /**
@@ -111,13 +175,9 @@ export function diagnoseTree(elementJson: string): string {
  * returns the structured report (ok flag, issues, severity counts) as JSON.
  */
 export function validateTree(elementJson: string): string {
-  let tree: unknown;
-  try {
-    tree = JSON.parse(elementJson);
-  } catch (error) {
-    return `Invalid JSON: ${(error as Error).message}`;
-  }
-  return JSON.stringify(validate(tree), null, 2);
+  const tree = parseElementTree(elementJson);
+  if (typeof tree === "string") return tree;
+  return runDoctor("validate", () => JSON.stringify(validate(tree), null, 2));
 }
 
 /**
@@ -126,13 +186,9 @@ export function validateTree(elementJson: string): string {
  * (issues needing intent are not auto-fixed).
  */
 export function fixTree(elementJson: string): string {
-  let tree: unknown;
-  try {
-    tree = JSON.parse(elementJson);
-  } catch (error) {
-    return `Invalid JSON: ${(error as Error).message}`;
-  }
-  return JSON.stringify(fix(tree), null, 2);
+  const tree = parseElementTree(elementJson);
+  if (typeof tree === "string") return tree;
+  return runDoctor("fix", () => JSON.stringify(fix(tree), null, 2));
 }
 
 // --- app-block registry (an app's OWN reusable Domphy blocks) ---

@@ -1,6 +1,10 @@
 import { flushSync } from "@domphy/core";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearAsset, loadAsset, preloadAsset } from "../src/loader.js";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 // A minimal three.js-style Loader: `load(url, onLoad, onProgress, onError)`
 // resolving asynchronously (via a microtask), like a real file/network
@@ -181,5 +185,124 @@ describe("clearAsset", () => {
     expect(reloadedOther).not.toBe(other);
     expect(loadCalls).toEqual(["a.glb", "b.glb", "a.glb", "b.glb"]);
     await Promise.all([reloadedFirst.promise, reloadedOther.promise]);
+  });
+});
+
+describe("loadAsset configure on cache hit", () => {
+  it("warns once in dev when a cache hit passes a DIFFERENT configure", async () => {
+    const { FakeLoader } = createFakeLoaderClass();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const first = loadAsset(FakeLoader, "cfg.glb", () => {});
+    // A fresh function reference per call site — silently ignored before.
+    const second = loadAsset(FakeLoader, "cfg.glb", () => {});
+
+    expect(second).toBe(first);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("configure");
+
+    // A third distinct configure still produces only the one warning.
+    loadAsset(FakeLoader, "cfg.glb", () => {});
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    await first.promise;
+  });
+
+  it("does not warn when the cache hit passes the SAME configure reference", async () => {
+    const { FakeLoader } = createFakeLoaderClass();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const configure = () => {};
+
+    const first = loadAsset(FakeLoader, "same-cfg.glb", configure);
+    const second = loadAsset(FakeLoader, "same-cfg.glb", configure);
+
+    expect(second).toBe(first);
+    expect(warn).not.toHaveBeenCalled();
+
+    await first.promise;
+  });
+});
+
+describe("clearAsset dispose option", () => {
+  function createDisposableScene() {
+    const texture = { isTexture: true, dispose: vi.fn() };
+    const material = { name: "Mat", map: texture, dispose: vi.fn() };
+    const geometry = { dispose: vi.fn() };
+    const mesh = { name: "Cube", isMesh: true, geometry, material };
+    const scene = {
+      isObject3D: true,
+      traverse(visit: (object: any) => void) {
+        visit(mesh);
+      },
+    };
+    return { scene, texture, material, geometry };
+  }
+
+  it("does NOT dispose by default (r3f parity — eviction only)", async () => {
+    const { scene, texture, material, geometry } = createDisposableScene();
+    const { FakeLoader } = createFakeLoaderClass({
+      onLoadValue: () => ({ scene }),
+    });
+
+    const result = loadAsset(FakeLoader, "keep.glb");
+    await result.promise;
+    flushSync();
+
+    clearAsset(FakeLoader, "keep.glb");
+
+    expect(texture.dispose).not.toHaveBeenCalled();
+    expect(material.dispose).not.toHaveBeenCalled();
+    expect(geometry.dispose).not.toHaveBeenCalled();
+  });
+
+  it("with { dispose: true } disposes geometry, materials, and textures on the cached graph", async () => {
+    const { scene, texture, material, geometry } = createDisposableScene();
+    const { FakeLoader } = createFakeLoaderClass({
+      onLoadValue: () => ({ scene }),
+    });
+
+    const result = loadAsset(FakeLoader, "purge.glb");
+    await result.promise;
+    flushSync();
+
+    clearAsset(FakeLoader, "purge.glb", { dispose: true });
+
+    expect(geometry.dispose).toHaveBeenCalledTimes(1);
+    expect(material.dispose).toHaveBeenCalledTimes(1);
+    expect(texture.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("with { dispose: true } and no input disposes every cached entry for the class", async () => {
+    const first = createDisposableScene();
+    const second = createDisposableScene();
+    const { FakeLoader } = createFakeLoaderClass({
+      onLoadValue: (url) =>
+        url === "a.glb" ? { scene: first.scene } : { scene: second.scene },
+    });
+
+    const resultA = loadAsset(FakeLoader, "a.glb");
+    const resultB = loadAsset(FakeLoader, "b.glb");
+    await Promise.all([resultA.promise, resultB.promise]);
+    flushSync();
+
+    clearAsset(FakeLoader, undefined, { dispose: true });
+
+    expect(first.geometry.dispose).toHaveBeenCalledTimes(1);
+    expect(second.geometry.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("with { dispose: true } disposes a directly dispose-capable result (e.g. a texture)", async () => {
+    const texture = { isTexture: true, dispose: vi.fn() };
+    const { FakeLoader } = createFakeLoaderClass({
+      onLoadValue: () => texture,
+    });
+
+    const result = loadAsset(FakeLoader, "tex.png");
+    await result.promise;
+    flushSync();
+
+    clearAsset(FakeLoader, "tex.png", { dispose: true });
+
+    expect(texture.dispose).toHaveBeenCalledTimes(1);
   });
 });

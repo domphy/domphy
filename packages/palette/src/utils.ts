@@ -23,11 +23,33 @@ export const rgbToHex = (rgb: number[]): string => {
     return `#${r}${g}${b}`;
 };
 
-/** Convert sRGB Hex string to linear RGB. */
+/** Whether a string is a supported CSS hex color: #rgb, #rgba, #rrggbb, or #rrggbbaa. */
+export const isValidHex = (hex: string): boolean =>
+    typeof hex === "string" && /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(hex);
+
+/**
+ * Normalize a CSS hex color to its lowercase expanded form (#rrggbb, or
+ * #rrggbbaa when an alpha channel is present). Throws on invalid input.
+ */
+export const normalizeHex = (hex: string): string => {
+    if (!isValidHex(hex)) {
+        throw new Error(
+            `Invalid hex color "${hex}": expected "#rgb", "#rgba", "#rrggbb", or "#rrggbbaa" (hex digits 0-9, a-f, case-insensitive).`
+        );
+    }
+    let digits = hex.slice(1).toLowerCase();
+    if (digits.length <= 4) {
+        digits = digits.split("").map((c) => c + c).join("");
+    }
+    return `#${digits}`;
+};
+
+/** Convert sRGB Hex string to linear RGB. Alpha digits, if present, are ignored. */
 export const hexToRgb = (hex: string): number[] => {
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const normalized = normalizeHex(hex);
+    const r = parseInt(normalized.slice(1, 3), 16) / 255;
+    const g = parseInt(normalized.slice(3, 5), 16) / 255;
+    const b = parseInt(normalized.slice(5, 7), 16) / 255;
 
     return srgbToLrgb([r, g, b])
 };
@@ -197,16 +219,37 @@ export const calcDeltaE2000 = (lab1: number[], lab2: number[]): number => {
     return Math.sqrt(Math.pow(dLp / SL, 2) + Math.pow(dCp / SC, 2) + Math.pow(dHp / SH, 2) + RT * (dCp / SC) * (dHp / SH));
 };
 
-/** Convert CSS rgb() string to linear RGB. */
+/**
+ * Convert a CSS rgb()/rgba() string to linear RGB. Supports legacy comma
+ * syntax ("rgb(255, 0, 0)"), percentage channels ("rgb(100%, 0%, 0%)"), and
+ * modern space/slash syntax ("rgb(255 0 0 / 50%)"). Alpha is ignored.
+ */
 export const cssRgbToRgb = (css: string): number[] => {
-    const m = css.match(/\d+(\.\d+)?/g);
-    if (!m || m.length < 3) throw new Error("Invalid CSS rgb()");
+    const invalid = () =>
+        new Error(
+            `Invalid CSS rgb() "${css}": expected "rgb(r, g, b)" with channels 0-255 or 0%-100% (comma or space separated, optional alpha after "," or "/").`
+        );
+
+    const match = /^\s*rgba?\(\s*(.+?)\s*\)\s*$/i.exec(css);
+    if (!match) throw invalid();
+
+    // Strip the optional alpha ("..., a" or "... / a"); it does not affect RGB.
+    const body = match[1].split("/")[0];
+    const parts = body.includes(",")
+        ? body.split(",").map((part) => part.trim()).slice(0, 3)
+        : body.trim().split(/\s+/);
+    if (parts.length !== 3) throw invalid();
+
+    const channels = parts.map((part) =>
+        part.endsWith("%") ? (parseFloat(part) / 100) * 255 : parseFloat(part)
+    );
+    if (channels.some((c) => !Number.isFinite(c))) throw invalid();
 
     const toLinear = (c: number) => {
         const v = c / 255;
         return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
     };
-    return [toLinear(Number(m[0])), toLinear(Number(m[1])), toLinear(Number(m[2]))];
+    return channels.map(toLinear);
 };
 
 
@@ -384,7 +427,9 @@ export const mix = (
 export const scale = (colors: string[], steps: number): string[] => {
     if (colors.length < 2) throw new Error("scale() requires at least 2 colors");
     if (steps < 1) return [];
-    if (steps === 1) return [colors[0]];
+    // Round-trip through RGB so the single-step output matches the normalized
+    // lowercase #rrggbb shape produced by the multi-step path.
+    if (steps === 1) return [rgbToHex(hexToRgb(colors[0]))];
 
     const oklabs = colors.map(hex => rgbToOklab(hexToRgb(hex)));
     const segments = oklabs.length - 1;

@@ -42,7 +42,18 @@ export function navLink(props: NavLinkProps): PartialElement<"a"> {
     prefetch = "hover",
     exact = false,
   } = props;
-  const router = () => props.router ?? getRouter();
+  // Capture the router at patch-creation time: when the patch is created by a
+  // page/layout factory, the router running that render is on the render stack
+  // and is the right one — important for concurrent server renders, where the
+  // module-global default router belongs to another request. Fall back to lazy
+  // resolution when no router exists yet (patch created before createApp()).
+  let captured: AppRouter | null = null;
+  try {
+    captured = props.router ?? getRouter();
+  } catch {
+    captured = null;
+  }
+  const router = () => props.router ?? captured ?? getRouter();
 
   const isActive = (pathname: string): boolean => {
     const target = new URL(href, "http://localhost").pathname;

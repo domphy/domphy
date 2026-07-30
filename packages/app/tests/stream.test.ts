@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { createApp, defineRoutes, type Route, redirect } from "../src/index";
+import {
+  createApp,
+  defineRoutes,
+  type Route,
+  redirect,
+  rewrite,
+} from "../src/index";
 
 function streamRoutes(): Route[] {
   return defineRoutes([
@@ -142,5 +148,64 @@ describe("renderToStream", () => {
 
     const body = (await collect(stream)).join("");
     expect(body).not.toContain("Go");
+  });
+
+  it("swaps in the error block when content generation fails mid-stream", async () => {
+    const routes = defineRoutes([
+      {
+        path: "/",
+        children: [
+          {
+            path: "fragile",
+            loader: () =>
+              new Promise((resolve) => setTimeout(() => resolve("x"), 20)),
+            loading: () => ({ p: "Loading fragile..." }),
+            page: () => {
+              throw new Error("page exploded");
+            },
+          },
+        ],
+      },
+    ]);
+    const app = createApp(routes, {
+      history: null,
+      error: (error) => ({ h1: `Stream error: ${error.message}` }),
+    });
+    const { stream, status } = await app.renderToStream("/fragile");
+    // The shell already flushed with a 200; the error can only arrive as a chunk.
+    expect(status).toBe(200);
+
+    const body = (await collect(stream)).join("");
+    expect(body).toContain("Loading fragile...");
+    // The stream closes normally with an error chunk, not a truncated document.
+    expect(body).toContain('id="domphy-content"');
+    expect(body).toContain("Stream error: page exploded");
+    expect(body).toContain("</body></html>");
+  });
+
+  it("fails with an actionable error on route-middleware rewrite loops", async () => {
+    const routes = defineRoutes([
+      {
+        path: "/",
+        children: [
+          {
+            path: "a",
+            middleware: [() => rewrite("/b")],
+            page: () => ({ h1: "A" }),
+          },
+          {
+            path: "b",
+            middleware: [() => rewrite("/a")],
+            page: () => ({ h1: "B" }),
+          },
+        ],
+      },
+    ]);
+    const app = createApp(routes, { history: null });
+    const { stream, status } = await app.renderToStream("/a");
+    expect(status).toBe(500);
+
+    const body = (await collect(stream)).join("");
+    expect(body).toContain("Rewrite loop detected");
   });
 });

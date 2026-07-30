@@ -1,5 +1,5 @@
-import { themeColorToken } from "@domphy/theme";
-import { seriesHex } from "../gl/color.js";
+import { themeColor } from "@domphy/theme";
+import { cssColor, seriesColor } from "../gl/color.js";
 import type { AnyScale } from "../scale/index.js";
 import type {
   BarSeriesOption,
@@ -44,7 +44,7 @@ function renderBarLabels(
   _seriesOffset: number,
   hiddenSeries: Set<string>,
 ): void {
-  const labelColor = themeColorToken(null, "shift-10", "neutral");
+  const labelColor = themeColor(null, "shift-10", "neutral");
   const labelColorInside = "#fff";
   const gap = 2;
 
@@ -152,7 +152,7 @@ function renderLineLabels(
   yScales: AnyScale[],
   hiddenSeries: Set<string>,
 ): void {
-  const defaultLabelColor = themeColorToken(null, "shift-9", "neutral");
+  const defaultLabelColor = themeColor(null, "shift-9", "neutral");
 
   for (const s of series) {
     if (!s.label?.show) continue;
@@ -161,10 +161,11 @@ function renderLineLabels(
     const yScale = yScales[s.yAxisIndex ?? 0];
     if (!xScale || !yScale) continue;
     // Upstream <LabelList className="fill-foreground"> renders point labels at
-    // full card-foreground contrast; honor a per-series label color (resolved at
-    // the foreground `shift-11` tone) when set, else keep the muted default.
+    // full card-foreground contrast; honor a per-series label color when set
+    // (family name → var(--…) reference, hex/rgb passed through), else keep
+    // the muted default.
     const labelColor = s.label.color
-      ? themeColorToken(null, "shift-11", s.label.color)
+      ? cssColor(s.label.color, 0)
       : defaultLabelColor;
 
     (s.data ?? []).forEach((item, index) => {
@@ -225,7 +226,7 @@ function renderPieLabels(
   hiddenSeries: Set<string>,
 ): void {
   const minSize = Math.min(width, height);
-  const labelColor = themeColorToken(null, "shift-9", "neutral");
+  const labelColor = themeColor(null, "shift-9", "neutral");
   const PI2 = Math.PI * 2;
 
   for (const s of series) {
@@ -332,7 +333,7 @@ function renderScatterLabels(
   yScales: AnyScale[],
   hiddenSeries: Set<string>,
 ): void {
-  const labelColor = themeColorToken(null, "shift-9", "neutral");
+  const labelColor = themeColor(null, "shift-9", "neutral");
   for (const s of series) {
     if (!s.label?.show) continue;
     if (s.name && hiddenSeries.has(s.name)) continue;
@@ -416,9 +417,7 @@ export function renderSeriesSymbols(
     const yScale = opts.yScales[s.yAxisIndex ?? 0];
     if (!xScale || !yScale) return;
 
-    const color = s.color
-      ? String(s.color)
-      : seriesHex(seriesOffset + lines.indexOf(s));
+    const color = cssColor(s.color, seriesOffset + lines.indexOf(s));
     const r = typeof s.symbolSize === "number" ? s.symbolSize / 2 : 4;
 
     (s.data ?? []).forEach((item, index) => {

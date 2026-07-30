@@ -178,18 +178,14 @@ describe("app-block tools", () => {
 
 describe("registered tool names", () => {
   it("the server registers the new app-block + validate tools", async () => {
-    // index.ts opens a stdio transport at import time; read its source instead
-    // of importing it so the test stays transport-free.
-    const { readFile } = await import("node:fs/promises");
-    const { fileURLToPath } = await import("node:url");
-    const here = fileURLToPath(new URL(".", import.meta.url));
-    const source = await readFile(join(here, "../src/index.ts"), "utf8");
+    const { TOOLS } = await import("../src/handler");
+    const names = TOOLS.map((t) => t.name);
     for (const tool of [
       "domphy_validate",
       "domphy_list_app_blocks",
       "domphy_get_app_block",
     ]) {
-      expect(source).toContain(tool);
+      expect(names).toContain(tool);
     }
   });
 });

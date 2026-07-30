@@ -1,4 +1,4 @@
-import { seriesHex } from "../gl/color.js";
+import { seriesColor } from "../gl/color.js";
 import type { TreemapSeriesOption } from "../types.js";
 
 interface Rect {
@@ -135,7 +135,7 @@ function renderNodes(
     };
     if (padded.w < 1 || padded.h < 1) return;
 
-    const color = node.color ?? seriesHex(depth === 0 ? index : seriesIndex);
+    const color = node.color ?? seriesColor(depth === 0 ? index : seriesIndex);
 
     const rect2 = document.createElementNS(
       "http://www.w3.org/2000/svg",

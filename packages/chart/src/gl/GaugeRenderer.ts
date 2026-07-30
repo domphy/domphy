@@ -1,6 +1,6 @@
-import { themeColorToken } from "@domphy/theme";
+import { themeColor } from "@domphy/theme";
 import type { GaugeSeriesOption } from "../types.js";
-import { familyRgba, seriesRgba } from "./color.js";
+import type { ColorResolver } from "./color.js";
 
 export class GaugeRenderer {
   renderToSvg(
@@ -8,6 +8,7 @@ export class GaugeRenderer {
     series: GaugeSeriesOption[],
     width: number,
     height: number,
+    color: ColorResolver,
   ): void {
     const old = svg.querySelector(".dc-gauge");
     if (old) old.remove();
@@ -43,7 +44,7 @@ export class GaugeRenderer {
       const totalAngle = endRad - startRad;
 
       // Track arc
-      const trackColor = themeColorToken(null, "shift-2", "neutral");
+      const trackColor = themeColor(null, "shift-2", "neutral");
       const trackPath = describeArc(
         cx,
         cy,
@@ -73,9 +74,7 @@ export class GaugeRenderer {
         );
         const progressEndRad = startRad + totalAngle * fraction;
 
-        const progressColor = s.color
-          ? familyRgba(s.color as any, "shift-9")
-          : seriesRgba(si + di);
+        const progressColor = color.rgba(s.color, si + di);
         const progressHex = `rgba(${progressColor.map((v, i) => (i < 3 ? Math.round(v * 255) : v)).join(",")})`;
 
         const progressPath = describeArc(
@@ -119,7 +118,7 @@ export class GaugeRenderer {
           );
           valueText.setAttribute(
             "fill",
-            themeColorToken(null, "shift-11", "neutral"),
+            themeColor(null, "shift-11", "neutral"),
           );
           group.appendChild(valueText);
         }
@@ -139,10 +138,7 @@ export class GaugeRenderer {
           nameText.setAttribute("y", String(nameOffsetY));
           nameText.setAttribute("text-anchor", "middle");
           nameText.setAttribute("font-size", "13");
-          nameText.setAttribute(
-            "fill",
-            themeColorToken(null, "shift-7", "neutral"),
-          );
+          nameText.setAttribute("fill", themeColor(null, "shift-7", "neutral"));
           group.appendChild(nameText);
         }
       });
@@ -152,8 +148,8 @@ export class GaugeRenderer {
       const majorLen = s.splitLine?.length ?? 10;
       const minorLen = s.axisTick?.length ?? 5;
       const minorCount = s.axisTick?.splitNumber ?? 5;
-      const tickColor = themeColorToken(null, "shift-5", "neutral");
-      const tickLabelColor = themeColorToken(null, "shift-8", "neutral");
+      const tickColor = themeColor(null, "shift-5", "neutral");
+      const tickLabelColor = themeColor(null, "shift-8", "neutral");
 
       for (let tick = 0; tick <= splitNum; tick++) {
         const fraction = tick / splitNum;
@@ -254,9 +250,7 @@ export class GaugeRenderer {
         const base2X = cx - (needleWidth / 2) * Math.cos(perpRad);
         const base2Y = cy + (needleWidth / 2) * Math.sin(perpRad);
 
-        const needleRgba = s.color
-          ? familyRgba(s.color as any, "shift-9")
-          : seriesRgba(si);
+        const needleRgba = color.rgba(s.color, si);
         const needleColor =
           (s.pointer as any)?.itemStyle?.color ??
           `rgba(${needleRgba.map((v, i) => (i < 3 ? Math.round(v * 255) : v)).join(",")})`;

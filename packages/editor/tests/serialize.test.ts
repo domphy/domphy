@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { Node } from "../src/Extendable.js";
-import { generateHTML, parseHTML } from "../src/serialize/html.js";
+import {
+  generateHTML,
+  parseDOMContent,
+  parseHTML,
+} from "../src/serialize/html.js";
 import { fromJSON, toJSON } from "../src/serialize/json.js";
 import { block, createTestEditor, docOf, h, p } from "./fixtures.js";
 
@@ -221,5 +225,57 @@ describe("getText", () => {
     const instance = createTestEditor(docOf(p("one"), p("two")));
     expect(instance.getText()).toBe("one\n\ntwo");
     expect(instance.getText({ blockSeparator: " | " })).toBe("one | two");
+  });
+});
+
+describe("parseDOMContent", () => {
+  function elementFor(html: string): Element {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = html;
+    return wrapper.firstElementChild as Element;
+  }
+
+  it("strips a trailing placeholder br instead of manufacturing a hardBreak", () => {
+    const content = parseDOMContent(
+      schema,
+      elementFor("<p>hi<br></p>"),
+      "paragraph",
+    );
+    expect(content).toEqual([{ type: "text", text: "hi" }]);
+  });
+
+  it("keeps a br that is not trailing", () => {
+    const content = parseDOMContent(
+      schema,
+      elementFor("<p>hi<br>there</p>"),
+      "paragraph",
+    );
+    expect(content).toEqual([
+      { type: "text", text: "hi" },
+      { type: "hardBreak", attrs: {} },
+      { type: "text", text: "there" },
+    ]);
+  });
+
+  it("keeps a trailing br when stripping is disabled (real trailing hardBreak)", () => {
+    const content = parseDOMContent(
+      schema,
+      elementFor("<p>hi<br></p>"),
+      "paragraph",
+      undefined,
+      false,
+    );
+    expect(content).toEqual([
+      { type: "text", text: "hi" },
+      { type: "hardBreak", attrs: {} },
+    ]);
+  });
+
+  it("parseHTML (paste path) keeps a trailing br as a hardBreak", () => {
+    const parsed = parseHTML(schema, "<p>hi<br></p>");
+    expect(parsed.content?.[0].content).toEqual([
+      { type: "text", text: "hi" },
+      { type: "hardBreak", attrs: {} },
+    ]);
   });
 });

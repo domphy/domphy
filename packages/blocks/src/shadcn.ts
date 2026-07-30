@@ -1,11 +1,13 @@
 // Barrel file — re-exports every shadcn block component by name.
 
 // shadcn — auth
-export { Login01 } from "./shadcn/auth/login01.js";
-export { Login02 } from "./shadcn/auth/login02.js";
-export { Login03 } from "./shadcn/auth/login03.js";
-export { Login04 } from "./shadcn/auth/login04.js";
-export { Login05 } from "./shadcn/auth/login05.js";
+// camelCase aliases matching the package-wide naming convention (the
+// PascalCase exports above are kept for compatibility).
+export { Login01, Login01 as login01 } from "./shadcn/auth/login01.js";
+export { Login02, Login02 as login02 } from "./shadcn/auth/login02.js";
+export { Login03, Login03 as login03 } from "./shadcn/auth/login03.js";
+export { Login04, Login04 as login04 } from "./shadcn/auth/login04.js";
+export { Login05, Login05 as login05 } from "./shadcn/auth/login05.js";
 export { signup01 } from "./shadcn/auth/signup01.js";
 export { signup02 } from "./shadcn/auth/signup02.js";
 export { signup03 } from "./shadcn/auth/signup03.js";

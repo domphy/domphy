@@ -21,10 +21,14 @@ describe("@domphy/dnd", () => {
     expect(typeof insert).toBe("function");
   });
 
-  it("dragDrop returns a patch with mount/remove lifecycle", () => {
+  it("dragDrop returns a patch declaring a per-node behavior", () => {
+    // The FormKit registration lives in a behavior() instance (attach once
+    // per real node, later generations routed through update()) — not in
+    // _onMount/_onRemove closures, which only ever run for generation 1 on a
+    // reused node.
     const patch = dragDrop(toState<{ id: number }[]>([]));
-    expect(typeof patch._onMount).toBe("function");
-    expect(typeof patch._onRemove).toBe("function");
+    expect(patch._behaviors).toBeDefined();
+    expect(typeof patch._behaviors?.["domphy:dnd"]?.attach).toBe("function");
   });
 
   it("wires FormKit onto the list container without throwing", () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   createLinearScale,
   createLogScale,
@@ -75,6 +75,44 @@ describe("createLogScale", () => {
   it("bandwidth is always zero (continuous scale)", () => {
     expect(createLogScale([1, 10], [0, 100]).bandwidth()).toBe(0);
   });
+
+  it("warns once and clamps a non-positive domain bound to a tiny epsilon", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const scale = createLogScale([0, 1000], [0, 300]);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toContain("@domphy/chart:");
+      // The scale stays usable: in-range positive inputs no longer yield NaN.
+      expect(Number.isNaN(scale.map(1))).toBe(false);
+      expect(scale.map(1000)).toBeCloseTo(300);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("warns for each non-positive domain bound", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const scale = createLogScale([-10, 0], [0, 300]);
+      expect(warn).toHaveBeenCalledTimes(2);
+      expect(Number.isNaN(scale.map(1))).toBe(false);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("returns NaN from map() for non-positive values", () => {
+    const scale = createLogScale([1, 1000], [0, 300]);
+    expect(Number.isNaN(scale.map(-5))).toBe(true);
+    expect(Number.isNaN(scale.map(0))).toBe(true);
+  });
+
+  it("round-trips invert(map(x)) for positive x", () => {
+    const scale = createLogScale([1, 1000], [0, 300]);
+    for (const x of [1, 3.5, 42, 999]) {
+      expect(scale.invert(scale.map(x))).toBeCloseTo(x, 5);
+    }
+  });
 });
 
 describe("createOrdinalScale", () => {
@@ -107,6 +145,14 @@ describe("createOrdinalScale", () => {
   it("ticks() returns the domain verbatim", () => {
     const scale = createOrdinalScale(["A", "B"], [0, 100]);
     expect(scale.ticks()).toEqual(["A", "B"]);
+  });
+
+  it("clamps out-of-domain numeric indices to the first/last band", () => {
+    const scale = createOrdinalScale(["A", "B", "C"], [0, 300]);
+    // step = 100; clamped indices map to band centers, matching invert().
+    expect(scale.map(-3)).toBeCloseTo(scale.map("A"));
+    expect(scale.map(99)).toBeCloseTo(scale.map("C"));
+    expect(scale.map(1)).toBeCloseTo(scale.map("B"));
   });
 });
 

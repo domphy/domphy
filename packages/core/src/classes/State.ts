@@ -1,3 +1,4 @@
+import { __DEV__ } from "../dev.js";
 import type { Handler } from "../types.js";
 import { activeCollector } from "./Collector.js";
 import { Notifier } from "./Notifier.js";
@@ -38,7 +39,16 @@ export class State<T> {
   }
 
   set(newValue: T): void {
-    if (!this._notifier) return;
+    if (!this._notifier) {
+      // The state was disposed (owning node removed / scope stopped). Writing
+      // to it is a no-op — warn in DEV so the stale reference is findable.
+      if (__DEV__) {
+        console.warn(
+          `[Domphy] State.set() called on a disposed state ("${this.name}") — the write is ignored. The state outlived its owner; keep a live reference or re-create it.`,
+        );
+      }
+      return;
+    }
     this._value = newValue;
     this._notifier.notify(this.name, newValue);
   }

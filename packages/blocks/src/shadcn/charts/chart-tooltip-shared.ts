@@ -44,7 +44,7 @@
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import { chart, createOrdinalScale } from "@domphy/chart";
 import type { DomphyElement, PartialElement } from "@domphy/core";
-import { themeColorToken, themeSpacing } from "@domphy/theme";
+import { themeColor, themeSpacing } from "@domphy/theme";
 import { card, heading, paragraph } from "@domphy/ui";
 
 // ─── Sample dataset ───────────────────────────────────────────────────────────
@@ -77,7 +77,8 @@ const WAVE_ICON_MARKUP =
 export interface ActivitySeriesEntry {
   key: "running" | "swimming";
   name: string;
-  /** Literal ramp hex (BarRenderer accepts hex; also reused for tooltip swatches). */
+  /** var(--…) ramp reference — series-level bar colors are read live by the
+   * engine's per-pass resolver; also reused for tooltip swatches. */
   color: string;
   iconMarkup: string;
 }
@@ -98,13 +99,13 @@ export const CHART_TOOLTIP_SERIES_TONES = [
 export type ChartTooltipSeriesTone =
   (typeof CHART_TOOLTIP_SERIES_TONES)[number];
 
-/** The nth series' ramp color as a resolved hex (approximates upstream `var(--chart-N)`). */
+/** The nth series' ramp color as a var(--…) CSS reference (approximates upstream `var(--chart-N)`). */
 export function chartTooltipSeriesColor(index: number): string {
   const step =
     ((index % CHART_TOOLTIP_SERIES_TONES.length) +
       CHART_TOOLTIP_SERIES_TONES.length) %
     CHART_TOOLTIP_SERIES_TONES.length;
-  return themeColorToken(null, CHART_TOOLTIP_SERIES_TONES[step], "primary");
+  return themeColor(null, CHART_TOOLTIP_SERIES_TONES[step], "primary");
 }
 
 export const ACTIVITY_SERIES_CONFIG: ActivitySeriesEntry[] = [
@@ -284,11 +285,12 @@ function resolveSeriesEntry(
 
 // Upstream renders the series name AND any indicator icon in
 // `text-muted-foreground`, and the total-row divider as a solid `border-t` in
-// the border tone (registry/new-york-v4/ui/chart.tsx). Reproduced here as fixed
-// theme-token neutrals — theme-aware CSS vars, not a raw opacity multiply
-// (which measured a WCAG color-contrast failure in a prior pass).
-const TOOLTIP_MUTED_COLOR = themeColorToken(null, "shift-9", "neutral");
-const TOOLTIP_DIVIDER_COLOR = themeColorToken(null, "shift-2", "neutral");
+// the border tone (registry/new-york-v4/ui/chart.tsx). Reproduced here as
+// theme-token var(--…) references — resolved against the live theme at paint
+// time, not a raw opacity multiply (which measured a WCAG color-contrast
+// failure in a prior pass).
+const TOOLTIP_MUTED_COLOR = themeColor(null, "shift-9", "neutral");
+const TOOLTIP_DIVIDER_COLOR = themeColor(null, "shift-2", "neutral");
 
 function renderIndicator(
   style: TooltipIndicatorStyle,
@@ -442,8 +444,8 @@ export function activityTooltipFormatter(
         return renderTooltipRow({
           indicator,
           // `point.color` comes from the engine's multi-hue rotation palette
-          // (seriesHex) — use the series config's own ramp hex so the swatch
-          // matches the rendered bar.
+          // (seriesHex) — use the series config's own ramp color so the
+          // swatch matches the rendered bar.
           colorHex: entry?.color ?? point.color,
           entry,
           label: entry?.name ?? String(point.seriesName ?? ""),

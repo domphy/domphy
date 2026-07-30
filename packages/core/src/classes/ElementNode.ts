@@ -23,6 +23,18 @@ import { AttributeList } from "./AttributeList.js";
 import { ElementList } from "./ElementList.js";
 import { StyleList } from "./StyleList.js";
 
+// DEV-only (call sites guard with __DEV__, so production builds drop it):
+// void elements (img/br/input/…) cannot serialize children — SSR emits no
+// closing tag, so declared content is silently dropped server-side while the
+// client renders it, drifting the two trees. Runtime counterpart of the
+// doctor's void-content rule. The empty-string idiom ({ hr: "" }) is exempt —
+// it is the documented way to declare a childless void element.
+function devWarnVoidContent(tagName: string): void {
+  console.warn(
+    `[Domphy] <${tagName}> is a void element and cannot have children — SSR output omits the declared content while the client renders it, so hydration drifts. Remove the content or use a non-void tag.`,
+  );
+}
+
 export class ElementNode {
   _disposed = false;
   _beforeRemoveFired = false;
@@ -92,6 +104,15 @@ export class ElementNode {
     this.merge(domphyElement);
 
     const children = (domphyElement as any)[this.tagName];
+
+    if (
+      __DEV__ &&
+      children != null &&
+      children !== "" &&
+      (VoidTags as readonly string[]).includes(this.tagName)
+    ) {
+      devWarnVoidContent(this.tagName);
+    }
 
     if (children != null) {
       if (typeof children === "function") {
@@ -304,6 +325,14 @@ export class ElementNode {
     // selectBox/combobox's inner tag list + input) on every ancestor re-render,
     // since lifecycle hooks don't re-run on a reused node to put them back.
     const content = element[this.tagName];
+    if (
+      __DEV__ &&
+      content != null &&
+      content !== "" &&
+      (VoidTags as readonly string[]).includes(this.tagName)
+    ) {
+      devWarnVoidContent(this.tagName);
+    }
     if (typeof content === "function") {
       this._childrenRelease?.();
       this._childrenRelease = undefined;
@@ -490,9 +519,16 @@ export class ElementNode {
   }
 
   _attachBehaviorNow(key: string, spec: BehaviorSpec): void {
-    const instance = spec.attach(this, spec.props) || {};
-    this._behaviorInstances.set(key, instance);
-    this._ensureBehaviorTeardownHook();
+    try {
+      const instance = spec.attach(this, spec.props) || {};
+      this._behaviorInstances.set(key, instance);
+      this._ensureBehaviorTeardownHook();
+    } catch (error) {
+      // An attach() throw must not escape the Mount hook uncaught — route it
+      // to the nearest error boundary, the same contract reactive children
+      // errors follow (_handleError falls back to console.error without one).
+      this._handleError(error);
+    }
   }
 
   // Registered at most once per node (Mount itself only ever fires once per
@@ -588,6 +624,16 @@ export class ElementNode {
     if (!domElement) throw new Error("Missing dom node on bind");
     if (
       __DEV__ &&
+      this.parent === null &&
+      domElement.tagName &&
+      domElement.tagName.toLowerCase() !== this.tagName
+    ) {
+      console.warn(
+        `[Domphy] Hydration mismatch at mount root: expected <${this.tagName}> but found <${domElement.tagName.toLowerCase()}>. The server-rendered DOM does not match the client tree — check that mount() receives the element generated for THIS component.`,
+      );
+    }
+    if (
+      __DEV__ &&
       !domStyle &&
       this.parent === null &&
       domElement.childNodes.length > 0
@@ -603,21 +649,53 @@ export class ElementNode {
     }
 
     if (this.children) {
+      // Bind server DOM by a running cursor, not by logical index: a
+      // multi-root rawHtml() child spans several DOM siblings, so
+      // childNodes[i] would drift for every child after it. The cursor
+      // advances by each child's real DOM span (SSR emits the same markup,
+      // so the spans agree when server and client trees match).
+      let domIndex = 0;
       this.children.items.forEach((child, i) => {
-        const childNode = domElement.childNodes[i];
+        const childNode = domElement.childNodes[domIndex];
         if (child instanceof ElementNode) {
+          domIndex++;
           if (!childNode) return;
+          if (__DEV__) this._devCheckHydrationMatch(child, childNode, i);
           child.mount(childNode as HTMLElement);
+        } else if (child.html) {
+          // A rawHtml() child may expand to several sibling roots: bind the
+          // first as the slot anchor and track the rest so later reactive
+          // updates can replace/remove the whole group.
+          const span = child._domSpan();
+          if (childNode) {
+            child.domText = childNode;
+            child._domExtras = [];
+            for (let k = 1; k < span; k++) {
+              const extra = domElement.childNodes[domIndex + k];
+              if (extra) child._domExtras.push(extra);
+            }
+          }
+          domIndex += span;
         } else if (childNode) {
           // Bind the server-rendered text/inline-HTML node so that reactive
           // child updates after hydration can locate and replace it.
+          if (__DEV__ && childNode.nodeType !== 3) {
+            console.warn(
+              `[Domphy] Hydration mismatch at <${this.tagName}> child ${i}: expected a text node ("${child.text.slice(0, 40)}") but found ${childNode.nodeType === 1 ? `<${(childNode as HTMLElement).tagName.toLowerCase()}>` : `node type ${childNode.nodeType}`}. The server-rendered DOM does not match the client tree — check the component producing this subtree.`,
+            );
+          }
           child.domText = childNode;
+          domIndex++;
         } else if (this.tagName === "textarea") {
           // A textarea's empty text child is a real empty string (see TextNode),
           // so the server output has no character for the parser to give back
           // — materialize the slot node or post-hydration updates would have
           // nothing to patch.
           child.render(domElement);
+        } else {
+          // No server node for this slot — keep the cursor in step with the
+          // logical index the same way the old childNodes[i] binding did.
+          domIndex++;
         }
       });
     }
@@ -634,6 +712,51 @@ export class ElementNode {
     }
 
     this._hooks.Mount && this._hooks.Mount(this);
+  }
+
+  // DEV-only hydration guard (guarded by __DEV__ at the call site, so
+  // production builds fold the whole thing away — zero per-node cost in
+  // production): server DOM is bound purely by position, so a server/client
+  // tree drift would silently bind the wrong node. Compare the tag name (and
+  // the id/class attributes where the client declares them) and warn with
+  // expected vs actual.
+  private _devCheckHydrationMatch(
+    child: ElementNode,
+    domNode: ChildNode,
+    index: number,
+  ): void {
+    const at = `<${this.tagName}> child ${index}`;
+    const advice =
+      "The server-rendered DOM does not match the client tree — check the component producing this subtree.";
+    if (domNode.nodeType !== 1) {
+      console.warn(
+        `[Domphy] Hydration mismatch at ${at}: expected <${child.tagName}> but found ${
+          domNode.nodeType === 3
+            ? `a text node ("${(domNode.textContent ?? "").slice(0, 40)}")`
+            : `node type ${domNode.nodeType}`
+        }. ${advice}`,
+      );
+      return;
+    }
+    const el = domNode as HTMLElement;
+    const actualTag = el.tagName.toLowerCase();
+    if (actualTag !== child.tagName) {
+      console.warn(
+        `[Domphy] Hydration mismatch at ${at}: expected <${child.tagName}> but found <${actualTag}>. ${advice}`,
+      );
+      return;
+    }
+    for (const name of ["id", "class"] as const) {
+      const declared = child.attributes?.items?.[name];
+      if (!declared || declared.value == null) continue;
+      const expectedValue = String(declared.value);
+      const actualValue = el.getAttribute(name) ?? "";
+      if (expectedValue !== actualValue) {
+        console.warn(
+          `[Domphy] Hydration mismatch at ${at} <${child.tagName}>: expected ${name}="${expectedValue}" but found ${name}="${actualValue}". ${advice}`,
+        );
+      }
+    }
   }
 
   _hydrateStyles(domRuleMap: Map<string, CSSRule>): void {

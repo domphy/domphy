@@ -138,7 +138,13 @@ describe("diagnose", () => {
       "unknown-tone",
     );
     expect(rules({ div: "x", dataTone: "base" })).not.toContain("unknown-tone");
-    expect(rules({ div: "x", dataTone: "3" })).not.toContain("unknown-tone");
+    // Bare-numeric STRINGS are rejected — the runtime's offsetTone() throws for
+    // them ("3" is not in ElementTones). A real number (dataTone: 3) is valid:
+    // core's AttributeList preserves the JS type, so it reaches offsetTone()
+    // as a number, which it accepts.
+    expect(rules({ div: "x", dataTone: "3" })).toContain("unknown-tone");
+    expect(rules({ div: "x", dataTone: "-5" })).toContain("unknown-tone");
+    expect(rules({ div: "x", dataTone: 3 })).not.toContain("unknown-tone");
   });
 
   it("warns on mid-ramp dataTone surface anchors (middle-surface-anchor)", () => {

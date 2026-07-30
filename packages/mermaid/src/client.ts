@@ -1,5 +1,14 @@
-import type { PartialElement } from "@domphy/core";
+import { type PartialElement, sanitizeHTMLString } from "@domphy/core";
 import type { MermaidOptions } from "./types.js";
+
+declare const process: { env: Record<string, string | undefined> } | undefined;
+
+// Dev-only warning guard, same pattern as @domphy/core's dev.ts — production
+// bundlers fold this to `false` and tree-shake the guarded warning away.
+const __DEV__: boolean =
+  typeof process !== "undefined" &&
+  process.env != null &&
+  process.env.NODE_ENV !== "production";
 
 /** Minimal structural type for the parts of the `mermaid` browser lib we use. */
 export interface MermaidBrowserModule {
@@ -36,29 +45,58 @@ export interface MermaidClientOptions
 /** Monotonic id source so each rendered diagram gets a unique SVG id. */
 let renderCounter = 0;
 
-// Strips `on*` event-handler attributes and `javascript:` URLs from the
-// rendered SVG before it is written via `innerHTML`. The build-time path
-// (`renderMermaidInTree`) gets equivalent stripping for free from
-// `@domphy/core`'s `TextNode` (which sanitizes inline HTML content on mount);
-// this path writes to the DOM directly, bypassing that, so the same stripping
-// is duplicated here. Not exported from `@domphy/core`'s public API, so it is
-// inlined rather than imported.
-function sanitizeSvgString(html: string): string {
-  let result = html.replace(
-    /\s+on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi,
-    "",
-  );
-  // Also strip on* when preceded by "/" (e.g. <svg/onload=…>)
-  result = result.replace(
-    /\/on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi,
-    "/",
-  );
-  // Neutralise javascript: scheme in URL attributes
-  result = result.replace(
-    /((?:href|src|action|formaction)\s*=\s*)(["']?)[\s]*javascript:[^"'\s>]*/gi,
-    "$1$2#",
-  );
+// mermaid.initialize() mutates the library's GLOBAL config — there is no
+// per-render config parameter. Two clients mounting concurrently with
+// different configs would interleave (initialize(A) → initialize(B) →
+// render(A-with-B's-config)). Serializing every initialize+render pair
+// through one shared queue keeps each mount's render glued to its own
+// initialize. The queue is module-level (not per client instance) on
+// purpose: the config lives on the shared mermaid module, so per-instance
+// queues would still interleave across instances.
+let renderQueue: Promise<unknown> = Promise.resolve();
+
+function enqueueRender<T>(task: () => Promise<T>): Promise<T> {
+  const result = renderQueue.then(task);
+  // A failed render must not poison the queue for later diagrams.
+  renderQueue = result.catch(() => {});
   return result;
+}
+
+// Strips <script> elements, `on*` event-handler attributes, and
+// `javascript:` URLs from the rendered SVG before it is written via
+// `innerHTML`. The build-time path (`renderMermaidInTree`) gets equivalent
+// stripping for free from `@domphy/core`'s `TextNode` (which sanitizes
+// inline HTML content on mount); this path writes to the DOM directly,
+// bypassing that, so it applies core's shared `sanitizeHTMLString` itself.
+
+// Builds the effective mermaid config for one mount: the caller's
+// mermaidConfig on top of { startOnLoad: false, theme }, with securityLevel
+// pinned to "strict" unless the caller explicitly chose one. The client
+// path's XSS posture rests on mermaid's strict sanitization — nothing else
+// sets it, and a silent mermaid default change (or an accidental "loose")
+// must not loosen it unnoticed.
+function resolveMermaidConfig(
+  theme: string,
+  mermaidConfig: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const config: Record<string, unknown> = {
+    startOnLoad: false,
+    theme,
+    ...(mermaidConfig ?? {}),
+  };
+  if (config.securityLevel === undefined) {
+    config.securityLevel = "strict";
+  } else if (
+    __DEV__ &&
+    (config.securityLevel === "loose" || config.securityLevel === "antiscript")
+  ) {
+    console.warn(
+      `[@domphy/mermaid] mermaidConfig.securityLevel: "${config.securityLevel}" disables mermaid's ` +
+        `built-in HTML sanitization for diagram labels. Only use it with diagram ` +
+        `sources you fully trust — prefer "strict" (the default) or "sandbox".`,
+    );
+  }
+  return config;
 }
 
 /** Loads the `mermaid` browser library via dynamic import (the default path). */
@@ -109,22 +147,24 @@ export function makeMermaidClient(
       const theme = options.theme ?? "default";
       const id = `domphy-mermaid-${++renderCounter}`;
 
-      Promise.resolve(load())
-        .then((mermaid) => {
-          mermaid.initialize({
-            startOnLoad: false,
-            theme,
-            ...(options.mermaidConfig ?? {}),
-          });
+      // Serialized: initialize() mutates global mermaid config, so the
+      // initialize+render pair must not interleave with another mount's (see
+      // enqueueRender above).
+      enqueueRender(() =>
+        Promise.resolve(load()).then((mermaid) => {
+          mermaid.initialize(
+            resolveMermaidConfig(theme, options.mermaidConfig),
+          );
           return mermaid.render(id, source);
-        })
+        }),
+      )
         .then(({ svg, bindFunctions }) => {
           // The node may have been removed while the render was in flight; do
           // not write into a torn-down element.
           if (disposed) return;
           // Replace the source code block with the rendered SVG, mirroring the
           // build-time wrapper so styling is consistent across paths.
-          host.innerHTML = sanitizeSvgString(svg);
+          host.innerHTML = sanitizeHTMLString(svg);
           host.classList.add("mermaid");
           if (!host.getAttribute("aria-label")) {
             host.setAttribute("aria-label", "diagram");

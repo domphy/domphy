@@ -1,0 +1,197 @@
+import { describe, expect, it } from "vitest";
+import {
+  applySystemTheme,
+  getTheme,
+  setTheme,
+  TONE_STEPS,
+  themeCSS,
+} from "../src/theme.ts";
+import {
+  ElementTones,
+  resolveThemeColor,
+  ToneAliases,
+  themeColorToken,
+} from "../src/tone.ts";
+
+const freshName = (label: string) =>
+  `vitest-${label}-${Math.random().toString(36).slice(2)}`;
+
+const ramp18 = (hex = "#000000") => Array.from({ length: 18 }, () => hex);
+
+describe("fontSizes structural validation", () => {
+  it("rejects an array that is not exactly 8 entries", () => {
+    expect(() => setTheme("light", { fontSizes: ["1rem"] } as any)).toThrow(
+      /fontSize must be array of 8 non-empty string/,
+    );
+    expect(() =>
+      setTheme("light", {
+        fontSizes: Array.from({ length: 9 }, () => "1rem"),
+      } as any),
+    ).toThrow(/fontSize must be array of 8 non-empty string/);
+  });
+
+  it("rejects empty-string entries", () => {
+    const sizes = Array.from({ length: 8 }, () => "1rem");
+    sizes[3] = "";
+    expect(() => setTheme("light", { fontSizes: sizes } as any)).toThrow(
+      /fontSize must be array of 8 non-empty string/,
+    );
+  });
+
+  it("accepts 8 non-empty strings", () => {
+    const name = freshName("fontsizes-ok");
+    expect(() =>
+      setTheme(name, { fontSizes: Array.from({ length: 8 }, () => "1rem") }),
+    ).not.toThrow();
+  });
+});
+
+describe("color ramp structural validation (18-step tone model)", () => {
+  it("TONE_STEPS matches the built-in ramp length and ElementTones span", () => {
+    expect(TONE_STEPS).toBe(18);
+    expect(ElementTones).toContain(`shift-${TONE_STEPS - 1}`);
+    expect(ElementTones).not.toContain(`shift-${TONE_STEPS}`);
+  });
+
+  it("rejects ramps shorter or longer than TONE_STEPS", () => {
+    expect(() =>
+      setTheme("light", { colors: { primary: ["#000000", "#ffffff"] } } as any),
+    ).toThrow(/colors\.primary must have exactly 18 tone steps \(got 2\)/);
+    expect(() =>
+      setTheme("light", {
+        colors: { primary: Array.from({ length: 19 }, () => "#000000") },
+      } as any),
+    ).toThrow(/colors\.primary must have exactly 18 tone steps \(got 19\)/);
+  });
+
+  it("rejects empty-string entries inside a ramp", () => {
+    const ramp = ramp18();
+    ramp[7] = "";
+    expect(() =>
+      setTheme("light", { colors: { primary: ramp } } as any),
+    ).toThrow(/colors\.primary must contain only non-empty strings/);
+  });
+
+  it("a custom theme with consistent 18-step ramps resolves every tone", () => {
+    const name = freshName("ramp-ok");
+    setTheme(name, { colors: { primary: ramp18("#123456") } });
+    expect(getTheme(name).colors.primary).toHaveLength(18);
+    // The generated CSS must contain no literal "undefined".
+    expect(themeCSS()).not.toContain("undefined");
+  });
+});
+
+describe("baseTones range validation", () => {
+  it("rejects out-of-range and non-integer base tones", () => {
+    expect(() =>
+      setTheme("light", { baseTones: { primary: -1 } } as any),
+    ).toThrow(/baseTones\.primary must be an integer between 0 and 17/);
+    expect(() =>
+      setTheme("light", { baseTones: { primary: 18 } } as any),
+    ).toThrow(/baseTones\.primary must be an integer between 0 and 17/);
+    expect(() =>
+      setTheme("light", { baseTones: { primary: 2.5 } } as any),
+    ).toThrow(/baseTones\.primary must be an integer between 0 and 17/);
+  });
+});
+
+describe("CSS breakout guards", () => {
+  it("rejects color values that would break out of the <style> block", () => {
+    const ramp = ramp18();
+    ramp[0] = "red; } body { display: none";
+    expect(() =>
+      setTheme("light", { colors: { primary: ramp } } as any),
+    ).toThrow(/unsafe CSS characters/);
+
+    const ramp2 = ramp18();
+    ramp2[0] = "</style><script>alert(1)</script>";
+    expect(() =>
+      setTheme("light", { colors: { primary: ramp2 } } as any),
+    ).toThrow(/unsafe CSS characters/);
+  });
+
+  it("rejects unsafe custom token values", () => {
+    expect(() =>
+      setTheme("light", { custom: { evil: "</style><b>x</b>" } } as any),
+    ).toThrow(/unsafe CSS characters/);
+  });
+
+  it("rejects unsafe fontSizes values", () => {
+    const sizes = Array.from({ length: 8 }, () => "1rem");
+    sizes[0] = "1rem; }";
+    expect(() => setTheme("light", { fontSizes: sizes } as any)).toThrow(
+      /unsafe CSS characters/,
+    );
+  });
+});
+
+describe("applySystemTheme SSR behavior", () => {
+  it("throws an actionable error (not a bare ReferenceError) without a DOM", () => {
+    expect((globalThis as any).document).toBeUndefined();
+    expect(() => applySystemTheme()).toThrow(
+      /applySystemTheme\(\) requires a browser DOM/,
+    );
+    expect(() => applySystemTheme()).not.toThrow(ReferenceError);
+  });
+});
+
+describe("resolveThemeColor (explicit non-reactive token API)", () => {
+  it("defaults to the light theme, matching themeColorToken(null, …)", () => {
+    expect(resolveThemeColor({ tone: "base", color: "neutral" })).toBe(
+      themeColorToken(null, "base", "neutral"),
+    );
+    expect(resolveThemeColor({ tone: "shift-4", color: "primary" })).toBe(
+      themeColorToken(null, "shift-4", "primary"),
+    );
+  });
+
+  it("resolves against an explicitly named theme", () => {
+    const dark = getTheme("dark");
+    expect(resolveThemeColor({ theme: "dark", tone: "inherit" })).toBe(
+      dark.colors.neutral[0],
+    );
+    expect(resolveThemeColor({ theme: "dark", tone: "base" })).toBe(
+      dark.colors.neutral[dark.baseTones.neutral],
+    );
+  });
+
+  it("maps 'inherit' color to neutral and honors semantic aliases", () => {
+    const light = getTheme("light");
+    expect(resolveThemeColor({})).toBe(light.colors.neutral[0]);
+    // "muted" is an alias for shift-8.
+    expect(resolveThemeColor({ tone: "muted" })).toBe(light.colors.neutral[8]);
+  });
+
+  it("throws for an unknown theme or color", () => {
+    expect(() => resolveThemeColor({ theme: "nope" })).toThrow(
+      /Theme "nope" not found/,
+    );
+    expect(() => resolveThemeColor({ color: "nope" })).toThrow(
+      /color "nope" not found on theme "light"/,
+    );
+  });
+
+  it("does not follow a later theme switch — the value is baked at call time", () => {
+    // Documented contract: resolveThemeColor is design-time, non-reactive.
+    const before = resolveThemeColor({ tone: "inherit" });
+    expect(typeof before).toBe("string");
+    expect(before).toBe(getTheme("light").colors.neutral[0]);
+  });
+});
+
+describe("exported tone machinery (for doctor/MCP tooling)", () => {
+  it("exports the alias map as a value", () => {
+    expect(ToneAliases).toEqual({
+      surface: "shift-1",
+      hover: "shift-2",
+      border: "shift-3",
+      "border-strong": "shift-4",
+      muted: "shift-8",
+      text: "shift-9",
+    });
+    // Every alias target must itself be a valid tone.
+    for (const target of Object.values(ToneAliases)) {
+      expect(ElementTones).toContain(target);
+    }
+  });
+});

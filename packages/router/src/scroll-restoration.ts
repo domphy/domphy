@@ -131,7 +131,6 @@ export function getElementScrollRestorationEntry(
   ]
 }
 
-let ignoreScroll = false
 const windowScrollTarget = 'window'
 type ScrollTarget = typeof windowScrollTarget | Element
 
@@ -165,7 +164,20 @@ function getScrollToTopElements(
   return elements
 }
 
-export function setupScrollRestoration(router: AnyRouter, force?: boolean) {
+// Number of routers with active scroll restoration. `history.scrollRestoration`
+// is global, so it is only reset to 'auto' once the last router tears down.
+let activeScrollRestorations = 0
+
+/**
+ * Wires up scroll tracking/restoration for a router instance.
+ * Returns a cleanup function that removes every listener and subscription
+ * this call registered; destroying one router must not affect another's
+ * scroll restoration.
+ */
+export function setupScrollRestoration(
+  router: AnyRouter,
+  force?: boolean,
+): (() => void) | undefined {
   // Keep hash/top scrolling active even when sessionStorage is unavailable.
   const shouldSetupScrollRestoration = force ?? router.options.scrollRestoration
   const scroll = router._scroll
@@ -194,7 +206,7 @@ export function setupScrollRestoration(router: AnyRouter, force?: boolean) {
   }
 
   const onScroll = (event: Event) => {
-    if (ignoreScroll || !scroll.restoring) {
+    if (scroll.ignoreScroll || !scroll.restoring) {
       return
     }
 
@@ -224,37 +236,69 @@ export function setupScrollRestoration(router: AnyRouter, force?: boolean) {
     }
   }
 
+  const cleanupTasks: Array<() => void> = []
+  let cleanedUp = false
+  const cleanup = () => {
+    if (cleanedUp) {
+      return
+    }
+    cleanedUp = true
+    for (const task of cleanupTasks) {
+      task()
+    }
+  }
+
   if (shouldSetupScrollRestoration && !scroll.restoration) {
     scroll.restoration = true
-    ignoreScroll = false
+    scroll.ignoreScroll = false
 
     history.scrollRestoration = 'manual'
+    activeScrollRestorations++
 
     document.addEventListener('scroll', onScroll, true)
-    router.subscribe('onBeforeLoad', (event) => {
-      if (event.fromLocation) {
-        snapshotCurrentScrollTargets(getKey(event.fromLocation))
+    cleanupTasks.push(() => {
+      document.removeEventListener('scroll', onScroll, true)
+      activeScrollRestorations--
+      if (activeScrollRestorations === 0) {
+        history.scrollRestoration = 'auto'
       }
-      trackedScrollEntries.clear()
+      scroll.restoration = false
     })
-    addEventListener('pagehide', () => {
+
+    cleanupTasks.push(
+      router.subscribe('onBeforeLoad', (event) => {
+        if (event.fromLocation) {
+          snapshotCurrentScrollTargets(getKey(event.fromLocation))
+        }
+        trackedScrollEntries.clear()
+      }),
+    )
+
+    const onPageHide = () => {
       snapshotCurrentScrollTargets(
         getKey(
           router.stores.resolvedLocation.get() ?? router.stores.location.get(),
         ),
       )
       persistScrollRestorationCache()
+    }
+    addEventListener('pagehide', onPageHide)
+    cleanupTasks.push(() => {
+      removeEventListener('pagehide', onPageHide)
     })
   }
 
   if (scroll.reset) {
-    return
+    return cleanup
   }
 
   scroll.reset = true
+  cleanupTasks.push(() => {
+    scroll.reset = false
+  })
 
   // Restore destination scroll after the new route has rendered.
-  router.subscribe('onRendered', (event) => {
+  const unsubscribeOnRendered = router.subscribe('onRendered', (event) => {
     const behavior = router.options.scrollRestorationBehavior
     const scrollToTopSelectors = router.options.scrollToTopSelectors
     const shouldResetScroll = scroll.next
@@ -312,7 +356,7 @@ export function setupScrollRestoration(router: AnyRouter, force?: boolean) {
       }
     }
 
-    ignoreScroll = true
+    scroll.ignoreScroll = true
 
     try {
       const hash = event.toLocation.hash
@@ -377,7 +421,10 @@ export function setupScrollRestoration(router: AnyRouter, force?: boolean) {
         document.getElementById(hash)?.scrollIntoView(hashScrollIntoViewOptions)
       }
     } finally {
-      ignoreScroll = false
+      scroll.ignoreScroll = false
     }
   })
+  cleanupTasks.push(unsubscribeOnRendered)
+
+  return cleanup
 }

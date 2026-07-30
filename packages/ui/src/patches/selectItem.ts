@@ -31,27 +31,35 @@ function selectItem(
 
   const partial: PartialElement = {
     role: "option",
+    // aria-selected and the click toggler must be DECLARED on the partial, not
+    // wired imperatively in _onInit: hooks run once per real DOM node, but
+    // patch() resets _events and strips undeclared attributes on every
+    // ancestor re-render — so imperative wiring was lost on the first reuse
+    // while the (once-run) hook never re-installed it. The reactive reader
+    // resolves the `select` context lazily through listener.elementNode, so
+    // every generation re-binds to whatever context is actually live.
+    ariaSelected: (listener) => {
+      const select = listener?.elementNode?.getContext("select");
+      if (!select) return undefined;
+      const val = select.value.get(listener);
+      return select.multiple ? val.includes(value) : val === value;
+    },
+    onClick: (_e, node) => {
+      const select = node.getContext("select");
+      if (!select) return;
+      const state = select.value;
+      const val = state.get();
+      if (select.multiple) {
+        val.includes(value)
+          ? state.set(val.filter((v: number | string) => v !== value))
+          : state.set(val.concat([value]));
+      } else {
+        val !== value && state.set(value);
+      }
+    },
     _onInit: (node) => {
       if (node.tagName !== "div") {
         console.warn(`"selectItem" patch must use div tag`);
-      }
-      const select = node.getContext("select");
-      if (select) {
-        const state = select.value;
-        node.attributes.set("ariaSelected", (listener) => {
-          const val = state.get(listener);
-          return select.multiple ? val.includes(value) : val === value;
-        });
-        node.addEvent("click", () => {
-          const val = state.get();
-          if (select.multiple) {
-            val.includes(value)
-              ? state.set(val.filter((v: number | string) => v !== value))
-              : state.set(val.concat([value]));
-          } else {
-            val !== value && state.set(value);
-          }
-        });
       }
     },
     style: {

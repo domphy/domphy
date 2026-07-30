@@ -1,4 +1,4 @@
-import { seriesHex } from "../gl/color.js";
+import { cssColor } from "../gl/color.js";
 import type { GeoOption, LinesSeriesOption } from "../types.js";
 import { getRegisteredMap } from "./geomap.js";
 
@@ -201,7 +201,7 @@ export function renderLines(
 
   for (let si = 0; si < linesSeries.length; si++) {
     const s = linesSeries[si];
-    const baseColor = s.color ? `var(--dc-${s.color})` : seriesHex(si);
+    const baseColor = cssColor(s.color, si);
     const lineWidth = s.lineStyle?.width ?? 1;
     const opacity = s.lineStyle?.opacity ?? 0.6;
     const showEffect = s.effect?.show ?? false;

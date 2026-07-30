@@ -13,7 +13,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
-import { createFloating } from "../utils/floating.js";
+import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { popoverArrow } from "./popoverArrow.js";
 
 /**
@@ -43,13 +43,13 @@ function tooltip(
   const placeState = toState(placement);
   const contentState = toState(content);
 
-  // Pre-generate ID so the trigger can reference it via aria-describedby
-  // before the tooltip content element is first inserted into the DOM.
-  const tooltipId = `domphy-tt-${Math.random().toString(36).slice(2, 9)}`;
-
+  // The tooltip id is NOT pre-generated here: a factory-scope id (previously
+  // Math.random()-based) churns per generation and mismatches SSR/hydration.
+  // Instead the shared floating behavior stamps a deterministic id derived
+  // from the anchor's nodeId when the panel mounts (see floating.ts), and the
+  // trigger references the same id via _onSchedule below.
   const contentElement: DomphyElement<"span"> = {
     span: (listener) => contentState.get(listener),
-    id: tooltipId,
   };
 
   const { show, hide, anchorPartial } = createFloating({
@@ -78,7 +78,14 @@ function tooltip(
   contentElement.$.push(tooltipPartial);
 
   const triggerPartial: PartialElement = {
-    ariaDescribedby: tooltipId,
+    // Declared as a reactive attribute (listener.elementNode is the anchor) so
+    // it is present from first render — before the tooltip's first show() —
+    // and is re-declared on every patch (patch() strips attributes that are
+    // no longer declared, so imperative wiring would not survive re-render).
+    ariaDescribedby: (listener) =>
+      listener?.elementNode
+        ? floatingPanelId("tooltip", listener.elementNode)
+        : undefined,
     onMouseEnter: (_e, node) => show(node),
     onMouseLeave: (_e, node) => hide(node),
     onFocus: (_e, node) => show(node),

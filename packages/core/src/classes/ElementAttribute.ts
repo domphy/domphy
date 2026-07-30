@@ -48,6 +48,13 @@ export class ElementAttribute {
   // so an unguarded registration would grow the node's BeforeRemove chain by
   // one closure per subscription per patch for the node's whole life.
   private _removeHooked = false;
+  // Release handles for addListener() subscriptions, drained by a SINGLE
+  // BeforeRemove hook — see _listenerRemoveHooked.
+  private _listenerReleases: (() => void)[] = [];
+  // Same once-per-attribute guard as _removeHooked: without it every
+  // addListener() call composes another BeforeRemove hook onto the node
+  // (ElementNode.addHook COMPOSES), growing the chain per subscription.
+  private _listenerRemoveHooked = false;
 
   constructor(name: string, value: any, parent: any) {
     this.parent = parent;
@@ -152,8 +159,19 @@ export class ElementAttribute {
 
   addListener(callback: (value: any) => void): void {
     const handler = callback as any;
-    handler.onSubscribe = (release: () => void) =>
-      this.parent?.addHook("BeforeRemove", release);
+    handler.onSubscribe = (release: () => void) => {
+      this._listenerReleases.push(release);
+      // One hook per attribute (the _removeHooked pattern) — it drains
+      // whatever the CURRENT release list holds at removal time, so a single
+      // registration covers every later addListener() call.
+      if (this.parent && !this._listenerRemoveHooked) {
+        this._listenerRemoveHooked = true;
+        this.parent.addHook("BeforeRemove", () => {
+          for (const release of this._listenerReleases) release();
+          this._listenerReleases = [];
+        });
+      }
+    };
     this._notifier.addListener(this.name, handler);
   }
 
@@ -170,6 +188,8 @@ export class ElementAttribute {
     // whole node's eventual removal.
     for (const releaseSubscription of this._releases) releaseSubscription();
     this._releases = [];
+    for (const release of this._listenerReleases) release();
+    this._listenerReleases = [];
     this._notifier._dispose();
     this.value = null;
     this.parent = null as any;

@@ -75,7 +75,7 @@ function chartBarLabelCustom(
   const {
     data = CHART_BAR_TWO_SERIES_DATA,
     seriesLabel = "Desktop",
-    seriesColor = chartBarSeriesColor(1).hex,
+    seriesColor = chartBarSeriesColor(1).css,
     title = "Bar Chart - Custom Label",
     subtitle = "January - June 2026",
     trendText = "Trending up by 5.2% this month",

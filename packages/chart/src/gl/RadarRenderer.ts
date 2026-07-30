@@ -1,8 +1,8 @@
-import { themeColorToken } from "@domphy/theme";
+import { themeColor } from "@domphy/theme";
 import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
 import type { RadarOption, RadarSeriesOption } from "../types.js";
-import { familyRgba, seriesRgba } from "./color.js";
+import type { ColorResolver } from "./color.js";
 import { AREA_FS, AREA_VS } from "./shaders/line.glsl.js";
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
@@ -79,8 +79,8 @@ export class RadarRenderer {
       ];
     };
 
-    const gridColor = themeColorToken(null, "shift-2", "neutral");
-    const textColor = themeColorToken(null, "shift-7", "neutral");
+    const gridColor = themeColor(null, "shift-2", "neutral");
+    const textColor = themeColor(null, "shift-7", "neutral");
 
     for (let level = 1; level <= splitNum; level++) {
       const fraction = level / splitNum;
@@ -164,6 +164,7 @@ export class RadarRenderer {
     width: number,
     height: number,
     seriesOffset: number,
+    color: ColorResolver,
   ): void {
     if (radarSeries.length === 0) return;
     const model = this.ensureModel();
@@ -197,11 +198,10 @@ export class RadarRenderer {
       const count = indicators.length;
       for (let di = 0; di < (s.data ?? []).length; di++) {
         const dataItem = (s.data ?? [])[di];
-        const color = (dataItem as any).lineStyle?.color
-          ? familyRgba((dataItem as any).lineStyle.color, "shift-9")
-          : s.color
-            ? familyRgba(s.color as any, "shift-9")
-            : seriesRgba(seriesOffset + si + di);
+        const polygonColor = color.rgba(
+          (dataItem as any).lineStyle?.color ?? s.color,
+          seriesOffset + si + di,
+        );
         const values = dataItem.value ?? [];
         const polygon: [number, number][] = [];
 
@@ -234,10 +234,10 @@ export class RadarRenderer {
           );
         }
         const areaColor = [
-          color[0],
-          color[1],
-          color[2],
-          color[3] * ((s.areaStyle?.opacity as number) ?? 0.35),
+          polygonColor[0],
+          polygonColor[1],
+          polygonColor[2],
+          polygonColor[3] * ((s.areaStyle?.opacity as number) ?? 0.35),
         ];
         const fillBuffer = this.device.createBuffer({
           data: new Float32Array(fillVerts),
@@ -280,7 +280,10 @@ export class RadarRenderer {
         this.buffers.push(lineBuffer);
         model.setAttributes({ aPosition: lineBuffer });
         model.setVertexCount(lineVerts.length / 2);
-        setUniforms(model, { uResolution: [width, height], uColor: color });
+        setUniforms(model, {
+          uResolution: [width, height],
+          uColor: polygonColor,
+        });
         model.draw(renderPass);
       }
     }

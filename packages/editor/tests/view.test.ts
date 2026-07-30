@@ -284,3 +284,127 @@ describe("coordsAtPos", () => {
     expect(editor.view?.coordsAtPos(9999)).toBeNull();
   });
 });
+
+describe("word and line deletion", () => {
+  it("deleteWordBackward removes the word before the caret", () => {
+    const { editor, host } = mount(docOf(p("foo bar")));
+    placeCursor(editor, 8);
+    beforeInput(host, "deleteWordBackward");
+    expect(editor.getJSON()).toEqual(docOf(p("foo ")));
+    expect(editor.state.selection.from).toBe(5);
+  });
+
+  it("deleteWordBackward removes the word and the whitespace before it", () => {
+    const { editor, host } = mount(docOf(p("foo bar  ")));
+    placeCursor(editor, 10);
+    beforeInput(host, "deleteWordBackward");
+    expect(editor.getJSON()).toEqual(docOf(p("foo ")));
+  });
+
+  it("deleteWordBackward treats punctuation as its own run", () => {
+    const { editor, host } = mount(docOf(p("foo...")));
+    placeCursor(editor, 7);
+    beforeInput(host, "deleteWordBackward");
+    expect(editor.getJSON()).toEqual(docOf(p("foo")));
+  });
+
+  it("deleteWordBackward keeps unicode words together", () => {
+    const { editor, host } = mount(docOf(p("héllo wörld")));
+    placeCursor(editor, 12);
+    beforeInput(host, "deleteWordBackward");
+    expect(editor.getJSON()).toEqual(docOf(p("héllo ")));
+  });
+
+  it("deleteWordBackward stops at a hardBreak", () => {
+    const { editor, host } = mount(docOf(p("ab", { type: "hardBreak" }, "cd")));
+    placeCursor(editor, 6);
+    beforeInput(host, "deleteWordBackward");
+    expect(editor.getJSON()).toEqual(docOf(p("ab", { type: "hardBreak" })));
+  });
+
+  it("deleteWordBackward at a block boundary joins like Backspace", () => {
+    const { editor, host } = mount(docOf(p("ab"), p("cd")));
+    placeCursor(editor, 5);
+    beforeInput(host, "deleteWordBackward");
+    expect(editor.getJSON()).toEqual(docOf(p("abcd")));
+  });
+
+  it("deleteWordForward removes the word after the caret", () => {
+    const { editor, host } = mount(docOf(p("foo bar")));
+    placeCursor(editor, 1);
+    beforeInput(host, "deleteWordForward");
+    expect(editor.getJSON()).toEqual(docOf(p(" bar")));
+  });
+
+  it("deleteWordForward skips leading whitespace, then the word", () => {
+    const { editor, host } = mount(docOf(p("  foo bar")));
+    placeCursor(editor, 1);
+    beforeInput(host, "deleteWordForward");
+    expect(editor.getJSON()).toEqual(docOf(p(" bar")));
+  });
+
+  it("deleteSoftLineBackward deletes to the previous hardBreak", () => {
+    const { editor, host } = mount(
+      docOf(p("ab", { type: "hardBreak" }, "cd ef")),
+    );
+    placeCursor(editor, 9);
+    beforeInput(host, "deleteSoftLineBackward");
+    expect(editor.getJSON()).toEqual(docOf(p("ab", { type: "hardBreak" })));
+  });
+
+  it("deleteSoftLineBackward without a break deletes to the block start", () => {
+    const { editor, host } = mount(docOf(p("ab cd")));
+    placeCursor(editor, 6);
+    beforeInput(host, "deleteSoftLineBackward");
+    expect(editor.getJSON()).toEqual(docOf(p()));
+  });
+
+  it("deleteSoftLineForward deletes to the next hardBreak", () => {
+    const { editor, host } = mount(docOf(p("ab", { type: "hardBreak" }, "cd")));
+    placeCursor(editor, 1);
+    beforeInput(host, "deleteSoftLineForward");
+    expect(editor.getJSON()).toEqual(docOf(p({ type: "hardBreak" }, "cd")));
+  });
+
+  it("word delete with a range selection deletes the selection", () => {
+    const { editor, host } = mount(docOf(p("foo bar")));
+    editor.commands.setTextSelection({ from: 1, to: 4 });
+    beforeInput(host, "deleteWordBackward");
+    expect(editor.getJSON()).toEqual(docOf(p(" bar")));
+  });
+});
+
+describe("IME composition resync", () => {
+  it("does not turn the empty-block placeholder br into a hardBreak", () => {
+    const { editor, host } = mount(docOf(p()));
+    const block = host.querySelector("p") as HTMLElement;
+    expect(block.innerHTML).toBe("<br>");
+    host.dispatchEvent(
+      new CompositionEvent("compositionstart", { bubbles: true }),
+    );
+    // The browser owns the DOM during composition: it types before the br.
+    const typed = document.createTextNode("あ");
+    block.insertBefore(typed, block.firstChild);
+    const selection = document.getSelection();
+    selection?.setBaseAndExtent(typed, 1, typed, 1);
+    host.dispatchEvent(
+      new CompositionEvent("compositionend", { bubbles: true }),
+    );
+    expect(editor.getJSON()).toEqual(docOf(p("あ")));
+  });
+
+  it("keeps a real trailing hardBreak when resyncing", () => {
+    const { editor, host } = mount(docOf(p("ab", { type: "hardBreak" })));
+    const block = host.querySelector("p") as HTMLElement;
+    expect(block.innerHTML).toBe("ab<br>");
+    host.dispatchEvent(
+      new CompositionEvent("compositionstart", { bubbles: true }),
+    );
+    const selection = document.getSelection();
+    selection?.setBaseAndExtent(block, 2, block, 2);
+    host.dispatchEvent(
+      new CompositionEvent("compositionend", { bubbles: true }),
+    );
+    expect(editor.getJSON()).toEqual(docOf(p("ab", { type: "hardBreak" })));
+  });
+});

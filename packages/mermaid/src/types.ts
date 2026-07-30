@@ -78,4 +78,13 @@ export interface TreeOptions extends CacheOptions {
    * `"diagram"`.
    */
   ariaLabel?: string;
+  /**
+   * What happens when ONE diagram fails to render.
+   * - `"throw"` (default): the whole `renderMermaidInTree` call rejects —
+   *   one bad diagram fails the page, surfacing the error at build time.
+   * - `"placeholder"`: only the failing diagram is replaced by an error
+   *   placeholder element (`class: "mermaid-error"`); every other diagram
+   *   and the rest of the tree render normally.
+   */
+  onDiagramError?: "throw" | "placeholder";
 }

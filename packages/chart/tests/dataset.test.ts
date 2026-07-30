@@ -128,6 +128,31 @@ describe("applyTransforms — filter", () => {
       ]),
     ).toEqual(rows);
   });
+
+  it("treats a malformed range/outside clause as absent instead of throwing", () => {
+    expect(
+      applyTransforms(rows, [
+        { type: "filter", config: { dimension: "value", range: [] } },
+      ]),
+    ).toEqual(rows);
+    expect(
+      applyTransforms(rows, [
+        { type: "filter", config: { dimension: "value", outside: "15,25" } },
+      ]),
+    ).toEqual(rows);
+  });
+
+  it("does not throw on nullish rows; the missing field fails comparisons", () => {
+    const withNull = [{ name: "A", value: 10 }, null, { name: "C", value: 30 }];
+    expect(
+      applyTransforms(withNull as any, [
+        { type: "filter", config: { dimension: "value", ">=": 0 } },
+      ]),
+    ).toEqual([
+      { name: "A", value: 10 },
+      { name: "C", value: 30 },
+    ]);
+  });
 });
 
 describe("applyTransforms — sort", () => {
@@ -179,6 +204,18 @@ describe("applyTransforms — sort", () => {
       "2024-02-01",
       "2024-03-01",
     ]);
+  });
+
+  it("keeps relative order stable for unparseable dates (NaN treated as equal)", () => {
+    const dated = [{ d: "not-a-date" }, { d: "also-bad" }, { d: "2024-01-01" }];
+    const result = applyTransforms(dated, [
+      { type: "sort", config: { dimension: "d", parser: "time" } },
+    ]);
+    // Unparseable rows compare equal to everything, so their mutual order is
+    // preserved and no NaN comparison corrupts the sort.
+    const keys = result.map((r) => (r as { d: string }).d);
+    expect(result).toHaveLength(3);
+    expect(keys.indexOf("not-a-date")).toBeLessThan(keys.indexOf("also-bad"));
   });
 });
 

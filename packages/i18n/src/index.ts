@@ -22,6 +22,17 @@ import { createInstance, type i18n } from "i18next";
 
 export type { i18n };
 
+declare const process: { env: Record<string, string | undefined> } | undefined;
+
+// Dev-only warning guard, same pattern as @domphy/core's dev.ts: bundlers
+// statically replace `process.env.NODE_ENV`, so production builds fold this to
+// `false` and tree-shake the guarded warnings; the `typeof process` check keeps
+// process-less runtimes from throwing at load time.
+const __DEV__: boolean =
+  typeof process !== "undefined" &&
+  process.env != null &&
+  process.env.NODE_ENV !== "production";
+
 export interface DetectOptions {
   /** localStorage key to read persisted locale from. */
   storageKey?: string;
@@ -63,6 +74,14 @@ interface Store<TLocale extends string> {
   instance: i18n;
   localeState: ReturnType<typeof toState<TLocale>>;
   initialized: boolean;
+  // Fingerprint of the createI18n() options that created this store
+  // (namespace + sorted locale codes + defaultLocale). A second createI18n()
+  // with the same globalKey but different options silently reuses this store —
+  // the fingerprint lets us warn about that mismatch in dev.
+  fingerprint: string;
+  // Dev warn-once flags (see __DEV__ above).
+  mismatchWarned?: boolean;
+  tBeforeInitWarned?: boolean;
   // In-flight init() promise — lets concurrent initI18n()/setLocale() calls
   // await the same init instead of racing store.initialized.
   initPromise?: Promise<void>;
@@ -71,6 +90,7 @@ interface Store<TLocale extends string> {
 function getOrCreateStore<TLocale extends string>(
   globalKey: string,
   defaultLocale: TLocale,
+  fingerprint: string,
 ): Store<TLocale> {
   const g = globalThis as unknown as Record<string, Store<TLocale> | undefined>;
   let store = g[globalKey];
@@ -79,8 +99,20 @@ function getOrCreateStore<TLocale extends string>(
       instance: createInstance(),
       localeState: toState<TLocale>(defaultLocale),
       initialized: false,
+      fingerprint,
     };
     g[globalKey] = store;
+  } else if (
+    __DEV__ &&
+    store.fingerprint !== fingerprint &&
+    !store.mismatchWarned
+  ) {
+    store.mismatchWarned = true;
+    console.warn(
+      `[@domphy/i18n] createI18n() reused globalKey "${globalKey}" with different locales/namespace/defaultLocale. ` +
+        `The FIRST createI18n() call's options win and the new ones are silently ignored. ` +
+        `Use a distinct globalKey per app, or align the options across call sites.`,
+    );
   }
   return store;
 }
@@ -102,9 +134,21 @@ export function createI18n<
     ]),
   ) as Record<TLocale, Record<string, Record<string, unknown>>>;
 
+  // Stable fingerprint of the options that own the store — compared when a
+  // second createI18n() reuses the same globalKey (see getOrCreateStore).
+  const fingerprint = JSON.stringify([
+    namespace,
+    [...localeKeys].sort(),
+    defaultLocale,
+  ]);
+
   function getStore() {
-    return getOrCreateStore<TLocale>(globalKey, defaultLocale);
+    return getOrCreateStore<TLocale>(globalKey, defaultLocale, fingerprint);
   }
+
+  // Resolve the store eagerly so a globalKey/options mismatch warns here — at
+  // the createI18n() call that caused it — instead of on first use.
+  getStore();
 
   async function initI18n(locale: TLocale = defaultLocale): Promise<void> {
     const store = getStore();
@@ -130,6 +174,10 @@ export function createI18n<
       })
       .then(() => {
         store.initialized = true;
+        // Clear the in-flight handle on success: later calls short-circuit on
+        // store.initialized, and a stale resolved promise must not pin the
+        // init closure (or be re-awaitable as if init were still pending).
+        store.initPromise = undefined;
         store.localeState.set(locale);
       })
       .catch((error) => {
@@ -182,6 +230,13 @@ export function createI18n<
     c?: Record<string, unknown>,
   ): string {
     const store = getStore();
+    if (__DEV__ && !store.initialized && !store.tBeforeInitWarned) {
+      store.tBeforeInitWarned = true;
+      console.warn(
+        `[@domphy/i18n] t() was called before initI18n() resolved — i18next cannot translate yet and returns an untranslated value. ` +
+          `Call initI18n() during app startup (globalKey: "${globalKey}").`,
+      );
+    }
     if (typeof a === "function") {
       store.localeState.get(a as Listener);
       return store.instance.t(b as string, c) as string;

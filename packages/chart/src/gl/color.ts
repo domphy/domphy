@@ -1,4 +1,4 @@
-import { themeColorToken } from "@domphy/theme";
+import { COLOR_ROLES, themeColor, themeColorToken } from "@domphy/theme";
 import type { GradientObject, ThemeFamily } from "../types.js";
 
 export type Rgba = [number, number, number, number];
@@ -33,7 +33,17 @@ export function seriesPaletteFamily(index: number): ThemeFamily {
 // Tone used for series fill color (strong, readable on chart background)
 const SERIES_TONE = "shift-9";
 
-// Returns a concrete hex string for the nth series color (light theme, no listener)
+// The known theme color roles — used to tell a bare ThemeFamily name ("primary")
+// apart from an arbitrary CSS color string without ever throwing.
+const THEME_FAMILIES = new Set<string>(COLOR_ROLES);
+
+export function isThemeFamily(src: unknown): src is ThemeFamily {
+  return typeof src === "string" && THEME_FAMILIES.has(src);
+}
+
+// Returns a concrete hex string for the nth series color.
+// Static light-theme, design-time helper — for anything painted into the live
+// DOM prefer seriesColor(), which flips with [data-theme] at paint time.
 export function seriesHex(index: number): string {
   return themeColorToken(null, SERIES_TONE, seriesPaletteFamily(index));
 }
@@ -53,6 +63,117 @@ export function familyRgba(
   alpha = 1,
 ): Rgba {
   return hexToRgba(familyHex(family, tone), alpha);
+}
+
+// Returns the var(--…) CSS reference for the nth series color. The reference
+// resolves at paint time against the nearest [data-theme] ancestor, so SVG/HTML
+// chart layers follow theme flips without a re-render. This is the recommended
+// default for series colors (seriesHex stays as the static design-time helper).
+export function seriesColor(index: number): string {
+  return themeColor(null, SERIES_TONE, seriesPaletteFamily(index));
+}
+
+// Same as seriesColor but for an explicit ThemeFamily + tone.
+export function familyCss(family: ThemeFamily, tone = SERIES_TONE): string {
+  return themeColor(null, tone, family);
+}
+
+// CSS/SVG-paint-safe color for any accepted color source:
+//   ThemeFamily name → var(--…) reference (paint-time theme awareness)
+//   "#hex" / "rgb(…)"/"rgba(…)" / "var(--…)" → passed through unchanged
+//   anything else (unknown CSS keyword, gradient object, null) → series palette fallback
+export function cssColor(src: unknown, fallbackIndex: number): string {
+  if (src == null || src === "" || isGradient(src)) {
+    return seriesColor(fallbackIndex);
+  }
+  const s = String(src);
+  if (s.startsWith("#") || s.startsWith("rgb") || s.startsWith("var(")) {
+    return s;
+  }
+  if (isThemeFamily(s)) return familyCss(s);
+  return seriesColor(fallbackIndex);
+}
+
+// Per-render-pass color resolution. WebGL uniforms need concrete floats, but
+// the concrete value of a theme color depends on the element's position in the
+// tree ([data-theme] ancestors, custom themes). ChartEngine.render() builds one
+// resolver per pass and threads it through every renderer; results are cached
+// for the lifetime of the pass, and a theme flip triggers a fresh render (see
+// the chart() patch) with a fresh resolver.
+export interface ColorResolver {
+  // SVG/HTML paint string (var(--…) reference or concrete CSS color).
+  css(src: unknown, fallbackIndex: number): string;
+  // Concrete float RGBA for WebGL uniforms. Never throws — unresolvable
+  // sources (e.g. a bare family name where a hex was expected, an unknown
+  // keyword) fall back to the series palette color at fallbackIndex.
+  rgba(src: unknown, fallbackIndex: number, alpha?: number): Rgba;
+}
+
+// Parses a computed-style color value ("#hex" or "rgb(…)") to floats, or null
+// when the value is missing/unparseable (NaN-guarded).
+function parseCssColor(value: string): Rgba | null {
+  let rgba: Rgba | null = null;
+  if (value.startsWith("#")) rgba = hexToRgba(value);
+  else if (value.startsWith("rgb")) rgba = parseRgbaString(value);
+  if (!rgba || rgba.some((channel) => Number.isNaN(channel))) return null;
+  return rgba;
+}
+
+export function createColorResolver(el: HTMLElement): ColorResolver {
+  const varCache = new Map<string, Rgba | null>();
+
+  // Reads a var(--…) reference through the element's computed style, so the
+  // resolved value honors [data-theme] ancestors and custom themes. Returns
+  // null when the custom property is unavailable (SSR, jsdom, detached node).
+  const lookupVar = (varRef: string): Rgba | null => {
+    const cached = varCache.get(varRef);
+    if (cached !== undefined) return cached;
+    let resolved: Rgba | null = null;
+    try {
+      const varName = varRef.slice(4, -1).trim();
+      const value = getComputedStyle(el).getPropertyValue(varName).trim();
+      if (value) resolved = parseCssColor(value);
+    } catch {
+      // getComputedStyle unavailable — fall through to the static fallback
+    }
+    varCache.set(varRef, resolved);
+    return resolved;
+  };
+
+  const withAlpha = (rgba: Rgba, alpha: number): Rgba => [
+    rgba[0],
+    rgba[1],
+    rgba[2],
+    rgba[3] * alpha,
+  ];
+
+  const familyToRgba = (family: ThemeFamily, alpha: number): Rgba => {
+    const computed = lookupVar(familyCss(family));
+    if (computed) return withAlpha(computed, alpha);
+    // Static light-theme fallback when custom properties cannot be read.
+    return familyRgba(family, SERIES_TONE, alpha);
+  };
+
+  return {
+    css: (src, fallbackIndex) => cssColor(src, fallbackIndex),
+    rgba(src, fallbackIndex, alpha = 1) {
+      if (src == null || src === "" || isGradient(src)) {
+        return familyToRgba(seriesPaletteFamily(fallbackIndex), alpha);
+      }
+      const s = String(src);
+      if (s.startsWith("#")) return hexToRgba(s, alpha);
+      if (s.startsWith("rgb")) return withAlpha(parseRgbaString(s), alpha);
+      if (s.startsWith("var(")) {
+        const computed = lookupVar(s);
+        if (computed) return withAlpha(computed, alpha);
+        return familyToRgba(seriesPaletteFamily(fallbackIndex), alpha);
+      }
+      if (isThemeFamily(s)) return familyToRgba(s, alpha);
+      // Unknown color keyword — WebGL cannot parse it; use the palette fallback
+      // instead of throwing (a hex/rgb user color once crashed familyRgba here).
+      return familyToRgba(seriesPaletteFamily(fallbackIndex), alpha);
+    },
+  };
 }
 
 // Resolve any color value (hex string, ThemeFamily name, or undefined) to Rgba

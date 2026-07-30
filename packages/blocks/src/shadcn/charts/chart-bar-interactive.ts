@@ -90,9 +90,9 @@ function chartBarInteractive(
     desktopLabel = "Desktop",
     // Upstream chartConfig: desktop=var(--chart-2), mobile=var(--chart-1) —
     // two steps of the same monochrome blue ramp (default active: desktop).
-    desktopColor = chartBarSeriesColor(1).hex,
+    desktopColor = chartBarSeriesColor(1).css,
     mobileLabel = "Mobile",
-    mobileColor = chartBarSeriesColor(0).hex,
+    mobileColor = chartBarSeriesColor(0).css,
   } = props;
 
   const seriesMeta: Record<SeriesKey, { label: string; color: string }> = {

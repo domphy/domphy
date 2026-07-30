@@ -12,7 +12,7 @@
 
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import { type ThemeColor, themeColorToken } from "@domphy/theme";
+import { type ThemeColor, themeColor } from "@domphy/theme";
 import {
   BROWSER_CATEGORY_DATA,
   type CategoryPoint,
@@ -76,7 +76,7 @@ function chartLineLabelCustom(
   const yDomain = computeYDomain(values);
   // Upstream's uniform stroke/dots are var(--chart-2) — the ramp's second step.
   const ramp = chartLineSeriesColor(1);
-  const dotFill = themeColorToken(null, ramp.tone, seriesColor);
+  const dotFill = themeColor(null, ramp.tone, seriesColor);
 
   // Upstream ChartTooltipContent (indicator="line", nameKey="visitors",
   // hideLabel) colors the swatch with item.payload.fill — the HOVERED point's
@@ -91,9 +91,11 @@ function chartLineLabelCustom(
     if (!point) return "";
     const pointColorRaw = data[point.dataIndex]?.color ?? seriesColor;
     const pointColor =
-      pointColorRaw.startsWith("#") || pointColorRaw.startsWith("rgb")
+      pointColorRaw.startsWith("#") ||
+      pointColorRaw.startsWith("rgb") ||
+      pointColorRaw.startsWith("var(")
         ? pointColorRaw
-        : themeColorToken(null, ramp.tone, pointColorRaw as ThemeColor);
+        : themeColor(null, ramp.tone, pointColorRaw as ThemeColor);
     const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${pointColor};"></span>`;
     const label = escapeHtml(String(point.seriesName ?? point.name ?? ""));
     return tooltipRow(swatch, label, escapeHtml(String(point.value ?? "")));

@@ -1,4 +1,5 @@
 import { cssRgbToRgb, hexToRgb, labToLch, rgbToLab } from "@domphy/palette";
+import { ElementTones, TONE_STEPS, ToneAliases } from "@domphy/theme";
 import { findTag, isPlainObject, VOID } from "./shared.js";
 
 export type Severity = "error" | "warning" | "info";
@@ -13,7 +14,8 @@ export type RuleCategory =
   | "theme" // raw-theme-value, raw-spacing-value
   | "typography" // inline-typography
   | "data-attr" // unknown-tone, middle-surface-anchor, unknown-density, unknown-size
-  | "visual"; // low-opacity
+  | "visual" // low-opacity
+  | "output"; // layer4 html/stylelint diagnostics (auditOutput)
 
 export interface Diagnostic {
   /** Rule id, e.g. "inline-typography". */
@@ -245,26 +247,15 @@ const SPACING_STYLE = new Set([
 // "inherit", "0" (unitless zero is fine), or computed values.
 const LITERAL_SPACING = /^(\d+(?:\.\d+)?)(rem|em|px)$/;
 
-// Semantic tone aliases, mirrored from @domphy/theme's `ToneAliases`
-// (packages/theme/src/tone.ts). Doctor has no runtime dependency on
-// @domphy/theme — this is a static duplicate kept in sync by hand, since the
-// doctor only needs the grammar (name -> underlying shift-N), not resolution.
-const TONE_ALIASES: Record<string, string> = {
-  surface: "shift-1",
-  hover: "shift-2",
-  border: "shift-3",
-  "border-strong": "shift-4",
-  muted: "shift-8",
-  text: "shift-9",
-};
-
 // Parses "increase-N" / "decrease-N" / "shift-N" — or a semantic alias that
 // resolves to one of those — into family + numeric offset. Returns null when
-// the pattern doesn't match (grammar error).
+// the pattern doesn't match (grammar error). The alias map is imported from
+// @domphy/theme (single source of truth) — doctor previously hand-duplicated
+// it, which drifted.
 function parseOffset(
   value: string,
 ): { family: "increase" | "decrease" | "shift"; n: number } | null {
-  const resolved = TONE_ALIASES[value] ?? value;
+  const resolved = ToneAliases[value] ?? value;
   const m = resolved.match(/^(increase|decrease|shift)-(\d+)$/);
   if (!m) return null;
   return {
@@ -273,17 +264,18 @@ function parseOffset(
   };
 }
 
-// Valid `dataTone` grammar AND range:
-//   "inherit", "base", a bare integer, a semantic alias (surface/hover/border/
-//   border-strong/muted/text), or shift-N/increase-N/decrease-N where N ≤ 17.
-//   The default Domphy theme has 18 tone steps (0–17). Values with valid grammar
-//   but N > 17 are also rejected here so they surface as `unknown-tone` errors.
+// Valid `dataTone` grammar, kept IDENTICAL to the runtime's: offsetTone()
+// (@domphy/theme) accepts exactly the strings in the exported ElementTones
+// list — "inherit", "base", the semantic aliases, and shift-N/increase-N/
+// decrease-N with N ≤ TONE_STEPS - 1 — and throws for everything else.
+// Notably it throws for bare-numeric strings like "3": an earlier doctor
+// version accepted /^-?\d+$/ ("a number" was even advertised in the rule
+// hint), but the runtime rejects them — grammar contract drift. REAL number
+// values (dataTone: 3) are fine and are not checked here: core's AttributeList
+// preserves the JS type, so they reach offsetTone() as numbers, which it
+// accepts (typeof number → returned as-is).
 function isValidTone(value: string): boolean {
-  if (value === "inherit" || value === "base") return true;
-  if (/^-?\d+$/.test(value)) return true;
-  const parsed = parseOffset(value);
-  if (!parsed) return false;
-  return parsed.n <= 17; // tone ramp has 18 steps: 0–17
+  return ElementTones.includes(value);
 }
 
 // ─── Chromametry integration ─────────────────────────────────────────────────
@@ -337,13 +329,18 @@ function extractColorLiteral(value: string): string | null {
 /**
  * Converts LCH coordinates into a concrete `themeColor()` call suggestion plus
  * a perceptual description. The tone and color-family are approximations for the
- * default Domphy theme (light, 10 neutral tones, base at mid-lightness).
+ * default Domphy theme (light, 18-step tone ramps, base near mid-lightness).
+ *
+ * NOTE: this perceptual-match helper conceptually belongs in @domphy/palette
+ * (it duplicates some of the chromametry stack's concerns); kept here for now
+ * to avoid a cross-package refactor.
  */
 function buildColorHint(lch: [number, number, number]): string {
   const [L, C, h] = lch;
 
   // Map lightness to a Domphy tone relative to base (~L50).
-  // Each step ≈ 10 lightness units — clamp to ±9 (max offset in a 10-step ramp).
+  // Each step ≈ 10 lightness units — clamp to ±9, the useful span around base
+  // within the 18-step ramp (shift-0…shift-17, base tone ≈ step 7–9).
   const rawOffset = Math.round((L - 50) / 10);
   const offset = Math.max(-9, Math.min(9, rawOffset));
   let toneStr: string;
@@ -486,7 +483,7 @@ export function diagnose(
   options: DiagnoseOptions = {},
 ): Diagnostic[] {
   const out: Diagnostic[] = [];
-  walk(root, "", out, false, options);
+  walk(root, "", out, false, options, new Set());
 
   // Apply only/exclude post-filter (covers both built-in and custom rule ids).
   // `only` being set (even empty) activates whitelist mode: only listed rule ids pass.
@@ -508,6 +505,7 @@ function walk(
   out: Diagnostic[],
   dynamic: boolean,
   options: DiagnoseOptions,
+  seen: Set<unknown>,
 ): void {
   const runReactive = options.runReactive !== false;
 
@@ -519,8 +517,17 @@ function walk(
     } catch {
       return; // reactive fn threw without a real runtime — skip
     }
-    walk(result, path, out, true, options);
+    walk(result, path, out, true, options, seen);
     return;
+  }
+
+  // Cycle guard: a malformed tree can reference itself (element.child = element,
+  // or a reactive fn returning an ancestor). Without this the walk recurses
+  // forever. Shared (non-circular) references are analyzed once, which is also
+  // the desired behavior — duplicates would double-report.
+  if (Array.isArray(node) || isPlainObject(node)) {
+    if (seen.has(node)) return;
+    seen.add(node);
   }
 
   if (Array.isArray(node)) {
@@ -587,7 +594,7 @@ function walk(
     }
 
     node.forEach((child, index) => {
-      walk(child, `${path}[${index}]`, out, false, options);
+      walk(child, `${path}[${index}]`, out, false, options, seen);
     });
     return;
   }
@@ -611,13 +618,15 @@ function walk(
         !key.startsWith("data") &&
         !key.startsWith("aria"),
     );
-    if (contentKeys.length === 1) {
+    // Fire per unknown key — an object with several non-tag keys is just as
+    // wrong as one with a single typo'd tag, and each key needs its own fix.
+    for (const key of contentKeys) {
       elementDiags.push({
         rule: "unknown-tag",
         severity: "warning",
         category: "structure",
         path: here,
-        message: `"${contentKeys[0]}" is not a known HTML/SVG tag — likely a typo.`,
+        message: `"${key}" is not a known HTML/SVG tag — likely a typo.`,
         hint: "An element's first key must be a valid tag (div, button, span, …).",
       });
     }
@@ -739,27 +748,40 @@ function walk(
     // low-opacity: only checked on the MAIN style (not pseudo-classes), because
     // hover/focus states intentionally enhance or reveal — opacity inside &:hover
     // is the UX response, not the resting UX. Reactive opacity functions are
-    // skipped (can't evaluate without a real runtime).
+    // skipped (can't evaluate without a real runtime). Both string ("0.4") and
+    // numeric (0.4) values are checked — CSS-in-JS accepts either.
     const opacityValue = style.opacity;
+    let opacity: number | null = null;
+    let opacityDisplay: string | null = null;
     if (typeof opacityValue === "string") {
-      const opacity = parseFloat(opacityValue);
-      if (!Number.isNaN(opacity) && opacity > 0 && opacity < 0.6) {
-        const hoverStyle = style["&:hover"] as
-          | Record<string, unknown>
-          | undefined;
-        const hoverOpacity = hoverStyle?.opacity;
-        const hasFullHoverRestore = hoverOpacity === "1" || hoverOpacity === 1;
-        elementDiags.push({
-          rule: "low-opacity",
-          severity: hasFullHoverRestore ? "info" : "warning",
-          category: "visual",
-          path: here,
-          message: `\`style.opacity: "${opacityValue}"\` — ${opacity < 0.5 ? "very dim" : "dim"} (${Math.round(opacity * 100)}%); interactive controls below 60% opacity are hard to see.`,
-          hint: hasFullHoverRestore
-            ? "Hover-reveal pattern detected (&:hover restores opacity:1). Consider raising the resting opacity to ≥ 0.6 so the control is discoverable without hovering."
-            : "Use opacity ≥ 0.6 for always-visible controls and icons. For hover-reveal patterns set opacity:0 as the base and add &:hover: { opacity: '1' }.",
-        });
+      const parsed = parseFloat(opacityValue);
+      if (!Number.isNaN(parsed)) {
+        opacity = parsed;
+        opacityDisplay = `"${opacityValue}"`;
       }
+    } else if (
+      typeof opacityValue === "number" &&
+      Number.isFinite(opacityValue)
+    ) {
+      opacity = opacityValue;
+      opacityDisplay = String(opacityValue);
+    }
+    if (opacity !== null && opacity > 0 && opacity < 0.6) {
+      const hoverStyle = style["&:hover"] as
+        | Record<string, unknown>
+        | undefined;
+      const hoverOpacity = hoverStyle?.opacity;
+      const hasFullHoverRestore = hoverOpacity === "1" || hoverOpacity === 1;
+      elementDiags.push({
+        rule: "low-opacity",
+        severity: hasFullHoverRestore ? "info" : "warning",
+        category: "visual",
+        path: here,
+        message: `\`style.opacity: ${opacityDisplay}\` — ${opacity < 0.5 ? "very dim" : "dim"} (${Math.round(opacity * 100)}%); interactive controls below 60% opacity are hard to see.`,
+        hint: hasFullHoverRestore
+          ? "Hover-reveal pattern detected (&:hover restores opacity:1). Consider raising the resting opacity to ≥ 0.6 so the control is discoverable without hovering."
+          : "Use opacity ≥ 0.6 for always-visible controls and icons. For hover-reveal patterns set opacity:0 as the base and add &:hover: { opacity: '1' }.",
+      });
     }
   }
 
@@ -905,7 +927,7 @@ function walk(
         category: "data-attr",
         path: here,
         message: `\`dataTone\` "${dataTone}" is not a valid tone.`,
-        hint: 'Use "inherit", "base", a number, "shift-N"/"increase-N"/"decrease-N" (N ≤ 17), or a semantic alias: "surface", "hover", "border", "border-strong", "muted", "text".',
+        hint: `Use "inherit", "base", "shift-N"/"increase-N"/"decrease-N" (N ≤ ${TONE_STEPS - 1}), or a semantic alias: "surface", "hover", "border", "border-strong", "muted", "text". Bare-numeric strings like "3" are invalid — the runtime throws for them; use a real number (dataTone: 3) or "shift-3".`,
       });
     } else {
       // middle-surface-anchor: shift-4 through shift-13 sets a mid-ramp surface
@@ -1041,8 +1063,18 @@ function walk(
       let violations: ReturnType<CustomRule["check"]>;
       try {
         violations = rule.check(element, here, tag);
-      } catch {
-        continue; // custom rule threw — skip silently
+      } catch (error) {
+        // A throwing custom rule must not silently disable itself — surface an
+        // info diagnostic so the author sees their rule never ran.
+        elementDiags.push({
+          rule: rule.id,
+          severity: "info",
+          category: rule.category,
+          path: here,
+          message: `Custom rule "${rule.id}" threw while checking this element: ${error instanceof Error ? error.message : String(error)}`,
+          hint: "Fix the custom rule's check() — its violations were not reported for this element.",
+        });
+        continue;
       }
       for (const v of violations) {
         elementDiags.push({
@@ -1061,7 +1093,7 @@ function walk(
   // filter array-level diagnostics (missing-key / duplicate-key / etc.) that
   // fire at THIS element's path when the content is a reactive function.
   const contentDiags: Diagnostic[] = [];
-  walk(content, here, contentDiags, false, options);
+  walk(content, here, contentDiags, false, options, seen);
 
   // Apply _doctorDisable and flush into the shared output.
   applyDisable(element._doctorDisable, elementDiags, contentDiags, here, out);

@@ -44,4 +44,18 @@ describe("cookies()", () => {
     const map = cookies(headers);
     expect(map.get("key")).toBe("value");
   });
+
+  it("trims whitespace from cookie values", () => {
+    const headers = new Headers({ cookie: "a=1 ; b=2" });
+    const map = cookies(headers);
+    expect(map.get("a")).toBe("1");
+    expect(map.get("b")).toBe("2");
+  });
+
+  it("falls back to the raw value for malformed percent-encoding", () => {
+    const headers = new Headers({ cookie: "session=100%; ok=fine" });
+    const map = cookies(headers);
+    expect(map.get("session")).toBe("100%");
+    expect(map.get("ok")).toBe("fine");
+  });
 });

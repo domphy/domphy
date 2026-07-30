@@ -1,4 +1,4 @@
-import { seriesHex } from "../gl/color.js";
+import { seriesColor } from "../gl/color.js";
 import type { ThemeRiverSeriesOption } from "../types.js";
 
 function _svgEl(
@@ -126,7 +126,7 @@ export function renderThemeRiver(
 
   // Draw each stream as a band
   for (let ni = 0; ni < uniqueNames.length; ni++) {
-    const color = seriesHex(ni);
+    const color = seriesColor(ni);
 
     // Upper edge: baseline[ni] + value
     const upperPoints: [number, number][] = times.map((t, ti) => [

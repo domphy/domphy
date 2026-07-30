@@ -1,4 +1,4 @@
-import { seriesHex } from "../gl/color.js";
+import { cssColor } from "../gl/color.js";
 import type { SankeyLink, SankeyNode, SankeySeriesOption } from "../types.js";
 
 interface LayoutNode {
@@ -58,7 +58,7 @@ function layoutSankey(
       y: 0,
       w: nodeWidth,
       h: 0,
-      color: n.color ? seriesHex(i % 9) : seriesHex(i % 9),
+      color: cssColor(n.color, i % 9),
       inValue: 0,
       outValue: 0,
       sourceY: 0,
@@ -66,10 +66,10 @@ function layoutSankey(
     });
   }
 
-  // Override colors from index
+  // Re-resolve node colors: explicit n.color wins, palette fallback otherwise
   rawNodes.forEach((n, i) => {
     const node = nodeMap.get(n.name)!;
-    node.color = seriesHex(i % 9);
+    node.color = cssColor(n.color, i % 9);
   });
 
   const links = rawLinks.map((l) => ({

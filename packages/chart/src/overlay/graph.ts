@@ -1,4 +1,4 @@
-import { seriesHex } from "../gl/color.js";
+import { cssColor, seriesColor } from "../gl/color.js";
 import type { GraphLink, GraphNode, GraphSeriesOption } from "../types.js";
 
 interface PhysicsNode {
@@ -150,10 +150,10 @@ export function renderGraph(
       const id = nodeId(n, index);
       const catIndex = n.category ?? si % 9;
       const color = n.color
-        ? seriesHex(catIndex)
+        ? seriesColor(catIndex)
         : categories[catIndex]?.color
-          ? seriesHex(catIndex)
-          : seriesHex(catIndex);
+          ? seriesColor(catIndex)
+          : seriesColor(catIndex);
 
       const radius = n.symbolSize
         ? (Array.isArray(n.symbolSize) ? n.symbolSize[0] : n.symbolSize) / 2

@@ -20,6 +20,18 @@ import type {
  * re-renders whenever sorting/filtering/pagination/selection change. The full
  * table-core API stays available on `.table`.
  *
+ * ### `options.onStateChange` contract — differs from TanStack React
+ *
+ * The adapter APPLIES every state change itself (feeds the new state back via
+ * `setOptions`) and only THEN invokes your `options.onStateChange` with the
+ * raw updater — purely as a notification. This is deliberately unlike the
+ * TanStack React adapter contract, where `onStateChange` is where YOU apply
+ * the updater to your own state (e.g. `setState`) and feed it back through
+ * `options.state`. Here the state lives inside the adapter: do NOT apply the
+ * updater a second time and do NOT pass `options.state` expecting controlled
+ * round-trips to work the React way — use the handler for side effects only
+ * (persistence, URL sync, analytics).
+ *
  * Convenience read methods (getRowModel, getHeaderGroups, getAllLeafColumns,
  * etc.) accept an optional `Listener` and subscribe to the version counter
  * internally, so you can pass the listener directly instead of calling
@@ -116,12 +128,22 @@ export function createDomphyTable<TData extends RowData>(
     ...options,
     state: { ...options.initialState, ...options.state },
     onStateChange: (updater) => {
+      const previousState = table.getState()
       const next =
         typeof updater === "function"
-          ? (updater as (old: TableState) => TableState)(table.getState())
+          ? (updater as (old: TableState) => TableState)(previousState)
           : updater
-      table.setOptions((prev) => ({ ...prev, state: next }))
+      // Apply first, then notify: the user's handler is a notification only
+      // (see the contract note on the interface above) and fires even for
+      // no-op updates, matching table-core's unconditional onStateChange.
+      if (next !== previousState) {
+        table.setOptions((prev) => ({ ...prev, state: next }))
+      }
       options.onStateChange?.(updater)
+      // No-op update (the updater returned the state unchanged): skip the
+      // version bump — otherwise renders re-run for changes that never
+      // happened.
+      if (next === previousState) return
       version.set(version.get() + 1)
     },
     renderFallbackValue: options.renderFallbackValue ?? null,

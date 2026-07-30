@@ -7,6 +7,8 @@ import { type Listener, RecordState } from "@domphy/core"
  * only reads `data` does not re-render when `isFetching` toggles. Updates are
  * diffed by reference (TanStack already memoizes the result object and its
  * fields), so only fields that actually changed notify their subscribers.
+ * Fields that disappear from a later result are published as `undefined`
+ * rather than keeping their stale last value.
  *
  * The result type (a discriminated union with no index signature) is stored in
  * a loosely-typed `RecordState` internally; type safety is restored at the
@@ -29,6 +31,13 @@ export function bindResult<TResult>(
     ...(initial as Record<string, unknown>),
   })
 
+  // Keys present in the last-seen result. A key that VANISHES from a later
+  // result (e.g. `error` no longer being emitted) must not keep serving its
+  // stale last value — publish `undefined` for it (RecordState has no
+  // delete(); setting undefined notifies subscribers and makes field() reads
+  // see the key as gone).
+  let knownKeys = new Set(Object.keys(initial as Record<string, unknown>))
+
   const unsubscribe = subscribe((result) => {
     const record = result as Record<string, unknown>
     for (const key in record) {
@@ -36,6 +45,12 @@ export function bindResult<TResult>(
         state.set(key, record[key])
       }
     }
+    for (const key of knownKeys) {
+      if (!(key in record) && state.get(key) !== undefined) {
+        state.set(key, undefined)
+      }
+    }
+    knownKeys = new Set(Object.keys(record))
   })
 
   return {

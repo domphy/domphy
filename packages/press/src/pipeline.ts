@@ -9,6 +9,7 @@ import {
   createUniqueSlugger,
   defaultSlugify,
   splitFrontmatter,
+  transformOutsideCodeBlocks,
   walkMdast,
 } from "@domphy/markdown";
 import type { Code, Html, Nodes, Parent, Root } from "mdast";
@@ -91,17 +92,21 @@ function expandIncludes(
   docsDir: string,
   seen: string[] = [],
 ): string {
-  return body.replace(INCLUDE_PATTERN, (whole, rawPath: string) => {
-    const absolute = resolve(docsDir, rawPath.trim());
-    if (seen.includes(absolute)) return whole;
-    let contents: string;
-    try {
-      contents = readFileSync(absolute, "utf8");
-    } catch {
-      return whole;
-    }
-    return expandIncludes(contents.trimEnd(), docsDir, [...seen, absolute]);
-  });
+  // Fence-aware: an include marker inside a code fence is documentation ABOUT
+  // the syntax, not an include — expanding it would corrupt the example.
+  return transformOutsideCodeBlocks(body, (segment) =>
+    segment.replace(INCLUDE_PATTERN, (whole, rawPath: string) => {
+      const absolute = resolve(docsDir, rawPath.trim());
+      if (seen.includes(absolute)) return whole;
+      let contents: string;
+      try {
+        contents = readFileSync(absolute, "utf8");
+      } catch {
+        return whole;
+      }
+      return expandIncludes(contents.trimEnd(), docsDir, [...seen, absolute]);
+    }),
+  );
 }
 
 // --- <Badge> component -------------------------------------------------------
@@ -178,9 +183,12 @@ function normalizeContainerSyntax(content: string): string {
 // --- Strip <script> blocks ---------------------------------------------------
 
 function stripScriptBlocks(source: string): string {
-  return source
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/^\s*\n/, "");
+  // NOTE: this transform runs per outside-code segment (see renderDoc), so it
+  // must be strictly local — removing "leading blank lines" here would eat
+  // the single "\n" gap segment between two adjacent code fences and fuse
+  // them into one unclosed fence. Blank lines left behind by a removed
+  // <script> block are insignificant to markdown, so they stay.
+  return source.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
 }
 
 // --- Code-group remark plugin ------------------------------------------------
@@ -393,12 +401,20 @@ export async function renderDoc(
 
   // Text-level preprocessing. Includes expand first so `<<<` imports and
   // Badge markers inside snippet files get the same treatment as the page's
-  // own source.
-  const stripped = stripScriptBlocks(content);
+  // own source. Every raw string transform is wrapped in
+  // transformOutsideCodeBlocks: their patterns (`<script>`, `<<<`, include
+  // markers, `<Badge>`, `::: name`) legitimately appear inside code fences as
+  // EXAMPLES, and rewriting them there silently corrupts the fenced content.
+  const stripped = transformOutsideCodeBlocks(content, stripScriptBlocks);
   const included = expandIncludes(stripped, docsDir);
-  const imported = expandCodeImports(included, fileDir, docsDir);
-  const badged = transformBadgeContent(imported);
-  const normalized = normalizeContainerSyntax(badged);
+  const imported = transformOutsideCodeBlocks(included, (segment) =>
+    expandCodeImports(segment, fileDir, docsDir),
+  );
+  const badged = transformOutsideCodeBlocks(imported, transformBadgeContent);
+  const normalized = transformOutsideCodeBlocks(
+    badged,
+    normalizeContainerSyntax,
+  );
 
   // Build remark processor with press-specific plugins.
   // Order matters: badge-merge must run before code-group/pressCodePlugin

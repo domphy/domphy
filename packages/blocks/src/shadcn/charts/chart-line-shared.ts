@@ -22,12 +22,7 @@
 import type { AxisOption, ChartOption, TooltipParams } from "@domphy/chart";
 import { chart, createLinearScale, createOrdinalScale } from "@domphy/chart";
 import type { DomphyElement, PartialElement } from "@domphy/core";
-import {
-  type ThemeColor,
-  themeColor,
-  themeColorToken,
-  themeSpacing,
-} from "@domphy/theme";
+import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { card, heading, icon, motion, paragraph, small } from "@domphy/ui";
 import { fixed } from "../../shared/typography.js";
 
@@ -38,9 +33,10 @@ import { fixed } from "../../shared/typography.js";
 // chart-5=blue-800) — every chart demo colors its series from var(--chart-N),
 // never from distinct semantic hues. The domphy `primary` family IS blue, so
 // the ramp maps onto increasing primary tones approximating blue-300 →
-// blue-800. @domphy/chart's LineRenderer resolves `s.color` as a theme FAMILY
-// at shift-9 only (a literal hex throws), so the stroke stays `primary` and
-// the lighter ramp steps are approximated with a matching stroke opacity.
+// blue-800. Ramp variation on the stroke itself is approximated with a
+// matching stroke opacity over the shift-9 family stroke (kept for visual
+// stability; the engine's resolver now accepts var-ref/hex strokes too, but
+// the recipes were visually tuned against this approximation).
 export const CHART_LINE_SERIES_TONES = [
   "shift-4",
   "shift-6",
@@ -54,8 +50,9 @@ export type ChartLineSeriesTone = (typeof CHART_LINE_SERIES_TONES)[number];
 export interface ChartLineSeriesColor {
   /** Ramp tone within the primary family — markers, swatches, overlay dots. */
   tone: ChartLineSeriesTone;
-  /** Resolved hex of `tone` — for SVG overlays and raw-HTML tooltips. */
-  hex: string;
+  /** var(--…) CSS reference of `tone` — resolves against the live theme at
+   * paint time. For SVG overlays and raw-HTML tooltips. */
+  css: string;
   /** Stroke opacity approximating this ramp step on the engine-pinned
    * shift-9 stroke (0.45≈shift-4, 0.72≈shift-6, 0.92≈shift-8 over white). */
   strokeOpacity: number;
@@ -72,7 +69,7 @@ export function chartLineSeriesColor(index: number): ChartLineSeriesColor {
   const tone = CHART_LINE_SERIES_TONES[step];
   return {
     tone,
-    hex: themeColorToken(null, tone, "primary"),
+    css: themeColor(null, tone, "primary"),
     strokeOpacity: CHART_LINE_SERIES_STROKE_OPACITIES[step],
   };
 }
@@ -102,7 +99,7 @@ export interface CategoryPoint {
   key: string;
   label: string;
   value: number;
-  /** Per-point marker color — a ramp hex from chartLineSeriesColor(). */
+  /** Per-point marker color — a ramp var(--…) ref from chartLineSeriesColor(). */
   color: string;
 }
 
@@ -113,31 +110,31 @@ export const BROWSER_CATEGORY_DATA: CategoryPoint[] = [
     key: "chrome",
     label: "Chrome",
     value: 487,
-    color: chartLineSeriesColor(0).hex,
+    color: chartLineSeriesColor(0).css,
   },
   {
     key: "safari",
     label: "Safari",
     value: 312,
-    color: chartLineSeriesColor(1).hex,
+    color: chartLineSeriesColor(1).css,
   },
   {
     key: "firefox",
     label: "Firefox",
     value: 176,
-    color: chartLineSeriesColor(2).hex,
+    color: chartLineSeriesColor(2).css,
   },
   {
     key: "edge",
     label: "Edge",
     value: 143,
-    color: chartLineSeriesColor(3).hex,
+    color: chartLineSeriesColor(3).css,
   },
   {
     key: "other",
     label: "Other",
     value: 98,
-    color: chartLineSeriesColor(4).hex,
+    color: chartLineSeriesColor(4).css,
   },
 ];
 
@@ -424,11 +421,11 @@ function firstTooltipParam(
   return Array.isArray(params) ? params[0] : params;
 }
 
-// Static light-theme tokens + a monospace stack for the raw-HTML tooltip rows
-// (same static-token approach as every other raw-HTML/SVG string in this
-// family — see the tooltip-formatter note above).
-const TOOLTIP_MUTED = themeColorToken(null, "shift-9", "neutral");
-const TOOLTIP_FOREGROUND = themeColorToken(null, "shift-11", "neutral");
+// Theme-token var(--…) references + a monospace stack for the raw-HTML
+// tooltip rows — the var refs resolve against the live theme at paint time
+// (see the tooltip-formatter note above).
+const TOOLTIP_MUTED = themeColor(null, "shift-9", "neutral");
+const TOOLTIP_FOREGROUND = themeColor(null, "shift-11", "neutral");
 const TOOLTIP_MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
 
 /** Wraps a ready `swatch` HTML fragment + already-escaped series `label` and
@@ -662,11 +659,12 @@ export function hoverDotOverlay(props: HoverDotOverlayProps): PartialElement {
         "circle",
       ) as SVGCircleElement;
       dot.setAttribute("r", String(radius));
-      dot.setAttribute("fill", themeColorToken(null, tone, color));
+      dot.setAttribute("fill", themeColor(null, tone, color));
       // recharts activeDot defaults: fill=seriesColor, stroke=#fff, strokeWidth=2.
-      // The white stroke reads as a card/background-tone ring that separates the
-      // active dot from the line — use the lightest neutral (card background).
-      dot.setAttribute("stroke", themeColorToken(null, "shift-0", "neutral"));
+      // The surface-tone stroke reads as a card/background-tone ring that
+      // separates the active dot from the line — the lightest neutral (card
+      // background), as a var ref so it follows theme flips.
+      dot.setAttribute("stroke", themeColor(null, "shift-0", "neutral"));
       dot.setAttribute("stroke-width", "2");
       dot.style.opacity = "0";
       dot.style.transition = "opacity 100ms ease-out";

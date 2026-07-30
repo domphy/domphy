@@ -9,6 +9,17 @@ import {
   type VirtualizerOptions,
 } from "../index.js"
 
+declare const process:
+  | { env: Record<string, string | undefined> }
+  | undefined
+
+// Dev-only warning guard, same pattern as @domphy/core's dev.ts — production
+// bundlers fold this to `false` and tree-shake the guarded warning away.
+const __DEV__: boolean =
+  typeof process !== "undefined" &&
+  process.env != null &&
+  process.env.NODE_ENV !== "production"
+
 /**
  * Options for `createVirtualizer`. `getScrollElement` is dropped — the adapter
  * owns the scroll element (wired via `setScrollElement`); the DOM
@@ -64,6 +75,8 @@ export function createVirtualizer<
   const version = new State(0, "virtualVersion")
   let scrollElement: TScroll | null = null
   let cleanup: (() => void) | null = null
+  let destroyed = false
+  let destroyWarned = false
 
   const virtualizer = new Virtualizer<TScroll, TItem>({
     ...(options as VirtualizerOptions<TScroll, TItem>),
@@ -90,6 +103,19 @@ export function createVirtualizer<
     },
     version: (listener) => version.get(listener),
     setScrollElement: (element) => {
+      // After destroy() the handle is dead: re-mounting observers on it would
+      // silently revive a disposed version State and leak listeners. Warn and
+      // no-op instead — create a new virtualizer for a new mount.
+      if (destroyed) {
+        if (__DEV__ && !destroyWarned) {
+          destroyWarned = true
+          console.warn(
+            "[@domphy/virtual] setScrollElement() called after destroy() — ignoring. " +
+              "Create a new virtualizer instead of reviving a destroyed handle.",
+          )
+        }
+        return
+      }
       if (scrollElement === element) return
       scrollElement = element
       cleanup?.()
@@ -98,18 +124,26 @@ export function createVirtualizer<
       virtualizer.measure()
     },
     measureElement: (element) => virtualizer.measureElement(element),
-    scrollToIndex: virtualizer.scrollToIndex,
-    scrollToOffset: virtualizer.scrollToOffset,
-    scrollBy: virtualizer.scrollBy,
-    scrollToEnd: virtualizer.scrollToEnd,
+    // Bound defensively: the handle contract is that these are safe to
+    // destructure (`const { scrollToIndex } = handle`). They are arrow
+    // properties on the vendored Virtualizer today; the bind keeps that
+    // contract intact even if the port ever becomes prototype methods.
+    scrollToIndex: virtualizer.scrollToIndex.bind(virtualizer),
+    scrollToOffset: virtualizer.scrollToOffset.bind(virtualizer),
+    scrollBy: virtualizer.scrollBy.bind(virtualizer),
+    scrollToEnd: virtualizer.scrollToEnd.bind(virtualizer),
     setOptions: (next) => {
       virtualizer.setOptions({ ...virtualizer.options, ...next })
       virtualizer._willUpdate()
       virtualizer.measure()
     },
     destroy: () => {
+      destroyed = true
       cleanup?.()
       cleanup = null
+      // Drop the element reference too — otherwise the disposed handle keeps
+      // the (possibly detached) DOM subtree reachable.
+      scrollElement = null
       version._dispose()
     },
   }

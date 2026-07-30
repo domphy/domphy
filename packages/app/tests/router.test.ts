@@ -314,6 +314,41 @@ describe("AppRouter", () => {
   });
 });
 
+describe("navigate() scheme allowlist", () => {
+  it("never hands javascript:/data: URLs to location.assign", async () => {
+    await startApp();
+    // jsdom's location.assign is non-configurable, so stub the whole window.
+    const assign = vi.fn();
+    vi.stubGlobal("window", { location: { assign } });
+
+    await app.router.navigate("javascript:alert(1)");
+    await app.router.navigate("data:text/html,<h1>x</h1>");
+    await flush();
+
+    expect(assign).not.toHaveBeenCalled();
+    // No client-side transition happened either: the URL is untouched.
+    expect(app.router.state.get("pathname")).toBe("/");
+  });
+
+  it("still hands cross-origin http(s) URLs to location.assign", async () => {
+    await startApp();
+    const assign = vi.fn();
+    vi.stubGlobal("window", { location: { assign } });
+
+    await app.router.navigate("https://example.com/elsewhere");
+
+    expect(assign).toHaveBeenCalledWith("https://example.com/elsewhere");
+  });
+
+  it("still transitions for relative URLs", async () => {
+    await startApp();
+    await app.router.navigate("/about");
+    await flush();
+    expect(app.router.state.get("pathname")).toBe("/about");
+    expect(container.textContent).toContain("About");
+  });
+});
+
 describe("navLink", () => {
   it("navigates on click and exposes active state", async () => {
     await startApp();

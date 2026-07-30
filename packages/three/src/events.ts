@@ -210,11 +210,20 @@ export function removeInteractivity(root: RootState, object: any): void {
 // web/events.ts's `compute`. Reference guards this behind
 // `!state.previousRoot` (multi-layer event managers); single-root here, so it
 // always runs at the top of `intersect()`.
+//
+// The pointer origin comes from the canvas's own bounding rect (clientX/Y
+// minus rect.left/top), NOT from event.offsetX/offsetY: offsetX is relative
+// to the event TARGET, which stops being the canvas once pointer capture
+// retargets the event stream (or an overlaying child absorbs the hit), while
+// setSize (patch.ts) tracks the host container's contentRect — the canvas's
+// rect is the matching source for that same box. The scale stays the tracked
+// reactive size so NDC always matches the viewport the renderer was sized to.
 function computePointer(event: DomEvent, root: RootState): void {
   const size = root.size.get();
+  const rect = root.canvas.getBoundingClientRect();
   root.pointer.set(
-    (event.offsetX / size.width) * 2 - 1,
-    -(event.offsetY / size.height) * 2 + 1,
+    ((event.clientX - rect.left) / size.width) * 2 - 1,
+    -((event.clientY - rect.top) / size.height) * 2 + 1,
   );
   root.raycaster.setFromCamera(root.pointer, root.camera);
 }
@@ -572,10 +581,10 @@ export function createEvents(root: RootState) {
   // above and native-bind onPointerMissed makes no sense (it isn't a real DOM
   // event). Touch input needs no special-case handling here: browsers already
   // report touch-originated interaction through PointerEvent, so
-  // event.offsetX/offsetY (computePointer's only input) is already unified
-  // across mouse/touch/pen — the "touch offset handling" concern only exists
-  // for the React Native target (native/events.ts), out of scope for this
-  // web-only package.
+  // event.clientX/clientY (computePointer's only positional input) is already
+  // unified across mouse/touch/pen — the "touch offset handling" concern only
+  // exists for the React Native target (native/events.ts), out of scope for
+  // this web-only package.
   const DOM_EVENTS: Record<string, [eventName: string, passive: boolean]> = {
     onClick: ["click", false],
     onContextMenu: ["contextmenu", false],

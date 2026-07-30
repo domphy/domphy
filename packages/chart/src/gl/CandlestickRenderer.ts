@@ -2,7 +2,7 @@ import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
 import type { AnyScale } from "../scale/index.js";
 import type { CandlestickSeriesOption } from "../types.js";
-import { resolveColorSrc, seriesRgba } from "./color.js";
+import type { ColorResolver } from "./color.js";
 import { BAR_FS, BAR_VS } from "./shaders/bar.glsl.js";
 import { AREA_FS, AREA_VS } from "./shaders/line.glsl.js";
 
@@ -84,6 +84,7 @@ export class CandlestickRenderer {
     width: number,
     height: number,
     _seriesOffset: number,
+    color: ColorResolver,
   ): void {
     if (series.length === 0) return;
     const bodyModel = this.ensureBodyModel();
@@ -92,9 +93,6 @@ export class CandlestickRenderer {
     for (const b of this.buffers) b.destroy();
     this.buffers = [];
 
-    const defaultUp = seriesRgba(1);
-    const defaultDown = seriesRgba(4);
-
     for (let si = 0; si < series.length; si++) {
       const s = series[si];
       const xScale = xScales[s.xAxisIndex ?? 0];
@@ -102,14 +100,9 @@ export class CandlestickRenderer {
       if (!xScale || !yScale) continue;
 
       // itemStyle.color = bullish (close >= open), itemStyle.color0 = bearish
-      const upColor = resolveColorSrc(
-        s.itemStyle?.color ?? s.upColor,
-        defaultUp,
-      );
-      const downColor = resolveColorSrc(
-        s.itemStyle?.color0 ?? s.downColor,
-        defaultDown,
-      );
+      // Fallback indices 1/4 keep the historical up/down palette entries.
+      const upColor = color.rgba(s.itemStyle?.color ?? s.upColor, 1);
+      const downColor = color.rgba(s.itemStyle?.color0 ?? s.downColor, 4);
 
       const bandwidth = xScale.bandwidth() * 0.7;
       const data = s.data ?? [];
@@ -185,7 +178,7 @@ export class CandlestickRenderer {
         bodyModel.draw(renderPass);
       }
 
-      for (const [verts, color] of [
+      for (const [verts, wickColor] of [
         [upWickVerts, upColor],
         [downWickVerts, downColor],
       ] as const) {
@@ -199,7 +192,7 @@ export class CandlestickRenderer {
           wickModel.setVertexCount(verts.length / 2);
           setUniforms(wickModel, {
             uResolution: [width, height],
-            uColor: color,
+            uColor: wickColor,
           });
           wickModel.draw(renderPass);
         }

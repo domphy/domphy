@@ -2,6 +2,7 @@ import {
   calcDeltaE2000,
   generateRamp,
   hexToRgb,
+  normalizeHex,
   rgbToLab,
 } from "@domphy/palette";
 import type { PartialThemeInput, ThemeInput } from "./types.js";
@@ -63,6 +64,10 @@ function nearestStepIndex(ramp: string[], baseHex: string): number {
  * Roles not passed are simply absent from the result — merge with an existing
  * `ThemeInput`/`PartialThemeInput` (e.g. spread over `light` from
  * `@domphy/theme`) to fill in the rest.
+ *
+ * Each base color is normalized via `@domphy/palette`'s `normalizeHex`, so
+ * shorthand (`#fff`) is accepted; invalid input throws an actionable error
+ * naming the offending role.
  */
 export function generateTheme(
   baseColors: Record<string, string>,
@@ -73,9 +78,20 @@ export function generateTheme(
   const baseTones: Record<string, number> = {};
 
   for (const [name, hex] of Object.entries(baseColors)) {
-    const ramp = generateRamp(hex, steps);
+    // Normalize first so shorthand (#fff) works and invalid input throws
+    // palette's actionable error instead of silently producing #NaNNaNNaN
+    // ramps. The role name is prepended so the failing entry is identifiable.
+    let normalized: string;
+    try {
+      normalized = normalizeHex(hex);
+    } catch (error) {
+      throw new Error(
+        `baseColors.${name}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    const ramp = generateRamp(normalized, steps);
     colors[name] = ramp;
-    baseTones[name] = nearestStepIndex(ramp, hex);
+    baseTones[name] = nearestStepIndex(ramp, normalized);
   }
 
   return {

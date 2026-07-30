@@ -77,6 +77,13 @@ export class Editor implements EditorInstance {
   private readonly commandManager: CommandManager;
   private readonly listeners = new Map<EditorEventName, Set<EventCallback>>();
   private editable: boolean;
+  /**
+   * Set by a dispatch carrying the `appendNextToHistoryGroup` meta: the next
+   * document change joins the open history group instead of starting its own.
+   * Used when one user gesture (Enter autolinking a URL) is applied as two
+   * transactions (mark, then splitBlock) but must undo in a single step.
+   */
+  private appendNextToHistoryGroup = false;
 
   constructor(options: EditorOptions = {}) {
     this.options = { ...options };
@@ -179,8 +186,14 @@ export class Editor implements EditorInstance {
       this.history.record(
         previous,
         Date.now(),
-        continuesTyping(previous.selection, tr.selection),
+        continuesTyping(previous.selection, tr.selection) ||
+          this.appendNextToHistoryGroup,
       );
+    }
+
+    if (docChanged) {
+      this.appendNextToHistoryGroup =
+        tr.getMeta("appendNextToHistoryGroup") === true;
     }
 
     this.state = {

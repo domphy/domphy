@@ -90,7 +90,7 @@ async function checkHtml(html: string, path: string): Promise<Diagnostic[]> {
   return messages.map((m) => ({
     rule: `html/${m.rule.id}`,
     severity: m.type === "error" ? ("error" as const) : ("warning" as const),
-    category: "output" as any,
+    category: "output",
     path: `${path} [html:${m.line}:${m.col}]`,
     message: m.message,
     hint: m.rule.link ? `See: ${m.rule.link}` : undefined,
@@ -136,7 +136,7 @@ async function checkCss(css: string, path: string): Promise<Diagnostic[]> {
     rule: `css/${w.rule}`,
     severity:
       w.severity === "error" ? ("error" as const) : ("warning" as const),
-    category: "output" as any,
+    category: "output",
     path: `${path} [css:${w.line}:${w.column}]`,
     message: w.text,
     hint: undefined,

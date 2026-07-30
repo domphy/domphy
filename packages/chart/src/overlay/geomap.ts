@@ -1,4 +1,4 @@
-import { seriesHex } from "../gl/color.js";
+import { seriesColor } from "../gl/color.js";
 import type {
   GeoOption,
   MapSeriesOption,
@@ -260,7 +260,7 @@ export function renderGeoMap(
       if (value !== undefined && vm) {
         fill = colorFromVisualMap(vm, value);
       } else if (value !== undefined) {
-        fill = seriesHex(Math.floor(value));
+        fill = seriesColor(Math.floor(value));
       }
 
       const path = document.createElementNS(
@@ -320,7 +320,7 @@ export function renderGeoMap(
       if (sc.coordinateSystem !== "geo") continue;
       if ((sc.geoIndex ?? 0) !== gi) continue;
 
-      const color = seriesHex(si);
+      const color = seriesColor(si);
       const size = typeof sc.symbolSize === "number" ? sc.symbolSize : 6;
       const data = sc.data ?? [];
 

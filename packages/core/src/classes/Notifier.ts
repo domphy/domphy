@@ -74,6 +74,10 @@ export class Notifier {
   private _flushing: Map<string, unknown[]> = new Map();
   // Self-re-notification depth in the current settle burst (runaway guard).
   private _selfDepth = 0;
+  // Optional hook fired when the LAST listener of an event is removed (the
+  // event's Set empties). `computed` uses it to drop its upstream dependency
+  // subscriptions once nothing downstream observes it anymore.
+  _onEmpty?: (event: string) => void;
 
   _dispose(): void {
     if (this._listeners) {
@@ -117,6 +121,7 @@ export class Notifier {
       listeners.delete(listener);
       if (listeners.size === 0) {
         delete this._listeners[event];
+        this._onEmpty?.(event);
       }
     }
   }

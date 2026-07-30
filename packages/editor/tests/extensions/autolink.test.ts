@@ -120,6 +120,24 @@ describe("autolink", () => {
     editor.destroy();
   });
 
+  it("undo after Enter reverts the link and the split in one step", () => {
+    const editor = createEditor("<p>see https://domphy.dev</p>");
+
+    pressEnter(editor);
+    // The view turns the unconsumed Enter into a splitBlock — a second
+    // transaction, which the autolink's history flag folds into one group.
+    editor.commands.splitBlock();
+    expect(hrefOf(linkedNode(editor))).toBe("https://domphy.dev");
+    expect(editor.getJSON().content).toHaveLength(2);
+
+    editor.commands.undo();
+
+    expect(linkedNode(editor)).toBeUndefined();
+    expect(editor.getJSON().content).toHaveLength(1);
+    expect(editor.getText()).toBe("see https://domphy.dev");
+    editor.destroy();
+  });
+
   it("does not link a non-URL on Enter", () => {
     const editor = createEditor("<p>not a url</p>");
 
@@ -151,6 +169,44 @@ describe("autolink", () => {
 
     expect(linkedNode(editor)).toBeUndefined();
     expect(editor.getText()).toContain("https://domphy.dev");
+    editor.destroy();
+  });
+});
+
+describe("inclusive: false", () => {
+  it("typing at the end of a link does not extend it", () => {
+    const editor = createEditor('<p><a href="https://domphy.dev">ab</a></p>');
+
+    // Caret sits at the document end, right after the linked text.
+    type(editor, "X");
+
+    expect(editor.getText()).toBe("abX");
+    expect(linkedNode(editor)?.text).toBe("ab");
+    expect(
+      inlineOf(editor).find((node) => node.text === "X")?.marks,
+    ).toBeUndefined();
+    editor.destroy();
+  });
+
+  it("typing inside a link still extends it", () => {
+    const editor = createEditor('<p><a href="https://domphy.dev">ab</a></p>');
+    editor.commands.setTextSelection(2);
+
+    type(editor, "X");
+
+    expect(linkedNode(editor)?.text).toBe("aXb");
+    editor.destroy();
+  });
+
+  it("typing between a link and plain text does not extend it", () => {
+    const editor = createEditor('<p><a href="https://domphy.dev">ab</a>cd</p>');
+    // Caret on the boundary between the linked "ab" and the plain "cd".
+    editor.commands.setTextSelection(3);
+
+    type(editor, "X");
+
+    expect(editor.getText()).toBe("abXcd");
+    expect(linkedNode(editor)?.text).toBe("ab");
     editor.destroy();
   });
 });

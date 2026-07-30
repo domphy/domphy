@@ -9,7 +9,7 @@
 
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import { type ThemeColor, themeColorToken } from "@domphy/theme";
+import { type ThemeColor, themeColor } from "@domphy/theme";
 import {
   chartCard,
   chartLineSeriesColor,
@@ -38,8 +38,9 @@ const PLOT_GRID = { left: 12, right: 12, top: 20, bottom: 28 };
 // Muted-foreground tone for the nested series name (matches upstream's
 // text-muted-foreground). Full card foreground + a monospace stack for the
 // value, matching upstream's `font-mono ... text-foreground` value span.
-const MUTED_TEXT = themeColorToken(null, "shift-9", "neutral");
-const FOREGROUND_TEXT = themeColorToken(null, "shift-11", "neutral");
+// Both are var(--…) references, resolved against the live theme at paint time.
+const MUTED_TEXT = themeColor(null, "shift-9", "neutral");
+const FOREGROUND_TEXT = themeColor(null, "shift-11", "neutral");
 const MONO_FONT = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
 
 function escapeHtml(text: string): string {
@@ -73,7 +74,7 @@ function nestLabelTooltipFormatter(categories: string[]) {
     );
     const series = escapeHtml(String(point.seriesName ?? ""));
     const value = escapeHtml(String(point.value ?? ""));
-    const swatch = `<span style="display:inline-block;width:3px;align-self:stretch;border-radius:2px;background:${chartLineSeriesColor(0).hex};margin-right:8px;"></span>`;
+    const swatch = `<span style="display:inline-block;width:3px;align-self:stretch;border-radius:2px;background:${chartLineSeriesColor(0).css};margin-right:8px;"></span>`;
     return (
       `<span style="display:flex;align-items:stretch;">${swatch}` +
       `<span style="display:flex;flex:1;justify-content:space-between;align-items:flex-end;gap:16px;">` +
@@ -122,7 +123,7 @@ function chartLineLabel(props: ChartLineLabelProps = {}): DomphyElement<"div"> {
   const yDomain = computeYDomain(values);
   // Upstream's stroke/dots are var(--chart-1) — the ramp's first step.
   const ramp = chartLineSeriesColor(0);
-  const dotFill = themeColorToken(null, ramp.tone, seriesColor);
+  const dotFill = themeColor(null, ramp.tone, seriesColor);
 
   const option: ChartOption = {
     grid: PLOT_GRID,

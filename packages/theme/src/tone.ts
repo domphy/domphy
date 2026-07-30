@@ -1,8 +1,11 @@
 import type { ElementNode, Listener } from "@domphy/core";
-import light from "./light.js";
-import { getTheme, themeName, themeTokens, themeVars } from "./theme.js";
-
-const TONE_STEPS = light.colors.neutral.length;
+import {
+  getTheme,
+  TONE_STEPS,
+  themeName,
+  themeTokens,
+  themeVars,
+} from "./theme.js";
 
 // Semantic tone aliases, resolved through the shift-N machinery below so they
 // stay context-aware (dataTone) and correct in both light and dark themes.
@@ -14,7 +17,11 @@ const TONE_STEPS = light.colors.neutral.length;
 //   border-strong  -> shift-4  control outline (e.g. button, input, card boundary)
 //   muted          -> shift-8  secondary/disabled text
 //   text           -> shift-9  default/primary text
-const ToneAliases: Record<string, string> = {
+//
+// Exported as a value (like ElementTones below) so tooling — @domphy/doctor,
+// the MCP server — can validate/resolve alias names without hand-duplicating
+// the map. Treat it as read-only.
+export const ToneAliases: Record<string, string> = {
   surface: "shift-1",
   hover: "shift-2",
   border: "shift-3",
@@ -154,6 +161,17 @@ export function themeColor(
   return resultColor;
 }
 
+/**
+ * Resolved-value form of {@link themeColor}: returns the concrete token value
+ * (e.g. "#4a7ff4") instead of a `var(--…)` CSS reference.
+ *
+ * ⚠ BACK-COMPAT TRAP: passing `null` as the object silently resolves against
+ * the **"light"** theme — the value is baked at design time and will NOT
+ * follow the user's active theme or dark mode. Many call sites rely on this
+ * (it cannot change without breaking them), so be deliberate: if you mean
+ * "resolve for a specific named theme", say so explicitly with
+ * {@link resolveThemeColor} instead.
+ */
 export function themeColorToken(
   object: ElementNode | Listener | null,
   tone: ElementTone = "inherit",
@@ -187,4 +205,41 @@ export function themeColorToken(
   }
 
   return colorTokens[resultTone];
+}
+
+/**
+ * First-class non-reactive token resolution: returns the resolved token value
+ * (e.g. "#4a7ff4") for a NAMED theme, with no ElementNode/listener context
+ * involved. This is the explicit form of `themeColorToken(null, …)` — use it
+ * at design time (docs, theme builders, MCP tooling) or when a third-party API
+ * requires a concrete hex/rgb string.
+ *
+ * Tone resolution starts from context tone 0 (the theme's own edge), so there
+ * is no dataTone/dataTheme inheritance — pass the exact `tone` you want.
+ * `theme` defaults to "light" (same default as the null-listener form, but
+ * here it is a visible, named choice rather than a silent fallback).
+ *
+ * The returned value is baked at call time — it does NOT follow later theme
+ * switches. For reactive, context-aware colors use themeColor() with a
+ * listener instead.
+ */
+export function resolveThemeColor(
+  options: {
+    /** Theme name registered via setTheme() ("light", "dark", …). Default: "light". */
+    theme?: string;
+    /** Tone to resolve. Default: "inherit" (context tone 0). */
+    tone?: ElementTone;
+    /** Color role. "inherit" maps to "neutral". Default: "inherit". */
+    color?: string;
+  } = {},
+): string {
+  const { theme = "light", tone = "inherit", color = "inherit" } = options;
+  const colorName = color === "inherit" ? "neutral" : color;
+  const tokens = themeTokens(theme);
+  const colorTokens = tokens[colorName];
+  if (!colorTokens) {
+    throw Error(`color "${colorName}" not found on theme "${theme}"`);
+  }
+  if (tone === "base") return colorTokens[getTheme(theme).baseTones[colorName]];
+  return colorTokens[offsetTone(0, tone)];
 }

@@ -1,6 +1,6 @@
 {
   "name": "@domphy/form",
-  "version": "0.18.1",
+  "version": "0.18.2",
   "description": "Domphy Form - headless form state, validation and submission, a 1-1 port of @tanstack/form-core",
   "type": "module",
   "sideEffects": false,
@@ -69,7 +69,8 @@
   "files": [
     "dist",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "SOURCES.md"
   ],
   "unpkg": "dist/form.global.js",
   "jsdelivr": "dist/form.global.js"

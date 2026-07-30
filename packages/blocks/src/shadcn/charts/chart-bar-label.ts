@@ -47,7 +47,7 @@ function chartBarLabel(props: ChartBarLabelProps = {}): DomphyElement<"div"> {
   const {
     data = CHART_BAR_MONTHLY_DATA,
     seriesLabel = "Desktop",
-    seriesColor = chartBarSeriesColor(0).hex,
+    seriesColor = chartBarSeriesColor(0).css,
     labelFormatter = (value) => String(value),
     title = "Bar Chart - Label",
     subtitle = "January - June 2026",
@@ -128,7 +128,7 @@ function chartBarLabelTooltipFormatter(
   // SQUARE (rounded-[2px], h-2.5 w-2.5), not a circle — see chart.tsx. The
   // engine's `item.color` follows its own multi-hue rotation palette, so the
   // swatch is re-resolved from the single-hue ramp by series position.
-  const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${chartBarSeriesColor(item.seriesIndex ?? 0).hex};margin-right:6px;"></span>`;
+  const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${chartBarSeriesColor(item.seriesIndex ?? 0).css};margin-right:6px;"></span>`;
   const label = escapeTooltipHtml(String(item.seriesName ?? item.name ?? ""));
   const value = escapeTooltipHtml(String(item.value ?? ""));
   return chartBarTooltipRow(dot, label, value);

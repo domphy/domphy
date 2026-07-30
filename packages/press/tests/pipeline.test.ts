@@ -1,3 +1,4 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isRawHTML } from "@domphy/core";
@@ -108,5 +109,114 @@ describe("renderDoc", () => {
     expect(cg).toContain('<input type="radio"');
     expect(cg).toContain('class="tabs"');
     expect(cg).toContain('class="blocks"');
+  });
+});
+
+describe("fence-aware preprocessing", () => {
+  it("preserves <script> tags inside fenced code blocks", async () => {
+    const md = [
+      "```html",
+      "<script>console.log('sample')</script>",
+      "```",
+    ].join("\n");
+    const { body } = await renderDoc(md, opts);
+    const allHtml = JSON.stringify(body);
+    expect(allHtml).toContain("console.log");
+    expect(allHtml).toContain("script");
+  });
+
+  it("still strips <script> blocks from prose", async () => {
+    const md = "Before.\n\n<script>alert(1)</script>\n\nAfter.\n";
+    const { body } = await renderDoc(md, opts);
+    const allHtml = JSON.stringify(body);
+    expect(allHtml).not.toContain("alert");
+    expect(allHtml).toContain("Before");
+    expect(allHtml).toContain("After");
+  });
+
+  it("does not expand <<< code imports inside fenced code blocks", async () => {
+    const md = ["```md", "<<< ./does-not-exist.ts", "```"].join("\n");
+    const { body } = await renderDoc(md, opts);
+    const allHtml = JSON.stringify(body);
+    // Left exactly as written — no import attempt, no error fence splice.
+    expect(allHtml).toContain("<<< ./does-not-exist.ts");
+    expect(allHtml).not.toContain("Could not import");
+  });
+
+  it("still expands <<< code imports outside fences", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "press-import-"));
+    writeFileSync(join(dir, "snippet.ts"), "export const answer = 42;\n");
+    writeFileSync(join(dir, "page.md"), "");
+    const { body } = await renderDoc("<<< ./snippet.ts\n", {
+      ...opts,
+      filePath: join(dir, "page.md"),
+      docsDir: dir,
+    });
+    expect(JSON.stringify(body)).toContain("export const answer = 42");
+  });
+
+  it("does not expand !!!include()!!! markers inside fenced code blocks", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "press-include-"));
+    writeFileSync(join(dir, "partial.md"), "INCLUDED CONTENT\n");
+    const md = ["```md", "!!!include(./partial.md)!!!", "```"].join("\n");
+    const { body } = await renderDoc(md, { ...opts, docsDir: dir });
+    const allHtml = JSON.stringify(body);
+    expect(allHtml).toContain("!!!include(./partial.md)!!!");
+    expect(allHtml).not.toContain("INCLUDED CONTENT");
+  });
+
+  it("still expands !!!include()!!! markers outside fences", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "press-include-"));
+    writeFileSync(join(dir, "partial.md"), "INCLUDED CONTENT\n");
+    const { body } = await renderDoc("!!!include(./partial.md)!!!\n", {
+      ...opts,
+      docsDir: dir,
+    });
+    expect(JSON.stringify(body)).toContain("INCLUDED CONTENT");
+  });
+
+  it("preserves <Badge> markers inside fenced code blocks", async () => {
+    const md = [
+      "```md",
+      'Available since <Badge type="tip" text="v2.0" />',
+      "```",
+    ].join("\n");
+    const { body } = await renderDoc(md, opts);
+    const allHtml = JSON.stringify(body);
+    expect(allHtml).toContain("<Badge");
+    expect(allHtml).not.toContain("dp-badge");
+  });
+
+  it("preserves adjacent code fences when a later fence contains <script>", async () => {
+    // The gap between two adjacent fences is a one-character ("\n") segment;
+    // a non-local transform that trims leading blank lines would fuse the
+    // fences into one unclosed block and swallow the rest of the document.
+    const md = [
+      "::: code-group",
+      "```bash [NPM]",
+      "npm install @domphy/ui",
+      "```",
+      "```html [CDN]",
+      '<script src="https://example.com/lib.js"></script>',
+      "```",
+      ":::",
+      "",
+      "After the group.",
+    ].join("\n");
+    const { body } = await renderDoc(md, opts);
+    const allHtml = JSON.stringify(body);
+    expect(allHtml).toContain("npm install @domphy/ui");
+    expect(allHtml).toContain("example.com/lib.js");
+    expect(allHtml).toContain("After the group.");
+  });
+
+  it("preserves ::: container syntax inside fenced code blocks", async () => {
+    const md = ["```md", "::: tip My Title", "content", ":::", "```"].join(
+      "\n",
+    );
+    const { body } = await renderDoc(md, opts);
+    const allHtml = JSON.stringify(body);
+    expect(allHtml).toContain("::: tip My Title");
+    expect(allHtml).not.toContain("custom-block tip");
   });
 });

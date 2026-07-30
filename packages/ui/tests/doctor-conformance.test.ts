@@ -63,6 +63,7 @@ const HOST: Record<string, string> = {
   fab: "button",
   figure: "figure",
   formGroup: "fieldset",
+  grid: "div",
   heading: "h2",
   horizontalRule: "hr",
   icon: "span",
@@ -130,7 +131,12 @@ const HOST: Record<string, string> = {
   tooltip: "button",
   transitionGroup: "div",
   unorderedList: "ul",
+  visuallyHidden: "span",
 };
+
+// Function exports that are NOT patch factories (shared style helpers) —
+// excluded from the every-export-is-a-patch gate below.
+const UTILITY_EXPORTS = new Set(["focusRing", "elevation"]);
 
 const PATCH_ARGS: Record<string, unknown> = {
   command: { items: [{ value: "a", label: "A" }] },
@@ -200,6 +206,7 @@ describe("doctor conformance — all UI patch defaults (merged)", () => {
     const allFns = Object.entries(ui)
       .filter(([, value]) => typeof value === "function")
       .map(([name]) => name)
+      .filter((name) => !UTILITY_EXPORTS.has(name))
       .sort();
     const missing = allFns.filter((name) => !HOST[name]);
     expect(missing, `HOST map missing: ${missing.join(", ")}`).toEqual([]);

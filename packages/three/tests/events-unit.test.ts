@@ -14,7 +14,7 @@ import { createStubRenderer } from "./stubRenderer.js";
 // Hand-built RootState — mirrors props.test.ts's fixture (rootState.ts/
 // reconciler.ts are out of scope for this module's unit tests per SPEC.md's
 // testing guidance). Canvas is 800x600 so NDC math in the test cases below
-// stays easy to reason about: center-of-screen is offsetX=400, offsetY=300.
+// stays easy to reason about: center-of-screen is clientX=400, clientY=300.
 function createTestRoot(): RootState {
   const internal: RootInternal = {
     frameCallbacks: [],
@@ -39,11 +39,10 @@ function createTestRoot(): RootState {
   camera.updateMatrixWorld(true);
 
   const canvas = document.createElement("canvas");
-  // Mocked per SPEC.md's test recipe — events.ts itself computes NDC from
-  // event.offsetX/offsetY directly (reference parity, see events.ts's
-  // `computePointer`), never from getBoundingClientRect, so this is only
-  // here in case a test wants to derive offsetX/Y from a client-coordinate
-  // gesture the way a real browser would.
+  // Mocked per SPEC.md's test recipe — events.ts computes NDC from
+  // event.clientX/clientY minus this rect's left/top (see events.ts's
+  // `computePointer`: the canvas rect is the origin source that matches
+  // setSize's container tracking), so the rect must report a stable origin.
   canvas.getBoundingClientRect = () =>
     ({
       width: 800,
@@ -110,11 +109,12 @@ function createCaptureTarget() {
   };
 }
 
-// Builds a real jsdom PointerEvent and overrides offsetX/offsetY/target —
-// offsetX/offsetY are computed read-only getters in real browsers (based on
-// layout jsdom never performs) so they cannot be supplied through the
-// PointerEventInit dict; overriding them as own properties is the standard
-// workaround and is what "synthetic PointerEvent" means at unit-test level.
+// Builds a real jsdom PointerEvent with client coordinates and an overridden
+// offsetX/offsetY/target. computePointer reads clientX/clientY (supplied via
+// the MouseEventInit dict); offsetX/offsetY are still overridden because the
+// click-distance bookkeeping (initialClick/calculateDistance) reads them —
+// they are computed read-only getters in real browsers, so they cannot be
+// supplied through the PointerEventInit dict and are set as own properties.
 function createPointerEvent(
   type: string,
   options: {
@@ -128,6 +128,9 @@ function createPointerEvent(
     pointerId: options.pointerId ?? 1,
     bubbles: true,
     cancelable: true,
+    // The mocked canvas rect sits at (0,0), so client == offset here.
+    clientX: options.offsetX,
+    clientY: options.offsetY,
   });
   Object.defineProperty(event, "offsetX", {
     value: options.offsetX,
@@ -149,7 +152,12 @@ function createClickEvent(options: {
   offsetY: number;
   target?: any;
 }): MouseEvent {
-  const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+  const event = new MouseEvent("click", {
+    bubbles: true,
+    cancelable: true,
+    clientX: options.offsetX,
+    clientY: options.offsetY,
+  });
   Object.defineProperty(event, "offsetX", {
     value: options.offsetX,
     configurable: true,
@@ -410,5 +418,47 @@ describe("events — connect/disconnect", () => {
     root.canvas.dispatchEvent(createClickEvent(CENTER));
 
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("computes NDC from the canvas rect origin (clientX/Y minus rect.left/top), not raw client coordinates", () => {
+    // Regression harness for computePointer's rect alignment: the canvas sits
+    // 100px right / 50px down the page, so a client gesture at (500, 350) is
+    // the canvas CENTER (400/800, 300/600 canvas-relative → NDC (0, 0)). The
+    // old offsetX/offsetY math would have treated the raw 500/350 as
+    // canvas-relative and missed the centered mesh.
+    const root = createTestRoot();
+    root.canvas.getBoundingClientRect = () =>
+      ({
+        width: 800,
+        height: 600,
+        left: 100,
+        top: 50,
+        right: 900,
+        bottom: 650,
+        x: 100,
+        y: 50,
+      }) as DOMRect;
+
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshBasicMaterial(),
+    );
+    mesh.position.set(0, 0, 0);
+    root.scene.add(mesh);
+    root.scene.updateMatrixWorld(true);
+
+    const sceneParent = createNode(root.scene, root, null);
+    const node = createNode(mesh, root, sceneParent);
+    const onPointerMove = vi.fn();
+    applyProps(node, { onPointerMove });
+
+    const events = createEvents(root);
+    events.handlePointer("onPointerMove")(
+      createPointerEvent("pointermove", { offsetX: 500, offsetY: 350 }),
+    );
+
+    expect(root.pointer.x).toBeCloseTo(0);
+    expect(root.pointer.y).toBeCloseTo(0);
+    expect(onPointerMove).toHaveBeenCalledTimes(1);
   });
 });

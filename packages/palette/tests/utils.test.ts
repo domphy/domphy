@@ -7,14 +7,17 @@ import {
   cssRgbToRgb,
   fromLightnessEAL,
   hexToRgb,
+  isValidHex,
   labToLch,
   labToRgb,
   lchToLab,
+  normalizeHex,
   oklabToRgb,
   rgbToHex,
   rgbToLab,
   rgbToOklab,
   rootMeanSquare,
+  scale,
   toLightnessEAL,
 } from "../src/index";
 
@@ -30,6 +33,88 @@ describe("hex <-> rgb round trip", () => {
   it("hexToRgb returns linear RGB in [0, 1]", () => {
     const rgb = hexToRgb("#ff0000");
     expect(rgb).toEqual([1, 0, 0]);
+  });
+});
+
+describe("hexToRgb input validation", () => {
+  it("expands the 3-digit shorthand", () => {
+    expect(hexToRgb("#fff")).toEqual(hexToRgb("#ffffff"));
+    expect(hexToRgb("#f00")).toEqual([1, 0, 0]);
+  });
+
+  it("accepts 4- and 8-digit forms and ignores the alpha channel", () => {
+    expect(hexToRgb("#ffff")).toEqual(hexToRgb("#ffffff"));
+    expect(hexToRgb("#ff000080")).toEqual(hexToRgb("#ff0000"));
+  });
+
+  it("accepts uppercase hex digits", () => {
+    expect(hexToRgb("#FF0000")).toEqual([1, 0, 0]);
+    expect(hexToRgb("#FFF")).toEqual([1, 1, 1]);
+  });
+
+  it("throws with the offending input for non-hex characters", () => {
+    expect(() => hexToRgb("#zzz")).toThrow(/#zzz/);
+    expect(() => hexToRgb("#zzzzzz")).toThrow(/#zzzzzz/);
+  });
+
+  it("throws for a missing leading #", () => {
+    expect(() => hexToRgb("ff0000")).toThrow(/ff0000/);
+  });
+
+  it("throws for wrong lengths", () => {
+    expect(() => hexToRgb("#ff")).toThrow(/#ff/);
+    expect(() => hexToRgb("#fffff")).toThrow(/#fffff/);
+    expect(() => hexToRgb("#fffffff")).toThrow(/#fffffff/);
+  });
+});
+
+describe("isValidHex", () => {
+  it("accepts all supported forms, case-insensitively", () => {
+    for (const hex of [
+      "#fff",
+      "#ffff",
+      "#ffffff",
+      "#ffffffff",
+      "#FFF",
+      "#AbCdEf",
+    ]) {
+      expect(isValidHex(hex)).toBe(true);
+    }
+  });
+
+  it("rejects non-hex characters, missing #, and wrong lengths", () => {
+    for (const hex of [
+      "#zzz",
+      "fff",
+      "#ff",
+      "#fffff",
+      "#fffffff",
+      "",
+      "#123456789",
+    ]) {
+      expect(isValidHex(hex)).toBe(false);
+    }
+  });
+});
+
+describe("normalizeHex", () => {
+  it("expands shorthand to lowercase #rrggbb", () => {
+    expect(normalizeHex("#FFF")).toBe("#ffffff");
+    expect(normalizeHex("#f00")).toBe("#ff0000");
+  });
+
+  it("keeps the alpha channel in lowercase #rrggbbaa", () => {
+    expect(normalizeHex("#FFFF")).toBe("#ffffffff");
+    expect(normalizeHex("#FF000080")).toBe("#ff000080");
+  });
+
+  it("lowercases an already-full hex", () => {
+    expect(normalizeHex("#3B82F6")).toBe("#3b82f6");
+  });
+
+  it("throws on invalid input", () => {
+    expect(() => normalizeHex("#zzz")).toThrow(/#zzz/);
+    expect(() => normalizeHex("fff")).toThrow(/fff/);
   });
 });
 
@@ -60,8 +145,39 @@ describe("cssRgbToRgb", () => {
     expect(cssRgbToRgb("rgb(255, 0, 0)")).toEqual(hexToRgb("#ff0000"));
   });
 
+  it("keeps legacy rgba() comma syntax, ignoring alpha", () => {
+    expect(cssRgbToRgb("rgba(255, 0, 0, 0.5)")).toEqual(hexToRgb("#ff0000"));
+  });
+
+  it("parses percentage channels", () => {
+    expect(cssRgbToRgb("rgb(100%, 0%, 0%)")).toEqual(hexToRgb("#ff0000"));
+    // 50%/25% of 255 round to 128/64 when encoded back to 8-bit hex.
+    expect(rgbToHex(cssRgbToRgb("rgb(50%, 25%, 0%)"))).toBe("#804000");
+  });
+
+  it("parses modern space/slash syntax, ignoring alpha", () => {
+    expect(cssRgbToRgb("rgb(255 0 0)")).toEqual(hexToRgb("#ff0000"));
+    expect(cssRgbToRgb("rgb(255 0 0 / 50%)")).toEqual(hexToRgb("#ff0000"));
+  });
+
   it("throws on an unparseable string", () => {
     expect(() => cssRgbToRgb("not a color")).toThrow(/Invalid CSS/);
+  });
+
+  it("throws on a wrong channel count", () => {
+    expect(() => cssRgbToRgb("rgb(255, 0)")).toThrow(/Invalid CSS/);
+    expect(() => cssRgbToRgb("rgb(255 0)")).toThrow(/Invalid CSS/);
+  });
+});
+
+describe("scale single-step normalization", () => {
+  it("normalizes the anchor for steps === 1 like the multi-step path", () => {
+    expect(scale(["#FFF", "#000000"], 1)).toEqual(["#ffffff"]);
+    expect(scale(["#4A7FF4", "#000000"], 1)).toEqual(["#4a7ff4"]);
+  });
+
+  it("throws on an invalid anchor for steps === 1", () => {
+    expect(() => scale(["#zzz", "#000000"], 1)).toThrow(/#zzz/);
   });
 });
 

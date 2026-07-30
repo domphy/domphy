@@ -1,4 +1,4 @@
-import { seriesHex } from "../gl/color.js";
+import { seriesColor } from "../gl/color.js";
 import type { EffectScatterSeriesOption, GeoOption } from "../types.js";
 import { getRegisteredMap } from "./geomap.js";
 
@@ -125,7 +125,7 @@ export function renderEffectScatter(
     const s = series[si];
     if (s.name && hiddenSeries.has(s.name)) continue;
 
-    const color = seriesHex(si);
+    const color = seriesColor(si);
     const period = s.rippleEffect?.period ?? 2;
     const scale = s.rippleEffect?.scale ?? 3;
     const brushType = s.rippleEffect?.brushType ?? "fill";

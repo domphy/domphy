@@ -6,12 +6,16 @@ export type { ZoomWindow } from "./coord/grid.js";
 export { applyTransforms, resolveDataset } from "./dataset/transform.js";
 // Engine (for advanced embedding without the Domphy patch)
 export { ChartEngine } from "./engine.js";
-export type { Rgba } from "./gl/color.js";
+export type { ColorResolver, Rgba } from "./gl/color.js";
 // Color utilities
 export {
+  createColorResolver,
+  cssColor,
+  familyCss,
   familyHex,
   familyRgba,
   hexToRgba,
+  seriesColor,
   seriesHex,
   seriesPaletteFamily,
   seriesRgba,

@@ -1,4 +1,4 @@
-import { themeColorToken } from "@domphy/theme";
+import { themeColor } from "@domphy/theme";
 import type { TitleOption } from "../types.js";
 
 export function renderTitle(svg: SVGSVGElement, title: TitleOption): void {
@@ -55,7 +55,7 @@ export function renderTitle(svg: SVGSVGElement, title: TitleOption): void {
     text.setAttribute("x", String(align));
     text.setAttribute("y", String(top + 16));
     text.setAttribute("text-anchor", anchor);
-    text.setAttribute("fill", themeColorToken(null, "shift-11", "neutral"));
+    text.setAttribute("fill", themeColor(null, "shift-11", "neutral"));
     text.setAttribute("font-size", String(title.textStyle?.fontSize ?? 14));
     text.setAttribute(
       "font-weight",
@@ -70,7 +70,7 @@ export function renderTitle(svg: SVGSVGElement, title: TitleOption): void {
     sub.setAttribute("x", String(align));
     sub.setAttribute("y", String(top + 34));
     sub.setAttribute("text-anchor", anchor);
-    sub.setAttribute("fill", themeColorToken(null, "shift-7", "neutral"));
+    sub.setAttribute("fill", themeColor(null, "shift-7", "neutral"));
     sub.setAttribute("font-size", String(title.subtextStyle?.fontSize ?? 12));
     group.appendChild(sub);
   }

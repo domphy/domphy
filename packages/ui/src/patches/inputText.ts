@@ -9,34 +9,38 @@ import {
 import { focusRing } from "../utils/focusRing.js";
 
 /**
- * Themed single-line text input primitive. Sets `type="text"` and styles the
- * field with themed border, focus ring, placeholder, disabled and validation
- * (`data-status`) states. Apply to an `<input>` element.
+ * Themed single-line text input primitive. Sets `type` (default `"text"`) and
+ * styles the field with themed border, focus ring, placeholder, disabled and
+ * validation (`data-status`) states. Apply to an `<input>` element.
  *
  * @hostTag input
  * @param props - Optional configuration.
+ * @param props.type - The input's `type` attribute (e.g. `"email"`, `"url"`, `"tel"`). Defaults to `"text"`.
  * @param props.color - Base color tone for text/border/background. Defaults to `"neutral"`.
  * @param props.accentColor - Accent color tone for the hover/focus outline. Defaults to `"primary"`.
  * @example { input: "", type: "text", placeholder: "Name", $: [inputText()] }
  */
 function inputText(
   props: {
+    type?: string;
     color?: ValueOrState<ThemeColor>;
     accentColor?: ValueOrState<ThemeColor>;
   } = {},
 ): PartialElement {
+  const { type = "text" } = props;
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
-    type: "text",
-    _onSchedule: (node, element) => {
+    // Declared like any other attribute — the native element still wins over
+    // this patch default if the host declares its own `type`.
+    type,
+    _onInsert: (node) => {
       if (node.tagName !== "input") {
         console.warn(
           `"inputText" primitive patch must use input tag and text type`,
         );
       }
-      (element as any).type = "text";
     },
     style: {
       fontFamily: "inherit",

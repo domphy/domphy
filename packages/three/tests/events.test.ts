@@ -18,7 +18,8 @@ import { createStubRenderer } from "./stubRenderer.js";
 
 // Fixed size (no ResizeObserver "trigger" ceremony needed — this file only
 // ever needs one canvas size) so NDC math is easy to reason about: center of
-// screen is offsetX=400, offsetY=300.
+// screen is clientX=400, clientY=300 (jsdom reports the canvas rect at
+// origin 0,0, so client coordinates equal the old offset coordinates).
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
 
@@ -63,11 +64,13 @@ afterEach(() => {
 const CENTER = { offsetX: 400, offsetY: 300 };
 const CORNER = { offsetX: 0, offsetY: 0 };
 
-// offsetX/offsetY are computed read-only getters in real browsers (based on
-// layout jsdom never performs), so they cannot be supplied through the
-// PointerEventInit/MouseEventInit dict — overriding them as own properties is
-// the standard workaround. `target` is left alone: dispatching on the real
-// canvas element already sets it correctly.
+// computePointer reads clientX/clientY (supplied via the init dict — jsdom
+// reports the canvas rect at origin 0,0, so these double as canvas-relative
+// offsets). offsetX/offsetY are still overridden because the click-distance
+// bookkeeping (initialClick/calculateDistance) reads them — they are computed
+// read-only getters in real browsers, so they cannot be supplied through the
+// PointerEventInit/MouseEventInit dict and are set as own properties.
+// `target` is left alone: dispatching on the real canvas sets it correctly.
 function createPointerEvent(
   type: string,
   options: { offsetX: number; offsetY: number; pointerId?: number },
@@ -76,6 +79,8 @@ function createPointerEvent(
     pointerId: options.pointerId ?? 1,
     bubbles: true,
     cancelable: true,
+    clientX: options.offsetX,
+    clientY: options.offsetY,
   });
   Object.defineProperty(event, "offsetX", {
     value: options.offsetX,
@@ -92,7 +97,12 @@ function createMouseEvent(
   type: string,
   options: { offsetX: number; offsetY: number },
 ): MouseEvent {
-  const event = new MouseEvent(type, { bubbles: true, cancelable: true });
+  const event = new MouseEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    clientX: options.offsetX,
+    clientY: options.offsetY,
+  });
   Object.defineProperty(event, "offsetX", {
     value: options.offsetX,
     configurable: true,

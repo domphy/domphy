@@ -87,7 +87,10 @@ export function getLocale<TLocale extends string>(
 ): TLocale {
   const { locales, defaultLocale } = options;
   const localeSet = new Set<string>(locales);
-  const parts = context.url.split("/").filter(Boolean);
+  // context.url is pathname + search (+ hash); only the pathname carries the
+  // locale prefix, so drop the query/fragment before splitting.
+  const pathname = context.url.split("?")[0].split("#")[0];
+  const parts = pathname.split("/").filter(Boolean);
   const first = parts[0];
   if (first && localeSet.has(first)) return first as TLocale;
   return defaultLocale;

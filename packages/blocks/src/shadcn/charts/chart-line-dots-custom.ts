@@ -13,7 +13,7 @@
 
 import type { ChartOption } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import { type ThemeColor, themeColorToken } from "@domphy/theme";
+import { type ThemeColor, themeColor } from "@domphy/theme";
 import {
   chartCard,
   chartLineSeriesColor,
@@ -72,8 +72,8 @@ function chartLineDotsCustom(
   const yDomain = computeYDomain(values);
   // Upstream's stroke/markers are var(--chart-1) — the ramp's first step.
   const ramp = chartLineSeriesColor(0);
-  const markerOutline = themeColorToken(null, ramp.tone, seriesColor);
-  const markerFill = themeColorToken(null, "shift-0", "neutral");
+  const markerOutline = themeColor(null, ramp.tone, seriesColor);
+  const markerFill = themeColor(null, "shift-0", "neutral");
 
   const option: ChartOption = {
     grid: DEFAULT_LINE_GRID,
@@ -88,7 +88,7 @@ function chartLineDotsCustom(
       formatter: (params) =>
         lineSwatchLabelValueTooltipFormatter(
           params,
-          chartLineSeriesColor(0).hex,
+          chartLineSeriesColor(0).css,
         ),
     },
     series: [

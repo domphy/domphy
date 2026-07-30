@@ -71,12 +71,15 @@ export class Router<
   }
 
   /**
-   * Releases the transitioner's history/store subscriptions. Call this when
-   * discarding a Router instance (HMR, locale-switch patterns) so it stops
-   * reacting to history and store changes.
+   * Releases the transitioner's history/store subscriptions and the scroll
+   * restoration listeners/subscriptions. Call this when discarding a Router
+   * instance (HMR, locale-switch patterns) so it stops reacting to history,
+   * store and scroll events.
    */
   destroy(): void {
     this.transitioner?.cleanup()
     this.transitioner = undefined
+    this._scrollRestorationCleanup?.()
+    this._scrollRestorationCleanup = undefined
   }
 }

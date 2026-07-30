@@ -1,4 +1,4 @@
-import { themeColorToken } from "@domphy/theme";
+import { themeColor } from "@domphy/theme";
 import type { AnyScale } from "../scale/index.js";
 import type { AxisOption, ChartRect } from "../types.js";
 
@@ -12,11 +12,11 @@ export interface AxisSvgOptions {
   height: number;
 }
 
-// ─── Colors (no listener = light theme defaults, CSS var reference) ───────────
-const colorGrid = () => themeColorToken(null, "shift-2", "neutral");
-const colorAxis = () => themeColorToken(null, "shift-4", "neutral");
-const colorLabel = () => themeColorToken(null, "shift-8", "neutral");
-const _colorMinor = () => themeColorToken(null, "shift-1", "neutral");
+// ─── Colors (no listener = context 0; CSS var references resolve at paint time)
+const colorGrid = () => themeColor(null, "shift-2", "neutral");
+const colorAxis = () => themeColor(null, "shift-4", "neutral");
+const colorLabel = () => themeColor(null, "shift-8", "neutral");
+const _colorMinor = () => themeColor(null, "shift-1", "neutral");
 
 // ─── SVG element factory helpers ──────────────────────────────────────────────
 

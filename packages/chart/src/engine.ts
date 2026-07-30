@@ -3,7 +3,7 @@ import type { ZoomWindow } from "./coord/grid.js";
 import { resolveGrid } from "./coord/grid.js";
 import { BarRenderer } from "./gl/BarRenderer.js";
 import { CandlestickRenderer } from "./gl/CandlestickRenderer.js";
-import { seriesHex } from "./gl/color.js";
+import { createColorResolver, seriesColor } from "./gl/color.js";
 import { getDevice, releaseDevice } from "./gl/device.js";
 import { GaugeRenderer } from "./gl/GaugeRenderer.js";
 import { HeatmapRenderer } from "./gl/HeatmapRenderer.js";
@@ -168,7 +168,7 @@ function hitTestPie(
           dataIndex: di,
           data: item,
           value: item.value,
-          color: seriesHex(di),
+          color: seriesColor(di),
           percent: Math.round(fraction * 1000) / 10,
         };
       }
@@ -218,7 +218,7 @@ function hitTestScatter(
           dataIndex: di,
           data: item,
           value: [xVal, yVal],
-          color: seriesHex(globalIdx),
+          color: seriesColor(globalIdx),
           percent: undefined,
         };
       }
@@ -270,6 +270,32 @@ function warnUnsupportedChartOption(option: ChartOption): void {
       "@domphy/chart: option.brush is typed for ECharts interop but is not implemented yet; it has no effect.",
     );
   }
+  // TooltipOption keys that are typed for ECharts interop but ignored.
+  // (backgroundColor/borderColor/borderWidth/padding/textStyle/extraCssText/
+  // className/confine ARE implemented — do not warn for those.)
+  const UNSUPPORTED_TOOLTIP_KEYS = [
+    "position",
+    "appendToBody",
+    "renderMode",
+    "enterable",
+    "alwaysShowContent",
+    "showDelay",
+    "hideDelay",
+    "triggerOn",
+    "transitionDuration",
+    "order",
+    "showContent",
+  ] as const;
+  const tooltip = option.tooltip;
+  if (tooltip != null) {
+    for (const key of UNSUPPORTED_TOOLTIP_KEYS) {
+      if ((tooltip as Record<string, unknown>)[key] != null) {
+        console.warn(
+          `@domphy/chart: option.tooltip.${key} is typed for ECharts interop but is not implemented yet; it has no effect.`,
+        );
+      }
+    }
+  }
   const series = Array.isArray(option.series)
     ? option.series
     : option.series
@@ -308,7 +334,6 @@ export class ChartEngine {
 
   private tooltipCtrl: ReturnType<typeof createTooltip> | null = null;
   private tooltipCleanup: (() => void) | null = null;
-  private animationFrame = 0;
   private destroyed = false;
 
   // Interactive state
@@ -380,6 +405,8 @@ export class ChartEngine {
   }
 
   setOption(option: ChartOption): void {
+    // A node removed before async init resolves must not revive the engine.
+    if (this.destroyed) return;
     this.option = option;
 
     // Honest surface: type/docs may list ECharts-compatible keys that are not
@@ -498,6 +525,12 @@ export class ChartEngine {
         !(s.type === "lines" && (s as any).coordinateSystem !== "cartesian2d"),
     );
 
+    // Per-pass theme-aware color resolver — resolved against this container's
+    // computed style so [data-theme] ancestors and custom themes are honored
+    // (see gl/color.ts createColorResolver). One per render pass, threaded
+    // through the gauge SVG renderer and every WebGL renderer below.
+    const colorResolver = createColorResolver(this.container);
+
     // ─── SVG Overlay ──────────────────────────────────────────────────────────
     if (hasCartesian)
       renderAxes(
@@ -557,6 +590,7 @@ export class ChartEngine {
         gaugeSeries,
         width,
         height,
+        colorResolver,
       );
     }
 
@@ -829,6 +863,7 @@ export class ChartEngine {
         width,
         height,
         seriesOffset,
+        colorResolver,
       );
       seriesOffset += barSeries.length;
     }
@@ -847,6 +882,7 @@ export class ChartEngine {
         height,
         seriesOffset,
         lineBaselines,
+        colorResolver,
       );
       seriesOffset += lineSeries.length;
     }
@@ -862,6 +898,7 @@ export class ChartEngine {
         width,
         height,
         seriesOffset,
+        colorResolver,
       );
       seriesOffset += scatterSeries.length;
     }
@@ -875,6 +912,7 @@ export class ChartEngine {
         width,
         height,
         seriesOffset,
+        colorResolver,
       );
       seriesOffset += pieSeries.length;
     }
@@ -888,6 +926,7 @@ export class ChartEngine {
         width,
         height,
         seriesOffset,
+        colorResolver,
       );
       seriesOffset += radarSeries.length;
     }
@@ -917,6 +956,7 @@ export class ChartEngine {
         width,
         height,
         seriesOffset,
+        colorResolver,
       );
       seriesOffset += candleSeries.length;
     }
@@ -1112,7 +1152,7 @@ export class ChartEngine {
             dataIndex: closestIndex,
             data: item,
             value,
-            color: seriesHex(globalIdx),
+            color: seriesColor(globalIdx),
             percent: undefined,
           });
         }
@@ -1173,7 +1213,6 @@ export class ChartEngine {
 
   destroy(): void {
     this.destroyed = true;
-    cancelAnimationFrame(this.animationFrame);
     this.tooltipCleanup?.();
     this.tooltipCleanup = null;
     this.dataZoomCleanup?.();
@@ -1188,6 +1227,7 @@ export class ChartEngine {
     this.candlestickRenderer?.destroy();
     this.gaugeRenderer?.destroy();
     releaseDevice(this.canvas);
+    this.backsvg.remove();
     this.canvas.remove();
     this.overlaysvg.remove();
   }

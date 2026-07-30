@@ -17,6 +17,18 @@ const themes: Record<string, ThemeInput> = {
   dark: createDark(light),
 };
 
+// Number of tone steps in every color ramp. The tone model (shift-N /
+// increase-N / decrease-N, edge anchors, contrast rules) is baked around this
+// fixed width, so setTheme() validates that every ramp stays exactly this long
+// — a shorter/longer ramp would desynchronize themeVars()/buildThemeCSS() (which
+// follow the ramp structure) from offsetTone()/ElementTones (which assume it).
+export const TONE_STEPS = light.colors.neutral.length;
+
+// Number of entries in the fontSizes scale (themeSize spans increase/decrease
+// 0–7). buildThemeCSS() unconditionally emits --fontSize-0..7, so a short array
+// would leak literal "undefined" into the generated CSS.
+const FONT_SIZE_STEPS = 8;
+
 // Memo caches. themeVars() depends only on the theme STRUCTURE (color names,
 // tone steps, custom keys) — it emits `var(--…)` references, never resolved
 // values — so its result is stable until setTheme() changes that structure.
@@ -33,14 +45,35 @@ function colorSteps(input: ThemeInput): number {
 
 // --- Validation ---
 
+// Theme values are interpolated RAW into a <style> block by buildThemeCSS() —
+// a "}" closes the rule early and "</style>" breaks out of the element
+// entirely, letting a crafted custom theme (e.g. loaded from an API response)
+// inject arbitrary CSS/markup. Reject both at validation time.
+function assertCssSafe(value: string, where: string): void {
+  if (/}/.test(value) || /<\/style/i.test(value)) {
+    throw new Error(
+      `${where} contains unsafe CSS characters ("}" or "</style>") — theme values are interpolated into a <style> block`,
+    );
+  }
+}
+
 function validateTheme(partial: PartialThemeInput): void {
   for (const key in partial) {
     if (!Object.keys(light).includes(key as keyof ThemeInput)) {
       throw new Error(`Invalid key: ${key}`);
     }
   }
-  if (partial.fontSizes && !Array.isArray(partial.fontSizes)) {
-    throw new Error(`fontSize must be array of string`);
+  if (partial.fontSizes !== undefined) {
+    const valid =
+      Array.isArray(partial.fontSizes) &&
+      partial.fontSizes.length === FONT_SIZE_STEPS &&
+      partial.fontSizes.every((v) => typeof v === "string" && v.length > 0);
+    if (!valid) {
+      throw new Error(
+        `fontSize must be array of ${FONT_SIZE_STEPS} non-empty string (the size scale has ${FONT_SIZE_STEPS} steps: 0–${FONT_SIZE_STEPS - 1})`,
+      );
+    }
+    partial.fontSizes.forEach((v, i) => assertCssSafe(v!, `fontSizes[${i}]`));
   }
   if (partial.densities) {
     if (
@@ -55,6 +88,10 @@ function validateTheme(partial: PartialThemeInput): void {
     if (typeof custom !== "object" || custom === null) {
       throw new Error(`Invalid custom property: must be an object`);
     }
+    for (const k in custom) {
+      const v = custom[k];
+      if (typeof v === "string") assertCssSafe(v, `custom.${k}`);
+    }
   }
   if ("colors" in partial) {
     const colors = partial.colors!;
@@ -67,6 +104,22 @@ function validateTheme(partial: PartialThemeInput): void {
     if (!valid) {
       throw new Error(`colors must be an object of string[]`);
     }
+    // Structural checks: every ramp must span the full tone model so that
+    // themeColor()/themeVars()/buildThemeCSS() can never index past the end
+    // (which produced literal "undefined" in styles) — and ramps of differing
+    // lengths would silently disagree with each other.
+    for (const name in colors) {
+      const ramp = colors[name]!;
+      if (ramp.length !== TONE_STEPS) {
+        throw new Error(
+          `colors.${name} must have exactly ${TONE_STEPS} tone steps (got ${ramp.length}) — the tone model is fixed at shift-0…shift-${TONE_STEPS - 1}`,
+        );
+      }
+      if (ramp.some((c) => c!.length === 0)) {
+        throw new Error(`colors.${name} must contain only non-empty strings`);
+      }
+      ramp.forEach((c, i) => assertCssSafe(c!, `colors.${name}[${i}]`));
+    }
   }
   if ("baseTones" in partial) {
     const baseTones = partial.baseTones!;
@@ -76,6 +129,14 @@ function validateTheme(partial: PartialThemeInput): void {
       Object.values(baseTones).every((v) => typeof v === "number");
     if (!valid) {
       throw new Error(`baseTones must be an object of number`);
+    }
+    for (const name in baseTones) {
+      const v = baseTones[name]!;
+      if (!Number.isInteger(v) || v < 0 || v > TONE_STEPS - 1) {
+        throw new Error(
+          `baseTones.${name} must be an integer between 0 and ${TONE_STEPS - 1} (the tone ramp has ${TONE_STEPS} steps)`,
+        );
+      }
     }
   }
   if ("direction" in partial) {
@@ -126,7 +187,7 @@ function buildThemeCSS(name: string, input: ThemeInput): string {
         );
       }
     } else if (key === "fontSizes") {
-      [...Array(8).keys()].forEach(
+      [...Array(FONT_SIZE_STEPS).keys()].forEach(
         (i) => (styles[`--fontSize-${i}`] = input.fontSizes[i]),
       );
     } else if (key === "custom") {
@@ -229,7 +290,9 @@ export function themeVars(): ThemeVars {
         theme[name] = colorTones as Record<number, string>;
       }
     } else if (key === "fontSizes") {
-      theme.fontSizes = [...Array(8).keys()].map((i) => `var(--fontSize-${i})`);
+      theme.fontSizes = [...Array(FONT_SIZE_STEPS).keys()].map(
+        (i) => `var(--fontSize-${i})`,
+      );
     } else if (key === "custom") {
       theme.custom = {} as Record<string, string>;
       if (value && typeof value === "object") {
@@ -306,9 +369,12 @@ export function themeFluidSpacing(
 //   localStorage.setItem(storageKey, "dark")    // applySystemTheme will honour it on reload
 //   element.setAttribute("data-theme", "dark")  // update DOM immediately
 //
-// For SSR: call only on the client (typeof window !== "undefined").
+// For SSR: call only on the client (typeof window !== "undefined"). Calling it
+// server-side throws an actionable error instead of a bare ReferenceError — the
+// default targetEl (document.documentElement) is resolved lazily inside the
+// function body, not eagerly in the parameter list.
 export function applySystemTheme(
-  targetEl: Element = document.documentElement,
+  targetEl?: Element,
   options: {
     /** Persist the resolved theme in localStorage so it survives reloads. Default: true. */
     persist?: boolean;
@@ -316,6 +382,13 @@ export function applySystemTheme(
     storageKey?: string;
   } = {},
 ): () => void {
+  if (typeof document === "undefined") {
+    throw new Error(
+      'applySystemTheme() requires a browser DOM — "document" is not defined. ' +
+        'For SSR, call it only on the client (e.g. inside an _onMount lifecycle hook, or behind a typeof window !== "undefined" guard).',
+    );
+  }
+  const target = targetEl ?? document.documentElement;
   const { persist = true, storageKey = "dp-theme" } = options;
 
   const resolve = (): "light" | "dark" => {
@@ -328,13 +401,13 @@ export function applySystemTheme(
       : "light";
   };
 
-  targetEl.setAttribute("data-theme", resolve());
+  target.setAttribute("data-theme", resolve());
 
   const mql = window.matchMedia("(prefers-color-scheme: dark)");
   const handler = (event: MediaQueryListEvent) => {
     // Only follow the OS change when there is no user-saved preference.
     if (!persist || !localStorage.getItem(storageKey)) {
-      targetEl.setAttribute("data-theme", event.matches ? "dark" : "light");
+      target.setAttribute("data-theme", event.matches ? "dark" : "light");
     }
   };
   mql.addEventListener("change", handler);

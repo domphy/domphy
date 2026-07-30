@@ -1,20 +1,20 @@
 {
   "name": "domphy",
-  "version": "0.20.2",
+  "version": "0.21.0",
   "generated": "auto",
   "rules": "https://domphy.com/llms.txt",
   "tones": "https://domphy.com/tones.json",
   "packages": [
     {
       "name": "@domphy/app",
-      "version": "0.18.2",
+      "version": "0.18.3",
       "description": "Domphy App - a port of the Next.js App Router feature set for Domphy: routing, nested layouts, navigation, data loading, metadata, middleware, SSR and API routes",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/blocks",
-      "version": "0.1.4",
+      "version": "0.2.0",
       "description": "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, independently reimplemented (clean-room) from the public behavior of shadcn/ui and Magic UI.",
       "subpaths": [".", "./shadcn", "./magicui"],
       "peerDependencies": [
@@ -28,14 +28,14 @@
     },
     {
       "name": "@domphy/chart",
-      "version": "0.2.3",
+      "version": "0.3.0",
       "description": "ECharts-grade chart library for Domphy — WebGL series + SVG overlays, tone/density cascade.",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core", "@domphy/theme"]
     },
     {
       "name": "@domphy/core",
-      "version": "0.20.2",
+      "version": "0.21.0",
       "description": "Domphy core runtime — patch-based, framework-agnostic UI with plain-object element trees, listener-based reactivity, and SSR + hydration (no JSX, no virtual DOM)",
       "subpaths": ["."],
       "peerDependencies": []
@@ -49,77 +49,77 @@
     },
     {
       "name": "@domphy/dnd",
-      "version": "0.18.4",
+      "version": "0.18.5",
       "description": "Domphy Drag & Drop - reactive adapter for the framework-agnostic @formkit/drag-and-drop engine",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/doctor",
-      "version": "0.18.16",
+      "version": "0.19.0",
       "description": "Domphy Doctor - static analyzer that flags non-idiomatic Domphy element trees (AI self-correction)",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core", "htmlhint", "stylelint", "tsx"]
     },
     {
       "name": "@domphy/editor",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "description": "Domphy Editor - headless rich-text editor with a Tiptap-compatible API, self-contained engine (no ProseMirror), Domphy adapter with bubble menu",
       "subpaths": [".", "./domphy"],
       "peerDependencies": ["@domphy/core", "@domphy/theme"]
     },
     {
       "name": "@domphy/floating",
-      "version": "0.18.1",
+      "version": "0.18.2",
       "description": "Domphy Floating - anchor positioning (tooltips, popovers, dropdowns), a 1-1 vendor of floating-ui (dom + core + utils), zero dependencies",
       "subpaths": ["."],
       "peerDependencies": []
     },
     {
       "name": "@domphy/form",
-      "version": "0.18.1",
+      "version": "0.18.2",
       "description": "Domphy Form - headless form state, validation and submission, a 1-1 port of @tanstack/form-core",
       "subpaths": [".", "./domphy"],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/i18n",
-      "version": "0.19.2",
+      "version": "0.19.3",
       "description": "Domphy i18n — generic i18next wrapper with reactive Domphy integration (globalThis dedup, typed keys, t(listener, key) overload)",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/markdown",
-      "version": "0.19.2",
+      "version": "0.20.0",
       "description": "Domphy Markdown - parse Markdown (remark/MDAST) into Domphy element trees for SSR with @domphy/core",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/mcp",
-      "version": "0.19.2",
+      "version": "0.19.3",
       "description": "Domphy MCP server - exposes patches, packages, rules, and the doctor to MCP-capable AI agents",
       "subpaths": [".", "./tools"],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/mermaid",
-      "version": "0.18.2",
+      "version": "0.19.0",
       "description": "Domphy Mermaid - build-time (SSG) and client-side Mermaid diagram rendering, with markdown tree integration for @domphy/markdown",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core", "mermaid"]
     },
     {
       "name": "@domphy/palette",
-      "version": "0.19.0",
+      "version": "0.20.0",
       "description": "Domphy Palette - color-science toolkit: generate, measure, and validate palette quality with CIELAB metrics, a port of chromametry",
       "subpaths": ["."],
       "peerDependencies": []
     },
     {
       "name": "@domphy/press",
-      "version": "0.21.10",
+      "version": "0.22.0",
       "description": "Domphy Press — VitePress-baseline static doc site framework built on @domphy/app + @domphy/markdown",
       "subpaths": [".", "./browser"],
       "peerDependencies": [
@@ -132,14 +132,14 @@
     },
     {
       "name": "@domphy/query",
-      "version": "0.18.1",
+      "version": "0.18.2",
       "description": "Domphy Query - async state management, a 1-1 port of @tanstack/query-core",
       "subpaths": [".", "./domphy"],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/router",
-      "version": "0.18.1",
+      "version": "0.18.2",
       "description": "Domphy Router - type-safe routing, a 1-1 port of @tanstack/router-core",
       "subpaths": [
         ".",
@@ -153,35 +153,35 @@
     },
     {
       "name": "@domphy/table",
-      "version": "0.19.0",
+      "version": "0.19.1",
       "description": "Domphy Table - headless table logic, a 1-1 port of @tanstack/table-core",
       "subpaths": [".", "./domphy"],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/theme",
-      "version": "0.20.2",
+      "version": "0.21.0",
       "description": "Domphy design system — reactive color/spacing/size tokens, tone ramps, and theme generation from a single base color per role",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core"]
     },
     {
       "name": "@domphy/three",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "description": "Declarative three.js renderer for Domphy — a react-three-fiber-grade scene graph on Domphy reactivity.",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core", "three"]
     },
     {
       "name": "@domphy/ui",
-      "version": "0.20.12",
-      "description": "95 dependency-free UI patches for the Domphy runtime — buttons, dialogs, forms, overlays, motion",
+      "version": "0.21.0",
+      "description": "98 dependency-free UI patches for the Domphy runtime — buttons, dialogs, forms, overlays, motion",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core", "@domphy/theme"]
     },
     {
       "name": "@domphy/virtual",
-      "version": "0.18.1",
+      "version": "0.18.2",
       "description": "Domphy Virtual - headless list/grid virtualization, a 1-1 port of @tanstack/virtual-core",
       "subpaths": [".", "./domphy"],
       "peerDependencies": ["@domphy/core"]
@@ -880,6 +880,34 @@
       "source": "packages/ui/src/patches/formGroup.ts"
     },
     {
+      "name": "grid",
+      "hostTag": null,
+      "signature": "grid(props: { columns?: number | string; gap?: number; align?: FlexAlign } = {})",
+      "props": [
+        {
+          "name": "columns",
+          "type": "number | string",
+          "optional": true,
+          "doc": "Column count (expanded to `repeat(N, minmax(0, 1fr))`) or a raw `grid-template-columns` value. Defaults to `1`."
+        },
+        {
+          "name": "gap",
+          "type": "number",
+          "optional": true,
+          "doc": "Spacing multiplier for gap between cells (default 4 = 1em at density 1)."
+        },
+        {
+          "name": "align",
+          "type": "FlexAlign",
+          "optional": true,
+          "doc": "Block-axis alignment of items (`alignItems`). Unset by default."
+        }
+      ],
+      "doc": "A CSS grid with a column template and spacing between cells — the general-purpose primitive for card/property/stat grids instead of hand-rolling `display: \"grid\"; gridTemplateColumns: ...; gap: ...`. Mirrors `row()`'s contract. Styles the host only; apply to any block element.",
+      "example": "{ div: [{ div: \"A\" }, { div: \"B\" }], $: [grid({ columns: 2 })] }",
+      "source": "packages/ui/src/patches/grid.ts"
+    },
+    {
       "name": "heading",
       "hostTag": "h1",
       "signature": "heading(props: { color?: ValueOrState<ThemeColor> } = {})",
@@ -1175,8 +1203,14 @@
     {
       "name": "inputText",
       "hostTag": "input",
-      "signature": "inputText(props: { color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
+      "signature": "inputText(props: { type?: string; color?: ValueOrState<ThemeColor>; accentColor?: ValueOrState<ThemeColor>; } = {})",
       "props": [
+        {
+          "name": "type",
+          "type": "string",
+          "optional": true,
+          "doc": "The input's `type` attribute (e.g. `\"email\"`, `\"url\"`, `\"tel\"`). Defaults to `\"text\"`."
+        },
         {
           "name": "color",
           "type": "ValueOrState<ThemeColor>",
@@ -1190,7 +1224,7 @@
           "doc": "Accent color tone for the hover/focus outline. Defaults to `\"primary\"`."
         }
       ],
-      "doc": "Themed single-line text input primitive. Sets `type=\"text\"` and styles the field with themed border, focus ring, placeholder, disabled and validation (`data-status`) states. Apply to an `<input>` element.",
+      "doc": "Themed single-line text input primitive. Sets `type` (default `\"text\"`) and styles the field with themed border, focus ring, placeholder, disabled and validation (`data-status`) states. Apply to an `<input>` element.",
       "example": "{ input: \"\", type: \"text\", placeholder: \"Name\", $: [inputText()] }",
       "source": "packages/ui/src/patches/inputText.ts"
     },
@@ -2364,6 +2398,15 @@
       "source": "packages/ui/src/patches/toolbar.ts"
     },
     {
+      "name": "toolbarSpacer",
+      "hostTag": null,
+      "signature": "toolbarSpacer()",
+      "props": [],
+      "doc": "A flex spacer that expands to fill available space in a toolbar, pushing subsequent items to the far end.",
+      "example": "{ header: [logo, toolbarSpacer(), nav, actions], $: [toolbar()] }",
+      "source": "packages/ui/src/patches/toolbar.ts"
+    },
+    {
       "name": "tooltip",
       "hostTag": null,
       "signature": "tooltip(props: { open?: ValueOrState<boolean>; placement?: ValueOrState<Placement>; content?: ValueOrState<string>; } = {})",
@@ -2428,6 +2471,15 @@
       "doc": "Styles a bulleted list (disc markers, reset margins, themed text) on the host `<ul>` element.",
       "example": "{ ul: null, $: [unorderedList()] }",
       "source": "packages/ui/src/patches/unorderedList.ts"
+    },
+    {
+      "name": "visuallyHidden",
+      "hostTag": null,
+      "signature": "visuallyHidden()",
+      "props": [],
+      "doc": "Visually hides an element while keeping it in the accessibility tree — the classic \"sr-only\" recipe for screen-reader-only labels, live-region text, and skip links (before focus). Styles the host only; apply to any element.",
+      "example": "{ span: \"Opens in a new tab\", $: [visuallyHidden()] }",
+      "source": "packages/ui/src/patches/visuallyHidden.ts"
     }
   ]
 }

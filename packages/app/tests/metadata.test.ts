@@ -103,23 +103,37 @@ describe("metadataToHeadTags + renderHeadTags", () => {
       }),
     );
     expect(head).toContain("<title>Hello</title>");
-    expect(head).toContain('<meta name="description" content="World">');
-    expect(head).toContain('<meta name="keywords" content="a, b">');
-    expect(head).toContain('<meta name="robots" content="noindex, follow">');
-    expect(head).toContain('<link rel="icon" href="/favicon.svg">');
     expect(head).toContain(
-      '<link rel="canonical" href="https://example.com/blog/hello">',
+      '<meta name="description" content="World" data-domphy-head>',
     );
     expect(head).toContain(
-      '<meta property="og:image" content="https://example.com/og.png">',
+      '<meta name="keywords" content="a, b" data-domphy-head>',
     );
-    expect(head).toContain('<meta property="og:image:width" content="1200">');
     expect(head).toContain(
-      '<meta name="twitter:card" content="summary_large_image">',
+      '<meta name="robots" content="noindex, follow" data-domphy-head>',
     );
-    expect(head).toContain('<meta name="custom-tag" content="value">');
+    expect(head).toContain(
+      '<link rel="icon" href="/favicon.svg" data-domphy-head>',
+    );
+    expect(head).toContain(
+      '<link rel="canonical" href="https://example.com/blog/hello" data-domphy-head>',
+    );
+    expect(head).toContain(
+      '<meta property="og:image" content="https://example.com/og.png" data-domphy-head>',
+    );
+    expect(head).toContain(
+      '<meta property="og:image:width" content="1200" data-domphy-head>',
+    );
+    expect(head).toContain(
+      '<meta name="twitter:card" content="summary_large_image" data-domphy-head>',
+    );
+    expect(head).toContain(
+      '<meta name="custom-tag" content="value" data-domphy-head>',
+    );
     // og:title falls back to the page title.
-    expect(head).toContain('<meta property="og:title" content="Hello">');
+    expect(head).toContain(
+      '<meta property="og:title" content="Hello" data-domphy-head>',
+    );
   });
 
   it("escapes attribute values and text", () => {

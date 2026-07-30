@@ -72,7 +72,7 @@ function chartLineStep(props: ChartLineStepProps = {}): DomphyElement<"div"> {
       formatter: (params) =>
         lineSwatchLabelValueTooltipFormatter(
           params,
-          chartLineSeriesColor(0).hex,
+          chartLineSeriesColor(0).css,
         ),
     },
     series: [

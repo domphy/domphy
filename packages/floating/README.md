@@ -1,10 +1,10 @@
-﻿# @domphy/floating
+# @domphy/floating
 
 **[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/ui/) · [npm](https://www.npmjs.com/package/@domphy/floating)
 
 Anchor positioning for tooltips, popovers, dropdowns, and menus — `computePosition`, `autoUpdate`, and the `offset` / `flip` / `shift` / `arrow` / `size` middleware.
 
-This package is a **1-1 vendor of [floating-ui](https://github.com/floating-ui/floating-ui)** (`@floating-ui/dom` + `@floating-ui/core` + `@floating-ui/utils`, MIT © Floating UI contributors), bundled into a single **zero-dependency** package. The source is kept byte-identical to upstream (cross-package imports are resolved at build time), so the entire [Floating UI reference](https://floating-ui.com) applies as-is. It exists so `@domphy/ui` has **no external runtime dependency** — Domphy's overlay patches (`tooltip`, `popover`, `selectBox`, `combobox`) use it internally.
+This package is a **1-1 vendor of [floating-ui](https://github.com/floating-ui/floating-ui)** (`@floating-ui/dom` + `@floating-ui/core` + `@floating-ui/utils`, MIT © Floating UI contributors), bundled into a single **zero-dependency** package. The source tracks upstream byte-for-byte (cross-package imports are resolved at build time) except for a small, documented deviation list — see [UPSTREAM.md](./UPSTREAM.md) for the pinned upstream versions (`@floating-ui/core@1.7.5`, `@floating-ui/dom@1.7.6`) and the deviations — so the entire [Floating UI reference](https://floating-ui.com) applies as-is. It exists so `@domphy/ui` has **no external runtime dependency** — Domphy's overlay patches (`tooltip`, `popover`, `selectBox`, `combobox`) use it internally.
 
 ## Install
 

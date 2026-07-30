@@ -2,7 +2,7 @@ import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
 import type { AnyScale } from "../scale/index.js";
 import type { ChartRect, ScatterSeriesOption } from "../types.js";
-import { familyRgba, seriesRgba } from "./color.js";
+import type { ColorResolver } from "./color.js";
 import { SCATTER_FS, SCATTER_VS } from "./shaders/scatter.glsl.js";
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
@@ -57,6 +57,7 @@ export class ScatterRenderer {
     width: number,
     height: number,
     seriesOffset: number,
+    color: ColorResolver,
   ): void {
     if (series.length === 0) return;
     const model = this.ensureModel();
@@ -74,9 +75,7 @@ export class ScatterRenderer {
       const yScale = yScales[s.yAxisIndex ?? 0];
       if (!xScale || !yScale) continue;
 
-      const baseColor = s.color
-        ? familyRgba(s.color as any, "shift-9")
-        : seriesRgba(seriesOffset + index);
+      const baseColor = color.rgba(s.color, seriesOffset + index);
       const defaultRadius =
         typeof s.symbolSize === "number" ? s.symbolSize / 2 : 5;
       const data = s.data ?? [];

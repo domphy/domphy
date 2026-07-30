@@ -3,7 +3,7 @@
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode, toState } from "@domphy/core";
 import { describe, expect, it, vi } from "vitest";
-import { multiList } from "../src/index";
+import { multiList, parents, setParentValues } from "../src/index";
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 // multiList()'s _onMount defers dragAndDrop() registration by a double rAF,
@@ -54,5 +54,58 @@ describe("multiList", () => {
 
     node.remove();
     warn.mockRestore();
+  });
+});
+
+describe("multiList cross-list transfer", () => {
+  it("moves an item between two lists in the same group, updating both States", async () => {
+    const todo = toState(["Write tests", "Review PR"]);
+    const done = toState<string[]>(["Deploy"]);
+
+    const { host, node } = mount({
+      div: [
+        {
+          ul: (l) => todo.get(l).map((t) => ({ li: t, _key: t })),
+          $: [multiList({ group: "tasks", values: todo })],
+        },
+        {
+          ul: (l) => done.get(l).map((t) => ({ li: t, _key: t })),
+          $: [multiList({ group: "tasks", values: done })],
+        },
+      ],
+    } as DomphyElement);
+
+    await waitFrame();
+    await waitFrame();
+
+    const [todoList, doneList] = Array.from(
+      host.querySelectorAll("ul"),
+    ) as HTMLUListElement[];
+    const todoData = parents.get(todoList);
+    const doneData = parents.get(doneList);
+
+    // Both parents registered under the shared group.
+    expect(todoData?.config.group).toBe("tasks");
+    expect(doneData?.config.group).toBe("tasks");
+
+    // Simulate FormKit driving a transfer of "Write tests" from todo to done:
+    // the engine sets the shrunk source values and the grown target values
+    // through exactly the setValues wires the adapter installed.
+    setParentValues(todoList, todoData as never, ["Review PR"]);
+    setParentValues(doneList, doneData as never, ["Deploy", "Write tests"]);
+
+    expect(todo.get()).toEqual(["Review PR"]);
+    expect(done.get()).toEqual(["Deploy", "Write tests"]);
+
+    // And both keyed lists re-render to match (re-render is batched).
+    await flush();
+    expect(
+      Array.from(todoList.querySelectorAll("li")).map((li) => li.textContent),
+    ).toEqual(["Review PR"]);
+    expect(
+      Array.from(doneList.querySelectorAll("li")).map((li) => li.textContent),
+    ).toEqual(["Deploy", "Write tests"]);
+
+    node.remove();
   });
 });

@@ -1,11 +1,12 @@
 import { Mark } from "../Extendable";
-import { textBetween } from "../model/position";
+import { nodesBetween, textBetween } from "../model/position";
 import type { Schema } from "../model/schema";
 import type {
   Attributes,
   CommandProps,
   EditorInstance,
   InputRule,
+  JSONContent,
   RawCommands,
 } from "../types";
 import { mergeAttributes } from "./mergeAttributes";
@@ -123,6 +124,32 @@ function linkedLength(word: string): number {
 }
 
 /**
+ * True when any inline node in [from, to) already carries the mark.
+ *
+ * With `inclusive: false`, `editor.isActive(name)` is false on the boundary
+ * right after a link, so it cannot protect a URL that already sits inside a
+ * link from being re-linked (and its href clobbered) by autolink. The word's
+ * own range is the thing to check.
+ */
+function rangeHasMark(
+  schema: Schema,
+  doc: JSONContent,
+  from: number,
+  to: number,
+  name: string,
+): boolean {
+  let found = false;
+  nodesBetween(schema, doc, from, to, (node) => {
+    if ((node.marks ?? []).some((mark) => mark.type === name)) {
+      found = true;
+      return false;
+    }
+    return undefined;
+  });
+  return found;
+}
+
+/**
  * Link the word before the caret, for the Enter path where no text is typed
  * and so no input rule fires.
  */
@@ -158,10 +185,18 @@ function autolinkBeforeCursor(
 
     const from = caret - word.length;
 
+    if (rangeHasMark(editor.schema as Schema, tr.doc, from, caret, name)) {
+      return false;
+    }
+
     tr.addMark(from, from + linkedLength(word), {
       type: name,
       attrs: { href },
     });
+    // The Enter handler returns false so splitBlock runs as a second
+    // transaction; this flag folds that follow-up into the same history
+    // group, so one undo reverts the whole gesture.
+    tr.setMeta("appendNextToHistoryGroup", true);
     return true;
   });
 }
@@ -175,6 +210,9 @@ export const Link = Mark.create<LinkOptions>({
   keepOnSplit: false,
 
   exitable: true,
+
+  // Typing at the end of a link starts unlinked text, like tiptap.
+  inclusive: false,
 
   addOptions() {
     return {
@@ -348,7 +386,13 @@ export const Link = Mark.create<LinkOptions>({
           if (
             !href ||
             range.from + word.length !== range.to ||
-            editor.isActive(this.name)
+            rangeHasMark(
+              editor.schema as Schema,
+              editor.state.doc,
+              range.from,
+              range.to,
+              this.name,
+            )
           ) {
             return;
           }

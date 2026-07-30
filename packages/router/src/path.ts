@@ -148,7 +148,11 @@ export function resolvePath({
           // ignore inter-slashes
         }
       } else if (value === '..') {
-        baseSegments.pop()
+        // Clamp at the root: never pop the leading '' segment of an
+        // absolute base, otherwise `../../x` from `/a` loses the root.
+        if (baseSegments.length > 1 || baseSegments[0] !== '') {
+          baseSegments.pop()
+        }
       } else if (value === '.') {
         // ignore
       } else {

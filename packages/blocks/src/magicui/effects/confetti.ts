@@ -12,7 +12,8 @@
 // `create(canvas, options)` API is a legitimate, independent integration, not
 // a copy of any UI framework's component source.
 
-import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
+import type { DomphyElement, StyleObject } from "@domphy/core";
+import { behavior, ElementNode } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import { button } from "@domphy/ui";
 import type {
@@ -77,29 +78,91 @@ const DEFAULT_GLOBAL_OPTIONS: ConfettiGlobalOptions = {
   useWorker: true,
 };
 
-function createConfettiHandle(
+// Raw `confetti.create(canvas, ...)` instance, or null where instance
+// creation fails (no 2D context — SSR, jsdom without a canvas stub).
+function createFireInstance(
   canvasElement: HTMLCanvasElement,
-  baseOptions: ConfettiFireOptions,
   globalOptions: ConfettiGlobalOptions,
-): ConfettiHandle | null {
-  let instanceFire: ReturnType<typeof confettiLib.create> | null = null;
+): ReturnType<typeof confettiLib.create> | null {
   try {
     // `resize` is forced on regardless of the passed options — mirrors upstream.
-    instanceFire = confettiLib.create(canvasElement, {
+    return confettiLib.create(canvasElement, {
       ...globalOptions,
       resize: true,
     });
   } catch {
-    instanceFire = null;
+    return null;
   }
-  if (!instanceFire) return null;
+}
 
-  const fire = instanceFire;
+const CONFETTI_BEHAVIOR_KEY = "confetti";
+
+interface ConfettiBehaviorProps {
+  baseOptions: ConfettiFireOptions;
+  globalOptions: ConfettiGlobalOptions;
+  autoFire: boolean;
+  onReady?: (handle: ConfettiHandle) => void;
+}
+
+interface ConfettiBehaviorInstance {
+  /** The stable per-node handle — created once, shared by every generation. */
+  handle: ConfettiHandle | null;
+  update: (props: ConfettiBehaviorProps) => void;
+  destroy: () => void;
+}
+
+// The imperative confetti instance is per-DOM-node state, so it lives in a
+// behavior() (`@domphy/core`) rather than the factory closure: `attach` runs
+// ONCE for the real canvas node no matter how many times a reactive ancestor
+// re-invokes confetti()/confettiButton(), and every later generation's props
+// route into `update()`. The previous `_onMount` + closure `handle` broke
+// confettiButton after any ancestor re-render — the live-rebound onClick
+// closed over the NEW generation's still-null `handle`, so clicks silently
+// did nothing — and `onReady` fired only for generation 1.
+function attachConfetti(
+  node: ElementNode,
+  initialProps: ConfettiBehaviorProps,
+): ConfettiBehaviorInstance {
+  let { baseOptions, onReady } = initialProps;
+
+  const canvasElement = node.domElement as HTMLCanvasElement | null;
+  const fireInstance =
+    canvasElement && typeof document !== "undefined"
+      ? createFireInstance(canvasElement, initialProps.globalOptions)
+      : null;
+
+  // `fire` reads `baseOptions` from this closure at CALL time, so update()
+  // refreshing it is enough — the handle itself never needs rebuilding.
+  const handle: ConfettiHandle | null = fireInstance
+    ? {
+        fire: (options) => {
+          fireInstance({ ...baseOptions, ...(options ?? {}) });
+        },
+        reset: () => fireInstance.reset(),
+      }
+    : null;
+
+  if (handle) {
+    // Fire the moment the canvas mounts (no delay) — mirrors upstream's mount
+    // effect firing immediately when `autoFire` (upstream `!manualstart`).
+    if (initialProps.autoFire) handle.fire();
+    onReady?.(handle);
+  }
+
   return {
-    fire: (options) => {
-      fire({ ...baseOptions, ...(options ?? {}) });
+    handle,
+    update(next) {
+      baseOptions = next.baseOptions;
+      // A later generation's fresh `onReady` closure receives the SAME stable
+      // handle (React callback-ref semantics: re-invoked on identity change).
+      if (handle && next.onReady && next.onReady !== onReady) {
+        next.onReady(handle);
+      }
+      onReady = next.onReady;
     },
-    reset: () => fire.reset(),
+    destroy() {
+      handle?.reset();
+    },
   };
 }
 
@@ -141,25 +204,12 @@ function confetti(props: ConfettiProps = {}): DomphyElement {
       zIndex: 9999,
       ...(props.style ?? {}),
     } as StyleObject,
-    _onMount: (node: ElementNode) => {
-      const canvasElement = node.domElement as HTMLCanvasElement | null;
-      if (!canvasElement || typeof document === "undefined") return;
-
-      const handle = createConfettiHandle(
-        canvasElement,
-        baseOptions,
-        globalOptions,
-      );
-      if (!handle) return;
-
-      // Fire the moment the canvas mounts (no delay) — mirrors upstream's mount
-      // effect firing immediately when `autoFire` (upstream `!manualstart`).
-      if (autoFire) handle.fire();
-
-      props.onReady?.(handle);
-
-      node.addHook("Remove", () => handle.reset());
-    },
+    ...behavior<ConfettiBehaviorProps>(CONFETTI_BEHAVIOR_KEY, attachConfetti, {
+      baseOptions,
+      globalOptions,
+      autoFire,
+      onReady: props.onReady,
+    }),
   } as DomphyElement<"canvas">;
 
   const children = props.children
@@ -204,8 +254,6 @@ function confettiButton(
     ...(props.options ?? {}),
   };
 
-  let handle: ConfettiHandle | null = null;
-
   // `_doctorDisable` is a doctor-only annotation not present in core's strict
   // `PartialElement` type — build through an untyped literal, then assert, so
   // the excess-property check doesn't fire (mirrors fadeOverlay() in the
@@ -222,19 +270,11 @@ function confettiButton(
       pointerEvents: "none",
       zIndex: 9999,
     },
-    _onMount: (node: ElementNode) => {
-      const canvasElement = node.domElement as HTMLCanvasElement | null;
-      if (!canvasElement || typeof document === "undefined") return;
-      handle = createConfettiHandle(
-        canvasElement,
-        baseOptions,
-        DEFAULT_GLOBAL_OPTIONS,
-      );
-      node.addHook("Remove", () => {
-        handle?.reset();
-        handle = null;
-      });
-    },
+    ...behavior<ConfettiBehaviorProps>(CONFETTI_BEHAVIOR_KEY, attachConfetti, {
+      baseOptions,
+      globalOptions: DEFAULT_GLOBAL_OPTIONS,
+      autoFire: false,
+    }),
   } as DomphyElement<"canvas">;
 
   return {
@@ -242,8 +282,20 @@ function confettiButton(
     type: "button",
     $: [button({ color })],
     style: props.style,
-    onClick: (event: MouseEvent) => {
-      if (!handle || typeof window === "undefined") return;
+    onClick: (event: MouseEvent, node: ElementNode) => {
+      if (typeof window === "undefined") return;
+      // Event handlers are live-rebound on every generation, so re-derive the
+      // handle from the current node tree on every click: it lives in the
+      // behavior instance of the canvas CHILD (attached once to the real
+      // canvas DOM node, stable across ancestor re-renders).
+      const canvasChild = node?.children.items.find(
+        (child): child is ElementNode =>
+          child instanceof ElementNode && child.tagName === "canvas",
+      );
+      const handle = canvasChild?.getBehavior<ConfettiBehaviorInstance>(
+        CONFETTI_BEHAVIOR_KEY,
+      )?.handle;
+      if (!handle) return;
       const targetElement = event.currentTarget as HTMLElement;
       const buttonRect = targetElement.getBoundingClientRect();
       const originX =

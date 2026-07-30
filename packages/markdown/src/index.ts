@@ -14,6 +14,7 @@ import type {
   TocEntry,
 } from "./types.js";
 
+export { transformOutsideCodeBlocks } from "./code-blocks.js";
 export type { FrontmatterSplit } from "./frontmatter.js";
 export { splitFrontmatter } from "./frontmatter.js";
 export type { MdastWalkOptions, WalkHelper } from "./mdast.js";

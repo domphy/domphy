@@ -969,7 +969,9 @@ export class RouterCore<
     restoring?: boolean
     restoration?: boolean
     reset?: boolean
+    ignoreScroll?: boolean
   } = { next: true }
+  _scrollRestorationCleanup?: () => void
   shouldViewTransition?: boolean | ViewTransitionOptions = undefined
   isViewTransitionTypesSupported?: boolean = undefined
   subscribers = new Set<RouterListener<RouterEvent>>()
@@ -1158,7 +1160,7 @@ export class RouterCore<
       )
 
       if (!(isServer ?? this.isServer)) {
-        setupScrollRestoration(this)
+        this._scrollRestorationCleanup = setupScrollRestoration(this)
       }
     }
 

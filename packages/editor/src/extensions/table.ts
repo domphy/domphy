@@ -1,11 +1,13 @@
 import { Node } from "../Extendable";
 import { nearestTextPosition, nodeSize } from "../model/position";
 import type { Schema } from "../model/schema";
+import { replaceAtPath } from "../model/tree";
 import type {
   Attributes,
   CommandProps,
   JSONContent,
   RawCommands,
+  ResolvedPosition,
   Transaction,
 } from "../types";
 import { mergeAttributes } from "./mergeAttributes";
@@ -26,18 +28,22 @@ interface TableContext {
   pos: number;
   /** Position just inside the table, before its first row. */
   start: number;
+  /** Child-index path from the doc root to the table node. */
+  path: number[];
 }
 
 /** The table enclosing a position, or null when there is none. */
 function tableAt(tr: Transaction, pos: number): TableContext | null {
-  const resolved = tr.resolve(pos);
+  const resolved = tr.resolve(pos) as ResolvedPosition & {
+    pathTo(depth: number): number[];
+  };
 
   for (let depth = resolved.depth; depth >= 0; depth -= 1) {
     const node = resolved.node(depth);
 
     if (node.type === "table") {
       const start = resolved.start(depth);
-      return { node, pos: start - 1, start };
+      return { node, pos: start - 1, start, path: resolved.pathTo(depth) };
     }
   }
 
@@ -72,49 +78,34 @@ function cellIndexAt(positions: number[], pos: number): number {
   return positions.filter((cellStart) => cellStart <= pos).length - 1;
 }
 
-/** Swap `target` for `next` anywhere in the tree; null when it is not there. */
-function replaceNode(
-  node: JSONContent,
-  target: JSONContent,
-  next: JSONContent,
-): JSONContent | null {
-  const content = node.content;
+/** The table node at `path`, or null when a stale path no longer lands on one. */
+function tableAtPath(doc: JSONContent, path: number[]): JSONContent | null {
+  let node: JSONContent | undefined = doc;
 
-  if (!content) {
-    return null;
+  for (const index of path) {
+    node = node?.content?.[index];
   }
 
-  const index = content.indexOf(target);
-
-  if (index !== -1) {
-    const updated = [...content];
-
-    updated[index] = next;
-    return { ...node, content: updated };
-  }
-
-  for (let child = 0; child < content.length; child += 1) {
-    const replaced = replaceNode(content[child], target, next);
-
-    if (replaced) {
-      const updated = [...content];
-
-      updated[child] = replaced;
-      return { ...node, content: updated };
-    }
-  }
-
-  return null;
+  return node?.type === "table" ? node : null;
 }
 
-function emptyCell(type: string): JSONContent {
-  return { type, content: [{ type: "paragraph" }] };
+/** The schema's default block, for the paragraph inside a fresh cell. */
+function defaultBlock(schema: Schema): JSONContent {
+  return schema.createNode(schema.defaultTypeFor("block") ?? "paragraph");
 }
 
-function buildRow(columns: number, cellType: string): JSONContent {
+function emptyCell(schema: Schema, type: string): JSONContent {
+  return { type, content: [defaultBlock(schema)] };
+}
+
+function buildRow(
+  schema: Schema,
+  columns: number,
+  cellType: string,
+): JSONContent {
   return {
     type: "tableRow",
-    content: Array.from({ length: columns }, () => emptyCell(cellType)),
+    content: Array.from({ length: columns }, () => emptyCell(schema, cellType)),
   };
 }
 
@@ -175,10 +166,23 @@ function moveToFirstCell({ tr, dispatch, editor }: CommandProps): boolean {
   return true;
 }
 
-/** Rewrite the table around the caret. Returning null leaves it untouched. */
+/**
+ * Rewrite the table around the caret. Returning null leaves it untouched.
+ *
+ * The table is relocated by its child-index path, not by node reference:
+ * reference equality breaks the moment any earlier link in the chain rebuilt
+ * an ancestor, which used to make the transform silently no-op while the
+ * command still reported success. After the rewrite the caret is snapped back
+ * into the table — the same cell when it still exists, the nearest surviving
+ * cell when its row or column was deleted.
+ */
 function editTable(
   { tr, dispatch, editor }: CommandProps,
-  rewrite: (table: JSONContent, cellIndex: number) => JSONContent | null,
+  rewrite: (
+    table: JSONContent,
+    cellIndex: number,
+    schema: Schema,
+  ) => JSONContent | null,
 ): boolean {
   const table = tableAt(tr, tr.selection.from);
 
@@ -186,22 +190,29 @@ function editTable(
     return false;
   }
 
-  const positions = cellPositions(
-    editor.schema as Schema,
-    table.node,
-    table.start,
-  );
-  const next = rewrite(
-    table.node,
-    Math.max(0, cellIndexAt(positions, tr.selection.from)),
-  );
+  const schema = editor.schema as Schema;
+  const positions = cellPositions(schema, table.node, table.start);
+  const cellIndex = Math.max(0, cellIndexAt(positions, tr.selection.from));
+  const cellStart = positions[cellIndex] ?? tr.selection.from;
+  const offsetInCell = Math.max(0, tr.selection.from - cellStart);
+  const next = rewrite(table.node, cellIndex, schema);
 
   if (!next) {
     return false;
   }
 
   if (dispatch) {
-    tr.transform((doc) => replaceNode(doc, table.node, next));
+    tr.transform((doc) =>
+      tableAtPath(doc, table.path)
+        ? replaceAtPath(doc, table.path, next)
+        : null,
+    );
+    const nextPositions = cellPositions(schema, next, table.start);
+    const target = nextPositions[Math.min(cellIndex, nextPositions.length - 1)];
+
+    if (target !== undefined) {
+      tr.setSelection(target + offsetInCell);
+    }
   }
 
   return true;
@@ -243,7 +254,7 @@ export const Table = Node.create<TableOptions>({
     return {
       insertTable:
         (options?: { rows?: number; cols?: number; withHeaderRow?: boolean }) =>
-        ({ chain }: CommandProps): boolean => {
+        ({ chain, editor }: CommandProps): boolean => {
           const rows = options?.rows ?? 3;
           const columns = options?.cols ?? 3;
           const withHeaderRow = options?.withHeaderRow ?? true;
@@ -252,12 +263,15 @@ export const Table = Node.create<TableOptions>({
             return false;
           }
 
+          const schema = editor.schema as Schema;
+
           return (
             chain()
               .insertContent({
                 type: this.name,
                 content: Array.from({ length: rows }, (_unused, row) =>
                   buildRow(
+                    schema,
                     columns,
                     withHeaderRow && row === 0 ? "tableHeader" : "tableCell",
                   ),
@@ -292,11 +306,11 @@ export const Table = Node.create<TableOptions>({
       addRowAfter:
         () =>
         (props: CommandProps): boolean =>
-          editTable(props, (table, cellIndex) => {
+          editTable(props, (table, cellIndex, schema) => {
             const { row, columns } = cellCoordinates(table, cellIndex);
             const rows = [...(table.content ?? [])];
 
-            rows.splice(row + 1, 0, buildRow(columns, "tableCell"));
+            rows.splice(row + 1, 0, buildRow(schema, columns, "tableCell"));
             return { ...table, content: rows };
           }),
 
@@ -317,7 +331,7 @@ export const Table = Node.create<TableOptions>({
       addColumnAfter:
         () =>
         (props: CommandProps): boolean =>
-          editTable(props, (table, cellIndex) => {
+          editTable(props, (table, cellIndex, schema) => {
             const { column } = cellCoordinates(table, cellIndex);
 
             return {
@@ -328,7 +342,7 @@ export const Table = Node.create<TableOptions>({
                 cells.splice(
                   column + 1,
                   0,
-                  emptyCell(cells[column]?.type ?? "tableCell"),
+                  emptyCell(schema, cells[column]?.type ?? "tableCell"),
                 );
                 return { ...row, content: cells };
               }),
@@ -383,9 +397,7 @@ export const Table = Node.create<TableOptions>({
 export const TableRow = Node.create({
   name: "tableRow",
 
-  // ponytail: the content parser has no `(a | b)+` alternation, so both cell
-  // types share the `tableCell` group instead. Same effect, no engine change.
-  content: "tableCell+",
+  content: "(tableCell | tableHeader)+",
 
   parseHTML() {
     return [{ tag: "tr" }];

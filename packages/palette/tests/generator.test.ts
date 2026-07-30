@@ -21,6 +21,23 @@ describe("generateRamp", () => {
     expect(generateRamp("#4a7ff4", 1)).toEqual(["#4a7ff4"]);
   });
 
+  it("normalizes the anchor for steps === 1 like the multi-step path", () => {
+    expect(generateRamp("#FFF", 1)).toEqual(["#ffffff"]);
+    expect(generateRamp("#4A7FF4", 1)).toEqual(["#4a7ff4"]);
+    expect(generateRamp("#ff000080", 1)).toEqual(["#ff0000"]);
+  });
+
+  it("accepts shorthand anchors for steps > 1 without producing NaN", () => {
+    const ramp = generateRamp("#fff", 3);
+    expect(ramp).toHaveLength(3);
+    ramp.forEach((hex) => expect(hex).toMatch(HEX_RE));
+  });
+
+  it("throws on an invalid anchor instead of emitting #NaNNaNNaN", () => {
+    expect(() => generateRamp("#zzz", 18)).toThrow(/#zzz/);
+    expect(() => generateRamp("#zzz", 1)).toThrow(/#zzz/);
+  });
+
   it("throws instead of producing undefined entries for an empty anchor list", () => {
     expect(() => generateRamp([], 1)).toThrow(
       "generateRamp requires at least one anchor color",

@@ -1,6 +1,19 @@
-import { type PartialElement, type ReadableState, toState } from "@domphy/core";
+import {
+  type BehaviorInstance,
+  behavior,
+  type ElementNode,
+  type Listener,
+  type PartialElement,
+  type ReadableState,
+  toState,
+} from "@domphy/core";
+import { themeName } from "@domphy/theme";
 import { ChartEngine } from "./engine.js";
 import type { ChartOption } from "./types.js";
+
+type ChartProps = {
+  option: ChartOption | ReadableState<ChartOption>;
+};
 
 /**
  * Renders an ECharts-grade chart using WebGL (luma.gl) + SVG overlay.
@@ -15,56 +28,150 @@ import type { ChartOption } from "./types.js";
 function chart(
   option: ChartOption | ReadableState<ChartOption>,
 ): PartialElement {
-  const optionState = toState(option);
-
   return {
     style: {
       position: "relative",
       overflow: "hidden",
     },
-    _onMount(node) {
-      const container = node.domElement as HTMLElement;
-      const engine = new ChartEngine(container);
+    // The engine, its subscriptions, and its observers are imperative,
+    // cross-generation state: a reactive parent re-running chart() with an
+    // inline option object mints fresh closures on the SAME reused DOM node,
+    // and _onMount would only ever fire for the first generation. behavior()
+    // runs attach once for the real node and routes every later generation's
+    // props into update() — see AGENTS.md "Reused-node lifecycle".
+    ...behavior<ChartProps>("chart", attachChart, { option }),
+  };
+}
 
-      // Async init then render
-      let initialized = false;
-      const _pendingOption: ChartOption | null = null;
-      let width = 0;
-      let height = 0;
+function attachChart(
+  node: ElementNode,
+  initialProps: ChartProps,
+): BehaviorInstance<ChartProps> {
+  const container = node.domElement as HTMLElement;
+  const engine = new ChartEngine(container);
 
-      const applySize = () => {
-        const rect = container.getBoundingClientRect();
-        if (rect.width !== width || rect.height !== height) {
-          width = rect.width;
-          height = rect.height;
-          engine.setSize(width, height);
-        }
-      };
+  let destroyed = false;
+  let initialized = false;
+  let width = 0;
+  let height = 0;
+  let rawOption = initialProps.option;
+  let currentOption: ChartOption | null = null;
+  let unsubscribeOption: (() => void) | null = null;
 
-      const applyOption = () => {
-        applySize();
-        if (width && height && initialized) {
-          engine.setOption(optionState.get());
-        }
-      };
+  const applySize = () => {
+    const rect = container.getBoundingClientRect();
+    if (rect.width !== width || rect.height !== height) {
+      width = rect.width;
+      height = rect.height;
+      engine.setSize(width, height);
+    }
+  };
 
-      engine.init().then(() => {
-        initialized = true;
-        applyOption();
-      });
+  const applyOption = () => {
+    applySize();
+    if (width && height && initialized && !destroyed && currentOption) {
+      engine.setOption(currentOption);
+    }
+  };
 
-      // Subscribe to option changes
-      const unsubscribe = optionState.addListener(applyOption);
+  // (Re)bind to the latest generation's option: a plain object renders once
+  // per update; a state is subscribed so option writes re-render the chart.
+  const applyProps = (next: ChartProps) => {
+    rawOption = next.option;
+    unsubscribeOption?.();
+    const optionState = toState(next.option);
+    currentOption = optionState.get();
+    // A bare ReadableState (e.g. readonly()) has no addListener — it renders
+    // once per update, same as a plain object.
+    unsubscribeOption =
+      typeof optionState.addListener === "function"
+        ? optionState.addListener(() => {
+            currentOption = optionState.get();
+            applyOption();
+          })
+        : null;
+    applyOption();
+  };
 
-      // Subscribe to resize
-      const ro = new ResizeObserver(applyOption);
-      ro.observe(container);
+  // Async init then render. If the node is removed before init resolves, the
+  // destroyed flag prevents reviving a torn-down engine.
+  engine
+    .init()
+    .then(() => {
+      if (destroyed) return;
+      initialized = true;
+      applyOption();
+    })
+    .catch((error: unknown) => {
+      // WebGL init failed (no GPU, headless environment, adapter rejection):
+      // surface a clear error instead of an unhandled promise rejection plus
+      // a silently empty container.
+      console.error(
+        "@domphy/chart: WebGL initialization failed — the chart cannot render.",
+        error,
+      );
+      if (destroyed || typeof document === "undefined") return;
+      const message = document.createElement("div");
+      message.className = "dc-chart-error";
+      message.style.cssText =
+        "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;" +
+        "pointer-events:none;color:var(--neutral-8, #6b7280);font-size:12px;";
+      message.textContent = "Chart failed to initialize (WebGL unavailable).";
+      container.appendChild(message);
+    });
 
-      node.addHook("Remove", () => {
-        unsubscribe();
-        ro.disconnect();
-        engine.destroy();
-      });
+  applyProps(initialProps);
+
+  // Re-render on theme flips. SVG/HTML layers carry var(--…) references that
+  // repaint on their own, but WebGL uniforms hold concrete floats resolved
+  // from computed style, so the engine must re-resolve them when the active
+  // theme changes. Two flip sources:
+  //  1. a Domphy `dataTheme` attribute on an ancestor ElementNode — subscribe
+  //     via the same walk themeName() does. The attribute listener is
+  //     auto-released when that ancestor is removed (ElementAttribute hooks
+  //     the release onto the ancestor's BeforeRemove); after destroy the
+  //     callback no-ops because engine.render() is destroyed-guarded.
+  const themeListener = (() => engine.render()) as Listener;
+  themeListener.elementNode = node;
+  themeName(themeListener);
+
+  //  2. the data-theme DOM attribute on <html> (applySystemTheme sets it
+  //     there). MutationObserver is torn down in destroy().
+  let themeObserver: MutationObserver | null = null;
+  if (
+    typeof MutationObserver !== "undefined" &&
+    typeof document !== "undefined"
+  ) {
+    themeObserver = new MutationObserver((records) => {
+      if (records.some((record) => record.attributeName === "data-theme")) {
+        engine.render();
+      }
+    });
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+  }
+
+  // Subscribe to resize
+  const ro = new ResizeObserver(applyOption);
+  ro.observe(container);
+
+  return {
+    update(next) {
+      // Later generations route their option here. Skip the resubscribe +
+      // re-render when the raw option reference is unchanged.
+      if (next.option === rawOption) return;
+      applyProps(next);
+    },
+    destroy() {
+      destroyed = true;
+      unsubscribeOption?.();
+      unsubscribeOption = null;
+      themeObserver?.disconnect();
+      themeObserver = null;
+      ro.disconnect();
+      engine.destroy();
     },
   };
 }

@@ -1,5 +1,7 @@
-import { beforeAll, describe, expect, it } from "vitest";
-import { buildSearchIndex, queryIndex } from "../src/search.ts";
+// @vitest-environment jsdom
+import { ElementNode } from "@domphy/core";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { buildSearchIndex, queryIndex, searchWidget } from "../src/search.ts";
 import type { SearchDocument } from "../src/types.ts";
 
 const docs: SearchDocument[] = [
@@ -78,5 +80,51 @@ describe("queryIndex", () => {
   it("supports prefix matching", () => {
     const results = queryIndex(index, "react");
     expect(results.some((r) => r.slug === "reactivity")).toBe(true);
+  });
+});
+
+describe("searchWidget base handling", () => {
+  async function mountAndQuery(options: {
+    indexUrl: string;
+    basePath?: string;
+  }): Promise<{ host: HTMLElement; fetchMock: ReturnType<typeof vi.fn> }> {
+    const index = buildSearchIndex(docs);
+    const fetchMock = vi.fn().mockResolvedValue({
+      text: () => Promise.resolve(index),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const node = new ElementNode(searchWidget(options));
+    node.render(host);
+    // Let the _onMount fetch resolve, then type a query (debounce is 120ms).
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const input = host.querySelector("input")!;
+    input.value = "core";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    return { host, fetchMock };
+  }
+
+  it("fetches the configured indexUrl and prefixes result hrefs with basePath", async () => {
+    const { host, fetchMock } = await mountAndQuery({
+      indexUrl: "/docs/search-index.json",
+      basePath: "/docs",
+    });
+    expect(fetchMock).toHaveBeenCalledWith("/docs/search-index.json");
+    const hrefs = [...host.querySelectorAll("a")].map((a) =>
+      a.getAttribute("href"),
+    );
+    expect(hrefs.length).toBeGreaterThan(0);
+    for (const href of hrefs) expect(href).toMatch(/^\/docs\//);
+    expect(hrefs).toContain("/docs/core");
+  });
+
+  it("keeps root-relative hrefs when no basePath is given", async () => {
+    const { host } = await mountAndQuery({ indexUrl: "/search-index.json" });
+    const hrefs = [...host.querySelectorAll("a")].map((a) =>
+      a.getAttribute("href"),
+    );
+    expect(hrefs).toContain("/core");
   });
 });

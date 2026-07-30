@@ -1,4 +1,4 @@
-import { themeColorToken } from "@domphy/theme";
+import { themeColor } from "@domphy/theme";
 import type { AnyScale } from "../scale/index.js";
 import type {
   ChartRect,
@@ -51,8 +51,8 @@ export function renderMarkPoints(
   seriesData: [any, number][],
 ): void {
   if (!mark.data) return;
-  const labelColor = themeColorToken(null, "shift-9", "neutral");
-  const dotColor = themeColorToken(null, "shift-9", "primary");
+  const labelColor = themeColor(null, "shift-9", "neutral");
+  const dotColor = themeColor(null, "shift-9", "primary");
 
   for (const item of mark.data) {
     let px: number | null = null;
@@ -119,8 +119,8 @@ export function renderMarkLines(
   seriesData: [any, number][],
 ): void {
   if (!mark.data) return;
-  const lineColor = themeColorToken(null, "shift-7", "primary");
-  const labelColor = themeColorToken(null, "shift-9", "neutral");
+  const lineColor = themeColor(null, "shift-7", "primary");
+  const labelColor = themeColor(null, "shift-9", "neutral");
   const yValues = seriesData
     .map(([, y]) => y)
     .filter((v) => typeof v === "number") as number[];
@@ -208,7 +208,7 @@ export function renderMarkAreas(
   gridRect: ChartRect,
 ): void {
   if (!mark.data) return;
-  const fillColor = themeColorToken(null, "shift-3", "primary");
+  const fillColor = themeColor(null, "shift-3", "primary");
 
   for (const [corner1, corner2] of mark.data) {
     let x1 = gridRect.x;

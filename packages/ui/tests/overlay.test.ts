@@ -431,7 +431,8 @@ describe("tooltip", () => {
       div: [{ button: "Hover me", $: [tooltip({ content: "Help" })] }],
     } as DomphyElement);
     const btn = host.querySelector("button");
-    expect(btn?.getAttribute("aria-describedby")).toMatch(/^domphy-tt-/);
+    // Deterministic id derived from the anchor's nodeId (no Math.random).
+    expect(btn?.getAttribute("aria-describedby")).toMatch(/^domphy-tooltip-/);
   });
 
   it("does not throw when no content prop is given", () => {

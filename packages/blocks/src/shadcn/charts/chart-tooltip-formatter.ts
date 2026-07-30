@@ -12,7 +12,7 @@
 // upstream shadcn/ui source was viewed or copied.
 
 import type { DomphyElement } from "@domphy/core";
-import { themeColorToken } from "@domphy/theme";
+import { themeColor } from "@domphy/theme";
 import {
   ACTIVITY_ENERGY_UNIT,
   ACTIVITY_SERIES_CONFIG,
@@ -32,12 +32,12 @@ import {
 // shared `monoUnitValueRenderer` dropped the value's medium weight and left
 // the unit at foreground strength in the default proportional font, flattening
 // upstream's emphasized-value / muted-unit contrast — so this recipe supplies
-// its own value renderer instead of the shared one. The muted tone is derived
-// from the same light-theme neutral scale the engine's own tooltip panel uses
-// (`themeColorToken(null, …, "neutral")`, panel foreground = shift-10), so the
-// unit reads as de-emphasized against the value without a raw opacity multiply
-// (which measured a WCAG color-contrast failure in a prior pass).
-const TOOLTIP_MUTED_COLOR = themeColorToken(null, "shift-8", "neutral");
+// its own value renderer instead of the shared one. The muted tone is a
+// neutral-scale var(--…) reference (panel foreground = shift-10), resolved
+// against the live theme at paint time, so the unit reads as de-emphasized
+// against the value without a raw opacity multiply (which measured a WCAG
+// color-contrast failure in a prior pass).
+const TOOLTIP_MUTED_COLOR = themeColor(null, "shift-8", "neutral");
 
 // Upstream's `min-w-[130px]` sits on the whole tooltip row; reproduced here as
 // the tooltip panel's minimum width.

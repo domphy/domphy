@@ -2,13 +2,8 @@ import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
 import type { AnyScale } from "../scale/index.js";
 import type { ChartRect, LineSeriesOption } from "../types.js";
-import type { Rgba } from "./color.js";
-import {
-  familyRgba,
-  gradientEndpoints,
-  isGradient,
-  seriesRgba,
-} from "./color.js";
+import type { ColorResolver, Rgba } from "./color.js";
+import { gradientEndpoints, isGradient } from "./color.js";
 import {
   AREA_FS,
   AREA_VS,
@@ -265,8 +260,11 @@ export class LineRenderer {
     // Per-series (same index alignment as `series`) running-total-before-this-
     // series array, in data space — the bottom edge of a stacked series' area
     // band. `undefined` (or a missing entry) means "not stacked": fall back to
-    // the plain value-axis zero baseline.
-    baselines?: (number[] | undefined)[],
+    // the plain value-axis zero baseline. (Typed as a union, not `?`, because
+    // the required `color` resolver parameter follows it.)
+    baselines: (number[] | undefined)[] | undefined,
+    // Per-pass theme-aware color resolver (see gl/color.ts createColorResolver).
+    color: ColorResolver,
   ): void {
     const lineModel = this.ensureLineModel();
     const areaModel = this.ensureAreaModel();
@@ -280,15 +278,13 @@ export class LineRenderer {
       const yScale = yScales[s.yAxisIndex ?? 0];
       if (!xScale || !yScale) continue;
 
-      const color: Rgba = s.color
-        ? familyRgba(s.color as any, "shift-9")
-        : seriesRgba(seriesOffset + index);
+      const resolvedColor: Rgba = color.rgba(s.color, seriesOffset + index);
       const lineAlpha = s.lineStyle?.opacity ?? 1;
       const lineColor: Rgba = [
-        color[0],
-        color[1],
-        color[2],
-        color[3] * (lineAlpha as number),
+        resolvedColor[0],
+        resolvedColor[1],
+        resolvedColor[2],
+        resolvedColor[3] * (lineAlpha as number),
       ];
       const lineWidth = ((s.lineStyle?.width ?? 2) as number) / 2;
 
@@ -355,7 +351,7 @@ export class LineRenderer {
           const colorSrc = s.areaStyle.color;
           if (isGradient(colorSrc)) {
             const gradModel = this.ensureGradientAreaModel();
-            const { top, bottom } = gradientEndpoints(colorSrc, color);
+            const { top, bottom } = gradientEndpoints(colorSrc, resolvedColor);
             const topWithAlpha: Rgba = [
               top[0],
               top[1],
@@ -384,10 +380,10 @@ export class LineRenderer {
             gradModel.draw(renderPass);
           } else {
             const areaColor: Rgba = [
-              color[0],
-              color[1],
-              color[2],
-              color[3] * areaAlpha,
+              resolvedColor[0],
+              resolvedColor[1],
+              resolvedColor[2],
+              resolvedColor[3] * areaAlpha,
             ];
             areaModel.setAttributes({ aPosition: areaBuffer });
             areaModel.setVertexCount(areaVerts.length / 2);

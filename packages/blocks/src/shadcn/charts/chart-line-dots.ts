@@ -12,7 +12,7 @@
 
 import type { ChartOption } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import { type ThemeColor, themeColorToken } from "@domphy/theme";
+import { type ThemeColor, themeColor } from "@domphy/theme";
 import {
   chartCard,
   chartLineSeriesColor,
@@ -72,7 +72,7 @@ function chartLineDots(props: ChartLineDotsProps = {}): DomphyElement<"div"> {
   const yDomain = computeYDomain(values);
   // Upstream's stroke/dots are var(--chart-1) — the ramp's first step.
   const ramp = chartLineSeriesColor(0);
-  const dotFill = themeColorToken(null, ramp.tone, seriesColor);
+  const dotFill = themeColor(null, ramp.tone, seriesColor);
 
   const option: ChartOption = {
     grid: DEFAULT_LINE_GRID,

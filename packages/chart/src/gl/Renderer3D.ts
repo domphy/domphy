@@ -6,7 +6,7 @@ import type {
   Scatter3DSeriesOption,
   Surface3DSeriesOption,
 } from "../types.js";
-import { seriesHex } from "./color.js";
+import { cssColor } from "./color.js";
 
 function svgEl(
   tag: string,
@@ -344,7 +344,7 @@ export function renderGrid3D(
   // Draw scatter3D
   for (let si = 0; si < scatter3D.length; si++) {
     const s = scatter3D[si];
-    const color = typeof s.color === "string" ? s.color : seriesHex(si);
+    const color = cssColor(s.color, si);
     const r = (s.symbolSize ?? 8) / 2;
 
     for (const item of s.data ?? []) {
@@ -363,8 +363,7 @@ export function renderGrid3D(
   // Draw line3D
   for (let si = 0; si < line3D.length; si++) {
     const s = line3D[si];
-    const color =
-      typeof s.color === "string" ? s.color : seriesHex(scatter3D.length + si);
+    const color = cssColor(s.color, scatter3D.length + si);
     const lineW = s.lineWidth ?? 2;
     const data = s.data ?? [];
     const projected: string[] = [];
@@ -396,10 +395,7 @@ export function renderGrid3D(
   // Draw bar3D as projected thin rectangles
   for (let si = 0; si < bar3D.length; si++) {
     const s = bar3D[si];
-    const color =
-      typeof s.color === "string"
-        ? s.color
-        : seriesHex(scatter3D.length + line3D.length + si);
+    const color = cssColor(s.color, scatter3D.length + line3D.length + si);
     const barSize = s.barSize ?? 0.05;
 
     for (const item of s.data ?? []) {

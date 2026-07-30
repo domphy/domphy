@@ -280,7 +280,7 @@ describe("validateTheme errors", () => {
     const name = `vitest-validate-ok-${Math.random().toString(36).slice(2)}`;
     expect(() =>
       setTheme(name, {
-        colors: { primary: ["#000000", "#ffffff"] },
+        colors: { primary: Array.from({ length: 18 }, () => "#000000") },
         baseTones: { primary: 0 },
         direction: "lighten",
       } as any),

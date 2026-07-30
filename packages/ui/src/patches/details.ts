@@ -102,7 +102,13 @@ function details(
         transition: `max-height ${duration}ms ease, opacity ${duration}ms ease, padding ${duration}ms ease`,
       },
       "&[open] > :not(summary)": {
-        maxHeight: themeSpacing(250),
+        // Non-clipping open state: a bounded max-height here (previously
+        // themeSpacing(250) ≈ 1000px) silently CUT OFF body content taller
+        // than the cap while fully open. CSS cannot transition max-height
+        // to/from `none`, so the open transition is carried by opacity +
+        // padding (both still animate over `duration`); max-height jumps
+        // straight to none and tall content is never clipped.
+        maxHeight: "none",
         opacity: 1,
         paddingTop: (listener) => themeSpacing(themeDensity(listener) * 1),
         paddingBottom: (listener) => themeSpacing(themeDensity(listener) * 3),

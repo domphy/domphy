@@ -174,6 +174,12 @@ describe("makeMermaidClient", () => {
     const patch = makeMermaidClient(() => module, {});
 
     patch._onMount?.(nodeFor(host));
+    // The render call itself is async (the patch awaits the mermaid module —
+    // and the shared render queue — first). Wait until render() was actually
+    // invoked so `resolveRender` below is the real resolver, not the no-op
+    // default: a never-settling render would hold the module-level
+    // initialize/render queue forever and stall every later diagram.
+    await vi.waitFor(() => expect(render).toHaveBeenCalled());
     // Tear the node down while the render is still in flight.
     patch._onRemove?.(nodeFor(host));
     // Now resolve the render; the guard must skip the write.
@@ -184,5 +190,134 @@ describe("makeMermaidClient", () => {
 
     expect(host.innerHTML).toBe("");
     expect(host.classes.has("mermaid")).toBe(false);
+  });
+});
+
+describe("securityLevel pinning", () => {
+  it("defaults securityLevel to 'strict' when the user did not specify one", async () => {
+    const render = vi.fn(async () => ({ svg: "<svg/>" }));
+    const { module, initialize } = fakeMermaid(render);
+
+    const host = makeHost("graph TD; A-->B;");
+    const patch = makeMermaidClient(() => module, {});
+
+    patch._onMount?.(nodeFor(host));
+    await vi.waitFor(() => expect(host.innerHTML).toBe("<svg/>"));
+
+    expect(initialize).toHaveBeenCalledWith(
+      expect.objectContaining({ securityLevel: "strict" }),
+    );
+  });
+
+  it("respects an explicit safe securityLevel without warning", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const render = vi.fn(async () => ({ svg: "<svg/>" }));
+    const { module, initialize } = fakeMermaid(render);
+
+    const host = makeHost("graph TD; A-->B;");
+    const patch = makeMermaidClient(() => module, {
+      mermaidConfig: { securityLevel: "sandbox" },
+    });
+
+    patch._onMount?.(nodeFor(host));
+    await vi.waitFor(() => expect(host.innerHTML).toBe("<svg/>"));
+
+    expect(initialize).toHaveBeenCalledWith(
+      expect.objectContaining({ securityLevel: "sandbox" }),
+    );
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("dev-warns when securityLevel is set to 'loose'", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const render = vi.fn(async () => ({ svg: "<svg/>" }));
+    const { module, initialize } = fakeMermaid(render);
+
+    const host = makeHost("graph TD; A-->B;");
+    const patch = makeMermaidClient(() => module, {
+      mermaidConfig: { securityLevel: "loose" },
+    });
+
+    patch._onMount?.(nodeFor(host));
+    await vi.waitFor(() => expect(host.innerHTML).toBe("<svg/>"));
+
+    // The explicit choice is honored (not overridden)…
+    expect(initialize).toHaveBeenCalledWith(
+      expect.objectContaining({ securityLevel: "loose" }),
+    );
+    // …but the developer is told what it means.
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("securityLevel");
+    warn.mockRestore();
+  });
+});
+
+describe("client-side SVG sanitization", () => {
+  it("strips <script> elements from the rendered SVG (parity with the build-time path)", async () => {
+    const malicious = "<svg><script>alert(1)</script><text>ok</text></svg>";
+    const render = vi.fn(async () => ({ svg: malicious }));
+    const { module } = fakeMermaid(render);
+
+    const host = makeHost("graph TD; A-->B;");
+    const patch = makeMermaidClient(() => module, {});
+
+    patch._onMount?.(nodeFor(host));
+    await vi.waitFor(() => expect(host.innerHTML).not.toBe(""));
+
+    expect(host.innerHTML).not.toContain("<script");
+    expect(host.innerHTML).not.toContain("alert(1)");
+    expect(host.innerHTML).toContain("<text>ok</text>");
+  });
+});
+
+describe("render serialization", () => {
+  it("glues each mount's initialize to its own render across concurrent mounts", async () => {
+    const order: string[] = [];
+    let resolveFirstRender: (value: { svg: string }) => void = () => {};
+    const firstRender = new Promise<{ svg: string }>((resolve) => {
+      resolveFirstRender = resolve;
+    });
+    let renderCall = 0;
+    const module: MermaidBrowserModule = {
+      initialize: vi.fn((config: Record<string, unknown>) => {
+        order.push(`initialize:${config.theme}`);
+      }),
+      render: vi.fn(() => {
+        renderCall++;
+        order.push(`render:${renderCall}`);
+        return renderCall === 1
+          ? firstRender
+          : Promise.resolve({ svg: "<svg>B</svg>" });
+      }),
+    };
+
+    const hostA = makeHost("graph TD; A-->B;");
+    const hostB = makeHost("graph TD; C-->D;");
+    // Two mounts in the same tick with DIFFERENT configs — the interleaving
+    // case the queue exists for.
+    makeMermaidClient(() => module, { theme: "dark" })._onMount?.(
+      nodeFor(hostA),
+    );
+    makeMermaidClient(() => module, { theme: "light" })._onMount?.(
+      nodeFor(hostB),
+    );
+
+    // While the first render is still pending, the second mount's
+    // initialize() must NOT have run — that would clobber the global config
+    // the first render depends on.
+    await vi.waitFor(() => expect(order.length).toBe(2));
+    expect(order).toEqual(["initialize:dark", "render:1"]);
+
+    resolveFirstRender({ svg: "<svg>A</svg>" });
+    await vi.waitFor(() => expect(hostB.innerHTML).toBe("<svg>B</svg>"));
+
+    expect(order).toEqual([
+      "initialize:dark",
+      "render:1",
+      "initialize:light",
+      "render:2",
+    ]);
+    expect(hostA.innerHTML).toBe("<svg>A</svg>");
   });
 });

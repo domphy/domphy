@@ -12,8 +12,23 @@ import {
 import { auditOutput } from "./layer4.js";
 import { findTag, isPlainObject } from "./shared.js";
 
+// Node's parseArgs does not auto-negate boolean flags, so the documented
+// --no-reactive / --no-output forms would crash with
+// ERR_PARSE_ARGS_UNKNOWN_OPTION. Translate them into their positive
+// counterparts before parsing.
+const NEGATED_FLAGS: Record<string, string> = {
+  "--no-reactive": "reactive",
+  "--no-output": "output",
+};
+const negated = new Set<string>();
+const argv = process.argv.slice(2).filter((arg) => {
+  const positive = NEGATED_FLAGS[arg];
+  if (positive) negated.add(positive);
+  return !positive;
+});
+
 const { values, positionals } = parseArgs({
-  args: process.argv.slice(2),
+  args: argv,
   options: {
     only: { type: "string" },
     exclude: { type: "string" },
@@ -24,6 +39,8 @@ const { values, positionals } = parseArgs({
   },
   allowPositionals: true,
 });
+if (negated.has("reactive")) values.reactive = false;
+if (negated.has("output")) values.output = false;
 
 const USAGE = `
 Usage: domphy-doctor [options] <path...>
@@ -41,7 +58,7 @@ Options:
 
 Exit codes:
   0  No errors (warnings/info are fine)
-  1  One or more error-severity diagnostics
+  1  One or more error-severity diagnostics, or one or more files failed to import
   2  CLI usage error or file not found
 `.trimStart();
 
@@ -60,7 +77,14 @@ const SKIP_DIRS = new Set(["node_modules", "dist", ".git", ".next", ".nuxt"]);
 
 function isSourceFile(p: string): boolean {
   const ext = extname(p);
-  return ext === ".ts" || ext === ".tsx" || ext === ".js" || ext === ".mjs";
+  return (
+    ext === ".ts" ||
+    ext === ".tsx" ||
+    ext === ".js" ||
+    ext === ".jsx" ||
+    ext === ".mjs" ||
+    ext === ".cjs"
+  );
 }
 
 function walkDir(dir: string, out: string[]): void {
@@ -159,13 +183,18 @@ async function main(): Promise<void> {
   let totalWarnings = 0;
   let totalInfo = 0;
   let skipped = 0;
+  let failed = 0;
   let tsxWarned = false;
 
+  // Extensions that need a TS/JSX-aware loader (tsx) to import.
+  const needsTsx = (file: string) =>
+    file.endsWith(".ts") || file.endsWith(".tsx") || file.endsWith(".jsx");
+
   for (const file of files) {
-    if ((file.endsWith(".ts") || file.endsWith(".tsx")) && !tsxAvailable) {
+    if (needsTsx(file) && !tsxAvailable) {
       if (!tsxWarned) {
         process.stderr.write(
-          "⚠ tsx not found — .ts files skipped. Add tsx to your devDependencies.\n",
+          "⚠ tsx not found — .ts/.tsx/.jsx files skipped. Add tsx to your devDependencies.\n",
         );
         tsxWarned = true;
       }
@@ -175,7 +204,7 @@ async function main(): Promise<void> {
 
     let mod: Record<string, unknown>;
     try {
-      if (file.endsWith(".ts") || file.endsWith(".tsx")) {
+      if (needsTsx(file)) {
         mod = await tsxImport!(pathToFileURL(file).href, import.meta.url);
       } else {
         mod = (await import(pathToFileURL(file).href)) as Record<
@@ -183,8 +212,13 @@ async function main(): Promise<void> {
           unknown
         >;
       }
-    } catch {
-      skipped++;
+    } catch (error) {
+      // Never swallow a per-file failure: an unimportable file means part of
+      // the codebase went unanalyzed. Report it and count it in the summary.
+      failed++;
+      process.stderr.write(
+        `✗ Failed to import: ${file}\n  ${error instanceof Error ? error.message : String(error)}\n`,
+      );
       continue;
     }
 
@@ -229,7 +263,7 @@ async function main(): Promise<void> {
   if (values.format === "json") {
     process.stdout.write(`${JSON.stringify(allDiags, null, 2)}\n`);
   } else {
-    const checked = files.length - skipped;
+    const checked = files.length - skipped - failed;
     for (const { file, diags } of allDiags) {
       process.stdout.write(`\n${file}\n${format(diags)}\n`);
     }
@@ -238,13 +272,17 @@ async function main(): Promise<void> {
       totalErrors > 0 ? `${totalErrors} error(s)` : null,
       totalWarnings > 0 ? `${totalWarnings} warning(s)` : null,
       totalInfo > 0 ? `${totalInfo} info` : null,
+      skipped > 0 ? `${skipped} skipped` : null,
+      failed > 0 ? `${failed} failed to import` : null,
     ].filter(Boolean);
     process.stdout.write(
       `\n${allDiags.length > 0 ? `${"─".repeat(40)}\n` : ""}${parts.join(" · ")}\n`,
     );
   }
 
-  process.exit(totalErrors > 0 ? 1 : 0);
+  // A file that failed to import means part of the codebase went unanalyzed —
+  // that must not exit 0 (previously such files were silently "skipped").
+  process.exit(totalErrors > 0 || failed > 0 ? 1 : 0);
 }
 
 main().catch((err: unknown) => {

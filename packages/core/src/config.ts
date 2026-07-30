@@ -9,5 +9,7 @@ export function configure(options: Partial<DomphyConfig>): void {
 }
 
 export function getConfig(): Readonly<DomphyConfig> {
-  return _config;
+  // A copy, not the live object: callers (e.g. an SSR layer honoring cspNonce)
+  // must not be able to mutate global config by writing to the result.
+  return { ..._config };
 }

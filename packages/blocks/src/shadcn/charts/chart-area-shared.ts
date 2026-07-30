@@ -14,9 +14,10 @@
 //   - A solid (non-gradient) area fill always uses the series-level `color`
 //     field resolved as a theme FAMILY at shift-9 — `areaStyle.color` as a
 //     plain ThemeColor role is IGNORED for solid fills; it only matters when
-//     it is a GradientObject. Line/area strokes are likewise pinned to the
-//     family at shift-9 (a literal hex throws in themeColorToken), so ramp
-//     variation is expressed through the fill gradient + stroke opacity.
+//     it is a GradientObject. Ramp variation is expressed through the fill
+//     gradient + stroke opacity (kept for visual stability; the engine's
+//     resolver now accepts hex/var-ref strokes too, but the opacity
+//     approximation is what the recipes were visually tuned against).
 //   - The tooltip's color-coded dot is computed from the engine's own
 //     multi-hue rotation-by-index palette, NOT from the series' configured
 //     `color`. chartAxisTooltipFormatter below re-resolves the swatch from
@@ -173,8 +174,11 @@ export type ChartAreaSeriesTone = (typeof CHART_AREA_SERIES_TONES)[number];
 export interface ChartAreaSeriesColor {
   /** Ramp tone within the primary family — fills, legend swatches, tooltip dots. */
   tone: ChartAreaSeriesTone;
-  /** Resolved hex of `tone` — for literal chart-option values and raw-HTML tooltips. */
-  hex: string;
+  /** var(--…) CSS reference of `tone` — resolves against the live theme at
+   * paint time (SVG attributes, raw-HTML tooltip inline styles). Series-level
+   * chart-option colors should use family names instead (the engine resolves
+   * them live); do NOT use this for gradient color stops (see chartColorRgba). */
+  css: string;
   /** Stroke opacity approximating this ramp step: @domphy/chart pins line/area
    * strokes to the family at shift-9 (LineRenderer resolves `s.color` via
    * familyRgba only), so lighter ramp steps are approached by fading that
@@ -196,7 +200,7 @@ export function chartAreaSeriesColor(index: number): ChartAreaSeriesColor {
   const tone = CHART_AREA_SERIES_TONES[step];
   return {
     tone,
-    hex: themeColorToken(null, tone, "primary"),
+    css: themeColor(null, tone, "primary"),
     strokeOpacity: CHART_AREA_SERIES_STROKE_OPACITIES[step],
   };
 }
@@ -211,10 +215,11 @@ function hexToRgbTriple(hex: string): [number, number, number] {
 }
 
 // Resolves a theme color role to a literal "rgba(r,g,b,alpha)" string via
-// themeColorToken() — required because @domphy/chart gradient color stops are
-// ECharts-compatible literal color strings, not reactive theme functions, so
-// this is the closest a chart-option value can get to "theme token, not a
-// hardcoded literal".
+// themeColorToken() — REQUIRED to stay a concrete light-theme value: gradient
+// color stops are consumed by @domphy/chart's WebGL gradientEndpoints()/
+// colorStopToRgba(), which (unlike the per-pass series-color resolver) has no
+// var(--…)/live-theme resolution — a var ref would be unparseable there, and
+// the baked-in alpha compositing needs concrete r/g/b channels anyway.
 export function chartColorRgba(
   role: ThemeColor,
   alpha: number,
@@ -296,10 +301,11 @@ function escapeHtml(text: string): string {
 // muted-foreground on the LEFT, and the value pushed to the RIGHT edge as
 // monospace / weight-500 / tabular-nums in the panel's full foreground. The
 // panel carries `min-w-[8rem]`, which is what lets the value right-align even
-// for a single-series tooltip. Reproduced here with fixed theme tokens (muted
-// name = neutral shift-9; the value inherits the engine tooltip's shift-10
-// foreground) — the same approach as chart-tooltip-shared.ts.
-const TOOLTIP_MUTED_COLOR = themeColorToken(null, "shift-9", "neutral");
+// for a single-series tooltip. Reproduced here with theme-token var(--…)
+// references (muted name = neutral shift-9; the value inherits the engine
+// tooltip's shift-10 foreground), which resolve against the live theme at
+// paint time — the same approach as chart-tooltip-shared.ts.
+const TOOLTIP_MUTED_COLOR = themeColor(null, "shift-9", "neutral");
 
 /** One tooltip series row: swatch + muted name (left), mono value (right). */
 export function chartAreaTooltipRow(
@@ -359,7 +365,7 @@ export function chartAxisTooltipFormatter(
         // palette (seriesHex(globalIdx)), ignoring the configured series
         // color — resolve the swatch from the single-hue ramp by series
         // position instead so it matches the rendered fill.
-        const swatchColor = chartAreaSeriesColor(p.seriesIndex ?? 0).hex;
+        const swatchColor = chartAreaSeriesColor(p.seriesIndex ?? 0).css;
         const swatch =
           indicator === "line"
             ? `<span style="display:inline-block;width:4px;height:12px;border-radius:2px;background:${swatchColor};margin-right:6px;vertical-align:middle;"></span>`

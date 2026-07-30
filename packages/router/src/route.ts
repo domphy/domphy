@@ -1801,7 +1801,7 @@ export class BaseRoute<
         )
       }
 
-      invariant()
+      invariant('missing-parent-route')
     }
 
     let path: undefined | string = isRoot ? rootRouteId : options?.path

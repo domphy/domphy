@@ -41,8 +41,8 @@ export interface ChartBarMultipleProps {
 }
 
 const DEFAULT_SERIES: ChartBarMultipleSeries[] = [
-  { key: "desktop", label: "Desktop", color: chartBarSeriesColor(0).hex },
-  { key: "mobile", label: "Mobile", color: chartBarSeriesColor(1).hex },
+  { key: "desktop", label: "Desktop", color: chartBarSeriesColor(0).css },
+  { key: "mobile", label: "Mobile", color: chartBarSeriesColor(1).css },
 ];
 
 // Upstream stores FULL month names in chartData and abbreviates only on the
@@ -143,7 +143,7 @@ function chartBarMultipleTooltipFormatter(
     );
     const rows = parameters
       .map((p) => {
-        const indicator = `<span style="display:inline-block;width:0;height:12px;border-left:1.5px dashed ${chartBarSeriesColor(p.seriesIndex ?? 0).hex};margin-right:6px;vertical-align:middle;"></span>`;
+        const indicator = `<span style="display:inline-block;width:0;height:12px;border-left:1.5px dashed ${chartBarSeriesColor(p.seriesIndex ?? 0).css};margin-right:6px;vertical-align:middle;"></span>`;
         const label = escapeTooltipHtml(String(p.seriesName ?? p.name ?? ""));
         const value = escapeTooltipHtml(String(p.value ?? ""));
         return chartBarTooltipRow(indicator, label, value);

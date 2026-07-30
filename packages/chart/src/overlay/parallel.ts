@@ -1,4 +1,4 @@
-import { seriesHex } from "../gl/color.js";
+import { cssColor } from "../gl/color.js";
 import type {
   ParallelAxisOption,
   ParallelOption,
@@ -230,7 +230,7 @@ export function renderParallel(
     const s = parallelSeries[si];
     if (s.name && hiddenSeries.has(s.name)) continue;
 
-    const color = typeof s.color === "string" ? s.color : seriesHex(si);
+    const color = cssColor(s.color, si);
     const data = s.data ?? [];
 
     for (const row of data) {

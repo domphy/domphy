@@ -1,7 +1,7 @@
 import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
 import type { PieDataItem, PieSeriesOption } from "../types.js";
-import { familyRgba, seriesRgba } from "./color.js";
+import type { ColorResolver } from "./color.js";
 import { PIE_FS, PIE_VS } from "./shaders/pie.glsl.js";
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
@@ -47,6 +47,7 @@ export class PieRenderer {
     width: number,
     height: number,
     _seriesOffset: number,
+    color: ColorResolver,
   ): void {
     if (series.length === 0) return;
     const model = this.ensureModel();
@@ -106,11 +107,14 @@ export class PieRenderer {
               ? innerR + (outerR - innerR) * Math.sqrt(fraction)
               : outerR;
 
-        const color = item.itemStyle?.color
-          ? familyRgba(item.itemStyle.color as any, "shift-9")
-          : seriesRgba(index);
+        const sliceColor = color.rgba(item.itemStyle?.color, index);
         const opacity = (s.itemStyle?.opacity as number) ?? 1;
-        const finalColor = [color[0], color[1], color[2], color[3] * opacity];
+        const finalColor = [
+          sliceColor[0],
+          sliceColor[1],
+          sliceColor[2],
+          sliceColor[3] * opacity,
+        ];
 
         const quadSize = effectiveOuter + 2;
         const quadVerts = new Float32Array([

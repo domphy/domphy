@@ -84,9 +84,10 @@ import { fixed } from "../../shared/typography.js";
 // every chart demo colors its series/items from var(--chart-N), never from
 // distinct semantic hues. The domphy `primary` family IS blue, so the ramp
 // maps onto increasing primary tones approximating blue-300 → blue-800.
-// @domphy/chart's BarRenderer resolves per-series/per-item colors through
-// resolveColorSrc, which accepts literal hex strings — so unlike the
-// line/area families, bars can render the exact ramp tones.
+// @domphy/chart's BarRenderer resolves SERIES-level colors through the live
+// per-pass resolver (family names and var(--…) references both work and
+// follow theme flips), but PER-ITEM `itemStyle.color` is still parsed via
+// hexToRgba only — so per-item colors must stay concrete hex strings.
 export const CHART_BAR_SERIES_TONES = [
   "shift-4",
   "shift-6",
@@ -100,8 +101,14 @@ export type ChartBarSeriesTone = (typeof CHART_BAR_SERIES_TONES)[number];
 export interface ChartBarSeriesColor {
   /** Ramp tone within the primary family. */
   tone: ChartBarSeriesTone;
-  /** Resolved hex of `tone` — safe to pass to BarRenderer (series `color` or
-   * per-item `itemStyle.color`) and into raw-HTML tooltip swatches. */
+  /** var(--…) CSS reference of `tone` — resolves against the live theme at
+   * paint time. Use for series-level `color` (the engine's resolver reads
+   * var refs live), raw-HTML tooltip swatches, legend swatches and SVG
+   * overlay strokes. */
+  css: string;
+  /** Resolved light-theme hex of `tone` — ONLY for per-data-item
+   * `itemStyle.color`, which BarRenderer parses via hexToRgba (no var-ref
+   * support). Everywhere else, prefer `css`. */
   hex: string;
 }
 
@@ -111,7 +118,11 @@ export function chartBarSeriesColor(index: number): ChartBarSeriesColor {
     ((index % CHART_BAR_SERIES_TONES.length) + CHART_BAR_SERIES_TONES.length) %
     CHART_BAR_SERIES_TONES.length;
   const tone = CHART_BAR_SERIES_TONES[step];
-  return { tone, hex: themeColorToken(null, tone, "primary") };
+  return {
+    tone,
+    css: themeColor(null, tone, "primary"),
+    hex: themeColorToken(null, tone, "primary"),
+  };
 }
 
 // ─── Data shapes ───────────────────────────────────────────────────────────
@@ -236,15 +247,17 @@ export const CHART_BAR_DAILY_DATA: ChartBarDailyPoint[] =
 
 // ─── Color helpers ─────────────────────────────────────────────────────────
 
-/** Resolves a theme color role to a literal hex via themeColorToken/familyHex
- * — required for per-data-item `itemStyle.color`, which BarRenderer parses
- * as a hex string (not a reactive theme function). A literal hex input passes
- * through unchanged, so ramp hexes from chartBarSeriesColor() are safe. This
- * is the closest a per-item chart-option color can get to "theme token, not
- * a hardcoded literal" — mirrors chart-area-shared.ts's chartColorRgba()
+/** Normalizes a recipe color prop for the engine/paint split: literal hex,
+ * rgb() and var(--…) references pass through unchanged (var refs are for
+ * paint contexts — SVG strokes, tooltip swatches — and for series-level
+ * colors, which the engine's live resolver reads; they must NOT reach
+ * per-item `itemStyle.color`, parsed via hexToRgba only). A theme role name
+ * resolves to a concrete light-theme hex via familyHex — required for the
+ * per-item path, mirroring chart-area-shared.ts's chartColorRgba()
  * rationale. */
 export function chartBarColorHex(role: string, tone = "shift-9"): string {
-  if (role.startsWith("#") || role.startsWith("rgb")) return role;
+  if (role.startsWith("#") || role.startsWith("rgb") || role.startsWith("var("))
+    return role;
   return familyHex(role as ThemeColor, tone);
 }
 
@@ -358,8 +371,8 @@ export function chartBarTooltipRow(
   name: string,
   value: string,
 ): string {
-  const muted = themeColorToken(null, "shift-9", "neutral");
-  const foreground = themeColorToken(null, "shift-11", "neutral");
+  const muted = themeColor(null, "shift-9", "neutral");
+  const foreground = themeColor(null, "shift-11", "neutral");
   return (
     `<span style="display:flex;align-items:center;">${swatch}` +
     `<span style="color:${muted};">${name}</span>` +
@@ -393,7 +406,7 @@ export function chartBarAxisTooltipFormatter(
       .map((p) => {
         // `p.color` comes from the engine's multi-hue rotation palette — use
         // the single-hue ramp by series position so the dot matches the bars.
-        const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${chartBarSeriesColor(p.seriesIndex ?? 0).hex};margin-right:6px;"></span>`;
+        const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${chartBarSeriesColor(p.seriesIndex ?? 0).css};margin-right:6px;"></span>`;
         const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
         return chartBarTooltipRow(dot, label, escapeHtml(valueLabel(p)));
       })
@@ -426,7 +439,7 @@ export function chartBarStackedTooltipFormatter(
       categories[parameters[0].dataIndex] ?? parameters[0].name ?? "",
     );
     const rows = parameters.map((p) => {
-      const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${chartBarSeriesColor(p.seriesIndex ?? 0).hex};margin-right:6px;"></span>`;
+      const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${chartBarSeriesColor(p.seriesIndex ?? 0).css};margin-right:6px;"></span>`;
       const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
       return chartBarTooltipRow(dot, label, escapeHtml(String(p.value ?? "")));
     });
@@ -505,9 +518,13 @@ export function chartBarTrendIcon(
 }
 
 /** Small flat color swatch patch used by the plain legend recipe. Accepts a
- * theme role (resolved at shift-9) or a literal ramp hex. */
+ * theme role (resolved at shift-9) or a literal color (hex/rgb/var-ref —
+ * ramp colors from chartBarSeriesColor().css are var refs). */
 export function chartBarLegendSwatch(color: string): PartialElement {
-  const isLiteral = color.startsWith("#") || color.startsWith("rgb");
+  const isLiteral =
+    color.startsWith("#") ||
+    color.startsWith("rgb") ||
+    color.startsWith("var(");
   return {
     style: {
       display: "inline-block",
@@ -529,7 +546,7 @@ export function chartBarLegendSwatch(color: string): PartialElement {
 
 export interface ChartBarLegendEntry {
   label: string;
-  /** Theme role or literal ramp hex (see chartBarLegendSwatch). */
+  /** Theme role or literal color (hex/rgb/var-ref — see chartBarLegendSwatch). */
   color: string;
 }
 
@@ -798,9 +815,9 @@ export function chartBarHorizontalHoverOverlay(
         "transition:opacity 0.12s ease",
         "opacity:0",
         "white-space:nowrap",
-        `background:${themeColorToken(null, "shift-0", "neutral")}`,
-        `border:1px solid ${themeColorToken(null, "shift-3", "neutral")}`,
-        `color:${themeColorToken(null, "shift-10", "neutral")}`,
+        `background:${themeColor(null, "shift-0", "neutral")}`,
+        `border:1px solid ${themeColor(null, "shift-3", "neutral")}`,
+        `color:${themeColor(null, "shift-10", "neutral")}`,
       ].join(";");
       container.appendChild(tooltip);
 
@@ -969,8 +986,8 @@ export function chartBarInsideOutsideLabelOverlay(
     _onMount(node) {
       const container = node.domElement as HTMLElement;
       const svg = createOverlaySvg(container);
-      const insideTextColor = themeColorToken(null, "shift-1", insideColor);
-      const outsideTextColor = themeColorToken(null, "shift-9", "neutral");
+      const insideTextColor = themeColor(null, "shift-1", insideColor);
+      const outsideTextColor = themeColor(null, "shift-9", "neutral");
 
       function draw(): void {
         const width = container.clientWidth;
@@ -1046,7 +1063,7 @@ export function chartBarSignedLabelOverlay(
     _onMount(node) {
       const container = node.domElement as HTMLElement;
       const svg = createOverlaySvg(container);
-      const labelColor = themeColorToken(null, "shift-9", "neutral");
+      const labelColor = themeColor(null, "shift-9", "neutral");
 
       function draw(): void {
         const width = container.clientWidth;

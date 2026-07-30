@@ -119,7 +119,7 @@ function chartLineInteractive(
       const dateLabel = day ? formatLongDate(day.date) : "";
       // The engine's param `color` follows its own multi-hue rotation palette
       // — the swatch uses the active series' ramp color instead.
-      const swatchColor = chartLineSeriesColor(seriesRamp[activeKey]).hex;
+      const swatchColor = chartLineSeriesColor(seriesRamp[activeKey]).css;
       const swatch = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${swatchColor};margin-right:6px;"></span>`;
       return (
         `<div>${escapeHtml(dateLabel)}</div>` +

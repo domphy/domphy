@@ -72,6 +72,9 @@ function tabs(
           id: `tab${id}${key}`,
           ariaControls: `panel${id}${key}`,
           ariaSelected: (l: Listener) => activeKey.get(l) === key,
+          // Roving tabindex (APG tabs pattern): only the selected tab is in
+          // the tab order; arrow keys move both selection and focus.
+          tabIndex: (l: Listener) => (activeKey.get(l) === key ? 0 : -1),
           onClick: () => activeKey.set(key),
           onKeyDown: (e: Event) => {
             const k = (e as KeyboardEvent).key;
@@ -86,6 +89,13 @@ function tabs(
             else if (k === "Home") next = 0;
             else if (k === "End") next = keys.length - 1;
             activeKey.set(keys[next]);
+            // Focus must follow selection: without this the next arrow key
+            // fires on the OLD tab and re-navigates from its stale position,
+            // making later tabs unreachable by keyboard. Resolved via the
+            // event target's own tablist — shadow-root safe (unlike a
+            // document.getElementById lookup).
+            const list = (e.target as HTMLElement).closest("[role=tablist]");
+            list?.querySelectorAll<HTMLElement>("[role=tab]")[next]?.focus();
           },
           style: {
             cursor: "pointer",

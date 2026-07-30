@@ -231,3 +231,36 @@ describe("DomphyTable reactive convenience reads", () => {
     expect(dTable.getRowModel().rows[0].original.name).toBe("Alice");
   });
 });
+
+describe("createDomphyTable no-op state updates", () => {
+  it("does not bump version when the updater returns the state unchanged", () => {
+    const { version, setState } = setup();
+    const before = version();
+
+    // Identity updater: a real onStateChange dispatch, but nothing changed.
+    setState((old) => old);
+
+    expect(version()).toBe(before);
+  });
+
+  it("still notifies the user's onStateChange for a no-op update", () => {
+    const onStateChange = vi.fn();
+    const { setState } = setup({ onStateChange });
+
+    setState((old) => old);
+
+    // table-core invokes onStateChange unconditionally — the no-op skip only
+    // covers the reactive version bump, not the user's handler.
+    expect(onStateChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("still bumps version for a real change after a no-op update", () => {
+    const { table, version, setState } = setup();
+    setState((old) => old);
+    const before = version();
+
+    table.nextPage();
+
+    expect(version()).toBe(before + 1);
+  });
+});

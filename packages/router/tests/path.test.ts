@@ -108,6 +108,11 @@ describe("resolvePath", () => {
     ["/a/b/c", "../..", "/a"],
     ["/a/b/c", "../../..", "/"],
     ["/a/b/c/", "../../..", "/"],
+    // `..` clamps at the root instead of dropping the leading slash
+    ["/a", "../../b", "/b"],
+    ["/a", "../../../b", "/b"],
+    ["/", "../b", "/b"],
+    ["/", "..", "/"],
   ])("resolves correctly", (a, b, eq) => {
     it(`${a} to ${b} === ${eq}`, () => {
       expect(resolvePath({ base: a, to: b })).toEqual(eq);

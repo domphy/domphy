@@ -1,4 +1,4 @@
-import { themeColorToken } from "@domphy/theme";
+import { themeColor } from "@domphy/theme";
 import type { VisualMapOption } from "../types.js";
 
 function svgEl(
@@ -134,7 +134,7 @@ export function renderVisualMap(
           (piece.max !== undefined ? `≤${piece.max}` : String(piece.min));
         group.appendChild(
           svgText(label, x + size + 5, oy + size / 2, {
-            fill: themeColorToken(null, "shift-8", "neutral"),
+            fill: themeColor(null, "shift-8", "neutral"),
             "font-size": 11,
             "dominant-baseline": "middle",
           }),
@@ -172,7 +172,7 @@ export function renderVisualMap(
       }
 
       // Min/max labels
-      const textColor = themeColorToken(null, "shift-8", "neutral");
+      const textColor = themeColor(null, "shift-8", "neutral");
       if (orient === "vertical") {
         group.appendChild(
           svgText(String(max), x + itemW / 2, y - 4, {

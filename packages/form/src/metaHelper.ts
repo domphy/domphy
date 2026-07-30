@@ -74,13 +74,14 @@ export function metaHelper<
     toIndex: number,
   ) {
     bumpArrayVersion(field)
+    // NOTE(deviation from upstream): upstream additionally pushes every index
+    // in the fromIndex..toIndex range into affectedFields here, duplicating
+    // what getAffectedFields(field, fromIndex, 'move', toIndex) already
+    // returns. The duplicated keys make shiftMeta shift the range twice,
+    // corrupting item meta (e.g. moveValue(0, 2) leaves the source meta at
+    // the wrong index and empties the middle one). The redundant loop is
+    // removed; getAffectedFields already covers the full range.
     const affectedFields = getAffectedFields(field, fromIndex, 'move', toIndex)
-
-    const startIndex = Math.min(fromIndex, toIndex)
-    const endIndex = Math.max(fromIndex, toIndex)
-    for (let i = startIndex; i <= endIndex; i++) {
-      affectedFields.push(getFieldPath(field, i))
-    }
 
     // Store the original field meta that will be reapplied at the destination index
     const fromFields = Object.keys(formApi.fieldInfo).reduce(

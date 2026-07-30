@@ -3,6 +3,9 @@ import type { DatasetOption, TransformOption } from "../types.js";
 type Row = Record<string, any> | any[];
 
 function getField(row: Row, dim: string | number): any {
+  // Nullish rows have no fields: return undefined instead of throwing. A
+  // missing field simply fails filter comparisons and sorts as undefined.
+  if (row === null || row === undefined) return undefined;
   if (Array.isArray(row)) return row[Number(dim)];
   return (row as Record<string, any>)[String(dim)];
 }
@@ -29,8 +32,19 @@ function applyFilter(source: Row[], config: Record<string, any>): Row[] {
     if (lte !== undefined) checks.push(v <= lte);
     if (gt !== undefined) checks.push(v > gt);
     if (lt !== undefined) checks.push(v < lt);
-    if (inside !== undefined) checks.push(v >= inside[0] && v <= inside[1]);
-    if (outside !== undefined) checks.push(v < outside[0] || v > outside[1]);
+    if (inside !== undefined) {
+      // A range that is not a non-empty array cannot be evaluated — treat the
+      // clause as absent (skip this filter dimension) instead of throwing.
+      if (Array.isArray(inside) && inside.length > 0) {
+        checks.push(v >= inside[0] && v <= inside[1]);
+      }
+    }
+    if (outside !== undefined) {
+      // Same as range: a malformed outside clause is treated as absent.
+      if (Array.isArray(outside) && outside.length > 0) {
+        checks.push(v < outside[0] || v > outside[1]);
+      }
+    }
     if (checks.length === 0) return true;
     return method === "OR" ? checks.some(Boolean) : checks.every(Boolean);
   });
@@ -47,6 +61,10 @@ function applySort(source: Row[], config: Record<string, any>): Row[] {
     if (parser === "time") {
       va = new Date(va).getTime();
       vb = new Date(vb).getTime();
+      // Unparseable dates yield NaN, and every NaN comparison is false, which
+      // would corrupt the sort. Treat NaN as equal to anything so the relative
+      // order of unparseable values stays stable.
+      if (Number.isNaN(va) || Number.isNaN(vb)) return 0;
     }
     if (va < vb) return order === "asc" ? -1 : 1;
     if (va > vb) return order === "asc" ? 1 : -1;

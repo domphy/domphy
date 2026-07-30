@@ -46,7 +46,7 @@ function chartBarStackedTooltip(
   if (parameters.length === 0) return "";
   return parameters
     .map((p) => {
-      const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${chartBarSeriesColor(p.seriesIndex ?? 0).hex};margin-right:6px;"></span>`;
+      const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${chartBarSeriesColor(p.seriesIndex ?? 0).css};margin-right:6px;"></span>`;
       const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
       return chartBarTooltipRow(dot, label, escapeHtml(String(p.value ?? "")));
     })
@@ -56,7 +56,7 @@ function chartBarStackedTooltip(
 export interface ChartBarStackedSeries {
   key: "desktop" | "mobile";
   label: string;
-  /** Theme role (resolved at shift-9) or literal ramp hex. */
+  /** Theme role (resolved at shift-9) or literal color (hex/rgb/var-ref). */
   color: string;
 }
 
@@ -74,8 +74,8 @@ export interface ChartBarStackedProps {
 }
 
 const DEFAULT_SERIES: ChartBarStackedSeries[] = [
-  { key: "desktop", label: "Desktop", color: chartBarSeriesColor(0).hex },
-  { key: "mobile", label: "Mobile", color: chartBarSeriesColor(1).hex },
+  { key: "desktop", label: "Desktop", color: chartBarSeriesColor(0).css },
+  { key: "mobile", label: "Mobile", color: chartBarSeriesColor(1).css },
 ];
 
 /**

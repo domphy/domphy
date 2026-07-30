@@ -45,7 +45,7 @@ export async function hydrate(router: AnyRouter): Promise<any> {
       )
     }
 
-    invariant()
+    invariant('missing-tsr-bootstrap')
   }
 
   const serializationAdapters = router.options.serializationAdapters as
@@ -69,7 +69,7 @@ export async function hydrate(router: AnyRouter): Promise<any> {
       )
     }
 
-    invariant()
+    invariant('missing-dehydrated-router')
   }
 
   const dehydratedRouter = window.$_TSR.router
@@ -281,7 +281,7 @@ export async function hydrate(router: AnyRouter): Promise<any> {
         )
       }
 
-      invariant()
+      invariant('missing-spa-match')
     }
     setMatchForcePending(match)
 

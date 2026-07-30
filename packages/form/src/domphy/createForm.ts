@@ -12,6 +12,28 @@ type FieldMeta = ReturnType<AnyFieldApi["getMeta"]>
 // biome-ignore lint: src is byte-identical-port territory, excluded from biome
 type Updater<T> = T | ((previous: T) => T)
 
+// Structural shallow compare for field options. Deep equality is impossible
+// (validators/listeners are closures), so functions compare by identity while
+// plain objects are walked a few levels down — this keeps the common re-render
+// pattern of inline option literals ({ validators: { onChange } }) from
+// reading as a change.
+function fieldOptionsEqual(a: unknown, b: unknown, depth: number): boolean {
+  if (Object.is(a, b)) return true
+  if (depth <= 0) return false
+  if (typeof a !== "object" || a === null || typeof b !== "object" || b === null)
+    return false
+  const aKeys = Object.keys(a)
+  const bKeys = Object.keys(b)
+  if (aKeys.length !== bKeys.length) return false
+  return aKeys.every((key) =>
+    fieldOptionsEqual(
+      (a as Record<string, unknown>)[key],
+      (b as Record<string, unknown>)[key],
+      depth - 1,
+    ),
+  )
+}
+
 export interface CreateFormOptions<TFormData> {
   defaultValues?: TFormData
   onSubmit?: (props: {
@@ -113,7 +135,14 @@ export function createForm<TFormData>(
   // Keyed by field name so repeated form.field(name) calls (e.g. inside a
   // reactive render callback) reuse the same FieldApi instead of mounting a
   // fresh one — and orphaned instances — on every re-render.
-  const fields = new Map<string, { handle: FieldHandle<any>; cleanup: () => void }>()
+  const fields = new Map<
+    string,
+    {
+      handle: FieldHandle<any>
+      cleanup: () => void
+      options: Record<string, unknown>
+    }
+  >()
 
   const state = (listener?: Listener) => {
     version.get(listener)
@@ -138,7 +167,22 @@ export function createForm<TFormData>(
       fieldOptions: Record<string, unknown> = {},
     ): FieldHandle<TData> => {
       const cached = fields.get(name)
-      if (cached) return cached.handle as FieldHandle<TData>
+      if (cached) {
+        // The cache is keyed by field name only: a second call with different
+        // options silently keeps the first call's options. Pin that behavior
+        // with a dev-time warning so it is discovered, not silently dropped.
+        // A call with no options at all carries no preference and never warns.
+        if (
+          process.env.NODE_ENV !== "production" &&
+          Object.keys(fieldOptions).length > 0 &&
+          !fieldOptionsEqual(cached.options, fieldOptions, 2)
+        ) {
+          console.warn(
+            `[domphy/form] field("${name}") was called with different options than its first call. The new options are ignored — the cached field keeps the options it was created with.`,
+          )
+        }
+        return cached.handle as FieldHandle<TData>
+      }
       const api = new FieldApi({ form, name, ...fieldOptions } as any) as AnyFieldApi
       const cleanup = api.mount()
       const handle: FieldHandle<TData> = {
@@ -167,7 +211,7 @@ export function createForm<TFormData>(
         moveValue: (a, b) => api.moveValue(a, b),
         clearValues: () => api.clearValues(),
       }
-      fields.set(name, { handle, cleanup })
+      fields.set(name, { handle, cleanup, options: fieldOptions })
       return handle
     },
     handleSubmit: () => form.handleSubmit(),

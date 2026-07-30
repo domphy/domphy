@@ -15,11 +15,24 @@ import { findTag, isPlainObject, VOID } from "./shared.js";
 
 // Structural clone that preserves functions (reactive `(listener) => …` values)
 // by reference — a JSON clone would drop them. Primitives pass through.
-function cloneTree(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(cloneTree);
+// The memo map keeps shared references shared and makes circular structures
+// survivable (the clone preserves the cycle instead of recursing forever).
+function cloneTree(
+  value: unknown,
+  seen = new Map<unknown, unknown>(),
+): unknown {
+  if (Array.isArray(value)) {
+    if (seen.has(value)) return seen.get(value);
+    const out: unknown[] = [];
+    seen.set(value, out);
+    for (const item of value) out.push(cloneTree(item, seen));
+    return out;
+  }
   if (isPlainObject(value)) {
+    if (seen.has(value)) return seen.get(value);
     const out: Record<string, unknown> = {};
-    for (const key in value) out[key] = cloneTree(value[key]);
+    seen.set(value, out);
+    for (const key in value) out[key] = cloneTree(value[key], seen);
     return out;
   }
   return value;
@@ -58,14 +71,25 @@ export function fix(root: unknown, options: DiagnoseOptions = {}): FixResult {
   return { tree, applied, report: validate(tree, options) };
 }
 
-function walkFix(node: unknown, path: string, applied: AppliedFix[]): void {
+function walkFix(
+  node: unknown,
+  path: string,
+  applied: AppliedFix[],
+  seen = new Set<unknown>(),
+): void {
+  // Cycle guard — a malformed tree can reference itself; never recurse twice
+  // into the same object/array (see walk() in diagnose.ts).
   if (Array.isArray(node)) {
+    if (seen.has(node)) return;
+    seen.add(node);
     for (const [index, child] of node.entries()) {
-      walkFix(child, `${path}[${index}]`, applied);
+      walkFix(child, `${path}[${index}]`, applied, seen);
     }
     return;
   }
   if (!isPlainObject(node)) return;
+  if (seen.has(node)) return;
+  seen.add(node);
 
   const tag = findTag(node);
   if (!tag) return;
@@ -82,5 +106,5 @@ function walkFix(node: unknown, path: string, applied: AppliedFix[]): void {
     });
   }
 
-  walkFix(node[tag], here, applied);
+  walkFix(node[tag], here, applied, seen);
 }

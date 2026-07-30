@@ -1,3 +1,4 @@
+import { ElementTones, TONE_STEPS } from "@domphy/theme";
 import { describe, expect, it } from "vitest";
 import { type CustomRule, diagnose, fix, format } from "../src/index";
 
@@ -101,15 +102,17 @@ describe("rule coverage (all 18 rules fire and no extras exist)", () => {
   });
 });
 
-describe("isValidTone characterization (current behavior, do not change)", () => {
-  // CURRENT behavior: a bare integer is accepted as a tone regardless of range,
-  // because isValidTone short-circuits on /^-?\d+$/ before any range check.
-  it("accepts an out-of-range bare integer like dataTone: '999'", () => {
-    expect(rules({ div: "x", dataTone: "999" })).not.toContain("unknown-tone");
+describe("isValidTone grammar matches the @domphy/theme runtime", () => {
+  // The runtime's offsetTone() accepts exactly the strings in ElementTones and
+  // throws for everything else — including bare-numeric strings. Doctor must
+  // agree (an earlier version accepted /^-?\d+$/, advertising "a number" as
+  // valid dataTone while the runtime threw for it).
+  it("rejects a bare integer string like dataTone: '999'", () => {
+    expect(rules({ div: "x", dataTone: "999" })).toContain("unknown-tone");
   });
 
-  it("accepts a negative bare integer like dataTone: '-5'", () => {
-    expect(rules({ div: "x", dataTone: "-5" })).not.toContain("unknown-tone");
+  it("rejects a negative bare integer string like dataTone: '-5'", () => {
+    expect(rules({ div: "x", dataTone: "-5" })).toContain("unknown-tone");
   });
 
   it("still rejects non-numeric, non-grammar words like 'invalid-tone-word'", () => {
@@ -130,6 +133,28 @@ describe("isValidTone characterization (current behavior, do not change)", () =>
       expect(rules({ div: "x", dataTone: alias })).not.toContain(
         "unknown-tone",
       );
+    }
+  });
+
+  it("doctor's grammar is pinned against theme's exported ElementTones", () => {
+    // Every string the runtime accepts must pass doctor, and a set of strings
+    // the runtime rejects must fail doctor — the two grammars cannot drift
+    // apart silently again.
+    for (const tone of ElementTones) {
+      expect(rules({ div: "x", dataTone: tone })).not.toContain("unknown-tone");
+    }
+    for (const bad of [
+      "3",
+      "-1",
+      `shift-${TONE_STEPS}`,
+      `increase-${TONE_STEPS}`,
+      `decrease-${TONE_STEPS}`,
+      "shift--1",
+      "SHIFT-1",
+      "surfaces",
+      "",
+    ]) {
+      expect(rules({ div: "x", dataTone: bad })).toContain("unknown-tone");
     }
   });
 });
@@ -699,5 +724,97 @@ describe("format() icon variants", () => {
     const out = format(diagnose({ p: "x", style: { fontSize: "20px" } }));
     expect(out).toContain("⚠");
     expect(out).toContain("[inline-typography]");
+  });
+});
+
+describe("low-opacity numeric values", () => {
+  it("flags a numeric opacity below 0.6 (CSS-in-JS accepts numbers)", () => {
+    expect(rules({ span: "x", style: { opacity: 0.4 } })).toContain(
+      "low-opacity",
+    );
+  });
+
+  it("does not flag numeric opacity at or above 0.6, or 0", () => {
+    expect(rules({ span: "x", style: { opacity: 0.6 } })).not.toContain(
+      "low-opacity",
+    );
+    // 0 is the documented hover-reveal base — never flagged.
+    expect(rules({ span: "x", style: { opacity: 0 } })).not.toContain(
+      "low-opacity",
+    );
+  });
+
+  it("downgrades to info when &:hover restores opacity (numeric 1)", () => {
+    const issue = diagnose({
+      span: "x",
+      style: { opacity: 0.4, "&:hover": { opacity: 1 } },
+    }).find((d) => d.rule === "low-opacity");
+    expect(issue?.severity).toBe("info");
+  });
+});
+
+describe("cycle guards", () => {
+  it("diagnose() terminates on a self-referencing element tree", () => {
+    const element: Record<string, unknown> = { div: null };
+    element.div = element; // circular content
+    expect(() => diagnose(element)).not.toThrow();
+    // The element itself is still analyzed exactly once.
+    expect(diagnose(element).filter((d) => d.rule === "unknown-tag")).toEqual(
+      [],
+    );
+  });
+
+  it("diagnose() terminates on a mutually-referencing pair", () => {
+    const a: Record<string, unknown> = { div: null };
+    const b: Record<string, unknown> = { span: null };
+    a.div = [b];
+    b.span = [a];
+    expect(() => diagnose([a])).not.toThrow();
+  });
+
+  it("fix() terminates on a circular tree and preserves the cycle in the clone", () => {
+    const element: Record<string, unknown> = { div: null };
+    element.div = element;
+    const result = fix(element);
+    expect(result.tree).not.toBe(element);
+    const clone = result.tree as Record<string, unknown>;
+    expect(clone.div).toBe(clone); // cycle survived the clone
+  });
+});
+
+describe("unknown-tag fires per unknown key", () => {
+  it("reports every unknown key, not just single-key objects", () => {
+    const issues = diagnose({ dvi: "x", spna: "y", buttn: "z" }).filter(
+      (d) => d.rule === "unknown-tag",
+    );
+    expect(issues).toHaveLength(3);
+    expect(issues.map((d) => d.message).join("\n")).toContain('"dvi"');
+    expect(issues.map((d) => d.message).join("\n")).toContain('"spna"');
+    expect(issues.map((d) => d.message).join("\n")).toContain('"buttn"');
+  });
+
+  it("still reports a single unknown key exactly once", () => {
+    const issues = diagnose({ dvi: "typo" }).filter(
+      (d) => d.rule === "unknown-tag",
+    );
+    expect(issues).toHaveLength(1);
+  });
+});
+
+describe("custom rules that throw", () => {
+  it("produces an info diagnostic instead of failing silently", () => {
+    const throwingRule: CustomRule = {
+      id: "always-throws",
+      severity: "warning",
+      check: () => {
+        throw new Error("kaboom");
+      },
+    };
+    const issues = diagnose({ div: "x" }, { rules: [throwingRule] }).filter(
+      (d) => d.rule === "always-throws",
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].severity).toBe("info");
+    expect(issues[0].message).toContain("kaboom");
   });
 });

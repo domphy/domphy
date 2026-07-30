@@ -1,4 +1,10 @@
-import type { PartialElement, State } from "@domphy/core";
+import type {
+  BehaviorInstance,
+  ElementNode,
+  PartialElement,
+  State,
+} from "@domphy/core";
+import { behavior } from "@domphy/core";
 import {
   animations,
   dragAndDrop,
@@ -9,6 +15,137 @@ import {
 export interface DragDropConfig<T> extends Partial<ParentConfig<T>> {
   /** Enable sort animations. Default: true. */
   animated?: boolean;
+}
+
+/**
+ * Props routed into the per-node behavior instance. Internal to the package —
+ * `dragDrop()` and `multiList()` both declare the same behavior key so a node
+ * switching between the two across generations reuses one instance.
+ */
+export interface DragDropBehaviorProps<T> {
+  values: State<T[]>;
+  config: DragDropConfig<T>;
+  group?: string;
+}
+
+// Shared frozen default so `dragDrop(state)` (no config argument) passes a
+// referentially stable config across generations — otherwise every re-render
+// of a reactive parent would look like a config change and force a pointless
+// FormKit tear-down/re-register cycle.
+const DEFAULT_CONFIG = Object.freeze({}) as DragDropConfig<any>;
+
+// Behavior key shared by dragDrop() and multiList() — one drag concern per
+// element, so re-declaring the same key from a later generation routes fresh
+// props into the existing instance via update().
+const DND_BEHAVIOR_KEY = "domphy:dnd";
+
+// Shallow own-key comparison with Object.is on values. Config is a flat bag
+// of scalars/functions/arrays; a deep compare would be wrong for functions
+// and plugin instances. Inline array literals (e.g. `plugins: [...]`) are
+// referentially fresh per generation and will re-register — hoist them to a
+// module-level const if that matters.
+function configEquals<T>(a: DragDropConfig<T>, b: DragDropConfig<T>): boolean {
+  if (a === b) return true;
+  const aKeys = Object.keys(a) as (keyof DragDropConfig<T>)[];
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every((key) => Object.is(a[key], b[key]));
+}
+
+/**
+ * Per-node FormKit registration, attached via `behavior()` so it runs exactly
+ * once per real DOM node no matter how many times a reactive parent re-runs
+ * the `dragDrop()`/`multiList()` factory. Later generations' props arrive via
+ * `update()`; when the bound State instance, group, or config actually
+ * changed, the registration is torn down and re-created against the new
+ * props.
+ */
+export function attachDragDrop<T>(
+  node: ElementNode,
+  initialProps: DragDropBehaviorProps<T>,
+): BehaviorInstance<DragDropBehaviorProps<T>> {
+  let props = initialProps;
+  const parent = node.domElement as HTMLElement | null;
+  let disposed = false;
+  // Whether dragAndDrop() has completed registration for `parent`. tearDown()
+  // is only valid on a registered parent — this flag guards destroy() for
+  // nodes removed before the deferred registration ran.
+  let registered = false;
+  let outerFrame: number | null = null;
+  let innerFrame: number | null = null;
+
+  const cancelFrames = () => {
+    if (outerFrame !== null) {
+      cancelAnimationFrame(outerFrame);
+      outerFrame = null;
+    }
+    if (innerFrame !== null) {
+      cancelAnimationFrame(innerFrame);
+      innerFrame = null;
+    }
+  };
+
+  const register = () => {
+    if (!parent) return;
+    if (registered) {
+      tearDown(parent);
+      registered = false;
+    }
+    const { values, group } = props;
+    const { animated = true, ...rest } = props.config;
+    const plugins = animated
+      ? [animations(), ...(rest.plugins ?? [])]
+      : (rest.plugins ?? []);
+    const setValues = (next: T[]) => values.set(next);
+    dragAndDrop<T>({
+      parent,
+      getValues: () => values.get(),
+      setValues,
+      config: { ...rest, ...(group !== undefined ? { group } : {}), plugins },
+    });
+    registered = true;
+  };
+
+  // Domphy fires Mount before rendering children, so dragAndDrop() would see
+  // 0 DOM children at attach time. Double-rAF defers until after paint. The
+  // handles are kept so destroy() (and a re-schedule from update()) can
+  // cancel a pending registration instead of only flagging it — a cancelled
+  // frame can never register a torn-down parent.
+  const scheduleRegister = () => {
+    cancelFrames();
+    outerFrame = requestAnimationFrame(() => {
+      outerFrame = null;
+      innerFrame = requestAnimationFrame(() => {
+        innerFrame = null;
+        if (disposed) return;
+        register();
+      });
+    });
+  };
+
+  scheduleRegister();
+
+  return {
+    update: (nextProps) => {
+      const changed =
+        nextProps.values !== props.values ||
+        nextProps.group !== props.group ||
+        !configEquals(nextProps.config, props.config);
+      props = nextProps;
+      // Re-register with the new binding. If the initial registration is
+      // still pending, scheduleRegister() simply replaces it — the frames
+      // always read the LATEST props, so no stale registration can land.
+      if (changed && !disposed) scheduleRegister();
+    },
+    destroy: () => {
+      disposed = true;
+      cancelFrames();
+      if (parent && registered) {
+        tearDown(parent);
+        registered = false;
+      }
+    },
+  };
 }
 
 /**
@@ -26,6 +163,12 @@ export interface DragDropConfig<T> extends Partial<ParentConfig<T>> {
  * }
  * ```
  *
+ * Reused-node safety: the FormKit registration lives in a `behavior()`
+ * instance, so when a reactive parent re-renders and this factory re-runs on
+ * the SAME DOM node, the new `values`/`config` are routed into the live
+ * instance (re-registering if the State instance or config changed) instead
+ * of being silently dropped.
+ *
  * With a drag handle:
  * ```ts
  * dragDrop(items, { dragHandle: ".drag-handle" })
@@ -39,41 +182,10 @@ export interface DragDropConfig<T> extends Partial<ParentConfig<T>> {
  */
 export function dragDrop<T>(
   values: State<T[]>,
-  config: DragDropConfig<T> = {},
+  config: DragDropConfig<T> = DEFAULT_CONFIG,
 ): PartialElement {
-  const { animated = true, ...rest } = config;
-  // The double-rAF setup below is deferred past _onRemove if mount+remove
-  // happen inside the same paint cycle; without this flag the rAF callback
-  // would register dragAndDrop() (parents map, MutationObserver, listeners)
-  // on an already-torn-down (or never torn down, since tearDown() was a
-  // no-op) parent element, leaking them permanently.
-  let disposed = false;
-  return {
-    _onMount: (node) => {
-      const parent = node.domElement as HTMLElement | null;
-      if (!parent) return;
-      const plugins = animated
-        ? [animations(), ...(rest.plugins ?? [])]
-        : (rest.plugins ?? []);
-      // Domphy renders children AFTER firing _onMount, so dragAndDrop() would see
-      // 0 DOM children at init time. Double-rAF defers until after paint.
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          if (disposed) return;
-          const setValues = (next: T[]) => values.set(next);
-          dragAndDrop<T>({
-            parent,
-            getValues: () => values.get(),
-            setValues,
-            config: { ...rest, plugins },
-          });
-        }),
-      );
-    },
-    _onRemove: (node) => {
-      disposed = true;
-      const parent = node.domElement as HTMLElement | null;
-      if (parent) tearDown(parent);
-    },
-  };
+  return behavior<DragDropBehaviorProps<T>>(DND_BEHAVIOR_KEY, attachDragDrop, {
+    values,
+    config,
+  });
 }

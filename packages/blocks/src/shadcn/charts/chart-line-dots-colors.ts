@@ -15,7 +15,7 @@
 
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
-import { type ThemeColor, themeColorToken } from "@domphy/theme";
+import { type ThemeColor, themeColor } from "@domphy/theme";
 import {
   BROWSER_CATEGORY_DATA,
   type CategoryPoint,
@@ -33,12 +33,15 @@ import {
 
 const DOT_RADIUS = 5;
 
-// Per-point marker colors are literal ramp hexes (see BROWSER_CATEGORY_DATA);
-// a theme role falls back to a shift-9 resolution.
-function pointColorHex(color: string): string {
-  return color.startsWith("#") || color.startsWith("rgb")
+// Per-point marker colors are ramp var(--…) refs (see BROWSER_CATEGORY_DATA);
+// a theme role resolves to a shift-9 var ref. Both are paint-safe (SVG fill,
+// tooltip swatch) and follow theme flips at paint time.
+function pointColorCss(color: string): string {
+  return color.startsWith("#") ||
+    color.startsWith("rgb") ||
+    color.startsWith("var(")
     ? color
-    : themeColorToken(null, "shift-9", color as ThemeColor);
+    : themeColor(null, "shift-9", color as ThemeColor);
 }
 
 function escapeHtml(text: string): string {
@@ -93,7 +96,7 @@ function chartLineDotsColors(
   ): string {
     const point = Array.isArray(params) ? params[0] : params;
     if (!point) return "";
-    const pointColor = pointColorHex(
+    const pointColor = pointColorCss(
       data[point.dataIndex]?.color ?? seriesColor,
     );
     const swatch = `<span style="display:inline-block;width:3px;height:12px;border-radius:2px;background:${pointColor};"></span>`;
@@ -147,7 +150,7 @@ function chartLineDotsColors(
             circle.setAttribute("cx", String(cx));
             circle.setAttribute("cy", String(cy));
             circle.setAttribute("r", String(DOT_RADIUS));
-            circle.setAttribute("fill", pointColorHex(data[index].color));
+            circle.setAttribute("fill", pointColorCss(data[index].color));
             group.appendChild(circle);
           },
         }),

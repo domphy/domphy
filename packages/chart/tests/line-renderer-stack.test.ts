@@ -27,6 +27,7 @@ describe("LineRenderer stacked area-fill baseline", () => {
     }));
 
     const { LineRenderer } = await import("../src/gl/LineRenderer.ts");
+    const { createColorResolver } = await import("../src/gl/color.ts");
 
     // Identity scales keep the pixel-space arithmetic equal to the data-space
     // arithmetic, so the expected vertex values are easy to state directly.
@@ -54,6 +55,9 @@ describe("LineRenderer stacked area-fill baseline", () => {
       100,
       0,
       baselines,
+      // Node env (no jsdom): the resolver's getComputedStyle lookup is
+      // try/caught and falls back to the static light-theme palette.
+      createColorResolver({} as any),
     );
 
     const areaBuffer = createdBuffers.find((b) => b.id === "line-area");
@@ -90,6 +94,7 @@ describe("LineRenderer stacked area-fill baseline", () => {
     }));
 
     const { LineRenderer } = await import("../src/gl/LineRenderer.ts");
+    const { createColorResolver } = await import("../src/gl/color.ts");
     const identityScale = { map: (v: number) => v, bandwidth: () => 0 } as any;
 
     const renderer = new LineRenderer(fakeDevice as any);
@@ -111,6 +116,8 @@ describe("LineRenderer stacked area-fill baseline", () => {
       100,
       100,
       0,
+      undefined,
+      createColorResolver({} as any),
     );
 
     const areaBuffer = createdBuffers.find((b) => b.id === "line-area");

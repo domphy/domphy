@@ -92,6 +92,29 @@ function toast(
     _onBeforeRemove: (node, done) => {
       let finished = false;
       let timer: ReturnType<typeof setTimeout> | null = null;
+      let overlayRemoved = false;
+      const rootNode = node.getRoot();
+      const overlayEl = node.domElement?.parentElement ?? null;
+      // The #domphy-toast-{position} overlay is inserted into the root on
+      // first use and shared by every toast at that position — remove it once
+      // its LAST toast is gone instead of leaking one empty fixed container
+      // per used position for the app's whole lifetime.
+      const removeOverlayIfEmpty = () => {
+        if (overlayRemoved) return;
+        if (
+          !overlayEl ||
+          overlayEl.id !== `domphy-toast-${position}` ||
+          overlayEl.childElementCount > 0
+        ) {
+          return;
+        }
+        overlayRemoved = true;
+        const item = rootNode.children?.items.find(
+          (it) => (it as ElementNode).domElement === overlayEl,
+        );
+        if (item) rootNode.children!.remove(item);
+        else overlayEl.remove();
+      };
       const finish = () => {
         if (finished) return;
         finished = true;
@@ -101,6 +124,7 @@ function toast(
         }
         node.domElement!.removeEventListener("transitionend", onEnd);
         done();
+        removeOverlayIfEmpty();
       };
       const onEnd = (e: Event) => {
         if ((e as TransitionEvent).propertyName === "transform") finish();
@@ -118,6 +142,7 @@ function toast(
           timer = null;
         }
         node.domElement?.removeEventListener("transitionend", onEnd);
+        removeOverlayIfEmpty();
       });
       state.set(false);
     },

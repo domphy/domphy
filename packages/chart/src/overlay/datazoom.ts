@@ -1,4 +1,4 @@
-import { themeColorToken } from "@domphy/theme";
+import { themeColor } from "@domphy/theme";
 import type {
   ChartRect,
   DataZoomOption,
@@ -38,10 +38,10 @@ export function createDataZoomSlider(
   state: DataZoomState,
   onChange: (state: DataZoomState) => void,
 ): SliderHandle {
-  const trackColor = themeColorToken(null, "shift-2", "neutral");
-  const fillColor = themeColorToken(null, "shift-3", "neutral");
-  const handleColor = themeColorToken(null, "shift-5", "neutral");
-  const _textColor = themeColorToken(null, "shift-7", "neutral");
+  const trackColor = themeColor(null, "shift-2", "neutral");
+  const fillColor = themeColor(null, "shift-3", "neutral");
+  const handleColor = themeColor(null, "shift-5", "neutral");
+  const _textColor = themeColor(null, "shift-7", "neutral");
 
   const sliderH =
     typeof option.height === "number"

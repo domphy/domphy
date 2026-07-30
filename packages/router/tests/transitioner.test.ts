@@ -89,4 +89,27 @@ describe("transitioner (client event lifecycle)", () => {
     expect(router.state.status).toBe("idle");
     expect(router.state.resolvedLocation?.pathname).toBe("/posts/3");
   });
+
+  it("does not emit onRendered after the router is destroyed", async () => {
+    const { router } = createTestSetup();
+    await router.load();
+    // Let the initial load's onRendered macrotasks fire before subscribing.
+    await sleep(20);
+
+    const events: Array<string> = [];
+    router.subscribe("onRendered", () => events.push("onRendered"));
+    // Destroy on the macrotask queued right before the transitioner's
+    // onRendered timer (scheduled just after onResolved is emitted).
+    router.subscribe("onResolved", () => {
+      setTimeout(
+        () => (router as unknown as { destroy: () => void }).destroy(),
+        0,
+      );
+    });
+
+    await router.navigate({ to: "/posts/$postId", params: { postId: "4" } });
+    await sleep(20);
+
+    expect(events).toEqual([]);
+  });
 });

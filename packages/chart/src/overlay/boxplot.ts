@@ -1,4 +1,4 @@
-import { seriesHex } from "../gl/color.js";
+import { seriesColor } from "../gl/color.js";
 import type { AnyScale } from "../scale/index.js";
 import type { BoxplotSeriesOption } from "../types.js";
 
@@ -33,7 +33,7 @@ export function renderBoxplot(
     const yScale = yScales[s.yAxisIndex ?? 0];
     if (!xScale || !yScale) continue;
 
-    const color = seriesHex(si);
+    const color = seriesColor(si);
     const bandwidth = xScale.bandwidth();
     const boxW = Math.max(4, (bandwidth ?? 30) * 0.6);
 

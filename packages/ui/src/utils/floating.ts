@@ -19,6 +19,7 @@ import {
 } from "@domphy/floating";
 
 type FloatingProps = {
+  kind: string;
   openState: State<boolean>;
   placement: State<Placement>;
   content: DomphyElement;
@@ -27,6 +28,16 @@ type FloatingProps = {
   // trigger to panel without the debounced hide() firing first.
   keepOpenOnContentHover: boolean;
 };
+
+// The panel id every floating component gets, derived deterministically from
+// the ANCHOR's nodeId (stable across generations — a reused node keeps its
+// nodeId — and across SSR/hydration, unlike Math.random()). The anchor's
+// trigger partial references the same id via _onSchedule (aria-controls /
+// aria-describedby), so trigger and panel agree without any factory-scope
+// mutable variable that a fresh generation would lose.
+function floatingPanelId(kind: string, node: ElementNode): string {
+  return `domphy-${kind}-${node.nodeId}`;
+}
 
 type FloatingInstance = BehaviorInstance<FloatingProps> & {
   show: () => void;
@@ -56,6 +67,7 @@ function attachFloating(
   initialProps: FloatingProps,
 ): FloatingInstance {
   let { openState, placement, content, keepOpenOnContentHover } = initialProps;
+  const { kind } = initialProps;
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let cleanup: (() => void) | null = null;
@@ -65,6 +77,7 @@ function attachFloating(
 
   const reference = node.domElement as HTMLElement;
   const rootNode = node.getRoot();
+  const panelId = floatingPanelId(kind, node);
 
   const floatingPartial: PartialElement = {
     style: {
@@ -84,6 +97,11 @@ function attachFloating(
     onMouseLeave: () => keepOpenOnContentHover && hide(),
     _onMount: (mountedNode) => {
       floating = mountedNode.domElement as HTMLElement;
+      // Stamped as a plain DOM property (not node.attributes.set) so a later
+      // floatingNode.patch(content) — which strips undeclared ATTRIBUTES from
+      // its own bookkeeping — never removes it. A consumer-declared id on the
+      // content element wins.
+      if (!floating.id) floating.id = panelId;
       // Propagate data-theme from the trigger's ancestor so floating content
       // inherits CSS variable scope. Stamped on the PANEL, not the shared
       // overlay: the one overlay serves every floating component under the
@@ -240,6 +258,7 @@ function createFloating(props: {
     onKeyDown: (e: Event, node: ElementNode) =>
       (e as KeyboardEvent).key === "Escape" && hide(node),
     ...behavior<FloatingProps>(behaviorKey, attachFloating, {
+      kind,
       openState,
       placement,
       content: props.content,
@@ -250,4 +269,4 @@ function createFloating(props: {
   return { show, hide, anchorPartial };
 }
 
-export { createFloating };
+export { createFloating, floatingPanelId };

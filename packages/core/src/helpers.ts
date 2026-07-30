@@ -127,7 +127,14 @@ export function validate(
     ) {
       throw Error(`"style" must be a object`);
     } else if (key === "$") {
-      element.$!.forEach((v) => validate(v as PartialElement, true));
+      if (!Array.isArray(val)) {
+        throw Error(
+          `"$" must be an array of patch objects, received ${
+            val === null ? "null" : typeof val
+          } on element { ${keys.join(", ")} } — wrap patches in an array, e.g. $: [patch()]`,
+        );
+      }
+      val.forEach((v) => validate(v as PartialElement, true));
     } else if (key.startsWith("_on") && typeof val !== "function") {
       throw Error(`hook ${key} value "${val}" must be a function `);
     } else if (key.startsWith("on") && typeof val !== "function") {
@@ -164,21 +171,115 @@ export function isHTML(str: string): boolean {
   );
 }
 
-// Strip <script> elements, event-handler attributes, and javascript: URLs
-// from an HTML string. Works in both SSR (no DOM) and client contexts. Not a
-// full sanitizer — it removes the most common XSS vectors so user-generated
-// strings passed as inline HTML content can't execute arbitrary code.
+// Decode the entity forms an attacker uses to smuggle a scheme past a string
+// check: numeric character references (&#106; / &#x6A;) and the whitespace
+// entities (&Tab; / &NewLine;) that are legal inside a URL. NOT a full entity
+// table — just enough to canonicalize an attribute value before the scheme
+// test below.
+function decodeSchemeObfuscation(value: string): string {
+  return value
+    .replace(/&#(x?[0-9a-fA-F]+);/gi, (_match, code: string) => {
+      const codePoint =
+        code[0] === "x" || code[0] === "X"
+          ? Number.parseInt(code.slice(1), 16)
+          : Number.parseInt(code, 10);
+      // Out-of-range code points would make fromCodePoint throw — drop them.
+      return codePoint >= 0 && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint)
+        : "";
+    })
+    .replace(/&Tab;/gi, "\t")
+    .replace(/&NewLine;/gi, "\n");
+}
+
+// True when a URL attribute value resolves to a script-capable scheme. The
+// test runs on a canonicalized copy (entities decoded, ASCII whitespace and
+// control characters stripped — browsers ignore those inside a scheme), so
+// "&#106;avascript:", "java\tscript:" and " javascript:" all canonicalize to
+// "javascript:". A data: URL is only dangerous with an HTML/XHTML media type
+// (data:image/... is a legitimate <img>/<svg> source).
+function isDangerousURL(value: string): boolean {
+  const canonical = decodeSchemeObfuscation(value)
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping ASCII control characters out of the scheme is exactly the point of this canonicalization.
+    .replace(/[\x00-\x20]+/g, "")
+    .toLowerCase();
+  return (
+    canonical.startsWith("javascript:") ||
+    canonical.startsWith("vbscript:") ||
+    canonical.startsWith("data:text/html") ||
+    canonical.startsWith("data:application/xhtml+xml")
+  );
+}
+
+// Remove <script> elements with a quote-aware scan instead of a flat regex.
+// A regex cannot tell a real tag from the text "<script>" inside a quoted
+// attribute value — `<div title="<script>">` used to truncate the whole string
+// from the attribute text onward. Here every "<" is first resolved to its
+// real tag extent (quoted attribute values may contain ">" and "<"), and only
+// a genuine <script> opening tag triggers stripping.
+function stripScriptElements(html: string): string {
+  const lower = html.toLowerCase();
+  let result = "";
+  let index = 0;
+  while (index < html.length) {
+    const open = lower.indexOf("<", index);
+    if (open === -1) {
+      result += html.slice(index);
+      break;
+    }
+    result += html.slice(index, open);
+    // Resolve the tag end, honoring quoted attribute values.
+    let quote: string | null = null;
+    let tagEnd = -1;
+    for (let j = open + 1; j < html.length; j++) {
+      const ch = html[j];
+      if (quote) {
+        if (ch === quote) quote = null;
+      } else if (ch === '"' || ch === "'") {
+        quote = ch;
+      } else if (ch === ">") {
+        tagEnd = j;
+        break;
+      }
+    }
+    // No real tag end: the "<" is literal text (or an unterminated tag) —
+    // keep the rest verbatim, exactly as a parser's text recovery would.
+    if (tagEnd === -1) {
+      result += html.slice(open);
+      break;
+    }
+    const tagText = html.slice(open, tagEnd + 1);
+    if (/^<script[\s/>]/i.test(tagText)) {
+      if (/\/\s*>$/.test(tagText)) {
+        // Self-closing form (not valid HTML5, stripped defensively): drop the
+        // tag only, keep whatever follows.
+        index = tagEnd + 1;
+        continue;
+      }
+      const close = lower.indexOf("</script", tagEnd + 1);
+      if (close === -1) {
+        // Unclosed form — strip from the tag to the end of the string since
+        // the real extent is unknowable.
+        index = html.length;
+        break;
+      }
+      const closeEnd = html.indexOf(">", close);
+      index = closeEnd === -1 ? html.length : closeEnd + 1;
+      continue;
+    }
+    result += tagText;
+    index = tagEnd + 1;
+  }
+  return result;
+}
+
+// Strip <script> elements, event-handler attributes, iframe srcdoc documents,
+// and script-capable URL schemes from an HTML string. Works in both SSR (no
+// DOM) and client contexts. Not a full sanitizer — defense in depth that
+// removes the most common XSS vectors; never wrap untrusted input in
+// rawHtml() relying on this alone.
 export function sanitizeHTMLString(html: string): string {
-  // Remove <script>...</script> elements entirely (paired form), including
-  // multi-line bodies. Case-insensitive: the tag name is case-insensitive.
-  let result = html.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "");
-  // Self-closing form (e.g. <script src="evil.js"/>) — not valid HTML5 but
-  // strip it defensively before the unclosed catch-all below, otherwise the
-  // catch-all would swallow everything after it too.
-  result = result.replace(/<script\b[^>]*\/>/gi, "");
-  // Unclosed form (opening tag with no matching </script>) — strip from the
-  // tag to the end of the string since the real extent is unknowable.
-  result = result.replace(/<script\b[^>]*>[\s\S]*$/gi, "");
+  let result = stripScriptElements(html);
   // Remove on* event handler attributes (onclick, onerror, onload, …).
   // Case-insensitive: HTML attribute names are case-insensitive, so
   // ONERROR=/OnClick= must be stripped too, not just lowercase.
@@ -191,10 +292,29 @@ export function sanitizeHTMLString(html: string): string {
     /\/on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi,
     "/",
   );
-  // Neutralise javascript: scheme in URL attributes
+  // <iframe srcdoc="..."> embeds a whole second HTML document that this string
+  // pass cannot sanitize — remove the attribute entirely.
+  result = result.replace(/\s+srcdoc\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "");
+  result = result.replace(/\/srcdoc\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "/");
+  // Neutralise script-capable schemes (javascript:/vbscript:/data:text/html)
+  // in URL attributes — href/src/action/formaction plus object@data. The value
+  // is canonicalized before the test, so entity-encoded and
+  // whitespace-obfuscated schemes are caught too.
   result = result.replace(
-    /((?:href|src|action|formaction)\s*=\s*)(["']?)[\s]*javascript:[^"'\s>]*/gi,
-    "$1$2#",
+    /((?:href|src|action|formaction|data)\s*=\s*)("([^"]*)"|'([^']*)'|([^\s>]*))/gi,
+    (
+      match,
+      prefix: string,
+      _raw: string,
+      dq?: string,
+      sq?: string,
+      bare?: string,
+    ) => {
+      const value = dq ?? sq ?? bare ?? "";
+      if (!isDangerousURL(value)) return match;
+      const quoteChar = dq !== undefined ? '"' : sq !== undefined ? "'" : "";
+      return `${prefix}${quoteChar}#${quoteChar}`;
+    },
   );
   return result;
 }

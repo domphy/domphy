@@ -140,3 +140,39 @@ describe("renderMermaidInTree", () => {
     expect(renderer).not.toHaveBeenCalled();
   });
 });
+
+describe("onDiagramError", () => {
+  const goodVsBad = () =>
+    [mermaidBlock("graph TD; A-->B;"), mermaidBlock("BAD diagram")].slice();
+
+  const failingRenderer = vi.fn(async (code: string) => {
+    if (code.includes("BAD")) throw new Error("syntax error in diagram");
+    return `<svg data-src="${code}"></svg>`;
+  });
+
+  it("default ('throw'): one failing diagram rejects the whole call", async () => {
+    failingRenderer.mockClear();
+    await expect(
+      renderMermaidInTree(goodVsBad(), { renderer: failingRenderer }),
+    ).rejects.toThrow("syntax error in diagram");
+  });
+
+  it("'placeholder': only the failing diagram becomes a .mermaid-error element", async () => {
+    failingRenderer.mockClear();
+    const output = await renderMermaidInTree(goodVsBad(), {
+      renderer: failingRenderer,
+      onDiagramError: "placeholder",
+    });
+
+    // The good diagram rendered normally.
+    const good = output[0] as Record<string, unknown>;
+    expect(svgOf(good.div)).toBe('<svg data-src="graph TD; A-->B;"></svg>');
+    expect(good.class).toBe("mermaid");
+
+    // The bad one is contained: an alert-role placeholder, not a rejection.
+    const bad = output[1] as Record<string, unknown>;
+    expect(bad.class).toBe("mermaid mermaid-error");
+    expect(bad.role).toBe("alert");
+    expect(String(bad.pre)).toContain("syntax error in diagram");
+  });
+});

@@ -41,7 +41,10 @@ export interface AutoUpdateOptions {
 // https://samthor.au/2021/observing-dom/
 function observeMove(element: Element, onMove: () => void) {
   let io: IntersectionObserver | null = null;
-  let timeoutId: NodeJS.Timeout;
+  // Deviation from upstream: `NodeJS.Timeout` replaced with the browser-safe
+  // `ReturnType<typeof setTimeout>` so this package never requires @types/node.
+  // See UPSTREAM.md.
+  let timeoutId: ReturnType<typeof setTimeout>;
 
   const root = getDocumentElement(element);
 

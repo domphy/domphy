@@ -81,4 +81,32 @@ describe("generateTheme", () => {
     const light = getTheme("light");
     expect(light.colors.error[13]).not.toBe(light.colors.danger[13]);
   });
+
+  it("accepts shorthand hex base colors (#fff)", () => {
+    const theme = generateTheme({ neutral: "#fff" });
+    expect(theme.colors!.neutral).toHaveLength(18);
+    theme.colors!.neutral!.forEach((hex) => expect(hex).toMatch(HEX_RE));
+    // #fff normalizes to #ffffff — the lightest anchor, so the base tone sits
+    // at the light edge of the ramp.
+    expect(theme.baseTones!.neutral).toBe(0);
+  });
+
+  it("throws an actionable error naming the role for invalid hex (#zzz)", () => {
+    expect(() => generateTheme({ primary: "#zzz" })).toThrow(
+      /baseColors\.primary/,
+    );
+    expect(() => generateTheme({ primary: "#zzz" })).toThrow(
+      /Invalid hex color/,
+    );
+  });
+
+  it("throws for non-hex base colors", () => {
+    expect(() => generateTheme({ primary: "red" })).toThrow(
+      /baseColors\.primary/,
+    );
+    expect(() => generateTheme({ primary: "" })).toThrow(/baseColors\.primary/);
+    expect(() =>
+      generateTheme({ primary: undefined as unknown as string }),
+    ).toThrow(/baseColors\.primary/);
+  });
 });

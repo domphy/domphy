@@ -157,8 +157,30 @@ class EffectScope implements EffectScopeHandle {
   stop(): void {
     if (this._stopped) return;
     this._stopped = true;
-    for (const dispose of this._disposers) dispose();
+    // A throwing disposer must not abort the remaining ones or skip the
+    // clear — half-torn-down scopes leak every subscription after the thrower.
+    // Run ALL disposers, always release the set, then rethrow the FIRST error
+    // (later ones are logged; AggregateError is unavailable on the older
+    // embedded Chromium runtimes this package supports).
+    let firstError: unknown;
+    let hasError = false;
+    for (const dispose of this._disposers) {
+      try {
+        dispose();
+      } catch (error) {
+        if (!hasError) {
+          firstError = error;
+          hasError = true;
+        } else {
+          console.error(
+            "[Domphy] Additional error during effectScope.stop():",
+            error,
+          );
+        }
+      }
+    }
     this._disposers.clear();
+    if (hasError) throw firstError;
   }
 }
 
@@ -268,6 +290,17 @@ export function computed<T>(fn: () => T): Computed<T> {
     dirty = true;
     scheduleReaction(job);
   });
+
+  // Auto-release upstream subscriptions when the LAST downstream listener
+  // goes away: an unobserved computed must not stay subscribed to its
+  // dependencies forever (the leak previously only effectScope/dispose
+  // released). Marking dirty forces the next read down the recompute path,
+  // whose collector re-subscribes upstream — so no invalidation can be lost
+  // and diamond chains re-arm symmetrically on re-read.
+  notifier._onEmpty = () => {
+    collector.reset();
+    dirty = true;
+  };
 
   const recompute = (): void => {
     collector.reset();

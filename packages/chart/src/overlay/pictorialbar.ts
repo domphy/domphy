@@ -1,4 +1,4 @@
-import { seriesHex } from "../gl/color.js";
+import { seriesColor } from "../gl/color.js";
 import type { PictorialBarSeriesOption } from "../types.js";
 
 function svgEl(
@@ -116,7 +116,7 @@ export function renderPictorialBar(
     const yScale = yScales[(s as any).yAxisIndex ?? 0];
     if (!xScale || !yScale) continue;
 
-    const color = seriesHex(si);
+    const color = seriesColor(si);
     const symbol = s.symbol ?? "circle";
     const rotate = s.symbolRotate ?? 0;
     const repeat = s.symbolRepeat ?? false;

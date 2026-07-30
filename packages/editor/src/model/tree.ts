@@ -277,14 +277,58 @@ function cutNode(
   return { ...node, content: normalizeInline(next) };
 }
 
+/**
+ * Join the two boundary remnants of a deleted range.
+ *
+ * `leftDepth`/`rightDepth` are the number of wrapper levels between each
+ * remnant and the textblock the caret endpoints sat in (0 = the remnant IS
+ * that textblock). When they differ, the deeper side keeps its wrapper chain
+ * and the shallower side's remnant is merged into the deeper side's boundary
+ * child, level by level, until the two textblocks meet and their inline
+ * content is concatenated. This mirrors how ProseMirror closes a slice whose
+ * openStart/openEnd differ: the shallow side's content flows into the deepest
+ * open textblock, so no wrapper ever ends up with a bare text child (a
+ * schema-invalid shape that `hydrateContent` would then silently re-wrap,
+ * mutating saved content across a save/load cycle).
+ */
 function mergeNodes(
   left: JSONContent,
   right: JSONContent,
-  depth: number,
+  leftDepth: number,
+  rightDepth: number,
 ): JSONContent {
   const leftChildren = childrenOf(left);
   const rightChildren = childrenOf(right);
-  if (depth > 0 && leftChildren.length > 0 && rightChildren.length > 0) {
+  if (leftDepth > rightDepth && leftChildren.length > 0) {
+    const last = leftChildren[leftChildren.length - 1];
+    if (last.type !== "text") {
+      return {
+        ...left,
+        content: [
+          ...leftChildren.slice(0, -1),
+          mergeNodes(last, right, leftDepth - 1, rightDepth),
+        ],
+      };
+    }
+  }
+  if (rightDepth > leftDepth && rightChildren.length > 0) {
+    const first = rightChildren[0];
+    if (first.type !== "text") {
+      return {
+        ...right,
+        content: [
+          mergeNodes(left, first, leftDepth, rightDepth - 1),
+          ...rightChildren.slice(1),
+        ],
+      };
+    }
+  }
+  if (
+    leftDepth > 0 &&
+    rightDepth > 0 &&
+    leftChildren.length > 0 &&
+    rightChildren.length > 0
+  ) {
     const last = leftChildren[leftChildren.length - 1];
     const first = rightChildren[0];
     if (last.type !== "text" && first.type !== "text") {
@@ -292,7 +336,7 @@ function mergeNodes(
         ...left,
         content: [
           ...leftChildren.slice(0, -1),
-          mergeNodes(last, first, depth - 1),
+          mergeNodes(last, first, leftDepth - 1, rightDepth - 1),
           ...rightChildren.slice(1),
         ],
       };
@@ -368,7 +412,12 @@ export function deleteRangeInDoc(
   if (!left || !right) {
     return cut;
   }
-  const merged = mergeNodes(left, right, maxShared - shared - 1);
+  const merged = mergeNodes(
+    left,
+    right,
+    $from.depth - shared - 1,
+    $to.depth - shared - 1,
+  );
   return replaceAtPath(cut, sharedPath, {
     ...parent,
     content: [

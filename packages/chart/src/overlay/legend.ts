@@ -1,5 +1,5 @@
-import { themeColorToken } from "@domphy/theme";
-import { seriesHex } from "../gl/color.js";
+import { themeColor } from "@domphy/theme";
+import { seriesColor } from "../gl/color.js";
 import type { LegendOption, SeriesOption } from "../types.js";
 
 export function renderLegend(
@@ -31,8 +31,8 @@ export function renderLegend(
       : series.map((s) => s.name ?? "")
   ).filter((n) => n !== "");
 
-  const textColor = themeColorToken(null, "shift-8", "neutral");
-  const disabledColor = themeColorToken(null, "shift-4", "neutral");
+  const textColor = themeColor(null, "shift-8", "neutral");
+  const disabledColor = themeColor(null, "shift-4", "neutral");
   const fontSize = 12;
 
   // Rough width estimate for centering
@@ -65,7 +65,7 @@ export function renderLegend(
         ? index
         : series.findIndex((s) => s.name === name);
     const isHidden = hiddenSeries.has(name);
-    const color = isHidden ? disabledColor : seriesHex(seriesIndex);
+    const color = isHidden ? disabledColor : seriesColor(seriesIndex);
 
     // Invisible hit area for click
     const textW = name.length * 7;

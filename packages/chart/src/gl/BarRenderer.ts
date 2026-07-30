@@ -2,7 +2,8 @@ import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
 import type { AnyScale } from "../scale/index.js";
 import type { BarSeriesOption, ChartRect } from "../types.js";
-import { hexToRgba, resolveColorSrc, seriesRgba } from "./color.js";
+import type { ColorResolver } from "./color.js";
+import { hexToRgba } from "./color.js";
 import { BAR_FS, BAR_VS } from "./shaders/bar.glsl.js";
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
@@ -64,6 +65,7 @@ export class BarRenderer {
     width: number,
     height: number,
     seriesOffset: number,
+    color: ColorResolver,
   ): void {
     if (series.length === 0) return;
     const model = this.ensureModel();
@@ -110,10 +112,7 @@ export class BarRenderer {
       const baselineX = xScale.map(0);
 
       grouped.forEach((s, groupIndex) => {
-        const color = resolveColorSrc(
-          s.color,
-          seriesRgba(seriesOffset + series.indexOf(s)),
-        );
+        const barColor = color.rgba(s.color, seriesOffset + series.indexOf(s));
         const data = s.data ?? [];
         data.forEach((item, dataIndex) => {
           const rawValue =
@@ -134,7 +133,7 @@ export class BarRenderer {
             yCenter - totalGroupH / 2 + groupIndex * (groupBarH + gap);
           const c = (item as any)?.itemStyle?.color
             ? hexToRgba((item as any).itemStyle.color)
-            : color;
+            : barColor;
           allInstances.push(
             rectX,
             rectY,
@@ -154,9 +153,9 @@ export class BarRenderer {
       for (const [, stackSeries] of stacked) {
         const stackRights = new Map<number, number>();
         stackSeries.forEach((s) => {
-          const color = resolveColorSrc(
+          const barColor = color.rgba(
             s.color,
-            seriesRgba(seriesOffset + series.indexOf(s)),
+            seriesOffset + series.indexOf(s),
           );
           const data = s.data ?? [];
           data.forEach((item, dataIndex) => {
@@ -186,10 +185,10 @@ export class BarRenderer {
               rectY,
               rectW,
               barH,
-              color[0],
-              color[1],
-              color[2],
-              color[3],
+              barColor[0],
+              barColor[1],
+              barColor[2],
+              barColor[3],
               barRadius,
             );
             barCount++;
@@ -209,10 +208,7 @@ export class BarRenderer {
       const baselineY = yScale.map(0);
 
       grouped.forEach((s, groupIndex) => {
-        const color = resolveColorSrc(
-          s.color,
-          seriesRgba(seriesOffset + series.indexOf(s)),
-        );
+        const barColor = color.rgba(s.color, seriesOffset + series.indexOf(s));
         const data = s.data ?? [];
         data.forEach((item, dataIndex) => {
           const rawValue =
@@ -239,7 +235,7 @@ export class BarRenderer {
           const rectH = Math.abs(baselineY - yTop);
           const c = (item as any)?.itemStyle?.color
             ? hexToRgba((item as any).itemStyle.color)
-            : color;
+            : barColor;
           allInstances.push(
             xLeft,
             rectY,
@@ -258,9 +254,9 @@ export class BarRenderer {
       for (const [, stackSeries] of stacked) {
         const stackTops = new Map<number, number>();
         stackSeries.forEach((s) => {
-          const color = resolveColorSrc(
+          const barColor = color.rgba(
             s.color,
-            seriesRgba(seriesOffset + series.indexOf(s)),
+            seriesOffset + series.indexOf(s),
           );
           const data = s.data ?? [];
           data.forEach((item, dataIndex) => {
@@ -294,10 +290,10 @@ export class BarRenderer {
               rectY,
               bandwidth * 0.85,
               rectH,
-              color[0],
-              color[1],
-              color[2],
-              color[3],
+              barColor[0],
+              barColor[1],
+              barColor[2],
+              barColor[3],
               barRadius,
             );
             barCount++;

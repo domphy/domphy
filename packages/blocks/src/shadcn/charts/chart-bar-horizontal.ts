@@ -56,7 +56,7 @@ function chartBarHorizontal(
   const {
     data = CHART_BAR_MONTHLY_DATA,
     seriesLabel = "Desktop",
-    seriesColor = chartBarSeriesColor(0).hex,
+    seriesColor = chartBarSeriesColor(0).css,
     title = "Bar Chart - Horizontal",
     subtitle = "January - June 2026",
     trendText = "Trending up by 5.2% this month",

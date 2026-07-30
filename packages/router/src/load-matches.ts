@@ -1081,7 +1081,7 @@ export async function loadMatches(arg: {
         )
       }
 
-      invariant()
+      invariant('notfound-boundary')
     }
     const boundaryMatch = inner.matches[renderedBoundaryIndex]!
 

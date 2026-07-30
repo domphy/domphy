@@ -117,7 +117,9 @@ export function generateRamp(hexs: string | string[], stepsCount: number): strin
     const anchors = Array.isArray(hexs) ? hexs : [hexs];
     if (anchors.length === 0) throw new Error("generateRamp requires at least one anchor color");
     if (stepsCount <= 0) return [];
-    if (stepsCount === 1) return [anchors[0]];
+    // Round-trip through RGB so the single-step output matches the normalized
+    // lowercase #rrggbb shape produced by the multi-step path below.
+    if (stepsCount === 1) return [rgbToHex(hexToRgb(anchors[0]))];
 
     const { colorAtParam, parameters } = sequentialInterpolator(anchors.map(hexToRgb));
     const colors: string[] = [];

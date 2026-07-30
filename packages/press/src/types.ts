@@ -109,6 +109,10 @@ export interface SiteConfig {
   locales?: Record<string, LocaleConfig>;
   /** Show last-updated date sourced from git. Default false. */
   lastUpdated?: boolean;
+  /** Keep building (and exit 0) when individual pages fail to render.
+   *  Default false: any per-page error fails the build so a broken page can
+   *  never silently ship as a partial deploy. */
+  continueOnError?: boolean;
   /** Reserved for future markdown configuration. */
   markdown?: Record<string, never>;
 }

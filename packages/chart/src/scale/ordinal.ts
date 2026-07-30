@@ -27,8 +27,16 @@ export function createOrdinalScale(
     range,
     padding,
     map(value: string | number) {
-      const index = typeof value === "number" ? value : domain.indexOf(value);
-      if (index < 0) return r0;
+      if (typeof value !== "number") {
+        const index = domain.indexOf(value);
+        // Unknown category: fall back to the range start (existing contract).
+        if (index < 0) return r0;
+        return r0 + (index + 0.5) * step;
+      }
+      // Numeric index: clamp symmetrically with invert() — out-of-domain
+      // indices snap to the first/last band instead of mapping outside the
+      // range.
+      const index = Math.max(0, Math.min(count - 1, value));
       // Center of the band
       return r0 + (index + 0.5) * step;
     },

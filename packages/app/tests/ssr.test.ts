@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
+
+import { configure } from "@domphy/core";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   createApp,
   defineRoutes,
+  navLink,
   type Route,
   type RouteContext,
+  rewrite,
 } from "../src/index";
 
 let loaderRuns = 0;
@@ -39,7 +43,9 @@ function buildRoutes(): Route[] {
 
 afterEach(() => {
   loaderRuns = 0;
+  configure({ cspNonce: undefined });
   delete (globalThis as Record<string, unknown>).__DOMPHY_APP_DATA__;
+  document.head.innerHTML = "";
 });
 
 describe("renderToString", () => {
@@ -88,6 +94,73 @@ describe("renderToString", () => {
   });
 });
 
+describe("CSP nonce", () => {
+  it("stamps the configured nonce on the renderToString bootstrap script", async () => {
+    configure({ cspNonce: "test-nonce-123" });
+    const app = createApp(buildRoutes(), { history: null });
+    const result = await app.renderToString("/blog/hello");
+    expect(result.bootstrapScript).toContain('<script nonce="test-nonce-123">');
+  });
+
+  it("omits the nonce attribute when no nonce is configured", async () => {
+    const app = createApp(buildRoutes(), { history: null });
+    const result = await app.renderToString("/blog/hello");
+    expect(result.bootstrapScript).toContain("<script>");
+    expect(result.bootstrapScript).not.toContain("nonce");
+  });
+
+  it("stamps the nonce on every inline style/script in the streamed output", async () => {
+    configure({ cspNonce: "stream-nonce" });
+    const routes = defineRoutes([
+      {
+        path: "/",
+        loader: () => Promise.resolve("data"),
+        page: () => ({ h1: "Streamed" }),
+      },
+    ]);
+    const app = createApp(routes, { history: null });
+    const { stream } = await app.renderToStream("/");
+
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let output = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      output += decoder.decode(value);
+    }
+
+    expect(output).toContain('<style id="domphy-style" nonce="stream-nonce">');
+    // Every injected <style>/<script> carries the nonce; none is left bare.
+    expect(output.match(/<style(?![^>]*\bnonce=)/g)).toBeNull();
+    expect(output.match(/<script(?![^>]*\bnonce=)/g)).toBeNull();
+  });
+
+  it("streams bare style/script tags when no nonce is configured", async () => {
+    const routes = defineRoutes([
+      {
+        path: "/",
+        loader: () => Promise.resolve("data"),
+        page: () => ({ h1: "Streamed" }),
+      },
+    ]);
+    const app = createApp(routes, { history: null });
+    const { stream } = await app.renderToStream("/");
+
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let output = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      output += decoder.decode(value);
+    }
+
+    expect(output).toContain('<style id="domphy-style">');
+    expect(output).not.toContain("nonce");
+  });
+});
+
 describe("hydrate", () => {
   it("mounts server markup without re-running loaders", async () => {
     const serverApp = createApp(buildRoutes(), { history: null });
@@ -112,5 +185,120 @@ describe("hydrate", () => {
 
     clientApp.destroy();
     container.remove();
+  });
+
+  it("does not duplicate head tags after hydration", async () => {
+    const routes = defineRoutes([
+      {
+        path: "/",
+        page: () => ({ h1: "Home" }),
+        metadata: { title: "Home", description: "Home page" },
+      },
+    ]);
+    const serverApp = createApp(routes, { history: null });
+    const result = await serverApp.renderToString("/");
+    // The SSR head set is stamped as managed so the client can replace it.
+    expect(result.head).toContain("data-domphy-head");
+
+    document.head.innerHTML = result.head;
+    expect(
+      document.head.querySelectorAll('meta[name="description"]').length,
+    ).toBe(1);
+
+    const container = document.createElement("div");
+    container.innerHTML = result.html;
+    document.body.appendChild(container);
+    const root = container.firstElementChild as HTMLElement;
+
+    (globalThis as Record<string, unknown>).__DOMPHY_APP_DATA__ = result.data;
+    window.history.replaceState(null, "", "/");
+
+    const clientApp = createApp(routes);
+    await clientApp.hydrate(root);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // Hydration replaces the SSR set instead of appending next to it.
+    expect(
+      document.head.querySelectorAll('meta[name="description"]').length,
+    ).toBe(1);
+    expect(document.title).toBe("Home");
+
+    clientApp.destroy();
+    container.remove();
+  });
+});
+
+describe("concurrent renderToString", () => {
+  it("binds navLink to the request's own router while renders interleave", async () => {
+    let releaseA!: () => void;
+    const gateA = new Promise<void>((resolve) => {
+      releaseA = resolve;
+    });
+    const nav = () => ({
+      nav: [
+        { a: "A", $: [navLink({ href: "/a", prefetch: false })] },
+        { a: "B", $: [navLink({ href: "/b", prefetch: false })] },
+      ],
+    });
+    const routes = defineRoutes([
+      {
+        path: "/",
+        children: [
+          {
+            path: "a",
+            // Request A parks inside its loader until B has fully rendered.
+            loader: async () => {
+              await gateA;
+              return null;
+            },
+            page: nav,
+          },
+          { path: "b", page: nav },
+        ],
+      },
+    ]);
+    const app = createApp(routes, { history: null });
+
+    const promiseA = app.renderToString("/a");
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const resultB = await app.renderToString("/b");
+    releaseA();
+    const resultA = await promiseA;
+
+    const activeHref = (html: string) => {
+      const anchors = html.match(/<a\b[^>]*>/g) ?? [];
+      return anchors
+        .filter((tag) => tag.includes('aria-current="page"'))
+        .map((tag) => tag.match(/href="([^"]*)"/)?.[1]);
+    };
+    // Each request's active state resolves against its own router, not the
+    // module-global default left over by the other in-flight request.
+    expect(activeHref(resultA.html)).toEqual(["/a"]);
+    expect(activeHref(resultB.html)).toEqual(["/b"]);
+  });
+});
+
+describe("middleware rewrite loops", () => {
+  it("fails with an actionable error instead of unbounded recursion", async () => {
+    const routes = defineRoutes([
+      {
+        path: "/",
+        children: [
+          {
+            path: "a",
+            middleware: [() => rewrite("/b")],
+            page: () => ({ h1: "A" }),
+          },
+          {
+            path: "b",
+            middleware: [() => rewrite("/a")],
+            page: () => ({ h1: "B" }),
+          },
+        ],
+      },
+    ]);
+    const app = createApp(routes, { history: null });
+    const result = await app.renderToString("/a");
+    expect(result.html).toContain("Rewrite loop detected");
   });
 });

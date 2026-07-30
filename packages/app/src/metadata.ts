@@ -277,26 +277,41 @@ function escapeAttribute(value: string): string {
     .replace(/</g, "&lt;");
 }
 
+/** Attribute names are emitted raw into markup, so strip anything that could break out of the tag. */
+function sanitizeAttributeName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_:.-]/g, "");
+}
+
 function escapeText(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 }
 
-/** Serializes head tags for server rendering. */
+const MANAGED_ATTRIBUTE = "data-domphy-head";
+
+/**
+ * Serializes head tags for server rendering. Meta/link tags carry the managed
+ * attribute so the client-side `applyHeadTags` removes the SSR set on hydration
+ * and on later navigations instead of appending duplicates next to it. The
+ * `<title>` is left unstamped: `applyHeadTags` updates it via `document.title`.
+ */
 export function renderHeadTags(tags: HeadTag[]): string {
   return tags
     .map((tag) => {
       const attributes = Object.keys(tag.attributes)
-        .map((name) => ` ${name}="${escapeAttribute(tag.attributes[name])}"`)
+        .map((rawName) => {
+          const name = sanitizeAttributeName(rawName);
+          return name
+            ? ` ${name}="${escapeAttribute(tag.attributes[rawName])}"`
+            : "";
+        })
         .join("");
       if (tag.tag === "title") {
         return `<title>${escapeText(tag.content ?? "")}</title>`;
       }
-      return `<${tag.tag}${attributes}>`;
+      return `<${tag.tag}${attributes} ${MANAGED_ATTRIBUTE}>`;
     })
     .join("\n");
 }
-
-const MANAGED_ATTRIBUTE = "data-domphy-head";
 
 /** Applies head tags to `document.head`, replacing tags from the previous navigation. */
 export function applyHeadTags(tags: HeadTag[]): void {

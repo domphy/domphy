@@ -802,7 +802,7 @@ export function processRouteTree<
         )
       }
 
-      invariant()
+      invariant('duplicate-route-id')
     }
 
     routesById[route.id] = route

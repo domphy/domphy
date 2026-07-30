@@ -49,13 +49,14 @@ reason each. Ported cases are listed in their own test file as
 - `can handle a DOM offset canvas` — relies on `state.size.left`/`state.size.top`
   (r3f's `Size` carries a DOM offset so `computePointer` can subtract it from
   `offsetX`/`offsetY` before deriving NDC). SPEC.md's `SizeState` (locked in
-  `types.ts`) is `{ width, height, dpr }` only — no `left`/`top` — and
-  `events.ts`'s `computePointer` (faithfully) reads `event.offsetX`/`offsetY`
-  directly with no offset subtraction. There is no field to set that would
-  make this case behave differently from the plain `onPointerDown` case
-  already covered above; porting it verbatim would just duplicate that test.
-  Contract gap, not fixed here (would require widening the locked `SizeState`
-  shape).
+  `types.ts`) is `{ width, height, dpr }` only — no `left`/`top`. `computePointer`
+  originally read `event.offsetX`/`offsetY` directly with no offset subtraction;
+  it now derives the origin from `event.clientX/clientY` minus the canvas's own
+  `getBoundingClientRect()` (the same box `setSize` tracks via the container's
+  contentRect, and robust to pointer-capture retargeting), which covers the
+  DOM-offset scenario without widening the locked `SizeState` shape. The NDC
+  math itself is exercised by the plain `onPointerDown`/`onPointerMove` cases
+  above, so this case is still not ported verbatim.
 - `it.todo('can handle different event prefixes')` — upstream itself never
   implemented this case (`it.todo`, no body); nothing to port.
 

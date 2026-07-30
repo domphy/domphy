@@ -94,4 +94,10 @@ describe("getLocale", () => {
   it("returns locale for root locale path /fr", () => {
     expect(getLocale({ url: "/fr" }, opts)).toBe("fr");
   });
+
+  it("parses the locale from the pathname only, ignoring the search string", () => {
+    expect(getLocale({ url: "/vi/about?x=1" }, opts)).toBe("vi");
+    expect(getLocale({ url: "/en?lang=vi" }, opts)).toBe("en");
+    expect(getLocale({ url: "/about?next=/vi" }, opts)).toBe("en");
+  });
 });

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createI18n } from "../src/index.ts";
 
 const en = {
@@ -7,7 +7,7 @@ const en = {
   greeting: "Hello, {{name}}!",
   nested: { key: "Nested value" },
 };
-const vi = {
+const viMessages = {
   hello: "Xin chào",
   greeting: "Xin chào, {{name}}!",
   nested: { key: "Giá trị lồng nhau" },
@@ -19,7 +19,7 @@ function makeI18n() {
   return createI18n<"en" | "vi", typeof en>({
     globalKey: `__test_i18n_${counter}__`,
     namespace: "app",
-    locales: { en, vi },
+    locales: { en, vi: viMessages },
     defaultLocale: "en",
   });
 }
@@ -87,7 +87,7 @@ describe("singleton behavior", () => {
     const i18nA = createI18n<"en" | "vi", typeof en>({
       globalKey: key,
       namespace: "app",
-      locales: { en, vi },
+      locales: { en, vi: viMessages },
       defaultLocale: "en",
     });
     await i18nA.initI18n("en");
@@ -96,7 +96,7 @@ describe("singleton behavior", () => {
     const i18nB = createI18n<"en" | "vi", typeof en>({
       globalKey: key,
       namespace: "app",
-      locales: { en, vi },
+      locales: { en, vi: viMessages },
       defaultLocale: "en",
     });
     expect(i18nB.getLocale()).toBe("vi");
@@ -193,7 +193,7 @@ describe("interpolation escaping", () => {
     const i18n = createI18n<"en" | "vi", typeof en>({
       globalKey: `__test_i18n_${counter}__`,
       namespace: "app",
-      locales: { en, vi },
+      locales: { en, vi: viMessages },
       defaultLocale: "en",
       interpolation: { escapeValue: false },
     });
@@ -212,5 +212,103 @@ describe("concurrent initI18n() / setLocale()", () => {
     // reactive store) must agree — the race used to leave them inconsistent.
     expect(i18n.getLocale()).toBe("vi");
     expect(i18n.currentLocale(() => {})).toBe("vi");
+  });
+});
+
+describe("t() before initI18n()", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("warns once in dev while translations are unavailable", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const i18n = makeI18n();
+
+    // Not initialized: i18next cannot translate (returns undefined here) —
+    // the dev warning must point at initI18n() and fire exactly once.
+    expect(i18n.t("hello")).not.toBe("Hello");
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("initI18n()");
+
+    i18n.t("hello");
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not warn after initI18n() resolved", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const i18n = makeI18n();
+    await i18n.initI18n("en");
+
+    expect(i18n.t("hello")).toBe("Hello");
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+describe("globalKey reuse with different options", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+  it("warns in dev when a second createI18n reuses the key with different locales", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const key = `__test_mismatch_${Date.now()}__`;
+
+    createI18n<"en" | "vi", typeof en>({
+      globalKey: key,
+      namespace: "app",
+      locales: { en, vi: viMessages },
+      defaultLocale: "en",
+    });
+    // Same key, different locale set — the first store silently wins.
+    createI18n<"en" | "fr", typeof en>({
+      globalKey: key,
+      namespace: "app",
+      locales: { en, fr: en },
+      defaultLocale: "en",
+    });
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("globalKey");
+
+    warn.mockRestore();
+  });
+
+  it("does not warn when the options match (the Vite chunk-split dedup case)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const key = `__test_match_${Date.now()}__`;
+
+    createI18n<"en" | "vi", typeof en>({
+      globalKey: key,
+      namespace: "app",
+      locales: { en, vi: viMessages },
+      defaultLocale: "en",
+    });
+    createI18n<"en" | "vi", typeof en>({
+      globalKey: key,
+      namespace: "app",
+      locales: { en, vi: viMessages },
+      defaultLocale: "en",
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+
+    warn.mockRestore();
+  });
+});
+
+describe("initPromise lifecycle", () => {
+  it("clears the in-flight initPromise after a successful init", async () => {
+    const key = `__test_initpromise_${Date.now()}__`;
+    const i18n = createI18n<"en" | "vi", typeof en>({
+      globalKey: key,
+      namespace: "app",
+      locales: { en, vi: viMessages },
+      defaultLocale: "en",
+    });
+
+    await i18n.initI18n("en");
+
+    const store = (globalThis as unknown as Record<string, any>)[key];
+    expect(store.initialized).toBe(true);
+    expect(store.initPromise).toBeUndefined();
   });
 });

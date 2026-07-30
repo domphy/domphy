@@ -47,7 +47,7 @@ const App = {
 - **Theme, not hard-coded values:** `themeColor()`, `themeSpacing()`, `themeSize()`, `themeDensity()`; tones are `inherit`/`base`/`shift-N`/`increase-N`/`decrease-N`, or the semantic aliases `surface`/`hover`/`border`/`border-strong`/`muted`/`text` — prefer aliases over raw `shift-N`.
 - **Layout, not hand-rolled flex styles:** reach for `stack()` (vertical flex column + gap), `row()` (horizontal flex + gap, centered by default, with `align`/`justify`/`wrap`), and `panelSection()` (density-aware padding + optional bottom divider — a thin wrapper, compose it with `stack()`/`row()` for the flex itself) before writing `style: { display: "flex", flexDirection: ..., gap: ... }` inline. `toolbar()` is a semantic alias of `row()` for headers/nav bars.
 - **`_key`** on dynamic/reordered child lists (identity for reconcile). It is not DOM id / business identity.
-- **CSP nonce:** if the app has a Content-Security-Policy requiring nonces on inline styles, call `configure({ cspNonce: "..." })` from `@domphy/core` before mounting. This stamps the nonce on every Domphy-injected `<style>` element.
+- **CSP nonce:** if the app has a Content-Security-Policy requiring nonces on inline styles, call `configure({ cspNonce: "..." })` from `@domphy/core` before mounting. This stamps the nonce on every Domphy-injected `<style>` element, and on the inline `<style>`/`<script>` tags emitted by `@domphy/app` SSR/streaming.
 - **Error boundaries:** use the `errorBoundary()` patch (`@domphy/ui`) to catch errors thrown in reactive children. It invokes `_onError` on the nearest ancestor; call `reset()` to swap in a fallback element.
 - **Lifecycle hooks** (`_onSchedule`, `_onInit`, `_onInsert`, `_onMount`, `_onBeforeUpdate`, `_onUpdate`, `_onBeforeRemove(node, done)` — must call `done()`, `_onRemove`, `_onError(node, error, reset)` — error boundary; call `reset()` to clear children and render fallback) for imperative/3rd-party integration; events stay flat (`onClick`, `onInput`).
 - **Comments in code: English only.** Names: descriptive, no abbreviations (`index` not `i` except loops; `listener` `l`, event `e`, node `node`).
@@ -69,27 +69,27 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 
 | Package | Use |
 | --- | --- |
-| `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code; `peek(read)` reads a reactive `(listener) => T` outside a render context without subscribing; `behavior(key, attach, props)` — per-node imperative state that survives reactive re-renders, see "Reused-node lifecycle" below) |
-| `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`); `generateTheme(baseColors, opts?)` builds a full `ThemeInput` from one base hex per semantic role via `@domphy/palette`'s ramp generator (see `DESIGN.md`) |
-| `@domphy/ui` | 96 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, `stack`, `row`, `panelSection`, …) |
-| `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery`/`bindResult` at `@domphy/query/domphy`; `bindResult` connects an observer to Domphy reactivity so result fields are readable with a listener |
+| `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code; `peek(read)` reads a reactive `(listener) => T` outside a render context without subscribing; `behavior(key, attach, props)` — per-node imperative state that survives reactive re-renders, see "Reused-node lifecycle" below; `configure`/`getConfig` — global config incl. `cspNonce`; `sanitizeHTMLString` — the shared string-level sanitizer behind `rawHtml()`/SSR; multi-root `rawHtml` renders all roots client-side (SSR/client parity); computeds auto-unsubscribe upstream when unobserved; DEV-mode hydration mismatch warnings) |
+| `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`); `resolveThemeColor({ theme, tone, color })` — explicit non-reactive token resolution (the supported form of `themeColorToken(null,…)`); `ToneAliases`/`TONE_STEPS` constants; `generateTheme(baseColors, opts?)` builds a full `ThemeInput` from one base hex per semantic role via `@domphy/palette`'s ramp generator (see `DESIGN.md`) — base hexes are validated/normalized (`#fff` works, invalid throws); custom themes must have 18-step ramps + 8 fontSizes (validated) |
+| `@domphy/ui` | 98 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, `stack`, `row`, `grid`, `panelSection`, `visuallyHidden`, …); shared style helpers `focusRing`/`elevation` are public exports; `inputText({ type })` sets the input's `type` (default `"text"`) |
+| `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery`/`bindResult` at `@domphy/query/domphy`; `bindResult` connects an observer to Domphy reactivity so result fields are readable with a listener; `dehydrate`/`hydrate` (main entry) serialize/restore query-cache state for SSR |
 | `@domphy/table` | headless tables — adapter `createDomphyTable` at `@domphy/table/domphy` |
 | `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
 | `@domphy/virtual` | virtualization — adapter `createVirtualizer` at `@domphy/virtual/domphy` |
-| `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy` |
+| `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy`; byte-level port pinned to `@tanstack/form-core@1.33.0` (see `packages/form/SOURCES.md`) |
 | `@domphy/dnd` | drag & drop — `dragDrop(state, config?)`, `multiList(options)`, `multiListGroup(group, states, config?)` (wraps `@formkit/drag-and-drop`) |
 | `@domphy/blocks` | 173 composed blocks/effect components — sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes (from shadcn/ui), and marketing/effect components (from Magic UI). Every export is a **factory function** `name(props?) => DomphyElement` returning a full mountable tree (not a `$`-patch). Subpaths: `@domphy/blocks/shadcn`, `@domphy/blocks/magicui` (family barrels for smaller bundles). Clean-room reimplemented — see `packages/blocks/SOURCES.md` |
-| `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`) |
-| `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. CLI `domphy-doctor <path...>` scans files on disk (flags: `--only`/`--exclude`/`--no-reactive`/`--no-output`/`--format text\|json`); `auditOutput(node, opts?)` is an optional Layer 4 that lints the real generated HTML/CSS via `htmlhint`/`stylelint` (optional peer deps). **Run it on your output and fix the report.** |
-| `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep) — powers `@domphy/ui` overlays, `@domphy/chart` tooltips, and `@domphy/editor` bubble menus; public surface: `computePosition`/`autoUpdate` + middleware (`offset`/`flip`/`shift`/`arrow`/`size`/`inline`/…), `VirtualElement` for anchoring to non-element rects |
-| `@domphy/palette` | color-palette engine — `Ramp`/`Palette`/`Swatch`: 5 CIELAB quality metrics (design-time companion to theme); `generateRamp(baseColors, steps)`: builds a WCAG-span-optimized 18-step ramp from one or more anchor colors via a warped Oklab interpolation (see `DESIGN.md` §3) |
-| `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `createMarkdown`, `walkMdast`, `splitFrontmatter`; remark/unified under the hood); powers this docs site |
+| `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`); also `optimizedImage`, `script`, `createMemoryHistory`/`createBrowserHistory`, `buildHref`, `DataCache`; SSR/streaming stamps `configure({cspNonce})` on injected inline `<style>`/`<script>` |
+| `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. CLI `domphy-doctor <path...>` scans files on disk (flags: `--only`/`--exclude`/`--no-reactive`/`--no-output`/`--format text\|json`; reports per-file import failures and exits 1); `auditOutput(node, opts?)` is an optional Layer 4 that lints the real generated HTML/CSS via `htmlhint`/`stylelint` (optional peer deps). Depends on `@domphy/theme` (single source for tone grammar/aliases). **Run it on your output and fix the report.** |
+| `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep; pinned core@1.7.5/dom@1.7.6 with a deviation list — see `packages/floating/UPSTREAM.md`) — powers `@domphy/ui` overlays, `@domphy/chart` tooltips, and `@domphy/editor` bubble menus; public surface: `computePosition`/`autoUpdate` + middleware (`offset`/`flip`/`shift`/`arrow`/`size`/`inline`/…), `VirtualElement` for anchoring to non-element rects |
+| `@domphy/palette` | color-palette engine — `Ramp`/`Palette`/`Swatch`: 5 CIELAB quality metrics (design-time companion to theme); `generateRamp(baseColors, steps)`: builds a WCAG-span-optimized 18-step ramp from one or more anchor colors via a warped Oklab interpolation (see `DESIGN.md` §3); `isValidHex`/`normalizeHex` hex validation (#rgb/#rgba/#rrggbb/#rrggbbaa) |
+| `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`; remark/unified under the hood); powers this docs site |
 | `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
-| `@domphy/chart` | WebGL + SVG chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series (luma.gl WebGL) with SVG overlays for axes/legend/tooltip/layout series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`hexToRgba`, `seriesHex`, `seriesPaletteFamily`, `colorFromVisualMap`); ECharts-compatible type surface |
+| `@domphy/chart` | WebGL + SVG chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series (luma.gl WebGL) with SVG overlays for axes/legend/tooltip/layout series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`seriesColor` — theme-aware var-ref default, recommended, `familyCss`, `cssColor`, `createColorResolver`, `hexToRgba`, `seriesHex`/`familyHex` — static light-theme design-time helpers, `seriesPaletteFamily`, `colorFromVisualMap`); theme-aware (colors follow `[data-theme]` at paint time + re-render on flips: SVG layers carry `var(--…)` refs, WebGL uniforms re-resolve); tooltip `formatter` may return a `DomphyElement`, tooltip positioning via `@domphy/floating`; ECharts-compatible type surface |
 | `@domphy/three` | declarative three.js scene graph — 1-1 functional port of `@react-three/fiber` core (reconciler, raycast pointer events, demand frameloop) on Domphy reactivity; `three(options)` patch mounts a canvas host and renders the scene graph, `extend(classes)` registers custom/version-agnostic tags for `resolve()`, `loadAsset`/`preloadAsset`/`clearAsset` for reactive asset loading (`AssetResult<T>`: `data`/`error`/`promise`); `diagnose(options)`/`validate(options)` — scene-level static analyzer (doctor's contract shape for the three() option object doctor cannot see): rules `unknown-tag`, `legacy-light-intensity`, `additive-blowout`, `camera-missing-lookat`; per-node suppression via `_doctorDisable` |
 | `@domphy/editor` | rich-text editor with a Tiptap-compatible API on a self-contained engine (no ProseMirror) — `Editor`, `Extension.create`/`Node.create`/`Mark.create` (incl. plain-DOM `addNodeView`), chainable commands (`chain()`/`can()`, `isActive`, `getJSON`/`getHTML`/`getText`), `starterKit(options?)` set (paragraph/heading/bold/italic/strike/code/underline/blockquote/lists/hardBreak/horizontalRule/link with autolink/codeBlock/undo-redo/trailingNode; per-extension `false` to disable) + `Table` subset (`insertTable`/`goToNextCell`/row-column ops, not in the kit), input rules (`# `, `**bold**`, `- `…) + keymap, view hooks `onPaste`/`onDrop`/`onKeyDown`, `onUpdate({ editor, transaction })`; positions are ProseMirror-style token positions; `getJSON()` omits default-valued attrs (Tiptap JSON loads unchanged). Domphy adapter at `@domphy/editor/domphy`: `createEditor`, `editorContent()` patch (host element must declare `null` children), `bubbleMenu()` patch (selection-anchored via `@domphy/floating`, shadow-root-safe), `editorState(editor)` reactive readers; `editor.stateVersion` is the reactivity bridge (a `State<number>` bumped per transaction) |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
-| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features/`fullBleed`, `--dp-font-sans`/`--dp-font-mono`/`--dp-font-display` font hooks, sidebar/nav/TOC, built-in local search; extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component |
+| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features/`fullBleed`, `--dp-font-sans`/`--dp-font-mono`/`--dp-font-display` font hooks, sidebar/nav/TOC, built-in local search (`SearchWidgetOptions.basePath` — base-aware); extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component; build fails when any page fails unless `continueOnError: true`; emits 404.html + a content-hashed islands bundle |
 | `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, currentLocale, exists, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
 | `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
@@ -116,7 +116,8 @@ themeColor(listener, tone?, color?)
 themeColorToken(listener, tone?, color?)
 // Same signature as themeColor but returns the resolved token value (e.g. "#4a7ff4")
 // instead of a var(--…) CSS reference. Use at design-time or when a third-party
-// API requires a concrete hex/rgb string.
+// API requires a concrete hex/rgb string. For explicit non-reactive resolution
+// (no listener at all), use resolveThemeColor({ theme, tone, color }).
 ```
 Tone semantics (three-layer model):
 - **Surface anchor** (`dataTone` on container): sets the floor for all children. Use **edge anchors only**: `shift-0`–`shift-3` (light surface) or `shift-14`–`shift-17` (dark surface). Mid-ramp anchors (`shift-4`–`shift-13`) cause children to clamp and collapse contrast — `middle-surface-anchor` error.
@@ -166,8 +167,8 @@ borderRadius: (l) => themeSpacing(themeDensity(l) * 1.5),
 Use `outline` not `border` — a 1px border on both sides adds 2px to height and deviates from the formula.
 
 ### Elevation and focus ring
-- **Elevation**: floating/raised surfaces (popover, menu, dialog, drawer, toast, tooltip, combobox/selectBox dropdown, datePicker popup, fab) use the shared `elevation(level)` helper (`packages/ui/src/utils/elevation.ts`, internal) — 3 levels (`"low" | "medium" | "high"`), layered black-alpha box-shadows that read correctly on both themes. Combined with a `border-strong` outline for the "shadow + border" look on panel-style surfaces (popover, menu, combobox/selectBox dropdown, datePicker); shadow-only (no outline) on dialog/drawer/toast/tooltip.
-- **Focus ring**: interactive patches (button, buttonGhost, linkButton, link, listItemButton, inputs, select, selectItem, textarea, segmented, tabs, toggleGroup, rating, pagination, menu items, command items, datePicker cells, accordion/details summary, splitter handle, breadcrumbEllipsis, fab) unify on the shared `focusRing(listener, color)` helper (`packages/ui/src/utils/focusRing.ts`, internal) — ring-offset pattern via layered `box-shadow` on `:focus-visible` (`0 0 0 2px surface, 0 0 0 4px accent@shift-9`), matching Radix/shadcn. Never hand-roll a flush `0 0 0 2px` pastel ring.
+- **Elevation**: floating/raised surfaces (popover, menu, dialog, drawer, toast, tooltip, combobox/selectBox dropdown, datePicker popup, fab) use the shared `elevation(level)` helper (public export of `@domphy/ui`) — 3 levels (`"low" | "medium" | "high"`), layered black-alpha box-shadows that read correctly on both themes. Combined with a `border-strong` outline for the "shadow + border" look on panel-style surfaces (popover, menu, combobox/selectBox dropdown, datePicker); shadow-only (no outline) on dialog/drawer/toast/tooltip.
+- **Focus ring**: interactive patches (button, buttonGhost, linkButton, link, listItemButton, inputs, select, selectItem, textarea, segmented, tabs, toggleGroup, rating, pagination, menu items, command items, datePicker cells, accordion/details summary, splitter handle, breadcrumbEllipsis, fab) unify on the shared `focusRing(listener, color)` helper (public export of `@domphy/ui`) — ring-offset pattern via layered `box-shadow` on `:focus-visible` (`0 0 0 2px surface, 0 0 0 4px accent@shift-9`), matching Radix/shadcn. Never hand-roll a flush `0 0 0 2px` pastel ring.
 - **Press `:active`**: primary CTA controls (button outline/solid, buttonGhost, linkButton, fab, listItemButton) apply the design-system interactive delta — hover `±1`, pressed `±2` (solid uses `decrease-N` on the dark edge surface).
 
 ### Doctor rules (complete list — 18 built-in)
@@ -35562,7 +35563,8 @@ Add these to the frontmatter of any `.md` file to control per-page behavior.
 | `description` | `string` | Meta description for this page |
 | `badge` | `string \| { text, type }` | Badge shown next to the page title |
 | `sidebar` | `false` | Hide the sidebar and expand the content to full width |
-| `aside` | `false` | Hide the TOC aside panel |
+| `aside` | `false` | Hide the TOC aside panel; content expands into the freed column (sidebar stays) |
+| `wide` | `true` | Drop the 1440px shell cap and the prose content max-width (sidebar can stay) |
 | `draft` | `true` | Exclude the page from the build output |
 | `hero` | `HeroConfig` | Enable the home page hero section |
 | `features` | `FeatureConfig[]` | Enable the home page features grid |
@@ -39263,7 +39265,6 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   }
 
   // Move focus into the grid when the popover opens.
-  anchorPartial.onClick = () => {};
   const triggerPartial: PartialElement = {
     type: "text",
     readonly: true,
@@ -39327,6 +39328,9 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
               new Date(viewYear.get(listener), viewMonth.get(listener), 1),
             ),
           ariaLive: "polite",
+          // Calendar chrome (month/year header), not prose — weight is part
+          // of the widget's visual design, not the theme's type scale.
+          _doctorDisable: "inline-typography",
           style: {
             flex: "1",
             textAlign: "center",
@@ -39348,6 +39352,9 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     const weekdayHeader: DomphyElement<"div"> = {
       div: weekdayNames.map((name, index) => ({
         div: name,
+        // Calendar chrome (weekday column labels) — weight is widget design,
+        // not theme typography.
+        _doctorDisable: "inline-typography",
         style: {
           textAlign: "center",
           fontSize: (listener) => themeSize(listener, "decrease-1"),
@@ -39505,7 +39512,12 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     return {
       div: [
         numberSelect(24, hour, "Hour"),
-        { span: ":", style: { fontWeight: "bold" } },
+        // Time separator glyph — widget chrome, not prose.
+        {
+          span: ":",
+          _doctorDisable: "inline-typography",
+          style: { fontWeight: "bold" },
+        },
         numberSelect(60, minute, "Minute"),
       ],
       style: {
@@ -39808,7 +39820,13 @@ function details(
         transition: `max-height ${duration}ms ease, opacity ${duration}ms ease, padding ${duration}ms ease`,
       },
       "&[open] > :not(summary)": {
-        maxHeight: themeSpacing(250),
+        // Non-clipping open state: a bounded max-height here (previously
+        // themeSpacing(250) ≈ 1000px) silently CUT OFF body content taller
+        // than the cap while fully open. CSS cannot transition max-height
+        // to/from `none`, so the open transition is carried by opacity +
+        // padding (both still animate over `duration`); max-height jumps
+        // straight to none and tall content is never clipped.
+        maxHeight: "none",
         opacity: 1,
         paddingTop: (listener) => themeSpacing(themeDensity(listener) * 1),
         paddingBottom: (listener) => themeSpacing(themeDensity(listener) * 3),
@@ -39823,7 +39841,15 @@ export { details };
 ### dialog
 
 ```ts
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type BehaviorInstance,
+  behavior,
+  type ElementNode,
+  type PartialElement,
+  type State,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -39837,27 +39863,43 @@ import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), details, [tabindex]:not([tabindex="-1"])';
 
-/**
- * Modal dialog patch driven by an `open` State. Calls `showModal()`/`close()`,
- * fades via opacity, locks page scroll while open, traps Tab focus within the
- * dialog, restores focus to the previously focused element on close, sets
- * `aria-modal`, and closes on outside (backdrop) click. Apply to a `<dialog>`.
- *
- * @hostTag dialog
- * @param props.color - Theme color tone for the dialog surface. Defaults to "neutral".
- * @param props.open - Open state (`ValueOrState<boolean>`); set it to true/false to show/hide. Defaults to false.
- * @example { dialog: [...], $: [dialog({ open })] }
- */
-function dialog(
-  props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {},
-): PartialElement {
-  const { color = "neutral", open = false } = props;
-  const state = toState(open);
+type DialogProps = {
+  state: State<boolean>;
+};
+
+type DialogInstance = BehaviorInstance<DialogProps> & {
+  // Close via the instance's CURRENT state — routing through the behavior
+  // guarantees the state being set is the one the open/close subscription
+  // listens to, even when a re-rendered generation's closure would otherwise
+  // set its own fresh (unsubscribed) default state.
+  requestClose: () => void;
+  onTransitionEnd: (e: Event) => void;
+};
+
+// All close-finalization state (closing flag, previousFocus, scrollLocked,
+// the fallback timer) lives in ONE behavior instance per dialog node. It used
+// to be factory-scope variables captured by _onMount — but _onMount runs once
+// for the FIRST generation only, while onTransitionEnd (live-rebound every
+// patch) belongs to the LATEST generation: gen-1's update() set gen-1's
+// `closing = true` and the live gen-N handler read gen-N's `closing` (false)
+// and early-returned, so every close fell back to the 350ms timer and focus
+// restore scrolled through stale closures. behavior() attaches once and
+// routes every later generation's props into the same instance (floating.ts
+// pattern).
+function attachDialog(
+  node: ElementNode,
+  initialProps: DialogProps,
+): DialogInstance {
+  let { state } = initialProps;
   let previousFocus: HTMLElement | null = null;
   let closing = false;
   let scrollLocked = false;
+  let closeTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const finalizeClose = (dlg: HTMLDialogElement) => {
+  const dlg = node.domElement as HTMLDialogElement;
+  dlg.setAttribute("aria-modal", "true");
+
+  const finalizeClose = () => {
     closing = false;
     // Guard for environments with HTMLDialogElement but no close()
     // implementation (e.g. jsdom in tests).
@@ -39881,12 +39923,148 @@ function dialog(
     previousFocus = null;
   };
 
+  const trapFocus = (e: KeyboardEvent) => {
+    if (e.key !== "Tab") return;
+    const focusables = Array.from(
+      dlg.querySelectorAll<HTMLElement>(FOCUSABLE),
+    ).filter(
+      (el) => !el.closest("[aria-hidden='true']") && el.offsetParent !== null,
+    );
+    if (!focusables.length) {
+      e.preventDefault();
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first || document.activeElement === dlg) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  };
+
+  const onCancel = (e: Event) => {
+    e.preventDefault();
+    state.set(false);
+  };
+  dlg.addEventListener("cancel", onCancel);
+
+  const update = (val: boolean) => {
+    if (val) {
+      // Cancel any in-flight close: a pending fallback timer or a true
+      // `closing` flag left over from the previous close (e.g. reopening
+      // within the 350ms window, or the mount-time close of an
+      // initially-closed dialog) would otherwise finalize-close the
+      // just-opened dialog on the open fade's own transitionend.
+      closing = false;
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+        closeTimer = null;
+      }
+      previousFocus = document.activeElement as HTMLElement;
+      dlg.style.visibility = "visible";
+      dlg.style.pointerEvents = "auto";
+      // Guard for environments with HTMLDialogElement but no showModal()
+      // implementation (e.g. jsdom in tests). Also guard against re-entering
+      // on an already-open dialog — showModal() throws InvalidStateError in
+      // real browsers when the dialog is already open.
+      if (typeof dlg.showModal === "function" && !dlg.open) dlg.showModal();
+      if (!scrollLocked) {
+        lockScroll();
+        scrollLocked = true;
+      }
+      dlg.addEventListener("keydown", trapFocus);
+      requestAnimationFrame(() => {
+        dlg.style.opacity = "1";
+        const focusable = dlg.querySelector<HTMLElement>(FOCUSABLE);
+        focusable?.focus();
+      });
+    } else {
+      closing = true;
+      dlg.style.opacity = "0";
+      dlg.removeEventListener("keydown", trapFocus);
+      // Fallback: if transitionend never fires (reduced-motion, display:none),
+      // unblock close after the transition duration + buffer.
+      closeTimer = setTimeout(() => {
+        closeTimer = null;
+        if (!closing) return;
+        finalizeClose();
+      }, 350);
+    }
+  };
+  update(state.get());
+  let release = state.addListener(update);
+
+  return {
+    requestClose: () => state.set(false),
+    onTransitionEnd: (e: Event) => {
+      if (!closing) return;
+      // Guard against bubbled transitionend from nested content (e.g. an
+      // accordion/details transition inside the dialog) prematurely
+      // triggering close-finalization.
+      if (e.target !== dlg) return;
+      if ((e as TransitionEvent).propertyName !== "opacity") return;
+      finalizeClose();
+    },
+    update(props) {
+      // Re-subscribe when a later generation brings a genuinely different
+      // state object (e.g. the default `toState(false)` allocated per
+      // factory call); a caller-owned state arrives as the SAME object and
+      // keeps its existing subscription untouched.
+      if (props.state !== state) {
+        release();
+        state = props.state;
+        release = state.addListener(update);
+      }
+    },
+    destroy() {
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+        closeTimer = null;
+      }
+      release();
+      dlg.removeEventListener("cancel", onCancel);
+      if (scrollLocked) {
+        unlockScroll();
+        scrollLocked = false;
+      }
+      dlg.removeEventListener("keydown", trapFocus);
+      previousFocus?.focus();
+      previousFocus = null;
+    },
+  };
+}
+
+/**
+ * Modal dialog patch driven by an `open` State. Calls `showModal()`/`close()`,
+ * fades via opacity, locks page scroll while open, traps Tab focus within the
+ * dialog, restores focus to the previously focused element on close, sets
+ * `aria-modal`, and closes on outside (backdrop) click. Apply to a `<dialog>`.
+ *
+ * @hostTag dialog
+ * @param props.color - Theme color tone for the dialog surface. Defaults to "neutral".
+ * @param props.open - Open state (`ValueOrState<boolean>`); set it to true/false to show/hide. Defaults to false.
+ * @example { dialog: [...], $: [dialog({ open })] }
+ */
+function dialog(
+  props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {},
+): PartialElement {
+  const { color = "neutral", open = false } = props;
+  const state = toState(open);
+
   return {
     _onInsert: (node) => {
       if (node.tagName !== "dialog") {
         console.warn(`"dialog" primitive patch must use dialog tag`);
       }
     },
+    ...behavior<DialogProps>("dialog", attachDialog, { state }),
     onClick: (e: MouseEvent, node) => {
       if (e.target !== node.domElement) return;
       const r = node.domElement!.getBoundingClientRect();
@@ -39895,107 +40073,10 @@ function dialog(
         e.clientX <= r.right &&
         e.clientY >= r.top &&
         e.clientY <= r.bottom;
-      if (!inside) state.set(false);
+      if (!inside) node.getBehavior<DialogInstance>("dialog")?.requestClose();
     },
-    onTransitionEnd: (e, node) => {
-      if (!closing) return;
-      // Guard against bubbled transitionend from nested content (e.g. an
-      // accordion/details transition inside the dialog) prematurely
-      // triggering close-finalization.
-      if (e.target !== node.domElement) return;
-      if (e.propertyName !== "opacity") return;
-      finalizeClose(node.domElement as HTMLDialogElement);
-    },
-    _onMount: (node) => {
-      const dlg = node.domElement as HTMLDialogElement;
-      dlg.setAttribute("aria-modal", "true");
-      let closeTimer: ReturnType<typeof setTimeout> | null = null;
-
-      const trapFocus = (e: KeyboardEvent) => {
-        if (e.key !== "Tab") return;
-        const focusables = Array.from(
-          dlg.querySelectorAll<HTMLElement>(FOCUSABLE),
-        ).filter(
-          (el) =>
-            !el.closest("[aria-hidden='true']") && el.offsetParent !== null,
-        );
-        if (!focusables.length) {
-          e.preventDefault();
-          return;
-        }
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (e.shiftKey) {
-          if (
-            document.activeElement === first ||
-            document.activeElement === dlg
-          ) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      };
-
-      const onCancel = (e: Event) => {
-        e.preventDefault();
-        state.set(false);
-      };
-      dlg.addEventListener("cancel", onCancel);
-
-      const update = (val: boolean) => {
-        if (val) {
-          previousFocus = document.activeElement as HTMLElement;
-          dlg.style.visibility = "visible";
-          dlg.style.pointerEvents = "auto";
-          // Guard for environments with HTMLDialogElement but no showModal()
-          // implementation (e.g. jsdom in tests).
-          if (typeof dlg.showModal === "function") dlg.showModal();
-          if (!scrollLocked) {
-            lockScroll();
-            scrollLocked = true;
-          }
-          dlg.addEventListener("keydown", trapFocus);
-          requestAnimationFrame(() => {
-            dlg.style.opacity = "1";
-            const focusable = dlg.querySelector<HTMLElement>(FOCUSABLE);
-            focusable?.focus();
-          });
-        } else {
-          closing = true;
-          dlg.style.opacity = "0";
-          dlg.removeEventListener("keydown", trapFocus);
-          // Fallback: if transitionend never fires (reduced-motion, display:none),
-          // unblock close after the transition duration + buffer.
-          closeTimer = setTimeout(() => {
-            closeTimer = null;
-            if (!closing) return;
-            finalizeClose(dlg);
-          }, 350);
-        }
-      };
-      update(state.get());
-      const release = state.addListener(update);
-      node.addHook("Remove", () => {
-        if (closeTimer) {
-          clearTimeout(closeTimer);
-          closeTimer = null;
-        }
-        release();
-        dlg.removeEventListener("cancel", onCancel);
-        if (scrollLocked) {
-          unlockScroll();
-          scrollLocked = false;
-        }
-        dlg.removeEventListener("keydown", trapFocus);
-        previousFocus?.focus();
-        previousFocus = null;
-      });
-    },
+    onTransitionEnd: (e, node) =>
+      node.getBehavior<DialogInstance>("dialog")?.onTransitionEnd(e),
     style: {
       opacity: "0",
       // Matches finalizeClose's inline defaults — a dialog that mounts
@@ -40680,6 +40761,47 @@ function formGroup(
 }
 
 export { formGroup };
+```
+
+### grid
+
+```ts
+import type { PartialElement } from "@domphy/core";
+import { themeDensity, themeSpacing } from "@domphy/theme";
+import type { FlexAlign } from "./stack.js";
+
+/**
+ * A CSS grid with a column template and spacing between cells — the
+ * general-purpose primitive for card/property/stat grids instead of
+ * hand-rolling `display: "grid"; gridTemplateColumns: ...; gap: ...`.
+ * Mirrors `row()`'s contract. Styles the host only; apply to any block
+ * element.
+ *
+ * @param props.columns - Column count (expanded to `repeat(N, minmax(0, 1fr))`)
+ *   or a raw `grid-template-columns` value. Defaults to `1`.
+ * @param props.gap - Spacing multiplier for gap between cells (default 4 = 1em at density 1).
+ * @param props.align - Block-axis alignment of items (`alignItems`). Unset by default.
+ * @example { div: [{ div: "A" }, { div: "B" }], $: [grid({ columns: 2 })] }
+ * @example { div: [...], $: [grid({ columns: "repeat(auto-fill, minmax(12em, 1fr))", gap: 6 })] }
+ */
+function grid(
+  props: { columns?: number | string; gap?: number; align?: FlexAlign } = {},
+): PartialElement {
+  const { columns = 1, gap = 4, align } = props;
+  return {
+    style: {
+      display: "grid",
+      gridTemplateColumns:
+        typeof columns === "number"
+          ? `repeat(${columns}, minmax(0, 1fr))`
+          : columns,
+      gap: (listener) => themeSpacing(themeDensity(listener) * gap),
+      ...(align ? { alignItems: align } : {}),
+    },
+  };
+}
+
+export { grid };
 ```
 
 ### heading
@@ -41965,34 +42087,38 @@ import {
 import { focusRing } from "../utils/focusRing.js";
 
 /**
- * Themed single-line text input primitive. Sets `type="text"` and styles the
- * field with themed border, focus ring, placeholder, disabled and validation
- * (`data-status`) states. Apply to an `<input>` element.
+ * Themed single-line text input primitive. Sets `type` (default `"text"`) and
+ * styles the field with themed border, focus ring, placeholder, disabled and
+ * validation (`data-status`) states. Apply to an `<input>` element.
  *
  * @hostTag input
  * @param props - Optional configuration.
+ * @param props.type - The input's `type` attribute (e.g. `"email"`, `"url"`, `"tel"`). Defaults to `"text"`.
  * @param props.color - Base color tone for text/border/background. Defaults to `"neutral"`.
  * @param props.accentColor - Accent color tone for the hover/focus outline. Defaults to `"primary"`.
  * @example { input: "", type: "text", placeholder: "Name", $: [inputText()] }
  */
 function inputText(
   props: {
+    type?: string;
     color?: ValueOrState<ThemeColor>;
     accentColor?: ValueOrState<ThemeColor>;
   } = {},
 ): PartialElement {
+  const { type = "text" } = props;
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
-    type: "text",
-    _onSchedule: (node, element) => {
+    // Declared like any other attribute — the native element still wins over
+    // this patch default if the host declares its own `type`.
+    type,
+    _onInsert: (node) => {
       if (node.tagName !== "input") {
         console.warn(
           `"inputText" primitive patch must use input tag and text type`,
         );
       }
-      (element as any).type = "text";
     },
     style: {
       fontFamily: "inherit",
@@ -43269,7 +43395,7 @@ import {
 import type { Placement } from "@domphy/floating";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
-import { createFloating } from "../utils/floating.js";
+import { createFloating, floatingPanelId } from "../utils/floating.js";
 
 /**
  * Floating popover primitive. Attaches to its host as the anchor/trigger and
@@ -43293,7 +43419,6 @@ function popover(props: {
 }): PartialElement {
   const { open = false, placement = "bottom", openOn = "click" } = props;
 
-  let popoverId: string | null = null;
   const openState = toState(open);
   const placeState = toState(placement);
 
@@ -43307,6 +43432,9 @@ function popover(props: {
     keepOpenOnContentHover: openOn === "hover",
   });
 
+  // The panel id is derived from the ANCHOR's nodeId and stamped by the
+  // shared floating behavior when the panel mounts (see floating.ts) — no
+  // factory-scope id variable, which a re-rendered generation would lose.
   const popoverPartial: PartialElement = {
     role: "dialog",
     dataTone: "shift-14",
@@ -43317,11 +43445,6 @@ function popover(props: {
       outlineOffset: "-1px",
       boxShadow: elevation("medium"),
     },
-    _onInsert: (node) => {
-      const id = node.attributes.get("id");
-      popoverId = id || node.nodeId;
-      !id && node.attributes.set("id", popoverId);
-    },
   };
 
   props.content.$ ||= [];
@@ -43330,6 +43453,14 @@ function popover(props: {
   const triggerPartial: PartialElement = {
     ariaHaspopup: "dialog",
     ariaExpanded: (listener) => openState.get(listener),
+    // Declared as a reactive attribute (listener.elementNode is the anchor) so
+    // it is present from first render — before the panel's first show() — and
+    // is re-declared on every patch: attributes set imperatively (the old
+    // _onMount attributes.set) are stripped by patch() on ancestor re-render.
+    ariaControls: (listener) =>
+      listener?.elementNode
+        ? floatingPanelId("popover", listener.elementNode)
+        : undefined,
     onMouseEnter: (_e, node) => openOn === "hover" && show(node),
     onMouseLeave: (_e, node) => openOn === "hover" && hide(node),
     onClick: (_e, node) => {
@@ -43348,14 +43479,17 @@ function popover(props: {
     onBlur: (e, node) => {
       const related = (e as FocusEvent).relatedTarget as Node | null;
       const root = node.getRoot().domElement as Element;
-      const floatingEl = popoverId
-        ? root.querySelector(`#${CSS.escape(popoverId)}`)
-        : null;
+      // Tabbing from the trigger INTO the panel must not close the popover.
+      // The id is deterministic and selector-safe ([a-z0-9-] only — nodeId is
+      // a letter + hex hash), so this lookup works for every generation —
+      // the old factory-scope `popoverId` was null in any generation whose
+      // content _onInsert had never run, letting the guard fall through.
+      const floatingEl = root.querySelector(
+        `#${floatingPanelId("popover", node)}`,
+      );
       if (related && floatingEl?.contains(related)) return;
       hide(node);
     },
-    _onMount: (node) =>
-      popoverId && node.attributes.set("ariaControls", popoverId),
   };
   merge(anchorPartial, triggerPartial);
 
@@ -44395,27 +44529,35 @@ function selectItem(
 
   const partial: PartialElement = {
     role: "option",
+    // aria-selected and the click toggler must be DECLARED on the partial, not
+    // wired imperatively in _onInit: hooks run once per real DOM node, but
+    // patch() resets _events and strips undeclared attributes on every
+    // ancestor re-render — so imperative wiring was lost on the first reuse
+    // while the (once-run) hook never re-installed it. The reactive reader
+    // resolves the `select` context lazily through listener.elementNode, so
+    // every generation re-binds to whatever context is actually live.
+    ariaSelected: (listener) => {
+      const select = listener?.elementNode?.getContext("select");
+      if (!select) return undefined;
+      const val = select.value.get(listener);
+      return select.multiple ? val.includes(value) : val === value;
+    },
+    onClick: (_e, node) => {
+      const select = node.getContext("select");
+      if (!select) return;
+      const state = select.value;
+      const val = state.get();
+      if (select.multiple) {
+        val.includes(value)
+          ? state.set(val.filter((v: number | string) => v !== value))
+          : state.set(val.concat([value]));
+      } else {
+        val !== value && state.set(value);
+      }
+    },
     _onInit: (node) => {
       if (node.tagName !== "div") {
         console.warn(`"selectItem" patch must use div tag`);
-      }
-      const select = node.getContext("select");
-      if (select) {
-        const state = select.value;
-        node.attributes.set("ariaSelected", (listener) => {
-          const val = state.get(listener);
-          return select.multiple ? val.includes(value) : val === value;
-        });
-        node.addEvent("click", () => {
-          const val = state.get();
-          if (select.multiple) {
-            val.includes(value)
-              ? state.set(val.filter((v: number | string) => v !== value))
-              : state.set(val.concat([value]));
-          } else {
-            val !== value && state.set(value);
-          }
-        });
       }
     },
     style: {
@@ -45421,6 +45563,9 @@ function tabs(
           id: `tab${id}${key}`,
           ariaControls: `panel${id}${key}`,
           ariaSelected: (l: Listener) => activeKey.get(l) === key,
+          // Roving tabindex (APG tabs pattern): only the selected tab is in
+          // the tab order; arrow keys move both selection and focus.
+          tabIndex: (l: Listener) => (activeKey.get(l) === key ? 0 : -1),
           onClick: () => activeKey.set(key),
           onKeyDown: (e: Event) => {
             const k = (e as KeyboardEvent).key;
@@ -45435,6 +45580,13 @@ function tabs(
             else if (k === "Home") next = 0;
             else if (k === "End") next = keys.length - 1;
             activeKey.set(keys[next]);
+            // Focus must follow selection: without this the next arrow key
+            // fires on the OLD tab and re-navigates from its stale position,
+            // making later tabs unreachable by keyboard. Resolved via the
+            // event target's own tablist — shadow-root safe (unlike a
+            // document.getElementById lookup).
+            const list = (e.target as HTMLElement).closest("[role=tablist]");
+            list?.querySelectorAll<HTMLElement>("[role=tab]")[next]?.focus();
           },
           style: {
             cursor: "pointer",
@@ -45893,6 +46045,29 @@ function toast(
     _onBeforeRemove: (node, done) => {
       let finished = false;
       let timer: ReturnType<typeof setTimeout> | null = null;
+      let overlayRemoved = false;
+      const rootNode = node.getRoot();
+      const overlayEl = node.domElement?.parentElement ?? null;
+      // The #domphy-toast-{position} overlay is inserted into the root on
+      // first use and shared by every toast at that position — remove it once
+      // its LAST toast is gone instead of leaking one empty fixed container
+      // per used position for the app's whole lifetime.
+      const removeOverlayIfEmpty = () => {
+        if (overlayRemoved) return;
+        if (
+          !overlayEl ||
+          overlayEl.id !== `domphy-toast-${position}` ||
+          overlayEl.childElementCount > 0
+        ) {
+          return;
+        }
+        overlayRemoved = true;
+        const item = rootNode.children?.items.find(
+          (it) => (it as ElementNode).domElement === overlayEl,
+        );
+        if (item) rootNode.children!.remove(item);
+        else overlayEl.remove();
+      };
       const finish = () => {
         if (finished) return;
         finished = true;
@@ -45902,6 +46077,7 @@ function toast(
         }
         node.domElement!.removeEventListener("transitionend", onEnd);
         done();
+        removeOverlayIfEmpty();
       };
       const onEnd = (e: Event) => {
         if ((e as TransitionEvent).propertyName === "transform") finish();
@@ -45919,6 +46095,7 @@ function toast(
           timer = null;
         }
         node.domElement?.removeEventListener("transitionend", onEnd);
+        removeOverlayIfEmpty();
       });
       state.set(false);
     },
@@ -46129,7 +46306,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
-import { createFloating } from "../utils/floating.js";
+import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { popoverArrow } from "./popoverArrow.js";
 
 /**
@@ -46159,13 +46336,13 @@ function tooltip(
   const placeState = toState(placement);
   const contentState = toState(content);
 
-  // Pre-generate ID so the trigger can reference it via aria-describedby
-  // before the tooltip content element is first inserted into the DOM.
-  const tooltipId = `domphy-tt-${Math.random().toString(36).slice(2, 9)}`;
-
+  // The tooltip id is NOT pre-generated here: a factory-scope id (previously
+  // Math.random()-based) churns per generation and mismatches SSR/hydration.
+  // Instead the shared floating behavior stamps a deterministic id derived
+  // from the anchor's nodeId when the panel mounts (see floating.ts), and the
+  // trigger references the same id via _onSchedule below.
   const contentElement: DomphyElement<"span"> = {
     span: (listener) => contentState.get(listener),
-    id: tooltipId,
   };
 
   const { show, hide, anchorPartial } = createFloating({
@@ -46194,7 +46371,14 @@ function tooltip(
   contentElement.$.push(tooltipPartial);
 
   const triggerPartial: PartialElement = {
-    ariaDescribedby: tooltipId,
+    // Declared as a reactive attribute (listener.elementNode is the anchor) so
+    // it is present from first render — before the tooltip's first show() —
+    // and is re-declared on every patch (patch() strips attributes that are
+    // no longer declared, so imperative wiring would not survive re-render).
+    ariaDescribedby: (listener) =>
+      listener?.elementNode
+        ? floatingPanelId("tooltip", listener.elementNode)
+        : undefined,
     onMouseEnter: (_e, node) => show(node),
     onMouseLeave: (_e, node) => hide(node),
     onFocus: (_e, node) => show(node),
@@ -46384,4 +46568,35 @@ function unorderedList(
 }
 
 export { unorderedList };
+```
+
+### visuallyHidden
+
+```ts
+import type { PartialElement } from "@domphy/core";
+
+/**
+ * Visually hides an element while keeping it in the accessibility tree — the
+ * classic "sr-only" recipe for screen-reader-only labels, live-region text,
+ * and skip links (before focus). Styles the host only; apply to any element.
+ *
+ * @example { span: "Opens in a new tab", $: [visuallyHidden()] }
+ */
+function visuallyHidden(): PartialElement {
+  return {
+    style: {
+      position: "absolute",
+      width: "1px",
+      height: "1px",
+      padding: "0",
+      margin: "-1px",
+      overflow: "hidden",
+      clip: "rect(0, 0, 0, 0)",
+      whiteSpace: "nowrap",
+      border: "0",
+    },
+  };
+}
+
+export { visuallyHidden };
 ```

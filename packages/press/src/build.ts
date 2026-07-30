@@ -8,13 +8,16 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
+  rmdirSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp, defineRoutes } from "@domphy/app";
+import type { DomphyElement } from "@domphy/core";
 import { themeCSS } from "@domphy/theme";
 import type * as EsbuildType from "esbuild";
 import { createHighlighter } from "./highlight.js";
@@ -126,6 +129,9 @@ export function getLastUpdated(filePath: string): string | undefined {
 interface CacheEntry {
   hash: string;
   searchDoc: import("./types.js").SearchDocument;
+  /** Output file (relative to outDir) this page emitted — used to remove
+   *  stale output when the page is deleted or becomes a draft. */
+  outFile: string;
 }
 
 interface PressCache {
@@ -162,38 +168,77 @@ export function hashConfig(config: SiteConfig): string {
 async function buildIslandsBundle(
   outDir: string,
   searchEnabled: boolean,
-): Promise<void> {
-  if (!searchEnabled) return;
+  base: string,
+): Promise<string | null> {
+  if (!searchEnabled) return null;
   const islandsSource = join(here, "islands.js");
-  const entrySource = `import{bootstrap}from${JSON.stringify(islandsSource)};bootstrap({search:{kind:"search",id:"search"}});`;
+  const searchOptions = JSON.stringify({
+    indexUrl: `${base}search-index.json`,
+    basePath: base === "/" ? "" : base.replace(/\/$/, ""),
+  });
+  const entrySource = `import{bootstrap}from${JSON.stringify(islandsSource)};bootstrap({search:{kind:"search",id:"search",searchOptions:${searchOptions}}});`;
   const tmpEntry = join(outDir, "_press_islands_entry.js");
   mkdirSync(outDir, { recursive: true });
   writeFileSync(tmpEntry, entrySource, "utf8");
-  const { build: esbuildBuild } = (await import(
-    "esbuild"
-  )) as typeof EsbuildType;
-  await esbuildBuild({
-    entryPoints: { "press-islands": tmpEntry },
-    bundle: true,
-    splitting: false,
-    format: "esm",
-    outdir: join(outDir, "assets"),
-    entryNames: "[name]",
-    minify: true,
-    sourcemap: false,
-    target: "es2020",
-    define: { "process.env.NODE_ENV": '"production"' },
-    logLevel: "error",
-  });
-  rmSync(tmpEntry);
+  try {
+    const { build: esbuildBuild } = (await import(
+      "esbuild"
+    )) as typeof EsbuildType;
+    const result = await esbuildBuild({
+      entryPoints: { "press-islands": tmpEntry },
+      bundle: true,
+      splitting: false,
+      format: "esm",
+      outdir: join(outDir, "assets"),
+      // Content-hashed file name: an immutable-cache deploy must never pin a
+      // stale press-islands.js (the hash changes whenever the bundle does).
+      entryNames: "[name]-[hash]",
+      minify: true,
+      sourcemap: false,
+      target: "es2020",
+      define: { "process.env.NODE_ENV": '"production"' },
+      logLevel: "error",
+      metafile: true,
+    });
+    const output = Object.keys(result.metafile.outputs).find((file) =>
+      /assets[/\\]press-islands-[^/\\]+\.js$/.test(file),
+    );
+    if (!output)
+      throw new Error("esbuild did not emit a hashed press-islands bundle");
+    const fileName = output.split(/[/\\]/).pop()!;
+    // Drop stale hashed bundles from earlier incremental builds.
+    const assetsDir = join(outDir, "assets");
+    for (const existing of readdirSync(assetsDir)) {
+      if (
+        existing.startsWith("press-islands-") &&
+        existing.endsWith(".js") &&
+        existing !== fileName
+      )
+        rmSync(join(assetsDir, existing), { force: true });
+    }
+    return fileName;
+  } finally {
+    rmSync(tmpEntry, { force: true });
+  }
 }
 
 // --- Sitemap -----------------------------------------------------------------
 
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 function toAbsUrl(hostname: string, route: string): string {
-  return route === "/"
-    ? `${hostname}/`
-    : `${`${hostname}${route}`.replace(/\/+$/, "")}/`;
+  return escapeXml(
+    route === "/"
+      ? `${hostname}/`
+      : `${`${hostname}${route}`.replace(/\/+$/, "")}/`,
+  );
 }
 
 function buildSitemap(
@@ -240,7 +285,7 @@ function buildSitemap(
       const altRoute = prefix === "/" ? slug : prefix + slug.slice(1);
       if (!routeSet.has(altRoute)) continue;
       alternates.push(
-        `    <xhtml:link rel="alternate" hreflang="${locale.lang}" href="${toAbsUrl(hostname, altRoute)}"/>`,
+        `    <xhtml:link rel="alternate" hreflang="${escapeXml(locale.lang)}" href="${toAbsUrl(hostname, altRoute)}"/>`,
       );
     }
 
@@ -355,13 +400,13 @@ function mermaidHeadScript(mermaid: boolean | { cdn?: string }): string {
 function htmlDocument(
   result: { html: string; css: string; head: string; status: number },
   config: SiteConfig,
-  searchEnabled: boolean,
+  islandsScriptUrl: string | null,
   generatedCss: string,
   pageHead: string[],
   lang: string,
 ): string {
-  const islandsScript = searchEnabled
-    ? `\n<script type="module" src="${config.base}assets/press-islands.js"></script>`
+  const islandsScript = islandsScriptUrl
+    ? `\n<script type="module" src="${islandsScriptUrl}"></script>`
     : "";
   const mermaidScript = config.themeConfig.mermaid
     ? mermaidHeadScript(config.themeConfig.mermaid)
@@ -401,6 +446,10 @@ export async function buildSite(options: BuildOptions): Promise<void> {
   const { config, srcDir, outDir, publicDir, incremental = false } = options;
   const searchEnabled = config.themeConfig.search !== false;
   const showLastUpdated = !!config.lastUpdated;
+  const rawBase = config.base ?? "/";
+  const base = rawBase.endsWith("/") ? rawBase : `${rawBase}/`;
+  // Per-page failures from BOTH render stages, printed together at the end.
+  const failures: Array<{ route: string; stage: string; error: string }> = [];
 
   // --- Load incremental cache ------------------------------------------------
   const cacheFile = join(outDir, ".press-cache.json");
@@ -479,28 +528,39 @@ export async function buildSite(options: BuildOptions): Promise<void> {
   let cachedCount = 0;
 
   for (const page of localePages) {
-    const source = readFileSync(page.filePath, "utf8");
-    const contentHash = hashContent(source);
-    const cached = cache.pages[page.filePath];
+    let contentHash: string;
+    let doc: Awaited<ReturnType<typeof renderDoc>>;
+    try {
+      const source = readFileSync(page.filePath, "utf8");
+      contentHash = hashContent(source);
+      const cached = cache.pages[page.filePath];
 
-    if (
-      incremental &&
-      cached?.hash === contentHash &&
-      existsSync(join(outDir, page.outFile))
-    ) {
-      searchDocs.push(cached.searchDoc);
-      cachedRoutes.push(page.route);
-      updatedCache[page.filePath] = cached;
-      cachedCount++;
+      if (
+        incremental &&
+        cached?.hash === contentHash &&
+        existsSync(join(outDir, page.outFile))
+      ) {
+        searchDocs.push(cached.searchDoc);
+        cachedRoutes.push(page.route);
+        updatedCache[page.filePath] = cached;
+        cachedCount++;
+        continue;
+      }
+
+      doc = await renderDoc(source, {
+        filePath: page.filePath,
+        docsDir: srcDir,
+        repoRoot: srcDir,
+        highlight,
+      });
+    } catch (error) {
+      failures.push({
+        route: page.route,
+        stage: "markdown",
+        error: String((error as Error).message || error),
+      });
       continue;
     }
-
-    const doc = await renderDoc(source, {
-      filePath: page.filePath,
-      docsDir: srcDir,
-      repoRoot: srcDir,
-      highlight,
-    });
     if (doc.frontmatter.draft === true) {
       console.log(`  ↷ ${page.route} (draft, skipped)`);
       continue;
@@ -533,7 +593,29 @@ export async function buildSite(options: BuildOptions): Promise<void> {
       relPath,
     });
     searchDocs.push(searchDoc);
-    updatedCache[page.filePath] = { hash: contentHash, searchDoc };
+    updatedCache[page.filePath] = {
+      hash: contentHash,
+      searchDoc,
+      outFile: page.outFile,
+    };
+  }
+
+  // Remove output from the previous build whose page is gone (deleted file)
+  // or no longer emitted (newly marked draft, or failed render — those must
+  // not leave a stale cached page behind either).
+  if (incremental) {
+    for (const [filePath, entry] of Object.entries(cache.pages)) {
+      if (filePath in updatedCache || !entry.outFile) continue;
+      const stalePath = join(outDir, entry.outFile);
+      rmSync(stalePath, { force: true });
+      // Clean up the route directory when it only held that page.
+      try {
+        rmdirSync(dirname(stalePath));
+      } catch {
+        /* not empty — fine */
+      }
+      console.log(`  ✗ ${entry.outFile} (stale, removed)`);
+    }
   }
 
   if (incremental && cachedCount > 0)
@@ -608,8 +690,12 @@ export async function buildSite(options: BuildOptions): Promise<void> {
   );
   const app = createApp(appRoutes);
 
-  // 3. Render each changed route to static HTML
-  const failures: Array<{ route: string; error: string }> = [];
+  // 3. Islands bundle — built BEFORE page SSR so the content-hashed file name
+  // can be referenced from every page's <script> tag.
+  const islandsFile = await buildIslandsBundle(outDir, searchEnabled, base);
+  const islandsScriptUrl = islandsFile ? `${base}assets/${islandsFile}` : null;
+
+  // 4. Render each changed route to static HTML
   let totalBytes = 0;
   for (const page of built) {
     try {
@@ -619,7 +705,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
       const html = htmlDocument(
         result,
         config,
-        searchEnabled,
+        islandsScriptUrl,
         generatedCss,
         pageHead,
         lang,
@@ -633,31 +719,72 @@ export async function buildSite(options: BuildOptions): Promise<void> {
     } catch (error) {
       failures.push({
         route: page.route,
+        stage: "ssr",
         error: String((error as Error).message || error),
       });
+      // Do not cache a page whose HTML was never written — the next
+      // incremental build must retry it.
+      delete updatedCache[page.filePath];
     }
   }
-  if (failures.length > 0) {
-    console.warn(`\n${failures.length} page(s) failed:`);
-    for (const failure of failures)
-      console.warn(`  ✗ ${failure.route}: ${failure.error}`);
+
+  // 5. 404 page (themed shell — the dev/preview servers serve this file)
+  try {
+    const notFoundRoutes = defineRoutes([
+      {
+        path: "/404",
+        metadata: { title: `Page not found | ${config.title}` },
+        page: () =>
+          pageShell({
+            route: "/404",
+            title: "Page not found",
+            body: [
+              { h1: "404" } as DomphyElement,
+              {
+                p: "The page you are looking for does not exist.",
+              } as DomphyElement,
+              { a: "Back to home", href: base } as DomphyElement,
+            ],
+            toc: [],
+            frontmatter: { layout: "page" },
+            config,
+          }),
+      },
+    ]);
+    const notFoundApp = createApp(notFoundRoutes);
+    const notFoundResult = await notFoundApp.renderToString("/404");
+    writeFileSync(
+      join(outDir, "404.html"),
+      htmlDocument(
+        notFoundResult,
+        config,
+        islandsScriptUrl,
+        generatedCss,
+        [],
+        "en",
+      ),
+      "utf8",
+    );
+  } catch (error) {
+    failures.push({
+      route: "/404",
+      stage: "ssr",
+      error: String((error as Error).message || error),
+    });
   }
 
-  // 4. Islands bundle
-  await buildIslandsBundle(outDir, searchEnabled);
-
-  // 5. Search index (all docs: cached + newly rendered)
+  // 6. Search index (all docs: cached + newly rendered)
   writeFileSync(
     join(outDir, "search-index.json"),
     buildSearchIndex(searchDocs),
     "utf8",
   );
 
-  // 6. Public dir
+  // 7. Public dir
   if (publicDir && existsSync(publicDir))
     cpSync(publicDir, outDir, { recursive: true });
 
-  // 7. Sitemap (all routes: cached + rendered)
+  // 8. Sitemap (all routes: cached + rendered)
   if (config.hostname) {
     writeFileSync(
       join(outDir, "sitemap.xml"),
@@ -670,13 +797,29 @@ export async function buildSite(options: BuildOptions): Promise<void> {
     );
   }
 
-  // 8. Save incremental cache
+  // 9. Save incremental cache
   if (incremental) {
     writeFileSync(
       cacheFile,
       JSON.stringify({ configHash, pages: updatedCache } satisfies PressCache),
       "utf8",
     );
+  }
+
+  // 10. Failure policy: every per-page error was collected above; report them
+  // all at once and fail the build unless the user opted out. A partial site
+  // must never exit 0 — that is how silent broken deploys happen.
+  if (failures.length > 0) {
+    const report = [
+      `${failures.length} page(s) failed:`,
+      ...failures.map((f) => `  ✗ ${f.route} [${f.stage}]: ${f.error}`),
+    ].join("\n");
+    if (!config.continueOnError) {
+      throw new Error(
+        `${report}\nBuild failed. Set continueOnError: true in press.config to build past page errors.`,
+      );
+    }
+    console.warn(`\n${report}\n(continueOnError: build completed anyway)`);
   }
 
   console.log(

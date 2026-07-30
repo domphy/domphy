@@ -31,7 +31,7 @@
 //     ignores series/itemStyle radius entirely.
 
 import type { DomphyElement } from "@domphy/core";
-import { themeColorToken } from "@domphy/theme";
+import { themeColor } from "@domphy/theme";
 import {
   ACTIVITY_ENERGY_UNIT,
   ACTIVITY_SERIES_CONFIG,
@@ -49,17 +49,18 @@ import {
 /**
  * Value renderer matching upstream's value/unit hierarchy: a mono/tabular
  * value at font-medium (500) followed by the unit at font-normal (400) in a
- * muted foreground. `themeColorToken(null, "shift-9", "neutral")` (#707070) is
- * lighter than the engine tooltip's own text tone (shift-10) so it reads as
- * de-emphasized, yet still clears WCAG AA (~4.95:1) on the tooltip's light
- * background — unlike the reduced-opacity approach the shared renderer avoided.
+ * muted foreground. The neutral shift-9 var(--…) reference resolves against
+ * the live theme at paint time and is lighter than the engine tooltip's own
+ * text tone (shift-10), so it reads as de-emphasized, yet still clears WCAG
+ * AA (~4.95:1) on the tooltip's light background — unlike the reduced-opacity
+ * approach the shared renderer avoided.
  * The value is always numeric (safe to interpolate); the unit is a caller
  * prop, so its text is escaped before it reaches innerHTML.
  */
 function advancedValueRenderer(
   unit: string,
 ): (context: TooltipValueContext) => string {
-  const mutedColor = themeColorToken(null, "shift-9", "neutral");
+  const mutedColor = themeColor(null, "shift-9", "neutral");
   const safeUnit = unit
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

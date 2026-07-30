@@ -1,4 +1,4 @@
-﻿// Generates apps/web/public/manifest.json — a machine-readable index of every
+// Generates apps/web/public/manifest.json — a machine-readable index of every
 // @domphy package and every @domphy/ui patch (name, host tag, props schema, doc,
 // example). Also writes apps/web/public/tones.json (valid tone names + theme
 // color names). Agents/MCP query these for a deterministic API surface.
@@ -93,8 +93,14 @@ function typeReferenceName(typeNode) {
   return undefined;
 }
 
-function returnsPartialElement(fn) {
-  return typeReferenceName(fn.type) === "PartialElement";
+// Patch factories return either a PartialElement (a `$`-patch merged onto the
+// host element) or a full DomphyElement (e.g. toolbarSpacer). Both belong in
+// the registry.
+const PATCH_RETURN_TYPES = new Set(["PartialElement", "DomphyElement"]);
+
+function returnsPatchElement(fn) {
+  const name = typeReferenceName(fn.type);
+  return name !== undefined && PATCH_RETURN_TYPES.has(name);
 }
 
 function commentText(comment) {
@@ -241,7 +247,7 @@ for (const file of patchFiles) {
     if (!ts.isFunctionDeclaration(statement) || !statement.name) continue;
     const name = statement.name.text;
     if (!exported.has(name)) continue;
-    if (!returnsPartialElement(statement)) continue;
+    if (!returnsPatchElement(statement)) continue;
 
     const jsdoc = readJsDoc(statement);
     patches.push({

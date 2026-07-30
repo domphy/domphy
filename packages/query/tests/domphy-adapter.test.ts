@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { bindResult } from "../src/domphy/bindResult";
 import {
   createInfiniteQuery,
   createMutation,
@@ -238,5 +239,91 @@ describe("createMutation.variables", () => {
     expect(mutation.variables()).toBe(99);
     expect(variableCalls).toBeGreaterThan(0);
     mutation.destroy();
+  });
+});
+
+describe("bindResult vanished keys", () => {
+  it("publishes undefined (and notifies) for keys that disappear from a later result", async () => {
+    let callback: (result: Record<string, unknown>) => void = () => {};
+    const { field, release } = bindResult<Record<string, unknown>>(
+      { data: "a", error: null, failureReason: "boom" },
+      (cb) => {
+        callback = cb;
+        return () => {};
+      },
+    );
+
+    expect(field("failureReason")).toBe("boom");
+
+    let notifications = 0;
+    field("failureReason", () => notifications++);
+
+    // A later result without `failureReason`: the stale value must not stick.
+    callback({ data: "a", error: null });
+
+    expect(field("failureReason")).toBeUndefined();
+    // Listener notification is batched by the Notifier — flush the queue.
+    await sleep(0);
+    expect(notifications).toBeGreaterThan(0);
+
+    release();
+  });
+
+  it("keeps still-present keys untouched", () => {
+    let callback: (result: Record<string, unknown>) => void = () => {};
+    const { field, release } = bindResult<Record<string, unknown>>(
+      { data: "a", status: "success" },
+      (cb) => {
+        callback = cb;
+        return () => {};
+      },
+    );
+
+    callback({ data: "b", status: "success" });
+
+    expect(field("data")).toBe("b");
+    expect(field("status")).toBe("success");
+
+    release();
+  });
+});
+
+describe("createQuery destroy() tripwires", () => {
+  it("dev-warns once on field reads after destroy()", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const query = createQuery<string>(client, {
+      queryKey: ["destroy-read-hint"],
+      queryFn: async () => "x",
+    });
+    await sleep(10);
+
+    query.destroy();
+    query.data();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("after destroy()");
+
+    // Warn-once: further stale reads stay silent.
+    query.data();
+    query.status();
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    warn.mockRestore();
+  });
+
+  it("dev-warns on a second destroy() and makes it a no-op", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const query = createQuery<string>(client, {
+      queryKey: ["destroy-twice-hint"],
+      queryFn: async () => "x",
+    });
+    await sleep(10);
+
+    query.destroy();
+    query.destroy();
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("twice");
+
+    warn.mockRestore();
   });
 });

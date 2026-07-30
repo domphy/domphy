@@ -63,30 +63,55 @@ export class ElementList {
     if (!this.owner || !this.owner.domElement) return;
     const dom = this.owner.domElement;
 
-    const el = node instanceof ElementNode ? node.domElement : node.domText;
-    if (!el) return;
+    const nodes =
+      node instanceof ElementNode
+        ? node.domElement
+          ? [node.domElement]
+          : []
+        : node._allDomNodes();
+    if (nodes.length === 0) return;
     // `el` still occupies its old DOM slot when this runs, so a positional
     // `childNodes[index]` reference is off by one for a forward move. Reference
     // the node that should FOLLOW `el` in the new logical order by identity
     // instead — direction-agnostic and correct for forward and backward moves
     // (and for a move to the last slot, where there is no following node).
     const ref = this._domReferenceAfter(index + 1);
-    if (el !== ref) dom.insertBefore(el, ref);
+    // Move as a group: a multi-root rawHtml child spans several siblings and
+    // they must travel together, in order (insertBefore before the same ref
+    // preserves group order).
+    for (const el of nodes) {
+      if (el !== ref) dom.insertBefore(el, ref);
+    }
   }
 
   _swapDomElement(aNode: NodeItem, bNode: NodeItem) {
     if (!this.owner || !this.owner.domElement) return;
     const parent = this.owner.domElement;
 
-    const a = aNode instanceof ElementNode ? aNode.domElement : aNode.domText;
-    const b = bNode instanceof ElementNode ? bNode.domElement : bNode.domText;
-    if (!a || !b) return;
+    const aNodes =
+      aNode instanceof ElementNode
+        ? aNode.domElement
+          ? [aNode.domElement]
+          : []
+        : aNode._allDomNodes();
+    const bNodes =
+      bNode instanceof ElementNode
+        ? bNode.domElement
+          ? [bNode.domElement]
+          : []
+        : bNode._allDomNodes();
+    if (aNodes.length === 0 || bNodes.length === 0) return;
 
-    const aNext = a.nextSibling;
-    const bNext = b.nextSibling;
-
-    parent.insertBefore(a, bNext);
-    parent.insertBefore(b, aNext);
+    // Swap as groups (a multi-root rawHtml child occupies several siblings).
+    // A temporary marker pins the a-group's original slot: move the a-group
+    // past the b-group, then move the b-group to the marker. Direction-
+    // agnostic and safe for immediately adjacent groups.
+    const marker = document.createComment("");
+    parent.insertBefore(marker, aNodes[0]);
+    const bEnd = bNodes[bNodes.length - 1].nextSibling;
+    for (const el of aNodes) parent.insertBefore(el, bEnd);
+    for (const el of bNodes) parent.insertBefore(el, marker);
+    marker.remove();
   }
 
   update(inputs: ElementInput[], updateDom = true, silent = false): void {
@@ -301,6 +326,9 @@ export class ElementList {
         const domNode = item._createDOMNode();
         const ref = this._domReferenceAfter(finalIndex + 1);
         domElement.insertBefore(domNode, ref);
+        // Multi-root rawHtml: the extra roots follow the first, before the ref.
+        for (const extra of item._domExtras)
+          domElement.insertBefore(extra, ref);
       }
     }
     !silent &&
@@ -360,9 +388,10 @@ export class ElementList {
         done();
       }
     } else {
-      const el = item.domText;
       this.items.splice(index, 1);
-      updateDom && el && el.remove();
+      // Remove the whole group — a multi-root rawHtml child leaves extra root
+      // siblings behind if only the first node is removed.
+      if (updateDom) for (const el of item._allDomNodes()) el.remove();
       item._dispose();
     }
 
