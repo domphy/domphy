@@ -100,7 +100,9 @@ validate(options).ok; // false only when error-severity issues exist
 ```
 
 Every built-in rule comes from a real silent failure: `unknown-tag` (typo'd
-or unregistered tag throws at runtime), `legacy-light-intensity` (three
+or unregistered tag throws at runtime), `tag-not-first` (a props-first
+description makes the reconciler's first-own-key tag read throw),
+`legacy-light-intensity` (three
 r155+ physical units — a 0-1 point light is nearly invisible),
 `additive-blowout` (large bright additive points stack into white blobs),
 `camera-missing-lookat` (off-axis camera never aimed at its subject).

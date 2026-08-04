@@ -68,3 +68,11 @@ apps/web/playwright-report/
 
 # Third-party reference clones for clean-room comparison (local only)
 reference/
+
+# LaTeX build artifacts (paper.pdf itself stays tracked — the docs site
+# links to it via github.com/domphy/domphy/blob/main/paper/paper.pdf)
+paper/*.aux
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.out
+paper/*.synctex.gz

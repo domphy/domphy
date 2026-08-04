@@ -47,6 +47,14 @@ jobs:
       # `MERMAID_E2E=1 pnpm --filter @domphy/mermaid test` when touching
       # packages/mermaid's render path. Do not enable the flag here without
       # also provisioning chrome-headless-shell.
+      #
+      # Note: the 7 Playwright visual lanes (visual, visual:responsive,
+      # visual:blocks-responsive, visual:ui-overlays, visual:editor,
+      # visual:chart, visual:three — see apps/web/package.json) are
+      # deliberately NOT run here: their screenshot baselines are
+      # Windows-specific (*-win32.png) and would not match ubuntu-latest
+      # font rendering. Run them locally after UI/blocks changes — see
+      # apps/web/visual/README.md.
       - name: Test
         run: pnpm -r test
 

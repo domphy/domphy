@@ -24,7 +24,7 @@ new ElementNode(App).render(document.body)
 
 `{ button: 'Save', $: [button()] }` — that's a Domphy component. No JSX transform, no build step required, no wrappers around your DOM.
 
-**Good fit for tool apps** (plugins, extensions, dashboards, panels): you get reactivity + 96 polished UI patches + a full design system without shipping a 40 kB runtime or setting up a JSX compiler.
+**Good fit for tool apps** (plugins, extensions, dashboards, panels): you get reactivity + 98 polished UI patches + a full design system without shipping a 40 kB runtime or setting up a JSX compiler.
 
 **Works well with AI**: plain objects are what LLMs generate naturally, and `@domphy/doctor` validates the output — the model reads the report and self-corrects (see [Building with AI](#building-with-ai)).
 
@@ -34,7 +34,7 @@ Core runtime + design system:
 
 - `@domphy/core` — rendering, reactivity (`toState`/`RecordState`/`computed`/`effect`/`effectScope`/`batch`/`untrack`/`flushSync`), lifecycle, SSR, CSS-in-JS; exports `ReadableState<T>`, `ValueOrState<T>`, `configure({ cspNonce })`
 - `@domphy/theme` — context-aware color, size, and spacing tokens
-- `@domphy/ui` — 96 ready-made patches (`button`, `card`, `dialog`, `motion`, `errorBoundary`, …) built on core + theme
+- `@domphy/ui` — 98 ready-made patches (`button`, `card`, `dialog`, `motion`, `errorBoundary`, …) built on core + theme
 - `@domphy/blocks` — 173 composed blocks/effect components: sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes (from shadcn/ui), and marketing/effect components (from Magic UI)
 
 Data & logic — framework-agnostic API at the main entry + a thin Domphy adapter at the `/domphy` subpath:

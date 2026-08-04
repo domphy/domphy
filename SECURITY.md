@@ -10,7 +10,7 @@ Security fixes are applied to the latest published release line on `main` / npm 
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Email the maintainer with:
+Report privately via [GitHub Security Advisories](https://github.com/domphy/domphy/security/advisories/new) with:
 
 - Affected package(s) and versions
 - Description and impact

@@ -6,6 +6,15 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## Unreleased
+
+Audit deferral-closure wave: 30 actionable fixes + 15 dependency migrations across the monorepo (landed on `main`, not yet version-bumped/published).
+
+- **Dependency migrations:** `@modelcontextprotocol/sdk` v2 (`@domphy/mcp` — now `@modelcontextprotocol/server` + `@modelcontextprotocol/client`), cobe 2.0.1 (`@domphy/blocks`), three 0.185.1 (`@domphy/three`), `@tanstack/query-core` 5.101.4 (`@domphy/query` — vendored files still byte-identical, zero deviations), `@tanstack/form-core` 1.33.3 (`@domphy/form` — deviations #1–#3 re-applied, new deviation #4), shiki 4.4.1 + esbuild 0.28.1 (`@domphy/press`), markdown-it 15 (docs site), `@types/node` 26, puppeteer 25, playwright 1.62.1, `@tanstack/vite-config` 0.6. Dead deps pruned (markdown-it-container/emoji/include). typescript 7 and jsdom 30 stay deferred with documented blockers (tsup dts crash; chart SVG regression).
+- **Fixes per package:** `@domphy/ui` — panel surface-contract, `dialog` aria wiring, `selectBox` typeahead; `@domphy/core` — an `effect` that throws on its initial run is now disposed correctly; `@domphy/chart` — mixed-sign stacking, legend single-mode, tooltip escaping, pie hit-test; `@domphy/query` — mutation tripwires, infinite-query accessors; `@domphy/form` — async validation race tests; `@domphy/router` — `MatchSupersededError` sentinel; `@domphy/app` — `DataCache` invalidate; `@domphy/doctor` — `--no-factory-exec` CLI flag, low-contrast detection for static `var(--…)` literals; `@domphy/markdown` — ESM math import guarded via `process.getBuiltinModule`; `@domphy/three` — new `tag-not-first` diagnose rule; `@domphy/mermaid` — disposed-instance render check; `@domphy/dnd` — SSR coverage; `@domphy/virtual` — typed `createWindowVirtualizer`; `@domphy/theme` — actionable `themeVars` error; `@domphy/blocks` — muted-surface contrast promoted to `text`, biome zero-warning.
+
+---
+
 ## Production-readiness pass (all packages) — 2026-07-30
 
 Repo-wide audit and hardening: every package was reviewed top-down (blocks → core) for correctness, reused-node lifecycle violations, error handling, security, and test coverage, then fixed with regression tests. Highlights per package:
