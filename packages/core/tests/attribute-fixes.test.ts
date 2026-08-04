@@ -94,6 +94,49 @@ describe("multi-word HTML attribute names resolve to their real (unhyphenated) D
     expect(el.getAttribute("my-widget-prop")).toBe("value");
     expect(el.hasAttribute("mywidgetprop")).toBe(false);
   });
+
+  it("maps multi-hump aria-* names to the real ARIA spelling (aria-activedescendant et al.)", () => {
+    const { host } = mount({
+      div: "x",
+      ariaActiveDescendant: "opt-1",
+      ariaColCount: "3",
+      ariaPosinSet: "2",
+      ariaSetSize: "5",
+    } as unknown as DomphyElement);
+
+    const el = host.querySelector("div")!;
+    expect(el.getAttribute("aria-activedescendant")).toBe("opt-1");
+    expect(el.getAttribute("aria-colcount")).toBe("3");
+    expect(el.getAttribute("aria-posinset")).toBe("2");
+    expect(el.getAttribute("aria-setsize")).toBe("5");
+    // The bogus camelToKebab() spellings must never appear.
+    expect(el.hasAttribute("aria-active-descendant")).toBe(false);
+    expect(el.hasAttribute("aria-col-count")).toBe(false);
+    expect(el.hasAttribute("aria-posin-set")).toBe(false);
+    expect(el.hasAttribute("aria-set-size")).toBe(false);
+  });
+
+  it("a reactive ariaActiveDescendant attaches under the real name once its value appears (the docs-search combobox bug)", async () => {
+    const active = toState<string | undefined>(undefined);
+    const { host } = mount({
+      input: null,
+      role: "combobox",
+      ariaActiveDescendant: (l) => active.get(l),
+    } as unknown as DomphyElement);
+
+    const el = host.querySelector("input")!;
+    expect(el.hasAttribute("aria-activedescendant")).toBe(false);
+
+    active.set("opt-1");
+    await flush();
+    expect(el.getAttribute("aria-activedescendant")).toBe("opt-1");
+    expect(el.hasAttribute("aria-active-descendant")).toBe(false);
+
+    // Clearing the state removes the attribute entirely.
+    active.set(undefined);
+    await flush();
+    expect(el.hasAttribute("aria-activedescendant")).toBe(false);
+  });
 });
 
 describe("AttributeList.remove() removes the real (canonical) DOM attribute", () => {
